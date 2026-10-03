@@ -300,3 +300,17 @@ def test_requirements_in_vault_caps_certainty_and_moves_the_output():
     assert "Offer `/planner:grill CAP-NNN.FRn`." in ref
     assert "E316" in ref
     assert "/planner:close" in ref
+
+
+# epics (V1-17): the check finds the frontier, only the lead's confirmation decides, the gate closes.
+
+def test_epics_skill_reads_the_gaps_and_runs_the_gate():
+    epics = text("skills/epics/SKILL.md")
+    assert "`traceability` block" in epics
+    assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
+    assert "4 to 7 numbered criteria" in epics
+    assert "`[testing]`" in epics
+    assert "offer to run requirements-grill on that `CAP-NNN`" in epics and "Never write the requirement into the epic." in epics
+    assert "Set an epic to `decided` only when the solution lead confirms" in epics
+    assert "check --gate epics" in epics
+    assert "Never say an app's epics are complete while one remains." in epics
