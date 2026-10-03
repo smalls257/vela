@@ -6,13 +6,16 @@ import argparse
 import codecs
 import datetime
 import pathlib
+import subprocess
 import sys
 import time
 import traceback
 
 import yaml
 
-from planner import model, parse, render, rules, schema
+from planner import model, parse, render, rules, schema, viewer
+
+ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 
 
 class ToolError(Exception):
@@ -114,6 +117,44 @@ def cmd_render(args, out):
     return 0
 
 
+def git(root, *args):
+    """Output of a git command in the vault, or "" when git cannot answer."""
+    try:
+        result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def read_asset(name):
+    path = ASSETS / name
+    if not path.is_file():
+        raise ToolError(f"{path} is missing, so the viewer cannot work offline. Restore it from the toolkit repo.")
+    return path.read_text(encoding="utf-8")
+
+
+def cmd_view(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    today, _ = parse_today(args.date)
+    stamp = {
+        "commit": args.commit or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy",
+        "date": today,
+        "repo": args.repo_url or git(root, "remote", "get-url", "origin") or "no repository URL recorded",
+    }
+    html, problems = viewer.build(vault, read_asset("marked.min.js"), read_asset("mermaid.min.js"), stamp)
+    if problems:
+        print(f"planner view: wrote nothing, {len(problems)} links would break in the viewer.", file=out)
+        for problem in problems:
+            print(f"  {problem}", file=out)
+        return 1
+    target = pathlib.Path(args.out)
+    target.write_text(html, encoding="utf-8")
+    print(f"planner view: wrote {target} ({len(viewer.bundled(vault))} pages). "
+          f"Built from {stamp['commit']} on {stamp['date']}.", file=out)
+    return 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="planner", description="Check and render an initiative vault.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -125,6 +166,13 @@ def build_parser():
     rend.add_argument("--vault", default=".", help="vault root (default: current directory)")
     rend.add_argument("--discard-edits", action="store_true", help="overwrite hand-edited blocks and print what was lost")
     rend.set_defaults(func=cmd_render)
+    view = sub.add_parser("view", help="build one offline HTML file of the vault")
+    view.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    view.add_argument("--out", required=True, help="HTML file to write")
+    view.add_argument("--commit", help="commit to stamp (default: git rev-parse --short HEAD)")
+    view.add_argument("--repo-url", help="where newer versions live (default: git remote get-url origin)")
+    view.add_argument("--date", help="build date to stamp, YYYY-MM-DD (default: system date)")
+    view.set_defaults(func=cmd_view)
     return parser
 
 
