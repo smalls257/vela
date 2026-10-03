@@ -81,7 +81,7 @@ def test_prereq_check_is_byte_identical_across_the_copies():
 @pytest.mark.parametrize("folder", INTEGRATIONS, ids=ids(INTEGRATIONS))
 def test_install_backs_up_the_skill_outside_the_skills_folder(folder):
     install = (folder / "INSTALL.md").read_text(encoding="utf-8")
-    backups = re.findall(r"^cp -R ~/\.claude/skills/\S+ (\S+)$", install, re.M)
+    backups = re.findall(r"^cp -R ~/\.claude/skills/\S+ (.+)$", install, re.M)
     assert backups, "INSTALL.md has no `cp -R` backup of the skill"
     assert all(not b.startswith("~/.claude/skills") for b in backups), "the backup must sit outside ~/.claude/skills"
     assert install.index(backups[0]) < install.index("patch -p1 < "), "back up before applying the patch"
