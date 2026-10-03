@@ -258,3 +258,14 @@ def test_ask_header_works_with_no_origin_and_no_claude_md(tmp_path):
     assert "Behind origin/main by an unknown number of commits, as of the last fetch on no recorded date." in fresh
     (tmp_path / "CLAUDE.md").write_text((REPO / "template" / "CLAUDE.md").read_text(encoding="utf-8"), encoding="utf-8")
     assert run_injected(tmp_path, env)[0].startswith("TEMPLATE: a person must rewrite this file.")
+
+
+def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
+    ask = text("skills/ask/SKILL.md")
+    assert "Never redirect output (`>`, `>>`)." in ask
+    for banned in ("`tee`", "`sed -i`", "`git commit`", "`git checkout`", "`git log --output`", "`planner render`"):
+        assert banned in ask
+    assert "writes a file or changes git state" in ask
+    assert "Every claim is followed by its ID or labelled `Not from the vault:`. There is no third choice." in ask
+    assert "Assert nothing you did not open and read. A Grep snippet alone does not count." in ask
+    assert "Never Read a file under `voice/` or `.inbox/`. Read `sessions/` only if the user asks." in ask
