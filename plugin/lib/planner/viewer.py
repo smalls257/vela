@@ -65,19 +65,34 @@ def neutralise_prose(text):
     return "".join(pieces)
 
 
+MERMAID_DIRECTIVE = re.compile(r"%%\{.*?\}%%", re.S)
+MERMAID_FRONTMATTER = re.compile(r"\A\s*---\s*\n.*?\n---[ \t]*(?:\n|\Z)", re.S)
+
+
+def strip_mermaid_config(source):
+    """A diagram may not carry its own configuration: init directives and YAML
+    frontmatter can set themeCSS and other options that reach the page."""
+    return MERMAID_DIRECTIVE.sub("", MERMAID_FRONTMATTER.sub("", source))
+
+
 def neutralise(markdown):
-    """Make page markdown safe to render: no raw HTML, no script or data links,
-    no images that fetch. Code fences and code spans are left as written."""
-    out, in_fence, fence_mark = [], False, ""
+    """Defence in depth ahead of the browser-side sanitiser, which is the
+    guarantee: no raw HTML, no script or data links, no images that fetch, and
+    no diagram configuration. Code fences and code spans are left as written."""
+    out, block, fence_mark = [], None, ""
     for line in markdown.split("\n"):
         fence = FENCE.match(line)
-        if in_fence:
-            out.append(line)
+        if block is not None:
             if fence and fence.group(1) == fence_mark:
-                in_fence = False
+                out.append(strip_mermaid_config("\n".join(block)) if block_is_mermaid else "\n".join(block))
+                out.append(line)
+                block = None
+            else:
+                block.append(line)
             continue
         if fence:
-            in_fence, fence_mark = True, fence.group(1)
+            block, fence_mark = [], fence.group(1)
+            block_is_mermaid = line.strip()[3:].strip().lower().startswith("mermaid")
             out.append(line)
             continue
         pieces, last = [], 0
@@ -87,6 +102,8 @@ def neutralise(markdown):
             last = span.end()
         pieces.append(neutralise_prose(line[last:]))
         out.append("".join(pieces))
+    if block is not None:
+        out.append("\n".join(block))
     return "\n".join(out)
 
 
@@ -131,6 +148,17 @@ def page_data(page):
     }
 
 
+JSON_UNSAFE = {"<": "\\u003c", ">": "\\u003e", "&": "\\u0026", "\u2028": "\\u2028", "\u2029": "\\u2029"}
+
+
+def script_json(data):
+    """JSON that cannot end, or confuse, the <script> element holding it: every
+    "<" is a \\u003c escape, so "<!--<script" in a page cannot start the HTML
+    parser's double-escaped script state."""
+    text = json.dumps(data, ensure_ascii=False)
+    return "".join(JSON_UNSAFE.get(ch, ch) for ch in text)
+
+
 def script_safe(source):
     return source.replace("</script", "<\\/script")
 
@@ -146,7 +174,7 @@ def build(vault, marked_js, mermaid_js, stamp):
         "stamp": stamp,
         "pages": [page_data(p) for p in sorted(bundled(vault), key=lambda p: p.path)],
     }
-    payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    payload = script_json(data)
     html = (TEMPLATE.replace("__TITLE__", html_lib.escape(data["title"]))
             .replace("__MARKED__", script_safe(marked_js))
             .replace("__MERMAID__", script_safe(mermaid_js))
@@ -246,13 +274,20 @@ const pages = DATA.pages;
 const byName = Object.fromEntries(pages.map(p => [p.name.toLowerCase(), p]));
 const excluded = new Set(DATA.excluded);
 const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-if (window.mermaid) mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'neutral', securityLevel: 'strict' });
+if (window.mermaid) mermaid.initialize({
+  startOnLoad: false, theme: dark ? 'dark' : 'neutral', securityLevel: 'strict', htmlLabels: false,
+  flowchart: { htmlLabels: false }, sequence: { useMaxWidth: true }, class: { htmlLabels: false }, state: { htmlLabels: false },
+});
 document.getElementById('vault-title').textContent = DATA.title;
 document.getElementById('stamp').textContent =
   `${DATA.initiative} · Built from ${DATA.stamp.commit} on ${DATA.stamp.date}. Newer versions: ${DATA.stamp.repo}`;
 
 function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+// Keeps entities already written in the text (the build step writes &lt;) so a label is not escaped twice.
+function escLabel(s) {
+  return String(s).replace(/&(?!(?:[a-z][a-z0-9]*|#[0-9]+|#x[0-9a-f]+);)/gi, '&amp;').replace(/[<>"]/g, c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
 function parseLink(inner) {
   inner = inner.replace(/\\\|/g, '|');
   const bar = inner.indexOf('|');
@@ -266,7 +301,7 @@ function linkHtml(inner) {
   const l = parseLink(inner);
   const name = (l.name || current).toLowerCase();
   const target = byName[name];
-  const label = esc(l.alias || l.anchor || (target ? target.title : l.name));
+  const label = l.alias || l.anchor ? escLabel(l.alias || l.anchor) : esc(target ? target.title : l.name);
   if (!target && excluded.has(name)) return `<span class="offline-link" title="Not in this viewer">${label}</span>`;
   if (!target) return `<a class="missing" title="missing page">${label}</a>`;
   return `<a href="#/${encodeURIComponent(target.name)}${l.anchor ? '::' + encodeURIComponent(l.anchor) : ''}">${label}</a>`;
@@ -286,11 +321,79 @@ if (window.marked) marked.use({ renderer: {
   link(href, title, text) { return hrefOk(href) ? false : text; },
   image(href, title, text) { return imageFetches(href) ? esc(text + ' (' + href + ')') : false; },
 } });
-function toHtml(body) {
+// The sanitiser is the guarantee. Page markdown is untrusted, and marked and the
+// build step can disagree about what is code, so everything marked produces is
+// parsed into an inert <template> and rebuilt from an allowlist before it is shown.
+const HTML_OK = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'code', 'pre',
+  'blockquote', 'hr', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'div', 'span']);
+const HTML_DROP = new Set(['script', 'style', 'iframe', 'svg', 'img', 'object', 'embed', 'template', 'noscript', 'textarea',
+  'title', 'math', 'video', 'audio', 'link', 'meta', 'base', 'form', 'select', 'option', 'button', 'input', 'frame',
+  'frameset', 'applet', 'canvas', 'picture', 'source', 'track', 'map', 'area', 'head']);
+const CLASS_OK = /^(gen|offline-link|missing|diagram-error|mermaid|draft-banner|language-[a-z0-9_+-]+)$/;
+const XHTML = 'http://www.w3.org/1999/xhtml';
+function cleanAttributes(el, tag) {
+  for (const attr of [...el.attributes]) {
+    const name = attr.name.toLowerCase();
+    let keep = false;
+    if (name === 'href') keep = tag === 'a' && hrefOk(attr.value.trim());
+    else if (name === 'title') keep = tag === 'a' || tag === 'span';
+    else if (name === 'id') keep = /^h[1-6]$/.test(tag) && /^[a-z0-9_-]+$/i.test(attr.value);
+    else if (name === 'class') {
+      const classes = attr.value.split(/\s+/).filter(c => CLASS_OK.test(c));
+      keep = classes.length > 0;
+      if (keep) el.setAttribute('class', classes.join(' '));
+    }
+    if (!keep) el.removeAttribute(attr.name);
+  }
+}
+function cleanChildren(parent) {
+  for (const node of [...parent.childNodes]) {
+    if (node.nodeType === Node.TEXT_NODE) continue;
+    if (node.nodeType !== Node.ELEMENT_NODE) { node.remove(); continue; }
+    const tag = node.localName.toLowerCase();
+    if (node.namespaceURI !== XHTML || HTML_DROP.has(tag)) { node.remove(); continue; }
+    if (!HTML_OK.has(tag)) { node.replaceWith(document.createTextNode(node.textContent)); continue; }
+    cleanAttributes(node, tag);
+    cleanChildren(node);
+  }
+}
+function sanitiseHtml(html) {
+  const holder = document.createElement('template');
+  holder.innerHTML = html;
+  cleanChildren(holder.content);
+  return holder.content;
+}
+const SVG_DROP = new Set(['script', 'image', 'foreignobject', 'iframe', 'object', 'embed', 'animate', 'set', 'animatemotion', 'animatetransform', 'video', 'audio']);
+function offPageUrl(css) { return /@import|url\(\s*(?!['"]?#)/i.test(css); }
+function cleanSvgChildren(parent) {
+  for (const el of [...parent.children]) {
+    const tag = el.localName.toLowerCase();
+    if (SVG_DROP.has(tag)) { el.remove(); continue; }
+    for (const attr of [...el.attributes]) {
+      const name = attr.name.toLowerCase();
+      const off = (name === 'href' || name === 'xlink:href') && !attr.value.trim().startsWith('#');
+      if (name.startsWith('on') || off || (name === 'style' && offPageUrl(attr.value))) el.removeAttribute(attr.name);
+    }
+    if (tag === 'style' && offPageUrl(el.textContent)) {
+      el.textContent = el.textContent.replace(/@import[^;]*;?/gi, '').replace(/url\(\s*(?!['"]?#)[^)]*\)/gi, 'none');
+    }
+    cleanSvgChildren(el);
+  }
+}
+function sanitiseSvg(svg) {
+  const holder = document.createElement('template');
+  holder.innerHTML = svg;
+  cleanSvgChildren(holder.content);
+  return holder.content;
+}
+function stripDiagramConfig(source) {
+  return source.replace(/^\s*---\s*\n[\s\S]*?\n---[ \t]*(?:\n|$)/, '').replace(/%%\{[\s\S]*?\}%%/g, '');
+}
+function toNodes(body) {
   let md = body.replace(/\[\[([^\]]+?)\]\]/g, (_, inner) => linkHtml(inner));
   md = md.replace(/<!--\s*generated:[a-z0-9-]+ sha=[0-9a-f]{8}: do not edit, run planner render\s*-->/g, '<div class="gen">\n')
          .replace(/<!--\s*\/generated:[a-z0-9-]+\s*-->/g, '\n</div>');
-  return window.marked ? marked.parse(md) : '<pre>' + esc(md) + '</pre>';
+  return sanitiseHtml(window.marked ? marked.parse(md) : '<pre>' + esc(md) + '</pre>');
 }
 
 function buildTree(filter) {
@@ -329,13 +432,13 @@ for (const p of pages) for (const m of p.body.matchAll(/\[\[([^\]]+?)\]\]/g)) {
 let diagramCount = 0;
 async function drawDiagrams(art) {
   for (const code of [...art.querySelectorAll('pre code.language-mermaid')]) {
-    const source = code.textContent;
+    const source = stripDiagramConfig(code.textContent);
     const box = document.createElement('div');
     code.parentElement.replaceWith(box);
     if (!window.mermaid) { box.className = 'diagram-error'; box.textContent = 'Diagram not drawn: the Mermaid library did not load.\n\n' + source; continue; }
     try {
       const { svg } = await mermaid.render('diagram-' + (++diagramCount), source);
-      box.className = 'mermaid'; box.innerHTML = svg;
+      box.className = 'mermaid'; box.replaceChildren(sanitiseSvg(svg));
     } catch (e) {
       box.className = 'diagram-error';
       box.textContent = 'Diagram not drawn: ' + (e && e.message ? e.message : String(e)) + '\n\n' + source;
@@ -352,7 +455,7 @@ async function show() {
   document.getElementById('crumb').textContent = p.path;
   document.getElementById('banner').innerHTML = p.draft ? '<div class="draft-banner">Working draft: not agreed yet</div>' : '';
   const art = document.getElementById('page');
-  art.innerHTML = toHtml(p.body);
+  art.replaceChildren(toNodes(p.body));
   art.querySelectorAll('h1,h2,h3,h4').forEach(el => el.id = slug(el.textContent));
   await drawDiagrams(art);
   const props = Object.entries(p.meta).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>`).join('');
