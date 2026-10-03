@@ -52,7 +52,3 @@ Vessel schedule is a black box on this page. Nothing inside it changes, so its c
 - **Tested by:** Booking runs a contract test on its side. Marine Ops Systems adds no test, because the API does not change and Booking's test fails first if it does. Booking's test runs on every Booking build, and a failure blocks the Booking release.
 - **State:** fact
 - **Source:** SRC-06
-
-## Concerns this team carries
-
-None. [[concern-testing|Testing]] covers CON-004 from Booking's side.

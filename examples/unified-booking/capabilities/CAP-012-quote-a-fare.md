@@ -6,7 +6,7 @@ origin: proposed
 change: narrow
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -37,4 +37,8 @@ Lets a customer or an agent know the price of a crossing before they commit to i
 
 ## Delivered by
 
-- [[EPC-038-pricing-serves-booking|EPC-038 Pricing serves Booking only]]
+<!-- generated:delivered-by sha=1390bbd7: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harbourline/revenue-team | decided |
+<!-- /generated:delivered-by -->

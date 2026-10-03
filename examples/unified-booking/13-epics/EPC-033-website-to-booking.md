@@ -5,7 +5,7 @@ title: Website moves to Booking
 initiative: INI-002
 state: decided
 owner: "@harbourline/digital-team"
-authored: authored
+authored: mixed
 apps: [APP-website, APP-booking]
 delivers: [CAP-013, G1, G2]
 consumes: [CON-001]
@@ -34,12 +34,16 @@ Cutover is February 2027. The old adapter stays behind a switch for 4 weeks so t
 
 ## Traces to
 
-- Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]] (website)
-- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] (client)
-- Concerns: [[concern-rollout|Rollout]], [[concern-testing|Testing]]
-- Goals: [[01-goals|G1]], [[01-goals|G2]]
-- Flow: [[FLO-001-hold-pay-confirm|FLO-001 Hold, pay, confirm]]
-- Apps: [[website-building-blocks|Public website]], [[booking-building-blocks|Booking]]
+<!-- generated:traces-to sha=92566812: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[website-building-blocks\|Public website]], [[booking-building-blocks\|Booking]] |
+| Delivers | [[CAP-013-reserve-a-crossing\|CAP-013 Reserve a crossing]], [[01-goals\|G1]], [[01-goals\|G2]] |
+| Consumes | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] |
+| Flows | [[FLO-001-hold-pay-confirm\|FLO-001 Hold, pay, confirm]] |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]], [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-039-run-booking\|EPC-039 Run Booking: on-call, runbooks, dashboards]] |
+| Concerns | [[concern-data\|Data]], [[concern-observability\|Observability]], [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
+<!-- /generated:traces-to -->
 
 ## Depends on
 

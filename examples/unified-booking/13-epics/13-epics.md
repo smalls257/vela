@@ -4,7 +4,7 @@ type: index
 title: Epics
 initiative: INI-002
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-10-21 Shape", "session 2026-11-18 Grill"]
 ---
 
@@ -24,6 +24,11 @@ Booking's own epics come first because every channel cutover needs a working Boo
 - [[EPC-038-pricing-serves-booking|EPC-038]] Pricing serves Booking only
 - [[EPC-039-run-booking|EPC-039]] Run Booking: on-call, runbooks, dashboards
 
+## Traceability
+
+<!-- generated:traceability sha=2cb4dcdb: do not edit, run planner render -->
+**Traceability:** no gaps. 57 checks pass.
+<!-- /generated:traceability -->
 
 ## Sequencing
 

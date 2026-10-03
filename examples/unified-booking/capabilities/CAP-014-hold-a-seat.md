@@ -6,7 +6,7 @@ origin: proposed
 change: new
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -37,4 +37,8 @@ Lets a customer keep a seat on a crossing for 10 minutes while they pay, so no o
 
 ## Delivered by
 
-- [[EPC-031-holds-and-confirms|EPC-031 Booking holds and confirms crossings]]
+<!-- generated:delivered-by sha=fa44021f: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harbourline/booking-team | decided |
+<!-- /generated:delivered-by -->

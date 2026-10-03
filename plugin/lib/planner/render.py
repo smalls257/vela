@@ -5,7 +5,7 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 """
 import hashlib
 
-from planner import schema
+from planner import schema, trace
 from planner.model import Finding
 
 OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
@@ -160,6 +160,9 @@ def where_it_stands(vault, page):
                            str(unexamined_cells(vault, app)), f"{done} of {total}"))
     else:
         out.append("**Apps on the ladder:** none")
+    handed = [a for a in vault.apps if schema.HANDED_OFF_RE.match(str(a.meta.get("handed_off", "")))]
+    if handed:
+        out += ["", "**Handed off:** " + "; ".join(f"{plain_link(a.name, title(a))} ({a.meta['handed_off']})" for a in handed)]
     out.append("")
     open_unknowns = [u for u in vault.unknowns if u.fact("State") == "open"]
     if open_unknowns:
@@ -176,9 +179,82 @@ def where_it_stands(vault, page):
     dates = sorted(str(s.meta.get("date", "")) for s in vault.sessions if s.meta.get("date"))
     out.append(f"**Last session:** {dates[-1] if dates else 'none recorded'}")
     if vault.of_type("epic"):
+        gaps = len(trace.report(vault).gaps)
+        index = vault.by_id.get("epics")
+        where = f", listed on {plain_link(index[0].name, title(index[0]))}" if index else ""
+        out.append("")
+        out.append(f"**Coverage gaps:** {gaps}{where}")
         out.append("")
         out.append("**Delivery status:** not tracked in this vault")
     return "\n".join(out)
+
+
+def plain_link(target, label):
+    """A wikilink outside a table, where the pipe needs no escape."""
+    return f"[[{target}|{label}]]"
+
+
+def id_link(vault, item_id):
+    """A table-safe link to whatever an ID names, or the bare ID if it names nothing (E207 reports that)."""
+    pages = vault.by_id.get(item_id)
+    if pages:
+        page = pages[0]
+        label = title(page) if page.type == "app-building-blocks" else f"{item_id} {title(page)}"
+        return link(page.name, cell(label))
+    item = vault.item(item_id)
+    if item is not None:
+        return link(item.page.name, cell(f"{item.id} {item.name}"), item.heading)
+    if item_id in vault.row_ids:
+        return link(vault.row_ids[item_id][0].name, item_id)
+    return item_id
+
+
+def epic_table(epics):
+    if not epics:
+        return "none"
+    rows = [row(link(e.name, cell(f"{e.id} {title(e)}")), cell(str(e.meta.get("owner", ""))), str(e.meta.get("state", "")))
+            for e in epics]
+    return "\n".join(["| Epic | Owner | State |", "|---|---|---|"] + rows)
+
+
+def epics_for_app(vault, page):
+    return epic_table([e for e in trace.epics(vault) if page.id in trace.listed(e, "apps")])
+
+
+def delivered_by(vault, page):
+    return epic_table([e for e in trace.epics(vault) if page.id in trace.listed(e, "delivers")])
+
+
+TRACE_LISTS = (("Apps", "apps"), ("Delivers", "delivers"), ("Consumes", "consumes"), ("Flows", "flows"),
+               ("Depends on", "depends_on"))
+
+
+def traces_to(vault, page):
+    rows = []
+    for label, key in TRACE_LISTS:
+        ids = trace.listed(page, key)
+        rows.append(row(label, ", ".join(id_link(vault, i) for i in ids) or "none"))
+    concerns = []
+    for name in sorted(trace.ac_markers(page)):
+        found = vault.by_id.get(f"concern-{name}")
+        concerns.append(link(found[0].name, cell(title(found[0]))) if found else f"[{name}] matches no concern page")
+    rows.append(row("Concerns", ", ".join(concerns) or "none"))
+    return "\n".join(["| Traces to | Items |", "|---|---|"] + rows)
+
+
+def traceability(vault, page):
+    result = trace.report(vault)
+    if not result.checked:
+        return "**Traceability:** nothing to trace yet."
+    passes = f"{result.passed} {'check passes' if result.passed == 1 else 'checks pass'}"
+    if not result.gaps:
+        return f"**Traceability:** no gaps. {passes}."
+    count = len(result.gaps)
+    lines = [f"**Traceability:** {count} {'gap' if count == 1 else 'gaps'}. {passes}.", "",
+             "| Rule | Item | Gap |", "|---|---|---|"]
+    for gap in result.gaps:
+        lines.append(row(gap.rule, link(gap.page.name, cell(gap.subject), gap.anchor), cell(gap.message)))
+    return "\n".join(lines)
 
 
 GENERATORS = {
@@ -186,6 +262,10 @@ GENERATORS = {
     "concern-matrix": concern_matrix,
     "unknowns-index": unknowns_index,
     "contracts-consumed": contracts_consumed,
+    "traceability": traceability,
+    "epics-for-app": epics_for_app,
+    "traces-to": traces_to,
+    "delivered-by": delivered_by,
 }
 
 

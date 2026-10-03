@@ -61,15 +61,18 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 none
 <!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-cost|Cost]]: the mainframe team lead checked that Booking's MQ use fits the existing MIPS budget (CST-5).
-- [[concern-testing|Testing]]: keeps the test region available for the weekly end-to-end run.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]]) and pairs with the Booking team in that time.
 
 ## Epics
 
-The epics that touch this app are listed on [[13-epics|Epics]].
+<!-- generated:epics-for-app sha=496df681: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] | @harbourline/booking-team | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[ferrymaster-runtime|FERRYMASTER runtime]]

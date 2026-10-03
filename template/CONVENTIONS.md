@@ -224,6 +224,10 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `concern-matrix` | `08-concerns.md` | One row per app, one column per concern, each cell's state |
 | `unknowns-index` | `11-unknowns-and-risks.md` | Every unknown and risk with owner, state and ask-by |
 | `contracts-consumed` | each app page | Every contract whose `**Consumers:**` links this app |
+| `epics-for-app` | each app page | Every epic whose `apps` lists this app, with owner and state |
+| `traceability` | `13-epics.md` | Each trace gap in full, and the number of checks that pass |
+| `traces-to` | each epic page | The epic's `apps`, `delivers`, `consumes`, `flows` and `depends_on` as links, and the concerns its acceptance criteria mark |
+| `delivered-by` | each capability page | Every epic whose `delivers` lists this capability |
 
 A view with no generator is a list of links to where the data lives, never a copy kept by hand.
 

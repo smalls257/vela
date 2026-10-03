@@ -6,7 +6,7 @@ origin: proposed
 change: unchanged
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -35,5 +35,9 @@ Lets a customer pay for a crossing by card without Harbourline ever handling the
 - [[FLO-001-hold-pay-confirm|FLO-001 Hold, pay, confirm]]: take payment.
 
 ## Delivered by
+
+<!-- generated:delivered-by sha=140bedbf: do not edit, run planner render -->
+none
+<!-- /generated:delivered-by -->
 
 No epic changes this capability. [[EPC-031-holds-and-confirms|EPC-031]] receives the payment outcome on [[booking-building-blocks#CON-007 Tidepay payment outcome|CON-007]].

@@ -5,7 +5,7 @@ title: "Run Booking: on-call, runbooks, dashboards"
 initiative: INI-002
 state: decided
 owner: "@harbourline/booking-team"
-authored: authored
+authored: mixed
 apps: [APP-booking]
 delivers: [G2]
 consumes: []
@@ -34,10 +34,18 @@ Today a stuck booking shows up as a call centre fix the next morning. After go-l
 
 ## Traces to
 
-- Concerns: [[concern-operations|Operations]], [[concern-observability|Observability]]
-- Contracts observed: [[booking-building-blocks#CON-001 Booking API|CON-001]], [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]]
-- Unknowns: [[11-unknowns-and-risks#UNK-007 Booking on-call|UNK-007]]
-- Goals: [[01-goals|G2]]
+<!-- generated:traces-to sha=7709ed8f: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[booking-building-blocks\|Booking]] |
+| Delivers | [[01-goals\|G2]] |
+| Consumes | none |
+| Flows | none |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]], [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] |
+| Concerns | [[concern-observability\|Observability]], [[concern-operations\|Operations]] |
+<!-- /generated:traces-to -->
+
+Also related: contracts observed [[booking-building-blocks#CON-001 Booking API|CON-001]] and [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]], and [[11-unknowns-and-risks#UNK-007 Booking on-call|UNK-007]].
 
 ## Depends on
 

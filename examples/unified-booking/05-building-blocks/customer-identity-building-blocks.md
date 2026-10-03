@@ -46,7 +46,3 @@ Customer identity is a black box on this page. Nothing inside it changes, so its
 - **Tested by:** Booking runs a contract test on its side. The Platform team adds no test, because the API does not change and Booking's test fails first if it does. Booking's test runs on every Booking build, and a failure blocks the Booking release.
 - **State:** fact
 - **Source:** SRC-07
-
-## Concerns this team carries
-
-None for this app. The Platform lead owns [[concern-security|Security]], and that work sits at the Platform gateway and in Booking.

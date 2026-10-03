@@ -5,7 +5,7 @@ title: Booking events and customer notifications
 initiative: INI-002
 state: decided
 owner: "@harbourline/booking-team @harbourline/platform-team"
-authored: authored
+authored: mixed
 apps: [APP-booking, APP-notifications]
 delivers: [CAP-022, CON-002, G2, G3]
 consumes: []
@@ -36,12 +36,16 @@ The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risk
 
 ## Traces to
 
-- Capabilities: [[CAP-022-notify-customer|CAP-022 Notify customer of changes]]
-- Contracts: [[booking-building-blocks#CON-002 Booking state changed|CON-002 Booking state changed]]
-- Concerns: [[concern-data|Data]], [[concern-testing|Testing]] (schema check, Notifications consumer test)
-- Goals: [[01-goals|G2]], [[01-goals|G3]]
-- Flows: [[FLO-003-notify-on-change|FLO-003]], [[FLO-001-hold-pay-confirm|FLO-001]], [[FLO-002-amend-or-cancel|FLO-002]]
-- Apps: [[booking-building-blocks|Booking]], [[notifications-building-blocks|Notifications]]
+<!-- generated:traces-to sha=d54b1193: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[booking-building-blocks\|Booking]], [[notifications-building-blocks\|Notifications]] |
+| Delivers | [[CAP-022-notify-customer\|CAP-022 Notify customer of changes]], [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]], [[01-goals\|G2]], [[01-goals\|G3]] |
+| Consumes | none |
+| Flows | [[FLO-003-notify-on-change\|FLO-003 Notify on change]], [[FLO-001-hold-pay-confirm\|FLO-001 Hold, pay, confirm]], [[FLO-002-amend-or-cancel\|FLO-002 Amend or cancel]] |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] |
+| Concerns | [[concern-data\|Data]], [[concern-rollout\|Rollout]], [[concern-testing\|Testing]] |
+<!-- /generated:traces-to -->
 
 ## Depends on
 

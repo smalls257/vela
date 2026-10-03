@@ -6,7 +6,7 @@ origin: proposed
 change: extend
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -40,5 +40,9 @@ Lets a customer change or cancel a booking they already have.
 
 ## Delivered by
 
-- [[EPC-036-amend-cancel-online|EPC-036 Amend and cancel online]]
-- [[EPC-034-call-centre-to-booking|EPC-034 Call centre moves to Booking]]
+<!-- generated:delivered-by sha=f20e8bd8: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
+| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harbourline/booking-team @harbourline/digital-team | decided |
+<!-- /generated:delivered-by -->

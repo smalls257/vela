@@ -26,7 +26,7 @@ Retiring three adapters removes upkeep that used to cost each front-end team a f
 |---|---|---|
 | [[booking-building-blocks\|Booking]] | addressed | no work (@hl-solution-lead, review 2027-03-01): standard service footprint, no new licences |
 | [[pricing-building-blocks\|Pricing]] | unchanged | Same calls from one caller |
-| [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | MQ use within the existing MIPS budget, checked with the mainframe team lead |
+| [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | MQ use within the existing MIPS budget (CST-5), checked with the mainframe team lead |
 | [[website-building-blocks\|Website]] | unchanged | Adapter removed |
 | [[call-centre-building-blocks\|Call centre]] | unchanged | Adapter and manual fix queue removed |
 | [[kiosks-building-blocks\|Kiosks]] | unchanged | Change ships in the planned March 2027 image |

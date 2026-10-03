@@ -25,11 +25,11 @@ The gateway also restricts Pricing's Quote service to Booking. Before INI-002, t
 | App | State | What changes |
 |---|---|---|
 | [[booking-building-blocks\|Booking]] | addressed | Booking API behind the Platform gateway. Verifies service tokens and kiosk certificates. No card data. |
-| [[pricing-building-blocks\|Pricing]] | addressed | Quote service reachable by Booking only, enforced at the gateway |
+| [[pricing-building-blocks\|Pricing]] | addressed | Quote service reachable by Booking only, enforced at the gateway rule set up with the Platform lead |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | unchanged | Existing MQ channel security. Ledger adapter is the only Booking component with MQ access. |
 | [[website-building-blocks\|Website]] | addressed | Calls Booking with a service token. Tidepay hosted page as today. |
 | [[call-centre-building-blocks\|Call centre]] | addressed | Desktop client calls Booking with a service token. Agents keep their existing sign-in. |
-| [[kiosks-building-blocks\|Kiosks]] | addressed | Device certificate per kiosk from Platform PKI, in the March 2027 image |
+| [[kiosks-building-blocks\|Kiosks]] | addressed | Device certificate per kiosk from Platform PKI, in the March 2027 image, because a kiosk has no user to log in ([[11-unknowns-and-risks#UNK-004 Kiosk authentication\|UNK-004]]) |
 | [[notifications-building-blocks\|Notifications]] | unchanged | Subscribes to the event bus with existing Platform credentials |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | Existing read API access |
 | [[customer-identity-building-blocks\|Customer identity]] | unchanged | Existing read API access |

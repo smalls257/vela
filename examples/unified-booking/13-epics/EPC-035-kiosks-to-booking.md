@@ -5,7 +5,7 @@ title: Kiosks move to Booking in the March image
 initiative: INI-002
 state: decided
 owner: "@harbourline/port-systems"
-authored: authored
+authored: mixed
 apps: [APP-kiosks, APP-booking]
 delivers: [CAP-013, G1, G2]
 consumes: [CON-001]
@@ -35,13 +35,18 @@ Kiosks have no user to log in, so each kiosk authenticates with a device certifi
 
 ## Traces to
 
-- Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]] (kiosks)
-- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] v1 (client)
-- Decisions: [[ADR-0003-versioned-booking-api|ADR-0003]]
-- Concerns: [[concern-security|Security]] (device certificates), [[concern-rollout|Rollout]], [[concern-testing|Testing]]
-- Goals: [[01-goals|G1]], [[01-goals|G2]]
-- Unknowns: [[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]]
-- Apps: [[kiosks-building-blocks|Port kiosks]], [[booking-building-blocks|Booking]]
+<!-- generated:traces-to sha=311354eb: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[kiosks-building-blocks\|Port kiosks]], [[booking-building-blocks\|Booking]] |
+| Delivers | [[CAP-013-reserve-a-crossing\|CAP-013 Reserve a crossing]], [[01-goals\|G1]], [[01-goals\|G2]] |
+| Consumes | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] |
+| Flows | [[FLO-001-hold-pay-confirm\|FLO-001 Hold, pay, confirm]] |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] |
+| Concerns | [[concern-data\|Data]], [[concern-observability\|Observability]], [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
+<!-- /generated:traces-to -->
+
+Also related: [[ADR-0003-versioned-booking-api|ADR-0003]], [[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]].
 
 ## Depends on
 

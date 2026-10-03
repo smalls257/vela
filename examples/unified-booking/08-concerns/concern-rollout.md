@@ -29,7 +29,7 @@ If the March image slips, kiosks keep their old adapter until September ([[11-un
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | n/a | No change | n/a |
 | [[website-building-blocks\|Website]] | addressed | February 2027 | Switch back to FM screen adapter for 4 weeks |
 | [[call-centre-building-blocks\|Call centre]] | addressed | March 2027 | Switch back to terminal adapter for 4 weeks |
-| [[kiosks-building-blocks\|Kiosks]] | addressed | March 2027 image | Switch back to FM adapter for 4 weeks; removed in September 2027 image |
+| [[kiosks-building-blocks\|Kiosks]] | addressed | March 2027 image | Switch back to FM adapter for 4 weeks; removed in September 2027 image. If the March image slips, kiosks keep the FM adapter until the next one. |
 | [[notifications-building-blocks\|Notifications]] | addressed | Booking event consumer live with Booking | Pause the consumer; events wait on the bus |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | n/a | No change | n/a |
 | [[customer-identity-building-blocks\|Customer identity]] | n/a | No change | n/a |

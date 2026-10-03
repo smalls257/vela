@@ -5,7 +5,7 @@ title: Ledger adapter on FERRYMASTER's MQ transactions
 initiative: INI-002
 state: decided
 owner: "@harbourline/booking-team"
-authored: authored
+authored: mixed
 apps: [APP-booking, APP-ferrymaster]
 delivers: [ADR-0004, G1]
 consumes: [CON-006]
@@ -35,11 +35,18 @@ Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a wee
 
 ## Traces to
 
-- Contracts: [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006 Ledger transactions]]
-- Decisions: [[ADR-0004-mq-not-screen-scraping|ADR-0004]], [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]]
-- Concerns: [[concern-testing|Testing]] (ledger simulator, weekly end-to-end), [[concern-cost|Cost]] (MIPS budget check)
-- Goals: [[01-goals|G1]]
-- Unknowns: [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]], [[11-unknowns-and-risks#UNK-002 Repeatable test data|UNK-002]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]]
+<!-- generated:traces-to sha=32c664bb: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[booking-building-blocks\|Booking]], [[ferrymaster-building-blocks\|FERRYMASTER]] |
+| Delivers | [[ADR-0004-mq-not-screen-scraping\|ADR-0004 Use FERRYMASTER's existing MQ transactions instead of screen scraping]], [[01-goals\|G1]] |
+| Consumes | [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006 Ledger transactions]] |
+| Flows | none |
+| Depends on | none |
+| Concerns | [[concern-cost\|Cost]], [[concern-data\|Data]], [[concern-testing\|Testing]] |
+<!-- /generated:traces-to -->
+
+Also related: [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]], [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]], [[11-unknowns-and-risks#UNK-002 Repeatable test data|UNK-002]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]].
 
 ## Depends on
 

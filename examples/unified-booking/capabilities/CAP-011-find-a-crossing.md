@@ -6,7 +6,7 @@ origin: proposed
 change: unchanged
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -39,4 +39,6 @@ Lets a customer or an agent see which crossings run on a route and date, and how
 
 ## Delivered by
 
-No epic. INI-002 leaves this capability as it is.
+<!-- generated:delivered-by sha=140bedbf: do not edit, run planner render -->
+none
+<!-- /generated:delivered-by -->

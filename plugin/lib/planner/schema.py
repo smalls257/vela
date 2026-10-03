@@ -166,6 +166,10 @@ BLOCKS = {
     "concern-matrix": "concerns",
     "unknowns-index": "unknowns-and-risks",
     "contracts-consumed": "type:app-building-blocks",
+    "traceability": "epics",
+    "epics-for-app": "type:app-building-blocks",
+    "traces-to": "type:epic",
+    "delivered-by": "type:capability",
 }
 NEW_BLOCK_SHA = "00000000"
 

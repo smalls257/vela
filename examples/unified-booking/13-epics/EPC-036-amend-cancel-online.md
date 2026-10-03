@@ -5,7 +5,7 @@ title: Amend and cancel online
 initiative: INI-002
 state: decided
 owner: "@harbourline/booking-team @harbourline/digital-team"
-authored: authored
+authored: mixed
 apps: [APP-booking, APP-website]
 delivers: [CAP-021, CON-001, G3]
 consumes: [CON-003, CON-006]
@@ -34,11 +34,16 @@ Booking checks whether the change is allowed, asks Pricing for a new fare when t
 
 ## Traces to
 
-- Capabilities: [[CAP-021-amend-or-cancel|CAP-021 Amend or cancel a booking]]
-- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] (amend, cancel). Uses: [[pricing-building-blocks#CON-003 Quote a fare|CON-003]], [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]] (BKAMND, BKCANC)
-- Concerns: [[concern-testing|Testing]] (end-to-end for amend-or-cancel)
-- Goals: [[01-goals|G3]]
-- Flow: [[FLO-002-amend-or-cancel|FLO-002 Amend or cancel]]
+<!-- generated:traces-to sha=bef1776c: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[booking-building-blocks\|Booking]], [[website-building-blocks\|Public website]] |
+| Delivers | [[CAP-021-amend-or-cancel\|CAP-021 Amend or cancel a booking]], [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]], [[01-goals\|G3]] |
+| Consumes | [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]], [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006 Ledger transactions]] |
+| Flows | [[FLO-002-amend-or-cancel\|FLO-002 Amend or cancel]] |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]], [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] |
+| Concerns | none |
+<!-- /generated:traces-to -->
 
 ## Depends on
 

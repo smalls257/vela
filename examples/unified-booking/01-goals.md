@@ -16,7 +16,7 @@ sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", SRC-0
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=c1ce1d02: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=0a1bc540: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -28,6 +28,8 @@ sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", SRC-0
 | [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 1 of 1 |
 | [[website-building-blocks\|Public website]] | epics | 0 | 0 | 1 of 1 |
 
+**Handed off:** [[booking-building-blocks|Booking]] (Booking senior, 2026-11-10, PR #23)
+
 **Open unknowns**
 
 | Unknown | Owner | Ask by | Blocks |
@@ -35,6 +37,8 @@ sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", SRC-0
 | [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|UNK-006]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing |
 
 **Last session:** 2026-11-18
+
+**Coverage gaps:** 0, listed on [[13-epics|Epics]]
 
 **Delivery status:** not tracked in this vault
 <!-- /generated:where-it-stands -->

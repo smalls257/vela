@@ -24,7 +24,7 @@ Booking holds no card data and no contact details. The only personal data is the
 
 | App | State | Data it holds for bookings |
 |---|---|---|
-| [[booking-building-blocks\|Booking]] | addressed | Holds (10 minutes), booking-state cache by booking reference, customer ID. No card data. |
+| [[booking-building-blocks\|Booking]] | addressed | Holds (10 minutes), booking-state cache by booking reference, customer ID. No card data and no other personal data. |
 | [[pricing-building-blocks\|Pricing]] | unchanged | Fare rules |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | Ledger of record for every booking |
 | [[website-building-blocks\|Website]] | addressed | Nothing. Its FERRYMASTER reply cache is removed with the screen adapter. |

@@ -86,13 +86,17 @@ None. The website only consumes.
 | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
 <!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-testing|Testing]]: the website's consumer-driven contract tests for CON-001 run in its own pipeline.
-- [[concern-rollout|Rollout]]: the website cuts over first, in February 2027. Rollback is flipping its switch back to the FM screen adapter during the 4 weeks before removal.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-The epics that touch this app are listed on [[13-epics|Epics]].
+<!-- generated:epics-for-app sha=dc376978: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harbourline/digital-team | decided |
+| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harbourline/booking-team @harbourline/digital-team | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[website-runtime|Public website runtime]]

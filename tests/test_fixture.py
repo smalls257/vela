@@ -194,3 +194,27 @@ def test_t6_epic_tracing_to_nothing(ub):
     edit(ub / "13-epics" / "EPC-039-run-booking.md", "delivers: [G2]", "delivers: []")
     assert broken(ub) == [("W504", "13-epics/EPC-039-run-booking.md")]
     assert findings(gated(ub)[1]) == [("E504", "13-epics/EPC-039-run-booking.md")]
+
+
+def test_traceability_block_lists_a_gap_in_full(ub):
+    edit(ub / "13-epics" / "EPC-031-holds-and-confirms.md", "delivers: [CAP-013, CAP-014, CON-001", "delivers: [CAP-013, CON-001")
+    broken(ub)
+    text = (ub / "13-epics" / "13-epics.md").read_text(encoding="utf-8")
+    assert "**Traceability:** 1 gap. 56 checks pass." in text
+    assert "| T1 | [[CAP-014-hold-a-seat\\|CAP-014]] | No epic delivers CAP-014 (new), so nobody is planned to build it. |" in text
+    goals = (ub / "01-goals.md").read_text(encoding="utf-8")
+    assert "**Coverage gaps:** 1, listed on [[13-epics|Epics]]" in goals
+
+
+def test_booking_is_handed_off_on_the_goals_page():
+    text = (FIXTURE / "01-goals.md").read_text(encoding="utf-8")
+    assert "**Handed off:** [[booking-building-blocks|Booking]] (Booking senior, 2026-11-10, PR #23)" in text
+
+
+def test_no_hand_kept_trace_lists_remain():
+    for path in (FIXTURE / "05-building-blocks").glob("*-building-blocks.md"):
+        assert "## Concerns this team carries" not in path.read_text(encoding="utf-8"), path.name
+    for path in (FIXTURE / "13-epics").glob("EPC-*.md"):
+        assert "<!-- generated:traces-to sha=" in path.read_text(encoding="utf-8"), path.name
+    for path in (FIXTURE / "capabilities").glob("CAP-*.md"):
+        assert "<!-- generated:delivered-by sha=" in path.read_text(encoding="utf-8"), path.name

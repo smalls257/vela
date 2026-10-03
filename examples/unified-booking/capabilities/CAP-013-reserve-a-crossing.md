@@ -6,7 +6,7 @@ origin: proposed
 change: replace
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -42,7 +42,11 @@ Lets a customer turn a chosen crossing into a confirmed booking that every sales
 
 ## Delivered by
 
-- [[EPC-031-holds-and-confirms|EPC-031 Booking holds and confirms crossings]]
-- [[EPC-033-website-to-booking|EPC-033 Website moves to Booking]]
-- [[EPC-034-call-centre-to-booking|EPC-034 Call centre moves to Booking]]
-- [[EPC-035-kiosks-to-booking|EPC-035 Kiosks move to Booking in the March image]]
+<!-- generated:delivered-by sha=63e70d5e: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harbourline/booking-team | decided |
+| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harbourline/digital-team | decided |
+| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
+| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harbourline/port-systems | decided |
+<!-- /generated:delivered-by -->

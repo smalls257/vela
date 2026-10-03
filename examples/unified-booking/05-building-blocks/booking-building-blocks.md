@@ -8,6 +8,7 @@ c4: container
 state: decided
 change: new
 stage: epics
+handed_off: "Booking senior, 2026-11-10, PR #23"
 owner: "@harbourline/booking-team"
 authored: mixed
 sources: ["Booking senior container review", "UNK-001 ledger latency measurement 2026-09-02", SRC-04, SRC-05]
@@ -143,15 +144,24 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 | [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Tidepay payment outcome]] | Tidepay (external) | Tidepay's published API, versioned by Tidepay. | fact |
 <!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-operations|Operations]]: the Booking senior owns it. Booking joins the Platform on-call rota at go-live, with runbooks for ledger-write failures and hold-store outage.
-- [[concern-observability|Observability]]: the Booking senior owns it. Per-channel request and error rate, state transitions, ledger write latency p95, hold expiry rate, one trace ID from channel to Ledger adapter.
-- [[concern-testing|Testing]]: the Booking team builds the ledger simulator and runs provider verification for CON-001.
-- [[concern-data|Data]]: Booking stores holds for 10 minutes and a booking-state cache keyed by booking reference. It stores no card data and no personal data beyond the customer ID.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-The epics that touch this app are listed on [[13-epics|Epics]].
+<!-- generated:epics-for-app sha=8099f089: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harbourline/booking-team | decided |
+| [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] | @harbourline/booking-team | decided |
+| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harbourline/digital-team | decided |
+| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
+| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harbourline/port-systems | decided |
+| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harbourline/booking-team @harbourline/digital-team | decided |
+| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harbourline/booking-team @harbourline/platform-team | decided |
+| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harbourline/revenue-team | decided |
+| [[EPC-039-run-booking\|EPC-039 Run Booking: on-call, runbooks, dashboards]] | @harbourline/booking-team | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[booking-runtime|Booking runtime]]

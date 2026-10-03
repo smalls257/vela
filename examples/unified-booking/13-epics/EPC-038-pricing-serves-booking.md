@@ -5,7 +5,7 @@ title: Pricing serves Booking only
 initiative: INI-002
 state: decided
 owner: "@harbourline/revenue-team"
-authored: authored
+authored: mixed
 apps: [APP-pricing, APP-booking]
 delivers: [CAP-012, CON-003]
 consumes: []
@@ -33,11 +33,18 @@ One caller means the Revenue team changes fare rules against one consumer and on
 
 ## Traces to
 
-- Capabilities: [[CAP-012-quote-a-fare|CAP-012 Quote a fare]]
-- Contracts: [[pricing-building-blocks#CON-003 Quote a fare|CON-003 Quote a fare]]
-- Concerns: [[concern-security|Security]] (gateway restriction), [[concern-testing|Testing]]
-- Decisions: [[ADR-0001-one-booking-context|ADR-0001]]
-- Apps: [[pricing-building-blocks|Pricing]], [[booking-building-blocks|Booking]]
+<!-- generated:traces-to sha=3f3e7f6d: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[pricing-building-blocks\|Pricing]], [[booking-building-blocks\|Booking]] |
+| Delivers | [[CAP-012-quote-a-fare\|CAP-012 Quote a fare]], [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]] |
+| Consumes | none |
+| Flows | none |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]], [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]], [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]], [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] |
+| Concerns | [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
+<!-- /generated:traces-to -->
+
+Also related: [[ADR-0001-one-booking-context|ADR-0001]].
 
 ## Depends on
 

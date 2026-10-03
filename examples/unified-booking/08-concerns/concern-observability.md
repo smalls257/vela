@@ -24,7 +24,7 @@ The dashboards track per-channel request and error rate, booking state transitio
 
 | App | State | What is measured |
 |---|---|---|
-| [[booking-building-blocks\|Booking]] | addressed | Per-channel request and error rate, state transitions, ledger write latency p95, hold expiry rate, trace ID into the Ledger adapter |
+| [[booking-building-blocks\|Booking]] | addressed | Booking senior owns it. Per-channel request and error rate, state transitions, ledger write latency p95, hold expiry rate, one trace ID from channel to Ledger adapter |
 | [[pricing-building-blocks\|Pricing]] | unchanged | Existing service metrics |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | n/a | Black box; latency is measured at the Ledger adapter |
 | [[website-building-blocks\|Website]] | addressed | Creates and passes the trace ID |

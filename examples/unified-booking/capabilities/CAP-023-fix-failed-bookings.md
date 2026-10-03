@@ -6,7 +6,7 @@ origin: proposed
 change: retire
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -36,4 +36,10 @@ None after INI-002. The retry path in [[FLO-001-hold-pay-confirm|FLO-001 Hold, p
 
 ## Delivered by
 
-- [[EPC-034-call-centre-to-booking|EPC-034 Call centre moves to Booking]] retires the manual fix queue.
+<!-- generated:delivered-by sha=21f098f6: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
+<!-- /generated:delivered-by -->
+
+[[EPC-034-call-centre-to-booking|EPC-034]] retires the manual fix queue.

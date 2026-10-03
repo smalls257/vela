@@ -5,7 +5,7 @@ title: Call centre moves to Booking
 initiative: INI-002
 state: decided
 owner: "@harbourline/contact-centre-systems"
-authored: authored
+authored: mixed
 apps: [APP-call-centre, APP-booking]
 delivers: [CAP-013, CAP-021, CAP-023, G1, G2]
 consumes: [CON-001]
@@ -36,12 +36,16 @@ The manual fix queue goes too. It exists because the website's confirm can fail 
 
 ## Traces to
 
-- Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]], [[CAP-021-amend-or-cancel|CAP-021 Amend or cancel]] (call centre), [[CAP-023-fix-failed-bookings|CAP-023 Fix failed bookings]] (retired)
-- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] (client)
-- Concerns: [[concern-rollout|Rollout]], [[concern-testing|Testing]]
-- Goals: [[01-goals|G1]], [[01-goals|G2]]
-- Flows: [[FLO-001-hold-pay-confirm|FLO-001]], [[FLO-002-amend-or-cancel|FLO-002]]
-- Apps: [[call-centre-building-blocks|Call centre desktop]], [[booking-building-blocks|Booking]]
+<!-- generated:traces-to sha=a2a5873d: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[call-centre-building-blocks\|Call centre desktop]], [[booking-building-blocks\|Booking]] |
+| Delivers | [[CAP-013-reserve-a-crossing\|CAP-013 Reserve a crossing]], [[CAP-021-amend-or-cancel\|CAP-021 Amend or cancel a booking]], [[CAP-023-fix-failed-bookings\|CAP-023 Fix failed bookings by hand]], [[01-goals\|G1]], [[01-goals\|G2]] |
+| Consumes | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] |
+| Flows | [[FLO-001-hold-pay-confirm\|FLO-001 Hold, pay, confirm]], [[FLO-002-amend-or-cancel\|FLO-002 Amend or cancel]] |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]], [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] |
+| Concerns | [[concern-data\|Data]], [[concern-observability\|Observability]], [[concern-operations\|Operations]], [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
+<!-- /generated:traces-to -->
 
 ## Depends on
 

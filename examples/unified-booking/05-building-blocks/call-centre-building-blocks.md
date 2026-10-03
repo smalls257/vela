@@ -88,13 +88,16 @@ None. The desktop only consumes.
 | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
 <!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-testing|Testing]]: the desktop's consumer-driven contract tests for CON-001 run in its own pipeline.
-- [[concern-rollout|Rollout]]: the call centre cuts over second, in March 2027. Rollback is flipping its switch back to the terminal adapter during the 4 weeks before removal.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-The epics that touch this app are listed on [[13-epics|Epics]].
+<!-- generated:epics-for-app sha=21f098f6: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[call-centre-runtime|Call centre desktop runtime]]

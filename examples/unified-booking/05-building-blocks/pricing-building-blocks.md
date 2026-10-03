@@ -84,13 +84,16 @@ Components inside these containers belong to the Revenue team's tech design.
 none
 <!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-testing|Testing]]: provider verification for CON-003 in Pricing's pipeline.
-- [[concern-security|Security]]: the gateway rule that limits the Quote service to Booking, set up with the Platform lead.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-The epics that touch this app are listed on [[13-epics|Epics]].
+<!-- generated:epics-for-app sha=1390bbd7: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harbourline/revenue-team | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[pricing-runtime|Pricing runtime]]

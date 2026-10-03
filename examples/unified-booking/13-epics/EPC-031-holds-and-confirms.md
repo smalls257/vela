@@ -5,7 +5,7 @@ title: Booking holds and confirms crossings
 initiative: INI-002
 state: decided
 owner: "@harbourline/booking-team"
-authored: authored
+authored: mixed
 apps: [APP-booking]
 delivers: [CAP-013, CAP-014, CON-001, CON-007, G1, G2]
 consumes: [CON-003, CON-004, CON-005]
@@ -36,11 +36,16 @@ The hold is new. Today nothing stops a second channel selling the last seat whil
 
 ## Traces to
 
-- Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]], [[CAP-014-hold-a-seat|CAP-014 Hold a seat during payment]]
-- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] (hold, confirm, get), [[booking-building-blocks#CON-007 Tidepay payment outcome|CON-007 Payment outcome]]. Uses unchanged: [[pricing-building-blocks#CON-003 Quote a fare|CON-003]], [[vessel-schedule-building-blocks#CON-004 Capacity check|CON-004]], [[customer-identity-building-blocks#CON-005 Customer lookup|CON-005]]
-- Concerns: [[concern-testing|Testing]] (provider verification, Tidepay sandbox), [[concern-security|Security]], [[concern-data|Data]]
-- Goals: [[01-goals|G1]], [[01-goals|G2]]
-- Flow: [[FLO-001-hold-pay-confirm|FLO-001 Hold, pay, confirm]]
+<!-- generated:traces-to sha=0fde9efa: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[booking-building-blocks\|Booking]] |
+| Delivers | [[CAP-013-reserve-a-crossing\|CAP-013 Reserve a crossing]], [[CAP-014-hold-a-seat\|CAP-014 Hold a seat during payment]], [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]], [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Tidepay payment outcome]], [[01-goals\|G1]], [[01-goals\|G2]] |
+| Consumes | [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]], [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004 Capacity check]], [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005 Customer lookup]] |
+| Flows | [[FLO-001-hold-pay-confirm\|FLO-001 Hold, pay, confirm]] |
+| Depends on | [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] |
+| Concerns | [[concern-data\|Data]], [[concern-security\|Security]] |
+<!-- /generated:traces-to -->
 
 ## Depends on
 

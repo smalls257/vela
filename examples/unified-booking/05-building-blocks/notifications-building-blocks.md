@@ -74,13 +74,16 @@ None. Notifications only consumes.
 | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] | [[booking-building-blocks\|Booking]] | additive changes only. | decided |
 <!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-testing|Testing]]: the consumer test for CON-002 runs in Notifications' pipeline.
-- [[concern-operations|Operations]]: Booking joins the Platform team's on-call rota, so the same people answer for Booking and Notifications.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-The epics that touch this app are listed on [[13-epics|Epics]].
+<!-- generated:epics-for-app sha=135a68d0: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harbourline/booking-team @harbourline/platform-team | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[notifications-runtime|Notifications runtime]]

@@ -6,7 +6,7 @@ origin: proposed
 change: new
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -39,4 +39,8 @@ Lets a customer hear about a change to their booking, wherever the change was ma
 
 ## Delivered by
 
-- [[EPC-037-events-and-notifications|EPC-037 Booking events and customer notifications]]
+<!-- generated:delivered-by sha=135a68d0: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harbourline/booking-team @harbourline/platform-team | decided |
+<!-- /generated:delivered-by -->

@@ -24,13 +24,13 @@ Mainframe knowledge sits with two people ([[11-unknowns-and-risks#R-01 Mainframe
 
 | App | State | What changes |
 |---|---|---|
-| [[booking-building-blocks\|Booking]] | addressed | Joins Platform on-call rota. Runbooks: ledger-write failure, hold-store outage. |
+| [[booking-building-blocks\|Booking]] | addressed | Booking senior owns it. Joins Platform on-call rota at go-live. Runbooks: ledger-write failure, hold-store outage. |
 | [[pricing-building-blocks\|Pricing]] | unchanged | Revenue team support as today |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | no work (@hl-solution-lead, review 2027-03-01): the mainframe team announces MQ changes 8 weeks ahead and pairs with the Booking team January to March 2027, as normal service |
 | [[website-building-blocks\|Website]] | unchanged | Digital team support as today, less one adapter |
 | [[call-centre-building-blocks\|Call centre]] | addressed | Manual fix queue retired; next-morning fixes stop |
 | [[kiosks-building-blocks\|Kiosks]] | unchanged | Port Systems support as today |
-| [[notifications-building-blocks\|Notifications]] | addressed | no work (@hl-platform-lead, review 2027-03-01): new consumer covered by the Platform rota |
+| [[notifications-building-blocks\|Notifications]] | addressed | no work (@hl-platform-lead, review 2027-03-01): new consumer covered by the Platform rota, so the same people answer for Booking and Notifications |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | As today |
 | [[customer-identity-building-blocks\|Customer identity]] | unchanged | As today |
 

@@ -92,14 +92,16 @@ None. The kiosks only consume.
 
 Version 1 must stay available until at least the September 2027 image, and longer if that image slips (R-02, [[ADR-0003-versioned-booking-api|ADR-0003]]).
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-security|Security]]: kiosks authenticate with device certificates from Platform's existing PKI, because there is no user to log in ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]]).
-- [[concern-rollout|Rollout]]: kiosks cut over with the March 2027 image. If that image slips, kiosks keep the FM adapter until the next one.
-- [[concern-testing|Testing]]: the kiosk app's consumer-driven contract tests for CON-001 v1 run in the image build.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-The epics that touch this app are listed on [[13-epics|Epics]].
+<!-- generated:epics-for-app sha=a7b528a3: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harbourline/port-systems | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[kiosks-runtime|Port kiosks runtime]]
