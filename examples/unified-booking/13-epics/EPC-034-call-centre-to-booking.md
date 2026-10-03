@@ -1,0 +1,55 @@
+---
+id: EPC-034
+type: epic
+title: Call centre moves to Booking
+initiative: INI-002
+state: handed-off
+owner: Contact Centre Systems team
+authored: authored
+jira: HB-104
+last_verified: 2026-11-20
+sources: ["session 2026-10-07 Grill", "session 2026-11-18 Grill"]
+---
+
+# EPC-034 Call centre moves to Booking
+
+The call centre desktop client becomes a Booking API client, gets new amend and cancel screens, and loses its terminal adapter. Agents then see the same booking state as the website and the kiosks, because all three ask Booking instead of reading FERRYMASTER through their own cache.
+
+The manual fix queue goes too. It exists because the website's confirm can fail after payment, leaving agents to repair bookings the next morning. Booking now retries the ledger write and keeps the hold, so nothing is left to repair. The Head of Contact Centre agreed the queue closes when the old adapter is removed.
+
+**Owning team:** Contact Centre Systems team. **Jira:** HB-104.
+
+## Epic acceptance criteria
+
+1. Agents hold, confirm, amend, cancel and look up bookings through CON-001 only.
+2. For any booking reference, the desktop shows the same state as the website and the kiosks.
+3. An amendment shows the agent the re-quoted fare from Booking before the agent commits it.
+4. A booking still waiting for the ledger shows as `confirming` on the desktop. Agents get no fix task for it.
+5. The desktop's consumer-driven contract tests for CON-001 pass in Booking's provider verification.
+6. Flipping the call centre's switch back sends bookings through the terminal adapter without a release, for 4 weeks after cutover.
+7. After those 4 weeks the terminal adapter and the manual fix screens are removed from the desktop.
+
+## Traces to
+
+- Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]], [[CAP-021-amend-or-cancel|CAP-021 Amend or cancel]] (call centre), [[CAP-023-fix-failed-bookings|CAP-023 Fix failed bookings]] (retired)
+- Contracts: [[booking-building-blocks#CON-001|CON-001 Booking API]] (client)
+- Concerns: [[concern-rollout|Rollout]], [[concern-testing|Testing]]
+- Goals: [[01-goals|G1]], [[01-goals|G2]]
+- Flows: [[FLO-001-hold-pay-confirm|FLO-001]], [[FLO-002-amend-or-cancel|FLO-002]]
+- Apps: [[call-centre-building-blocks|Call centre desktop]], [[booking-building-blocks|Booking]]
+
+## Depends on
+
+- [[EPC-031-holds-and-confirms|EPC-031]]: hold, confirm and get.
+- [[EPC-036-amend-cancel-online|EPC-036]]: amend and cancel on CON-001.
+
+## Rollout notes
+
+Second channel, March 2027, after the website. Rollback is flipping the call centre's switch back during the 4 weeks.
+
+## Out of scope
+
+- Changes to how agents find crossings ([[CAP-011-find-a-crossing|CAP-011]] is unchanged).
+- Customer messages after an agent's change ([[EPC-037-events-and-notifications|EPC-037]]).
+
+The Contact Centre Systems team breaks this epic into stories after their tech design session.

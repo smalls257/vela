@@ -1,0 +1,46 @@
+---
+id: ADR-0003
+type: decision
+title: Version the Booking API and keep each version at least 6 months
+initiative: INI-002
+arc42: "§9"
+state: decided
+owner: solution lead
+authored: authored
+last_verified: 2026-11-20
+sources: ["session 2026-08-26 Grill", "Port Systems kiosk image calendar"]
+---
+
+# ADR-0003 Version the Booking API and keep each version at least 6 months
+
+## Status
+
+Accepted, 2026-08-26, in a Grill session with the Booking senior, Port Systems senior and QA lead.
+
+## Context
+
+Kiosks run a locked-down image that changes only in March and September (C3). Whatever the kiosk app calls must stay stable for at least six months. The website releases weekly and the call centre desktop monthly, so they can follow API changes quickly. The kiosks cannot.
+
+## Decision
+
+Version the Booking API ([[booking-building-blocks#CON-001|CON-001]]). Booking supports each version for at least six months after the next one ships. Kiosks ship the v1 client in the March 2027 image. Booking's pipeline verifies the consumer contracts of every live version.
+
+## Alternatives considered
+
+| Alternative | Why rejected |
+|---|---|
+| One unversioned API with a promise of backward compatibility | Nothing would stop a breaking change reaching kiosks that cannot update for six months. |
+| A separate API for kiosks | Two APIs would drift apart and kiosks would disagree with the other channels again (G2). |
+| Three-month support window | Shorter than the kiosk image cycle. A slipped image would leave kiosks calling a retired version. |
+
+## Consequences
+
+- Booking carries at least two versions whenever it ships a breaking change, with tests for both.
+- If the March 2027 image slips, v1 must stay up until the September image ([[11-unknowns-and-risks#R-02|R-02]]).
+- The website and call centre can move to a new version as soon as it ships.
+
+## Assumptions it depends on
+
+- Kiosks can authenticate to a versioned API without a user: [[11-unknowns-and-risks#UNK-004|UNK-004]], resolved with device certificates.
+
+Delivered by [[EPC-031-holds-and-confirms|EPC-031]] and [[EPC-035-kiosks-to-booking|EPC-035]]. See [[concern-rollout|Rollout]] and [[concern-testing|Testing]].

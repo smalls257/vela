@@ -1,0 +1,6 @@
+.DS_Store
+# generated, rebuild with: python3 examples/build-viewer.py
+examples/unified-booking-viewer.html
+# voice corpora stay local (licensing, company material)
+**/voice/corpus/
+__pycache__/

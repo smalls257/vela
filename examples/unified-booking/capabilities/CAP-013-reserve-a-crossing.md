@@ -1,0 +1,49 @@
+---
+id: CAP-013
+type: capability
+title: Reserve a crossing
+state: proposed
+owner: solution lead
+authored: mixed
+last_verified: 2026-11-20
+sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
+---
+
+# CAP-013 Reserve a crossing
+
+Lets a customer turn a chosen crossing into a confirmed booking that every sales channel agrees on.
+
+**Domain:** Sell
+
+**Source:** proposed in session 2026-07-14 Shape. To be reconciled when an official capability map arrives.
+
+## Provided by
+
+<!-- generated: do not edit -->
+| Application | Today | After |
+|---|---|---|
+| [[website-building-blocks\|Public website]] | FM screen adapter into FERRYMASTER | Booking API client |
+| [[call-centre-building-blocks\|Call centre desktop]] | terminal adapter into FERRYMASTER | Booking API client |
+| [[kiosks-building-blocks\|Port kiosks]] | FM adapter into FERRYMASTER | Booking API v1 client (March 2027 image) |
+| [[booking-building-blocks\|Booking]] | did not exist | decides held, confirmed, amended, cancelled |
+| [[ferrymaster-building-blocks\|FERRYMASTER]] | ledger of record | ledger of record, written only by Booking |
+<!-- /generated -->
+
+## Initiatives that touch this
+
+<!-- generated: do not edit -->
+- [[04a-capability-delta|INI-002 Unified Booking]] (replace)
+- INI-004 Loyalty Revamp (overlap; no pages yet)
+- INI-005 Mainframe Exit (writes to FERRYMASTER; no pages yet)
+<!-- /generated -->
+
+## Flows
+
+- [[FLO-001-hold-pay-confirm|FLO-001 Hold, pay, confirm]]: confirm booking.
+
+## Delivered by
+
+- [[EPC-031-holds-and-confirms|EPC-031 Booking holds and confirms crossings]]
+- [[EPC-033-website-to-booking|EPC-033 Website moves to Booking]]
+- [[EPC-034-call-centre-to-booking|EPC-034 Call centre moves to Booking]]
+- [[EPC-035-kiosks-to-booking|EPC-035 Kiosks move to Booking in the March image]]

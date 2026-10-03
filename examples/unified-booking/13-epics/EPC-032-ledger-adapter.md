@@ -1,0 +1,52 @@
+---
+id: EPC-032
+type: epic
+title: Ledger adapter on FERRYMASTER's MQ transactions
+initiative: INI-002
+state: handed-off
+owner: Booking team
+authored: authored
+jira: HB-102
+last_verified: 2026-11-20
+sources: ["session 2026-07-14 Discover", "session 2026-08-19 Probe", "session 2026-09-16 Grill", "CON-006 MQ spec from mainframe team"]
+---
+
+# EPC-032 Ledger adapter on FERRYMASTER's MQ transactions
+
+Booking writes to FERRYMASTER through the four MQ transactions the mainframe team already exposes for the finance reconciliation job: BKHOLD, BKCONF, BKAMND and BKCANC ([[ADR-0004-mq-not-screen-scraping|ADR-0004]]). Screen scraping is what broke 11 times last year. The MQ transactions stay the same when a screen changes, and FERRYMASTER itself cannot change before 2028 (C1), so Booking adapts to what is already there.
+
+Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003|UNK-003]]). A Booking engineer pairs with them and the MQ mapping goes into CON-006, so the knowledge no longer sits with two people (R-01). The ledger simulator built here is what Booking's contract tests run against ([[11-unknowns-and-risks#UNK-002|UNK-002]]).
+
+**Owning team:** Booking team, with mainframe team support. **Jira:** HB-102.
+
+## Epic acceptance criteria
+
+1. Booking sends BKHOLD, BKCONF, BKAMND and BKCANC in the format CON-006 documents, and the FERRYMASTER test region accepts each one in the weekly end-to-end run.
+2. When FERRYMASTER rejects a write or does not answer, Booking retries and the booking keeps its hold. No channel sees `confirmed` until FERRYMASTER has accepted.
+3. The same write sent twice is applied once in FERRYMASTER.
+4. p95 ledger write latency in the weekly end-to-end run is no worse than the 2.1 s measured for [[11-unknowns-and-risks#UNK-001|UNK-001]].
+5. Booking's MQ volume stays within the existing MIPS budget agreed with the mainframe team lead (C5).
+6. Booking's contract tests run against the ledger simulator with no connection to FERRYMASTER, and the simulator gives the replies CON-006 documents for every transaction.
+
+## Traces to
+
+- Contracts: [[ferrymaster-building-blocks#CON-006|CON-006 Ledger transactions]]
+- Decisions: [[ADR-0004-mq-not-screen-scraping|ADR-0004]], [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]]
+- Concerns: [[concern-testing|Testing]] (ledger simulator, weekly end-to-end), [[concern-cost|Cost]] (MIPS budget check)
+- Goals: [[01-goals|G1]]
+- Unknowns: [[11-unknowns-and-risks#UNK-001|UNK-001]], [[11-unknowns-and-risks#UNK-002|UNK-002]], [[11-unknowns-and-risks#UNK-003|UNK-003]]
+
+## Depends on
+
+No other epic. It depends on the mainframe team's Q1 2027 time.
+
+## Rollout notes
+
+The adapter is proven against the FERRYMASTER test region during the January to March 2027 pairing window. Its first production writes come with the website cutover in [[EPC-033-website-to-booking|EPC-033]].
+
+## Out of scope
+
+- Any change to FERRYMASTER or its MQ transactions.
+- The data warehouse feed, the finance reconciliation job and the loyalty scheme, which keep reading FERRYMASTER directly (INI-004, INI-005).
+
+The Booking team breaks this epic into stories after their tech design session.
