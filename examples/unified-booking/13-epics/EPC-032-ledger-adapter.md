@@ -20,7 +20,7 @@ sources: ["session 2026-07-14 Discover", "session 2026-08-19 Probe", "session 20
 
 Booking writes to FERRYMASTER through the four MQ transactions the mainframe team already exposes for the finance reconciliation job: BKHOLD, BKCONF, BKAMND and BKCANC ([[ADR-0004-mq-not-screen-scraping|ADR-0004]]). Screen scraping is what broke 11 times last year. The MQ transactions stay the same when a screen changes, and FERRYMASTER itself cannot change before 2028 (CST-1), so Booking adapts to what is already there.
 
-Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003|UNK-003]]). A Booking engineer pairs with them and the MQ mapping goes into CON-006, so the knowledge no longer sits with two people (R-01). The ledger simulator built here is what Booking's contract tests run against ([[11-unknowns-and-risks#UNK-002|UNK-002]]).
+Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]]). A Booking engineer pairs with them and the MQ mapping goes into CON-006, so the knowledge no longer sits with two people (R-01). The ledger simulator built here is what Booking's contract tests run against ([[11-unknowns-and-risks#UNK-002 Repeatable test data|UNK-002]]).
 
 **Owning team:** Booking team, with mainframe team support.
 
@@ -29,17 +29,17 @@ Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a wee
 1. Booking sends BKHOLD, BKCONF, BKAMND and BKCANC in the format CON-006 documents, and the FERRYMASTER test region accepts each one in the weekly end-to-end run.
 2. When FERRYMASTER rejects a write or does not answer, Booking retries and the booking keeps its hold. No channel sees `confirmed` until FERRYMASTER has accepted.
 3. The same write sent twice is applied once in FERRYMASTER.
-4. p95 ledger write latency in the weekly end-to-end run is no worse than the 2.1 s measured for [[11-unknowns-and-risks#UNK-001|UNK-001]].
+4. p95 ledger write latency in the weekly end-to-end run is no worse than the 2.1 s measured for [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]].
 5. Booking's MQ volume stays within the existing MIPS budget agreed with the mainframe team lead (CST-5).
 6. Booking's contract tests run against the ledger simulator with no connection to FERRYMASTER, and the simulator gives the replies CON-006 documents for every transaction.
 
 ## Traces to
 
-- Contracts: [[ferrymaster-building-blocks#CON-006|CON-006 Ledger transactions]]
+- Contracts: [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006 Ledger transactions]]
 - Decisions: [[ADR-0004-mq-not-screen-scraping|ADR-0004]], [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]]
 - Concerns: [[concern-testing|Testing]] (ledger simulator, weekly end-to-end), [[concern-cost|Cost]] (MIPS budget check)
 - Goals: [[01-goals|G1]]
-- Unknowns: [[11-unknowns-and-risks#UNK-001|UNK-001]], [[11-unknowns-and-risks#UNK-002|UNK-002]], [[11-unknowns-and-risks#UNK-003|UNK-003]]
+- Unknowns: [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]], [[11-unknowns-and-risks#UNK-002 Repeatable test data|UNK-002]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]]
 
 ## Depends on
 

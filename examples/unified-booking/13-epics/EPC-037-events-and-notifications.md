@@ -20,7 +20,7 @@ sources: ["session 2026-11-03 Grill"]
 
 Booking publishes Booking state changed (CON-002) to the Harbourline event bus on every change of state, as the transformation programme requires of new applications (CST-4). Notifications adds a consumer for that event and sends email or SMS through its existing message sender. Today only the website sends emails, so a customer who books at a kiosk or by phone hears nothing, and once customers can amend online they need to hear about it wherever the change came from.
 
-The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005|UNK-005]]). Finance reconciliation may read these events later ([[11-unknowns-and-risks#UNK-006|UNK-006]], deferred to INI-005), so the event only ever grows by adding fields.
+The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005 Event bus readiness|UNK-005]]). Finance reconciliation may read these events later ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]], deferred to INI-005), so the event only ever grows by adding fields.
 
 **Owning teams:** Booking team (events) and Platform team (Notifications consumer).
 
@@ -36,7 +36,7 @@ The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risk
 ## Traces to
 
 - Capabilities: [[CAP-022-notify-customer|CAP-022 Notify customer of changes]]
-- Contracts: [[booking-building-blocks#CON-002|CON-002 Booking state changed]]
+- Contracts: [[booking-building-blocks#CON-002 Booking state changed|CON-002 Booking state changed]]
 - Concerns: [[concern-data|Data]], [[concern-testing|Testing]] (schema check, Notifications consumer test)
 - Goals: [[01-goals|G2]], [[01-goals|G3]]
 - Flows: [[FLO-003-notify-on-change|FLO-003]], [[FLO-001-hold-pay-confirm|FLO-001]], [[FLO-002-amend-or-cancel|FLO-002]]
@@ -52,7 +52,7 @@ Events flow from the first production booking. Notifications takes over a channe
 
 ## Out of scope
 
-- Finance reconciliation reading events ([[11-unknowns-and-risks#UNK-006|UNK-006]]).
+- Finance reconciliation reading events ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]]).
 - Changes to how messages are sent.
 
 The Booking and Platform teams break this epic into stories after their tech design session.

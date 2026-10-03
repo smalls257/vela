@@ -24,7 +24,7 @@ Kiosks run a locked-down image that changes only in March and September (CST-3).
 
 ## Decision
 
-Version the Booking API ([[booking-building-blocks#CON-001|CON-001]]). Booking supports each version for at least six months after the next one ships. Kiosks ship the v1 client in the March 2027 image. Booking's pipeline verifies the consumer contracts of every live version.
+Version the Booking API ([[booking-building-blocks#CON-001 Booking API|CON-001]]). Booking supports each version for at least six months after the next one ships. Kiosks ship the v1 client in the March 2027 image. Booking's pipeline verifies the consumer contracts of every live version.
 
 ## Alternatives considered
 
@@ -37,11 +37,11 @@ Version the Booking API ([[booking-building-blocks#CON-001|CON-001]]). Booking s
 ## Consequences
 
 - Booking carries at least two versions whenever it ships a breaking change, with tests for both.
-- If the March 2027 image slips, v1 must stay up until the September image ([[11-unknowns-and-risks#R-02|R-02]]).
+- If the March 2027 image slips, v1 must stay up until the September image ([[11-unknowns-and-risks#R-02 The March 2027 kiosk image slips|R-02]]).
 - The website and call centre can move to a new version as soon as it ships.
 
 ## Assumptions it depends on
 
-- Kiosks can authenticate to a versioned API without a user: [[11-unknowns-and-risks#UNK-004|UNK-004]], resolved with device certificates.
+- Kiosks can authenticate to a versioned API without a user: [[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]], resolved with device certificates.
 
 Delivered by [[EPC-031-holds-and-confirms|EPC-031]] and [[EPC-035-kiosks-to-booking|EPC-035]]. See [[concern-rollout|Rollout]] and [[concern-testing|Testing]].

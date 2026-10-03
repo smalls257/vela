@@ -42,7 +42,7 @@ FERRYMASTER remains the ledger of record for every booking. Booking keeps holds 
 
 ## Assumptions it depends on
 
-- Ledger write latency is low enough for customers to wait on: [[11-unknowns-and-risks#UNK-001|UNK-001]], resolved at 2.1 s p95.
-- Finance keeps reading FERRYMASTER for now: [[11-unknowns-and-risks#UNK-006|UNK-006]], open, deferred to INI-005.
+- Ledger write latency is low enough for customers to wait on: [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]], resolved at 2.1 s p95.
+- Finance keeps reading FERRYMASTER for now: [[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]], open, deferred to INI-005.
 
 Delivered by [[EPC-031-holds-and-confirms|EPC-031]] and [[EPC-032-ledger-adapter|EPC-032]]. See [[concern-data|Data]].

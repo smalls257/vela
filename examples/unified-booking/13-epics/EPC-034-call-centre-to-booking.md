@@ -37,7 +37,7 @@ The manual fix queue goes too. It exists because the website's confirm can fail 
 ## Traces to
 
 - Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]], [[CAP-021-amend-or-cancel|CAP-021 Amend or cancel]] (call centre), [[CAP-023-fix-failed-bookings|CAP-023 Fix failed bookings]] (retired)
-- Contracts: [[booking-building-blocks#CON-001|CON-001 Booking API]] (client)
+- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] (client)
 - Concerns: [[concern-rollout|Rollout]], [[concern-testing|Testing]]
 - Goals: [[01-goals|G1]], [[01-goals|G2]]
 - Flows: [[FLO-001-hold-pay-confirm|FLO-001]], [[FLO-002-amend-or-cancel|FLO-002]]

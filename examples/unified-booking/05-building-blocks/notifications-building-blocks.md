@@ -71,7 +71,7 @@ None. Notifications only consumes.
 <!-- generated: do not edit -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-002\|CON-002 Booking state changed]] | Booking | Additive changes only | decided |
+| [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] | Booking | Additive changes only | decided |
 <!-- /generated -->
 
 ## Concerns this team carries

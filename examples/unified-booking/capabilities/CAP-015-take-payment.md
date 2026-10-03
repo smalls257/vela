@@ -40,4 +40,4 @@ Lets a customer pay for a crossing by card without Harbourline ever handling the
 
 ## Delivered by
 
-No epic changes this capability. [[EPC-031-holds-and-confirms|EPC-031]] receives the payment outcome on [[booking-building-blocks#CON-007|CON-007]].
+No epic changes this capability. [[EPC-031-holds-and-confirms|EPC-031]] receives the payment outcome on [[booking-building-blocks#CON-007 Tidepay payment outcome|CON-007]].

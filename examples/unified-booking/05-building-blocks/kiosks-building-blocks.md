@@ -87,14 +87,14 @@ None. The kiosks only consume.
 <!-- generated: do not edit -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-001\|CON-001 Booking API]] | Booking | Versioned; each version kept at least 6 months | decided |
+| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | Booking | Versioned; each version kept at least 6 months | decided |
 <!-- /generated -->
 
 Version 1 must stay available until at least the September 2027 image, and longer if that image slips (R-02, [[ADR-0003-versioned-booking-api|ADR-0003]]).
 
 ## Concerns this team carries
 
-- [[concern-security|Security]]: kiosks authenticate with device certificates from Platform's existing PKI, because there is no user to log in ([[11-unknowns-and-risks#UNK-004|UNK-004]]).
+- [[concern-security|Security]]: kiosks authenticate with device certificates from Platform's existing PKI, because there is no user to log in ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]]).
 - [[concern-rollout|Rollout]]: kiosks cut over with the March 2027 image. If that image slips, kiosks keep the FM adapter until the next one.
 - [[concern-testing|Testing]]: the kiosk app's consumer-driven contract tests for CON-001 v1 run in the image build.
 

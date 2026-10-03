@@ -24,7 +24,7 @@ The website, call centre desktop and kiosks each talk to FERRYMASTER through the
 
 ## Decision
 
-Build one Booking application. It is the only thing that talks to FERRYMASTER about bookings, and the only place that decides whether a booking is held, confirmed, amended or cancelled. Every channel calls the Booking API ([[booking-building-blocks#CON-001|CON-001]]).
+Build one Booking application. It is the only thing that talks to FERRYMASTER about bookings, and the only place that decides whether a booking is held, confirmed, amended or cancelled. Every channel calls the Booking API ([[booking-building-blocks#CON-001 Booking API|CON-001]]).
 
 ## Alternatives considered
 
@@ -38,11 +38,11 @@ Build one Booking application. It is the only thing that talks to FERRYMASTER ab
 - A new Booking team is needed, and it owns the service and the Ledger adapter ([[concern-ownership|Ownership]]).
 - Every channel has to move, one at a time ([[concern-rollout|Rollout]]).
 - Booking becomes a single point of failure for selling crossings, so it needs on-call and runbooks from day one ([[concern-operations|Operations]]).
-- Booking can publish one state-change event that Notifications and, later, Finance consume ([[booking-building-blocks#CON-002|CON-002]]).
+- Booking can publish one state-change event that Notifications and, later, Finance consume ([[booking-building-blocks#CON-002 Booking state changed|CON-002]]).
 
 ## Assumptions it depends on
 
-- The mainframe team has time to support one new client in Q1 2027: [[11-unknowns-and-risks#UNK-003|UNK-003]], resolved.
-- Someone runs Booking out of hours: [[11-unknowns-and-risks#UNK-007|UNK-007]], resolved.
+- The mainframe team has time to support one new client in Q1 2027: [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]], resolved.
+- Someone runs Booking out of hours: [[11-unknowns-and-risks#UNK-007 Booking on-call|UNK-007]], resolved.
 
 Delivered by [[EPC-031-holds-and-confirms|EPC-031]].

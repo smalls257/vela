@@ -35,7 +35,7 @@ Booking checks whether the change is allowed, asks Pricing for a new fare when t
 ## Traces to
 
 - Capabilities: [[CAP-021-amend-or-cancel|CAP-021 Amend or cancel a booking]]
-- Contracts: [[booking-building-blocks#CON-001|CON-001 Booking API]] (amend, cancel). Uses: [[pricing-building-blocks#CON-003|CON-003]], [[ferrymaster-building-blocks#CON-006|CON-006]] (BKAMND, BKCANC)
+- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] (amend, cancel). Uses: [[pricing-building-blocks#CON-003 Quote a fare|CON-003]], [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]] (BKAMND, BKCANC)
 - Concerns: [[concern-testing|Testing]] (end-to-end for amend-or-cancel)
 - Goals: [[01-goals|G3]]
 - Flow: [[FLO-002-amend-or-cancel|FLO-002 Amend or cancel]]

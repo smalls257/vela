@@ -59,7 +59,7 @@ sequenceDiagram
 | What | Value |
 |---|---|
 | Hold lifetime | 10 minutes |
-| Ledger write latency p95 | 2.1 s, measured ([[11-unknowns-and-risks#UNK-001\|UNK-001]]) |
+| Ledger write latency p95 | 2.1 s, measured ([[11-unknowns-and-risks#UNK-001 Ledger write latency\|UNK-001]]) |
 | Booking API version lifetime | at least 6 months per version |
 | Notice of an MQ change | 8 weeks, from the mainframe team |
 

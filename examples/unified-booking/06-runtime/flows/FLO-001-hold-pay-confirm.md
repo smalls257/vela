@@ -71,10 +71,10 @@ The customer picks a sailing and sees the fare with a 10-minute timer. They pay 
 | Step | Contracts |
 |---|---|
 | 1 Find a crossing | Existing Vessel schedule read by the channel. No INI-002 contract. |
-| 2 Hold a seat | [[booking-building-blocks#CON-001\|CON-001 Booking API]] (hold), [[vessel-schedule-building-blocks#CON-004\|CON-004]], [[customer-identity-building-blocks#CON-005\|CON-005]], [[pricing-building-blocks#CON-003\|CON-003]], [[ferrymaster-building-blocks#CON-006\|CON-006]] (BKHOLD) |
-| 3 Take payment | [[booking-building-blocks#CON-007\|CON-007 Payment outcome]] |
-| 4 Confirm booking | [[ferrymaster-building-blocks#CON-006\|CON-006]] (BKCONF), [[booking-building-blocks#CON-001\|CON-001 Booking API]] (get) |
-| 5 Notify customer | [[booking-building-blocks#CON-002\|CON-002 Booking state changed]] |
+| 2 Hold a seat | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (hold), [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004]], [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005]], [[pricing-building-blocks#CON-003 Quote a fare\|CON-003]], [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKHOLD) |
+| 3 Take payment | [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Payment outcome]] |
+| 4 Confirm booking | [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKCONF), [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (get) |
+| 5 Notify customer | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] |
 <!-- /generated -->
 
 ## Tested end to end

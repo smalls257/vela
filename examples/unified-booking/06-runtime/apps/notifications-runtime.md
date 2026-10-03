@@ -36,7 +36,7 @@ sequenceDiagram
   Send->>C: email or SMS
 ```
 
-The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005|UNK-005]]).
+The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005 Event bus readiness|UNK-005]]).
 
 ## When a dependency is slow or down
 

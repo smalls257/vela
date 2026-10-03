@@ -99,18 +99,22 @@ Components inside these containers belong to the Booking team's tech design.
 ### CON-001 Booking API
 
 - **Crosses the boundary:** hold (crossing, passengers, vehicle, customer ID) returns a booking reference, a price and the hold expiry. Confirm takes the booking reference and the Tidepay payment reference. Amend, cancel and get work on the booking reference. No card data crosses.
-- **Consumers:** Public website, Call centre desktop, Port kiosks. All calls go through the Platform gateway with service tokens; kiosks use device certificates.
+- **Consumers:** [[website-building-blocks|Public website]], [[call-centre-building-blocks|Call centre desktop]], [[kiosks-building-blocks|Port kiosks]]. All calls go through the Platform gateway with service tokens; kiosks use device certificates.
 - **Change policy:** versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api|ADR-0003]]).
-- **Tested by:** each channel runs consumer-driven contract tests in its own pipeline. Booking runs provider verification against all three in its pipeline.
+- **Change:** new
+- **Tested by:** each channel runs consumer-driven contract tests in its own pipeline. Booking runs provider verification against all three, for every live version, in its pipeline. Both sides run on every build, and a failure blocks the Booking release.
 - **State:** decided
+- **Decision:** [[2026-08-26-kiosks-and-rollout]]
 
 ### CON-002 Booking state changed
 
 - **Crosses the boundary:** one event per state change: booking reference, new state, previous state, customer ID, crossing and trace ID. No card data.
-- **Consumers:** Notifications. Finance may read it later ([[11-unknowns-and-risks#UNK-006|UNK-006]]).
+- **Consumers:** [[notifications-building-blocks|Notifications]]. Finance may read it later ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]]).
 - **Change policy:** additive changes only.
-- **Tested by:** schema check in Booking's pipeline. Notifications runs a consumer test.
+- **Change:** new
+- **Tested by:** schema check and the additive-only rule in Booking's pipeline. Notifications runs a consumer test. Both run on every build, and a failure blocks the Booking release and the Notifications release.
 - **State:** decided
+- **Decision:** [[2026-11-03-events]]
 
 ## Contract kept here for an external provider
 
@@ -119,21 +123,24 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 ### CON-007 Tidepay payment outcome
 
 - **Crosses the boundary:** a webhook from Tidepay to the Booking API with the payment reference, the booking reference, the amount and the result. Customers enter card details on Tidepay's hosted payment page, so card data never reaches Booking and PCI scope stays the same (CST-2).
-- **Provider:** Tidepay. **Consumer:** Booking API.
+- **Provider:** Tidepay (external)
+- **Consumers:** [[booking-building-blocks|Booking]], at the Booking API.
 - **Change policy:** Tidepay's published API, versioned by Tidepay.
-- **Tested by:** the Tidepay sandbox in Booking's pipeline. Tidepay tests its own side.
-- **State:** decided
+- **Change:** new consumers
+- **Tested by:** the Tidepay sandbox in Booking's pipeline, on every Booking build. A failure blocks the Booking release. Tidepay tests its own side.
+- **State:** fact
+- **Source:** SRC-05
 
 ## Contracts this app consumes
 
 <!-- generated: do not edit -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[pricing-building-blocks#CON-003\|CON-003 Quote a fare]] | Pricing | Existing; callers narrowed | decided |
-| [[vessel-schedule-building-blocks#CON-004\|CON-004 Capacity check]] | Vessel schedule | Existing read API, no change | decided |
-| [[customer-identity-building-blocks#CON-005\|CON-005 Customer lookup]] | Customer identity | Existing read API, no change | decided |
-| [[ferrymaster-building-blocks#CON-006\|CON-006 Ledger transactions]] | FERRYMASTER | Cannot change; MQ changes announced 8 weeks ahead | decided |
-| [[booking-building-blocks#CON-007\|CON-007 Payment outcome]] | Tidepay (external) | Versioned by Tidepay | decided |
+| [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]] | Pricing | Existing; callers narrowed | decided |
+| [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004 Capacity check]] | Vessel schedule | Existing read API, no change | decided |
+| [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005 Customer lookup]] | Customer identity | Existing read API, no change | decided |
+| [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006 Ledger transactions]] | FERRYMASTER | Cannot change; MQ changes announced 8 weeks ahead | decided |
+| [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Payment outcome]] | Tidepay (external) | Versioned by Tidepay | decided |
 <!-- /generated -->
 
 ## Concerns this team carries

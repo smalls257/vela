@@ -34,7 +34,7 @@ One caller means the Revenue team changes fare rules against one consumer and on
 ## Traces to
 
 - Capabilities: [[CAP-012-quote-a-fare|CAP-012 Quote a fare]]
-- Contracts: [[pricing-building-blocks#CON-003|CON-003 Quote a fare]]
+- Contracts: [[pricing-building-blocks#CON-003 Quote a fare|CON-003 Quote a fare]]
 - Concerns: [[concern-security|Security]] (gateway restriction), [[concern-testing|Testing]]
 - Decisions: [[ADR-0001-one-booking-context|ADR-0001]]
 - Apps: [[pricing-building-blocks|Pricing]], [[booking-building-blocks|Booking]]

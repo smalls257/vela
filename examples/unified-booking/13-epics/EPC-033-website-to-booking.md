@@ -35,7 +35,7 @@ Cutover is February 2027. The old adapter stays behind a switch for 4 weeks so t
 ## Traces to
 
 - Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]] (website)
-- Contracts: [[booking-building-blocks#CON-001|CON-001 Booking API]] (client)
+- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] (client)
 - Concerns: [[concern-rollout|Rollout]], [[concern-testing|Testing]]
 - Goals: [[01-goals|G1]], [[01-goals|G2]]
 - Flow: [[FLO-001-hold-pay-confirm|FLO-001 Hold, pay, confirm]]

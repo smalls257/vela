@@ -11,7 +11,6 @@ sources: ["session 2026-08-14 Grill", "mainframe team lead MIPS check"]
 
 # Cost
 
-**State:** addressed. **Owner:** solution lead.
 
 ## Strategy
 
@@ -23,10 +22,9 @@ Retiring three adapters removes upkeep that used to cost each front-end team a f
 
 ## Per app
 
-<!-- generated: do not edit -->
 | App | State | Cost change |
 |---|---|---|
-| [[booking-building-blocks\|Booking]] | addressed | Standard service footprint, no new licences |
+| [[booking-building-blocks\|Booking]] | addressed | no work (@hl-solution-lead, review 2027-03-01): standard service footprint, no new licences |
 | [[pricing-building-blocks\|Pricing]] | unchanged | Same calls from one caller |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | MQ use within the existing MIPS budget, checked with the mainframe team lead |
 | [[website-building-blocks\|Website]] | unchanged | Adapter removed |
@@ -35,10 +33,9 @@ Retiring three adapters removes upkeep that used to cost each front-end team a f
 | [[notifications-building-blocks\|Notifications]] | unchanged | Existing sender reused |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | No change |
 | [[customer-identity-building-blocks\|Customer identity]] | unchanged | No change |
-<!-- /generated -->
 
 ## Related
 
-- Unknowns: [[11-unknowns-and-risks#UNK-003|UNK-003]]
+- Unknowns: [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]]
 - Decisions: [[ADR-0004-mq-not-screen-scraping|ADR-0004]]
 - Epics: [[EPC-031-holds-and-confirms|EPC-031]], [[EPC-032-ledger-adapter|EPC-032]]

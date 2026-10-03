@@ -34,7 +34,7 @@ Start at [[01-goals|Unified Booking: Goals]].
 | Contracts decided | ▰▰▰▰▰▰▰▰▰▰ 7/7 | |
 | Capability changes decided | ▰▰▰▰▰▰▰▰▰▰ 6/6 | |
 | Concerns addressed | ▰▰▰▰▰▰▰▰▰▰ 8/8 | unexamined: none |
-| Unknowns resolved | ▰▰▰▰▰▰▰▰▰▱ 6/7 | open: [[11-unknowns-and-risks#UNK-006\|UNK-006]] |
+| Unknowns resolved | ▰▰▰▰▰▰▰▰▰▱ 6/7 | open: [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|UNK-006]] |
 | Risks mitigated | ▰▰▰▰▰▰▰▰▰▰ 2/2 | |
 
 **Sessions:** Dump & Diverge 1 · Discover 2 · Shape 5 · Probe 1 · Grill 11 · 20 in total, see [[session-history|Session history]]

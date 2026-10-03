@@ -18,7 +18,7 @@ sources: ["session 2026-10-07 Grill", "concern-operations", "concern-observabili
 
 - **Decision:** [[2026-11-18-epics]]
 
-Booking becomes the one thing every channel depends on for bookings, so it has to be run like it from the first real customer. The Booking team joins the Platform on-call rota from go-live ([[11-unknowns-and-risks#UNK-007|UNK-007]]) and writes runbooks for the two failures that hurt customers most: ledger writes failing and Booking losing its holds.
+Booking becomes the one thing every channel depends on for bookings, so it has to be run like it from the first real customer. The Booking team joins the Platform on-call rota from go-live ([[11-unknowns-and-risks#UNK-007 Booking on-call|UNK-007]]) and writes runbooks for the two failures that hurt customers most: ledger writes failing and Booking losing its holds.
 
 Today a stuck booking shows up as a call centre fix the next morning. After go-live the same problem has to show up on a dashboard within minutes. Per-channel request and error rates, booking state transitions, ledger write latency, hold expiry rate and one trace ID from channel to ledger write give the on-call engineer what they need without a debugger or a release.
 
@@ -35,8 +35,8 @@ Today a stuck booking shows up as a call centre fix the next morning. After go-l
 ## Traces to
 
 - Concerns: [[concern-operations|Operations]], [[concern-observability|Observability]]
-- Contracts observed: [[booking-building-blocks#CON-001|CON-001]], [[ferrymaster-building-blocks#CON-006|CON-006]]
-- Unknowns: [[11-unknowns-and-risks#UNK-007|UNK-007]]
+- Contracts observed: [[booking-building-blocks#CON-001 Booking API|CON-001]], [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]]
+- Unknowns: [[11-unknowns-and-risks#UNK-007 Booking on-call|UNK-007]]
 - Goals: [[01-goals|G2]]
 
 ## Depends on

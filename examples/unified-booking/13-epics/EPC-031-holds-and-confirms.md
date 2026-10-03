@@ -37,7 +37,7 @@ The hold is new. Today nothing stops a second channel selling the last seat whil
 ## Traces to
 
 - Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]], [[CAP-014-hold-a-seat|CAP-014 Hold a seat during payment]]
-- Contracts: [[booking-building-blocks#CON-001|CON-001 Booking API]] (hold, confirm, get), [[booking-building-blocks#CON-007|CON-007 Payment outcome]]. Uses unchanged: [[pricing-building-blocks#CON-003|CON-003]], [[vessel-schedule-building-blocks#CON-004|CON-004]], [[customer-identity-building-blocks#CON-005|CON-005]]
+- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] (hold, confirm, get), [[booking-building-blocks#CON-007 Tidepay payment outcome|CON-007 Payment outcome]]. Uses unchanged: [[pricing-building-blocks#CON-003 Quote a fare|CON-003]], [[vessel-schedule-building-blocks#CON-004 Capacity check|CON-004]], [[customer-identity-building-blocks#CON-005 Customer lookup|CON-005]]
 - Concerns: [[concern-testing|Testing]] (provider verification, Tidepay sandbox), [[concern-security|Security]], [[concern-data|Data]]
 - Goals: [[01-goals|G1]], [[01-goals|G2]]
 - Flow: [[FLO-001-hold-pay-confirm|FLO-001 Hold, pay, confirm]]

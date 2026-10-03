@@ -71,10 +71,12 @@ Components inside these containers belong to the Revenue team's tech design.
 ### CON-003 Quote a fare
 
 - **Crosses the boundary:** crossing, date, passengers and vehicle in; a fare out. Booking asks for a new quote when a customer amends.
-- **Consumers:** Booking only. Each front end loses access at the gateway when its old adapter is removed, 4 weeks after its cutover. Until then the rollback switch still needs the direct call. Kiosks lose access with the September 2027 image.
+- **Consumers:** [[booking-building-blocks|Booking]] only. Each front end loses access at the gateway when its old adapter is removed, 4 weeks after its cutover. Until then the rollback switch still needs the direct call. Kiosks lose access with the September 2027 image.
 - **Change policy:** the existing API, unchanged. Only the list of callers narrows.
-- **Tested by:** Booking runs a contract test on its side. Pricing runs provider verification in its pipeline.
+- **Change:** changed
+- **Tested by:** Booking runs a contract test on its side. Pricing runs provider verification in its pipeline. Both run on every build, and a failure blocks the Pricing release.
 - **State:** decided
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 ## Contracts this app consumes
 

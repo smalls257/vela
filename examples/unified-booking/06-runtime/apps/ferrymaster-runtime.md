@@ -31,7 +31,7 @@ sequenceDiagram
   FM-->>Led: ledger reference or return code
 ```
 
-Ledger write latency p95 is 2.1 s, measured ([[11-unknowns-and-risks#UNK-001|UNK-001]]).
+Ledger write latency p95 is 2.1 s, measured ([[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]]).
 
 ## When it is slow or down
 

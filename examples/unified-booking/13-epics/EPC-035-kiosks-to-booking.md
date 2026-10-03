@@ -20,7 +20,7 @@ sources: ["session 2026-08-26 Grill", "session 2026-09-23 Grill", "ADR-0003"]
 
 The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only in March and September (CST-3), so whatever they call has to stay the same for at least six months. That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|ADR-0003]]).
 
-Kiosks have no user to log in, so each kiosk authenticates with a device certificate from Platform's existing PKI ([[11-unknowns-and-risks#UNK-004|UNK-004]]). The old FM adapter ships in the March image behind a switch and leaves with the September 2027 image. If the March image slips, kiosks keep their old adapter until September and Booking API v1 is still there when they arrive (R-02).
+Kiosks have no user to log in, so each kiosk authenticates with a device certificate from Platform's existing PKI ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]]). The old FM adapter ships in the March image behind a switch and leaves with the September 2027 image. If the March image slips, kiosks keep their old adapter until September and Booking API v1 is still there when they arrive (R-02).
 
 **Owning team:** Port Systems team.
 
@@ -36,11 +36,11 @@ Kiosks have no user to log in, so each kiosk authenticates with a device certifi
 ## Traces to
 
 - Capabilities: [[CAP-013-reserve-a-crossing|CAP-013 Reserve a crossing]] (kiosks)
-- Contracts: [[booking-building-blocks#CON-001|CON-001 Booking API]] v1 (client)
+- Contracts: [[booking-building-blocks#CON-001 Booking API|CON-001 Booking API]] v1 (client)
 - Decisions: [[ADR-0003-versioned-booking-api|ADR-0003]]
 - Concerns: [[concern-security|Security]] (device certificates), [[concern-rollout|Rollout]], [[concern-testing|Testing]]
 - Goals: [[01-goals|G1]], [[01-goals|G2]]
-- Unknowns: [[11-unknowns-and-risks#UNK-004|UNK-004]]
+- Unknowns: [[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]]
 - Apps: [[kiosks-building-blocks|Port kiosks]], [[booking-building-blocks|Booking]]
 
 ## Depends on

@@ -48,10 +48,12 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 ### CON-006 Ledger transactions
 
 - **Crosses the boundary:** four MQ transactions. BKHOLD reserves a seat, BKCONF confirms a paid booking, BKAMND changes a booking, BKCANC cancels one or releases an expired hold. Each reply carries the ledger reference or a return code. The full field mapping is documented with this contract, which is how R-01 is mitigated.
-- **Consumers:** Booking's Ledger adapter only.
+- **Consumers:** [[booking-building-blocks|Booking]], through its Ledger adapter only.
 - **Change policy:** FERRYMASTER cannot change. The mainframe team announces any MQ change 8 weeks ahead.
-- **Tested by:** Booking runs a ledger simulator in its contract tests, because the FERRYMASTER test region refreshes only once a year. One weekly end-to-end run goes against the test region. The mainframe team does not run tests of its own for this contract.
-- **State:** decided
+- **Change:** new consumers
+- **Tested by:** Booking runs a ledger simulator in its contract tests, because the FERRYMASTER test region refreshes only once a year. One weekly end-to-end run goes against the test region. The mainframe team does not run tests of its own for this contract. The simulator tests run on every Booking build, the QA lead owns the weekly run, and a failure blocks the Booking release.
+- **State:** fact
+- **Source:** SRC-04
 
 ## Contracts this app consumes
 
@@ -66,7 +68,7 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 - [[concern-cost|Cost]]: the mainframe team lead checked that Booking's MQ use fits the existing MIPS budget (CST-5).
 - [[concern-testing|Testing]]: keeps the test region available for the weekly end-to-end run.
 
-The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003|UNK-003]]) and pairs with the Booking team in that time.
+The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]]) and pairs with the Booking team in that time.
 
 ## Epics
 

@@ -46,10 +46,12 @@ Vessel schedule is a black box on this page. Nothing inside it changes, so its c
 ### CON-004 Capacity check
 
 - **Crosses the boundary:** a sailing in; remaining passenger and vehicle capacity out.
-- **Consumers:** Booking.
+- **Consumers:** [[booking-building-blocks|Booking]]
 - **Change policy:** the existing read API, no change.
-- **Tested by:** Booking runs a contract test on its side. Marine Ops Systems adds no test, because the API does not change and Booking's test fails first if it does.
-- **State:** decided
+- **Change:** new consumers
+- **Tested by:** Booking runs a contract test on its side. Marine Ops Systems adds no test, because the API does not change and Booking's test fails first if it does. Booking's test runs on every Booking build, and a failure blocks the Booking release.
+- **State:** fact
+- **Source:** SRC-06
 
 ## Contracts this app consumes
 

@@ -11,7 +11,6 @@ sources: ["session 2026-08-12 Grill", "ADR-0002"]
 
 # Data
 
-**State:** addressed. **Owner:** solution lead.
 
 ## Strategy
 
@@ -23,7 +22,6 @@ Booking holds no card data and no contact details. The only personal data is the
 
 ## Per app
 
-<!-- generated: do not edit -->
 | App | State | Data it holds for bookings |
 |---|---|---|
 | [[booking-building-blocks\|Booking]] | addressed | Holds (10 minutes), booking-state cache by booking reference, customer ID. No card data. |
@@ -35,10 +33,9 @@ Booking holds no card data and no contact details. The only personal data is the
 | [[notifications-building-blocks\|Notifications]] | addressed | Record of messages sent per booking reference and state, used to drop duplicates |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | Sailings and capacity |
 | [[customer-identity-building-blocks\|Customer identity]] | unchanged | Customer records and contact details |
-<!-- /generated -->
 
 ## Related
 
-- Unknowns: [[11-unknowns-and-risks#UNK-006|UNK-006]] (Finance reading Booking events, open, deferred to INI-005)
+- Unknowns: [[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]] (Finance reading Booking events, open, deferred to INI-005)
 - Decisions: [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]], [[ADR-0001-one-booking-context|ADR-0001]]
 - Epics: [[EPC-031-holds-and-confirms|EPC-031]], [[EPC-032-ledger-adapter|EPC-032]], [[EPC-037-events-and-notifications|EPC-037]]

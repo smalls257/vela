@@ -85,7 +85,7 @@ None. The desktop only consumes.
 <!-- generated: do not edit -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-001\|CON-001 Booking API]] | Booking | Versioned; each version kept at least 6 months | decided |
+| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | Booking | Versioned; each version kept at least 6 months | decided |
 <!-- /generated -->
 
 ## Concerns this team carries
