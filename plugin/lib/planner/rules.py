@@ -342,6 +342,16 @@ def risk_rules(vault, today):
 
 # ----------------------------------------------------------------- certainty
 
+def _decided_goal_rows(page):
+    """(row id, line) of each goal row whose State cell says decided."""
+    for table in page.tables:
+        if table.generated or tuple(table.header)[:4] != schema.GOALS_HEADER:
+            continue
+        for row, line in zip(table.rows, table.row_lines):
+            if len(row) > 3 and row[3] == "decided":
+                yield row[0], line
+
+
 def decided_units(vault):
     """(unit id, page, line, Decision bullets) for every decided page and contract."""
     for page in vault.pages:
@@ -349,6 +359,10 @@ def decided_units(vault):
             continue  # an unreadable type is already an E104; never look it up
         if schema.PAGE_TYPES[page.type]["states"] and page.meta.get("state") == "decided":
             yield page.id, page, meta_line(page, "state"), page.page_bullets("Decision")
+        elif page.meta.get("state") != "decided":
+            # A decided page already answers for its rows with the same Decision bullet.
+            for row_id, line in _decided_goal_rows(page):
+                yield row_id, page, line, page.page_bullets("Decision")
     for contract in vault.contracts:
         if contract.fact("State") == "decided":
             bullet = contract.facts.get("Decision")
@@ -390,11 +404,32 @@ def unit_state(vault, link, from_page):
     target = vault.resolve(link, from_page)
     if target is None:
         return None
-    first = link.anchor.split()[0] if link.anchor else ""
+    parts = link.anchor.split() if link.anchor else []
+    first = parts[0].upper() if parts else ""
     item = vault.item(first) if first else None
     if item is not None and item.page is target:
         return item.id, item.fact("State"), item.page, item.line
     return target.id, target.meta.get("state", ""), target, meta_line(target, "state")
+
+
+def _blocked_units(vault, link, from_page):
+    """Every (id, state, page, line) a Blocks link holds up. An item anchor means that
+    item. A page link means the page and each item on it, so linking the page
+    cannot dodge the gate."""
+    target = vault.resolve(link, from_page)
+    if target is None:
+        return
+    found = unit_state(vault, link, from_page)
+    if found and found[0] != target.id:
+        yield found
+        return
+    if found:
+        yield found
+    for contract in vault.contracts:
+        if contract.page is target:
+            yield contract.id, contract.fact("State"), contract.page, contract.line
+    for row_id, line in _decided_goal_rows(target):
+        yield row_id, "decided", target, line
 
 
 def _gate_four(vault):
@@ -402,9 +437,9 @@ def _gate_four(vault):
         if unknown.fact("State") != "open" or "Blocks" not in unknown.facts:
             continue
         for link in unknown.facts["Blocks"].links:
-            found = unit_state(vault, link, unknown.page)
-            if found and found[1] == "decided":
-                unit_id, _, page, line = found
+            for unit_id, state, page, line in _blocked_units(vault, link, unknown.page):
+                if state != "decided":
+                    continue
                 yield _f(page, line, "E316", f"{unit_id} is decided, but open unknown {unknown.id} blocks it.",
                          f"Resolve {unknown.id} first, or set {unit_id} back to assumption.")
 

@@ -190,3 +190,61 @@ def test_label_case_does_not_matter(mini):
     edit(mini / SHOP, "- **Tested by:** consumer tests", "- **Tested By:** consumer tests")
     code, out = check(mini)
     assert code == 0, out
+
+
+# fix round 1: GATE-4 reach, decided rows, malformed anchors and Decision links
+
+def test_gate_four_page_link_reaches_items_on_the_page(mini):
+    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[shop-building-blocks|Shop]]\n")
+    _, out = check(mini)
+    assert ("E316", SHOP) in codes(out)
+    assert "CON-001 is decided, but open unknown UNK-001 blocks it" in out
+
+
+def test_gate_four_anchor_id_matches_in_any_case(mini):
+    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[shop-building-blocks#con-001 Sale API|CON-001]]\n")
+    _, out = check(mini)
+    assert ("E316", SHOP) in codes(out)  # E202 also fires: the anchor is not exact
+
+
+def test_gate_four_page_link_reaches_decided_goal_rows(mini):
+    edit(mini / GOALS, "state: decided\n", "state: assumption\n")
+    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[01-goals|Goals]]\n")
+    _, out = check(mini)
+    assert "G1 is decided, but open unknown UNK-001 blocks it" in out
+
+
+def test_decided_goal_row_needs_a_grill(mini):
+    edit(mini / GOALS, "state: decided\n", "state: assumption\n")
+    edit(mini / GOALS, "- **Decision:** [[2026-01-10-shop-api]]\n", "")
+    _, out = check(mini)
+    assert codes(out) == [("E303", GOALS)]
+    assert "G1" in out
+
+
+def test_whitespace_only_anchor_is_not_a_crash(mini):
+    edit(mini / UNK, "- **Blocks:** nothing\n", "- **Blocks:** [[shop-building-blocks# ]]\n")
+    code, out = check(mini)
+    assert code in (0, 1), out
+    assert "internal error" not in out
+
+
+def test_decision_linking_a_missing_session(mini):
+    edit(mini / GOALS, "- **Decision:** [[2026-01-10-shop-api]]", "- **Decision:** [[2026-01-11-no-such-session]]")
+    _, out = check(mini)
+    assert ("E303", GOALS) in codes(out)
+
+
+def test_decision_linking_a_page_that_is_not_a_session(mini):
+    edit(mini / GOALS, "- **Decision:** [[2026-01-10-shop-api]]", "- **Decision:** [[shop-building-blocks]]")
+    _, out = check(mini)
+    assert ("E303", GOALS) in codes(out)
+
+
+def test_grill_session_with_numeric_modes(mini):
+    edit(mini / "sessions/2026-01-10-shop-api.md", "modes: [grill]", "modes: 5")
+    code, out = check(mini)
+    assert code == 1, out
+    got = codes(out)
+    assert ("E303", GOALS) in got
+    assert ("E105", "sessions/2026-01-10-shop-api.md") in got
