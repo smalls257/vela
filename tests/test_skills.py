@@ -316,7 +316,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "It does not mean they are decided." in epics and "Report those separately" in epics
     assert "list each epic still at `draft`" in epics
     assert "It cites at least one contract (`CON-`) or flow (`FLO-`) ID." in epics and "Redis or Kafka" in epics
-    assert "`modes: [shape, grill]` and the title `Epics: <team>`" in epics
+    assert "`modes: [epics, shape, grill]` and the title `Epics: <team>`" in epics
     assert "check --gate epics" in epics
     assert "Never say an app's epics are complete while one remains." in epics
 
@@ -324,3 +324,9 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
 def test_modes_and_close_know_epics():
     assert "| Epics (`epics`)" in text("references/MODES.md") and "| `epics` | `draft` epic pages" in text("references/MODES.md")
     assert "owes a description paragraph" in text("skills/close/SKILL.md")
+
+
+def test_epics_skill_frontmatter_instruction_names_the_epics_mode():
+    epics = text("skills/epics/SKILL.md")
+    assert "`modes: [epics, shape, grill]`" in epics and "`modes: [shape, grill]`" not in epics
+    assert "Still add the `## Changes` rows for every epic" in text("skills/close/SKILL.md")

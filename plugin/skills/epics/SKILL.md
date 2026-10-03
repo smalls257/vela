@@ -13,7 +13,7 @@ The planner is `python3 .claude/skills/planner/bin/planner`. The format, includi
 
 ## 1. Start
 
-Run the steps in `.claude/skills/planner/references/START.md` with modes `shape` and `grill`. The record has `modes: [shape, grill]` and the title `Epics: <team>`. Read the Shape and Grill rows of `.claude/skills/planner/references/MODES.md`. If the vault has no remote or `gh` fails, START says so and the session goes on.
+Run the steps in `.claude/skills/planner/references/START.md` with modes `epics`, `shape` and `grill`. The record has `modes: [epics, shape, grill]` and the title `Epics: <team>`. Read the Epics, Shape and Grill rows of `.claude/skills/planner/references/MODES.md`. If the vault has no remote or `gh` fails, START says so and the session goes on.
 
 ## 2. Read the frontier
 

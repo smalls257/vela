@@ -248,3 +248,9 @@ def test_grill_session_with_numeric_modes(mini):
     got = codes(out)
     assert ("E303", GOALS) in got
     assert ("E105", "sessions/2026-01-10-shop-api.md") in got
+
+
+def test_an_epics_session_that_includes_grill_still_decides_and_passes(mini):
+    edit(mini / "sessions/2026-01-10-shop-api.md", "modes: [grill]", "modes: [epics, shape, grill]")
+    _, out = check(mini)
+    assert codes(out) == []

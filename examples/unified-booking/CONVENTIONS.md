@@ -77,7 +77,7 @@ Field values:
 - `handed_off`: set once a senior takes the app. Form: `"<name>, <date>, PR #N"`.
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
-- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`.
+- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`.
 
 ## IDs
 

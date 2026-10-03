@@ -81,7 +81,7 @@ ENUMS = {
     "status": ("open", "closed"),
 }
 LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes")
-SESSION_MODES = ("dump", "discover", "shape", "grill", "requirements")
+SESSION_MODES = ("dump", "discover", "shape", "grill", "requirements", "epics")
 LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
 
 HANDLE = r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?"
