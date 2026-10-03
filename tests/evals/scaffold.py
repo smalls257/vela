@@ -35,6 +35,7 @@ summary: In progress.
 - [wild] (claude) What if the kiosks stopped selling and only printed tickets? ^c04
 - [worry] (Head of Contact Centre) Agents fix failed bookings by hand every morning, and nobody counts them. ^c05
 - [idea] (solution lead) The website could go first; it has the most traffic and the newest code. ^c06
+- [unknown] (claude) We don't know whether the mainframe team can host a booking service. ^c07
 
 ## Changes
 

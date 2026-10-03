@@ -24,6 +24,11 @@ execution:
 context:
   scaffold_script: fixture.sh
 graders:
+- name: plugin-loaded
+  type: tool_used
+  tool: Skill
+  input_match: planner
+  arm: with-only
 - name: writes-epics
   type: tool_used
   tool: Write

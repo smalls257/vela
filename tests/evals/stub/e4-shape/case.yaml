@@ -40,5 +40,5 @@ graders:
   arm: both
 - name: says-grill-to-confirm
   type: regex
-  pattern: grill
+  pattern: \b(grill to confirm|a grill to confirm|needs? a grill|grill it)\b
   flags: i

@@ -69,12 +69,12 @@ def test_scaffold_builds_a_clean_vault(tmp_path, vault, arm):
     assert status.stdout == ""
 
 
-def test_find_workspaces_reads_paths_from_the_log(tmp_path):
+def test_find_workspaces_reads_only_the_printed_paths(tmp_path):
     kept = tmp_path / "run-1" / "work"
     kept.mkdir(parents=True)
     (kept / ".planner.yaml").write_text("initiative: INI-001\ntitle: x\n", encoding="utf-8")
-    log = f"kept: {tmp_path / 'run-1'}\nsome other line /no/such/dir\n"
-    assert run.find_workspaces(log) == [kept.resolve()]
+    assert run.find_workspaces(f"kept: {kept}\nkept again {kept}.\nsome other line /no/such/dir\n") == [kept.resolve()]
+    assert run.find_workspaces(f"kept: {tmp_path / 'run-1'}") == [], "a parent of the workspace is not a kept workspace"
     assert run.find_workspaces("nothing kept") == []
 
 
@@ -89,3 +89,103 @@ def test_file_checks_report_hits_and_misses(tmp_path):
 def test_wrapper_refuses_unpinned_models():
     with pytest.raises(SystemExit):
         run.main(["e1-dump"])
+
+
+def scaffolded(tmp_path, vault, arm="plugin"):
+    result = subprocess.run([sys.executable, str(EVALS / "scaffold.py"), vault, arm], cwd=tmp_path, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    return tmp_path
+
+
+def vault_of(name):
+    return (EVALS / "plugin" / name / "fixture.sh").read_text(encoding="utf-8").split()[-2]
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+@pytest.mark.parametrize("name", sorted(run.CASES))
+def test_forbid_and_expect_checks_cannot_pass_or_fail_on_the_untouched_scaffold(tmp_path, name):
+    workspace = scaffolded(tmp_path, vault_of(name))
+    spec = run.CASES[name]
+    assert all(line.startswith("pass") for line in run.file_checks(workspace, spec["forbid"], False)), "forbid hits the scaffold"
+    assert all(line.startswith("FAIL") for line in run.file_checks(workspace, spec["expect"], True)), "expect already met by the scaffold"
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_grade_passes_a_clean_scaffold_and_fails_an_invented_id_and_a_new_decided(tmp_path):
+    workspace = scaffolded(tmp_path, "fixture")
+    spec = {"today": "2026-11-20", "gate": False, "readonly": True, "expect": [], "forbid": []}
+    assert not run.failed(run.grade(workspace, spec))
+    unknowns = workspace / "11-unknowns-and-risks.md"
+    unknowns.write_text(unknowns.read_text(encoding="utf-8") + "\n### UNK-099 Invented\n", encoding="utf-8")
+    lines = run.grade(workspace, spec)
+    assert any("invented ID UNK-099" in line and line.startswith("- FAIL") for line in lines), lines
+    assert any(line.startswith("- FAIL: git status DIRTY") for line in lines), "a read-only case must stay clean"
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_grade_fails_a_new_decided_state(tmp_path):
+    workspace = scaffolded(tmp_path, "grill-refused")
+    spec = {"today": "2026-11-20", "gate": False, "expect": [], "forbid": []}
+    cap = workspace / "capabilities" / "CAP-021-amend-or-cancel.md"
+    cap.write_text(cap.read_text(encoding="utf-8").replace("state: assumption", "state: decided"), encoding="utf-8")
+    assert any(line.startswith("- FAIL: decided states") for line in run.grade(workspace, spec))
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_an_invented_id_recorded_in_changes_passes(tmp_path):
+    workspace = scaffolded(tmp_path, "close-dump")
+    unknowns = workspace / "11-unknowns-and-risks.md"
+    unknowns.write_text(unknowns.read_text(encoding="utf-8") + "\n### UNK-001 Real one\n", encoding="utf-8")
+    assert any("invented ID UNK-001" in line for line in run.invented_ids(workspace))
+    record = workspace / "sessions" / "2026-10-05-mainframe-breaks-booking.md"
+    record.write_text(record.read_text(encoding="utf-8") + "| UNK-001 | none | open | c02 |\n", encoding="utf-8")
+    assert run.invented_ids(workspace)[0].startswith("pass")
+
+
+class Done:
+    def __init__(self, returncode=0, stdout="", stderr=""):
+        self.returncode, self.stdout, self.stderr = returncode, stdout, stderr
+
+
+def fake_eval(monkeypatch, tmp_path, returncode=0, log="", graded=None):
+    """Replace only the paid call. Everything else in main() runs for real."""
+    real = subprocess.run
+    monkeypatch.setattr(run, "RESULTS", tmp_path / "results")
+    monkeypatch.setattr(run.subprocess, "run", lambda argv, **kw: Done(returncode, log) if argv[0] == "claude" else real(argv, **kw))
+    if graded is not None:
+        monkeypatch.setattr(run, "grade", lambda workspace, spec: graded)
+
+
+def kept_workspaces(tmp_path, count):
+    paths = []
+    for n in range(count):
+        path = tmp_path / f"run-{n}"
+        path.mkdir(exist_ok=True)
+        (path / ".planner.yaml").write_text("initiative: INI-001\ntitle: x\n", encoding="utf-8")
+        paths.append(str(path))
+    return "\n".join(f"kept: {p}" for p in paths)
+
+
+ARGV = ["e5-ask", "--model", "m", "--judge-model", "j", "--runs", "2"]
+
+
+def test_main_returns_2_when_no_workspace_is_found(monkeypatch, tmp_path):
+    fake_eval(monkeypatch, tmp_path, log="nothing here")
+    assert run.main(ARGV) == 2
+
+
+def test_main_returns_2_when_plugin_eval_exits_2(monkeypatch, tmp_path):
+    fake_eval(monkeypatch, tmp_path, returncode=2, log=kept_workspaces(tmp_path, 2), graded=["- pass: x"])
+    assert run.main(ARGV) == 2
+
+
+def test_main_returns_2_when_workspaces_are_fewer_than_runs(monkeypatch, tmp_path):
+    fake_eval(monkeypatch, tmp_path, log=kept_workspaces(tmp_path, 1), graded=["- pass: x"])
+    assert run.main(ARGV) == 2
+
+
+def test_main_returns_1_on_a_failed_grade_and_0_when_all_pass(monkeypatch, tmp_path):
+    fake_eval(monkeypatch, tmp_path, log=kept_workspaces(tmp_path, 2), graded=["- FAIL: forbid /x/ in y"])
+    assert run.main(ARGV) == 1
+    fake_eval(monkeypatch, tmp_path, log=kept_workspaces(tmp_path, 2), graded=["- pass: x"])
+    assert run.main(ARGV) == 0

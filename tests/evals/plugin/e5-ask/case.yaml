@@ -22,6 +22,11 @@ execution:
 context:
   scaffold_script: fixture.sh
 graders:
+- name: plugin-loaded
+  type: tool_used
+  tool: Skill
+  input_match: planner
+  arm: with-only
 - name: no-write
   type: tool_used
   tool: Write

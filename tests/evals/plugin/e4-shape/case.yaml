@@ -24,6 +24,11 @@ execution:
 context:
   scaffold_script: fixture.sh
 graders:
+- name: plugin-loaded
+  type: tool_used
+  tool: Skill
+  input_match: planner
+  arm: with-only
 - name: no-decided-edit
   type: tool_used
   tool: Edit
@@ -40,5 +45,5 @@ graders:
   arm: both
 - name: says-grill-to-confirm
   type: regex
-  pattern: grill
+  pattern: \b(grill to confirm|a grill to confirm|needs? a grill|grill it)\b
   flags: i

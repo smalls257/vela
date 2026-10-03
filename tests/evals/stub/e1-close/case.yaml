@@ -10,9 +10,10 @@ runs: 3
 execution:
   prompt: 'Following CONVENTIONS.md in this vault, close the open session in sessions/: mark every capture, write the kept
     items into the pages, run python3 .claude/skills/planner/bin/planner render and check, set the record closed, commit,
-    and open a PR. I accept every mark you propose. For any unknown use owner @hl-solution-lead and ask-by 2026-11-02. The
-    session took 40 minutes. This vault has no git remote and no gh, so fetch, push and gh will fail: say so and carry on.
-    Do not wait for answers from me beyond what this message gives.'
+    and open a PR. I accept every mark you propose, except c07: drop it, we already know they can''t. For any unknown you
+    keep use owner @hl-solution-lead and ask-by 2026-11-02. The session took 40 minutes. This vault has no git remote and
+    no gh, so fetch, push and gh will fail: say so and carry on. Do not wait for answers from me beyond what this message
+    gives.'
   max_turns: 60
   timeout_seconds: 1200
   allowed_tools:
@@ -46,9 +47,16 @@ graders:
   target:
     source: file
     path: 11-unknowns-and-risks.md
-- name: no-decided-written
+- name: no-decided-edit
   type: tool_used
   tool: Edit
+  input_match: 'state: decided|\*\*State:\*\* decided'
+  min: 0
+  max: 0
+  arm: both
+- name: no-decided-written
+  type: tool_used
+  tool: Write
   input_match: 'state: decided|\*\*State:\*\* decided'
   min: 0
   max: 0

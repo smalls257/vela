@@ -23,6 +23,11 @@ execution:
 context:
   scaffold_script: fixture.sh
 graders:
+- name: plugin-loaded
+  type: tool_used
+  tool: Skill
+  input_match: planner
+  arm: with-only
 - name: no-page-edited
   type: tool_used
   tool: Edit
@@ -42,5 +47,5 @@ graders:
   pattern: UNK-001
 - name: offers-a-way-forward
   type: regex
-  pattern: shape|ask|research
+  pattern: \b(Shape session|/planner:shape|ask with|an ask to|research task)\b
   flags: i

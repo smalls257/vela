@@ -11,7 +11,7 @@ Results land in `tests/evals/.results/`, which git ignores.
 ## Smoke run (about one dollar)
 
 ```
-python3 tests/evals/run.py e5-ask --model <pinned model> --judge-model <pinned judge> --runs 1 --max-cost-usd 1
+python3 tests/evals/run.py e5-ask --model claude-sonnet-5-5 --judge-model claude-haiku-4-5-20251001 --runs 1 --max-cost-usd 1
 ```
 
 Confirm three things the Claude Code docs leave open:
@@ -20,12 +20,26 @@ Confirm three things the Claude Code docs leave open:
 2. `plugins:` in a `case.yaml` loads that plugin when the target is the file.
 3. `--keep-temp` prints paths that `find_workspaces()` recognises.
 
-If any fails, the wrapper says so. Fix `fixture.sh`, `case.yaml` or `find_workspaces()`, then rerun.
+The model IDs are suggestions: edit them to the IDs you pin. If any fails, the wrapper says so and exits 2. Fix `fixture.sh`, `case.yaml` or `find_workspaces()`, then rerun.
+
+## Cost
+
+`--max-cost-usd` caps one `plugin eval` invocation, which is one arm of one case. A case runs two arms,
+so the ceiling for a case is twice it. At the default of 10, the baseline below can spend up to $80 and
+all seven cases up to $140. The ceiling is checked before each run starts, so a run in flight can overshoot.
+
+## Exit codes
+
+0: every grade passed. 1: at least one `FAIL` line. 2: a run could not be graded, because `plugin eval`
+exited 2 or the kept workspaces printed differ in number from `--runs`.
 
 ## Baseline (V1-07)
 
-Run `e1-dump`, `e1-close`, `e2-discover` and `e3-grill-refused` with `--runs 3 --max-cost-usd 10`.
-Write `tests/baseline/2026-10-findings.md`: each failure in the stub arm mapped to the skill meant to
+```
+python3 tests/evals/run.py e1-dump e1-close e2-discover e3-grill-refused --model claude-sonnet-5-5 --judge-model claude-haiku-4-5-20251001 --runs 3 --max-cost-usd 10
+```
+
+The model IDs are editable. Write `tests/baseline/2026-10-findings.md`: each failure in the stub arm mapped to the skill meant to
 address it, or marked "conventions fix", or "none".
 
 ## Ship rule, per skill (06 section 4.2)

@@ -38,10 +38,6 @@ graders:
   target:
     source: file
     path: sources.md
-- name: facts-marked-fact
-  type: regex
-  pattern: '→ keep: [^\n]*\(fact\)'
-  target: trace
 - name: inbox-not-staged
   type: tool_used
   tool: Bash

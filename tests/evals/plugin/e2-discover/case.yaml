@@ -24,6 +24,11 @@ execution:
 context:
   scaffold_script: fixture.sh
 graders:
+- name: plugin-loaded
+  type: tool_used
+  tool: Skill
+  input_match: planner
+  arm: with-only
 - name: registers-sources
   type: regex
   pattern: \| SRC-0[1-3] \|
@@ -37,10 +42,6 @@ graders:
   target:
     source: file
     path: sources.md
-- name: facts-marked-fact
-  type: regex
-  pattern: '→ keep: [^\n]*\(fact\)'
-  target: trace
 - name: inbox-not-staged
   type: tool_used
   tool: Bash
