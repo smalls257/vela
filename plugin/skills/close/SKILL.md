@@ -17,7 +17,7 @@ Open records live on `session/<id>` branches, so first run `git branch --list 's
 
 ## 2. Mark every capture
 
-Propose a mark for every capture at once, as a numbered list with a one-line reason each. The user changes the ones they disagree with. Defaults:
+Propose a mark for every capture that has none yet, at once, as a numbered list with a one-line reason each. The user changes the ones they disagree with. Defaults:
 
 - A person's `idea` or `thought` is kept as an `inkling` on the page it belongs to.
 - A person's `unknown` or `worry` is kept as an unknown with an owner handle and an ask-by date you propose, or as a concern cell.
@@ -26,6 +26,8 @@ Propose a mark for every capture at once, as a numbered list with a one-line rea
 - A `(claude)` line is parked unless the user picks it. This covers every origin that starts with `claude`, including `(claude, from <name>)`.
 - Never propose `fact`. A capture becomes a fact only if the user names its source in this turn and the source has a row in `sources.md`.
 - A line you will copy word for word onto a page is a lifted line. List each one and ask the user to confirm it before you copy it.
+
+A line a Grill already marked `(decided)` keeps its mark. Leave it alone. It still appears under "Promoted on a nod" when its origin starts with `claude`.
 
 Write each mark into the line: `→ keep: [[<page>#<heading>|<ID>]] (<state>)`, `→ park` or `→ drop: <reason>`, before the `^cNN`.
 

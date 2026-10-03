@@ -16,7 +16,7 @@ An open record lives on its own `session/<id>` branch until its PR merges, so `m
 - If its date is more than 14 days ago, say so.
 - Offer three choices: resume it, close it now with `/planner:close`, or leave it open and start a new one.
 
-To resume, run `git switch session/<id>`, read the record, and carry on from the last capture. For a Grill, carry on from the first agenda item with no row in `## Changes`. Never close a session for the user.
+To resume, run `git switch session/<id>`, read the record, and carry on from the last capture. For a Grill, carry on from the `## Agenda` section of the record: take the first item whose status is `open`. Never close a session for the user.
 
 ## 3. Bring in review comments
 
@@ -67,7 +67,7 @@ A session that runs a second mode adds that mode to `modes`. It never opens a se
 
 ## Captures during the session
 
-Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close.
+Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close. The one exception is a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`.
 
 - A person's words are quoted verbatim, with their name, role or handle as the origin.
 - Claude's own idea has origin `claude`.

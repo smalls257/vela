@@ -23,11 +23,15 @@ For each item the user named, check all five before it goes on the agenda. Show 
 |---|---|---|
 | GATE-1 | For an app's item, the app's `stage` is `target` or later. Initiative-level items pass. | Discover |
 | GATE-2 | The item is at `assumption`, with a preferred option. Where there was a real choice, the rejected options and their reasons are written down. | Shape |
-| GATE-3 | You showed the agenda, with the open questions under each item, and the user confirmed it. | show it again |
-| GATE-4 | No open unknown lists the item in its `**Blocks:**`. Search `11-unknowns-and-risks.md` for open unknowns whose `**Blocks:**` links the item's page or heading. | an ask to the unknown's owner, or a research task |
-| GATE-5 | The item's owner is present, or their answer is already a capture with them as origin, naming the channel and the date. | reschedule, or collect an async answer first |
+| GATE-3 | You showed the agenda, with the open questions under each item, and the user confirmed it with an explicit yes (see Acceptance). | show it again |
+| GATE-4 | No open unknown lists the item in its `**Blocks:**`. Search `11-unknowns-and-risks.md` for open unknowns whose `**Blocks:**` links the item's page or heading. An open unknown that links a page blocks every item on that page, as `planner check` does. | an ask to the unknown's owner, or a research task |
+| GATE-5 | The item's owner is present and says yes in person, or their async answer is quoted in a capture with them as origin, naming the channel and the date. | reschedule, or collect an async answer first |
+
+If the user names an item that is already `decided`, say so. Offer to reopen it only if the user wants that, and say that reopening records the change of mind in the Changes table.
 
 An item that fails any gate stays off the agenda. Say which gate failed and offer the mode in the last column. If no item passes, do not start the grill: make no change to any page, say why, and offer Shape or an ask instead.
+
+After the table, write the agenda into the session record as an `## Agenda` section, one line per item: `- <ID>: GATE-3 confirmed yes|no, status open|decided|off-agenda: UNK-xxx`. Update the line as the item changes. START's resume rule reads this section.
 
 GATE-4 is also a check rule: `planner check` fails an item that is `decided` while an open unknown blocks it.
 
@@ -41,6 +45,10 @@ GATE-4 is also a check rule: `planner check` fails an item that is `decided` whi
 - Keep your recommendation when the user pushes back without a reason. Change it only for a reason, and say what the reason was.
 - Never answer your own question.
 
+## Acceptance
+
+Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. Before you close a branch, ask for an explicit yes or for an alternative. Before you write `decided`, read the final wording back and get a yes.
+
 Capture each answer. The user's own words take their name as origin. When the user accepts your recommendation as it stands, the origin is `claude, from <name>`.
 
 ## 4. Write each decision as its branch closes
@@ -49,16 +57,19 @@ When an item's branch closes, write it at once, before the next question:
 
 - Set its state to `decided`: the page's `state:` field, or the contract's `**State:**` bullet.
 - Add `- **Decision:** [[<session id>]]` at page level, or under the contract's heading.
-- For a contract, record where each consumer stands as a capture: present, async with channel and date, asked in the PR, or "not consulted: <reason>".
+- For a contract, record where the provider stands as well as each consumer, as a capture: present, async with channel and date, asked in the PR, or "not consulted: <reason>".
 - If anyone disagrees, add `- **Dissent:** <name>, <date>: <reason>`. The item can still be decided.
 - Add a row to `## Changes`: `| <ID> | <old state> | decided | [[<session id>#^cNN]] |`, citing the capture that settled it.
-- Commit with the message `grill: <ID> decided`.
+- Mark the deciding capture line now: `→ keep: [[<page>#<heading>|<ID>]] (decided)`. This is the one exception to leaving marks off until close.
+- Commit with the message `grill: <ID> decided`. Stage the session record and the changed pages, by exact path.
 
 Write fact bullets and table cells only. Prose waits for close.
 
 ## 5. A new unknown mid-grill
 
-If a question turns up that nobody present can answer, write it as an unknown with owner, ask-by and `**Blocks:**` naming the item. Take that item off the agenda and go on with the rest.
+If a question turns up that nobody present can answer, write it as an unknown with owner, ask-by and `**Blocks:**` naming the item. Commit the new unknown at once. Take that item off the agenda (`off-agenda: UNK-xxx`), re-run GATE-4 for every other agenda item it blocks, and go on with the rest.
+
+If it blocks an item already written `decided`, tell the user, and leave a `**Dissent:**` or follow-up note on that item. It will fail `check` with E316 until the unknown is resolved.
 
 ## Ends when
 

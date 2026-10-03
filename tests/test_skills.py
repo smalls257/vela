@@ -150,3 +150,20 @@ def test_grill_holds_the_gate_and_writes_each_decision_at_once():
     assert "Keep your recommendation when the user pushes back without a reason." in grill
     assert "Never answer your own question." in grill
     assert "Never batch decisions to the end." in grill
+
+
+def test_grill_defines_acceptance_agenda_and_the_mark_exception():
+    grill, start, close = (text("skills/grill/SKILL.md"), text("references/START.md"),
+                           text("skills/close/SKILL.md"))
+    assert 'Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance.' in grill
+    assert "read the final wording back and get a yes" in grill
+    assert "says yes in person" in grill and "explicit yes" in grill
+    assert "record where the provider stands as well as each consumer" in grill
+    assert "(decided)" in grill and "the one exception to leaving marks off until close" in grill
+    assert "exception is a Grill" in start and "(decided)" in start and "## Agenda" in start
+    assert "keeps its mark" in close and "Promoted on a nod" in close
+    assert "## Agenda" in grill and "GATE-3 confirmed yes|no" in grill
+    assert "blocks every item on that page" in grill
+    assert "re-run GATE-4 for every other agenda item" in grill and "E316" in grill
+    assert "Stage the session record and the changed pages, by exact path." in grill
+    assert "already `decided`, say so" in grill and "change of mind in the Changes table" in grill
