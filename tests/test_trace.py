@@ -107,6 +107,7 @@ def test_unknown_gate_is_a_tool_failure(mini):
 def test_markers_ignore_wikilinks_fences_blocks_and_bullets():
     page = parse.parse_page("13-epics/EPC-002-x.md", "\n".join([
         "---", "id: EPC-002", "type: epic", "---",
+        "## Epic acceptance criteria",
         "1. Calls CON-001. [security] [data]",
         "2. Reaches [[concern-testing]]",
         "3. Ends with a link [[01-goals|G1]]",
@@ -115,6 +116,19 @@ def test_markers_ignore_wikilinks_fences_blocks_and_bullets():
         "5. In a block. [rollout]",
         "<!-- /generated:traces-to -->",
         "- Not numbered. [operations]",
+    ]))
+    assert trace.ac_markers(page) == {"security", "data"}
+
+
+def test_markers_count_only_under_the_acceptance_criteria_heading():
+    page = parse.parse_page("13-epics/EPC-002-x.md", "\n".join([
+        "---", "id: EPC-002", "type: epic", "---",
+        "## Epic acceptance criteria",
+        "1. Calls CON-001. [security]",
+        "### Detail",
+        "2. Still in the section. [data]",
+        "## Out of scope",
+        "1. Not this release. [testing]",
     ]))
     assert trace.ac_markers(page) == {"security", "data"}
 

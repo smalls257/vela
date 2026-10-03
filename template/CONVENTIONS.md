@@ -92,7 +92,7 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 | Decision | `ADR-0001` | page `id` | starts with the ID, then `-<slug>` |
 | Concern | `concern-testing` | page `id` | the ID |
 | Session | `2026-08-12-goals-and-data` | page `id` | the ID. Add `-2` on a same-day clash. |
-| Contract, unknown, risk | `CON-001`, `UNK-001`, `R-01` | `### <ID> <short name>` heading | |
+| Contract, unknown, risk, functional requirement | `CON-001`, `UNK-001`, `R-01`, `CAP-001.FR1` | `### <ID> <short name>` heading | |
 | Goal, constraint, source | `G1`, `CST-1`, `SRC-01` | first column of their table | |
 | Other pages | lower-case slug, for example `goals` | page `id` | |
 
@@ -100,9 +100,9 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 
 Every item has a state. `inkling` is a hunch. `assumption` is believed but not checked. `fact` has a source. `decided` came out of a Grill. `unknown` is a question with an owner, an ask-by date and a list of what it blocks.
 
-- **Only a Grill decides.** A `decided` page carries a page-level `- **Decision:** [[<session>]]` bullet, and a `decided` contract carries one under its heading. The linked session's `modes` must include `grill`. Goal rows take their decision from the Goals page's bullet.
+- **Only a Grill decides.** A `decided` page carries a page-level `- **Decision:** [[<session>]]` bullet, and a `decided` contract or functional requirement carries one under its heading. The linked session's `modes` must include `grill`. Goal rows take their decision from the Goals page's bullet.
 - **A requirements session cannot decide.** It writes at most `assumption`.
-- **A fact needs a source.** A `fact` page lists `sources`. A `fact` contract carries `- **Source:** SRC-nn`.
+- **A fact needs a source.** A `fact` page lists `sources`. A `fact` contract or functional requirement carries `- **Source:** SRC-nn`. A goal row at `fact` needs its page to list `sources`.
 - **What counts as a source.** A document describing what exists gives a fact. A document stating intent gives an assumption. A person's first-hand knowledge gives a fact. Claude's general knowledge is never a source.
 - **Sources live in the register.** `sources.md` has one row per document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists`, `intends` or `repo`. A `repo` source is a code repository read at a commit, with Location `<url>@<sha>`. Raw files stay in `.inbox/`; document text is never copied into the vault.
 - **Disputes are unknowns.** When two sources or two people disagree, write an unknown naming both. Do not pick one.
@@ -128,6 +128,8 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Decision:**` | Required when `decided`. |
 | `**Provider:**` | Only for an external provider with no page. The contract then lives on the consumer's page. |
 | `**Dissent:**` | Optional. |
+
+Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking a Grill session, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
 
 Unknown, under `### UNK-nnn <short name>` on `11-unknowns-and-risks.md`:
 

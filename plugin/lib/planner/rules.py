@@ -272,6 +272,21 @@ def _rows(page, table, id_re, col, allowed, what, example):
                          f"Use one of: {', '.join(allowed)}.")
 
 
+# ------------------------------------------------------------------ requirements
+
+def requirement_rules(vault, today):
+    """A functional requirement (### CAP-nnn.FRn) carries a state like a contract does, so it
+    cannot be decided without a Grill."""
+    for fr in vault.requirements:
+        state = fr.fact("State")
+        if not state:
+            yield _f(fr.page, fr.line, "E320", f"{fr.id} has no **State:** bullet.",
+                     f"Add '- **State:** assumption' under the {fr.id} heading.")
+        elif state not in schema.CONTRACT_STATES:
+            yield _f(fr.page, fr.facts["State"].line, "E105", f"{fr.id} has state '{state}'.",
+                     "Use one of: " + ", ".join(schema.CONTRACT_STATES) + ".")
+
+
 # ----------------------------------------------------------------- contracts
 
 def contract_rules(vault, today):
@@ -351,14 +366,18 @@ def risk_rules(vault, today):
 
 # ----------------------------------------------------------------- certainty
 
-def _decided_goal_rows(page):
-    """(row id, line) of each goal row whose State cell says decided."""
+def _goal_rows_at(page, state):
+    """(row id, line) of each goal row whose State cell says `state`."""
     for table in page.tables:
         if table.generated or tuple(table.header)[:4] != schema.GOALS_HEADER:
             continue
         for row, line in zip(table.rows, table.row_lines):
-            if len(row) > 3 and row[3] == "decided":
+            if len(row) > 3 and row[3] == state:
                 yield row[0], line
+
+
+def _decided_goal_rows(page):
+    return _goal_rows_at(page, "decided")
 
 
 def decided_units(vault):
@@ -372,7 +391,7 @@ def decided_units(vault):
             # A decided page already answers for its rows with the same Decision bullet.
             for row_id, line in _decided_goal_rows(page):
                 yield row_id, page, line, page.page_bullets("Decision")
-    for contract in vault.contracts:
+    for contract in (*vault.contracts, *vault.requirements):
         if contract.fact("State") == "decided":
             bullet = contract.facts.get("Decision")
             yield contract.id, contract.page, contract.line, [bullet] if bullet else []
@@ -401,7 +420,13 @@ def certainty_rules(vault, today):
         if readable(page) and page.meta.get("state") == "fact" and not page.meta.get("sources"):
             yield _f(page, meta_line(page, "state"), "E304", f"{page.id} is a fact but lists no sources.",
                      "Add sources: [SRC-nn], or lower the state to assumption.")
-    for contract in vault.contracts:
+    for page in vault.pages:
+        if page.meta.get("sources") or page.meta.get("state") == "fact":
+            continue  # a fact page without sources is already one E304
+        for row_id, line in _goal_rows_at(page, "fact"):
+            yield _f(page, line, "E304", f"Goal {row_id} is a fact but this page lists no sources.",
+                     "Add sources: [SRC-nn] to the page, or lower the goal to assumption.")
+    for contract in (*vault.contracts, *vault.requirements):
         if contract.fact("State") == "fact" and not contract.fact("Source"):
             yield _f(contract.page, contract.line, "E304", f"{contract.id} is a fact but has no **Source:** bullet.",
                      "Add '- **Source:** SRC-nn', or lower the state to assumption.")
@@ -434,7 +459,7 @@ def _blocked_units(vault, link, from_page):
         return
     if found:
         yield found
-    for contract in vault.contracts:
+    for contract in (*vault.contracts, *vault.requirements):
         if contract.page is target:
             yield contract.id, contract.fact("State"), contract.page, contract.line
     for row_id, line in _decided_goal_rows(target):
@@ -621,5 +646,5 @@ def trace_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         contract_rules, unknown_rules, risk_rules, certainty_rules, stage_rules, concern_rules,
+         contract_rules, requirement_rules, unknown_rules, risk_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules)

@@ -166,6 +166,9 @@ def split_frontmatter(text):
                 line = mark.line + 2 if mark else 1
                 return {}, i + 2, ParseError("E102", line, f"The frontmatter is not valid YAML ({getattr(exc, 'problem', exc)}).",
                                              "Fix the YAML. Quote any value that contains a colon or starts with @, for example owner: \"@hl-lead\".")
+            except (ValueError, TypeError) as exc:
+                return {}, i + 2, ParseError("E102", 1, f"The frontmatter has a value YAML cannot read ({exc}).",
+                                             "Fix the date. Write it as YYYY-MM-DD with a real month and day, for example 2026-11-20.")
             if not isinstance(meta, dict):
                 return {}, i + 2, ParseError("E102", 1, "The frontmatter is not a YAML mapping.",
                                              "Write the frontmatter as key: value lines.")

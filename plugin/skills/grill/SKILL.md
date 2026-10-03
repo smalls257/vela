@@ -31,7 +31,7 @@ If the user names an item that is already `decided`, say so. Offer to reopen it 
 
 An item that fails any gate stays off the agenda. Say which gate failed and offer the mode in the last column. If no item passes, do not start the grill: make no change to any page, say why, and offer Shape or an ask instead.
 
-After the table, write the agenda into the session record as an `## Agenda` section, one line per item: `- <ID>: GATE-3 confirmed yes|no, status open|decided|off-agenda: UNK-xxx`. Update the line as the item changes. START's resume rule reads this section.
+After the table, write the agenda into the session record as an `## Agenda` section, one line per item: `- <ID>: GATE-3 confirmed yes|no, status open|decided|off-agenda: UNK-xxx|off-agenda: GATE-n`. An item that fails a gate other than GATE-4 carries `off-agenda: GATE-n` with the gate's number. Update the line as the item changes. START's resume rule reads this section.
 
 GATE-4 is also a check rule: `planner check` fails an item that is `decided` while an open unknown blocks it.
 
@@ -62,6 +62,8 @@ When an item's branch closes, write it at once, before the next question:
 - Add a row to `## Changes`: `| <ID> | <old state> | decided | [[<session id>#^cNN]] |`, citing the capture that settled it.
 - Mark the deciding capture line now: `→ keep: [[<page>#<heading>|<ID>]] (decided)`. This is the one exception to leaving marks off until close.
 - Commit with the message `grill: <ID> decided`. Stage the session record and the changed pages, by exact path.
+
+A functional requirement is a `### CAP-nnn.FRn <what the capability does>` heading on the capability page, and it is decided the same way. Its `**State:**` bullet moves to `decided`, `- **Decision:** [[<session id>]]` goes under its heading, and the `## Changes` row cites its ID. A `fact` FR needs a `**Source:**` bullet. An open unknown that blocks the FR fails GATE-4 for it. A requirements session may write an FR at `assumption` only. Only a Grill makes it `decided`.
 
 Write fact bullets and table cells only. Prose waits for close.
 

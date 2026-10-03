@@ -107,7 +107,7 @@ PAGE_ID_RE = {
     "session": re.compile(rf"^\d{{4}}-\d{{2}}-\d{{2}}-{SLUG}$"),
     "sources": re.compile(r"^sources$"),
 }
-ITEM_ID_RE = re.compile(r"^(CON-\d{3}|UNK-\d{3}|R-\d{2,})$")
+ITEM_ID_RE = re.compile(r"^(CON-\d{3}|UNK-\d{3}|R-\d{2,}|CAP-\d{3}\.FR\d+)$")
 GOAL_ID_RE = re.compile(r"^G\d+$")
 CONSTRAINT_ID_RE = re.compile(r"^CST-\d+$")
 SOURCE_ID_RE = re.compile(r"^SRC-\d{2,}$")

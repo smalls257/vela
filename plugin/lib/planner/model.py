@@ -23,9 +23,9 @@ class Finding:
 
 @dataclass
 class Item:
-    """A heading item: a contract, unknown or risk."""
+    """A heading item: a contract, unknown, risk or functional requirement."""
     id: str
-    kind: str  # "contract" | "unknown" | "risk"
+    kind: str  # "contract" | "unknown" | "risk" | "requirement"
     name: str  # heading text after the ID
     heading: str  # full heading text, which is the anchor
     page: object
@@ -86,6 +86,10 @@ class Vault:
         return sorted((i[0] for i in self.items.values() if i[0].kind == "risk"), key=lambda i: i.id)
 
     @property
+    def requirements(self):
+        return sorted((i[0] for i in self.items.values() if i[0].kind == "requirement"), key=lambda i: i.id)
+
+    @property
     def sessions(self):
         return sorted(self.of_type("session"), key=lambda p: p.name)
 
@@ -109,7 +113,7 @@ class Vault:
         return set(self.by_id) | set(self.items) | set(self.row_ids)
 
 
-ITEM_KINDS = {"CON": "contract", "UNK": "unknown", "R": "risk"}
+ITEM_KINDS = {"CON": "contract", "UNK": "unknown", "R": "risk", "CAP": "requirement"}
 
 
 def build(pages, config, other_names=()):
@@ -139,13 +143,29 @@ def _collect_items(vault, page):
         vault.items.setdefault(first, []).append(Item(first, kind, name, heading.text, page, heading.line, facts))
 
 
+def _row_id_pattern(page, header):
+    """The ID pattern a table's rows may register, or None. Only the goals, constraints and
+    sources tables register IDs; a session's Changes table only mentions them."""
+    head = tuple(header)
+    if head[:len(schema.GOALS_HEADER)] == schema.GOALS_HEADER:
+        return schema.GOAL_ID_RE
+    if head[:len(schema.CONSTRAINTS_HEADER)] == schema.CONSTRAINTS_HEADER:
+        return schema.CONSTRAINT_ID_RE
+    if page.type == "sources" and head[:len(schema.SOURCES_HEADER)] == schema.SOURCES_HEADER:
+        return schema.SOURCE_ID_RE
+    return None
+
+
 def _collect_rows(vault, page):
     for table in page.tables:
-        if table.generated or not table.header or table.header[0] != "ID":
+        if table.generated or not table.header:
+            continue
+        pattern = _row_id_pattern(page, table.header)
+        if pattern is None:
             continue
         for row, line in zip(table.rows, table.row_lines):
             row_id = row[0].strip() if row else ""
-            if schema.GOAL_ID_RE.match(row_id) or schema.CONSTRAINT_ID_RE.match(row_id) or schema.SOURCE_ID_RE.match(row_id):
+            if pattern.match(row_id):
                 vault.row_ids.setdefault(row_id, (page, line))
 
 

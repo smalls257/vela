@@ -7,6 +7,15 @@ if sys.version_info < (3, 11):
     print("planner: needs Python 3.11 or later.", file=sys.stderr)
     sys.exit(2)
 
+# A vault is a git repo. Compiled caches written next to a copied plugin would end up committed.
+sys.dont_write_bytecode = True
+
+try:
+    import yaml  # noqa: F401
+except ImportError:
+    print("planner needs PyYAML: python3 -m pip install pyyaml", file=sys.stderr)
+    sys.exit(2)
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 
 from planner.cli import main  # noqa: E402
