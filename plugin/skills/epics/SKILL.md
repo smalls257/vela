@@ -13,7 +13,7 @@ The planner is `python3 .claude/skills/planner/bin/planner`. The format, includi
 
 ## 1. Start
 
-Run the steps in `.claude/skills/planner/references/START.md` with modes `shape` and `grill`. Read the Shape and Grill rows of `.claude/skills/planner/references/MODES.md`. If the vault has no remote or `gh` fails, START says so and the session goes on.
+Run the steps in `.claude/skills/planner/references/START.md` with modes `shape` and `grill`. The record has `modes: [shape, grill]` and the title `Epics: <team>`. Read the Shape and Grill rows of `.claude/skills/planner/references/MODES.md`. If the vault has no remote or `gh` fails, START says so and the session goes on.
 
 ## 2. Read the frontier
 
@@ -27,11 +27,19 @@ For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exa
 
 Write `13-epics/EPC-nnn-<slug>.md` with the next free number, at `state: draft`. Grep the vault for the existing EPC numbers and add one to the highest. Add a `## Changes` row to the session record: `| EPC-nnn | - | draft | [[<session id>#^cNN]] |`, citing the capture of the chosen cut. A new ID with no row there is an invented ID.
 
-- Frontmatter: `id`, `type: epic`, `title`, `state: draft`, `owner`, `authored: mixed`, `apps`, `delivers`, `consumes`, `flows` and `depends_on`, per `CONVENTIONS.md`. Lists hold IDs.
+- Frontmatter: `id`, `type: epic`, `title`, `state: draft`, `owner` (the owning team's handle), `authored: mixed`, `apps`, `delivers`, `consumes`, `flows` and `depends_on`, per `CONVENTIONS.md`. Lists hold IDs. `delivers` is never empty: an epic that delivers nothing fails T6.
 - `**Owning team:**` in the description.
 - `## Epic acceptance criteria`: 4 to 7 numbered criteria. Each describes behaviour a tester can see at a contract or a flow boundary. Name the contract or flow by ID. Never name a component, a table, a technology or a container's internals. Every criterion sits at the boundary.
 - End each criterion that does a concern cell's work with the concern's marker, such as `[testing]` or `[security] [data]`. Every `addressed` cell for the epic's apps needs one marked criterion on an epic whose `apps` lists the app, or a waiver in the cell. Markers go on numbered criteria. A bulleted criterion carries none.
 - `## Traces to` holding an empty `traces-to` block, `## Depends on` with one reason per dependency, `## Rollout notes` and `## Out of scope`.
+
+Before you propose a criterion, run the boundary test on it:
+
+1. It cites at least one contract (`CON-`) or flow (`FLO-`) ID.
+2. It names none of the app's containers, components or data stores from its building-blocks page.
+3. It names no technology or product from the tech or ADR pages, and none of the generic words database, table, queue, Redis or Kafka.
+
+If it fails, rewrite it at the boundary and show the rewrite beside the original. Do not offer the failing version.
 
 Write no description paragraph yet. Prose is drafted at close, through `house-voice`. Until then the page holds the bullets, the criteria and the sections above.
 
@@ -43,14 +51,14 @@ If a criterion needs behaviour no page records, stop on that criterion. Say whic
 
 For each epic the user wants decided, run the gate in `.claude/skills/planner/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Show the table, and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it.
 
-Then take each criterion in turn:
+Then take each criterion in turn. Every criterion needs its own explicit yes before the epic can be confirmed:
 
 - Show the criterion and ask whether it is right. Give your recommended wording and a one-line reason, in the form *Recommended: <wording>. <reason>.* Wait.
 - Capture the answer. The lead's own words take their name as origin. An accepted recommendation has origin `claude, from <name>`.
 - Silence, "ok", "next" or "sure" with nothing else do not count. Ask for an explicit yes or for another wording. Keep your recommendation under pushback without a reason.
 - Never answer your own question.
 
-Set an epic to `decided` only when the solution lead confirms the epic as a whole in this session. Read the final criteria back, and get an explicit yes to that read-back. Then, as grill does:
+Set an epic to `decided` only when the solution lead confirms it in this session, and only after the lead has given an explicit yes to each criterion on its own. A yes to the epic as a whole does not stand in for them. When every criterion has its yes, read the final set back and get an explicit yes to that read-back. A criterion with no yes of its own keeps the epic at `draft`. Then, as grill does:
 
 - set `state: decided`;
 - add `- **Decision:** [[<session id>]]` and a `## Changes` row `| EPC-nnn | draft | decided | [[<session id>#^cNN]] |`;
@@ -63,13 +71,16 @@ If the lead never confirms, the epic stays `draft`, and its agenda line says `st
 
 Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs.
 
+Exit 0 means the epics are structurally complete. It does not mean they are decided. Handoff needs every epic `decided` and a clean gate, so list each epic still at `draft` before you finish. The gate checks the whole vault, so `E50x` lines on other teams' apps also fail the exit code. Report those separately as other teams' work, and do not treat them as this team's gap.
+
 ## Ends when
 
-Every chosen team's gaps are closed or listed, or the user stops. Tell the user: "Run `/planner:close` to finish the session and open the PR."
+Every chosen team's gaps are closed or listed, or the user stops. Epics left at `draft` are listed. Tell the user: "Run `/planner:close` to finish the session and open the PR."
 
 ## Never
 
-- Never set `decided` without the lead's confirmation in this session.
+- Never set `decided` without the lead's confirmation in this session, or while any criterion lacks its own explicit yes.
+- Never read exit 0 from the gate as `decided`.
 - Never put one epic under two owning teams.
 - Never name a component, table or technology in a criterion.
 - Never edit a generated block. Render fills `traces-to`, `epics-for-app`, `delivered-by` and `traceability`.

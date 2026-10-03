@@ -312,5 +312,15 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "`[testing]`" in epics
     assert "offer to run requirements-grill on that `CAP-NNN`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
+    assert "an explicit yes to each criterion on its own" in epics and "while any criterion lacks its own explicit yes" in epics
+    assert "It does not mean they are decided." in epics and "Report those separately" in epics
+    assert "list each epic still at `draft`" in epics
+    assert "It cites at least one contract (`CON-`) or flow (`FLO-`) ID." in epics and "Redis or Kafka" in epics
+    assert "`modes: [shape, grill]` and the title `Epics: <team>`" in epics
     assert "check --gate epics" in epics
     assert "Never say an app's epics are complete while one remains." in epics
+
+
+def test_modes_and_close_know_epics():
+    assert "| Epics (`epics`)" in text("references/MODES.md") and "| `epics` | `draft` epic pages" in text("references/MODES.md")
+    assert "owes a description paragraph" in text("skills/close/SKILL.md")
