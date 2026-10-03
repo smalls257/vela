@@ -211,7 +211,24 @@ CODES = {
     "E602": "sequence diagram over its participant budget",
     "E603": "diagram type not supported",
     "W705": "unknown is past its ask-by date",
+    "W501": "no epic delivers a capability that changes",
+    "W502": "no epic delivers a new or changed contract",
+    "W503": "no epic covers a concern cell with work",
+    "W504": "epic delivers nothing",
+    "E501": "no epic delivers a capability that changes",
+    "E502": "no epic delivers a new or changed contract",
+    "E503": "no epic covers a concern cell with work",
+    "E504": "epic delivers nothing",
 }
+
+# ------------------------------------------------------------- traceability
+
+# Rule -> (code in a plain check, code under --gate epics).
+TRACE_CODES = {"T1": ("W501", "E501"), "T2": ("W502", "E502"), "T4": ("W503", "E503"), "T6": ("W504", "E504")}
+GATES = ("epics",)
+TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
+OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker
+WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{2}}-\d{{2}}\): \S")
 
 # Files the check never parses as pages (paths relative to the vault root).
 SKIP_FILES = ("CLAUDE.md", "CONVENTIONS.md")

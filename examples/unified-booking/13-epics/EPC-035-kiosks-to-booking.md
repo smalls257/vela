@@ -26,12 +26,12 @@ Kiosks have no user to log in, so each kiosk authenticates with a device certifi
 
 ## Epic acceptance criteria
 
-1. A kiosk on the March 2027 image holds, confirms and looks up bookings through CON-001 v1, and shows the same booking state as every other channel.
-2. A request from a kiosk without a valid device certificate is refused at the Platform gateway.
+1. A kiosk on the March 2027 image holds, confirms and looks up bookings through CON-001 v1 with a trace ID it created on every call, and shows the same booking state as every other channel. [observability]
+2. A request from a kiosk without a valid device certificate is refused at the Platform gateway. [security]
 3. Booking API v1 answers kiosk requests unchanged for at least 6 months after the March 2027 image ships, whatever later versions add.
-4. Flipping the kiosk switch back sends kiosk bookings through the old FM adapter without a new image.
-5. The kiosks' consumer-driven contract tests are pinned to v1 and pass in Booking's provider verification.
-6. Once the September 2027 image is rolled out, FERRYMASTER sees no direct sessions from any kiosk.
+4. Flipping the kiosk switch back sends kiosk bookings through the old FM adapter without a new image. [rollout]
+5. The kiosks' consumer-driven contract tests are pinned to v1 and pass in Booking's provider verification. [testing]
+6. Once the September 2027 image is rolled out, FERRYMASTER sees no direct sessions from any kiosk. [data]
 
 ## Traces to
 

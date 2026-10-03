@@ -5,15 +5,23 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import render, schema
+from planner import render, schema, trace
 from planner.model import Finding, cell_table
 
 
-def check(vault, today):
-    """All findings for the vault, sorted by path, line and code."""
+def check(vault, today, gate=None):
+    """All findings for the vault, sorted by path, line and code.
+
+    `gate="epics"` is the moment epics are called complete: every trace gap
+    becomes an error, even in a vault that has no epic yet.
+    """
     findings = []
     for rule in RULES:
         findings.extend(rule(vault, today))
+    if gate == "epics":
+        trace_warnings = {warning for warning, _ in schema.TRACE_CODES.values()}
+        findings = [f for f in findings if f.code not in trace_warnings]
+        findings.extend(trace_findings(vault, gated=True))
     return sorted(set(findings))
 
 
@@ -592,6 +600,26 @@ def block_rules(vault, today):
                          "Run planner render.")
 
 
+# ------------------------------------------------------------- traceability
+
+def trace_findings(vault, gated):
+    """One finding per trace gap: a warning, or an error under the gate."""
+    for gap in trace.report(vault).gaps:
+        warning, error = schema.TRACE_CODES[gap.rule]
+        line = gap.line or meta_line(gap.page, gap.field)
+        yield _f(gap.page, line, error if gated else warning, f"{gap.rule}: {gap.message}", gap.fix)
+
+
+def trace_rules(vault, today):
+    """T1, T2, T4 and T6 as warnings, once the vault has its first epic.
+
+    Before that every changing capability would warn on every PR for months,
+    and a warning nobody can act on teaches people to skip the output.
+    """
+    if vault.of_type("epic"):
+        yield from trace_findings(vault, gated=False)
+
+
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          contract_rules, unknown_rules, risk_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules)
+         diagram_rules, block_rules, trace_rules)

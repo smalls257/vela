@@ -26,12 +26,12 @@ Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a wee
 
 ## Epic acceptance criteria
 
-1. Booking sends BKHOLD, BKCONF, BKAMND and BKCANC in the format CON-006 documents, and the FERRYMASTER test region accepts each one in the weekly end-to-end run.
-2. When FERRYMASTER rejects a write or does not answer, Booking retries and the booking keeps its hold. No channel sees `confirmed` until FERRYMASTER has accepted.
+1. Booking sends BKHOLD, BKCONF, BKAMND and BKCANC in the format CON-006 documents, and the FERRYMASTER test region accepts each one in the weekly end-to-end run. [testing]
+2. When FERRYMASTER rejects a write or does not answer, Booking retries and the booking keeps its hold. No channel sees `confirmed` until FERRYMASTER has accepted. [data]
 3. The same write sent twice is applied once in FERRYMASTER.
 4. p95 ledger write latency in the weekly end-to-end run is no worse than the 2.1 s measured for [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]].
-5. Booking's MQ volume stays within the existing MIPS budget agreed with the mainframe team lead (CST-5).
-6. Booking's contract tests run against the ledger simulator with no connection to FERRYMASTER, and the simulator gives the replies CON-006 documents for every transaction.
+5. Booking's MQ volume stays within the existing MIPS budget agreed with the mainframe team lead (CST-5). [cost]
+6. Booking's contract tests run against the ledger simulator with no connection to FERRYMASTER, and the simulator gives the replies CON-006 documents for every transaction. [testing]
 
 ## Traces to
 

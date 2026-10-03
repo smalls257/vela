@@ -26,13 +26,13 @@ The manual fix queue goes too. It exists because the website's confirm can fail 
 
 ## Epic acceptance criteria
 
-1. Agents hold, confirm, amend, cancel and look up bookings through CON-001 only.
+1. Agents hold, confirm, amend, cancel and look up bookings through CON-001 only. Every call carries the desktop's service token and a trace ID the desktop created. [security] [observability]
 2. For any booking reference, the desktop shows the same state as the website and the kiosks.
 3. An amendment shows the agent the re-quoted fare from Booking before the agent commits it.
-4. A booking still waiting for the ledger shows as `confirming` on the desktop. Agents get no fix task for it.
-5. The desktop's consumer-driven contract tests for CON-001 pass in Booking's provider verification.
-6. Flipping the call centre's switch back sends bookings through the terminal adapter without a release, for 4 weeks after cutover.
-7. After those 4 weeks the terminal adapter and the manual fix screens are removed from the desktop.
+4. A booking still waiting for the ledger shows as `confirming` on the desktop. Agents get no fix task for it. [operations]
+5. The desktop's consumer-driven contract tests for CON-001 pass in Booking's provider verification. [testing]
+6. Flipping the call centre's switch back sends bookings through the terminal adapter without a release, for 4 weeks after cutover. [rollout]
+7. After those 4 weeks the terminal adapter and the manual fix screens are removed from the desktop. [data]
 
 ## Traces to
 

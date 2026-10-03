@@ -153,3 +153,44 @@ def test_overdue_unknown_is_a_warning_on_a_later_date():
     code, out = check(FIXTURE, today="2027-03-02")
     assert code == 0
     assert findings(out) == [("W705", "11-unknowns-and-risks.md")]
+
+
+# Stage 6: the fixture is clean under --gate epics, and each trace rule is caught by one broken copy.
+
+def gated(vault):
+    return run("check", "--vault", str(vault), "--today", TODAY, "--gate", "epics")
+
+
+def test_fixture_is_clean_under_the_epics_gate():
+    code, out = gated(FIXTURE)
+    assert code == 0, out
+    assert findings(out) == []
+
+
+def test_t1_capability_delta_row_with_no_epic(ub):
+    edit(ub / "13-epics" / "EPC-031-holds-and-confirms.md", "delivers: [CAP-013, CAP-014, CON-001", "delivers: [CAP-013, CON-001")
+    assert broken(ub) == [("W501", "capabilities/CAP-014-hold-a-seat.md")]
+    assert findings(gated(ub)[1]) == [("E501", "capabilities/CAP-014-hold-a-seat.md")]
+
+
+def test_t2_changed_contract_with_no_epic(ub):
+    edit(ub / "13-epics" / "EPC-038-pricing-serves-booking.md", "delivers: [CAP-012, CON-003]", "delivers: [CAP-012]")
+    assert broken(ub) == [("W502", "05-building-blocks/pricing-building-blocks.md")]
+    assert findings(gated(ub)[1]) == [("E502", "05-building-blocks/pricing-building-blocks.md")]
+
+
+def test_t4_concern_cell_with_work_and_no_epic(ub):
+    edit(ub / "13-epics" / "EPC-033-website-to-booking.md", "call. [security] [observability]", "call. [security]")
+    assert broken(ub) == [("W503", "08-concerns/concern-observability.md")]
+    assert findings(gated(ub)[1]) == [("E503", "08-concerns/concern-observability.md")]
+
+
+def test_t4_reads_waivers(ub):
+    edit(ub / "08-concerns" / "concern-cost.md", "no work (@hl-solution-lead, review 2027-03-01): standard", "no work: standard")
+    assert broken(ub) == [("W503", "08-concerns/concern-cost.md")]
+
+
+def test_t6_epic_tracing_to_nothing(ub):
+    edit(ub / "13-epics" / "EPC-039-run-booking.md", "delivers: [G2]", "delivers: []")
+    assert broken(ub) == [("W504", "13-epics/EPC-039-run-booking.md")]
+    assert findings(gated(ub)[1]) == [("E504", "13-epics/EPC-039-run-booking.md")]

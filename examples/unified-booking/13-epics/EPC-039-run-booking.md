@@ -26,11 +26,11 @@ Today a stuck booking shows up as a call centre fix the next morning. After go-l
 
 ## Epic acceptance criteria
 
-1. From the day the website cuts over, a Booking alert pages a Booking engineer through the Platform on-call rota.
-2. The on-call engineer can see per-channel request and error rate, booking state transitions, p95 ledger write latency and hold expiry rate without a release.
-3. One trace ID follows a request from the channel's call on CON-001 to the write on CON-006.
+1. From the day the website cuts over, a Booking alert pages a Booking engineer through the Platform on-call rota. [operations]
+2. The on-call engineer can see per-channel request and error rate, booking state transitions, p95 ledger write latency and hold expiry rate without a release. [observability]
+3. One trace ID follows a request from the channel's call on CON-001 to the write on CON-006. [observability]
 4. An alert fires when ledger writes keep failing and bookings stay in `confirming`.
-5. Both runbooks have been walked through in a rehearsal with the on-call rota before the website cutover.
+5. Both runbooks have been walked through in a rehearsal with the on-call rota before the website cutover. [operations]
 
 ## Traces to
 

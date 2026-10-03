@@ -26,11 +26,11 @@ Cutover is February 2027. The old adapter stays behind a switch for 4 weeks so t
 
 ## Epic acceptance criteria
 
-1. Every booking the website makes after cutover goes through CON-001 hold, confirm and get.
+1. Every booking the website makes after cutover goes through CON-001 hold, confirm and get, with the website's service token and a trace ID the website created on every call. [security] [observability]
 2. A customer whose payment succeeds sees "confirming" until Booking returns `confirmed`, and then sees the confirmed booking. No customer is left with a payment and no booking.
-3. The website's consumer-driven contract tests for CON-001 pass in Booking's provider verification.
-4. Flipping the website's switch back sends new bookings through the FM screen adapter without a release.
-5. Four weeks after cutover the FM screen adapter is removed, and FERRYMASTER sees no screen sessions from the website.
+3. The website's consumer-driven contract tests for CON-001 pass in Booking's provider verification. [testing]
+4. Flipping the website's switch back sends new bookings through the FM screen adapter without a release. [rollout]
+5. Four weeks after cutover the FM screen adapter is removed, and FERRYMASTER sees no screen sessions from the website. [data]
 
 ## Traces to
 

@@ -31,8 +31,8 @@ The hold is new. Today nothing stops a second channel selling the last seat whil
 3. If the ledger write fails after payment, get returns `confirming`, the seat stays held past the 10 minutes, and the booking reaches `confirmed` without anyone at Harbourline touching it.
 4. A failed or abandoned payment releases the hold, and the seat is available to every channel again.
 5. Two channels asking about the same booking reference at the same moment get the same state.
-6. A call to CON-001 without a valid service token is refused at the Platform gateway.
-7. No request or response on CON-001 or CON-007 carries card data.
+6. A call to CON-001 without a valid service token is refused at the Platform gateway. [security]
+7. No request or response on CON-001 or CON-007 carries card data. [security] [data]
 
 ## Traces to
 

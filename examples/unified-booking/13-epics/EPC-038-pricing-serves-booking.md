@@ -26,10 +26,10 @@ One caller means the Revenue team changes fare rules against one consumer and on
 
 ## Epic acceptance criteria
 
-1. Booking's contract test for CON-003 passes against Pricing's provider verification, in both teams' pipelines.
+1. Booking's contract test for CON-003 passes against Pricing's provider verification, in both teams' pipelines. [testing]
 2. For the same crossing and fare rules, Booking gets the same quote the front ends get today.
-3. Once the restriction is on, a quote request from any caller other than Booking is refused at the Platform gateway.
-4. Before the restriction goes on, the gateway shows no direct quote requests from the website, the call centre or the kiosks.
+3. Once the restriction is on, a quote request from any caller other than Booking is refused at the Platform gateway. [security]
+4. Before the restriction goes on, the gateway shows no direct quote requests from the website, the call centre or the kiosks. [rollout]
 
 ## Traces to
 

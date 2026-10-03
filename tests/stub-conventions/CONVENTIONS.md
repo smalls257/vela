@@ -252,9 +252,40 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | E302 | unknown or risk is missing a required fact | E601 | flowchart over its element budget |
 | W705 | unknown is past its ask-by date | E602 | sequence diagram over its participant budget |
 | | | E603 | diagram type not supported |
+| W501 | no epic delivers a capability that changes | E501 | no epic delivers a capability that changes |
+| W502 | no epic delivers a new or changed contract | E502 | no epic delivers a new or changed contract |
+| W503 | no epic covers a concern cell with work | E503 | no epic covers a concern cell with work |
+| W504 | epic delivers nothing | E504 | epic delivers nothing |
 
 Codes are stable. A retired code is never reused.
 
-## Coming with stage 6
+## Epics and traceability
 
-When the first app nears handoff, the check gains the traceability rules and `--gate epics`, and render gains the `traceability` and `epics-for-app` blocks. The fields they read, `handed_off` and the epic lists, are recorded from the start.
+An epic page holds a description, the owning team, 4 to 7 numbered acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behaviour a tester can see at a contract or flow boundary, never inside a container.
+
+A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
+
+Four trace rules run once the vault holds an epic. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete.
+
+| Rule | Passes when | Codes |
+|---|---|---|
+| T1 | Every capability whose `change` is not `unchanged` is in some epic's `delivers` | W501, E501 |
+| T2 | Every contract whose `**Change:**` is `new` or `changed` is in some epic's `delivers`. A contract with an external `**Provider:**` may be in `consumes` instead. | W502, E502 |
+| T4 | Every `addressed` cell is covered: a waiver, or an acceptance criterion with the concern's marker on an epic whose `apps` lists the app. An Ownership cell is covered by any epic whose `apps` lists the app. | W503, E503 |
+| T6 | No epic has an empty `delivers` | W504, E504 |
+
+A cell that starts `no work` but does not follow the waiver form covers nothing, and T4 says so.
+
+## Handoff
+
+`handed_off` goes on the app page in the PR the senior approves. Before offering an app, check the boundary list:
+
+- The page says what the app does and what it does not do.
+- Every container is `confirmed`, `unchanged` or `retired`, or the app is a black box with a reason.
+- Every contract it provides is `decided`, with change policy, `**Tested by:**` and `**Change:**`.
+- Every contract it consumes is `decided` or `fact`, or links an open unknown.
+- No concern cell for the app is `unexamined`.
+- The runtime page says how the app behaves when something fails.
+- Every open unknown that blocks the app has an owner and an ask-by date.
+
+Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `planner check --gate epics` exits 0.

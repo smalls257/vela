@@ -78,12 +78,12 @@ def cmd_check(args, out):
     today, origin = parse_today(args.today)
     started = time.perf_counter()
     vault = load_vault(root)
-    findings = rules.check(vault, today)
+    findings = rules.check(vault, today, gate=args.gate)
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     elapsed = time.perf_counter() - started
     print(f"planner check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages. "
-          f"Today is {today} ({origin}). Took {elapsed:.2f} s.", file=out)
+          f"Today is {today} ({origin}). Took {elapsed:.2f} s." + (f" Gate: {args.gate}." if args.gate else ""), file=out)
     for finding in findings:
         print(finding.format(), file=out)
     return 1 if errors else 0
@@ -161,6 +161,8 @@ def build_parser():
     check = sub.add_parser("check", help="read-only check of the vault")
     check.add_argument("--vault", default=".", help="vault root (default: current directory)")
     check.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
+    check.add_argument("--gate", choices=schema.GATES,
+                       help="epics: trace gaps are errors; run it before calling an app's epics complete")
     check.set_defaults(func=cmd_check)
     rend = sub.add_parser("render", help="rewrite generated blocks")
     rend.add_argument("--vault", default=".", help="vault root (default: current directory)")

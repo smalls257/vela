@@ -30,8 +30,9 @@ The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risk
 2. A hold that isn't confirmed within 10 minutes is released, and Booking publishes a state-changed event.
 3. A confirmed, amended or cancelled booking produces one message to the customer, by email or SMS as Notifications decides, whichever channel made the change.
 4. An event carries the customer ID and no card data or other personal data.
-5. A change to the event schema that removes or renames a field fails Booking's pipeline.
-6. Once Notifications sends booking messages, the website stops sending its own, so a customer gets one message per change.
+5. A change to the event schema that removes or renames a field fails Booking's pipeline, and the Notifications consumer test for CON-002 runs in Notifications' pipeline. [testing]
+6. Once Notifications sends booking messages, the website stops sending its own, so a customer gets one message per change. [data]
+7. Pausing the Notifications consumer leaves events waiting on the bus, and each one is sent once the consumer starts again. [rollout]
 
 ## Traces to
 
