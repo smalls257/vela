@@ -38,9 +38,9 @@ Write each kept item onto its page as structured content only: fact bullets, tab
 
 For a session whose `modes` include `shape`, write the picked option as an `assumption` item with an `Options considered` list: each option, and for each rejected one, why it was rejected. If a capture says "that's decided", add a "grill to confirm" note to the item. The item must pass grill's GATE-2 afterwards: at `assumption`, with a preferred option and the rejected options with their reasons. New items get the next free ID of their kind: grep the vault for the existing IDs of that kind and add one to the highest. Add one row to `## Changes` for each item whose state changed: `| ID | From | To | [[<id>#^cNN]] |`.
 
-## 4. Prose
+## 4. Draft the prose
 
-The house-voice skill is not installed yet, so this close drafts no paragraphs. List each paragraph the session needs, page by page, in the PR body under **Prose to draft**. A person writes them in review.
+Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. Prose is drafted here and nowhere else. Commit the drafts on their own with the message `draft: prose for <id>`, so the reviewer's edits show as a diff.
 
 ## 5. Read back decided wording
 
@@ -66,7 +66,7 @@ Get the user's own handle with `gh api user -q .login`. Strip the leading `@` fr
 Write the PR body to a temporary file. Fill the headings of the vault's PR template:
 
 - **What changed.** The promoted items, each with its new state. Then these lists, each with "none" when empty:
-  - **Prose to draft:** each paragraph a person must write, page by page.
+  - **Prose drafted:** each paragraph in the `draft: prose for <id>` commit, page by page.
   - **Decided wording not yet read back:** each `decided` item whose owner was not present in step 5.
   - **Promoted on a nod:** every item kept or promoted from a capture whose origin starts with `claude`, not only the deciding capture, with the capture quoted.
   - **Changed contracts:** each contract, and for each consumer, who was asked: present, async, in this PR, or "not consulted: <reason>".

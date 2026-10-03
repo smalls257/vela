@@ -131,7 +131,7 @@ def test_close_parks_every_claude_origin_and_never_decides_its_unknowns():
 
 def test_close_pr_body_reviewers_and_staging():
     close = text("skills/close/SKILL.md")
-    assert "**Prose to draft:**" in close and "**Decided wording not yet read back:**" in close
+    assert "**Prose drafted:**" in close and "**Decided wording not yet read back:**" in close
     assert "gh api user -q .login" in close and "Strip the leading `@`" in close
     assert "If nobody remains, leave out `--reviewer`." in close
     assert "Never use `git add -A`." in close
@@ -269,3 +269,21 @@ def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
     assert "Every claim is followed by its ID or labelled `Not from the vault:`. There is no third choice." in ask
     assert "Assert nothing you did not open and read. A Grep snippet alone does not count." in ask
     assert "Never Read a file under `voice/` or `.inbox/`. Read `sessions/` only if the user asks." in ask
+
+
+# house voice (V1-09): close now drafts prose through it, and only through it.
+
+def test_close_drafts_prose_through_house_voice():
+    close = text("skills/close/SKILL.md")
+    assert "Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it" in close
+    assert "draft: prose for <id>" in close
+    assert "Prose to draft" not in close
+
+
+def test_house_voice_rules():
+    voice = text("skills/house-voice/SKILL.md")
+    assert "in file-name order" in voice
+    assert "Never read `voice/corpus/`." in voice
+    assert "> Replaces the paragraph above after <session id>; delete one." in voice
+    assert "more than about 20 prose paragraphs" in voice
+    assert "acceptance criteria;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
