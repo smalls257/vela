@@ -1,0 +1,39 @@
+---
+id: readme
+type: index
+title: Initiative vault
+authored: authored
+---
+
+# Initiative vault
+
+This vault holds one initiative. Start at [[01-goals|Goals]]. The format is in `CONVENTIONS.md`.
+
+## Setup checklist
+
+1. Copy this folder to a new GitHub repository.
+2. Copy the planner plugin in: `cp -r <toolkit>/plugin .claude/skills/planner`.
+3. In `.planner.yaml`, set `initiative` to the next free `INI-nnn` and `title` to the initiative's name.
+4. Replace `@solution-lead` with your GitHub handle on every page: `grep -rl '@solution-lead' .`.
+5. Rewrite `CLAUDE.md` in your own words and delete its first line.
+6. Run `python3 .claude/skills/planner/bin/planner check`. It should report 0 errors.
+7. On GitHub, make the `planner-check` job a required status check on `main`.
+8. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
+
+## How the vault is laid out
+
+- Root pages: [[01-goals|Goals]], [[02-constraints|Constraints]], [[03-context-and-scope|Context and scope]], [[04-solution-strategy|Solution strategy]], [[04a-capability-delta|Capability delta]], [[11-unknowns-and-risks|Unknowns and risks]], [[12-glossary|Glossary]] and [[sources|Sources]].
+- [[05-building-blocks|Building blocks]]: one page per app, with its contracts.
+- [[06-flows|Flows]]: flows across apps, and one runtime page per app.
+- [[08-concerns|Concerns]], [[09-decisions|Decisions]] and [[13-epics|Epics]]: an index page and one page per item.
+- `capabilities/`: one page per capability touched. `sessions/`: one record per session.
+
+## Reading paths
+
+| Reader | Pages, in order |
+|---|---|
+| CIO / CTO | [[01-goals\|Goals]] → [[03-context-and-scope\|Context and scope]] → [[11-unknowns-and-risks\|Unknowns and risks]] |
+| Product | [[01-goals\|Goals]] → [[04a-capability-delta\|Capability delta]] → [[06-flows\|Flows]] |
+| Architects | [[03-context-and-scope\|Context and scope]] → [[04-solution-strategy\|Solution strategy]] → [[05-building-blocks\|Building blocks]] → [[09-decisions\|Decisions]] |
+| Team seniors | Your app's building-blocks page → its runtime page → [[13-epics\|Epics]] |
+| QA | [[concern-testing\|Testing]] → [[06-flows\|Flows]] → [[13-epics\|Epics]] |
