@@ -22,5 +22,19 @@ sources: ["2026-01-10-shop-api"]
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=00000000: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=96fdccae: do not edit, run planner render -->
+**Apps on the ladder**
+
+| App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
+|---|---|---|---|---|
+| [[till-building-blocks\|Till]] | baseline | 0 | 0 | 1 of 1 |
+| [[shop-building-blocks\|Shop]] | contracts | 0 | 0 | 2 of 2 |
+
+**Open unknowns**
+
+| Unknown | Owner | Ask by | Blocks |
+|---|---|---|---|
+| [[11-unknowns-and-risks#UNK-001 Till test rig\|UNK-001]] | @mini-qa | 2026-02-01 | nothing |
+
+**Last session:** 2026-01-10
 <!-- /generated:where-it-stands -->

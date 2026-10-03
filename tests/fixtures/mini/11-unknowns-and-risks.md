@@ -8,7 +8,12 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=00000000: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=14efe937: do not edit, run planner render -->
+| ID | Name | Owner | State | Ask by |
+|---|---|---|---|---|
+| [[#UNK-001 Till test rig\|UNK-001]] | Till test rig | @mini-qa | open | 2026-02-01 |
+| [[#UNK-002 Receipt format\|UNK-002]] | Receipt format | @mini-lead | resolved |  |
+| [[#R-01 One till only\|R-01]] | One till only | @mini/till-team | open |  |
 <!-- /generated:unknowns-index -->
 
 ## Unknowns

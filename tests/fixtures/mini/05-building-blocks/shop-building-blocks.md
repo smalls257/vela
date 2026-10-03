@@ -36,5 +36,8 @@ flowchart LR
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=00000000: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=0dca45ce: do not edit, run planner render -->
+| Contract | Provider | Change policy | State |
+|---|---|---|---|
+| [[stock-building-blocks#CON-002 Stock level\|CON-002 Stock level]] | [[stock-building-blocks\|Stock]] | the existing read API, no change. | fact |
 <!-- /generated:contracts-consumed -->

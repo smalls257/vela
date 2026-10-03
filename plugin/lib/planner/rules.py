@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import schema
+from planner import render, schema
 from planner.model import Finding, cell_table
 
 
@@ -566,6 +566,32 @@ def diagram_rules(vault, today):
                          "Draw it as a flowchart or a sequenceDiagram.")
 
 
+# ------------------------------------------------------------ generated blocks
+
+def block_rules(vault, today):
+    unreadable = [p for p in vault.pages if not readable(p)]
+    for page in vault.pages:
+        if not readable(page):
+            continue
+        for block in page.blocks:
+            if not render.block_allowed(page, block.name):
+                where = schema.BLOCKS.get(block.name)
+                why = f"It belongs on {where.replace('type:', 'pages of type ')}." if where else "No generator has this name."
+                yield _f(page, block.start, "E403", f"Generated block '{block.name}' is not allowed on this page. {why}",
+                         "Remove the block, or move it to the right page.")
+                continue
+            current = render.normalise(block.content)
+            if current and render.block_hash(current) != block.sha:
+                yield _f(page, block.start, "E401", f"Someone edited the '{block.name}' block by hand. The next render would overwrite it.",
+                         "Undo the edit and change the source pages instead, or run planner render --discard-edits.")
+                continue
+            if unreadable:
+                continue  # a page the model cannot read would make every staleness verdict a guess
+            if current != render.block_content(vault, page, block.name):
+                yield _f(page, block.start, "W402", f"The '{block.name}' block is out of date.",
+                         "Run planner render.")
+
+
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          contract_rules, unknown_rules, risk_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules)
+         diagram_rules, block_rules)

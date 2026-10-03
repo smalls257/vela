@@ -3,6 +3,7 @@
 Exit codes: 0 clean, 1 findings, 2 the tool itself failed.
 """
 import argparse
+import codecs
 import datetime
 import pathlib
 import sys
@@ -11,7 +12,7 @@ import traceback
 
 import yaml
 
-from planner import model, parse, rules, schema
+from planner import model, parse, render, rules, schema
 
 
 class ToolError(Exception):
@@ -85,6 +86,34 @@ def cmd_check(args, out):
     return 1 if errors else 0
 
 
+def cmd_render(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    texts, changed, discarded, refusals = render.render_vault(vault, args.discard_edits)
+    if refusals:
+        print(f"planner render: wrote nothing, {len(refusals)} problems.", file=out)
+        for finding in refusals:
+            print(finding.format(), file=out)
+        return 1
+    for path, text in sorted(texts.items()):
+        target = root / path
+        original = target.read_bytes()
+        if b"\r\n" in original:
+            text = text.replace("\n", "\r\n")  # keep the file's own line endings
+        data = text.encode("utf-8")
+        if original.startswith(codecs.BOM_UTF8):
+            data = codecs.BOM_UTF8 + data
+        target.write_bytes(data)
+    for path, name, old in discarded:
+        print(f"{path}: discarded a hand edit in '{name}':", file=out)
+        for line in old.split("\n"):
+            print(f"  - {line}", file=out)
+    print(f"planner render: {len(changed)} blocks changed.", file=out)
+    for path, name in changed:
+        print(f"  {path}: {name}", file=out)
+    return 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="planner", description="Check and render an initiative vault.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -92,6 +121,10 @@ def build_parser():
     check.add_argument("--vault", default=".", help="vault root (default: current directory)")
     check.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
     check.set_defaults(func=cmd_check)
+    rend = sub.add_parser("render", help="rewrite generated blocks")
+    rend.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    rend.add_argument("--discard-edits", action="store_true", help="overwrite hand-edited blocks and print what was lost")
+    rend.set_defaults(func=cmd_render)
     return parser
 
 
