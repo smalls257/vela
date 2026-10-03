@@ -82,11 +82,11 @@ None. The desktop only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
+<!-- generated:contracts-consumed sha=730b0a4e: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | Booking | Versioned; each version kept at least 6 months | decided |
-<!-- /generated -->
+| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
+<!-- /generated:contracts-consumed -->
 
 ## Concerns this team carries
 
@@ -95,8 +95,6 @@ None. The desktop only consumes.
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-034-call-centre-to-booking|EPC-034 Call centre moves to Booking]] (HB-104)
-<!-- /generated -->
+The epics that touch this app are listed on [[13-epics|Epics]].
 
 Next: [[call-centre-runtime|Call centre desktop runtime]]

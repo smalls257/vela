@@ -6,7 +6,7 @@ origin: proposed
 change: retire
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -22,17 +22,13 @@ Lets an agent repair a booking that was paid for but never confirmed.
 
 ## Provided by
 
-<!-- generated: do not edit -->
 | Application | Today | After |
 |---|---|---|
 | [[call-centre-building-blocks\|Call centre desktop]] | manual fix queue, worked the next morning | retired: nobody, [[booking-building-blocks\|Booking]] retries the ledger write and keeps the hold |
-<!-- /generated -->
 
 ## Initiatives that touch this
 
-<!-- generated: do not edit -->
 - [[04a-capability-delta|INI-002 Unified Booking]] (retire)
-<!-- /generated -->
 
 ## Flows
 

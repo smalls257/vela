@@ -14,6 +14,31 @@ sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", SRC-0
 
 - **Decision:** [[2026-08-12-goals-and-data]]
 
+## Where it stands
+
+<!-- generated:where-it-stands sha=c1ce1d02: do not edit, run planner render -->
+**Apps on the ladder**
+
+| App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
+|---|---|---|---|---|
+| [[booking-building-blocks\|Booking]] | epics | 0 | 0 | 7 of 7 |
+| [[call-centre-building-blocks\|Call centre desktop]] | epics | 0 | 0 | 1 of 1 |
+| [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 1 of 1 |
+| [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 1 of 1 |
+| [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 1 of 1 |
+| [[website-building-blocks\|Public website]] | epics | 0 | 0 | 1 of 1 |
+
+**Open unknowns**
+
+| Unknown | Owner | Ask by | Blocks |
+|---|---|---|---|
+| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|UNK-006]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing |
+
+**Last session:** 2026-11-18
+
+**Delivery status:** not tracked in this vault
+<!-- /generated:where-it-stands -->
+
 ## Why now
 
 Harbourline sells crossings through three front ends: the public website, the call centre desktop and the port kiosks. Each one talks to FERRYMASTER through its own screen-scraping adapter, so when the mainframe changes a screen, all three break. That happened eleven times in the last twelve months, usually just before a bank holiday weekend.
@@ -32,16 +57,14 @@ This initiative puts one application, Booking, between the front ends and the le
 
 ## Capabilities this introduces
 
-<!-- generated: do not edit -->
-| Capability | Change | Serves |
-|---|---|---|
-| [[CAP-014-hold-a-seat\|Hold a seat during payment]] | new | G1, G2 |
-| [[CAP-022-notify-customer\|Notify customer of changes]] | new | G3 |
-| [[CAP-021-amend-or-cancel\|Amend or cancel a booking]] | extended to the website and call centre | G3 |
-| [[CAP-013-reserve-a-crossing\|Reserve a crossing]] | replaced by one implementation | G1, G2 |
-| [[CAP-012-quote-a-fare\|Quote a fare]] | narrowed to one caller | G1 |
-| [[CAP-023-fix-failed-bookings\|Fix failed bookings by hand]] | retired | G1 |
-<!-- /generated -->
+Each capability page says what changes and which software provides it before and after.
+
+- [[CAP-014-hold-a-seat|Hold a seat during payment]], serving G1 and G2
+- [[CAP-022-notify-customer|Notify customer of changes]], serving G3
+- [[CAP-021-amend-or-cancel|Amend or cancel a booking]], serving G3
+- [[CAP-013-reserve-a-crossing|Reserve a crossing]], serving G1 and G2
+- [[CAP-012-quote-a-fare|Quote a fare]], serving G1
+- [[CAP-023-fix-failed-bookings|Fix failed bookings by hand]], serving G1
 
 Full detail, including which software provides each capability before and after: [[04a-capability-delta|Capability delta]].
 

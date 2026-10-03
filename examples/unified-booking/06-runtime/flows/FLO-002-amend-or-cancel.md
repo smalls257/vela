@@ -6,7 +6,7 @@ initiative: INI-002
 arc42: "§6"
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-09-16 Grill", SRC-04]
 ---
 
@@ -65,7 +65,6 @@ Today a customer who wants to change a crossing phones the call centre, and an a
 
 ## Contracts used
 
-<!-- generated: do not edit -->
 | Step | Contracts |
 |---|---|
 | 1 Find booking | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (get), [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005]] |
@@ -73,7 +72,6 @@ Today a customer who wants to change a crossing phones the call centre, and an a
 | 3 Re-quote | [[pricing-building-blocks#CON-003 Quote a fare\|CON-003]], [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Payment outcome]] |
 | 4 Write to ledger | [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKAMND, BKCANC) |
 | 5 Notify customer | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] |
-<!-- /generated -->
 
 ## Tested end to end
 

@@ -6,7 +6,7 @@ origin: proposed
 change: unchanged
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -22,17 +22,13 @@ Lets a customer pay for a crossing by card without Harbourline ever handling the
 
 ## Provided by
 
-<!-- generated: do not edit -->
 | Application | Today | After |
 |---|---|---|
 | Tidepay (external) | hosted payment page, called by each front end | same page; outcome reported to [[booking-building-blocks\|Booking]] |
-<!-- /generated -->
 
 ## Initiatives that touch this
 
-<!-- generated: do not edit -->
 - [[04a-capability-delta|INI-002 Unified Booking]] (unchanged)
-<!-- /generated -->
 
 ## Flows
 

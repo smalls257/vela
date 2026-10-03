@@ -80,11 +80,9 @@ Components inside these containers belong to the Revenue team's tech design.
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
-| Contract | Provider | Change policy | State |
-|---|---|---|---|
-| none | | | |
-<!-- /generated -->
+<!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->
+none
+<!-- /generated:contracts-consumed -->
 
 ## Concerns this team carries
 
@@ -93,8 +91,6 @@ Components inside these containers belong to the Revenue team's tech design.
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-038-pricing-serves-booking|EPC-038 Pricing serves Booking only]] (HB-108)
-<!-- /generated -->
+The epics that touch this app are listed on [[13-epics|Epics]].
 
 Next: [[pricing-runtime|Pricing runtime]]

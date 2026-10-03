@@ -6,7 +6,7 @@ origin: proposed
 change: replace
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -22,7 +22,6 @@ Lets a customer turn a chosen crossing into a confirmed booking that every sales
 
 ## Provided by
 
-<!-- generated: do not edit -->
 | Application | Today | After |
 |---|---|---|
 | [[website-building-blocks\|Public website]] | FM screen adapter into FERRYMASTER | Booking API client |
@@ -30,15 +29,12 @@ Lets a customer turn a chosen crossing into a confirmed booking that every sales
 | [[kiosks-building-blocks\|Port kiosks]] | FM adapter into FERRYMASTER | Booking API v1 client (March 2027 image) |
 | [[booking-building-blocks\|Booking]] | did not exist | decides held, confirmed, amended, cancelled |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | ledger of record | ledger of record, written only by Booking |
-<!-- /generated -->
 
 ## Initiatives that touch this
 
-<!-- generated: do not edit -->
 - [[04a-capability-delta|INI-002 Unified Booking]] (replace)
 - INI-004 Loyalty Revamp (overlap; no pages yet)
 - INI-005 Mainframe Exit (writes to FERRYMASTER; no pages yet)
-<!-- /generated -->
 
 ## Flows
 

@@ -57,11 +57,9 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
-| Contract | Provider | Change policy | State |
-|---|---|---|---|
-| none | | | |
-<!-- /generated -->
+<!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->
+none
+<!-- /generated:contracts-consumed -->
 
 ## Concerns this team carries
 
@@ -72,8 +70,6 @@ The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-032-ledger-adapter|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] (HB-102), mainframe team in support
-<!-- /generated -->
+The epics that touch this app are listed on [[13-epics|Epics]].
 
 Next: [[ferrymaster-runtime|FERRYMASTER runtime]]

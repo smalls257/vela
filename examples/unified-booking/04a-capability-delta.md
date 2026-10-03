@@ -7,7 +7,7 @@ arc42: "§4"
 c4: landscape
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-07-14 Shape", "session 2026-08-12 Grill", "session 2026-11-18 Grill"]
 ---
 
@@ -17,16 +17,14 @@ sources: ["session 2026-07-14 Shape", "session 2026-08-12 Grill", "session 2026-
 
 Every capability this initiative changes, which software provides it before and after, and where the work lands. Anything not listed is unchanged.
 
-<!-- generated: do not edit -->
-| Capability | Change | Provided by today | Provided by after | Flows | Epics | State |
-|---|---|---|---|---|---|---|
-| [[CAP-013-reserve-a-crossing\|Reserve a crossing]] | replace | Website, call centre and kiosks, each through its own FERRYMASTER adapter | [[booking-building-blocks\|Booking]] | [[FLO-001-hold-pay-confirm\|FLO-001]] | [[EPC-031-holds-and-confirms\|031]], [[EPC-033-website-to-booking\|033]], [[EPC-034-call-centre-to-booking\|034]], [[EPC-035-kiosks-to-booking\|035]] | decided |
-| [[CAP-014-hold-a-seat\|Hold a seat during payment]] | new | Nothing; overbooking fixed by hand | Booking, 10-minute hold | [[FLO-001-hold-pay-confirm\|FLO-001]] | [[EPC-031-holds-and-confirms\|031]] | decided |
-| [[CAP-021-amend-or-cancel\|Amend or cancel a booking]] | extend | Call centre only, through a mainframe screen | Booking, used by the website and call centre (kiosks show booking state only) | [[FLO-002-amend-or-cancel\|FLO-002]] | [[EPC-034-call-centre-to-booking\|034]], [[EPC-036-amend-cancel-online\|036]] | decided |
-| [[CAP-022-notify-customer\|Notify customer of changes]] | new | Website emails only | [[notifications-building-blocks\|Notifications]], triggered by Booking events | [[FLO-003-notify-on-change\|FLO-003]] | [[EPC-037-events-and-notifications\|037]] | decided |
-| [[CAP-012-quote-a-fare\|Quote a fare]] | narrow | [[pricing-building-blocks\|Pricing]], called by three front ends | Pricing, called by Booking only | [[FLO-001-hold-pay-confirm\|FLO-001]], [[FLO-002-amend-or-cancel\|FLO-002]] | [[EPC-038-pricing-serves-booking\|038]] | decided |
-| [[CAP-023-fix-failed-bookings\|Fix failed bookings by hand]] | retire | Call centre, next-morning fixes | Nobody: Booking retries and keeps the hold | [[FLO-001-hold-pay-confirm\|FLO-001]] | [[EPC-031-holds-and-confirms\|031]], [[EPC-034-call-centre-to-booking\|034]] | decided |
-<!-- /generated -->
+Each capability page holds the change, what provides it today and after, its flows and its epics.
+
+- [[CAP-013-reserve-a-crossing|Reserve a crossing]]
+- [[CAP-014-hold-a-seat|Hold a seat during payment]]
+- [[CAP-021-amend-or-cancel|Amend or cancel a booking]]
+- [[CAP-022-notify-customer|Notify customer of changes]]
+- [[CAP-012-quote-a-fare|Quote a fare]]
+- [[CAP-023-fix-failed-bookings|Fix failed bookings by hand]]
 
 ## Notes on the trickier rows
 

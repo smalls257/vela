@@ -8,7 +8,7 @@ c4: context
 state: fact
 change: unchanged
 owner: "@harbourline/marine-ops-systems"
-authored: mixed
+authored: authored
 sources: [SRC-06]
 ---
 
@@ -53,22 +53,6 @@ Vessel schedule is a black box on this page. Nothing inside it changes, so its c
 - **State:** fact
 - **Source:** SRC-06
 
-## Contracts this app consumes
-
-<!-- generated: do not edit -->
-| Contract | Provider | Change policy | State |
-|---|---|---|---|
-| none | | | |
-<!-- /generated -->
-
 ## Concerns this team carries
 
 None. [[concern-testing|Testing]] covers CON-004 from Booking's side.
-
-## Epics
-
-<!-- generated: do not edit -->
-- none
-<!-- /generated -->
-
-Next: [[vessel-schedule-runtime|Vessel schedule runtime]]

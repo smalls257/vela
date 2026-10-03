@@ -84,11 +84,11 @@ None. The kiosks only consume.
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
+<!-- generated:contracts-consumed sha=730b0a4e: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | Booking | Versioned; each version kept at least 6 months | decided |
-<!-- /generated -->
+| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
+<!-- /generated:contracts-consumed -->
 
 Version 1 must stay available until at least the September 2027 image, and longer if that image slips (R-02, [[ADR-0003-versioned-booking-api|ADR-0003]]).
 
@@ -100,8 +100,6 @@ Version 1 must stay available until at least the September 2027 image, and longe
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-035-kiosks-to-booking|EPC-035 Kiosks move to Booking in the March image]] (HB-105)
-<!-- /generated -->
+The epics that touch this app are listed on [[13-epics|Epics]].
 
 Next: [[kiosks-runtime|Port kiosks runtime]]

@@ -6,7 +6,7 @@ origin: proposed
 change: unchanged
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
@@ -22,20 +22,16 @@ Lets a customer or an agent see which crossings run on a route and date, and how
 
 ## Provided by
 
-<!-- generated: do not edit -->
 | Application | Today | After |
 |---|---|---|
 | [[website-building-blocks\|Public website]] | searches crossings | same |
 | [[call-centre-building-blocks\|Call centre desktop]] | searches crossings | same |
 | [[kiosks-building-blocks\|Port kiosks]] | searches crossings | same |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | provides crossings and capacity | same |
-<!-- /generated -->
 
 ## Initiatives that touch this
 
-<!-- generated: do not edit -->
 - [[04a-capability-delta|INI-002 Unified Booking]] (unchanged)
-<!-- /generated -->
 
 ## Flows
 

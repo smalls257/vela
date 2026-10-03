@@ -8,7 +8,7 @@ c4: context
 state: fact
 change: unchanged
 owner: "@harbourline/platform-team"
-authored: mixed
+authored: authored
 sources: [SRC-07]
 ---
 
@@ -47,22 +47,6 @@ Customer identity is a black box on this page. Nothing inside it changes, so its
 - **State:** fact
 - **Source:** SRC-07
 
-## Contracts this app consumes
-
-<!-- generated: do not edit -->
-| Contract | Provider | Change policy | State |
-|---|---|---|---|
-| none | | | |
-<!-- /generated -->
-
 ## Concerns this team carries
 
 None for this app. The Platform lead owns [[concern-security|Security]], and that work sits at the Platform gateway and in Booking.
-
-## Epics
-
-<!-- generated: do not edit -->
-- none
-<!-- /generated -->
-
-Next: [[customer-identity-runtime|Customer identity runtime]]

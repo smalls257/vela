@@ -80,11 +80,11 @@ None. The website only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
+<!-- generated:contracts-consumed sha=730b0a4e: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | Booking | Versioned; each version kept at least 6 months | decided |
-<!-- /generated -->
+| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
+<!-- /generated:contracts-consumed -->
 
 ## Concerns this team carries
 
@@ -93,9 +93,6 @@ None. The website only consumes.
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-033-website-to-booking|EPC-033 Website moves to Booking]] (HB-103)
-- [[EPC-036-amend-cancel-online|EPC-036 Amend and cancel online]] (HB-106)
-<!-- /generated -->
+The epics that touch this app are listed on [[13-epics|Epics]].
 
 Next: [[website-runtime|Public website runtime]]

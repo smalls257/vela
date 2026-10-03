@@ -6,7 +6,7 @@ initiative: INI-002
 arc42: "§6"
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-09-02 Grill", "UNK-001 ledger latency measurement", SRC-04]
 ---
 
@@ -67,7 +67,6 @@ The customer picks a sailing and sees the fare with a 10-minute timer. They pay 
 
 ## Contracts used
 
-<!-- generated: do not edit -->
 | Step | Contracts |
 |---|---|
 | 1 Find a crossing | Existing Vessel schedule read by the channel. No INI-002 contract. |
@@ -75,7 +74,6 @@ The customer picks a sailing and sees the fare with a 10-minute timer. They pay 
 | 3 Take payment | [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Payment outcome]] |
 | 4 Confirm booking | [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKCONF), [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (get) |
 | 5 Notify customer | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] |
-<!-- /generated -->
 
 ## Tested end to end
 

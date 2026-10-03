@@ -11,19 +11,19 @@ sources: ["session 2026-07-14 Discover"]
 
 # Unknowns and risks
 
-<!-- generated: do not edit -->
-| ID | Question | Owner | State | Resolved |
+<!-- generated:unknowns-index sha=8e05ec76: do not edit, run planner render -->
+| ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
-| [[#UNK-001 Ledger write latency\|UNK-001]] | Ledger write latency | Booking senior | resolved | 2026-09-02 |
-| [[#UNK-002 Repeatable test data\|UNK-002]] | Repeatable test data | QA lead | resolved | 2026-09-16 |
-| [[#UNK-003 Mainframe capacity in Q1\|UNK-003]] | Mainframe capacity in Q1 | solution lead | resolved | 2026-08-14 |
-| [[#UNK-004 Kiosk authentication\|UNK-004]] | Kiosk authentication | Port Systems senior | resolved | 2026-09-23 |
-| [[#UNK-005 Event bus readiness\|UNK-005]] | Event bus readiness | Platform lead | resolved | 2026-11-03 |
-| [[#UNK-006 Finance on Booking events\|UNK-006]] | Finance on Booking events | Platform lead | open, review 2027-03-01 | |
-| [[#UNK-007 Booking on-call\|UNK-007]] | Booking on-call | solution lead | resolved | 2026-10-07 |
-| [[#R-01 Mainframe knowledge sits with two people\|R-01]] | Mainframe knowledge | solution lead | mitigated | |
-| [[#R-02 The March 2027 kiosk image slips\|R-02]] | Kiosk image slip | Port Systems senior | mitigated | |
-<!-- /generated -->
+| [[#UNK-001 Ledger write latency\|UNK-001]] | Ledger write latency | @hl-booking-senior (Booking senior) | resolved |  |
+| [[#UNK-002 Repeatable test data\|UNK-002]] | Repeatable test data | @hl-qa-lead (QA lead) | resolved |  |
+| [[#UNK-003 Mainframe capacity in Q1\|UNK-003]] | Mainframe capacity in Q1 | @hl-solution-lead (solution lead) | resolved |  |
+| [[#UNK-004 Kiosk authentication\|UNK-004]] | Kiosk authentication | @hl-port-senior (Port Systems senior) | resolved |  |
+| [[#UNK-005 Event bus readiness\|UNK-005]] | Event bus readiness | @hl-platform-lead (Platform lead) | resolved |  |
+| [[#UNK-006 Finance on Booking events\|UNK-006]] | Finance on Booking events | @hl-platform-lead (Platform lead) | open | 2027-03-01 |
+| [[#UNK-007 Booking on-call\|UNK-007]] | Booking on-call | @hl-solution-lead (solution lead) | resolved |  |
+| [[#R-01 Mainframe knowledge sits with two people\|R-01]] | Mainframe knowledge sits with two people | @hl-solution-lead (solution lead) | mitigated |  |
+| [[#R-02 The March 2027 kiosk image slips\|R-02]] | The March 2027 kiosk image slips | @hl-port-senior (Port Systems senior) | mitigated |  |
+<!-- /generated:unknowns-index -->
 
 ## Unknowns
 

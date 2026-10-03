@@ -133,15 +133,15 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
+<!-- generated:contracts-consumed sha=8e343386: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]] | Pricing | Existing; callers narrowed | decided |
-| [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004 Capacity check]] | Vessel schedule | Existing read API, no change | decided |
-| [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005 Customer lookup]] | Customer identity | Existing read API, no change | decided |
-| [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006 Ledger transactions]] | FERRYMASTER | Cannot change; MQ changes announced 8 weeks ahead | decided |
-| [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Payment outcome]] | Tidepay (external) | Versioned by Tidepay | decided |
-<!-- /generated -->
+| [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]] | [[pricing-building-blocks\|Pricing]] | the existing API, unchanged. Only the list of callers narrows. | decided |
+| [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004 Capacity check]] | [[vessel-schedule-building-blocks\|Vessel schedule]] | the existing read API, no change. | fact |
+| [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005 Customer lookup]] | [[customer-identity-building-blocks\|Customer identity]] | the existing read API, no change. | fact |
+| [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006 Ledger transactions]] | [[ferrymaster-building-blocks\|FERRYMASTER]] | FERRYMASTER cannot change. The mainframe team announces any MQ change 8 weeks ahead. | fact |
+| [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Tidepay payment outcome]] | Tidepay (external) | Tidepay's published API, versioned by Tidepay. | fact |
+<!-- /generated:contracts-consumed -->
 
 ## Concerns this team carries
 
@@ -152,12 +152,6 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-031-holds-and-confirms|EPC-031 Booking holds and confirms crossings]] (HB-101)
-- [[EPC-032-ledger-adapter|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] (HB-102)
-- [[EPC-036-amend-cancel-online|EPC-036 Amend and cancel online]] (HB-106)
-- [[EPC-037-events-and-notifications|EPC-037 Booking events and customer notifications]] (HB-107)
-- [[EPC-039-run-booking|EPC-039 Run Booking: on-call, runbooks, dashboards]] (HB-109)
-<!-- /generated -->
+The epics that touch this app are listed on [[13-epics|Epics]].
 
 Next: [[booking-runtime|Booking runtime]]

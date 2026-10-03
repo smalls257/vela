@@ -6,7 +6,7 @@ initiative: INI-002
 arc42: "§6"
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-11-03 Grill", SRC-10]
 ---
 
@@ -54,14 +54,12 @@ One message for each change, in the channel they chose, whichever front end made
 
 ## Contracts used
 
-<!-- generated: do not edit -->
 | Step | Contracts |
 |---|---|
 | 1 Booking state changes | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]], [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] |
 | 2 Event published | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] |
 | 3 Notifications decides channel | Existing Customer identity read by Notifications. No INI-002 contract. |
 | 4 Message sent | Internal to Notifications |
-<!-- /generated -->
 
 ## Tested by contract tests only
 

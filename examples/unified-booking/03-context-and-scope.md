@@ -7,7 +7,7 @@ arc42: "§3"
 c4: context
 state: decided
 owner: "@hl-solution-lead"
-authored: mixed
+authored: authored
 sources: ["session 2026-07-09 Discover", "session 2026-07-14 Shape", "session 2026-08-12 Grill"]
 ---
 
@@ -53,19 +53,17 @@ The channels stop knowing FERRYMASTER exists. Booking is the only thing that wri
 
 ## In scope
 
-<!-- generated: do not edit -->
-| App | Change | Owner team | Pages |
-|---|---|---|---|
-| Booking | new | Booking team | [[booking-building-blocks\|building blocks]] · [[booking-runtime\|runtime]] |
-| Pricing | changed: one caller | Revenue | [[pricing-building-blocks\|building blocks]] · [[pricing-runtime\|runtime]] |
-| FERRYMASTER | integrated, unchanged | Mainframe team | [[ferrymaster-building-blocks\|building blocks]] · [[ferrymaster-runtime\|runtime]] |
-| Public website | changed | Digital | [[website-building-blocks\|building blocks]] · [[website-runtime\|runtime]] |
-| Call centre desktop | changed | Contact Centre Systems | [[call-centre-building-blocks\|building blocks]] · [[call-centre-runtime\|runtime]] |
-| Port kiosks | changed | Port Systems | [[kiosks-building-blocks\|building blocks]] · [[kiosks-runtime\|runtime]] |
-| Notifications | changed: new consumer | Platform | [[notifications-building-blocks\|building blocks]] · [[notifications-runtime\|runtime]] |
-| Vessel schedule | unchanged, read by Booking | Marine Ops Systems | [[vessel-schedule-building-blocks\|building blocks]] · [[vessel-schedule-runtime\|runtime]] |
-| Customer identity | unchanged, read by Booking | Platform | [[customer-identity-building-blocks\|building blocks]] · [[customer-identity-runtime\|runtime]] |
-<!-- /generated -->
+Each app page says what changes and which team owns it.
+
+- [[booking-building-blocks|Booking]] · [[booking-runtime|runtime]]
+- [[pricing-building-blocks|Pricing]] · [[pricing-runtime|runtime]]
+- [[ferrymaster-building-blocks|FERRYMASTER]] · [[ferrymaster-runtime|runtime]]
+- [[website-building-blocks|Public website]] · [[website-runtime|runtime]]
+- [[call-centre-building-blocks|Call centre desktop]] · [[call-centre-runtime|runtime]]
+- [[kiosks-building-blocks|Port kiosks]] · [[kiosks-runtime|runtime]]
+- [[notifications-building-blocks|Notifications]] · [[notifications-runtime|runtime]]
+- [[vessel-schedule-building-blocks|Vessel schedule]]
+- [[customer-identity-building-blocks|Customer identity]]
 
 External: Tidepay (payment provider) and the Harbourline event bus (Platform).
 

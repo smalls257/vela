@@ -68,11 +68,11 @@ None. Notifications only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
+<!-- generated:contracts-consumed sha=7099072d: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] | Booking | Additive changes only | decided |
-<!-- /generated -->
+| [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] | [[booking-building-blocks\|Booking]] | additive changes only. | decided |
+<!-- /generated:contracts-consumed -->
 
 ## Concerns this team carries
 
@@ -81,8 +81,6 @@ None. Notifications only consumes.
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-037-events-and-notifications|EPC-037 Booking events and customer notifications]] (HB-107)
-<!-- /generated -->
+The epics that touch this app are listed on [[13-epics|Epics]].
 
 Next: [[notifications-runtime|Notifications runtime]]

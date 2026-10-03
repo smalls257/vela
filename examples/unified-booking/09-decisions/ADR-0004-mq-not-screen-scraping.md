@@ -16,7 +16,7 @@ sources: ["session 2026-07-14 Discover", SRC-04]
 
 ## Status
 
-Accepted, 2026-07-14. It came out of a Discover session with the mainframe team lead. The team planned to build one shared screen scraper inside Booking until the mainframe team lead mentioned that FERRYMASTER already exposes BKHOLD, BKCONF, BKAMND and BKCANC over MQ for the finance reconciliation job.
+Accepted in the Grill on 2026-07-28. It came out of a Discover session with the mainframe team lead on 2026-07-14. The team planned to build one shared screen scraper inside Booking until the mainframe team lead mentioned that FERRYMASTER already exposes BKHOLD, BKCONF, BKAMND and BKCANC over MQ for the finance reconciliation job.
 
 ## Context
 
