@@ -1,0 +1,69 @@
+--- a/tech-design-grill/SKILL.md
++++ b/tech-design-grill/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: tech-design-grill
+-description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
++description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc. Triggers include "tech design", "design the system", "how should we build this", "architecture session". Also runs from an initiative vault. Given `--vault <path> --app <APP-id>`, it starts from that app's handed-off pages instead of a requirements doc.
+ ---
+ 
+ <what-to-do>
+@@ -9,11 +9,11 @@
+ 
+ Ask one question at a time. Provide your recommended answer with each question. Wait for feedback before continuing.
+ 
+-Pure *how*. Assumes *what* is settled in `docs/requirements/<slug>.md` with `status: complete` — refuse to start otherwise.
++Pure *how*. Assumes *what* is settled in `docs/requirements/<slug>.md` with `status: complete` — refuse to start otherwise. In vault mode (see `PREREQ-CHECK.md`), the *what* is the handed-off app's pages instead: follow `TECH-DESIGN-FROM-VAULT.md` from the vault's planner plugin.
+ 
+ If the codebase can answer a question (brownfield), explore the code instead of asking.
+ 
+-Trace every `FR-XXX` to an owning component. Reject the design if any FR has no owner.
++Trace every `FR-XXX` to an owning component. Reject the design if any FR has no owner. In vault mode, trace the targets `TECH-DESIGN-FROM-VAULT.md` lists the same way.
+ 
+ Capture answers inline in `docs/tech-design/<slug>.md` and `CONTEXT.md` as decisions crystallise. Do not batch.
+ 
+@@ -25,7 +25,7 @@
+ 
+ ## Inputs
+ 
+-- **Required prereq:** `docs/requirements/<slug>.md` with `status: complete`. If missing or in-progress, stop and tell the user to run `requirements-grill`.
++- **Required prereq:** `docs/requirements/<slug>.md` with `status: complete`. If missing or in-progress, stop and tell the user to run `requirements-grill`. In vault mode, the prereq is the app page's `handed_off` field instead (see `PREREQ-CHECK.md`).
+ - **Auto-scan at start (silent):** existing `CONTEXT.md`, `docs/adr/*.md`, codebase if brownfield. See `PREREQ-CHECK.md`.
+ - **External context (any time):** accept and integrate.
+ 
+@@ -37,7 +37,7 @@
+ 
+ ## Boot sequence
+ 
+-1. Run `PREREQ-CHECK.md`. Refuse to start without a complete requirements doc.
++1. Run `PREREQ-CHECK.md`. Refuse to start without a complete requirements doc, or, in vault mode, without `handed_off` on the app page.
+ 2. **Promote glossary.** Read `Glossary` section of requirements doc. Offer to seed `CONTEXT.md` from it on first run.
+ 3. **Trace requirements.** Read every `FR-XXX`. Build internal map: which component will own each FR. Reject the design if any FR has no owner.
+ 
+@@ -81,6 +81,8 @@
+ 
+ Do **not** open functional-requirement questions. If gaps surface, stop the session and tell the user to revisit `requirements-grill`. Don't paper over.
+ 
++In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with the solution lead, and carry on with the branches it does not touch.
++
+ ## References
+ 
+ - `TECH-DESIGN-FORMAT.md`
+--- a/tech-design-grill/PREREQ-CHECK.md
++++ b/tech-design-grill/PREREQ-CHECK.md
+@@ -2,6 +2,15 @@
+ 
+ Each skill runs this at invocation.
+ 
++## Vault mode
++
++Check this first. When vault mode is on, it replaces the prereq and output-file steps below.
++
++- **requirements-grill.** If `.planner.yaml` exists at the repo root, vault mode is on. A `CAP-NNN` scope is required instead of a slug; if the user gave none, ask for one. Read `.claude/skills/planner/references/REQUIREMENTS-IN-VAULT.md` and follow it. If that file is missing, stop: *"This repo is an initiative vault, but the planner plugin is not installed at `.claude/skills/planner`. Install it before running requirements-grill here."*
++- **tech-design-grill.** If the user passed `--vault <path> --app <APP-id>`, vault mode is on. The prereq is the app's building-blocks page in `<path>` carrying a `handed_off:` field, instead of `docs/requirements/<slug>.md`. If the page or the field is missing, stop: *"`<APP-id>` has no `handed_off` field in that vault, so its pages are not handed over yet. Ask the solution lead to hand it off first."* Then read `<path>/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md` and follow it. If that file is missing, stop and say the planner plugin in that vault is too old.
++
++Without either, run the steps below as written.
++
+ ## Resolution
+ 
+ 1. Read your own prereq list from the **Inputs** section of this skill's content

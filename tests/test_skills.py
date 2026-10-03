@@ -330,3 +330,15 @@ def test_epics_skill_frontmatter_instruction_names_the_epics_mode():
     epics = text("skills/epics/SKILL.md")
     assert "`modes: [epics, shape, grill]`" in epics and "`modes: [shape, grill]`" not in epics
     assert "Still add the `## Changes` rows for every epic" in text("skills/close/SKILL.md")
+
+
+# tech-design-grill vault mode (V1-18): read the slice, link back by ID and commit, never copy vault text.
+
+def test_tech_design_from_vault_reads_the_slice_and_links_back():
+    ref = text("references/TECH-DESIGN-FROM-VAULT.md")
+    assert "`handed_off:`" in ref
+    for source in ("`contracts-consumed` block", "`epics-for-app` block", "`delivers` list", "**Blocks:**"):
+        assert source in ref
+    assert "Never copy vault text into the design doc." in ref
+    assert "`challenges: <vault ID>`" in ref
+    assert "The design never edits the vault." in ref
