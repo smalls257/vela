@@ -1,0 +1,8 @@
+{
+  "name": "planner",
+  "version": "0.1.0",
+  "description": "Initiative planning vault: one conventions file, a read-only check, generated blocks and an offline viewer.",
+  "author": {
+    "name": "Jason Smith"
+  }
+}

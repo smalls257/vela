@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""planner: check and render an initiative vault. The format is in CONVENTIONS.md."""
+import pathlib
+import sys
+
+if sys.version_info < (3, 11):
+    print("planner: needs Python 3.11 or later.", file=sys.stderr)
+    sys.exit(2)
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+
+from planner.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(main())
