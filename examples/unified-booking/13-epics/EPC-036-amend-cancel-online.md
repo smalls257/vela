@@ -29,12 +29,12 @@ Booking checks whether the change is allowed, asks Pricing for a new fare when t
 1. A customer can change the date or time of a crossing on the website and sees the re-quoted fare before they accept it.
 2. A customer can cancel a booking on the website, and every channel, kiosks included, shows it as `cancelled` once FERRYMASTER has accepted the cancellation.
 3. A change that is not allowed is refused with a reason the channel can show the customer, and nothing reaches FERRYMASTER.
-4. An amendment that costs more is confirmed only after Tidepay reports the extra payment and FERRYMASTER accepts the change.
+4. An amendment that costs more is confirmed only after Tidepay reports the extra payment and FERRYMASTER accepts the change. [testing]
 5. The share of amendments made online is reported each month from go-live, so G3 can be tracked.
 
 ## Traces to
 
-<!-- generated:traces-to sha=bef1776c: do not edit, run planner render -->
+<!-- generated:traces-to sha=0a8a663a: do not edit, run planner render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[booking-building-blocks\|Booking]], [[website-building-blocks\|Public website]] |
@@ -42,7 +42,7 @@ Booking checks whether the change is allowed, asks Pricing for a new fare when t
 | Consumes | [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]], [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006 Ledger transactions]] |
 | Flows | [[FLO-002-amend-or-cancel\|FLO-002 Amend or cancel]] |
 | Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]], [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] |
-| Concerns | none |
+| Concerns | [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
 ## Depends on

@@ -27,7 +27,7 @@ The hold is new. Today nothing stops a second channel selling the last seat whil
 ## Epic acceptance criteria
 
 1. A channel that asks to hold a seat through CON-001 gets back a booking reference and an expiry time 10 minutes ahead, and no other channel can sell that seat until the hold ends.
-2. When Tidepay reports a successful payment through CON-007, get on CON-001 returns `confirmed` only after FERRYMASTER has accepted the booking.
+2. When Tidepay reports a successful payment through CON-007, get on CON-001 returns `confirmed` only after FERRYMASTER has accepted the booking. [testing]
 3. If the ledger write fails after payment, get returns `confirming`, the seat stays held past the 10 minutes, and the booking reaches `confirmed` without anyone at Harbourline touching it.
 4. A failed or abandoned payment releases the hold, and the seat is available to every channel again.
 5. Two channels asking about the same booking reference at the same moment get the same state.
@@ -36,7 +36,7 @@ The hold is new. Today nothing stops a second channel selling the last seat whil
 
 ## Traces to
 
-<!-- generated:traces-to sha=0fde9efa: do not edit, run planner render -->
+<!-- generated:traces-to sha=43cbb6de: do not edit, run planner render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[booking-building-blocks\|Booking]] |
@@ -44,7 +44,7 @@ The hold is new. Today nothing stops a second channel selling the last seat whil
 | Consumes | [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]], [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004 Capacity check]], [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005 Customer lookup]] |
 | Flows | [[FLO-001-hold-pay-confirm\|FLO-001 Hold, pay, confirm]] |
 | Depends on | [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] |
-| Concerns | [[concern-data\|Data]], [[concern-security\|Security]] |
+| Concerns | [[concern-data\|Data]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
 ## Depends on
