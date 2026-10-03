@@ -64,7 +64,7 @@ def frontmatter_rules(vault, today):
         if page_type is None:
             yield _f(page, 1, "E103", "Field 'type' is missing.", "Add a type, for example type: initiative-section.")
             continue
-        if page_type not in schema.PAGE_TYPES:
+        if not isinstance(page_type, str) or page_type not in schema.PAGE_TYPES:
             yield _f(page, meta_line(page, "type"), "E104", f"Page type '{page_type}' is not one CONVENTIONS.md defines.",
                      "Use one of: " + ", ".join(schema.PAGE_TYPES) + ".")
             continue
@@ -107,7 +107,8 @@ def _enum_findings(vault, page, page_type, spec):
                  f"'initiative: {meta['initiative']}' differs from .planner.yaml ({initiative}).",
                  f"Set initiative: {initiative}, or remove the field.")
     if page_type == "session":
-        for mode in meta.get("modes") or []:
+        modes = meta.get("modes")
+        for mode in modes if isinstance(modes, list) else []:
             if mode not in schema.SESSION_MODES:
                 yield _f(page, meta_line(page, "modes"), "E105", f"Session mode '{mode}' is not one CONVENTIONS.md defines.",
                          "Use: " + ", ".join(schema.SESSION_MODES) + ".")
@@ -120,7 +121,7 @@ def _id_findings(page, page_type):
     page_id = page.id
     if not page_id:
         return
-    if not schema.PAGE_ID_RE[page_type].match(page_id) or page_id.endswith("-runtime") and page_type == "app-building-blocks":
+    if not schema.PAGE_ID_RE[page_type].match(page_id) or (page_id.endswith("-runtime") and page_type == "app-building-blocks"):
         yield _f(page, meta_line(page, "id"), "E107", f"id '{page_id}' does not fit the pattern for a {page_type} page.",
                  "See the ID table in CONVENTIONS.md.")
         return

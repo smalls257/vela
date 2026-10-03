@@ -62,3 +62,26 @@ def test_unquoted_handle_says_to_quote_it(mini):
     _, out = check(mini)
     assert {c for c, p in findings(out) if p == SHOP} == {"E102"}
     assert "starts with @" in out
+
+
+def test_type_that_is_a_list_is_a_finding_not_a_crash(mini):
+    edit(mini / SHOP, "type: app-building-blocks\n", "type: [a]\n")
+    code, out = check(mini)
+    assert code == 1, out
+    assert {c for c, p in findings(out) if p == SHOP} == {"E104"}
+
+
+def test_modes_that_is_a_number_is_one_list_finding(mini):
+    path = mini / "sessions" / "2026-01-05-till-needs.md"
+    edit(path, "modes: [requirements]", "modes: 5")
+    code, out = check(mini)
+    assert code == 1, out
+    assert findings(out) == [("E105", "sessions/2026-01-05-till-needs.md")]
+
+
+def test_modes_that_is_a_string_is_one_list_finding(mini):
+    path = mini / "sessions" / "2026-01-05-till-needs.md"
+    edit(path, "modes: [requirements]", "modes: grill")
+    code, out = check(mini)
+    assert code == 1, out
+    assert findings(out) == [("E105", "sessions/2026-01-05-till-needs.md")]
