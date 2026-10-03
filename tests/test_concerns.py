@@ -45,3 +45,10 @@ def test_new_app_with_no_cell_anywhere(mini):
         "owner: \"@mini/web-team\"\nauthored: authored\n---\n# Web\n", encoding="utf-8")
     _, out = check(mini)
     assert primary(out) == [("E315", TESTING)]
+
+
+def test_cell_linking_a_page_that_is_not_an_app(mini):
+    edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] |", "| [[11-unknowns-and-risks\\|Stock]] |")
+    _, out = check(mini)
+    assert ("E301", TESTING) in primary(out)
+    assert "not an app page" in out

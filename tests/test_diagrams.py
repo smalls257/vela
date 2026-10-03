@@ -44,3 +44,25 @@ def test_unsupported_diagram(mini):
     edit(mini / FLOW, "sequenceDiagram\n", "C4Context\n")
     _, out = check(mini)
     assert findings(out) == [("E603", FLOW)]
+
+
+@pytest.mark.parametrize("lines, expected", [
+    (["flowchart LR", "  api-gw --> x"], 2),
+    (["flowchart LR", "  svc.v2 --> x"], 2),
+    (["flowchart LR", "  a-->b", "  c --> d"], 4),
+    (["flowchart LR", "  a-.->b"], 2),
+    (["flowchart LR", "  a --> b; b --> c"], 3),
+    (["flowchart LR", '  a["x;y"] --> b'], 2),
+])
+def test_flowchart_ids_and_separators(lines, expected):
+    assert flowchart_elements(lines) == expected
+
+
+@pytest.mark.parametrize("lines, expected", [
+    (["sequenceDiagram", "  Web-App->>API: x"], 2),
+    (["sequenceDiagram", "  A.b-->>C: x"], 2),
+    (["sequenceDiagram", "  create participant X", "  create actor Y"], 2),
+    (["sequenceDiagram", "  A<<->>B: x", "  B<<-->>C: y"], 3),
+])
+def test_sequence_ids_create_and_bidirectional(lines, expected):
+    assert sequence_participants(lines) == expected

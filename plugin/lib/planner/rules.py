@@ -474,7 +474,10 @@ def concern_rules(vault, today):
                          "Write the App column as [[<app>-building-blocks|<App name>]].")
                 continue
             if cell.app.lower() not in app_names:
-                continue  # E201 already reports the broken link
+                if vault.page(cell.app) is not None:
+                    yield _f(concern, cell.line, "E301", f"The App column links {cell.app}, which is not an app page.",
+                             "Link the app's building-blocks page, for example [[<app>-building-blocks|<App name>]].")
+                continue  # a missing page is already reported as E201
             if cell.state not in schema.CELL_STATES:
                 yield _f(concern, cell.line, "E301", f"Cell for {label} has state '{cell.state}'.",
                          "Use one of: " + ", ".join(schema.CELL_STATES) + ".")
@@ -500,15 +503,18 @@ QUOTED = re.compile(r'"[^"]*"')
 SHAPES = re.compile(r"\[\[.*?\]\]|\[\(.*?\)\]|\(\[.*?\]\)|\(\(.*?\)\)|\{\{.*?\}\}|\[.*?\]|\(.*?\)|\{.*?\}|(?<=[A-Za-z0-9_])>[^\]]*\]")
 CLASS_SUFFIX = re.compile(r":::[\w-]+")
 EDGE_OP = re.compile(r"<?[-.=~]{2,}[->ox]?|&")
-NODE_ID = re.compile(r"^[A-Za-z0-9_]+$")
-PARTICIPANT = re.compile(r"^\s*(participant|actor)\s+(\S+)")
-MESSAGE = re.compile(r"^\s*([A-Za-z0-9_]+)\s*(?:-->>|->>|-->|->|--x|-x|--\)|-\))\s*[+-]?\s*([A-Za-z0-9_]+)\s*:")
+NODE_ID = re.compile(r"^[A-Za-z0-9_](?:[A-Za-z0-9_.-]*[A-Za-z0-9_])?$")
+STATEMENT_SEPARATOR = re.compile(r';(?=(?:[^"]*"[^"]*")*[^"]*$)')
+PARTICIPANT = re.compile(r"^\s*(?:create\s+)?(?:participant|actor)\s+(\S+)")
+SEQ_ID = r"[A-Za-z0-9_](?:[A-Za-z0-9_.-]*[A-Za-z0-9_])?"
+MESSAGE = re.compile(rf"^\s*({SEQ_ID})\s*(?:<<-->>|<<->>|-->>|->>|-->|->|--x|-x|--\)|-\))\s*[+-]?\s*({SEQ_ID})\s*:")
 
 
 def flowchart_elements(lines):
     """Distinct node IDs plus subgraphs, in Mermaid flowchart lines."""
     nodes, subgraphs, subgraph_ids = set(), 0, set()
-    for raw in lines:
+    statements = (part for raw in lines for part in STATEMENT_SEPARATOR.split(raw))
+    for raw in statements:
         line = raw.strip()
         if not line or FLOW_SKIP.match(line):
             continue
@@ -534,7 +540,7 @@ def sequence_participants(lines):
     for raw in lines:
         match = PARTICIPANT.match(raw)
         if match:
-            names.append(match.group(2))
+            names.append(match.group(1))
             continue
         match = MESSAGE.match(raw)
         if match:
