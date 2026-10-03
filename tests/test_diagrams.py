@@ -53,6 +53,11 @@ def test_unsupported_diagram(mini):
     (["flowchart LR", "  a-.->b"], 2),
     (["flowchart LR", "  a --> b; b --> c"], 3),
     (["flowchart LR", '  a["x;y"] --> b'], 2),
+    (["flowchart LR", "  a -->|label| b"], 2),
+    (["flowchart LR", "  a -->|my-label.x| b"], 2),
+    (["flowchart LR", "  a[Some text] --> b"], 2),
+    (["flowchart LR", "  a(Some-text) --> b"], 2),
+    (["flowchart LR", "  a -- my-label --> b"], 2),
 ])
 def test_flowchart_ids_and_separators(lines, expected):
     assert flowchart_elements(lines) == expected
