@@ -25,7 +25,7 @@ For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exa
 
 ## 4. Draft each epic
 
-Write `13-epics/EPC-nnn-<slug>.md` with the next free number, at `state: draft`. Grep the vault for the existing EPC numbers and add one to the highest. Add a `## Changes` row to the session record: `| EPC-nnn | - | draft | [[<session id>#^cNN]] |`, citing the capture of the chosen cut. A new ID with no row there is an invented ID.
+Write `13-epics/EPC-nnn-<slug>.md` with the next free number, at `state: draft`. Grep the vault for the existing EPC numbers, and also read the `## Changes` tables of the records on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:sessions/<id>.md`), because another open session may already hold the next number. Add one to the highest in use. Add a `## Changes` row to the session record: `| EPC-nnn | - | draft | [[<session id>#^cNN]] |`, citing the capture of the chosen cut. A new ID with no row there is an invented ID.
 
 - Frontmatter: `id`, `type: epic`, `title`, `state: draft`, `owner` (the owning team's handle), `authored: mixed`, `apps`, `delivers`, `consumes`, `flows` and `depends_on`, per `CONVENTIONS.md`. Lists hold IDs. `delivers` is never empty: an epic that delivers nothing fails T6.
 - `**Owning team:**` in the description, written now, in this session. Close does not write it.

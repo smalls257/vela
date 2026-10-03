@@ -138,7 +138,7 @@ def cmd_view(args, out):
     vault = load_vault(root)
     today, _ = parse_today(args.date)
     commit = args.commit or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
-    if git(root, "status", "--porcelain"):
+    if git(root, "status", "--porcelain", "--", "."):
         commit += " with uncommitted changes"
     findings = rules.check(vault, today)
     errors = sum(1 for f in findings if f.is_error)

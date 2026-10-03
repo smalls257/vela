@@ -446,6 +446,11 @@ def unit_state(vault, link, from_page):
     return target.id, target.meta.get("state", ""), target, meta_line(target, "state")
 
 
+def _is_requirement(vault, unit_id):
+    item = vault.item(unit_id)
+    return item is not None and item.kind == "requirement"
+
+
 def _blocked_units(vault, link, from_page):
     """Every (id, state, page, line) a Blocks link holds up. An item anchor means that
     item. A page link means the page and each item on it, so linking the page
@@ -456,6 +461,9 @@ def _blocked_units(vault, link, from_page):
     found = unit_state(vault, link, from_page)
     if found and found[0] != target.id:
         yield found
+        if _is_requirement(vault, found[0]):
+            # An FR sits on a capability page. Blocking it holds the page's own decision too (E316 before FRs were items).
+            yield target.id, target.meta.get("state", ""), target, meta_line(target, "state")
         return
     if found:
         yield found

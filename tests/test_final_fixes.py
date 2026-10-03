@@ -170,6 +170,22 @@ def test_open_unknown_blocks_a_decided_fr(mini):
     assert ("E316", CAP) in codes(out)
 
 
+def test_open_unknown_blocking_an_fr_still_blocks_its_decided_capability(mini):
+    decided = CAP_PAGE.replace("state: assumption", "state: decided").replace(
+        "# CAP-001 Sell\n", "# CAP-001 Sell\n\n- **Decision:** [[2026-01-10-shop-api]]\n")
+    add_cap(mini, decided)
+    edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing\n", "- **Blocks:** [[CAP-001-sell#CAP-001.FR1 A till sells a basket|CAP-001.FR1]]\n")
+    code, out = check(mini)
+    assert code == 1
+    assert "E316 CAP-001 is decided, but open unknown UNK-001 blocks it." in out
+    assert codes(out) == [("E316", CAP)]
+
+
+def test_a_decided_fr_without_a_grill_gets_its_own_findings(mini):
+    add_cap(mini, CAP_PAGE.replace("- **State:** assumption", "- **State:** decided"))
+    assert codes(check(mini)[1]) == [("E303", CAP)]
+
+
 def test_conventions_and_grill_document_the_fr_format():
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "### CAP-nnn.FRn" in conventions and "CAP-001.FR1" in conventions
