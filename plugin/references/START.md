@@ -75,4 +75,4 @@ Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md
 - When Claude restates what someone said, or the user accepts Claude's recommended answer, the origin is `claude, from <name>`. Close lists those lines under "promoted on a nod".
 - Number block IDs `^c01`, `^c02` and so on, in order, never reused.
 
-Commit after about every ten captures, with the message `Checkpoint <id>`. The session record is the resume point if the conversation stops.
+Commit after about every ten captures, with the message `Checkpoint <id>`. Stage the session record and the pages you changed by exact path, never `git add -A`. The session record is the resume point if the conversation stops.

@@ -15,7 +15,7 @@ Out of scope: behaviour inside one app (that is the app team's own requirements 
 
 ## Session
 
-Run the steps in `START.md` with mode `requirements` before the first question. The session record is the vault's; there is no `docs/requirements/<slug>.md` and no `slug`, `status` or `deferred` frontmatter.
+If a session record is already open in this conversation, add `requirements` to its `modes` and capture into it; otherwise run START. The session record is the vault's; there is no `docs/requirements/<slug>.md` and no `slug`, `status` or `deferred` frontmatter.
 
 Capture every answer in the session record. The user's own words take their name as origin. A recommended answer the user accepts as it stands has origin `claude, from <name>`.
 

@@ -22,7 +22,7 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | `epics` | `draft` epic pages, bullets and criteria only; `decided` only inside its Grill part | epic description paragraphs |
 | `requirements` | requirements on the capability page at `assumption`; unknowns | prose |
 
-No mode writes inside a generated block. Close runs `planner render` for those.
+No mode writes inside a generated block. `planner render` fills them. Close runs it, and so does `epics`, mid-session, to read its frontier. Whoever runs it stages every file it reports, by exact path.
 
 ## Unknowns
 

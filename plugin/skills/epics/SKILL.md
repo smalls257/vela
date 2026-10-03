@@ -28,7 +28,7 @@ For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exa
 Write `13-epics/EPC-nnn-<slug>.md` with the next free number, at `state: draft`. Grep the vault for the existing EPC numbers and add one to the highest. Add a `## Changes` row to the session record: `| EPC-nnn | - | draft | [[<session id>#^cNN]] |`, citing the capture of the chosen cut. A new ID with no row there is an invented ID.
 
 - Frontmatter: `id`, `type: epic`, `title`, `state: draft`, `owner` (the owning team's handle), `authored: mixed`, `apps`, `delivers`, `consumes`, `flows` and `depends_on`, per `CONVENTIONS.md`. Lists hold IDs. `delivers` is never empty: an epic that delivers nothing fails T6.
-- `**Owning team:**` in the description.
+- `**Owning team:**` in the description, written now, in this session. Close does not write it.
 - `## Epic acceptance criteria`: 4 to 7 numbered criteria. Each describes behaviour a tester can see at a contract or a flow boundary. Name the contract or flow by ID. Never name a component, a table, a technology or a container's internals. Every criterion sits at the boundary.
 - End each criterion that does a concern cell's work with the concern's marker, such as `[testing]` or `[security] [data]`. Every `addressed` cell for the epic's apps needs one marked criterion on an epic whose `apps` lists the app, or a waiver in the cell. Markers go on numbered criteria. A bulleted criterion carries none.
 - `## Traces to` holding an empty `traces-to` block, `## Depends on` with one reason per dependency, `## Rollout notes` and `## Out of scope`.
@@ -65,11 +65,13 @@ Set an epic to `decided` only when the solution lead confirms it in this session
 - mark the deciding capture `→ keep: [[<page>#<heading>|EPC-nnn]] (decided)`;
 - commit with the message `grill: EPC-nnn decided`, staging the session record and the epic by exact path.
 
+Render (steps 2 and 7) rewrites generated blocks on other pages too. Stage every file `planner render` reported by exact path in the next commit, so no rewritten block is left out of the PR.
+
 If the lead never confirms, the epic stays `draft`, and its agenda line says `status open`.
 
 ## 7. Check the gate
 
-Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs.
+Run `python3 .claude/skills/planner/bin/planner render` and stage every file it reports, by exact path. Then run `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs.
 
 Exit 0 means the epics are structurally complete. It does not mean they are decided. Handoff needs every epic `decided` and a clean gate, so list each epic still at `draft` before you finish. The gate checks the whole vault, so `E50x` lines on other teams' apps also fail the exit code. Report those separately as other teams' work, and do not treat them as this team's gap.
 
