@@ -5,3 +5,4 @@ examples/unified-booking-viewer.html
 **/voice/corpus/
 __pycache__/
 .superpowers/
+.pytest_cache/
