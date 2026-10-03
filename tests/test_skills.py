@@ -135,3 +135,18 @@ def test_close_pr_body_reviewers_and_staging():
     assert "gh api user -q .login" in close and "Strip the leading `@`" in close
     assert "If nobody remains, leave out `--reviewer`." in close
     assert "Never use `git add -A`." in close
+
+
+# grill (V1-10)
+
+def test_grill_holds_the_gate_and_writes_each_decision_at_once():
+    grill = text("skills/grill/SKILL.md")
+    for gate in ("GATE-1", "GATE-2", "GATE-3", "GATE-4", "GATE-5"):
+        assert f"| {gate} |" in grill
+    assert "If no item passes, do not start the grill: make no change to any page" in grill
+    assert "- **Decision:** [[<session id>]]" in grill
+    assert "- **Dissent:** <name>, <date>: <reason>" in grill
+    assert "claude, from <name>" in grill
+    assert "Keep your recommendation when the user pushes back without a reason." in grill
+    assert "Never answer your own question." in grill
+    assert "Never batch decisions to the end." in grill
