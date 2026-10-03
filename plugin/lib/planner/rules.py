@@ -3,9 +3,10 @@
 Every rule runs on every page it can read. No rule stops the others.
 """
 import datetime
+import re
 
 from planner import schema
-from planner.model import Finding
+from planner.model import Finding, cell_table
 
 
 def check(vault, today):
@@ -459,5 +460,106 @@ def stage_rules(vault, today):
                      "Remove the stage field, or set change: changed if the app now changes.")
 
 
+# ------------------------------------------------------------------ concerns
+
+def concern_rules(vault, today):
+    app_names = {a.name.lower(): a for a in vault.apps}
+    for concern in sorted(vault.of_type("concern"), key=lambda p: p.id):
+        seen = set()
+        for cell in (c for c in vault.cells if c.concern is concern):
+            seen.add(cell.app.lower())
+            label = cell.app or "a row"
+            if not cell.app:
+                yield _f(concern, cell.line, "E301", "A cell row does not link an app page in its App column.",
+                         "Write the App column as [[<app>-building-blocks|<App name>]].")
+                continue
+            if cell.app.lower() not in app_names:
+                continue  # E201 already reports the broken link
+            if cell.state not in schema.CELL_STATES:
+                yield _f(concern, cell.line, "E301", f"Cell for {label} has state '{cell.state}'.",
+                         "Use one of: " + ", ".join(schema.CELL_STATES) + ".")
+            elif cell.state == "n/a" and not cell.text:
+                yield _f(concern, cell.line, "E301", f"Cell for {label} is n/a with no reason.",
+                         "Say in the next column why the concern does not apply.")
+            elif cell.state == "unknown" and not any(l.anchor.startswith("UNK-") for l in cell.links):
+                yield _f(concern, cell.line, "E301", f"Cell for {label} is unknown but links no unknown.",
+                         "Link the unknown, for example [[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]].")
+        line = cell_table(concern).line if cell_table(concern) else 1
+        for name, app in sorted(app_names.items()):
+            if name not in seen:
+                yield _f(concern, line, "E315", f"No cell for {app.id} on this concern page, so it counts as unexamined.",
+                         f"Add a row for [[{app.name}|{str(app.meta.get('title') or app.name)}]] with its state.")
+
+
+# ------------------------------------------------------------------ diagrams
+
+FLOW_SKIP = re.compile(r"^(flowchart|graph|classDef|class|style|linkStyle|click|direction|end)\b|^%%")
+EDGE_TEXT = re.compile(r"(?<![-.=])--\s+.+?\s+--[->ox]|(?<![-.=])-\.\s+.+?\s+\.-[->ox]|(?<![-.=])==\s+.+?\s+==[=>ox]")
+PIPE_LABEL = re.compile(r"\|[^|]*\|")
+QUOTED = re.compile(r'"[^"]*"')
+SHAPES = re.compile(r"\[\[.*?\]\]|\[\(.*?\)\]|\(\[.*?\]\)|\(\(.*?\)\)|\{\{.*?\}\}|\[.*?\]|\(.*?\)|\{.*?\}|(?<=[A-Za-z0-9_])>[^\]]*\]")
+CLASS_SUFFIX = re.compile(r":::[\w-]+")
+EDGE_OP = re.compile(r"<?[-.=~]{2,}[->ox]?|&")
+NODE_ID = re.compile(r"^[A-Za-z0-9_]+$")
+PARTICIPANT = re.compile(r"^\s*(participant|actor)\s+(\S+)")
+MESSAGE = re.compile(r"^\s*([A-Za-z0-9_]+)\s*(?:-->>|->>|-->|->|--x|-x|--\)|-\))\s*[+-]?\s*([A-Za-z0-9_]+)\s*:")
+
+
+def flowchart_elements(lines):
+    """Distinct node IDs plus subgraphs, in Mermaid flowchart lines."""
+    nodes, subgraphs, subgraph_ids = set(), 0, set()
+    for raw in lines:
+        line = raw.strip()
+        if not line or FLOW_SKIP.match(line):
+            continue
+        if line.startswith("subgraph"):
+            subgraphs += 1
+            rest = line[len("subgraph"):].strip()
+            match = re.match(r"[A-Za-z0-9_]+", rest)
+            if match:
+                subgraph_ids.add(match.group(0))
+            continue
+        line = QUOTED.sub("", line)
+        line = EDGE_TEXT.sub(" --> ", line)
+        line = PIPE_LABEL.sub(" ", line)
+        line = SHAPES.sub(" ", line)
+        line = CLASS_SUFFIX.sub(" ", line)
+        line = EDGE_OP.sub(" ", line)
+        nodes.update(t for t in line.split() if NODE_ID.match(t))
+    return len(nodes - subgraph_ids) + subgraphs
+
+
+def sequence_participants(lines):
+    names = []
+    for raw in lines:
+        match = PARTICIPANT.match(raw)
+        if match:
+            names.append(match.group(2))
+            continue
+        match = MESSAGE.match(raw)
+        if match:
+            names.extend([match.group(1), match.group(2)])
+    return len(set(names))
+
+
+def diagram_rules(vault, today):
+    for page in vault.pages:
+        for diagram in page.diagrams:
+            if diagram.kind in ("flowchart", "graph"):
+                count = flowchart_elements(diagram.lines)
+                if count > schema.FLOWCHART_BUDGET:
+                    yield _f(page, diagram.line, "E601", f"This flowchart has {count} elements; the budget is {schema.FLOWCHART_BUDGET}.",
+                             "Split it into two diagrams, or draw one level higher.")
+            elif diagram.kind == "sequenceDiagram":
+                count = sequence_participants(diagram.lines)
+                if count > schema.SEQUENCE_BUDGET:
+                    yield _f(page, diagram.line, "E602", f"This sequence diagram has {count} participants; the budget is {schema.SEQUENCE_BUDGET}.",
+                             "Merge lanes that play the same part, or split the flow.")
+            else:
+                yield _f(page, diagram.line, "E603", f"Mermaid '{diagram.kind or 'empty'}' diagrams are not supported, so their size is never checked.",
+                         "Draw it as a flowchart or a sequenceDiagram.")
+
+
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         contract_rules, unknown_rules, risk_rules, certainty_rules, stage_rules)
+         contract_rules, unknown_rules, risk_rules, certainty_rules, stage_rules, concern_rules,
+         diagram_rules)
