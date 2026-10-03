@@ -5,13 +5,14 @@ title: Solution strategy
 initiative: INI-002
 arc42: "§4"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: authored
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "session 2026-07-28 Shape", "session 2026-08-12 Grill"]
 ---
 
 # Solution strategy
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 ## The core move
 

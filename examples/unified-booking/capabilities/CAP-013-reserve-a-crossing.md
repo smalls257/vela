@@ -2,14 +2,17 @@
 id: CAP-013
 type: capability
 title: Reserve a crossing
-state: proposed
-owner: solution lead
+origin: proposed
+change: replace
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-013 Reserve a crossing
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets a customer turn a chosen crossing into a confirmed booking that every sales channel agrees on.
 

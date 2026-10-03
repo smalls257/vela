@@ -6,10 +6,10 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: changed
 stage: epics
-owner: Port Systems team
+owner: "@harbourline/port-systems"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 2026-09-23"]
 ---
 
@@ -17,7 +17,9 @@ sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 
 
 # Port kiosks
 
-Port kiosks let customers at the terminal buy a crossing and check a booking without queueing. They run a locked-down image that changes twice a year, in March and September (C3). After this initiative the kiosk app asks Booking for every booking action.
+- **Decision:** [[2026-07-28-solution-strategy]]
+
+Port kiosks let customers at the terminal buy a crossing and check a booking without queueing. They run a locked-down image that changes twice a year, in March and September (CST-3). After this initiative the kiosk app asks Booking for every booking action.
 
 Kiosks no longer decide whether a booking is confirmed and no longer cache FERRYMASTER replies.
 
@@ -50,7 +52,7 @@ flowchart LR
 
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
-| Kiosk app | Search, hold, pay, confirm and get. Calls Booking API v1 with the kiosk's device certificate. | Uses CON-001 v1 | Port Systems senior | decided |
+| Kiosk app | Search, hold, pay, confirm and get. Calls Booking API v1 with the kiosk's device certificate. | Uses CON-001 v1 | Port Systems senior | confirmed |
 | FM adapter | Talked to FERRYMASTER directly. Switched off 4 weeks after the March 2027 cutover; the code leaves with the September 2027 image. | none | existing | retired |
 
 ```mermaid

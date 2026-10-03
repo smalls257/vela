@@ -6,16 +6,18 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: changed
 stage: epics
-owner: Digital team
+owner: "@harbourline/digital-team"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["Digital senior container review", "rollout plan with solution lead"]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Public website
 
 # Public website
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 The public website is where most customers find a crossing, book it and pay for it. After this initiative it also lets them amend and cancel without phoning, which is goal G3. It asks Booking for every booking action and shows whatever state Booking returns.
 
@@ -48,7 +50,7 @@ flowchart LR
 
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
-| Booking pages | Search, hold, pay, confirm, and the new amend and cancel pages. Calls the Booking API for every booking action. | Uses CON-001 | Digital senior | decided |
+| Booking pages | Search, hold, pay, confirm, and the new amend and cancel pages. Calls the Booking API for every booking action. | Uses CON-001 | Digital senior | confirmed |
 | FM screen adapter | Scraped FERRYMASTER screens to book. Kept behind a switch for 4 weeks after the February 2027 cutover, then removed. | none | existing | retired |
 
 ```mermaid

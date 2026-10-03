@@ -3,21 +3,26 @@ id: EPC-032
 type: epic
 title: Ledger adapter on FERRYMASTER's MQ transactions
 initiative: INI-002
-state: handed-off
-owner: Booking team
+state: decided
+owner: "@harbourline/booking-team"
 authored: authored
-jira: HB-102
-last_verified: 2026-11-20
-sources: ["session 2026-07-14 Discover", "session 2026-08-19 Probe", "session 2026-09-16 Grill", "CON-006 MQ spec from mainframe team"]
+apps: [APP-booking, APP-ferrymaster]
+delivers: [ADR-0004, G1]
+consumes: [CON-006]
+flows: []
+depends_on: []
+sources: ["session 2026-07-14 Discover", "session 2026-08-19 Probe", "session 2026-09-16 Grill", SRC-04]
 ---
 
 # EPC-032 Ledger adapter on FERRYMASTER's MQ transactions
 
-Booking writes to FERRYMASTER through the four MQ transactions the mainframe team already exposes for the finance reconciliation job: BKHOLD, BKCONF, BKAMND and BKCANC ([[ADR-0004-mq-not-screen-scraping|ADR-0004]]). Screen scraping is what broke 11 times last year. The MQ transactions stay the same when a screen changes, and FERRYMASTER itself cannot change before 2028 (C1), so Booking adapts to what is already there.
+- **Decision:** [[2026-11-18-epics]]
+
+Booking writes to FERRYMASTER through the four MQ transactions the mainframe team already exposes for the finance reconciliation job: BKHOLD, BKCONF, BKAMND and BKCANC ([[ADR-0004-mq-not-screen-scraping|ADR-0004]]). Screen scraping is what broke 11 times last year. The MQ transactions stay the same when a screen changes, and FERRYMASTER itself cannot change before 2028 (CST-1), so Booking adapts to what is already there.
 
 Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003|UNK-003]]). A Booking engineer pairs with them and the MQ mapping goes into CON-006, so the knowledge no longer sits with two people (R-01). The ledger simulator built here is what Booking's contract tests run against ([[11-unknowns-and-risks#UNK-002|UNK-002]]).
 
-**Owning team:** Booking team, with mainframe team support. **Jira:** HB-102.
+**Owning team:** Booking team, with mainframe team support.
 
 ## Epic acceptance criteria
 
@@ -25,7 +30,7 @@ Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a wee
 2. When FERRYMASTER rejects a write or does not answer, Booking retries and the booking keeps its hold. No channel sees `confirmed` until FERRYMASTER has accepted.
 3. The same write sent twice is applied once in FERRYMASTER.
 4. p95 ledger write latency in the weekly end-to-end run is no worse than the 2.1 s measured for [[11-unknowns-and-risks#UNK-001|UNK-001]].
-5. Booking's MQ volume stays within the existing MIPS budget agreed with the mainframe team lead (C5).
+5. Booking's MQ volume stays within the existing MIPS budget agreed with the mainframe team lead (CST-5).
 6. Booking's contract tests run against the ledger simulator with no connection to FERRYMASTER, and the simulator gives the replies CON-006 documents for every transaction.
 
 ## Traces to

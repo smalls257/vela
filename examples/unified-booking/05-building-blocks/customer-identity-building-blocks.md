@@ -5,12 +5,11 @@ title: Customer identity
 initiative: INI-002
 arc42: "§5"
 c4: context
-state: decided
-stage: epics
-owner: Platform team
+state: fact
+change: unchanged
+owner: "@harbourline/platform-team"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["Customer identity read API documentation"]
+sources: [SRC-07]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Customer identity

@@ -3,21 +3,26 @@ id: EPC-036
 type: epic
 title: Amend and cancel online
 initiative: INI-002
-state: handed-off
-owner: Booking team and Digital team
+state: decided
+owner: "@harbourline/booking-team @harbourline/digital-team"
 authored: authored
-jira: HB-106
-last_verified: 2026-11-20
+apps: [APP-booking, APP-website]
+delivers: [CAP-021, CON-001, G3]
+consumes: [CON-003, CON-006]
+flows: [FLO-002]
+depends_on: [EPC-031, EPC-032, EPC-033]
 sources: ["session 2026-09-16 Grill", "session 2026-11-18 Grill"]
 ---
 
 # EPC-036 Amend and cancel online
 
+- **Decision:** [[2026-11-18-epics]]
+
 Today a customer who wants to change or cancel a crossing has to phone, because only the call centre can do it, through a mainframe screen. [[01-goals|G3]] asks for 60% of amendments to be done online within 6 months of go-live. This epic adds amend and cancel to the Booking API and gives the website pages for both.
 
 Booking checks whether the change is allowed, asks Pricing for a new fare when the crossing changes, and writes BKAMND or BKCANC to FERRYMASTER. The Booking team builds the API side; the Digital team builds the pages. The call centre's new screens in [[EPC-034-call-centre-to-booking|EPC-034]] use the same operations, so an amendment means the same thing on the website and in the call centre. Kiosks show booking state only and do not amend or cancel.
 
-**Owning teams:** Booking team (API) and Digital team (pages). **Jira:** HB-106.
+**Owning teams:** Booking team (API) and Digital team (pages).
 
 ## Epic acceptance criteria
 

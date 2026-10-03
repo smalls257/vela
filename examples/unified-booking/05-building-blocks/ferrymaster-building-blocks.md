@@ -5,12 +5,11 @@ title: FERRYMASTER
 initiative: INI-002
 arc42: "§5"
 c4: context
-state: decided
-stage: epics
-owner: Mainframe team
+state: fact
+change: integrated
+owner: "@harbourline/mainframe-team"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["CON-006 MQ spec from mainframe team", "UNK-003 mainframe capacity 2026-08-14", "UNK-002 test data decision 2026-09-16"]
+sources: [SRC-04, "UNK-003 mainframe capacity 2026-08-14", "UNK-002 test data decision 2026-09-16"]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / FERRYMASTER
@@ -23,7 +22,7 @@ FERRYMASTER is not responsible for holds during payment or for telling channels 
 
 | Change in INI-002 | Owner team |
 |---|---|
-| Integrated, unchanged. The vendor contract ends in 2028 and the code cannot change (C1). | Mainframe team (2 people) |
+| Integrated, unchanged. The vendor contract ends in 2028 and the code cannot change (CST-1). | Mainframe team (2 people) |
 
 ```mermaid
 flowchart LR
@@ -64,7 +63,7 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 
 ## Concerns this team carries
 
-- [[concern-cost|Cost]]: the mainframe team lead checked that Booking's MQ use fits the existing MIPS budget (C5).
+- [[concern-cost|Cost]]: the mainframe team lead checked that Booking's MQ use fits the existing MIPS budget (CST-5).
 - [[concern-testing|Testing]]: keeps the test region available for the weekly end-to-end run.
 
 The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003|UNK-003]]) and pairs with the Booking team in that time.

@@ -5,13 +5,14 @@ title: Version the Booking API and keep each version at least 6 months
 initiative: INI-002
 arc42: "§9"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: authored
-last_verified: 2026-11-20
-sources: ["session 2026-08-26 Grill", "Port Systems kiosk image calendar"]
+sources: ["session 2026-08-26 Grill", SRC-03]
 ---
 
 # ADR-0003 Version the Booking API and keep each version at least 6 months
+
+- **Decision:** [[2026-08-26-kiosks-and-rollout]]
 
 ## Status
 
@@ -19,7 +20,7 @@ Accepted, 2026-08-26, in a Grill session with the Booking senior, Port Systems s
 
 ## Context
 
-Kiosks run a locked-down image that changes only in March and September (C3). Whatever the kiosk app calls must stay stable for at least six months. The website releases weekly and the call centre desktop monthly, so they can follow API changes quickly. The kiosks cannot.
+Kiosks run a locked-down image that changes only in March and September (CST-3). Whatever the kiosk app calls must stay stable for at least six months. The website releases weekly and the call centre desktop monthly, so they can follow API changes quickly. The kiosks cannot.
 
 ## Decision
 

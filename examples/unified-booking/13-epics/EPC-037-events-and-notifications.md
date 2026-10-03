@@ -3,21 +3,26 @@ id: EPC-037
 type: epic
 title: Booking events and customer notifications
 initiative: INI-002
-state: handed-off
-owner: Booking team and Platform team
+state: decided
+owner: "@harbourline/booking-team @harbourline/platform-team"
 authored: authored
-jira: HB-107
-last_verified: 2026-11-20
+apps: [APP-booking, APP-notifications]
+delivers: [CAP-022, CON-002, G2, G3]
+consumes: []
+flows: [FLO-003, FLO-001, FLO-002]
+depends_on: [EPC-031]
 sources: ["session 2026-11-03 Grill"]
 ---
 
 # EPC-037 Booking events and customer notifications
 
-Booking publishes Booking state changed (CON-002) to the Harbourline event bus on every change of state, as the transformation programme requires of new applications (C4). Notifications adds a consumer for that event and sends email or SMS through its existing message sender. Today only the website sends emails, so a customer who books at a kiosk or by phone hears nothing, and once customers can amend online they need to hear about it wherever the change came from.
+- **Decision:** [[2026-11-18-epics]]
+
+Booking publishes Booking state changed (CON-002) to the Harbourline event bus on every change of state, as the transformation programme requires of new applications (CST-4). Notifications adds a consumer for that event and sends email or SMS through its existing message sender. Today only the website sends emails, so a customer who books at a kiosk or by phone hears nothing, and once customers can amend online they need to hear about it wherever the change came from.
 
 The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005|UNK-005]]). Finance reconciliation may read these events later ([[11-unknowns-and-risks#UNK-006|UNK-006]], deferred to INI-005), so the event only ever grows by adding fields.
 
-**Owning teams:** Booking team (events) and Platform team (Notifications consumer). **Jira:** HB-107.
+**Owning teams:** Booking team (events) and Platform team (Notifications consumer).
 
 ## Epic acceptance criteria
 

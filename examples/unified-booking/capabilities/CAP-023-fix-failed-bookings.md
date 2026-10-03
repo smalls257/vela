@@ -2,14 +2,17 @@
 id: CAP-023
 type: capability
 title: Fix failed bookings by hand
-state: proposed
-owner: solution lead
+origin: proposed
+change: retire
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-023 Fix failed bookings by hand
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets an agent repair a booking that was paid for but never confirmed.
 

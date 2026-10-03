@@ -5,13 +5,14 @@ title: Hold, pay, confirm
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-09-02 Grill", "UNK-001 ledger latency measurement", "CON-006 MQ spec from mainframe team"]
+sources: ["session 2026-09-02 Grill", "UNK-001 ledger latency measurement", SRC-04]
 ---
 
 # FLO-001 Hold, pay, confirm
+
+- **Decision:** [[2026-09-02-hold-pay-confirm]]
 
 ## Steps
 

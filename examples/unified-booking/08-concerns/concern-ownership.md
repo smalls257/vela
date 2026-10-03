@@ -4,10 +4,8 @@ type: concern
 title: Ownership
 initiative: INI-002
 arc42: "§8"
-state: addressed
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-28 Grill", "session 2026-10-07 Grill"]
 ---
 

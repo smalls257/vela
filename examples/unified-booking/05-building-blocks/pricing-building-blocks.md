@@ -6,16 +6,18 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: changed
 stage: epics
-owner: Revenue team
+owner: "@harbourline/revenue-team"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["Pricing senior review of CON-003", "Platform gateway access rules"]
+sources: ["Pricing senior review of CON-003", SRC-09]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Pricing
 
 # Pricing
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 Pricing quotes a fare for a crossing, given the date, the passengers and the vehicle. It holds the fare rules the Revenue team sets. Its job does not change in this initiative.
 

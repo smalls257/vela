@@ -5,13 +5,14 @@ title: Use FERRYMASTER's existing MQ transactions instead of screen scraping
 initiative: INI-002
 arc42: "§9"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: authored
-last_verified: 2026-11-20
-sources: ["session 2026-07-14 Discover", "CON-006 MQ spec from mainframe team"]
+sources: ["session 2026-07-14 Discover", SRC-04]
 ---
 
 # ADR-0004 Use FERRYMASTER's existing MQ transactions instead of screen scraping
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 ## Status
 
@@ -19,7 +20,7 @@ Accepted, 2026-07-14. It came out of a Discover session with the mainframe team 
 
 ## Context
 
-Every adapter today scrapes FERRYMASTER screens. A screen change broke all three front ends 11 times in the last 12 months (G1). FERRYMASTER itself cannot change (C1), and its processing must stay within the MIPS budget (C5).
+Every adapter today scrapes FERRYMASTER screens. A screen change broke all three front ends 11 times in the last 12 months (G1). FERRYMASTER itself cannot change (CST-1), and its processing must stay within the MIPS budget (CST-5).
 
 ## Decision
 
@@ -30,7 +31,7 @@ Booking's Ledger adapter writes to FERRYMASTER only through the existing MQ tran
 | Alternative | Why rejected |
 |---|---|
 | One screen scraper inside Booking | Cuts three breakages to one. Still breaks on every screen change, so G1 stays unmet. |
-| New MQ transactions built for Booking | Needs FERRYMASTER changes (C1) and COBOL time from a two-person team. |
+| New MQ transactions built for Booking | Needs FERRYMASTER changes (CST-1) and COBOL time from a two-person team. |
 | Read and write FERRYMASTER's files directly | Bypasses the mainframe's own rules and the vendor contract forbids it. |
 
 ## Consequences

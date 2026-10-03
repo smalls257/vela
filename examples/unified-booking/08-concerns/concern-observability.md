@@ -4,10 +4,8 @@ type: concern
 title: Observability
 initiative: INI-002
 arc42: "§8"
-state: addressed
-owner: Booking senior
+owner: "@hl-booking-senior"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-09-02 Grill", "session 2026-10-07 Grill"]
 ---
 

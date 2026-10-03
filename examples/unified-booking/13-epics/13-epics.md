@@ -3,16 +3,14 @@ id: epics
 type: index
 title: Epics
 initiative: INI-002
-state: handed-off
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-10-21 Shape", "session 2026-11-18 Grill", "Jira export HB-101 to HB-109"]
+sources: ["session 2026-10-21 Shape", "session 2026-11-18 Grill"]
 ---
 
 # Epics
 
-Nine epics deliver Unified Booking. Each one has a single owning team and a Jira epic in the HB project. The solution lead wrote every epic down to its acceptance criteria; the teams write the stories after their own tech design sessions.
+Nine epics deliver Unified Booking. Each one names its owning team. The solution lead wrote every epic down to its acceptance criteria; the teams write the stories after their own tech design sessions.
 
 Booking's own epics come first because every channel cutover needs a working Booking API and ledger writes. The channels then move in the order the rollout concern sets: website in February 2027, call centre in March 2027, kiosks with the March 2027 image. Pricing closes the gateway to other callers last, once no front end calls it directly.
 

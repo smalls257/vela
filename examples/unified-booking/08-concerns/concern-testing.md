@@ -4,11 +4,9 @@ type: concern
 title: Testing
 initiative: INI-002
 arc42: "§8"
-state: addressed
-owner: QA lead
+owner: "@hl-qa-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-09-16 Grill", "UNK-002 test data", "CON-006 MQ spec from mainframe team"]
+sources: ["session 2026-09-16 Grill", "UNK-002 test data", SRC-04]
 ---
 
 # Testing

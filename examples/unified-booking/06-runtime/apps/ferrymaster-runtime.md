@@ -1,14 +1,13 @@
 ---
-id: APP-ferrymaster-runtime
+id: RUN-ferrymaster
 type: app-runtime
 title: FERRYMASTER runtime
 initiative: INI-002
 arc42: "§6"
-state: decided
-owner: Mainframe team
+state: fact
+owner: "@harbourline/mainframe-team"
 authored: authored
-last_verified: 2026-11-20
-sources: ["UNK-001 ledger latency measurement 2026-09-02", "CON-006 MQ spec from mainframe team"]
+sources: ["UNK-001 ledger latency measurement 2026-09-02", SRC-04]
 ---
 
 [[README|Harbourline]] / [[06-flows|06 Flows]] / [[ferrymaster-building-blocks|FERRYMASTER]] / Runtime

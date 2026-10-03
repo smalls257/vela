@@ -6,16 +6,18 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: changed
 stage: epics
-owner: Platform team
+owner: "@harbourline/platform-team"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["Platform lead review of CON-002", "UNK-005 event bus readiness 2026-11-03"]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Notifications
 
 # Notifications
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 Notifications tells customers when their booking changes, by email or SMS. Today only the website sends booking emails. After this initiative Notifications reads every Booking state change from the event bus, so a booking made or changed in any channel produces the same message.
 
@@ -42,7 +44,7 @@ flowchart LR
 
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
-| Booking event consumer | Reads Booking state changed, picks email or SMS, and hands the message to the sender. | Uses CON-002 | Platform lead | decided |
+| Booking event consumer | Reads Booking state changed, picks email or SMS, and hands the message to the sender. | Uses CON-002 | Platform lead | confirmed |
 | Message sender | Sends email and SMS. Looks up the customer's address and mobile number from the customer ID, as it does for website emails today. | none | existing | unchanged |
 
 ```mermaid

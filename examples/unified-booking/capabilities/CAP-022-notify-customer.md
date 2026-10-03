@@ -2,14 +2,17 @@
 id: CAP-022
 type: capability
 title: Notify customer of changes
-state: proposed
-owner: solution lead
+origin: proposed
+change: new
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-022 Notify customer of changes
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets a customer hear about a change to their booking, wherever the change was made.
 

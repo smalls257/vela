@@ -4,10 +4,8 @@ type: index
 title: Architecture decisions
 initiative: INI-002
 arc42: "§9"
-state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Discover", "session 2026-07-28 Grill", "session 2026-08-12 Grill", "session 2026-08-26 Grill"]
 ---
 

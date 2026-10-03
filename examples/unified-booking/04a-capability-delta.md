@@ -6,13 +6,14 @@ initiative: INI-002
 arc42: "§4"
 c4: landscape
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "session 2026-08-12 Grill", "session 2026-11-18 Grill"]
 ---
 
 # Capability delta
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Every capability this initiative changes, which software provides it before and after, and where the work lands. Anything not listed is unchanged.
 

@@ -2,14 +2,17 @@
 id: CAP-012
 type: capability
 title: Quote a fare
-state: proposed
-owner: solution lead
+origin: proposed
+change: narrow
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-012 Quote a fare
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets a customer or an agent know the price of a crossing before they commit to it.
 

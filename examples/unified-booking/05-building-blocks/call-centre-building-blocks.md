@@ -6,16 +6,18 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: changed
 stage: epics
-owner: Contact Centre Systems team
+owner: "@harbourline/contact-centre-systems"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["Contact Centre Systems senior container review", "Head of Contact Centre review of retired fix screens"]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Call centre desktop
 
 # Call centre desktop
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 The call centre desktop is what agents use to book, amend and cancel crossings for customers who phone. Today it reaches FERRYMASTER through a terminal adapter, and agents spend the morning fixing bookings that were paid for on the website but never confirmed. After this initiative the desktop asks Booking for every booking action, and that morning queue goes away.
 
@@ -48,7 +50,7 @@ flowchart LR
 
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
-| Desktop client | Agent screens. Calls the Booking API for hold, confirm, amend, cancel and get. New amend and cancel screens. | Uses CON-001 | Contact Centre Systems senior | decided |
+| Desktop client | Agent screens. Calls the Booking API for hold, confirm, amend, cancel and get. New amend and cancel screens. | Uses CON-001 | Contact Centre Systems senior | confirmed |
 | Terminal adapter | Drove FERRYMASTER's terminal screens. Kept behind a switch for 4 weeks after the March 2027 cutover, then removed. | none | existing | retired |
 | Manual fix queue | Listed paid but unconfirmed website bookings for next-morning fixes. Booking now retries and keeps the hold, so nothing lands here. | none | existing | retired |
 

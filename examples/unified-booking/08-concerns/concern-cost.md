@@ -4,10 +4,8 @@ type: concern
 title: Cost
 initiative: INI-002
 arc42: "§8"
-state: addressed
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-08-14 Grill", "mainframe team lead MIPS check"]
 ---
 
@@ -19,7 +17,7 @@ sources: ["session 2026-08-14 Grill", "mainframe team lead MIPS check"]
 
 Booking runs on the standard Harbourline service footprint and needs no new licences. Its stores and API are the same size as other Platform-hosted services. Pricing, Vessel schedule and Customer identity see the same or fewer calls, because Booking makes the calls three front ends used to make.
 
-The cost that mattered was mainframe processing, because MIPS is capped (C5). Screen scraping drives whole terminal sessions for one booking. BKHOLD, BKCONF, BKAMND and BKCANC are single MQ transactions that the finance job already uses. The mainframe team lead checked the expected volume against the existing budget and confirmed it fits.
+The cost that mattered was mainframe processing, because MIPS is capped (CST-5). Screen scraping drives whole terminal sessions for one booking. BKHOLD, BKCONF, BKAMND and BKCANC are single MQ transactions that the finance job already uses. The mainframe team lead checked the expected volume against the existing budget and confirmed it fits.
 
 Retiring three adapters removes upkeep that used to cost each front-end team a fix every time FERRYMASTER changed a screen. That was 11 incidents last year. INI-002 does not count that saving in money.
 

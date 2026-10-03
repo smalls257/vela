@@ -1,19 +1,20 @@
 ---
-id: APP-notifications-runtime
+id: RUN-notifications
 type: app-runtime
 title: Notifications runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: Platform team
+owner: "@harbourline/platform-team"
 authored: authored
-last_verified: 2026-11-20
 sources: ["Platform lead review of CON-002", "UNK-005 event bus readiness 2026-11-03"]
 ---
 
 [[README|Harbourline]] / [[06-flows|06 Flows]] / [[notifications-building-blocks|Notifications]] / Runtime
 
 # Notifications runtime
+
+- **Decision:** [[2026-11-03-events]]
 
 | Flow | Notifications' part |
 |---|---|

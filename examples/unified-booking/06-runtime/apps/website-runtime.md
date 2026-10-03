@@ -1,19 +1,20 @@
 ---
-id: APP-website-runtime
+id: RUN-website
 type: app-runtime
 title: Public website runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: Digital team
+owner: "@harbourline/digital-team"
 authored: authored
-last_verified: 2026-11-20
 sources: ["UNK-001 ledger latency measurement 2026-09-02", "Digital senior container review"]
 ---
 
 [[README|Harbourline]] / [[06-flows|06 Flows]] / [[website-building-blocks|Public website]] / Runtime
 
 # Public website runtime
+
+- **Decision:** [[2026-09-16-testing-and-amend]]
 
 | Flow | Website's part |
 |---|---|

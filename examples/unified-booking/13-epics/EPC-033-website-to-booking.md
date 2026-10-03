@@ -3,21 +3,26 @@ id: EPC-033
 type: epic
 title: Website moves to Booking
 initiative: INI-002
-state: handed-off
-owner: Digital team
+state: decided
+owner: "@harbourline/digital-team"
 authored: authored
-jira: HB-103
-last_verified: 2026-11-20
+apps: [APP-website, APP-booking]
+delivers: [CAP-013, G1, G2]
+consumes: [CON-001]
+flows: [FLO-001]
+depends_on: [EPC-031, EPC-032, EPC-039]
 sources: ["session 2026-10-07 Grill", "session 2026-11-18 Grill"]
 ---
 
 # EPC-033 Website moves to Booking
 
+- **Decision:** [[2026-11-18-epics]]
+
 The website's booking pages call the Booking API (CON-001) and the FM screen adapter is retired. The website goes first because it has the worst failure today: if the second scrape, the confirm, fails after payment, the customer has paid for nothing and the call centre fixes it by hand the next morning. With Booking, Tidepay's payment outcome goes to Booking, which keeps the hold and retries the ledger write.
 
 Cutover is February 2027. The old adapter stays behind a switch for 4 weeks so the Digital team can send bookings back to it without a release. After 4 weeks it is removed and the website no longer depends on any FERRYMASTER screen.
 
-**Owning team:** Digital team. **Jira:** HB-103.
+**Owning team:** Digital team.
 
 ## Epic acceptance criteria
 

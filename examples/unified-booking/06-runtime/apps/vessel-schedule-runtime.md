@@ -1,14 +1,13 @@
 ---
-id: APP-vessel-schedule-runtime
+id: RUN-vessel-schedule
 type: app-runtime
 title: Vessel schedule runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: Marine Ops Systems team
+owner: "@harbourline/marine-ops-systems"
 authored: authored
-last_verified: 2026-11-20
-sources: ["Vessel schedule read API documentation"]
+sources: [SRC-06]
 ---
 
 [[README|Harbourline]] / [[06-flows|06 Flows]] / [[vessel-schedule-building-blocks|Vessel schedule]] / Runtime

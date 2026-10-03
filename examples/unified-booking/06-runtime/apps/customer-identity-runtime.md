@@ -1,14 +1,13 @@
 ---
-id: APP-customer-identity-runtime
+id: RUN-customer-identity
 type: app-runtime
 title: Customer identity runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: Platform team
+owner: "@harbourline/platform-team"
 authored: authored
-last_verified: 2026-11-20
-sources: ["Customer identity read API documentation"]
+sources: [SRC-07]
 ---
 
 [[README|Harbourline]] / [[06-flows|06 Flows]] / [[customer-identity-building-blocks|Customer identity]] / Runtime

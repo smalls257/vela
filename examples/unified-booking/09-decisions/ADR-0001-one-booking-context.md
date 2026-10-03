@@ -5,13 +5,14 @@ title: One Booking application rather than a shared adapter library
 initiative: INI-002
 arc42: "§9"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: authored
-last_verified: 2026-11-20
 sources: ["session 2026-07-28 Grill"]
 ---
 
 # ADR-0001 One Booking application rather than a shared adapter library
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 ## Status
 

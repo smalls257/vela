@@ -6,16 +6,18 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: new
 stage: epics
-owner: Booking team
+owner: "@harbourline/booking-team"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["Booking senior container review", "UNK-001 ledger latency measurement 2026-09-02", "CON-006 MQ spec from mainframe team", "Tidepay published webhook API"]
+sources: ["Booking senior container review", "UNK-001 ledger latency measurement 2026-09-02", SRC-04, SRC-05]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Booking
 
 # Booking
+
+- **Decision:** [[2026-09-09-booking-containers]]
 
 Booking decides whether a booking is held, confirmed, amended or cancelled. Every channel asks Booking, so the website, the call centre and the kiosks give the same answer about a booking's state. Booking is the only application that talks to FERRYMASTER about bookings, and it does so through FERRYMASTER's existing MQ transactions. It keeps a seat held while the customer pays and publishes every state change to the event bus.
 
@@ -56,10 +58,10 @@ All four were confirmed by the Booking senior.
 
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
-| Booking API | Takes hold, confirm, amend, cancel and get from every channel. Receives Tidepay's payment outcome. | Serves CON-001, CON-007. Uses CON-003, CON-004, CON-005. | solution lead | decided |
-| Hold store | Keeps unpaid holds for 10 minutes, then lets them expire. | none | solution lead | decided |
-| Ledger adapter | The only writer to FERRYMASTER. Sends BKHOLD, BKCONF, BKAMND and BKCANC over MQ. Retries a failed write and keeps the hold. | Uses CON-006 | Booking senior | decided |
-| Event publisher | Publishes Booking state changed to the event bus, as C4 requires. | Serves CON-002 | Platform lead | decided |
+| Booking API | Takes hold, confirm, amend, cancel and get from every channel. Receives Tidepay's payment outcome. | Serves CON-001, CON-007. Uses CON-003, CON-004, CON-005. | solution lead | confirmed |
+| Hold store | Keeps unpaid holds for 10 minutes, then lets them expire. | none | solution lead | confirmed |
+| Ledger adapter | The only writer to FERRYMASTER. Sends BKHOLD, BKCONF, BKAMND and BKCANC over MQ. Retries a failed write and keeps the hold. | Uses CON-006 | Booking senior | confirmed |
+| Event publisher | Publishes Booking state changed to the event bus, as CST-4 requires. | Serves CON-002 | Platform lead | confirmed |
 
 ```mermaid
 flowchart LR
@@ -116,7 +118,7 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ### CON-007 Tidepay payment outcome
 
-- **Crosses the boundary:** a webhook from Tidepay to the Booking API with the payment reference, the booking reference, the amount and the result. Customers enter card details on Tidepay's hosted payment page, so card data never reaches Booking and PCI scope stays the same (C2).
+- **Crosses the boundary:** a webhook from Tidepay to the Booking API with the payment reference, the booking reference, the amount and the result. Customers enter card details on Tidepay's hosted payment page, so card data never reaches Booking and PCI scope stays the same (CST-2).
 - **Provider:** Tidepay. **Consumer:** Booking API.
 - **Change policy:** Tidepay's published API, versioned by Tidepay.
 - **Tested by:** the Tidepay sandbox in Booking's pipeline. Tidepay tests its own side.

@@ -4,11 +4,9 @@ type: index
 title: Unknowns and risks
 initiative: INI-002
 arc42: "§11"
-state: addressed
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session-history", "session 2026-07-14 Discover"]
+sources: ["session 2026-07-14 Discover"]
 ---
 
 # Unknowns and risks

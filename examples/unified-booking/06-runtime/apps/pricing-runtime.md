@@ -1,19 +1,20 @@
 ---
-id: APP-pricing-runtime
+id: RUN-pricing
 type: app-runtime
 title: Pricing runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: Revenue team
+owner: "@harbourline/revenue-team"
 authored: authored
-last_verified: 2026-11-20
 sources: ["Pricing senior review of CON-003"]
 ---
 
 [[README|Harbourline]] / [[06-flows|06 Flows]] / [[pricing-building-blocks|Pricing]] / Runtime
 
 # Pricing runtime
+
+- **Decision:** [[2026-09-02-hold-pay-confirm]]
 
 Pricing answers the same question it always has. The difference is that only Booking asks it.
 

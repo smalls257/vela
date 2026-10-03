@@ -5,13 +5,14 @@ title: Glossary
 initiative: INI-002
 arc42: "§12"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: authored
-last_verified: 2026-11-20
 sources: ["sessions 2026-07-06 to 2026-11-18"]
 ---
 
 # Glossary
+
+- **Decision:** [[2026-11-18-epics]]
 
 **Booking.** The new application that decides a booking's state. Not to be confused with a booking, the thing a customer has.
 

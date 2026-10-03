@@ -3,12 +3,11 @@ id: readme
 type: index
 title: Unified Booking vault
 authored: authored
-last_verified: 2026-11-20
 ---
 
 # Unified Booking vault
 
-This is a mock. Harbourline, its systems, teams and numbers are all made up. The vault holds one initiative, INI-002 Unified Booking, as it looks once every area has reached stage 6 and the epics are in Jira.
+This is a mock. Harbourline, its systems, teams and numbers are all made up. The vault holds one initiative, INI-002 Unified Booking, as it looks once every area has reached stage 6 and its epics are written.
 
 Start at [[01-goals|Unified Booking: Goals]].
 

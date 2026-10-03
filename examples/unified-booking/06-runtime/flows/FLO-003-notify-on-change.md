@@ -5,13 +5,14 @@ title: Notify on change
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-11-03 Grill", "CON-002 event schema"]
+sources: ["session 2026-11-03 Grill", SRC-10]
 ---
 
 # FLO-003 Notify on change
+
+- **Decision:** [[2026-11-03-events]]
 
 ## Steps
 

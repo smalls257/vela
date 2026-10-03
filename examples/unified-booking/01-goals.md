@@ -4,16 +4,15 @@ type: initiative-section
 title: Unified Booking
 initiative: INI-002
 arc42: "§1"
-state: handed-off
-owner: solution lead
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", "incident log 2025-10 to 2026-09"]
+sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", SRC-01]
 ---
 
 # Unified Booking
 
-INI-002 · 9 apps in scope · every area at stage 6 · 9 epics in Jira (HB-101 to HB-109) · 1 open unknown, not blocking
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 ## Why now
 

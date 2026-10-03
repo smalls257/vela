@@ -5,10 +5,8 @@ title: Building blocks
 initiative: INI-002
 arc42: "§5"
 c4: context
-state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-28 Shape", "session 2026-09-09 Grill", "co-design sessions with each app's senior, 2026-09 to 2026-10"]
 ---
 

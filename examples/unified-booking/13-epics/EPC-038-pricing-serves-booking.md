@@ -3,21 +3,26 @@ id: EPC-038
 type: epic
 title: Pricing serves Booking only
 initiative: INI-002
-state: handed-off
-owner: Revenue team
+state: decided
+owner: "@harbourline/revenue-team"
 authored: authored
-jira: HB-108
-last_verified: 2026-11-20
+apps: [APP-pricing, APP-booking]
+delivers: [CAP-012, CON-003]
+consumes: []
+flows: []
+depends_on: [EPC-031, EPC-033, EPC-034, EPC-035]
 sources: ["session 2026-07-28 Shape", "session 2026-11-18 Grill"]
 ---
 
 # EPC-038 Pricing serves Booking only
 
+- **Decision:** [[2026-11-18-epics]]
+
 Pricing keeps the same job and the same containers. What changes is who calls it: today the website, the call centre and the kiosks each ask the Quote service for fares, and after this epic only Booking does. The Platform gateway enforces that.
 
 One caller means the Revenue team changes fare rules against one consumer and one contract test. Today a change to a quote has to be checked against three front ends that each call Pricing their own way. The restriction goes on last, after the September 2027 kiosk image removes the final direct caller.
 
-**Owning team:** Revenue team. **Jira:** HB-108.
+**Owning team:** Revenue team.
 
 ## Epic acceptance criteria
 

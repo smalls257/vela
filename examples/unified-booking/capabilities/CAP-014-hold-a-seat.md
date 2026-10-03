@@ -2,14 +2,17 @@
 id: CAP-014
 type: capability
 title: Hold a seat during payment
-state: proposed
-owner: solution lead
+origin: proposed
+change: new
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-014 Hold a seat during payment
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets a customer keep a seat on a crossing for 10 minutes while they pay, so no other channel can sell it.
 

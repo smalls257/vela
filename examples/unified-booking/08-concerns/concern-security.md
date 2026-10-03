@@ -4,11 +4,9 @@ type: concern
 title: Security
 initiative: INI-002
 arc42: "§8"
-state: addressed
-owner: Platform lead
+owner: "@hl-platform-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-09-23 Grill", "Platform PKI runbook"]
+sources: ["session 2026-09-23 Grill", SRC-08]
 ---
 
 # Security
@@ -17,7 +15,7 @@ sources: ["session 2026-09-23 Grill", "Platform PKI runbook"]
 
 ## Strategy
 
-PCI scope must not grow (C2). Card details go from the customer's browser or the agent's screen straight to Tidepay's hosted payment page. Booking only receives the payment outcome through [[booking-building-blocks#CON-007|CON-007]], and that carries a payment ID and a result. Card data never reaches Booking, so Booking stays out of PCI scope.
+PCI scope must not grow (CST-2). Card details go from the customer's browser or the agent's screen straight to Tidepay's hosted payment page. Booking only receives the payment outcome through [[booking-building-blocks#CON-007|CON-007]], and that carries a payment ID and a result. Card data never reaches Booking, so Booking stays out of PCI scope.
 
 The Booking API sits behind the Platform gateway. The website and call centre desktop call it with Platform service tokens, as other Harbourline services already do. Kiosks have no logged-in user and no safe place for a shared secret on a locked image ([[11-unknowns-and-risks#UNK-004|UNK-004]]). Each kiosk gets a device certificate from Platform's existing PKI, installed with the March 2027 image. A stolen kiosk is revoked by certificate without touching the others.
 

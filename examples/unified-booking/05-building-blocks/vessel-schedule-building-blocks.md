@@ -5,12 +5,11 @@ title: Vessel schedule
 initiative: INI-002
 arc42: "§5"
 c4: context
-state: decided
-stage: epics
-owner: Marine Ops Systems team
+state: fact
+change: unchanged
+owner: "@harbourline/marine-ops-systems"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["Vessel schedule read API documentation"]
+sources: [SRC-06]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Vessel schedule

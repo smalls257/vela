@@ -4,11 +4,9 @@ type: concern
 title: Rollout
 initiative: INI-002
 arc42: "§8"
-state: addressed
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-08-26 Grill", "Port Systems kiosk image calendar"]
+sources: ["session 2026-08-26 Grill", SRC-03]
 ---
 
 # Rollout
@@ -17,7 +15,7 @@ sources: ["session 2026-08-26 Grill", "Port Systems kiosk image calendar"]
 
 ## Strategy
 
-Channels move one at a time. The website goes first in February 2027 because the Digital team releases weekly and can roll back in minutes. The call centre follows in March 2027, once the website has shown Booking under real load. Kiosks move with the March 2027 image, because their image changes only in March and September (C3).
+Channels move one at a time. The website goes first in February 2027 because the Digital team releases weekly and can roll back in minutes. The call centre follows in March 2027, once the website has shown Booking under real load. Kiosks move with the March 2027 image, because their image changes only in March and September (CST-3).
 
 Each channel keeps its old adapter behind a switch for 4 weeks after cutover. Rollback means flipping that channel's switch back; nothing else moves. After 4 weeks without a rollback, the old adapter is removed. Kiosks cannot remove code between images, so their old adapter is switched off after 4 weeks and deleted in the September 2027 image.
 

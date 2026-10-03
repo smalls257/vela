@@ -2,14 +2,17 @@
 id: CAP-015
 type: capability
 title: Take payment
-state: proposed
-owner: solution lead
+origin: proposed
+change: unchanged
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-015 Take payment
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets a customer pay for a crossing by card without Harbourline ever handling the card.
 

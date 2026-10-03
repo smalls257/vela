@@ -3,21 +3,26 @@ id: EPC-035
 type: epic
 title: Kiosks move to Booking in the March image
 initiative: INI-002
-state: handed-off
-owner: Port Systems team
+state: decided
+owner: "@harbourline/port-systems"
 authored: authored
-jira: HB-105
-last_verified: 2026-11-20
+apps: [APP-kiosks, APP-booking]
+delivers: [CAP-013, G1, G2]
+consumes: [CON-001]
+flows: [FLO-001]
+depends_on: [EPC-031]
 sources: ["session 2026-08-26 Grill", "session 2026-09-23 Grill", "ADR-0003"]
 ---
 
 # EPC-035 Kiosks move to Booking in the March image
 
-The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only in March and September (C3), so whatever they call has to stay the same for at least six months. That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|ADR-0003]]).
+- **Decision:** [[2026-11-18-epics]]
+
+The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only in March and September (CST-3), so whatever they call has to stay the same for at least six months. That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|ADR-0003]]).
 
 Kiosks have no user to log in, so each kiosk authenticates with a device certificate from Platform's existing PKI ([[11-unknowns-and-risks#UNK-004|UNK-004]]). The old FM adapter ships in the March image behind a switch and leaves with the September 2027 image. If the March image slips, kiosks keep their old adapter until September and Booking API v1 is still there when they arrive (R-02).
 
-**Owning team:** Port Systems team. **Jira:** HB-105.
+**Owning team:** Port Systems team.
 
 ## Epic acceptance criteria
 

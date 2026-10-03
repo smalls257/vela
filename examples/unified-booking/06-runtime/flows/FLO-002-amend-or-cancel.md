@@ -5,13 +5,14 @@ title: Amend or cancel
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-09-16 Grill", "CON-006 MQ spec from mainframe team"]
+sources: ["session 2026-09-16 Grill", SRC-04]
 ---
 
 # FLO-002 Amend or cancel
+
+- **Decision:** [[2026-09-16-testing-and-amend]]
 
 ## Steps
 
