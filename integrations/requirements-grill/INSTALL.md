@@ -14,6 +14,12 @@ This folder adds a vault mode to your `requirements-grill` skill. Nothing in the
 
 ## Install
 
+Back up your skill first. The backup goes outside `~/.claude/skills`, so it is not picked up as a second skill:
+
+```
+cp -R ~/.claude/skills/requirements-grill ~/requirements-grill.bak-$(date +%F)
+```
+
 Check that the patch still fits your skill:
 
 ```
@@ -36,6 +42,14 @@ If a hunk fails, your skill changed after the copy was made. Make the four edits
 2. In a repository with no `.planner.yaml`, run it as before. It writes `docs/requirements/<slug>.md` with the same sections as before the patch.
 
 ## Undo
+
+To restore from the backup, copy it back over the skill (use the date you made it):
+
+```
+rm -r ~/.claude/skills/requirements-grill && cp -R ~/requirements-grill.bak-<date> ~/.claude/skills/requirements-grill
+```
+
+Or reverse the patch:
 
 ```
 cd ~/.claude/skills && patch -p1 -R < <toolkit>/integrations/requirements-grill/vault-mode.patch

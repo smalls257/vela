@@ -76,3 +76,12 @@ def test_prereq_check_is_byte_identical_across_the_copies():
     if len(copies) < 2:
         pytest.skip("only one integration exists")
     assert len({p.read_bytes() for p in copies}) == 1, "PREREQ-CHECK.md is shared by both grill skills and must stay identical"
+
+
+@pytest.mark.parametrize("folder", INTEGRATIONS, ids=ids(INTEGRATIONS))
+def test_install_backs_up_the_skill_outside_the_skills_folder(folder):
+    install = (folder / "INSTALL.md").read_text(encoding="utf-8")
+    backups = re.findall(r"^cp -R ~/\.claude/skills/\S+ (\S+)$", install, re.M)
+    assert backups, "INSTALL.md has no `cp -R` backup of the skill"
+    assert all(not b.startswith("~/.claude/skills") for b in backups), "the backup must sit outside ~/.claude/skills"
+    assert install.index(backups[0]) < install.index("patch -p1 < "), "back up before applying the patch"
