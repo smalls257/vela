@@ -41,7 +41,7 @@ def is_date(value):
 
 def readable(page):
     """Pages whose frontmatter parsed into a known type."""
-    return bool(page.meta) and page.type in schema.PAGE_TYPES
+    return bool(page.meta) and isinstance(page.type, str) and page.type in schema.PAGE_TYPES
 
 
 def _f(page, line, code, message, fix):

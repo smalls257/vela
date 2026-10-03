@@ -85,3 +85,8 @@ def test_modes_that_is_a_string_is_one_list_finding(mini):
     code, out = check(mini)
     assert code == 1, out
     assert findings(out) == [("E105", "sessions/2026-01-05-till-needs.md")]
+
+
+def test_readable_is_false_for_an_unhashable_type():
+    from planner import parse, rules
+    assert rules.readable(parse.parse_page("x.md", "---\nid: x\ntype: [a]\n---\n")) is False
