@@ -18,7 +18,7 @@ Find out what exists before anyone designs anything. Every fact this session wri
    - A line from an `intends` source is an `assumption`, however sure it sounds. "Ready in Q4" in a deck is a plan, not a fact.
    - A line about the future ("will", "planned", "by Q4", "ready in") is an `assumption`, whatever its source's `Kind`.
    - A line the user knows first-hand is a `fact` only once it has its own row in `sources.md`, with the user's handle as Owner and today's date. `first-hand` is not a registered `Kind`, so give the row `Kind: exists` and Location `first-hand: <handle>`. That row is the source the fact cites.
-   - Each fact written also gets a capture line and a `## Changes` row. Close leaves facts already written alone.
+   - Each fact written also gets a capture line and a `## Changes` row. Mark that capture at once: `→ keep: [[<page>#<heading>|<ID>]] (fact)`. This is an exception to leaving marks off until close. Close leaves facts already written alone.
    - Say it in your own words. Never copy document text into the vault.
    - Claude's general knowledge is never a source.
    - Two sources that disagree become one unknown naming both, with an owner handle and an ask-by date, per `MODES.md`.

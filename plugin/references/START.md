@@ -67,7 +67,7 @@ A session that runs a second mode adds that mode to `modes`. It never opens a se
 
 ## Captures during the session
 
-Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close. The one exception is a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`.
+Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close. The first exception is a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`. The second is a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)` at once.
 
 - A person's words are quoted verbatim, with their name, role or handle as the origin.
 - Claude's own idea has origin `claude`.

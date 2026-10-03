@@ -210,3 +210,11 @@ def test_shape_and_close_fix_round():
     assert "never an `inkling`" in close and "`Options considered` list" in close
     assert "grill to confirm" in close and "GATE-2" in close
     assert "Discover already wrote its facts" in close
+
+
+def test_discover_marks_its_fact_captures_and_close_leaves_them():
+    d, start, close = (text("skills/discover/SKILL.md"), text("references/START.md"),
+                       text("skills/close/SKILL.md"))
+    assert "→ keep: [[<page>#<heading>|<ID>]] (fact)" in d
+    assert "(fact)" in start and "second is a Discover" in start
+    assert "or a Discover already marked `(fact)`, keeps its mark" in close

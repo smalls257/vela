@@ -28,7 +28,7 @@ Propose a mark for every capture that has none yet, at once, as a numbered list 
 - Never propose `fact`. A capture becomes a fact only if the user names its source in this turn and the source has a row in `sources.md`.
 - A line you will copy word for word onto a page is a lifted line. List each one and ask the user to confirm it before you copy it.
 
-A line a Grill already marked `(decided)` keeps its mark. Leave it alone. It still appears under "Promoted on a nod" when its origin starts with `claude`.
+A line a Grill already marked `(decided)`, or a Discover already marked `(fact)`, keeps its mark. Leave it alone. It still appears under "Promoted on a nod" when its origin starts with `claude`.
 
 Write each mark into the line: `→ keep: [[<page>#<heading>|<ID>]] (<state>)`, `→ park` or `→ drop: <reason>`, before the `^cNN`.
 
