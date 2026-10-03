@@ -107,3 +107,31 @@ def test_close_marks_honestly_and_never_claims_a_pr():
     assert "passed as `org/team`" in close and "Drop the user's own handle." in close
     assert "Never say a PR exists unless `gh` printed its URL." in close
     assert "Do not open a PR for a branch that is not pushed." in close
+
+
+def test_open_sessions_are_found_on_their_branches_and_ids_do_not_collide():
+    start, close = text("references/START.md"), text("skills/close/SKILL.md")
+    assert "git branch --list 'session/*'" in start and "git branch -r --list 'origin/session/*'" in start
+    assert "add `-2`, then `-3`" in start
+    assert "git branch -r --list 'origin/session/*'" in close and "git switch session/<id>" in close
+    assert "If there is none yet, skip the merged-PR search" in start
+    assert "pulls/<number>/reviews" in start
+    assert "<Mode name>" in start and "Dump & Diverge" in start
+
+
+def test_close_parks_every_claude_origin_and_never_decides_its_unknowns():
+    close = text("skills/close/SKILL.md")
+    assert "including `(claude, from <name>)`" in close
+    assert "kept as an UNK with an owner and an ask-by date, or dropped with a reason" in close
+    assert "Claude never decides it alone" in close and "This rule wins over the park default" in close
+    assert "A person's `wild` line is parked, never dropped." in close
+    assert "every item kept or promoted from a capture whose origin starts with `claude`" in close
+    assert "next free ID of their kind" in close
+
+
+def test_close_pr_body_reviewers_and_staging():
+    close = text("skills/close/SKILL.md")
+    assert "**Prose to draft:**" in close and "**Decided wording not yet read back:**" in close
+    assert "gh api user -q .login" in close and "Strip the leading `@`" in close
+    assert "If nobody remains, leave out `--reviewer`." in close
+    assert "Never use `git add -A`." in close

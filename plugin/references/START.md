@@ -10,7 +10,7 @@ Then run `git fetch origin` and `git switch main` and `git pull --ff-only`. If a
 
 ## 2. Find open sessions
 
-Run `grep -l '^status: open' sessions/*.md`. For each record it lists:
+An open record lives on its own `session/<id>` branch until its PR merges, so `main` alone cannot show it. Run all three: `grep -l '^status: open' sessions/*.md`, `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'`. Treat every `session/*` branch as a possibly open session, and read its record with `git show <branch>:sessions/<id>.md`. For each open record or branch:
 
 - Say its id, its date and how many captures it has.
 - If its date is more than 14 days ago, say so.
@@ -20,13 +20,13 @@ To resume, run `git switch session/<id>`, read the record, and carry on from the
 
 ## 3. Bring in review comments
 
-Find the date of the last closed session: the highest `date:` among records with `status: closed`. Then run:
+Find the date of the last closed session: the highest `date:` among records with `status: closed`. If there is none yet, skip the merged-PR search and say so. Otherwise run:
 
 ```
 gh pr list --state merged --search "merged:>=<that date>" --json number,title,url
 ```
 
-For each PR, run `gh pr view <number> --comments` and `gh api repos/{owner}/{repo}/pulls/<number>/comments`. Offer each review comment as a capture, one at a time, with the commenter's handle as the origin and the comment quoted word for word. The user keeps or skips each one.
+For each PR, run `gh pr view <number> --comments`, `gh api repos/{owner}/{repo}/pulls/<number>/comments` and `gh api repos/{owner}/{repo}/pulls/<number>/reviews`, so review bodies are read as well as line comments. Offer each review comment as a capture, one at a time, with the commenter's handle as the origin and the comment quoted word for word. The user keeps or skips each one.
 
 If `gh` fails, say: "gh could not list merged PRs (<the error>), so review comments were not checked." Then go on.
 
@@ -36,7 +36,7 @@ Run `python3 .claude/skills/planner/bin/planner check` and read its first line, 
 
 ## 5. Open the record and the branch
 
-Ask for a topic of two to four words. The id is today's date plus the topic as a lower-case slug, for example `2026-10-05-mainframe-breaks-booking`. If `sessions/<id>.md` exists, add `-2`.
+Ask for a topic of two to four words. The id is today's date plus the topic as a lower-case slug, for example `2026-10-05-mainframe-breaks-booking`. If `sessions/<id>.md` exists, or a `session/<id>` branch exists locally or on `origin`, add `-2`, then `-3`, and so on until both are free.
 
 Run `git switch -c session/<id>`. Write `sessions/<id>.md`:
 
@@ -44,14 +44,14 @@ Run `git switch -c session/<id>`. Write `sessions/<id>.md`:
 ---
 id: <id>
 type: session
-title: "<Mode>: <topic>"
+title: "<Mode name>: <topic>"
 date: <today>
 modes: [<mode>]
 status: open
 summary: In progress.
 ---
 
-# <today> <Mode>: <topic>
+# <today> <Mode name>: <topic>
 
 ## Captures
 
@@ -61,7 +61,7 @@ summary: In progress.
 |---|---|---|---|
 ```
 
-Commit it with the message `Open session <id>`.
+`<Mode name>` is the display name in `MODES.md`: Dump & Diverge, Discover, Shape, Grill or Requirements. Commit it with the message `Open session <id>`.
 
 A session that runs a second mode adds that mode to `modes`. It never opens a second record.
 
@@ -71,6 +71,7 @@ Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md
 
 - A person's words are quoted verbatim, with their name, role or handle as the origin.
 - Claude's own idea has origin `claude`.
+- Any origin that starts with `claude` is Claude-originated, and close parks its line by default.
 - When Claude restates what someone said, or the user accepts Claude's recommended answer, the origin is `claude, from <name>`. Close lists those lines under "promoted on a nod".
 - Number block IDs `^c01`, `^c02` and so on, in order, never reused.
 

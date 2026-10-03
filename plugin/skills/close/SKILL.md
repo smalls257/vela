@@ -13,7 +13,7 @@ The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONV
 
 ## 1. Find the session
 
-Find the record with `status: open` under `sessions/`. If there is more than one, ask which. Make sure the current branch is `session/<id>`; if not, switch to it.
+Open records live on `session/<id>` branches, so first run `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'`, and read each record with `git show <branch>:sessions/<id>.md`. Find the one with `status: open`. If there is more than one, ask which. Find that record's branch and switch to it with `git switch session/<id>` before anything else.
 
 ## 2. Mark every capture
 
@@ -21,8 +21,9 @@ Propose a mark for every capture at once, as a numbered list with a one-line rea
 
 - A person's `idea` or `thought` is kept as an `inkling` on the page it belongs to.
 - A person's `unknown` or `worry` is kept as an unknown with an owner handle and an ask-by date you propose, or as a concern cell.
-- An `unknown` capture is kept or dropped with a reason. It is never parked.
-- A `(claude)` line is parked unless the user picks it.
+- An `unknown` capture is kept or dropped with a reason. It is never parked. For a `claude`-origin `unknown`, the user must choose: kept as an UNK with an owner and an ask-by date, or dropped with a reason. Claude never decides it alone. This rule wins over the park default for `claude` lines.
+- A person's `wild` line is parked, never dropped.
+- A `(claude)` line is parked unless the user picks it. This covers every origin that starts with `claude`, including `(claude, from <name>)`.
 - Never propose `fact`. A capture becomes a fact only if the user names its source in this turn and the source has a row in `sources.md`.
 - A line you will copy word for word onto a page is a lifted line. List each one and ask the user to confirm it before you copy it.
 
@@ -30,7 +31,7 @@ Write each mark into the line: `→ keep: [[<page>#<heading>|<ID>]] (<state>)`, 
 
 ## 3. Write the promoted items
 
-Write each kept item onto its page as structured content only: fact bullets, table rows and `### <ID> <short name>` headings, per `CONVENTIONS.md`. A Grill already wrote its decided items, so leave those alone. Add one row to `## Changes` for each item whose state changed: `| ID | From | To | [[<id>#^cNN]] |`.
+Write each kept item onto its page as structured content only: fact bullets, table rows and `### <ID> <short name>` headings, per `CONVENTIONS.md`. A Grill already wrote its decided items, so leave those alone. New items get the next free ID of their kind: grep the vault for the existing IDs of that kind and add one to the highest. Add one row to `## Changes` for each item whose state changed: `| ID | From | To | [[<id>#^cNN]] |`.
 
 ## 4. Prose
 
@@ -46,7 +47,7 @@ Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/s
 
 ## 7. Finish the record
 
-Draft a one-line `summary:` and let the user accept or edit it. Set `status: closed`. Commit with the message `Close session <id>`. Run `git push -u origin session/<id>`. If the push fails, show the error, print the commands for the user to run, and stop. Do not open a PR for a branch that is not pushed.
+Stage the session record and the pages this close changed, by exact path. Never use `git add -A`. Draft a one-line `summary:` and let the user accept or edit it. Set `status: closed`, then stage. Commit with the message `Close session <id>`. Run `git push -u origin session/<id>`. If the push fails, show the error, print the commands for the user to run, and stop. Do not open a PR for a branch that is not pushed.
 
 ## 8. Open the PR
 
@@ -55,12 +56,14 @@ Collect the reviewers:
 - the `owner:` of each app page this session changed;
 - the `owner:` of each consumer app of a contract this session changed.
 
-Drop the user's own handle. A team handle `@org/team` is passed as `org/team`.
+Get the user's own handle with `gh api user -q .login`. Strip the leading `@` from each individual handle. A team handle `@org/team` is passed as `org/team`. Drop the user's own handle. If nobody remains, leave out `--reviewer`.
 
 Write the PR body to a temporary file. Fill the headings of the vault's PR template:
 
 - **What changed.** The promoted items, each with its new state. Then these lists, each with "none" when empty:
-  - **Promoted on a nod:** every item whose deciding capture has origin `claude, from <name>`, with the capture quoted.
+  - **Prose to draft:** each paragraph a person must write, page by page.
+  - **Decided wording not yet read back:** each `decided` item whose owner was not present in step 5.
+  - **Promoted on a nod:** every item kept or promoted from a capture whose origin starts with `claude`, not only the deciding capture, with the capture quoted.
   - **Changed contracts:** each contract, and for each consumer, who was asked: present, async, in this PR, or "not consulted: <reason>".
   - **Overdue unknowns:** each `W705` line from step 6, with its owner @-mentioned.
   - **May still say the old value:** for each `decided` or `fact` value this session changed, run `grep -rn -F "<old wording>" --include='*.md' . | grep -v '^./sessions/'` and list every hit.
@@ -68,10 +71,10 @@ Write the PR body to a temporary file. Fill the headings of the vault's PR templ
 - **Minutes.** Ask the user how long the session took.
 - **Structural fixes** and **Prose edits.** Write "Filled in by the reviewer."
 
-Then run:
+Then run the command below, with one `--reviewer` per remaining reviewer (none, if nobody remains). `<Mode name>` is the display name in `MODES.md`.
 
 ```
-gh pr create --base main --head session/<id> --title "<date> <mode>: <topic>" --body-file <file> --reviewer <handle> --reviewer <handle>
+gh pr create --base main --head session/<id> --title "<date> <Mode name>: <topic>" --body-file <file> --reviewer <handle> --reviewer <org/team>
 ```
 
 If `gh` fails, say so, print the branch name and the exact command, and stop. Never say a PR exists unless `gh` printed its URL. Show the URL.

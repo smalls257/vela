@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -96,3 +97,11 @@ def test_readme_install_step_works_on_a_fresh_copy(tmp_path):
     result = subprocess.run([sys.executable, ".claude/skills/planner/bin/planner", "check"],
                             cwd=vault, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_wrapper_loads_the_copied_plugin():
+    """Claude Code does not discover skills under .claude/skills/planner; only --plugin-dir loads them."""
+    wrapper = TEMPLATE / "bin" / "claude-planner"
+    assert wrapper.exists() and os.access(wrapper, os.X_OK)
+    assert "--plugin-dir" in wrapper.read_text(encoding="utf-8")
+    assert "bin/claude-planner" in (TEMPLATE / "README.md").read_text(encoding="utf-8")

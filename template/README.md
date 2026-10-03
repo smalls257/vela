@@ -17,8 +17,9 @@ This vault holds one initiative. Start at [[01-goals|Goals]]. The format is in `
 4. List the files that hold `@solution-lead` with `grep -rl --exclude=README.md --exclude-dir=.git '@solution-lead' .`, then edit each file to put in your handle.
 5. Rewrite `CLAUDE.md` in your own words and delete its first line.
 6. Run `python3 .claude/skills/planner/bin/planner check`. It should report 0 errors.
-7. On GitHub, make the `planner-check` job a required status check on `main`.
-8. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
+7. Start every Claude Code session with `bin/claude-planner` (or `sh bin/claude-planner`). The copied plugin only loads through its `--plugin-dir` flag, so a plain `claude` will not find `/planner:dump` or `/planner:close`.
+8. On GitHub, make the `planner-check` job a required status check on `main`.
+9. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
 
 ## How the vault is laid out
 
