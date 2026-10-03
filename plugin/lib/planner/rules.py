@@ -158,4 +158,74 @@ def duplicate_rules(vault, today):
                      "Keep one heading per ID and link to it from elsewhere.")
 
 
-RULES = (parse_errors, frontmatter_rules, duplicate_rules)
+# --------------------------------------------------------------------- links
+
+def link_rules(vault, today):
+    for page in vault.pages:
+        for link in page.links:
+            target = vault.resolve(link, page)
+            if target is None:
+                if link.target.lower() in vault.other_names:
+                    continue
+                yield _f(page, link.line, "E201", f"[[{link.target}]] links to a page that does not exist.",
+                         _missing_page_hint(vault, link.target))
+                continue
+            if not link.anchor:
+                continue
+            if link.anchor.startswith("^"):
+                if link.anchor[1:] not in target.block_ids:
+                    yield _f(page, link.line, "E202", f"Block reference #{link.anchor} matches no line in {target.name}.",
+                             f"Point it at a line in {target.name} that ends with {link.anchor}.")
+                continue
+            texts = [h.text for h in target.headings]
+            if link.anchor in texts:
+                continue
+            words = link.anchor.split()
+            first = words[0] if words else ""
+            near = [t for t in texts if first and t.split() and t.split()[0] == first]
+            hint = f"Use [[{target.name}#{near[0]}]]." if near else f"Link to a heading that exists in {target.name}."
+            yield _f(page, link.line, "E202", f"Anchor #{link.anchor} matches no heading in {target.name}. Anchors must equal the full heading text.",
+                     hint)
+
+
+def _missing_page_hint(vault, target):
+    base = target.rsplit("/", 1)[-1]
+    if base.endswith(".md"):
+        base = base[:-3]
+    if base != target and vault.page(base) is not None:
+        return f"Link by basename alone: [[{base}]]."
+    return "Fix the basename, or create the page."
+
+
+# ------------------------------------------------------------ ID references
+
+EPIC_LISTS = ("apps", "delivers", "consumes", "flows", "depends_on")
+
+
+def reference_rules(vault, today):
+    known = vault.known_ids()
+    for page in vault.of_type("epic"):
+        for key in EPIC_LISTS:
+            values = page.meta.get(key)
+            for value in values if isinstance(values, list) else []:
+                if not isinstance(value, str) or value not in known:
+                    yield _f(page, meta_line(page, key), "E207", f"{key} lists '{value}', which is not an ID in this vault.",
+                             "Fix the ID, or remove it from the list.")
+    sources = {i for i in vault.row_ids if schema.SOURCE_ID_RE.match(i)}
+    for page in vault.pages:
+        values = page.meta.get("sources")
+        for value in values if isinstance(values, list) else []:
+            for token in schema.SOURCE_TOKEN_RE.findall(str(value)):
+                if token not in sources:
+                    yield _f(page, meta_line(page, "sources"), "E207", f"Source {token} is not a row in sources.md.",
+                             "Add the row to sources.md, or fix the ID.")
+        for bullet in page.bullets:
+            if bullet.label != "Source" or bullet.generated:
+                continue
+            for token in schema.SOURCE_TOKEN_RE.findall(str(bullet.value)):
+                if token not in sources:
+                    yield _f(page, bullet.line, "E207", f"Source {token} is not a row in sources.md.",
+                             "Add the row to sources.md, or fix the ID.")
+
+
+RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules)
