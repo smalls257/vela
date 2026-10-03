@@ -218,3 +218,43 @@ def test_discover_marks_its_fact_captures_and_close_leaves_them():
     assert "→ keep: [[<page>#<heading>|<ID>]] (fact)" in d
     assert "(fact)" in start and "second is a Discover" in start
     assert "or a Discover already marked `(fact)`, keeps its mark" in close
+
+
+# /ask (V1-15)
+
+ASK_INJECT = re.compile(r"^!`(.+)`$", re.M)
+
+
+def run_injected(cwd, env):
+    out = []
+    for command in ASK_INJECT.findall(text("skills/ask/SKILL.md")):
+        result = subprocess.run(["bash", "-c", command], cwd=cwd, env=env, capture_output=True, text=True)
+        assert result.returncode == 0, (command, result.stderr)
+        out.append(result.stdout)
+    return out
+
+
+def test_ask_answers_from_opened_sections_and_marks_what_is_missing():
+    ask = text("skills/ask/SKILL.md")
+    assert "Never search `voice/`." in ask
+    assert "Cite nothing you did not open in this answer." in ask
+    assert "`Not recorded:`" in ask and "`Not decided:`" in ask
+    assert "Never create, edit or delete a file." in ask
+    assert "Sources:" in ask
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_ask_header_works_with_no_origin_and_no_claude_md(tmp_path):
+    import os
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)}
+    git = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid"]
+    subprocess.run(git + ["init", "-q", "-b", "main"], cwd=tmp_path, check=True)
+    (tmp_path / "x.md").write_text("x\n", encoding="utf-8")
+    subprocess.run(git + ["add", "x.md"], cwd=tmp_path, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", "x"], cwd=tmp_path, check=True)
+    rules, fresh = run_injected(tmp_path, env)
+    assert rules.startswith("NO CLAUDE.md")
+    assert re.match(r"HEAD is [0-9a-f]+, committed \d{4}-\d{2}-\d{2}\.\n", fresh)
+    assert "Behind origin/main by an unknown number of commits, as of the last fetch on no recorded date." in fresh
+    (tmp_path / "CLAUDE.md").write_text((REPO / "template" / "CLAUDE.md").read_text(encoding="utf-8"), encoding="utf-8")
+    assert run_injected(tmp_path, env)[0].startswith("TEMPLATE: a person must rewrite this file.")
