@@ -78,10 +78,107 @@ def test_page_below_decided_carries_the_draft_banner(tmp_path):
     assert "Working draft: not agreed yet" in html
 
 
-def test_diagram_failure_shows_a_visible_box():
-    html_source = (REPO / "plugin" / "lib" / "planner" / "viewer.py").read_text(encoding="utf-8")
-    assert "box.className = 'diagram-error'" in html_source
-    assert "Diagram not drawn: " in html_source
+def test_diagram_failure_shows_a_visible_box(tmp_path):
+    out = tmp_path / "viewer.html"
+    build(FIXTURE, out)
+    html = out.read_text(encoding="utf-8")
+    assert "await mermaid.render(" in html
+    assert "box.className = 'diagram-error'" in html
+    assert "Diagram not drawn: " in html
+    assert ".diagram-error {" in html
+
+
+def test_voice_and_claude_folders_stay_out_of_the_bundle(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    (vault / "voice").mkdir(exist_ok=True)
+    (vault / ".claude").mkdir(exist_ok=True)
+    (vault / "voice" / "how-we-write.md").write_text("# Voice SECRET-VOICE\n", encoding="utf-8")
+    (vault / ".claude" / "notes.md").write_text("# Notes SECRET-CLAUDE\n", encoding="utf-8")
+    out = tmp_path / "viewer.html"
+    code, text = build(vault, out)
+    assert code == 0, text
+    html = out.read_text(encoding="utf-8")
+    assert "SECRET-VOICE" not in html and "SECRET-CLAUDE" not in html
+    paths = [p["path"] for p in bundle(html)["pages"]]
+    assert not [p for p in paths if p.startswith(("voice/", ".claude/", "sessions/"))]
+
+
+HOSTILE = """---
+id: hostile
+type: initiative-section
+title: Hostile
+initiative: INI-900
+state: decided
+---
+# Hostile
+
+<img src=x onerror=alert(1)>
+
+<script>alert(1)</script>
+
+[x](javascript:alert(1)) and [y](data:text/html,boo) and [z](  JavaScript:alert(2)) and [e](&#106;avascript:alert(3))
+
+![p](https://example.com/p.png)
+
+[fine](https://example.com/ok) and [local](#hostile) and [[01-goals]]
+
+`<b>kept</b>` stays as written.
+
+```mermaid
+graph TD
+  A[Start]-->B[End<br/>line]
+```
+"""
+
+
+def hostile_body(tmp_path):
+    from conftest import MINI
+    vault = tmp_path / "mini"
+    shutil.copytree(MINI, vault)
+    (vault / "12-hostile.md").write_text(HOSTILE, encoding="utf-8")
+    out = tmp_path / "viewer.html"
+    code, text = build(vault, out)
+    assert code == 0, text
+    html = out.read_text(encoding="utf-8")
+    page = next(p for p in bundle(html)["pages"] if p["name"] == "12-hostile")
+    return page["body"], html
+
+
+def test_raw_html_in_a_page_is_escaped_not_rendered(tmp_path):
+    body, html = hostile_body(tmp_path)
+    assert "<img" not in body and "<script" not in body
+    assert "&lt;img src=x onerror=alert(1)>" in body
+    assert "&lt;script>alert(1)&lt;/script>" in body
+    assert "<script>alert(1)" not in html
+
+
+def test_unsafe_link_schemes_become_plain_text(tmp_path):
+    body, _ = hostile_body(tmp_path)
+    assert "](javascript" not in body.lower() and "](data:" not in body.lower() and "](  javascript" not in body.lower()
+    assert "](&#106;" not in body
+    assert "[fine](https://example.com/ok)" in body and "[local](#hostile)" in body
+
+
+def test_images_never_fetch_from_the_network(tmp_path):
+    body, _ = hostile_body(tmp_path)
+    assert "![p](https://example.com/p.png)" not in body
+    assert "p (https://example.com/p.png)" in body
+
+
+def test_code_and_diagrams_are_left_as_written(tmp_path):
+    body, _ = hostile_body(tmp_path)
+    assert "`<b>kept</b>`" in body
+    assert "B[End<br/>line]" in body
+    assert "[[01-goals]]" in body
+
+
+def test_generated_markers_survive_neutralising():
+    from planner import viewer
+    marker = "<!-- generated:where-it-stands sha=0a1b2c3d: do not edit, run planner render -->"
+    end = "<!-- /generated:where-it-stands -->"
+    assert viewer.neutralise(f"{marker}\ntext <b>\n{end}") == f"{marker}\ntext &lt;b>\n{end}"
+    assert viewer.neutralise("<!-- anything else -->") == "&lt;!-- anything else -->"
 
 
 def test_broken_link_in_a_bundled_page_stops_the_build(tmp_path):

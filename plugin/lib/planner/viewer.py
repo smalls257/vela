@@ -7,6 +7,7 @@ as plain text.
 """
 import html as html_lib
 import json
+import re
 
 EXCLUDED_FOLDERS = ("sessions/",)
 DRAFT_STATES = ("inkling", "assumption", "fact", "proposed", "draft")
@@ -20,6 +21,73 @@ def bundled(vault):
 def excluded_names(vault):
     names = {p.name.lower() for p in vault.pages if p.path.startswith(EXCLUDED_FOLDERS)}
     return names | set(vault.other_names)
+
+# Vault markdown is untrusted input. Raw HTML would run in the reader's browser,
+# so every "<" outside code is escaped before the text is embedded. Only the
+# comment markers that `planner render` writes are left alone.
+GENERATED_MARKER = re.compile(
+    r"<!--\s*/?generated:[a-z0-9-]+(?: sha=[0-9a-f]{8}: do not edit, run planner render)?\s*-->")
+FENCE = re.compile(r"^\s{0,3}(```|~~~)")
+CODE_SPAN = re.compile(r"(`+)(?:(?!\1).)+?\1")
+MD_LINK = re.compile(r"(!?)\[([^\]\n]*)\]\(((?:[^()\n]|\([^()\n]*\))*)\)")
+SAFE_LINK_SCHEMES = ("http:", "https:", "mailto:")
+
+
+def scheme_of(url):
+    """Lower-case scheme of a URL as a browser reads it: whitespace and control
+    characters inside a URL are ignored, so "java\tscript:" is "javascript:"."""
+    squeezed = re.sub(r"[\x00-\x20]", "", html_lib.unescape(url)).lower()
+    match = re.match(r"([a-z][a-z0-9+.-]*):", squeezed)
+    return match.group(0) if match else ""
+
+
+def neutralise_links(text):
+    def swap(m):
+        bang, label, dest = m.group(1), m.group(2), m.group(3)
+        url = dest.strip().lstrip("<")
+        scheme = scheme_of(url)
+        if bang:
+            remote = bool(scheme) or url.startswith(("/", "\\")) or re.sub(r"[\x00-\x20]", "", url).startswith("//")
+            return f"{label} ({url})" if remote else m.group(0)
+        if scheme and scheme not in SAFE_LINK_SCHEMES:
+            return label
+        return m.group(0)
+    return MD_LINK.sub(swap, text)
+
+
+def neutralise_prose(text):
+    pieces, last = [], 0
+    for marker in GENERATED_MARKER.finditer(text):
+        pieces.append(neutralise_links(text[last:marker.start()]).replace("<", "&lt;"))
+        pieces.append(marker.group(0))
+        last = marker.end()
+    pieces.append(neutralise_links(text[last:]).replace("<", "&lt;"))
+    return "".join(pieces)
+
+
+def neutralise(markdown):
+    """Make page markdown safe to render: no raw HTML, no script or data links,
+    no images that fetch. Code fences and code spans are left as written."""
+    out, in_fence, fence_mark = [], False, ""
+    for line in markdown.split("\n"):
+        fence = FENCE.match(line)
+        if in_fence:
+            out.append(line)
+            if fence and fence.group(1) == fence_mark:
+                in_fence = False
+            continue
+        if fence:
+            in_fence, fence_mark = True, fence.group(1)
+            out.append(line)
+            continue
+        pieces, last = [], 0
+        for span in CODE_SPAN.finditer(line):
+            pieces.append(neutralise_prose(line[last:span.start()]))
+            pieces.append(span.group(0))
+            last = span.end()
+        pieces.append(neutralise_prose(line[last:]))
+        out.append("".join(pieces))
+    return "\n".join(out)
 
 
 def body_of(page):
@@ -57,7 +125,7 @@ def page_data(page):
         "name": page.name,
         "title": str(page.meta.get("title") or page.name),
         "meta": {k: (v if isinstance(v, (str, list)) else str(v)) for k, v in page.meta.items()},
-        "body": body_of(page),
+        "body": neutralise(body_of(page)),
         "headings": [h.text for h in page.headings],
         "draft": state in DRAFT_STATES,
     }
@@ -203,6 +271,21 @@ function linkHtml(inner) {
   if (!target) return `<a class="missing" title="missing page">${label}</a>`;
   return `<a href="#/${encodeURIComponent(target.name)}${l.anchor ? '::' + encodeURIComponent(l.anchor) : ''}">${label}</a>`;
 }
+function decoded(s) { const t = document.createElement('textarea'); t.innerHTML = String(s); return t.value; }
+function hrefOk(href) {
+  const m = /^([a-z][a-z0-9+.-]*):/i.exec(decoded(href).replace(/[\u0000-\u0020]/g, ''));
+  return !m || /^(https?|mailto)$/i.test(m[1]);
+}
+function imageFetches(href) {
+  const t = decoded(href).replace(/[\u0000-\u0020]/g, '');
+  return /^([a-z][a-z0-9+.-]*:|\/|\\)/i.test(t);
+}
+// Second line of defence behind the build-time neutralise(): reference-style and
+// entity-encoded links reach marked in forms the build step does not rewrite.
+if (window.marked) marked.use({ renderer: {
+  link(href, title, text) { return hrefOk(href) ? false : text; },
+  image(href, title, text) { return imageFetches(href) ? esc(text + ' (' + href + ')') : false; },
+} });
 function toHtml(body) {
   let md = body.replace(/\[\[([^\]]+?)\]\]/g, (_, inner) => linkHtml(inner));
   md = md.replace(/<!--\s*generated:[a-z0-9-]+ sha=[0-9a-f]{8}: do not edit, run planner render\s*-->/g, '<div class="gen">\n')
