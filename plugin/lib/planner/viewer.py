@@ -168,7 +168,7 @@ def script_safe(source):
 
 
 def build(vault, marked_js, mermaid_js, stamp):
-    """(html text, problems). `stamp` is {"commit", "date", "repo"}."""
+    """(html text, problems). `stamp` is {"commit", "date", "repo", "errors", "warnings"}."""
     problems = link_problems(vault)
     data = {
         "title": str(vault.config.get("title", "")),
@@ -262,6 +262,7 @@ article pre code { background: none; padding: 0; }
   <nav class="nav" aria-label="Vault pages">
     <h1 id="vault-title"></h1>
     <div class="stamp" id="stamp"></div>
+    <div class="stamp" id="health"></div>
     <label for="filter" class="stamp" style="display:block;margin:0 0 4px">Filter pages</label>
     <input id="filter" type="search" placeholder="e.g. contract, kiosk, EPC-03">
     <div id="tree"></div>
@@ -282,7 +283,7 @@ article pre code { background: none; padding: 0; }
 APP_JS = r"""
 // Grab every element the viewer writes into before any page content exists, so
 // nothing a page contains can shadow them.
-const ui = Object.fromEntries(['vault', 'vault-title', 'stamp', 'filter', 'tree', 'crumb', 'banner', 'page', 'props', 'backlinks']
+const ui = Object.fromEntries(['vault', 'vault-title', 'stamp', 'health', 'filter', 'tree', 'crumb', 'banner', 'page', 'props', 'backlinks']
   .map(id => [id, document.getElementById(id)]));
 const DATA = JSON.parse(ui.vault.textContent);
 const pages = DATA.pages;
@@ -303,6 +304,10 @@ if (window.mermaid) mermaid.initialize({
 ui['vault-title'].textContent = DATA.title;
 ui.stamp.textContent =
   `${DATA.initiative} · Built from ${DATA.stamp.commit} on ${DATA.stamp.date}. Newer versions: ${DATA.stamp.repo}`;
+if (Number.isInteger(DATA.stamp.errors) && Number.isInteger(DATA.stamp.warnings)) {
+  ui.health.textContent = `Check at build time: ${DATA.stamp.errors} errors, ${DATA.stamp.warnings} warnings.`;
+  if (DATA.stamp.errors > 0) { ui.health.style.color = 'var(--bad)'; ui.health.style.fontWeight = '700'; }
+}
 
 function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }

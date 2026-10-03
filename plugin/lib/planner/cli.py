@@ -137,10 +137,17 @@ def cmd_view(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
     today, _ = parse_today(args.date)
+    commit = args.commit or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
+    if git(root, "status", "--porcelain"):
+        commit += " with uncommitted changes"
+    findings = rules.check(vault, today)
+    errors = sum(1 for f in findings if f.is_error)
     stamp = {
-        "commit": args.commit or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy",
+        "commit": commit,
         "date": today,
         "repo": args.repo_url or git(root, "remote", "get-url", "origin") or "no repository URL recorded",
+        "errors": errors,
+        "warnings": len(findings) - errors,
     }
     html, problems = viewer.build(vault, read_asset("marked.min.js"), read_asset("mermaid.min.js"), stamp)
     if problems:
@@ -151,7 +158,8 @@ def cmd_view(args, out):
     target = pathlib.Path(args.out)
     target.write_text(html, encoding="utf-8")
     print(f"planner view: wrote {target} ({len(viewer.bundled(vault))} pages). "
-          f"Built from {stamp['commit']} on {stamp['date']}.", file=out)
+          f"Built from {stamp['commit']} on {stamp['date']}. "
+          f"Check at build time: {errors} errors, {stamp['warnings']} warnings.", file=out)
     return 0
 
 

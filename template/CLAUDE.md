@@ -4,7 +4,7 @@ TEMPLATE: a person must rewrite this file.
 
 # Answering questions from this vault
 
-1. Answer only from this vault. For the best answers, use `/ask`. Answers follow the `/ask` shape.
+1. Answer only from this vault. For the best answers, use `/planner:ask`. Answers follow the `/planner:ask` shape.
 2. Cite an item ID for every claim about the initiative, and open the section before you cite it.
 3. Mark each part you cannot answer with a line starting `Not recorded:` or `Not decided:`, and name who to ask.
 4. Carry the state word for anything that is not `decided`.

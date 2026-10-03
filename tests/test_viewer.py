@@ -39,7 +39,9 @@ def test_assets_are_the_pinned_versions():
 
 def test_viewer_builds_offline_from_the_fixture(tmp_path):
     out = tmp_path / "viewer.html"
-    code, text = build(FIXTURE, out)
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)  # a copy outside any repo, so the stamp does not depend on this checkout's status
+    code, text = build(vault, out)
     assert code == 0, text
     html = out.read_text(encoding="utf-8")
     assert not re.search(r"<script[^>]*\bsrc\s*=", html)
@@ -50,8 +52,42 @@ def test_viewer_builds_offline_from_the_fixture(tmp_path):
     assert not [p for p in paths if p.startswith(("sessions/", "voice/", ".claude/"))]
     assert data["start"] == "01-goals" and "01-goals.md" in paths
     assert data["stamp"] == {"commit": "abc1234", "date": "2026-11-20",
-                             "repo": "https://github.example/harbourline/unified-booking"}
+                             "repo": "https://github.example/harbourline/unified-booking",
+                             "errors": 0, "warnings": 0}
     assert "Built from ${DATA.stamp.commit} on ${DATA.stamp.date}. Newer versions: ${DATA.stamp.repo}" in html
+
+
+def git_in(vault, *args):
+    subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
+                   check=True, capture_output=True)
+
+
+def test_stamp_says_when_the_vault_has_uncommitted_changes(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    git_in(vault, "init", "-q")
+    git_in(vault, "add", "-A")
+    git_in(vault, "commit", "-q", "-m", "x")
+    out = tmp_path / "viewer.html"
+    build(vault, out)
+    assert bundle(out.read_text(encoding="utf-8"))["stamp"]["commit"] == "abc1234"
+    edit(vault / "12-glossary.md", "title: Glossary\n", "title: Glossary edited\n")
+    build(vault, out)
+    assert bundle(out.read_text(encoding="utf-8"))["stamp"]["commit"] == "abc1234 with uncommitted changes"
+
+
+def test_header_carries_the_check_counts_so_a_vault_with_errors_is_visible(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    edit(vault / "03-context-and-scope.md", "state: decided\n", "state: bogus\n")
+    out = tmp_path / "viewer.html"
+    code, text = build(vault, out)
+    assert code == 0, text
+    html = out.read_text(encoding="utf-8")
+    stamp = bundle(html)["stamp"]
+    assert stamp["errors"] >= 1
+    assert f"Check at build time: {stamp['errors']} errors" in text
+    assert "Check at build time: ${DATA.stamp.errors} errors, ${DATA.stamp.warnings} warnings." in html
 
 
 def test_every_link_and_anchor_resolves_in_the_bundle(tmp_path):

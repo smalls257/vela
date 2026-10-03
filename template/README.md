@@ -9,6 +9,8 @@ authored: authored
 
 This vault holds one initiative. Start at [[01-goals|Goals]]. The format is in `CONVENTIONS.md`.
 
+Prerequisites: Python 3.11 or later, and PyYAML (`python3 -m pip install pyyaml`).
+
 ## Setup checklist
 
 1. Copy this folder to a new GitHub repository.
@@ -19,7 +21,8 @@ This vault holds one initiative. Start at [[01-goals|Goals]]. The format is in `
 6. Run `python3 .claude/skills/planner/bin/planner check`. It should report 0 errors.
 7. Start every Claude Code session with `bin/claude-planner` (or `sh bin/claude-planner`). The copied plugin only loads through its `--plugin-dir` flag, so a plain `claude` will not find `/planner:dump` or `/planner:close`.
 8. On GitHub, make the `planner-check` job a required status check on `main`.
-9. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
+9. To read the vault without Obsidian, build the offline viewer to a path outside the vault: `python3 .claude/skills/planner/bin/planner view --out ~/Desktop/<name>.html`. It is one HTML file. Its header shows the commit, whether the vault had uncommitted changes, and the error and warning counts from `planner check` at build time.
+10. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
 
 ## How the vault is laid out
 
