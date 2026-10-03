@@ -190,3 +190,23 @@ def test_shape_offers_two_or_three_and_never_decides():
 def test_there_is_no_probe_skill():
     assert not (PLUGIN / "skills" / "probe").exists()
     assert "There is no separate Probe skill." in text("references/MODES.md")
+
+
+def test_discover_fix_round_guesses_never_become_facts():
+    d = text("skills/discover/SKILL.md")
+    assert "Propose a `Kind` for each source" in d and "confirmed `Kind`" in d
+    assert 'A line about the future ("will", "planned", "by Q4", "ready in") is an `assumption`, whatever its source\'s `Kind`.' in d
+    assert "Label every line with its source `SRC-nn` and that source's `Kind`." in d
+    assert "explicit yes for that line" in d and "ask again" in d
+    assert "`first-hand` is not a registered `Kind`" in d and "`Kind: exists`" in d
+    assert "an owner handle and an ask-by date" in d
+    assert "capture line and a `## Changes` row" in d
+
+
+def test_shape_and_close_fix_round():
+    shape, close = text("skills/shape/SKILL.md"), text("skills/close/SKILL.md")
+    assert "`claude, from <name>`" in shape
+    assert "After close, run `/planner:grill <ID>`" in shape
+    assert "never an `inkling`" in close and "`Options considered` list" in close
+    assert "grill to confirm" in close and "GATE-2" in close
+    assert "Discover already wrote its facts" in close

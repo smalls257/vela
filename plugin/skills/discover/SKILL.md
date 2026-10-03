@@ -11,14 +11,16 @@ Find out what exists before anyone designs anything. Every fact this session wri
 
 1. Run the steps in `.claude/skills/planner/references/START.md` with mode `discover`. Read the Discover row of `.claude/skills/planner/references/MODES.md`.
 2. List the files in `.inbox/` and the rows in `sources.md`. Add a row for each new document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists` for a document that describes what runs today, and `intends` for a plan, deck or roadmap. A local clone of a code repository is `Kind: repo`, with Location `<url>@<sha>` from `git -C <clone> remote get-url origin` and `git -C <clone> rev-parse HEAD`. A file that lives only in `.inbox/` has Location `local only`.
-3. Show the register and ask the user to rank it and cut what is not worth reading. Read only the top-ranked sources.
-4. Show "Here's what I think exists" as a numbered list, each line with its `SRC-nn`. Write nothing to a page yet. The user corrects the list.
+3. Show the register and ask the user to rank it and cut what is not worth reading. Propose a `Kind` for each source it keeps, and the user says yes or corrects it. Do not move on until every kept source has a confirmed `Kind`. Read only the top-ranked sources.
+4. Show "Here's what I think exists" as a numbered list. Label every line with its source `SRC-nn` and that source's `Kind`. Write nothing to a page yet. Write only the lines the user confirmed with an explicit yes for that line. Silence, or "looks fine" with no yes per line, does not count: ask again.
 5. After each correction round, write what was confirmed and commit a checkpoint:
    - A line from an `exists` or `repo` source is a `fact`, with `sources: [SRC-nn]` on the page or `- **Source:** SRC-nn` on a contract.
    - A line from an `intends` source is an `assumption`, however sure it sounds. "Ready in Q4" in a deck is a plan, not a fact.
-   - A line the user knows first-hand is a `fact` only once it has its own row, with the user as owner.
+   - A line about the future ("will", "planned", "by Q4", "ready in") is an `assumption`, whatever its source's `Kind`.
+   - A line the user knows first-hand is a `fact` only once it has its own row in `sources.md`, with the user's handle as Owner and today's date. `first-hand` is not a registered `Kind`, so give the row `Kind: exists` and Location `first-hand: <handle>`. That row is the source the fact cites.
+   - Each fact written also gets a capture line and a `## Changes` row. Close leaves facts already written alone.
    - Say it in your own words. Never copy document text into the vault.
    - Claude's general knowledge is never a source.
-   - Two sources that disagree become one unknown naming both.
+   - Two sources that disagree become one unknown naming both, with an owner handle and an ask-by date, per `MODES.md`.
 6. Finish with a short Dump & Diverge segment: ask "What do these documents not say?" and capture the answers. Add `dump` to the record's `modes`.
 7. Run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR."

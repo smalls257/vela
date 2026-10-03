@@ -19,6 +19,7 @@ Open records live on `session/<id>` branches, so first run `git branch --list 's
 
 Propose a mark for every capture that has none yet, at once, as a numbered list with a one-line reason each. The user changes the ones they disagree with. Defaults:
 
+- In a session whose `modes` include `shape`, the picked option is kept as an `assumption`, never an `inkling`. See step 3.
 - A person's `idea` or `thought` is kept as an `inkling` on the page it belongs to.
 - A person's `unknown` or `worry` is kept as an unknown with an owner handle and an ask-by date you propose, or as a concern cell.
 - An `unknown` capture is kept or dropped with a reason. It is never parked. For a `claude`-origin `unknown`, the user must choose: kept as an UNK with an owner and an ask-by date, or dropped with a reason. Claude never decides it alone. This rule wins over the park default for `claude` lines.
@@ -33,7 +34,9 @@ Write each mark into the line: `→ keep: [[<page>#<heading>|<ID>]] (<state>)`, 
 
 ## 3. Write the promoted items
 
-Write each kept item onto its page as structured content only: fact bullets, table rows and `### <ID> <short name>` headings, per `CONVENTIONS.md`. A Grill already wrote its decided items, so leave those alone. New items get the next free ID of their kind: grep the vault for the existing IDs of that kind and add one to the highest. Add one row to `## Changes` for each item whose state changed: `| ID | From | To | [[<id>#^cNN]] |`.
+Write each kept item onto its page as structured content only: fact bullets, table rows and `### <ID> <short name>` headings, per `CONVENTIONS.md`. A Grill already wrote its decided items, and Discover already wrote its facts, so leave those alone.
+
+For a session whose `modes` include `shape`, write the picked option as an `assumption` item with an `Options considered` list: each option, and for each rejected one, why it was rejected. If a capture says "that's decided", add a "grill to confirm" note to the item. The item must pass grill's GATE-2 afterwards: at `assumption`, with a preferred option and the rejected options with their reasons. New items get the next free ID of their kind: grep the vault for the existing IDs of that kind and add one to the highest. Add one row to `## Changes` for each item whose state changed: `| ID | From | To | [[<id>#^cNN]] |`.
 
 ## 4. Prose
 
