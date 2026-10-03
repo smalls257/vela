@@ -287,3 +287,16 @@ def test_house_voice_rules():
     assert "> Replaces the paragraph above after <session id>; delete one." in voice
     assert "more than about 20 prose paragraphs" in voice
     assert "acceptance criteria;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
+
+
+# requirements-grill vault mode (V1-12): the vault rules live in the planner, not in the user's skill.
+
+def test_requirements_in_vault_caps_certainty_and_moves_the_output():
+    ref = text("references/REQUIREMENTS-IN-VAULT.md")
+    assert "It writes at most `assumption`." in ref
+    assert "It never writes `fact`." in ref
+    assert "there is no `docs/requirements/<slug>.md`" in ref
+    assert "### CAP-NNN.FRn <short name>" in ref
+    assert "Offer `/planner:grill CAP-NNN.FRn`." in ref
+    assert "E316" in ref
+    assert "/planner:close" in ref
