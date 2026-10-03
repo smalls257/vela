@@ -167,3 +167,26 @@ def test_grill_defines_acceptance_agenda_and_the_mark_exception():
     assert "re-run GATE-4 for every other agenda item" in grill and "E316" in grill
     assert "Stage the session record and the changed pages, by exact path." in grill
     assert "already `decided`, say so" in grill and "change of mind in the Changes table" in grill
+
+
+# discover and shape (V1-11). There is no probe skill: unknowns are offered at start and in MODES.md.
+
+def test_discover_cites_sources_and_never_promotes_a_plan_to_fact():
+    discover = text("skills/discover/SKILL.md")
+    assert "A line from an `intends` source is an `assumption`" in discover
+    assert "Never copy document text into the vault." in discover
+    assert "Claude's general knowledge is never a source." in discover
+    assert "`Kind: repo`" in discover and "<url>@<sha>" in discover
+    assert "nothing under `.inbox/` is staged" in discover
+
+
+def test_shape_offers_two_or_three_and_never_decides():
+    shape = text("skills/shape/SKILL.md")
+    assert "never one and never more than three" in shape
+    assert "that's decided, grill to confirm" in shape
+    assert "Shape never decides" in shape
+
+
+def test_there_is_no_probe_skill():
+    assert not (PLUGIN / "skills" / "probe").exists()
+    assert "There is no separate Probe skill." in text("references/MODES.md")
