@@ -1,8 +1,10 @@
 import hashlib
+import http.server
 import json
 import re
 import shutil
 import subprocess
+import threading
 from html.parser import HTMLParser
 
 import pytest
@@ -209,16 +211,27 @@ def test_embedded_json_has_no_raw_angle_brackets(tmp_path):
     assert "<!--<script>" not in html
 
 
-def test_diagram_config_is_stripped_from_mermaid_fences():
-    from planner import viewer
-    source = '```mermaid\n%%{init: {"themeCSS": "g{background:url(https://example.com/x)}"}}%%\ngraph TD\n  A-->B\n```\n'
-    assert viewer.neutralise(source) == "```mermaid\n\ngraph TD\n  A-->B\n```\n"
-    framed = "```mermaid\n---\nconfig:\n  themeCSS: x\n---\ngraph TD\n```"
-    assert "themeCSS" not in viewer.neutralise(framed)
+def test_built_file_carries_a_csp_whose_hashes_match_its_scripts(tmp_path):
+    import base64
+    out = tmp_path / "viewer.html"
+    build(FIXTURE, out)
+    html = out.read_text(encoding="utf-8")
+    csp = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]+)"', html).group(1)
+    assert html.index("Content-Security-Policy") < html.index("<script")
+    for directive in ("default-src 'none'", "img-src data:", "connect-src 'none'", "frame-src 'none'",
+                      "object-src 'none'", "base-uri 'none'", "form-action 'none'"):
+        assert directive in csp
+    assert "unsafe-eval" not in csp
+    allowed = set(re.findall(r"'(sha256-[^']+)'", csp))
+    inline = [m.group(1) for m in re.finditer(r"<script>(.*?)</script>", html, re.S)]
+    assert len(inline) == 3  # marked, mermaid, the viewer
+    actual = {"sha256-" + base64.b64encode(hashlib.sha256(src.encode("utf-8")).digest()).decode() for src in inline}
+    assert actual == allowed
 
 
 # The checks below run the real viewer in headless Chrome and audit the DOM it
-# produced. They are the only tests that exercise marked and the sanitiser.
+# produced, with a local server that records every network request. They are the
+# only tests that exercise marked, the sanitiser, mermaid and the CSP together.
 
 CHROME_PATHS = ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",)
 CHROME = next((p for p in CHROME_PATHS if pathlib.Path(p).exists()),
@@ -237,33 +250,69 @@ state: decided
 {body}
 """
 
-IMG = "<img src=x onerror=alert(1)>"
-HOSTILE_PAGES = {
-    "13-hostile-code": "\n\n".join([
-        "\\`" + IMG + "`",
-        "``" + IMG + "`",
-        "`" + IMG + "``",
-        "```a`b\n" + IMG + "\n```",
-        "\t```\n" + IMG + "\n```",
-        "\u00a0```\n" + IMG + "\n```",
-        "- item\n  ```\n  " + IMG + "\n  ```",
-        "- item\n\n      " + IMG,
-        "[[01-goals|" + IMG + "]]",
-    ]),
-    "14-hostile-comment": "```\n<!--<script>alert(1)</script>\n```\n\nafter the fence",
-    "15-hostile-diagram": "\n\n".join([
-        "```mermaid\ngraph TD\n  A[\"<img src='https://example.com/m.png'>\"] --> B\n```",
-        '```mermaid\n%%{init: {"themeCSS": "g{background:url(https://example.com/x)}"}}%%\ngraph TD\n  A --> B\n```',
-    ]),
-    "16-hostile-classic": "\n\n".join([
-        "<script>alert(1)</script>", "<svg onload=alert(1)></svg>", "<iframe src=https://example.com></iframe>",
-        "<style>body{background:url(https://example.com/s)}</style>",
-        '<a href="javascript:alert(1)" onclick="alert(2)">raw anchor</a>',
-        "[x](javascript:alert(1)) [y](data:text/html,boo) [r][ref]", "![p](https://example.com/p.png)",
-        "[ref]: javascript:alert(3)",
-    ]),
-    "17-broken-diagram": "```mermaid\nthis is not a diagram at all -->\n```",
-}
+
+class Sensor(http.server.ThreadingHTTPServer):
+    """A local server that records every request the viewer makes."""
+
+    def __init__(self):
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def handle_any(handler):
+                self.requests.append(f"{handler.command} {handler.path}")
+                handler.send_response(404)
+                handler.end_headers()
+
+            do_GET = do_HEAD = do_POST = do_OPTIONS = do_PUT = handle_any
+
+            def log_message(handler, *args):
+                pass
+
+        self.requests = []
+        super().__init__(("127.0.0.1", 0), Handler)
+        threading.Thread(target=self.serve_forever, daemon=True).start()
+
+    @property
+    def base(self):
+        return f"http://127.0.0.1:{self.server_address[1]}"
+
+
+def hostile_pages(base):
+    img = f"<img src={base}/raw.png onerror=alert(1)>"
+    return {
+        "13-hostile-code": "\n\n".join([
+            "\\`" + img + "`",
+            "``" + img + "`",
+            "`" + img + "``",
+            "```a`b\n" + img + "\n```",
+            "\t```\n" + img + "\n```",
+            "\u00a0```\n" + img + "\n```",
+            "- item\n  ```\n  " + img + "\n  ```",
+            "- item\n\n      " + img,
+            "[[01-goals|" + img + "]]",
+            '\\`<div class="draft-banner gen diagram-error mermaid" id="props">claimed classes</div>`',
+        ]),
+        "14-hostile-comment": "```\n<!--<script>alert(1)</script>\n```\n\nafter the fence",
+        "15-hostile-diagram": "\n\n".join([
+            f"```mermaid\ngraph TD\n  A[\"<img src='{base}/m.png'>\"] --> B\n```",
+            f'```mermaid\ngraph TD\n  A --> B\n  classDef x background-image:url({base}/class.png)\n  class A x\n  style B fill:#fff,background-image:url({base}/style.png)\n```',
+        ]),
+        "16-hostile-classic": "\n\n".join([
+            "<script>alert(1)</script>", "<svg onload=alert(1)></svg>", f"<iframe src={base}/frame></iframe>",
+            f"<style>body{{background:url({base}/s.png)}}</style>",
+            '<a href="javascript:alert(1)" onclick="alert(2)">raw anchor</a>',
+            "[x](javascript:alert(1)) [y](data:text/html,boo) [r][ref]", f"![p]({base}/p.png)",
+            f"<img src={base}/plain.png>", "[ref]: javascript:alert(3)",
+            "[slashes](//evil.test/x) [back](\\\\evil.test\\x)",
+        ]),
+        "17-broken-diagram": "```mermaid\nthis is not a diagram at all -->\n```",
+        "18-hostile-directives": "\n\n".join([
+            f'```mermaid\ngraph TD\n  A --> B\n%%{{init: {{"themeCSS": "background-image:url({base}/b1.png);"}}',
+            f'```mermaid\n%%{{init: {{"htmlLabels": true, "flowchart": {{"htmlLabels": true}}}}\ngraph TD\n  A["x<img src=\\"{base}/b1b.png\\">"] --> B\n```',
+            f'```mermaid\n%%{{init: {{"themeCSS": "g{{background:\\\\75rl({base}/b2.png)}}"}}}}%%\ngraph TD\n  A --> B\n```',
+            f'```mermaid\n%%{{init: {{"themeCSS": "g{{background:image-set(\\"{base}/b2b.png\\" 1x)}}"}}}}%%\ngraph TD\n  A --> B\n```',
+            f'```mermaid\n---\nconfig:\n  themeCSS: "g{{background:url({base}/fm.png)}}"\n---\ngraph TD\n  A --> B\n```',
+        ]),
+        "## Props": "A heading that is named after a viewer element.\n\n## Backlinks\n\n## Page\n",
+    }
 
 
 class Audit(HTMLParser):
@@ -301,43 +350,83 @@ def dump_dom(viewer_file, route):
 
 
 @pytest.fixture(scope="module")
-def hostile_viewer(tmp_path_factory):
+def sensor():
+    server = Sensor()
+    yield server
+    server.shutdown()
+
+
+@pytest.fixture(scope="module")
+def hostile_viewer(tmp_path_factory, sensor):
     tmp = tmp_path_factory.mktemp("hostile")
     vault = tmp / "mini"
     shutil.copytree(MINI, vault)
-    for name, body in HOSTILE_PAGES.items():
-        (vault / f"{name}.md").write_text(PAGE.format(title=name, body=body), encoding="utf-8")
+    for name, body in hostile_pages(sensor.base).items():
+        title = name.lstrip("# ")
+        file_name = f"{title.lower()}.md" if name.startswith("#") else f"{name}.md"
+        (vault / file_name).write_text(PAGE.format(title=title, body=body), encoding="utf-8")
     out = tmp / "viewer.html"
     code, text = build(vault, out)
     assert code == 0, text
     return out
 
 
+ROUTES = ["13-hostile-code", "14-hostile-comment", "15-hostile-diagram", "16-hostile-classic",
+          "17-broken-diagram", "18-hostile-directives", "props"]
+
+
 @needs_chrome
-@pytest.mark.parametrize("route", sorted(HOSTILE_PAGES))
-def test_hostile_page_renders_no_live_markup(hostile_viewer, route):
+@pytest.mark.parametrize("route", ROUTES)
+def test_hostile_page_renders_no_live_markup_and_makes_no_requests(hostile_viewer, sensor, route):
     built = audit(hostile_viewer.read_text(encoding="utf-8"))
+    sensor.requests.clear()
     dom = audit(dump_dom(hostile_viewer, route))
+    assert sensor.requests == [], f"the viewer fetched {sensor.requests}"
     names = [t for t, _ in dom.tags]
     for tag, attrs in dom.tags:
         assert not [a for a in attrs if a.startswith("on")], (tag, attrs)
         assert "src" not in attrs, (tag, attrs)
         for name, value in attrs.items():
             squeezed = re.sub(r"[\x00-\x20]", "", value or "").lower()
-            assert not squeezed.startswith(("javascript:", "data:")), (tag, name, value)
-            if "example.com" in (value or ""):
+            assert not squeezed.startswith(("javascript:", "data:", "//", "\\")), (tag, name, value)
+            if sensor.base in (value or ""):
                 assert tag == "a" and name == "href", (tag, name, value)
     assert names.count("script") == [t for t, _ in built.tags].count("script")
     assert not {"img", "iframe", "image", "foreignobject", "object", "embed"} & set(names)
-    assert not [css for css in dom.styles if "example.com" in css]
+    assert not [css for css in dom.styles if sensor.base in css]
     assert [a for t, a in dom.tags if t == "a" and "data-name" in a], "the viewer did not render its page tree"
 
 
 @needs_chrome
-def test_hostile_code_page_still_shows_its_text(hostile_viewer):
-    dom = dump_dom(hostile_viewer, "13-hostile-code")
-    assert "hostile-code" in dom or "13-hostile-code.md" in dom
-    assert "&lt;img src=x onerror=alert(1)&gt;" in dom
+def test_hostile_code_page_shows_its_text_and_cannot_claim_viewer_classes(hostile_viewer):
+    dom_text = dump_dom(hostile_viewer, "13-hostile-code")
+    assert "&lt;img src=" in dom_text
+    dom = audit(dom_text)
+    assert "claimed classes" in dom_text
+    claimed = [a for t, a in dom.tags if t == "div" and re.search(r"draft-banner|gen|diagram-error|mermaid", a.get("class", ""))]
+    assert claimed == []
+    assert [a.get("id") for t, a in dom.tags].count("props") == 1
+
+
+@needs_chrome
+def test_headings_named_like_viewer_elements_do_not_break_the_rail(hostile_viewer):
+    dom = dump_dom(hostile_viewer, "props")
+    assert '<h2 id="h-props">Props</h2>' in dom or 'id="h-backlinks"' in dom
+    assert re.search(r'<ul id="backlinks">', dom) and re.search(r'<dl id="props">', dom)
+
+
+@needs_chrome
+def test_diagram_directives_are_refused_with_a_visible_box(hostile_viewer):
+    dom_text = dump_dom(hostile_viewer, "18-hostile-directives")
+    assert dom_text.count("diagram directives aren&#39;t allowed in the offline viewer") + \
+        dom_text.count("diagram directives aren't allowed in the offline viewer") >= 5
+
+
+@needs_chrome
+def test_bad_route_falls_back_to_goals(hostile_viewer):
+    for route in ("%E0%A4%A", "__proto__", "constructor"):
+        dom = dump_dom(hostile_viewer, route)
+        assert 'id="crumb">01-goals.md' in dom, route
 
 
 @needs_chrome
@@ -348,10 +437,12 @@ def test_diagram_failure_shows_a_visible_box(hostile_viewer):
 
 
 @needs_chrome
-def test_fixture_viewer_draws_its_diagrams_and_generated_blocks(tmp_path):
+def test_fixture_viewer_draws_its_diagrams_and_generated_blocks_without_network(tmp_path, sensor):
     out = tmp_path / "viewer.html"
     build(FIXTURE, out)
+    sensor.requests.clear()
     dom = audit(dump_dom(out, "booking-building-blocks"))
+    assert sensor.requests == []
     classes = [a.get("class", "") for t, a in dom.tags if t == "div"]
     assert classes.count("mermaid") == 2
     assert not [c for c in classes if "diagram-error" in c]

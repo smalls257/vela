@@ -5,6 +5,8 @@ The file needs no network: marked and mermaid are inlined and fonts are system
 fonts. Session records and voice files are left out, and links to them render
 as plain text.
 """
+import base64
+import hashlib
 import html as html_lib
 import json
 import re
@@ -65,34 +67,20 @@ def neutralise_prose(text):
     return "".join(pieces)
 
 
-MERMAID_DIRECTIVE = re.compile(r"%%\{.*?\}%%", re.S)
-MERMAID_FRONTMATTER = re.compile(r"\A\s*---\s*\n.*?\n---[ \t]*(?:\n|\Z)", re.S)
-
-
-def strip_mermaid_config(source):
-    """A diagram may not carry its own configuration: init directives and YAML
-    frontmatter can set themeCSS and other options that reach the page."""
-    return MERMAID_DIRECTIVE.sub("", MERMAID_FRONTMATTER.sub("", source))
-
-
 def neutralise(markdown):
-    """Defence in depth ahead of the browser-side sanitiser, which is the
-    guarantee: no raw HTML, no script or data links, no images that fetch, and
-    no diagram configuration. Code fences and code spans are left as written."""
-    out, block, fence_mark = [], None, ""
+    """Defence in depth ahead of the browser, whose Content-Security-Policy and
+    sanitiser are the guarantee: no raw HTML, no script or data links, and no
+    images that fetch. Code fences and code spans are left as written."""
+    out, in_fence, fence_mark = [], False, ""
     for line in markdown.split("\n"):
         fence = FENCE.match(line)
-        if block is not None:
+        if in_fence:
+            out.append(line)
             if fence and fence.group(1) == fence_mark:
-                out.append(strip_mermaid_config("\n".join(block)) if block_is_mermaid else "\n".join(block))
-                out.append(line)
-                block = None
-            else:
-                block.append(line)
+                in_fence = False
             continue
         if fence:
-            block, fence_mark = [], fence.group(1)
-            block_is_mermaid = line.strip()[3:].strip().lower().startswith("mermaid")
+            in_fence, fence_mark = True, fence.group(1)
             out.append(line)
             continue
         pieces, last = [], 0
@@ -102,8 +90,6 @@ def neutralise(markdown):
             last = span.end()
         pieces.append(neutralise_prose(line[last:]))
         out.append("".join(pieces))
-    if block is not None:
-        out.append("\n".join(block))
     return "\n".join(out)
 
 
@@ -159,6 +145,24 @@ def script_json(data):
     return "".join(JSON_UNSAFE.get(ch, ch) for ch in text)
 
 
+PLACEHOLDER = re.compile(r"__(TITLE|CSP|MARKED|MERMAID|DATA|APP)__")
+
+
+def script_hash(source):
+    return "'sha256-" + base64.b64encode(hashlib.sha256(source.encode("utf-8")).digest()).decode("ascii") + "'"
+
+
+def content_security_policy(inline_scripts):
+    """The structural guarantee that the file never touches the network, whatever
+    a page or diagram manages to put into the DOM. Only the viewer's own inline
+    scripts run (by hash). Mermaid needs no 'unsafe-eval'; the viewer tests render
+    its diagrams under this policy."""
+    hashes = " ".join(script_hash(source) for source in inline_scripts)
+    return ("default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; "
+            f"script-src {hashes}; connect-src 'none'; frame-src 'none'; object-src 'none'; "
+            "base-uri 'none'; form-action 'none'")
+
+
 def script_safe(source):
     return source.replace("</script", "<\\/script")
 
@@ -175,10 +179,10 @@ def build(vault, marked_js, mermaid_js, stamp):
         "pages": [page_data(p) for p in sorted(bundled(vault), key=lambda p: p.path)],
     }
     payload = script_json(data)
-    html = (TEMPLATE.replace("__TITLE__", html_lib.escape(data["title"]))
-            .replace("__MARKED__", script_safe(marked_js))
-            .replace("__MERMAID__", script_safe(mermaid_js))
-            .replace("__DATA__", payload))
+    scripts = {"MARKED": script_safe(marked_js), "MERMAID": script_safe(mermaid_js), "APP": APP_JS}
+    values = {"TITLE": html_lib.escape(data["title"]), "DATA": payload, "CSP": content_security_policy(scripts.values()),
+              **scripts}
+    html = PLACEHOLDER.sub(lambda m: values[m.group(1)], TEMPLATE)
     return html, problems
 
 
@@ -186,6 +190,7 @@ TEMPLATE = r"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="__CSP__">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <style>
@@ -268,18 +273,35 @@ article pre code { background: none; padding: 0; }
   </aside>
 </div>
 <script id="vault" type="application/json">__DATA__</script>
-<script>
-const DATA = JSON.parse(document.getElementById('vault').textContent);
+<script>__APP__</script>
+</body>
+</html>
+"""
+
+
+APP_JS = r"""
+// Grab every element the viewer writes into before any page content exists, so
+// nothing a page contains can shadow them.
+const ui = Object.fromEntries(['vault', 'vault-title', 'stamp', 'filter', 'tree', 'crumb', 'banner', 'page', 'props', 'backlinks']
+  .map(id => [id, document.getElementById(id)]));
+const DATA = JSON.parse(ui.vault.textContent);
 const pages = DATA.pages;
-const byName = Object.fromEntries(pages.map(p => [p.name.toLowerCase(), p]));
+const byName = new Map(pages.map(p => [p.name.toLowerCase(), p]));
+const pageNamed = name => byName.get(String(name).toLowerCase());
+// Classes the viewer puts on its own markup carry a per-load secret suffix, so
+// the sanitiser can tell them from a class a page tries to claim.
+const NONCE = Array.from(crypto.getRandomValues(new Uint32Array(3)), n => n.toString(36)).join('');
+const OWN_CLASS = { ['gen-' + NONCE]: 'gen', ['offline-link-' + NONCE]: 'offline-link', ['missing-' + NONCE]: 'missing' };
 const excluded = new Set(DATA.excluded);
 const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 if (window.mermaid) mermaid.initialize({
   startOnLoad: false, theme: dark ? 'dark' : 'neutral', securityLevel: 'strict', htmlLabels: false,
   flowchart: { htmlLabels: false }, sequence: { useMaxWidth: true }, class: { htmlLabels: false }, state: { htmlLabels: false },
+  secure: ['secure', 'securityLevel', 'startOnLoad', 'maxTextSize', 'maxEdges', 'themeCSS', 'themeVariables', 'htmlLabels',
+    'flowchart', 'class', 'state', 'fontFamily', 'theme'],
 });
-document.getElementById('vault-title').textContent = DATA.title;
-document.getElementById('stamp').textContent =
+ui['vault-title'].textContent = DATA.title;
+ui.stamp.textContent =
   `${DATA.initiative} · Built from ${DATA.stamp.commit} on ${DATA.stamp.date}. Newer versions: ${DATA.stamp.repo}`;
 
 function slug(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
@@ -300,15 +322,17 @@ let current = null;
 function linkHtml(inner) {
   const l = parseLink(inner);
   const name = (l.name || current).toLowerCase();
-  const target = byName[name];
+  const target = pageNamed(name);
   const label = l.alias || l.anchor ? escLabel(l.alias || l.anchor) : esc(target ? target.title : l.name);
-  if (!target && excluded.has(name)) return `<span class="offline-link" title="Not in this viewer">${label}</span>`;
-  if (!target) return `<a class="missing" title="missing page">${label}</a>`;
+  if (!target && excluded.has(name)) return `<span class="offline-link-${NONCE}" title="Not in this viewer">${label}</span>`;
+  if (!target) return `<a class="missing-${NONCE}" title="missing page">${label}</a>`;
   return `<a href="#/${encodeURIComponent(target.name)}${l.anchor ? '::' + encodeURIComponent(l.anchor) : ''}">${label}</a>`;
 }
 function decoded(s) { const t = document.createElement('textarea'); t.innerHTML = String(s); return t.value; }
 function hrefOk(href) {
-  const m = /^([a-z][a-z0-9+.-]*):/i.exec(decoded(href).replace(/[\u0000-\u0020]/g, ''));
+  const t = decoded(href).replace(/[\u0000-\u0020]/g, '');
+  if (/^[\\/]{2}/.test(t)) return false;
+  const m = /^([a-z][a-z0-9+.-]*):/i.exec(t);
   return !m || /^(https?|mailto)$/i.test(m[1]);
 }
 function imageFetches(href) {
@@ -329,7 +353,7 @@ const HTML_OK = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'l
 const HTML_DROP = new Set(['script', 'style', 'iframe', 'svg', 'img', 'object', 'embed', 'template', 'noscript', 'textarea',
   'title', 'math', 'video', 'audio', 'link', 'meta', 'base', 'form', 'select', 'option', 'button', 'input', 'frame',
   'frameset', 'applet', 'canvas', 'picture', 'source', 'track', 'map', 'area', 'head']);
-const CLASS_OK = /^(gen|offline-link|missing|diagram-error|mermaid|draft-banner|language-[a-z0-9_+-]+)$/;
+const CLASS_OK = /^language-[a-z0-9_+-]+$/;
 const XHTML = 'http://www.w3.org/1999/xhtml';
 function cleanAttributes(el, tag) {
   for (const attr of [...el.attributes]) {
@@ -337,9 +361,8 @@ function cleanAttributes(el, tag) {
     let keep = false;
     if (name === 'href') keep = tag === 'a' && hrefOk(attr.value.trim());
     else if (name === 'title') keep = tag === 'a' || tag === 'span';
-    else if (name === 'id') keep = /^h[1-6]$/.test(tag) && /^[a-z0-9_-]+$/i.test(attr.value);
     else if (name === 'class') {
-      const classes = attr.value.split(/\s+/).filter(c => CLASS_OK.test(c));
+      const classes = attr.value.split(/\s+/).map(c => OWN_CLASS[c] || (CLASS_OK.test(c) ? c : '')).filter(Boolean);
       keep = classes.length > 0;
       if (keep) el.setAttribute('class', classes.join(' '));
     }
@@ -364,7 +387,9 @@ function sanitiseHtml(html) {
   return holder.content;
 }
 const SVG_DROP = new Set(['script', 'image', 'foreignobject', 'iframe', 'object', 'embed', 'animate', 'set', 'animatemotion', 'animatetransform', 'video', 'audio']);
-function offPageUrl(css) { return /@import|url\(\s*(?!['"]?#)/i.test(css); }
+// Style text that could name an off-page resource is dropped whole. Escapes (\75rl) and
+// image-set() are refused too, because deciding what such CSS means is the regex trap.
+function offPageUrl(css) { return /@import|\\|image-set|cross-fade|element\(|\bsrc\(|url\(\s*(?!['"]?#)/i.test(css); }
 function cleanSvgChildren(parent) {
   for (const el of [...parent.children]) {
     const tag = el.localName.toLowerCase();
@@ -374,9 +399,7 @@ function cleanSvgChildren(parent) {
       const off = (name === 'href' || name === 'xlink:href') && !attr.value.trim().startsWith('#');
       if (name.startsWith('on') || off || (name === 'style' && offPageUrl(attr.value))) el.removeAttribute(attr.name);
     }
-    if (tag === 'style' && offPageUrl(el.textContent)) {
-      el.textContent = el.textContent.replace(/@import[^;]*;?/gi, '').replace(/url\(\s*(?!['"]?#)[^)]*\)/gi, 'none');
-    }
+    if (tag === 'style' && offPageUrl(el.textContent)) { el.remove(); continue; }
     cleanSvgChildren(el);
   }
 }
@@ -386,12 +409,12 @@ function sanitiseSvg(svg) {
   cleanSvgChildren(holder.content);
   return holder.content;
 }
-function stripDiagramConfig(source) {
-  return source.replace(/^\s*---\s*\n[\s\S]*?\n---[ \t]*(?:\n|$)/, '').replace(/%%\{[\s\S]*?\}%%/g, '');
-}
+// A diagram cannot carry its own configuration, and no attempt is made to clean
+// it: init directives and frontmatter are refused so the reader sees why.
+function hasDiagramConfig(source) { return /%%\{/.test(source) || /^\s*---/.test(source); }
 function toNodes(body) {
   let md = body.replace(/\[\[([^\]]+?)\]\]/g, (_, inner) => linkHtml(inner));
-  md = md.replace(/<!--\s*generated:[a-z0-9-]+ sha=[0-9a-f]{8}: do not edit, run planner render\s*-->/g, '<div class="gen">\n')
+  md = md.replace(/<!--\s*generated:[a-z0-9-]+ sha=[0-9a-f]{8}: do not edit, run planner render\s*-->/g, '<div class="gen-' + NONCE + '">\n')
          .replace(/<!--\s*\/generated:[a-z0-9-]+\s*-->/g, '\n</div>');
   return sanitiseHtml(window.marked ? marked.parse(md) : '<pre>' + esc(md) + '</pre>');
 }
@@ -420,22 +443,24 @@ function buildTree(filter) {
     }
     return s + '</ul>';
   }
-  document.getElementById('tree').innerHTML = html(root);
+  ui.tree.innerHTML = html(root);
 }
 
-const backlinks = {};
+const backlinks = new Map();
 for (const p of pages) for (const m of p.body.matchAll(/\[\[([^\]]+?)\]\]/g)) {
   const n = (parseLink(m[1]).name || p.name).toLowerCase();
-  (backlinks[n] = backlinks[n] || new Set()).add(p.name);
+  if (!backlinks.has(n)) backlinks.set(n, new Set());
+  backlinks.get(n).add(p.name);
 }
 
 let diagramCount = 0;
 async function drawDiagrams(art) {
   for (const code of [...art.querySelectorAll('pre code.language-mermaid')]) {
-    const source = stripDiagramConfig(code.textContent);
+    const source = code.textContent;
     const box = document.createElement('div');
     code.parentElement.replaceWith(box);
     if (!window.mermaid) { box.className = 'diagram-error'; box.textContent = 'Diagram not drawn: the Mermaid library did not load.\n\n' + source; continue; }
+    if (hasDiagramConfig(source)) { box.className = 'diagram-error'; box.textContent = "Diagram not drawn: diagram directives aren't allowed in the offline viewer\n\n" + source; continue; }
     try {
       const { svg } = await mermaid.render('diagram-' + (++diagramCount), source);
       box.className = 'mermaid'; box.replaceChildren(sanitiseSvg(svg));
@@ -447,22 +472,23 @@ async function drawDiagrams(art) {
 }
 
 async function show() {
-  const h = decodeURIComponent(location.hash.replace(/^#\//, ''));
+  let h = '';
+  try { h = decodeURIComponent(location.hash.replace(/^#\//, '')); } catch (e) { h = ''; }
   const [name, anchor] = h.split('::');
-  const p = byName[(name || DATA.start).toLowerCase()] || byName[DATA.start.toLowerCase()] || pages[0];
+  const p = pageNamed(name || DATA.start) || pageNamed(DATA.start) || pages[0];
   current = p.name;
   document.title = p.title + ' · ' + DATA.title;
-  document.getElementById('crumb').textContent = p.path;
-  document.getElementById('banner').innerHTML = p.draft ? '<div class="draft-banner">Working draft: not agreed yet</div>' : '';
-  const art = document.getElementById('page');
+  ui.crumb.textContent = p.path;
+  ui.banner.innerHTML = p.draft ? '<div class="draft-banner">Working draft: not agreed yet</div>' : '';
+  const art = ui.page;
   art.replaceChildren(toNodes(p.body));
-  art.querySelectorAll('h1,h2,h3,h4').forEach(el => el.id = slug(el.textContent));
+  art.querySelectorAll('h1,h2,h3,h4').forEach(h => h.id = 'h-' + slug(h.textContent));
   await drawDiagrams(art);
   const props = Object.entries(p.meta).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(Array.isArray(v) ? v.join(', ') : v)}</dd>`).join('');
-  document.getElementById('props').innerHTML = props || '<dd>none</dd>';
-  const bl = [...(backlinks[p.name.toLowerCase()] || [])].filter(n => n !== p.name).map(n => byName[n.toLowerCase()]).filter(Boolean)
+  ui.props.innerHTML = props || '<dd>none</dd>';
+  const bl = [...(backlinks.get(p.name.toLowerCase()) || [])].filter(n => n !== p.name).map(n => pageNamed(n)).filter(Boolean)
     .sort((x, y) => x.title.localeCompare(y.title));
-  document.getElementById('backlinks').innerHTML = bl.length ? bl.map(b => `<li><a href="#/${encodeURIComponent(b.name)}">${esc(b.title)}</a></li>`).join('') : '<li>nothing links here</li>';
+  ui.backlinks.innerHTML = bl.length ? bl.map(b => `<li><a href="#/${encodeURIComponent(b.name)}">${esc(b.title)}</a></li>`).join('') : '<li>nothing links here</li>';
   document.querySelectorAll('.nav a').forEach(el => el.classList.toggle('on', el.dataset.name === p.name));
   if (anchor) {
     const heads = [...art.querySelectorAll('h1,h2,h3,h4')];
@@ -472,10 +498,7 @@ async function show() {
   window.scrollTo(0, 0);
 }
 buildTree('');
-document.getElementById('filter').addEventListener('input', e => buildTree(e.target.value));
+ui.filter.addEventListener('input', e => buildTree(e.target.value));
 window.addEventListener('hashchange', show);
 show();
-</script>
-</body>
-</html>
 """
