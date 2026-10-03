@@ -228,4 +228,201 @@ def reference_rules(vault, today):
                              "Add the row to sources.md, or fix the ID.")
 
 
-RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules)
+# --------------------------------------------------------------- fact tables
+
+def table_rules(vault, today):
+    for page in vault.pages:
+        for table in page.tables:
+            if table.generated:
+                continue
+            header = tuple(table.header)
+            if header[:4] == schema.GOALS_HEADER:
+                yield from _rows(page, table, schema.GOAL_ID_RE, 3, schema.STATE_ITEM, "goal", "G1")
+            elif header[:2] == schema.CONSTRAINTS_HEADER:
+                yield from _rows(page, table, schema.CONSTRAINT_ID_RE, None, (), "constraint", "CST-1")
+            elif header[:6] == schema.SOURCES_HEADER:
+                yield from _rows(page, table, schema.SOURCE_ID_RE, 4, schema.SOURCE_KINDS, "source", "SRC-01")
+            elif header[:2] == schema.CONTAINERS_HEADER and "State" in header:
+                col = header.index("State")
+                for row, line in zip(table.rows, table.row_lines):
+                    state = row[col] if len(row) > col else ""
+                    if state not in schema.CONTAINER_STATES:
+                        yield _f(page, line, "E306", f"Container '{row[0]}' has state '{state}'.",
+                                 "Use one of: " + ", ".join(schema.CONTAINER_STATES) + ".")
+
+
+def _rows(page, table, id_re, col, allowed, what, example):
+    for row, line in zip(table.rows, table.row_lines):
+        row_id = row[0] if row else ""
+        if not id_re.match(row_id):
+            yield _f(page, line, "E306", f"'{row_id}' is not a valid {what} ID.", f"Write IDs like {example}.")
+        if col is not None:
+            value = row[col] if len(row) > col else ""
+            if value not in allowed:
+                yield _f(page, line, "E306", f"{what.capitalize()} {row_id} has '{value}' where one of {', '.join(allowed)} belongs.",
+                         f"Use one of: {', '.join(allowed)}.")
+
+
+# ----------------------------------------------------------------- contracts
+
+def contract_rules(vault, today):
+    for contract in vault.contracts:
+        page = contract.page
+        for label in schema.CONTRACT_REQUIRED:
+            if not contract.fact(label):
+                yield _f(page, contract.line, "E320", f"{contract.id} has no **{label}:** bullet.",
+                         f"Add '- **{label}:** ...' under the {contract.id} heading.")
+        state, change = contract.fact("State"), contract.fact("Change")
+        if state and state not in schema.CONTRACT_STATES:
+            yield _f(page, contract.facts["State"].line, "E105", f"{contract.id} has state '{state}'.",
+                     "Use one of: " + ", ".join(schema.CONTRACT_STATES) + ".")
+        if change and change not in schema.CONTRACT_CHANGES:
+            yield _f(page, contract.facts["Change"].line, "E105", f"{contract.id} has change '{change}'.",
+                     "Use one of: " + ", ".join(schema.CONTRACT_CHANGES) + ".")
+        consumers = contract.fact("Consumers")
+        if consumers and not vault.consumers(contract) and not consumers.lower().startswith("none"):
+            yield _f(page, contract.facts["Consumers"].line, "E311",
+                     f"{contract.id} names its consumers in words, so no app page knows it consumes this contract.",
+                     "Link each consumer's building-blocks page, for example [[website-building-blocks|Public website]], or write 'none'.")
+        if state == "decided" and not contract.fact("Tested by"):
+            yield _f(page, contract.line, "E318", f"{contract.id} is decided but says nothing about who tests it.",
+                     "Add '- **Tested by:** ...' naming the test on each side.")
+
+
+# ------------------------------------------------------------ unknowns, risks
+
+def unknown_rules(vault, today):
+    for unknown in vault.unknowns:
+        page, state = unknown.page, unknown.fact("State")
+        required = list(schema.UNKNOWN_REQUIRED)
+        if state == "open":
+            required += schema.UNKNOWN_OPEN_REQUIRED
+        if state == "resolved":
+            required += schema.UNKNOWN_RESOLVED_REQUIRED
+        for label in required:
+            if not unknown.fact(label):
+                yield _f(page, unknown.line, "E302", f"{unknown.id} has no **{label}:** bullet.",
+                         f"Add '- **{label}:** ...' under the {unknown.id} heading.")
+        if state and state not in schema.UNKNOWN_STATES:
+            yield _f(page, unknown.facts["State"].line, "E105", f"{unknown.id} has state '{state}'.",
+                     "Use open or resolved.")
+        owner = unknown.fact("Owner")
+        if owner and not schema.OWNER_BULLET_RE.match(owner):
+            yield _f(page, unknown.facts["Owner"].line, "E302", f"{unknown.id} owner '{owner}' is not a GitHub handle or team.",
+                     "Start the Owner value with @handle or @org/team.")
+        blocks = unknown.facts.get("Blocks")
+        if blocks and blocks.value and not blocks.links and not blocks.value.lower().startswith("nothing"):
+            yield _f(page, blocks.line, "E302", f"{unknown.id} says what it blocks in words only.",
+                     "List links to what it blocks, or write 'nothing'.")
+        ask_by = unknown.fact("Ask by")
+        if ask_by and not is_date(ask_by):
+            yield _f(page, unknown.facts["Ask by"].line, "E106", f"{unknown.id} ask-by '{ask_by}' is not a YYYY-MM-DD date.",
+                     "Write - **Ask by:** 2027-03-01.")
+        elif state == "open" and ask_by and ask_by < today:
+            yield _f(page, unknown.facts["Ask by"].line, "W705",
+                     f"{unknown.id} was due to be asked by {ask_by}; today is {today}.",
+                     f"Ask {owner or 'the owner'}, then record the outcome or move the Ask by date.")
+
+
+def risk_rules(vault, today):
+    for risk in vault.risks:
+        for label in schema.RISK_REQUIRED:
+            if not risk.fact(label):
+                yield _f(risk.page, risk.line, "E302", f"{risk.id} has no **{label}:** bullet.",
+                         f"Add '- **{label}:** ...' under the {risk.id} heading.")
+        state = risk.fact("State")
+        if state and state not in schema.RISK_STATES:
+            yield _f(risk.page, risk.facts["State"].line, "E105", f"{risk.id} has state '{state}'.",
+                     "Use one of: " + ", ".join(schema.RISK_STATES) + ".")
+        owner = risk.fact("Owner")
+        if owner and not schema.OWNER_BULLET_RE.match(owner):
+            yield _f(risk.page, risk.facts["Owner"].line, "E302", f"{risk.id} owner '{owner}' is not a GitHub handle or team.",
+                     "Start the Owner value with @handle or @org/team.")
+
+
+# ----------------------------------------------------------------- certainty
+
+def decided_units(vault):
+    """(unit id, page, line, Decision bullets) for every decided page and contract."""
+    for page in vault.pages:
+        if not readable(page):
+            continue  # an unreadable type is already an E104; never look it up
+        if schema.PAGE_TYPES[page.type]["states"] and page.meta.get("state") == "decided":
+            yield page.id, page, meta_line(page, "state"), page.page_bullets("Decision")
+    for contract in vault.contracts:
+        if contract.fact("State") == "decided":
+            bullet = contract.facts.get("Decision")
+            yield contract.id, contract.page, contract.line, [bullet] if bullet else []
+
+
+def _modes(session):
+    """A session's modes, or nothing when the field is not a list (E105 reports that)."""
+    modes = session.meta.get("modes")
+    return modes if isinstance(modes, list) else []
+
+
+def certainty_rules(vault, today):
+    for unit_id, page, line, decisions in decided_units(vault):
+        sessions = [vault.resolve(l, page) for b in decisions for l in b.links]
+        sessions = [s for s in sessions if s is not None and s.type == "session"]
+        modes = [m for s in sessions for m in _modes(s)]
+        if "grill" in modes:
+            continue
+        if "requirements" in modes:
+            yield _f(page, line, "E317", f"{unit_id} is decided by a requirements session, which can only write assumptions.",
+                     "Run a Grill on it and link that session in **Decision:**, or set it back to assumption.")
+        else:
+            yield _f(page, line, "E303", f"{unit_id} is decided, but no **Decision:** bullet links a Grill session.",
+                     "Add '- **Decision:** [[<grill session>]]', or set the state back to assumption.")
+    for page in vault.pages:
+        if readable(page) and page.meta.get("state") == "fact" and not page.meta.get("sources"):
+            yield _f(page, meta_line(page, "state"), "E304", f"{page.id} is a fact but lists no sources.",
+                     "Add sources: [SRC-nn], or lower the state to assumption.")
+    for contract in vault.contracts:
+        if contract.fact("State") == "fact" and not contract.fact("Source"):
+            yield _f(contract.page, contract.line, "E304", f"{contract.id} is a fact but has no **Source:** bullet.",
+                     "Add '- **Source:** SRC-nn', or lower the state to assumption.")
+    yield from _gate_four(vault)
+
+
+def unit_state(vault, link, from_page):
+    """(unit id, state, page, line) of what a link points at, or None."""
+    target = vault.resolve(link, from_page)
+    if target is None:
+        return None
+    first = link.anchor.split()[0] if link.anchor else ""
+    item = vault.item(first) if first else None
+    if item is not None and item.page is target:
+        return item.id, item.fact("State"), item.page, item.line
+    return target.id, target.meta.get("state", ""), target, meta_line(target, "state")
+
+
+def _gate_four(vault):
+    for unknown in vault.unknowns:
+        if unknown.fact("State") != "open" or "Blocks" not in unknown.facts:
+            continue
+        for link in unknown.facts["Blocks"].links:
+            found = unit_state(vault, link, unknown.page)
+            if found and found[1] == "decided":
+                unit_id, _, page, line = found
+                yield _f(page, line, "E316", f"{unit_id} is decided, but open unknown {unknown.id} blocks it.",
+                         f"Resolve {unknown.id} first, or set {unit_id} back to assumption.")
+
+
+# --------------------------------------------------------------------- stage
+
+def stage_rules(vault, today):
+    for app in vault.apps:
+        change, stage = app.meta.get("change"), app.meta.get("stage")
+        if change not in schema.ENUMS["change@app-building-blocks"]:
+            continue  # E103 or E105 already reports it
+        if change in schema.LADDERED_CHANGES and not stage:
+            yield _f(app, meta_line(app, "change"), "E319", f"{app.id} is {change} but has no stage.",
+                     "Add stage: baseline (or the stage the app is in now).")
+        if change and change not in schema.LADDERED_CHANGES and stage:
+            yield _f(app, meta_line(app, "stage"), "E319", f"{app.id} is {change}, so it sits outside the ladder and takes no stage.",
+                     "Remove the stage field, or set change: changed if the app now changes.")
+
+
+RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
+         contract_rules, unknown_rules, risk_rules, certainty_rules, stage_rules)
