@@ -43,5 +43,5 @@ graders:
   pattern: UNK-001
 - name: offers-a-way-forward
   type: regex
-  pattern: \b(Shape session|/planner:shape|ask with|an ask to|research task)\b
+  pattern: (?:\b(Shape session|ask with|an ask to|research task)\b|/planner:shape)
   flags: i

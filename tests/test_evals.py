@@ -142,6 +142,17 @@ def test_an_invented_id_recorded_in_changes_passes(tmp_path):
     assert run.invented_ids(workspace)[0].startswith("pass")
 
 
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_a_registered_source_needs_no_changes_row_but_only_lives_in_sources_md(tmp_path):
+    workspace = scaffolded(tmp_path, "discover-docs")
+    sources = workspace / "sources.md"
+    sources.write_text(sources.read_text(encoding="utf-8") + "| SRC-01 | FERRYMASTER MQ | @x | 2026-06-02 | exists | local only |\n", encoding="utf-8")
+    assert not any(line.startswith("FAIL") for line in run.invented_ids(workspace))
+    goals = workspace / "01-goals.md"
+    goals.write_text(goals.read_text(encoding="utf-8") + "\n| SRC-02 | stray | | |\n", encoding="utf-8")
+    assert any("SRC-02" in line and line.startswith("FAIL") for line in run.invented_ids(workspace))
+
+
 class Done:
     def __init__(self, returncode=0, stdout="", stderr=""):
         self.returncode, self.stdout, self.stderr = returncode, stdout, stderr
@@ -172,6 +183,25 @@ ARGV = ["e5-ask", "--model", "m", "--judge-model", "j", "--runs", "2"]
 def test_main_returns_2_when_no_workspace_is_found(monkeypatch, tmp_path):
     fake_eval(monkeypatch, tmp_path, log="nothing here")
     assert run.main(ARGV) == 2
+
+
+def test_main_returns_1_when_plugin_eval_itself_exits_1(monkeypatch, tmp_path):
+    fake_eval(monkeypatch, tmp_path, returncode=1, log=kept_workspaces(tmp_path, 2), graded=["- pass: x"])
+    assert run.main(ARGV) == 1
+
+
+def test_main_returns_2_when_plugin_eval_exits_other_than_0_or_1(monkeypatch, tmp_path):
+    fake_eval(monkeypatch, tmp_path, returncode=3, log=kept_workspaces(tmp_path, 2), graded=["- pass: x"])
+    assert run.main(ARGV) == 2
+
+
+def test_every_plugin_eval_call_carries_threshold_1(monkeypatch, tmp_path):
+    seen = []
+    fake_eval(monkeypatch, tmp_path, log=kept_workspaces(tmp_path, 2), graded=["- pass: x"])
+    inner = run.subprocess.run
+    monkeypatch.setattr(run.subprocess, "run", lambda argv, **kw: (seen.append(argv), inner(argv, **kw))[1])
+    run.main(ARGV)
+    assert seen and all(argv[argv.index("--threshold") + 1] == "1" for argv in seen)
 
 
 def test_main_returns_2_when_plugin_eval_exits_2(monkeypatch, tmp_path):

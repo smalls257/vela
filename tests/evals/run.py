@@ -14,8 +14,10 @@ file per case, go to tests/evals/.results/, which git ignores.
 --max-cost-usd caps each plugin eval invocation, which is one arm of one case. The worst case for a
 whole run is the ceiling times 2 arms times the number of cases.
 
-Exit codes: 0 every grade passed; 1 at least one FAIL line; 2 a run could not be graded (plugin eval
-exited 2, or the number of kept workspaces differs from --runs).
+Exit codes: 0 plugin eval exited 0 in every arm (every native grader passed at --threshold 1) and every
+workspace grade passed; 1 plugin eval exited 1 or at least one grade FAILed; 2 a run could not be graded
+(plugin eval exited other than 0 or 1, such as 2 for the cost ceiling, or the number of kept workspaces
+differs from --runs).
 """
 import argparse
 import datetime
@@ -165,6 +167,9 @@ def invented_ids(workspace):
             new += 1
             if not any(p.match(item) for p in ID_PATTERNS):
                 problems.append(f"FAIL: invented ID {item} in {name}: not a planner ID pattern")
+            elif schema.SOURCE_ID_RE.match(item):
+                if name != "sources.md":
+                    problems.append(f"FAIL: invented ID {item} in {name}: SRC IDs belong only in sources.md")
             elif kind == "session":
                 if item != pathlib.PurePosixPath(name).stem:
                     problems.append(f"FAIL: invented ID {item} in {name}: a session id must equal its file name")
@@ -220,21 +225,23 @@ def run_arm(case, arm, args, out_dir):
         raise EvalError(f"{case_yaml} is missing")
     log_path = out_dir / f"{case}-{arm}.log"
     argv = ["claude", "plugin", "eval", str(case_yaml), "--no-publish", "--keep-temp", "--scaffold", "--trust-plugin",
-            "--ablation", "none", "--runs", str(args.runs), "--max-cost-usd", str(args.max_cost_usd),
+            "--ablation", "none", "--threshold", "1", "--runs", str(args.runs), "--max-cost-usd", str(args.max_cost_usd),
             "--model", args.model, "--judge-model", args.judge_model,
             "--output-dir", str(out_dir / f"{case}-{arm}"), "--report", str(out_dir / f"{case}-{arm}.html"),
             "--allow-tools", "Write", "Edit", "Bash"]
     result = subprocess.run(argv, capture_output=True, text=True)
     log = result.stdout + "\n" + result.stderr
     log_path.write_text(log, encoding="utf-8")
-    if result.returncode == 2:
-        raise EvalError(f"plugin eval exited 2 (cost ceiling hit or the run was aborted); read {log_path}")
+    if result.returncode not in (0, 1):
+        raise EvalError(f"plugin eval exited {result.returncode} (2 is the cost ceiling); read {log_path}")
     workspaces = find_workspaces(log)
     if len(workspaces) != args.runs:
         raise EvalError(f"expected {args.runs} kept workspaces for {case} ({arm}), found {len(workspaces)}. The eval exited "
                         f"{result.returncode}; read {log_path} and, if --keep-temp prints paths differently, update find_workspaces().")
     lines = [f"### {arm} arm", "", f"- plugin eval exit {result.returncode}, {len(workspaces)} kept workspaces", ""]
-    bad = False
+    bad = result.returncode == 1
+    if bad:
+        lines += ["- FAIL: plugin eval exited 1: a case scored below --threshold 1, so a native grader failed. See the HTML report.", ""]
     for workspace in workspaces:
         graded = grade(workspace, CASES[case])
         bad = bad or failed(graded)

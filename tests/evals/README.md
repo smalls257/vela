@@ -30,8 +30,15 @@ all seven cases up to $140. The ceiling is checked before each run starts, so a 
 
 ## Exit codes
 
-0: every grade passed. 1: at least one `FAIL` line. 2: a run could not be graded, because `plugin eval`
-exited 2 or the kept workspaces printed differ in number from `--runs`.
+Every `plugin eval` call gets `--threshold 1`, so it exits 1 when any native grader (tool and regex
+graders in `case.yaml`) fails in any run.
+
+- 0: `plugin eval` exited 0 for every arm, so every native grader passed, and every kept workspace passed
+  the wrapper's own grades (`planner check`, no invented ID, no new `decided`, file expects and forbids,
+  and a clean `git status` for read-only cases).
+- 1: `plugin eval` exited 1 for some arm, or some workspace grade printed `FAIL`.
+- 2: a run could not be graded. `plugin eval` exited with anything but 0 or 1 (2 is the cost ceiling), or
+  the number of kept workspaces differs from `--runs`.
 
 ## Baseline (V1-07)
 
