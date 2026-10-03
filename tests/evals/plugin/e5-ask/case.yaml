@@ -1,0 +1,47 @@
+schema_version: '1.1'
+name: e5-ask-plugin
+description: /ask writes nothing, cites what it opened, and marks the part the vault does not hold.
+tags:
+- e5-ask
+- plugin
+plugins:
+- ../../../../plugin
+runs: 3
+execution:
+  prompt: /planner:ask Who tests CON-001 from each side, and what is the Booking API's rate limit?
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Bash
+  - Write
+  - Edit
+context:
+  scaffold_script: fixture.sh
+graders:
+- name: no-write
+  type: tool_used
+  tool: Write
+  min: 0
+  max: 0
+  arm: both
+- name: no-edit
+  type: tool_used
+  tool: Edit
+  min: 0
+  max: 0
+  arm: both
+- name: not-recorded-line
+  type: regex
+  pattern: '^Not recorded:'
+  flags: m
+- name: cites-con-001
+  type: regex
+  pattern: CON-001
+- name: sources-list
+  type: regex
+  pattern: '^Sources:'
+  flags: m

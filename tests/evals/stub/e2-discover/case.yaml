@@ -1,0 +1,51 @@
+schema_version: '1.1'
+name: e2-discover-stub
+description: Every fact cites a registered source; a roadmap's promise is never a fact; .inbox/ stays out of git.
+tags:
+- e2-discover
+- stub
+plugins:
+- ../../../stub-conventions
+runs: 3
+execution:
+  prompt: 'Following CONVENTIONS.md in this vault, run a Discover session: register the three documents in .inbox/ in sources.md,
+    read them, and write what exists today with sources. I say yes to every line you show me. This vault has no git remote
+    and no gh, so fetch, push and gh will fail: say so and carry on. Do not wait for answers from me beyond what this message
+    gives.'
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Bash
+  - Write
+  - Edit
+context:
+  scaffold_script: fixture.sh
+graders:
+- name: registers-sources
+  type: regex
+  pattern: \| SRC-0[1-3] \|
+  match: count:3
+  target:
+    source: file
+    path: sources.md
+- name: roadmap-is-intends
+  type: regex
+  pattern: \| SRC-0\d \|[^\n]*\| intends \|
+  target:
+    source: file
+    path: sources.md
+- name: facts-marked-fact
+  type: regex
+  pattern: '→ keep: [^\n]*\(fact\)'
+  target: trace
+- name: inbox-not-staged
+  type: tool_used
+  tool: Bash
+  input_match: git add[^\"]*\.inbox
+  min: 0
+  max: 0
+  arm: both

@@ -6,3 +6,4 @@ examples/unified-booking-viewer.html
 __pycache__/
 .superpowers/
 .pytest_cache/
+tests/evals/.results/
