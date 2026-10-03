@@ -1,4 +1,5 @@
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -80,3 +81,18 @@ def test_installed_plugin_checks_the_vault(tmp_path):
                             cwd=vault, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.startswith("planner check: 0 errors, 0 warnings in 22 pages.")
+
+
+def test_readme_install_step_works_on_a_fresh_copy(tmp_path):
+    """Run the README's own step 2 in a real shell: cp does not create missing parent folders."""
+    vault = tmp_path / "vault"
+    shutil.copytree(TEMPLATE, vault)
+    readme = (TEMPLATE / "README.md").read_text(encoding="utf-8")
+    command = re.search(r"^2\. .*?`(.+?)`", readme, re.MULTILINE).group(1)
+    assert "mkdir -p .claude/skills" in command
+    install = subprocess.run(command.replace("<toolkit>", str(REPO)), shell=True, cwd=vault,
+                             capture_output=True, text=True)
+    assert install.returncode == 0, install.stderr
+    result = subprocess.run([sys.executable, ".claude/skills/planner/bin/planner", "check"],
+                            cwd=vault, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr

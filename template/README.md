@@ -12,9 +12,9 @@ This vault holds one initiative. Start at [[01-goals|Goals]]. The format is in `
 ## Setup checklist
 
 1. Copy this folder to a new GitHub repository.
-2. Copy the planner plugin in: `cp -r <toolkit>/plugin .claude/skills/planner`.
+2. Copy the planner plugin in: `mkdir -p .claude/skills && cp -r <toolkit>/plugin .claude/skills/planner`.
 3. In `.planner.yaml`, set `initiative` to the next free `INI-nnn` and `title` to the initiative's name.
-4. Replace `@solution-lead` with your GitHub handle on every page: `grep -rl '@solution-lead' .`.
+4. List the files that hold `@solution-lead` with `grep -rl --exclude=README.md --exclude-dir=.git '@solution-lead' .`, then edit each file to put in your handle.
 5. Rewrite `CLAUDE.md` in your own words and delete its first line.
 6. Run `python3 .claude/skills/planner/bin/planner check`. It should report 0 errors.
 7. On GitHub, make the `planner-check` job a required status check on `main`.
