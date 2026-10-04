@@ -20,7 +20,7 @@ Prerequisites: Python 3.11 or later, and PyYAML (`python3 -m pip install pyyaml`
 5. Rewrite `CLAUDE.md` in your own words and delete its first line.
 6. Run `python3 .claude/skills/planner/bin/planner check`. It should report 0 errors.
 7. Start every Claude Code session with `bin/claude-planner` (or `sh bin/claude-planner`). The copied plugin only loads through its `--plugin-dir` flag, so a plain `claude` will not find `/planner:dump` or `/planner:close`.
-8. On GitHub, make the `planner-check` job a required status check on `main`.
+8. On GitHub, make the `planner-check` job a required status check on `main`. The `planner weekly` workflow needs no setup: every Monday it posts the vault's health to one issue titled "Vault health".
 9. To read the vault without Obsidian, build the offline viewer to a path outside the vault: `python3 .claude/skills/planner/bin/planner view --out ~/Desktop/<name>.html`. It is one HTML file. Its header shows the commit, whether the vault had uncommitted changes, and the error and warning counts from `planner check` at build time.
 10. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
 

@@ -13,7 +13,7 @@ import traceback
 
 import yaml
 
-from planner import model, parse, progress, render, rules, schema, viewer
+from planner import health, model, parse, progress, render, rules, schema, viewer
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 
@@ -166,6 +166,16 @@ def cmd_view(args, out):
     return 0
 
 
+def cmd_health(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    today, _ = parse_today(args.today)
+    vault = load_vault(root)
+    commit = git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
+    findings = rules.check(vault, today)
+    print(health.report(vault, findings, today, commit), end="", file=out)
+    return 0
+
+
 def days_between(earlier, later):
     return (datetime.date.fromisoformat(later) - datetime.date.fromisoformat(earlier)).days
 
@@ -241,6 +251,10 @@ def build_parser():
     nxt.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nxt.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
     nxt.set_defaults(func=cmd_next)
+    report = sub.add_parser("health", help="stale pages and sources, overdue unknowns and session gaps, as Markdown")
+    report.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    report.add_argument("--today", help="date to judge by, YYYY-MM-DD (default: system date)")
+    report.set_defaults(func=cmd_health)
     return parser
 
 

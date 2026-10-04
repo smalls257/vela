@@ -271,6 +271,8 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 - W716: a `sources.md` row's `Date` is more than `stale_after_days` before today, or is not a date.
 - W711: the last session with `status: closed` is more than 30 days before today. A vault with no closed session yet is not judged.
 
+`planner health` prints the same signals as one Markdown report: stale pages, stale sources, overdue unknowns with their owners @-mentioned, the days since the last closed session, and how many pages were never verified. The weekly workflow `.github/workflows/planner-weekly.yml` posts it as the one open issue titled "Vault health", creating it the first time and editing it after that.
+
 ## planner check and planner render
 
 Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It reads, never writes, and never stops at the first problem. `--today YYYY-MM-DD` sets the date for overdue unknowns; without it the system date is used, and the first line of output says which. Exit code 0 means no errors (warnings may print), 1 means errors, 2 means the tool itself failed.
