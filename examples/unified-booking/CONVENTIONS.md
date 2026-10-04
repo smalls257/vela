@@ -217,6 +217,8 @@ A capture line:
 - Mark, added at close: `keep: [[<page>#<heading>|<ID>]] (<state>)`, `park`, or `drop: <reason>`. Claude's own lines default to `park`. An `unknown` capture is kept or dropped with a reason, never parked.
 - The block ID `^cNN` is the last token on the line and unique in the file.
 
+A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, directly under `## Captures`, never a bullet. `<hash>` is the first 12 characters of the `shasum` of the paragraph. Close writes it and reads it back, so a declined paragraph is not offered again.
+
 ## Voice examples
 
 House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works`. `planner check` never reads `voice/`.
@@ -231,7 +233,7 @@ House-voice passages live in `voice/examples/<voice type>/`, one per file named 
 | `author` | who wrote it: a name for `public-seed`, `"@handle"` for `owner` and `owner-edit` |
 | `work`, `chapter`, `url`, `licence`, `licence_url`, `changes` | `public-seed` only: where it comes from and its licence |
 | `from` | `owner` only: where the passage comes from, in a few words |
-| `page`, `harvested_from` | `owner-edit` only: the page, and the short hash of the draft commit the owner edited |
+| `page`, `harvested_from` | `owner-edit` only: the page, and the full hash of the draft commit the owner edited |
 
 A voice type holds at most 5 `active` examples, counting `voice/examples/` and `voice/local/` together. When a sixth becomes active, one retires: the `public-seed` examples first, then the `owner-edit`, then the `owner`, the oldest `added` first within each. The owner may refuse a retirement. Then nothing new is stored for that type. Once a type has 2 `active` examples with `source: owner` or `owner-edit` in the same folder as a `public-seed` example, counted after the run, that seed retires, so drafts follow the owner. A local example never retires a committed seed, so every clone keeps its seed. An owner's words are stored as written and never rewritten. Nothing is ever deleted.
 

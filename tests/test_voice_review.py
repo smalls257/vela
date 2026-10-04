@@ -64,7 +64,7 @@ def test_close_rewrites_once_and_keeps_the_draft_when_a_fact_moves():
 def test_close_covers_the_empty_broken_and_meddling_reviewer():
     close = close_text()
     assert "you must not change any file, and you must report any file you changed" in close
-    assert "If the output differs from step 1, the reviewer changed a file: stop and show the user." in close
+    assert "If the output differs from step 1 of this part, the reviewer changed a file: stop and show the user." in close
     assert "returned anything but the table, treat the review as not run" in close
     assert "If it flagged no paragraph, skip steps 4 and 5 of this part" in close
     for kind in ("wikilink", "code span", "date", "ID", "number (with its units or currency)", "table cell",
@@ -195,7 +195,7 @@ def test_harvest_finds_drafts_through_the_merged_prs():
     close = close_text()
     assert 'gh pr list --state merged --search "head:session/"' in close
     assert "git fetch origin pull/<number>/head" in close
-    assert "--author @me" in close and "--limit 20" in close
+    assert "--author @me" in close and "--limit 10" in close
     assert "gh pr view <number> --json commits" in close
     assert 'say "gh could not list merged PRs, so nothing was harvested."' in close
 
@@ -204,7 +204,7 @@ def test_harvest_saves_word_for_word_on_an_explicit_yes():
     close = close_text()
     assert "Save it only on an explicit yes." in close
     assert "Save the merged paragraph word for word" in close
-    assert "source: owner-edit" in close and "harvested_from: '<short hash of the draft commit>'" in close
+    assert "source: owner-edit" in close and "harvested_from: '<full hash of the baseline draft commit>'" in close
 
 
 def test_harvest_keeps_five_active_and_retires_the_seed_first():
@@ -241,8 +241,8 @@ def test_harvest_reads_both_folders_and_retires_seeds_only_within_a_folder():
 def test_harvest_writes_the_paragraph_with_a_quoted_heredoc_and_a_cmp_check():
     harvest = harvest_text()
     assert "sed -n '<first>,<last>p'" in harvest
-    assert "cat <tmp> >> <file>" in harvest
-    assert "| cmp - <tmp>" in harvest
+    assert 'cat "$tmp" >> <file>' in harvest
+    assert '| cmp - "$tmp"' in harvest
     assert "do not repair the file" in harvest
 
 
@@ -297,39 +297,153 @@ def test_harvest_builds_on_the_prs_own_commits_and_reads_the_merged_text_from_it
 def test_the_owner_is_asked_who_wrote_the_change_before_being_asked_to_save():
     harvest = harvest_text()
     assert harvest.index("Did you write this change?") < harvest.index("Save the merged paragraph as a <type> example?")
-    assert "If the answer is no or unclear, save nothing." in harvest
+    assert "If it is no, or still unclear, record a decline" in harvest
+    assert "and do not ask the save question" in harvest
 
 
 def test_harvest_dedupes_per_paragraph_and_records_declines_in_the_session_record():
     harvest = harvest_text()
-    assert "Skip a pair that is already saved or declined." in harvest
-    assert "the same `page`, a `harvested_from` equal to the baseline's short hash, and a body equal to the merged paragraph" in harvest
-    assert "Harvest declined: PR <number> <page> <first 12 characters of shasum of the merged paragraph>" in harvest
-    assert "grep -rh '^Harvest declined:' sessions/" in harvest
-    assert "add the `Harvest declined:` line above to the session record" in harvest
+    assert "Skip a paragraph that is already saved or declined" in harvest
+    assert "the same `page`, a `harvested_from` equal to the baseline's full hash, and a body equal to the merged paragraph" in harvest
+    assert "`Harvest declined: PR <number> <page> <hash>`" in harvest
+    assert "grep -rh '^Harvest declined: ' sessions/" in harvest
 
 
 def test_two_owner_examples_in_a_folder_retire_that_folders_seed():
     harvest = harvest_text()
-    assert "to 2 or more, retire that folder's active `public-seed` examples of the type" in harvest
+    assert "2 or more, retire that folder's active `public-seed` examples of the type" in harvest
     assert "as `/planner:voice-seed` does. A local save retires only local seeds." in harvest
 
 
 def test_a_local_save_the_cap_blocks_stores_nothing_and_says_so():
     harvest = harvest_text()
-    assert "If the cap blocks a local-only save, store nothing and say" in harvest
+    assert "If the cap blocks a local-only save, store nothing" in harvest
     assert "The cap blocks a local save: <type> holds 5 active examples" in harvest
 
 
 def test_harvest_quotes_free_values_and_rechecks_the_frontmatter():
     harvest = harvest_text()
     assert "page: '<page path>'" in harvest
-    assert "harvested_from: '<short hash of the draft commit>'" in harvest
-    assert harvest.index("| cmp - <tmp>") < harvest.index("confirm it parses as YAML")
+    assert "harvested_from: '<full hash of the baseline draft commit>'" in harvest
+    assert harvest.index('| cmp - "$tmp"') < harvest.index("confirm it parses as YAML")
 
 
 def test_harvest_says_when_the_pr_limit_hid_older_prs():
     harvest = harvest_text()
-    assert "If it returns 20 PRs, say" in harvest
+    assert "If it returns 10 PRs, say" in harvest
+    assert "--limit 20" not in harvest
     assert "older PRs were not checked." in harvest
     assert "say when the PR limit hid older PRs" in close_text()
+
+
+# Fix round 2.
+
+def run_git(repo, *args, stdin=None):
+    return subprocess.run(["git", *args], cwd=repo, input=stdin, capture_output=True, text=True, check=True).stdout
+
+
+def commit_page(repo, text, message):
+    (repo / "page.md").write_text(text, encoding="utf-8")
+    run_git(repo, "add", "page.md")
+    run_git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", message)
+    return run_git(repo, "rev-parse", "HEAD").strip()
+
+
+def owner_edit_commits(repo, baseline, headlines_and_bodies):
+    """The skill's step 4 filter, as written: PR commits after the baseline, minus its own."""
+    shas = run_git(repo, "log", "--format=%H", f"{baseline}..HEAD", "--", "page.md").split()
+    kept = []
+    for sha in shas:
+        headline, body = headlines_and_bodies[sha]
+        if headline.startswith(("draft: ", "Checkpoint ", "Close session ")):
+            continue
+        if "Co-Authored-By: Claude" in body or "Claude-Session:" in body:
+            continue
+        kept.append(sha)
+    return kept
+
+
+@pytest.fixture
+def pr_repo(tmp_path):
+    run_git(tmp_path, "init", "-q")
+    return tmp_path
+
+
+def test_close_and_checkpoint_commits_are_never_offered_as_owner_edits(pr_repo):
+    meta = {}
+    base = commit_page(pr_repo, "Draft one.\n", "draft: prose for APP-1")
+    meta[base] = ("draft: prose for APP-1", "")
+    for headline in ("Checkpoint APP-1", "Close session 2026-10-03-x"):
+        sha = commit_page(pr_repo, f"Draft one.\n\nAdded by {headline}.\n", headline)
+        meta[sha] = (headline, "")
+    assert owner_edit_commits(pr_repo, base, meta) == []
+    sha = commit_page(pr_repo, "Draft one, tuned.\n\nAdded by Close session 2026-10-03-x.\n", "Tune the wording")
+    meta[sha] = ("Tune the wording", "")
+    assert owner_edit_commits(pr_repo, base, meta) == [sha]
+    skipped = commit_page(pr_repo, "Draft one, tuned again.\n\nAdded by Close session 2026-10-03-x.\n", "Reword")
+    meta[skipped] = ("Reword", "Claude-Session: https://claude.ai/code/session_x")
+    assert owner_edit_commits(pr_repo, base, meta) == [sha]
+
+
+def test_a_commit_is_diffed_against_its_parent_so_other_commits_do_not_bleed_in(pr_repo):
+    base = commit_page(pr_repo, "Alpha.\n\nBeta.\n", "draft: prose for APP-1")
+    commit_page(pr_repo, "Alpha.\n\nBeta.\n\nGamma from section 3.\n", "Close session x")
+    edit = commit_page(pr_repo, "Alpha, edited.\n\nBeta.\n\nGamma from section 3.\n", "Tune")
+    per_commit = run_git(pr_repo, "diff", "-U0", f"{edit}^", edit, "--", "page.md")
+    assert "+Alpha, edited." in per_commit and "Gamma" not in per_commit
+    baseline_to_tip = run_git(pr_repo, "diff", "-U0", base, edit, "--", "page.md")
+    assert "Gamma" in baseline_to_tip
+
+
+def test_the_skill_names_the_headline_and_body_fields_and_drops_authors():
+    harvest = harvest_text()
+    assert "`oid`, `messageHeadline` and `messageBody`" in harvest
+    assert "`authors`" not in harvest
+    assert "`messageHeadline` starts with `draft: `, `Checkpoint ` or `Close session `" in harvest
+    assert "each one whose `messageBody` carries a `Co-Authored-By: Claude` trailer or a `Claude-Session:` trailer" in harvest
+    assert "git diff -U0 <oid>^ <oid> -- <page>" in harvest
+    assert "Never compare the baseline with the tip" in harvest
+
+
+@pytest.mark.skipif(shutil.which("shasum") is None, reason="shasum is not installed")
+def test_the_decline_hash_command_is_reproducible(tmp_path):
+    import hashlib
+    paragraph = "Line one.\nLine two, with a tab\tand text.\n"
+    harvest = harvest_text()
+    assert 'shasum < "$tmp" | cut -c1-12' in harvest
+    assert "tmp=$(mktemp)" in harvest and 'rm -f "$tmp"' in harvest
+    script = f"""tmp=$(mktemp); cat > "$tmp" <<'PLANNER_EOF'\n{paragraph}PLANNER_EOF\nshasum < "$tmp" | cut -c1-12; rm -f "$tmp"\n"""
+    out = subprocess.run(["bash", "-c", script], capture_output=True, text=True, check=True).stdout.strip()
+    assert out == hashlib.sha1(paragraph.encode()).hexdigest()[:12]
+
+
+def test_a_decline_is_a_bare_line_under_captures_and_conventions_say_so():
+    harvest = harvest_text()
+    assert "insert one bare line `Harvest declined: PR <number> <page> <hash>` directly under `## Captures`" in harvest
+    assert "It is never a bullet." in harvest
+    sentence = "A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, directly under `## Captures`, never a bullet."
+    for path in ("template", "tests/stub-conventions", "examples/unified-booking"):
+        assert sentence in (REPO / path / "CONVENTIONS.md").read_text(encoding="utf-8")
+
+
+def test_the_full_hash_is_stored_and_a_no_asks_no_save_question():
+    harvest = harvest_text()
+    assert "harvested_from: '<full hash of the baseline draft commit>'" in harvest
+    assert "short hash" not in harvest
+    no = harvest.index("do not ask the save question")
+    assert harvest.index("Did you write this change?") < no < harvest.index("Save the merged paragraph as a <type> example?")
+
+
+def test_retirement_runs_only_after_the_cmp_check_confirms_the_save():
+    harvest = harvest_text()
+    assert "and change no example yet" in harvest
+    assert harvest.index('| cmp - "$tmp"') < harvest.index("Only now apply the retirements you planned in step 7")
+    assert harvest.index("Plan the room before you save") < harvest.index('| cmp - "$tmp"')
+
+
+def test_step_references_name_their_section():
+    close = close_text()
+    assert "See section 3." in close and "See step 3." not in close
+    assert "from sections 2 and 3," in close and "step 2 or 3" not in close
+    assert "the work that section 7 stages" in close and "that step 7 stages" not in close
+    assert "from section 6," in close

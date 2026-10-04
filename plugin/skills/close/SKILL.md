@@ -19,7 +19,7 @@ Open records live on `session/<id>` branches, so first run `git branch --list 's
 
 Propose a mark for every capture that has none yet, at once, as a numbered list with a one-line reason each. The user changes the ones they disagree with. Defaults:
 
-- In a session whose `modes` include `shape`, the picked option is kept as an `assumption`, never an `inkling`. See step 3.
+- In a session whose `modes` include `shape`, the picked option is kept as an `assumption`, never an `inkling`. See section 3.
 - A person's `idea` or `thought` is kept as an `inkling` on the page it belongs to.
 - A person's `unknown` or `worry` is kept as an unknown with an owner handle and an ask-by date you propose, or as a concern cell.
 - An `unknown` capture is kept or dropped with a reason. It is never parked. For a `claude`-origin `unknown`, the user must choose: kept as an UNK with an owner and an ask-by date, or dropped with a reason. Claude never decides it alone. This rule wins over the park default for `claude` lines.
@@ -48,15 +48,15 @@ A fresh reader checks the drafts, because the drafter cannot judge its own voice
 
 1. List every paragraph in the `draft: prose for <id>` commit: a number, the page path, its voice type from house-voice's table, and the paragraph's text. Run `git status --porcelain` and keep the output.
 2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to the part "Harvest the owner's edits". The harvest does not depend on the review.
-3. Run `git status --porcelain` again. If the output differs from step 1, the reviewer changed a file: stop and show the user. If the reviewer errored, or returned anything but the table, treat the review as not run, write "**Voice review:** not run: <the reason>" in the PR body, and go on to the part "Harvest the owner's edits". If it flagged no paragraph, skip steps 4 and 5 of this part: there is nothing to rewrite and no commit, so go on to the part "Harvest the owner's edits".
-4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file. Before you rewrite a page, check it holds no uncommitted edit from step 2 or 3, because a restore would discard that edit. For each `<page>`:
+3. Run `git status --porcelain` again. If the output differs from step 1 of this part, the reviewer changed a file: stop and show the user. If the reviewer errored, or returned anything but the table, treat the review as not run, write "**Voice review:** not run: <the reason>" in the PR body, and go on to the part "Harvest the owner's edits". If it flagged no paragraph, skip steps 4 and 5 of this part: there is nothing to rewrite and no commit, so go on to the part "Harvest the owner's edits".
+4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file. Before you rewrite a page, check it holds no uncommitted edit from sections 2 and 3, because a restore would discard that edit. For each `<page>`:
 
    ```
    git diff --quiet HEAD -- <page> || { git add -- <page> && git commit -qm "Checkpoint <id>" -- <page>; }
    ```
 
    This commits that page alone, with the message `Checkpoint <id>`, when it differs from HEAD. Then rewrite it, so `git restore -- <page>` returns the page to a state that already holds those edits.
-5. Check only the pages you rewrote, one at a time, because the working tree also holds step 2 and 3 work that is not committed. For each rewritten `<page>`:
+5. Check only the pages you rewrote, one at a time, because the working tree also holds the work of sections 2 and 3 that is not committed. For each rewritten `<page>`:
 
    ```
    tmp=$(mktemp)
@@ -67,7 +67,7 @@ A fresh reader checks the drafts, because the drafter cannot judge its own voice
    voicecheck fails if a rewrite lost, added or moved a wikilink, code span, date, ID, number (with its units or currency), table cell, version, frontmatter line or negation.
    - Exit 0: keep the rewrite.
    - Exit 1: run `git restore -- <page>`. That discards every rewrite on that page and keeps its earlier draft whole. Run it for no other file.
-   - Exit 2: show the error, then run `git restore -- <page>` so the unchecked rewrite stays out of the work that step 7 stages. Never commit a rewrite voicecheck could not check.
+   - Exit 2: show the error, then run `git restore -- <page>` so the unchecked rewrite stays out of the work that section 7 stages. Never commit a rewrite voicecheck could not check.
 
    Then commit the rewrites that passed with the message `draft: voice rewrite for <id>`, staging each page by exact path.
 
@@ -78,21 +78,22 @@ Only the vault's owner harvests, and only their own edits. The owner is the `aut
 Every `gh` or `git` call below can fail. When one does, say which call failed and what it left unchecked. Never read a failure as "no edits found". Say "no edits found" only when every merged PR was checked.
 
 1. Get the user's handle with `gh api user -q .login`. If `gh` fails, say "gh could not read your handle, so nothing was harvested." and go on to section 5, Read back decided wording. If the handle is not the owner's handle without the `@`, say "Harvest is owner-only." and go on to section 5, Read back decided wording.
-2. List the user's merged session PRs: `gh pr list --state merged --search "head:session/" --author @me --json number,headRefName --limit 20`. If `gh` fails, say "gh could not list merged PRs, so nothing was harvested." and go on to section 5, Read back decided wording. If it returns 20 PRs, say "20 merged PRs came back, so older PRs were not checked."
-3. Take one PR at a time, because `FETCH_HEAD` holds only the last fetch. Run `gh pr view <number> --json commits`, which lists each commit's `oid`, message and `authors`, and `git fetch origin pull/<number>/head`. If `gh` fails, say "gh could not read the commits of PR <number>, so its edits were not checked." and go to the next PR. If the fetch fails, say "git could not fetch PR <number>, so it was not checked." and go to the next PR. Then:
-   - Keep the commits whose message starts `draft: `, both `draft: prose for` and `draft: voice rewrite for`. Skip the PR if there are none.
+2. List the user's merged session PRs: `gh pr list --state merged --search "head:session/" --author @me --json number,headRefName --limit 10`. If `gh` fails, say "gh could not list merged PRs, so nothing was harvested." and go on to section 5, Read back decided wording. If it returns 10 PRs, say "10 merged PRs came back, so older PRs were not checked."
+3. Take one PR at a time, because `FETCH_HEAD` holds only the last fetch. Run `gh pr view <number> --json commits`, which lists each commit's `oid`, `messageHeadline` and `messageBody`, and `git fetch origin pull/<number>/head`. If `gh` fails, say "gh could not read the commits of PR <number>, so its edits were not checked." and go to the next PR. If the fetch fails, say "git could not fetch PR <number>, so it was not checked." and go to the next PR. Then:
+   - Keep the commits whose `messageHeadline` starts `draft: `, both `draft: prose for` and `draft: voice rewrite for`. Skip the PR if there are none.
    - For each, list its pages with `git diff-tree --no-commit-id --name-only -r <oid>`. For each page, the baseline is the last draft commit in the PR's list that touched it.
 4. For each page of the PR:
-   - Run `git log --format=%H <baseline>..FETCH_HEAD -- <page>` and keep the commits that are in the PR's list. Drop each one whose message carries a `Co-Authored-By: Claude` trailer or a `Claude-Session:` trailer. If none remain, the owner did not edit the page, so skip it.
-   - Read the merged text from `git show FETCH_HEAD:<page>`, never from `origin/main`, and the draft from `git show <baseline>:<page>`. Pair each paragraph of the draft with the one in its place in the merged text. A pair that differs is a paragraph to offer.
-   - Skip a pair that is already saved or declined. It is saved when an example in either folder has the same `page`, a `harvested_from` equal to the baseline's short hash, and a body equal to the merged paragraph. It is declined when `grep -rh '^Harvest declined:' sessions/` has its line: `Harvest declined: PR <number> <page> <first 12 characters of shasum of the merged paragraph>`.
-5. Offer each remaining pair, one at a time. Take the merged paragraph's lines from `git show FETCH_HEAD:<page>` with `sed -n '<first>,<last>p'` by line number into a temp file, and show that file, so the text is never retyped. Show the draft, the merged text and its voice type from house-voice's table. Harvest offers and never saves by itself. Ask "Did you write this change?" The owner's answer is the check that the edit is theirs. If the answer is no or unclear, save nothing. Then ask "Save the merged paragraph as a <type> example?" Save it only on an explicit yes. On a no, an unclear answer or any decline, add the `Harvest declined:` line above to the session record, and save nothing.
+   - Run `git log --format=%H <baseline>..FETCH_HEAD -- <page>` and keep the commits that are in the PR's list. Drop each one whose `messageHeadline` starts with `draft: `, `Checkpoint ` or `Close session `, and each one whose `messageBody` carries a `Co-Authored-By: Claude` trailer or a `Claude-Session:` trailer. Those are the skill's own commits. Drop a merge commit too. If none remain, the owner did not edit the page, so skip it.
+   - For each remaining commit, run `git diff -U0 <oid>^ <oid> -- <page>`. Never compare the baseline with the tip, because the tip also holds section 3's content. The added lines are the owner's edit. Find the paragraph of `git show FETCH_HEAD:<page>` that holds them. If a later commit removed them, skip. The draft paragraph is the one in its place in `git show <oid>^:<page>`. Read the merged text from `FETCH_HEAD`, never from `origin/main`.
+   - Extract the merged paragraph into a temp file, and hash it: `tmp=$(mktemp)`, then `git show FETCH_HEAD:<page> | sed -n '<first>,<last>p' > "$tmp"`, then `shasum < "$tmp" | cut -c1-12`.
+   - Skip a paragraph that is already saved or declined, and run `rm -f "$tmp"`. It is saved when an example in either folder has the same `page`, a `harvested_from` equal to the baseline's full hash, and a body equal to the merged paragraph. It is declined when `grep -rh '^Harvest declined: ' sessions/` has its line: `Harvest declined: PR <number> <page> <hash>`.
+5. Offer each remaining paragraph, one at a time. Show the draft paragraph, the temp file and the voice type from house-voice's table, so the text is never retyped. Harvest offers and never saves by itself. Ask "Did you write this change?" The owner's answer is the check that the edit is theirs. If the answer is unclear, ask once more. If it is no, or still unclear, record a decline, run `rm -f "$tmp"`, and do not ask the save question. Otherwise ask "Save the merged paragraph as a <type> example?" Save it only on an explicit yes. On any other answer, record a decline and run `rm -f "$tmp"`. To record a decline, insert one bare line `Harvest declined: PR <number> <page> <hash>` directly under `## Captures` in the session record. It is never a bullet.
 6. Ask where it goes, and say plainly that a committed example is pushed in this PR, where everyone with access to the repository can read it:
    - committed: `voice/examples/<type>/`. Ask "May this text be committed to the vault?" and wait for an explicit yes.
    - local only: `voice/local/<type>/`. It stays on this machine and no step below stages it.
 
-   If the owner's employer owns the text, or the owner is not sure, recommend local only. If the answer is not an explicit choice, do not save.
-7. Make room first, then save. A type keeps at most 5 active examples. Count both folders together, with the new one. If that makes 6, retire one: the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`, by `added` and then file name. A local example never retires a committed seed, and in a local-only save only local examples may retire. If the cap blocks a local-only save, store nothing and say "The cap blocks a local save: <type> holds 5 active examples and none in voice/local/ may retire." Show the owner each retirement and ask. If they refuse, store nothing for that type. Change no other line of a retired example, and never delete an example.
+   If the owner's employer owns the text, or the owner is not sure, recommend local only. If the answer is not an explicit choice, do not save, and run `rm -f "$tmp"`.
+7. Plan the room before you save, and change no example yet. A type keeps at most 5 active examples. Count both folders together, with the new one. If that makes 6, plan to retire one: the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`, by `added` and then file name. A local example never retires a committed seed, and in a local-only save only local examples may retire. If the cap blocks a local-only save, store nothing, run `rm -f "$tmp"`, and say "The cap blocks a local save: <type> holds 5 active examples and none in voice/local/ may retire." Show the owner each planned retirement and ask. If they refuse, store nothing for that type, and run `rm -f "$tmp"`.
 8. Save the merged paragraph word for word as `<folder>/<type>/VX-<type>-NNN.md`, NNN one higher than the highest in that type in both folders, retired files included. First write the frontmatter with the Write tool, quoting every free value, ending with the closing `---` and one blank line:
 
    ```
@@ -102,20 +103,20 @@ Every `gh` or `git` call below can fail. When one does, say which call failed an
    source: owner-edit
    author: "@<handle>"
    page: '<page path>'
-   harvested_from: '<short hash of the draft commit>'
+   harvested_from: '<full hash of the baseline draft commit>'
    state: active
    added: <today>
    ---
 
    ```
 
-   Then append the temp file from step 5 of this part with `cat <tmp> >> <file>`, and compare it with the stored body, with a tool:
+   Then append the temp file with `cat "$tmp" >> <file>`, and compare it with the stored body, with a tool:
 
    ```
-   awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - <tmp>
+   awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - "$tmp"; code=$?; rm -f "$tmp"; (exit $code)
    ```
 
-   If `cmp` reports a difference, stop, tell the owner, and do not repair the file. Then re-read the frontmatter and confirm it parses as YAML and that `page` and `harvested_from` hold the text you gave. If a retirement or a save changed a type's active owner and `owner-edit` examples in a folder to 2 or more, retire that folder's active `public-seed` examples of the type, changing only the `state:` line, as `/planner:voice-seed` does. A local save retires only local seeds.
+   If `cmp` reports a difference, stop, tell the owner, and do not repair the file. Then re-read the frontmatter and confirm it parses as YAML and that `page` and `harvested_from` hold the text you gave. Only now apply the retirements you planned in step 7, changing only each `state:` line. If the save made a folder's active `owner` and `owner-edit` examples of the type 2 or more, retire that folder's active `public-seed` examples of the type the same way, as `/planner:voice-seed` does. A local save retires only local seeds. Retire by editing `state:` and never delete an example.
 
 ## 5. Read back decided wording
 
@@ -147,7 +148,7 @@ Write the PR body to a temporary file. Fill the headings of the vault's PR templ
   - **Decided wording not yet read back:** each `decided` item whose owner was not present in section 5.
   - **Promoted on a nod:** every item kept or promoted from a capture whose origin starts with `claude`, not only the deciding capture, with the capture quoted.
   - **Changed contracts:** each contract, and for each consumer, who was asked: present, async, in this PR, or "not consulted: <reason>".
-  - **Overdue unknowns:** each `W705` line from step 6, with its owner @-mentioned.
+  - **Overdue unknowns:** each `W705` line from section 6, with its owner @-mentioned.
   - **May still say the old value:** for each `decided` or `fact` value this session changed, run `grep -rn -F "<old wording>" --include='*.md' . | grep -v '^./sessions/'` and list every hit.
   - **Check:** the first line of the check output, and any error left in place.
 - **Minutes.** Ask the user how long the session took.
