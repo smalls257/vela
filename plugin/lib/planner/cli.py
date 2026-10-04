@@ -303,7 +303,7 @@ def cmd_export(args, out):
     target = pathlib.Path(args.out)
     try:
         target.write_text(export.to_csv(table), encoding="utf-8", newline="")
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         raise ToolError(f"Cannot write {target}: {exc}") from exc
     print(f"planner export: wrote {len(table)} epics to {target}.", file=out)
     if remote and not base:

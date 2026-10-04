@@ -128,18 +128,18 @@ def to_csv(table):
 
 def web_url(remote):
     """A browsable https URL for a git remote, or "" when it cannot be made one."""
-    remote = remote.strip()
+    remote = remote.strip().split("#", 1)[0].split("?", 1)[0]
     if re.search(r"\s", remote):
         return ""
     scp = re.match(r"^[\w.-]+@([^:/]+):(.+?)(?:\.git)?/?$", remote)
     if scp:
         return f"https://{scp.group(1)}/{scp.group(2)}"
     # user:token@ never reaches the CSV; an ssh port means nothing on the web host.
-    hosted = re.match(r"^(https?|ssh)://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+?)(?:\.git)?/?$", remote)
+    hosted = re.match(r"^(https?|ssh)://(?:[^@/]+@)?([^/:@]+)(?::\d+)?/(.+?)(?:\.git)?/?$", remote)
     if not hosted:
         return ""
     scheme = "http" if hosted.group(1) == "http" else "https"
-    port = re.match(r"^https?://(?:[^@/]+@)?[^/:]+(:\d+)", remote) if hosted.group(1) != "ssh" else None
+    port = re.match(r"^https?://(?:[^@/]+@)?[^/:@]+(:\d+)", remote) if hosted.group(1) != "ssh" else None
     return f"{scheme}://{hosted.group(2)}{port.group(1) if port else ''}/{hosted.group(3)}"
 
 

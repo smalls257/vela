@@ -189,3 +189,24 @@ def test_uncommitted_vault_warns_that_links_point_at_head(tmp_path):
     assert "uncommitted changes, so Vault links point at HEAD" in dirty
     _, pinned, _ = exported(tmp_path, "--repo-url", "https://github.com/o/r", "--commit", "abc", vault=vault)
     assert "uncommitted changes" not in pinned
+
+
+def test_a_query_string_or_fragment_in_a_remote_never_reaches_a_link(tmp_path):
+    assert export.web_url("https://github.com/o/r?token=abc") == "https://github.com/o/r"
+    assert export.web_url("https://github.com/o/r.git#frag") == "https://github.com/o/r"
+    _, _, rows = exported(tmp_path, "--repo-url", "https://github.com/o/r?token=sEcr3tq", "--commit", "abc")
+    assert rows[1][4].startswith("https://github.com/o/r/blob/abc/")
+    assert "sEcr3tq" not in (tmp_path / "epics.csv").read_text(encoding="utf-8")
+
+
+def test_a_password_holding_an_at_sign_gives_no_link_and_no_leak(tmp_path):
+    assert export.web_url("https://user:p@ss@github.com/o/r") == ""
+    code, text, rows = exported(tmp_path, "--repo-url", "https://user:p@ssw0rdX@github.com/o/r", "--commit", "abc")
+    assert rows[1][4] == "13-epics/EPC-031-holds-and-confirms.md"
+    assert "not one planner can turn into a web link" in text
+    assert "ssw0rdX" not in (tmp_path / "epics.csv").read_text(encoding="utf-8") + text
+
+
+def test_a_null_byte_in_out_is_a_tool_failure(tmp_path):
+    code, text = run("export", "jira-csv", "--vault", str(FIXTURE), "--out", str(tmp_path / "a\0b.csv"))
+    assert code == 2 and "Cannot write" in text and "Traceback" not in text
