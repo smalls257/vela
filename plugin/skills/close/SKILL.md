@@ -49,7 +49,13 @@ A fresh reader checks the drafts, because the drafter cannot judge its own voice
 1. List every paragraph in the `draft: prose for <id>` commit: a number, the page path, its voice type from house-voice's table, and the paragraph's text. Run `git status --porcelain` and keep the output.
 2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to step 5.
 3. Run `git status --porcelain` again. If the output differs from step 1, the reviewer changed a file: stop and show the user. If the reviewer errored, or returned anything but the table, treat the review as not run, write "**Voice review:** not run: <the reason>" in the PR body, and go on to step 5. If it flagged no paragraph, skip steps 4 and 5 of this part: there is nothing to rewrite and no commit.
-4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file.
+4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file. Before you rewrite a page, check it holds no uncommitted edit from step 2 or 3, because a restore would discard that edit. For each `<page>`:
+
+   ```
+   git diff --quiet HEAD -- <page> || { git add -- <page> && git commit -qm "Checkpoint <id>"; }
+   ```
+
+   This commits that page alone, with the message `Checkpoint <id>`, when it differs from HEAD. Then rewrite it, so `git restore -- <page>` returns the page to a state that already holds those edits.
 5. Check only the pages you rewrote, one at a time, because the working tree also holds step 2 and 3 work that is not committed. For each rewritten `<page>`:
 
    ```

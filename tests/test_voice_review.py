@@ -84,6 +84,15 @@ def recipe_commands():
     return block.replace(".claude/skills/planner/bin/planner", str(PLUGIN / "bin" / "planner"))
 
 
+def guard_command():
+    found = re.search(r"^ *```\n( *git diff --quiet HEAD -- <page>.*?)^ *```", close_text(), re.S | re.M)
+    return textwrap.dedent(found.group(1))
+
+
+GIT_IDENTITY = {"GIT_AUTHOR_NAME": "T", "GIT_AUTHOR_EMAIL": "t@example.invalid",
+                "GIT_COMMITTER_NAME": "T", "GIT_COMMITTER_EMAIL": "t@example.invalid"}
+
+
 def git_in(repo, *args):
     cmd = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid", *args]
     return subprocess.run(cmd, cwd=repo, check=True, capture_output=True, text=True).stdout
@@ -120,6 +129,20 @@ def test_a_rewrite_that_lost_a_number_is_restored_and_other_work_survives(tmp_pa
     assert close_voicecheck(tmp_path, "page.md") == 1
     assert (tmp_path / "page.md").read_text(encoding="utf-8") == DRAFT
     assert "added by step 3" in (tmp_path / "record.md").read_text(encoding="utf-8")
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_a_step_three_edit_on_a_rewritten_page_survives_the_restore(tmp_path):
+    import os
+    draft_repo(tmp_path)
+    page = tmp_path / "page.md"
+    page.write_text(DRAFT + "- capture mark from step 3\n", encoding="utf-8")
+    guard = guard_command().replace("<page>", "page.md").replace("<id>", "s")
+    subprocess.run(["bash", "-c", guard], cwd=tmp_path, check=True, env={**os.environ, **GIT_IDENTITY})
+    assert git_in(tmp_path, "log", "-1", "--format=%s").strip() == "Checkpoint s"
+    page.write_text("Booking keeps the seat for ten minutes while the customer pays.\n- capture mark from step 3\n", encoding="utf-8")
+    assert close_voicecheck(tmp_path, "page.md") == 1
+    assert page.read_text(encoding="utf-8") == DRAFT + "- capture mark from step 3\n"
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
