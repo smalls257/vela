@@ -273,6 +273,17 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 
 `planner health` prints the same signals as one Markdown report: stale pages, stale sources, overdue unknowns with their owners @-mentioned, the days since the last closed session, and how many pages were never verified. The weekly workflow `.github/workflows/planner-weekly.yml` posts it as the one open issue titled "Vault health", creating it the first time and editing it after that.
 
+## planner query
+
+`planner query` answers questions about IDs and never writes. Add `--json` for JSON.
+
+- `planner query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, and the wikilink to cite it by.
+- `planner query refs <ID>`: every page line that links to the ID, and every epic list that names it.
+- `planner query find <words>`: page titles and item headings that hold every word, in any case.
+- `planner query status`: the `planner status` grid as data.
+
+An ID the vault does not hold comes back as `not_found` and exits 1. An ID is matched exactly, so `con-001` is not `CON-001`.
+
 ## planner check and planner render
 
 Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It reads, never writes, and never stops at the first problem. `--today YYYY-MM-DD` sets the date for overdue unknowns; without it the system date is used, and the first line of output says which. Exit code 0 means no errors (warnings may print), 1 means errors, 2 means the tool itself failed.

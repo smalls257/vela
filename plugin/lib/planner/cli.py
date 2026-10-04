@@ -5,6 +5,7 @@ Exit codes: 0 clean, 1 findings, 2 the tool itself failed.
 import argparse
 import codecs
 import datetime
+import json
 import pathlib
 import subprocess
 import sys
@@ -13,7 +14,7 @@ import traceback
 
 import yaml
 
-from planner import health, model, parse, progress, render, rules, schema, viewer
+from planner import health, model, parse, progress, query, render, rules, schema, viewer
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 
@@ -176,6 +177,40 @@ def cmd_health(args, out):
     return 0
 
 
+def print_answer(answer, as_json, out):
+    """JSON, or one "key: value" line per field with lists joined by commas."""
+    if as_json:
+        print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
+        return
+    for key, value in answer.items():
+        if isinstance(value, list) and value and isinstance(value[0], dict):
+            print(f"{key}:", file=out)
+            for entry in value:
+                print("  " + " · ".join(f"{k}: {v}" for k, v in entry.items()), file=out)
+        elif isinstance(value, list):
+            print(f"{key}: {', '.join(map(str, value)) or 'none'}", file=out)
+        elif isinstance(value, bool):
+            print(f"{key}: {'true' if value else 'false'}", file=out)
+        else:
+            print(f"{key}: {value if value not in (None, '') else 'none'}", file=out)
+
+
+def cmd_query(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    if args.what == "get":
+        answer = query.get(vault, args.id)
+    elif args.what == "refs":
+        answer = query.refs(vault, args.id)
+    elif args.what == "find":
+        answer = query.find(vault, args.words)
+    else:
+        today, _ = parse_today(args.today)
+        answer = query.status(vault, today)
+    print_answer(answer, args.json, out)
+    return 1 if answer.get("not_found") else 0
+
+
 def days_between(earlier, later):
     return (datetime.date.fromisoformat(later) - datetime.date.fromisoformat(earlier)).days
 
@@ -255,6 +290,21 @@ def build_parser():
     report.add_argument("--vault", default=".", help="vault root (default: current directory)")
     report.add_argument("--today", help="date to judge by, YYYY-MM-DD (default: system date)")
     report.set_defaults(func=cmd_health)
+    ask = sub.add_parser("query", help="read-only answers about IDs, for /ask: get, refs, find, status")
+    asks = ask.add_subparsers(dest="what", required=True)
+    for name, helptext in (("get", "an ID's page, heading, state, owner, sources and decision"),
+                           ("refs", "every page that links to an ID"), ("find", "page titles and item headings with these words"),
+                           ("status", "the planner status grid")):
+        one = asks.add_parser(name, help=helptext)
+        if name in ("get", "refs"):
+            one.add_argument("id", help="an ID, for example CON-001 or APP-booking")
+        if name == "find":
+            one.add_argument("words", nargs="+", help="words that must all appear, in any case")
+        if name == "status":
+            one.add_argument("--today", help="date to judge by, YYYY-MM-DD (default: system date)")
+        one.add_argument("--vault", default=".", help="vault root (default: current directory)")
+        one.add_argument("--json", action="store_true", help="print JSON instead of text")
+        one.set_defaults(func=cmd_query)
     return parser
 
 
