@@ -13,7 +13,7 @@ The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONV
 
 ## 1. Start
 
-Run steps 1, 2 and 5 of `.claude/skills/planner/references/START.md` with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. Read the Challenge row of `.claude/skills/planner/references/MODES.md`.
+Run steps 1, 2 and 5 of `.claude/skills/planner/references/START.md` with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `.claude/skills/planner/references/MODES.md`.
 
 ## 2. Find the challenged item
 
@@ -22,7 +22,7 @@ Run `python3 .claude/skills/planner/bin/planner query get <ID> --json`.
 - If it says `not_found`, stop: "<ID> is not in this vault." Do not guess another ID.
 - A challenge is about a boundary or a contract. Go on only if `kind` is `contract`, `app-building-blocks` (what the app does and does not do) or `epic` (an epic's criteria or scope). For anything else, say a challenge does not cover it, and offer an ask to the item's owner instead.
 - Find the app: the page for a contract or app page, or each app in an epic's `apps`. Read its building-blocks page. If it has no `handed_off:`, say so: before handoff, a disagreement belongs in a Shape or a Grill with the solution lead. Ask whether to go on anyway.
-- Run `python3 .claude/skills/planner/bin/planner handoff verify <APP-id>` and show the output, so the senior sees what changed since they accepted the slice. Exit 2 means there is no manifest; say so and go on.
+- Run `python3 .claude/skills/planner/bin/planner handoff verify <APP-id>` and show the output, so the senior sees what changed since they accepted the slice. Exit 2 covers two cases, so show the tool's message. If it says "does not exist", there is no manifest: say so and go on. Any other exit 2 is a damaged manifest: tell the senior that what changed since handoff could not be read, and go on without claiming anything about it.
 
 ## 3. Hear the challenge
 
@@ -39,7 +39,7 @@ Capture each answer as said, with the senior's handle as origin. If you restate 
 
 Write only these, and change nothing else:
 
-- On `11-unknowns-and-risks.md`, under `## Unknowns`, add the unknown. Its number is the next free `UNK-nnn`: grep the vault, and read the `## Changes` tables of the records on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:sessions/<id>.md`), because an open session may already hold the next number. The short name has at most six words and none of `# | ^ : % [ ]`.
+- On `11-unknowns-and-risks.md`, add the unknown. Its number is the highest `UNK-nnn` in use plus one, the next free `UNK-nnn`. Never fill a gap. Count the numbers in use in three places: `main`; the `11-unknowns-and-risks.md` of each branch on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:11-unknowns-and-risks.md`); and the `## Changes` tables of those branches' records (`git show <branch>:sessions/<id>.md`), because an open session may already hold the next number. Add the entry at the end of `## Unknowns`, before `## Risks`. The short name has at most six words and none of `# | ^ : % [ ]`.
 
 ```
 ### UNK-nnn <short name>
@@ -53,7 +53,7 @@ Write only these, and change nothing else:
 - **Notes:** Challenge after handoff. Case: <the case, in the senior's words>. Proposed: <what they would have it say>.
 ```
 
-  Use `link` from the query answer for the `**Blocks:**` link. For an app page or an epic, link the page: `[[<page>|<ID>]]`.
+  Use `link` from the query answer for the `**Blocks:**` link. For an app page or an epic, link the page: `[[<page>|<ID>]]`. Challenging an APP page blocks every decided unit on it, so E316 fires once per unit. Say so to the senior before writing, and prefer the one contract when the dispute is about one.
 - On the challenged item, add one line. For a contract, put it under the contract's heading, after its last bullet. For an app page or an epic, put it at page level, after its `**Decision:**` line: `- **Dissent:** <senior handle>, <today>: <the reason in a few words> (see [[11-unknowns-and-risks#UNK-nnn <short name>|UNK-nnn]])`.
 - In the record's `## Changes`, add `| UNK-nnn | - | open | [[<session id>#^cNN]] |`, citing the capture of the question. Mark that capture `→ keep: [[11-unknowns-and-risks#UNK-nnn <short name>|UNK-nnn]] (open)`. Mark each other capture of the senior's `→ keep` the same way, since its words are in the unknown. Park any capture whose origin starts with `claude` unless the senior picked it.
 
@@ -61,7 +61,7 @@ Never touch the item's `state:`, `**State:**`, wording, criteria or any other li
 
 ## 5. Render and check
 
-Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/skills/planner/bin/planner check`. If the challenged item is `decided`, check now reports E316: "decided, but open unknown UNK-nnn blocks it". That is expected and stays in the PR. It tells the solution lead an answer is owed. Fix any other error with the senior, or stop and show it.
+Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/skills/planner/bin/planner check`. If the challenged item is `decided`, check now reports E316: "decided, but open unknown UNK-nnn blocks it". That is deliberate and stays in the PR. It tells the solution lead an answer is owed. Fix any other error with the senior, or stop and show it.
 
 ## 6. Close the record and open the PR
 
@@ -74,6 +74,7 @@ Write the PR body to a temporary file:
 - **Challenge.** The item, the senior's question, the case and what they propose, quoted from the captures.
 - **Unknown.** `UNK-nnn`, its owner and its ask-by date.
 - **Check.** The first line of the check output and the E316 line, if any.
+- **The red check.** Say all of this: E316 is deliberate. It blocks the merge wherever planner-check is a required check, so the PR cannot merge while `main` reads `decided` with an open blocker. The solution lead answers on this branch, either by resolving `UNK-nnn` with a Grill or by setting the item back. For an epic, setting it back means `reopened`. After that the check turns green and the PR can merge.
 - **What the solution lead can do.** Resolve `UNK-nnn` with the senior, in a Grill if the answer changes a decision. Or set the item back: a contract to `assumption`, an epic to `reopened`. Until one happens, the check stays red.
 - **Since handoff.** The `planner handoff verify` output from step 2.
 

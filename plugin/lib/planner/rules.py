@@ -425,8 +425,9 @@ def _gate_four(vault):
             for unit_id, state, page, line in blocked_units(vault, link, unknown.page):
                 if state != "decided":
                     continue
+                back = "set it to reopened" if page.meta.get("type") == "epic" else "set it back to assumption"
                 yield _f(page, line, "E316", f"{unit_id} is decided, but open unknown {unknown.id} blocks it.",
-                         f"Resolve {unknown.id} first, or set {unit_id} back to assumption.")
+                         f"Resolve {unknown.id} first, or {back}.")
 
 
 # --------------------------------------------------------------------- stage

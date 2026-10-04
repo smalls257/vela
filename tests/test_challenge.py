@@ -122,3 +122,64 @@ def test_what_a_challenge_writes_turns_the_check_red_and_verify_names_it(tmp_pat
     _, answer = run("query", "get", "CON-001", "--vault", str(vault), "--json")
     answer = json.loads(answer)
     assert answer["state"] == "decided" and answer["blocked_by"] == ["UNK-008"]
+
+
+def test_the_pr_says_the_red_check_is_deliberate_and_blocks_the_merge():
+    text = skill_text()
+    assert "E316 is deliberate." in text
+    assert "blocks the merge wherever planner-check is a required check" in text
+    assert "either by resolving `UNK-nnn` with a Grill or by setting the item back" in text
+    assert "For an epic, setting it back means `reopened`." in text
+    conv = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    assert "deliberate" in conv and "blocks the merge" in conv
+
+
+def test_handoff_verify_exit_2_has_two_cases_and_the_skill_shows_the_message():
+    text = skill_text()
+    assert "show the tool's message" in text
+    assert 'If it says "does not exist", there is no manifest' in text
+    assert "could not be read, and go on without claiming anything" in text
+
+
+def test_the_next_unknown_number_is_highest_plus_one_and_the_session_id_names_the_item():
+    text = skill_text()
+    assert "highest `UNK-nnn` in use plus one" in text and "Never fill a gap." in text
+    assert "git show <branch>:11-unknowns-and-risks.md" in text
+    assert "at the end of `## Unknowns`, before `## Risks`" in text.replace("Add the entry at", "at")
+    assert "`<date>-challenge-<id-lowercased>`" in text
+    assert "E316 fires once per unit" in text
+
+
+def _challenged_vault(tmp_path, blocks):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    edit(vault / "11-unknowns-and-risks.md", "## Risks\n", UNKNOWN.replace(
+        "[[booking-building-blocks#CON-001 Booking API|CON-001]]", blocks))
+    (vault / "sessions" / "2026-11-21-challenge-con-001.md").write_text(RECORD, encoding="utf-8")
+    assert run("render", "--vault", str(vault))[0] == 0
+    return vault
+
+
+def test_an_epic_challenge_gives_one_e316_and_the_hint_says_reopened(tmp_path):
+    vault = _challenged_vault(tmp_path, "[[EPC-031-holds-and-confirms|EPC-031]]")
+    code, out = run("check", "--vault", str(vault), "--today", "2026-11-21")
+    assert code == 1
+    assert findings(out) == [("E316", "13-epics/EPC-031-holds-and-confirms.md")]
+    assert "EPC-031 is decided, but open unknown UNK-008 blocks it." in out
+    assert "set it to reopened" in out and "back to assumption" not in out
+
+
+def test_a_contract_challenge_hint_still_says_assumption(tmp_path):
+    vault = _challenged_vault(tmp_path, "[[booking-building-blocks#CON-001 Booking API|CON-001]]")
+    _, out = run("check", "--vault", str(vault), "--today", "2026-11-21")
+    assert "set it back to assumption" in out
+
+
+def test_an_app_page_challenge_gives_one_e316_per_decided_unit(tmp_path):
+    vault = _challenged_vault(tmp_path, "[[booking-building-blocks|APP-booking]]")
+    code, out = run("check", "--vault", str(vault), "--today", "2026-11-21")
+    assert code == 1
+    found = findings(out)
+    assert len(found) > 1 and {code_ for code_, _ in found} == {"E316"}
+    assert "APP-booking is decided, but open unknown UNK-008 blocks it." in out
+    assert "CON-001 is decided, but open unknown UNK-008 blocks it." in out
