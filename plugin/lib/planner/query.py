@@ -137,7 +137,7 @@ def definition_lines(vault, item_id):
 
 def mention_lines(page, item_id):
     """Line numbers outside code fences that hold the exact ID as a whole token."""
-    pattern = re.compile(rf"(?<![\w.-]){re.escape(item_id)}(?![\w-])")
+    pattern = re.compile(rf"(?<![\w.-]){re.escape(item_id)}(?![\w-]|\.\w)")
     fence, hits = None, []
     for number, raw in enumerate(page.text.split("\n"), 1):
         opener = re.match(r"^\s*(```+|~~~+)", raw)

@@ -163,3 +163,13 @@ def test_find_stop_mainframe_returns_the_goal_on_the_fixture():
     fixture = pathlib.Path(__file__).resolve().parent.parent / "examples" / "unified-booking"
     _, answer = ask(fixture, "find", "stop", "mainframe")
     assert "G1" in [m["id"] for m in answer["matches"]]
+
+
+def test_a_dotted_id_alone_on_a_line_is_not_a_mention(mini):
+    note = mini / "05-building-blocks/till-building-blocks.md"
+    edit(note, "# Till\n", "# Till\n\nOnly CON-001.FR1 here.\n\nEnds a sentence with CON-001.\n")
+    _, answer = ask(mini, "refs", "CON-001")
+    text = note.read_text(encoding="utf-8").split("\n")
+    lines = [text[r["line"] - 1] for r in answer["refs"] if r["page"] == "05-building-blocks/till-building-blocks.md"]
+    assert "Only CON-001.FR1 here." not in lines
+    assert "Ends a sentence with CON-001." in lines
