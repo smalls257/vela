@@ -26,9 +26,10 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `sources.md` | The source register, `SRC-nn` |
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
 | `voice/examples/` | House-voice passages. Never a source. `voice/corpus/` is gitignored. |
+| `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `planner handoff` writes. Never edited by hand. |
 | `.inbox/` | Documents dropped for Discover. Gitignored, never parsed. |
 
-`planner check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, anything under `voice/`, and anything under a folder whose name starts with a dot.
+`planner check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, anything under `voice/` or `handoffs/`, and anything under a folder whose name starts with a dot.
 
 ## Areas and stages
 
@@ -60,7 +61,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
 | `decision` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `proposed`, `decided`, `superseded`, `rejected` |
-| `epic` | as above, plus `apps`, `delivers` | `consumes`, `flows`, `depends_on`, `initiative`, `sources` | `draft`, `decided` |
+| `epic` | as above, plus `apps`, `delivers` | `consumes`, `flows`, `depends_on`, `initiative`, `sources` | `draft`, `decided`, `reopened` |
 | `capability` | as above, plus `origin`, `change` | `sources`, `domain` | `inkling`, `assumption`, `decided` |
 | `session` | `id`, `type`, `date`, `modes`, `status`, `summary` | `title` | none: `status` is `open` or `closed` |
 | `sources` | `id`, `type`, `title`, `authored` | `owner` | none |
@@ -347,3 +348,9 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 - Every open unknown that blocks the app has an owner and an ask-by date.
 
 Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `planner check --gate epics` exits 0.
+
+In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks and the `last_verified`, `verified_by` and `handed_off` lines, so rendering or rereading a page changes nothing. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
+
+`planner handoff verify <APP-id>` lists every item changed, added or removed since. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
+
+A senior who disputes a boundary or contract after handoff raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again.

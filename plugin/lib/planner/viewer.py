@@ -12,7 +12,7 @@ import json
 import re
 
 EXCLUDED_FOLDERS = ("sessions/",)
-DRAFT_STATES = ("inkling", "assumption", "fact", "proposed", "draft")
+DRAFT_STATES = ("inkling", "assumption", "fact", "proposed", "draft", "reopened")
 START_PAGE = "01-goals"
 
 

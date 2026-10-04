@@ -14,7 +14,7 @@ import traceback
 
 import yaml
 
-from planner import health, model, parse, progress, query, render, rules, schema, viewer
+from planner import handoff, health, model, parse, progress, query, render, rules, schema, viewer
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 
@@ -213,6 +213,72 @@ def cmd_query(args, out):
     return 1 if answer.get("not_found") else 0
 
 
+def handoff_app(vault, app_id):
+    pages = vault.by_id.get(app_id)
+    if not pages or pages[0].type != "app-building-blocks":
+        raise ToolError(f"{app_id} is not the id of an app's building-blocks page, for example APP-booking.")
+    return pages[0]
+
+
+def stamp_commit(root, override):
+    commit = override or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
+    if not override and git(root, "status", "--porcelain", "--", "."):
+        commit += " with uncommitted changes"
+    return commit
+
+
+def cmd_handoff(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    if len(args.words) == 2 and args.words[0] == "verify":
+        return handoff_verify(root, args.words[1], out)
+    if len(args.words) != 1 or args.words[0] == "verify":
+        raise ToolError("Write planner handoff <APP-id>, or planner handoff verify <APP-id>.")
+    app_id = args.words[0]
+    today, _ = parse_today(args.today)
+    vault = load_vault(root)
+    app = handoff_app(vault, app_id)
+    errors = [f for f in rules.check(vault, today) if f.is_error]
+    if errors:
+        print(f"planner handoff: wrote nothing, planner check has {len(errors)} errors. Fix them first.", file=out)
+        for finding in errors:
+            print(finding.format(), file=out)
+        return 1
+    target = root / schema.HANDOFF_DIR / f"{app_id}.md"
+    if target.exists() and not args.replace:
+        print(f"planner handoff: wrote nothing. {target.relative_to(root)} is what the senior accepted. "
+              f"Run planner handoff verify {app_id}, or pass --replace once the senior accepts the changes.", file=out)
+        return 1
+    entries = handoff.slice_of(vault, app)
+    commit = stamp_commit(root, args.commit)
+    target.parent.mkdir(exist_ok=True)
+    target.write_text(handoff.write(app_id, entries, commit, today), encoding="utf-8")
+    print(f"planner handoff: wrote {target.relative_to(root).as_posix()}, {len(entries)} items, at {commit}.", file=out)
+    return 0
+
+
+def handoff_verify(root, app_id, out):
+    vault = load_vault(root)
+    app = handoff_app(vault, app_id)
+    path = root / schema.HANDOFF_DIR / f"{app_id}.md"
+    if not path.is_file():
+        raise ToolError(f"{path.relative_to(root).as_posix()} does not exist. Run planner handoff {app_id} when the senior accepts the slice.")
+    try:
+        facts, accepted = handoff.read(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, handoff.ManifestError) as exc:
+        raise ToolError(f"{path.relative_to(root).as_posix()} cannot be read as a manifest: {exc}") from exc
+    diff = handoff.verify(accepted, handoff.slice_of(vault, app))
+    print(f"planner handoff verify {app_id}: {len(diff.changed)} changed, {len(diff.added)} added, {len(diff.removed)} removed "
+          f"since the handoff at {facts.get('Commit', 'an unrecorded commit')} on {facts.get('Written', 'an unrecorded date')}.",
+          file=out)
+    for old, new in diff.changed:
+        print(handoff.describe(old, new), file=out)
+    for entry in diff.added:
+        print(f"added: {entry.id} ({entry.kind}, {entry.page}, {entry.state or 'no state'})", file=out)
+    for entry in diff.removed:
+        print(f"removed: {entry.id} ({entry.kind}, {entry.page}, was {entry.state or 'no state'})", file=out)
+    return 1 if diff.breaks_acceptance else 0
+
+
 def days_between(earlier, later):
     return (datetime.date.fromisoformat(later) - datetime.date.fromisoformat(earlier)).days
 
@@ -307,6 +373,13 @@ def build_parser():
         one.add_argument("--vault", default=".", help="vault root (default: current directory)")
         one.add_argument("--json", action="store_true", help="print JSON instead of text")
         one.set_defaults(func=cmd_query)
+    hand = sub.add_parser("handoff", help="write the senior's handoff manifest, or verify the vault against it")
+    hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id to write handoffs/<APP-id>.md; verify APP-id to compare")
+    hand.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    hand.add_argument("--today", help="date to record, YYYY-MM-DD (default: system date)")
+    hand.add_argument("--commit", help="commit to record (default: git rev-parse --short HEAD)")
+    hand.add_argument("--replace", action="store_true", help="overwrite an existing manifest once the senior accepts the changes")
+    hand.set_defaults(func=cmd_handoff)
     return parser
 
 

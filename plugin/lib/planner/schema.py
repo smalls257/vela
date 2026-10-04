@@ -51,7 +51,7 @@ PAGE_TYPES = {
     "epic": {
         "required": ("id", "type", "title", "state", "owner", "authored", "apps", "delivers"),
         "optional": ("consumes", "flows", "depends_on", "initiative", "sources"),
-        "states": ("draft", "decided"),
+        "states": ("draft", "decided", "reopened"),
     },
     "capability": {
         "required": ("id", "type", "title", "state", "owner", "authored", "origin", "change"),
@@ -261,4 +261,5 @@ WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{
 
 # Files the check never parses as pages (paths relative to the vault root).
 SKIP_FILES = ("CLAUDE.md", "CONVENTIONS.md")
-SKIP_DIRS = ("voice",)
+SKIP_DIRS = ("voice", "handoffs")
+HANDOFF_DIR = "handoffs"  # planner handoff writes <APP-id>.md here; it is a record, not a page
