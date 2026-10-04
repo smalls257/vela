@@ -250,8 +250,12 @@ def cmd_handoff(args, out):
         return 1
     entries = handoff.slice_of(vault, app)
     commit = stamp_commit(root, args.commit)
-    target.parent.mkdir(exist_ok=True)
-    target.write_text(handoff.write(app_id, entries, commit, today), encoding="utf-8")
+    try:
+        target.parent.mkdir(exist_ok=True)
+        target.write_text(handoff.write(app_id, entries, commit, today), encoding="utf-8")
+    except OSError as exc:
+        raise ToolError(f"cannot write {target.relative_to(root).as_posix()}: {exc.strerror or exc}. "
+                        f"{schema.HANDOFF_DIR}/ must be a folder and {app_id}.md a file.") from exc
     print(f"planner handoff: wrote {target.relative_to(root).as_posix()}, {len(entries)} items, at {commit}.", file=out)
     return 0
 
@@ -260,18 +264,21 @@ def handoff_verify(root, app_id, out):
     vault = load_vault(root)
     app = handoff_app(vault, app_id)
     path = root / schema.HANDOFF_DIR / f"{app_id}.md"
+    if path.is_dir():
+        raise ToolError(f"{path.relative_to(root).as_posix()} is a folder, not a manifest file.")
     if not path.is_file():
         raise ToolError(f"{path.relative_to(root).as_posix()} does not exist. Run planner handoff {app_id} when the senior accepts the slice.")
     try:
         facts, accepted = handoff.read(path.read_text(encoding="utf-8"))
+        handoff.check_manifest(app_id, facts, accepted)
     except (OSError, UnicodeDecodeError, handoff.ManifestError) as exc:
         raise ToolError(f"{path.relative_to(root).as_posix()} cannot be read as a manifest: {exc}") from exc
-    diff = handoff.verify(accepted, handoff.slice_of(vault, app))
+    diff = handoff.verify(accepted, handoff.slice_of(vault, app), vault)
     print(f"planner handoff verify {app_id}: {len(diff.changed)} changed, {len(diff.added)} added, {len(diff.removed)} removed "
           f"since the handoff at {facts.get('Commit', 'an unrecorded commit')} on {facts.get('Written', 'an unrecorded date')}.",
           file=out)
     for old, new in diff.changed:
-        print(handoff.describe(old, new), file=out)
+        print(handoff.describe(old, new, new.id in diff.left), file=out)
     for entry in diff.added:
         print(f"added: {entry.id} ({entry.kind}, {entry.page}, {entry.state or 'no state'})", file=out)
     for entry in diff.removed:
