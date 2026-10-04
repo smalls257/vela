@@ -25,7 +25,8 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `capabilities/` | `CAP-nnn-<slug>.md` per capability touched |
 | `sources.md` | The source register, `SRC-nn` |
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
-| `voice/examples/` | House-voice passages. Never a source. `voice/corpus/` is gitignored. |
+| `voice/examples/` | House-voice passages. Never a source. Committed. |
+| `voice/local/` | The owner's passages that stay on one machine, same format as `voice/examples/`. Gitignored, never committed. `voice/corpus/` is gitignored too. |
 | `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `planner handoff` writes. Never edited by hand. |
 | `.inbox/` | Documents dropped for Discover. Gitignored, never parsed. |
 
@@ -232,7 +233,9 @@ House-voice passages live in `voice/examples/<voice type>/`, one per file named 
 | `from` | `owner` only: where the passage comes from, in a few words |
 | `page`, `harvested_from` | `owner-edit` only: the page, and the short hash of the draft commit the owner edited |
 
-A voice type holds at most 5 `active` examples. When a sixth becomes active, one retires: the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`. Once the owner has 2 examples of a type, its `public-seed` examples retire, so drafts follow the owner. An owner's words are stored as written and never rewritten. Nothing is ever deleted.
+A voice type holds at most 5 `active` examples, counting `voice/examples/` and `voice/local/` together. When a sixth becomes active, one retires: the `public-seed` examples first, then the `owner-edit`, then the `owner`, the oldest `added` first within each. The owner may refuse a retirement. Then nothing new is stored for that type. Once a type has 2 `active` examples with `source: owner` or `owner-edit`, counted across both folders after the run, its `public-seed` examples retire, so drafts follow the owner. An owner's words are stored as written and never rewritten. Nothing is ever deleted.
+
+`voice/local/<voice type>/VX-<voice type>-NNN.md` holds examples in the same format that stay on one machine, for text the owner may not publish. `/planner:voice-seed` writes there when the owner picks local only. House-voice reads both folders.
 
 `planner voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite. The kinds are `id`, `number` (with its unit and currency symbol), `date`, `version`, `link` (wikilinks, Markdown link URLs and bare URLs), `code`, `cell` (table cells), `frontmatter` (every line, compared exactly) and `negation` (the count of not, no, never, cannot, without and n't words in each paragraph). `planner voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
 

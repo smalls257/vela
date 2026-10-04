@@ -1,5 +1,7 @@
 """House-voice examples: licence and attribution, copies in step, and the page-type map."""
 import re
+import subprocess
+import sys
 
 import pytest
 import yaml
@@ -127,8 +129,8 @@ def test_voice_seed_stores_the_owner_words_and_never_rewrites_them():
 
 def test_voice_seed_retires_the_seed_only_once_the_owner_has_two():
     seed = SEED_SKILL.read_text(encoding="utf-8")
-    assert "A type the owner gave at least 2 passages" in seed
-    assert "Set `state: retired` on every `source: public-seed` example of that type" in seed
+    assert "every active `public-seed` example of the type retires" in seed
+    assert "Set `state: retired` on each example in it. Change only the `state:` line." in seed
     assert "Never delete a seed example" in seed
     assert "A type with fewer than 2 owner passages keeps its seed." in seed
     assert f"A type holds at most {schema.VOICE_ACTIVE_MAX}." in seed
@@ -143,7 +145,7 @@ def test_voice_seed_commits_by_path_and_never_claims_a_pr():
 
 def test_the_example_voice_seed_writes_has_only_documented_fields():
     seed = SEED_SKILL.read_text(encoding="utf-8")
-    block = seed.split("## 4. Write the examples", 1)[1].split("```\n", 2)[1]
+    block = seed.split("## 4. Write the examples", 1)[1].split("````\n")[1]
     filled = (block.replace("<type>", "decision").replace("NNN", "004").replace("<handle>", "hl-solution-lead")
               .replace("<where it comes from>", "design review").replace("<today>", "2026-11-20"))
     meta = yaml.safe_load(filled.split("---\n")[1])
@@ -154,3 +156,79 @@ def test_the_example_voice_seed_writes_has_only_documented_fields():
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     for key in meta:
         assert f"`{key}`" in conventions, key
+
+
+# fix round 1: write mechanism, risky lines, privacy, count and cap rules, quoting, final check.
+
+def test_voice_seed_writes_verbatim_with_a_quoted_heredoc_and_compares():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    assert "write the frontmatter with the Write tool" in seed
+    assert "cat >> <file> <<'PLANNER_EOF'" in seed
+    assert "If the passage contains a line `PLANNER_EOF`, pick another delimiter" in seed
+    assert "Run `cat -A <file>`" in seed
+    assert "line endings (`^M`), trailing whitespace" in seed and "the final newline" in seed
+    assert "On any difference, stop. Tell the owner what differs and do not repair it." in seed
+
+
+def test_voice_seed_warns_about_boundary_and_generated_lines():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    assert "Take everything after the frontmatter's closing `---` as the body." in seed
+    assert "exactly `---`, or contains `<!-- generated:`" in seed
+    assert "Store it only on an explicit yes, and never rewrite the line." in seed
+
+
+def test_voice_seed_offers_a_local_only_place_and_says_what_is_committed():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    assert "`voice/examples/` is committed, pushed and opened as a PR, so anyone with access to this repository can read" in seed
+    assert "local only: `voice/local/<type>/`" in seed
+    assert "If the owner says their employer owns the text, or is not sure, recommend local only." in seed
+    assert "A local-only seed has no branch, commit or PR." in seed
+    assert "Name local examples only as a count." in seed
+    assert "Retiring a committed example changes a committed file, so it goes through the PR" in seed
+    ignored = (REPO / "template" / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert "voice/local/" in ignored and "voice/corpus/" in ignored
+
+
+def test_house_voice_reads_the_local_folder_too():
+    voice = SKILL.read_text(encoding="utf-8")
+    assert "`voice/local/<voice type>/*.md`" in voice
+    assert "`voice/examples/` first and then `voice/local/`" in voice
+    assert "fewer than two active examples across both folders" in voice
+
+
+def test_voice_seed_and_conventions_count_owner_examples_the_same_way():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    assert "count of active `owner` and `owner-edit` examples, across both folders, after this run, is at least 2" in seed
+    assert "2 `active` examples with `source: owner` or `owner-edit`, counted across both folders after the run" in conventions
+    assert "counting `voice/examples/` and `voice/local/` together" in conventions
+
+
+def test_voice_seed_cap_order_and_refusal_match_conventions():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    assert "`public-seed` first, then `owner-edit`, then `owner`" in seed
+    assert "the `public-seed` examples first, then the `owner-edit`, then the `owner`, the oldest `added` first" in conventions
+    assert "The owner may refuse. If they refuse, store nothing new for that type and say why" in seed
+    assert "The owner may refuse a retirement. Then nothing new is stored for that type." in conventions
+
+
+def test_voice_seed_quotes_from_and_runs_a_final_check(tmp_path):
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    assert "Write `from` in single-quoted YAML, and double any `'` inside it" in seed
+    assert "re-read the frontmatter and confirm it parses as YAML" in seed
+    block = seed.split("## 6. Final check", 1)[1].split("```\n", 2)[1]
+    script = block.split("<<'PLANNER_EOF'\n", 1)[1].rsplit("PLANNER_EOF", 1)[0]
+    vault = tmp_path
+    for folder, n in (("voice/examples", 3), ("voice/local", 3)):
+        (vault / folder / "decision").mkdir(parents=True)
+        for i in range(n):
+            (vault / folder / "decision" / f"VX-decision-{folder[-1]}{i}.md").write_text(
+                "---\nvoice_type: decision\nstate: active\nfrom: 'it''s'\n---\n\nbody\n", encoding="utf-8")
+    run = lambda: subprocess.run([sys.executable, "-c", script], cwd=vault, capture_output=True, text=True)
+    assert run().returncode == 1  # six active in one type
+    next((vault / "voice" / "local" / "decision").glob("*.md")).write_text(
+        "---\nvoice_type: decision\nstate: retired\n---\n", encoding="utf-8")
+    assert run().returncode == 0
+    next((vault / "voice" / "local" / "decision").glob("*.md")).write_text("---\n: : [\n---\n", encoding="utf-8")
+    assert run().returncode == 1  # a file that does not parse

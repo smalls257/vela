@@ -11,11 +11,11 @@ Prose in this vault has one voice. Draft it from the example passages, not from 
 
 ## Load the examples
 
-The examples are `voice/examples/<voice type>/*.md` in the vault. For the page you are drafting, find its voice type in the table below. Read every example of that type whose frontmatter says `state: active`, in file-name order, before you write a word. Skip every `state: retired` example. The order is fixed so two drafts of the same page start from the same context.
+The examples are `voice/examples/<voice type>/*.md` in the vault, and `voice/local/<voice type>/*.md` when that gitignored folder exists on this machine. For the page you are drafting, find its voice type in the table below. Read every example of that type whose frontmatter says `state: active`, in file-name order, `voice/examples/` first and then `voice/local/`, before you write a word. Skip every `state: retired` example. The order is fixed so two drafts of the same page start from the same context.
 
 An example with `source: owner` or `source: owner-edit` is the owner's own writing. When `/planner:voice-seed` adds the owner's examples of a type, it retires that type's public seed, so the owner's voice is what you read.
 
-If the type has fewer than two active examples, say "No examples for <type>: drafted without examples" in the PR body, and draft from the defaults at the end of this file.
+If the type has fewer than two active examples across both folders, say "No examples for <type>: drafted without examples" in the PR body, and draft from the defaults at the end of this file.
 
 Never read `voice/corpus/`. It is gitignored and stays out of every draft.
 
