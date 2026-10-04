@@ -259,6 +259,15 @@ TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
 OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker
 WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{2}}-\d{{2}}\): \S")
 
+# ------------------------------------------------------------ voice examples
+
+# voice/examples/<type>/VX-<type>-NNN.md frontmatter. The check never reads voice/; these
+# names are here so CONVENTIONS.md, the template and the tests agree on them.
+VOICE_TYPES = ("diagnosis", "decision", "how-it-works")
+VOICE_SOURCES = ("public-seed", "owner", "owner-edit")
+VOICE_STATES = ("active", "retired")
+VOICE_ACTIVE_MAX = 5
+
 # Files the check never parses as pages (paths relative to the vault root).
 SKIP_FILES = ("CLAUDE.md", "CONVENTIONS.md")
 SKIP_DIRS = ("voice", "handoffs")

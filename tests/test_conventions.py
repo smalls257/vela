@@ -28,6 +28,7 @@ def names():
     out.update(schema.CODES)
     out.update(f"`{n}`" for n in ("APP-booking", "RUN-booking", "CAP-013", "FLO-001", "EPC-031", "ADR-0001",
                                    "concern-testing", "CON-001", "UNK-001", "R-01", "G1", "CST-1", "SRC-01", "INI-001"))
+    out.update(f"`{v}`" for v in schema.VOICE_TYPES + schema.VOICE_SOURCES + schema.VOICE_STATES)
     out.add(f"sha={schema.NEW_BLOCK_SHA}")
     out.add(f"at most {schema.FLOWCHART_BUDGET} elements")
     out.add(f"at most {schema.SEQUENCE_BUDGET} participants")

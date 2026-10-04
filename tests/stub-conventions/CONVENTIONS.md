@@ -218,7 +218,21 @@ A capture line:
 
 ## Voice examples
 
-House-voice passages live in `voice/examples/<voice type>/`, one per file. `planner check` never reads `voice/`.
+House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works`. `planner check` never reads `voice/`.
+
+| Field | Rule |
+|---|---|
+| `id` | `VX-<voice type>-NNN`, the file name |
+| `voice_type` | the folder's voice type |
+| `source` | `public-seed` (a licensed passage that ships with the template), `owner` (the owner's own writing, added by `/planner:voice-seed`) or `owner-edit` (a drafted paragraph the owner edited, harvested at close) |
+| `state` | `active` (house-voice reads it) or `retired` (kept for its attribution, never read) |
+| `added` | `YYYY-MM-DD` |
+| `author` | who wrote it: a name for `public-seed`, `"@handle"` for `owner` and `owner-edit` |
+| `work`, `chapter`, `url`, `licence`, `licence_url`, `changes` | `public-seed` only: where it comes from and its licence |
+| `from` | `owner` only: where the passage comes from, in a few words |
+| `page`, `harvested_from` | `owner-edit` only: the page, and the short hash of the draft commit the owner edited |
+
+A voice type holds at most 5 `active` examples. When a sixth becomes active, one retires: the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`. Once the owner has 2 examples of a type, its `public-seed` examples retire, so drafts follow the owner. An owner's words are stored as written and never rewritten. Nothing is ever deleted.
 
 `planner voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite. The kinds are `id`, `number` (with its unit and currency symbol), `date`, `version`, `link` (wikilinks, Markdown link URLs and bare URLs), `code`, `cell` (table cells), `frontmatter` (every line, compared exactly) and `negation` (the count of not, no, never, cannot, without and n't words in each paragraph). `planner voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
 

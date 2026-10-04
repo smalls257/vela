@@ -90,3 +90,67 @@ def test_every_template_page_resolves_to_a_voice_type():
             continue
         page = parse.parse_page(rel.as_posix(), path.read_text(encoding="utf-8"))
         assert page.id in mapping or page.type in mapping, f"{rel} ({page.id}, {page.type}) has no voice type"
+
+
+# v2: the owner's examples, retiring, and the cap of five.
+
+SEED_SKILL = REPO / "plugin" / "skills" / "voice-seed" / "SKILL.md"
+
+
+def test_template_examples_use_the_schema_values():
+    for path in FILES:
+        meta, _ = split(path)
+        assert meta["voice_type"] in schema.VOICE_TYPES
+        assert meta["source"] in schema.VOICE_SOURCES
+        assert meta["state"] in schema.VOICE_STATES
+    for voice_type in schema.VOICE_TYPES:
+        active = [p for p in (EXAMPLES / voice_type).glob("*.md") if split(p)[0]["state"] == "active"]
+        assert len(active) <= schema.VOICE_ACTIVE_MAX
+
+
+def test_house_voice_reads_only_active_examples():
+    voice = SKILL.read_text(encoding="utf-8")
+    assert "Read every example of that type whose frontmatter says `state: active`, in file-name order" in voice
+    assert "Skip every `state: retired` example." in voice
+    assert "If the type has fewer than two active examples" in voice
+    assert "`/planner:voice-seed`" in voice
+
+
+def test_voice_seed_stores_the_owner_words_and_never_rewrites_them():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    assert "It never rewrites them." in seed
+    assert "Never rewrite, shorten, correct or paraphrase the owner's words." in seed
+    assert "Did you write this yourself?" in seed and "wait for an explicit yes to each" in seed
+    assert "Store an accepted passage as it was pasted." in seed
+    assert "Never write under `voice/corpus/`." in seed
+
+
+def test_voice_seed_retires_the_seed_only_once_the_owner_has_two():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    assert "A type the owner gave at least 2 passages" in seed
+    assert "Set `state: retired` on every `source: public-seed` example of that type" in seed
+    assert "Never delete a seed example" in seed
+    assert "A type with fewer than 2 owner passages keeps its seed." in seed
+    assert f"A type holds at most {schema.VOICE_ACTIVE_MAX}." in seed
+
+
+def test_voice_seed_commits_by_path_and_never_claims_a_pr():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    assert "Never use `git add -A`." in seed
+    assert "Never say a PR exists unless `gh` printed its URL." in seed
+    assert "gh api user -q .login" in seed
+
+
+def test_the_example_voice_seed_writes_has_only_documented_fields():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    block = seed.split("## 4. Write the examples", 1)[1].split("```\n", 2)[1]
+    filled = (block.replace("<type>", "decision").replace("NNN", "004").replace("<handle>", "hl-solution-lead")
+              .replace("<where it comes from>", "design review").replace("<today>", "2026-11-20"))
+    meta = yaml.safe_load(filled.split("---\n")[1])
+    assert str(meta["added"]) == "2026-11-20"  # YAML reads an unquoted date as a date
+    assert {k: v for k, v in meta.items() if k != "added"} == {
+        "id": "VX-decision-004", "voice_type": "decision", "source": "owner", "author": "@hl-solution-lead",
+        "from": "design review", "state": "active"}
+    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    for key in meta:
+        assert f"`{key}`" in conventions, key
