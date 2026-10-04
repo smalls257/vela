@@ -10,6 +10,7 @@ import pytest
 import yaml
 
 from conftest import REPO, run
+from planner import schema
 
 PLUGIN = REPO / "plugin"
 AGENT = PLUGIN / "agents" / "voice-reviewer.md"
@@ -177,3 +178,80 @@ def test_the_plugin_validator_accepts_the_agents_folder():
         pytest.skip("the claude command is not installed here")
     result = subprocess.run(["claude", "plugin", "validate", str(PLUGIN)], capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+# Harvest: the owner's edits to merged drafts become examples, on the owner's yes only.
+
+def test_harvest_is_owner_only():
+    close = close_text()
+    assert "Only the vault's owner harvests, and only their own edits." in close
+    assert "The owner is the `author` of the `source: owner` examples" in close
+    assert 'say "Harvest is owner-only."' in close
+    assert "Go on only if the owner wrote every commit on the first list." in close
+
+
+def test_harvest_finds_drafts_through_the_merged_prs():
+    close = close_text()
+    assert 'gh pr list --state merged --search "head:session/"' in close
+    assert "git fetch origin pull/<number>/head" in close
+    assert "--grep='^draft: ' --format='%h %s' -n 1" in close
+    assert "already some example's `harvested_from`" in close
+    assert 'say "gh could not list merged PRs, so nothing was harvested."' in close
+
+
+def test_harvest_saves_word_for_word_on_an_explicit_yes():
+    close = close_text()
+    assert "Save it only on an explicit yes." in close
+    assert "Save the merged paragraph word for word" in close
+    assert "source: owner-edit" in close and "harvested_from: <short hash of the draft commit>" in close
+
+
+def test_harvest_keeps_five_active_and_retires_the_seed_first():
+    close = close_text()
+    assert f"A type keeps at most {schema.VOICE_ACTIVE_MAX} active examples." in close
+    assert "the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`" in close
+    assert "never delete an example" in close
+    assert "every example harvested or retired" in close and "**Voice examples:** each example harvested or retired." in close
+
+
+# The two folders and the gh failure rule, added after the brief was written.
+
+def harvest_text():
+    return close_text().split("### Harvest the owner's edits", 1)[1].split("## 5.", 1)[0]
+
+
+def test_harvest_asks_committed_or_local_and_recommends_local_for_employer_text():
+    harvest = harvest_text()
+    assert "`voice/examples/<type>/`" in harvest and "`voice/local/<type>/`" in harvest
+    assert "If the owner's employer owns the text, or the owner is not sure, recommend local only." in harvest
+    assert "May this text be committed to the vault?" in harvest
+    assert "no step below stages it" in harvest
+    assert "Never stage anything in `voice/local/`." in close_text()
+
+
+def test_harvest_reads_both_folders_and_retires_seeds_only_within_a_folder():
+    harvest = harvest_text()
+    assert "`voice/examples/` and `voice/local/`" in harvest
+    assert "in either folder" in harvest
+    assert "A local example never retires a committed seed." in harvest
+    assert "In a local-only save, only local examples may retire." in harvest
+
+
+def test_harvest_writes_the_paragraph_with_a_quoted_heredoc_and_a_cmp_check():
+    harvest = harvest_text()
+    assert "<<'PLANNER_EOF'" in harvest
+    assert "| cmp - " in harvest
+    assert "do not repair the file" in harvest
+
+
+def test_every_gh_step_in_harvest_says_it_failed_and_never_reads_failure_as_no_edits():
+    harvest = harvest_text()
+    assert 'Never read a failure as "no edits found".' in harvest
+    assert 'say "gh could not read your handle, so nothing was harvested."' in harvest
+    assert 'say "gh could not list merged PRs, so nothing was harvested."' in harvest
+    assert 'say "gh could not read the commits of PR <number>, so its edits were not checked."' in harvest
+    assert 'say "git could not fetch PR <number>, so it was not checked."' in harvest
+    assert 'Say "no edits found" only when every merged PR was checked.' in harvest
+    for call in ("`gh api user", "`gh pr list", "`gh pr view", "`git fetch origin pull"):
+        line = next(l for l in harvest.splitlines() if call in l)
+        assert "fails" in line or "could not" in line, call

@@ -3,6 +3,7 @@
 examples/unified-booking-viewer.html
 # voice corpora stay local (licensing, company material)
 **/voice/corpus/
+**/voice/local/
 __pycache__/
 .superpowers/
 .pytest_cache/

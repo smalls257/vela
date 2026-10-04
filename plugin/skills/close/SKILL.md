@@ -69,6 +69,57 @@ A fresh reader checks the drafts, because the drafter cannot judge its own voice
    - Exit 1: run `git restore -- <page>`. That discards every rewrite on that page and keeps its earlier draft whole. Run it for no other file.
    - Exit 2: show the error, then run `git restore -- <page>` so the unchecked rewrite stays out of the work that step 7 stages. Never commit a rewrite voicecheck could not check.
 
+### Harvest the owner's edits
+
+Only the vault's owner harvests, and only their own edits. The owner is the `author` of the `source: owner` examples in `voice/examples/` and `voice/local/`. If there are none, say "No owner examples yet, so nothing to harvest. `/planner:voice-seed` adds them." and go on to step 5.
+
+Every `gh` or `git` call below can fail. When one does, say which call failed and what it left unchecked. Never read a failure as "no edits found". Say "no edits found" only when every merged PR was checked.
+
+1. Get the user's handle with `gh api user -q .login`. If `gh` fails, say "gh could not read your handle, so nothing was harvested." and go on to step 5. If the handle is not the owner's handle without the `@`, say "Harvest is owner-only." and go on to step 5.
+2. List the merged session PRs: `gh pr list --state merged --search "head:session/" --json number,headRefName --limit 20`. If `gh` fails, say "gh could not list merged PRs, so nothing was harvested." and go on to step 5.
+3. For each PR, run `git fetch origin pull/<number>/head`, then `git log FETCH_HEAD --grep='^draft: ' --format='%h %s' -n 1`. That is the PR's last draft commit, after any voice rewrite. If the fetch fails, say "git could not fetch PR <number>, so it was not checked." and go to the next PR. Skip the PR if it has no draft commit, or if that short hash is already some example's `harvested_from`, in either folder.
+4. For each PR left, and each page its last draft commit changed:
+   - Run `git log --format=%H <draft>..FETCH_HEAD -- <page>`: the PR's later commits that touched the page. If there are none, nobody edited it, so skip the page.
+   - Run `gh pr view <number> --json commits -q '.commits[] | [.oid, .authors[0].login] | @tsv'` to see who wrote each commit. If `gh` fails, say "gh could not read the commits of PR <number>, so its edits were not checked." and go to the next PR. Go on only if the owner wrote every commit on the first list.
+   - Pair each paragraph of `git show <draft>:<page>` with the one in its place in `git show origin/main:<page>`. A pair that differs is a paragraph the owner edited.
+5. Offer each paragraph the owner changed, one at a time: the draft, the merged text, and its voice type from house-voice's table. Harvest offers and never saves by itself. Ask "Save the merged paragraph as a <type> example?" Save it only on an explicit yes.
+6. Ask where it goes, and say plainly that a committed example is pushed in this PR, where everyone with access to the repository can read it:
+   - committed: `voice/examples/<type>/`. Ask "May this text be committed to the vault?" and wait for an explicit yes.
+   - local only: `voice/local/<type>/`. It stays on this machine and no step below stages it.
+
+   If the owner's employer owns the text, or the owner is not sure, recommend local only. If the answer is not an explicit choice, do not save.
+7. Save the merged paragraph word for word as `<folder>/<type>/VX-<type>-NNN.md`, NNN one higher than the highest in that type in both folders, retired files included. First write the frontmatter, ending with the closing `---` and one blank line:
+
+   ```
+   ---
+   id: VX-<type>-NNN
+   voice_type: <type>
+   source: owner-edit
+   author: "@<handle>"
+   page: <page path>
+   harvested_from: <short hash of the draft commit>
+   state: active
+   added: <today>
+   ---
+
+   ```
+
+   Then append the paragraph with a quoted heredoc, so nothing expands, and compare it with the text you read, with a tool:
+
+   ```
+   cat >> <file> <<'PLANNER_EOF'
+   <the merged paragraph>
+   PLANNER_EOF
+   tmp=$(mktemp)
+   cat > "$tmp" <<'PLANNER_EOF'
+   <the merged paragraph>
+   PLANNER_EOF
+   awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - "$tmp"; code=$?; rm -f "$tmp"; (exit $code)
+   ```
+
+   If `cmp` reports a difference, stop, tell the owner, and do not repair the file.
+8. A type keeps at most 5 active examples. Count both folders together. When a sixth becomes active, set `state: retired` on one: the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`, by `added` and then file name. A local example never retires a committed seed. In a local-only save, only local examples may retire. Show the owner each retirement and ask. If they refuse, do not save for that type. Change no other line, and never delete an example.
+
    Then commit the rewrites that passed with the message `draft: voice rewrite for <id>`, staging each page by exact path.
 
 ## 5. Read back decided wording
@@ -81,7 +132,7 @@ Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/s
 
 ## 7. Finish the record
 
-Stage every file `planner render` reported, plus the session record and the changed pages, by exact path. Never use `git add -A`. Before pushing, `git status --short` must show nothing modified. A rewritten block left out of the commit fails CI's render check. Draft a one-line `summary:` and let the user accept or edit it. Set `status: closed`, then stage. Commit with the message `Close session <id>`. Run `git push -u origin session/<id>`. If the push fails, show the error, print the commands for the user to run, and stop. Do not open a PR for a branch that is not pushed.
+Stage every file `planner render` reported, every example harvested or retired in `voice/examples/`, plus the session record and the changed pages, by exact path. Never stage anything in `voice/local/`. Never use `git add -A`. Before pushing, `git status --short` must show nothing modified. A rewritten block left out of the commit fails CI's render check. Draft a one-line `summary:` and let the user accept or edit it. Set `status: closed`, then stage. Commit with the message `Close session <id>`. Run `git push -u origin session/<id>`. If the push fails, show the error, print the commands for the user to run, and stop. Do not open a PR for a branch that is not pushed.
 
 ## 8. Open the PR
 
@@ -97,6 +148,7 @@ Write the PR body to a temporary file. Fill the headings of the vault's PR templ
 - **What changed.** The promoted items, each with its new state. Then these lists, each with "none" when empty:
   - **Prose drafted:** each paragraph in the `draft: prose for <id>` commit, page by page.
   - **Voice review:** each paragraph the reviewer flagged, what it said, and whether it was rewritten or kept because voicecheck named a changed token; or "not run: <reason>".
+  - **Voice examples:** each example harvested or retired. Name a local example only as a count, never by its text. Add each PR harvest could not check, and why.
   - **Decided wording not yet read back:** each `decided` item whose owner was not present in step 5.
   - **Promoted on a nod:** every item kept or promoted from a capture whose origin starts with `claude`, not only the deciding capture, with the capture quoted.
   - **Changed contracts:** each contract, and for each consumer, who was asked: present, async, in this PR, or "not consulted: <reason>".
