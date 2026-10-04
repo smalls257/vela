@@ -52,7 +52,7 @@ A fresh reader checks the drafts, because the drafter cannot judge its own voice
 4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file. Before you rewrite a page, check it holds no uncommitted edit from step 2 or 3, because a restore would discard that edit. For each `<page>`:
 
    ```
-   git diff --quiet HEAD -- <page> || { git add -- <page> && git commit -qm "Checkpoint <id>"; }
+   git diff --quiet HEAD -- <page> || { git add -- <page> && git commit -qm "Checkpoint <id>" -- <page>; }
    ```
 
    This commits that page alone, with the message `Checkpoint <id>`, when it differs from HEAD. Then rewrite it, so `git restore -- <page>` returns the page to a state that already holds those edits.
@@ -61,13 +61,13 @@ A fresh reader checks the drafts, because the drafter cannot judge its own voice
    ```
    tmp=$(mktemp)
    git show HEAD:<page> > "$tmp"
-   python3 .claude/skills/planner/bin/planner voicecheck "$tmp" <page>
+   python3 .claude/skills/planner/bin/planner voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)
    ```
 
    voicecheck fails if a rewrite lost, added or moved a wikilink, code span, date, ID, number (with its units or currency), table cell, version, frontmatter line or negation.
    - Exit 0: keep the rewrite.
    - Exit 1: run `git restore -- <page>`. That discards every rewrite on that page and keeps its earlier draft whole. Run it for no other file.
-   - Exit 2: show the error and leave that page uncommitted. Never commit a rewrite voicecheck could not check.
+   - Exit 2: show the error, then run `git restore -- <page>` so the unchecked rewrite stays out of the work that step 7 stages. Never commit a rewrite voicecheck could not check.
 
    Then commit the rewrites that passed with the message `draft: voice rewrite for <id>`, staging each page by exact path.
 

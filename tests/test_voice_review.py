@@ -1,5 +1,6 @@
 """The voice review at close: a fresh-context agent flags paragraphs, the drafter rewrites
 each once, and voicecheck keeps every fact the draft carried."""
+import os
 import re
 import shutil
 import subprocess
@@ -101,11 +102,15 @@ def git_in(repo, *args):
 def close_voicecheck(repo, page):
     """Run close's block for one page, then close's exit-0 and exit-1 branches."""
     script = recipe_commands().replace("<page>", page)
-    code = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True).returncode
+    scratch = repo.parent / (repo.name + "-scratch")
+    scratch.mkdir(exist_ok=True)
+    env = {**os.environ, "TMPDIR": str(scratch)}
+    code = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True, env=env).returncode
+    assert list(scratch.iterdir()) == [], "the recipe left its temp file behind"
     if code == 0:
         git_in(repo, "add", page)
         git_in(repo, "commit", "-qm", "draft: voice rewrite for s")
-    elif code == 1:
+    elif code in (1, 2):
         git_in(repo, "restore", "--", page)
     return code
 
@@ -133,16 +138,28 @@ def test_a_rewrite_that_lost_a_number_is_restored_and_other_work_survives(tmp_pa
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
 def test_a_step_three_edit_on_a_rewritten_page_survives_the_restore(tmp_path):
-    import os
     draft_repo(tmp_path)
     page = tmp_path / "page.md"
     page.write_text(DRAFT + "- capture mark from step 3\n", encoding="utf-8")
+    (tmp_path / "record.md").write_text("Changes\n| staged by step 2 |\n", encoding="utf-8")
+    git_in(tmp_path, "add", "record.md")
     guard = guard_command().replace("<page>", "page.md").replace("<id>", "s")
     subprocess.run(["bash", "-c", guard], cwd=tmp_path, check=True, env={**os.environ, **GIT_IDENTITY})
     assert git_in(tmp_path, "log", "-1", "--format=%s").strip() == "Checkpoint s"
+    assert git_in(tmp_path, "show", "--name-only", "--format=", "HEAD").split() == ["page.md"]
+    assert git_in(tmp_path, "status", "--porcelain", "record.md").startswith("M")
     page.write_text("Booking keeps the seat for ten minutes while the customer pays.\n- capture mark from step 3\n", encoding="utf-8")
     assert close_voicecheck(tmp_path, "page.md") == 1
     assert page.read_text(encoding="utf-8") == DRAFT + "- capture mark from step 3\n"
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_a_rewrite_voicecheck_could_not_read_is_restored(tmp_path):
+    draft_repo(tmp_path)
+    (tmp_path / "page.md").write_bytes(b"\xff\xfe not text\n")
+    assert close_voicecheck(tmp_path, "page.md") == 2
+    assert (tmp_path / "page.md").read_text(encoding="utf-8") == DRAFT
+    assert "added by step 3" in (tmp_path / "record.md").read_text(encoding="utf-8")
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
