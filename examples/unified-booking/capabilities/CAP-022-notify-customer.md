@@ -4,6 +4,7 @@ type: capability
 title: Notify customer of changes
 origin: proposed
 change: new
+domain: Customer contact
 state: decided
 owner: "@hl-solution-lead"
 authored: mixed

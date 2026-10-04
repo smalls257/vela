@@ -317,6 +317,32 @@ def app_context(vault, page):
     return "\n".join(graph_block(diagrams.app_graph(vault, page)))
 
 
+def capability_block(groups):
+    """One diagram for these domain groups, each a subgraph, with the left-out table under it."""
+    nodes = [n for _, members in groups for n in members]
+    graph = diagrams.Graph(tuple(sorted(nodes, key=lambda n: n.key)), ())
+    drawn, left_out = diagrams.fit(graph, schema.FLOWCHART_BUDGET, reserved=len(groups))
+    keys = diagrams.domain_keys([domain for domain, _ in groups])
+    subgraphs = [(keys[domain], diagrams.safe_label(domain, diagrams.NO_DOMAIN), [n.key for n in members])
+                 for domain, members in groups]
+    rows = [row(node_link(n), cell(str(n.page.meta.get("change", "")))) for n in left_out]
+    return (mermaid_fence(diagrams.flowchart(drawn, "TB", subgraphs))
+            + left_out_table(len(left_out), "Change", rows))
+
+
+def capability_map(vault, page):
+    groups = diagrams.capability_groups(vault)
+    if not groups:
+        return "none"
+    if sum(len(members) for _, members in groups) + len(groups) <= schema.FLOWCHART_BUDGET:
+        return "\n".join(capability_block(groups))
+    out = []
+    for domain, members in groups:  # over budget: one diagram per domain
+        out += ([""] if out else []) + [f"**{diagrams.safe_label(domain, diagrams.NO_DOMAIN)}**", ""]
+        out += capability_block([(domain, members)])
+    return "\n".join(out)
+
+
 GENERATORS = {
     "where-it-stands": where_it_stands,
     "concern-matrix": concern_matrix,
@@ -329,6 +355,7 @@ GENERATORS = {
     "context-map": context_map,
     "system-context": system_context,
     "app-context": app_context,
+    "capability-map": capability_map,
 }
 
 

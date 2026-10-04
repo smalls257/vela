@@ -254,3 +254,12 @@ def test_the_context_map_page_records_each_relationship_by_contract():
         assert words in text
     outside = re.sub(r"<!-- generated:([a-z-]+) sha=.*?<!-- /generated:\1 -->", "", text, flags=re.S)
     assert all(f"CON-00{n}" in outside for n in range(1, 8))
+
+
+def test_capabilities_carry_a_domain_and_the_delta_page_draws_them():
+    pages = fixture_pages()
+    assert "capability-map" in generated_blocks(pages["04a-capability-delta.md"])
+    capabilities = [path for path, text in pages.items() if "\ntype: capability\n" in text]
+    assert len(capabilities) == 8
+    for path in capabilities:
+        assert re.search(r"^domain: \S", pages[path], re.M), path

@@ -4,6 +4,7 @@ type: capability
 title: Find a crossing
 origin: proposed
 change: unchanged
+domain: Sales
 state: decided
 owner: "@hl-solution-lead"
 authored: mixed

@@ -4,6 +4,7 @@ type: capability
 title: Fix failed bookings by hand
 origin: proposed
 change: retire
+domain: Booking
 state: decided
 owner: "@hl-solution-lead"
 authored: mixed

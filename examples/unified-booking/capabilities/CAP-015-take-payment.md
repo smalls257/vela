@@ -4,6 +4,7 @@ type: capability
 title: Take payment
 origin: proposed
 change: unchanged
+domain: Payments
 state: decided
 owner: "@hl-solution-lead"
 authored: mixed

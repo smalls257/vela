@@ -4,6 +4,7 @@ type: capability
 title: Quote a fare
 origin: proposed
 change: narrow
+domain: Sales
 state: decided
 owner: "@hl-solution-lead"
 authored: mixed

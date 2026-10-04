@@ -4,6 +4,7 @@ type: capability
 title: Reserve a crossing
 origin: proposed
 change: replace
+domain: Booking
 state: decided
 owner: "@hl-solution-lead"
 authored: mixed

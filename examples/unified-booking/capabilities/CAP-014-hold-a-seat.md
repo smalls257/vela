@@ -4,6 +4,7 @@ type: capability
 title: Hold a seat during payment
 origin: proposed
 change: new
+domain: Booking
 state: decided
 owner: "@hl-solution-lead"
 authored: mixed

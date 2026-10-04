@@ -107,6 +107,9 @@ def _enum_findings(vault, page, page_type, spec):
     if "owner" in meta and not (isinstance(meta["owner"], str) and schema.OWNER_RE.match(meta["owner"])):
         yield _f(page, meta_line(page, "owner"), "E105", f"Owner '{meta['owner']}' is not a GitHub handle or team.",
                  "Write owner: \"@handle\" or \"@org/team\", several separated by spaces.")
+    if "domain" in meta and not (isinstance(meta["domain"], str) and meta["domain"].strip()):
+        yield _f(page, meta_line(page, "domain"), "E105", "'domain' must be a short text, such as Booking.",
+                 "Write domain: Booking, or remove the field.")
     if "handed_off" in meta and not (isinstance(meta["handed_off"], str) and schema.HANDED_OFF_RE.match(meta["handed_off"])):
         yield _f(page, meta_line(page, "handed_off"), "E105", "'handed_off' is not in the form '<name>, <date>, PR #N'.",
                  "Write handed_off: \"Booking senior, 2026-11-20, PR #41\".")

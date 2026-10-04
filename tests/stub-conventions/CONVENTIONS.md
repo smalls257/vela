@@ -61,7 +61,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
 | `decision` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `proposed`, `decided`, `superseded`, `rejected` |
 | `epic` | as above, plus `apps`, `delivers` | `consumes`, `flows`, `depends_on`, `initiative`, `sources` | `draft`, `decided` |
-| `capability` | as above, plus `origin`, `change` | `sources` | `inkling`, `assumption`, `decided` |
+| `capability` | as above, plus `origin`, `change` | `sources`, `domain` | `inkling`, `assumption`, `decided` |
 | `session` | `id`, `type`, `date`, `modes`, `status`, `summary` | `title` | none: `status` is `open` or `closed` |
 | `sources` | `id`, `type`, `title`, `authored` | `owner` | none |
 
@@ -76,6 +76,7 @@ Field values:
 - `stage`: `baseline`, `target`, `boundaries`, `contracts`, `handoff`, `epics`. Required when `change` is `new` or `changed`, absent otherwise.
 - `handed_off`: set once a senior takes the app. Form: `"<name>, <date>, PR #N"`.
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
+- `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
 - `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`.
 
@@ -193,7 +194,7 @@ A waiver records that an `addressed` cell needs no epic work. The cell text star
 
 Mermaid only, as `flowchart` (or `graph`) or `sequenceDiagram`. A flowchart has at most 20 elements, counting each node and each subgraph once. A sequence diagram has at most 8 participants. Draw only the level the page owns: initiative pages draw systems, app pages draw that app's containers and direct neighbours, and nothing draws components.
 
-Three diagrams are generated blocks, drawn from the model: `context-map`, `system-context` and `app-context`. Nothing in them is drawn by hand. A generated diagram keeps to the same budget. Over it, the diagram draws the app in focus first, then new and changed apps, then the other apps, then external providers, and lists every node it left out in a table under the diagram, with its contracts. Generated diagrams hold no `%%` directives and no frontmatter. Diagrams with no generator, such as an app's containers or a flow's swimlanes, are drawn by hand.
+Four diagrams are generated blocks, drawn from the model: `context-map`, `system-context`, `app-context` and `capability-map`. Nothing in them is drawn by hand. A generated diagram keeps to the same budget. Over it, the diagram draws the app in focus first, then new and changed apps, then the other apps, then external providers, and lists every node it left out in a table under the diagram, with its contracts. The capability map first splits into one diagram per domain. Generated diagrams hold no `%%` directives and no frontmatter. Diagrams with no generator, such as an app's containers or a flow's swimlanes, are drawn by hand.
 
 ## Sessions
 
@@ -235,6 +236,7 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `context-map` | `05-building-blocks.md` | One node per app page and per external `**Provider:**`, and one arrow per contract from its provider to each consumer, labelled with the contract ID. Each app's label and colour say its `change`. |
 | `system-context` | `03-context-and-scope.md` | The after view: apps in one box, external providers outside it, and the same contract arrows. Retired apps are listed under it, not drawn. |
 | `app-context` | each app page | The app and its direct neighbours by contract, provided or consumed |
+| `capability-map` | `04a-capability-delta.md` | Every capability in a box per `domain`, labelled and coloured by `change` |
 
 A view with no generator is a list of links to where the data lives, never a copy kept by hand.
 

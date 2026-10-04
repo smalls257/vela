@@ -26,8 +26,11 @@ STYLES = {
     "external": "fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2",
 }
 APP_STYLE = {"new": "new", "changed": "changed", "integrated": "unchanged", "unchanged": "unchanged", "retired": "retired"}
+CAPABILITY_STYLE = {"new": "new", "extend": "changed", "replace": "changed", "narrow": "changed",
+                    "retire": "retired", "unchanged": "unchanged"}
 # Lower ranks are drawn first when a diagram is over budget.
 RANK = {"focus": 0, "new": 1, "changed": 1, "app": 2, "unchanged": 2, "retired": 3, "external": 4}
+NO_DOMAIN = "No domain"
 
 
 @dataclass(frozen=True)
@@ -175,6 +178,40 @@ def app_graph(vault, app):
             nodes.append(node)
             edges.append((source, node, contract.id))
     return _graph(nodes, edges, skipped)
+
+
+def capability_node(page):
+    change = page.meta.get("change")
+    style = CAPABILITY_STYLE.get(change if isinstance(change, str) else "", "unchanged")
+    shown = f" ({change})" if isinstance(change, str) and change in CAPABILITY_STYLE else ""
+    name = page.id if isinstance(page.id, str) and page.id else page.name
+    label = safe_label(f"{name} {page_title(page)}{shown}", name)
+    # ref is the page name, which is unique, so two pages that share an id or a key stay two nodes
+    return Node(node_key("c_", name), label, style, page.name, page)
+
+
+def domain_of(page):
+    domain = page.meta.get("domain")
+    return " ".join(domain.split()) if isinstance(domain, str) and domain.strip() else NO_DOMAIN
+
+
+def domain_keys(domains):
+    """{domain: subgraph key}. Two domains that share a key (such as Booking and booking) each get a hash."""
+    base = {d: node_key("d_", d.lower()) for d in domains}
+    shared = {k for k in base.values() if list(base.values()).count(k) > 1}
+    return {d: k + ("_" + hashlib.sha1(d.encode("utf-8")).hexdigest()[:6] if k in shared else "") for d, k in base.items()}
+
+
+def capability_groups(vault):
+    """[(domain, [Node])], domains in name order with "No domain" last, nodes by id."""
+    pages = sorted(vault.of_type("capability"), key=lambda p: (p.id if isinstance(p.id, str) else "", p.name))
+    nodes = [capability_node(p) for p in pages]
+    final = _unique_keys(nodes)
+    groups = {}
+    for page, node in zip(pages, nodes):
+        groups.setdefault(domain_of(page), []).append(replace(node, key=final[(node.key, node.ref)]))
+    order = sorted(groups, key=lambda d: (d == NO_DOMAIN, d.lower(), d))
+    return [(d, groups[d]) for d in order]
 
 
 def fit(graph, budget, reserved=0):

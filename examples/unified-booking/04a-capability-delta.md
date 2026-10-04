@@ -7,7 +7,7 @@ arc42: "§4"
 c4: landscape
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-14 Shape", "session 2026-08-12 Grill", "session 2026-11-18 Grill"]
 ---
 
@@ -18,6 +18,36 @@ sources: ["session 2026-07-14 Shape", "session 2026-08-12 Grill", "session 2026-
 Every capability this initiative changes, which software provides it before and after, and where the work lands. Anything not listed is unchanged.
 
 Each capability page holds the change, what provides it today and after, its flows and its epics.
+
+<!-- generated:capability-map sha=86713d8f: do not edit, run planner render -->
+```mermaid
+flowchart TB
+  subgraph d_booking["Booking"]
+    c_CAP_013["CAP-013 Reserve a crossing (replace)"]
+    c_CAP_014["CAP-014 Hold a seat during payment (new)"]
+    c_CAP_021["CAP-021 Amend or cancel a booking (extend)"]
+    c_CAP_023["CAP-023 Fix failed bookings by hand (retire)"]
+  end
+  subgraph d_customer_contact["Customer contact"]
+    c_CAP_022["CAP-022 Notify customer of changes (new)"]
+  end
+  subgraph d_payments["Payments"]
+    c_CAP_015["CAP-015 Take payment (unchanged)"]
+  end
+  subgraph d_sales["Sales"]
+    c_CAP_011["CAP-011 Find a crossing (unchanged)"]
+    c_CAP_012["CAP-012 Quote a fare (narrow)"]
+  end
+  classDef changed fill:#fdf0d5,stroke:#a06400,color:#3a2600
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  classDef retired fill:#f6e0de,stroke:#b3261e,color:#3a0d0a,stroke-dasharray:4 3
+  classDef unchanged fill:#eef1f5,stroke:#7a8494,color:#19212d
+  class c_CAP_012,c_CAP_013,c_CAP_021 changed
+  class c_CAP_014,c_CAP_022 new
+  class c_CAP_023 retired
+  class c_CAP_011,c_CAP_015 unchanged
+```
+<!-- /generated:capability-map -->
 
 - [[CAP-013-reserve-a-crossing|Reserve a crossing]]
 - [[CAP-014-hold-a-seat|Hold a seat during payment]]

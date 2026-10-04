@@ -55,7 +55,7 @@ PAGE_TYPES = {
     },
     "capability": {
         "required": ("id", "type", "title", "state", "owner", "authored", "origin", "change"),
-        "optional": ("sources",),
+        "optional": ("sources", "domain"),
         "states": ("inkling", "assumption", "decided"),
     },
     "session": {
@@ -173,6 +173,7 @@ BLOCKS = {
     "context-map": "building-blocks",
     "system-context": "context-and-scope",
     "app-context": "type:app-building-blocks",
+    "capability-map": "capability-delta",
 }
 NEW_BLOCK_SHA = "00000000"
 

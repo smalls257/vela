@@ -4,6 +4,7 @@ type: capability
 title: Amend or cancel a booking
 origin: proposed
 change: extend
+domain: Booking
 state: decided
 owner: "@hl-solution-lead"
 authored: mixed

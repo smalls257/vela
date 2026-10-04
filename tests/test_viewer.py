@@ -485,7 +485,7 @@ def test_fixture_viewer_draws_its_diagrams_and_generated_blocks_without_network(
     assert [c for c in classes if c == "gen"]
 
 
-GENERATED_ROUTES = {"05-building-blocks": "CON-007", "03-context-and-scope": "CON-006",
+GENERATED_ROUTES = {"05-building-blocks": "CON-007", "03-context-and-scope": "CON-006", "04a-capability-delta": "CAP-014",
                     "ferrymaster-building-blocks": "CON-006"}
 
 
