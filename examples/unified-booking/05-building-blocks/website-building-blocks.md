@@ -27,24 +27,18 @@ The website no longer decides whether a booking is confirmed and no longer talks
 |---|---|
 | Changed: calls the Booking API. The FM screen adapter is retired. | Digital team |
 
+<!-- generated:app-context sha=af4040bb: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  cust["Customer"]
-  web["<b>Public website</b><br/>changed"]
-  bk["Booking"]
-  vs["Vessel schedule"]
-  tp["Tidepay<br/>hosted payment page"]
-  fm["FERRYMASTER"]
-  pr["Pricing"]
-  cust --> web
-  web -->|"CON-001"| bk
-  web -->|"find a crossing"| vs
-  web -->|"redirect to pay"| tp
-  web -.->|"screen scraping, retired"| fm
-  web -.->|"direct quote, retired"| pr
-  classDef focus fill:#1f4e79,color:#fff
-  class web focus
+  n_APP_booking["Booking (new)"]
+  n_APP_website["Public website (changed)"]
+  n_APP_booking -->|"CON-001"| n_APP_website
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_website focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 ## Inside Public website: main containers
 

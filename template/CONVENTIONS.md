@@ -15,7 +15,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
 | `04-solution-strategy.md`, `04a-capability-delta.md` | The core move; links to every capability that changes |
-| `05-building-blocks/` | Index, then `<app>-building-blocks.md` per app, with its contracts |
+| `05-building-blocks/` | Index with the `context-map` block, then `<app>-building-blocks.md` per app, with its contracts |
 | `06-runtime/` | `06-flows.md`, `flows/FLO-nnn-<slug>.md`, `apps/<app>-runtime.md` |
 | `08-concerns/` | `08-concerns.md` with the `concern-matrix` block, then `concern-<name>.md` |
 | `09-decisions/` | Index, then `ADR-nnnn-<slug>.md` |
@@ -174,8 +174,8 @@ A waiver records that an `addressed` cell needs no epic work. The cell text star
 
 ## Pages
 
-- **App pages go one level in.** A new or changed app gets a building-blocks page (what it does, what it does not do, containers, contracts it provides, the `contracts-consumed` block) and a runtime page (its part in each flow, and how it behaves when something fails).
-- **Slim pages for unchanged apps.** An `integrated` or `unchanged` app gets one page with its job, why it is a black box, and the contracts it provides at `fact`. It has no runtime page; the consumer's runtime page says what happens when it fails.
+- **App pages go one level in.** A new or changed app gets a building-blocks page (what it does, what it does not do, the `app-context` block, containers, contracts it provides, the `contracts-consumed` block) and a runtime page (its part in each flow, and how it behaves when something fails).
+- **Slim pages for unchanged apps.** An `integrated` or `unchanged` app gets one page with its job, why it is a black box, the `app-context` block, and the contracts it provides at `fact`. It has no runtime page; the consumer's runtime page says what happens when it fails.
 - **Contracts live on the provider's page.** A contract with an external provider lives on its consumer's page with a `**Provider:**` bullet.
 - **Containers, never components.** Each container row says who proposed it and its state.
 - **About one screen per section.** Split a page along its `##` headings when it grows.
@@ -192,6 +192,8 @@ A waiver records that an `addressed` cell needs no epic work. The cell text star
 ## Diagrams
 
 Mermaid only, as `flowchart` (or `graph`) or `sequenceDiagram`. A flowchart has at most 20 elements, counting each node and each subgraph once. A sequence diagram has at most 8 participants. Draw only the level the page owns: initiative pages draw systems, app pages draw that app's containers and direct neighbours, and nothing draws components.
+
+Three diagrams are generated blocks, drawn from the model: `context-map`, `system-context` and `app-context`. Nothing in them is drawn by hand. A generated diagram keeps to the same budget. Over it, the diagram draws the app in focus first, then new and changed apps, then the other apps, then external providers, and lists every node it left out in a table under the diagram, with its contracts. Generated diagrams hold no `%%` directives and no frontmatter. Diagrams with no generator, such as an app's containers or a flow's swimlanes, are drawn by hand.
 
 ## Sessions
 
@@ -230,6 +232,9 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `traceability` | `13-epics.md` | Each trace gap in full, and the number of checks that pass |
 | `traces-to` | each epic page | The epic's `apps`, `delivers`, `consumes`, `flows` and `depends_on` as links, and the concerns its acceptance criteria mark |
 | `delivered-by` | each capability page | Every epic whose `delivers` lists this capability |
+| `context-map` | `05-building-blocks.md` | One node per app page and per external `**Provider:**`, and one arrow per contract from its provider to each consumer, labelled with the contract ID. Each app's label and colour say its `change`. |
+| `system-context` | `03-context-and-scope.md` | The after view: apps in one box, external providers outside it, and the same contract arrows. Retired apps are listed under it, not drawn. |
+| `app-context` | each app page | The app and its direct neighbours by contract, provided or consumed |
 
 A view with no generator is a list of links to where the data lives, never a copy kept by hand.
 

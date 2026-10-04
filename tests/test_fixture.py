@@ -91,9 +91,37 @@ def test_unknown_with_no_owner(ub):
 
 
 def test_oversized_diagram(ub):
-    extra = "".join(f"  X{i}[Extra {i}] --> B\n" for i in range(10))
-    edit(ub / "03-context-and-scope.md", "  EB -.-> N[Notifications]\n", "  EB -.-> N[Notifications]\n" + extra)
+    extra = "".join(f"  X{i}[Extra {i}] --> Web\n" for i in range(15))
+    edit(ub / "03-context-and-scope.md", "  K -- pay --> T\n", "  K -- pay --> T\n" + extra)
     assert broken(ub) == [("E601", "03-context-and-scope.md")]
+
+
+def fixture_pages():
+    return {p.relative_to(FIXTURE).as_posix(): p.read_text(encoding="utf-8") for p in FIXTURE.rglob("*.md")}
+
+
+def generated_blocks(text):
+    return re.findall(r"<!-- generated:([a-z-]+) sha=", text)
+
+
+def hand_fences(text):
+    """Mermaid fences outside generated blocks."""
+    outside = re.sub(r"<!-- generated:([a-z-]+) sha=.*?<!-- /generated:\1 -->", "", text, flags=re.S)
+    return outside.count("```mermaid")
+
+
+def test_generated_diagrams_replace_the_hand_drawn_ones():
+    pages = fixture_pages()
+    assert "context-map" in generated_blocks(pages["05-building-blocks/05-building-blocks.md"])
+    assert hand_fences(pages["05-building-blocks/05-building-blocks.md"]) == 0
+    assert "system-context" in generated_blocks(pages["03-context-and-scope.md"])
+    assert hand_fences(pages["03-context-and-scope.md"]) == 1  # Today has no generator, so it stays
+    apps = [path for path, text in pages.items() if "\ntype: app-building-blocks\n" in text]
+    assert len(apps) == 9
+    for path in apps:
+        assert "app-context" in generated_blocks(pages[path]), path
+        slim = "\nchange: integrated\n" in pages[path] or "\nchange: unchanged\n" in pages[path]
+        assert hand_fences(pages[path]) == (0 if slim else 1), path  # only the containers diagram is hand-drawn
 
 
 def test_gate_four_cap_021_decided_while_unk_001_blocks_it(ub):

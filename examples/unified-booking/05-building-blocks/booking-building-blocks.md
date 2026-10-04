@@ -28,30 +28,38 @@ Booking does not own fares, capacity, customer records, card payments or the led
 |---|---|
 | New ([[ADR-0001-one-booking-context\|ADR-0001]]) | Booking team (new) |
 
+<!-- generated:app-context sha=3198038a: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  web["Public website<br/>changed"]
-  cc["Call centre desktop<br/>changed"]
-  kio["Port kiosks<br/>changed"]
-  bk["<b>Booking</b><br/>new"]
-  pr["Pricing"]
-  vs["Vessel schedule"]
-  ci["Customer identity"]
-  fm["FERRYMASTER<br/>ledger of record"]
-  tp["Tidepay<br/>external"]
-  bus["Harbourline event bus<br/>external"]
-  web -->|"CON-001"| bk
-  cc -->|"CON-001"| bk
-  kio -->|"CON-001"| bk
-  tp -->|"CON-007 payment outcome"| bk
-  bk -->|"CON-003 quote"| pr
-  bk -->|"CON-004 capacity"| vs
-  bk -->|"CON-005 lookup"| ci
-  bk -->|"CON-006 MQ"| fm
-  bk -->|"CON-002 events"| bus
-  classDef focus fill:#1f4e79,color:#fff
-  class bk focus
+  n_APP_booking["Booking (new)"]
+  n_APP_call_centre["Call centre desktop (changed)"]
+  n_APP_customer_identity["Customer identity (unchanged)"]
+  n_APP_ferrymaster["FERRYMASTER (integrated)"]
+  n_APP_kiosks["Port kiosks (changed)"]
+  n_APP_notifications["Notifications (changed)"]
+  n_APP_pricing["Pricing (changed)"]
+  n_APP_vessel_schedule["Vessel schedule (unchanged)"]
+  n_APP_website["Public website (changed)"]
+  x_tidepay__external_["Tidepay (external)"]
+  n_APP_booking -->|"CON-001"| n_APP_call_centre
+  n_APP_booking -->|"CON-001"| n_APP_kiosks
+  n_APP_booking -->|"CON-001"| n_APP_website
+  n_APP_booking -->|"CON-002"| n_APP_notifications
+  n_APP_pricing -->|"CON-003"| n_APP_booking
+  n_APP_vessel_schedule -->|"CON-004"| n_APP_booking
+  n_APP_customer_identity -->|"CON-005"| n_APP_booking
+  n_APP_ferrymaster -->|"CON-006"| n_APP_booking
+  x_tidepay__external_ -->|"CON-007"| n_APP_booking
+  classDef changed fill:#fdf0d5,stroke:#a06400,color:#3a2600
+  classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef unchanged fill:#eef1f5,stroke:#7a8494,color:#19212d
+  class n_APP_call_centre,n_APP_kiosks,n_APP_notifications,n_APP_pricing,n_APP_website changed
+  class x_tidepay__external_ external
+  class n_APP_booking focus
+  class n_APP_customer_identity,n_APP_ferrymaster,n_APP_vessel_schedule unchanged
 ```
+<!-- /generated:app-context -->
 
 ## Inside Booking: main containers
 

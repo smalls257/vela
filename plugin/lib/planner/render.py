@@ -5,7 +5,7 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 """
 import hashlib
 
-from planner import schema, trace
+from planner import diagrams, schema, trace
 from planner.model import Finding
 
 OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
@@ -257,6 +257,55 @@ def traceability(vault, page):
     return "\n".join(lines)
 
 
+# ------------------------------------------------------------------ diagrams
+
+def mermaid_fence(lines):
+    return ["```mermaid", *lines, "```"]
+
+
+def node_link(node):
+    """A table-safe link to the page a node stands for, or its name for an external provider."""
+    return link(node.page.name, cell(title(node.page))) if node.page is not None else cell(node.ref)
+
+
+def left_out_table(count, header, rows):
+    """The table under a diagram that lists what the budget kept out of it."""
+    if not rows:
+        return []
+    return ["", f"**Not drawn, over the {schema.FLOWCHART_BUDGET}-element budget:** {count}", "",
+            f"| Not drawn | {header} |", "|---|---|", *rows]
+
+
+def graph_block(graph, direction="LR", groups=(), reserved=0):
+    drawn, left_out = diagrams.fit(graph, schema.FLOWCHART_BUDGET, reserved)
+    rows = [row(node_link(n), cell(", ".join(diagrams.overflow_contracts(graph, n)) or "none")) for n in left_out]
+    return mermaid_fence(diagrams.flowchart(drawn, direction, groups)) + left_out_table(len(left_out), "Contracts", rows)
+
+
+def context_map(vault, page):
+    graph = diagrams.context_graph(vault)
+    if not graph.nodes:
+        return "none"
+    return "\n".join(graph_block(graph))
+
+
+def system_context(vault, page):
+    graph = diagrams.context_graph(vault, after=True)
+    retired = [a for a in vault.apps if a.meta.get("change") == "retired"]
+    if not graph.nodes:
+        return "none"
+    scope = diagrams.safe_label(vault.config.get("title", ""), "In scope")
+    apps = [n.key for n in graph.nodes if n.page is not None]
+    out = graph_block(graph, groups=[("scope", scope, apps)], reserved=1)
+    if retired:
+        out += ["", "**Retired, not drawn:** " + ", ".join(plain_link(a.name, title(a)) for a in retired)]
+    return "\n".join(out)
+
+
+def app_context(vault, page):
+    return "\n".join(graph_block(diagrams.app_graph(vault, page)))
+
+
 GENERATORS = {
     "where-it-stands": where_it_stands,
     "concern-matrix": concern_matrix,
@@ -266,6 +315,9 @@ GENERATORS = {
     "epics-for-app": epics_for_app,
     "traces-to": traces_to,
     "delivered-by": delivered_by,
+    "context-map": context_map,
+    "system-context": system_context,
+    "app-context": app_context,
 }
 
 

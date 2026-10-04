@@ -24,22 +24,18 @@ FERRYMASTER is not responsible for holds during payment or for telling channels 
 |---|---|
 | Integrated, unchanged. The vendor contract ends in 2028 and the code cannot change (CST-1). | Mainframe team (2 people) |
 
+<!-- generated:app-context sha=24c277df: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  bk["Booking<br/>Ledger adapter"]
-  fm["<b>FERRYMASTER</b><br/>ledger of record"]
-  dw["Data warehouse feed<br/>out of scope"]
-  fin["Finance reconciliation job<br/>out of scope"]
-  loy["Loyalty scheme<br/>out of scope"]
-  old["Front-end adapters<br/>retired"]
-  bk -->|"CON-006 MQ"| fm
-  dw -.->|"reads"| fm
-  fin -.->|"reads"| fm
-  loy -.->|"reads"| fm
-  old -.->|"screen scraping, until removed"| fm
-  classDef focus fill:#1f4e79,color:#fff
-  class fm focus
+  n_APP_booking["Booking (new)"]
+  n_APP_ferrymaster["FERRYMASTER (integrated)"]
+  n_APP_ferrymaster -->|"CON-006"| n_APP_booking
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_ferrymaster focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 FERRYMASTER is a black box on this page. Nobody in this initiative changes it, and only two people understand its COBOL, so we describe the transactions it exposes and stop there.
 

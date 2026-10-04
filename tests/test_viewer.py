@@ -483,3 +483,23 @@ def test_fixture_viewer_draws_its_diagrams_and_generated_blocks_without_network(
     assert classes.count("mermaid") == 2
     assert not [c for c in classes if "diagram-error" in c]
     assert [c for c in classes if c == "gen"]
+
+
+GENERATED_ROUTES = {"05-building-blocks": "CON-007", "03-context-and-scope": "CON-006",
+                    "ferrymaster-building-blocks": "CON-006"}
+
+
+@needs_chrome
+@pytest.mark.parametrize("route", sorted(GENERATED_ROUTES))
+def test_generated_diagrams_draw_under_the_csp_and_sanitiser(tmp_path, sensor, route):
+    out = tmp_path / "viewer.html"
+    build(FIXTURE, out)
+    sensor.requests.clear()
+    text = dump_dom(out, route)
+    assert sensor.requests == []
+    dom = audit(text)
+    classes = [a.get("class", "") for t, a in dom.tags if t == "div"]
+    assert classes.count("mermaid") >= 1, route
+    assert not [c for c in classes if "diagram-error" in c], route
+    assert "svg" in [t for t, _ in dom.tags]
+    assert GENERATED_ROUTES[route] in text, f"{route} drew no {GENERATED_ROUTES[route]} label"

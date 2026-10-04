@@ -27,21 +27,18 @@ Pricing does not hold seats or know whether a booking is confirmed. Booking does
 |---|---|
 | Changed: callers narrowed from the three front ends to Booking only | Revenue team |
 
+<!-- generated:app-context sha=4800e492: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  bk["Booking<br/>new"]
-  pr["<b>Pricing</b><br/>changed"]
-  gw["Platform gateway"]
-  web["Public website<br/>no longer calls Pricing"]
-  cc["Call centre desktop<br/>no longer calls Pricing"]
-  kio["Port kiosks<br/>no longer calls Pricing"]
-  bk -->|"CON-003"| gw --> pr
-  web -.->|"retired with old adapter"| gw
-  cc -.->|"retired with old adapter"| gw
-  kio -.->|"retired with old adapter"| gw
-  classDef focus fill:#1f4e79,color:#fff
-  class pr focus
+  n_APP_booking["Booking (new)"]
+  n_APP_pricing["Pricing (changed)"]
+  n_APP_pricing -->|"CON-003"| n_APP_booking
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_pricing focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 ## Inside Pricing: main containers
 

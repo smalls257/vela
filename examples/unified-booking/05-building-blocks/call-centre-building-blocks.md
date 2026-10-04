@@ -27,24 +27,18 @@ The desktop no longer decides whether a booking is confirmed and no longer cache
 |---|---|
 | Changed: Booking API client and new amend and cancel screens. Terminal adapter and manual fix queue retired. | Contact Centre Systems team |
 
+<!-- generated:app-context sha=f30b2e7b: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  agent["Call centre agent"]
-  cc["<b>Call centre desktop</b><br/>changed"]
-  bk["Booking"]
-  vs["Vessel schedule"]
-  tp["Tidepay"]
-  fm["FERRYMASTER"]
-  pr["Pricing"]
-  agent --> cc
-  cc -->|"CON-001"| bk
-  cc -->|"find a crossing"| vs
-  cc -->|"take payment, as today"| tp
-  cc -.->|"terminal adapter, retired"| fm
-  cc -.->|"direct quote, retired"| pr
-  classDef focus fill:#1f4e79,color:#fff
-  class cc focus
+  n_APP_booking["Booking (new)"]
+  n_APP_call_centre["Call centre desktop (changed)"]
+  n_APP_booking -->|"CON-001"| n_APP_call_centre
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_call_centre focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 ## Inside Call centre desktop: main containers
 

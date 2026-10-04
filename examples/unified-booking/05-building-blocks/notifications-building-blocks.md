@@ -27,18 +27,18 @@ Notifications does not decide a booking's state. It reports what Booking publish
 |---|---|
 | Changed: a new Booking event consumer. The existing email and SMS sender is reused. | Platform team |
 
+<!-- generated:app-context sha=eeecc3bd: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  bk["Booking"]
-  bus["Harbourline event bus"]
-  nt["<b>Notifications</b><br/>changed"]
-  cust["Customer<br/>email or SMS"]
-  bk -->|"CON-002"| bus
-  bus -->|"CON-002"| nt
-  nt --> cust
-  classDef focus fill:#1f4e79,color:#fff
-  class nt focus
+  n_APP_booking["Booking (new)"]
+  n_APP_notifications["Notifications (changed)"]
+  n_APP_booking -->|"CON-002"| n_APP_notifications
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_notifications focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 ## Inside Notifications: main containers
 

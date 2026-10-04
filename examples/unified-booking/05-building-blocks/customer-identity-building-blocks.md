@@ -8,7 +8,7 @@ c4: context
 state: fact
 change: unchanged
 owner: "@harbourline/platform-team"
-authored: authored
+authored: mixed
 sources: [SRC-07]
 ---
 
@@ -24,14 +24,18 @@ Customer identity does not know about bookings. Booking holds the link from book
 |---|---|
 | Unchanged. Booking becomes a new caller of the existing read API. | Platform team |
 
+<!-- generated:app-context sha=83097126: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  bk["Booking"]
-  ci["<b>Customer identity</b><br/>unchanged"]
-  bk -->|"CON-005 lookup"| ci
-  classDef focus fill:#1f4e79,color:#fff
-  class ci focus
+  n_APP_booking["Booking (new)"]
+  n_APP_customer_identity["Customer identity (unchanged)"]
+  n_APP_customer_identity -->|"CON-005"| n_APP_booking
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_customer_identity focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 Customer identity is a black box on this page. Nothing inside it changes, so its containers belong to the Platform team's own documentation.
 

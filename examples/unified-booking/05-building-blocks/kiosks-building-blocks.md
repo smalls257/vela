@@ -27,26 +27,18 @@ Kiosks no longer decide whether a booking is confirmed and no longer cache FERRY
 |---|---|
 | Changed: Booking API v1 client ships in the March 2027 image. The FM adapter is removed in the September 2027 image. | Port Systems team |
 
+<!-- generated:app-context sha=f0b55cab: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  cust["Customer at the port"]
-  kio["<b>Port kiosks</b><br/>changed"]
-  bk["Booking"]
-  vs["Vessel schedule"]
-  tp["Tidepay"]
-  pki["Platform PKI<br/>device certificates"]
-  fm["FERRYMASTER"]
-  pr["Pricing"]
-  cust --> kio
-  kio -->|"CON-001 v1"| bk
-  kio -->|"find a crossing"| vs
-  kio -->|"take payment, as today"| tp
-  pki -->|"device certificate"| kio
-  kio -.->|"FM adapter, retired Sep 2027"| fm
-  kio -.->|"direct quote, retired"| pr
-  classDef focus fill:#1f4e79,color:#fff
-  class kio focus
+  n_APP_booking["Booking (new)"]
+  n_APP_kiosks["Port kiosks (changed)"]
+  n_APP_booking -->|"CON-001"| n_APP_kiosks
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_kiosks focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 ## Inside Port kiosks: main containers
 

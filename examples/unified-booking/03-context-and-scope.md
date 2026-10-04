@@ -7,7 +7,7 @@ arc42: "§3"
 c4: context
 state: decided
 owner: "@hl-solution-lead"
-authored: authored
+authored: mixed
 sources: ["session 2026-07-09 Discover", "session 2026-07-14 Shape", "session 2026-08-12 Grill"]
 ---
 
@@ -35,19 +35,36 @@ Three channels, three adapters, three opinions about what a booking's state is. 
 
 ## After
 
+<!-- generated:system-context sha=ea819ab2: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  Web[Public website] --> B[Booking]
-  CC[Call centre desktop] --> B
-  K[Port kiosks] --> B
-  B --> P[Pricing]
-  B --> VS[Vessel schedule]
-  B --> CI[Customer identity]
-  B -- MQ transactions --> FM[(FERRYMASTER)]
-  T[Tidepay] -- payment outcome --> B
-  B -. state changed .-> EB{{Event bus}}
-  EB -.-> N[Notifications]
+  subgraph scope["Unified Booking"]
+    n_APP_booking["Booking"]
+    n_APP_call_centre["Call centre desktop"]
+    n_APP_customer_identity["Customer identity"]
+    n_APP_ferrymaster["FERRYMASTER"]
+    n_APP_kiosks["Port kiosks"]
+    n_APP_notifications["Notifications"]
+    n_APP_pricing["Pricing"]
+    n_APP_vessel_schedule["Vessel schedule"]
+    n_APP_website["Public website"]
+  end
+  x_tidepay__external_["Tidepay (external)"]
+  n_APP_booking -->|"CON-001"| n_APP_call_centre
+  n_APP_booking -->|"CON-001"| n_APP_kiosks
+  n_APP_booking -->|"CON-001"| n_APP_website
+  n_APP_booking -->|"CON-002"| n_APP_notifications
+  n_APP_pricing -->|"CON-003"| n_APP_booking
+  n_APP_vessel_schedule -->|"CON-004"| n_APP_booking
+  n_APP_customer_identity -->|"CON-005"| n_APP_booking
+  n_APP_ferrymaster -->|"CON-006"| n_APP_booking
+  x_tidepay__external_ -->|"CON-007"| n_APP_booking
+  classDef app fill:#eef1f5,stroke:#2448b8,color:#19212d
+  classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
+  class n_APP_booking,n_APP_call_centre,n_APP_customer_identity,n_APP_ferrymaster,n_APP_kiosks,n_APP_notifications,n_APP_pricing,n_APP_vessel_schedule,n_APP_website app
+  class x_tidepay__external_ external
 ```
+<!-- /generated:system-context -->
 
 The channels stop knowing FERRYMASTER exists. Booking is the only thing that writes bookings to the ledger, and it tells everyone else what changed through the event bus.
 

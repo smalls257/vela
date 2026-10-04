@@ -170,6 +170,9 @@ BLOCKS = {
     "epics-for-app": "type:app-building-blocks",
     "traces-to": "type:epic",
     "delivered-by": "type:capability",
+    "context-map": "building-blocks",
+    "system-context": "context-and-scope",
+    "app-context": "type:app-building-blocks",
 }
 NEW_BLOCK_SHA = "00000000"
 
