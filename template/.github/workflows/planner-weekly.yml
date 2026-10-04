@@ -5,6 +5,9 @@
 # Actions tab to see it at once. If gh fails, the job fails and shows red;
 # it never reports success for an issue it did not write. Built and tested
 # with a stand-in for gh; it has not yet run against a live repository.
+# Two limits of GitHub to know: an edit pings only the owners added since the
+# last run, because GitHub notifies on new mentions; and scheduled runs stop
+# after 60 days with no activity in the repository.
 name: planner weekly
 
 on:
@@ -15,6 +18,10 @@ on:
 permissions:
   contents: read
   issues: write
+
+concurrency:
+  group: vault-health
+  cancel-in-progress: false
 
 jobs:
   vault-health:
