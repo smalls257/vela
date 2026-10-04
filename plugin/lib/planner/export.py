@@ -93,7 +93,7 @@ def rows(vault, link_for):
         title = epic.meta.get("title")
         owner = epic.meta.get("owner")
         out.append((title if isinstance(title, str) else epic.id, text, epic.id,
-                    owner if isinstance(owner, str) else "", link_for(epic.path)))
+                    owner.removeprefix("@") if isinstance(owner, str) else "", link_for(epic.path)))
     return out
 
 

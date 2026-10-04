@@ -26,7 +26,7 @@ def test_one_row_per_epic_with_the_five_columns(tmp_path):
     assert rows[0] == ["Summary", "Description", "Epic Name", "Owner team", "Vault link"]
     assert [r[2] for r in rows[1:]] == [f"EPC-0{n}" for n in range(31, 40)]
     summary, description, name, owner, link = rows[1]
-    assert (summary, name, owner) == ("Booking holds and confirms crossings", "EPC-031", "'@harbourline/booking-team")
+    assert (summary, name, owner) == ("Booking holds and confirms crossings", "EPC-031", "harbourline/booking-team")
     assert link == "https://github.com/harbourline/unified-booking/blob/3f9c2a1/13-epics/EPC-031-holds-and-confirms.md"
     assert description.startswith("Booking becomes the one place that decides whether a crossing is held")
     assert "FERRYMASTER stays the ledger of record (ADR-0002), so Booking" in description
@@ -109,3 +109,11 @@ def test_a_formula_shaped_epic_title_is_defused_in_the_file(tmp_path):
     edit(vault / "13-epics" / "EPC-031-holds-and-confirms.md", "title: Booking holds and confirms crossings", 'title: "=HYPERLINK(\\"http://evil\\")"')
     _, _, rows = exported(tmp_path, vault=vault)
     assert rows[1][0].startswith("'=HYPERLINK")
+
+
+def test_owner_loses_its_at_sign_and_is_still_guarded(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    edit(vault / "13-epics" / "EPC-031-holds-and-confirms.md", "owner: \"@harbourline/booking-team\"", 'owner: "@=x"')
+    _, _, rows = exported(tmp_path, vault=vault)
+    assert rows[1][3] == "'=x"
