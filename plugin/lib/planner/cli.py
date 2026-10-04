@@ -13,7 +13,7 @@ import traceback
 
 import yaml
 
-from planner import model, parse, render, rules, schema, viewer
+from planner import model, parse, progress, render, rules, schema, viewer
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 
@@ -163,6 +163,53 @@ def cmd_view(args, out):
     return 0
 
 
+def days_between(earlier, later):
+    return (datetime.date.fromisoformat(later) - datetime.date.fromisoformat(earlier)).days
+
+
+def oldest_text(row, today):
+    if row.oldest is None:
+        return "none"
+    if not row.opened:
+        return f"{row.oldest.id}, opened: not recorded"
+    return f"{row.oldest.id}, open {days_between(row.opened, today)} days (opened {row.opened})"
+
+
+def status_line(row, today):
+    inkling, assumption, fact, decided = row.mix
+    next_text = f"{row.mode} {row.subject}".strip() if row.mode != "none" else "none"
+    return (f"{row.app.id} | stage {row.stage or '-'} | inkling {inkling}, assumption {assumption}, fact {fact}, "
+            f"decided {decided} | oldest open unknown: {oldest_text(row, today)} | next: {next_text}. {row.reason}")
+
+
+def cmd_status(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    today, origin = parse_today(args.today)
+    vault = load_vault(root)
+    rows = progress.grid(vault, today)
+    print(f"planner status: {len(rows)} apps. Today is {today} ({origin}).", file=out)
+    for row in rows:
+        print(status_line(row, today), file=out)
+    return 0
+
+
+def cmd_next(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    today, origin = parse_today(args.today)
+    vault = load_vault(root)
+    when = f"Today is {today} ({origin})."
+    if not vault.apps:
+        print(f"planner next: initiative, dump. No app page exists yet, so start with a Dump & Diverge or a Discover. {when}",
+              file=out)
+        return 0
+    row = progress.best(progress.grid(vault, today))
+    if row is None:
+        print(f"planner next: nothing to do. Every app's items are settled and its epics decided. {when}", file=out)
+        return 0
+    print(f"planner next: {row.app.id}, {row.mode} {row.subject}. {row.reason} {when}", file=out)
+    return 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="planner", description="Check and render an initiative vault.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -183,6 +230,14 @@ def build_parser():
     view.add_argument("--repo-url", help="where newer versions live (default: git remote get-url origin)")
     view.add_argument("--date", help="build date to stamp, YYYY-MM-DD (default: system date)")
     view.set_defaults(func=cmd_view)
+    status = sub.add_parser("status", help="each app's stage, certainty mix, oldest open unknown and next mode")
+    status.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    status.add_argument("--today", help="date to judge overdue unknowns and ages by, YYYY-MM-DD (default: system date)")
+    status.set_defaults(func=cmd_status)
+    nxt = sub.add_parser("next", help="the single best next step: an app and a mode, with the reason")
+    nxt.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    nxt.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
+    nxt.set_defaults(func=cmd_next)
     return parser
 
 

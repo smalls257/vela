@@ -244,9 +244,9 @@ A view with no generator is a list of links to where the data lives, never a cop
 
 ## Progress and next step
 
-The `progress-map` block on `01-goals.md` holds one row per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, the oldest open unknown that blocks it, and its next mode. An app's items are its building-blocks page, its runtime page and the contracts on its page. The block is judged as of the last session's date.
+`planner status` prints one line per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, the oldest open unknown that blocks it with its age, and its next mode with the reason. An app's items are its building-blocks page, its runtime page and the contracts on its page. `planner next` prints the one app and mode to work on next. Both judge overdue unknowns by `--today YYYY-MM-DD`, or the system date, and say which. The `progress-map` block holds the same grid, judged as of the last session's date.
 
-For each app the first rule that matches picks the mode.
+For each app the first rule that matches picks the mode. `planner next` takes the app whose rule has the lowest number, then the earliest stage, then the lowest app ID, and skips apps whose mode is `none`.
 
 | Rule | Mode | Matches when |
 |---|---|---|
