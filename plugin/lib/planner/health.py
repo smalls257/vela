@@ -40,7 +40,7 @@ def overdue_rows(vault, found):
             bullet = unknown.facts.get("Ask by")
             if unknown.page.path == finding.path and bullet is not None and bullet.line == finding.line:
                 rows.append((inert(f"{unknown.id} {unknown.name}"), owner(unknown.fact("Owner")) or "no owner recorded",
-                             unknown.fact("Ask by")))
+                             inert(unknown.fact("Ask by"))))
     return rows
 
 
@@ -50,7 +50,7 @@ def stale_page_rows(vault, found):
     for finding in found:
         page = by_path.get(finding.path)
         if page is not None:
-            rows.append((inert(page.path), page.meta.get("last_verified", ""), inert(page.meta.get("verified_by", "")),
+            rows.append((inert(page.path), inert(page.meta.get("last_verified", "")), inert(page.meta.get("verified_by", "")),
                          owner(page.meta.get("owner")) or inert(page.meta.get("owner", ""))))
     return rows
 
@@ -64,7 +64,7 @@ def stale_source_rows(vault, found):
         if 0 < finding.line <= len(lines):
             row = split_row(lines[finding.line - 1])
             source, title, who, date = (row + ("",) * 4)[:4]
-            rows.append((inert(source), inert(title), date, owner(who) or inert(who)))
+            rows.append((inert(source), inert(title), inert(date), owner(who) or inert(who)))
     return rows
 
 

@@ -168,3 +168,11 @@ def test_a_failed_create_fails_the_job(tmp_path):
 
 def test_workflow_queues_runs_instead_of_cancelling_one_mid_write():
     assert workflow()["concurrency"] == {"group": "vault-health", "cancel-in-progress": False}
+
+
+def test_a_source_date_cannot_mention_or_link(mini):
+    edit(mini / "sources.md", "| 2026-01-02 |", "| @ceo #12 |")
+    code, out = run("health", "--vault", str(mini), "--today", "2026-03-10")
+    assert code == 0, out
+    assert "@ceo" not in out and "#12" not in out
+    assert "SRC-01" in out.split("## Stale sources")[1]
