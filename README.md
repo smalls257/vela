@@ -23,6 +23,7 @@ The kill rule you set: if it isn't faster than plain Markdown after five session
 
 - **When the first app nears handoff,** use `/planner:epics` and `planner check --gate epics`.
 - **Vault mode for your own grills:** `integrations/requirements-grill/INSTALL.md` and `integrations/tech-design-grill/INSTALL.md`. Each one backs up first and dry-runs before applying. Nothing has been applied to `~/.claude` yet.
+- **Optional Jira export:** `python3 .claude/skills/planner/bin/planner export jira-csv --out epics.csv` writes one row per epic (Summary, Description with the acceptance criteria, Epic Name, Owner team, Vault link) for Jira's CSV import. It is an export only: nothing is read back and no page carries a Jira field. The link points at the repository and commit from `git`, or pass `--repo-url` and `--commit`.
 - **Evals:** these are paid runs, and you run them by hand. See `tests/evals/README.md`. Start with the $1 smoke run it describes.
 
 ## What's where
@@ -30,7 +31,7 @@ The kill rule you set: if it isn't faster than plain Markdown after five session
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `render`, `view`) and the session skills |
+| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `query`, `health`, `handoff`, `export`) and the session skills |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |
