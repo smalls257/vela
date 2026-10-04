@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.planner.yaml` | `initiative` (`INI-nnn`) and `title` |
+| `.planner.yaml` | `initiative` (`INI-nnn`), `title`, and `stale_after_days` (default 60) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -65,6 +65,8 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `session` | `id`, `type`, `date`, `modes`, `status`, `summary` | `title` | none: `status` is `open` or `closed` |
 | `sources` | `id`, `type`, `title`, `authored` | `owner` | none |
 
+Every type except `session` may also carry `last_verified` and `verified_by`.
+
 Field values:
 
 - `authored`: `authored` (people wrote it), `generated` (only blocks), `mixed` (both).
@@ -74,6 +76,7 @@ Field values:
 - `sources`: a list. Use `SRC-nn` IDs for documents. Free text, such as a session name, is allowed as a summary.
 - `change` on an app page: `new`, `changed`, `integrated`, `unchanged` or `retired`.
 - `stage`: `baseline`, `target`, `boundaries`, `contracts`, `handoff`, `epics`. Required when `change` is `new` or `changed`, absent otherwise.
+- `last_verified`: the date someone last reread the page against its sources, `YYYY-MM-DD`. `verified_by`: that person's handle, `"@handle"`. Set both together. A page without them is never judged stale.
 - `handed_off`: set once a senior takes the app. Form: `"<name>, <date>, PR #N"`.
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
@@ -260,6 +263,14 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 | 8 | Epics | the app is `new` or `changed`, and no epic lists it, or one that does is not `decided` |
 | 9 | none | nothing is open |
 
+## Keeping the vault fresh
+
+`stale_after_days` in `.planner.yaml` sets how old a check may be before it is stale. The default is 60. Three warnings follow from it, and none of them blocks a PR:
+
+- W704: a page's `last_verified` is more than `stale_after_days` before today.
+- W716: a `sources.md` row's `Date` is more than `stale_after_days` before today, or is not a date.
+- W711: the last session with `status: closed` is more than 30 days before today. A vault with no closed session yet is not judged.
+
 ## planner check and planner render
 
 Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It reads, never writes, and never stops at the first problem. `--today YYYY-MM-DD` sets the date for overdue unknowns; without it the system date is used, and the first line of output says which. Exit code 0 means no errors (warnings may print), 1 means errors, 2 means the tool itself failed.
@@ -284,7 +295,8 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | E301 | concern cell is not valid | E404 | generated block markers are broken |
 | E302 | unknown or risk is missing a required fact | E601 | flowchart over its element budget |
 | W705 | unknown is past its ask-by date | E602 | sequence diagram over its participant budget |
-| | | E603 | diagram type not supported |
+| W704 | page not verified within stale_after_days | E603 | diagram type not supported |
+| W711 | no session closed in the last 30 days | W716 | source row older than stale_after_days |
 | W501 | no epic delivers a capability that changes | E501 | no epic delivers a capability that changes |
 | W502 | no epic delivers a new or changed contract | E502 | no epic delivers a new or changed contract |
 | W503 | no epic covers a concern cell with work | E503 | no epic covers a concern cell with work |

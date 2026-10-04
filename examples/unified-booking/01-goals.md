@@ -8,6 +8,8 @@ state: decided
 owner: "@hl-solution-lead"
 authored: mixed
 sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", SRC-01]
+last_verified: 2026-11-18
+verified_by: "@hl-solution-lead"
 ---
 
 # Unified Booking

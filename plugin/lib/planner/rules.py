@@ -99,6 +99,12 @@ def _enum_findings(vault, page, page_type, spec):
     if "domain" in meta and not (isinstance(meta["domain"], str) and meta["domain"].strip()):
         yield _f(page, meta_line(page, "domain"), "E105", "'domain' must be a short text, such as Booking.",
                  "Write domain: Booking, or remove the field.")
+    if "last_verified" in meta and not is_date(meta["last_verified"]):
+        yield _f(page, meta_line(page, "last_verified"), "E106", f"last_verified '{meta['last_verified']}' is not a YYYY-MM-DD date.",
+                 "Write last_verified: 2026-11-20.")
+    if "verified_by" in meta and not (isinstance(meta["verified_by"], str) and schema.OWNER_RE.match(meta["verified_by"])):
+        yield _f(page, meta_line(page, "verified_by"), "E105", f"verified_by '{meta['verified_by']}' is not a GitHub handle.",
+                 "Write verified_by: \"@handle\".")
     if "handed_off" in meta and not (isinstance(meta["handed_off"], str) and schema.HANDED_OFF_RE.match(meta["handed_off"])):
         yield _f(page, meta_line(page, "handed_off"), "E105", "'handed_off' is not in the form '<name>, <date>, PR #N'.",
                  "Write handed_off: \"Booking senior, 2026-11-20, PR #41\".")
@@ -570,6 +576,52 @@ def block_rules(vault, today):
                          "Run planner render.")
 
 
+# ----------------------------------------------------------------- freshness
+
+def days_between(earlier, later):
+    return (datetime.date.fromisoformat(later) - datetime.date.fromisoformat(earlier)).days
+
+
+def stale_after_days(config):
+    """The vault's window, or the default. The CLI refuses a bad value before any rule runs."""
+    value = config.get("stale_after_days", schema.STALE_AFTER_DAYS)
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else schema.STALE_AFTER_DAYS
+
+
+def freshness_rules(vault, today):
+    """W704, W716 and W711. All are warnings: a page nobody has reread never blocks a PR."""
+    window = stale_after_days(vault.config)
+    for page in vault.pages:
+        verified = page.meta.get("last_verified")
+        if not readable(page) or not is_date(verified):
+            continue  # a missing field is not judged; a malformed one is already an E106
+        age = days_between(verified, today)
+        if age > window:
+            yield _f(page, meta_line(page, "last_verified"), "W704",
+                     f"{page.id} was last verified on {verified}, {age} days ago; stale_after_days is {window}.",
+                     "Reread the page against its sources, then set last_verified to today and verified_by to your handle.")
+    for page in vault.of_type("sources"):
+        for table in page.tables:
+            if table.generated or tuple(table.header)[:len(schema.SOURCES_HEADER)] != schema.SOURCES_HEADER:
+                continue
+            for row, line in zip(table.rows, table.row_lines):
+                source, date = (row[0] if row else ""), (row[3] if len(row) > 3 else "")
+                if not is_date(date):
+                    yield _f(page, line, "W716", f"{source} has Date '{date}', which is not a YYYY-MM-DD date, so its age cannot be judged.",
+                             "Write the document's date as YYYY-MM-DD.")
+                elif days_between(date, today) > window:
+                    yield _f(page, line, "W716", f"{source} is dated {date}, {days_between(date, today)} days ago; stale_after_days is {window}.",
+                             "Check the document still says what the vault cites, then update its Date, or register the newer version.")
+    closed = [s for s in vault.sessions if s.meta.get("status") == "closed" and is_date(s.meta.get("date"))]
+    if closed:
+        last = max(closed, key=lambda s: (s.meta["date"], s.name))
+        gap = days_between(last.meta["date"], today)
+        if gap > schema.SESSION_GAP_DAYS:
+            yield _f(last, meta_line(last, "date"), "W711",
+                     f"The last session closed on {last.meta['date']}, {gap} days ago.",
+                     "Run a session, even a short Probe of the overdue unknowns, so the vault keeps up with the work.")
+
+
 # ------------------------------------------------------------- traceability
 
 def trace_findings(vault, gated):
@@ -592,4 +644,4 @@ def trace_rules(vault, today):
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          contract_rules, requirement_rules, unknown_rules, risk_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules, trace_rules)
+         diagram_rules, block_rules, trace_rules, freshness_rules)

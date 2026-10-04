@@ -180,7 +180,10 @@ def test_source_change_makes_a_block_stale(ub):
 def test_overdue_unknown_is_a_warning_on_a_later_date():
     code, out = check(FIXTURE, today="2027-03-02")
     assert code == 0
-    assert findings(out) == [("W705", "11-unknowns-and-risks.md")]
+    found = findings(out)
+    assert ("W705", "11-unknowns-and-risks.md") in found
+    # Months later the sources and the last session are stale too. All of it stays a warning.
+    assert {c for c, _ in found} == {"W705", "W711", "W716"}
 
 
 # Stage 6: the fixture is clean under --gate epics, and each trace rule is caught by one broken copy.

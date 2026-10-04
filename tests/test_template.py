@@ -31,7 +31,8 @@ def test_render_is_a_no_op_on_the_template(tmp_path):
 
 def test_config_files():
     config = yaml.safe_load((TEMPLATE / ".planner.yaml").read_text(encoding="utf-8"))
-    assert set(config) == {"initiative", "title"}
+    assert set(config) == {"initiative", "title", "stale_after_days"}
+    assert config["stale_after_days"] == 60
     ignored = (TEMPLATE / ".gitignore").read_text(encoding="utf-8").split()
     assert ignored == [".inbox/", "voice/corpus/", ".obsidian/workspace*.json", ".obsidian/cache", "__pycache__/", "*.pyc"]
     assert json.loads((TEMPLATE / ".obsidian" / "app.json").read_text(encoding="utf-8")) == {"alwaysUpdateLinks": False}

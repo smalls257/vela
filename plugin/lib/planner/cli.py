@@ -34,6 +34,9 @@ def load_config(root):
         raise ToolError(".planner.yaml needs 'initiative: INI-nnn' and 'title: ...'.")
     if not config.get("title"):
         raise ToolError(".planner.yaml needs 'title: ...'.")
+    days = config.get("stale_after_days", schema.STALE_AFTER_DAYS)
+    if isinstance(days, bool) or not isinstance(days, int) or days < 1:
+        raise ToolError(f".planner.yaml has stale_after_days: {days!r}. Write a whole number of days, such as 60.")
     return config
 
 

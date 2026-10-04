@@ -1,2 +1,3 @@
 initiative: INI-001
 title: New initiative
+stale_after_days: 60

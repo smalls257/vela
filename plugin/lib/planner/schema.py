@@ -70,6 +70,12 @@ PAGE_TYPES = {
     },
 }
 
+# Any page but a session record may say when someone last checked it against its sources.
+VERIFY_FIELDS = ("last_verified", "verified_by")
+for _type, _spec in PAGE_TYPES.items():
+    if _type != "session":
+        _spec["optional"] = _spec["optional"] + VERIFY_FIELDS
+
 # Field value rules shared by every type.
 ENUMS = {
     "authored": ("authored", "generated", "mixed"),
@@ -185,6 +191,11 @@ FLOWCHART_BUDGET = 20
 SEQUENCE_BUDGET = 8
 DIAGRAM_KINDS = ("flowchart", "graph", "sequenceDiagram")
 
+# ------------------------------------------------------------ freshness
+
+STALE_AFTER_DAYS = 60  # default for .planner.yaml's stale_after_days
+SESSION_GAP_DAYS = 30  # W711 when no session has closed for longer than this
+
 # ------------------------------------------------------------ progress
 
 # What `planner status`, `planner next` and the progress-map block may suggest.
@@ -225,7 +236,10 @@ CODES = {
     "E601": "flowchart over its element budget",
     "E602": "sequence diagram over its participant budget",
     "E603": "diagram type not supported",
+    "W704": "page not verified within stale_after_days",
     "W705": "unknown is past its ask-by date",
+    "W711": "no session closed in the last 30 days",
+    "W716": "source row older than stale_after_days",
     "W501": "no epic delivers a capability that changes",
     "W502": "no epic delivers a new or changed contract",
     "W503": "no epic covers a concern cell with work",
