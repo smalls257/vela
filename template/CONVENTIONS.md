@@ -278,8 +278,8 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 `planner query` answers questions about IDs and never writes. Add `--json` for JSON.
 
 - `planner query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, and the wikilink to cite it by.
-- `planner query refs <ID>`: every page line that links to the ID, and every epic list that names it.
-- `planner query find <words>`: page titles and item headings that hold every word, in any case.
+- `planner query refs <ID>`: every page line that links to the ID, every list in page properties that names it, and every other line that holds the ID as a whole token (`via: mention`). The line that defines the ID is left out.
+- `planner query find <words>`: page titles, item headings and goal, constraint and source rows that hold every word, in any case. Put `--` before a word that starts with `-`.
 - `planner query status`: the `planner status` grid as data.
 
 An ID the vault does not hold comes back as `not_found` and exits 1. An ID is matched exactly, so `con-001` is not `CON-001`.

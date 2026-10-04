@@ -203,6 +203,8 @@ def cmd_query(args, out):
     elif args.what == "refs":
         answer = query.refs(vault, args.id)
     elif args.what == "find":
+        if not any(w.strip() for w in args.words):
+            raise ToolError("planner query find needs at least one word that is not blank.")
         answer = query.find(vault, args.words)
     else:
         today, _ = parse_today(args.today)
@@ -299,7 +301,7 @@ def build_parser():
         if name in ("get", "refs"):
             one.add_argument("id", help="an ID, for example CON-001 or APP-booking")
         if name == "find":
-            one.add_argument("words", nargs="+", help="words that must all appear, in any case")
+            one.add_argument("words", nargs="+", help="words that must all appear, in any case; put -- before a word that starts with -")
         if name == "status":
             one.add_argument("--today", help="date to judge by, YYYY-MM-DD (default: system date)")
         one.add_argument("--vault", default=".", help="vault root (default: current directory)")

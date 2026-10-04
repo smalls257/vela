@@ -113,3 +113,53 @@ def test_query_writes_nothing(mini):
 def test_query_needs_a_question():
     assert run("query")[0] == 2
     assert run("query", "get")[0] == 2
+
+
+def test_refs_counts_plain_id_mentions_on_the_fixture():
+    import pathlib
+    fixture = pathlib.Path(__file__).resolve().parent.parent / "examples" / "unified-booking"
+    _, src = ask(fixture, "refs", "SRC-02")
+    assert src["refs"] and "02-constraints.md" in {r["page"] for r in src["refs"]}
+    _, con = ask(fixture, "refs", "CON-001")
+    pages = {r["page"] for r in con["refs"]}
+    assert "13-epics/EPC-033-website-to-booking.md" in pages
+    assert any(r["page"].startswith("sessions/") and r["via"] == "mention" for r in con["refs"])
+    assert ("05-building-blocks/booking-building-blocks.md", "mention") not in {(r["page"], r["via"]) for r in con["refs"]
+                                                                                if r["line"] == 1}
+
+
+def test_a_mention_needs_the_whole_id_and_skips_fences_and_its_own_heading(mini):
+    note = mini / "05-building-blocks/till-building-blocks.md"
+    edit(note, "# Till\n", "# Till\n\nSee CON-001 here. Not CON-0012 or CON-001.FR1 or CON-001-x.\n\n```\nCON-001 in code\n```\n")
+    _, answer = ask(mini, "refs", "CON-001")
+    mentions = [r for r in answer["refs"] if r["via"] == "mention" and r["page"] == "05-building-blocks/till-building-blocks.md"]
+    text = note.read_text(encoding="utf-8").split("\n")
+    assert [text[r["line"] - 1] for r in mentions].count("See CON-001 here. Not CON-0012 or CON-001.FR1 or CON-001-x.") == 1
+    assert len(mentions) == 1
+    assert all("CON-001 Sale API" not in text[r["line"] - 1] for r in answer["refs"] if r["via"] == "mention")
+    assert all("in code" not in text[r["line"] - 1] for r in mentions)
+
+
+def test_refs_does_not_change_the_case_of_a_link_anchor(mini):
+    edit(mini / "05-building-blocks/till-building-blocks.md", "# Till\n", "# Till\n\n[[shop-building-blocks#con-001 sale api|x]]\n")
+    _, answer = ask(mini, "refs", "CON-001")
+    lines = mini.joinpath("05-building-blocks/till-building-blocks.md").read_text(encoding="utf-8").split("\n")
+    assert not any(r["via"] == "link" and "con-001 sale" in lines[r["line"] - 1] for r in answer["refs"]
+                   if r["page"] == "05-building-blocks/till-building-blocks.md")
+
+
+def test_find_with_only_blank_words_is_a_tool_error(mini):
+    code, out = run("query", "find", " ", "--vault", str(mini))
+    assert code == 2 and "not blank" in out
+
+
+def test_find_searches_goal_constraint_and_source_rows(mini):
+    _, answer = ask(mini, "find", "sell", "from")
+    assert [(m["id"], m["kind"]) for m in answer["matches"] if m["id"] == "G1"] == [("G1", "goal")]
+
+
+def test_find_stop_mainframe_returns_the_goal_on_the_fixture():
+    import pathlib
+    fixture = pathlib.Path(__file__).resolve().parent.parent / "examples" / "unified-booking"
+    _, answer = ask(fixture, "find", "stop", "mainframe")
+    assert "G1" in [m["id"] for m in answer["matches"]]
