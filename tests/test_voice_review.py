@@ -187,15 +187,16 @@ def test_harvest_is_owner_only():
     assert "Only the vault's owner harvests, and only their own edits." in close
     assert "The owner is the `author` of the `source: owner` examples" in close
     assert 'say "Harvest is owner-only."' in close
-    assert "Go on only if the owner wrote every commit on the first list." in close
+    assert "Did you write this change?" in close
+    assert "The owner's answer is the check that the edit is theirs." in close
 
 
 def test_harvest_finds_drafts_through_the_merged_prs():
     close = close_text()
     assert 'gh pr list --state merged --search "head:session/"' in close
     assert "git fetch origin pull/<number>/head" in close
-    assert "--grep='^draft: ' --format='%h %s' -n 1" in close
-    assert "already some example's `harvested_from`" in close
+    assert "--author @me" in close and "--limit 20" in close
+    assert "gh pr view <number> --json commits" in close
     assert 'say "gh could not list merged PRs, so nothing was harvested."' in close
 
 
@@ -203,7 +204,7 @@ def test_harvest_saves_word_for_word_on_an_explicit_yes():
     close = close_text()
     assert "Save it only on an explicit yes." in close
     assert "Save the merged paragraph word for word" in close
-    assert "source: owner-edit" in close and "harvested_from: <short hash of the draft commit>" in close
+    assert "source: owner-edit" in close and "harvested_from: '<short hash of the draft commit>'" in close
 
 
 def test_harvest_keeps_five_active_and_retires_the_seed_first():
@@ -233,14 +234,15 @@ def test_harvest_reads_both_folders_and_retires_seeds_only_within_a_folder():
     harvest = harvest_text()
     assert "`voice/examples/` and `voice/local/`" in harvest
     assert "in either folder" in harvest
-    assert "A local example never retires a committed seed." in harvest
-    assert "In a local-only save, only local examples may retire." in harvest
+    assert "A local example never retires a committed seed" in harvest
+    assert "in a local-only save only local examples may retire" in harvest
 
 
 def test_harvest_writes_the_paragraph_with_a_quoted_heredoc_and_a_cmp_check():
     harvest = harvest_text()
-    assert "<<'PLANNER_EOF'" in harvest
-    assert "| cmp - " in harvest
+    assert "sed -n '<first>,<last>p'" in harvest
+    assert "cat <tmp> >> <file>" in harvest
+    assert "| cmp - <tmp>" in harvest
     assert "do not repair the file" in harvest
 
 
@@ -255,3 +257,79 @@ def test_every_gh_step_in_harvest_says_it_failed_and_never_reads_failure_as_no_e
     for call in ("`gh api user", "`gh pr list", "`gh pr view", "`git fetch origin pull"):
         line = next(l for l in harvest.splitlines() if call in l)
         assert "fails" in line or "could not" in line, call
+
+
+# Fix round 1: order, jump targets, the PR's own commits, the retire rule, the cap, quoting, the limit.
+
+def test_the_rewrite_commit_sentence_ends_voice_review_before_harvest():
+    close = close_text()
+    sentence = "Then commit the rewrites that passed with the message `draft: voice rewrite for <id>`"
+    assert close.count(sentence) == 1
+    assert close.index("### Voice review") < close.index(sentence) < close.index("### Harvest the owner's edits")
+    assert close.index("### Harvest the owner's edits") < close.index("## 5. Read back decided wording")
+
+
+def test_no_jump_says_a_bare_step_5_and_a_skipped_review_still_runs_harvest():
+    close = close_text()
+    assert "go on to step 5" not in close
+    review = close.split("### Voice review", 1)[1].split("### Harvest the owner's edits", 1)[0]
+    assert review.count('go on to the part "Harvest the owner\'s edits"') >= 3
+    harvest = harvest_text()
+    exits = re.findall(r"go on to ([^.]*)\.", harvest)
+    assert exits and all(e == "section 5, Read back decided wording" for e in exits)
+    assert "Harvest does not depend on the voice review: run it even when the review did not run." in harvest
+
+
+def test_harvest_builds_on_the_prs_own_commits_and_reads_the_merged_text_from_its_head():
+    harvest = harvest_text()
+    assert harvest.count("origin/main") == 1 and "never from `origin/main`" in harvest
+    view = harvest.index("gh pr view <number> --json commits")
+    fetch = harvest.index("git fetch origin pull/<number>/head")
+    merged = harvest.index("git show FETCH_HEAD:<page>")
+    assert view < merged and fetch < merged
+    assert "both `draft: prose for` and `draft: voice rewrite for`" in harvest
+    assert "the baseline is the last draft commit in the PR's list that touched it" in harvest
+    assert "Skip the PR if there are none." in harvest
+    assert "`Co-Authored-By: Claude` trailer or a `Claude-Session:` trailer" in harvest
+    assert "the owner did not edit the page, so skip it" in harvest
+
+
+def test_the_owner_is_asked_who_wrote_the_change_before_being_asked_to_save():
+    harvest = harvest_text()
+    assert harvest.index("Did you write this change?") < harvest.index("Save the merged paragraph as a <type> example?")
+    assert "If the answer is no or unclear, save nothing." in harvest
+
+
+def test_harvest_dedupes_per_paragraph_and_records_declines_in_the_session_record():
+    harvest = harvest_text()
+    assert "Skip a pair that is already saved or declined." in harvest
+    assert "the same `page`, a `harvested_from` equal to the baseline's short hash, and a body equal to the merged paragraph" in harvest
+    assert "Harvest declined: PR <number> <page> <first 12 characters of shasum of the merged paragraph>" in harvest
+    assert "grep -rh '^Harvest declined:' sessions/" in harvest
+    assert "add the `Harvest declined:` line above to the session record" in harvest
+
+
+def test_two_owner_examples_in_a_folder_retire_that_folders_seed():
+    harvest = harvest_text()
+    assert "to 2 or more, retire that folder's active `public-seed` examples of the type" in harvest
+    assert "as `/planner:voice-seed` does. A local save retires only local seeds." in harvest
+
+
+def test_a_local_save_the_cap_blocks_stores_nothing_and_says_so():
+    harvest = harvest_text()
+    assert "If the cap blocks a local-only save, store nothing and say" in harvest
+    assert "The cap blocks a local save: <type> holds 5 active examples" in harvest
+
+
+def test_harvest_quotes_free_values_and_rechecks_the_frontmatter():
+    harvest = harvest_text()
+    assert "page: '<page path>'" in harvest
+    assert "harvested_from: '<short hash of the draft commit>'" in harvest
+    assert harvest.index("| cmp - <tmp>") < harvest.index("confirm it parses as YAML")
+
+
+def test_harvest_says_when_the_pr_limit_hid_older_prs():
+    harvest = harvest_text()
+    assert "If it returns 20 PRs, say" in harvest
+    assert "older PRs were not checked." in harvest
+    assert "say when the PR limit hid older PRs" in close_text()
