@@ -43,6 +43,24 @@ sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", SRC-0
 **Delivery status:** not tracked in this vault
 <!-- /generated:where-it-stands -->
 
+## Progress by app
+
+<!-- generated:progress-map sha=3c7c8337: do not edit, run planner render -->
+**As of:** 2026-11-18, the last session
+
+| App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
+|---|---|---|---|---|---|---|---|
+| [[booking-building-blocks\|Booking]] | epics | 0 | 0 | 1 | 4 | none | none |
+| [[call-centre-building-blocks\|Call centre desktop]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 0 | 3 | none | none |
+| [[website-building-blocks\|Public website]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[customer-identity-building-blocks\|Customer identity]] | - | 0 | 0 | 2 | 0 | none | none |
+| [[ferrymaster-building-blocks\|FERRYMASTER]] | - | 0 | 0 | 3 | 0 | none | none |
+| [[vessel-schedule-building-blocks\|Vessel schedule]] | - | 0 | 0 | 2 | 0 | none | none |
+<!-- /generated:progress-map -->
+
 ## Why now
 
 Harbourline sells crossings through three front ends: the public website, the call centre desktop and the port kiosks. Each one talks to FERRYMASTER through its own screen-scraping adapter, so when the mainframe changes a screen, all three break. That happened eleven times in the last twelve months, usually just before a bank holiday weekend.

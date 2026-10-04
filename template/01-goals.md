@@ -20,6 +20,12 @@ authored: mixed
 **Last session:** none recorded
 <!-- /generated:where-it-stands -->
 
+## Progress by app
+
+<!-- generated:progress-map sha=140bedbf: do not edit, run planner render -->
+none
+<!-- /generated:progress-map -->
+
 ## Why now
 
 ## Goals

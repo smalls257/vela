@@ -186,3 +186,109 @@ def _collect_cells(vault, concern):
         state = row[1].strip() if len(row) > 1 else ""
         text = " | ".join(c for c in row[2:]).strip()
         vault.cells.append(Cell(concern, app, state, text, links_in(" ".join(row[2:]), line), line))
+
+
+# ------------------------------------------------- what blocks what, shared by rules, render and progress
+
+def meta_line(page, key):
+    """Line number of `key:` in the frontmatter, or 1."""
+    lines = page.text.split("\n")
+    for n, line in enumerate(lines[1:], start=2):
+        if line.strip() == "---":
+            break
+        if line.startswith(f"{key}:"):
+            return n
+    return 1
+
+
+def goal_rows_at(page, state):
+    """(row id, line) of each goal row whose State cell says `state`."""
+    for table in page.tables:
+        if table.generated or tuple(table.header)[:4] != schema.GOALS_HEADER:
+            continue
+        for row, line in zip(table.rows, table.row_lines):
+            if len(row) > 3 and row[3] == state:
+                yield row[0], line
+
+
+def decided_goal_rows(page):
+    return goal_rows_at(page, "decided")
+
+
+def unit_state(vault, link, from_page):
+    """(unit id, state, page, line) of what a link points at, or None."""
+    target = vault.resolve(link, from_page)
+    if target is None:
+        return None
+    parts = link.anchor.split() if link.anchor else []
+    first = parts[0].upper() if parts else ""
+    item = vault.item(first) if first else None
+    if item is not None and item.page is target:
+        return item.id, item.fact("State"), item.page, item.line
+    return target.id, target.meta.get("state", ""), target, meta_line(target, "state")
+
+
+def is_requirement(vault, unit_id):
+    item = vault.item(unit_id)
+    return item is not None and item.kind == "requirement"
+
+
+def blocked_units(vault, link, from_page):
+    """Every (id, state, page, line) a Blocks link holds up. An item anchor means that
+    item. A page link means the page and each item on it, so linking the page
+    cannot dodge the gate."""
+    target = vault.resolve(link, from_page)
+    if target is None:
+        return
+    found = unit_state(vault, link, from_page)
+    if found and found[0] != target.id:
+        yield found
+        if is_requirement(vault, found[0]):
+            # An FR sits on a capability page. Blocking it holds the page's own decision too (E316 before FRs were items).
+            yield target.id, target.meta.get("state", ""), target, meta_line(target, "state")
+        return
+    if found:
+        yield found
+    for contract in (*vault.contracts, *vault.requirements):
+        if contract.page is target:
+            yield contract.id, contract.fact("State"), contract.page, contract.line
+    for row_id, line in decided_goal_rows(target):
+        yield row_id, "decided", target, line
+
+
+def open_unknowns(vault):
+    return [u for u in vault.unknowns if u.fact("State") == "open"]
+
+
+def blockers(vault):
+    """{unit id: [open unknowns that block it]}, each list in unknown-ID order."""
+    out = {}
+    for unknown in open_unknowns(vault):
+        blocks = unknown.facts.get("Blocks")
+        for link in blocks.links if blocks else ():
+            for unit_id, _, _, _ in blocked_units(vault, link, unknown.page):
+                if unknown not in out.setdefault(unit_id, []):
+                    out[unit_id].append(unknown)
+    return out
+
+
+def app_page_names(app):
+    """Lower-case basenames of an app's building-blocks page and its runtime sibling."""
+    names = {app.name.lower()}
+    if app.name.endswith("-building-blocks"):  # a page named otherwise has no runtime sibling to match
+        names.add((app.name[: -len("-building-blocks")] + "-runtime").lower())
+    return names
+
+
+def blocking_unknowns(vault, app):
+    """Open unknowns whose **Blocks:** links the app's building-blocks or runtime page."""
+    names = app_page_names(app)
+    out = []
+    for unknown in open_unknowns(vault):
+        blocks = unknown.facts.get("Blocks")
+        for link in blocks.links if blocks else ():
+            target = vault.resolve(link, unknown.page)
+            if target is not None and target.name.lower() in names:
+                out.append(unknown)
+                break
+    return out

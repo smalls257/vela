@@ -130,7 +130,8 @@ def expected_basename(page_type, page_id):
 # ------------------------------------------------------------- fact bullets
 
 CONTRACT_REQUIRED = ("Crosses the boundary", "Consumers", "Change policy", "Change", "State")
-CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent")
+OPTIONS_LABEL = "Options considered"  # what Shape recorded: the picked option, and each rejected one with its reason
+CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent", OPTIONS_LABEL)
 CONTRACT_STATES = ("inkling", "assumption", "fact", "decided")
 CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 
@@ -144,7 +145,7 @@ RISK_REQUIRED = ("Owner", "State")
 RISK_OPTIONAL = ("Mitigation",)
 RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
-PAGE_LABELS = ("Decision", "Dissent")
+PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL)
 
 # ---------------------------------------------------------------- fact tables
 
@@ -174,6 +175,7 @@ BLOCKS = {
     "system-context": "context-and-scope",
     "app-context": "type:app-building-blocks",
     "capability-map": "capability-delta",
+    "progress-map": "goals",
 }
 NEW_BLOCK_SHA = "00000000"
 
@@ -182,6 +184,11 @@ NEW_BLOCK_SHA = "00000000"
 FLOWCHART_BUDGET = 20
 SEQUENCE_BUDGET = 8
 DIAGRAM_KINDS = ("flowchart", "graph", "sequenceDiagram")
+
+# ------------------------------------------------------------ progress
+
+# What `planner status`, `planner next` and the progress-map block may suggest.
+NEXT_MODES = ("probe", "discover", "shape", "grill", "epics", "dump", "none")
 
 # ------------------------------------------------------------- finding codes
 

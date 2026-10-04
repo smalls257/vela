@@ -11,7 +11,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
 | `.planner.yaml` | `initiative` (`INI-nnn`) and `title` |
-| `01-goals.md` | Goals table and the `where-it-stands` block |
+| `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
 | `04-solution-strategy.md`, `04a-capability-delta.md` | The core move; links to every capability that changes |
@@ -113,7 +113,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 
 A fact bullet is a list line `- **Label:** value`, one label per line. Unknown labels are prose. Bullets under a `### <ID> <name>` heading belong to that item. Bullets elsewhere belong to the page.
 
-Page level: `**Decision:**` (a link to the deciding Grill) and `**Dissent:**` (`<name>, <date>: <reason>`).
+Page level: `**Decision:**` (a link to the deciding Grill), `**Dissent:**` (`<name>, <date>: <reason>`) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`).
 
 Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 
@@ -129,6 +129,7 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Decision:**` | Required when `decided`. |
 | `**Provider:**` | Only for an external provider with no page. The contract then lives on the consumer's page. |
 | `**Dissent:**` | Optional. |
+| `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
 
 Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking a Grill session, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
 
@@ -237,8 +238,27 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `system-context` | `03-context-and-scope.md` | The after view: apps in one box, external providers outside it, and the same contract arrows. Retired apps are listed under it, not drawn. |
 | `app-context` | each app page | The app and its direct neighbours by contract, provided or consumed |
 | `capability-map` | `04a-capability-delta.md` | Every capability in a box per `domain`, labelled and coloured by `change` |
+| `progress-map` | `01-goals.md` | One row per app: its stage, how many of its items are at each state, the oldest open unknown that blocks it with its Opened date, and its next mode. It is judged as of the last session's date, so it changes only when the vault does. |
 
 A view with no generator is a list of links to where the data lives, never a copy kept by hand.
+
+## Progress and next step
+
+The `progress-map` block on `01-goals.md` holds one row per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, the oldest open unknown that blocks it, and its next mode. An app's items are its building-blocks page, its runtime page and the contracts on its page. The block is judged as of the last session's date.
+
+For each app the first rule that matches picks the mode.
+
+| Rule | Mode | Matches when |
+|---|---|---|
+| 1 | Probe | an open unknown that blocks the app is past its ask-by date |
+| 2 | Discover | the app page lists no `sources` |
+| 3 | Shape | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
+| 4 | Discover | an item has options recorded, but the app's `stage` is before `target`, so it fails GATE-1 |
+| 5 | Grill | an item at `assumption` has options recorded and no open unknown blocks it |
+| 6 | Probe | an open unknown blocks one of its items |
+| 7 | none, waits | a contract it provides or consumes is not `decided` or `fact` |
+| 8 | Epics | the app is `new` or `changed`, and no epic lists it, or one that does is not `decided` |
+| 9 | none | nothing is open |
 
 ## planner check and planner render
 

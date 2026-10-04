@@ -6,7 +6,7 @@ import datetime
 import re
 
 from planner import render, schema, trace
-from planner.model import Finding, cell_table
+from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
 def check(vault, today, gate=None):
@@ -26,17 +26,6 @@ def check(vault, today, gate=None):
 
 
 # ------------------------------------------------------------------ helpers
-
-def meta_line(page, key):
-    """Line number of `key:` in the frontmatter, or 1."""
-    lines = page.text.split("\n")
-    for n, line in enumerate(lines[1:], start=2):
-        if line.strip() == "---":
-            break
-        if line.startswith(f"{key}:"):
-            return n
-    return 1
-
 
 def is_date(value):
     if not isinstance(value, str) or not schema.DATE_RE.match(value):
@@ -369,20 +358,6 @@ def risk_rules(vault, today):
 
 # ----------------------------------------------------------------- certainty
 
-def _goal_rows_at(page, state):
-    """(row id, line) of each goal row whose State cell says `state`."""
-    for table in page.tables:
-        if table.generated or tuple(table.header)[:4] != schema.GOALS_HEADER:
-            continue
-        for row, line in zip(table.rows, table.row_lines):
-            if len(row) > 3 and row[3] == state:
-                yield row[0], line
-
-
-def _decided_goal_rows(page):
-    return _goal_rows_at(page, "decided")
-
-
 def decided_units(vault):
     """(unit id, page, line, Decision bullets) for every decided page and contract."""
     for page in vault.pages:
@@ -392,7 +367,7 @@ def decided_units(vault):
             yield page.id, page, meta_line(page, "state"), page.page_bullets("Decision")
         elif page.meta.get("state") != "decided":
             # A decided page already answers for its rows with the same Decision bullet.
-            for row_id, line in _decided_goal_rows(page):
+            for row_id, line in decided_goal_rows(page):
                 yield row_id, page, line, page.page_bullets("Decision")
     for contract in (*vault.contracts, *vault.requirements):
         if contract.fact("State") == "decided":
@@ -426,7 +401,7 @@ def certainty_rules(vault, today):
     for page in vault.pages:
         if page.meta.get("sources") or page.meta.get("state") == "fact":
             continue  # a fact page without sources is already one E304
-        for row_id, line in _goal_rows_at(page, "fact"):
+        for row_id, line in goal_rows_at(page, "fact"):
             yield _f(page, line, "E304", f"Goal {row_id} is a fact but this page lists no sources.",
                      "Add sources: [SRC-nn] to the page, or lower the goal to assumption.")
     for contract in (*vault.contracts, *vault.requirements):
@@ -436,53 +411,12 @@ def certainty_rules(vault, today):
     yield from _gate_four(vault)
 
 
-def unit_state(vault, link, from_page):
-    """(unit id, state, page, line) of what a link points at, or None."""
-    target = vault.resolve(link, from_page)
-    if target is None:
-        return None
-    parts = link.anchor.split() if link.anchor else []
-    first = parts[0].upper() if parts else ""
-    item = vault.item(first) if first else None
-    if item is not None and item.page is target:
-        return item.id, item.fact("State"), item.page, item.line
-    return target.id, target.meta.get("state", ""), target, meta_line(target, "state")
-
-
-def _is_requirement(vault, unit_id):
-    item = vault.item(unit_id)
-    return item is not None and item.kind == "requirement"
-
-
-def _blocked_units(vault, link, from_page):
-    """Every (id, state, page, line) a Blocks link holds up. An item anchor means that
-    item. A page link means the page and each item on it, so linking the page
-    cannot dodge the gate."""
-    target = vault.resolve(link, from_page)
-    if target is None:
-        return
-    found = unit_state(vault, link, from_page)
-    if found and found[0] != target.id:
-        yield found
-        if _is_requirement(vault, found[0]):
-            # An FR sits on a capability page. Blocking it holds the page's own decision too (E316 before FRs were items).
-            yield target.id, target.meta.get("state", ""), target, meta_line(target, "state")
-        return
-    if found:
-        yield found
-    for contract in (*vault.contracts, *vault.requirements):
-        if contract.page is target:
-            yield contract.id, contract.fact("State"), contract.page, contract.line
-    for row_id, line in _decided_goal_rows(target):
-        yield row_id, "decided", target, line
-
-
 def _gate_four(vault):
     for unknown in vault.unknowns:
         if unknown.fact("State") != "open" or "Blocks" not in unknown.facts:
             continue
         for link in unknown.facts["Blocks"].links:
-            for unit_id, state, page, line in _blocked_units(vault, link, unknown.page):
+            for unit_id, state, page, line in blocked_units(vault, link, unknown.page):
                 if state != "decided":
                     continue
                 yield _f(page, line, "E316", f"{unit_id} is decided, but open unknown {unknown.id} blocks it.",

@@ -5,8 +5,8 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 """
 import hashlib
 
-from planner import diagrams, schema, trace
-from planner.model import Finding
+from planner import diagrams, progress, schema, trace
+from planner.model import Finding, blocking_unknowns
 
 OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
 CLOSE = "<!-- /generated:{name} -->"
@@ -107,27 +107,6 @@ def concern_matrix(vault, page):
         states = [cell_state(vault, c, app) for c in concerns]
         lines.append(row(link(app.name, title(app)), *states))
     return "\n".join(lines)
-
-
-def _app_pages(vault, app):
-    names = {app.name.lower()}
-    if app.name.endswith("-building-blocks"):  # a page named otherwise has no runtime sibling to match
-        names.add((app.name[: -len("-building-blocks")] + "-runtime").lower())
-    return names
-
-
-def blocking_unknowns(vault, app):
-    names = _app_pages(vault, app)
-    out = []
-    for unknown in vault.unknowns:
-        if unknown.fact("State") != "open" or "Blocks" not in unknown.facts:
-            continue
-        for l in unknown.facts["Blocks"].links:
-            target = vault.resolve(l, unknown.page)
-            if target is not None and target.name.lower() in names:
-                out.append(unknown)
-                break
-    return out
 
 
 def unexamined_cells(vault, app):
@@ -343,6 +322,36 @@ def capability_map(vault, page):
     return "\n".join(out)
 
 
+# ------------------------------------------------------------------ progress
+
+def next_cell(entry):
+    """What the Next column says for one progress.Row."""
+    if entry.rule == 7:
+        return f"waits on {entry.subject}"
+    return f"{entry.mode} {entry.subject}".strip() if entry.mode != "none" else "none"
+
+
+def unknown_cell(entry):
+    if entry.oldest is None:
+        return "none"
+    target = link(entry.oldest.page.name, entry.oldest.id, entry.oldest.heading)
+    return f"{target} opened {entry.opened}" if entry.opened else f"{target} opened: not recorded"
+
+
+def progress_map(vault, page):
+    as_of = progress.last_session_date(vault)
+    rows = progress.grid(vault, as_of)
+    if not rows:
+        return "none"
+    when = f"**As of:** {as_of}, the last session" if as_of else "**As of:** no session yet, so no unknown counts as overdue"
+    out = [when, "", "| App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |",
+           "|---|---|---|---|---|---|---|---|"]
+    for r in rows:
+        out.append(row(link(r.app.name, cell(title(r.app))), r.stage or "-", *(str(n) for n in r.mix),
+                       unknown_cell(r), next_cell(r)))
+    return "\n".join(out)
+
+
 GENERATORS = {
     "where-it-stands": where_it_stands,
     "concern-matrix": concern_matrix,
@@ -356,6 +365,7 @@ GENERATORS = {
     "system-context": system_context,
     "app-context": app_context,
     "capability-map": capability_map,
+    "progress-map": progress_map,
 }
 
 
