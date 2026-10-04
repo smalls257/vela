@@ -46,13 +46,24 @@ Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for ever
 
 A fresh reader checks the drafts, because the drafter cannot judge its own voice. Skip this if the session drafted no paragraph.
 
-1. List every paragraph in the `draft: prose for <id>` commit: a number, the page path, its voice type from house-voice's table, and the paragraph's text.
-2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to step 5.
-3. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted.
-4. Run `python3 .claude/skills/planner/bin/planner voicecheck --range HEAD`. It compares each changed page with the draft commit, and fails if a rewrite lost, added or moved an ID, number, date, wikilink, code span or table cell.
-   - Exit 0: commit the rewrites with the message `draft: voice rewrite for <id>`, staging each page by exact path.
-   - Exit 1: for each page it names, run `git restore -- <page>`. That discards every rewrite on the page and keeps its earlier draft whole. Commit the rewrites on the other pages as above.
-   - Exit 2: show the error and stop. Never commit a rewrite voicecheck could not check.
+1. List every paragraph in the `draft: prose for <id>` commit: a number, the page path, its voice type from house-voice's table, and the paragraph's text. Run `git status --porcelain` and keep the output.
+2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to step 5.
+3. Run `git status --porcelain` again. If the output differs from step 1, the reviewer changed a file: stop and show the user. If the reviewer errored, or returned anything but the table, treat the review as not run, write "**Voice review:** not run: <the reason>" in the PR body, and go on to step 5. If it flagged no paragraph, skip steps 4 and 5 of this part: there is nothing to rewrite and no commit.
+4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file.
+5. Check only the pages you rewrote, one at a time, because the working tree also holds step 2 and 3 work that is not committed. For each rewritten `<page>`:
+
+   ```
+   tmp=$(mktemp)
+   git show HEAD:<page> > "$tmp"
+   python3 .claude/skills/planner/bin/planner voicecheck "$tmp" <page>
+   ```
+
+   voicecheck fails if a rewrite lost, added or moved a wikilink, code span, date, ID, number (with its units or currency), table cell, version, frontmatter line or negation.
+   - Exit 0: keep the rewrite.
+   - Exit 1: run `git restore -- <page>`. That discards every rewrite on that page and keeps its earlier draft whole. Run it for no other file.
+   - Exit 2: show the error and leave that page uncommitted. Never commit a rewrite voicecheck could not check.
+
+   Then commit the rewrites that passed with the message `draft: voice rewrite for <id>`, staging each page by exact path.
 
 ## 5. Read back decided wording
 
