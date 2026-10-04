@@ -246,3 +246,11 @@ def test_no_hand_kept_trace_lists_remain():
         assert "<!-- generated:traces-to sha=" in path.read_text(encoding="utf-8"), path.name
     for path in (FIXTURE / "capabilities").glob("CAP-*.md"):
         assert "<!-- generated:delivered-by sha=" in path.read_text(encoding="utf-8"), path.name
+
+
+def test_the_context_map_page_records_each_relationship_by_contract():
+    text = fixture_pages()["05-building-blocks/05-building-blocks.md"]
+    for words in ("customers of Booking", "customer of Pricing", "conforms to", "anticorruption layer"):
+        assert words in text
+    outside = re.sub(r"<!-- generated:([a-z-]+) sha=.*?<!-- /generated:\1 -->", "", text, flags=re.S)
+    assert all(f"CON-00{n}" in outside for n in range(1, 8))

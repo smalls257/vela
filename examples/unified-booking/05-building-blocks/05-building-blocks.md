@@ -51,6 +51,15 @@ flowchart LR
 
 Each arrow is a contract, drawn from its provider to each consumer. Each contract lives on the provider's page.
 
+How the apps relate, by contract:
+
+- CON-001: the website, the call centre desktop and the kiosks are customers of Booking.
+- CON-002: Booking publishes events that Notifications reads.
+- CON-003: Booking is a customer of Pricing.
+- CON-004 and CON-005: Booking conforms to the vessel schedule and to customer identity.
+- CON-006: Booking puts an anticorruption layer in front of FERRYMASTER, and Booking owns that layer.
+- CON-007: Tidepay sends payment outcomes to Booking.
+
 ## Apps
 
 - [[booking-building-blocks|Booking]] · [[booking-runtime|runtime]]

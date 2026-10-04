@@ -8,8 +8,9 @@ A diagram never holds more than the flowchart budget. `fit` keeps the nodes that
 matter most and returns the rest, and the block that called it lists them in a
 table under the diagram, so no node is ever dropped without a trace.
 """
+import hashlib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 UNSAFE = re.compile(r"[^\w .,()/'+-]")
 KEY_UNSAFE = re.compile(r"[^A-Za-z0-9_]")
@@ -49,6 +50,7 @@ class Edge:
 class Graph:
     nodes: tuple  # sorted by key
     edges: tuple  # sorted by (label, source, target)
+    skipped: tuple = ()  # (contract id, reason) for each contract the diagram could not draw, sorted
 
 
 def safe_label(text, fallback):
@@ -87,51 +89,92 @@ def provider_of(contract, plain=False):
     return app_node(contract.page, "app", False) if plain else app_node(contract.page)
 
 
-def _graph(nodes, edges):
-    by_key = {}
+def _unique_keys(nodes):
+    """{(base key, ref): final key}. Two different refs that share a base key each get a hash of their ref.
+
+    The hash keeps both nodes visible, so a person can see the two spellings and fix one.
+    """
+    refs_by_key = {}
     for node in nodes:
+        refs_by_key.setdefault(node.key, set()).add(node.ref)
+    final = {}
+    for key, refs in refs_by_key.items():
+        for ref in refs:
+            suffix = "_" + hashlib.sha1(ref.encode("utf-8")).hexdigest()[:6] if len(refs) > 1 else ""
+            final[(key, ref)] = key + suffix
+    return final
+
+
+def _graph(nodes, edges, skipped=()):
+    """`edges` is [(provider Node, consumer Node, contract id)], so keys can be settled before edges use them."""
+    final = _unique_keys(list(nodes) + [n for e in edges for n in e[:2]])
+    rekey = lambda n: replace(n, key=final[(n.key, n.ref)])
+    by_key = {}
+    for node in map(rekey, nodes):
         by_key.setdefault(node.key, node)
+    drawn = {Edge(rekey(s).key, rekey(t).key, label) for s, t, label in edges}
     return Graph(tuple(sorted(by_key.values(), key=lambda n: n.key)),
-                 tuple(sorted(set(edges), key=lambda e: (e.label, e.source, e.target))))
+                 tuple(sorted(drawn, key=lambda e: (e.label, e.source, e.target))),
+                 tuple(sorted(set(skipped))))
+
+
+def _provider_problem(contract, retired_pages, after):
+    """Why a contract cannot be drawn from its provider, or "" when it can."""
+    if contract.fact("Provider"):
+        return ""
+    if contract.page.type != "app-building-blocks":
+        return "provider is not an app page"
+    if after and contract.page in retired_pages:
+        return f"provider {contract.page.id or contract.page.name} is retired"
+    return ""
 
 
 def context_graph(vault, after=False):
     """Every app page, every external provider, and one edge per contract and consumer.
 
     `after=True` is the after view: retired apps are left out (the caller lists them),
-    and apps share one plain style because the change no longer matters.
+    and apps share one plain style because the change no longer matters. Every contract
+    that cannot be drawn is named in `skipped` with its reason.
     """
-    apps = [a for a in vault.apps if not (after and a.meta.get("change") == "retired")]
+    retired = [a for a in vault.apps if a.meta.get("change") == "retired"] if after else []
+    apps = [a for a in vault.apps if a not in retired]
     nodes = [app_node(a, "app", False) if after else app_node(a) for a in apps]
-    keys = {n.key for n in nodes}
-    edges = []
+    edges, skipped = [], []
     for contract in vault.contracts:
+        problem = _provider_problem(contract, retired, after)
+        if problem:
+            skipped.append((contract.id, problem))
+            continue
         source = provider_of(contract, plain=after)
-        if source.page is not None and source.key not in keys:
-            continue  # a retired provider has no place in the after view
         nodes.append(source)
         for consumer in vault.consumers(contract):
-            target_key = app_node(consumer).key
-            if target_key in keys:
-                edges.append(Edge(source.key, target_key, contract.id))
-    return _graph(nodes, edges)
+            if consumer in retired:
+                skipped.append((contract.id, f"consumer {consumer.id or consumer.name} is retired"))
+            else:
+                edges.append((source, app_node(consumer, "app", False) if after else app_node(consumer), contract.id))
+    return _graph(nodes, edges, skipped)
 
 
 def app_graph(vault, app):
     """The app and its direct neighbours by contract, provided or consumed."""
     focus = app_node(app, "focus")
-    nodes, edges = [focus], []
+    nodes, edges, skipped = [focus], [], []
     for contract in vault.contracts:
-        source = provider_of(contract)
-        consumers = [app_node(c) for c in vault.consumers(contract)]
-        if source.key == focus.key:
-            for target in consumers:
-                nodes.append(focus if target.key == focus.key else target)
-                edges.append(Edge(focus.key, target.key, contract.id))
-        elif any(c.key == focus.key for c in consumers):
-            nodes.append(source)
-            edges.append(Edge(source.key, focus.key, contract.id))
-    return _graph(nodes, edges)
+        consumers = vault.consumers(contract)
+        provides = contract.page is app and not contract.fact("Provider")
+        consumes = app in consumers
+        if not provides and not consumes:
+            continue
+        if not contract.fact("Provider") and contract.page.type != "app-building-blocks":
+            skipped.append((contract.id, "provider is not an app page"))
+            continue
+        source = focus if provides else provider_of(contract)
+        nodes.append(source)
+        for target in consumers if provides else [app]:
+            node = focus if target is app else app_node(target)
+            nodes.append(node)
+            edges.append((source, node, contract.id))
+    return _graph(nodes, edges, skipped)
 
 
 def fit(graph, budget, reserved=0):
@@ -145,7 +188,7 @@ def fit(graph, budget, reserved=0):
     ranked = sorted(graph.nodes, key=lambda n: (RANK.get(n.style, 9), n.key))
     kept = {n.key for n in ranked[:room]}
     drawn = Graph(tuple(n for n in graph.nodes if n.key in kept),
-                  tuple(e for e in graph.edges if e.source in kept and e.target in kept))
+                  tuple(e for e in graph.edges if e.source in kept and e.target in kept), graph.skipped)
     return drawn, tuple(n for n in ranked[room:])
 
 
@@ -170,6 +213,6 @@ def flowchart(graph, direction="LR", groups=()):
 
 def overflow_contracts(graph, node):
     """The contracts that touch a node left out of a diagram, as "CON-001 from A to B"."""
-    names = {n.key: n.ref for n in graph.nodes}
+    names = {n.key: safe_label(n.ref, n.key) for n in graph.nodes}
     return [f"{e.label} from {names.get(e.source, e.source)} to {names.get(e.target, e.target)}"
             for e in graph.edges if node.key in (e.source, e.target)]

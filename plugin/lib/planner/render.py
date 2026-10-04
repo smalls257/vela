@@ -265,7 +265,9 @@ def mermaid_fence(lines):
 
 def node_link(node):
     """A table-safe link to the page a node stands for, or its name for an external provider."""
-    return link(node.page.name, cell(title(node.page))) if node.page is not None else cell(node.ref)
+    if node.page is None:
+        return cell(diagrams.safe_label(node.ref, node.key))
+    return link(node.page.name, cell(diagrams.safe_label(title(node.page), node.page.name)))
 
 
 def left_out_table(count, header, rows):
@@ -276,30 +278,39 @@ def left_out_table(count, header, rows):
             f"| Not drawn | {header} |", "|---|---|", *rows]
 
 
+def skipped_table(skipped):
+    """The table under a diagram that names each contract it could not draw, and why."""
+    if not skipped:
+        return []
+    rows = [row(cell(diagrams.safe_label(cid, "contract")), cell(diagrams.safe_label(why, "unknown"))) for cid, why in skipped]
+    return ["", f"**Contracts not drawn:** {len(skipped)}", "", "| Contract | Why not drawn |", "|---|---|", *rows]
+
+
 def graph_block(graph, direction="LR", groups=(), reserved=0):
     drawn, left_out = diagrams.fit(graph, schema.FLOWCHART_BUDGET, reserved)
     rows = [row(node_link(n), cell(", ".join(diagrams.overflow_contracts(graph, n)) or "none")) for n in left_out]
-    return mermaid_fence(diagrams.flowchart(drawn, direction, groups)) + left_out_table(len(left_out), "Contracts", rows)
+    fence = mermaid_fence(diagrams.flowchart(drawn, direction, groups)) if graph.nodes else []
+    return fence + left_out_table(len(left_out), "Contracts", rows) + skipped_table(graph.skipped)
 
 
 def context_map(vault, page):
     graph = diagrams.context_graph(vault)
-    if not graph.nodes:
+    if not graph.nodes and not graph.skipped:
         return "none"
-    return "\n".join(graph_block(graph))
+    return "\n".join(graph_block(graph)).lstrip("\n")
 
 
 def system_context(vault, page):
     graph = diagrams.context_graph(vault, after=True)
     retired = [a for a in vault.apps if a.meta.get("change") == "retired"]
-    if not graph.nodes:
+    if not graph.nodes and not graph.skipped and not retired:
         return "none"
     scope = diagrams.safe_label(vault.config.get("title", ""), "In scope")
     apps = [n.key for n in graph.nodes if n.page is not None]
     out = graph_block(graph, groups=[("scope", scope, apps)], reserved=1)
     if retired:
-        out += ["", "**Retired, not drawn:** " + ", ".join(plain_link(a.name, title(a)) for a in retired)]
-    return "\n".join(out)
+        out += ["", "**Retired, not drawn:** " + ", ".join(plain_link(a.name, diagrams.safe_label(title(a), a.name)) for a in retired)]
+    return "\n".join(out).lstrip("\n")
 
 
 def app_context(vault, page):

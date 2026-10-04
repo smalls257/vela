@@ -194,6 +194,8 @@ def test_generated_diagram_over_budget_never_trips_e601(mini):
     run("render", "--vault", str(mini))
     _, out = check(mini)
     assert "E601" not in out, out
+    text = (mini / "05-building-blocks" / "05-building-blocks.md").read_text(encoding="utf-8")
+    assert "| Not drawn | Contracts |" in text, "the diagram never went over budget, so E601 was not tested"
 
 
 def test_context_map_is_refused_on_another_page(mini):
@@ -214,3 +216,85 @@ def test_an_external_provider_spelled_two_ways_is_two_nodes_not_a_guess():
     vault = vault_of({"05-building-blocks/shop-building-blocks.md": app_page("shop", "new", body)})
     [lines] = mermaid_lines(render.context_map(vault, None))
     assert '  x_payco["Payco"]' in lines and '  x_payco__external_["Payco (external)"]' in lines
+
+
+# Fix round 1: collisions, skipped contracts, all-retired, over-budget app context, hostile table text.
+
+def node_lines(lines):
+    return [l for l in lines if '["' in l and "-->" not in l]
+
+
+def test_names_that_share_a_key_stay_two_nodes():
+    pages = {"05-building-blocks/a-b-building-blocks.md": app_page("a-b", "new", contract("CON-001", ["a_b"])),
+             "05-building-blocks/a_b-building-blocks.md": app_page("a_b", "new")}
+    [lines] = mermaid_lines(render.context_map(vault_of(pages), None))
+    assert len(node_lines(lines)) == 2
+    keys = {l.split("[", 1)[0].strip() for l in node_lines(lines)}
+    assert len(keys) == 2 and all(k.startswith("n_APP_a_b") for k in keys)
+
+
+def test_externals_that_differ_only_by_case_stay_two_nodes_and_keep_their_edges():
+    body = contract("CON-001", ["shop"], provider="Payco") + contract("CON-002", ["shop"], provider="PAYCO")
+    vault = vault_of({"05-building-blocks/shop-building-blocks.md": app_page("shop", "new", body)})
+    [lines] = mermaid_lines(render.context_map(vault, None))
+    externals = [l for l in node_lines(lines) if l.strip().startswith("x_")]
+    assert len(externals) == 2
+    edges = [l for l in lines if "-->" in l]
+    assert len({l.split("-->")[0] for l in edges}) == 2
+    assert render.context_map(vault, None) == render.context_map(vault, None)
+
+
+NOTE = "---\nid: note\ntype: concept\ntitle: Note\nauthored: authored\n---\n\n# Note\n\n"
+
+
+def test_a_contract_on_a_non_app_page_is_listed_with_its_reason():
+    pages = dict(SHOP)
+    pages["05-building-blocks/note.md"] = NOTE + contract("CON-005", ["shop"])
+    vault = vault_of(pages)
+    for generator in (render.context_map, render.system_context):
+        text = generator(vault, None)
+        assert "| CON-005 | provider is not an app page |" in text, generator.__name__
+        assert "**Contracts not drawn:** " in text
+
+
+def test_the_after_view_names_retired_contracts_and_retired_apps():
+    pages = dict(SHOP)
+    pages["05-building-blocks/stock-building-blocks.md"] = app_page(
+        "stock", "unchanged", contract("CON-002", ["shop", "old"]))
+    text = render.system_context(vault_of(pages), None)
+    assert "| CON-003 | provider APP-old is retired |" in text
+    assert "| CON-002 | consumer APP-old is retired |" in text
+    assert text.endswith("**Retired, not drawn:** [[old-building-blocks|Old]]")
+
+
+def test_system_context_keeps_the_retired_list_when_every_app_is_retired():
+    pages = {"05-building-blocks/old-building-blocks.md": app_page("old", "retired", contract("CON-003", ["old"]))}
+    text = render.system_context(vault_of(pages), None)
+    assert text != "none"
+    assert text.endswith("**Retired, not drawn:** [[old-building-blocks|Old]]")
+    assert "| CON-003 | provider APP-old is retired |" in text
+    assert "```mermaid" not in text
+
+
+def test_app_context_over_budget_lists_what_it_left_out():
+    vault = big_vault(25)
+    text = render.app_context(vault, vault.page("hub-building-blocks"))
+    [lines] = mermaid_lines(text)
+    assert flowchart_elements(lines) == schema.FLOWCHART_BUDGET
+    assert f"**Not drawn, over the {schema.FLOWCHART_BUDGET}-element budget:** 6" in text
+    assert '  n_APP_hub["Hub (new)"]' in lines and "  class n_APP_hub focus" in lines
+    for i in range(25):
+        name = f"a{i:02d}"
+        assert f"n_APP_{name}[" in text or f"[[{name}-building-blocks\\|" in text, f"{name} was dropped"
+
+
+def test_hostile_external_names_cannot_break_the_tables():
+    hostile = "Pay [[x|y]] | z"
+    pages = {"05-building-blocks/hub-building-blocks.md": app_page(
+        "hub", "new", contract("CON-001", [f"a{i:02d}" for i in range(25)]) + contract("CON-002", ["hub"], provider=hostile))}
+    for i in range(25):
+        pages[f"05-building-blocks/a{i:02d}-building-blocks.md"] = app_page(f"a{i:02d}", "unchanged")
+    text = render.context_map(vault_of(pages), None)
+    table = text.split("| Not drawn | Contracts |", 1)[1]
+    assert "[[x" not in table and "y]]" not in table
+    assert all(line.count("|") - line.count("\\|") == 3 for line in table.split("\n") if line.startswith("| ["))
