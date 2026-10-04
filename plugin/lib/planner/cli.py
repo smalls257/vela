@@ -132,14 +132,18 @@ def git(root, *args):
 
 def git_strict(root, *args):
     """Output of a git command, or ToolError with git's own message. For commands whose
-    failure must never read as "nothing changed"."""
+    failure must never read as "nothing changed". Output that is not UTF-8 is a failure too."""
     try:
-        result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=30)
+        result = subprocess.run(["git", "-C", str(root), "-c", "core.quotepath=false", *args], capture_output=True, timeout=30)
     except (OSError, subprocess.SubprocessError) as exc:
         raise ToolError(f"git {' '.join(args)} could not run: {exc}") from exc
     if result.returncode != 0:
-        raise ToolError(f"git {' '.join(args)} failed: {result.stderr.strip() or result.stdout.strip()}")
-    return result.stdout
+        message = result.stderr.decode("utf-8", "replace").strip() or result.stdout.decode("utf-8", "replace").strip()
+        raise ToolError(f"git {' '.join(args)} failed: {message}")
+    try:
+        return result.stdout.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ToolError(f"git {' '.join(args)} gave output that is not UTF-8: {exc}") from exc
 
 
 def read_asset(name):
@@ -345,26 +349,48 @@ def read_text_file(path):
 def range_pairs(root, spec):
     """[(path, before text, after text)] for each .md file a ref range changed. `A` compares
     A with the working tree; `A..B` compares two commits. A file that is new on one side
-    is compared with nothing, so every token in it counts as added or missing."""
+    is compared with nothing, so every token in it counts as added or missing. A renamed
+    file compares the old path's before text with the new path's after text."""
     before_ref, _, after_ref = spec.partition("..")
     if not before_ref:
         raise ToolError(f"--range {spec!r} names no commit. Write --range HEAD or --range A..B.")
-    names = git_strict(root, "diff", "--name-only", "--relative", before_ref, *([after_ref] if after_ref else []), "--", "*.md")
-    pairs = []
-    for path in sorted(n for n in names.split("\n") if n.strip()):
-        before = show(root, before_ref, path)
-        after = show(root, after_ref, path) if after_ref else ((root / path).read_text(encoding="utf-8") if (root / path).is_file() else "")
-        pairs.append((path, before, after))
-    return pairs
+    for ref in (before_ref, after_ref):
+        if ref.startswith("-"):
+            raise ToolError(f"--range {spec!r} has {ref!r}, which reads as a git option. Name a commit.")
+        if ref:
+            git_strict(root, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}")
+    status = git_strict(root, "diff", "-z", "--name-status", "-M", "--relative", "--end-of-options", before_ref,
+                        *([after_ref] if after_ref else []), "--", "*.md")
+    fields = status.split("\0")
+    if fields and fields[-1] == "":
+        fields.pop()
+    pairs, i = [], 0
+    while i < len(fields):
+        code = fields[i][:1]
+        count = 2 if code in "RC" else 1
+        names = fields[i + 1:i + 1 + count]
+        if len(names) != count:
+            raise ToolError(f"git diff gave a status line this tool cannot read: {fields[i:]!r}")
+        old, new = names[0], names[-1]
+        before = "" if code == "A" else show(root, before_ref, old)
+        if code == "D":
+            after = ""
+        elif after_ref:
+            after = show(root, after_ref, new)
+        else:
+            after = read_text_file(root / new)
+        pairs.append((new, before, after))
+        i += 1 + count
+    return sorted(pairs, key=lambda pair: pair[0])
 
 
 def show(root, ref, path):
-    """A file's text at a commit, or "" when it does not exist there."""
-    git_strict(root, "rev-parse", "--verify", f"{ref}^{{commit}}")
-    try:
-        return git_strict(root, "show", f"{ref}:./{path}")
-    except ToolError:
+    """A file's text at a commit, or "" when the commit has no such path. Any other git
+    failure raises ToolError, so it cannot read as an empty file."""
+    present = git_strict(root, "ls-tree", "-z", "--name-only", "--end-of-options", ref, "--", path).split("\0")
+    if path not in present:
         return ""
+    return git_strict(root, "show", f"{ref}:./{path}")
 
 
 def cmd_voicecheck(args, out):

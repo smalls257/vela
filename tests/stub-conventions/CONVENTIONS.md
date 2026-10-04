@@ -220,7 +220,7 @@ A capture line:
 
 House-voice passages live in `voice/examples/<voice type>/`, one per file. `planner check` never reads `voice/`.
 
-`planner voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite: IDs, numbers, dates, wikilinks, code spans and table cells. `planner voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
+`planner voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite. The kinds are `id`, `number` (with its unit and currency symbol), `date`, `version`, `link` (wikilinks, Markdown link URLs and bare URLs), `code`, `cell` (table cells), `frontmatter` (every line, compared exactly) and `negation` (the count of not, no, never, cannot, without and n't words in each paragraph). `planner voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
 
 ## Generated blocks
 

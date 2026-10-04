@@ -1,26 +1,38 @@
 """Protected tokens before and after a prose rewrite. Pure: the CLI reads the two texts.
 
 A voice rewrite may change words. It may not change what the words point at: IDs,
-numbers, dates, wikilinks, code spans and table cells. If any of them is missing,
+numbers, dates, versions, links, code spans, table cells, frontmatter and negations. If any of them is missing,
 added or moved, the rewrite fails, and close keeps the earlier draft.
 """
 import re
 from collections import Counter
 from dataclasses import dataclass
 
-WIKILINK = re.compile(r"\[\[[^\]\n]+?\]\]")
-CODE_SPAN = re.compile(r"`[^`\n]+`")
-DATE = re.compile(r"(?<![\w-])\d{4}-\d{2}-\d{2}(?![\w-])")
-ID = re.compile(r"(?<![\w-])(?:(?:APP|RUN)-[a-z0-9]+(?:-[a-z0-9]+)*|(?:CON|UNK|FLO|EPC|CAP)-\d{3}(?:\.FR\d+)?|ADR-\d{4}"
-                r"|R-\d{2,}|SRC-\d{2,}|CST-\d+|INI-\d{3}|VX-[a-z-]+-\d{3}|G\d+|concern-[a-z0-9]+(?:-[a-z0-9]+)*)(?![\w-])")
-NUMBER = re.compile(r"(?<![\w.,-])\d+(?:[.,]\d+)*%?(?![\w])")
+CODE_SPAN = re.compile(r"``[^\n]+?``|`[^`\n]+`")
+WIKILINK = re.compile(r"!?\[\[[^\]\n]+?\]\]")
+LINK_URL = re.compile(r"(?<=\])\([^)\s]+\)")
+BARE_URL = re.compile(r"https?://[^\s<>)\]]*[^\s<>)\].,;:!?]")
+DATE = re.compile(r"(?<![\w-])\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?(?![\w-])")
+VERSION = re.compile(r"(?<![\w.-])[vV]\d+(?:\.\d+)*(?![\w-])")
+# Any CAPS-nnn ID counts, so an ID prefix added to schema.py later is protected without a change here.
+ID = re.compile(r"(?<![\w-])(?:(?:APP|RUN)-[a-z0-9]+(?:-[a-z0-9]+)*|VX-[a-z-]+-\d{3}|concern-[a-z0-9]+(?:-[a-z0-9]+)*"
+                r"|[A-Z][A-Z0-9]*-\d+(?:\.[A-Za-z]*\d+)*|G\d+(?:\.[A-Za-z]*\d+)*)(?![\w])")
+UNIT = r"(?i:ms|s|secs?|seconds?|mins?|minutes?|h|hrs?|hours?|days?|weeks?|months?|years?|[kmgt]b|x)"
+CURRENCY = "£$€¥"
+# A number keeps its currency symbol, its sign and the unit that follows it ("10 ms", "10ms", "5xx", "3rd").
+NUMBER = re.compile(rf"(?:[{CURRENCY}]|(?<![\w.,])(?:[-+−~≈](?=[{CURRENCY}]?\d))?[{CURRENCY}]?)"
+                    rf"\d+(?:[.,]\d+)*(?:%|[A-Za-z_]\w*|\s?{UNIT}\b)?")
+WORD_WITH_DIGIT = re.compile(r"(?<![\w.,])[A-Za-z_]+\d\w*")  # HTTP2, p99, S3, a block ID or a short hash
 TABLE_SEPARATOR = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
-KINDS = ((WIKILINK, "link"), (CODE_SPAN, "code"), (DATE, "date"), (ID, "id"), (NUMBER, "number"))
+LEADING_MARKER = re.compile(r"^[ \t]*(?:>[ \t]*)*(?:(?:[-*+]|\d+[.)])[ \t]+|#{1,6}[ \t]+(?:\d+(?:\.\d+)*\.?[ \t]+)?)*")
+NEGATION = re.compile(r"\b(?:not|no|never|cannot|without|nobody|nothing|none|nor|neither|nowhere|\w+n't)\b")
+KINDS = ((CODE_SPAN, "code"), (WIKILINK, "link"), (LINK_URL, "link"), (BARE_URL, "link"), (DATE, "date"),
+         (VERSION, "version"), (ID, "id"), (NUMBER, "number"), (WORD_WITH_DIGIT, "number"))
 
 
 @dataclass(frozen=True)
 class Token:
-    kind: str  # link, code, date, id, number or cell
+    kind: str  # link, code, date, version, id, number, cell or frontmatter
     text: str
     line: int
 
@@ -30,10 +42,11 @@ class Result:
     missing: tuple  # Tokens in the before text with no partner after
     added: tuple  # Tokens in the after text with no partner before
     moved: tuple  # (before Token, after Token) at the first place the shared tokens part order
+    negation: tuple = ()  # (before count, after count, before line, after line) per paragraph whose negation words changed
 
     @property
     def same(self):
-        return not (self.missing or self.added or self.moved)
+        return not (self.missing or self.added or self.moved or self.negation)
 
 
 def cells(line):
@@ -41,21 +54,82 @@ def cells(line):
     return [c.strip() for c in body.replace("\\|", "\x00").split("|")]
 
 
+def normalised_lines(text):
+    return text.replace("\r\n", "\n").split("\n")
+
+
+def frontmatter_length(lines):
+    """Number of lines the opening `---` block takes, or 0 when the text has none."""
+    if not lines or lines[0].rstrip() != "---":
+        return 0
+    for n, line in enumerate(lines[1:], start=2):
+        if line.rstrip() == "---":
+            return n
+    return 0
+
+
+def strip_marker(line):
+    """A list marker or heading number is layout. Blank it out so it is not read as a number."""
+    marker = LEADING_MARKER.match(line).group(0)
+    return " " * len(marker) + line[len(marker):]
+
+
+def line_tokens(line, n):
+    """Tokens of one prose line in column order. Each kind is masked before the next is read."""
+    spans, masked = [], strip_marker(line)
+    for pattern, kind in KINDS:
+        for match in pattern.finditer(masked):
+            text = re.sub(r"\s+", " ", match.group(0)) if kind == "number" else match.group(0)
+            spans.append((match.start(), Token(kind, text, n)))
+        masked = pattern.sub(lambda m: " " * len(m.group(0)), masked)
+    return [token for _, token in sorted(spans, key=lambda s: s[0])]
+
+
 def tokens(text):
-    """Protected tokens in document order. A table row gives one token per cell and nothing else."""
-    found = []
-    for n, line in enumerate(text.replace("\r\n", "\n").split("\n"), start=1):
+    """Protected tokens in document order. Frontmatter gives one token per line. A table row
+    gives one token per cell and nothing else."""
+    lines = normalised_lines(text)
+    skip = frontmatter_length(lines)
+    found = [Token("frontmatter", line, n) for n, line in enumerate(lines[:skip], start=1)]
+    for n, line in enumerate(lines[skip:], start=skip + 1):
         if line.lstrip().startswith("|"):
             if not TABLE_SEPARATOR.match(line.strip()):
                 found.extend(Token("cell", c.replace("\x00", "|"), n) for c in cells(line))
             continue
-        spans, masked = [], line
-        for pattern, kind in KINDS:
-            for match in pattern.finditer(masked):
-                spans.append((match.start(), Token(kind, match.group(0), n)))
-            masked = pattern.sub(lambda m: " " * len(m.group(0)), masked)
-        found.extend(token for _, token in sorted(spans, key=lambda s: s[0]))
+        found.extend(line_tokens(line, n))
     return found
+
+
+def negations(text):
+    """[(negation word count, first line of the paragraph)] per paragraph of prose. n't counts as not."""
+    lines = normalised_lines(text)
+    skip = frontmatter_length(lines)
+    paragraphs, current = [], None
+    for n, line in enumerate(lines[skip:], start=skip + 1):
+        if not line.strip():
+            current = None
+            continue
+        if current is None:
+            current = [0, n]
+            paragraphs.append(current)
+        if line.lstrip().startswith("|"):
+            continue
+        prose = line.lower().replace("\u2019", "'")
+        for pattern, _ in KINDS[:4]:  # words inside code spans, links and URLs are not prose
+            prose = pattern.sub(" ", prose)
+        current[0] += len(NEGATION.findall(prose))
+    return [tuple(p) for p in paragraphs]
+
+
+def negation_changes(before, after):
+    a, b = negations(before), negations(after)
+    changes = []
+    for i in range(max(len(a), len(b))):
+        (count_a, line_a) = a[i] if i < len(a) else (0, 0)
+        (count_b, line_b) = b[i] if i < len(b) else (0, 0)
+        if count_a != count_b:
+            changes.append((count_a, count_b, line_a, line_b))
+    return tuple(changes)
 
 
 def shared(sequence, keep):
@@ -84,7 +158,7 @@ def compare(before, after):
     keep = Counter((t.kind, t.text) for t in a) & Counter((t.kind, t.text) for t in b)
     common_a, common_b = shared(a, keep), shared(b, keep)
     moved = next(((x, y) for x, y in zip(common_a, common_b) if (x.kind, x.text) != (y.kind, y.text)), None)
-    return Result(leftover(a, b), leftover(b, a), (moved,) if moved else ())
+    return Result(leftover(a, b), leftover(b, a), (moved,) if moved else (), negation_changes(before, after))
 
 
 def describe(result):
@@ -92,4 +166,6 @@ def describe(result):
     lines += [f"added: {t.text} ({t.kind}), after line {t.line}" for t in result.added]
     lines += [f"moved: {x.text} ({x.kind}) at before line {x.line} now has {y.text} ({y.kind}) in its place, after line {y.line}"
               for x, y in result.moved]
+    lines += [f"negation: {x} negation words before, {y} after, in the paragraph at before line {lx}, after line {ly} (negation)"
+              for x, y, lx, ly in result.negation]
     return lines
