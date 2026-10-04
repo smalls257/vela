@@ -289,27 +289,38 @@ def handoff_verify(root, app_id, out):
 def cmd_export(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
-    base = export.web_url(args.repo_url or git(root, "remote", "get-url", "origin"))
+    remote = args.repo_url or git(root, "remote", "get-url", "origin")
+    base = export.web_url(remote)
     commit = args.commit or git(root, "rev-parse", "HEAD")
     prefix = git(root, "rev-parse", "--show-prefix")
     if base and commit:
         def link_for(path):
-            return f"{base}/blob/{commit}/{prefix}{path}"
+            return f"{base}/blob/{commit}/{export.link_path(prefix + path)}"
     else:
         def link_for(path):
             return path
     table = export.rows(vault, link_for)
     target = pathlib.Path(args.out)
-    target.write_text(export.to_csv(table), encoding="utf-8", newline="")
+    try:
+        target.write_text(export.to_csv(table), encoding="utf-8", newline="")
+    except OSError as exc:
+        raise ToolError(f"Cannot write {target}: {exc}") from exc
     print(f"planner export: wrote {len(table)} epics to {target}.", file=out)
+    if remote and not base:
+        print("  The repository remote is not one planner can turn into a web link.", file=out)
     if not (base and commit):
         print("  No repository URL or commit was found, so Vault link holds each epic's path in the vault. "
               "Pass --repo-url and --commit to link to the repository.", file=out)
+    elif not args.commit and git(root, "status", "--porcelain", "--", "."):
+        print("  The vault has uncommitted changes, so Vault links point at HEAD and may not show them.", file=out)
     open_epics = [e for e in vault.of_type("epic") if e.meta.get("state") != "decided"]
     if open_epics:
-        print("  Not decided yet: " + ", ".join(f"{e.id} ({e.meta.get('state', 'no state')})"
-                                               for e in sorted(open_epics, key=lambda e: e.id)) + ".", file=out)
-    return 0
+        print("  Not decided yet: " + ", ".join(f"{e.id or e.path} ({e.meta.get('state', 'no state')})"
+                                               for e in sorted(open_epics, key=lambda e: e.id or e.path)) + ".", file=out)
+    skipped = export.unloaded(vault)
+    for path in skipped:
+        print(f"  Not exported (fix with planner check): {path}", file=out)
+    return 1 if skipped else 0
 
 
 def days_between(earlier, later):

@@ -6,10 +6,12 @@ tracker field, so the vault never depends on one.
 import csv
 import io
 import re
+import urllib.parse
 
 from planner import trace
 from planner.parse import FENCE
 
+EPICS_FOLDER = "13-epics/"
 COLUMNS = ("Summary", "Description", "Epic Name", "Owner team", "Vault link")
 WIKILINK = re.compile(r"\[\[([^\]]+?)\]\]")
 LABEL_LINE = re.compile(r"^(- )?\*\*[^*]+:\*\*")
@@ -82,6 +84,20 @@ def criteria(epic):
     return found
 
 
+def handles(owner):
+    """The owner field as team names: every handle loses its leading @ (a tracker wants a name, not a mention)."""
+    if isinstance(owner, list):
+        owner = ", ".join(o for o in owner if isinstance(o, str))
+    if not isinstance(owner, str):
+        return ""
+    return re.sub(r"(^|[\s,;])@", r"\1", owner)
+
+
+def unloaded(vault):
+    """Paths of pages in the epics folder that are neither epics nor the folder index (frontmatter failed to parse, or wrong type)."""
+    return sorted(p.path for p in vault.pages if p.path.startswith(EPICS_FOLDER) and p.type not in ("epic", "index"))
+
+
 def rows(vault, link_for):
     """One row per epic, by ID. `link_for(path)` gives the Vault link for a vault-relative path."""
     out = []
@@ -91,9 +107,9 @@ def rows(vault, link_for):
         if acs:
             text += ("\n\n" if text else "") + "Acceptance criteria:\n" + "\n".join(f"{i}. {c}" for i, c in enumerate(acs, start=1))
         title = epic.meta.get("title")
-        owner = epic.meta.get("owner")
-        out.append((title if isinstance(title, str) else epic.id, text, epic.id,
-                    owner.removeprefix("@") if isinstance(owner, str) else "", link_for(epic.path)))
+        name = epic.id or epic.path
+        out.append((title if isinstance(title, str) and title.strip() else name, text, name,
+                    handles(epic.meta.get("owner")), link_for(epic.path)))
     return out
 
 
@@ -113,8 +129,19 @@ def to_csv(table):
 def web_url(remote):
     """A browsable https URL for a git remote, or "" when it cannot be made one."""
     remote = remote.strip()
-    ssh = re.match(r"^git@([^:]+):(.+?)(?:\.git)?/?$", remote)
-    if ssh:
-        return f"https://{ssh.group(1)}/{ssh.group(2)}"
-    https = re.match(r"^(https?://[^\s]+?)(?:\.git)?/?$", remote)
-    return https.group(1) if https else ""
+    if re.search(r"\s", remote):
+        return ""
+    scp = re.match(r"^[\w.-]+@([^:/]+):(.+?)(?:\.git)?/?$", remote)
+    if scp:
+        return f"https://{scp.group(1)}/{scp.group(2)}"
+    # user:token@ never reaches the CSV; an ssh port means nothing on the web host.
+    hosted = re.match(r"^(https?|ssh)://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+?)(?:\.git)?/?$", remote)
+    if not hosted:
+        return ""
+    scheme = "http" if hosted.group(1) == "http" else "https"
+    port = re.match(r"^https?://(?:[^@/]+@)?[^/:]+(:\d+)", remote) if hosted.group(1) != "ssh" else None
+    return f"{scheme}://{hosted.group(2)}{port.group(1) if port else ''}/{hosted.group(3)}"
+
+
+def link_path(path):
+    return urllib.parse.quote(path, safe="/")

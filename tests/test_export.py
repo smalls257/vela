@@ -117,3 +117,75 @@ def test_owner_loses_its_at_sign_and_is_still_guarded(tmp_path):
     edit(vault / "13-epics" / "EPC-031-holds-and-confirms.md", "owner: \"@harbourline/booking-team\"", 'owner: "@=x"')
     _, _, rows = exported(tmp_path, vault=vault)
     assert rows[1][3] == "'=x"
+
+
+def test_an_unwritable_out_is_a_tool_failure_not_a_traceback(tmp_path):
+    for bad in (tmp_path, tmp_path / "missing" / "epics.csv", ""):
+        code, text = run("export", "jira-csv", "--vault", str(FIXTURE), "--out", str(bad))
+        assert code == 2 and "Cannot write" in text and "Traceback" not in text, text
+
+
+def test_an_epic_that_does_not_parse_is_named_and_the_rest_still_export(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    broken = vault / "13-epics" / "EPC-032-ledger-adapter.md"
+    edit(broken, "id: EPC-032\n", "id: [EPC-032\n")
+    code, text, rows = exported(tmp_path, vault=vault)
+    assert code == 1 and len(rows) == 9
+    assert "Not exported (fix with planner check): 13-epics/EPC-032-ledger-adapter.md" in text
+
+
+def test_credentials_in_a_remote_never_reach_the_file(tmp_path):
+    assert export.web_url("https://user:s3cr3tpw@github.com/o/r.git") == "https://github.com/o/r"
+    _, _, rows = exported(tmp_path, "--repo-url", "https://user:s3cr3tpw@github.com/o/r.git", "--commit", "abc")
+    assert rows[1][4].startswith("https://github.com/o/r/blob/abc/")
+    assert "s3cr3tpw" not in (tmp_path / "epics.csv").read_text(encoding="utf-8")
+
+
+def test_every_handle_in_a_multi_owner_field_loses_its_at():
+    assert export.handles("@org/a, @org/b") == "org/a, org/b"
+    assert export.handles(["@org/a", "@org/b"]) == "org/a, org/b"
+    assert export.handles(None) == "" and export.handles(7) == ""
+
+
+def test_an_epic_with_no_id_shows_its_path(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    edit(vault / "13-epics" / "EPC-033-website-to-booking.md", "id: EPC-033\n", "id: \"\"\n")
+    edit(vault / "13-epics" / "EPC-033-website-to-booking.md", "state: decided", "state: reopened")
+    code, text, rows = exported(tmp_path, vault=vault)
+    assert "13-epics/EPC-033-website-to-booking.md" in [r[2] for r in rows]
+    assert "Not decided yet: 13-epics/EPC-033-website-to-booking.md (reopened)." in text
+
+
+def test_ssh_remotes_and_remotes_with_whitespace(tmp_path):
+    assert export.web_url("ssh://git@github.com/o/r.git") == "https://github.com/o/r"
+    assert export.web_url("ssh://git@host.example:2222/o/r") == "https://host.example/o/r"
+    assert export.web_url("https://host.example:8443/o/r.git") == "https://host.example:8443/o/r"
+    assert export.web_url("https://github.com/o/my repo") == ""
+    code, text, rows = exported(tmp_path, "--repo-url", "https://github.com/o/my repo", "--commit", "abc")
+    assert rows[1][4] == "13-epics/EPC-031-holds-and-confirms.md"
+    assert "not one planner can turn into a web link" in text
+
+
+def test_link_paths_are_encoded(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    (vault / "13-epics" / "EPC-031-holds-and-confirms.md").rename(vault / "13-epics" / "EPC-031 holds #1.md")
+    _, _, rows = exported(tmp_path, "--repo-url", "https://github.com/o/r", "--commit", "abc", vault=vault)
+    assert rows[1][4] == "https://github.com/o/r/blob/abc/13-epics/EPC-031%20holds%20%231.md"
+
+
+def test_uncommitted_vault_warns_that_links_point_at_head(tmp_path):
+    import subprocess
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    git = lambda *a: subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@t", *a], check=True, capture_output=True)
+    git("init", "-q"); git("add", "-A"); git("commit", "-qm", "x")
+    _, clean, _ = exported(tmp_path, "--repo-url", "https://github.com/o/r", vault=vault)
+    assert "uncommitted changes" not in clean
+    edit(vault / "13-epics" / "EPC-031-holds-and-confirms.md", "state: decided", "state: reopened")
+    _, dirty, _ = exported(tmp_path, "--repo-url", "https://github.com/o/r", vault=vault)
+    assert "uncommitted changes, so Vault links point at HEAD" in dirty
+    _, pinned, _ = exported(tmp_path, "--repo-url", "https://github.com/o/r", "--commit", "abc", vault=vault)
+    assert "uncommitted changes" not in pinned
