@@ -61,7 +61,7 @@ summary: In progress.
 |---|---|---|---|
 ```
 
-`<Mode name>` is the display name in `MODES.md`: Dump & Diverge, Discover, Shape, Grill, Requirements or Epics. Commit it with the message `Open session <id>`.
+`<Mode name>` is the display name in `MODES.md`: Dump & Diverge, Discover, Shape, Grill, Requirements, Epics or Challenge. Commit it with the message `Open session <id>`.
 
 A session that runs a second mode adds that mode to `modes`. It never opens a second record.
 

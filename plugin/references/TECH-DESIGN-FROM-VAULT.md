@@ -7,7 +7,8 @@ The user's `tech-design-grill` skill reads this file when it is given `--vault <
 1. The prereq is already checked: the app's building-blocks page in the vault carries `handed_off:`. Record it in the design doc's `prereqs[]` as `path: <vault>/05-building-blocks/<app>-building-blocks.md`, `expected_status: handed_off`.
 2. Record the vault commit: run `git -C <vault> rev-parse --short HEAD` and `git -C <vault> remote get-url origin`. Every link back names this commit.
 3. Run `git -C <vault> status --short`. If the vault clone has changes, say so: the design would start from pages nobody reviewed.
-4. If `slug` is not given, propose the app's name without `APP-`, for example `booking`.
+4. Run `python3 <vault>/.claude/skills/planner/bin/planner handoff verify <APP-id> --vault <vault>`. Exit 0 means nothing the senior accepted has changed. Exit 1 lists each changed or removed item: tell the senior, and read those items again before the design rests on them. Exit 2 means the vault holds no manifest for the app; say so and go on.
+5. If `slug` is not given, propose the app's name without `APP-`, for example `booking`.
 
 ## What to read, in this order
 
@@ -38,4 +39,4 @@ Cite vault items by ID and commit, for example `INI-002 CON-001 @ 3f9c2a1`, or a
 
 ## When the vault is wrong or silent
 
-The design never edits the vault. A functional gap, or a vault answer the senior disputes, becomes an `OQ-XXX` in the design doc with `challenges: <vault ID>` and the scenario that shows the problem. Tell the senior to raise it with the solution lead, who records it as an unknown in the vault. Carry on with the branches it does not touch. Never log a challenge as `D-XXX`: that type means the answer is known.
+The design never edits the vault. A functional gap, or a vault answer the senior disputes, becomes an `OQ-XXX` in the design doc with `challenges: <vault ID>` and the scenario that shows the problem. Tell the senior to raise it in the vault with `/planner:challenge <vault ID>`. That records it as an open unknown the senior owns, and asks the solution lead in a PR. Carry on with the branches it does not touch. Never log a challenge as `D-XXX`: that type means the answer is known.

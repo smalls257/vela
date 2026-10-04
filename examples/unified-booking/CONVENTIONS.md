@@ -83,7 +83,7 @@ Field values:
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
-- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`.
+- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`, `challenge`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. Like every mode but `grill`, it cannot decide.
 
 ## IDs
 
