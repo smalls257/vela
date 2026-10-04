@@ -26,7 +26,7 @@ First say this plainly: "`voice/examples/` is committed, pushed and opened as a 
 - committed: `voice/examples/<type>/`. The passages go through a PR.
 - local only: `voice/local/<type>/`. They stay on this machine, are gitignored, and are never committed.
 
-If the owner says their employer owns the text, or is not sure, recommend local only. A local-only seed has no branch, commit or PR. Say so. Create `voice/local/<type>/` when it does not exist.
+If the owner says their employer owns the text, or is not sure, recommend local only. A local-only run changes no committed file and makes no branch, commit or PR. Say so. A local example never retires a committed seed: that would drop every teammate's house voice below 2 examples of the type. On this machine, house-voice reads local owner examples ahead of the committed seed. Create `voice/local/<type>/` when it does not exist.
 
 Take the voice type the user named, or all three in this order: diagnosis, decision, how-it-works. For each type:
 
@@ -46,8 +46,8 @@ Stop asking for a type once it has 3 passages, or when the owner says they have 
 Before storing a type, make room for it:
 
 1. List the type's active examples in `voice/examples/` and `voice/local/`, with the passages about to be added.
-2. The owner has 2 examples of a type when the count of active `owner` and `owner-edit` examples, across both folders, after this run, is at least 2. When that is true, every active `public-seed` example of the type retires. When it is not, the type keeps its seed.
-3. A type holds at most 5. If the list still has more than 5, retire the surplus in this order: `public-seed` first, then `owner-edit`, then `owner`. Within each, the oldest `added` goes first, then the lowest file name.
+2. Count only within a folder. A `public-seed` example retires when the active `owner` and `owner-edit` examples in its own folder, after this run, number at least 2. So committed owner examples retire committed seeds, and local examples retire only local ones. In a local-only run, nothing in `voice/examples/` retires. Otherwise the type keeps its seed.
+3. A type holds at most 5. Count both folders together. If the list still has more than 5, retire the surplus in this order: `public-seed` first, then `owner-edit`, then `owner`. Within each, the oldest `added` goes first, then the lowest file name. In a local-only run, only local examples may retire. If the list is still over 5, store nothing new for that type and say so.
 4. Show the owner each retirement the cap forces and ask. The owner may refuse. If they refuse, store nothing new for that type and say why: a type holds at most 5.
 
 Keep the plan of retirements for step 5.
@@ -81,7 +81,17 @@ PLANNER_EOF
 
 If the passage contains a line `PLANNER_EOF`, pick another delimiter and use it in both places.
 
-Third, compare the stored body with the pasted text. Run `cat -A <file>` and read the body line by line against the paste. Look for a difference in line endings (`^M`), trailing whitespace (spaces before the `$`), quotes (curly turned straight or the reverse), and the final newline. On any difference, stop. Tell the owner what differs and do not repair it. Store an accepted passage as it was pasted.
+Third, compare the stored body with the pasted text, with a tool. Write the pasted text to a temp file with a second quoted heredoc. Extract the stored body, which is everything after the closing frontmatter `---` line and its one blank line. Compare the two with `cmp`:
+
+```
+tmp=$(mktemp)
+cat > "$tmp" <<'PLANNER_EOF'
+<the passage, exactly as pasted>
+PLANNER_EOF
+awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - "$tmp"
+```
+
+If `cmp` reports a difference, stop. Tell the owner and do not repair the file. A heredoc always ends its text with a newline, so a paste that had no final newline gains one in both files, and `cmp` will not show it. When the paste had none, tell the owner. The check proves the file holds what the heredoc received. It does not prove the chat text reached the heredoc unchanged. Store an accepted passage as it was pasted.
 
 Then re-read the frontmatter and confirm it parses as YAML and that `from` is the text the owner gave.
 
@@ -89,7 +99,7 @@ Then re-read the frontmatter and confirm it parses as YAML and that `from` is th
 
 Apply the plan from step 3. Set `state: retired` on each example in it. Change only the `state:` line. Never delete a seed example: its licence and attribution stay in the file. Retiring a committed example changes a committed file, so it goes through the PR in step 7. Retiring a local example needs no PR.
 
-A type with fewer than 2 owner passages keeps its seed. Say: "<type> has one owner passage, so house-voice still reads the public seed. Add another to replace it."
+A type with fewer than 2 owner passages keeps its seed. A local-only run always leaves the committed seed in place. Say: "<type> has one owner passage, so house-voice still reads the public seed. Add another to replace it."
 
 ## 6. Final check
 

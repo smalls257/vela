@@ -129,7 +129,7 @@ def test_voice_seed_stores_the_owner_words_and_never_rewrites_them():
 
 def test_voice_seed_retires_the_seed_only_once_the_owner_has_two():
     seed = SEED_SKILL.read_text(encoding="utf-8")
-    assert "every active `public-seed` example of the type retires" in seed
+    assert "A `public-seed` example retires when" in seed
     assert "Set `state: retired` on each example in it. Change only the `state:` line." in seed
     assert "Never delete a seed example" in seed
     assert "A type with fewer than 2 owner passages keeps its seed." in seed
@@ -165,9 +165,12 @@ def test_voice_seed_writes_verbatim_with_a_quoted_heredoc_and_compares():
     assert "write the frontmatter with the Write tool" in seed
     assert "cat >> <file> <<'PLANNER_EOF'" in seed
     assert "If the passage contains a line `PLANNER_EOF`, pick another delimiter" in seed
-    assert "Run `cat -A <file>`" in seed
-    assert "line endings (`^M`), trailing whitespace" in seed and "the final newline" in seed
-    assert "On any difference, stop. Tell the owner what differs and do not repair it." in seed
+    assert "Compare the two with `cmp`" in seed
+    assert "If `cmp` reports a difference, stop. Tell the owner and do not repair the file." in seed
+    assert "A heredoc always ends its text with a newline, so a paste that had no final newline gains one" in seed
+    assert "When the paste had none, tell the owner." in seed
+    assert "It does not prove the chat text reached the heredoc unchanged." in seed
+    assert "byte-exact" not in seed and "exactly as pasted" in seed
 
 
 def test_voice_seed_warns_about_boundary_and_generated_lines():
@@ -182,7 +185,7 @@ def test_voice_seed_offers_a_local_only_place_and_says_what_is_committed():
     assert "`voice/examples/` is committed, pushed and opened as a PR, so anyone with access to this repository can read" in seed
     assert "local only: `voice/local/<type>/`" in seed
     assert "If the owner says their employer owns the text, or is not sure, recommend local only." in seed
-    assert "A local-only seed has no branch, commit or PR." in seed
+    assert "A local-only run changes no committed file and makes no branch, commit or PR." in seed
     assert "Name local examples only as a count." in seed
     assert "Retiring a committed example changes a committed file, so it goes through the PR" in seed
     ignored = (REPO / "template" / ".gitignore").read_text(encoding="utf-8").splitlines()
@@ -192,15 +195,15 @@ def test_voice_seed_offers_a_local_only_place_and_says_what_is_committed():
 def test_house_voice_reads_the_local_folder_too():
     voice = SKILL.read_text(encoding="utf-8")
     assert "`voice/local/<voice type>/*.md`" in voice
-    assert "`voice/examples/` first and then `voice/local/`" in voice
+    assert "local `owner` and `owner-edit` examples first, then `voice/examples/`, then any other local example" in voice
     assert "fewer than two active examples across both folders" in voice
 
 
 def test_voice_seed_and_conventions_count_owner_examples_the_same_way():
     seed = SEED_SKILL.read_text(encoding="utf-8")
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
-    assert "count of active `owner` and `owner-edit` examples, across both folders, after this run, is at least 2" in seed
-    assert "2 `active` examples with `source: owner` or `owner-edit`, counted across both folders after the run" in conventions
+    assert "A `public-seed` example retires when the active `owner` and `owner-edit` examples in its own folder, after this run, number at least 2." in seed
+    assert "2 `active` examples with `source: owner` or `owner-edit` in the same folder as a `public-seed` example, counted after the run" in conventions
     assert "counting `voice/examples/` and `voice/local/` together" in conventions
 
 
@@ -232,3 +235,41 @@ def test_voice_seed_quotes_from_and_runs_a_final_check(tmp_path):
     assert run().returncode == 0
     next((vault / "voice" / "local" / "decision").glob("*.md")).write_text("---\n: : [\n---\n", encoding="utf-8")
     assert run().returncode == 1  # a file that does not parse
+
+
+# fix round 2: local examples never change committed files; the verbatim check is a tool comparison.
+
+def test_a_local_only_run_never_retires_a_committed_seed():
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    voice = SKILL.read_text(encoding="utf-8")
+    assert "A local example never retires a committed seed" in seed
+    assert "In a local-only run, nothing in `voice/examples/` retires." in seed
+    assert "A local-only run changes no committed file and makes no branch, commit or PR." in seed
+    assert "In a local-only run, only local examples may retire." in seed
+    assert "A local example never retires a committed seed, so every clone keeps its seed." in conventions
+    assert "reads local `owner` and `owner-edit` examples ahead of the committed ones" in conventions
+    assert "local `owner` and `owner-edit` examples first" in voice
+
+
+def _verbatim_script(seed, file, passage):
+    block = seed.split("Third, compare the stored body", 1)[1].split("```\n", 2)[1]
+    return block.replace("<file>", str(file)).replace("<the passage, exactly as pasted>", passage.rstrip("\n"))
+
+
+def test_the_verbatim_check_compares_with_cmp(tmp_path):
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    passage = "It’s “quoted”  \r\n---\ntrailing   \n\nlast line\n"
+    stored = tmp_path / "VX-decision-001.md"
+    head = "---\nid: VX-decision-001\nstate: active\n---\n\n"
+
+    def run(body):
+        stored.write_bytes((head + body).encode("utf-8"))
+        script = _verbatim_script(seed, stored, passage)
+        return subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+
+    assert run(passage).returncode == 0
+    assert run(passage.replace("   \n", "\n")).returncode != 0   # trailing whitespace lost
+    assert run(passage.replace("\r\n", "\n")).returncode != 0   # line ending changed
+    assert run(passage.replace("’", "'")).returncode != 0    # quote straightened
+    assert run(passage.replace("“", '"')).returncode != 0
