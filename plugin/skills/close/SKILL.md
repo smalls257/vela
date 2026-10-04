@@ -42,6 +42,18 @@ For a session whose `modes` include `epics`, the epic pages already exist, so wr
 
 Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. For a session whose `modes` include `epics`, each epic it drafted owes a description paragraph, so list those epics under "Prose drafted" in the PR body. The epics session already wrote each `**Owning team:**` line; close leaves it as written. Prose is drafted here and nowhere else. Commit the drafts on their own with the message `draft: prose for <id>`, so the reviewer's edits show as a diff.
 
+### Voice review
+
+A fresh reader checks the drafts, because the drafter cannot judge its own voice. Skip this if the session drafted no paragraph.
+
+1. List every paragraph in the `draft: prose for <id>` commit: a number, the page path, its voice type from house-voice's table, and the paragraph's text.
+2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to step 5.
+3. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted.
+4. Run `python3 .claude/skills/planner/bin/planner voicecheck --range HEAD`. It compares each changed page with the draft commit, and fails if a rewrite lost, added or moved an ID, number, date, wikilink, code span or table cell.
+   - Exit 0: commit the rewrites with the message `draft: voice rewrite for <id>`, staging each page by exact path.
+   - Exit 1: for each page it names, run `git restore -- <page>`. That discards every rewrite on the page and keeps its earlier draft whole. Commit the rewrites on the other pages as above.
+   - Exit 2: show the error and stop. Never commit a rewrite voicecheck could not check.
+
 ## 5. Read back decided wording
 
 For each item that became `decided` in this session, show its final wording. If its owner is present, they confirm it. If not, list it in the PR body for them.
@@ -67,6 +79,7 @@ Write the PR body to a temporary file. Fill the headings of the vault's PR templ
 
 - **What changed.** The promoted items, each with its new state. Then these lists, each with "none" when empty:
   - **Prose drafted:** each paragraph in the `draft: prose for <id>` commit, page by page.
+  - **Voice review:** each paragraph the reviewer flagged, what it said, and whether it was rewritten or kept because voicecheck named a changed token; or "not run: <reason>".
   - **Decided wording not yet read back:** each `decided` item whose owner was not present in step 5.
   - **Promoted on a nod:** every item kept or promoted from a capture whose origin starts with `claude`, not only the deciding capture, with the capture quoted.
   - **Changed contracts:** each contract, and for each consumer, who was asked: present, async, in this PR, or "not consulted: <reason>".
