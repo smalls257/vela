@@ -387,7 +387,7 @@ def range_pairs(root, spec):
 def show(root, ref, path):
     """A file's text at a commit, or "" when the commit has no such path. Any other git
     failure raises ToolError, so it cannot read as an empty file."""
-    present = git_strict(root, "ls-tree", "-z", "--name-only", "--end-of-options", ref, "--", path).split("\0")
+    present = git_strict(root, "ls-tree", "-z", "--name-only", "--end-of-options", ref, "--", f"./{path}").split("\0")
     if path not in present:
         return ""
     return git_strict(root, "show", f"{ref}:./{path}")

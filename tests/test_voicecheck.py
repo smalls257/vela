@@ -67,7 +67,7 @@ def flagged(before, after):
 
 
 @pytest.mark.parametrize("before, after", [
-    ("Use v2.1 here.", "Use v2.2 here."), ("Use v2 here.", "Use v3 here."), ("Use v2.1 here.", "Use 2.1 here."),
+    ("# 2026 plan", "# 2027 plan"), ("## 10 minute rule", "## 20 minute rule"), ("Use v2.1 here.", "Use v2.2 here."), ("Use v2 here.", "Use v3 here."), ("Use v2.1 here.", "Use 2.1 here."),
     ("Takes 10 ms.", "Takes 10 s."), ("Hold 10 minutes.", "Hold 10 hours."), ("a 10ms hold", "a 10s hold"),
     ("5xx errors", "4xx errors"), ("the 3rd step", "the 4th step"), ("HTTP2 now", "HTTP3 now"), ("p99 latency", "p95 latency"),
     ("Costs £4 each.", "Costs £5 each."), ("Costs £4 each.", "Costs $4 each."), ("Costs £4 each.", "Costs 4 each."),
@@ -83,7 +83,7 @@ def test_a_changed_fact_is_flagged(before, after):
 
 
 @pytest.mark.parametrize("before, after", [
-    ("- 10 seats\n- CON-001\n", "* 10 seats\n* CON-001\n"), ("- a\n- b\n", "1. a\n2. b\n"),
+    ("- 10 seats\n- CON-001\n", "* 10 seats\n* CON-001\n"), ("## 3. Intro\n", "## Intro\n"), ("## 3.1 Intro\n", "## Intro\n"), ("- a\n- b\n", "1. a\n2. b\n"),
     ("1. a\n2. b\n", "1. a\n1. b\n"), ("## 1. Intro\n", "## Intro\n"), ("## 1.2 Intro 10\n", "### Intro 10\n"),
     ("It is not here.", "It isn't here."), ("It can't hold.", "It cannot hold."), ("A 10 B.\n\nC 2.\n", "A 10 B.\n\nC 2.\n"),
     ("The CON-001 call.", "The call, CON-001."), ("Needs 3-5 people.", "Needs 3-5 people!"),
@@ -113,10 +113,21 @@ def test_frontmatter_is_compared_line_by_line():
     assert voicecheck.compare(page, page.replace("Body.", "Prose.")).same
 
 
-def test_a_dropped_negation_is_flagged_per_paragraph():
+@pytest.mark.parametrize("before, after", [
+    ("A is held. We do not release it.", "A is held.\n\nWe do not release it."),
+    ("We do not hold.\n\nWe do not release.\n", "We do not hold, and we do not release.\n"),
+    ("It is not A.\n\nIt is B.\n", "It is B.\n\nIt is not A.\n"),
+])
+def test_moving_negations_between_paragraphs_is_not_a_change(before, after):
+    assert not voicecheck.compare(before, after).negation
+
+
+def test_a_dropped_negation_is_flagged_per_file():
     result = voicecheck.compare("It does not hold the seat.\n\nIt waits.\n", "It holds the seat.\n\nIt waits.\n")
     assert voicecheck.describe(result) == [
-        "negation: 1 negation words before, 0 after, in the paragraph at before line 1, after line 1 (negation)"]
+        "negation: 1 negation words before, 0 after (negation)"]
+    assert flagged("A is not held.\n\nB is held.\n\nC is held.\n", "A is held.\n\nB is held.\n\nC is held, not.\n") is False
+    assert flagged("A is not held.\n\nB is not held.\n", "A is held.\n\nB is not held.\n")
     assert flagged("We never ship.\n", "We ship, never mind. We cannot stop.\n")
     assert not flagged("It isn't safe, and it won't last.", "It is not safe, and it will not last.")
     assert not flagged("Run `no` now.", "Run `no` today.")
@@ -222,6 +233,15 @@ def test_show_tells_a_missing_path_from_a_git_failure(repo):
     assert cli.show(repo, "HEAD", "other.md") == "Nothing protected here.\n"
     with pytest.raises(cli.ToolError):
         cli.show(repo, "no-such-ref", "other.md")
+
+
+def test_show_finds_a_path_that_starts_with_a_colon(repo):
+    from planner import cli
+    (repo / ":odd.md").write_text("Hold 10 minutes.\n", encoding="utf-8")
+    commit_all(repo, "colon")
+    assert cli.show(repo, "HEAD", ":odd.md") == "Hold 10 minutes.\n"
+    (repo / ":odd.md").write_text("Hold ten minutes.\n", encoding="utf-8")
+    assert run("voicecheck", "--range", "HEAD", "--vault", str(repo))[0] == 1
 
 
 def test_a_range_that_reads_as_a_git_option_is_refused(repo):

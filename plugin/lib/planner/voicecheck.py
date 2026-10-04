@@ -24,7 +24,7 @@ NUMBER = re.compile(rf"(?:[{CURRENCY}]|(?<![\w.,])(?:[-+−~≈](?=[{CURRENCY}]?
                     rf"\d+(?:[.,]\d+)*(?:%|[A-Za-z_]\w*|\s?{UNIT}\b)?")
 WORD_WITH_DIGIT = re.compile(r"(?<![\w.,])[A-Za-z_]+\d\w*")  # HTTP2, p99, S3, a block ID or a short hash
 TABLE_SEPARATOR = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
-LEADING_MARKER = re.compile(r"^[ \t]*(?:>[ \t]*)*(?:(?:[-*+]|\d+[.)])[ \t]+|#{1,6}[ \t]+(?:\d+(?:\.\d+)*\.?[ \t]+)?)*")
+LEADING_MARKER = re.compile(r"^[ \t]*(?:>[ \t]*)*(?:(?:[-*+]|\d+[.)])[ \t]+|#{1,6}[ \t]+(?:(?:\d+(?:\.\d+)+\.?|\d+\.)[ \t]+)?)*")
 NEGATION = re.compile(r"\b(?:not|no|never|cannot|without|nobody|nothing|none|nor|neither|nowhere|\w+n't)\b")
 KINDS = ((CODE_SPAN, "code"), (WIKILINK, "link"), (LINK_URL, "link"), (BARE_URL, "link"), (DATE, "date"),
          (VERSION, "version"), (ID, "id"), (NUMBER, "number"), (WORD_WITH_DIGIT, "number"))
@@ -42,7 +42,7 @@ class Result:
     missing: tuple  # Tokens in the before text with no partner after
     added: tuple  # Tokens in the after text with no partner before
     moved: tuple  # (before Token, after Token) at the first place the shared tokens part order
-    negation: tuple = ()  # (before count, after count, before line, after line) per paragraph whose negation words changed
+    negation: tuple = ()  # ((before count, after count),) when the negation words of the whole file changed
 
     @property
     def same(self):
@@ -101,35 +101,23 @@ def tokens(text):
 
 
 def negations(text):
-    """[(negation word count, first line of the paragraph)] per paragraph of prose. n't counts as not."""
+    """Number of negation words in the prose of a text. n't counts as not. The count is for the
+    whole file, so splitting, merging or moving paragraphs does not change it."""
     lines = normalised_lines(text)
-    skip = frontmatter_length(lines)
-    paragraphs, current = [], None
-    for n, line in enumerate(lines[skip:], start=skip + 1):
-        if not line.strip():
-            current = None
-            continue
-        if current is None:
-            current = [0, n]
-            paragraphs.append(current)
+    total = 0
+    for line in lines[frontmatter_length(lines):]:
         if line.lstrip().startswith("|"):
             continue
         prose = line.lower().replace("\u2019", "'")
         for pattern, _ in KINDS[:4]:  # words inside code spans, links and URLs are not prose
             prose = pattern.sub(" ", prose)
-        current[0] += len(NEGATION.findall(prose))
-    return [tuple(p) for p in paragraphs]
+        total += len(NEGATION.findall(prose))
+    return total
 
 
 def negation_changes(before, after):
     a, b = negations(before), negations(after)
-    changes = []
-    for i in range(max(len(a), len(b))):
-        (count_a, line_a) = a[i] if i < len(a) else (0, 0)
-        (count_b, line_b) = b[i] if i < len(b) else (0, 0)
-        if count_a != count_b:
-            changes.append((count_a, count_b, line_a, line_b))
-    return tuple(changes)
+    return ((a, b),) if a != b else ()
 
 
 def shared(sequence, keep):
@@ -166,6 +154,5 @@ def describe(result):
     lines += [f"added: {t.text} ({t.kind}), after line {t.line}" for t in result.added]
     lines += [f"moved: {x.text} ({x.kind}) at before line {x.line} now has {y.text} ({y.kind}) in its place, after line {y.line}"
               for x, y in result.moved]
-    lines += [f"negation: {x} negation words before, {y} after, in the paragraph at before line {lx}, after line {ly} (negation)"
-              for x, y, lx, ly in result.negation]
+    lines += [f"negation: {x} negation words before, {y} after (negation)" for x, y in result.negation]
     return lines
