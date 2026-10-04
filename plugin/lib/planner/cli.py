@@ -14,7 +14,7 @@ import traceback
 
 import yaml
 
-from planner import export, handoff, health, model, parse, progress, query, render, rules, schema, viewer
+from planner import export, handoff, health, model, parse, progress, query, render, rules, schema, viewer, voicecheck
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 
@@ -128,6 +128,18 @@ def git(root, *args):
     except (OSError, subprocess.SubprocessError):
         return ""
     return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def git_strict(root, *args):
+    """Output of a git command, or ToolError with git's own message. For commands whose
+    failure must never read as "nothing changed"."""
+    try:
+        result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise ToolError(f"git {' '.join(args)} could not run: {exc}") from exc
+    if result.returncode != 0:
+        raise ToolError(f"git {' '.join(args)} failed: {result.stderr.strip() or result.stdout.strip()}")
+    return result.stdout
 
 
 def read_asset(name):
@@ -323,6 +335,59 @@ def cmd_export(args, out):
     return 1 if skipped else 0
 
 
+def read_text_file(path):
+    try:
+        return pathlib.Path(path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ToolError(f"Cannot read {path}: {exc}") from exc
+
+
+def range_pairs(root, spec):
+    """[(path, before text, after text)] for each .md file a ref range changed. `A` compares
+    A with the working tree; `A..B` compares two commits. A file that is new on one side
+    is compared with nothing, so every token in it counts as added or missing."""
+    before_ref, _, after_ref = spec.partition("..")
+    if not before_ref:
+        raise ToolError(f"--range {spec!r} names no commit. Write --range HEAD or --range A..B.")
+    names = git_strict(root, "diff", "--name-only", "--relative", before_ref, *([after_ref] if after_ref else []), "--", "*.md")
+    pairs = []
+    for path in sorted(n for n in names.split("\n") if n.strip()):
+        before = show(root, before_ref, path)
+        after = show(root, after_ref, path) if after_ref else ((root / path).read_text(encoding="utf-8") if (root / path).is_file() else "")
+        pairs.append((path, before, after))
+    return pairs
+
+
+def show(root, ref, path):
+    """A file's text at a commit, or "" when it does not exist there."""
+    git_strict(root, "rev-parse", "--verify", f"{ref}^{{commit}}")
+    try:
+        return git_strict(root, "show", f"{ref}:./{path}")
+    except ToolError:
+        return ""
+
+
+def cmd_voicecheck(args, out):
+    if bool(args.range) == bool(args.files):
+        raise ToolError("Give two files, planner voicecheck <before> <after>, or a ref range, planner voicecheck --range A..B.")
+    if args.files:
+        if len(args.files) != 2:
+            raise ToolError("Give exactly two files: the text before the rewrite and the text after.")
+        pairs = [(args.files[1], read_text_file(args.files[0]), read_text_file(args.files[1]))]
+    else:
+        pairs = range_pairs(pathlib.Path(args.vault).resolve(), args.range)
+    failed = []
+    for path, before, after in pairs:
+        result = voicecheck.compare(before, after)
+        if not result.same:
+            failed.append((path, result))
+    print(f"planner voicecheck: {len(pairs)} files compared, {len(failed)} with protected tokens changed.", file=out)
+    for path, result in failed:
+        for line in voicecheck.describe(result):
+            print(f"{path}: {line}", file=out)
+    return 1 if failed else 0
+
+
 def days_between(earlier, later):
     return (datetime.date.fromisoformat(later) - datetime.date.fromisoformat(earlier)).days
 
@@ -432,6 +497,11 @@ def build_parser():
     jira.add_argument("--repo-url", help="repository to link to (default: git remote get-url origin)")
     jira.add_argument("--commit", help="commit to link to (default: git rev-parse HEAD)")
     jira.set_defaults(func=cmd_export)
+    voice = sub.add_parser("voicecheck", help="fail when a rewrite changed an ID, number, date, link, code span or table cell")
+    voice.add_argument("files", nargs="*", metavar="before after", help="the text before the rewrite and after it")
+    voice.add_argument("--range", help="a ref range instead of files: A (A against the working tree) or A..B")
+    voice.add_argument("--vault", default=".", help="vault root for --range (default: current directory)")
+    voice.set_defaults(func=cmd_voicecheck)
     return parser
 
 

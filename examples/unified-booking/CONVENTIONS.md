@@ -216,6 +216,12 @@ A capture line:
 - Mark, added at close: `keep: [[<page>#<heading>|<ID>]] (<state>)`, `park`, or `drop: <reason>`. Claude's own lines default to `park`. An `unknown` capture is kept or dropped with a reason, never parked.
 - The block ID `^cNN` is the last token on the line and unique in the file.
 
+## Voice examples
+
+House-voice passages live in `voice/examples/<voice type>/`, one per file. `planner check` never reads `voice/`.
+
+`planner voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite: IDs, numbers, dates, wikilinks, code spans and table cells. `planner voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
+
 ## Generated blocks
 
 A generated block sits between two markers and is written only by `planner render`:
