@@ -176,3 +176,12 @@ def test_a_source_date_cannot_mention_or_link(mini):
     assert code == 0, out
     assert "@ceo" not in out and "#12" not in out
     assert "SRC-01" in out.split("## Stale sources")[1]
+
+
+def test_future_dates_show_in_health_as_typos(mini):
+    edit(mini / "01-goals.md", "authored: mixed\n", "authored: mixed\nlast_verified: 2027-01-15\nverified_by: \"@mini-lead\"\n")
+    edit(mini / "sources.md", "| 2026-01-02 |", "| 2062-01-02 |")
+    _, out = run("health", "--vault", str(mini), "--today", "2025-12-01")
+    assert "| 01-goals.md | 2027-01-15 (in the future; check for a typo) |" in out
+    assert "| SRC-01 | Stock read API documentation | 2062-01-02 (in the future; check for a typo) |" in out
+    assert "The last closed session is dated in the future (2026-01-10); check for a typo." in out

@@ -44,13 +44,19 @@ def overdue_rows(vault, found):
     return rows
 
 
+def dated(date, finding):
+    """A future date is a typo, not staleness, so its cell says which one the row is."""
+    note = " (in the future; check for a typo)" if "dated in the future" in finding.message else ""
+    return inert(date) + note
+
+
 def stale_page_rows(vault, found):
     by_path = {p.path: p for p in vault.pages}
     rows = []
     for finding in found:
         page = by_path.get(finding.path)
         if page is not None:
-            rows.append((inert(page.path), inert(page.meta.get("last_verified", "")), inert(page.meta.get("verified_by", "")),
+            rows.append((inert(page.path), dated(page.meta.get("last_verified", ""), finding), inert(page.meta.get("verified_by", "")),
                          owner(page.meta.get("owner")) or inert(page.meta.get("owner", ""))))
     return rows
 
@@ -64,7 +70,7 @@ def stale_source_rows(vault, found):
         if 0 < finding.line <= len(lines):
             row = split_row(lines[finding.line - 1])
             source, title, who, date = (row + ("",) * 4)[:4]
-            rows.append((inert(source), inert(title), inert(date), owner(who) or inert(who)))
+            rows.append((inert(source), inert(title), dated(date, finding), owner(who) or inert(who)))
     return rows
 
 
@@ -113,7 +119,7 @@ def report(vault, findings, today, commit):
     else:
         days = (datetime.date.fromisoformat(today) - datetime.date.fromisoformat(last)).days
         if days < 0:
-            sessions = f"The last closed session is dated in the future ({last})."
+            sessions = f"The last closed session is dated in the future ({last}); check for a typo."
         else:
             sessions = f"The last session closed on {last}, {days} days ago." + (" That is over 30 days." if "W711" in by_code else "")
     missing, total = never_verified(vault)

@@ -597,7 +597,11 @@ def freshness_rules(vault, today):
         if not readable(page) or not is_date(verified):
             continue  # a missing field is not judged; a malformed one is already an E106
         age = days_between(verified, today)
-        if age > window:
+        if age < 0:
+            yield _f(page, meta_line(page, "last_verified"), "W704",
+                     f"{page.id} last_verified is dated in the future ({verified}); check for a typo.",
+                     "Set last_verified to the date you last reread the page, no later than today.")
+        elif age > window:
             yield _f(page, meta_line(page, "last_verified"), "W704",
                      f"{page.id} was last verified on {verified}, {age} days ago; stale_after_days is {window}.",
                      "Reread the page against its sources, then set last_verified to today and verified_by to your handle.")
@@ -610,6 +614,9 @@ def freshness_rules(vault, today):
                 if not is_date(date):
                     yield _f(page, line, "W716", f"{source} has Date '{date}', which is not a YYYY-MM-DD date, so its age cannot be judged.",
                              "Write the document's date as YYYY-MM-DD.")
+                elif days_between(date, today) < 0:
+                    yield _f(page, line, "W716", f"{source} is dated in the future ({date}); check for a typo.",
+                             "Write the document's own date, no later than today.")
                 elif days_between(date, today) > window:
                     yield _f(page, line, "W716", f"{source} is dated {date}, {days_between(date, today)} days ago; stale_after_days is {window}.",
                              "Check the document still says what the vault cites, then update its Date, or register the newer version.")
@@ -617,7 +624,11 @@ def freshness_rules(vault, today):
     if closed:
         last = max(closed, key=lambda s: (s.meta["date"], s.name))
         gap = days_between(last.meta["date"], today)
-        if gap > schema.SESSION_GAP_DAYS:
+        if gap < 0:  # a typo here would hide every real gap until the date passes, so it is said, not skipped
+            yield _f(last, meta_line(last, "date"), "W711",
+                     f"The last closed session is dated in the future ({last.meta['date']}); check for a typo.",
+                     "Set the session's date to the day it ran.")
+        elif gap > schema.SESSION_GAP_DAYS:
             yield _f(last, meta_line(last, "date"), "W711",
                      f"The last session closed on {last.meta['date']}, {gap} days ago.",
                      "Run a session, even a short Probe of the overdue unknowns, so the vault keeps up with the work.")

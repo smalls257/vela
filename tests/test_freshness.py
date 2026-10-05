@@ -98,3 +98,31 @@ def test_the_fixture_is_clean_with_its_window_and_stale_with_the_default(tmp_pat
     code, out = check(vault, today="2026-11-20")
     assert code == 0
     assert {c for c, _ in findings(out)} == {"W716"}
+
+
+def test_a_future_last_verified_warns_as_a_typo(mini):
+    verify(mini, "2027-01-15")
+    code, out = check(mini)
+    assert code == 0
+    assert findings(out) == [("W704", GOALS)]
+    assert "goals last_verified is dated in the future (2027-01-15); check for a typo." in out
+
+
+def test_a_future_source_date_warns_as_a_typo(mini):
+    edit(mini / "sources.md", "| 2026-01-02 |", "| 2062-01-02 |")
+    code, out = check(mini)
+    assert code == 0
+    assert findings(out) == [("W716", "sources.md")]
+    assert "SRC-01 is dated in the future (2062-01-02); check for a typo." in out
+
+
+def test_a_future_closed_session_warns_instead_of_hiding_the_gap(mini):
+    code, out = check(mini, today="2025-12-01")
+    assert ("W711", "sessions/2026-01-10-shop-api.md") in findings(out)
+    assert "The last closed session is dated in the future (2026-01-10); check for a typo." in out
+
+
+def test_conventions_say_a_future_date_is_a_typo_warning():
+    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    assert ("A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: "
+            "W704, W716 or W711 says it is \"dated in the future (<date>); check for a typo.\"") in conventions
