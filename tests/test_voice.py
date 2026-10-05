@@ -273,3 +273,17 @@ def test_the_verbatim_check_compares_with_cmp(tmp_path):
     assert run(passage.replace("\r\n", "\n")).returncode != 0   # line ending changed
     assert run(passage.replace("’", "'")).returncode != 0    # quote straightened
     assert run(passage.replace("“", '"')).returncode != 0
+
+
+def test_the_verbatim_check_block_cleans_up_its_own_temp_file(tmp_path):
+    """Each block runs in a fresh shell, so the one that makes the temp file also removes it."""
+    seed = SEED_SKILL.read_text(encoding="utf-8")
+    stored = tmp_path / "VX-decision-001.md"
+    stored.write_text("---\nid: VX-decision-001\n---\n\nA passage.\n", encoding="utf-8")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    # macOS mktemp ignores TMPDIR, so the test points mktemp itself at the scratch folder
+    script = f'mktemp() {{ command mktemp "{scratch}/t.XXXXXX"; }}\n' + _verbatim_script(seed, stored, "A passage.\n")
+    result = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    assert result.returncode == 0
+    assert list(scratch.iterdir()) == []

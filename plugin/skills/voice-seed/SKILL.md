@@ -88,10 +88,10 @@ tmp=$(mktemp)
 cat > "$tmp" <<'PLANNER_EOF'
 <the passage, exactly as pasted>
 PLANNER_EOF
-awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - "$tmp"
+awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - "$tmp"; code=$?; rm -f "$tmp"; (exit $code)
 ```
 
-If `cmp` reports a difference, stop. Tell the owner and do not repair the file. A heredoc always ends its text with a newline, so a paste that had no final newline gains one in both files, and `cmp` will not show it. When the paste had none, tell the owner. The check proves the file holds what the heredoc received. It does not prove the chat text reached the heredoc unchanged. Store an accepted passage as it was pasted.
+Run the whole block in one call: the shell keeps no variable between calls, so `$tmp` exists only inside it. If `cmp` reports a difference, stop. Tell the owner and do not repair the file. A heredoc always ends its text with a newline, so a paste that had no final newline gains one in both files, and `cmp` will not show it. When the paste had none, tell the owner. The check proves the file holds what the heredoc received. It does not prove the chat text reached the heredoc unchanged. Store an accepted passage as it was pasted.
 
 Then re-read the frontmatter and confirm it parses as YAML and that `from` is the text the owner gave.
 
