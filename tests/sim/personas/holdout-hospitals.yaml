@@ -1,0 +1,258 @@
+# HOLDOUT PERSONA. Do not read this file, its snapshots or a blind run's details while iterating on the skills.
+# It exists so a skill change that only learned the coastal-merger brief shows up as a drop here. probe.py always
+# runs it blind: it prints categories and counts, never an item ID, its text or its keywords.
+# Everything here is made up: both hospital trusts, their systems and their suppliers are fictional.
+# Same shape and the same category set as coastal-merger.yaml; see the comments there for keywords and categories.
+holdout: true
+name: Priya Raman
+role: newly appointed programme lead for outpatient booking across the two trusts
+org: Fenwick Valley Hospitals NHS Foundation Trust and Calder Reach University Hospitals NHS Trust, which agreed to merge their outpatient booking in the summer
+handle: "@sim-lead"
+style: >-
+  Experienced operational manager, short of time, typing between ward rounds and meetings. Answers in one to
+  three plain sentences. Often answers the thing that worries them most rather than the question asked. Says
+  "honestly not sure" when they do not know. Changes their mind once when shown a good reason, and says so.
+  Never writes lists unless asked to confirm one.
+opening: >-
+  The CEO's mandate is one line: "one front door for patients across both trusts by April". I've just been
+  asked to lead it. Nobody has said what a front door is. Where do I even start?
+
+topics:
+  discover_1: what each trust runs for outpatient booking today
+  discover_2: patient records and identity across the two trusts
+  shape_1: what one front door means
+  shape_2: who books the appointment behind the front door
+  grill: what one front door means
+
+knows:
+  - id: K1
+    category: fact
+    keywords: ["one front door", "CEO's mandate", "mandate"]
+    fact: The CEO's mandate is the single line "one front door for patients across both trusts by April". Nobody has defined it.
+    owner: joint CEO
+  - id: K2
+    category: fact
+    keywords: ["Ardent", "on-premises PAS"]
+    fact: Fenwick Valley runs Ardent PAS, its patient administration system, on its own servers.
+    owner: Fenwick Digital
+  - id: K3
+    category: fact
+    keywords: ["Keystone", "supplier-hosted"]
+    fact: Calder Reach runs Keystone PAS, hosted by the supplier.
+    owner: Calder IT
+  - id: K4
+    category: fact
+    keywords: ["MyFenwick", "180,000"]
+    fact: MyFenwick is Fenwick's patient app and web portal, with about 180,000 registered patients.
+    owner: Fenwick Digital
+  - id: K5
+    category: fact
+    keywords: ["TextRemind", "by post", "posted letters"]
+    fact: Calder has no patient portal. Appointment letters go by post and reminders by text through TextRemind.
+    owner: Calder outpatients manager
+  - id: K6
+    category: data-identity
+    keywords: ["hospital number", "NHS number"]
+    fact: Each trust gives a patient its own hospital number. The NHS number is on most records but not all.
+    owner: each trust's health records manager
+  - id: K7
+    category: fact
+    keywords: ["e-Referral", "GP referrals"]
+    fact: GP referrals arrive through the national e-Referral Service, into each trust separately.
+    owner: each trust's referral management team
+  - id: K8
+    category: fact
+    keywords: ["41,000", "29,000", "waiting list"]
+    fact: The outpatient waiting list is about 41,000 at Fenwick and 29,000 at Calder.
+    owner: each trust's performance team
+  - id: K9
+    category: legal-regulatory
+    keywords: ["referral to treatment", "RTT", "18-week", "18 weeks"]
+    fact: Each trust reports its own 18-week referral-to-treatment performance to NHS England every month.
+    owner: each trust's performance team
+  - id: K10
+    category: fact
+    keywords: ["Hallam House", "medical secretaries", "specialty secretaries"]
+    fact: Fenwick books through a central appointments hub at Hallam House. At Calder each specialty's medical secretaries book their own clinics.
+    owner: Fenwick hub manager; nobody named at Calder
+  - id: K11
+    category: third-party-contract
+    keywords: ["LinguaLink", "interpreter"]
+    fact: Fenwick's hub books interpreters through a LinguaLink contract.
+    owner: Fenwick procurement
+  - id: K12
+    category: timeline
+    keywords: ["winter freeze", "December to February", "change freeze"]
+    fact: Fenwick freezes non-urgent IT changes from December to February, for winter pressures.
+    owner: Fenwick Chief Operating Officer
+  - id: K13
+    category: fact
+    keywords: ["Joint Integration Committee", "joint committee"]
+    fact: A Joint Integration Committee of both boards approves the programme's big steps.
+    owner: Joint Programme Office
+
+wrong:
+  - id: W1
+    category: cross-source-mismatch
+    keywords: ["shared PAS", "same PAS", "two PAS", "separate PAS"]
+    belief: Both trusts are on a shared PAS platform now, so the front door is mostly configuration.
+    truth: The board paper says the trusts share one PAS platform, but the two system lists name Ardent at Fenwick and Keystone at Calder. They are two systems.
+  - id: W2
+    category: cross-source-mismatch
+    keywords: ["September 2027", "9-month", "nine-month", "notice period"]
+    belief: The Keystone contract runs to March 2028, so there is no rush to decide its future.
+    truth: Calder's system register says the Keystone contract ends in September 2027 with a 9-month notice period, so notice is due by December 2026. The board paper has the date wrong.
+  - id: W3
+    category: legal-regulatory
+    keywords: ["data sharing agreement", "Caldicott", "separate controllers", "privacy notice"]
+    belief: Both trusts are NHS, so patient data can flow freely between them for booking.
+    truth: The trusts are separate data controllers. Sharing for booking needs a data sharing agreement, updated privacy notices and both Caldicott Guardians' sign-off.
+  - id: W4
+    category: finance-liability
+    keywords: ["revenue budget", "capital only", "running costs", "running cost"]
+    belief: The CEO's transformation fund pays for the front door, so cost is not the lead's problem.
+    truth: The board paper's funding is capital for one year only. The running costs fall on each trust's revenue budget, and nobody has agreed the split.
+  - id: W5
+    category: data-identity
+    keywords: ["unverified", "spine", "PDS", "verified NHS number"]
+    belief: The NHS number is enough to match a patient across the two trusts.
+    truth: About 4% of Calder records have no verified NHS number. Matching needs a trace against the national spine (PDS) and a rule for the records that fail it.
+
+unaware:
+  - id: U1
+    category: cross-source-mismatch
+    keywords: ["99.9%", "99.0%", "8am to 6pm", "service level"]
+    gap: The two booking routes have different service levels. MyFenwick runs at 99.9% with 24/7 support; Keystone's booking module is 99.0% with supplier support 8am to 6pm on weekdays.
+    why: One front door inherits the weaker of the two, and nobody has said which the mandate accepts.
+  - id: U2
+    category: third-party-contract
+    keywords: ["licence", "order form", "supplier contract"]
+    gap: The MyFenwick licence is priced per trust, and its supplier contract forbids use for another trust's patients without a new order form.
+    why: Opening MyFenwick to Calder patients without a contract change breaches the licence.
+  - id: U3
+    category: unnamed-stakeholder
+    keywords: ["clinic template", "slot type", "specialty leads", "clinical leads"]
+    gap: Clinical specialty leads own their clinic templates and slot rules, and nobody has asked them.
+    why: One front door needs common slot types across both trusts, which the specialty leads must agree.
+  - id: U4
+    category: legal-regulatory
+    keywords: ["Accessible Information Standard", "communication needs", "easy read", "BSL"]
+    gap: The Accessible Information Standard requires each patient's recorded communication needs to follow them into every booking and letter.
+    why: A front door that drops a patient's large-print or BSL need breaks a legal standard.
+  - id: U5
+    category: finance-liability
+    keywords: ["provider code", "activity income", "commissioner"]
+    gap: Each trust's income is paid on activity recorded against its own provider code.
+    why: Booking a Fenwick patient into a Calder clinic moves income and waiting-time reporting between the trusts, and the commissioners have to agree it.
+  - id: U6
+    category: cross-source-mismatch
+    keywords: ["pathways", "counts patients", "counting rule", "70,000"]
+    gap: The trusts count the waiting list differently. Fenwick counts patients and Calder counts open pathways, so the board paper's combined 70,000 adds unlike numbers.
+    why: Any target set on the combined list rests on a number that means different things at each trust.
+  - id: U7
+    category: unnamed-stakeholder
+    keywords: ["staff consultation", "trade union", "TUPE", "Agenda for Change"]
+    gap: Moving Calder's booking from specialty secretaries to a central hub changes about 60 staff roles, and needs formal staff consultation with the unions.
+    why: Nobody has named the staff side as a stakeholder, and consultation takes months.
+
+conflicts:
+  - id: C1
+    category: stakeholder-conflict
+    keywords: ["Fenwick COO", "Chief Operating Officer", "Hallam House for both"]
+    who: Fenwick Chief Operating Officer
+    position: Wants MyFenwick and the Hallam House hub to become the front door for both trusts, fast.
+  - id: C2
+    category: stakeholder-conflict
+    keywords: ["Medical Director", "own clinic lists", "after the winter"]
+    who: Calder Medical Director
+    position: Nothing changes how clinicians manage their own clinic lists until after the winter. Patient safety first.
+  - id: C3
+    category: stakeholder-conflict
+    keywords: ["Director of Finance", "one PAS", "switched off"]
+    who: joint Director of Finance
+    position: Wants one PAS only, with the other switched off by 2028.
+  - id: C4
+    category: stakeholder-conflict
+    keywords: ["Healthwatch", "digital exclusion", "phone option"]
+    who: Healthwatch, the patients' voice for both areas
+    position: A phone option must stay for patients without a smartphone. Digital only is unacceptable.
+
+decisions:
+  - id: D1
+    category: fact
+    keywords: ["one phone number", "route patients", "routes each patient"]
+    question: What does "one front door" mean for the first release?
+    options:
+      - one phone number and one web page that route patients to each trust's existing booking
+      - one shared booking service over both PAS
+      - move both trusts onto one PAS first
+    choice: one phone number and one web page that route patients to each trust's existing booking
+    reason: patients notice it by April without anyone touching either PAS
+  - id: D2
+    category: data-identity
+    keywords: ["joint patient ID", "identified by NHS number", "NHS number as the key"]
+    question: How is a patient identified at the front door?
+    options:
+      - the NHS number, traced against the spine, with failed traces handled by each trust's booking team
+      - each trust's own hospital number
+      - a new joint patient ID
+    choice: the NHS number, traced against the spine, with failed traces handled by each trust's booking team
+    reason: it is the one identifier both trusts already share
+  - id: D3
+    category: timeline
+    keywords: ["separate business case", "single PAS decision", "after April"]
+    question: When is the single-PAS question decided?
+    options:
+      - inside this programme, before April
+      - after April, as a separate business case
+      - never
+    choice: after April, as a separate business case
+    reason: the winter freeze and the Medical Director's position make an earlier change unsafe
+    refuse_until: Calder procurement confirms in writing the Keystone contract end date and notice period
+  - id: D4
+    category: fact
+    keywords: ["central phone line", "digital only", "existing lines"]
+    question: Does the front door keep a phone option?
+    options:
+      - digital only
+      - digital plus one central phone line
+      - digital plus each trust's existing booking lines
+    choice: digital plus one central phone line
+    reason: it answers Healthwatch, and one number is what patients will remember
+
+docs:
+  - name: fenwick-digital-services.md
+    text: |
+      # Fenwick Valley Hospitals: digital services list
+
+      Owner: Fenwick Digital. Written 2026-07-14.
+
+      - Ardent PAS: patient administration system, on our own servers, every outpatient clinic.
+      - MyFenwick: patient app and web portal, about 180,000 registered patients. 99.9% availability, 24/7
+        support desk.
+      - Hallam House appointments hub: the central booking phone line, 08:00 to 20:00, seven days a week.
+      - Interpreters: booked by the hub through the LinguaLink contract.
+      - Outpatient waiting list: about 41,000 patients.
+      - Change freeze: no non-urgent changes from 1 December to 28 February.
+  - name: calder-system-register.md
+    text: |
+      # Calder Reach University Hospitals: system register
+
+      Owner: Calder IT. Written 2026-08-22.
+
+      - Keystone PAS: patient administration system, hosted by the supplier. Contract ends 30 September 2027,
+        with a 9-month notice period.
+      - Keystone booking module: 99.0% availability, supplier support 8am to 6pm on weekdays.
+      - No patient portal. Appointment letters go by post; text reminders through TextRemind.
+      - Booking: each specialty's medical secretaries book their own clinics.
+      - Outpatient waiting list: about 29,000 open pathways.
+  - name: joint-board-paper.md
+    text: |
+      # Joint board paper: one front door for outpatients
+
+      Owner: Joint Programme Office. Presented to the Joint Integration Committee, 2026-09-10.
+
+      Both trusts now share a single patient administration platform, so one front door is largely a
+      configuration exercise. MyFenwick will be extended to Calder patients. The Keystone contract runs to
+      March 2028. Capital of 1.2 million pounds is approved for 2026/27. Together the trusts have a combined
+      outpatient waiting list of 70,000 patients.

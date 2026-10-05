@@ -1,0 +1,17 @@
+# Does a dump from nothing raise the kinds of risk a lead does not know to mention: law and regulation, money and
+# liability, third-party contracts, and stakeholders nobody named? Counted by category, so the assistant passes by
+# covering the ground, not by guessing one item. An item counts when an assistant turn names it before any lead
+# turn does. A dump decides nothing.
+snapshot:
+  coastal-merger: empty
+  holdout-hospitals: empty
+opening: "/planner:dump {opening}"
+cap: 12
+criteria:
+  - check: categories-raised-first
+    categories: [legal-regulatory, finance-liability, third-party-contract, unnamed-stakeholder]
+    at_least: 3
+  - check: questions-per-turn
+    at_most: 3
+  - check: decisions-recorded
+    at_most: 0

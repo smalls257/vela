@@ -1,0 +1,16 @@
+# Does Shape give the lead real options to react to? Two to four of them, each saying what it costs, what it rules
+# out, and at least one stakeholder or unknown it touches. The labels and cue words are read mechanically; one small
+# judge call settles only what they could not, and its "yes" counts only with a quote found in the turn. Shape
+# never decides, so nothing may be recorded as decided.
+snapshot:
+  coastal-merger: after-s4
+  holdout-hospitals: after-discover
+opening: "/planner:shape {first_decision}"
+cap: 8
+criteria:
+  - check: option-count
+    between: [2, 4]
+  - check: option-parts
+    parts: [costs, rules_out, stakeholder_or_unknown]
+  - check: decisions-recorded
+    at_most: 0

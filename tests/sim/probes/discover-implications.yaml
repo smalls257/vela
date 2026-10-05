@@ -1,0 +1,18 @@
+# Does Discover notice where the documents disagree, and say so, rather than reading both sides back as facts?
+# A cross-source-mismatch item is two sources or systems that disagree or duplicate each other. It is FLAGGED when
+# an assistant sentence that names it is a real question, or carries a flag cue (conflict, mismatch, differ, ...),
+# or when its keyword lands in a new unknown or risk in the final vault. A read-back line with no cue is LISTED.
+# The opening is session 3 of the full default script, so a probe result reads like that session of a full run.
+snapshot:
+  coastal-merger: after-s2
+  holdout-hospitals: after-dump
+opening: "/planner:discover {topics[discover_1]}"
+cap: 12
+criteria:
+  - check: flagged-share
+    category: cross-source-mismatch
+    at_least: 0.75
+  - check: decided-without-yes
+    at_most: 0
+  - check: questions-per-turn
+    at_most: 3

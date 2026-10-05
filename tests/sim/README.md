@@ -201,6 +201,135 @@ wrong, rather than producing a quietly wrong score.
 - The judge is an LLM. That is why every score cites a turn, and why the transcripts are the primary output.
 - It can't say whether it's faster than plain Markdown for the user. Only real sessions under the kill rule can.
 
+## Probes and the iteration loop
+
+A full run is 12 sessions and costs about $36 to $55, which is too slow and too dear to try a skill change. A
+probe is one session, started from a saved vault, that checks one capability with mostly mechanical criteria. It
+costs about $1 to $3. The loop is: edit a skill, probe it, read the summary, repeat. `probe.py` imports `run.py`
+for everything a session needs: the claude calls and isolation flags, the sandbox, the persona and its prompt, the
+`gh` stub, the transcript and its HTML, the per-run budget. Only the starting vault, the criteria, blind output
+and the loop ledger are its own.
+
+### The commands
+
+One per case and persona. `--budget` is for the whole invocation and is split evenly over `--runs`, so with
+`--runs 3` give three times the per-run figure. Keep one `--loop-ledger` file for one loop.
+
+```
+L="--loop-ledger tests/sim/results/probes/loop-ledger.json --loop-budget 60"
+M="--model claude-sonnet-5-5 --persona-model claude-haiku-4-5-20251001 --judge-model claude-sonnet-5-5"
+python3 tests/sim/probe.py discover-implications --persona coastal-merger    --runs 1 $M --budget 4 $L
+python3 tests/sim/probe.py discover-implications --persona holdout-hospitals --runs 1 $M --budget 4 $L
+python3 tests/sim/probe.py dump-sweep            --persona coastal-merger    --runs 1 $M --budget 3 $L
+python3 tests/sim/probe.py dump-sweep            --persona holdout-hospitals --runs 1 $M --budget 3 $L
+python3 tests/sim/probe.py shape-options         --persona coastal-merger    --runs 1 $M --budget 3 $L
+python3 tests/sim/probe.py shape-options         --persona holdout-hospitals --runs 1 $M --budget 3 $L
+```
+
+Every model flag, `--budget`, `--loop-ledger` and `--loop-budget` is required. `--stub` uses the fake claude and
+costs nothing. `--out` moves the results folder, which defaults to `tests/sim/results/probes/` (gitignored).
+
+### The cases
+
+Each case in `probes/` names a snapshot per persona, the opening message, a cap in assistant turns and its
+criteria. The opening may use `{opening}`, `{topics[...]}` and `{first_decision}` (the persona's first D question).
+
+| Case | Starts from | Opening | Cap | Passes when |
+|---|---|---|---|---|
+| `discover-implications` | coastal `after-s2`, holdout `after-dump` | `/planner:discover {topics[discover_1]}` | 12 | at least 75% of the `cross-source-mismatch` items FLAGGED; 0 decided without a yes; at most 3 questions in any turn |
+| `dump-sweep` | `empty` | `/planner:dump {opening}` | 12 | at least 3 of legal-regulatory, finance-liability, third-party-contract and unnamed-stakeholder raised first by the assistant; at most 3 questions in any turn; no decisions |
+| `shape-options` | coastal `after-s4`, holdout `after-discover` | `/planner:shape {first_decision}` | 8 | 2 to 4 options, each naming its costs, what it rules out, and a stakeholder or unknown; no decisions |
+
+How each criterion is measured:
+
+- **FLAGGED, LISTED, NEVER.** For each keyword hit in an assistant turn, the hit is FLAGGED when (a) its sentence is
+  a question, (b) its sentence, or the whole bullet or table row it sits in, holds a flag cue (conflict, mismatch,
+  differ, disagree, clash, contradict, both sources, two different, doesn't match, inconsistent, flag), or (c) the
+  keyword lands in the final vault in an unknown or a risk that the snapshot did not already hold it in: a
+  `### UNK-` or `### R-` section, or an `[unknown]` or `[worry]` capture, which is where a session that has not
+  closed keeps them. Otherwise it is LISTED, and an item no turn names is NEVER. A question that is only a
+  confirmation tag ("99.9%, right?", "Is that right?", "(yes/no)?") is not a question here: a read-back list with
+  "right?" on every line would otherwise flag everything on it.
+- **Raised first.** An item counts when an assistant turn holds one of its keywords before any lead turn does.
+  Categories are counted, not items, so one lucky guess does not pass.
+- **Decisions.** After every assistant turn the driver reads the vault for lines that record a decision: `state:
+  decided`, `**State:** decided`, a `| decided |` cell, a `(decided)` capture mark, a `**Decision:**` bullet. Each
+  new one is pinned to that turn. It is "with a yes" when the lead message that led to the turn says yes and the
+  assistant turn before it asked a question.
+- **Questions per turn.** `run.py`'s count: question marks in the turn's prose.
+- **Options.** The first assistant turn with two or more labelled options ("Option A", "### B.", "**1)**") is
+  read. A label seen twice ends the options. Cue words settle each part: costs (cost, effort, expensive, budget,
+  £...), rules out (rules out, gives up, precludes, closes off...), stakeholder or unknown (an `UNK-` ID, "unknown",
+  a role such as director or board, or a stakeholder the persona names). Only when a part is still missing, or no
+  labels were found, one judge call without tools reads that turn. Its "present" counts only with a quote that is
+  in the turn, so a careless judge can fail an option but never pass one.
+
+### Snapshots
+
+`snapshots/<persona>/<name>/` are plain vault trees, committed.
+
+| Snapshot | What it is |
+|---|---|
+| `coastal-merger/empty` | `template/` as `tests/evals/scaffold.py` builds it for a run, without `.claude/skills` |
+| `coastal-merger/after-s2` | the planner arm of `results/2026-10-05-124823-coastal-merger` after its dump and close: `git archive 4185442` |
+| `coastal-merger/after-s4` | the same run after its first discover and close: `git archive 0ed88c7` |
+| `holdout-hospitals/empty`, `after-dump`, `after-discover` | written by hand as a dump and close, then a discover and close, would leave them; each passes `planner check` with 0 errors |
+
+Each snapshot holds the persona's documents in `.inbox/`, exactly as `run.py` writes them. A vault's `.gitignore`
+ignores `.inbox/`, and git honours that file inside the snapshot too, so they are committed with `git add -f`. A
+probe whose snapshot inbox has drifted from the persona's docs stops with exit 2.
+
+A probe copies the snapshot into its run folder, removes any `.claude/skills` it holds, installs the current
+`plugin/` at `.claude/skills/planner`, and runs `git init`, the first commit, the bare origin and the push as
+`run.py` does. Assistant calls pass `--plugin-dir plugin` too. So a skill edit takes effect on the next probe,
+and no snapshot can carry an old copy of a skill. `start-check.txt` holds `planner check` on the starting vault.
+
+### Blind runs and the holdout
+
+`holdout-hospitals` is a second domain with the same shape and the same categories, for checking that a skill
+change did not just learn the coastal brief. **While iterating, never read `personas/holdout-hospitals.yaml`, its
+snapshots, or anything in a blind run's folder.** The tooling never shows it: a persona with `holdout: true` is
+always blind, whatever the flags say, and `tests/test_sim.py` skips it so a failing test cannot print it.
+
+Blind output prints categories and counts only, such as "cross-source-mismatch: 2 of 4 flagged, 1 listed, 1
+never". It never prints an item ID, its text, its keywords, the opening or a transcript excerpt. A tool failure
+prints only the part of its message that names what failed. The item detail goes to
+`detail-DO-NOT-READ-WHEN-BLIND.md` in the run folder, and an invalid holdout persona's problems to a
+`...-validation-detail-DO-NOT-READ-WHEN-BLIND.md` file. `--blind` does the same for any persona.
+
+### The loop ledger
+
+`--loop-ledger` is a JSON file that adds up what every invocation spent: `spent_usd` and one entry per
+invocation with its case, persona, runs, budget, spend, exit code and run folders. `probe.py` refuses to start,
+exit 1, when the ledger's spend plus this `--budget` would pass `--loop-budget`, and prints the running total
+before and after every invocation. A ledger that does not parse is exit 2, never a fresh start. Spend is recorded
+even when a run fails part-way.
+
+### Output and exit codes
+
+Each run writes `tests/sim/results/probes/<timestamp>-<case>-<persona>-<n>/`: `transcript.jsonl`,
+`transcript.html`, `vault/` with its own git history, `vault-check.txt`, `viewer.html`, `raw/`, `probe.json`
+(the printed summary, blind-safe) and `detail-DO-NOT-READ-WHEN-BLIND.md` (per item, with turns and excerpts).
+
+- 0: every run passed every criterion.
+- 1: a run failed a criterion, a run ended on its budget (the criteria then read a cut-off session), or the loop
+  ledger refused to start.
+- 2: a tool failed: claude, git, a snapshot, a case or persona file, the ledger, or the judge's JSON twice.
+
+### Cost of one probe run
+
+Rough, from the same assumptions as the Cost section above, on a Sonnet-class assistant and a Haiku-class persona.
+A probe session is short, so the context stays near the 30k floor and the persona reads a small transcript.
+
+- `discover-implications`: 6 to 12 assistant turns, each reading the inbox and writing facts, at $0.15 to $0.35,
+  plus about $0.01 to $0.03 a persona turn: about **$1 to $4**. Budget $4 a run.
+- `dump-sweep`: 6 to 12 short capture turns at $0.10 to $0.25: about **$0.80 to $3**. Budget $3 a run.
+- `shape-options`: 3 to 8 turns at $0.10 to $0.30, plus at most two small judge calls of a few cents: about
+  **$0.50 to $2.50**. Budget $3 a run; 15% of it is held back for the judge, as in `run.py`.
+
+No probe has been run with a real model yet. The first paid probes settle these figures, and `probe.json` holds
+each run's real spend.
+
 ## Tests
 
 `tests/test_sim.py` runs the driver end to end against `stub/claude`, with every arm and a two-session
@@ -211,13 +340,23 @@ the simulated merge, that nothing is written outside the run folder, the persona
 turns excluded for U), Check these, one judge call per category with thinking asked for, the `search` note, and
 `--rejudge` on a copy of a stub run without an assistant or persona call. It costs nothing.
 
+`tests/test_probe.py` runs `probe.py` against the same stub: the snapshot copy with the current plugin installed
+over the snapshot's, every snapshot passing `planner check` with its persona's inbox, category validation, flag
+detection (a question, a cue, an unknown, a read-back list counted as listed), decisions pinned to a turn, the
+options and the judge's quotes, blind output holding no ID, keyword or brief text, the holdout always blind, the
+ledger refusing to start, and every exit code. Holdout tests assert on counts only. It costs nothing.
+
 ## Files
 
 - `run.py`: the driver.
+- `probe.py`: one-session probes from a snapshot, for the iteration loop.
+- `probes/`: the probe cases. `snapshots/`: the starting vaults.
+- `personas/holdout-hospitals.yaml`: the holdout. Do not read it while iterating.
 - `personas/coastal-merger.yaml`: the default persona. Harbourline has merged with Northway Rail, the CIO's
   mandate is one line, and the lead starts from an empty vault. 15 K, 5 W, 8 U, 4 C and 5 D items, each with
   two to four `keywords`, and four inbox documents that contradict each other in places. A missing or empty
-  keyword list fails the run at load, exit 2, and no keyword other than K1's may appear in the opening.
+  keyword list fails the run at load, exit 2, and no keyword other than K1's may appear in the opening. Every
+  item also has one `category` from the fixed set in `run.py` (`CATEGORIES`), checked at load the same way.
 - `scripts/default.yaml` and `scripts/smoke.yaml`: the sessions, with each arm's opening and a turn cap.
 - `voices/seuss-style/`: two original pastiche examples per voice type. None holds text from any published
   book, and each says so in its `from` field.

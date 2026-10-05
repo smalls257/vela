@@ -217,8 +217,11 @@ def test_default_arms_are_planner_and_seuss_and_unknown_arms_are_refused():
 
 
 def test_every_persona_and_script_validates():
+    """A holdout persona is checked in test_probe.py, by counts only, so a failure here never prints its brief."""
     for persona_path in sorted((SIM / "personas").glob("*.yaml")):
         persona = yaml.safe_load(persona_path.read_text(encoding="utf-8"))
+        if persona.get("holdout") is True:
+            continue
         assert sim.persona_problems(persona) == [], persona_path
         for script_path in sorted((SIM / "scripts").glob("*.yaml")):
             script = yaml.safe_load(script_path.read_text(encoding="utf-8"))

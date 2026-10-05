@@ -78,6 +78,10 @@ ITEM_FIELDS = {"knows": ("fact",), "wrong": ("belief", "truth"), "unaware": ("ga
 PERSONA_TEXT = ("name", "role", "org", "handle", "style", "opening")
 DOC_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
 KEYWORD_COUNT = (2, 4)  # one keyword is a single point of failure; more than four starts matching everything
+# The probes (probe.py) score a capability by category, so a blind run can report "2 of 4 flagged" without naming an
+# item. The set is fixed and small: a new category would make earlier probe results incomparable.
+CATEGORIES = ("cross-source-mismatch", "legal-regulatory", "finance-liability", "third-party-contract",
+              "unnamed-stakeholder", "data-identity", "stakeholder-conflict", "timeline", "fact")
 
 
 def normalise(text):
@@ -134,6 +138,9 @@ def persona_problems(data):
                 if not item.get(field):
                     problems.append(f"{kind} {item_id}: '{field}' is missing")
             problems += keyword_problems(kind, item_id, item, data.get("opening"))
+            if item.get("category") not in CATEGORIES:
+                problems.append(f"{kind} {item_id}: 'category' must be one of {', '.join(CATEGORIES)}, "
+                                f"not {item.get('category')!r}")
             if kind == "decisions" and not (isinstance(item.get("options"), list) and len(item["options"]) >= 2):
                 problems.append(f"decisions {item_id}: 'options' must list at least two")
     for n, doc in enumerate(data.get("docs") or [], 1):
