@@ -18,13 +18,17 @@ Each mode skill holds only what is particular to it. This table is what every mo
 |---|---|---|
 | `dump` | captures only | promoted items at `inkling`, unknowns with owner and ask-by |
 | `discover` | `sources.md` rows; facts after each correction round, with sources | prose |
-| `shape` | captures only | `assumption` items with "Options considered" |
+| `shape` | captures only | `assumption` items with `**Options considered:**` |
 | `grill` | each decided item as its branch closes, with a checkpoint commit | prose, read-back |
 | `epics` | `draft` epic pages, bullets and criteria only; `decided` only inside its Grill part | epic description paragraphs |
 | `requirements` | requirements on the capability page at `assumption`; unknowns | prose |
 | `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |
 
 No mode writes inside a generated block. `planner render` fills them. Close runs it, and so does `epics`, mid-session, to read its frontier. Whoever runs it stages every file it reports, by exact path.
+
+## Where to start
+
+`planner next` names the one app and mode to work on next, and `planner status` shows every app's stage, certainty mix and oldest open unknown. START runs `planner next`. Both follow the rules in `CONVENTIONS.md` under "Progress and next step".
 
 ## Unknowns
 

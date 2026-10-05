@@ -15,5 +15,5 @@ Give the user something concrete to react to. Shape never decides: what it settl
 4. Capture the user's reaction to each option, with their name as origin.
 5. When the user picks one, capture it. If they accept your preferred option as it stands, the origin is `claude, from <name>`, per START. Each rejected option gets a capture with its reason. If they reject all of them, capture why and offer a new Shape with different options.
 6. If the user says "that's decided", capture it as `[thought] (<name>) that's decided, grill to confirm`. The item stays at `assumption`. Tell the user a Grill makes it `decided`, and say: "After close, run `/planner:grill <ID>`", or name the page and heading if the item has no ID yet.
-7. Write nothing to a page during the session. At close the picked option becomes an `assumption` item with an "Options considered" list naming each rejected option and its reason.
+7. Write nothing to a page during the session. At close the picked option becomes an `assumption` item with an `**Options considered:**` bullet naming the picked option and each rejected one with its reason.
 8. Tell the user: "Run `/planner:close` to finish the session and open the PR."

@@ -207,7 +207,7 @@ def test_shape_and_close_fix_round():
     shape, close = text("skills/shape/SKILL.md"), text("skills/close/SKILL.md")
     assert "`claude, from <name>`" in shape
     assert "After close, run `/planner:grill <ID>`" in shape
-    assert "never an `inkling`" in close and "`Options considered` list" in close
+    assert "never an `inkling`" in close and "`**Options considered:**` bullet" in close
     assert "grill to confirm" in close and "GATE-2" in close
     assert "Discover already wrote its facts" in close
 

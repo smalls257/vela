@@ -30,9 +30,11 @@ For each PR, run `gh pr view <number> --comments`, `gh api repos/{owner}/{repo}/
 
 If `gh` fails, say: "gh could not list merged PRs (<the error>), so review comments were not checked." Then go on.
 
-## 4. Offer the overdue unknowns
+## 4. Offer the overdue unknowns and the next step
 
 Run `python3 .claude/skills/planner/bin/planner check` and read its first line, which says which date it used. For each `W705` line, name the unknown, its owner and its ask-by date. Offer two things: draft a short ask the user can send to the owner, or turn the question into a research task Claude does now with a source. A research answer becomes a capture with the source named. It never becomes a `fact` without a row in `sources.md`.
+
+Then run `python3 .claude/skills/planner/bin/planner next` and show its line. If the user has not said what this session is for, offer that app and mode first. It is a suggestion from the rules in `CONVENTIONS.md` under "Progress and next step", never a decision.
 
 ## 5. Open the record and the branch
 

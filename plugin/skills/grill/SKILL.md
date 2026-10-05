@@ -22,7 +22,7 @@ For each item the user named, check all five before it goes on the agenda. Show 
 | Gate | Passes when | If it fails, offer |
 |---|---|---|
 | GATE-1 | For an app's item, the app's `stage` is `target` or later. Initiative-level items pass. | Discover |
-| GATE-2 | The item is at `assumption`, with a preferred option. Where there was a real choice, the rejected options and their reasons are written down. | Shape |
+| GATE-2 | The item is at `assumption`, with a preferred option. Where there was a real choice, the rejected options and their reasons are written down in its `**Options considered:**` bullet. | Shape |
 | GATE-3 | You showed the agenda, with the open questions under each item, and the user confirmed it with an explicit yes (see Acceptance). | show it again |
 | GATE-4 | No open unknown lists the item in its `**Blocks:**`. Search `11-unknowns-and-risks.md` for open unknowns whose `**Blocks:**` links the item's page or heading. An open unknown that links a page blocks every item on that page, as `planner check` does. | an ask to the unknown's owner, or a research task |
 | GATE-5 | The item's owner is present and says yes in person, or their async answer is quoted in a capture with them as origin, naming the channel and the date. | reschedule, or collect an async answer first |
