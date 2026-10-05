@@ -15,7 +15,7 @@ The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONV
 
 Run the steps in `.claude/skills/planner/references/START.md` with mode `grill`. Read the Grill row of `.claude/skills/planner/references/MODES.md`.
 
-If the user names a challenge to answer, by its PR number or the challenged ID, START will take its "Answer a challenge" path: the record is an answer session on the challenge's own branch, and you add `grill` to its `modes`, so it reads `modes: [answer, grill]`. Read the Answer row of `MODES.md` too. The agenda holds the challenge's `UNK-nnn` and the challenged item. Resolve the unknown with the senior as its owner: set `**State:** resolved`, add `**Outcome:**` and `**Resolved in:** [[<session id>]]`, and add the row `| UNK-nnn | open | resolved | [[<session id>#^cNN]] |`. If the answer changes the item, reopen it first, then decide it again through the gate below.
+If the user names a challenge to answer, by its PR number or the challenged ID, START will take its "Answer a challenge" path: the record is an answer session on the challenge's own branch, and you add `grill` to its `modes`, so it reads `modes: [answer, grill]`. Read the Answer row of `MODES.md` too. The agenda holds the challenge's `UNK-nnn` and the challenged item. Resolve the unknown with the senior as its owner: set `**State:** resolved`, add `**Outcome:**` and `**Resolved in:** [[<session id>]]`, and add the row `| UNK-nnn | open | resolved | [[<session id>#^cNN]] |`. If the answer changes the item, set it back first, to `reopened` for an epic or to `assumption` for anything else, then decide it again through the gate below.
 
 ## 2. The gate, per item
 

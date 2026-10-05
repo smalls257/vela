@@ -15,6 +15,7 @@ An open record lives on its own `session/<id>` branch until its PR merges, so `m
 - Say its id, its date and how many captures it has.
 - If its date is more than 14 days ago, say so.
 - Offer three choices: resume it, close it now with `/planner:close`, or leave it open and start a new one.
+- A branch whose only record is a closed `Challenge:` record is not an open session: it waits for the solution lead. Name it as "challenge waiting for an answer" and offer the "Answer a challenge" path instead of the three choices.
 
 To resume, run `git switch session/<id>`, read the record, and carry on from the last capture. For a Grill, carry on from the `## Agenda` section of the record: take the first item whose status is `open`. Never close a session for the user.
 

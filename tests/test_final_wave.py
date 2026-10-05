@@ -69,9 +69,40 @@ def test_close_merges_a_moved_main_before_render():
     assert "git merge-base --is-ancestor origin/main HEAD" in step
     assert "git merge --no-edit origin/main" in step
     assert step.index("git merge --no-edit origin/main") < step.index("planner render`, then")
-    assert "take either side and re-render" in step
-    assert "Any other conflict: stop and show it" in step
+    assert "commit with the message `Checkpoint <id>`" in step
+    assert step.index("`Checkpoint <id>`") < step.index("git merge --no-edit origin/main")
+    assert "git merge --no-edit -X ours origin/main" in step
+    assert "If any hunk sits outside a `<!-- generated:` block, stop" in step
+    assert "Never use `git checkout --ours` or `--theirs` on a file" in step
+    assert "git checkout --theirs -- <file>" not in step
     assert "long-lived PR" in read("README.md") and "merge `origin/main`" in read("README.md")
+
+
+def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
+    """main rewrote a generated block; the session edited G3 on the same page. -X ours keeps G3."""
+    def git(*args, ok=True):
+        done = subprocess.run(["git", *args], cwd=tmp_path, capture_output=True, text=True)
+        assert not ok or done.returncode == 0, done.stderr
+        return done
+    page = tmp_path / "01-goals.md"
+    lines = ["# Goals", "", "| G3 | Hold seats | 60% |", "", "filler"] + [""] * 6 + [
+        "<!-- generated:progress-map sha=aaa: do not edit, run planner render -->", "old block",
+        "<!-- /generated:progress-map -->", ""]
+    page.write_text("\n".join(lines), encoding="utf-8")
+    git("init", "-q", "-b", "main"); git("config", "user.email", "t@t"); git("config", "user.name", "t")
+    git("add", "."); git("commit", "-qm", "base")
+    git("switch", "-qc", "session/s1")
+    page.write_text(page.read_text().replace("60%", "65%").replace("old block", "session block"), encoding="utf-8")
+    git("commit", "-qam", "Checkpoint s1")
+    git("switch", "-q", "main")
+    page.write_text(page.read_text().replace("old block", "main block"), encoding="utf-8")
+    git("commit", "-qam", "main moved")
+    git("switch", "-q", "session/s1")
+    assert git("merge", "--no-edit", "main", ok=False).returncode == 1  # the block conflicts
+    git("merge", "--abort")
+    git("merge", "--no-edit", "-X", "ours", "main")
+    text = page.read_text()
+    assert "65%" in text and "<<<<<<<" not in text
 
 
 # M2: a probe suggestion is START's ask-or-research offer
@@ -125,3 +156,20 @@ def test_manifest_is_version_0_2_0_and_describes_v2():
 def test_the_bumped_manifest_validates():
     result = subprocess.run(["claude", "plugin", "validate", str(PLUGIN)], capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_readme_names_what_has_not_run_against_real_github():
+    line = [l for l in read("README.md").splitlines() if l.startswith("- **Not yet run against a real GitHub repo:**")][0]
+    for piece in ("weekly issue", "harvest", "answering a challenge", "merge of a moved `main`"):
+        assert piece in line, piece
+
+
+def test_grill_sets_a_challenged_item_back_by_its_kind():
+    grill = read("plugin", "skills", "grill", "SKILL.md")
+    assert "to `reopened` for an epic or to `assumption` for anything else" in grill
+    assert "reopen it first" not in grill
+
+
+def test_start_does_not_offer_to_resume_a_waiting_challenge():
+    start = read("plugin", "references", "START.md")
+    assert "challenge waiting for an answer" in start and "offer the \"Answer a challenge\" path" in start

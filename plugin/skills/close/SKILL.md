@@ -134,7 +134,14 @@ For each item that became `decided` in this session, show its final wording. If 
 
 ## 6. Render and check
 
-First bring in `main` if it moved since the branch was made, so render and check see what will merge. Run `git fetch origin`, then `git merge-base --is-ancestor origin/main HEAD`. If that exits 1, run `git merge --no-edit origin/main`. If a conflict sits only inside a generated block, render resolves it: take either side and re-render, with `git checkout --theirs -- <file>` for that file, then the render below, then stage it by exact path and finish the merge with `git commit --no-edit`. Any other conflict: stop and show it, with `git diff --name-only --diff-filter=U` and the conflicting lines, and leave the merge for the user. If the fetch fails, say the branch was not compared with `main`, and go on.
+First bring in `main` if it moved since the branch was made, so render and check see what will merge:
+
+1. Run `git fetch origin`. If it fails, say the branch was not compared with `main`, and go on to the render below.
+2. Run `git merge-base --is-ancestor origin/main HEAD`. Exit 0: `main` has not moved, so go on to the render. Exit 1: go on to step 3. Any other exit: show the error, say the branch was not compared with `main`, and go on.
+3. A merge refuses to run over uncommitted edits, so commit them first. Stage every changed tracked file and the session record by exact path, never `git add -A`, and commit with the message `Checkpoint <id>`.
+4. Run `git merge --no-edit origin/main`. If it exits 0, go on to the render.
+5. On a conflict, list the files with `git diff --name-only --diff-filter=U` and read each conflict hunk (`<<<<<<<` to `>>>>>>>`). If any hunk sits outside a `<!-- generated:` block, stop: run `git merge --abort`, show those files and lines, and leave the merge for the user.
+6. If every hunk sits inside a generated block, render rebuilds those blocks, so the side does not matter. Run `git merge --abort`, then `git merge --no-edit -X ours origin/main`. `-X ours` decides only the conflicting hunks, so every edit that merged cleanly, on either side, is kept. Never use `git checkout --ours` or `--theirs` on a file: that takes one side of the whole file and drops the other side's edits.
 
 Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/skills/planner/bin/planner check`. Fix each error with the user. If the user leaves an error in place, put it in the PR body. CI will block the merge until it is fixed.
 

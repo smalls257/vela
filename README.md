@@ -51,6 +51,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 ## Later
 
 - **Weekly "Vault health" issue.** `.github/workflows/planner-weekly.yml` posts `planner health` every Monday to one issue titled "Vault health". It needs Issues enabled on the repo. It has not been tested live yet, so check the first Monday's run.
+- **Not yet run against a real GitHub repo:** the weekly issue, close's owner-only harvest (it reads merged PRs with `gh`), answering a challenge (it comments on the challenge PR with `gh pr comment`), and close's merge of a moved `main`. Each is tested on local git repos only, so watch the first real run of each.
 - **Long-lived PRs.** If `main` moves while a long-lived PR is open, merge `origin/main` into the session branch, then run `planner render`. A conflict inside a generated block goes away when you re-render. Close does this before it renders.
 - **Vault mode for your own grills:** `integrations/requirements-grill/INSTALL.md` and `integrations/tech-design-grill/INSTALL.md`. Each one backs up first and dry-runs before applying. Nothing has been applied to `~/.claude` yet.
 - **Jira export details:** Owner team drops the leading `@` of the handle, so `@org/team` becomes `org/team`. The link points at the repository and commit from `git`, or pass `--repo-url` and `--commit`.
