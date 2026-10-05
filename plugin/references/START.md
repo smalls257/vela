@@ -6,11 +6,11 @@ Every mode skill runs these steps before its own. The vault root is the current 
 
 Run `git status --short --branch` and show the output. If any file is changed or untracked, stop and ask: commit it, stash it, or carry it into this session. Do nothing else until the user answers.
 
-Then run `git fetch origin` and `git switch main` and `git pull --ff-only`. If any of them fails, show the error and say the session would start from an old `main`. Ask whether to go on. Never start from an old `main` without saying so.
+If the user names a challenge to answer, by its PR number or the challenged ID, run `git fetch origin` and take the path "Answer a challenge" below instead of the rest of this step. Otherwise run `git fetch origin` and `git switch main` and `git pull --ff-only`. If any of them fails, show the error and say the session would start from an old `main`. Ask whether to go on. Never start from an old `main` without saying so.
 
 ## 2. Find open sessions
 
-An open record lives on its own `session/<id>` branch until its PR merges, so `main` alone cannot show it. Run all three: `grep -l '^status: open' sessions/*.md`, `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'`. Treat every `session/*` branch as a possibly open session, and read its record with `git show <branch>:sessions/<id>.md`. For each open record or branch:
+An open record lives on its own `session/<id>` branch until its PR merges, so `main` alone cannot show it. Run all three: `grep -l '^status: open' sessions/*.md`, `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'`. Treat every `session/*` branch as a possibly open session, and read its record with `git show <branch>:sessions/<id>.md`. A branch can hold more than one record, because an answer session shares its challenge's branch, so also run `git grep -l '^status: open' <branch> -- sessions/` for each branch and read every record it lists. For each open record or branch:
 
 - Say its id, its date and how many captures it has.
 - If its date is more than 14 days ago, say so.
@@ -63,9 +63,20 @@ summary: In progress.
 |---|---|---|---|
 ```
 
-`<Mode name>` is the display name in `MODES.md`: Dump & Diverge, Discover, Shape, Grill, Requirements, Epics or Challenge. Commit it with the message `Open session <id>`.
+`<Mode name>` is the display name in `MODES.md`: Dump & Diverge, Discover, Shape, Grill, Requirements, Epics, Challenge or Answer. Commit it with the message `Open session <id>`.
 
 A session that runs a second mode adds that mode to `modes`. It never opens a second record.
+
+## Answer a challenge
+
+The solution lead answers a challenge on the challenge's own branch, so the red E316 check and its answer land in the same PR.
+
+1. Find the open challenge PR: `gh pr list --search "Challenge: <ID>" --state open --json number,headRefName`. If the user gave a PR number, run `gh pr view <number> --json number,headRefName,title,state` and confirm its title starts with the date and `Challenge:` and its state is `OPEN`. If none is open, or more than one, stop and show what `gh` returned. If `gh` fails, show the error and stop: an answer never starts on a guessed branch.
+2. Check out that `session/...` branch instead of `git switch main`: `git switch <headRefName>`, then `git pull --ff-only`. If either fails, show the error and stop.
+3. Run steps 2 to 4 as usual. Step 4's check shows the E316 the challenge left; that is the work.
+4. Open the record as step 5 says, with two changes. Do not run `git switch -c`: the record goes on the branch you are on. The id is `<date>-answer-<id-lowercased>`, for example `2026-11-24-answer-con-001`, with `-2` and so on if that file exists. Write `modes: [answer]` and the title `Answer: <ID>`. Commit it with the message `Open session <id>`.
+
+In the answer session, a Grill works on that branch and adds `grill` to `modes`. It resolves `UNK-nnn` with the senior, or decides the item again. Or the lead sets the item back, a contract to `assumption` or an epic to `reopened`, with a `## Changes` row such as `| CON-nnn | decided | assumption | [[<id>#^cNN]] |`. `/planner:close` then pushes to the same branch and comments on the challenge PR.
 
 ## Captures during the session
 

@@ -49,7 +49,7 @@ If a criterion needs behaviour no page records, stop on that criterion. Say whic
 
 ## 6. Grill the criteria
 
-For each epic the user wants decided, run the gate in `.claude/skills/planner/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Show the table, and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it.
+For each epic the user wants decided, run the gate in `.claude/skills/planner/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` or `reopened` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Show the table, and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it.
 
 Then take each criterion in turn. Every criterion needs its own explicit yes before the epic can be confirmed:
 
@@ -61,7 +61,7 @@ Then take each criterion in turn. Every criterion needs its own explicit yes bef
 Set an epic to `decided` only when the solution lead confirms it in this session, and only after the lead has given an explicit yes to each criterion on its own. A yes to the epic as a whole does not stand in for them. When every criterion has its yes, read the final set back and get an explicit yes to that read-back. A criterion with no yes of its own keeps the epic at `draft`. Then, as grill does:
 
 - set `state: decided`;
-- add `- **Decision:** [[<session id>]]` and a `## Changes` row `| EPC-nnn | draft | decided | [[<session id>#^cNN]] |`;
+- add `- **Decision:** [[<session id>]]` and a `## Changes` row `| EPC-nnn | draft | decided | [[<session id>#^cNN]] |`, or `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |` for an epic a challenge's answer reopened;
 - mark the deciding capture `→ keep: [[<page>#<heading>|EPC-nnn]] (decided)`;
 - commit with the message `grill: EPC-nnn decided`, staging the session record and the epic by exact path.
 

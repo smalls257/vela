@@ -15,6 +15,8 @@ The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONV
 
 Run the steps in `.claude/skills/planner/references/START.md` with mode `grill`. Read the Grill row of `.claude/skills/planner/references/MODES.md`.
 
+If the user names a challenge to answer, by its PR number or the challenged ID, START will take its "Answer a challenge" path: the record is an answer session on the challenge's own branch, and you add `grill` to its `modes`, so it reads `modes: [answer, grill]`. Read the Answer row of `MODES.md` too. The agenda holds the challenge's `UNK-nnn` and the challenged item. Resolve the unknown with the senior as its owner: set `**State:** resolved`, add `**Outcome:**` and `**Resolved in:** [[<session id>]]`, and add the row `| UNK-nnn | open | resolved | [[<session id>#^cNN]] |`. If the answer changes the item, reopen it first, then decide it again through the gate below.
+
 ## 2. The gate, per item
 
 For each item the user named, check all five before it goes on the agenda. Show the result as a table: item, then GATE-1 to GATE-5, each pass or fail with one line of evidence.
@@ -22,7 +24,7 @@ For each item the user named, check all five before it goes on the agenda. Show 
 | Gate | Passes when | If it fails, offer |
 |---|---|---|
 | GATE-1 | For an app's item, the app's `stage` is `target` or later. Initiative-level items pass. | Discover |
-| GATE-2 | The item is at `assumption`, with a preferred option. Where there was a real choice, the rejected options and their reasons are written down in its `**Options considered:**` bullet. | Shape |
+| GATE-2 | The item is at `assumption`, with a preferred option. An epic is at `draft` or `reopened`, with its chosen cut. Where there was a real choice, the rejected options and their reasons are written down in its `**Options considered:**` bullet. | Shape |
 | GATE-3 | You showed the agenda, with the open questions under each item, and the user confirmed it with an explicit yes (see Acceptance). | show it again |
 | GATE-4 | No open unknown lists the item in its `**Blocks:**`. Search `11-unknowns-and-risks.md` for open unknowns whose `**Blocks:**` links the item's page or heading. An open unknown that links a page blocks every item on that page, as `planner check` does. | an ask to the unknown's owner, or a research task |
 | GATE-5 | The item's owner is present and says yes in person, or their async answer is quoted in a capture with them as origin, naming the channel and the date. | reschedule, or collect an async answer first |
@@ -59,7 +61,7 @@ When an item's branch closes, write it at once, before the next question:
 - Add `- **Decision:** [[<session id>]]` at page level, or under the contract's heading.
 - For a contract, record where the provider stands as well as each consumer, as a capture: present, async with channel and date, asked in the PR, or "not consulted: <reason>".
 - If anyone disagrees, add `- **Dissent:** <name>, <date>: <reason>`. The item can still be decided.
-- Add a row to `## Changes`: `| <ID> | <old state> | decided | [[<session id>#^cNN]] |`, citing the capture that settled it.
+- Add a row to `## Changes`: `| <ID> | <old state> | decided | [[<session id>#^cNN]] |`, citing the capture that settled it. For an epic the old state is `draft` or `reopened`: `| EPC-nnn | draft | decided | ... |` or `| EPC-nnn | reopened | decided | ... |`.
 - Mark the deciding capture line now: `→ keep: [[<page>#<heading>|<ID>]] (decided)`. This is the one exception to leaving marks off until close.
 - Commit with the message `grill: <ID> decided`. Stage the session record and the changed pages, by exact path.
 

@@ -22,7 +22,7 @@ def test_challenge_is_a_session_mode_the_check_knows():
     meta = yaml.safe_load(skill_text().split("---\n", 2)[1])
     assert meta["name"] == "challenge" and meta["disable-model-invocation"] is True
     assert "| Challenge (`challenge`)" in (PLUGIN / "references" / "MODES.md").read_text(encoding="utf-8")
-    assert "Epics or Challenge." in (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
+    assert "Epics, Challenge or Answer." in (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
 
 
 def test_challenge_never_changes_the_item_and_never_decides():

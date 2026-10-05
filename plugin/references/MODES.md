@@ -11,6 +11,7 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | Epics (`epics`) | every chosen team's gaps are closed or listed, or the user stops | read the `traceability` block; offer 2 or 3 cuts; draft criteria at a contract or flow boundary; ask for an explicit yes per criterion, then a read-back; run `check --gate epics` | write a requirement into an epic, name a component or technology in a criterion, or write `decided` without a yes on every criterion |
 | Requirements (`requirements`) | every requirement branch is closed or is an unknown | stay at the "what"; write at most `assumption` | write `decided` or `fact`, or write under `docs/requirements/` |
 | Challenge (`challenge`) | the challenge is an open unknown and its PR is open, or the senior stops | quote the senior's words; write one open unknown the senior owns that blocks the item, and one `**Dissent:**` line on the item | change the item's state or text, decide anything, or argue the item's side |
+| Answer (`answer`) | the challenged item is decided again, set back, or its unknown resolved, or the lead stops | work on the challenge's own branch; decide only inside a Grill part, with `grill` added to `modes` | open a second PR, or decide anything outside a Grill |
 
 ## Who writes what, and when
 
@@ -23,6 +24,7 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | `epics` | `draft` epic pages, bullets and criteria only; `decided` only inside its Grill part | epic description paragraphs |
 | `requirements` | requirements on the capability page at `assumption`; unknowns | prose |
 | `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |
+| `answer` | what its Grill decides, or the item set back, on the challenge's branch | a push to that branch and a comment on the challenge PR, never a new PR |
 
 No mode writes inside a generated block. `planner render` fills them. Close runs it, and so does `epics`, mid-session, to read its frontier. Whoever runs it stages every file it reports, by exact path.
 

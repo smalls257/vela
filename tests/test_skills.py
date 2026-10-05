@@ -113,7 +113,7 @@ def test_open_sessions_are_found_on_their_branches_and_ids_do_not_collide():
     start, close = text("references/START.md"), text("skills/close/SKILL.md")
     assert "git branch --list 'session/*'" in start and "git branch -r --list 'origin/session/*'" in start
     assert "add `-2`, then `-3`" in start
-    assert "git branch -r --list 'origin/session/*'" in close and "git switch session/<id>" in close
+    assert "git branch -r --list 'origin/session/*'" in close and "git switch <branch>" in close and "it is `session/<id>`" in close
     assert "If there is none yet, skip the merged-PR search" in start
     assert "pulls/<number>/reviews" in start
     assert "<Mode name>" in start and "Dump & Diverge" in start

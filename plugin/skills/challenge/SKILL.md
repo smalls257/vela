@@ -74,7 +74,7 @@ Write the PR body to a temporary file:
 - **Challenge.** The item, the senior's question, the case and what they propose, quoted from the captures.
 - **Unknown.** `UNK-nnn`, its owner and its ask-by date.
 - **Check.** The first line of the check output and the E316 line, if any.
-- **The red check.** Say all of this: E316 is deliberate. It blocks the merge wherever planner-check is a required check, so the PR cannot merge while `main` reads `decided` with an open blocker. The solution lead answers on this branch, either by resolving `UNK-nnn` with a Grill or by setting the item back. For an epic, setting it back means `reopened`. After that the check turns green and the PR can merge.
+- **The red check.** Say all of this: E316 is deliberate. It blocks the merge wherever planner-check is a required check, so the PR cannot merge while `main` reads `decided` with an open blocker. The solution lead answers on this branch, either by resolving `UNK-nnn` with a Grill or by setting the item back. For an epic, setting it back means `reopened`. A later Grill decides it again with the row `| EPC-nnn | reopened | decided | ... |`. After that the check turns green and the PR can merge. To answer, the lead runs `/planner:grill` and names this PR or <ID>: START opens an answer session on this branch, and `/planner:close` pushes the answer here and comments on this PR. Say: "Run `/planner:grill` and name this PR or <ID>."
 - **What the solution lead can do.** Resolve `UNK-nnn` with the senior, in a Grill if the answer changes a decision. Or set the item back: a contract to `assumption`, an epic to `reopened`. Until one happens, the check stays red.
 - **Since handoff.** The `planner handoff verify` output from step 2.
 
