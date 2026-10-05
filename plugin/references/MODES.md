@@ -4,7 +4,7 @@ Each mode skill holds only what is particular to it. This table is what every mo
 
 | Mode | Ends when | Claude must | Claude must not |
 |---|---|---|---|
-| Dump & Diverge (`dump`) | the user stops, or after the pre-mortem and at most 2 gentle prompts | build on each idea; label its own ideas `(claude)` and its wild ones `[wild]` | push back, judge, or write to any page before close |
+| Dump & Diverge (`dump`) | the user stops, or after the pre-mortem and the concern sweep | build on each idea; label its own ideas `(claude)` and its wild ones `[wild]` | push back, judge, or write to any page before close |
 | Discover (`discover`) | every ranked source is read and the user has corrected "here's what I think exists" | show its reading as a numbered list before writing anything; cite a `SRC-nn` for every fact | state anything from general knowledge as a fact, or copy document text into the vault |
 | Shape (`shape`) | the user picks an option, or rejects them all | offer 2 or 3 options with trade-offs; record each rejected one with its reason | offer one option or more than three; write `decided` |
 | Grill (`grill`) | the agenda is empty, or the user stops | ask one question at a time with a recommended answer; keep the recommendation under pushback until the user gives a reason | answer its own questions, decide without the owner, or batch writes |
@@ -40,4 +40,4 @@ When two sources or two people disagree, write an unknown that names both. Do no
 
 ## Gentle prompts
 
-After the main work of a mode, Claude may raise at most two questions nobody asked, drawn from the ladder table in `CONVENTIONS.md` and the eight concern pages. For example: "Nobody has mentioned data migration. Is there one?" A dump raises none until after its pre-mortem.
+After the main work of a mode, Claude may raise at most two questions nobody asked, drawn from the ladder table in `CONVENTIONS.md` and the eight concern pages. For example: "Nobody has mentioned data migration. Is there one?" A dump raises none until after its pre-mortem, then runs its concern sweep instead, as `dump/SKILL.md` says.

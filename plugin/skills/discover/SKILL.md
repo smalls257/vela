@@ -13,7 +13,7 @@ Find out what exists before anyone designs anything. Every fact this session wri
 2. List the files in `.inbox/` and the rows in `sources.md`. Add a row for each new document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists` for a document that describes what runs today, and `intends` for a plan, deck or roadmap. A local clone of a code repository is `Kind: repo`, with Location `<url>@<sha>` from `git -C <clone> remote get-url origin` and `git -C <clone> rev-parse HEAD`. A file that lives only in `.inbox/` has Location `local only`.
 3. Show the register and ask the user to rank it and cut what is not worth reading. Propose a `Kind` for each source it keeps, and the user says yes or corrects it. Do not move on until every kept source has a confirmed `Kind`. Read only the top-ranked sources. Before the user cuts a source, say which other sources cover the same area: sources that describe the same systems, teams or plans are worth reading together, because a clash between them only shows when both are read.
 4. Show "Here's what I think exists" as a numbered list. Label every line with its source `SRC-nn` and that source's `Kind`. Write nothing to a page yet. Write only the lines the user confirmed with an explicit yes for that line. Silence, or "looks fine" with no yes per line, does not count: ask again.
-   Under every such list, the first one included, add **What these sources imply**. Compare the lines with each other and with what the user has said. Name each of these you find, one bullet each, as a question that cites the line numbers:
+   Under every such list, the first one included, add **What these sources imply**. Compare the lines with each other and with what the user has said. Name each of these you find as one statement that cites the line numbers and says what clashes and why it matters. Make each one a statement, not a question:
    - two systems, schemes or teams doing the same job, and what that means for anything that must span both;
    - service levels, hours, targets or limits that differ between things that will have to work together;
    - dates, terms or numbers that disagree between sources, or with what the user believes;
@@ -21,7 +21,7 @@ Find out what exists before anyone designs anything. Every fact this session wri
    - a plan in an `intends` source that a fact from an `exists` source contradicts;
    - something every line depends on that no line names an owner for.
 
-   Listing two lines side by side is not flagging them: say what clashes and why it matters. Ask the user which ones are worth an unknown. Ask at most three questions in one turn, and carry the rest to the next turn.
+   Listing two lines side by side is not flagging them: say what clashes and why it matters. Then ask one question: which of these are worth an unknown. Never ask more than three questions in one turn, counting the per-line confirmation as one; carry the rest to the next turn.
 5. After each correction round, write what was confirmed and commit a checkpoint:
    - A line from an `exists` or `repo` source is a `fact`, with `sources: [SRC-nn]` on the page or `- **Source:** SRC-nn` on a contract.
    - A line from an `intends` source is an `assumption`, however sure it sounds. "Ready in Q4" in a deck is a plan, not a fact.
