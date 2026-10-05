@@ -3,10 +3,10 @@
 name: smoke
 sessions:
   - mode: dump
-    cap: 3
+    cap: 8
     planner: "/planner:dump {opening}"
     baseline: "I have a new initiative and nothing written down yet. Let's dump everything we know about it into this vault, following CONVENTIONS.md. {opening}"
   - mode: close
-    cap: 4
+    cap: 6
     planner: "/planner:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."

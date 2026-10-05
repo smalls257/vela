@@ -48,7 +48,7 @@ MODES = ("dump", "close", "discover", "shape", "grill")
 # close's mktemp and voicecheck. gh is allowed so its failure paths run against the stub, not a permission denial.
 ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash(git *)", "Bash(python3 *)", "Bash(mkdir *)",
                  "Bash(cat *)", "Bash(date *)", "Bash(shasum *)", "Bash(cmp *)", "Bash(awk *)", "Bash(sed *)",
-                 "Bash(rm *)", "Bash(mktemp *)", "Bash(gh *)"]
+                 "Bash(rm *)", "Bash(mktemp *)", "Bash(gh *)", "Skill"]
 JUDGE_RESERVE = 0.15  # share of an arm's budget kept for the judge, so a spent session budget still gets a scorecard
 MIN_CALL_USD = 0.01  # below this a call cannot do useful work, so the session stops on budget instead
 GH_MESSAGE = "gh: not available in the simulator"
@@ -189,18 +189,25 @@ class Ledger:
 
 # ------------------------------------------------------------------ claude calls
 
-def isolation_flags():
+def isolation_flags(origin=None):
     """Every call loads only the vault's own settings and CLAUDE.md. The user's plugins, hooks and global CLAUDE.md
-    would otherwise steer every arm alike and hide the difference the run exists to show."""
+    would otherwise steer every arm alike and hide the difference the run exists to show.
+
+    An assistant call also runs in Claude Code's sandbox with sandboxed Bash auto-allowed: nobody is there to answer
+    a permission prompt, so an unsandboxed allowlist denies START's first compound write and the skills never get
+    to work. The sandbox confines writes to the vault, plus the arm's scratch origin so that `git push` works."""
     home_claude = pathlib.Path.home() / ".claude"
     settings = {"claudeMdExcludes": [str(home_claude / "CLAUDE.md"), str(home_claude / "**" / "*.md")]}
+    if origin is not None:
+        settings["sandbox"] = {"enabled": True, "autoAllowBashIfSandboxed": True}
+        settings["permissions"] = {"allow": [f"Edit(/{pathlib.Path(origin).resolve()}/**)"]}
     return ["--setting-sources", "project,local", "--strict-mcp-config", "--settings", json.dumps(settings)]
 
 
-def assistant_argv(message, model, session_id, budget, arm):
+def assistant_argv(message, model, session_id, budget, arm, origin=None):
     argv = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", model,
             "--permission-mode", "acceptEdits", "--permission-prompts", "none",
-            "--allowedTools", ",".join(ALLOWED_TOOLS), "--max-budget-usd", f"{budget:.4f}", *isolation_flags()]
+            "--allowedTools", ",".join(ALLOWED_TOOLS), "--max-budget-usd", f"{budget:.4f}", *isolation_flags(origin)]
     if arm != "baseline":
         argv += ["--plugin-dir", str(PLUGIN)]
     if session_id:
@@ -551,7 +558,7 @@ class Arm:
     def assistant_turn(self, message, session_id):
         room = self.ledger.session_room()
         raw = self.raw("assistant")
-        done = call(assistant_argv(message, self.args.model, session_id, room, self.name),
+        done = call(assistant_argv(message, self.args.model, session_id, room, self.name, self.dir / "origin.git"),
                     env=self.env, cwd=self.vault, raw_path=raw, kind="assistant")
         parsed = parse_stream(done.stdout, raw)
         result = parsed["result"]

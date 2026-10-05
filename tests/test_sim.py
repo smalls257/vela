@@ -298,3 +298,14 @@ def test_a_closed_session_branch_is_merged_into_origin_main_and_an_open_one_is_n
     tree = sim.git("ls-tree", "-r", "--name-only", "origin/main", cwd=vault).stdout.split()
     assert "sessions/2026-10-05-closed.md" in tree and "sessions/2026-10-05-open.md" not in tree
     assert sim.merge_closed(vault, arm_dir) == [reports[1]], "a merged branch is not merged twice"
+
+
+def test_assistant_calls_run_sandboxed_with_only_the_vault_and_origin_writable(tmp_path):
+    import json as _json
+    argv = sim.assistant_argv("hi", "m", None, 1.0, "planner", tmp_path / "origin.git")
+    settings = _json.loads(argv[argv.index("--settings") + 1])
+    assert settings["sandbox"] == {"enabled": True, "autoAllowBashIfSandboxed": True}
+    assert settings["permissions"]["allow"] == [f"Edit(/{(tmp_path / 'origin.git').resolve()}/**)"]
+    assert "Skill" in argv[argv.index("--allowedTools") + 1].split(",")
+    persona = sim.isolation_flags()
+    assert "sandbox" not in _json.loads(persona[persona.index("--settings") + 1])
