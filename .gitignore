@@ -8,3 +8,4 @@ __pycache__/
 .superpowers/
 .pytest_cache/
 tests/evals/.results/
+tests/sim/results/
