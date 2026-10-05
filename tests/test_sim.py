@@ -182,7 +182,7 @@ def test_budget_stop_exits_1_and_still_writes_the_scorecard(tmp_path):
     assert [e["reason"] for e in summary["per_arm"]["planner"]["endings"]] == ["budget", "not run: budget"]
     assert summary["spent_usd"] <= 1.0
     assert (run_dir / "planner" / "scorecard.md").is_file() and (run_dir / "planner" / "transcript.html").is_file()
-    assert sum(1 for c in calls if c["role"] == "judge") == 1
+    assert [c["category"] for c in calls if c["role"] == "judge"] == list(sim.JUDGE_CATEGORIES)
 
 
 def test_a_missing_json_field_is_a_tool_failure(tmp_path):
@@ -195,8 +195,8 @@ def test_a_missing_json_field_is_a_tool_failure(tmp_path):
 
 def test_bad_judge_json_is_asked_again_once_then_exits_2(tmp_path):
     code, err, run_dir, calls = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "bad"})
-    assert code == 2 and "bad twice" in err
-    assert sum(1 for c in calls if c["role"] == "judge") == 2
+    assert code == 2 and "knows judge's JSON was bad twice" in err
+    assert [c["category"] for c in calls if c["role"] == "judge"] == ["knows", "knows"]
     assert (run_dir / "compare.html").is_file()
 
 
@@ -309,3 +309,187 @@ def test_assistant_calls_run_sandboxed_with_only_the_vault_and_origin_writable(t
     assert "Skill" in argv[argv.index("--allowedTools") + 1].split(",")
     persona = sim.isolation_flags()
     assert "sandbox" not in _json.loads(persona[persona.index("--settings") + 1])
+
+
+# ------------------------------------------------------------------ the judge and its mechanical evidence
+
+def coastal():
+    return yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+
+
+def test_every_brief_item_needs_its_keywords_and_a_broken_list_is_a_tool_error(tmp_path):
+    persona = coastal()
+    del persona["knows"][3]["keywords"]
+    persona["unaware"][0]["keywords"] = []
+    persona["wrong"][0]["keywords"] = ["only one"]
+    persona["conflicts"][0]["keywords"] = ["CFO", "next summer"]
+    problems = sim.persona_problems(persona)
+    assert "knows K4: 'keywords' must be a non-empty list" in problems
+    assert "unaware U1: 'keywords' must be a non-empty list" in problems
+    assert any(p.startswith("wrong W1: give 2 to 4 keywords") for p in problems)
+    assert any("conflicts C1: keyword 'next summer' is in the opening" in p for p in problems)
+    # The mandate is the opening itself, so K1 may hold it; nothing else may.
+    assert not any(p.startswith("knows K1") for p in problems)
+    broken = tmp_path / "broken.yaml"
+    broken.write_text(yaml.safe_dump(persona), encoding="utf-8")
+    with pytest.raises(sim.ToolFailure, match="K4: 'keywords'"):
+        sim.load_brief(str(broken), str(SIM / "scripts" / "smoke.yaml"))
+
+
+def test_keyword_hits_name_turns_and_pages_and_skip_the_templates_own_text():
+    persona = {"knows": [{"id": "K4", "keywords": ["FERRYMASTER", "ledger of record"]}],
+               "unaware": [{"id": "U1", "keywords": ["lawful basis", "DPO"]}], "wrong": [], "conflicts": [], "decisions": []}
+    spoken = [{"turn": 1, "speaker": "lead", "text": "Ask the DPO? And FERRYMASTER."},
+              {"turn": 2, "speaker": "assistant", "text": "What is the **lawful basis** for linking records?"},
+              {"turn": 3, "speaker": "assistant", "text": "FERRYMASTER is the ledger of record. The endpoint is fine."}]
+    pages = [("01-goals.md", "Nothing touches Ferrymaster.", ""),
+             ("02-constraints.md", "The ledger of record is a heading.", "The ledger of record is a heading."),
+             ("11-unknowns-and-risks.md", "Who owns the lawful basis?", "")]
+    hits = sim.keyword_hits(persona, spoken, pages)
+    assert hits["K4"]["assistant_turns"] == [{"turn": 3, "keywords": ["FERRYMASTER", "ledger of record"]}]
+    assert hits["K4"]["vault_files"] == [{"file": "01-goals.md", "keywords": ["FERRYMASTER"]}]
+    assert "lead_turns" not in hits["K4"], "a K item is captured in the vault, whoever said it"
+    assert hits["U1"]["lead_turns"] == [{"turn": 1, "keywords": ["DPO"]}]
+    assert hits["U1"]["assistant_turns"] == [{"turn": 2, "keywords": ["lawful basis"]}], "endpoint is not DPO"
+    assert hits["U1"]["vault_files"] == [{"file": "11-unknowns-and-risks.md", "keywords": ["lawful basis"]}]
+
+
+def test_a_gap_the_lead_raised_first_is_not_counted_for_the_assistant():
+    hit = {"kind": "unaware", "keywords": ["GDPR"], "vault_files": [],
+           "assistant_turns": [{"turn": 10, "keywords": ["GDPR"]}], "lead_turns": [{"turn": 9, "keywords": ["GDPR"]}]}
+    no = {"id": "U1", "surfaced": False}
+    assert sim.disagreement("unaware", no, hit, False) == [], "the lead said it first, so no is right"
+    yes = {"id": "U1", "surfaced": True, "turn": 10, "quote": "GDPR"}
+    assert sim.disagreement("unaware", yes, hit, True) == [
+        "the lead said GDPR in T9 before the cited T10, so the assistant may not have raised it first"]
+    assistant_first = {**hit, "lead_turns": [{"turn": 11, "keywords": ["GDPR"]}]}
+    assert sim.disagreement("unaware", no, assistant_first, False) == ["assistant mentions GDPR in T10"]
+    assert sim.disagreement("conflicts", no, {**hit, "lead_turns": None}, False) == ["assistant mentions GDPR in T10"]
+
+
+def test_disagreements_lead_the_scorecard_under_check_these():
+    persona = coastal()
+    card = {kind: [] for kind in sim.SCORE_LISTS}
+    card["knows"] = [{"id": "K4", "search": "read 01-goals.md", "captured": False, "where": None},
+                     {"id": "K2", "search": "read the risks", "captured": True, "where": "11-unknowns-and-risks.md"}]
+    hits = {"K4": {"kind": "knows", "keywords": ["FERRYMASTER"], "assistant_turns": [],
+                   "vault_files": [{"file": "01-goals.md", "keywords": ["FERRYMASTER"]}]},
+            "K2": {"kind": "knows", "keywords": ["SeaBook"], "assistant_turns": [], "vault_files": []}}
+    checks = sim.disagreements(card, hits)
+    assert checks == ["K4: judge: no; vault mentions FERRYMASTER in 01-goals.md",
+                      "K2: judge: yes; no vault page holds any of its keywords (SeaBook)"]
+    card.update(hits=hits, check_these=checks, judge_calls=[], max_questions_in_one_turn={"count": 0, "turn": None},
+                endings=[], spent_usd=0, judge_usd=0, arm="planner", dropped=[], told_not_asked=[],
+                decided_without_yes=[], invented_facts=[], session_endings=[],
+                models={"assistant": "a", "persona": "p", "judge": "j"})
+    md = sim.render_scorecard_md(card, persona)
+    assert md.index("## Check these") < md.index("## Facts captured")
+    assert "- K4: judge: no; vault mentions FERRYMASTER in 01-goals.md" in md
+    assert "| K4 |" in md and "| vault 01-goals.md | read 01-goals.md |" in md
+
+
+def test_the_full_run_scorecard_sets_hits_beside_the_verdicts(full_run):
+    card = json.loads((full_run["run"] / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    # The stub assistant echoes the opening, so K1's keywords are in T2 but in no vault page.
+    assert card["hits"]["K1"]["assistant_turns"][0]["turn"] == 2 and card["hits"]["K1"]["vault_files"] == []
+    assert any(c.startswith("K1: judge: yes; no vault page holds") for c in card["check_these"])
+    assert any(c.startswith("U1: judge: yes; no assistant turn holds") for c in card["check_these"])
+    assert all(row["search"].startswith("stub: read") for kind in sim.SCORE_LISTS for row in card[kind])
+    md = (full_run["run"] / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert md.index("## Check these") < md.index("## Gaps surfaced")
+    assert "keyword hits" in (full_run["run"] / "compare.html").read_text(encoding="utf-8")
+
+
+def test_the_judge_is_called_once_per_category_and_asked_to_think(full_run):
+    for arm in ("planner", "planner-seuss", "baseline"):
+        calls = [c for c in full_run["calls"] if c["role"] == "judge" and f"{os.sep}{arm}{os.sep}" in c["cwd"] + os.sep]
+        assert [c["category"] for c in calls] == list(sim.JUDGE_CATEGORIES), arm
+        for call in calls:
+            argv = call["argv"]
+            assert argv[argv.index("--effort") + 1] == sim.JUDGE_EFFORT
+            assert json.loads(argv[argv.index("--settings") + 1])["alwaysThinkingEnabled"] is True
+    for call in (c["argv"] for c in full_run["calls"] if c["role"] == "persona"):
+        assert "--effort" not in call and "alwaysThinkingEnabled" not in call[call.index("--settings") + 1]
+    raws = sorted(p.name for p in (full_run["run"] / "planner" / "raw").glob("*-judge-*.txt"))
+    assert [r.split("-judge-")[1] for r in raws] == [f"{c}.txt" for c in sim.JUDGE_CATEGORIES]
+
+
+def test_each_call_holds_only_its_own_items_and_the_hints_say_a_hint_is_not_proof(full_run):
+    persona = coastal()
+    transcript = sim.Transcript.load(full_run["run"] / "planner" / "transcript.jsonl")
+    vault = full_run["run"] / "planner" / "vault"
+    hits = sim.vault_hits(persona, transcript, vault)
+    knows = sim.judge_input(persona, transcript, vault, "knows", hits)
+    assert "IDS knows: K1, K2" in knows and "U1" not in knows and "THE FINAL VAULT" in knows
+    assert "- K1 (keywords: one customer, one journey, one account" in knows and "assistant turns T2" in knows
+    unaware = sim.judge_input(persona, transcript, vault, "unaware", hits)
+    assert "THE FINAL VAULT" not in unaware and "no lead turn" in unaware and "keywords:" not in unaware.split("HINTS")[0]
+    assert "A hint is not proof" in sim.judge_system_prompt("unaware")
+
+
+def test_every_verdict_needs_a_search_note_written_first():
+    persona = coastal()
+    rows = [{"id": i["id"], "search": "looked in T4", "captured": False, "where": None} for i in persona["knows"]]
+    assert sim.category_problems({"knows": rows}, persona, "knows") == []
+    rows[0] = {"id": "K1", "captured": False, "where": None}
+    rows[1] = {"id": "K2", "captured": False, "search": "  ", "where": None}
+    rows[2] = {"id": "K3", "captured": False, "where": None, "search": "looked afterwards"}
+    problems = sim.category_problems({"knows": rows}, persona, "knows")
+    assert problems == ["knows K1: 'search' must say what you looked for and where",
+                        "knows K2: 'search' must say what you looked for and where",
+                        "knows K3: write 'search' before 'captured'"]
+    shape = {key: [] for key in sim.SHAPE_LISTS}
+    assert sim.category_problems(shape, persona, "shape") == ["the reply: 'search' must say what you looked for and where"]
+    assert sim.category_problems({"search": "read every turn", **shape}, persona, "shape") == []
+    # The shape checks that were there before are as strict as they were.
+    missing = [{"id": "K1", "search": "x", "captured": "yes"}]
+    assert sim.category_problems({"knows": missing}, persona, "knows")[:2] == [
+        f"'knows' must list exactly {', '.join(i['id'] for i in persona['knows'])}, once each; got ['K1']",
+        "knows K1: 'captured' must be true or false"]
+
+
+def test_a_reply_without_search_notes_is_asked_again_once_then_exits_2(tmp_path):
+    code, err, _, calls = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "nosearch"})
+    assert code == 2 and "'search' must say" in err
+    assert [c["category"] for c in calls if c["role"] == "judge"] == ["knows", "knows"]
+
+
+def test_rejudge_scores_a_finished_run_again_without_replaying_it(full_run, tmp_path):
+    import shutil
+    run_dir = tmp_path / full_run["run"].name
+    shutil.copytree(full_run["run"], run_dir, symlinks=True)
+    transcripts = {arm: (run_dir / arm / "transcript.jsonl").read_bytes() for arm in ("planner", "baseline")}
+    run_json = (run_dir / "run.json").read_bytes()
+    old_raws = sorted(p.name for p in (run_dir / "planner" / "raw").iterdir())
+    log = tmp_path / "rejudge-log.jsonl"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "--rejudge", str(run_dir), "--stub",
+                           "--judge-model", "other-judge", "--budget", "1"],
+                          capture_output=True, text=True, env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
+    assert done.returncode == 0, done.stderr
+    calls = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
+    assert {c["role"] for c in calls} == {"judge"}, "a rejudge calls neither the assistant nor the persona"
+    assert len(calls) == 3 * len(sim.JUDGE_CATEGORIES)
+    assert all(c["argv"][c["argv"].index("--model") + 1] == "other-judge" for c in calls)
+    for arm, before in transcripts.items():
+        assert (run_dir / arm / "transcript.jsonl").read_bytes() == before, "the transcript is read, never rewritten"
+    assert (run_dir / "run.json").read_bytes() == run_json
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert card["rejudged"] and card["models"] == {"assistant": "test-model", "persona": "test-persona", "judge": "other-judge"}
+    assert card["endings"] == json.loads(run_json)["per_arm"]["planner"]["endings"]
+    new_raws = sorted(p.name for p in (run_dir / "planner" / "raw").iterdir())
+    assert new_raws[:len(old_raws)] == old_raws and len(new_raws) == len(old_raws) + len(sim.JUDGE_CATEGORIES)
+    assert "Rejudged" in (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "other-judge" in (run_dir / "rejudge.json").read_text(encoding="utf-8")
+    assert "keyword hits" in (run_dir / "compare.html").read_text(encoding="utf-8")
+
+
+def test_rejudge_refuses_an_empty_transcript_and_flags_it_does_not_need(tmp_path):
+    empty = tmp_path / "transcript.jsonl"
+    empty.write_text("", encoding="utf-8")
+    with pytest.raises(sim.ToolFailure, match="no spoken turns"):
+        sim.Transcript.load(empty)
+    assert empty.read_text(encoding="utf-8") == ""
+    with pytest.raises(SystemExit):
+        sim.parse_args(["--rejudge", str(tmp_path), "--judge-model", "j", "--budget", "1", "--model", "m"])
+    args = sim.parse_args(["--rejudge", str(tmp_path), "--judge-model", "j", "--budget", "1"])
+    assert args.rejudge == str(tmp_path)

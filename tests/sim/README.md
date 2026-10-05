@@ -31,6 +31,18 @@ none has a default.
 - `--stub` swaps `claude` for the scripted fake in `stub/`. It costs nothing, and it is what the tests use.
 - `--out` changes the results folder. The default is `tests/sim/results/`, which git ignores.
 
+To score a finished run again without replaying it, for example after the judge or the keywords change:
+
+```
+python3 tests/sim/run.py --rejudge tests/sim/results/<run-id> --judge-model claude-sonnet-5-5 --budget 4
+```
+
+It reads each arm's `transcript.jsonl` and `vault/`, and the persona, models and endings from `run.json`. It
+rewrites `scorecard.json`, `scorecard.md` and `compare.html`, writes what it cost to `rejudge.json`, and never
+writes the transcript, the vault or `run.json`. New raw judge files are numbered after the run's own. It takes no
+persona, `--model`, `--persona-model`, `--script` or `--arms`, because the run already fixed them. It exits 0 when
+every arm was scored and 2 on a tool failure, such as a transcript with no turns.
+
 | Arm | Vault | Plugin | Voice |
 |---|---|---|---|
 | `planner` | `template/`, plugin copied to `.claude/skills/planner` | `--plugin-dir plugin` | the AOSA public seed |
@@ -60,7 +72,9 @@ The reasoning, for a Sonnet-class assistant model:
   about 80: around 55 ordinary turns and 25 close turns. That is about $10 to $40 an arm.
 - Each assistant turn has a persona turn. On a Haiku-class model, over a transcript that grows to about
   40k tokens, that is about $2 to $4 an arm.
-- The judge is one call over the transcript and the vault pages, about 100k tokens: under $1 an arm.
+- The judge is six calls an arm, one per category. Each holds the transcript and only what its category needs:
+  the vault for K and D, the inbox for W and the shape. On the smoke run that is about 8k to 17k tokens a call,
+  60k to 70k an arm, plus the thinking each call does: about $0.50 to $1 an arm.
 
 So the default two arms come to about **$25 to $90** on a Sonnet-class model, and several times that on an
 Opus-class model. The smoke script comes to about **$3 to $8** for two arms. These rates are assumptions; check
@@ -105,9 +119,23 @@ The shape of the guidance: the most questions in one assistant turn (counted by 
 the turns that told rather than asked, decisions made without a yes, invented facts, and whether each session
 ended with a clear next step.
 
+Beside every verdict the scorecard sets the driver's **keyword hits**: the assistant turns and final vault pages
+that hold one of the item's `keywords` from the persona, and for W and U items the lead turns too. A gap the lead
+raised first is not one the assistant surfaced. Vault hits leave out `CONVENTIONS.md`, `CLAUDE.md`, `README.md`,
+`voice/`, `.inbox/` and any keyword the template's own copy of the page already holds. **Check these**, at the top,
+lists every item where the judge and the hits disagree, such as "K4: judge: no; vault mentions FERRYMASTER in
+01-goals.md". Neither side is proof. A hit can be a question or a parked idea, and a capture can use other words.
+Read the item before you believe either.
+
+The judge makes one call per category, so it reads each item. Every row starts with a `search` note on what it
+looked for and where, written before the verdict; a row without one is rejected and asked again once. The judge
+gets the hits as hints and is told that a hint is not proof. Judge calls pass `--effort high` and
+`alwaysThinkingEnabled`, and the scorecard prints each call's thinking tokens. If every call reports 0, Check
+these says so.
+
 Every claim needs a turn number and a quote. The driver checks each one against the transcript: the quote must
-appear in that turn, give or take whitespace, quote marks and emphasis. A K claim must name a file that exists
-in the final vault. A claim that fails is turned to "no" and listed under "Dropped claims". This is mechanical,
+appear in that turn, give or take whitespace, quote marks and emphasis. A K claim must name a page of the final vault, so
+not the inbox, the conventions or the voice examples. A claim that fails is turned to "no" and listed under "Dropped claims". This is mechanical,
 not taste. Read the quoted turns in `transcript.html` before you believe a score.
 
 ## What the driver does that a person would do
@@ -161,7 +189,10 @@ wrong, rather than producing a quietly wrong score.
    without touching your login, and that `claudeMdExcludes` passed through `--settings` is honoured.
 6. **The `gh` stub stays first on `PATH`.** Claude Code's Bash tool may rebuild `PATH` from your shell
    profile. If it does, the real `gh` runs, and fails for want of a token instead.
-7. **The voice reviewer.** Close dispatches it with the Agent tool, which is not in `--allowedTools`. With
+7. **Judge thinking.** `claude --help` lists `--effort <level>`; `alwaysThinkingEnabled` is a settings key the
+   help does not list. Whether either makes a `-p` call with `--system-prompt` and `--tools ""` think shows in
+   `output_tokens_details.thinking_tokens`, which each scorecard prints per call.
+8. **The voice reviewer.** Close dispatches it with the Agent tool, which is not in `--allowedTools`. With
    `--permission-prompts none` it may be denied, and close then writes "Voice review: not run".
 
 ## What it can't tell you
@@ -176,14 +207,17 @@ wrong, rather than producing a quietly wrong score.
 script. It checks the transcript, the HTML escaping, `--resume` from the second turn, the `gh` stub on `PATH`,
 the Seuss examples in one arm only, the baseline vault without skills, the budget stop (exit 1), a missing JSON
 field (exit 2), bad judge JSON (exit 2), the required flags, the persona and script files, the voice files,
-the simulated merge, and that nothing is written outside the run folder. It costs nothing.
+the simulated merge, that nothing is written outside the run folder, the persona keywords, the keyword hits (lead
+turns excluded for U), Check these, one judge call per category with thinking asked for, the `search` note, and
+`--rejudge` on a copy of a stub run without an assistant or persona call. It costs nothing.
 
 ## Files
 
 - `run.py`: the driver.
 - `personas/coastal-merger.yaml`: the default persona. Harbourline has merged with Northway Rail, the CIO's
-  mandate is one line, and the lead starts from an empty vault. 15 K, 5 W, 8 U, 4 C and 5 D items, and four
-  inbox documents that contradict each other in places.
+  mandate is one line, and the lead starts from an empty vault. 15 K, 5 W, 8 U, 4 C and 5 D items, each with
+  two to four `keywords`, and four inbox documents that contradict each other in places. A missing or empty
+  keyword list fails the run at load, exit 2, and no keyword other than K1's may appear in the opening.
 - `scripts/default.yaml` and `scripts/smoke.yaml`: the sessions, with each arm's opening and a turn cap.
 - `voices/seuss-style/`: two original pastiche examples per voice type. None holds text from any published
   book, and each says so in its `from` field.

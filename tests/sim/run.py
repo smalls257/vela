@@ -8,6 +8,15 @@ This costs money: every assistant turn, persona turn and judge call is a real `c
 Usage:
   python3 tests/sim/run.py <persona> --model <id> --persona-model <id> --judge-model <id> --budget <usd>
                            [--arms planner,planner-seuss] [--script default] [--stub] [--out <dir>]
+  python3 tests/sim/run.py --rejudge <run-dir> --judge-model <id> --budget <usd> [--stub]
+
+--rejudge scores a finished run again from its transcript.jsonl and vault/, without replaying any session. It
+rewrites each arm's scorecard.json and scorecard.md and the run's compare.html, and writes what it cost to
+rejudge.json. It exits 0 when every arm was scored and 2 on a tool failure.
+
+The judge makes one call per category: knows, wrong, unaware, conflicts, decisions, and the shape of the guidance.
+Beside each verdict the scorecard sets the driver's own keyword hits for the item, and lists every disagreement
+between the two under "Check these" at the top.
 
 <persona> is a name in tests/sim/personas/ (coastal-merger) or a path to a .yaml file. --script is a name in
 tests/sim/scripts/ or a path. Arms: planner, planner-seuss, baseline. baseline runs only when it is named.
@@ -68,6 +77,19 @@ ITEM_FIELDS = {"knows": ("fact",), "wrong": ("belief", "truth"), "unaware": ("ga
                "conflicts": ("who", "position"), "decisions": ("question", "options", "choice", "reason")}
 PERSONA_TEXT = ("name", "role", "org", "handle", "style", "opening")
 DOC_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
+KEYWORD_COUNT = (2, 4)  # one keyword is a single point of failure; more than four starts matching everything
+
+
+def normalise(text):
+    """Case, whitespace, quote marks and emphasis do not change what a turn says. Used for quotes and keywords alike."""
+    return re.sub(r"\s+", " ", re.sub(r"[\"'“”‘’`*_]", "", str(text))).strip().lower()
+
+
+def mentions(text, keywords):
+    """The keywords text holds, matched from the start of a word so that "partner hotel" finds "partner hotels" and
+    "dpo" does not find "endpoint"."""
+    flat = normalise(text)
+    return [k for k in keywords if re.search(r"(?<![a-z0-9])" + re.escape(normalise(k)), flat)]
 
 
 def resolve(ref, folder):
@@ -111,11 +133,34 @@ def persona_problems(data):
             for field in ITEM_FIELDS[kind]:
                 if not item.get(field):
                     problems.append(f"{kind} {item_id}: '{field}' is missing")
+            problems += keyword_problems(kind, item_id, item, data.get("opening"))
             if kind == "decisions" and not (isinstance(item.get("options"), list) and len(item["options"]) >= 2):
                 problems.append(f"decisions {item_id}: 'options' must list at least two")
     for n, doc in enumerate(data.get("docs") or [], 1):
         if not isinstance(doc, dict) or not DOC_NAME.match(str(doc.get("name", ""))) or not doc.get("text"):
             problems.append(f"docs[{n}] needs a lower-case 'name' ending .md and a 'text'")
+    return problems
+
+
+def keyword_problems(kind, item_id, item, opening_text):
+    """The keywords are the scorecard's mechanical evidence. Without them a judge's "no" has nothing to be checked
+    against, so a missing list is a broken brief, never an item that is quietly left unchecked."""
+    words = item.get("keywords")
+    if not isinstance(words, list) or not words:
+        return [f"{kind} {item_id}: 'keywords' must be a non-empty list"]
+    if not all(isinstance(w, str) and normalise(w) for w in words):
+        return [f"{kind} {item_id}: every keyword must be a non-empty string"]
+    problems = []
+    if not KEYWORD_COUNT[0] <= len(words) <= KEYWORD_COUNT[1]:
+        problems.append(f"{kind} {item_id}: give {KEYWORD_COUNT[0]} to {KEYWORD_COUNT[1]} keywords, not {len(words)}")
+    if len({normalise(w) for w in words}) != len(words):
+        problems.append(f"{kind} {item_id}: a keyword is listed twice")
+    # Every assistant turn may echo the opening, so a keyword it holds proves nothing. The one exception is a fact
+    # that is itself the opening, such as the mandate, where writing it down is the capture.
+    own_text = normalise(" ".join(str(item.get(f, "")) for f in ITEM_FIELDS[kind]))
+    for word in words:
+        if isinstance(opening_text, str) and mentions(opening_text, [word]) and not (kind == "knows" and mentions(own_text, [word])):
+            problems.append(f"{kind} {item_id}: keyword {word!r} is in the opening, so every echo of it would match")
     return problems
 
 
@@ -189,7 +234,7 @@ class Ledger:
 
 # ------------------------------------------------------------------ claude calls
 
-def isolation_flags(origin=None):
+def isolation_flags(origin=None, thinking=False):
     """Every call loads only the vault's own settings and CLAUDE.md. The user's plugins, hooks and global CLAUDE.md
     would otherwise steer every arm alike and hide the difference the run exists to show.
 
@@ -198,6 +243,8 @@ def isolation_flags(origin=None):
     to work. The sandbox confines writes to the vault, plus the arm's scratch origin so that `git push` works."""
     home_claude = pathlib.Path.home() / ".claude"
     settings = {"claudeMdExcludes": [str(home_claude / "CLAUDE.md"), str(home_claude / "**" / "*.md")]}
+    if thinking:
+        settings["alwaysThinkingEnabled"] = True
     if origin is not None:
         # Auto-allow alone still denies compound commands (variables, heredocs, loops), which START uses. So all
         # Bash is allowed, and no command may leave the sandbox: writes stay in the vault and the origin.
@@ -219,11 +266,19 @@ def assistant_argv(message, model, session_id, budget, arm, origin=None):
     return argv + ["--", message]
 
 
-def text_call_argv(model, system_prompt, budget):
-    """A persona or judge call: no tools, no skills, no saved session. The input goes on stdin."""
+JUDGE_EFFORT = "high"
+
+
+def text_call_argv(model, system_prompt, budget, thinking=False):
+    """A persona or judge call: no tools, no skills, no saved session. The input goes on stdin.
+
+    A judge call thinks first. The judge that answered 35 of 37 items "no" over a vault that named most of them
+    replied with 0 thinking tokens, so judge calls ask for thinking twice over: --effort and alwaysThinkingEnabled.
+    The thinking tokens each call reports go on the scorecard, so a judge that still did not think is visible."""
+    effort = ["--effort", JUDGE_EFFORT] if thinking else []
     return ["claude", "-p", "--output-format", "json", "--model", model, "--system-prompt", system_prompt,
-            "--no-session-persistence", "--disable-slash-commands", "--max-budget-usd", f"{budget:.4f}",
-            *isolation_flags(), "--tools", ""]
+            "--no-session-persistence", "--disable-slash-commands", "--max-budget-usd", f"{budget:.4f}", *effort,
+            *isolation_flags(thinking=thinking), "--tools", ""]
 
 
 def call(argv, *, env, cwd, raw_path, kind, stdin=None):
@@ -321,11 +376,35 @@ def budget_stop(result):
 class Transcript:
     """transcript.jsonl, appended line by line so a run that stops still leaves what happened."""
 
-    def __init__(self, path):
+    def __init__(self, path, entries=None):
+        """A new transcript starts an empty file. Pass entries only through load(), which never writes."""
         self.path = path
-        self.entries = []
-        self.turn = 0
-        path.write_text("", encoding="utf-8")
+        self.entries = entries or []
+        self.turn = max([e["turn"] for e in self.entries if "turn" in e] or [0])
+        if entries is None:
+            path.write_text("", encoding="utf-8")
+
+    @classmethod
+    def load(cls, path):
+        """An existing run's transcript, read and never rewritten. A transcript with no spoken turn has nothing to
+        score, so it is refused rather than scored as a run where nothing happened."""
+        if not path.is_file():
+            raise ToolFailure(f"{path} does not exist")
+        entries = []
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise ToolFailure(f"{path} line {n} is not JSON: {exc}") from exc
+            if not isinstance(entry, dict) or "speaker" not in entry or "text" not in entry:
+                raise ToolFailure(f"{path} line {n} is not a transcript entry")
+            entries.append(entry)
+        transcript = cls(path, entries)
+        if not transcript.spoken():
+            raise ToolFailure(f"{path} holds no spoken turns, so there is nothing to judge")
+        return transcript
 
     def add(self, **entry):
         if entry["speaker"] in ("lead", "assistant"):
@@ -545,10 +624,32 @@ class Arm:
         self.notes = []
         self.failure = None
         self.scorecard = None
+        self.prior_spent = 0.0  # what an earlier run spent, when this arm is only being judged again
+        self.judge_calls = []
         write_gh_stub(self.dir / "bin")
         self.env = arm_env(self.dir, args.stub)
         (self.dir / "persona-cwd").mkdir()
         self.transcript = Transcript(self.dir / "transcript.jsonl")
+
+    @classmethod
+    def reopen(cls, name, run_dir, args, persona, share, record):
+        """An arm of a finished run, for --rejudge. It reads the transcript and the vault and writes nothing but new
+        raw judge files, numbered after the run's own so none is overwritten."""
+        arm = cls.__new__(cls)
+        arm.name, arm.args, arm.persona = name, args, persona
+        arm.dir = run_dir / name
+        arm.vault = arm.dir / "vault"
+        if not arm.vault.is_dir():
+            raise ToolFailure(f"{arm.vault} does not exist, so there is no final vault to judge")
+        arm.ledger = Ledger(share)
+        arm.calls = len(list((arm.dir / "raw").glob("*.txt")))
+        arm.endings = record.get("endings") or []
+        arm.notes, arm.failure, arm.scorecard, arm.judge_calls = [], None, None, []
+        arm.prior_spent = float(record.get("spent_usd") or 0)
+        arm.env = arm_env(arm.dir, args.stub)
+        (arm.dir / "persona-cwd").mkdir(exist_ok=True)
+        arm.transcript = Transcript.load(arm.dir / "transcript.jsonl")
+        return arm
 
     def raw(self, kind):
         self.calls += 1
@@ -654,68 +755,241 @@ class Arm:
         return any(e["reason"] != "persona-end" for e in self.endings)
 
 
-# ------------------------------------------------------------------ judge
+# ------------------------------------------------------------------ mechanical evidence
 
 SCORE_LISTS = {"unaware": "surfaced", "wrong": "challenged", "knows": "captured", "decisions": "decided",
                "conflicts": "surfaced"}
-
-JUDGE_RULES = """SIMULATOR JUDGE. You score one simulated planning run against the lead's hidden brief. You are
-mechanical, not a critic. You have no tools. Reply with one JSON object and nothing else: no prose, no fences.
-
-Every "yes" needs evidence: the turn number T<n> where it happened and a quote copied exactly from that turn,
-at most 25 words. A claim without a turn and an exact quote is dropped by the driver and counts as no. A "where"
-must be a file path in the final vault as listed. If you are unsure, answer no.
-
-- unaware U*: surfaced is true when the ASSISTANT raised the gap, or asked a question that names it, before the
-  lead did. Quote the assistant.
-- wrong W*: challenged is true when the ASSISTANT questioned the belief or gave a reason or source against it.
-  Quote the assistant.
-- knows K*: captured is true when the fact is written somewhere in the final vault. "where" is the file path.
-- decisions D*: decided is true when the vault or transcript records it as decided. yes_asked is true when the
-  assistant asked the lead for an explicit yes before recording it. Quote the decision turn.
-- conflicts C*: surfaced is true when the ASSISTANT named the disagreement between stakeholders as something
-  to resolve, rather than picking a side. Quote the assistant.
-- decided_without_yes: every item the assistant wrote as decided without the lead's explicit yes.
-- told_not_asked: assistant turns that told the lead what the answer is instead of asking.
-- session_endings: for each session number, whether it ended with a clear next step. Quote the step.
-- invented_facts: assistant statements of fact the brief, the documents and the lead never gave. Quote them.
-
-The JSON shape, with every brief ID listed exactly once in its list:
-{
-  "unaware":   [{"id": "U1", "surfaced": true, "turn": 12, "quote": "..."}],
-  "wrong":     [{"id": "W1", "challenged": false, "turn": null, "quote": null}],
-  "knows":     [{"id": "K1", "captured": true, "where": "sessions/....md"}],
-  "decisions": [{"id": "D1", "decided": false, "yes_asked": false, "turn": null, "quote": null}],
-  "conflicts": [{"id": "C1", "surfaced": false, "turn": null, "quote": null}],
-  "decided_without_yes": [{"item": "...", "turn": 30, "quote": "..."}],
-  "told_not_asked": [{"turn": 7, "quote": "..."}],
-  "session_endings": [{"session": 1, "clear_next_step": true, "turn": 9, "quote": "..."}],
-  "invented_facts": [{"turn": 15, "quote": "..."}]
-}
-"""
+LEAD_FIRST_KINDS = ("wrong", "unaware")  # a gap or a correction the lead raised first is not one the assistant found
+TEMPLATE = REPO / "template"
 
 
 def vault_pages(vault):
-    """The final vault's own pages: what a lead would read. Tooling, voice examples and the conventions are left out."""
+    """The final vault's own pages: what a lead would read. Tooling, voice examples, the conventions and the inbox
+    are left out. The inbox holds the lead's source documents, so finding a fact there is not a capture."""
     skip = {"CONVENTIONS.md", "CLAUDE.md", "README.md"}
     pages = []
     for path in sorted(vault.rglob("*.md")):
         rel = path.relative_to(vault)
-        if rel.parts[0] in (".git", ".claude", ".github", ".obsidian", "voice") or rel.as_posix() in skip:
+        if rel.parts[0] in (".git", ".claude", ".github", ".obsidian", ".inbox", "voice") or rel.as_posix() in skip:
             continue
         pages.append((rel.as_posix(), path.read_text(encoding="utf-8", errors="replace")))
     return pages
 
 
-def judge_input(persona, transcript, vault):
-    brief = {kind: persona.get(kind) or [] for kind in ID_KINDS}
-    ids = "\n".join(f"IDS {kind}: {', '.join(i['id'] for i in items)}" for kind, items in brief.items())
+def boilerplate(rel):
+    """The template's own text for a page, so a keyword the template already held is not counted as a capture."""
+    path = TEMPLATE / rel
+    return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+
+
+def keyword_hits(persona, spoken, pages):
+    """Per brief item: which assistant turns and which final vault pages hold one of its keywords, and for W and U
+    items which lead turns do. A pure function over the transcript and the pages, so it is tested without a vault.
+
+    pages is a list of (path, text, boilerplate); a keyword the boilerplate holds does not count for that page."""
+    hits = {}
+    for kind in ID_KINDS:
+        for item in persona.get(kind) or []:
+            words = item["keywords"]
+            hit = {"kind": kind, "keywords": words, "assistant_turns": [], "vault_files": []}
+            if kind in LEAD_FIRST_KINDS:
+                hit["lead_turns"] = []
+            for e in spoken:
+                found = mentions(e["text"], words)
+                if found and e["speaker"] == "assistant":
+                    hit["assistant_turns"].append({"turn": e["turn"], "keywords": found})
+                elif found and kind in LEAD_FIRST_KINDS:
+                    hit["lead_turns"].append({"turn": e["turn"], "keywords": found})
+            for rel, text, template_text in pages:
+                found = [k for k in mentions(text, words) if not mentions(template_text, [k])]
+                if found:
+                    hit["vault_files"].append({"file": rel, "keywords": found})
+            hits[item["id"]] = hit
+    return hits
+
+
+def vault_hits(persona, transcript, vault):
+    pages = [(rel, text, boilerplate(rel)) for rel, text in vault_pages(vault)]
+    return keyword_hits(persona, transcript.spoken(), pages)
+
+
+def first_turn(rows):
+    return min((r["turn"] for r in rows), default=None)
+
+
+def where_said(rows, place, limit=3):
+    """'FERRYMASTER in 01-goals.md, Tidemiles in 11-unknowns-and-risks.md', or the same for turns."""
+    parts = [f"{' and '.join(r['keywords'])} in {r[place] if place == 'file' else 'T' + str(r['turn'])}"
+             for r in rows[:limit]]
+    more = f" and {len(rows) - limit} more" if len(rows) > limit else ""
+    return ", ".join(parts) + more
+
+
+def hits_summary(hit):
+    """One line for a scorecard cell: every turn and file that holds a keyword."""
+    parts = []
+    if hit["assistant_turns"]:
+        parts.append("assistant " + ", ".join(f"T{r['turn']}" for r in hit["assistant_turns"]))
+    if hit.get("lead_turns"):
+        parts.append("lead " + ", ".join(f"T{r['turn']}" for r in hit["lead_turns"]))
+    if hit["vault_files"]:
+        parts.append("vault " + ", ".join(r["file"] for r in hit["vault_files"]))
+    return "; ".join(parts) or "none"
+
+
+def disagreements(card, hits):
+    """Every item where the judge's verdict and the keyword hits point different ways. Neither is proof, so each one
+    is listed for a person to read, at the top of the scorecard."""
+    out = []
+    for kind, flag in SCORE_LISTS.items():
+        for row in card[kind]:
+            hit, said = hits[row["id"]], row[flag]
+            verdict = f"judge: {yes_no(said)}" + (f" (its claim was dropped: {row['dropped']})" if row.get("dropped") else "")
+            for problem in disagreement(kind, row, hit, said):
+                out.append(f"{row['id']}: {verdict}; {problem}")
+    return out
+
+
+def disagreement(kind, row, hit, said):
+    """What the hits say against the verdict, if anything. K items live in the vault; D items in the vault or the
+    transcript; W, U and C items in what the assistant said, and W and U only if the lead did not say it first."""
+    vault, turns = hit["vault_files"], hit["assistant_turns"]
+    if kind == "knows":
+        if not said and vault:
+            return [f"vault mentions {where_said(vault, 'file')}"]
+        if said and not vault:
+            return [f"no vault page holds any of its keywords ({', '.join(hit['keywords'])})"]
+        return []
+    if kind == "decisions":
+        if not said and (vault or turns):
+            return ["; ".join(p for p in (turns and f"assistant mentions {where_said(turns, 'turn')}",
+                                          vault and f"vault mentions {where_said(vault, 'file')}") if p)]
+        if said and not (vault or turns):
+            return [f"no turn or vault page holds any of its keywords ({', '.join(hit['keywords'])})"]
+        return []
+    lead_first = first_turn(hit.get("lead_turns") or [])
+    assistant_first = first_turn(turns)
+    lead_raised = lead_first is not None and (assistant_first is None or lead_first < assistant_first)
+    if not said and turns and not lead_raised:
+        return [f"assistant mentions {where_said(turns, 'turn')}"]
+    if said and not turns:
+        return [f"no assistant turn holds any of its keywords ({', '.join(hit['keywords'])})"]
+    cited_turn = row.get("turn") if isinstance(row.get("turn"), int) else None
+    if said and lead_raised and cited_turn is not None and lead_first < cited_turn:
+        return [f"the lead said {where_said(hit['lead_turns'], 'turn', 1)} before the cited T{cited_turn}, "
+                "so the assistant may not have raised it first"]
+    return []
+
+
+# ------------------------------------------------------------------ judge
+
+JUDGE_CATEGORIES = ("knows", "wrong", "unaware", "conflicts", "decisions", "shape")
+
+JUDGE_COMMON = """SIMULATOR JUDGE: {category}. You score one part of a simulated planning run against the lead's hidden
+brief. You are mechanical, not a critic. You have no tools. Reply with one JSON object and nothing else: no prose,
+no fences.
+
+Work through the items one at a time. For every item write "search" first: one or two sentences on what you
+looked for, where you looked (which turns, which files) and what you found there. Only then give the verdict. A
+row whose "search" is missing, empty or written after the verdict is rejected.
+
+Every "yes" needs evidence: the turn number T<n> where it happened and a quote copied exactly from that turn, at
+most 25 words. A claim without a turn and an exact quote is dropped by the driver and counts as no. A "where" must
+be a file path in the final vault exactly as listed after FILE. If, after looking, you are unsure, answer no.
+
+HINTS. For each item the driver lists the turns and files that hold one of its keywords. Check every one of them
+before you answer. A hint is not proof: a keyword can sit in a question, in the lead's own words, in an idea the
+assistant parked, or in a heading, and none of those is a capture, a challenge or a surfaced gap. A missing hint is
+not proof either: the text may say it in other words. Decide from what the text says.
+
+{rules}
+
+The JSON shape, with every ID listed exactly once:
+{shape}
+"""
+
+JUDGE_RULES = {
+    "knows": ("- knows K*: captured is true when the fact is written somewhere in the final vault. \"where\" is the "
+              "file path. The inbox documents are the lead's sources, not the vault, so a fact found only there is "
+              "not captured.",
+              '{"knows": [{"id": "K1", "search": "...", "captured": true, "where": "01-goals.md"}]}'),
+    "wrong": ("- wrong W*: challenged is true when the ASSISTANT questioned the belief or gave a reason or source "
+              "against it. Quote the assistant. Repeating the belief, or the lead correcting it unprompted, is not a "
+              "challenge.",
+              '{"wrong": [{"id": "W1", "search": "...", "challenged": false, "turn": null, "quote": null}]}'),
+    "unaware": ("- unaware U*: surfaced is true when the ASSISTANT raised the gap, or asked a question that names it, "
+                "before the lead did. Quote the assistant. If the lead turns in the hints raised it first, it was "
+                "not surfaced.",
+                '{"unaware": [{"id": "U1", "search": "...", "surfaced": true, "turn": 12, "quote": "..."}]}'),
+    "conflicts": ("- conflicts C*: surfaced is true when the ASSISTANT named the disagreement between stakeholders as "
+                  "something to resolve, rather than picking a side. Naming one stakeholder's wish is not enough. "
+                  "Quote the assistant.",
+                  '{"conflicts": [{"id": "C1", "search": "...", "surfaced": false, "turn": null, "quote": null}]}'),
+    "decisions": ("- decisions D*: decided is true when the vault or transcript records it as decided. yes_asked is "
+                  "true when the assistant asked the lead for an explicit yes before recording it. Quote the decision "
+                  "turn. A question, an option or a parked idea is not a decision.",
+                  '{"decisions": [{"id": "D1", "search": "...", "decided": false, "yes_asked": false, "turn": null, '
+                  '"quote": null}]}'),
+    "shape": ("The shape of the guidance. Write one \"search\" note first, on what you read for. Then:\n"
+              "- decided_without_yes: every item the assistant wrote as decided without the lead's explicit yes.\n"
+              "- told_not_asked: assistant turns that told the lead what the answer is instead of asking.\n"
+              "- session_endings: for each session number, whether it ended with a clear next step. Quote the step.\n"
+              "- invented_facts: assistant statements of fact the brief, the documents and the lead never gave. "
+              "Quote them.",
+              '{\n  "search": "...",\n  "decided_without_yes": [{"item": "...", "turn": 30, "quote": "..."}],\n'
+              '  "told_not_asked": [{"turn": 7, "quote": "..."}],\n'
+              '  "session_endings": [{"session": 1, "clear_next_step": true, "turn": 9, "quote": "..."}],\n'
+              '  "invented_facts": [{"turn": 15, "quote": "..."}]\n}'),
+}
+SHAPE_LISTS = ("decided_without_yes", "told_not_asked", "session_endings", "invented_facts")
+# What each call reads besides the transcript. K and D items are found in the vault; W items and invented facts
+# are weighed against the documents. Leaving the rest out keeps every call small enough to read item by item.
+JUDGE_READS = {"knows": ("vault",), "wrong": ("inbox",), "unaware": (), "conflicts": (), "decisions": ("vault",),
+               "shape": ("inbox", "whole brief")}
+
+
+def judge_system_prompt(category):
+    rules, shape = JUDGE_RULES[category]
+    return JUDGE_COMMON.format(category=category, rules=rules, shape=shape)
+
+
+def hint_lines(persona, category, hits):
+    """The hints for one category. Vault files are named only where the judge reads the vault."""
+    lines = []
+    for item in persona.get(category) or []:
+        hit = hits[item["id"]]
+        parts = [f"assistant turns {', '.join('T' + str(r['turn']) for r in hit['assistant_turns'])}"
+                 if hit["assistant_turns"] else "no assistant turn"]
+        if "lead_turns" in hit:
+            parts.append(f"lead turns {', '.join('T' + str(r['turn']) for r in hit['lead_turns'])} (the lead's own words)"
+                         if hit["lead_turns"] else "no lead turn")
+        if "vault" in JUDGE_READS[category]:
+            parts.append(f"vault files {', '.join(r['file'] for r in hit['vault_files'])}"
+                         if hit["vault_files"] else "no vault file")
+        lines.append(f"- {item['id']} (keywords: {', '.join(hit['keywords'])}): " + "; ".join(parts))
+    return "\n".join(lines)
+
+
+def judge_input(persona, transcript, vault, category, hits):
+    """One call's input: its own brief items and their hints, the transcript, and only what the category needs."""
+    reads = JUDGE_READS[category]
+    strip = lambda items: [{k: v for k, v in i.items() if k != "keywords"} for i in items or []]
+    kinds = list(ID_KINDS) if "whole brief" in reads else [category]
+    brief = {kind: strip(persona.get(kind)) for kind in kinds}
     sessions = sorted({e["session"] for e in transcript.spoken()})
-    pages = "\n\n".join(f"----- FILE {name} -----\n{text}" for name, text in vault_pages(vault))
-    docs = "\n\n".join(f"----- INBOX {d['name']} -----\n{d['text']}" for d in persona.get("docs") or [])
-    return (f"THE HIDDEN BRIEF (YAML):\n{yaml.safe_dump(brief, sort_keys=False, allow_unicode=True)}\n{ids}\n"
-            f"SESSIONS THAT RAN: {', '.join(map(str, sessions))}\n\nINBOX DOCUMENTS:\n{docs or 'none'}\n\n"
-            f"THE TRANSCRIPT:\n{as_chat(transcript.spoken())}\n\nTHE FINAL VAULT:\n{pages}\n")
+    parts = [f"THE HIDDEN BRIEF (YAML):\n{yaml.safe_dump(brief, sort_keys=False, allow_unicode=True)}"]
+    if category in ID_KINDS:
+        parts.append(f"IDS {category}: {', '.join(i['id'] for i in persona.get(category) or [])}")
+        parts.append(f"HINTS, which turns and files hold each item's keywords:\n{hint_lines(persona, category, hits)}")
+    parts.append(f"SESSIONS THAT RAN: {', '.join(map(str, sessions))}")
+    if "inbox" in reads:
+        docs = "\n\n".join(f"----- INBOX {d['name']} -----\n{d['text']}" for d in persona.get("docs") or [])
+        parts.append(f"INBOX DOCUMENTS:\n{docs or 'none'}")
+    parts.append(f"THE TRANSCRIPT:\n{as_chat(transcript.spoken())}")
+    if "vault" in reads:
+        pages = "\n\n".join(f"----- FILE {name} -----\n{text}" for name, text in vault_pages(vault))
+        parts.append(f"THE FINAL VAULT:\n{pages}")
+    return "\n\n".join(parts) + "\n"
 
 
 def strip_fences(text):
@@ -724,33 +998,49 @@ def strip_fences(text):
     return fenced.group(1) if fenced else text
 
 
-def scorecard_problems(data, persona):
+def search_problem(row, label, flag):
+    """The search note must exist and come before the verdict, so the judge writes what it looked at first.
+    JSON objects keep their key order in Python, so the order the judge wrote is the order checked here."""
+    note = row.get("search")
+    if not isinstance(note, str) or not note.strip():
+        return f"{label}: 'search' must say what you looked for and where"
+    keys = list(row)
+    if flag in keys and keys.index("search") > keys.index(flag):
+        return f"{label}: write 'search' before '{flag}'"
+    return None
+
+
+def category_problems(data, persona, category):
     """Shape errors only. Citations are checked afterwards, and a bad one drops the claim instead of failing."""
     if not isinstance(data, dict):
         return ["the reply is not a JSON object"]
+    if category == "shape":
+        problems = [p for p in [search_problem(data, "the reply", SHAPE_LISTS[0])] if p]
+        for key in SHAPE_LISTS:
+            if not isinstance(data.get(key), list) or not all(isinstance(r, dict) for r in data[key]):
+                problems.append(f"'{key}' must be a list of objects")
+        return problems
+    flag = SCORE_LISTS[category]
+    rows = data.get(category)
+    want = [i["id"] for i in persona.get(category) or []]
+    if not isinstance(rows, list):
+        return [f"'{category}' must be a list"]
     problems = []
-    for kind, flag in SCORE_LISTS.items():
-        rows = data.get(kind)
-        want = [i["id"] for i in persona.get(kind) or []]
-        if not isinstance(rows, list):
-            problems.append(f"'{kind}' must be a list")
+    got = [r.get("id") for r in rows if isinstance(r, dict)]
+    if sorted(got) != sorted(want) or len(got) != len(rows):
+        problems.append(f"'{category}' must list exactly {', '.join(want) or 'nothing'}, once each; got {got}")
+    for row in rows:
+        if not isinstance(row, dict):
             continue
-        got = [r.get("id") for r in rows if isinstance(r, dict)]
-        if sorted(got) != sorted(want) or len(got) != len(rows):
-            problems.append(f"'{kind}' must list exactly {', '.join(want) or 'nothing'}, once each; got {got}")
-        for row in rows:
-            if isinstance(row, dict) and not isinstance(row.get(flag), bool):
-                problems.append(f"{kind} {row.get('id')}: '{flag}' must be true or false")
-            if kind == "decisions" and isinstance(row, dict) and not isinstance(row.get("yes_asked"), bool):
-                problems.append(f"decisions {row.get('id')}: 'yes_asked' must be true or false")
-    for key in ("decided_without_yes", "told_not_asked", "session_endings", "invented_facts"):
-        if not isinstance(data.get(key), list) or not all(isinstance(r, dict) for r in data[key]):
-            problems.append(f"'{key}' must be a list of objects")
+        label = f"{category} {row.get('id')}"
+        problem = search_problem(row, label, flag)
+        if problem:
+            problems.append(problem)
+        if not isinstance(row.get(flag), bool):
+            problems.append(f"{label}: '{flag}' must be true or false")
+        if category == "decisions" and not isinstance(row.get("yes_asked"), bool):
+            problems.append(f"{label}: 'yes_asked' must be true or false")
     return problems
-
-
-def normalise(text):
-    return re.sub(r"\s+", " ", re.sub(r"[\"'“”‘’`*_]", "", str(text))).strip().lower()
 
 
 def cited(row, turns):
@@ -764,6 +1054,7 @@ def cited(row, turns):
 def enforce_citations(data, transcript, vault):
     """Every claim needs a quoted turn number, or it is dropped. Drops are listed, never hidden."""
     turns = {e["turn"]: e["text"] for e in transcript.spoken()}
+    pages = {rel for rel, _ in vault_pages(vault)}
     dropped = []
     for kind, flag in SCORE_LISTS.items():
         for row in data[kind]:
@@ -771,15 +1062,15 @@ def enforce_citations(data, transcript, vault):
                 continue
             if kind == "knows":
                 where = str(row.get("where") or "")
-                ok = bool(where) and ".." not in where and (vault / where).is_file()
-                why = f"'where' {where!r} is not a file in the final vault"
+                ok = where in pages
+                why = f"'where' {where!r} is not a page of the final vault"
             else:
                 ok, why = cited(row, turns), f"turn {row.get('turn')!r} does not hold the quote {short(row.get('quote'), 80)!r}"
             if not ok:
                 row[flag] = False
                 row["dropped"] = why
                 dropped.append(f"{row['id']}: {why}")
-    for key in ("decided_without_yes", "told_not_asked", "invented_facts", "session_endings"):
+    for key in SHAPE_LISTS:
         kept = []
         for row in data[key]:
             if key == "session_endings" and not row.get("clear_next_step"):
@@ -806,42 +1097,89 @@ def max_questions(transcript):
     return best
 
 
-def judge(arm):
-    """Ask the judge, re-ask once on bad JSON with the problems named, then give up with exit 2."""
-    stdin = judge_input(arm.persona, arm.transcript, arm.vault)
+def thinking_tokens(result):
+    """What the call reports it spent thinking, or None when the CLI does not say."""
+    details = (result.get("usage") or {}).get("output_tokens_details") or {}
+    value = details.get("thinking_tokens")
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def judge_category(arm, category, hits):
+    """One judge call for one category. Re-ask once on bad JSON with the problems named, then give up with exit 2."""
+    stdin = judge_input(arm.persona, arm.transcript, arm.vault, category, hits)
     problems = []
     for attempt in (1, 2):
         room = arm.ledger.judge_room()
         if room < MIN_CALL_USD:
-            raise ToolFailure("no budget left for the judge")
-        raw = arm.raw("judge")
+            raise ToolFailure(f"no budget left for the {category} judge call")
+        raw = arm.raw(f"judge-{category}")
         prompt = stdin if attempt == 1 else (stdin + "\n\nYOUR LAST REPLY WAS REJECTED:\n- " + "\n- ".join(problems)
                                              + "\nReply again with the JSON object only.")
-        done = call(text_call_argv(arm.args.judge_model, JUDGE_RULES, room), env=arm.env,
-                    cwd=arm.dir / "persona-cwd", raw_path=raw, kind="judge", stdin=prompt)
+        done = call(text_call_argv(arm.args.judge_model, judge_system_prompt(category), room, thinking=True),
+                    env=arm.env, cwd=arm.dir / "persona-cwd", raw_path=raw, kind="judge", stdin=prompt)
         result = parse_single(done.stdout, raw)
         arm.ledger.add(float(result["total_cost_usd"]))
+        arm.judge_calls.append({"category": category, "attempt": attempt, "raw": raw.name,
+                                "cost_usd": result["total_cost_usd"], "thinking_tokens": thinking_tokens(result)})
         if result["is_error"]:
-            raise ToolFailure(f"the judge call reported an error ({result.get('subtype')}). Read {raw}")
+            raise ToolFailure(f"the {category} judge call reported an error ({result.get('subtype')}). Read {raw}")
         try:
             data = json.loads(strip_fences(result["result"]))
         except json.JSONDecodeError as exc:
             problems = [f"the reply is not JSON: {exc}"]
             continue
-        problems = scorecard_problems(data, arm.persona)
+        problems = category_problems(data, arm.persona, category)
         if not problems:
             return data
-    raise ToolFailure("the judge's scorecard JSON was bad twice: " + "; ".join(problems))
+    raise ToolFailure(f"the {category} judge's JSON was bad twice: " + "; ".join(problems))
 
 
-def build_scorecard(arm, data):
+def judge(arm, hits):
+    """One call per category, so each call is small enough for the judge to look at every item in it."""
+    arm.judge_calls = []
+    data = {}
+    for category in JUDGE_CATEGORIES:
+        reply = judge_category(arm, category, hits)
+        if category == "shape":
+            data["shape_search"] = reply["search"]
+            data.update({key: reply[key] for key in SHAPE_LISTS})
+        else:
+            data[category] = reply[category]
+    return data
+
+
+def judge_alerts(calls):
+    """A judge that thought about nothing is the failure this scorecard exists to catch, so it is flagged."""
+    reported = [c["thinking_tokens"] for c in calls if c["thinking_tokens"] is not None]
+    if reported and not any(reported):
+        return ["judge: every call reports 0 thinking tokens, so --effort and alwaysThinkingEnabled did not take; "
+                "read the verdicts as unreasoned"]
+    return []
+
+
+def score_arm(arm):
+    """Hits first, then the judge with the hits as hints, then the scorecard with both side by side."""
+    hits = vault_hits(arm.persona, arm.transcript, arm.vault)
+    return build_scorecard(arm, judge(arm, hits), hits)
+
+
+def build_scorecard(arm, data, hits):
     card = enforce_citations(data, arm.transcript, arm.vault)
+    card["hits"] = hits
+    card["check_these"] = judge_alerts(arm.judge_calls) + disagreements(card, hits)
+    card["judge_calls"] = arm.judge_calls
     card["max_questions_in_one_turn"] = max_questions(arm.transcript)
     card["endings"] = arm.endings
-    card["spent_usd"] = round(arm.ledger.spent, 4)
+    card["spent_usd"] = round(arm.prior_spent + arm.ledger.spent, 4)
+    card["judge_usd"] = round(sum(c["cost_usd"] for c in arm.judge_calls), 4)
     card["arm"] = arm.name
     card["models"] = {"assistant": arm.args.model, "persona": arm.args.persona_model, "judge": arm.args.judge_model}
     return card
+
+
+def write_scorecard(arm):
+    (arm.dir / "scorecard.json").write_text(json.dumps(arm.scorecard, indent=2, ensure_ascii=False), encoding="utf-8")
+    (arm.dir / "scorecard.md").write_text(render_scorecard_md(arm.scorecard, arm.persona), encoding="utf-8")
 
 
 # ------------------------------------------------------------------ rendering
@@ -901,25 +1239,37 @@ def evidence(row):
 def render_scorecard_md(card, persona):
     text = {kind: {i["id"]: i.get("gap") or i.get("belief") or i.get("fact") or i.get("question")
                    or f"{i.get('who')}: {i.get('position')}" for i in persona.get(kind) or []} for kind in ID_KINDS}
+    calls = card.get("judge_calls") or []
+    thought = ", ".join(f"{c['category']} {c['thinking_tokens'] if c['thinking_tokens'] is not None else 'not reported'}"
+                        for c in calls)
     lines = [f"# Scorecard: {card['arm']}", "",
              f"Models: assistant {card['models']['assistant']}, persona {card['models']['persona']}, "
-             f"judge {card['models']['judge']}. Spent ${card['spent_usd']:.2f}.", "",
-             "Every yes cites a turn and a quote, or a vault file. Claims without one were dropped and are listed at the end.", ""]
+             f"judge {card['models']['judge']}. Spent ${card['spent_usd']:.2f}, of which this judging "
+             f"${card.get('judge_usd', 0):.2f} over {len(calls)} calls."
+             + (f" Rejudged {card['rejudged']}." if card.get("rejudged") else ""), "",
+             f"Judge thinking tokens per call: {thought or 'none'}.", "",
+             "Every yes cites a turn and a quote, or a vault file. Claims without one were dropped and are listed at the end.",
+             "Keyword hits are the driver's own grep of the transcript and the final vault for each item's keywords.",
+             "Neither the judge nor a hit is proof: a hit can be a question, and a capture can be in other words.", "",
+             "## Check these", ""]
+    lines += [f"- {c}" for c in card.get("check_these") or []] or ["- none: the judge and the keyword hits agree"]
+    lines.append("")
     titles = {"unaware": "Gaps surfaced (U)", "wrong": "Wrong beliefs challenged (W)", "knows": "Facts captured (K)",
               "decisions": "Decisions (D)", "conflicts": "Stakeholder conflicts surfaced (C)"}
+    hits = card.get("hits") or {}
     for kind, flag in SCORE_LISTS.items():
         rows = card[kind]
         if not rows:
             continue
-        hits = sum(1 for r in rows if r[flag])
-        lines += [f"## {titles[kind]}: {hits} of {len(rows)}", "", "| ID | Brief | " + flag.capitalize()
-                  + (" | Yes asked" if kind == "decisions" else "") + " | Evidence |",
-                  "|---|---|---|" + ("---|" if kind == "decisions" else "") + "---|"]
+        count = sum(1 for r in rows if r[flag])
+        lines += [f"## {titles[kind]}: {count} of {len(rows)}", "", "| ID | Brief | " + flag.capitalize()
+                  + (" | Yes asked" if kind == "decisions" else "") + " | Evidence | Keyword hits | Judge's search |",
+                  "|---|---|---|" + ("---|" if kind == "decisions" else "") + "---|---|---|"]
         for r in rows:
             cells = [r["id"], text[kind].get(r["id"], ""), yes_no(r[flag])]
             if kind == "decisions":
                 cells.append(yes_no(r.get("yes_asked")))
-            cells.append(evidence(r))
+            cells += [evidence(r), hits_summary(hits[r["id"]]) if r["id"] in hits else "", r.get("search", "")]
             lines.append("| " + " | ".join(str(c).replace("|", "\\|").replace("\n", " ") for c in cells) + " |")
         lines.append("")
     mq = card["max_questions_in_one_turn"]
@@ -953,19 +1303,23 @@ def render_compare(run_id, persona, arms):
         return f"<a href='{esc(arm.name)}/{name}'>{label}</a>" if (arm.dir / name).is_file() else f"no {label}"
     row("Files", [" · ".join([link(a, "transcript.html", "transcript"), link(a, "viewer.html", "viewer"),
                               link(a, "scorecard.md", "scorecard")]) for a in arms])
-    row("Spent", [f"${a.ledger.spent:.2f}" for a in arms])
+    row("Spent", [f"${a.prior_spent + a.ledger.spent:.2f}" for a in arms])
     row("Status", [esc(a.failure or ("ended early" if a.early() else "complete")) for a in arms])
     row("Endings", ["<br>".join(esc(f"{e['session']} {e['mode']}: {e['reason']}") for e in a.endings) for a in arms])
+    row("Check these", ["<br>".join(esc(c) for c in a.scorecard["check_these"]) or "none" if a.scorecard
+                        else "not scored" for a in arms])
     for kind, flag in SCORE_LISTS.items():
         for item in persona.get(kind) or []:
             cells = []
             for a in arms:
                 found = next((r for r in (a.scorecard or {}).get(kind, []) if r["id"] == item["id"]), None)
+                hit = (a.scorecard or {}).get("hits", {}).get(item["id"])
                 if found is None:
                     cells.append("not scored")
                 else:
                     cells.append(f"<span class={yes_no(found[flag])}>{yes_no(found[flag])}</span> "
-                                 f"{esc(short(evidence(found), 160))}")
+                                 f"{esc(short(evidence(found), 160))}"
+                                 + (f"<br><small>keyword hits: {esc(hits_summary(hit))}</small>" if hit else ""))
             label = item.get("gap") or item.get("belief") or item.get("fact") or item.get("question") or item.get("who")
             row(f"{item['id']} {short(label, 70)}", cells)
     row("Most questions in one turn", [esc((a.scorecard or {}).get("max_questions_in_one_turn", {}).get("count", "")) for a in arms])
@@ -995,28 +1349,110 @@ def finish_arm(arm):
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("persona", help="persona name in tests/sim/personas/, or a .yaml path")
-    parser.add_argument("--arms", default=DEFAULT_ARMS, help=f"comma-separated, from {', '.join(ARMS)}")
-    parser.add_argument("--model", required=True, help="assistant model, pinned for every arm")
-    parser.add_argument("--persona-model", required=True, help="persona model, pinned")
+    parser.add_argument("persona", nargs="?", help="persona name in tests/sim/personas/, or a .yaml path")
+    parser.add_argument("--arms", help=f"comma-separated, from {', '.join(ARMS)}; default {DEFAULT_ARMS}")
+    parser.add_argument("--model", help="assistant model, pinned for every arm; required unless --rejudge")
+    parser.add_argument("--persona-model", help="persona model, pinned; required unless --rejudge")
     parser.add_argument("--judge-model", required=True, help="judge model, pinned")
     parser.add_argument("--budget", required=True, type=float, help="USD ceiling for the whole run; no default")
-    parser.add_argument("--script", default="default", help="script name in tests/sim/scripts/, or a .yaml path")
+    parser.add_argument("--script", help="script name in tests/sim/scripts/, or a .yaml path; default 'default'")
     parser.add_argument("--stub", action="store_true", help="use the scripted fake claude in tests/sim/stub/; costs nothing")
     parser.add_argument("--out", default=str(RESULTS), help="results folder; the run gets its own folder inside")
+    parser.add_argument("--rejudge", metavar="RUN_DIR",
+                        help="score a finished run again from its transcript.jsonl and vault/, without replaying it")
     args = parser.parse_args(argv)
+    if args.budget <= 0:
+        parser.error("--budget must be more than 0")
+    if args.rejudge:
+        # The run already fixed these. Taking them again would let a scorecard name models the run never used.
+        given = [name for name, value in (("<persona>", args.persona), ("--model", args.model),
+                                          ("--persona-model", args.persona_model), ("--script", args.script),
+                                          ("--arms", args.arms)) if value]
+        if given:
+            parser.error(f"--rejudge reads the persona, models, script and arms from the run's run.json; drop {', '.join(given)}")
+        return args
+    missing = [name for name, value in (("<persona>", args.persona), ("--model", args.model),
+                                        ("--persona-model", args.persona_model)) if not value]
+    if missing:
+        parser.error(f"the following arguments are required: {', '.join(missing)}")
+    args.script = args.script or "default"
+    args.arms = args.arms or DEFAULT_ARMS
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     unknown = [a for a in arms if a not in ARMS]
     if unknown or not arms or len(set(arms)) != len(arms):
         parser.error(f"--arms must name distinct arms from {', '.join(ARMS)}; got {args.arms!r}")
-    if args.budget <= 0:
-        parser.error("--budget must be more than 0")
     args.arm_list = arms
     return args
 
 
+def load_run(run_dir):
+    """run.json of a finished run, with what --rejudge needs from it. A missing field is a broken run, not a default."""
+    summary_path = run_dir / "run.json"
+    if not summary_path.is_file():
+        raise ToolFailure(f"{summary_path} does not exist, so {run_dir} is not a run folder")
+    try:
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ToolFailure(f"{summary_path} is not JSON: {exc}") from exc
+    lacks = [key for key in ("persona", "models", "per_arm") if not summary.get(key)]
+    if lacks:
+        raise ToolFailure(f"{summary_path} lacks {', '.join(lacks)}")
+    return summary
+
+
+def rejudge(args):
+    """Score every arm of a finished run again: new hits, new judge calls, new scorecards and compare.html. The
+    transcript, the vault and run.json are read and never written; what this judging cost goes in rejudge.json."""
+    run_dir = pathlib.Path(args.rejudge).resolve()
+    try:
+        summary = load_run(run_dir)
+        persona_path = resolve(summary["persona"], "personas")
+        persona = load_yaml(persona_path)
+        problems = persona_problems(persona)
+        if problems:
+            raise ToolFailure(f"{persona_path} is not a valid persona:\n  " + "\n  ".join(problems))
+    except ToolFailure as exc:
+        print(f"sim: {exc}", file=sys.stderr)
+        return 2
+    args.model, args.persona_model = summary["models"].get("assistant"), summary["models"].get("persona")
+    names = [name for name in summary.get("arms") or summary["per_arm"] if name in summary["per_arm"]]
+    share = args.budget / len(names)
+    when = f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}"
+    arms, failed = [], False
+    for name in names:
+        try:
+            arm = Arm.reopen(name, run_dir, args, persona, share, summary["per_arm"][name])
+        except ToolFailure as exc:
+            print(f"[{name}] tool failure: {exc}", file=sys.stderr)
+            failed = True
+            break
+        arms.append(arm)
+        try:
+            arm.scorecard = score_arm(arm)
+            arm.scorecard["rejudged"] = when
+            write_scorecard(arm)
+        except ToolFailure as exc:
+            arm.failure = f"tool failure: {exc}"
+            failed = True
+            print(f"[{name}] {arm.failure}", file=sys.stderr)
+            break
+    if arms:
+        (run_dir / "compare.html").write_text(render_compare(summary.get("run_id", run_dir.name), persona, arms),
+                                              encoding="utf-8")
+    record = {"rejudged": when, "judge_model": args.judge_model, "budget_usd": args.budget, "stub": args.stub,
+              "spent_usd": round(sum(a.ledger.spent for a in arms), 4),
+              "per_arm": {a.name: {"spent_usd": round(a.ledger.spent, 4), "failure": a.failure,
+                                   "judge_calls": a.judge_calls} for a in arms},
+              "exit": 2 if failed else 0}
+    (run_dir / "rejudge.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    print(f"Rejudged for ${record['spent_usd']:.2f} of ${args.budget:.2f}. Results: {run_dir}")
+    return record["exit"]
+
+
 def main(argv=None):
     args = parse_args(argv)
+    if args.rejudge:
+        return rejudge(args)
     try:
         persona, script = load_brief(args.persona, args.script)
     except ToolFailure as exc:
@@ -1032,9 +1468,8 @@ def main(argv=None):
         arms.append(arm)
         try:
             arm.run(script)
-            arm.scorecard = build_scorecard(arm, judge(arm))
-            (arm.dir / "scorecard.json").write_text(json.dumps(arm.scorecard, indent=2, ensure_ascii=False), encoding="utf-8")
-            (arm.dir / "scorecard.md").write_text(render_scorecard_md(arm.scorecard, persona), encoding="utf-8")
+            arm.scorecard = score_arm(arm)
+            write_scorecard(arm)
         except ToolFailure as exc:
             arm.failure = f"tool failure: {exc}"
             failed = True
