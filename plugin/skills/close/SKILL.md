@@ -40,13 +40,13 @@ For a session whose `modes` include `epics`, the epic pages already exist, so wr
 
 ## 4. Draft the prose
 
-Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. For a session whose `modes` include `epics`, each epic it drafted owes a description paragraph, so list those epics under "Prose drafted" in the PR body. The epics session already wrote each `**Owning team:**` line; close leaves it as written. Prose is drafted here and nowhere else. Commit the drafts on their own with the message `draft: prose for <id>`, so the reviewer's edits show as a diff.
+Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. For a session whose `modes` include `epics`, each epic it drafted owes a description paragraph, so list those epics under "Prose drafted" in the PR body. The epics session already wrote each `**Owning team:**` line; close leaves it as written. Prose is drafted here and nowhere else. Commit each drafted page, by exact path, with the message `draft: prose for <id>`. That commit holds each drafted page whole, including its structured section-3 edits, because a page cannot be committed in halves. The reviewer's later edits then show as a diff against it.
 
 ### Voice review
 
 A fresh reader checks the drafts, because the drafter cannot judge its own voice. Skip this part if the session drafted no paragraph, and go on to the part "Harvest the owner's edits".
 
-1. List every paragraph in the `draft: prose for <id>` commit: a number, the page path, its voice type from house-voice's table, and the paragraph's text. Run `git status --porcelain` and keep the output.
+1. List only the prose paragraphs this section drafted, from the `draft: prose for <id>` commit. Leave out the bullets, table rows and headings section 3 wrote, even though the commit holds them. For each paragraph give a number, the page path, its voice type from house-voice's table, and the paragraph's text. Run `git status --porcelain` and keep the output.
 2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to the part "Harvest the owner's edits". The harvest does not depend on the review.
 3. Run `git status --porcelain` again. If the output differs from step 1 of this part, the reviewer changed a file: stop and show the user. If the reviewer errored, or returned anything but the table, treat the review as not run, write "**Voice review:** not run: <the reason>" in the PR body, and go on to the part "Harvest the owner's edits". If it flagged no paragraph, skip steps 4 and 5 of this part: there is nothing to rewrite and no commit, so go on to the part "Harvest the owner's edits".
 4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file. Before you rewrite a page, check it holds no uncommitted edit from sections 2 and 3, because a restore would discard that edit. For each `<page>`:
@@ -134,6 +134,8 @@ For each item that became `decided` in this session, show its final wording. If 
 
 ## 6. Render and check
 
+First bring in `main` if it moved since the branch was made, so render and check see what will merge. Run `git fetch origin`, then `git merge-base --is-ancestor origin/main HEAD`. If that exits 1, run `git merge --no-edit origin/main`. If a conflict sits only inside a generated block, render resolves it: take either side and re-render, with `git checkout --theirs -- <file>` for that file, then the render below, then stage it by exact path and finish the merge with `git commit --no-edit`. Any other conflict: stop and show it, with `git diff --name-only --diff-filter=U` and the conflicting lines, and leave the merge for the user. If the fetch fails, say the branch was not compared with `main`, and go on.
+
 Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/skills/planner/bin/planner check`. Fix each error with the user. If the user leaves an error in place, put it in the PR body. CI will block the merge until it is fixed.
 
 ## 7. Finish the record
@@ -156,7 +158,8 @@ Get the user's own handle with `gh api user -q .login`. Strip the leading `@` fr
 Write the PR body to a temporary file. Fill the headings of the vault's PR template:
 
 - **What changed.** The promoted items, each with its new state. Then these lists, each with "none" when empty:
-  - **Prose drafted:** each paragraph in the `draft: prose for <id>` commit, page by page.
+  - **Prose drafted:** each prose paragraph drafted in section 4, page by page.
+  - **House voice:** each "No examples for <type>: drafted without examples" line house-voice gave, one per type, or "none".
   - **Voice review:** each paragraph the reviewer flagged, what it said, and whether it was rewritten or kept because voicecheck named a changed token; or "not run: <reason>".
   - **Voice examples:** each example harvested or retired. Name a local example only as a count, never by its text. Add each PR harvest could not check, and why, and say when the PR limit hid older PRs.
   - **Decided wording not yet read back:** each `decided` item whose owner was not present in section 5.

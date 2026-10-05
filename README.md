@@ -4,12 +4,12 @@ A Claude Code toolkit for planning at the initiative level. It covers everything
 
 ## Start here tomorrow
 
-1. **Make a vault.** Copy `template/` into a new GitHub repo, then follow its `README.md` setup checklist, steps 1 to 8. Step 2 copies this repo's `plugin/` folder into the vault. You need Python 3.11+ and PyYAML: `python3 -m pip install pyyaml`. Your Mac's `python3` already has PyYAML 6.0.3. If pip refuses on another machine with "externally-managed-environment", install PyYAML into a venv (`python3 -m venv ~/.venvs/planner && ~/.venvs/planner/bin/pip install pyyaml`) and run planner with `~/.venvs/planner/bin/python3`.
+1. **Make a vault.** Copy `template/` into a new GitHub repo, then follow its `README.md` setup checklist, steps 1 to 10. Step 2 copies this repo's `plugin/` folder into the vault. You need Python 3.11+ and PyYAML: `python3 -m pip install pyyaml`. Your Mac's `python3` already has PyYAML 6.0.3. If pip refuses on another machine with "externally-managed-environment", install PyYAML into a venv (`python3 -m venv ~/.venvs/planner && ~/.venvs/planner/bin/pip install pyyaml`) and run planner with `~/.venvs/planner/bin/python3`.
 2. **Start every session with `bin/claude-planner`**, from inside the vault. The skills only load through that launcher.
 3. **Run your first session:**
    - `/planner:dump` gets everything out of your head. Ideas, worries, unknowns and wild ones all count. Claude doesn't push back.
-   - `/planner:close` promotes what you keep, drafts the prose in the house voice, runs `check`, and opens the PR.
-4. **Next sessions, in roughly this order:**
+   - `/planner:close` promotes what you keep, drafts the prose in the house voice, has a fresh reader review it, renders and checks the vault, and opens the PR.
+4. **Next sessions, in roughly this order.** Every session starts by running `planner next`, which suggests one app and one mode. It is a suggestion, not a decision.
    - `/planner:discover` reads your sources and asks you to confirm what exists today.
    - `/planner:shape` offers 2–3 options to react to.
    - `/planner:grill` is the only thing that can mark an item `decided`, and only after your explicit yes.
@@ -19,11 +19,41 @@ A Claude Code toolkit for planning at the initiative level. It covers everything
 
 The kill rule you set: if it isn't faster than plain Markdown after five sessions, cut back to the conventions, `check` and the viewer.
 
+## The planner CLI
+
+Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the vault root. Only `render`, `view`, `handoff` and `export` write files.
+
+| Command | What it tells you |
+|---|---|
+| `planner status` | Every app's stage, certainty mix and oldest open unknown |
+| `planner next` | The one app and mode to work on next, with the reason. `probe` means: ask the unknown's owner, or research it |
+| `planner health` | Stale pages and sources, overdue unknowns, and days since the last closed session, as Markdown |
+| `planner query get <ID>` | Where an ID lives and its state. `refs`, `find` and `status` too. Add `--json`. `/planner:ask` uses it |
+| `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the slice a senior accepts |
+| `planner handoff verify <APP-id>` | What changed in that slice since handoff. Exits 1 when something accepted changed |
+| `planner voicecheck <before> <after>` | Fails when a rewrite lost or moved an ID, number, date, link, code span, table cell or negation |
+| `planner export jira-csv --out epics.csv` | One row per epic for Jira's CSV import. Export only: nothing is read back and no page carries a Jira field |
+
+`planner render` fills every generated block, including the generated diagrams: the context map, system context, each app's context and the capability map. Never edit inside a block. Close runs `planner render` for you.
+
+## Your voice
+
+- **`/planner:voice-seed`** stores 2 or 3 passages of your own writing per voice type, word for word, so drafts sound like you instead of the public seed. Committed examples go in `voice/examples/` and are pushed in a PR, where anyone with access to the repo can read them. Local examples go in `voice/local/`, which is gitignored and stays on your machine. If your employer owns the text, or you're not sure, keep it local.
+- **At close,** a fresh subagent runs a voice review of the drafts. Close rewrites each flagged paragraph once, and `planner voicecheck` throws out any rewrite that changed a fact.
+- **Harvest.** Only the vault's owner harvests, and only their own edits: close looks through your merged session PRs for paragraphs you rewrote after the draft, and asks before saving each one as an example.
+
+## After handoff
+
+- **When the first app nears handoff,** use `/planner:epics` and `planner check --gate epics`. Then `planner handoff <APP-id>` in the PR that sets `handed_off`.
+- **A senior who disputes a boundary or contract** runs `/planner:challenge`. It writes an open unknown the senior owns and a `**Dissent:**` line, and opens a PR whose check stays red (E316) on purpose.
+- **To answer it,** run `/planner:grill` and name the challenge PR or the challenged ID. START opens an answer session on the challenge's branch. Resolve the unknown or set the item back, then `/planner:close` pushes to that branch and comments on the challenge PR. It doesn't open a second PR. A reopened epic is decided again as `reopened → decided`.
+
 ## Later
 
-- **When the first app nears handoff,** use `/planner:epics` and `planner check --gate epics`.
+- **Weekly "Vault health" issue.** `.github/workflows/planner-weekly.yml` posts `planner health` every Monday to one issue titled "Vault health". It needs Issues enabled on the repo. It has not been tested live yet, so check the first Monday's run.
+- **Long-lived PRs.** If `main` moves while a long-lived PR is open, merge `origin/main` into the session branch, then run `planner render`. A conflict inside a generated block goes away when you re-render. Close does this before it renders.
 - **Vault mode for your own grills:** `integrations/requirements-grill/INSTALL.md` and `integrations/tech-design-grill/INSTALL.md`. Each one backs up first and dry-runs before applying. Nothing has been applied to `~/.claude` yet.
-- **Optional Jira export:** `python3 .claude/skills/planner/bin/planner export jira-csv --out epics.csv` writes one row per epic (Summary, Description with the acceptance criteria, Epic Name, Owner team, Vault link) for Jira's CSV import. It is an export only: nothing is read back and no page carries a Jira field. Owner team drops the leading `@` of the handle, so `@org/team` becomes `org/team`. The link points at the repository and commit from `git`, or pass `--repo-url` and `--commit`.
+- **Jira export details:** Owner team drops the leading `@` of the handle, so `@org/team` becomes `org/team`. The link points at the repository and commit from `git`, or pass `--repo-url` and `--commit`.
 - **Evals:** these are paid runs, and you run them by hand. See `tests/evals/README.md`. Start with the $1 smoke run it describes.
 
 ## What's where
@@ -31,7 +61,7 @@ The kill rule you set: if it isn't faster than plain Markdown after five session
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `query`, `health`, `handoff`, `export`) and the session skills |
+| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `health`, `query`, `handoff`, `export`, `voicecheck`), the session skills (dump, discover, shape, grill, epics, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` agent, and START and MODES under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |
