@@ -34,7 +34,8 @@ def test_an_answer_session_without_a_grill_cannot_decide(mini):
 def test_start_answers_a_challenge_on_its_own_branch():
     start = read("plugin", "references", "START.md")
     answer = section(start, "## Answer a challenge", "## Captures during the session")
-    assert 'gh pr list --search "Challenge: <ID>" --state open --json number,headRefName' in answer
+    assert 'gh pr list --search "Challenge: <ID>" --state open --json number,headRefName,title' in answer
+    assert "title ends with exactly `Challenge: <ID>`" in answer
     assert "instead of `git switch main`" in answer
     assert "git switch <headRefName>" in answer and "git pull --ff-only" in answer
     assert "`<date>-answer-<id-lowercased>`" in answer
