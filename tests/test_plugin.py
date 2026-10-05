@@ -9,7 +9,7 @@ STUB = REPO / "tests" / "stub-conventions"
 def test_manifest_names_the_plugin():
     data = json.loads((REPO / "plugin" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert data["name"] == "planner"
-    assert data["version"] == "0.1.0"
+    assert data["version"] == "0.2.0"
     assert data["author"]["name"]
 
 
