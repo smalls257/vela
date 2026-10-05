@@ -50,3 +50,10 @@ graders:
   type: regex
   pattern: '^Sources:'
   flags: m
+
+
+- name: query-before-citing
+  type: tool_used
+  tool: Bash
+  input_match: planner query
+  arm: with-only
