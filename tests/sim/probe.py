@@ -599,10 +599,37 @@ def questions_per_turn(run, criterion):
     return passed, f"most questions in one assistant turn: {most['count']}{where} (need at most {criterion['at_most']})", []
 
 
+# Generic words for each kind of concern. A dump cannot name an item the lead has never heard of, only its kind, so a
+# category counts as raised when the assistant names the kind (these cues) or the item (its keywords) before the lead
+# does. The cues hold no persona's facts, so they cannot leak a brief into the skills.
+CATEGORY_CUES = {
+    "legal-regulatory": ["regulator", "regulation", "regulatory", "compliance", "legal basis", "lawful basis", "law ",
+                         "licence", "license", "liable", "liability rule", "statutory"],
+    "finance-liability": ["liabilit", "balance sheet", "who carries the cost", "who pays", "financial exposure",
+                          "accounting", "finance team", "budget owner", "write-off", "write off"],
+    "third-party-contract": ["contract", "supplier", "vendor", "partner agreement", "agreement with", "third part",
+                             "outside part", "terms with"],
+    "unnamed-stakeholder": ["who else", "nobody has named", "not named", "not been named", "affected team",
+                            "stakeholder", "who is affected", "who would be affected"],
+}
+
+
+def first_turn(spoken, who, words):
+    return min((e["turn"] for e in spoken if e["speaker"] == who and sim.mentions(e["text"], words)), default=None)
+
+
 @check("categories-raised-first", "categories", "at_least")
 def categories_raised_first(run, criterion):
     spoken = run.transcript.spoken()
     raised, detail = set(), []
+    for category in criterion["categories"]:
+        words = CATEGORY_CUES.get(category, []) + [k for i in brief_items(run.persona, [category]) for k in i["keywords"]]
+        turns = {who: first_turn(spoken, who, words) for who in ("assistant", "lead")}
+        if turns["assistant"] is not None and (turns["lead"] is None or turns["assistant"] < turns["lead"]):
+            raised.add(category)
+            text = next(e["text"] for e in spoken if e["turn"] == turns["assistant"])
+            said = sim.mentions(text, words)
+            detail.append(f"- category {category}: assistant first at T{turns['assistant']}. \"{excerpt(text, said[0])}\"")
     for item in brief_items(run.persona, criterion["categories"]):
         turns = {who: min((e["turn"] for e in spoken if e["speaker"] == who and sim.mentions(e["text"], item["keywords"])),
                           default=None) for who in ("assistant", "lead")}

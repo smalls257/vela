@@ -16,8 +16,6 @@ Shared files live in `.claude/skills/planner/references/`. Read them when a step
 1. Run the steps in `.claude/skills/planner/references/START.md` with mode `dump`. Read the Dump & Diverge row of `.claude/skills/planner/references/MODES.md`.
 2. Read `01-goals.md`, `11-unknowns-and-risks.md` and any parked captures in earlier session records (`→ park`), so you can build on what is already there. Do not repeat a parked idea as new.
 3. Let the user talk. Capture each point as its own line, in their words, with their name or role as the origin. Tag it `idea`, `thought`, `unknown`, `worry` or `wild`.
-Ask at most three questions in one turn. A "what if" is a capture, not a question: write it as a statement.
-
 4. Build on what they say. For each idea, offer one "what if" that removes a constraint, borrows from another domain, or turns the idea around. Write each as a capture with origin `(claude)`. Tag the far-fetched ones `[wild]`. Never judge an idea, and never say one will not work.
 5. Collect questions as `[unknown]` captures. Do not try to answer them now.
 6. When the user slows down, run the pre-mortem. Say: "It is six months from now and this initiative has failed. What went wrong?" Capture every answer as a `[worry]`.
@@ -27,7 +25,7 @@ Ask at most three questions in one turn. A "what if" is a capture, not a questio
    - contracts and agreements with outside parties, such as suppliers, partners and vendors;
    - people and teams affected who nobody has named yet.
 
-   Raise each untouched one as a short statement of what nobody has mentioned yet, then ask the user about at most three of them in one turn. Capture the answers. This replaces the gentle prompts for a dump.
+   Raise each untouched one as a short statement of what nobody has mentioned yet, then ask the user about them. Capture the answers. This replaces the gentle prompts for a dump.
 8. Commit a checkpoint after about every ten captures.
 
 ## Ends when

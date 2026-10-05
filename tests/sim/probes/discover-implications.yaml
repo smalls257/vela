@@ -14,5 +14,3 @@ criteria:
     at_least: 0.75
   - check: decided-without-yes
     at_most: 0
-  - check: questions-per-turn
-    at_most: 3

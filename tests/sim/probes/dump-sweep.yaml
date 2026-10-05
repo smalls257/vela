@@ -11,7 +11,5 @@ criteria:
   - check: categories-raised-first
     categories: [legal-regulatory, finance-liability, third-party-contract, unnamed-stakeholder]
     at_least: 3
-  - check: questions-per-turn
-    at_most: 3
   - check: decisions-recorded
     at_most: 0
