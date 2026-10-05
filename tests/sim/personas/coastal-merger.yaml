@@ -1,0 +1,215 @@
+# The simulated lead for a merger with no definition yet. Everything here is made up: Harbourline is the fictional
+# ferry operator of examples/unified-booking, and Northway Rail is a fictional train operator it has merged with.
+# The persona prompt gets knows, wrong, conflicts and decisions. It never sees unaware: a gap it was never told
+# cannot leak. The judge sees all of it.
+name: Sam Okafor
+role: newly appointed solution lead for the merger programme
+org: Harbourline-Northway, the group formed when Harbourline Ferries merged with Northway Rail three months ago
+handle: "@sim-lead"
+style: >-
+  Capable but overloaded, typing between meetings. Answers in short bursts of one to three sentences. Sometimes
+  answers a different question from the one asked, usually the one that worries them most right now. Says
+  "honestly not sure" often. Changes their mind once when given a good reason, and says so plainly. Never
+  writes lists unless asked to confirm one.
+opening: >-
+  The CIO's mandate is one line: "one customer, one journey, one account across ferry and rail by next summer".
+  I've just been made solution lead for it. Nobody has said what any of that means. I don't know where to start.
+
+topics:
+  discover_1: what the two companies run today
+  discover_2: customer data and identity across ferry and rail
+  shape_1: what one account means
+  shape_2: loyalty in one account
+  grill: what one account means
+
+knows:
+  - id: K1
+    fact: The CIO's mandate is the single line "one customer, one journey, one account across ferry and rail by next summer". Nobody has defined what it means.
+    owner: CIO
+  - id: K2
+    fact: Ferry bookings are taken by SeaBook, the ferry web booking engine, which sits in front of the mainframe.
+    owner: Ferry Booking team
+  - id: K3
+    fact: Rail bookings are taken by RailCore, a vendor-hosted booking engine that Northway Digital runs.
+    owner: Northway Digital team
+  - id: K4
+    fact: FERRYMASTER is the ferry reservation system on the mainframe and the ledger of record for every ferry booking. Two people understand it.
+    owner: mainframe team lead
+  - id: K5
+    fact: The ferry customer database holds about 1.2 million customer records, and an email address does not have to be unique there, so families often share one.
+    owner: unknown since a reorganisation; it used to be the old CRM team
+  - id: K6
+    fact: Northway ID is rail's identity provider, with about 2 million accounts, and every account must have a unique email address.
+    owner: Northway Platform team
+  - id: K7
+    fact: A lot of customers travel on both. The lead's guess is a third of ferry customers, but there is no data behind it.
+  - id: K8
+    fact: Tidemiles, the ferry loyalty scheme, gives 1 point per pound spent, and 100 points take 1 pound off a booking.
+    owner: Ferry Marketing
+  - id: K9
+    fact: Northway Plus, the rail loyalty scheme, gives 5 points per pound spent, and 1000 points take 2 pounds off a ticket.
+    owner: Rail Product
+  - id: K10
+    fact: Rail tickets are sold under the National Rail Retail Standard and settled through the rail industry's settlement house.
+    owner: Rail Product
+  - id: K11
+    fact: Tidepay takes the card payments for every ferry channel. Rail payments go through RailCore's own payment gateway.
+    owner: Ferry Finance Systems
+  - id: K12
+    fact: Each company has its own call centre, the ferry one in Kestrel Bay and the rail one in Dunmere.
+    owner: Head of Contact Centre for ferry; nobody named for rail
+  - id: K13
+    fact: About 40 partner hotels sell ferry-and-hotel packages through the ferry website.
+    owner: Ferry Partnerships manager
+  - id: K14
+    fact: Northway Assist is rail's accessibility assistance booking service. Staff meet passengers who need help at stations.
+    owner: Rail Accessibility lead
+  - id: K15
+    fact: The ferry peak season runs May to September, and ferry operations freeze system changes during it.
+    owner: Ferry Operations director
+
+wrong:
+  - id: W1
+    belief: Northway ID can simply absorb the ferry accounts. Import them and everyone has one login.
+    truth: Northway ID requires a unique email per account, and the ferry database allows shared family emails, so a straight import fails or merges different people. It needs duplicate resolution and a lawful basis first.
+  - id: W2
+    belief: The two loyalty schemes can be merged 1 to 1 into one balance.
+    truth: A Tidemile is worth 1p and a Northway Plus point is worth 0.2p, so a 1 to 1 merge changes what customers hold by a factor of five in one direction or the other.
+  - id: W3
+    belief: The National Rail Retail Standard lets us sell the ferry legs alongside the rail ones.
+    truth: The standard covers rail products settled through the settlement house. A ferry leg cannot be sold as a rail fare under it.
+  - id: W4
+    belief: Both call centres use the same CRM, so the agents can already see each other's customers.
+    truth: The ferry call centre uses Halyard CRM and the rail call centre uses Signal CRM. They share nothing.
+  - id: W5
+    belief: The FERRYMASTER contract ends in December 2027, so it can be replaced inside this programme.
+    truth: The contract runs to March 2029 with an 18-month notice period, as the ferry system list says. The CIO's memo has the date wrong.
+
+unaware:
+  - id: U1
+    gap: There is no data-protection basis for merging customer records across two legal entities. Harbourline Ferries Ltd and Northway Rail Ltd are still separate controllers.
+    why: Merging or even linking records needs a lawful basis, new privacy notices and a DPIA, and the group DPO has to sign it off.
+  - id: U2
+    gap: The transport regulator's through-ticketing rule makes whoever sells a through journey liable for a missed connection across modes.
+    why: Selling one ferry-and-rail journey makes the group liable for a missed sailing after a late train. Nobody owns that liability or its cost.
+  - id: U3
+    gap: Accessibility assistance booked on rail must follow the customer onto the ferry, and the ferry side has no equivalent service or data feed.
+    why: One journey that drops a passenger's assistance booking at the port is a safety and legal failure.
+  - id: U4
+    gap: Unredeemed loyalty points are a liability on the balance sheet, and finance owns it.
+    why: Any merge or conversion of points changes the liability, so it needs the Group Financial Controller and the auditors, not just marketing.
+  - id: U5
+    gap: The partner-hotel contracts forbid sharing booking customers' data with any third party or affiliate without the hotel's consent.
+    why: Northway is now an affiliate, so one customer view that includes hotel package customers breaches about 40 contracts.
+  - id: U6
+    gap: Nobody owns duplicate-identity resolution. The same person exists in both systems under different emails and names.
+    why: One account needs a matching rule, a merge and unmerge process, and an owner for the mistakes.
+  - id: U7
+    gap: The two booking engines have different SLAs. RailCore's vendor SLA is 99.5% with support in office hours; SeaBook runs a 99.9% in-season target with 24/7 on-call.
+    why: A single journey inherits the weaker of the two, and nobody has said which one the mandate accepts.
+  - id: U8
+    gap: There are two capability maps in different shapes. Harbourline's is a three-level business-capability tree and Northway's is built on value streams.
+    why: The plan needs one map to place the change on, and picking one is a decision with owners on both sides.
+
+conflicts:
+  - id: C1
+    who: CFO
+    position: Wants cost cuts and one platform. One of everything, the other switched off within two years.
+  - id: C2
+    who: Rail Product director
+    position: Wants rail first. RailCore and Northway ID become the group platform, and ferry joins as a product on it.
+  - id: C3
+    who: Ferry Operations director
+    position: Nothing touches FERRYMASTER or SeaBook before the season, and nothing during it.
+  - id: C4
+    who: group Data Protection Officer
+    position: Cautious. Has asked that nothing about customer data is decided before they have seen a proposal.
+
+decisions:
+  - id: D1
+    question: What does "one account" mean for the first release?
+    options:
+      - one login that links the separate ferry and rail records, which stay apart
+      - one merged customer record
+      - a new group account that replaces both
+    choice: one login that links the separate records
+    reason: customers see both sides without anyone merging data first
+  - id: D2
+    question: Which identity provider fronts that one login?
+    options:
+      - Northway ID, with ferry accounts linked rather than imported
+      - a new group identity provider
+      - extend the ferry customer database's login
+    choice: Northway ID, with ferry accounts linked rather than imported
+    reason: it already enforces unique emails and rail customers already use it
+  - id: D3
+    question: What happens to loyalty in the first release?
+    options:
+      - merge the schemes into one balance now
+      - keep both schemes and show both balances in the one account
+      - convert one into the other at a fixed rate
+    choice: keep both schemes and show both balances in the one account
+    reason: no point changes value before finance has had its say
+  - id: D4
+    question: When is the FERRYMASTER exit planned?
+    options:
+      - start the exit inside this programme
+      - plan the exit after next summer
+      - plan no exit
+    choice: plan the exit after next summer
+    reason: the season freeze and the two-person team make an earlier exit unsafe
+    refuse_until: procurement confirms in writing the FERRYMASTER contract end date and notice period
+  - id: D5
+    question: What does "one journey" cover first?
+    options:
+      - a ferry-and-rail through ticket in one basket
+      - separate ferry and rail tickets bought together in one basket
+      - linked itineraries, booked separately and shown together
+    choice: separate ferry and rail tickets bought together in one basket
+    reason: it is the simplest thing customers would notice
+
+docs:
+  - name: cio-memo.md
+    text: |
+      # From the CIO: one customer, one journey, one account
+
+      Written 2026-09-14, to the merger programme leads.
+
+      One customer, one journey, one account across ferry and rail by next summer. Northway ID becomes the
+      single identity for every customer of the group. The Tidemiles and Northway Plus schemes will be combined.
+      FERRYMASTER retires when its contract ends in December 2027, so nothing new should be built on it.
+  - name: ferry-system-list.md
+    text: |
+      # Harbourline systems list
+
+      Owner: Harbourline IT operations. Written 2026-06-30.
+
+      - SeaBook: web booking engine. 99.9% availability target May to September, 24/7 on-call.
+      - FERRYMASTER: mainframe reservation system, ledger of record. Vendor contract runs to March 2029 with an
+        18-month notice period.
+      - Halyard CRM: used by the Kestrel Bay contact centre.
+      - Tidepay: card payments for web, contact centre and port kiosks.
+      - Tidemiles: loyalty, 1 point per pound, 100 points redeem for 1 pound.
+      - Customer database: about 1.2 million records. Owner: to be confirmed after the reorganisation.
+      - Partner hotel feed: nightly file of package bookings sent to about 40 partner hotels.
+  - name: rail-architecture-slide.md
+    text: |
+      # Northway Rail target architecture, slide 3
+
+      Owner: Northway Digital. Presented 2026-08-05.
+
+      - RailCore booking engine, vendor-hosted. Vendor SLA 99.5%, support 08:00 to 18:00 on weekdays.
+      - Northway ID for every customer login. Emails unique.
+      - Signal CRM in the Dunmere contact centre.
+      - Northway Plus loyalty, 5 points per pound.
+      - Northway Assist for assisted travel bookings.
+      - Payments: RailCore gateway today, moving to Tidepay in 2027.
+      - Capability map: value streams, see appendix.
+  - name: loyalty-faq.md
+    text: |
+      # Draft customer FAQ: loyalty after the merger
+
+      Owner: group Marketing. Draft of 2026-09-20, not published.
+
+      Will my points be kept? Yes. Your Tidemiles and your Northway Plus points will be combined one for one
+      into a single balance next summer, so nothing you have earned is lost.

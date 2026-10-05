@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""A scripted fake of `claude -p` for the simulator's free tests and `run.py --stub`. It never calls a model.
+
+It answers as one of three roles, told apart by the system prompt run.py passes:
+- assistant (no --system-prompt): stream-json events. The first turn of a session asks a question; a resumed
+  turn says the session is over. It runs `gh pr create` so tests can see which gh is on PATH.
+- persona ("SIMULATOR PERSONA"): JSON result. It replies "[END]" when the latest assistant message says the
+  session is over, and otherwise a reply with a <script> tag in it, to test escaping.
+- judge ("SIMULATOR JUDGE"): a scorecard with one valid citation and two that the driver must drop.
+
+Knobs, all environment variables:
+  SIM_STUB_COST   total_cost_usd of every assistant and persona call (default 0.01); the judge costs 0.01
+  SIM_STUB_DROP   a field to leave out of the assistant's result event, such as total_cost_usd
+  SIM_STUB_JUDGE  "bad" makes the judge reply with text that is not JSON
+  SIM_STUB_LOG    a file to append one JSON line per call to: argv, cwd, the gh found on PATH
+"""
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import uuid
+
+
+def value_after(argv, flag):
+    return argv[argv.index(flag) + 1] if flag in argv else None
+
+
+def log(argv, role):
+    path = os.environ.get("SIM_STUB_LOG")
+    if path:
+        with open(path, "a", encoding="utf-8") as out:
+            out.write(json.dumps({"role": role, "argv": argv, "cwd": os.getcwd(), "gh": shutil.which("gh"),
+                                  "tmpdir": os.environ.get("TMPDIR")}) + "\n")
+
+
+def result(text, session_id, argv, cost=None):
+    """A result event. Like the real CLI, a call whose cost would pass --max-budget-usd stops at the cap and
+    reports error_max_budget_usd."""
+    cost = float(os.environ.get("SIM_STUB_COST", "0.01")) if cost is None else cost
+    cap = float(value_after(argv, "--max-budget-usd") or "inf")
+    if cost > cap:
+        return {"type": "result", "subtype": "error_max_budget_usd", "is_error": True, "session_id": session_id,
+                "total_cost_usd": cap, "num_turns": 1, "errors": ["Reached maximum budget"]}
+    return {"type": "result", "subtype": "success", "is_error": False, "result": text, "session_id": session_id,
+            "total_cost_usd": cost, "num_turns": 1}
+
+
+def assistant(argv):
+    prompt = argv[argv.index("--") + 1] if "--" in argv else ""
+    resumed = value_after(argv, "--resume")
+    session_id = resumed or f"stub-{uuid.uuid4().hex[:8]}"
+    gh = subprocess.run(["gh", "pr", "create"], capture_output=True, text=True)
+    with open("stub-note.txt", "a", encoding="utf-8") as out:
+        out.write(prompt[:60] + "\n")
+    if resumed:
+        text = "Noted. That is all for now: the session is over."
+    else:
+        text = f"Stub assistant heard: {prompt[:120]}\n\ngh said: {gh.stderr.strip()}\n\nWhat else is on your mind?"
+    commands = ["planner:dump", "planner:close", "planner:discover", "planner:shape", "planner:grill"] if "--plugin-dir" in argv else []
+    events = [{"type": "system", "subtype": "init", "session_id": session_id, "slash_commands": commands},
+              {"type": "assistant", "message": {"content": [
+                  {"type": "text", "text": text},
+                  {"type": "tool_use", "id": "tu1", "name": "Bash", "input": {"command": "gh pr create"}}]}},
+              result(text, session_id, argv)]
+    drop = os.environ.get("SIM_STUB_DROP")
+    if drop:
+        events[-1].pop(drop, None)
+    print("not json: a stray line the driver must skip")
+    for event in events:
+        print(json.dumps(event))
+
+
+def persona(stdin, argv):
+    latest = stdin.split("LATEST ASSISTANT MESSAGE:", 1)[-1]
+    text = "[END]" if "session is over" in latest else "Yes. <script>alert('x')</script> Honestly not sure about the rest."
+    print(json.dumps(result(text, "persona", argv)))
+
+
+def judge(stdin, argv):
+    if os.environ.get("SIM_STUB_JUDGE") == "bad":
+        print(json.dumps(result("I think the planner arm did well.", "judge", argv, cost=0.01)))
+        return
+    ids = {m.group(1): [i.strip() for i in m.group(2).split(",") if i.strip()]
+           for m in re.finditer(r"^IDS (\w+): ?(.*)$", stdin, re.M)}
+    first = re.search(r"^\[T(\d+)\] ASSISTANT:\n(.+)$", stdin, re.M)
+    sessions = [int(s) for s in re.search(r"^SESSIONS THAT RAN: (.*)$", stdin, re.M).group(1).split(",") if s.strip()]
+    def rows(kind, flag):
+        return [{"id": i, flag: False, "turn": None, "quote": None} for i in ids.get(kind, [])]
+    card = {"unaware": rows("unaware", "surfaced"), "wrong": rows("wrong", "challenged"),
+            "knows": [{"id": i, "captured": False, "where": None} for i in ids.get("knows", [])],
+            "decisions": [{"id": i, "decided": False, "yes_asked": False, "turn": None, "quote": None} for i in ids.get("decisions", [])],
+            "conflicts": rows("conflicts", "surfaced"),
+            "decided_without_yes": [], "told_not_asked": [], "invented_facts": [],
+            "session_endings": [{"session": s, "clear_next_step": False, "turn": None, "quote": None} for s in sessions]}
+    if first and card["unaware"]:
+        card["unaware"][0].update(surfaced=True, turn=int(first.group(1)), quote=" ".join(first.group(2).split()[:4]))
+    if card["wrong"]:
+        card["wrong"][0].update(challenged=True, turn=999, quote="a quote no turn holds")
+    if len(card["knows"]) >= 2:
+        card["knows"][0].update(captured=True, where="01-goals.md")
+        card["knows"][1].update(captured=True, where="no-such-page.md")
+    print(json.dumps(result(json.dumps(card), "judge", argv, cost=0.01)))
+
+
+def main():
+    argv = sys.argv[1:]
+    system = value_after(argv, "--system-prompt") or ""
+    role = "judge" if system.startswith("SIMULATOR JUDGE") else "persona" if system.startswith("SIMULATOR PERSONA") else "assistant"
+    log(argv, role)
+    if role == "assistant":
+        assistant(argv)
+    else:
+        stdin = sys.stdin.read()
+        persona(stdin, argv) if role == "persona" else judge(stdin, argv)
+
+
+if __name__ == "__main__":
+    main()
