@@ -123,7 +123,7 @@ wrong:
     truth: The standard covers rail products settled through the settlement house. A ferry leg cannot be sold as a rail fare under it.
   - id: W4
     category: cross-source-mismatch
-    keywords: ["Halyard", "Signal CRM", "same CRM", "separate CRM"]
+    keywords: ["Halyard", "Signal CRM", "separate CRM", "CRMs"]
     belief: Both call centres use the same CRM, so the agents can already see each other's customers.
     truth: The ferry call centre uses Halyard CRM and the rail call centre uses Signal CRM. They share nothing.
   - id: W5
