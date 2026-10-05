@@ -199,8 +199,10 @@ def isolation_flags(origin=None):
     home_claude = pathlib.Path.home() / ".claude"
     settings = {"claudeMdExcludes": [str(home_claude / "CLAUDE.md"), str(home_claude / "**" / "*.md")]}
     if origin is not None:
-        settings["sandbox"] = {"enabled": True, "autoAllowBashIfSandboxed": True}
-        settings["permissions"] = {"allow": [f"Edit(/{pathlib.Path(origin).resolve()}/**)"]}
+        # Auto-allow alone still denies compound commands (variables, heredocs, loops), which START uses. So all
+        # Bash is allowed, and no command may leave the sandbox: writes stay in the vault and the origin.
+        settings["sandbox"] = {"enabled": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False}
+        settings["permissions"] = {"allow": ["Bash", f"Edit(/{pathlib.Path(origin).resolve()}/**)"]}
     return ["--setting-sources", "project,local", "--strict-mcp-config", "--settings", json.dumps(settings)]
 
 

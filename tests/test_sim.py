@@ -304,8 +304,8 @@ def test_assistant_calls_run_sandboxed_with_only_the_vault_and_origin_writable(t
     import json as _json
     argv = sim.assistant_argv("hi", "m", None, 1.0, "planner", tmp_path / "origin.git")
     settings = _json.loads(argv[argv.index("--settings") + 1])
-    assert settings["sandbox"] == {"enabled": True, "autoAllowBashIfSandboxed": True}
-    assert settings["permissions"]["allow"] == [f"Edit(/{(tmp_path / 'origin.git').resolve()}/**)"]
+    assert settings["sandbox"] == {"enabled": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False}
+    assert settings["permissions"]["allow"] == ["Bash", f"Edit(/{(tmp_path / 'origin.git').resolve()}/**)"]
     assert "Skill" in argv[argv.index("--allowedTools") + 1].split(",")
     persona = sim.isolation_flags()
     assert "sandbox" not in _json.loads(persona[persona.index("--settings") + 1])
