@@ -172,3 +172,16 @@ def test_the_checks_every_area_makes_live_in_the_agent_and_not_in_the_skills():
         body = text(skill)
         assert "Add to that focus" not in body and "who gains and who loses" not in body
         assert "service levels" not in body
+
+
+def test_round_two_fixes_in_dump_discover_and_the_reviewer():
+    dump, disc = text("skills/dump/SKILL.md"), text("skills/discover/SKILL.md")
+    agent = text("agents/area-reviewer.md")
+    assert "python3 .claude/skills/planner/bin/planner questions --subject <ID>" in disc
+    assert "It is not a verdict on any idea." in dump
+    assert "Never present the checkpoint's digest as a verdict" in dump
+    assert "say aloud any pair of lines" in disc and "never two facts" in disc
+    assert '"after the read-back" (the "Here\'s what I think exists" step' in disc
+    assert 'type at close: PTY' in dump and 'type at close: SV' in dump
+    assert "any contract or document the captures themselves name" in dump
+    assert "A team that loses under one reading is a stakeholder, even if nobody named them" in agent

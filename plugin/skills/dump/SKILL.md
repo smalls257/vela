@@ -19,9 +19,11 @@ Shared files live in `.claude/skills/planner/references/`. Read them when a step
 4. Build on what they say. For each idea, offer one "what if" that removes a constraint, borrows from another domain, or turns the idea around. Write each as a capture with origin `(claude)`. Tag the far-fetched ones `[wild]`. Never judge an idea, and never say one will not work.
 5. Collect questions as `[unknown]` captures. Do not try to answer them now.
 6. When the user slows down, run the pre-mortem. Say: "It is six months from now and this initiative has failed. What went wrong?" Capture every answer as a `[worry]`.
-7. After the pre-mortem, run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the pre-mortem" and the captures as its focus. The session record is the written plan here, so the reviewers read it with the vault's pages. Show the lead the digest it ends with, and capture what they take.
+7. After the pre-mortem, run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the pre-mortem" and the captures as its focus. The session record is the written plan here, so the reviewers read it with the vault's pages. Show the lead the digest it ends with, and capture what they take. The digest lists questions nobody has answered. It is not a verdict on any idea. Show it without comment on the ideas, and keep building on what the lead says.
 
-   When an answer names a contract, an agreement or a figure, ask who holds it, and capture it as `[unknown]` with "to fetch:", the document and who holds it, so a later Discover can ask for it and read it.
+   When an answer names a contract, an agreement or a figure, ask who holds it, and capture it as `[unknown]` with "to fetch:", the document and who holds it, so a later Discover can ask for it and read it. Do the same for any contract or document the captures themselves name.
+
+   When the lead answers yes to an existence question, such as stored value or an outside party, capture it as `[thought]` with "type at close: PTY" or "type at close: SV". Dump writes no pages, so close does the typing.
 8. Commit a checkpoint after about every ten captures.
 
 ## Ends when
@@ -34,4 +36,5 @@ These are the defaults. The user may override any of them, as `START.md` says, a
 
 - Never edit a page outside `sessions/` during a dump.
 - Never write `decided` or `fact`, and never mark captures. Marks are close's job.
+- Never present the checkpoint's digest as a verdict on an idea.
 - Never drop a wild idea. Close parks it or keeps it.

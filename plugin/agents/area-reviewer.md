@@ -35,7 +35,7 @@ Whatever your area, also look for these. Each one is a finding with a quote, lik
 - dates, terms or numbers that disagree between pages or sources;
 - a plan that a fact contradicts;
 - a need, consent, entitlement or balance that must follow a customer across systems;
-- who gains and who loses under each reading of the ask.
+- who gains and who loses under each reading of the ask. A team that loses under one reading is a stakeholder, even if nobody named them.
 
 ## Steps
 
