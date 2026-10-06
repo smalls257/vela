@@ -159,3 +159,16 @@ def test_modes_has_no_question_cap_and_no_sweep():
     assert "at most two questions" not in modes and "concern sweep" not in modes
     assert "## Owed questions" in modes and "There is no cap on questions and no quota" in modes
     assert modes.count("question ledger rows") == 4
+
+
+def test_the_checks_every_area_makes_live_in_the_agent_and_not_in_the_skills():
+    agent = text("agents/area-reviewer.md")
+    assert "## Checks every area makes" in agent
+    for line in ("service levels, hours or limits that differ", "dates, terms or numbers that disagree",
+                 "a plan that a fact contradicts", "must follow a customer across systems",
+                 "who gains and who loses under each reading of the ask"):
+        assert line in agent
+    for skill in ("skills/dump/SKILL.md", "skills/discover/SKILL.md"):
+        body = text(skill)
+        assert "Add to that focus" not in body and "who gains and who loses" not in body
+        assert "service levels" not in body

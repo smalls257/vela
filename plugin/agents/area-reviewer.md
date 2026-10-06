@@ -27,6 +27,16 @@ You review a written plan for one focus area. You did not write it, and you know
 
 The area is a label for readers. Judge only what the pages say.
 
+## Checks every area makes
+
+Whatever your area, also look for these. Each one is a finding with a quote, like the rest.
+
+- service levels, hours or limits that differ between things that must work together;
+- dates, terms or numbers that disagree between pages or sources;
+- a plan that a fact contradicts;
+- a need, consent, entitlement or balance that must follow a customer across systems;
+- who gains and who loses under each reading of the ask.
+
 ## Steps
 
 1. Read every page you were given, but skip the `## Reviews` section of any session record: it holds earlier findings, and you never read another reviewer's output.
