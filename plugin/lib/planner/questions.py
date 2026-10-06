@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from planner import catalog, ledger, schema
 from planner.model import Finding, meta_line
-from planner.parse import links_in, split_frontmatter
+from planner.parse import CODE_SPAN, links_in, split_frontmatter
 
 SUBJECT_ID_RE = {
     "initiative": schema.INITIATIVE_RE,
@@ -781,3 +781,63 @@ def grill_gate(vault, items):
                               f"{d.copy.id} {_standing(d)} and blocks {unit_id}: {d.copy.entry.question}",
                               "Put it on the agenda and settle it first, or decide anyway; the warning stays in the "
                               "check output as the record that it was open.")
+
+
+# ------------------------------------------------------------------ a subject nobody typed
+
+WORD_RE = re.compile(r"[A-Za-z]+")
+KIND_NAMES = {"party": "party", "stored-value": "stored value"}
+
+
+def _fact_texts(page):
+    """(line, text) for the page's fact bullets and hand-kept table rows. Prose, generated blocks and
+    the ledger itself are left out: a fact is where a subject would be typed."""
+    for bullet in page.bullets:
+        if not bullet.generated:
+            yield bullet.line, bullet.value
+    for table in page.tables:
+        if table.generated or tuple(table.header[:len(ledger.HEADER)]) == ledger.HEADER:
+            continue
+        for cells, line in zip(table.rows, table.row_lines):
+            yield line, " ".join(cells)
+
+
+def _kinds_on(vault, page):
+    """The subject kinds a page holds as headings or links to."""
+    kinds = {i.kind for found in vault.items.values() for i in found if i.page is page}
+    for link in page.links:
+        first = link.anchor.split()[0] if link.anchor.split() else ""
+        item = vault.item(first) if first else None
+        if item is not None:
+            kinds.add(item.kind)
+    return kinds & set(KIND_NAMES)
+
+
+def untyped_mentions(vault):
+    """W809 where a fact says "points", "clause" or another word an existence question lists, the page
+    neither holds nor links a subject of the kind that question creates, and that question has no answer
+    yet. A missed extraction would otherwise leave the ledger looking clean. Once per page and question."""
+    creators = [e for e in vault.catalogue.entries if e.creates and e.mentions]
+    initiative = _initiative_id(vault)
+    settled = {d.copy.entry.id for d in dispositions(vault) if d.copy.subject.kind == "initiative" and not d.undisposed}
+    for page in sorted(vault.pages, key=lambda p: p.path):
+        if page.type == "session":
+            continue  # captures are the raw record; close types what they name
+        kinds = _kinds_on(vault, page)
+        told = set()
+        for line, text in sorted(_fact_texts(page)):
+            words = {w.lower() for w in WORD_RE.findall(CODE_SPAN.sub("", text))}
+            for entry in creators:
+                if entry.id in told or entry.id in settled or entry.creates in kinds:
+                    continue
+                hits = sorted(words & set(entry.mentions))
+                if not hits:
+                    continue
+                told.add(entry.id)
+                copy = f"{entry.id}@{initiative}" if initiative else entry.id
+                kind = KIND_NAMES[entry.creates]
+                yield Finding(page.path, line, "W809",
+                              f"'{hits[0]}' may be an untyped subject: this page holds or links no {kind}, and {copy} "
+                              f"has no answer yet ({entry.question})",
+                              f"Type it as ### {SUBJECT_PREFIX[entry.creates]}nn on 03-context-and-scope.md and link it "
+                              f"from here, or answer {copy} in the question ledger.")

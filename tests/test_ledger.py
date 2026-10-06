@@ -26,7 +26,9 @@ def ub(tmp_path):
 def broken(vault):
     code, out = run("render", "--vault", str(vault))
     assert code == 0, out
-    return findings(check(vault, TODAY)[1])
+    # A broken ledger disposes of nothing, so W809 may also fire on a page that mentions licences. That
+    # follows from the break and is pinned in test_untyped.py, so it is left out of these shape checks.
+    return [f for f in findings(check(vault, TODAY)[1]) if f[0] != "W809"]
 
 
 def row_of(vault, copy):

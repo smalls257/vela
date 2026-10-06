@@ -404,9 +404,11 @@ def subject_rules(vault, today):
 # ------------------------------------------------------------------ the question ledger
 
 def question_rules(vault, today):
-    """E801, E802, E803, W804 and W812 on the question ledger. An open row, or a copy with no row, is
-    never a finding here: the lead sets the pace, and the gates decide when it matters."""
+    """E801, E802, E803, W804 and W812 on the question ledger, and W809 for a subject nobody typed. An
+    open row, or a copy with no row, is never a finding here: the lead sets the pace, and the gates decide
+    when it matters."""
     yield from questions.ledger_findings(vault, today)
+    yield from questions.untyped_mentions(vault)
 
 
 # ----------------------------------------------------------------- certainty

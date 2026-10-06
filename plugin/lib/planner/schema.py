@@ -295,6 +295,7 @@ CODES = {
     "W806": "assumed question not resolved at the end of shape",
     "W807": "open question blocks the grilled item",
     "E808": "party or stored value is missing a required fact",
+    "W809": "possibly an untyped subject",
     "E810": "heading looks like a party or stored value but is not one",
     "W811": "subject defined off its page",
     "W812": "ledger row is dated in the future",

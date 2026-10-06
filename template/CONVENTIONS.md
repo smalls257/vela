@@ -267,6 +267,8 @@ Three gates read it too. Each names a moment, and a skill runs it then:
 
 `--item` repeats, once per agenda item, and goes only with `--gate grill`, which needs at least one. An ID the vault does not hold exits 2.
 
+A question only fires on a subject someone typed. So W809 warns, "possibly an untyped subject", where a fact bullet or a table row says one of the words an existence question lists in `mentions` (points, balances, credits, vouchers or deposits for stored value; a clause or a licence for a party), the page neither holds nor links a subject of that kind, and that existence question has no row yet or an `open` one. It warns once per page and question. Prose, session records, generated blocks and the ledger are not read for it. Type the subject and link it, or answer the existence question, and the warning goes.
+
 
 `planner questions` lists every owed copy with its focus area, severity, state, subject, what it blocks while it is open or asked, and the question, then the reviewer questions. `--json` prints the same as data, `--area FIN` keeps one focus area, `--subject APP-booking` one subject, and `--open` lists only the copies with no row, an `open` row or an invalid row. Its first line is the coverage: "57 owed, 3 undisposed, against catalogue v1". It never says complete, because the catalogue finds only what is written into it. An unknown `--area` exits 2, and a `--subject` that names no subject exits 1.
 
@@ -447,7 +449,7 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | E803 | ledger row names nothing the catalogue owes | W804 | ledger row is orphaned or no longer owed |
 | E805 | high-severity question not disposed at the epics gate | W805 | high-severity question not disposed, by override |
 | W806 | assumed question not resolved at the end of shape | W807 | open question blocks the grilled item |
-| E808 | party or stored value is missing a required fact | | |
+| E808 | party or stored value is missing a required fact | W809 | possibly an untyped subject |
 | E810 | heading looks like a party or stored value but is not one | | |
 | W811 | subject defined off its page | | |
 | W812 | ledger row is dated in the future | | |
