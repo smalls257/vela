@@ -337,9 +337,11 @@ def dispositions(vault):
     return vault.cache["dispositions"]
 
 
-def coverage_line(vault, owed_count, undisposed_count):
-    """What every report says about coverage. Never "complete": the catalogue only finds what is written into it."""
-    return f"{owed_count} owed, {undisposed_count} undisposed, against catalogue v{vault.catalogue.version}"
+def coverage_line(vault, owed_count, undisposed_count, reviewer_open=0):
+    """What every report says about coverage. Never "complete": the catalogue only finds what is written into it.
+    Open reviewer questions are named when there are any, so the line describes every row listed under it."""
+    reviewers = f", {reviewer_open} open reviewer question{'' if reviewer_open == 1 else 's'}" if reviewer_open else ""
+    return f"{owed_count} owed, {undisposed_count} undisposed{reviewers}, against catalogue v{vault.catalogue.version}"
 
 
 # ------------------------------------------------------------------ the ledger rules
@@ -608,7 +610,7 @@ def listing(vault, area=None, open_only=False, subject_id=None):
     reviewer_open = [r for r in reviewers if r.state == "open" or not row_valid(vault, r)]
     return {
         "catalogue": vault.catalogue.version,
-        "coverage": coverage_line(vault, len(kept), undisposed),
+        "coverage": coverage_line(vault, len(kept), undisposed, len(reviewer_open)),
         "owed": len(kept),
         "undisposed": undisposed,
         "reviewer_questions": len(reviewers),
@@ -655,10 +657,11 @@ def digest(vault, area=None, subject_id=None):
             out.append({"band": _band(answer["severity"], []), "entry": row.copy, "area": row.area,
                         "severity": answer["severity"], "question": answer["question"], "copies": [row.copy],
                         "why": {state_label(row.state, answer["valid"]): 1}, "blocks": []})
+    reviewer_open = len(out) - len(groups)
     out.sort(key=lambda g: (g["band"], g["entry"]))
     undisposed = sum(1 for d in kept if d.undisposed)
-    return {"catalogue": vault.catalogue.version, "coverage": coverage_line(vault, len(kept), undisposed),
-            "owed": len(kept), "undisposed": undisposed, "groups": out}
+    return {"catalogue": vault.catalogue.version, "coverage": coverage_line(vault, len(kept), undisposed, reviewer_open),
+            "owed": len(kept), "undisposed": undisposed, "reviewer_open": reviewer_open, "groups": out}
 
 
 def stats(vault, area=None):

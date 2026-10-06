@@ -355,17 +355,20 @@ def progress_map(vault, page):
 # ------------------------------------------------------------------ questions
 
 def undisposed_questions(vault, page):
-    """The coverage line, then every owed copy no valid ledger row covers yet: the to-do list above the record."""
+    """The coverage line, then every undisposed copy and open reviewer question: the to-do list above the record.
+    The line counts exactly the rows the table lists."""
     found = questions.dispositions(vault)
-    undisposed = sum(1 for d in found if d.undisposed)
-    out = [f"**Questions:** {questions.coverage_line(vault, len(found), undisposed)}."]
+    copies = [d for d in found if d.undisposed]
     lines = [row(d.copy.id, d.label, d.copy.entry.area, d.copy.entry.severity, id_link(vault, d.copy.subject.id),
-                 cell(d.copy.entry.question)) for d in found if d.undisposed]
+                 cell(d.copy.entry.question)) for d in copies]
+    reviewers = 0
     for r in questions.reviewer_rows(vault):
         answer = questions.reviewer_answer(vault, r)
         if r.state == "open" or not answer["valid"]:
+            reviewers += 1
             lines.append(row(r.copy, questions.state_label(r.state, answer["valid"]), r.area, answer["severity"],
                              "reviewer", cell(answer["question"] or "")))
+    out = [f"**Questions:** {questions.coverage_line(vault, len(found), len(copies), reviewers)}."]
     if lines:
         out += ["", "| Copy | State | Area | Severity | Subject | Question |", "|---|---|---|---|---|---|"] + lines
     return "\n".join(out)

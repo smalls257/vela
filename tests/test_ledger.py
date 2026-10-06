@@ -278,7 +278,7 @@ def test_planner_questions_prints_the_coverage_line_and_one_line_per_copy():
     code, out = run("questions", "--vault", str(FIXTURE))
     lines = out.splitlines()
     assert code == 0
-    assert lines[0] == "planner questions: 57 owed, 0 undisposed, against catalogue v1. 1 reviewer question, 1 open."
+    assert lines[0] == "planner questions: 57 owed, 0 undisposed, 1 open reviewer question, against catalogue v1. 1 reviewer question, 1 open."
     assert "complete" not in out.lower()
     assert len(lines) == 59
     assert "Q-DAT-02@APP-website | DAT | high | assumed via Q-DAT-02@APP-* | APP-website | settled | What customer data" in out
