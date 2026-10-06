@@ -374,11 +374,13 @@ def read_findings(folder, codes):
     cannot be read or parsed makes its area "did not run" with the reason; it never stops the merge."""
     outputs, ignored = {}, []
     for path in sorted(folder.iterdir()):
+        if path.name.startswith("."):
+            continue  # .DS_Store and friends are not reviewer output
         if path.suffix != ".json" or path.stem not in codes:
             ignored.append(path.name)
             continue
         try:
-            outputs[path.stem] = (json.loads(unfence(path.read_text(encoding="utf-8"))), "")
+            outputs[path.stem] = (json.loads(unfence(path.read_text(encoding="utf-8-sig"))), "")
         except (OSError, UnicodeDecodeError) as exc:
             outputs[path.stem] = (None, f"cannot read {path.name}: {exc}")
         except json.JSONDecodeError as exc:
@@ -407,6 +409,8 @@ def cmd_findings(args, out):
             print(f"{title}:", file=out)
         for entry in entries:
             print(finding_line(entry), file=out)
+            if isinstance(entry, reviews.Kept):
+                print(f"   {entry.finding}", file=out)
     for name in result.ignored:
         print(f"ignored: {name} is not <AREA>.json for an area of catalogue v{vault.catalogue.version}", file=out)
     return 0 if result.clean else 1

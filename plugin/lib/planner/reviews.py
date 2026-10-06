@@ -106,7 +106,7 @@ def flat(text):
 
 
 def dedupe_key(copy, question):
-    words = re.sub(r"[^a-z0-9 ]", "", flat(question).lower())
+    words = re.sub(r"[^\w ]", "", flat(question).lower())
     return (copy, " ".join(words.split()))
 
 
@@ -133,13 +133,17 @@ def _check_finding(vault, raw, owed_ids):
     copy = raw["copy"].strip()
     if copy.lower() == "new":
         copy = "new"
-    elif copy not in owed_ids:
+    elif copy.upper() in owed_ids:
+        copy = owed_ids[copy.upper()]
+    else:
         return None, f"it names {copy}, which this vault does not owe; write new for a question of your own"
     page = find_page(vault, raw["page"])
     if page is None:
         return None, f"it cites {raw['page'].strip()}, which is not a page in this vault"
     # One quote checker for the ledger and the merge, so the two rules cannot drift apart.
-    problem = questions.quote_problem(vault, f'"{raw["quote"].strip()}" in [[{page.name}]]', "its quote")
+    # A straight quote mark inside the words would end the quoted span early; quote_problem reads curly as straight.
+    words = raw["quote"].strip().replace('"', "”")
+    problem = questions.quote_problem(vault, f'"{words}" in [[{page.name}]]', "its quote")
     if problem:
         return None, problem
     return (severity, copy, flat(raw["question"]), flat(raw["finding"]), flat(raw["quote"]), page.path), ""
@@ -148,7 +152,7 @@ def _check_finding(vault, raw, owed_ids):
 def merge(vault, outputs, ignored=()):
     """The merge of every area's output. `outputs` maps each area code of the catalogue to
     (data, problem): the reviewer's parsed JSON, or None and why the CLI could not read it."""
-    owed_ids = {c.id for c in questions.owed(vault)}
+    owed_ids = {c.id.upper(): c.id for c in questions.owed(vault)}
     areas, kept, duplicates, dropped, seen = [], [], [], [], {}
     for code, label in vault.catalogue.areas:
         data, problem = outputs.get(code, (None, "no findings file"))

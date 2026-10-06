@@ -152,6 +152,46 @@ def test_a_missing_folder_is_a_tool_failure(tmp_path):
     assert code == 2 and "is not a folder" in out
 
 
+def test_a_quote_with_straight_double_quotes_is_kept(tmp_path):
+    all_ran(tmp_path / "f", FIN=[finding(page="01-goals", copy="new", quote='nobody agrees on what "confirmed" means',
+                                         question="What does confirmed mean?")])
+    code, result = merged(tmp_path / "f")
+    assert code == 0 and len(result["kept"]) == 1
+
+
+def test_dotfiles_in_the_folder_are_skipped(tmp_path):
+    all_ran(tmp_path / "f")
+    (tmp_path / "f" / ".DS_Store").write_bytes(b"\x00\x01")
+    code, result = merged(tmp_path / "f")
+    assert code == 0 and result["ignored"] == []
+
+
+def test_questions_in_other_scripts_are_not_one_duplicate(tmp_path):
+    all_ran(tmp_path / "f", FIN=[finding(copy="new", question="¿Quién devuelve los puntos?"),
+                                 finding(copy="new", question="Кто вернёт баллы?")])
+    code, result = merged(tmp_path / "f")
+    assert len(result["kept"]) == 2 and result["duplicates"] == []
+
+
+def test_a_findings_file_with_a_byte_order_mark_is_read(tmp_path):
+    all_ran(tmp_path / "f")
+    (tmp_path / "f" / "FIN.json").write_bytes(b"\xef\xbb\xbf" + json.dumps({"area": "FIN", "findings": [finding()]}).encode())
+    code, result = merged(tmp_path / "f")
+    assert result["areas"][0]["status"] == "found 1"
+
+
+def test_a_copy_id_in_lower_case_is_the_owed_copy(tmp_path):
+    all_ran(tmp_path / "f", FIN=[finding(copy="q-fin-03@sv-01")])
+    code, result = merged(tmp_path / "f")
+    assert code == 0 and result["kept"][0]["copy"] == "Q-FIN-03@SV-01"
+
+
+def test_the_text_report_gives_the_finding_sentence(tmp_path):
+    all_ran(tmp_path / "f", FIN=[finding()])
+    code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE))
+    assert "   Points are earned when a crossing is reserved, so a cancellation may owe points back." in out.splitlines()
+
+
 def test_merge_writes_nothing(tmp_path):
     all_ran(tmp_path / "f", FIN=[finding()])
     before = {p: p.read_bytes() for p in (tmp_path / "f").iterdir()}
