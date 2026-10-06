@@ -337,11 +337,30 @@ def dispositions(vault):
     return vault.cache["dispositions"]
 
 
-def coverage_line(vault, owed_count, undisposed_count, reviewer_open=0):
+def coverage_line(vault, owed_count, undisposed_count, reviewer_open=0, asked=0):
     """What every report says about coverage. Never "complete": the catalogue only finds what is written into it.
-    Open reviewer questions are named when there are any, so the line describes every row listed under it."""
+    Asked questions and open reviewer questions are named when there are any, so the line describes every row
+    listed under it. An asked question is disposed of nothing yet, and it still holds the gates."""
+    asked_text = f", {asked} asked" if asked else ""
     reviewers = f", {reviewer_open} open reviewer question{'' if reviewer_open == 1 else 's'}" if reviewer_open else ""
-    return f"{owed_count} owed, {undisposed_count} undisposed{reviewers}, against catalogue v{vault.catalogue.version}"
+    return (f"{owed_count} owed, {undisposed_count} undisposed{asked_text}{reviewers}, "
+            f"against catalogue v{vault.catalogue.version}")
+
+
+def reviewer_open(vault, row):
+    """A reviewer question nobody has disposed of: `open`, or a row with an error."""
+    return row.state == "open" or not row_valid(vault, row)
+
+
+def reviewer_pending(vault, row):
+    """A reviewer question the gates still hold: open, invalid, or asked and waiting for its answer."""
+    return reviewer_open(vault, row) or row.state == "asked"
+
+
+def asked_count(vault, kept, reviewers):
+    """Valid `asked` copies and reviewer questions: pending, but not undisposed, so the line names them apart."""
+    return (sum(1 for d in kept if d.valid and d.state == "asked")
+            + sum(1 for r in reviewers if r.state == "asked" and row_valid(vault, r)))
 
 
 # ------------------------------------------------------------------ the ledger rules
@@ -618,22 +637,25 @@ def reviewer_answer(vault, row):
 
 def listing(vault, area=None, open_only=False, subject_id=None):
     """What `planner questions` reports, as data json.dumps can write. The counts cover the copies the
-    area and subject filters keep; --open then keeps only the undisposed ones in the list. A row with an
-    error counts as undisposed, the same as check says."""
+    area and subject filters keep; --open then keeps only the pending ones in the list: undisposed, or asked
+    and still waiting, because both hold the gates. A row with an error counts as undisposed, the same as
+    check says."""
     kept = [d for d in dispositions(vault) if (area is None or d.copy.entry.area == area)
             and (subject_id is None or d.copy.subject.id == subject_id)]
     reviewers = [r for r in reviewer_rows(vault) if (area is None or r.area == area)] if subject_id is None else []
     undisposed = sum(1 for d in kept if d.undisposed)
-    reviewer_open = [r for r in reviewers if r.state == "open" or not row_valid(vault, r)]
+    opened = [r for r in reviewers if reviewer_open(vault, r)]
+    asked = asked_count(vault, kept, reviewers)
     return {
         "catalogue": vault.catalogue.version,
-        "coverage": coverage_line(vault, len(kept), undisposed, len(reviewer_open)),
+        "coverage": coverage_line(vault, len(kept), undisposed, len(opened), asked),
         "owed": len(kept),
         "undisposed": undisposed,
+        "asked": asked,
         "reviewer_questions": len(reviewers),
-        "reviewer_open": len(reviewer_open),
-        "copies": [copy_answer(vault, d) for d in kept if d.undisposed or not open_only],
-        "reviewer": [reviewer_answer(vault, r) for r in reviewers if r in reviewer_open or not open_only],
+        "reviewer_open": len(opened),
+        "copies": [copy_answer(vault, d) for d in kept if d.pending or not open_only],
+        "reviewer": [reviewer_answer(vault, r) for r in reviewers if reviewer_pending(vault, r) or not open_only],
     }
 
 
@@ -647,14 +669,14 @@ def _band(severity, blocked):
 
 
 def digest(vault, area=None, subject_id=None):
-    """The undisposed copies grouped by entry, so one answer can serve many, and the open reviewer
-    questions, ranked: high severity that blocks something first, then high, then the rest. Within
-    a band the order is by entry ID, so it never changes between runs. Nothing is left out."""
+    """The pending copies (undisposed, or asked and still waiting) grouped by entry, so one answer can serve
+    many, and the pending reviewer questions, ranked: high severity that blocks something first, then high,
+    then the rest. Within a band the order is by entry ID, so it never changes between runs. Nothing is left out."""
     kept = [d for d in dispositions(vault) if (area is None or d.copy.entry.area == area)
             and (subject_id is None or d.copy.subject.id == subject_id)]
     groups = {}
     for d in kept:
-        if d.undisposed:
+        if d.pending:
             groups.setdefault(d.copy.entry.id, []).append(d)
     out = []
     for entry_id, found in groups.items():
@@ -666,19 +688,20 @@ def digest(vault, area=None, subject_id=None):
         out.append({"band": _band(entry.severity, blocked), "entry": entry_id, "area": entry.area,
                     "severity": entry.severity, "question": entry.question, "copies": [d.copy.id for d in found],
                     "why": why, "blocks": blocked})
-    if subject_id is None:
-        for row in reviewer_rows(vault):
-            if not (row.state == "open" or not row_valid(vault, row)) or (area is not None and row.area != area):
-                continue
-            answer = reviewer_answer(vault, row)
-            out.append({"band": _band(answer["severity"], []), "entry": row.copy, "area": row.area,
-                        "severity": answer["severity"], "question": answer["question"], "copies": [row.copy],
-                        "why": {state_label(row.state, answer["valid"]): 1}, "blocks": []})
-    reviewer_open = len(out) - len(groups)
+    reviewers = [r for r in reviewer_rows(vault) if area is None or r.area == area] if subject_id is None else []
+    for row in reviewers:
+        if not reviewer_pending(vault, row):
+            continue
+        answer = reviewer_answer(vault, row)
+        out.append({"band": _band(answer["severity"], []), "entry": row.copy, "area": row.area,
+                    "severity": answer["severity"], "question": answer["question"], "copies": [row.copy],
+                    "why": {state_label(row.state, answer["valid"]): 1}, "blocks": []})
+    opened = sum(1 for r in reviewers if reviewer_open(vault, r))
+    asked = asked_count(vault, kept, reviewers)
     out.sort(key=lambda g: (g["band"], g["entry"]))
     undisposed = sum(1 for d in kept if d.undisposed)
-    return {"catalogue": vault.catalogue.version, "coverage": coverage_line(vault, len(kept), undisposed, reviewer_open),
-            "owed": len(kept), "undisposed": undisposed, "reviewer_open": reviewer_open, "groups": out}
+    return {"catalogue": vault.catalogue.version, "coverage": coverage_line(vault, len(kept), undisposed, opened, asked),
+            "owed": len(kept), "undisposed": undisposed, "asked": asked, "reviewer_open": opened, "groups": out}
 
 
 def stats(vault, area=None):
@@ -701,6 +724,9 @@ def stats(vault, area=None):
 
 
 # ------------------------------------------------------------------ the gates
+
+DISPOSE = "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an assumption."
+
 
 def _ledger_location(vault):
     """Where a gate reports a copy with no row: the `## Question ledger` heading, or line 1 of the page."""
@@ -738,15 +764,22 @@ def epics_gate(vault):
         message = f"{d.copy.id} is high severity and {_standing(d)}: {d.copy.entry.question}"
         yield Finding(path, d.row.line if d.row else heading, "E805",
                       f"{message} {gap}".strip() if d.row is None else message,
-                      adding + "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an assumption. "
-                      "To call the epics complete anyway, add - **Override:** E805 by @handle on YYYY-MM-DD: <why> "
-                      "under ## Question ledger.")
+                      f"{adding}{DISPOSE} {schema.E805_OVERRIDE_HINT}")
     for row in reviewer_rows(vault):
-        if row.get("severity") == "high" and (row.state in ("open", "asked") or not row_valid(vault, row)):
+        if row.get("severity") == "high" and reviewer_pending(vault, row):
             label = state_label(row.state, row_valid(vault, row))
             yield Finding(path, row.line, "E805", f"{row.copy} is high severity and is {label}: {row.get('question')}",
-                          "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an "
-                          "assumption, or override E805 under ## Question ledger.")
+                          f"{DISPOSE} {schema.E805_OVERRIDE_HINT}")
+
+
+def load_bearing_assumptions(vault):
+    """The rows a passing epics gate rests on: `assumed`, `load-bearing: yes`, on a high-severity copy or
+    reviewer question. The gate counts an assumption as disposed, so these are named, never hidden."""
+    found = {d.row.copy: d.row.line for d in dispositions(vault) if d.valid and d.state == "assumed"
+             and d.copy.entry.severity == "high" and d.row.get("load-bearing") == "yes"}
+    found.update({r.copy: r.line for r in reviewer_rows(vault) if r.state == "assumed" and r.get("severity") == "high"
+                  and r.get("load-bearing") == "yes" and row_valid(vault, r)})
+    return sorted(found, key=lambda copy: found[copy])
 
 
 def shape_gate(vault):

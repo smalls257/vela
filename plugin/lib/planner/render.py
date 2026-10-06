@@ -355,20 +355,22 @@ def progress_map(vault, page):
 # ------------------------------------------------------------------ questions
 
 def undisposed_questions(vault, page):
-    """The coverage line, then every undisposed copy and open reviewer question: the to-do list above the record.
-    The line counts exactly the rows the table lists."""
+    """The coverage line, then every pending copy and reviewer question (undisposed, or asked and still waiting):
+    the to-do list above the record. The line counts exactly the rows the table lists."""
     found = questions.dispositions(vault)
-    copies = [d for d in found if d.undisposed]
+    copies = [d for d in found if d.pending]
     lines = [row(d.copy.id, d.label, d.copy.entry.area, d.copy.entry.severity, id_link(vault, d.copy.subject.id),
                  cell(d.copy.entry.question)) for d in copies]
-    reviewers = 0
-    for r in questions.reviewer_rows(vault):
+    reviewers = questions.reviewer_rows(vault)
+    for r in reviewers:
         answer = questions.reviewer_answer(vault, r)
-        if r.state == "open" or not answer["valid"]:
-            reviewers += 1
+        if questions.reviewer_pending(vault, r):
             lines.append(row(r.copy, questions.state_label(r.state, answer["valid"]), r.area, answer["severity"],
                              "reviewer", cell(answer["question"] or "")))
-    out = [f"**Questions:** {questions.coverage_line(vault, len(found), len(copies), reviewers)}."]
+    opened = sum(1 for r in reviewers if questions.reviewer_open(vault, r))
+    line = questions.coverage_line(vault, len(found), sum(1 for d in found if d.undisposed), opened,
+                                   questions.asked_count(vault, found, reviewers))
+    out = [f"**Questions:** {line}."]
     if lines:
         out += ["", "| Copy | State | Area | Severity | Subject | Question |", "|---|---|---|---|---|---|"] + lines
     return "\n".join(out)

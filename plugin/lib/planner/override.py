@@ -285,9 +285,10 @@ def apply(vault, findings, gate=None):
             out.append(finding)
             continue
         said = "; ".join(o.describe() for o in cover)
+        fix = finding.fix.replace(schema.E805_OVERRIDE_HINT, "").strip()
         out.append(Finding(finding.path, finding.line, schema.OVERRIDE_CODES[finding.code],
                            f"{finding.message} Overridden: {said}.",
-                           f"Nothing blocks the merge. To end the override: {finding.fix}"))
+                           f"Nothing blocks the merge. To end the override: {fix}"))
     for (path, item_id), page in sorted(scopes.items(), key=lambda kv: kv[0]):
         seen = fired.get((path, item_id), set())
         where = item_id or page.id or page.name

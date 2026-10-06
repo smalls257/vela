@@ -138,3 +138,102 @@ def test_close_allocates_ids_before_it_writes_the_marks():
     assert "Write each mark into the line" not in two
     three = close.split("## 3. Write the promoted items", 1)[1].split("## 4.", 1)[0]
     assert three.index("Write each mark into the line") > three.index("### Gaps the catalogue missed")
+
+
+# ------------------------------------------------------------------ asked copies hold the gates, so the views list them
+
+ASKED = "Q-FIN-02@INI-002"  # the fixture's one asked row, a normal copy
+
+
+def ub(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    return vault
+
+
+def ask_reviewer(vault):
+    """Turn the fixture's open reviewer question into an asked one, as a lead who asked it would."""
+    edit(vault / "11-unknowns-and-risks.md", "| R-FIN-01 | open | question:",
+         "| R-FIN-01 | asked | capture: [[2026-11-19-owed-questions#^c01]]; question:")
+
+
+def test_open_lists_an_asked_copy_and_an_asked_reviewer_question(tmp_path):
+    vault = ub(tmp_path)
+    ask_reviewer(vault)
+    answer = json.loads(run("questions", "--open", "--json", "--vault", str(vault))[1])
+    assert [c["id"] for c in answer["copies"]] == [ASKED] and answer["copies"][0]["state"] == "asked"
+    assert [r["id"] for r in answer["reviewer"]] == ["R-FIN-01"] and answer["reviewer"][0]["state"] == "asked"
+    assert answer["undisposed"] == 0 and answer["asked"] == 2
+    assert answer["coverage"] == "57 owed, 0 undisposed, 2 asked, against catalogue v1"
+    out = run("questions", "--open", "--vault", str(vault))[1]
+    assert any(l.startswith(f"{ASKED} | FIN | normal | asked |") for l in out.splitlines()), out
+
+
+def test_the_digest_and_the_block_show_asked_copies_labelled_asked(tmp_path):
+    vault = ub(tmp_path)
+    answer = json.loads(run("questions", "--digest", "--json", "--vault", str(vault))[1])
+    fin = next(g for g in answer["groups"] if g["entry"] == "Q-FIN-02")
+    assert fin["copies"] == [ASKED] and fin["why"] == {"asked": 1}
+    assert answer["coverage"] == "57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalogue v1"
+    out = run("questions", "--digest", "--vault", str(vault))[1]
+    assert f"   (asked) {ASKED}" in out
+    run("render", "--vault", str(vault))
+    page = (vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8")
+    assert "**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalogue v1." in page
+    assert f"| {ASKED} | asked | FIN | normal | INI-002 |" in page
+
+
+def test_the_coverage_line_says_nothing_of_asked_when_none_are():
+    vault = REPO / "template"
+    assert "asked" not in json.loads(run("questions", "--json", "--vault", str(vault))[1])["coverage"]
+
+
+def test_cli_help_for_open_matches_conventions():
+    from planner import cli
+    parser = cli.build_parser()
+    ques = next(a for a in parser._subparsers._group_actions[0].choices["questions"]._actions if "--open" in a.option_strings)
+    assert ques.help == "list only copies with no row, an open row, an invalid row or an asked row"
+    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    assert "`--open` lists only the copies with no row, an `open` row, an invalid row or an `asked` row" in conventions
+
+
+def test_epics_says_e805_holds_asked_questions_too():
+    epics = text("skills/epics/SKILL.md")
+    assert "nobody has disposed, or that was asked and still waits for its answer" in epics
+
+
+# ------------------------------------------------------------------ the digest's wording and the epics gate's notes
+
+def test_the_digest_counts_lines_and_never_doubles_its_brackets(tmp_path):
+    vault = ub(tmp_path)
+    edit(vault / "11-unknowns-and-risks.md", "| Q-FIN-04@SV-01 | not-applicable | reason:", "| Q-FIN-04@SV-01 | not-applicable | why:")
+    out = run("questions", "--digest", "--vault", str(vault))[1]
+    first = out.splitlines()[0]
+    assert first.endswith(" 3 lines to take, most consequential first."), first
+    assert "((" not in out and "))" not in out, out
+    assert "   (invalid: not-applicable) Q-FIN-04@SV-01" in out, out
+
+
+def test_w805_tells_how_to_end_the_override_without_suggesting_another(tmp_path):
+    vault = ub(tmp_path)
+    page = vault / "11-unknowns-and-risks.md"
+    edit(page, "severity: normal | @hl-solution-lead | 2026-11-19 |", "severity: high | @hl-solution-lead | 2026-11-19 |")
+    edit(page, "## Question ledger\n", "## Question ledger\n\n- **Override:** E805 by @hl-solution-lead on 2026-11-20: "
+         "the cancellation rule is settled in the Grill after epics\n")
+    out = run("check", "--gate", "epics", "--vault", str(vault), "--today", "2026-11-20")[1]
+    w805 = next(l for l in out.splitlines() if " W805 " in l)
+    fix = w805.split(" Fix: ", 1)[1]
+    assert "override" not in fix.split("To end the override:", 1)[1].lower(), fix
+    gate = run("check", "--gate", "epics", "--vault", str(FIXTURE), "--today", "2026-11-20")[1]
+    assert "add - **Override:** E805" not in gate
+
+
+def test_a_passing_epics_gate_names_the_load_bearing_assumptions_it_rests_on():
+    code, out = run("check", "--gate", "epics", "--vault", str(FIXTURE), "--today", "2026-11-20")
+    assert code == 0
+    notes = [l for l in out.splitlines() if l.startswith("Note:")]
+    assert len(notes) == 1, out
+    assert notes[0].startswith("Note: the epics gate passed, and it rests on ")
+    assert "Q-PTN-02@PTY-01" in notes[0] and "Q-PTN-03@PTY-01" not in notes[0], notes[0]  # load-bearing: no
+    plain = run("check", "--vault", str(FIXTURE), "--today", "2026-11-20")[1]
+    assert "Note:" not in plain

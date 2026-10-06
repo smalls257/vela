@@ -249,8 +249,9 @@ def test_a_copy_with_no_row_is_undisposed_and_never_a_finding(ub):
     assert broken(ub) == []
     code, answer = ask(ub, "--open")
     assert code == 0 and answer["undisposed"] == 3
-    assert [c["id"] for c in answer["copies"]] == ["Q-DAT-02@APP-call-centre", "Q-DAT-02@APP-kiosks", "Q-DAT-02@APP-website"]
-    assert all(c["state"] == "no row" and c["pending"] for c in answer["copies"])
+    assert [c["id"] for c in answer["copies"]] == ["Q-DAT-02@APP-call-centre", "Q-DAT-02@APP-kiosks", "Q-DAT-02@APP-website",
+                                                   "Q-FIN-02@INI-002"]  # the fixture's asked copy, still pending
+    assert [c["state"] for c in answer["copies"]] == ["no row"] * 3 + ["asked"] and all(c["pending"] for c in answer["copies"])
 
 
 def test_a_row_with_an_error_disposes_of_nothing(ub):
@@ -260,7 +261,7 @@ def test_a_row_with_an_error_disposes_of_nothing(ub):
     copy = next(c for c in answer["copies"] if c["id"] == "Q-FIN-03@SV-01")
     assert copy["valid"] is False and copy["state"] == "answered" and copy["pending"]
     assert answer["undisposed"] == 1 and answer["coverage"].startswith("57 owed, 1 undisposed")
-    assert [c["id"] for c in ask(ub, "--open")[1]["copies"]] == ["Q-FIN-03@SV-01"]
+    assert [c["id"] for c in ask(ub, "--open")[1]["copies"]] == ["Q-FIN-02@INI-002", "Q-FIN-03@SV-01"]
     _, out = run("questions", "--vault", str(ub))
     assert "Q-FIN-03@SV-01 | FIN | high | invalid (answered) | SV-01 | blocks nothing |" in out
 
@@ -285,7 +286,7 @@ def test_planner_questions_prints_the_coverage_line_and_one_line_per_copy():
     code, out = run("questions", "--vault", str(FIXTURE))
     lines = out.splitlines()
     assert code == 0
-    assert lines[0] == "planner questions: 57 owed, 0 undisposed, 1 open reviewer question, against catalogue v1. 1 reviewer question, 1 open."
+    assert lines[0] == "planner questions: 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalogue v1. 1 reviewer question, 1 open."
     assert "complete" not in out.lower()
     assert len(lines) == 59
     assert "Q-DAT-02@APP-website | DAT | high | assumed via Q-DAT-02@APP-* | APP-website | settled | What customer data" in out

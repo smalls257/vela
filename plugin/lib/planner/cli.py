@@ -113,6 +113,12 @@ def cmd_check(args, out):
           + (f" Items: {', '.join(items)}." if items else ""), file=out)
     for finding in findings:
         print(finding.format(), file=out)
+    if args.gate == "epics" and not errors:
+        resting = questions.load_bearing_assumptions(vault)
+        if resting:
+            print(f"Note: the epics gate passed, and it rests on {len(resting)} load-bearing "
+                  f"assumption{'' if len(resting) == 1 else 's'} about high-severity questions: {', '.join(resting)}. "
+                  "Each holds until its signpost shows.", file=out)
     return 1 if errors else 0
 
 
@@ -328,17 +334,24 @@ def blocks_text(units):
 
 def print_digest(answer, out):
     groups = answer["groups"]
-    print(f"planner questions --digest: {answer['coverage']}. {len(groups)} to take, most consequential first.", file=out)
+    lines = f"{len(groups)} line{'' if len(groups) == 1 else 's'} to take"
+    print(f"planner questions --digest: {answer['coverage']}. {lines}, most consequential first.", file=out)
     for n, group in enumerate(groups, start=1):
         head = f"[{group['area']}] {group['severity']}"
         if group["blocks"]:
             head += f", blocks {blocks_text(group['blocks'])}"
         print(f"{n}. {head}: {group['question']}", file=out)
-        why = ", ".join(f"{k} {v}" if len(group["why"]) > 1 else k for k, v in group["why"].items())
+        why = ", ".join(f"{digest_label(k)} {v}" if len(group["why"]) > 1 else digest_label(k)
+                        for k, v in group["why"].items())
         count = len(group["copies"])
         lead = f"{count} copies ({why}): " if count > 1 else f"({why}) "
         many = ": one answer for all?" if count > 1 else ""
         print(f"   {lead}{', '.join(group['copies'])}{many}", file=out)
+
+
+def digest_label(label):
+    """A state label as the digest prints it inside brackets: `invalid (open)` reads `invalid: open`."""
+    return label.replace("invalid (", "invalid: ")[:-1] if label.startswith("invalid (") else label
 
 
 def print_stats(answer, out):
@@ -938,11 +951,11 @@ def build_parser():
     ques.add_argument("--vault", default=".", help="vault root (default: current directory)")
     ques.add_argument("--json", action="store_true", help="print JSON instead of text")
     ques.add_argument("--area", help="only this area of the catalogue, such as FIN")
-    ques.add_argument("--open", action="store_true", help="list only copies with no row or an open row")
+    ques.add_argument("--open", action="store_true", help="list only copies with no row, an open row, an invalid row or an asked row")
     ques.add_argument("--subject", help="only copies about this subject, such as APP-booking")
     view_of = ques.add_mutually_exclusive_group()
     view_of.add_argument("--digest", action="store_true",
-                         help="the undisposed copies grouped by entry and ranked, high and blocking first")
+                         help="the undisposed and asked copies grouped by entry and ranked, high and blocking first")
     view_of.add_argument("--stats", action="store_true", help="how often each entry ends not-applicable in this vault")
     ques.set_defaults(func=cmd_questions)
     found = sub.add_parser("findings", help="merge the focused reviewers' findings and check every quote")

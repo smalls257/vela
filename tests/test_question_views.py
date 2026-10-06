@@ -63,9 +63,11 @@ def digest(vault, *extra):
 # ------------------------------------------------------------------ the block
 
 def test_the_fixture_block_says_nothing_is_undisposed():
-    assert block(FIXTURE).splitlines()[1] == "**Questions:** 57 owed, 0 undisposed, 1 open reviewer question, against catalogue v1."
+    assert block(FIXTURE).splitlines()[1] == ("**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, "
+                                              "against catalogue v1.")
     rows = [l for l in block(FIXTURE).splitlines() if l.startswith("| R-") or l.startswith("| Q-")]
-    assert [r.split(" | ")[0:2] for r in rows] == [["| R-FIN-01", "open"]], "only the open reviewer question is listed"
+    assert [r.split(" | ")[0:2] for r in rows] == [["| Q-FIN-02@INI-002", "asked"], ["| R-FIN-01", "open"]], \
+        "only the asked copy and the open reviewer question are listed"
 
 
 def test_the_template_block_lists_the_twelve_initiative_questions():
@@ -80,7 +82,7 @@ def test_removing_a_row_makes_the_block_stale_and_render_lists_the_copies(ub):
     assert findings(check(ub, TODAY)[1]) == [("W402", LEDGER)]
     run("render", "--vault", str(ub))
     text = block(ub)
-    assert "**Questions:** 57 owed, 1 undisposed, 1 open reviewer question, against catalogue v1." in text
+    assert "**Questions:** 57 owed, 1 undisposed, 1 asked, 1 open reviewer question, against catalogue v1." in text
     assert "| Q-OPS-01@APP-kiosks | no row | OPS | normal | [[kiosks-building-blocks\\|Port kiosks]] | Who runs it out of hours" in text
     assert "Q-OPS-01@APP-booking" not in text, "booking has its own row"
     assert findings(check(ub, TODAY)[1]) == []
@@ -115,15 +117,15 @@ def test_render_is_a_no_op_on_the_fixture_and_the_template(tmp_path):
 def test_the_digest_ranks_high_and_blocking_first_and_groups_one_entry(ub):
     drop(ub, DAT_02_ALL, DAT_03_ALL, PTN_02_TIDEPAY, OPS_KIOSKS, OPS_PRICING)
     answer = digest(ub)
-    assert answer["coverage"] == "57 owed, 12 undisposed, 1 open reviewer question, against catalogue v1"
+    assert answer["coverage"] == "57 owed, 12 undisposed, 1 asked, 1 open reviewer question, against catalogue v1"
     order = [(g["band"], g["entry"]) for g in answer["groups"]]
-    assert order == [(1, "Q-DAT-02"), (1, "Q-PTN-02"), (3, "Q-DAT-03"), (3, "Q-OPS-01"), (3, "R-FIN-01")]
+    assert order == [(1, "Q-DAT-02"), (1, "Q-PTN-02"), (3, "Q-DAT-03"), (3, "Q-FIN-02"), (3, "Q-OPS-01"), (3, "R-FIN-01")]
     dat = answer["groups"][0]
     assert dat["copies"] == ["Q-DAT-02@APP-call-centre", "Q-DAT-02@APP-kiosks", "Q-DAT-02@APP-website"]
     assert "Q-DAT-02@APP-pricing" not in dat["copies"], "its own not-applicable row still stands"
     assert "Q-DAT-02@APP-booking" not in dat["copies"], "its own unknown row still stands"
     assert dat["blocks"][:2] == ["APP-call-centre", "APP-kiosks"]
-    assert answer["groups"][3]["copies"] == ["Q-OPS-01@APP-kiosks", "Q-OPS-01@APP-pricing"]
+    assert answer["groups"][4]["copies"] == ["Q-OPS-01@APP-kiosks", "Q-OPS-01@APP-pricing"]
 
 
 def test_the_bands_rank_high_and_blocking_above_high_above_the_rest():
@@ -141,11 +143,12 @@ def test_the_digest_text_offers_one_answer_for_a_group(ub):
     drop(ub, OPS_KIOSKS, OPS_PRICING)
     code, out = run("questions", "--vault", str(ub), "--digest")
     assert code == 0
-    assert out.splitlines()[0] == ("planner questions --digest: 57 owed, 2 undisposed, 1 open reviewer question, against catalogue v1. "
-                                   "2 to take, most consequential first.")
-    assert "1. [OPS] normal, blocks APP-kiosks, APP-pricing: Who runs it" in out
+    assert out.splitlines()[0] == ("planner questions --digest: 57 owed, 2 undisposed, 1 asked, 1 open reviewer question, "
+                                   "against catalogue v1. 3 lines to take, most consequential first.")
+    assert "1. [FIN] normal: Who pays for the change" in out and "   (asked) Q-FIN-02@INI-002" in out
+    assert "2. [OPS] normal, blocks APP-kiosks, APP-pricing: Who runs it" in out
     assert "   2 copies (no row): Q-OPS-01@APP-kiosks, Q-OPS-01@APP-pricing: one answer for all?" in out
-    assert "2. [FIN] normal: Points are earned at reservation" in out
+    assert "3. [FIN] normal: Points are earned at reservation" in out
 
 
 def test_a_group_says_why_each_copy_is_undisposed(ub):
@@ -172,7 +175,7 @@ def test_the_block_lists_what_open_lists_when_reviewer_rows_are_open(ub):
     shown = json.loads(out)
     listed = [l.split(" | ")[0][2:] for l in block(ub).splitlines() if l.startswith("| Q-") or l.startswith("| R-")]
     assert sorted(listed) == sorted(c["id"] for c in shown["copies"] + shown["reviewer"])
-    assert shown["undisposed"] == 2 and shown["reviewer_open"] == 1 and len(listed) == 3
+    assert shown["undisposed"] == 2 and shown["asked"] == 1 and shown["reviewer_open"] == 1 and len(listed) == 4
 
 
 def test_the_line_describes_the_table_under_it(ub):
@@ -181,8 +184,9 @@ def test_the_line_describes_the_table_under_it(ub):
     run("render", "--vault", str(ub))
     lines = block(ub).splitlines()
     shown = json.loads(run("questions", "--vault", str(ub), "--json")[1])
-    assert lines[1] == "**Questions:** 57 owed, 2 undisposed, 1 open reviewer question, against catalogue v1."
-    assert len([l for l in lines if l.startswith("| Q-") or l.startswith("| R-")]) == shown["undisposed"] + shown["reviewer_open"] == 3
+    assert lines[1] == "**Questions:** 57 owed, 2 undisposed, 1 asked, 1 open reviewer question, against catalogue v1."
+    assert len([l for l in lines if l.startswith("| Q-") or l.startswith("| R-")]) == \
+        shown["undisposed"] + shown["asked"] + shown["reviewer_open"] == 4
 
 
 def test_the_line_is_unchanged_when_no_reviewer_question_is_open():
@@ -203,7 +207,7 @@ def test_the_digest_is_the_same_on_every_run(ub):
 
 def test_the_digest_filters_by_area(ub):
     drop(ub, OPS_KIOSKS)
-    assert [g["entry"] for g in digest(ub, "--area", "FIN")["groups"]] == ["R-FIN-01"]
+    assert [g["entry"] for g in digest(ub, "--area", "FIN")["groups"]] == ["Q-FIN-02", "R-FIN-01"]
 
 
 # ------------------------------------------------------------------ the counts

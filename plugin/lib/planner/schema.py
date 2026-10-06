@@ -176,6 +176,10 @@ OVERRIDE_RULES = {
     "E805": ("E805",),
 }
 # Error -> the warning it becomes when an Override on the same item names it.
+# The sentence an E805 fix ends with. An overridden E805 prints as W805 without it, so the way to end an
+# override never suggests writing another one.
+E805_OVERRIDE_HINT = ("To call the epics complete anyway, add - **Override:** E805 by @handle on YYYY-MM-DD: <why> "
+                      "under ## Question ledger.")
 OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E317": "W317", "E318": "W318", "E805": "W805"}
 # Codes only a gate reports. An override of one is judged idle (W323) only when its gate ran, so the
 # override that lets an epics gate pass never warns on the plain check of every PR.

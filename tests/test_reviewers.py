@@ -427,7 +427,7 @@ def test_an_answered_row_quoting_only_the_lead_is_refused(tmp_path):
     row = ("| Q-FIN-02@INI-002 | answered | item: [[concern-ownership\\|Ownership]]; "
            "source: \"Platform pays for it from next year\"; answer: Platform pays | @hl-solution-lead | 2026-11-20 |")
     text = unknowns.read_text(encoding="utf-8")
-    old = next(l for l in text.splitlines() if l.startswith("| Q-FIN-02@INI-002 "))
+    old = next(l for l in text.splitlines() if l.startswith("| Q-FIN-02@INI-002 | asked | capture:"))
     unknowns.write_text(text.replace(old, row), encoding="utf-8")
     code, out = check(vault, "2026-11-20")
     assert ("E802", "11-unknowns-and-risks.md") in findings(out), out
