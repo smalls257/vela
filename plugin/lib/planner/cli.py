@@ -394,8 +394,11 @@ def cmd_findings(args, out):
     if not folder.is_dir():
         raise ToolError(f"{folder} is not a folder. Write each reviewer's output to <folder>/<AREA>.json, such as FIN.json.")
     vault = load_vault(root)
+    only = parse_areas(args.areas, vault.catalogue.area_codes)
     outputs, ignored = read_findings(folder, vault.catalogue.area_codes)
-    result = reviews.merge(vault, outputs, ignored)
+    if only is not None:
+        ignored += [f"{code}.json" for code in sorted(outputs) if code not in only]
+    result = reviews.merge(vault, outputs, ignored, only)
     if args.json:
         print(json.dumps(result.as_dict(vault.catalogue.version), indent=2, ensure_ascii=False), file=out)
         return 0 if result.clean else 1
@@ -412,8 +415,23 @@ def cmd_findings(args, out):
             if isinstance(entry, reviews.Kept):
                 print(f"   {entry.finding}", file=out)
     for name in result.ignored:
-        print(f"ignored: {name} is not <AREA>.json for an area of catalogue v{vault.catalogue.version}", file=out)
+        if only is not None and name[:-5] in vault.catalogue.area_codes:
+            print(f"ignored: {name} is not one of the areas asked for with --areas {','.join(only)}", file=out)
+        else:
+            print(f"ignored: {name} is not <AREA>.json for an area of catalogue v{vault.catalogue.version}", file=out)
     return 0 if result.clean else 1
+
+
+def parse_areas(text, codes):
+    """The area codes of --areas FIN,REG, or None for every area. An unknown code is a tool error."""
+    if text is None:
+        return None
+    wanted = [w.strip().upper() for w in text.split(",") if w.strip()]
+    unknown = [w for w in wanted if w not in codes]
+    if not wanted or unknown:
+        raise ToolError(f"--areas takes area codes of the catalogue ({', '.join(codes)}); "
+                        f"{', '.join(unknown) or 'it was empty'} {'is' if len(unknown) < 2 else 'are'} not one.")
+    return tuple(c for c in codes if c in wanted)
 
 
 def finding_line(entry):
@@ -933,6 +951,7 @@ def build_parser():
     merge.add_argument("folder", help="folder holding one <AREA>.json per reviewer, such as FIN.json")
     merge.add_argument("--vault", default=".", help="vault root (default: current directory)")
     merge.add_argument("--json", action="store_true", help="print JSON instead of text")
+    merge.add_argument("--areas", help="only these areas, such as FIN,REG, for a re-run; the others are not read")
     merge.set_defaults(func=cmd_findings)
     hand = sub.add_parser("handoff", help="write the senior's handoff manifest, or verify the vault against it")
     hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id to write handoffs/<APP-id>.md; verify APP-id to compare")

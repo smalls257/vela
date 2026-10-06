@@ -34,8 +34,10 @@ def test_the_area_reviewer_returns_the_fields_the_merge_reads():
     body = text("agents/area-reviewer.md")
     for field in reviews.FIELDS:
         assert f'"{field}":' in body, field
-    assert '{"area": "FIN", "findings": []}' in body
-    assert '{"area": "FIN", "error": "<what stopped you>"}' in body
+    assert '{"area": "<your area code>", "findings": []}' in body
+    assert '{"area": "<your area code>", "error": "<what stopped you>"}' in body
+    assert "R-FIN-01" in body and "`pending` is `true`" in body
+    assert "skip the `## Reviews` section" in body
     assert "never an empty findings list" in body
 
 
@@ -58,12 +60,14 @@ def test_review_dispatches_one_fresh_reviewer_per_area_with_a_fallback():
     assert "`planner:area-reviewer`" in review and "all five in one message" in review
     assert "general-purpose subagent" in review and ".claude/skills/planner/agents/area-reviewer.md" in review
     assert "Give no conversation" in review
+    assert 'If you changed a file, return `{"area": "<your area code>", "error": "changed <path>"}` instead.' in review
+    assert "report any file you changed" not in review
     assert "Never review the pages yourself in this conversation." in review
 
 
 def test_review_merges_in_code_and_never_reads_a_failure_as_clean():
     review = text("references/REVIEW.md")
-    assert "planner findings merge .git/planner-findings/<session id>-<n>" in review
+    assert "planner findings merge .git/planner-findings/<session id>/<n>" in review
     assert '{"area": "<AREA>", "error": "<what happened>"}' in review
     assert "Never write an empty findings list for a reviewer that did not finish" in review
     assert "An area that did not run is never reported as clean." in review
@@ -73,6 +77,32 @@ def test_review_merges_in_code_and_never_reads_a_failure_as_clean():
 def test_review_tells_the_session_to_swap_inner_quotes_like_the_merge():
     review = text("references/REVIEW.md")
     assert "replace each inner straight `\"` with `”`" in review
+
+
+def test_review_clears_stale_findings_and_numbers_from_the_record():
+    review = text("references/REVIEW.md")
+    assert "1 plus the number of `### ` headings under `## Reviews`" in review
+    assert review.count("rm -rf .git/planner-findings/<session id>/<n>") == 2
+    assert review.index("rm -rf .git/planner-findings/<session id>/<n>\nmkdir") < review.index("Save each reply")
+    assert "no variables" in review
+
+
+def test_review_defines_a_rerun_as_a_new_checkpoint_with_areas():
+    review = text("references/REVIEW.md")
+    assert "Re-run of checkpoint <n>: <areas>" in review
+    assert "--areas FIN,REG" in review and "F<n+1>.1" in review
+    assert "the ids of earlier checkpoints never change" in review
+
+
+def test_review_covers_the_minor_gaps():
+    review = text("references/REVIEW.md")
+    assert "`areas:` block" in review and "`pending` field is `true`" in review
+    assert "file name without .md" in review and "basename" not in review
+    assert "baseline" in review and "compare it with the baseline" in review
+    assert "skip the `## Reviews` section" in review.replace("Skip", "skip")
+    assert "`Checkpoint <session id> <n>`" in review
+    assert "merge failed: <error>" in review
+    assert "R-` id" in review
 
 
 def test_review_puts_no_cap_on_the_digest():

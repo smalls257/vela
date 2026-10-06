@@ -21,7 +21,7 @@ class Kept:
     n: int  # its number in the merge, from 1
     area: str
     severity: str
-    copy: str  # an owed copy ID, or "new" for a question the catalogue does not owe
+    copy: str  # an owed copy ID, an open reviewer question (R-FIN-01), or "new" for a question nobody has recorded
     question: str
     finding: str
     quote: str
@@ -136,7 +136,8 @@ def _check_finding(vault, raw, owed_ids):
     elif copy.upper() in owed_ids:
         copy = owed_ids[copy.upper()]
     else:
-        return None, f"it names {copy}, which this vault does not owe; write new for a question of your own"
+        return None, (f"it names {copy}, which this vault does not owe and has no open reviewer question for; "
+                      "write new for a question of your own")
     page = find_page(vault, raw["page"])
     if page is None:
         return None, f"it cites {raw['page'].strip()}, which is not a page in this vault"
@@ -149,12 +150,22 @@ def _check_finding(vault, raw, owed_ids):
     return (severity, copy, flat(raw["question"]), flat(raw["finding"]), flat(raw["quote"]), page.path), ""
 
 
-def merge(vault, outputs, ignored=()):
+def open_reviewer_ids(vault):
+    """The R-<AREA>-nn ids a finding may address: reviewer questions still open, or whose row has an error."""
+    return {r.copy.upper(): r.copy for r in questions.reviewer_rows(vault)
+            if r.state == "open" or not questions.row_valid(vault, r)}
+
+
+def merge(vault, outputs, ignored=(), only=None):
     """The merge of every area's output. `outputs` maps each area code of the catalogue to
-    (data, problem): the reviewer's parsed JSON, or None and why the CLI could not read it."""
+    (data, problem): the reviewer's parsed JSON, or None and why the CLI could not read it.
+    `only` lists the area codes expected, for a re-run; the others are neither read nor reported."""
     owed_ids = {c.id.upper(): c.id for c in questions.owed(vault)}
+    owed_ids.update(open_reviewer_ids(vault))
     areas, kept, duplicates, dropped, seen = [], [], [], [], {}
     for code, label in vault.catalogue.areas:
+        if only is not None and code not in only:
+            continue
         data, problem = outputs.get(code, (None, "no findings file"))
         reason = problem
         if not reason and not isinstance(data, dict):

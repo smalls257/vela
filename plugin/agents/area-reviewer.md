@@ -13,7 +13,7 @@ You review a written plan for one focus area. You did not write it, and you know
 - The focus area: its code and label, such as `FIN Finance and liabilities`.
 - The checkpoint and its focus, such as "after the pre-mortem", or "options A, B and C, before Shape shows them".
 - The pages to read: a list of vault-relative paths. Read every one, and no other path.
-- The area's owed questions: what `planner questions --area <code> --json` printed. Each copy has an `id`, a `question`, a `subject` and a `state`.
+- The area's owed questions: what `planner questions --area <code> --json` printed. Each copy has an `id`, a `question`, a `subject`, a `state` and a `pending` flag. Reviewer questions that are still open appear in its `reviewer` list with ids such as `R-FIN-01`.
 
 ## What each focus area covers
 
@@ -29,9 +29,9 @@ The area is a label for readers. Judge only what the pages say.
 
 ## Steps
 
-1. Read every page you were given.
-2. For each owed question whose `state` is `no row` or `open`, find what the pages say about it. If they answer it, the finding quotes the answer. If they say nothing, or two pages disagree, the finding says so.
-3. Look across the pages for anything your area covers that no owed question asks. Such a finding has `copy` set to `new`. A clash between two subjects counts: two apps, two schemes or two documents that disagree.
+1. Read every page you were given, but skip the `## Reviews` section of any session record: it holds earlier findings, and you never read another reviewer's output.
+2. For each owed question whose `pending` is `true`, find what the pages say about it. If they answer it, the finding quotes the answer. If they say nothing, or two pages disagree, the finding says so.
+3. Look across the pages for anything your area covers that no owed question asks. Such a finding has `copy` set to `new`. When a finding addresses a question in the `reviewer` list, set `copy` to its `R-` id. A clash between two subjects counts: two apps, two schemes or two documents that disagree.
 4. For each finding, copy a quote exactly as the page writes it, a few words to a sentence, and give that page's path. A quote that is not on its page is dropped, so never reword inside the quote. For a gap, quote the words nearest to where the answer belongs.
 5. Set `severity` to `high` when the finding would change a decision, a contract, a liability or the lawful use of data, and `normal` otherwise.
 
@@ -39,16 +39,16 @@ The area is a label for readers. Judge only what the pages say.
 
 One JSON object and nothing else: no prose before or after it, and no code fence.
 
-{"area": "FIN", "findings": [
+{"area": "<your area code>", "findings": [
   {"finding": "<what the pages show, in one sentence>",
    "quote": "<words copied exactly from the page>",
    "page": "<vault-relative path of the page the quote is on>",
-   "copy": "<an owed copy id from your list, or new>",
+   "copy": "<an owed copy id or an R- id from your list, or new>",
    "severity": "high",
    "question": "<the question the lead should answer, in plain words>"}
 ]}
 
-When you find nothing, return {"area": "FIN", "findings": []}. When you cannot finish, for example because a page does not open, return {"area": "FIN", "error": "<what stopped you>"}, never an empty findings list.
+When you find nothing, return {"area": "<your area code>", "findings": []}. When you cannot finish, for example because a page does not open, return {"area": "<your area code>", "error": "<what stopped you>"}, never an empty findings list.
 
 ## Never
 

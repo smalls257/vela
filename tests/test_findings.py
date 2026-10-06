@@ -197,3 +197,41 @@ def test_merge_writes_nothing(tmp_path):
     before = {p: p.read_bytes() for p in (tmp_path / "f").iterdir()}
     merged(tmp_path / "f")
     assert {p: p.read_bytes() for p in (tmp_path / "f").iterdir()} == before
+
+
+def test_a_finding_may_address_an_open_reviewer_question(tmp_path):
+    all_ran(tmp_path / "f", FIN=[finding(copy="r-fin-01"), finding(copy="R-FIN-99", question="Another?")])
+    code, result = merged(tmp_path / "f")
+    assert [(k["copy"], k["area"]) for k in result["kept"]] == [("R-FIN-01", "FIN")]
+    assert result["dropped"][0]["reason"].startswith("it names R-FIN-99, which this vault does not owe")
+    assert code == 1
+
+
+def test_areas_limits_a_rerun_to_the_listed_areas(tmp_path):
+    folder = tmp_path / "f"
+    write(folder, "REG", {"area": "REG", "findings": []})
+    write(folder, "FIN", {"area": "FIN", "findings": [finding()]})
+    code, out = run("findings", "merge", str(folder), "--vault", str(FIXTURE), "--areas", "reg")
+    assert "coverage: REG checked, none" in out and "FIN found" not in out
+    assert "ignored: FIN.json is not one of the areas asked for with --areas REG" in out
+    assert code == 1
+    code, result = merged_areas(folder, "REG")
+    assert [a["area"] for a in result["areas"]] == ["REG"] and result["ignored"] == ["FIN.json"] and result["kept"] == []
+
+
+def merged_areas(folder, areas):
+    code, out = run("findings", "merge", str(folder), "--vault", str(FIXTURE), "--json", "--areas", areas)
+    return code, json.loads(out)
+
+
+def test_an_area_not_listed_is_not_reported_as_did_not_run(tmp_path):
+    folder = tmp_path / "f"
+    write(folder, "REG", {"area": "REG", "findings": []})
+    code, result = merged_areas(folder, "REG")
+    assert code == 0 and result["coverage"] == "coverage: REG checked, none"
+
+
+def test_areas_names_only_codes_of_the_catalogue(tmp_path):
+    all_ran(tmp_path / "f")
+    code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--areas", "FIN,XYZ")
+    assert code == 2 and "XYZ" in out
