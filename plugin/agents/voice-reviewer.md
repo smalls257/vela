@@ -12,6 +12,8 @@ You review drafted paragraphs against example passages. You did not write the dr
 
 A numbered list. Each entry has the page path, the voice type (`diagnosis`, `decision` or `how-it-works`) and the paragraph text.
 
+An entry may also carry a voicescore hint, such as `outside your range (p96)`. A style embedding measured how far the paragraph sits from the owner's own examples. Use it as a hint about where to look harder, nothing more. Never flag a paragraph only because its voicescore is outside the range: flag it only when step 4's rule holds.
+
 ## Steps
 
 1. For each voice type in the list, read every file in `voice/local/<voice type>/` (when that folder exists on this machine) and in `voice/examples/<voice type>/` whose frontmatter says `state: active`, in file-name order. Skip `state: retired`. Read local `owner` and `owner-edit` examples first, then `voice/examples/`, then any other local example. Never read `voice/corpus/`.

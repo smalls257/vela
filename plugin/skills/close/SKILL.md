@@ -46,6 +46,14 @@ Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for ever
 
 A fresh reader checks the drafts, because the drafter cannot judge its own voice. Skip this part if the session drafted no paragraph, and go on to the part "Harvest the owner's edits".
 
+**Voicescore, optional.** `planner voicescore` places each paragraph against the owner's own range with a style embedding, a second reading of a different kind from the reviewer's. It is information, not a gate. It runs only when it is installed and the owner has at least 5 active `owner` and `owner-edit` examples. Run it after step 1 and before step 2:
+
+- Write the paragraphs of step 1's list to `.git/planner-voicescore-input.md`, in list order, one blank line between them, so ¶n is entry n. It sits inside `.git`, so it never shows in `git status`.
+- Run `python3 .claude/skills/planner/bin/planner voicescore .git/planner-voicescore-input.md --json`, then `rm -f .git/planner-voicescore-input.md`.
+- It did not run when it printed `"ran": false` (keep its `reason`), when `"reliable"` is false (the reason is "fewer than 5 owner examples"), when its paragraph count differs from the list (the reason is "its paragraphs did not match the list"), or when the command failed in any other way (the reason is what it printed). Then the PR body says "voicescore: not run (<reason>)" and the reviewer gets no labels.
+- Otherwise add each paragraph's `label` to its entry, marked "voicescore hint", and keep the `summary` line for the PR body, such as "voicescore: 3 of 4 paragraphs inside your range; ¶2 outside (p96)".
+- Never block, rewrite or skip a paragraph because of its voicescore. Only the reviewer's flags lead to a rewrite.
+
 1. List only the prose paragraphs this section drafted, from the `draft: prose for <id>` commit. Leave out the bullets, table rows and headings section 3 wrote, even though the commit holds them. For each paragraph give a number, the page path, its voice type from house-voice's table, and the paragraph's text. Run `git status --porcelain` and keep the output.
 2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to the part "Harvest the owner's edits". The harvest does not depend on the review.
 3. Run `git status --porcelain` again. If the output differs from step 1 of this part, the reviewer changed a file: stop and show the user. If the reviewer errored, or returned anything but the table, treat the review as not run, write "**Voice review:** not run: <the reason>" in the PR body, and go on to the part "Harvest the owner's edits". If it flagged no paragraph, skip steps 4 and 5 of this part: there is nothing to rewrite and no commit, so go on to the part "Harvest the owner's edits".
@@ -167,7 +175,7 @@ Write the PR body to a temporary file. Fill the headings of the vault's PR templ
 - **What changed.** The promoted items, each with its new state. Then these lists, each with "none" when empty:
   - **Prose drafted:** each prose paragraph drafted in section 4, page by page.
   - **House voice:** each "No examples for <type>: drafted without examples" line house-voice gave, one per type, or "none".
-  - **Voice review:** each paragraph the reviewer flagged, what it said, and whether it was rewritten or kept because voicecheck named a changed token; or "not run: <reason>".
+  - **Voice review:** each paragraph the reviewer flagged, what it said, and whether it was rewritten or kept because voicecheck named a changed token; or "not run: <reason>". Then the voicescore `summary` line, or "voicescore: not run (<reason>)".
   - **Voice examples:** each example harvested or retired. Name a local example only as a count, never by its text. Add each PR harvest could not check, and why, and say when the PR limit hid older PRs.
   - **Decided wording not yet read back:** each `decided` item whose owner was not present in section 5.
   - **Promoted on a nod:** every item kept or promoted from a capture whose origin starts with `claude`, not only the deciding capture, with the capture quoted.

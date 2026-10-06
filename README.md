@@ -32,6 +32,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 | `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the slice a senior accepts |
 | `planner handoff verify <APP-id>` | What changed in that slice since handoff. Exits 1 when something accepted changed |
 | `planner voicecheck <before> <after>` | Fails when a rewrite lost or moved an ID, number, date, link, code span, table cell or negation |
+| `planner voicescore <page>` | Optional: whether each prose paragraph sits inside or outside your own voice's range. See "Optional: voicescore" below |
 | `planner export jira-csv --out epics.csv` | One row per epic for Jira's CSV import. Export only: nothing is read back and no page carries a Jira field |
 
 `planner render` fills every generated block, including the generated diagrams: the context map, system context, each app's context and the capability map. Never edit inside a block. Close runs `planner render` for you.
@@ -41,6 +42,15 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 - **`/planner:voice-seed`** stores 2 or 3 passages of your own writing per voice type, word for word, so drafts sound like you instead of the public seed. Committed examples go in `voice/examples/` and are pushed in a PR, where anyone with access to the repo can read them. Local examples go in `voice/local/`, which is gitignored and stays on your machine. If your employer owns the text, or you're not sure, keep it local.
 - **At close,** a fresh subagent runs a voice review of the drafts. Close rewrites each flagged paragraph once, and `planner voicecheck` throws out any rewrite that changed a fact.
 - **Harvest.** Only the vault's owner harvests, and only their own edits: close looks through your merged session PRs for paragraphs you rewrote after the draft, and asks before saving each one as an example.
+
+## Optional: voicescore
+
+`planner voicescore <page>` tells you, for each prose paragraph, whether it sits inside or outside your range, for example `outside your range (p96)`. Your range is how far each of your own `owner` and `owner-edit` examples sits from the rest. It uses StyleDistance, a small open style model, so it is a second opinion of a different kind from the voice reviewer. `planner voicescore --rank a.md b.md` orders drafts of the same paragraph. Close adds one line to the PR's Voice review when it can run. It is a hint, not a gate: it never blocks a PR and never rewrites anything.
+
+- **Install:** `python3 -m pip install sentence-transformers`. It pulls in PyTorch, about 1–2 GB. Nothing else in planner needs it.
+- **Setup, once:** `planner voicescore setup` is a one-off download of the pinned model, about 0.5 GB, into `~/.cache/planner-voicescore/`. It is the only planner command that touches the network, and it says so before it starts. If your network blocks Hugging Face, ask IT to fetch it.
+- **After that it runs offline.** Scoring forces Hugging Face's offline mode, so it never fetches anything, and your text never leaves this machine. Vectors are cached in `.git/planner-voicescore/`, which is never committed.
+- **Needs 5 of your examples.** With fewer it still answers but says the score is unreliable. It never falls back to the public seed; `--against seed` compares with the seed and says so.
 
 ## After handoff
 
@@ -62,7 +72,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `health`, `query`, `handoff`, `export`, `voicecheck`), the session skills (dump, discover, shape, grill, epics, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` agent, and START and MODES under `references/` |
+| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `health`, `query`, `handoff`, `export`, `voicecheck`, `voicescore`), the session skills (dump, discover, shape, grill, epics, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` agent, and START and MODES under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |

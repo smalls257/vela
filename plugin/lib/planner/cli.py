@@ -1,11 +1,14 @@
-"""The only part of planner that touches the disk, the clock or git.
+"""The only part of planner that touches the disk, the clock, git or the network.
+The network is touched by one command alone, `planner voicescore setup`.
 
 Exit codes: 0 clean, 1 findings, 2 the tool itself failed.
 """
 import argparse
 import codecs
 import datetime
+import importlib.util
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -14,7 +17,7 @@ import traceback
 
 import yaml
 
-from planner import export, handoff, health, model, parse, progress, query, render, rules, schema, viewer, voicecheck
+from planner import export, handoff, health, model, parse, progress, query, render, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 
@@ -414,6 +417,217 @@ def cmd_voicecheck(args, out):
     return 1 if failed else 0
 
 
+# --- voicescore: optional, needs sentence-transformers and a one-off model download ----------
+
+MODEL_MARKER = ".planner-complete"  # written last, so a half-finished download never reads as present
+
+
+def voicescore_home():
+    """Where the pinned model lives. Outside the vault, so a 0.5 GB model is never committed."""
+    return pathlib.Path(os.environ.get("PLANNER_VOICESCORE_HOME") or pathlib.Path.home() / ".cache" / "planner-voicescore")
+
+
+def model_dir():
+    return voicescore_home() / voicescore.MODEL_ID.replace("/", "__") / voicescore.MODEL_REVISION
+
+
+def missing_dependencies():
+    """pip names of the optional packages this Python cannot import."""
+    return [pip for module, pip in (("sentence_transformers", "sentence-transformers"), ("torch", "torch"))
+            if importlib.util.find_spec(module) is None]
+
+
+class VoiceScoreUnavailable(Exception):
+    """voicescore cannot run on this machine or vault. Printed as "not run: <reason>", exit 2."""
+
+
+def require_dependencies():
+    missing = missing_dependencies()
+    if missing:
+        raise VoiceScoreUnavailable(f"{' and '.join(missing)} not installed. voicescore is optional. "
+                                    f"To use it: {voicescore.INSTALL_HINT}, then run planner voicescore setup once.")
+
+
+def require_model():
+    if not (model_dir() / MODEL_MARKER).is_file():
+        raise VoiceScoreUnavailable(f"the {voicescore.MODEL_ID} model is not downloaded yet ({model_dir()}). "
+                                    f"Run planner voicescore setup once; it is the only step that uses the network.")
+
+
+def load_styledistance(path):
+    """An embed callable over the local model. Offline mode is set before the import, because the
+    Hugging Face libraries read it at import time; scoring must never fetch anything."""
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+    from sentence_transformers import SentenceTransformer
+    model = SentenceTransformer(str(path), device="cpu")
+
+    def embed(texts):
+        return [list(map(float, v)) for v in model.encode(list(texts), convert_to_numpy=True, show_progress_bar=False)]
+    return embed
+
+
+def download_styledistance(target):
+    from huggingface_hub import snapshot_download
+    snapshot_download(repo_id=voicescore.MODEL_ID, revision=voicescore.MODEL_REVISION, local_dir=str(target))
+
+
+def cached(embed, folder):
+    """embed, reading and writing one JSON vector per text under `folder`. A cache file that
+    cannot be read is embedded again and rewritten, never trusted."""
+    def lookup(texts):
+        keys = [voicescore.cache_key(t) for t in texts]
+        found = {}
+        for key in set(keys):
+            try:
+                found[key] = json.loads((folder / f"{key}.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                pass
+        todo = [t for t, k in dict(zip(texts, keys)).items() if k not in found]
+        if todo:
+            folder.mkdir(parents=True, exist_ok=True)
+            for text, vector in zip(todo, embed(todo)):
+                key = voicescore.cache_key(text)
+                found[key] = list(vector)
+                (folder / f"{key}.json").write_text(json.dumps(found[key]), encoding="utf-8")
+        return [found[k] for k in keys]
+    return lookup
+
+
+def cache_folder(root):
+    """.git/planner-voicescore/ of the vault's repo, so the cache is never staged, or None outside git."""
+    git_dir = git(root, "rev-parse", "--absolute-git-dir")
+    return pathlib.Path(git_dir) / "planner-voicescore" if git_dir else None
+
+
+def voice_examples(root):
+    """(examples, unreadable paths) from voice/examples/ and voice/local/."""
+    examples, unreadable = [], []
+    for folder in ("examples", "local"):
+        for path in sorted((root / "voice" / folder).glob("*/*.md")):
+            example = voicescore.read_example(folder, read_text_file(path))
+            if example is None:
+                unreadable.append(path.relative_to(root).as_posix())
+            else:
+                examples.append(example)
+    return examples, unreadable
+
+
+def voicescore_setup(args, out):
+    require_dependencies()
+    target = model_dir()
+    if (target / MODEL_MARKER).is_file():
+        return {"ran": True, "downloaded": False, "path": str(target),
+                "message": f"{voicescore.MODEL_ID} at {voicescore.MODEL_REVISION[:12]} is already in {target}. Nothing downloaded."}
+    if not args.json:
+        print(f"planner voicescore setup: this downloads {voicescore.MODEL_ID} at revision {voicescore.MODEL_REVISION[:12]} "
+              f"({voicescore.MODEL_SIZE}) from huggingface.co into {target}. It is the only planner command that uses "
+              f"the network. Scoring runs offline afterwards, and your text never leaves this machine.", file=out, flush=True)
+    try:
+        download_styledistance(target)
+    except Exception as exc:  # any download failure leaves no marker, so scoring keeps saying "not downloaded"
+        raise VoiceScoreUnavailable(f"the download failed: {exc}") from exc
+    (target / MODEL_MARKER).write_text(json.dumps({"model": voicescore.MODEL_ID, "revision": voicescore.MODEL_REVISION}),
+                                       encoding="utf-8")
+    return {"ran": True, "downloaded": True, "path": str(target),
+            "message": f"downloaded {voicescore.MODEL_ID} at {voicescore.MODEL_REVISION[:12]} into {target}."}
+
+
+def voicescore_embedder(root):
+    """(embed, cache note). The cache note says where vectors are kept, or that they are not.
+    The model loads on the first cache miss, so a fully cached run never pays for loading it."""
+    model = []
+
+    def embed(texts):
+        if not model:
+            model.append(load_styledistance(model_dir()))
+        return model[0](texts)
+    folder = cache_folder(root)
+    if folder is None:
+        return embed, "cache: off, the vault is not a git repository"
+    return cached(embed, folder), f"cache: {folder}"
+
+
+def voicescore_reference(root, against):
+    examples, unreadable = voice_examples(root)
+    if unreadable:
+        raise VoiceScoreUnavailable(f"cannot read the frontmatter of {', '.join(unreadable)}. Fix it so every example counts.")
+    return voicescore.reference(examples, against)
+
+
+def voicescore_run(args, root):
+    if args.rank:
+        if len(args.words) < 2:
+            raise ToolError("Give at least two candidate files: planner voicescore --rank <a> <b> [...].")
+        candidates = [(name, read_text_file(name)) for name in args.words]
+    elif len(args.words) != 1:
+        raise ToolError("Give one file: planner voicescore <file>, or planner voicescore --rank <a> <b>, or planner voicescore setup.")
+    else:
+        text = read_text_file(args.words[0])
+    require_dependencies()  # the machine's reasons come first: they hold for every vault
+    require_model()
+    ref = voicescore_reference(root, args.against)
+    embed, cache_note = voicescore_embedder(root)
+    answer = {"ran": True, "against": ref.against, "reference": ref.described, "examples": [e.id for e in ref.examples],
+              "reliable": not ref.warning, "warning": ref.warning, "model": voicescore.MODEL_ID,
+              "revision": voicescore.MODEL_REVISION, "cache": cache_note}
+    if args.rank:
+        answer["ranked"] = [{"file": name, "label": p.label, "inside": p.inside, "percentile": p.percentile,
+                             "distance": round(p.distance, 6)} for name, p in voicescore.rank(candidates, ref, embed)]
+        return answer
+    scored = voicescore.score(text, ref, embed)
+    answer["file"] = args.words[0]
+    answer["summary"] = voicescore.summary(scored, ref.range_name)
+    answer["paragraphs"] = [{"number": s.paragraph.number, "line": s.paragraph.line, "label": s.placement.label,
+                             "inside": s.placement.inside, "percentile": s.placement.percentile,
+                             "distance": round(s.placement.distance, 6), "starts": s.paragraph.text[:60]} for s in scored]
+    return answer
+
+
+def print_voicescore(answer, out):
+    if "ranked" in answer:
+        print(f"planner voicescore --rank: {len(answer['ranked'])} candidates against {answer['reference']}, closest first.", file=out)
+    elif "paragraphs" in answer:
+        print(f"planner voicescore: {len(answer['paragraphs'])} paragraphs in {answer['file']} against {answer['reference']}.",
+              file=out)
+    else:
+        print(f"planner voicescore setup: {answer['message']}", file=out)
+        return
+    if answer["warning"]:
+        print(answer["warning"], file=out)
+    for n, entry in enumerate(answer.get("ranked", []), start=1):
+        print(f"{n}. {entry['file']}: {entry['label']}", file=out)
+    for entry in answer.get("paragraphs", []):
+        print(f"¶{entry['number']} line {entry['line']}: {entry['label']}. \"{entry['starts']}...\"", file=out)
+    if "summary" in answer:
+        print(answer["summary"], file=out)
+    print(f"The range is how far each of the {len(answer['examples'])} examples sits from the centroid of the others. "
+          f"Inside means no farther than {voicescore.INSIDE_UP_TO}% of them. This is a hint, not a gate. "
+          f"Model {answer['model']} at {answer['revision'][:12]}, offline; {answer['cache']}.", file=out)
+
+
+def cmd_voicescore(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    try:
+        if args.words == ["setup"] and not args.rank:
+            answer = voicescore_setup(args, out)
+        else:
+            answer = voicescore_run(args, root)
+    except (VoiceScoreUnavailable, voicescore.NotScorable) as exc:
+        if args.json:
+            print(json.dumps({"ran": False, "reason": str(exc)}, indent=2, ensure_ascii=False), file=out)
+        else:
+            print(f"planner voicescore: not run: {exc}", file=out)
+        return 2
+    if args.json:
+        print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
+    else:
+        print_voicescore(answer, out)
+    return 0
+
+
 def days_between(earlier, later):
     return (datetime.date.fromisoformat(later) - datetime.date.fromisoformat(earlier)).days
 
@@ -528,6 +742,15 @@ def build_parser():
     voice.add_argument("--range", help="a ref range instead of files: A (A against the working tree) or A..B")
     voice.add_argument("--vault", default=".", help="vault root for --range (default: current directory)")
     voice.set_defaults(func=cmd_voicecheck)
+    score = sub.add_parser("voicescore", help="optional: where each prose paragraph sits against your own voice's range")
+    score.add_argument("words", nargs="+", metavar="setup | file | candidate",
+                       help="setup to download the model once; a page to score its prose paragraphs; with --rank, two or more drafts")
+    score.add_argument("--rank", action="store_true", help="rank drafts of the same paragraph, closest to the voice first")
+    score.add_argument("--against", choices=voicescore.AGAINST, default="owner",
+                       help="owner (default): your active owner and owner-edit examples; seed: the public seed, labelled as such")
+    score.add_argument("--vault", default=".", help="vault root holding voice/ (default: current directory)")
+    score.add_argument("--json", action="store_true", help="print JSON instead of text")
+    score.set_defaults(func=cmd_voicescore)
     return parser
 
 
