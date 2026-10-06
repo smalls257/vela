@@ -253,7 +253,8 @@ LIST_LINE = re.compile(r"^\s*(?:[-*+]|\d+[.)]|\|)\s")
 SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 CUE = re.compile(r"\bconflict|\bmismatch|\bdiffer(?:s|ed|ing|ence|ences)?\b|\bdisagree|\bclash|\bcontradict"
                  r"|\bboth sources\b|\btwo different\b|\b(?:doesnt|does not|dont|do not) match\b|\binconsisten"
-                 r"|\bflag|\bsame job\b|\btwo systems\b|\bduplicat|\boverlap")
+                 r"|\bflag|\bsame job\b|\btwo systems\b|\bduplicat|\boverlap"
+                 r"|\bno source\b|\bno line\b|\bnowhere\b|\bno place\b|\bhas anywhere\b|\bcan ?not follow\b|\bcant follow\b")
 # "SeaBook is 99.9%, right?" asks for a yes, not about a conflict, so a bare confirmation tag is not a question
 # that flags anything. Without this, a read-back list with "right?" on every line would flag every item on it.
 CONFIRM_TAIL = re.compile(r"(?:^|[,;:(]\s*|\s[-–—]\s*)(?:is (?:that|this|it) (?:right|correct)|(?:that|this) (?:right|correct)"
