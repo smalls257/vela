@@ -4,6 +4,8 @@ A subject the check cannot type would leave its questions never owed and the led
 so a missing fact is an error, never a silent skip."""
 import json
 
+import pytest
+
 from conftest import check, findings, run
 
 PAGE = "03-context-and-scope.md"
@@ -71,6 +73,52 @@ def test_a_relationship_outside_the_list_is_e105(mini):
     assert "partner, supplier, regulator, customer group" in out
 
 
+def test_a_party_with_no_agreements_is_e808(mini):
+    write(mini, PARTY.replace("- **Agreements:** the card processing contract, SRC-01\n", "") + STORED)
+    _, out = check(mini)
+    assert primary(out) == [("E808", PAGE)]
+    assert "PTY-01 is a party with no **Agreements:** bullet." in out
+
+
+def test_a_stored_value_with_no_holder_is_e808(mini):
+    write(mini, PARTY + STORED.replace("- **Holder:** [[shop-building-blocks|Shop]]\n", ""))
+    _, out = check(mini)
+    assert primary(out) == [("E808", PAGE)]
+    assert "SV-01 is a stored value with no **Holder:** bullet." in out
+
+
+def test_an_empty_value_is_a_missing_fact(mini):
+    write(mini, PARTY + STORED.replace("the finance team", ""))
+    _, out = check(mini)
+    assert ("E808", PAGE) in primary(out)
+
+
+@pytest.mark.parametrize("heading", ["### PTY-1 Payco", "### Pty-01 Payco", "#### PTY-01 Payco", "### PTY-01: Payco",
+                                     "## PTY-01 Payco", "### SV-1 Payco", "### sv-01 Payco"])
+def test_a_mistyped_subject_heading_is_e810_never_dropped(mini, heading):
+    write(mini, "## Outside parties\n\n" + heading + "\n\n- **Relationship:** supplier\n- **Agreements:** none known\n")
+    code, out = check(mini)
+    assert code == 1
+    assert primary(out) == [("E810", PAGE)]
+    assert "### PTY-nn <name>" in out or "### SV-nn <name>" in out
+
+
+def test_an_ordinary_heading_that_starts_with_sv_is_not_a_subject(mini):
+    write(mini, PARTY + STORED + "\n## SVG icons\n")
+    assert primary(check(mini)[1]) == []
+
+
+def test_a_subject_off_its_page_warns_w811_and_still_loads(mini):
+    other = "04-concerns.md"
+    write(mini, STORED)
+    (mini / other).write_text(HEAD.replace("context-and-scope", "other-page").replace("Context and scope", "Other") + PARTY, encoding="utf-8")
+    code, out = check(mini)
+    assert ("W811", other) in primary(out)
+    assert "PTY-01 is defined on" in out
+    run_code, got = run("query", "get", "PTY-01", "--vault", str(mini), "--json")
+    assert run_code == 0 and json.loads(got)["kind"] == "party"
+
+
 def test_relationship_is_read_in_any_case(mini):
     write(mini, PARTY.replace("supplier", "Customer Group") + STORED)
     assert primary(check(mini)[1]) == []
@@ -83,7 +131,7 @@ def test_a_label_in_another_case_is_still_the_label(mini):
 
 def test_two_headings_for_one_party_is_e208(mini):
     write(mini, PARTY + PARTY.replace("## Outside parties\n\n", "") + STORED)
-    assert ("E208", PAGE) in primary(check(mini)[1])
+    assert primary(check(mini)[1]) == [("E208", PAGE)]
 
 
 def test_query_get_knows_the_new_kinds(mini):
@@ -91,7 +139,7 @@ def test_query_get_knows_the_new_kinds(mini):
     code, out = run("query", "get", "PTY-01", "--vault", str(mini), "--json")
     assert code == 0, out
     answer = json.loads(out)
-    assert answer["kind"] == "party" and answer["link"] == f"[[03-context-and-scope#PTY-01 Payco|PTY-01]]"
+    assert answer["kind"] == "party" and answer["link"] == "[[03-context-and-scope#PTY-01 Payco|PTY-01]]"
     code, out = run("query", "get", "SV-01", "--vault", str(mini), "--json")
     assert json.loads(out)["kind"] == "stored-value"
 

@@ -161,6 +161,9 @@ PARTY_REQUIRED = ("Relationship", "Agreements")
 PARTY_RELATIONSHIPS = ("partner", "supplier", "regulator", "customer group")
 STORED_VALUE_REQUIRED = ("Holder", "Owner")
 SUBJECT_LABELS = PARTY_REQUIRED + STORED_VALUE_REQUIRED
+SUBJECT_PAGE = "03-context-and-scope.md"  # the one home of parties and stored value
+# A heading whose first word begins like a subject ID (PTY or SV, any case), whether or not it is well formed.
+SUBJECT_LOOKALIKE_RE = re.compile(r"^(PTY|SV)(?![A-Za-z])", re.IGNORECASE)
 
 # ------------------------------------------------------------------ overrides
 
@@ -279,6 +282,8 @@ CODES = {
     "E503": "no epic covers a concern cell with work",
     "E504": "epic delivers nothing",
     "E808": "party or stored value is missing a required fact",
+    "E810": "heading looks like a party or stored value but is not one",
+    "W811": "subject defined off its page",
 }
 
 # ------------------------------------------------------------- traceability

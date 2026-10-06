@@ -374,6 +374,17 @@ def subject_rules(vault, today):
             if not item.fact(label):
                 yield _f(item.page, item.line, "E808", f"{item.id} is a {what} with no **{label}:** bullet.",
                          f"Add '- **{label}:** ...' under the {item.id} heading.")
+    for page in vault.pages:
+        for heading in page.headings:
+            first = heading.text.split()[0] if isinstance(heading.text, str) and heading.text.split() else ""
+            if schema.SUBJECT_LOOKALIKE_RE.match(first) and not (heading.level == 3 and schema.ITEM_ID_RE.match(first)):
+                form = "### PTY-nn <name>" if first.upper().startswith("PTY") else "### SV-nn <name>"
+                yield _f(page, heading.line, "E810", f"'{heading.text}' looks like a subject heading but does not read as one.",
+                         f"Write it as '{form}': level 3, a two-digit ID in capitals, then a space and the name.")
+    for item in vault.parties + vault.stored_values:
+        if item.page.path != schema.SUBJECT_PAGE:
+            yield _f(item.page, item.line, "W811", f"{item.id} is defined on {item.page.path}, not on {schema.SUBJECT_PAGE}.",
+                     f"Move the {item.id} heading to {schema.SUBJECT_PAGE}.")
     for party in vault.parties:
         relationship = party.fact("Relationship")
         if relationship and relationship.lower() not in schema.PARTY_RELATIONSHIPS:

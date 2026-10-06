@@ -156,7 +156,9 @@ An item an open unknown lists in `**Blocks:**` cannot be `decided`. Resolve the 
 
 Risk, under `### R-nn <name>`: `**Owner:**` and `**State:**` are required. State is `open`, `mitigated`, `accepted` or `closed`. `**Mitigation:**` is optional.
 
-Party, under `### PTY-nn <name>`: an outside organisation the initiative works with or answers to. Stored value, under `### SV-nn <name>`: points, credits, balances, vouchers or deposits held for customers. Both live on `03-context-and-scope.md`, parties under `## Outside parties` and stored value under `## Value held for customers`. The question catalogue fires on them, so a missing bullet is E808: the questions it should raise would never be owed. A relationship outside the list is E105.
+Party, under `### PTY-nn <name>`: an outside organisation the initiative works with or answers to. Stored value, under `### SV-nn <name>`: points, credits, balances, vouchers or deposits held for customers. Both live on `03-context-and-scope.md`, parties under `## Outside parties` and stored value under `## Value held for customers`. The question catalogue fires on them, so a missing bullet is E808: the questions it should raise would never be owed. A relationship outside the list is E105. A heading that starts `PTY` or `SV` but is not `### PTY-nn` or `### SV-nn` (wrong level, one digit, lower case, a colon after the ID) is E810, so a typo never hides a subject. A party or stored value defined on any other page still loads and warns W811: `03-context-and-scope.md` is its home.
+
+Parties and stored value carry no `**State:**`. A stored value's `**Owner:**` is free text, not a handle. The check only tests that each required fact is not empty; the catalogue's questions test what it says.
 
 | Item | Label | Rule |
 |---|---|---|
@@ -393,6 +395,8 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | W318 | decided contract has no Tested by, by override | W323 | override not needed |
 | W324 | decided on the owner's behalf, not yet confirmed | | |
 | E808 | party or stored value is missing a required fact | | |
+| E810 | heading looks like a party or stored value but is not one | | |
+| W811 | subject defined off its page | | |
 
 Codes are stable. A retired code is never reused.
 
