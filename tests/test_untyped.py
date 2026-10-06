@@ -101,3 +101,65 @@ def test_the_template_and_the_fixture_are_quiet():
     for vault, today in ((FIXTURE, TODAY), (REPO / "template", "2026-10-03")):
         code, out = run("check", "--vault", str(vault), "--today", today)
         assert code == 0 and "W809" not in out
+
+
+def _unanswered(ub):
+    """Drop the three existence rows, so any mention on a page is owed a type."""
+    path = ub / LEDGER
+    keep = [l for l in path.read_text(encoding="utf-8").split("\n")
+            if not l.startswith(("| Q-FIN-01@INI-002 |", "| Q-PTN-01@INI-002 |", "| Q-REG-02@INI-002 |"))]
+    path.write_text("\n".join(keep), encoding="utf-8")
+
+
+def _w809(ub, fact):
+    """The W809 lines reported on the one bullet this test adds. The page's own table row says
+    "no new licences", so it warns too once Q-REG-02 has no answer; only the added line counts."""
+    _unanswered(ub)
+    edit(ub / COST, "## Per app", f"- **Notes:** {fact}\n\n## Per app")
+    line = next(n for n, l in enumerate((ub / COST).read_text(encoding="utf-8").split("\n"), 1) if l == f"- **Notes:** {fact}")
+    out = checked(ub)[1]
+    return [l for l in out.splitlines() if f"concern-cost.md:{line}: W809" in l]
+
+
+@pytest.mark.parametrize("fact", [
+    "a point per crossing", "ten points", "the balance", "customer balances", "a credit", "credits", "credited back",
+    "a voucher", "vouchers", "a deposit", "deposits", "deposited at booking", "the clause", "clauses", "a licence",
+    "licences", "a license", "licensed", "licensing", "a licensed route",
+])
+def test_every_inflection_the_catalogue_lists_is_caught(ub, fact):
+    assert len(_w809(ub, fact)) >= 1, fact
+
+
+@pytest.mark.parametrize("fact", [
+    "pay by credit card", "pay by credit cards", "balance the load across nodes", "load balancing across nodes",
+    "a load balancer", "story points per sprint", "five story point estimates", "a touch point with the crew",
+    "touch points", "data point", "data points", "a pointer to the page", "a licensee", "creditor",
+])
+def test_known_false_hits_stay_quiet(ub, fact):
+    assert _w809(ub, fact) == [], fact
+
+
+def test_the_first_word_written_is_the_one_named_not_the_first_alphabetically(ub):
+    _unanswered(ub)
+    edit(ub / COST, "## Per app", "- **Notes:** vouchers, then balances and a credit\n\n## Per app")
+    out = checked(ub)[1]
+    assert "'vouchers' may be an untyped subject" in out and "'balances' may be" not in out
+
+
+def test_a_wikilink_target_or_alias_is_not_scanned(ub):
+    assert _w809(ub, "see [[booking-building-blocks|loyalty points]] and [[03-context-and-scope#SV-01 Loyalty points]]") == []
+
+
+def test_a_word_outside_the_link_still_counts_beside_one_inside(ub):
+    lines = _w809(ub, "[[booking-building-blocks|points]] and a voucher")
+    assert lines
+
+
+def test_the_catalogue_gives_every_mention_a_reason():
+    import yaml
+    from planner import catalog
+    cat = catalog.parse_catalogue(yaml.safe_load((REPO / "plugin" / "catalog" / "questions.yaml").read_text(encoding="utf-8")))
+    for entry in cat.entries:
+        if entry.mentions:
+            assert {f for f, _ in entry.mention_why} == set(entry.mentions), entry.id
+    assert "credit card*" in cat.entry("Q-FIN-01").mention_except

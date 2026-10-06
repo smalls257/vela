@@ -19,10 +19,11 @@ SEVERITIES = ("high", "normal")
 BLOCK_KINDS = ("app", "contract", "requirement", "capability", "decision", "epic")
 CREATES = ("party", "stored-value")
 REQUIRED = ("id", "area", "scope", "trigger", "question", "why", "severity")
-OPTIONAL = ("blocks", "creates", "mentions")
+OPTIONAL = ("blocks", "creates", "mentions", "mention_why", "mention_except")
 ENTRY_ID_RE = re.compile(r"^Q-(?P<area>[A-Z]{3})-\d{2}$")
 AREA_RE = re.compile(r"^[A-Z]{3}$")
 WORD_RE = re.compile(r"^[a-z]+$")
+PHRASE_RE = re.compile(r"^[a-z]+\*?( [a-z]+\*?)*$")
 
 # The fields a trigger may test, per scope, and the values each may take. None: any text.
 TRIGGER_FIELDS = {
@@ -95,6 +96,8 @@ class Entry:
     blocks: tuple  # of BLOCK_KINDS
     creates: str  # "" or one of CREATES: the subject kind a yes to this question creates
     mentions: tuple  # lower-case words that, untyped in a fact, suggest the subject this entry creates
+    mention_why: tuple = ()  # (word, why) for every mention: the reason that word is on the list
+    mention_except: tuple = ()  # phrases ("credit card*") that contain a mention word and are not the subject
 
 
 @dataclass(frozen=True)
@@ -187,6 +190,56 @@ def _word_list(entry, key, allowed, problems, where):
     return out
 
 
+def _phrases(raw, where, problems):
+    value = raw.get("mention_except", [])
+    if not isinstance(value, list) or not all(isinstance(v, str) and PHRASE_RE.match(v.strip().lower()) for v in value):
+        problems.append(f"{where}: 'mention_except' must be a list of lower-case phrases, a word may end in *")
+        return ()
+    return tuple(v.strip().lower() for v in value)
+
+
+def _mention_groups(raw, where, problems):
+    """`mentions` is a list of groups written `point/points`: the forms one stem is accepted in. Returns
+    (forms in order, heads in order). Only the forms listed match, so `pointer` never does."""
+    value = raw.get("mentions", [])
+    if value is None:
+        problems.append(f"{where}: 'mentions' is empty; leave it out or list words")
+        return (), ()
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        problems.append(f"{where}: 'mentions' must be a list of words")
+        return (), ()
+    forms, heads, bad = [], [], []
+    for group in value:
+        parts = [p.strip().lower() for p in group.split("/")]
+        if not all(WORD_RE.match(p) for p in parts):
+            bad.append(group)
+            continue
+        heads.append(parts[0])
+        forms.extend((parts[0], p) for p in parts)
+    if bad:
+        problems.append(f"{where}: 'mentions' has {', '.join(repr(v) for v in bad)} (one lower-case word each, "
+                        f"or forms joined by /)")
+    return tuple(forms), tuple(heads)
+
+
+def _mention_reasons(raw, where, forms, heads, problems):
+    """(form, why) for every form: `mention_why` gives one reason per group, keyed by its first form."""
+    whys = raw.get("mention_why", {})
+    if whys is None or (whys != {} and not isinstance(whys, dict)) or \
+            not all(isinstance(k, str) and isinstance(v, str) and v.strip() for k, v in (whys or {}).items()):
+        problems.append(f"{where}: 'mention_why' must map each mention to a reason")
+        return ()
+    if not heads and not whys:
+        return ()
+    missing = [h for h in heads if h not in whys]
+    extra = sorted(k for k in whys if k not in heads)
+    if missing:
+        problems.append(f"{where}: 'mention_why' has no reason for {', '.join(repr(h) for h in missing)}")
+    if extra:
+        problems.append(f"{where}: 'mention_why' names {', '.join(repr(k) for k in extra)}, which 'mentions' does not list")
+    return tuple((form, whys[head].strip()) for head, form in forms if head in whys)
+
+
 def _entry(raw, n, areas, problems):
     where = f"entries[{n}]"
     if not isinstance(raw, dict):
@@ -219,7 +272,12 @@ def _entry(raw, n, areas, problems):
         problems.append(f"{where}: severity {severity!r} is not one of {', '.join(SEVERITIES)}")
     question, why = _text(raw, "question", problems, where), _text(raw, "why", problems, where)
     blocks = _word_list(raw, "blocks", BLOCK_KINDS, problems, where)
-    mentions = _word_list(raw, "mentions", None, problems, where)
+    pairs, heads = _mention_groups(raw, where, problems)
+    mentions = tuple(form for _, form in pairs)
+    mention_why = _mention_reasons(raw, where, pairs, heads, problems)
+    exceptions = _phrases(raw, where, problems)
+    if exceptions and not mentions:
+        problems.append(f"{where}: mention_except needs mentions")
     creates = raw.get("creates", "")
     if creates is None or (isinstance(creates, str) and not creates.strip() and "creates" in raw):
         problems.append(f"{where}: 'creates' is empty; leave it out or use one of {', '.join(CREATES)}")
@@ -238,7 +296,7 @@ def _entry(raw, n, areas, problems):
             problems.append(f"{where}: {exc}")
     if len(problems) > before or trigger is None:
         return None
-    return Entry(entry_id, area, scope, trigger, question, why, severity, blocks, creates or "", mentions)
+    return Entry(entry_id, area, scope, trigger, question, why, severity, blocks, creates or "", mentions, mention_why, exceptions)
 
 
 def parse_catalogue(data):

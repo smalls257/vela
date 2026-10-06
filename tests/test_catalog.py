@@ -196,6 +196,33 @@ def test_a_creates_that_is_null_says_it_is_empty():
     assert "'mentions' is empty" in problems(data)
 
 
+def test_a_mention_group_needs_a_reason_and_a_reason_needs_a_mention():
+    data = seed()
+    entry = next(e for e in data["entries"] if e["id"] == "Q-FIN-01")
+    del entry["mention_why"]["voucher"]
+    assert "no reason for 'voucher'" in problems(data)
+    data = seed()
+    entry = next(e for e in data["entries"] if e["id"] == "Q-FIN-01")
+    entry["mention_why"]["pointer"] = "not a mention"
+    assert "names 'pointer', which 'mentions' does not list" in problems(data)
+    data = seed()
+    entry = next(e for e in data["entries"] if e["id"] == "Q-FIN-01")
+    entry["mentions"] = ["Point/Points!"]
+    assert "'mentions' has 'Point/Points!'" in problems(data)
+
+
+def test_mention_forms_expand_from_groups_and_exceptions_are_phrases():
+    cat = catalog.parse_catalogue(seed())
+    assert {"licensed", "licensing", "credited", "deposited", "point"} <= set(
+        cat.entry("Q-REG-02").mentions + cat.entry("Q-FIN-01").mentions)
+    data = seed()
+    next(e for e in data["entries"] if e["id"] == "Q-FIN-01")["mention_except"] = ["Credit Card!"]
+    assert "'mention_except' must be a list of lower-case phrases" in problems(data)
+    data = seed()
+    next(e for e in data["entries"] if e["id"] == "Q-FIN-02")["mention_except"] = ["credit card"]
+    assert "mention_except needs mentions" in problems(data)
+
+
 def test_an_area_no_entry_uses_is_refused():
     data = seed()
     data["areas"]["ZZZ"] = "Nobody asks these"

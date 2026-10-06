@@ -23,12 +23,17 @@ def ub(tmp_path):
     return dest
 
 
-def broken(vault):
+def broken(vault, allow=()):
+    """Every finding as (code, path), less the codes in `allow`. A test that breaks the whole ledger
+    allows W809 and says so with `untyped_warns`."""
     code, out = run("render", "--vault", str(vault))
     assert code == 0, out
-    # A broken ledger disposes of nothing, so W809 may also fire on a page that mentions licences. That
-    # follows from the break and is pinned in test_untyped.py, so it is left out of these shape checks.
-    return [f for f in findings(check(vault, TODAY)[1]) if f[0] != "W809"]
+    return [f for f in findings(check(vault, TODAY)[1]) if f[0] not in allow]
+
+
+def untyped_warns(vault):
+    """A ledger that disposes of nothing leaves Q-REG-02 unanswered, so the cost page's licences warn."""
+    assert ("W809", "08-concerns/concern-cost.md") in findings(check(vault, TODAY)[1])
 
 
 def row_of(vault, copy):
@@ -352,13 +357,15 @@ def test_a_ledger_saved_with_crlf_line_endings_still_reads(ub):
 ])
 def test_a_ledger_header_that_is_not_exact_is_e801_and_never_hides_the_ledger(ub, header):
     edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n|---|---|---|---|---|", header + "\n|---|---|---|---|---|")
-    assert broken(ub) == [("E801", LEDGER)]
+    assert broken(ub, allow=("W809",)) == [("E801", LEDGER)]
+    untyped_warns(ub)
     assert "is headed" in check(ub, TODAY)[1] and "not exactly" in check(ub, TODAY)[1]
 
 
 def test_a_ledger_table_must_sit_directly_under_the_ledger_heading(ub):
     edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n", "## Notes\n\n| Copy | State | Evidence | By | Date |\n")
-    assert broken(ub) == [("E801", LEDGER)]
+    assert broken(ub, allow=("W809",)) == [("E801", LEDGER)]
+    untyped_warns(ub)
     assert "must sit under ## Question ledger" in check(ub, TODAY)[1]
 
 
@@ -399,7 +406,8 @@ def test_a_reviewer_quote_is_checked_against_its_page_too(ub):
 
 def test_rows_of_a_misplaced_table_are_read_but_dispose_of_nothing(ub):
     edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n", "## Notes\n\n| Copy | State | Evidence | By | Date |\n")
-    assert broken(ub) == [("E801", LEDGER)]
+    assert broken(ub, allow=("W809",)) == [("E801", LEDGER)]
+    untyped_warns(ub)
     code, answer = ask(ub)
     assert code == 0 and answer["undisposed"] == 57 and not any(c["valid"] for c in answer["copies"] if c["row"])
     assert answer["reviewer_open"] == 1
@@ -410,8 +418,9 @@ def test_rows_under_a_second_ledger_heading_dispose_of_nothing(ub):
     text = path.read_text(encoding="utf-8")
     start = text.index("| Copy | State | Evidence")
     path.write_text(text[:start].rstrip("\n") + "\n\n## Question ledger\n\n" + text[start:], encoding="utf-8")
-    found = sorted(set(f[0] for f in broken(ub)))
+    found = sorted(set(f[0] for f in broken(ub, allow=("W809",))))
     assert found == ["E801"]
+    untyped_warns(ub)
     assert "appears twice" in check(ub, TODAY)[1] and "must sit under" in check(ub, TODAY)[1]
     assert ask(ub)[1]["undisposed"] == 57
 

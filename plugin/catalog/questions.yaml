@@ -27,7 +27,17 @@ entries:
     severity: high
     blocks: [decision, epic]
     creates: stored-value
-    mentions: [points, balance, balances, credit, credits, voucher, vouchers, deposit, deposits]
+    # A fact that says one of these words, with no stored value typed on the page, raises W809. Only the
+    # forms written here match, so "pointer" and "balancing" never do. Phrases in mention_except are
+    # removed first: they use the word for something that is not value held for a customer.
+    mentions: [point/points, balance/balances, credit/credits/credited, voucher/vouchers, deposit/deposits/deposited]
+    mention_why:
+      point: Loyalty schemes count in points, and the scheme that held them was never typed in the simulated runs.
+      balance: A balance is the usual name for value held on an account.
+      credit: Credit held for a customer, such as a refund credit or a gift credit, is a liability.
+      voucher: A voucher is value a customer holds until they spend it.
+      deposit: A deposit is money held for a customer until the booking completes or is refunded.
+    mention_except: [credit card*, balance the load, load balanc*, story point*, touch point*, data point*]
 
   - id: Q-FIN-02
     area: FIN
@@ -130,7 +140,9 @@ entries:
     severity: high
     blocks: [decision, contract, epic]
     creates: party
-    mentions: [clause, clauses]
+    mentions: [clause/clauses]
+    mention_why:
+      clause: A change-of-control or assignment clause lives in an agreement, so a clause in a fact points at a counterparty nobody typed.
 
   - id: Q-PTN-02
     area: PTN
@@ -205,7 +217,10 @@ entries:
     severity: normal
     blocks: [decision]
     creates: party
-    mentions: [licence, licences, license, licenses]
+    mentions: [licence/licences, license/licenses/licensed/licensing]
+    mention_why:
+      licence: A licence names a regulator or a licensor, and that body is a party.
+      license: The same word in US spelling, and the verb forms, such as a licensed activity or a product being licensed.
 
   - id: Q-REG-03
     area: REG

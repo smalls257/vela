@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from planner import catalog, ledger, schema
 from planner.model import Finding, meta_line
-from planner.parse import CODE_SPAN, links_in, split_frontmatter
+from planner.parse import CODE_SPAN, WIKILINK, links_in, split_frontmatter
 
 SUBJECT_ID_RE = {
     "initiative": schema.INITIATIVE_RE,
@@ -813,6 +813,20 @@ def _kinds_on(vault, page):
     return kinds & set(KIND_NAMES)
 
 
+def _exception_pattern(phrase):
+    words = [re.escape(w[:-1]) + "[a-z]*" if w.endswith("*") else re.escape(w) for w in phrase.split()]
+    return re.compile(r"\b" + r"\s+".join(words) + r"\b")
+
+
+def mentioned(entry, text):
+    """The entry's mention words in lower-case `text`, in the order they are written, once the phrases the
+    entry says are not the subject ("credit card", "story point") are taken out."""
+    for phrase in entry.mention_except:
+        text = _exception_pattern(phrase).sub(" ", text)
+    forms = set(entry.mentions)
+    return [w for w in WORD_RE.findall(text) if w in forms]
+
+
 def untyped_mentions(vault):
     """W809 where a fact says "points", "clause" or another word an existence question lists, the page
     neither holds nor links a subject of the kind that question creates, and that question has no answer
@@ -826,11 +840,11 @@ def untyped_mentions(vault):
         kinds = _kinds_on(vault, page)
         told = set()
         for line, text in sorted(_fact_texts(page)):
-            words = {w.lower() for w in WORD_RE.findall(CODE_SPAN.sub("", text))}
+            prose = WIKILINK.sub("", CODE_SPAN.sub("", text)).lower()
             for entry in creators:
                 if entry.id in told or entry.id in settled or entry.creates in kinds:
                     continue
-                hits = sorted(words & set(entry.mentions))
+                hits = mentioned(entry, prose)
                 if not hits:
                     continue
                 told.add(entry.id)
