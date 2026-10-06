@@ -312,6 +312,7 @@ A capture line:
 - Tag: `idea`, `thought`, `unknown`, `wild` or `worry`.
 - Origin: a person's name, role or handle, whose words are quoted verbatim; `claude` for Claude's own idea; or `claude, from <name>` for Claude's summary of what someone said.
 - Mark, added at close: `keep: [[<page>#<heading>|<ID>]] (<state>)`, `park`, or `drop: <reason>`. Claude's own lines default to `park`. An `unknown` capture is kept or dropped with a reason, never parked.
+- The `(<state>)` of a keep is the item's state (`inkling`, `assumption`, `fact` or `decided`); `open` for an unknown; the row's state for a ledger row (`open`, `asked`, `answered`, `assumed`, `unknown` or `not-applicable`); or `subject` for a party or stored value, which carries no state.
 - The block ID `^cNN` is the last token on the line and unique in the file.
 
 A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, directly under `## Captures`, never a bullet. `<hash>` is the first 12 characters of the `shasum` of the paragraph. Close writes it and reads it back, so a declined paragraph is not offered again.
