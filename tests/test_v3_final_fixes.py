@@ -271,3 +271,32 @@ def test_sources_titles_never_raise_w809(tmp_path):
     edit(vault / "02-constraints.md", "|---|---|---|---|\n",
          "|---|---|---|---|\n| CST-1 | Customers keep their points | SRC-01 | one balance per customer |\n")
     assert ("W809", "02-constraints.md") in findings(check(vault, "2026-11-20")[1])
+
+
+# ------------------------------------------------------------------ W809 and W804 reach the lead; W807 is described as it is
+
+def test_close_lists_w809_and_w804_to_the_lead_and_carries_them_into_the_pr():
+    close = text("skills/close/SKILL.md")
+    six = close.split("## 6. Render and check", 1)[1].split("## 7.", 1)[0]
+    for said in ("W809", "W804", "possibly an untyped subject", "orphaned", "no longer owed",
+                 "offer to type the subject", "fix the row"):
+        assert said in six, said
+    questions_line = next(l for l in close.splitlines() if l.strip().startswith("- **Questions:**"))
+    assert "W809" in questions_line and "W804" in questions_line
+
+
+def test_grill_says_w807_prints_only_under_its_gate_and_the_capture_is_the_record():
+    grill = text("skills/grill/SKILL.md")
+    assert "The W807 stays in the check output as the record." not in grill
+    assert "W807 prints only under `--gate grill --item`" in grill and "the capture is the record" in grill
+
+
+def test_w807_fix_text_points_at_the_capture(tmp_path):
+    vault = ub(tmp_path)
+    page = vault / "11-unknowns-and-risks.md"
+    page.write_text("".join(l for l in page.read_text(encoding="utf-8").splitlines(keepends=True)
+                            if not l.startswith("| Q-OPS-01@APP-kiosks | answered")), encoding="utf-8")
+    out = run("check", "--gate", "grill", "--item", "APP-kiosks", "--vault", str(vault), "--today", "2026-11-20")[1]
+    w807 = [l for l in out.splitlines() if " W807 " in l]
+    assert w807 and all("stays in the check output" not in l for l in w807), out
+    assert all("decided with <copy IDs> open (W807)" in l for l in w807), out

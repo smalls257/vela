@@ -181,7 +181,8 @@ def test_an_override_reaches_e805_at_line_1_when_the_ledger_heading_is_missing(u
     assert "W805" in codes and "E805" not in codes and "W323" not in codes
     # the only error left is the owed-questions session's own link to the heading this test cut off
     assert "W809" in codes  # no valid row answers Q-REG-02 while the ledger is cut off
-    assert codes - {"W805", "W809"} <= {"E202"}
+    assert "W813" in codes  # and a plain check says the heading is gone
+    assert codes - {"W805", "W809", "W813"} <= {"E202"}
 
 
 def test_the_epics_gate_says_plainly_when_the_vault_has_no_ledger_page(tmp_path):

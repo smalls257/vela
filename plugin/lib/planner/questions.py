@@ -827,7 +827,8 @@ def can_be_blocked(vault, unit_id):
 
 def grill_gate(vault, items):
     """W807 for each copy still open, asked or with no row that blocks an item on the Grill's agenda.
-    A warning, never an error: the lead may decide anyway, and the warning records that it was open."""
+    A warning, never an error: the lead may decide anyway. It prints only under --gate grill --item, so the
+    Grill's capture "decided with <copy IDs> open (W807)" is what records that it was open."""
     for unit_id in items:
         where = unit_location(vault, unit_id)
         if where is None:
@@ -842,8 +843,9 @@ def grill_gate(vault, items):
             if d.pending and unit_id in blocks(vault, d.copy):
                 yield Finding(where[0], where[1], "W807",
                               f"{d.copy.id} {_standing(d)} and blocks {unit_id}: {d.copy.entry.question}",
-                              "Put it on the agenda and settle it first, or decide anyway; the warning stays in the "
-                              "check output as the record that it was open.")
+                              "Put it on the agenda and settle it first, or decide anyway and capture "
+                              "\"decided with <copy IDs> open (W807)\": that capture is the record, because W807 "
+                              "prints only under this gate.")
 
 
 # ------------------------------------------------------------------ a subject nobody typed
