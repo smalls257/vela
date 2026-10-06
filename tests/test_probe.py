@@ -456,3 +456,11 @@ def test_every_case_opens_with_its_mode_and_fills_in_from_both_personas():
     shape = probe.load_case("shape-options")
     assert probe.opening_text(shape, persona("coastal-merger")) == \
         '/planner:shape What does "one account" mean for the first release?'
+
+
+@pytest.mark.parametrize("name", ["coastal-merger", "holdout-hospitals"])
+def test_every_real_persona_passes_its_own_validation(name):
+    """A persona edited for a probe must still load, or the paid run stops before it starts."""
+    import yaml as _yaml
+    data = _yaml.safe_load((REPO / "tests" / "sim" / "personas" / f"{name}.yaml").read_text(encoding="utf-8"))
+    assert sim.persona_problems(data) == []
