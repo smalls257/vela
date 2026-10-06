@@ -496,3 +496,27 @@ def test_rejudge_refuses_an_empty_transcript_and_flags_it_does_not_need(tmp_path
         sim.parse_args(["--rejudge", str(tmp_path), "--judge-model", "j", "--budget", "1", "--model", "m"])
     args = sim.parse_args(["--rejudge", str(tmp_path), "--judge-model", "j", "--budget", "1"])
     assert args.rejudge == str(tmp_path)
+
+
+def test_a_resumed_session_adds_only_the_increase_in_its_running_cost(monkeypatch):
+    """claude -p --resume reports total_cost_usd as the session's running total. Summing it per turn counted every
+    earlier turn again: a real $13 run read as $114 and stopped at session 9 of 16."""
+    import types
+    arm = sim.Arm.__new__(sim.Arm)
+    arm.ledger = sim.Ledger(10.0)
+    arm.session_costs, arm.calls, arm.name, arm.dir, arm.vault, arm.env = {}, 0, "planner", sim.pathlib.Path("/tmp"), None, {}
+    arm.args = types.SimpleNamespace(model="m")
+    arm.check_plugin = lambda *a: None
+    arm.raw = lambda kind: sim.pathlib.Path("/tmp/x")
+    budgets, totals = [], iter([0.10, 0.25, 0.45])
+    def fake_call(argv, **kw):
+        budgets.append(float(argv[argv.index("--max-budget-usd") + 1]))
+        return types.SimpleNamespace(stdout="")
+    monkeypatch.setattr(sim, "call", fake_call)
+    monkeypatch.setattr(sim, "parse_stream", lambda out, raw: {"init": {}, "result": {
+        "total_cost_usd": next(totals), "session_id": "s1", "is_error": False}})
+    arm.assistant_turn("first", None)
+    arm.assistant_turn("second", "s1")
+    arm.assistant_turn("third", "s1")
+    assert round(arm.ledger.spent, 2) == 0.45
+    assert budgets[2] > budgets[1] - 0.2  # the cap given to claude includes what the session already spent

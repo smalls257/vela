@@ -641,6 +641,7 @@ class Arm:
         self.env = arm_env(self.dir, args.stub)
         (self.dir / "persona-cwd").mkdir()
         self.transcript = Transcript(self.dir / "transcript.jsonl")
+        self.session_costs = {}
 
     @classmethod
     def reopen(cls, name, run_dir, args, persona, share, record):
@@ -670,13 +671,20 @@ class Arm:
         print(f"[{self.name}] {message} (spent ${self.ledger.spent:.2f} of ${self.ledger.share:.2f})", file=sys.stderr)
 
     def assistant_turn(self, message, session_id):
+        # A resumed session reports total_cost_usd as its running total, so only the increase is new spend, and
+        # --max-budget-usd caps that running total: allow what was already spent in the session plus the room left.
+        before = self.session_costs.get(session_id, 0.0) if session_id else 0.0
         room = self.ledger.session_room()
         raw = self.raw("assistant")
-        done = call(assistant_argv(message, self.args.model, session_id, room, self.name, self.dir / "origin.git"),
+        done = call(assistant_argv(message, self.args.model, session_id, room + before, self.name, self.dir / "origin.git"),
                     env=self.env, cwd=self.vault, raw_path=raw, kind="assistant")
         parsed = parse_stream(done.stdout, raw)
         result = parsed["result"]
-        self.ledger.add(float(result["total_cost_usd"]))
+        total = float(result["total_cost_usd"])
+        if total < before:
+            raise ToolFailure(f"session {session_id} reported a running cost of {total} after {before}; its cost cannot fall. Read {raw}")
+        self.session_costs[result["session_id"]] = total
+        self.ledger.add(total - before)
         if result["is_error"] and not budget_stop(result):
             raise ToolFailure(f"claude reported an error ({result.get('subtype')}): {short(result.get('result') or result.get('errors'))}. Read {raw}")
         self.check_plugin(parsed["init"], message, raw)
