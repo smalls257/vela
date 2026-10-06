@@ -361,16 +361,32 @@ def normal_text(text):
     return " ".join(re.sub(r"[*_`]", "", text).lower().split())
 
 
+REVIEWS_HEADING = "Reviews"
+
+
+def _section_span(page, heading):
+    """The 1-based line range (first, last) of the first `## <heading>` section, or None."""
+    start = next((h.line for h in page.headings if h.level == 2 and h.text == heading), 0)
+    if not start:
+        return None
+    later = [h.line for h in page.headings if h.level == 2 and h.line > start]
+    return start, (min(later) - 1 if later else len(page.text.split("\n")))
+
+
 def quotable_text(page):
-    """The hand-written body of a page: no frontmatter, no generated block, no HTML comment, and on the
-    ledger page not the ledger section, so a row cannot be evidenced by itself."""
+    """The hand-written body of a page: no frontmatter, no generated block, no HTML comment. On the ledger
+    page the ledger section is left out, so a row cannot be evidenced by itself. On a session record the
+    `## Reviews` section is left out: it holds the reviewers' own words and the quotes a merge already
+    dropped, so neither can come back as evidence through a re-run or a ledger row."""
     lines = page.text.split("\n")
     _, body_start, _ = split_frontmatter(page.text)
     skip = set(range(1, max(body_start, 1)))
     for block in page.blocks:
         skip.update(range(block.start, block.end + 1))
-    if page.id == ledger.PAGE_ID:
-        span = ledger.section_lines(page)
+    spans = [ledger.section_lines(page)] if page.id == ledger.PAGE_ID else []
+    if page.type == "session":
+        spans.append(_section_span(page, REVIEWS_HEADING))
+    for span in spans:
         if span:
             skip.update(range(span[0], span[1] + 1))
     kept = "\n".join(line for n, line in enumerate(lines, start=1) if n not in skip)
@@ -542,7 +558,8 @@ def _row_findings(vault):
         need = _evidence_problems(vault, row)
         if need:
             out.append(_f(row, "E802", f"{row.copy} is {row.state}, but {'; '.join(need)}.",
-                          "Add the evidence, or set the state to open."))
+                          "Correct the evidence so check can verify it." if row.state == "open"
+                          else "Add the evidence, or set the state to open."))
     return found
 
 
