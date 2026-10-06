@@ -431,6 +431,36 @@ def quote_problem(vault, value, label):
     return ""
 
 
+# A not-applicable reason that defers rather than rules out. "not-applicable means it does not apply, never not
+# yet": a question waiting on something is an unknown or an assumption, and recording it as ruled out takes it off
+# every gate. Each cue is narrow, because a ruling-out often says "until", "after" or "later" too: "out of scope
+# until INI-004", "ruled out after reading the contract", "closed two years later". The tests hold both lists.
+_PERIOD = r"(?<!years )(?<!months )(?<!weeks )(?<!days )(?<!year )(?<!month )(?<!week )(?<!day )"
+_WHO = r"(?:we|they|someone|somebody|the \w+)"
+_LEARN = r"(?:know|hear|decide|confirm|answer|see|get|agree)s?"
+DEFERRAL_CUES = tuple(re.compile(p, re.I) for p in (
+    r"\bfor (?:now|the moment|the time being)\b",
+    r"\b(?:depends|depending|dependent) on\b",
+    rf"\buntil (?:after\b|UNK-\d|{_WHO} {_LEARN}\b|(?:it|this|that) is (?:known|decided|confirmed|answered|settled)\b)",
+    r"(?<!\bno )(?<!\bnot )\bpending\b",
+    _PERIOD + r"\blater\b(?!\s+than)",
+    r"\b(?:tbd|tbc)\b",
+    r"\bto be (?:decided|confirmed|determined|agreed|checked|settled)\b",
+    r"\b(?:revisit|decide|reconsider|review|confirm|check|look again|come back|wait)\b(?:\s+\S+){0,4}?\s+(?:after|once|when)\b",
+    r"\bnot (?:yet|known yet|decided yet)\b|\byet to\b|\b(?:known|decided|confirmed|answered|settled|clear) yet\b",
+    r"\b(?:defer(?:s|red|ring)?|parked|on hold)\b|\bwait(?:ing)? (?:for|on)\b",
+    rf"\bonce {_WHO} {_LEARN}\b",
+))
+
+
+def deferral_cue(reason):
+    """The words of a not-applicable reason that defer the question rather than rule it out, or ""."""
+    if not isinstance(reason, str):
+        return ""
+    found = [m for m in (cue.search(reason) for cue in DEFERRAL_CUES) if m]
+    return min(found, key=lambda m: m.start()).group(0) if found else ""
+
+
 def _f(row, code, message, fix):
     return Finding(row.path, row.line, code, message, fix)
 
@@ -579,6 +609,13 @@ def _row_findings(vault):
             out.append(_f(row, "E802", f"{row.copy} is {row.state}, but {'; '.join(need)}.",
                           "Correct the evidence so check can verify it." if row.state == "open"
                           else "Add the evidence, or set the state to open."))
+        cue = deferral_cue(row.get("reason")) if row.state == "not-applicable" else ""
+        if cue:
+            out.append(_f(row, "E802", f"{row.copy} is not-applicable, but its reason defers the question rather than "
+                          f"ruling it out (\"{cue}\"): not-applicable means it does not apply, never not yet.",
+                          "If the answer is waiting on something, record the row as unknown, with unknown: an open "
+                          "UNK-nnn that has an owner, or as assumed, with belief:, load-bearing: and signpost:. If it "
+                          "truly does not apply, say why in reason: without deferring it."))
     return found
 
 
@@ -636,6 +673,7 @@ def copy_answer(vault, d):
     c = d.copy
     return {"id": c.id, "entry": c.entry.id, "area": c.entry.area, "severity": c.entry.severity,
             "question": c.entry.question, "subject": c.subject.id, "subject_kind": c.subject.kind,
+            "subject_page": c.subject.page.path if c.subject.page is not None else None,
             "state": d.state or "no row", "valid": d.valid, "row": d.row.line if d.row else None, "via": d.via or None,
             "pending": d.pending, "blocks": list(blocks(vault, c))}
 
@@ -644,7 +682,7 @@ def reviewer_answer(vault, row):
     severity = row.get("severity") if row.get("severity") in catalog.SEVERITIES else "normal"
     valid = row_valid(vault, row)
     return {"id": row.copy, "entry": None, "area": row.area, "severity": severity, "question": row.get("question"),
-            "subject": None, "subject_kind": "reviewer", "state": row.state, "valid": valid, "row": row.line, "via": None,
+            "subject": None, "subject_kind": "reviewer", "subject_page": None, "state": row.state, "valid": valid, "row": row.line, "via": None,
             "pending": row.state in ("open", "asked") or not valid, "blocks": []}
 
 
@@ -679,6 +717,18 @@ BAND_NAMES = {1: "high, and blocks something", 2: "high", 3: "the rest"}
 
 def _band(severity, blocked):
     return 1 if severity == "high" and blocked else 2 if severity == "high" else 3
+
+
+# A digest this long or shorter is shown whole: it reads in one go. Past it, as with the v3 full run's 48 lines,
+# normal lines bury the high ones, so the text view counts them by area. It is a view, never a cap: --all, --open,
+# --json and the ledger block still give every line.
+DIGEST_READS_WHOLE = 10
+
+
+def consequential(group):
+    """A digest line the lead sees in full: high severity, or it blocks something. The rest are counted by
+    area with the command that lists them, and every one stays in --open, --json and the ledger block."""
+    return group["severity"] == "high" or bool(group["blocks"])
 
 
 def digest(vault, area=None, subject_id=None):

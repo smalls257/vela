@@ -283,6 +283,8 @@ def cmd_questions(args, out):
               f"planner questions: {args.subject} is not a subject in this vault: an initiative, app, contract, "
               "capability, party or stored value ID.", file=out)
         return 1
+    if args.all and not args.digest:
+        raise ToolError("--all goes with --digest: it prints every line of the digest in full.")
     if args.stats:
         if args.open or args.subject:
             raise ToolError("--stats counts every copy the vault owes. Leave out --open and --subject.")
@@ -297,7 +299,7 @@ def cmd_questions(args, out):
         if args.json:
             print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
         else:
-            print_digest(answer, out)
+            print_digest(answer, out, vault.catalogue.area_codes, args)
         return 0
     answer = questions.listing(vault, args.area, args.open, args.subject)
     if args.json:
@@ -332,21 +334,41 @@ def blocks_text(units):
     return f"{len(units)} items: {', '.join(units[:BLOCKS_SHOWN])}, …"
 
 
-def print_digest(answer, out):
+def print_digest(answer, out, area_codes, args):
+    """The consequential lines in full, then the rest as one count per area with the command that lists them,
+    so a long digest stays readable and nothing leaves it. --all prints every line in full."""
     groups = answer["groups"]
-    lines = f"{len(groups)} line{'' if len(groups) == 1 else 's'} to take"
-    print(f"planner questions --digest: {answer['coverage']}. {lines}, most consequential first.", file=out)
-    for n, group in enumerate(groups, start=1):
-        head = f"[{group['area']}] {group['severity']}"
-        if group["blocks"]:
-            head += f", blocks {blocks_text(group['blocks'])}"
-        print(f"{n}. {head}: {group['question']}", file=out)
-        why = ", ".join(f"{digest_label(k)} {v}" if len(group["why"]) > 1 else digest_label(k)
-                        for k, v in group["why"].items())
-        count = len(group["copies"])
-        lead = f"{count} copies ({why}): " if count > 1 else f"({why}) "
-        many = ": one answer for all?" if count > 1 else ""
-        print(f"   {lead}{', '.join(group['copies'])}{many}", file=out)
+    short = len(groups) <= questions.DIGEST_READS_WHOLE
+    full = groups if args.all or short else [g for g in groups if questions.consequential(g)]
+    rest = [g for g in groups if g not in full]
+    lines = f"{len(groups)} line{'' if len(groups) == 1 else 's'} to take, most consequential first"
+    if rest:
+        lines += f": {len(full)} in full, {len(rest)} more counted by area"
+    print(f"planner questions --digest: {answer['coverage']}. {lines}.", file=out)
+    for n, group in enumerate(full, start=1):
+        print_digest_line(n, group, out)
+    if not rest:
+        return
+    narrow = (f" --area {args.area}" if args.area else "") + (f" --subject {args.subject}" if args.subject else "")
+    for code in area_codes:
+        count = sum(1 for g in rest if g["area"] == code)
+        if count:
+            print(f"{code}: {count} more (normal). List them: planner questions --open --digest --all"
+                  f"{narrow if args.area else narrow + ' --area ' + code}", file=out)
+    print(f"Every line in full: planner questions --open --digest --all{narrow}", file=out)
+
+
+def print_digest_line(n, group, out):
+    head = f"[{group['area']}] {group['severity']}"
+    if group["blocks"]:
+        head += f", blocks {blocks_text(group['blocks'])}"
+    print(f"{n}. {head}: {group['question']}", file=out)
+    why = ", ".join(f"{digest_label(k)} {v}" if len(group["why"]) > 1 else digest_label(k)
+                    for k, v in group["why"].items())
+    count = len(group["copies"])
+    lead = f"{count} copies ({why}): " if count > 1 else f"({why}) "
+    many = ": one answer for all?" if count > 1 else ""
+    print(f"   {lead}{', '.join(group['copies'])}{many}", file=out)
 
 
 def digest_label(label):
@@ -408,10 +430,18 @@ def cmd_findings(args, out):
         raise ToolError(f"{folder} is not a folder. Write each reviewer's output to <folder>/<AREA>.json, such as FIN.json.")
     vault = load_vault(root)
     only = parse_areas(args.areas, vault.catalogue.area_codes)
+    skipped = parse_areas(args.skipped, vault.catalogue.area_codes, "--skipped") or ()
+    if skipped and only is None:
+        raise ToolError("--skipped goes with --areas: name the areas whose reviewers ran with --areas, "
+                        "and the areas left out as out of scope with --skipped.")
+    both = [code for code in skipped if code in (only or ())]
+    if both:
+        raise ToolError(f"{', '.join(both)} {'is' if len(both) == 1 else 'are'} in both --areas and --skipped. "
+                        "An area either ran or was skipped.")
     outputs, ignored = read_findings(folder, vault.catalogue.area_codes)
     if only is not None:
         ignored += [f"{code}.json" for code in sorted(outputs) if code not in only]
-    result = reviews.merge(vault, outputs, ignored, only)
+    result = reviews.merge(vault, outputs, ignored, only, skipped)
     if args.json:
         print(json.dumps(result.as_dict(vault.catalogue.version), indent=2, ensure_ascii=False), file=out)
         return 0 if result.clean else 1
@@ -428,28 +458,30 @@ def cmd_findings(args, out):
             if isinstance(entry, reviews.Kept):
                 print(f"   {entry.finding}", file=out)
     for name in result.ignored:
-        if only is not None and name[:-5] in vault.catalogue.area_codes:
+        if name[:-5] in skipped:
+            print(f"ignored: {name} is for an area skipped with --skipped {','.join(skipped)}", file=out)
+        elif only is not None and name[:-5] in vault.catalogue.area_codes:
             print(f"ignored: {name} is not one of the areas asked for with --areas {','.join(only)}", file=out)
         else:
             print(f"ignored: {name} is not <AREA>.json for an area of catalogue v{vault.catalogue.version}", file=out)
     return 0 if result.clean else 1
 
 
-def parse_areas(text, codes):
+def parse_areas(text, codes, flag="--areas"):
     """The area codes of --areas FIN,REG, or None for every area. An unknown code is a tool error."""
     if text is None:
         return None
     wanted = [w.strip().upper() for w in text.split(",") if w.strip()]
     unknown = [w for w in wanted if w not in codes]
     if not wanted or unknown:
-        raise ToolError(f"--areas takes area codes of the catalogue ({', '.join(codes)}); "
+        raise ToolError(f"{flag} takes area codes of the catalogue ({', '.join(codes)}); "
                         f"{', '.join(unknown) or 'it was empty'} {'is' if len(unknown) < 2 else 'are'} not one.")
     return tuple(c for c in codes if c in wanted)
 
 
 def finding_line(entry):
     if isinstance(entry, reviews.Kept):
-        return f"{entry.n}. [{entry.area}] {entry.severity}, {entry.copy}: {entry.question} | \"{entry.quote}\" in {entry.page}"
+        return f"{entry.n}. [{', '.join(entry.area_list)}] {entry.severity}, {entry.copy}: {entry.question} | \"{entry.quote}\" in {entry.page}"
     if isinstance(entry, reviews.Duplicate):
         return f"- [{entry.area}] same as {entry.same_as}: {entry.question}"
     return f"- [{entry.area}] {entry.reason}: {entry.question}"
@@ -956,6 +988,8 @@ def build_parser():
     view_of = ques.add_mutually_exclusive_group()
     view_of.add_argument("--digest", action="store_true",
                          help="the undisposed and asked copies grouped by entry and ranked, high and blocking first")
+    ques.add_argument("--all", action="store_true",
+                      help="with --digest: every line in full, not only the high and blocking ones")
     view_of.add_argument("--stats", action="store_true", help="how often each entry ends not-applicable in this vault")
     ques.set_defaults(func=cmd_questions)
     found = sub.add_parser("findings", help="merge the focused reviewers' findings and check every quote")
@@ -965,6 +999,8 @@ def build_parser():
     merge.add_argument("--vault", default=".", help="vault root (default: current directory)")
     merge.add_argument("--json", action="store_true", help="print JSON instead of text")
     merge.add_argument("--areas", help="only these areas, such as FIN,REG, for a re-run; the others are not read")
+    merge.add_argument("--skipped", help="with --areas: areas left out because nothing in them was in scope, "
+                                         "such as OPS; the coverage line says so")
     merge.set_defaults(func=cmd_findings)
     hand = sub.add_parser("handoff", help="write the senior's handoff manifest, or verify the vault against it")
     hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id to write handoffs/<APP-id>.md; verify APP-id to compare")
