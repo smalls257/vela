@@ -363,6 +363,24 @@ def risk_rules(vault, today):
                      "Start the Owner value with @handle or @org/team.")
 
 
+# ------------------------------------------------------------------ subjects
+
+def subject_rules(vault, today):
+    """A party or a stored value is a subject the question catalogue fires on. One that cannot be
+    typed would leave its questions never owed and the ledger looking clean, so every gap is said."""
+    for item, required, what in [(p, schema.PARTY_REQUIRED, "party") for p in vault.parties] + \
+            [(s, schema.STORED_VALUE_REQUIRED, "stored value") for s in vault.stored_values]:
+        for label in required:
+            if not item.fact(label):
+                yield _f(item.page, item.line, "E808", f"{item.id} is a {what} with no **{label}:** bullet.",
+                         f"Add '- **{label}:** ...' under the {item.id} heading.")
+    for party in vault.parties:
+        relationship = party.fact("Relationship")
+        if relationship and relationship.lower() not in schema.PARTY_RELATIONSHIPS:
+            yield _f(party.page, party.facts["Relationship"].line, "E105", f"{party.id} has relationship '{relationship}'.",
+                     "Use one of: " + ", ".join(schema.PARTY_RELATIONSHIPS) + ".")
+
+
 # ----------------------------------------------------------------- certainty
 
 def decided_units(vault):
@@ -656,5 +674,5 @@ def trace_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         contract_rules, requirement_rules, unknown_rules, risk_rules, certainty_rules, stage_rules, concern_rules,
+         contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules)

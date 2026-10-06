@@ -99,6 +99,7 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 | Concern | `concern-testing` | page `id` | the ID |
 | Session | `2026-08-12-goals-and-data` | page `id` | the ID. Add `-2` on a same-day clash. |
 | Contract, unknown, risk, functional requirement | `CON-001`, `UNK-001`, `R-01`, `CAP-001.FR1` | `### <ID> <short name>` heading | |
+| Party, stored value | `PTY-01`, `SV-01` | `### <ID> <short name>` heading on `03-context-and-scope.md` | |
 | Goal, constraint, source | `G1`, `CST-1`, `SRC-01` | first column of their table | |
 | Other pages | lower-case slug, for example `goals` | page `id` | |
 
@@ -154,6 +155,15 @@ Unknown, under `### UNK-nnn <short name>` on `11-unknowns-and-risks.md`:
 An item an open unknown lists in `**Blocks:**` cannot be `decided`. Resolve the unknown first.
 
 Risk, under `### R-nn <name>`: `**Owner:**` and `**State:**` are required. State is `open`, `mitigated`, `accepted` or `closed`. `**Mitigation:**` is optional.
+
+Party, under `### PTY-nn <name>`: an outside organisation the initiative works with or answers to. Stored value, under `### SV-nn <name>`: points, credits, balances, vouchers or deposits held for customers. Both live on `03-context-and-scope.md`, parties under `## Outside parties` and stored value under `## Value held for customers`. The question catalogue fires on them, so a missing bullet is E808: the questions it should raise would never be owed. A relationship outside the list is E105.
+
+| Item | Label | Rule |
+|---|---|---|
+| Party | `**Relationship:**` | Required. `partner`, `supplier`, `regulator` or `customer group`, in any case. |
+| Party | `**Agreements:**` | Required. The agreements it is party to, with their `SRC-nn` where one is registered, or `none known`. |
+| Stored value | `**Holder:**` | Required. The app or party that holds the balances: a link to its page or heading, or its name. |
+| Stored value | `**Owner:**` | Required. Who carries the balances as money owed to customers, such as a finance team, or `not known yet` with a link to the unknown that asks. |
 
 ## Overrides
 
@@ -382,6 +392,7 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
 | W318 | decided contract has no Tested by, by override | W323 | override not needed |
 | W324 | decided on the owner's behalf, not yet confirmed | | |
+| E808 | party or stored value is missing a required fact | | |
 
 Codes are stable. A retired code is never reused.
 

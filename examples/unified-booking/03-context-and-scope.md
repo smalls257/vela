@@ -84,6 +84,25 @@ Each app page says what changes and which team owns it.
 
 External: Tidepay (payment provider) and the Harbourline event bus (Platform).
 
+## Outside parties
+
+### PTY-01 Tidepay
+
+- **Relationship:** supplier
+- **Agreements:** the existing Tidepay contract, which keeps card data out of Booking ([[02-constraints|CST-2]]), and its published webhook API, SRC-05, which [[booking-building-blocks#CON-007 Tidepay payment outcome|CON-007]] uses
+
+### PTY-02 FERRYMASTER vendor
+
+- **Relationship:** supplier
+- **Agreements:** the vendor contract, which runs to 2028 ([[02-constraints|CST-1]]) and is summarised in SRC-02. [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]] and [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]] rest on it.
+
+## Value held for customers
+
+### SV-01 Loyalty points
+
+- **Holder:** the loyalty scheme, which reads FERRYMASTER directly and stays out of scope until INI-004
+- **Owner:** Finance, through INI-004 Loyalty Revamp
+
 ## Out of scope
 
 - **Retiring FERRYMASTER.** That is INI-005 Mainframe Exit. This initiative makes it easier by putting a single door in front of the ledger.

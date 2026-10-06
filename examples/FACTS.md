@@ -51,6 +51,8 @@ Everything here is made up. Harbourline is a fictional regional ferry operator.
 External, not in scope: **Tidepay** (payment provider), **Harbourline event bus** (Platform; production-ready since 2026-11-01).
 Out of scope, still reading FERRYMASTER directly: data warehouse feed, finance reconciliation job, loyalty scheme (INI-004 and INI-005 deal with those).
 
+Outside parties, on `03-context-and-scope.md`: PTY-01 Tidepay and PTY-02 the FERRYMASTER vendor, both suppliers. Value held for customers: SV-01 loyalty points, earned at reservation and held by the loyalty scheme, which Finance carries and INI-004 owns.
+
 ## Containers (one level in, co-designed)
 
 - **Booking**: Booking API (requests from every channel; also receives Tidepay payment outcome), Hold store (unpaid holds for 10 minutes), Ledger adapter (only writer to FERRYMASTER via MQ; retries and keeps the hold if a write fails), Event publisher (publishes Booking state changed to the event bus). All four confirmed by the Booking senior.

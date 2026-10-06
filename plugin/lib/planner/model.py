@@ -23,9 +23,9 @@ class Finding:
 
 @dataclass
 class Item:
-    """A heading item: a contract, unknown, risk or functional requirement."""
+    """A heading item: a contract, unknown, risk, functional requirement, party or stored value."""
     id: str
-    kind: str  # "contract" | "unknown" | "risk" | "requirement"
+    kind: str  # "contract" | "unknown" | "risk" | "requirement" | "party" | "stored-value"
     name: str  # heading text after the ID
     heading: str  # full heading text, which is the anchor
     page: object
@@ -90,6 +90,14 @@ class Vault:
         return sorted((i[0] for i in self.items.values() if i[0].kind == "requirement"), key=lambda i: i.id)
 
     @property
+    def parties(self):
+        return sorted((i[0] for i in self.items.values() if i[0].kind == "party"), key=lambda i: i.id)
+
+    @property
+    def stored_values(self):
+        return sorted((i[0] for i in self.items.values() if i[0].kind == "stored-value"), key=lambda i: i.id)
+
+    @property
     def sessions(self):
         return sorted(self.of_type("session"), key=lambda p: p.name)
 
@@ -113,7 +121,7 @@ class Vault:
         return set(self.by_id) | set(self.items) | set(self.row_ids)
 
 
-ITEM_KINDS = {"CON": "contract", "UNK": "unknown", "R": "risk", "CAP": "requirement"}
+ITEM_KINDS = {"CON": "contract", "UNK": "unknown", "R": "risk", "CAP": "requirement", "PTY": "party", "SV": "stored-value"}
 
 
 def build(pages, config, other_names=()):

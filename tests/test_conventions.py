@@ -18,16 +18,18 @@ def names():
     out.update(f"`{m}`" for m in schema.SESSION_MODES)
     labels = (schema.CONTRACT_REQUIRED + schema.CONTRACT_OPTIONAL + schema.UNKNOWN_REQUIRED
               + schema.UNKNOWN_OPEN_REQUIRED + schema.UNKNOWN_RESOLVED_REQUIRED + schema.UNKNOWN_OPTIONAL
-              + schema.RISK_REQUIRED + schema.RISK_OPTIONAL + schema.PAGE_LABELS)
+              + schema.RISK_REQUIRED + schema.RISK_OPTIONAL + schema.PAGE_LABELS + schema.SUBJECT_LABELS)
     out.update(f"**{label}:**" for label in labels)
     out.update(f"`{v}`" for v in schema.CONTRACT_STATES + schema.CONTRACT_CHANGES + schema.UNKNOWN_STATES
-               + schema.RISK_STATES + schema.SOURCE_KINDS + schema.CONTAINER_STATES + schema.CELL_STATES)
+               + schema.RISK_STATES + schema.SOURCE_KINDS + schema.CONTAINER_STATES + schema.CELL_STATES
+               + schema.PARTY_RELATIONSHIPS)
     for header in (schema.GOALS_HEADER, schema.SOURCES_HEADER, schema.CHANGES_HEADER):
         out.add(" \\| ".join(header))
     out.update(f"`{name}`" for name in schema.BLOCKS)
     out.update(schema.CODES)
     out.update(f"`{n}`" for n in ("APP-booking", "RUN-booking", "CAP-013", "FLO-001", "EPC-031", "ADR-0001",
-                                   "concern-testing", "CON-001", "UNK-001", "R-01", "G1", "CST-1", "SRC-01", "INI-001"))
+                                   "concern-testing", "CON-001", "UNK-001", "R-01", "G1", "CST-1", "SRC-01", "INI-001",
+                                   "PTY-01", "SV-01"))
     out.update(f"`{v}`" for v in schema.VOICE_TYPES + schema.VOICE_SOURCES + schema.VOICE_STATES)
     out.add(f"sha={schema.NEW_BLOCK_SHA}")
     out.add(f"at most {schema.FLOWCHART_BUDGET} elements")

@@ -113,7 +113,7 @@ PAGE_ID_RE = {
     "session": re.compile(rf"^\d{{4}}-\d{{2}}-\d{{2}}-{SLUG}$"),
     "sources": re.compile(r"^sources$"),
 }
-ITEM_ID_RE = re.compile(r"^(CON-\d{3}|UNK-\d{3}|R-\d{2,}|CAP-\d{3}\.FR\d+)$")
+ITEM_ID_RE = re.compile(r"^(CON-\d{3}|UNK-\d{3}|R-\d{2,}|CAP-\d{3}\.FR\d+|PTY-\d{2,}|SV-\d{2,})$")
 GOAL_ID_RE = re.compile(r"^G\d+$")
 CONSTRAINT_ID_RE = re.compile(r"^CST-\d+$")
 SOURCE_ID_RE = re.compile(r"^SRC-\d{2,}$")
@@ -155,6 +155,12 @@ RISK_OPTIONAL = ("Mitigation",)
 RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
 PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL) + OVERRIDE_LABELS
+
+# Subjects the question catalogue fires on that are not pages: an outside party, and value held for customers.
+PARTY_REQUIRED = ("Relationship", "Agreements")
+PARTY_RELATIONSHIPS = ("partner", "supplier", "regulator", "customer group")
+STORED_VALUE_REQUIRED = ("Holder", "Owner")
+SUBJECT_LABELS = PARTY_REQUIRED + STORED_VALUE_REQUIRED
 
 # ------------------------------------------------------------------ overrides
 
@@ -272,6 +278,7 @@ CODES = {
     "E502": "no epic delivers a new or changed contract",
     "E503": "no epic covers a concern cell with work",
     "E504": "epic delivers nothing",
+    "E808": "party or stored value is missing a required fact",
 }
 
 # ------------------------------------------------------------- traceability
