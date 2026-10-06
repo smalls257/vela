@@ -224,14 +224,14 @@ def test_decided_lines_and_the_yes_that_makes_one_the_leads(tmp_path):
         "| D1 | assumption | decided | x |\n", encoding="utf-8")
     (tmp_path / "01-goals.md").write_text("---\nstate: decided\n---\n- **Decision:** [[s]]\n", encoding="utf-8")
     lines = probe.decided_lines(tmp_path)
-    assert sum(lines.values()) == 4
+    assert sum(lines.values()) == 3  # the keep mark "(decided)" points at a decision; it is not one
     assert not any("grill to confirm" in line for _, line in lines)
     assert probe.explicit_yes("Yes, go with option A.", asked=True)
     assert not probe.explicit_yes("Yes.", asked=False) and not probe.explicit_yes("Eyes on it", asked=True)
 
 
 def test_a_decision_written_during_a_probe_fails_decisions_recorded(tmp_path):
-    env = {"SIM_STUB_WRITE": "sessions/stub.md::- [idea] (claude) x → keep: [[01-goals|G9]] (decided) ^c99"}
+    env = {"SIM_STUB_WRITE": "sessions/stub.md::| G9 | inkling | decided | [[stub#^c99]] |"}
     code, out, err, runs = run_probe(tmp_path, "dump-sweep", "coastal-merger", env=env)
     assert code == 1, err
     assert "FAIL decisions-recorded: decisions recorded: 1" in out

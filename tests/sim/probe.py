@@ -191,7 +191,10 @@ def build_probe_vault(run_dir, snapshot, persona):
 
 # ------------------------------------------------------------------ decisions, seen turn by turn
 
-DECIDED = re.compile(r"^\s*state:\s*decided\b|\*\*State:\*\*\s*decided\b|\|\s*decided\s*\||\(decided\)"
+# A decision is a state set to decided, a table cell that says decided (a Changes row), or a Decision bullet. A
+# capture's keep mark "(decided)" only points at a decision already made, at close: counting it read close's own
+# record of a grilled decision as a second decision with no yes.
+DECIDED = re.compile(r"^\s*state:\s*decided\b|\*\*State:\*\*\s*decided\b|\|\s*decided\s*\|"
                      r"|^\s*-\s*\*\*Decision:\*\*", re.I)
 YES = re.compile(r"(?<![a-z])yes\b")
 
