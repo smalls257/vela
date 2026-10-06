@@ -52,7 +52,7 @@ SEUSS = HERE / "voices" / "seuss-style"
 
 ARMS = ("planner", "planner-seuss", "baseline")
 DEFAULT_ARMS = "planner,planner-seuss"
-MODES = ("dump", "close", "discover", "shape", "grill")
+MODES = ("dump", "close", "discover", "shape", "grill", "epics")
 # Wide enough for every planner skill: START's git and planner calls, voice-seed's heredoc, cmp and awk checks,
 # close's mktemp and voicecheck. gh is allowed so its failure paths run against the stub, not a permission denial.
 # Agent lets close dispatch the voice reviewer and a review checkpoint dispatch the area reviewers.

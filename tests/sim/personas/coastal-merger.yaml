@@ -28,6 +28,8 @@ topics:
   shape_1: what one account means
   shape_2: loyalty in one account
   grill: what one account means
+  grill_2: which identity provider fronts the one login
+  epics: the first app ready for epics
 
 knows:
   - id: K1
