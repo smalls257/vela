@@ -21,7 +21,7 @@ import difflib
 import re
 from dataclasses import dataclass
 
-from planner import schema
+from planner import ledger, schema
 from planner.model import Finding, meta_line
 
 QUOTED_RULE = r'"[^"\n]+"'
@@ -202,6 +202,8 @@ def unit_lines(vault, page, item_id):
     for table in page.tables:
         if not table.generated and tuple(table.header)[:4] == schema.GOALS_HEADER:
             lines.update(table.row_lines)
+    if page.id == ledger.PAGE_ID:
+        lines.update(ledger.lines(page))  # a page-level override here may name a ledger code such as E805
     return lines
 
 
@@ -251,10 +253,17 @@ def grammar_findings(vault):
                              f"Write - **Confirmed by:** {CONFIRMED_BY_GRAMMAR}.")
 
 
-def apply(vault, findings):
+def testable(rule, gate):
+    """Whether this run of check could see the rule broken: a gate-only code only under its gate."""
+    codes = schema.OVERRIDE_RULES.get(rule, ())
+    return bool(codes) and all(schema.GATE_ONLY_CODES.get(code) in (None, gate) for code in codes)
+
+
+def apply(vault, findings, gate=None):
     """The findings with every overridden error turned into its warning, plus W323 for an
     override that sets aside a rule the item does not break, W324 for an on-behalf decision
-    the owner has not confirmed, and E321/E322 for bullets that cannot be read."""
+    the owner has not confirmed, and E321/E322 for bullets that cannot be read. `gate` is the
+    gate check ran under, so an override of a gate-only code is idle only when its gate ran."""
     scopes = _scopes(vault)
     by_line = {}
     for (path, item_id), page in scopes.items():
@@ -281,7 +290,7 @@ def apply(vault, findings):
         seen = fired.get((path, item_id), set())
         where = item_id or page.id or page.name
         for found in valid_overrides(page, item_id):
-            idle = [r for r in found.rules if schema.OVERRIDE_RULES.get(r) and not set(schema.OVERRIDE_RULES[r]) & seen]
+            idle = [r for r in found.rules if testable(r, gate) and not set(schema.OVERRIDE_RULES[r]) & seen]
             if idle:
                 out.append(_f(page, found.line, "W323",
                               f"Override not needed: {where} does not break {', '.join(idle)}, so the override sets nothing aside.",

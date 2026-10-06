@@ -185,9 +185,10 @@ The person using the skills may override any rule in them: a grill gate, "only a
   | `GATE-4` | an open unknown blocks the item | E316 to W316 |
   | `grill` | "only a Grill decides" | E303 to W303, and E317 to W317 |
   | `E303`, `E304`, `E316`, `E317`, `E318` | that check rule alone | E303 to W303, E304 to W304, E316 to W316, E317 to W317, E318 to W318 |
+  | `E805` | the epics gate's rule that high-severity questions are disposed | E805 to W805 |
   | `"<the rule's words>"`, in double quotes | a skill rule with no name above, for example `"Shape offers 2 or 3 options"` | none |
 
-- **Where it sits.** Under an item's heading, it covers that contract or functional requirement. At page level, it covers the page and its goal rows, not the items under its headings. A rule that belongs to no item, such as how a session ran, goes at page level in the session record.
+- **Where it sits.** Under an item's heading, it covers that contract or functional requirement. At page level, it covers the page and its goal rows, not the items under its headings. A rule that belongs to no item, such as how a session ran, goes at page level in the session record. An override of `E805` goes at page level under `## Question ledger` on `11-unknowns-and-risks.md`, and covers every E805 there; each one still prints, as W805.
 - **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. Deciding on the owner's behalf is how a Grill passes GATE-5 with the owner absent, and it goes with `**Override:** GATE-5`.
 - **Confirmed by.** The owner adds it later: their handle, ` on ` and the date. A team owner is confirmed by one of its people. A confirmation by the person who decided does not count.
 - **An owner who disagrees** with a decision made on their behalf raises `/planner:challenge` on the item, as a senior does after handoff. Confirming and challenging are the only two answers.
@@ -196,7 +197,7 @@ The person using the skills may override any rule in them: a grill gate, "only a
 
 - A well-formed override that names the rule an error enforces turns that error into its warning, and the warning quotes the override. Nothing else changes: the warning stays until the rule is met or the bullet goes.
 - A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
-- W323: an override names a rule the check can test, and the item does not break it, so the override sets nothing aside.
+- W323: an override names a rule the check can test, and the item does not break it, so the override sets nothing aside. A rule only a gate tests, such as `E805`, is judged only when that gate runs, so a plain check never calls its override idle.
 - W324: an item carries `**Decided by:** ... on behalf of @owner` and no `**Confirmed by:**`, until the owner confirms.
 
 ## Fact tables
@@ -255,6 +256,17 @@ A copy's own row wins. Then the wildcard with the longest prefix, then an initia
 A quote, whether a `source:` or a reviewer question's `quote:`, names its page, and `planner check` looks for the words in that page's hand-written text: not its frontmatter, a generated block, an HTML comment, or on `11-unknowns-and-risks.md` the ledger section. Case, spacing, curly quotes and Markdown emphasis do not count, so the words may be copied as the page shows them. A quote needs at least four words. A quote with no page, a page that is not in the vault, too few words, or words that are not on the page is E802, so a quote is never taken on trust. A `source:` that mixes a quote and an `SRC-nn`, or adds anything else, is E802 too. A key that belongs to another state, such as `reason:` on an `answered` row, is E802. The `answer:` text is free text, and `planner check` does not compare it with the quote or the item.
 
 `planner check` reads the ledger. A malformed row, two rows for one copy, any table directly under `## Question ledger` whose header is not exactly the ledger's, a ledger table that is not under the first `## Question ledger`, or a second `## Question ledger` heading is E801. A row with any error, and any row of a misplaced ledger table, disposes of nothing: `planner questions` shows it as `invalid` and counts the copy as undisposed. A state without the evidence it needs is E802. A row that names an entry the catalogue lacks, a subject that does not fit the entry's scope, or a reviewer area the catalogue lacks is E803. A row whose subject is gone, or whose subject no longer matches the trigger, is W804: it stays as a record. A wildcard that no copy uses, because each has a row of its own or a longer wildcard, and a wildcard on an initiative entry are W804 too. A row dated after today is W812. A copy with no row, or an `open` row, is never a finding in a plain check. The lead sets the pace.
+
+Three gates read it too. Each names a moment, and a skill runs it then:
+
+| Gate | When | What it reports |
+|---|---|---|
+| `planner check --gate shape` | the end of a Shape | W806 for each row still `assumed`. An assumption clears into a decision, a requirement or a constraint before Shape closes. |
+| `planner check --gate grill --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open` or `asked` row, that blocks the item. A warning: the lead may decide anyway. |
+| `planner check --gate epics` | before epics are called complete | E805 for each high-severity copy or reviewer question with no row, or an `open` or `asked` row. An `asked` question is still waiting for its answer. |
+
+`--item` repeats, once per agenda item, and goes only with `--gate grill`, which needs at least one. An ID the vault does not hold exits 2.
+
 
 `planner questions` lists every owed copy with its focus area, severity, state, subject, what it blocks while it is open or asked, and the question, then the reviewer questions. `--json` prints the same as data, `--area FIN` keeps one focus area, `--subject APP-booking` one subject, and `--open` lists only the copies with no row, an `open` row or an invalid row. Its first line is the coverage: "57 owed, 3 undisposed, against catalogue v1". It never says complete, because the catalogue finds only what is written into it. An unknown `--area` exits 2, and a `--subject` that names no subject exits 1.
 
@@ -433,6 +445,8 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | W324 | decided on the owner's behalf, not yet confirmed | | |
 | E801 | question ledger row is malformed | E802 | ledger state lacks the evidence it needs |
 | E803 | ledger row names nothing the catalogue owes | W804 | ledger row is orphaned or no longer owed |
+| E805 | high-severity question not disposed at the epics gate | W805 | high-severity question not disposed, by override |
+| W806 | assumed question not resolved at the end of shape | W807 | open question blocks the grilled item |
 | E808 | party or stored value is missing a required fact | | |
 | E810 | heading looks like a party or stored value but is not one | | |
 | W811 | subject defined off its page | | |
@@ -446,7 +460,7 @@ An epic page holds a description, the owning team, 4 to 7 numbered acceptance cr
 
 A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
 
-Four trace rules run once the vault holds an epic. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete.
+Four trace rules run once the vault holds an epic. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger).
 
 | Rule | Passes when | Codes |
 |---|---|---|

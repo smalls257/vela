@@ -60,7 +60,7 @@ def test_bin_planner_runs_without_install():
 def test_internal_error_is_exit_2_with_traceback(mini, monkeypatch):
     from planner import rules
 
-    def boom(vault, today, gate=None):
+    def boom(vault, today, gate=None, items=()):
         raise RuntimeError("rule exploded")
     monkeypatch.setattr(rules, "check", boom)
     code, out = check(mini)

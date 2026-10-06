@@ -681,3 +681,75 @@ def stats(vault, area=None):
                     "states": {k: v for k, v in states.items() if v}, "not_applicable": na,
                     "not_applicable_share": round(na / len(mine), 2) if mine else 0.0})
     return {"catalogue": vault.catalogue.version, "entries": out}
+
+
+# ------------------------------------------------------------------ the gates
+
+def _ledger_location(vault):
+    """Where a gate reports a copy with no row: the `## Question ledger` heading, or line 1 of the page."""
+    page = ledger_page(vault)
+    if page is None:
+        return "11-unknowns-and-risks.md", 1
+    return page.path, ledger.heading_line(page) or 1
+
+
+def _standing(d):
+    return "has no ledger row" if d.row is None else f"is {state_label(d.state, d.valid)}" + (f" (by {d.via})" if d.via else "")
+
+
+def epics_gate(vault):
+    """E805 for each high-severity copy or reviewer question still open, asked or with no row. These
+    are the questions whose silence costs most: lawful basis, partner clauses, stored-value liability."""
+    path, heading = _ledger_location(vault)
+    for d in dispositions(vault):
+        if d.copy.entry.severity != "high" or not d.pending:
+            continue
+        yield Finding(path, d.row.line if d.row else heading, "E805",
+                      f"{d.copy.id} is high severity and {_standing(d)}: {d.copy.entry.question}",
+                      "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an assumption. "
+                      "To call the epics complete anyway, add - **Override:** E805 by @handle on YYYY-MM-DD: <why> "
+                      "under ## Question ledger.")
+    for row in reviewer_rows(vault):
+        if row.get("severity") == "high" and row.state in ("open", "asked"):
+            yield Finding(path, row.line, "E805", f"{row.copy} is high severity and is {row.state}: {row.get('question')}",
+                          "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an "
+                          "assumption, or override E805 under ## Question ledger.")
+
+
+def shape_gate(vault):
+    """W806 for each row still `assumed`. An assumption clears into a decision, a requirement or a
+    constraint before Shape closes (Volere), or it stays a belief nobody checked."""
+    for row in rows(vault):
+        if row.state == "assumed" and row.kind:
+            yield Finding(row.path, row.line, "W806", f"{row.copy} is still assumed: {row.get('belief') or 'no belief given'}.",
+                          "Once the plan holds it, set the row to answered with an item link, or record it as an unknown "
+                          "with an owner. Say in the session why it stays assumed if it does.")
+
+
+def unit_location(vault, unit_id):
+    """(path, line) where check reports on a unit: an item's heading, a page's state line, or a table row."""
+    item = vault.item(unit_id)
+    if item is not None:
+        return item.page.path, item.line
+    pages = vault.by_id.get(unit_id)
+    if pages:
+        return pages[0].path, meta_line(pages[0], "state")
+    if unit_id in vault.row_ids:
+        page, line = vault.row_ids[unit_id]
+        return page.path, line
+    return None
+
+
+def grill_gate(vault, items):
+    """W807 for each copy still open, asked or with no row that blocks an item on the Grill's agenda.
+    A warning, never an error: the lead may decide anyway, and the warning records that it was open."""
+    for unit_id in items:
+        where = unit_location(vault, unit_id)
+        if where is None:
+            continue  # the CLI refuses an item the vault does not hold before check runs
+        for d in dispositions(vault):
+            if d.pending and unit_id in blocks(vault, d.copy):
+                yield Finding(where[0], where[1], "W807",
+                              f"{d.copy.id} {_standing(d)} and blocks {unit_id}: {d.copy.entry.question}",
+                              "Put it on the agenda and settle it first, or decide anyway; the warning stays in the "
+                              "check output as the record that it was open.")

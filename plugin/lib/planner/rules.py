@@ -9,12 +9,16 @@ from planner import override, questions, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
-def check(vault, today, gate=None):
+def check(vault, today, gate=None, items=()):
     """All findings for the vault, sorted by path, line and code.
 
     `gate="epics"` is the moment epics are called complete: every trace gap
-    becomes an error, even in a vault that has no epic yet. Overrides apply last,
-    so an override can soften an error but never hide one: see override.apply.
+    becomes an error, even in a vault that has no epic yet, and so does every
+    high-severity question not yet disposed. `gate="shape"` is the end of a
+    Shape: each assumed question still unresolved warns. `gate="grill"` with
+    `items` is a Grill on those items: each open question that blocks one warns.
+    Overrides apply last, so an override can soften an error but never hide one:
+    see override.apply.
     """
     findings = []
     for rule in RULES:
@@ -23,7 +27,12 @@ def check(vault, today, gate=None):
         trace_warnings = {warning for warning, _ in schema.TRACE_CODES.values()}
         findings = [f for f in findings if f.code not in trace_warnings]
         findings.extend(trace_findings(vault, gated=True))
-    return sorted(set(override.apply(vault, findings)))
+        findings.extend(questions.epics_gate(vault))
+    elif gate == "shape":
+        findings.extend(questions.shape_gate(vault))
+    elif gate == "grill":
+        findings.extend(questions.grill_gate(vault, items))
+    return sorted(set(override.apply(vault, findings, gate)))
 
 
 # ------------------------------------------------------------------ helpers

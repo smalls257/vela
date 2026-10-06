@@ -103,15 +103,30 @@ def cmd_check(args, out):
     today, origin = parse_today(args.today)
     started = time.perf_counter()
     vault = load_vault(root)
-    findings = rules.check(vault, today, gate=args.gate)
+    items = gate_items(vault, args.gate, args.item)
+    findings = rules.check(vault, today, gate=args.gate, items=items)
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     elapsed = time.perf_counter() - started
     print(f"planner check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages. "
-          f"Today is {today} ({origin}). Took {elapsed:.2f} s." + (f" Gate: {args.gate}." if args.gate else ""), file=out)
+          f"Today is {today} ({origin}). Took {elapsed:.2f} s." + (f" Gate: {args.gate}." if args.gate else "")
+          + (f" Items: {', '.join(items)}." if items else ""), file=out)
     for finding in findings:
         print(finding.format(), file=out)
     return 1 if errors else 0
+
+
+def gate_items(vault, gate, items):
+    """The items a grill gate checks. A grill gate needs at least one, and only a grill gate takes any."""
+    items = list(items or ())
+    if gate == "grill" and not items:
+        raise ToolError("--gate grill needs the agenda: one --item <ID> per item, for example --item CON-001.")
+    if items and gate != "grill":
+        raise ToolError("--item names a Grill's agenda, so it goes with --gate grill.")
+    missing = [i for i in items if i not in vault.known_ids()]
+    if missing:
+        raise ToolError(f"--item {', '.join(missing)} is not an ID in this vault.")
+    return sorted(set(items))
 
 
 def cmd_render(args, out):
@@ -796,7 +811,9 @@ def build_parser():
     check.add_argument("--vault", default=".", help="vault root (default: current directory)")
     check.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
     check.add_argument("--gate", choices=schema.GATES,
-                       help="epics: trace gaps are errors; run it before calling an app's epics complete")
+                       help="epics: trace gaps and undisposed high-severity questions are errors; shape: assumed "
+                            "questions warn; grill: open questions that block an --item warn")
+    check.add_argument("--item", action="append", help="with --gate grill: an agenda item's ID; repeat for each")
     check.set_defaults(func=cmd_check)
     rend = sub.add_parser("render", help="rewrite generated blocks")
     rend.add_argument("--vault", default=".", help="vault root (default: current directory)")

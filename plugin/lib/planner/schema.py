@@ -173,9 +173,13 @@ OVERRIDE_RULES = {
     "GATE-1": (), "GATE-2": (), "GATE-3": (), "GATE-4": ("E316",), "GATE-5": (),
     "grill": ("E303", "E317"),
     "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E317": ("E317",), "E318": ("E318",),
+    "E805": ("E805",),
 }
 # Error -> the warning it becomes when an Override on the same item names it.
-OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E317": "W317", "E318": "W318"}
+OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E317": "W317", "E318": "W318", "E805": "W805"}
+# Codes only a gate reports. An override of one is judged idle (W323) only when its gate ran, so the
+# override that lets an epics gate pass never warns on the plain check of every PR.
+GATE_ONLY_CODES = {"E805": "epics"}
 
 # ---------------------------------------------------------------- fact tables
 
@@ -286,6 +290,10 @@ CODES = {
     "E802": "ledger state lacks the evidence it needs",
     "E803": "ledger row names nothing the catalogue owes",
     "W804": "ledger row is orphaned or no longer owed",
+    "E805": "high-severity question not disposed at the epics gate",
+    "W805": "high-severity question not disposed, by override",
+    "W806": "assumed question not resolved at the end of shape",
+    "W807": "open question blocks the grilled item",
     "E808": "party or stored value is missing a required fact",
     "E810": "heading looks like a party or stored value but is not one",
     "W811": "subject defined off its page",
@@ -296,7 +304,7 @@ CODES = {
 
 # Rule -> (code in a plain check, code under --gate epics).
 TRACE_CODES = {"T1": ("W501", "E501"), "T2": ("W502", "E502"), "T4": ("W503", "E503"), "T6": ("W504", "E504")}
-GATES = ("epics",)
+GATES = ("epics", "shape", "grill")
 TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
 OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker
 WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{2}}-\d{{2}}\): \S")
