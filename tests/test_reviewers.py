@@ -185,3 +185,22 @@ def test_round_two_fixes_in_dump_discover_and_the_reviewer():
     assert 'type at close: PTY' in dump and 'type at close: SV' in dump
     assert "any contract or document the captures themselves name" in dump
     assert "A team that loses under one reading is a stakeholder, even if nobody named them" in agent
+
+
+def test_shape_runs_the_checkpoint_before_options_with_what_must_be_true():
+    shape = text("skills/shape/SKILL.md")
+    assert "references/REVIEW.md" in shape and '"before options"' in shape
+    assert shape.index("run the review checkpoint") < shape.index("Show the options.")
+    assert '"what must be true" set' in shape and "`assumed` ledger row" in shape
+    assert "planner check --gate shape" in shape
+
+
+def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agenda():
+    grill = text("skills/grill/SKILL.md")
+    assert "planner check --gate grill --item <ID>" in grill and "W807" in grill
+    assert "references/REVIEW.md" in grill and '"on the agenda"' in grill
+    assert grill.index("--gate grill") < grill.index("write the agenda into the session record")
+
+
+def test_epics_reads_the_question_gate():
+    assert "`E805`" in text("skills/epics/SKILL.md")

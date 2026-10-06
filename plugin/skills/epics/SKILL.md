@@ -73,7 +73,7 @@ If the user tells you to decide an epic without a yes per criterion, or without 
 
 ## 7. Check the gate
 
-Run `python3 .claude/skills/planner/bin/planner render` and stage every file it reports, by exact path. Then run `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs.
+Run `python3 .claude/skills/planner/bin/planner render` and stage every file it reports, by exact path. Then run `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, such as the lawful basis for data, a partner's clauses or a stored-value liability. Offer to take it now, as a review checkpoint's digest would, or the user may override `E805` as `START.md` says, with the bullet at page level under `## Question ledger` on `11-unknowns-and-risks.md`.
 
 Exit 0 means the epics are structurally complete. It does not mean they are decided. Handoff needs every epic `decided` and a clean gate, so list each epic still at `draft` before you finish. The gate checks the whole vault, so `E50x` lines on other teams' apps also fail the exit code. Report those separately as other teams' work, and do not treat them as this team's gap.
 

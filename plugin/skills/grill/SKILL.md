@@ -39,6 +39,13 @@ When the user picks "decide anyway (override GATE-n)", the item goes on the agen
 - When the owner is not the user and is not present: `- **Decided by:** @<user's handle>, on behalf of @<owner>`, with `GATE-5` in the Override. This is how GATE-5 passes with the owner away. Tell the user the owner confirms later with `- **Confirmed by:** @<owner> on <date>`, or raises `/planner:challenge` if they disagree, and that `planner check` warns with W324 until then.
 - A `GATE-4` override keeps the open unknown open. `planner check` reports W316 instead of E316 for the item, quoting the override, until the unknown is resolved.
 
+Before you show the agenda for GATE-3, find the open questions under each item, in two ways:
+
+- Run `planner check --gate grill --item <ID>`, with one `--item` per item on the agenda. Each W807 is an owed question, still open, asked or with no ledger row, that blocks that item.
+- Run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "on the agenda" and the agenda items as its focus.
+
+List both under their item on the agenda, with the copy or finding ID, as open questions the Grill asks before the item is decided. An owed question that blocks an item is a question to ask, not a gate: the user may decide the item with it still open, and the W807 stays in the check output as the record.
+
 After the table, write the agenda into the session record as an `## Agenda` section, one line per item: `- <ID>: GATE-3 confirmed yes|no, status open|decided|off-agenda: UNK-xxx|off-agenda: GATE-n`. An item that fails a gate other than GATE-4 carries `off-agenda: GATE-n` with the gate's number. An item the user chose to decide anyway carries `override: GATE-n` and a status, for example `- CON-003: GATE-3 confirmed yes, status open, override: GATE-5`. Update the line as the item changes. START's resume rule reads this section.
 
 GATE-4 is also a check rule: `planner check` fails an item that is `decided` while an open unknown blocks it, with E316, unless an `**Override:**` on the item names `GATE-4`.
