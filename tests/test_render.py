@@ -1,8 +1,15 @@
+import re
+
 from conftest import check, edit, findings, run
 
 GOALS = "01-goals.md"
 MATRIX = "08-concerns/08-concerns.md"
 TESTING = "08-concerns/concern-testing.md"
+
+
+def untimed(output):
+    """Check output without its run time, which differs between two runs on a busy machine."""
+    return re.sub(r" Took [0-9.]+ s\.", "", output)
 
 
 def render(vault, *extra):
@@ -36,7 +43,9 @@ def test_source_change_makes_a_block_stale_then_render_fixes_it(mini):
     code, out = render(mini)
     assert code == 0
     assert "01-goals.md: where-it-stands" in out
-    assert check(mini) == (0, check(mini)[1])
+    first, second = check(mini), check(mini)
+    assert first[0] == 0
+    assert untimed(first[1]) == untimed(second[1])
     assert findings(check(mini)[1]) == []
 
 
