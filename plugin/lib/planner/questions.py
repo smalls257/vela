@@ -314,7 +314,32 @@ def coverage_line(vault, owed_count, undisposed_count):
 
 # ------------------------------------------------------------------ the ledger rules
 
-QUOTE_RE = re.compile(r'^"(?P<text>[^"]+)" in \[\[(?P<page>[^\]|#]+)(?:\|[^\]]*)?\]\]$')
+QUOTE_RE = re.compile(r'^"(?P<text>[^"]+)"\s+in\s+\[\[(?P<page>[^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]$')
+_QUOTE_MARKS = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"'})
+_WIKILINK_TEXT = re.compile(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]")
+
+
+def normal_text(text):
+    """Text as a quote is compared: lower case, curly quotes straight, Markdown emphasis, code ticks and
+    link brackets gone, runs of whitespace one space."""
+    text = _WIKILINK_TEXT.sub(r"\1", text.translate(_QUOTE_MARKS)).replace("\\|", "|")
+    return " ".join(re.sub(r"[*_`]", "", text).lower().split())
+
+
+def quote_problem(vault, value, label):
+    """Why `value` is not a quote that can be checked, or "" when it is on its page. A quote is
+    `"<the words>" in [[<page>]]`, and the words must be on that page, so evidence cannot be made up."""
+    match = QUOTE_RE.match(value)
+    if not match:
+        return f'{label} must be "<the words>" in [[<page>]], the words and the page they are on'
+    page = vault.page(match["page"].strip())
+    if page is None:
+        return f'{label} cites [[{match["page"].strip()}]], which is not a page in this vault'
+    if page.id == ledger.PAGE_ID:
+        return f"{label} cites the ledger page itself, which cannot evidence its own rows"
+    if normal_text(match["text"]) not in normal_text(page.text):
+        return f'{label} "{match["text"]}" is not on [[{match["page"].strip()}]]'
+    return ""
 UNK_RE = re.compile(r"\bUNK-\d{3}\b")
 
 
@@ -334,9 +359,11 @@ def _evidence_problems(vault, row):
         source = row.get("source")
         tokens = schema.SOURCE_TOKEN_RE.findall(source)
         sources = {i for i in vault.row_ids if schema.SOURCE_ID_RE.match(i)}
-        quoted = len(source) > 2 and source.startswith('"') and source.endswith('"')
-        if not tokens and not quoted:
-            need.append('answered needs source: an SRC-nn from sources.md, or the answer quoted in double quotes')
+        if not tokens:
+            if not source:
+                need.append('answered needs source: an SRC-nn from sources.md, or the answer quoted as "<the words>" in [[<page>]]')
+            else:
+                need.append(quote_problem(vault, source, "source") or "")
         for token in tokens:
             if token not in sources:
                 need.append(f"source {token} is not a row in sources.md")
@@ -362,11 +389,13 @@ def _evidence_problems(vault, row):
     if row.kind == "reviewer":
         if not row.get("question"):
             need.append("a reviewer question needs question: the question the reviewer raised")
-        if not QUOTE_RE.match(row.get("quote")):
+        if not row.get("quote"):
             need.append('a reviewer question needs quote: "<the words>" in [[<page>]]')
+        else:
+            need.append(quote_problem(vault, row.get("quote"), "quote") or "")
         if row.has("severity") and row.get("severity") not in catalog.SEVERITIES:
             need.append("severity is high or normal")
-    return need
+    return [n for n in need if n]
 
 
 def _links(value, row):

@@ -116,12 +116,46 @@ def test_an_open_row_needs_no_by_or_date(ub):
     ("| Q-REG-01@INI-002 | not-applicable | reason: Booking sells single ferry crossings, and nothing is sold with another party |",
      "| Q-REG-01@INI-002 | not-applicable |  |", "not-applicable needs reason"),
     ('quote: "because points are earned at reservation" in [[04a-capability-delta]]',
-     'quote: because points are earned at reservation', "a reviewer question needs quote"),
+     'quote: because points are earned at reservation', 'quote must be "<the words>" in [[<page>]]'),
 ])
 def test_a_state_without_its_evidence_is_e802(ub, old, new, said):
     edit(ub / LEDGER, old, new)
     assert broken(ub) == [("E802", LEDGER)]
     assert said in check(ub, TODAY)[1]
+
+
+GOOD_QUOTE = ('source: "The only personal data is the customer ID." in [[concern-data]]')
+ROW_QUOTE = ('source: "Booking holds no card data and no contact details." in [[concern-data]]')
+
+
+@pytest.mark.parametrize("quote, said", [
+    ('source: "the only PERSONAL   data is the *customer ID*" in [[concern-data\\|Data]]', None),
+    ('source: "gives 8 weeks\u2019 notice of changes" in [[concern-ownership]]', None),
+    ('source: "The only personal data is the customer ID."', 'source must be "<the words>" in [[<page>]]'),
+    ('source: "Customers pay in cash." in [[concern-data]]', 'source "Customers pay in cash." is not on [[concern-data]]'),
+    ('source: "Q-DAT-05@INI-002" in [[11-unknowns-and-risks]]', "cites the ledger page itself"),
+])
+def test_a_quoted_source_must_name_its_page_and_be_on_it(ub, quote, said):
+    edit(ub / LEDGER, 'source: "Booking holds no card data and no contact details." in [[concern-data]]', quote)
+    if said is None:
+        assert broken(ub) == []
+        return
+    assert broken(ub) == [("E802", LEDGER)]
+    assert said in check(ub, TODAY)[1]
+
+
+def test_a_quote_on_a_page_that_is_not_in_the_vault_is_refused():
+    vault = cli.load_vault(FIXTURE)
+    said = questions.quote_problem(vault, '"The only personal data is the customer ID." in [[concern-nope]]', "source")
+    assert said == "source cites [[concern-nope]], which is not a page in this vault"
+
+
+def test_every_quote_in_the_fixture_ledger_is_on_its_page():
+    vault = cli.load_vault(FIXTURE)
+    quoted = [(r, key, r.get(key)) for r in questions.rows(vault) for key in ("source", "quote")
+              if r.get(key).startswith('"')]
+    assert len(quoted) >= 10, "the fixture shows quoted evidence"
+    assert [(r.copy, key) for r, key, value in quoted if questions.quote_problem(vault, value, key)] == []
 
 
 def test_a_semicolon_inside_a_quote_or_a_link_does_not_split_the_evidence():

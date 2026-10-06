@@ -121,37 +121,36 @@ Catalogue v1 owes these questions. Each row says where one stands. A wildcard ro
 
 | Copy | State | Evidence | By | Date |
 |---|---|---|---|---|
-| Q-FIN-01@INI-002 | answered | item: [[03-context-and-scope#SV-01 Loyalty points\|SV-01]]; source: "Loyalty points are the only value held for customers, and the loyalty scheme keeps reading FERRYMASTER until INI-004." | @hl-solution-lead | 2026-11-19 |
+| Q-FIN-01@INI-002 | answered | item: [[03-context-and-scope#SV-01 Loyalty points\|SV-01]]; source: "the loyalty scheme, which reads FERRYMASTER directly and stays out of scope until INI-004" in [[03-context-and-scope]] | @hl-solution-lead | 2026-11-19 |
 | Q-FIN-02@INI-002 | asked | capture: [[2026-11-19-owed-questions#^c01]] | @hl-solution-lead | 2026-11-19 |
-| Q-FIN-03@SV-01 | answered | item: [[03-context-and-scope#SV-01 Loyalty points\|SV-01]]; source: "Finance carries the points balance today. INI-002 does not move it, and INI-004 owns any change." | @hl-solution-lead | 2026-11-19 |
+| Q-FIN-03@SV-01 | answered | item: [[03-context-and-scope#SV-01 Loyalty points\|SV-01]]; source: "Finance, through INI-004 Loyalty Revamp" in [[03-context-and-scope]] | @hl-solution-lead | 2026-11-19 |
 | Q-FIN-04@SV-01 | not-applicable | reason: INI-002 neither changes who holds the points nor combines two schemes | @hl-solution-lead | 2026-11-19 |
 | Q-FIN-05@SV-01 | not-applicable | reason: INI-002 neither expires nor closes any points balance, and INI-004 owns any expiry rule | @hl-solution-lead | 2026-11-19 |
 | Q-FIN-06@SV-01 | not-applicable | reason: no balance converts between schemes under INI-002, so there is no rate to set | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-01@INI-002 | answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005]]; source: SRC-07 | @hl-solution-lead | 2026-11-19 |
-| Q-DAT-05@INI-002 | answered | item: [[concern-data\|Data]]; source: "The only personal data is the customer ID, and Booking uses it for the booking it was collected for." | @hl-solution-lead | 2026-11-19 |
-| Q-DAT-02@APP-* | answered | item: [[concern-data\|Data]]; source: "The only personal data any changed app holds is the customer ID, used to take and change the customer's own bookings." | @hl-solution-lead | 2026-11-19 |
+| Q-DAT-05@INI-002 | answered | item: [[concern-data\|Data]]; source: "The only personal data is the customer ID." in [[concern-data]] | @hl-solution-lead | 2026-11-19 |
+| Q-DAT-02@APP-* | answered | item: [[concern-data\|Data]]; source: "Booking holds no card data and no contact details." in [[concern-data]] | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-02@APP-pricing | not-applicable | reason: Pricing quotes from route, date and fare rules and never receives a customer ID | @hl-pricing-senior | 2026-11-19 |
-| Q-DAT-03@CON-* | answered | item: [[concern-data\|Data]]; source: "Only booking references and customer IDs cross these contracts, and every consumer is a Harbourline channel the customer already books through." | @hl-solution-lead | 2026-11-19 |
+| Q-DAT-03@CON-* | answered | item: [[concern-data\|Data]]; source: "Notifications resolves contact details at send time from Customer identity." in [[concern-data]] | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-03@CON-002 | unknown | unknown: [[#UNK-006 Finance on Booking events\|UNK-006]] | @hl-solution-lead | 2026-11-19 |
-| Q-DAT-04@SV-01 | answered | item: [[ADR-0002-ferrymaster-ledger-of-record\|ADR-0002]]; source: "FERRYMASTER stays the record of each balance, and no INI-002 channel shows points." | @hl-solution-lead | 2026-11-19 |
+| Q-DAT-04@SV-01 | answered | item: [[ADR-0002-ferrymaster-ledger-of-record\|ADR-0002]]; source: "the loyalty scheme, which reads FERRYMASTER directly" in [[03-context-and-scope]] | @hl-solution-lead | 2026-11-19 |
 | Q-PTN-01@INI-002 | answered | item: [[03-context-and-scope#PTY-02 FERRYMASTER vendor\|PTY-02]]; source: SRC-02 | @hl-solution-lead | 2026-11-19 |
 | Q-PTN-02@PTY-01 | answered | item: [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007]]; source: SRC-05 | @hl-booking-senior | 2026-11-19 |
 | Q-PTN-02@PTY-02 | answered | item: [[ADR-0002-ferrymaster-ledger-of-record\|ADR-0002]]; source: SRC-02 | @hl-solution-lead | 2026-11-19 |
 | Q-PTN-03@PTY-01 | assumed | belief: the Tidepay contract renews each year on today's terms; load-bearing: no; signpost: procurement's renewal notice each autumn | @hl-solution-lead | 2026-11-19 |
 | Q-PTN-03@PTY-02 | answered | item: [[02-constraints\|CST-1]]; source: SRC-02 | @hl-solution-lead | 2026-11-19 |
-| Q-PTN-05@PTY-* | not-applicable | reason: INI-002 assigns neither agreement and changes nobody's control. Booking is a new user of both, on their existing terms | @hl-solution-lead | 2026-11-19 |
-| Q-PTN-05@PTY-02 | answered | item: [[02-constraints\|CST-1]]; source: SRC-02 | @hl-solution-lead | 2026-11-19 |
-| Q-PTN-06@PTY-01 | not-applicable | reason: INI-002 changes no term of the Tidepay agreement, so no notice is due | @hl-solution-lead | 2026-11-19 |
-| Q-PTN-06@PTY-02 | answered | item: [[ADR-0002-ferrymaster-ledger-of-record\|ADR-0002]]; source: "INI-002 changes no term of the vendor contract, so no notice is due." | @hl-solution-lead | 2026-11-19 |
+| Q-PTN-05@PTY-* | assumed | belief: neither agreement is assigned or changes control, because INI-002 keeps both suppliers and their contracts as they are (CST-1, CST-2); load-bearing: no; signpost: an assignment or change-of-control notice from Tidepay or the FERRYMASTER vendor | @hl-solution-lead | 2026-11-19 |
+| Q-PTN-06@PTY-01 | not-applicable | reason: payment stays with Tidepay under its existing contract (CST-2), so INI-002 asks for no change to the agreement | @hl-solution-lead | 2026-11-19 |
+| Q-PTN-06@PTY-02 | assumed | belief: no notice is due, because Booking works around the mainframe and never inside it (CST-1), so the vendor contract stays as it is; load-bearing: no; signpost: procurement raising the vendor contract's 2028 end date in the INI-005 plan | @hl-solution-lead | 2026-11-19 |
 | Q-REG-01@INI-002 | not-applicable | reason: Booking sells single ferry crossings, and nothing is sold with another party | @hl-solution-lead | 2026-11-19 |
 | Q-REG-02@INI-002 | not-applicable | reason: no new product, activity or licence, and card data stays with Tidepay | @hl-solution-lead | 2026-11-19 |
 | Q-REG-05@INI-002 | not-applicable | reason: no product is shared across parties, so no party's failure reaches a customer through one | @hl-solution-lead | 2026-11-19 |
-| Q-OPS-01@APP-* | answered | item: [[concern-operations\|Operations]]; source: "Each changed app keeps its own team's support model and hours." | @hl-solution-lead | 2026-11-19 |
-| Q-OPS-01@APP-booking | answered | item: [[#UNK-007 Booking on-call\|UNK-007]]; source: "The Booking team joins the Platform on-call rota from go-live." | @hl-solution-lead | 2026-11-19 |
+| Q-OPS-01@APP-* | answered | item: [[concern-operations\|Operations]]; source: "Digital team support as today, less one adapter" in [[concern-operations]] | @hl-solution-lead | 2026-11-19 |
+| Q-OPS-01@APP-booking | answered | item: [[#UNK-007 Booking on-call\|UNK-007]]; source: "joins the Platform on-call rota from go-live" in [[concern-operations]] | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-02@CON-* | answered | item: [[booking-runtime#When a dependency is slow or down\|Booking runtime]]; source: SRC-04 | @hl-booking-senior | 2026-11-19 |
-| Q-OPS-03@INI-002 | answered | item: [[04a-capability-delta\|Capability delta]]; source: "Each capability page names its owning team, and all of them sit in Harbourline's one booking capability map."; covers: capability | @hl-solution-lead | 2026-11-19 |
+| Q-OPS-03@INI-002 | answered | item: [[concern-ownership\|Ownership]]; source: "Every app keeps its current owner." in [[concern-ownership]]; covers: capability | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-04@INI-002 | answered | item: [[ADR-0001-one-booking-context\|ADR-0001]]; source: SRC-01 | @hl-solution-lead | 2026-11-19 |
-| Q-OPS-05@INI-002 | answered | item: [[CAP-023-fix-failed-bookings\|CAP-023]]; source: "The three screen adapters and the manual fix queue retire. The warehouse feed, the finance job and the loyalty scheme keep reading FERRYMASTER." | @hl-solution-lead | 2026-11-19 |
+| Q-OPS-05@INI-002 | answered | item: [[CAP-023-fix-failed-bookings\|CAP-023]]; source: "EPC-034 retires the manual fix queue." in [[CAP-023-fix-failed-bookings]] | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-06@INI-002 | unknown | unknown: [[#UNK-006 Finance on Booking events\|UNK-006]] | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-07@INI-002 | assumed | belief: customers amend online once they can; load-bearing: yes; signpost: the online share of amendments in the first two months after go-live | @hl-solution-lead | 2026-11-19 |
 | R-FIN-01 | open | question: Points are earned at reservation, so does a cancelled booking take its points back, and who tells the loyalty scheme?; quote: "because points are earned at reservation" in [[04a-capability-delta]]; severity: normal | @hl-solution-lead | 2026-11-19 |

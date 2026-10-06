@@ -245,12 +245,14 @@ Code decides which questions the vault owes. The skills decide only how to ask t
 |---|---|
 | `open` | nothing. It is the default, and it never counts as disposed. |
 | `asked` | `capture:`, a link to the capture where it was asked, `[[<session>#^cNN]]` |
-| `answered` | `item:`, a link to the item that holds the answer, and `source:`, an `SRC-nn` from `sources.md` (a first-hand row counts) or the answer quoted in double quotes |
+| `answered` | `item:`, a link to the item that holds the answer, and `source:`, an `SRC-nn` from `sources.md` (a first-hand row counts) or the answer quoted from a page, `"<the words>" in [[<page>]]` |
 | `assumed` | `belief:` what is believed, `load-bearing:` `yes` or `no`, and `signpost:` what would show it failing |
 | `unknown` | `unknown:`, an `UNK-nnn` whose `**Owner:**` starts with a handle |
 | `not-applicable` | `reason:` why it does not apply. By says who decided. |
 
 A copy's own row wins. Then the wildcard with the longest prefix, then an initiative row. An initiative row answers a lower scope at initiative level: `Q-OPS-03@INI-002` with `covers: capability` answers every `Q-OPS-03` copy for a capability, until one has its own row. Exceptions to a wildcard or an initiative row take their own row. A reviewer question carries `question:` with the question, `quote: "<the words>" in [[<page>]]`, and `severity: high` when it is one; without it, it is `normal`.
+
+A quote, whether a `source:` or a reviewer question's `quote:`, names its page, and `planner check` looks for the words on that page. Case, spacing, curly quotes and Markdown emphasis do not count, so the words may be copied as the page shows them. A quote with no page, a page that is not in the vault, the ledger page itself, or words that are not on the page is E802, so a quote is never taken on trust.
 
 `planner check` reads the ledger. A malformed row, or two rows for one copy, is E801. A state without the evidence it needs is E802. A row that names an entry the catalogue lacks, a subject that does not fit the entry's scope, or a reviewer area the catalogue lacks is E803. A row whose subject is gone, or whose subject no longer matches the trigger, is W804: it stays as a record. A copy with no row, or an `open` row, is never a finding in a plain check. The lead sets the pace.
 
