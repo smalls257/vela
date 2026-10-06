@@ -18,7 +18,7 @@ verified_by: "@hl-solution-lead"
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=ebb8cad5: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=20288d91: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -37,6 +37,7 @@ verified_by: "@hl-solution-lead"
 | Unknown | Owner | Ask by | Blocks |
 |---|---|---|---|
 | [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|UNK-006]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing |
+| [[11-unknowns-and-risks#UNK-008 Review of the customer data Booking holds\|UNK-008]] | @hl-solution-lead (solution lead) | 2026-12-15 | nothing |
 
 **Last session:** 2026-11-19
 

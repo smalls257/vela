@@ -266,6 +266,9 @@ def rows(vault):
 
 def row_valid(vault, row):
     """True when the row has no shape, evidence or naming error. A warning does not break a row."""
+    page = ledger_page(vault)
+    if page is not None and row.line in ledger.misplaced_row_lines(page):
+        return False
     return not any(f.is_error for f in _row_findings(vault).get(row.line, ()))
 
 
@@ -402,7 +405,7 @@ def _source_problem(vault, source):
 
 
 def _unknown_problems(vault, row):
-    ids = UNK_RE.findall(row.get("unknown"))
+    ids = list(dict.fromkeys(UNK_RE.findall(row.get("unknown"))))
     if not ids:
         return ["unknown needs unknown: the UNK-nnn that asks it"]
     need = []
@@ -538,13 +541,13 @@ def _page_findings(vault):
             for table in ledger.ledger_tables(other):
                 yield Finding(other.path, table.line, "E801", "A question ledger table belongs on 11-unknowns-and-risks.md, "
                               "so planner never reads this one.", "Move its rows under ## Question ledger on 11-unknowns-and-risks.md.")
-        for table in ledger.lookalike_tables(other):
-            yield Finding(other.path, table.line, "E801",
-                          f"A table headed '{' | '.join(table.header)}' looks like the question ledger, but its header is not "
-                          f"exactly '{' | '.join(ledger.HEADER)}', so planner does not read its rows.",
-                          f"Make the header exactly | {' | '.join(ledger.HEADER)} |.")
     if page is None:
         return
+    for table in ledger.lookalike_tables(page):
+        yield Finding(page.path, table.line, "E801",
+                      f"The table under ## {ledger.HEADING} is headed '{' | '.join(table.header)}', not exactly "
+                      f"'{' | '.join(ledger.HEADER)}', so planner does not read its rows.",
+                      f"Make the header exactly | {' | '.join(ledger.HEADER)} |.")
     for table in ledger.misplaced_tables(page):
         yield Finding(page.path, table.line, "E801", f"A ledger table must sit under ## {ledger.HEADING}, and this one does not.",
                       f"Move it under ## {ledger.HEADING}.")

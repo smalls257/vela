@@ -159,23 +159,35 @@ def ledger_tables(page):
     return [t for t in page.tables if not t.generated and tuple(t.header) == HEADER]
 
 
+def _under(page, table):
+    """The last heading before a table, or None."""
+    above = [h for h in page.headings if h.line < table.line]
+    return max(above, key=lambda h: h.line) if above else None
+
+
 def lookalike_tables(page):
-    """Hand-kept tables that start with `Copy` but whose header is not the ledger's: a typo, an extra column,
-    a different order. Planner never reads them as the ledger, so check reports them rather than let a
-    misspelt header hide every row."""
-    return [t for t in page.tables if not t.generated and t.header and str(t.header[0]).strip().lower() == "copy"
-            and tuple(t.header) != HEADER]
+    """Hand-kept tables directly under the first `## Question ledger` whose header is not exactly the ledger's:
+    a typo, `Copy ID`, `**Copy**`, an extra column, a different order. Planner cannot read them as the ledger,
+    so check reports them rather than let a misspelt header hide every row. Only this page and this section
+    are looked at, so a glossary table headed `Copy` elsewhere is never taken for a ledger."""
+    start = heading_line(page)
+    return [t for t in page.tables if start and not t.generated and tuple(t.header) != HEADER
+            and getattr(_under(page, t), "line", 0) == start]
+
+
+def _well_placed(page, table):
+    head = _under(page, table)
+    return head is not None and head.level == 2 and head.text == HEADING and head.line == heading_line(page)
 
 
 def misplaced_tables(page):
-    """Ledger tables that do not sit under `## Question ledger`, the last heading before them."""
-    heads = sorted(page.headings, key=lambda h: h.line)
-    out = []
-    for table in ledger_tables(page):
-        above = [h for h in heads if h.line < table.line]
-        if not above or not (above[-1].level == 2 and above[-1].text == HEADING):
-            out.append(table)
-    return out
+    """Ledger tables that do not sit under the first `## Question ledger`, the last heading before them."""
+    return [t for t in ledger_tables(page) if not _well_placed(page, t)]
+
+
+def misplaced_row_lines(page):
+    """The row lines of misplaced tables. Their rows are read but dispose of nothing."""
+    return {line for t in misplaced_tables(page) for line in t.row_lines}
 
 
 def extra_headings(page):

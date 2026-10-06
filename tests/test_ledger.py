@@ -51,7 +51,7 @@ def test_the_fixture_ledger_is_realistic_and_leaves_nothing_undisposed():
     vias = {d.copy.id: d.via for d in questions.dispositions(vault)}
     assert vias["Q-DAT-02@APP-website"] == "Q-DAT-02@APP-*"
     assert vias["Q-DAT-02@APP-pricing"] == "", "an exception takes its own row"
-    assert vias["Q-OPS-03@CAP-013"] == "Q-OPS-03@INI-002"
+    assert vias["Q-OPS-03@CAP-012"] == "Q-OPS-03@INI-002"
     assert vias["Q-OPS-03@CAP-014"] == "", "an own row beats an initiative row that covers"
 
 
@@ -199,7 +199,7 @@ def test_a_semicolon_inside_a_quote_or_a_link_does_not_split_the_evidence():
 @pytest.mark.parametrize("old, new, code, said", [
     ("| Q-REG-01@INI-002 |", "| Q-REG-09@INI-002 |", "E803", "Q-REG-09, which is not in catalogue v1"),
     ("| Q-DAT-03@CON-002 |", "| Q-DAT-03@APP-booking |", "E803", "which is not a contract ID"),
-    ("| Q-OPS-01@APP-* |", "| Q-OPS-01@CON-* |", "E803", "so it must start Q-OPS-01@APP-"),
+    ("| Q-DAT-02@APP-* |", "| Q-DAT-02@CON-* |", "E803", "so it must start Q-DAT-02@APP-"),
     ("| R-FIN-01 |", "| R-XYZ-01 |", "E803", "names area XYZ"),
     ("| Q-DAT-03@CON-002 |", "| Q-DAT-03@CON-099 |", "W804", "is orphaned: CON-099 is no longer in the vault"),
     ("| Q-DAT-02@APP-pricing |", "| Q-DAT-02@APP-ferrymaster |", "W804", "no longer matches the trigger 'change in [new, changed]'"),
@@ -226,7 +226,7 @@ def test_removing_a_subject_orphans_its_rows_and_never_drops_them(ub):
     out = check(ub, TODAY)[1]
     assert got == [("W804", LEDGER)]
     assert out.count("is orphaned: PTY-01 is no longer in the vault") == 3
-    assert row_of(ub, "Q-PTN-02@PTY-01").state == "answered"
+    assert row_of(ub, "Q-PTN-02@PTY-01").state == "assumed"
 
 
 # ------------------------------------------------------------------ dispositions
@@ -238,11 +238,11 @@ def drop_row(vault, prefix):
 
 
 def test_a_copy_with_no_row_is_undisposed_and_never_a_finding(ub):
-    drop_row(ub, "| Q-OPS-01@APP-* |")
+    drop_row(ub, "| Q-DAT-02@APP-* |")
     assert broken(ub) == []
     code, answer = ask(ub, "--open")
     assert code == 0 and answer["undisposed"] == 3
-    assert [c["id"] for c in answer["copies"]] == ["Q-OPS-01@APP-kiosks", "Q-OPS-01@APP-pricing", "Q-OPS-01@APP-website"]
+    assert [c["id"] for c in answer["copies"]] == ["Q-DAT-02@APP-call-centre", "Q-DAT-02@APP-kiosks", "Q-DAT-02@APP-website"]
     assert all(c["state"] == "no row" and c["pending"] for c in answer["copies"])
 
 
@@ -266,10 +266,10 @@ def test_a_broken_exception_is_not_quietly_replaced_by_its_wildcard(ub):
 
 
 def test_the_longest_wildcard_wins_and_an_own_row_beats_both(ub):
-    edit(ub / LEDGER, "| Q-OPS-01@APP-booking |", "| Q-OPS-01@APP-book* |")
+    edit(ub / LEDGER, "| Q-DAT-02@APP-booking |", "| Q-DAT-02@APP-book* |")
     vault = cli.load_vault(ub)
     via = {d.copy.id: d.via for d in questions.dispositions(vault)}
-    assert via["Q-OPS-01@APP-booking"] == "Q-OPS-01@APP-book*" and via["Q-OPS-01@APP-kiosks"] == "Q-OPS-01@APP-*"
+    assert via["Q-DAT-02@APP-booking"] == "Q-DAT-02@APP-book*" and via["Q-DAT-02@APP-kiosks"] == "Q-DAT-02@APP-*"
 
 
 # ------------------------------------------------------------------ planner questions
@@ -298,7 +298,7 @@ def test_planner_questions_json_holds_every_field():
     _, answer = ask(FIXTURE)
     copy = next(c for c in answer["copies"] if c["id"] == "Q-PTN-02@PTY-02")
     assert copy == {"id": "Q-PTN-02@PTY-02", "entry": "Q-PTN-02", "area": "PTN", "severity": "high",
-                    "question": copy["question"], "subject": "PTY-02", "subject_kind": "party", "state": "answered", "valid": True,
+                    "question": copy["question"], "subject": "PTY-02", "subject_kind": "party", "state": "assumed", "valid": True,
                     "row": copy["row"], "via": None, "pending": False, "blocks": ["ADR-0002", "CON-006"]}
     assert answer["reviewer"][0]["id"] == "R-FIN-01" and answer["reviewer"][0]["subject_kind"] == "reviewer"
 
@@ -340,6 +340,9 @@ def test_a_ledger_saved_with_crlf_line_endings_still_reads(ub):
 
 @pytest.mark.parametrize("header", [
     "| Copy | Status | Evidence | By | Date |",
+    "| Cpy | State | Evidence | By | Date |",
+    "| Copy ID | State | Evidence | By | Date |",
+    "| **Copy** | State | Evidence | By | Date |",
     "| copy | State | Evidence | By | Date |",
     "| Copy | Evidence | State | By | Date |",
     "| Copy | State | Evidence | By |",
@@ -348,7 +351,7 @@ def test_a_ledger_saved_with_crlf_line_endings_still_reads(ub):
 def test_a_ledger_header_that_is_not_exact_is_e801_and_never_hides_the_ledger(ub, header):
     edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n|---|---|---|---|---|", header + "\n|---|---|---|---|---|")
     assert broken(ub) == [("E801", LEDGER)]
-    assert "looks like the question ledger, but its header is not exactly" in check(ub, TODAY)[1]
+    assert "is headed" in check(ub, TODAY)[1] and "not exactly" in check(ub, TODAY)[1]
 
 
 def test_a_ledger_table_must_sit_directly_under_the_ledger_heading(ub):
@@ -390,3 +393,35 @@ def test_a_reviewer_quote_is_checked_against_its_page_too(ub):
          'quote: "because points are earned at booking" in [[04a-capability-delta]]')
     assert broken(ub) == [("E802", LEDGER)]
     assert 'quote "because points are earned at booking" is not in the written text' in check(ub, TODAY)[1]
+
+
+def test_rows_of_a_misplaced_table_are_read_but_dispose_of_nothing(ub):
+    edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n", "## Notes\n\n| Copy | State | Evidence | By | Date |\n")
+    assert broken(ub) == [("E801", LEDGER)]
+    code, answer = ask(ub)
+    assert code == 0 and answer["undisposed"] == 57 and not any(c["valid"] for c in answer["copies"] if c["row"])
+    assert answer["reviewer_open"] == 1
+
+
+def test_rows_under_a_second_ledger_heading_dispose_of_nothing(ub):
+    path = ub / LEDGER
+    text = path.read_text(encoding="utf-8")
+    start = text.index("| Copy | State")
+    path.write_text(text[:start].rstrip("\n") + "\n\n## Question ledger\n\n" + text[start:], encoding="utf-8")
+    found = sorted(set(f[0] for f in broken(ub)))
+    assert found == ["E801"]
+    assert "appears twice" in check(ub, TODAY)[1] and "must sit under" in check(ub, TODAY)[1]
+    assert ask(ub)[1]["undisposed"] == 57
+
+
+def test_a_glossary_table_headed_copy_on_another_page_is_not_a_ledger(ub):
+    path = ub / "12-glossary.md"
+    path.write_text(path.read_text(encoding="utf-8") + "\n| Copy ID | Meaning |\n|---|---|\n| Q-X | a glossary row |\n", encoding="utf-8")
+    assert broken(ub) == []
+
+
+def test_an_unknown_named_twice_in_one_row_is_reported_once(ub):
+    edit(ub / LEDGER, "| Q-OPS-06@INI-002 | unknown | unknown: [[#UNK-006 Finance on Booking events\\|UNK-006]] |",
+         "| Q-OPS-06@INI-002 | unknown | unknown: UNK-007 and UNK-007 again |")
+    assert broken(ub) == [("E802", LEDGER)]
+    assert check(ub, TODAY)[1].count("UNK-007 is resolved; record the answer") == 1
