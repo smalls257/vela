@@ -464,3 +464,85 @@ def test_every_real_persona_passes_its_own_validation(name):
     import yaml as _yaml
     data = _yaml.safe_load((REPO / "tests" / "sim" / "personas" / f"{name}.yaml").read_text(encoding="utf-8"))
     assert sim.persona_problems(data) == []
+
+
+
+# ------------------------------------------------------------------ the question ledger and the reviewers
+
+FIXTURE = REPO / "examples" / "unified-booking"
+
+
+def fake_run(vault):
+    import types
+    return types.SimpleNamespace(vault=vault)
+
+
+def test_owed_copies_disposed_passes_when_every_copy_has_a_valid_row(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    passed, summary, detail = probe.owed_copies_disposed(fake_run(vault), {"severity": "any"})
+    assert passed and detail == []
+    assert summary == ("owed copies (any) with a disposition: 57 of 57; ledger rows planner check flags: 0 "
+                       "(need every copy disposed and no flagged row)")
+
+
+def test_owed_copies_disposed_fails_on_an_undisposed_copy_or_a_flagged_row(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    ledger = vault / "11-unknowns-and-risks.md"
+    text = ledger.read_text(encoding="utf-8")
+    text = text.replace("| Q-REG-01@INI-002 | not-applicable |", "| Q-REG-01@INI-002 | open |")
+    ledger.write_text(text.replace("| Q-FIN-04@SV-01 | not-applicable | reason:", "| Q-FIN-04@SV-01 | not-applicable | why:"),
+                      encoding="utf-8")
+    passed, summary, detail = probe.owed_copies_disposed(fake_run(vault), {"severity": "any"})
+    assert not passed
+    assert "with a disposition: 56 of 57; ledger rows planner check flags: 2" in summary
+    assert "- Q-REG-01@INI-002: open" in detail and any(" E801 " in line for line in detail)
+    assert probe.owed_copies_disposed(fake_run(vault), {"severity": "high"})[1].startswith(
+        "owed copies (high) with a disposition: 15 of 15")
+
+
+def session_with(vault, *coverage):
+    (vault / "sessions").mkdir(parents=True, exist_ok=True)
+    lines = "".join(f"- **Coverage:** {c}\n" for c in coverage)
+    (vault / "sessions" / "2026-10-06-x.md").write_text(f"---\nid: x\n---\n\n## Reviews\n\n{lines}", encoding="utf-8")
+
+
+def test_area_coverage_needs_a_result_for_every_area(tmp_path):
+    ran = "FIN found 3; DAT checked, none; PTN found 2, 1 dropped; REG checked, none; OPS found 1"
+    session_with(tmp_path, ran)
+    assert probe.area_coverage(fake_run(tmp_path), {"require": "ran"})[:2] == (
+        True, "review checkpoints recorded: 1; with every area to run: 1 of 1")
+    session_with(tmp_path, ran, "FIN found 1; DAT did not run (no findings file); PTN checked, none; REG checked, none; "
+                 "OPS checked, none")
+    assert probe.area_coverage(fake_run(tmp_path), {"require": "ran"})[0] is False
+    assert probe.area_coverage(fake_run(tmp_path), {"require": "reported"})[0] is True
+    session_with(tmp_path, "FIN found 1; DAT checked, none")
+    passed, _, detail = probe.area_coverage(fake_run(tmp_path), {"require": "reported"})
+    assert not passed and "no result for PTN, REG, OPS" in detail[0]
+
+
+def test_area_coverage_fails_when_no_checkpoint_ran(tmp_path):
+    session_with(tmp_path)
+    assert probe.area_coverage(fake_run(tmp_path), {"require": "reported"})[:2] == (
+        False, "review checkpoints recorded: 0; with every area to have a result: 0 of 0")
+
+
+def test_a_case_with_close_runs_the_close_session_and_reads_the_ledger_after_it(tmp_path):
+    code, out, err, runs = run_probe(tmp_path, "discover-reviewers", "coastal-merger")
+    assert code == 1, out + err  # the stub writes no ledger, so the criteria fail; the tool did not
+    assert "FAIL area-coverage: review checkpoints recorded: 0" in out
+    assert "FAIL owed-copies-disposed: owed copies (any) with a disposition: 0 of" in out
+    turns = [json.loads(line) for line in (runs[0] / "transcript.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert {t["session"] for t in turns if t.get("speaker") == "assistant"} == {1, 2}
+    assert any(t.get("speaker") == "lead" and t.get("text") == "/planner:close" for t in turns)
+
+
+def test_close_must_be_a_turn_cap():
+    case = probe.load_case("discover-reviewers")
+    case["close"] = True
+    assert "'close' must be the close session's cap in assistant turns, at least 1, or left out" in probe.case_problems(case)
+
+
+def test_the_assistant_may_dispatch_subagents():
+    assert "Agent" in sim.ALLOWED_TOOLS

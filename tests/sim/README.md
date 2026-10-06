@@ -192,8 +192,10 @@ wrong, rather than producing a quietly wrong score.
 7. **Judge thinking.** `claude --help` lists `--effort <level>`; `alwaysThinkingEnabled` is a settings key the
    help does not list. Whether either makes a `-p` call with `--system-prompt` and `--tools ""` think shows in
    `output_tokens_details.thinking_tokens`, which each scorecard prints per call.
-8. **The voice reviewer.** Close dispatches it with the Agent tool, which is not in `--allowedTools`. With
-   `--permission-prompts none` it may be denied, and close then writes "Voice review: not run".
+8. **The subagents.** Close dispatches the voice reviewer, and a review checkpoint the five area reviewers, with
+   the Agent tool, which `--allowedTools` now lists. Whether a `-p` call with `--permission-prompts none` lets a
+   subagent run shows in the transcript: a denied dispatch makes close write "Voice review: not run" and the
+   checkpoint write `did not run` for each area, and `area-coverage` with `require: ran` then fails.
 
 ## What it can't tell you
 
@@ -224,6 +226,8 @@ python3 tests/sim/probe.py dump-sweep            --persona coastal-merger    --r
 python3 tests/sim/probe.py dump-sweep            --persona holdout-hospitals --runs 1 $M --budget 3 $L
 python3 tests/sim/probe.py shape-options         --persona coastal-merger    --runs 1 $M --budget 3 $L
 python3 tests/sim/probe.py shape-options         --persona holdout-hospitals --runs 1 $M --budget 3 $L
+python3 tests/sim/probe.py discover-reviewers    --persona coastal-merger    --runs 1 $M --budget 8 $L
+python3 tests/sim/probe.py discover-reviewers    --persona holdout-hospitals --runs 1 $M --budget 8 $L
 ```
 
 Every model flag, `--budget`, `--loop-ledger` and `--loop-budget` is required. `--stub` uses the fake claude and
@@ -239,8 +243,22 @@ criteria. The opening may use `{opening}`, `{topics[...]}` and `{first_decision}
 | `discover-implications` | coastal `after-s2`, holdout `after-dump` | `/planner:discover {topics[discover_1]}` | 12 | at least 75% of the `cross-source-mismatch` items FLAGGED; 0 decided without a yes; at most 3 questions in any turn |
 | `dump-sweep` | `empty` | `/planner:dump {opening}` | 12 | at least 3 of legal-regulatory, finance-liability, third-party-contract and unnamed-stakeholder raised first by the assistant; at most 3 questions in any turn; no decisions |
 | `shape-options` | coastal `after-s4`, holdout `after-discover` | `/planner:shape {first_decision}` | 8 | 2 to 4 options, each naming its costs, what it rules out, and a stakeholder or unknown; no decisions |
+| `discover-reviewers` | coastal `after-s4`, holdout `after-discover` | `/planner:discover {topics[discover_2]}`, then `/planner:close` | 14, then 10 | every review checkpoint gives all five focus areas a result and every area ran; every owed copy has a valid disposition; 0 decided without a yes |
+
+A case with `close: <cap>` runs `/planner:close` as a second session after the first, with that cap, and its
+criteria read the vault after the close. The question ledger is written at close, so a criterion on the ledger
+needs it.
 
 How each criterion is measured:
+
+- **Owed copies disposed.** The current plugin's `planner questions --json` and `planner check` run on the final
+  vault. It passes when every owed copy of the case's `severity` (`high`, or `any`) has a ledger row whose state is
+  not `open`, through its own row, a wildcard or an initiative row, and check flags no ledger row (E801, E802,
+  E803). The summary gives counts only.
+- **Area coverage.** Each `- **Coverage:**` line a review checkpoint wrote into a session record must give every
+  focus area in the catalogue one result: `found N`, `checked, none` or `did not run (<reason>)`. With
+  `require: ran`, an area that did not run fails the run, so a reviewer that was never dispatched cannot pass as
+  clean. No coverage line at all fails too.
 
 - **FLAGGED, LISTED, NEVER.** For each keyword hit in an assistant turn, the hit is FLAGGED when (a) its sentence is
   a question, (b) its sentence, or the whole bullet or table row it sits in, holds a flag cue (conflict, mismatch,

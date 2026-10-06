@@ -55,9 +55,10 @@ DEFAULT_ARMS = "planner,planner-seuss"
 MODES = ("dump", "close", "discover", "shape", "grill")
 # Wide enough for every planner skill: START's git and planner calls, voice-seed's heredoc, cmp and awk checks,
 # close's mktemp and voicecheck. gh is allowed so its failure paths run against the stub, not a permission denial.
+# Agent lets close dispatch the voice reviewer and a review checkpoint dispatch the area reviewers.
 ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash(git *)", "Bash(python3 *)", "Bash(mkdir *)",
                  "Bash(cat *)", "Bash(date *)", "Bash(shasum *)", "Bash(cmp *)", "Bash(awk *)", "Bash(sed *)",
-                 "Bash(rm *)", "Bash(mktemp *)", "Bash(gh *)", "Skill"]
+                 "Bash(rm *)", "Bash(mktemp *)", "Bash(gh *)", "Skill", "Agent"]
 JUDGE_RESERVE = 0.15  # share of an arm's budget kept for the judge, so a spent session budget still gets a scorecard
 MIN_CALL_USD = 0.01  # below this a call cannot do useful work, so the session stops on budget instead
 GH_MESSAGE = "gh: not available in the simulator"

@@ -101,6 +101,8 @@ def case_problems(case):
         problems.append(f"'opening' must start with one of /planner:{', /planner:'.join(sim.MODES)}")
     if not isinstance(case.get("cap"), int) or case["cap"] < 1:
         problems.append("'cap' must be a whole number of assistant turns, at least 1")
+    if "close" in case and not (isinstance(case["close"], int) and not isinstance(case["close"], bool) and case["close"] >= 1):
+        problems.append("'close' must be the close session's cap in assistant turns, at least 1, or left out")
     criteria = case.get("criteria")
     if not isinstance(criteria, list) or not criteria:
         problems.append("'criteria' must be a non-empty list")
@@ -676,6 +678,65 @@ def option_parts(run, criterion):
     return passed, summary, detail
 
 
+# ------------------------------------------------------------------ the question ledger and the reviewers
+
+LEDGER_FLAGS = re.compile(r": (E801|E802|E803) ")
+
+
+def planner_output(vault, *argv):
+    """The output of the current plugin's planner on the final vault. A tool failure (exit 2) stops the probe."""
+    done = subprocess.run([sys.executable, str(sim.PLANNER), *argv, "--vault", str(vault)], capture_output=True, text=True)
+    if done.returncode == 2:
+        raise ToolFailure(f"planner {argv[0]} failed on the final vault: {done.stdout.strip().splitlines()[:1]}")
+    return done.stdout
+
+
+@check("owed-copies-disposed", "severity")
+def owed_copies_disposed(run, criterion):
+    """Every owed copy of the severity (`high`, or `any`) has a ledger row that says more than open, and
+    planner check flags no ledger row (E801, E802, E803): every owed copy has a valid disposition."""
+    answer = json.loads(planner_output(run.vault, "questions", "--json"))
+    severity = criterion["severity"]
+    wanted = [c for c in answer["copies"] if severity == "any" or c["severity"] == severity]
+    undisposed = [c for c in wanted if c["state"] in ("no row", "open")]
+    flagged = [line for line in planner_output(run.vault, "check").splitlines() if LEDGER_FLAGS.search(line)]
+    passed = bool(wanted) and not undisposed and not flagged
+    summary = (f"owed copies ({severity}) with a disposition: {len(wanted) - len(undisposed)} of {len(wanted)}; "
+               f"ledger rows planner check flags: {len(flagged)} (need every copy disposed and no flagged row)")
+    detail = [f"- {c['id']}: {c['state']}" for c in undisposed] + [f"- {line}" for line in flagged]
+    return passed, summary, detail
+
+
+COVERAGE = re.compile(r"^- \*\*Coverage:\*\* (?P<line>.+)$", re.M)
+AREA_RESULT = re.compile(r"\b(?P<area>[A-Z]{3}) (?P<status>found \d+(?:, \d+ dropped)?|checked, none|did not run \([^)]*\))")
+
+
+def catalogue_areas():
+    data = yaml.safe_load((sim.PLUGIN / "catalog" / "questions.yaml").read_text(encoding="utf-8"))
+    return list(data["areas"])
+
+
+@check("area-coverage", "require")
+def area_coverage(run, criterion):
+    """Every review checkpoint the session records gives each focus area one result: found N, checked,
+    none, or did not run with its reason. `require: ran` also needs every area to have run."""
+    areas = catalogue_areas()
+    lines = [(rel, m["line"]) for rel, text in sim.vault_pages(run.vault) if rel.startswith("sessions/")
+             for m in COVERAGE.finditer(text)]
+    detail, good = [], 0
+    for rel, line in lines:
+        results = {m["area"]: m["status"] for m in AREA_RESULT.finditer(line)}
+        missing = [a for a in areas if a not in results]
+        failed = [a for a in areas if results.get(a, "").startswith("did not run")]
+        ok = not missing and (criterion["require"] != "ran" or not failed)
+        good += ok
+        detail.append(f"- {rel}: {line}" + (f" (no result for {', '.join(missing)})" if missing else ""))
+    passed = bool(lines) and good == len(lines)
+    need = "every area to run" if criterion["require"] == "ran" else "every area to have a result"
+    summary = f"review checkpoints recorded: {len(lines)}; with {need}: {good} of {len(lines)}"
+    return passed, summary, detail
+
+
 def score(run, case):
     rows = []
     for criterion in case["criteria"]:
@@ -737,6 +798,9 @@ def run_once(case, persona, persona_name, args, n, stamp, share):
     try:
         run.start()
         run.run_session(1, session)
+        if case.get("close"):  # the ledger is written at close, so a case that reads it closes the session first
+            run.run_session(2, {"mode": "close", "cap": case["close"], "planner": "/planner:close",
+                                "baseline": "/planner:close"})
         run.rows = score(run, case)
     except ToolFailure as exc:
         run.failure = str(exc)
@@ -749,9 +813,11 @@ def run_once(case, persona, persona_name, args, n, stamp, share):
 
 
 def run_record(run, blind):
-    ending = run.endings[0] if run.endings else {"reason": "not run", "turns": 0}
+    endings = run.endings or [{"reason": "not run", "turns": 0}]
+    budget = next((e for e in endings if e["reason"] == "budget"), None)
+    ending = budget or endings[-1]
     return {"folder": run.dir.name, "blind": blind, "spent_usd": round(run.ledger.spent, 4),
-            "ending": ending["reason"], "assistant_turns": ending["turns"],
+            "ending": ending["reason"], "assistant_turns": sum(e["turns"] for e in endings),
             "failure": headline(run.failure) if (run.failure and blind) else run.failure,
             "passed": run.failure is None and ending["reason"] != "budget" and all(r["passed"] for r in run.rows),
             "criteria": [{"check": r["check"], "passed": r["passed"], "summary": r["summary"]} for r in run.rows]}
