@@ -532,7 +532,8 @@ def test_a_case_with_close_runs_the_close_session_and_reads_the_ledger_after_it(
     code, out, err, runs = run_probe(tmp_path, "discover-reviewers", "coastal-merger")
     assert code == 1, out + err  # the stub writes no ledger, so the criteria fail; the tool did not
     assert "FAIL area-coverage: review checkpoints recorded: 0" in out
-    assert "FAIL owed-copies-disposed: owed copies (any) with a disposition: 0 of" in out
+    assert "FAIL owed-copies-disposed: owed copies (high) with a disposition: 0 of" in out
+    assert "PASS taken-copies-recorded: copies and findings the lead took in a capture with a valid row: 0 of 0" in out
     turns = [json.loads(line) for line in (runs[0] / "transcript.jsonl").read_text(encoding="utf-8").splitlines()]
     assert {t["session"] for t in turns if t.get("speaker") == "assistant"} == {1, 2}
     assert any(t.get("speaker") == "lead" and t.get("text") == "/planner:close" for t in turns)
@@ -546,3 +547,57 @@ def test_close_must_be_a_turn_cap():
 
 def test_the_assistant_may_dispatch_subagents():
     assert "Agent" in sim.ALLOWED_TOOLS
+
+
+def taken_session(vault, *captures, reviews=""):
+    lines = "".join(f"- [thought] (lead) {c} ^c{n:02d}\n" for n, c in enumerate(captures, 1))
+    (vault / "sessions" / "2026-11-21-take.md").write_text(
+        f"---\nid: 2026-11-21-take\ntype: session\n---\n\n## Captures\n\n{lines}\n{reviews}", encoding="utf-8")
+
+
+REVIEWS = """## Reviews
+
+### 1. after the read-back, 2026-11-21
+
+| Finding | Area | Severity | Copy | Question | Quote |
+|---|---|---|---|---|---|
+| F1.1 | FIN | normal | Q-FIN-03@SV-01 | Who carries the points? | "because points are earned at reservation" in [[04a-capability-delta]] |
+| F1.2 | FIN | high | new | Who signs off a points conversion? | "because points are earned at reservation" in [[04a-capability-delta]] |
+"""
+
+
+def test_taken_copies_recorded_passes_when_every_take_has_a_valid_row(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    taken_session(vault, "Q-FIN-03@SV-01: finance carries them", "Q-FIN-02@INI-002: asked Platform",
+                  "Q-OPS-01@APP-*: each team runs its own", "F1.1: finance again", "Not a take at all",
+                  reviews=REVIEWS)
+    passed, summary, detail = probe.taken_copies_recorded(fake_run(vault), {})
+    assert passed and detail == [], detail
+    assert summary == "copies and findings the lead took in a capture with a valid row: 4 of 4"
+
+
+def test_taken_copies_recorded_fails_on_a_take_left_open_or_never_written(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    ledger = vault / "11-unknowns-and-risks.md"
+    text = ledger.read_text(encoding="utf-8")
+    old = next(l for l in text.splitlines() if l.startswith("| Q-FIN-03@SV-01 | answered |"))
+    ledger.write_text(text.replace(old, "| Q-FIN-03@SV-01 | open |  |  |  |"), encoding="utf-8")
+    taken_session(vault, "Q-FIN-03@SV-01: finance carries them", "F1.2: nobody signs it off yet",
+                  "Q-FIN-09@SV-01: no such entry", reviews=REVIEWS)
+    passed, summary, detail = probe.taken_copies_recorded(fake_run(vault), {})
+    assert not passed
+    assert summary == "copies and findings the lead took in a capture with a valid row: 0 of 3"
+    assert detail == ["- sessions/2026-11-21-take.md ^c01 Q-FIN-03@SV-01: open",
+                      "- sessions/2026-11-21-take.md ^c02 F1.2: no reviewer row asks \"Who signs off a points conversion?\"",
+                      "- sessions/2026-11-21-take.md ^c03 Q-FIN-09@SV-01: not an owed copy"]
+
+
+def test_the_discover_reviewers_probe_needs_high_copies_and_every_take_recorded():
+    case = probe.load_case("discover-reviewers")
+    checks = {c["check"]: c for c in case["criteria"]}
+    assert checks["owed-copies-disposed"]["severity"] == "high"
+    assert "taken-copies-recorded" in checks
+    comment = (SIM / "probes" / "discover-reviewers.yaml").read_text(encoding="utf-8")
+    assert "may stay open by design" in comment

@@ -707,6 +707,58 @@ def owed_copies_disposed(run, criterion):
     return passed, summary, detail
 
 
+TAKE = re.compile(r"^- \[\w+\] \([^)]*\) (?P<id>Q-[A-Z]{3}-\d{2}@[A-Za-z0-9*-]+|F\d+\.\d+):.*?\^(?P<cid>c\d+)\s*$", re.M)
+REVIEW_ROW = re.compile(r"^\| (?P<f>F\d+\.\d+) \| [A-Z]{3} \| \w+ \| (?P<copy>\S+) \| (?P<question>.*?) \| .* \|$", re.M)
+
+
+def _flat(text):
+    return " ".join(re.sub(r"[^\w ]", " ", text.lower()).split())
+
+
+def _take_problem(answer, taken, findings):
+    """Why a copy or finding the lead took has no valid row, or "" when it has one. A take may end in any state
+    but `open`: answered, assumed, unknown, not-applicable, or asked when the lead sent it on."""
+    copies = {c["id"]: c for c in answer["copies"]}
+    if taken.startswith("F"):
+        row = findings.get(taken)
+        if row is None:
+            return "no such finding in the record's ## Reviews"
+        if row["copy"] == "new":
+            mine = [r for r in answer["reviewer"] if _flat(r["question"] or "") == _flat(row["question"])]
+            if not mine:
+                return f'no reviewer row asks "{row["question"]}"'
+            return "" if any(r["valid"] and r["state"] != "open" for r in mine) else f"{mine[0]['id']}: open"
+        taken = row["copy"]
+    if taken.endswith("*"):
+        matched = [c for i, c in copies.items() if i.startswith(taken[:-1])]
+    else:
+        matched = [copies[taken]] if taken in copies else []
+    if not matched:
+        return "not an owed copy"
+    bad = [c for c in matched if not c["valid"] or c["state"] in ("no row", "open")]
+    return ", ".join(f"{c['id'] + ' ' if len(matched) > 1 else ''}{c['state'] if c['valid'] else 'invalid'}"
+                     for c in bad)
+
+
+@check("taken-copies-recorded")
+def taken_copies_recorded(run, criterion):
+    """Every copy or finding the lead took in a capture (its words start with the copy ID or the finding ID)
+    has a valid row that says more than open. Copies the lead never took are not counted: they may stay open."""
+    answer = json.loads(planner_output(run.vault, "questions", "--json"))
+    detail, total = [], 0
+    for rel, text in sim.vault_pages(run.vault):
+        if not rel.startswith("sessions/"):
+            continue
+        findings = {m["f"]: m for m in REVIEW_ROW.finditer(text)}
+        for m in TAKE.finditer(text):
+            total += 1
+            problem = _take_problem(answer, m["id"], findings)
+            if problem:
+                detail.append(f"- {rel} ^{m['cid']} {m['id']}: {problem}")
+    summary = f"copies and findings the lead took in a capture with a valid row: {total - len(detail)} of {total}"
+    return not detail, summary, detail
+
+
 COVERAGE = re.compile(r"^- \*\*Coverage:\*\* (?P<line>.+)$", re.M)
 AREA_RESULT = re.compile(r"\b(?P<area>[A-Z]{3}) (?P<status>found \d+(?:, \d+ dropped)?|checked, none|did not run \([^)]*\))")
 
