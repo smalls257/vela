@@ -262,6 +262,22 @@ def cmd_questions(args, out):
               f"planner questions: {args.subject} is not a subject in this vault: an initiative, app, contract, "
               "capability, party or stored value ID.", file=out)
         return 1
+    if args.stats:
+        if args.open or args.subject:
+            raise ToolError("--stats counts every copy the vault owes. Leave out --open and --subject.")
+        answer = questions.stats(vault, args.area)
+        if args.json:
+            print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
+        else:
+            print_stats(answer, out)
+        return 0
+    if args.digest:
+        answer = questions.digest(vault, args.area, args.subject)
+        if args.json:
+            print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
+        else:
+            print_digest(answer, out)
+        return 0
     answer = questions.listing(vault, args.area, args.open, args.subject)
     if args.json:
         print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
@@ -283,6 +299,28 @@ def questions_header(answer, args):
         count = answer["reviewer_questions"]
         line += f" {count} reviewer question{'' if count == 1 else 's'}, {answer['reviewer_open']} open."
     return line
+
+
+def print_digest(answer, out):
+    groups = answer["groups"]
+    print(f"planner questions --digest: {answer['coverage']}. {len(groups)} to take, most consequential first.", file=out)
+    for n, group in enumerate(groups, start=1):
+        head = f"[{group['area']}] {group['severity']}"
+        if group["blocks"]:
+            head += f", blocks {', '.join(group['blocks'])}"
+        print(f"{n}. {head}: {group['question']}", file=out)
+        many = ": one answer for all?" if len(group["copies"]) > 1 else ""
+        print(f"   {', '.join(group['copies'])}{many}", file=out)
+
+
+def print_stats(answer, out):
+    print(f"planner questions --stats: how each entry of catalogue v{answer['catalogue']} ended in this vault. "
+          "An entry that nearly always ends not-applicable is one to prune or tighten; that is your call.", file=out)
+    for entry in answer["entries"]:
+        states = ", ".join(f"{k} {v}" for k, v in entry["states"].items()) or "nothing owed"
+        share = f"{entry['not_applicable_share'] * 100:.0f}%"
+        print(f"{entry['entry']} | {entry['area']} | owed {entry['owed']} | not-applicable {entry['not_applicable']} "
+              f"of {entry['owed']} ({share}) | {states}", file=out)
 
 
 def question_line(entry):
@@ -791,6 +829,10 @@ def build_parser():
     ques.add_argument("--area", help="only this area of the catalogue, such as FIN")
     ques.add_argument("--open", action="store_true", help="list only copies with no row or an open row")
     ques.add_argument("--subject", help="only copies about this subject, such as APP-booking")
+    view_of = ques.add_mutually_exclusive_group()
+    view_of.add_argument("--digest", action="store_true",
+                         help="the undisposed copies grouped by entry and ranked, high and blocking first")
+    view_of.add_argument("--stats", action="store_true", help="how often each entry ends not-applicable in this vault")
     ques.set_defaults(func=cmd_questions)
     hand = sub.add_parser("handoff", help="write the senior's handoff manifest, or verify the vault against it")
     hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id to write handoffs/<APP-id>.md; verify APP-id to compare")

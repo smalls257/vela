@@ -206,6 +206,7 @@ BLOCKS = {
     "app-context": "type:app-building-blocks",
     "capability-map": "capability-delta",
     "progress-map": "goals",
+    "undisposed-questions": "unknowns-and-risks",
 }
 NEW_BLOCK_SHA = "00000000"
 

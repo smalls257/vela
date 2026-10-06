@@ -29,7 +29,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 | `planner next` | The one app and mode to work on next, with the reason. `probe` means: ask the unknown's owner, or research it |
 | `planner health` | Stale pages and sources, overdue unknowns, and days since the last closed session, as Markdown |
 | `planner query get <ID>` | Where an ID lives and its state. `refs`, `find` and `status` too. Add `--json`. `/planner:ask` uses it |
-| `planner questions` | The questions the catalogue says this vault owes, one copy per subject, and where each stands in the question ledger. `--open`, `--area`, `--subject` and `--json` |
+| `planner questions` | The questions the catalogue says this vault owes, one copy per subject, and where each stands in the question ledger. `--open`, `--area`, `--subject` and `--json`; `--digest` ranks the undisposed ones, `--stats` counts how often each entry ends not-applicable |
 | `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the slice a senior accepts |
 | `planner handoff verify <APP-id>` | What changed in that slice since handoff. Exits 1 when something accepted changed |
 | `planner voicecheck <before> <after>` | Fails when a rewrite lost or moved an ID, number, date, link, code span, table cell or negation |

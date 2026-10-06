@@ -130,6 +130,10 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 Catalogue v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
+<!-- generated:undisposed-questions sha=3f33512a: do not edit, run planner render -->
+**Questions:** 57 owed, 0 undisposed, against catalogue v1.
+<!-- /generated:undisposed-questions -->
+
 | Copy | State | Evidence | By | Date |
 |---|---|---|---|---|
 | Q-FIN-01@INI-002 | answered | item: [[03-context-and-scope#SV-01 Loyalty points\|SV-01]]; source: "the loyalty scheme, which reads FERRYMASTER directly and stays out of scope until INI-004" in [[03-context-and-scope]]; answer: Yes, the loyalty scheme holds customers' points, and it reads FERRYMASTER directly until INI-004 | @hl-solution-lead | 2026-11-19 |

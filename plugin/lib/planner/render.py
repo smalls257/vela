@@ -5,7 +5,7 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 """
 import hashlib
 
-from planner import diagrams, progress, schema, trace
+from planner import diagrams, progress, questions, schema, trace
 from planner.model import Finding, blocking_unknowns
 
 OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
@@ -352,6 +352,21 @@ def progress_map(vault, page):
     return "\n".join(out)
 
 
+# ------------------------------------------------------------------ questions
+
+def undisposed_questions(vault, page):
+    """The coverage line, then every owed copy no valid ledger row covers yet: the to-do list above the record."""
+    found = questions.dispositions(vault)
+    undisposed = sum(1 for d in found if d.undisposed)
+    out = [f"**Questions:** {questions.coverage_line(vault, len(found), undisposed)}."]
+    missing = [d for d in found if d.row is None or not d.valid]
+    if missing:
+        out += ["", "| Copy | Area | Severity | Subject | Question |", "|---|---|---|---|---|"]
+        out += [row(d.copy.id, d.copy.entry.area, d.copy.entry.severity, id_link(vault, d.copy.subject.id),
+                    cell(d.copy.entry.question)) for d in missing]
+    return "\n".join(out)
+
+
 GENERATORS = {
     "where-it-stands": where_it_stands,
     "concern-matrix": concern_matrix,
@@ -366,6 +381,7 @@ GENERATORS = {
     "app-context": app_context,
     "capability-map": capability_map,
     "progress-map": progress_map,
+    "undisposed-questions": undisposed_questions,
 }
 
 

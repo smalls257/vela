@@ -19,7 +19,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `06-runtime/` | `06-flows.md`, `flows/FLO-nnn-<slug>.md`, `apps/<app>-runtime.md` |
 | `08-concerns/` | `08-concerns.md` with the `concern-matrix` block, then `concern-<name>.md` |
 | `09-decisions/` | Index, then `ADR-nnnn-<slug>.md` |
-| `11-unknowns-and-risks.md` | Every unknown and risk, the `unknowns-index` block, and the question ledger |
+| `11-unknowns-and-risks.md` | Every unknown and risk, the `unknowns-index` block, and the question ledger with its `undisposed-questions` block |
 | `12-glossary.md` | Terms |
 | `13-epics/` | Index, then `EPC-nnn-<slug>.md` |
 | `capabilities/` | `CAP-nnn-<slug>.md` per capability touched |
@@ -235,7 +235,7 @@ Code decides which questions the vault owes. The skills decide only how to ask t
 
 `planner questions` applies each entry once to each subject of its scope that its trigger matches. Each result is a copy, with the ID `<entry>@<subject>`, for example `Q-DAT-02@APP-booking`. The ID follows the subject's ID, so renaming a file keeps it. A subject that is removed takes its copies with it, and a ledger row for one of them is reported as orphaned, never dropped.
 
-**The ledger.** The record is one table under `## Question ledger` on `11-unknowns-and-risks.md`, headed `| Copy | State | Evidence | By | Date |`, spelt exactly. Every owed copy and every reviewer question ends in a row.
+**The ledger.** The record is one table under `## Question ledger` on `11-unknowns-and-risks.md`, headed `| Copy | State | Evidence | By | Date |`, spelt exactly, below the `undisposed-questions` block. Every owed copy and every reviewer question ends in a row.
 
 - **Copy** is a copy ID; a wildcard such as `Q-OPS-01@APP-*`, which answers every copy whose subject starts with the text before the `*` (it must start with the scope's prefix, `APP-`, `CON-`, `CAP-`, `PTY-` or `SV-`); or a reviewer question, `R-<area>-nn` such as `R-FIN-01`.
 - **State** is one of the six below. **By** is the handle of whoever recorded or decided it, and **Date** is `YYYY-MM-DD`. Both are required unless the state is `open`.
@@ -257,6 +257,8 @@ A quote, whether a `source:` or a reviewer question's `quote:`, names its page, 
 `planner check` reads the ledger. A malformed row, two rows for one copy, any table directly under `## Question ledger` whose header is not exactly the ledger's, a ledger table that is not under the first `## Question ledger`, or a second `## Question ledger` heading is E801. A row with any error, and any row of a misplaced ledger table, disposes of nothing: `planner questions` shows it as `invalid` and counts the copy as undisposed. A state without the evidence it needs is E802. A row that names an entry the catalogue lacks, a subject that does not fit the entry's scope, or a reviewer area the catalogue lacks is E803. A row whose subject is gone, or whose subject no longer matches the trigger, is W804: it stays as a record. A wildcard that no copy uses, because each has a row of its own or a longer wildcard, and a wildcard on an initiative entry are W804 too. A row dated after today is W812. A copy with no row, or an `open` row, is never a finding in a plain check. The lead sets the pace.
 
 `planner questions` lists every owed copy with its focus area, severity, state, subject, what it blocks while it is open or asked, and the question, then the reviewer questions. `--json` prints the same as data, `--area FIN` keeps one focus area, `--subject APP-booking` one subject, and `--open` lists only the copies with no row, an `open` row or an invalid row. Its first line is the coverage: "57 owed, 3 undisposed, against catalogue v1". It never says complete, because the catalogue finds only what is written into it. An unknown `--area` exits 2, and a `--subject` that names no subject exits 1.
+
+`planner questions --digest` is what a session shows the lead. It groups the undisposed copies by entry, so one answer can serve many, adds the open reviewer questions, and ranks them: high severity that blocks something first, then high severity, then the rest, by entry ID within each. It leaves nothing out. `planner questions --stats` counts, for each entry, how its copies ended in this vault and how often they ended `not-applicable`. An entry that nearly always ends `not-applicable` is one to prune or tighten, and that is the user's call. Neither writes anything.
 
 ## Pages
 
@@ -348,6 +350,7 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `system-context` | `03-context-and-scope.md` | The after view: apps in one box, external providers outside it, and the same contract arrows. Retired apps are listed under it, not drawn. |
 | `app-context` | each app page | The app and its direct neighbours by contract, provided or consumed |
 | `capability-map` | `04a-capability-delta.md` | Every capability in a box per `domain`, labelled and coloured by `change` |
+| `undisposed-questions` | `11-unknowns-and-risks.md`, under `## Question ledger` | The coverage line, then every owed copy that no ledger row covers yet, with its focus area, severity, subject and question. It is the to-do list; the rows below it are the record. |
 | `progress-map` | `01-goals.md` | One row per app: its stage, how many of its items are at each state, with "(n by override)" after the decided count, the oldest open unknown that blocks it with its Opened date, and its next mode. It is judged as of the last session's date, so it changes only when the vault does. |
 
 A view with no generator is a list of links to where the data lives, never a copy kept by hand.
