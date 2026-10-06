@@ -34,7 +34,7 @@ def test_config_files():
     assert set(config) == {"initiative", "title", "stale_after_days"}
     assert config["stale_after_days"] == 60
     ignored = (TEMPLATE / ".gitignore").read_text(encoding="utf-8").split()
-    assert ignored == [".inbox/", "voice/corpus/", "voice/local/", ".obsidian/workspace*.json", ".obsidian/cache", "__pycache__/", "*.pyc"]
+    assert ignored == [".inbox/", "voice/corpus/", "voice/local/", ".obsidian/workspace*.json", ".obsidian/cache", "__pycache__/", "*.pyc", ".planner/"]
     assert json.loads((TEMPLATE / ".obsidian" / "app.json").read_text(encoding="utf-8")) == {"alwaysUpdateLinks": False}
     assert json.loads((TEMPLATE / ".claude" / "settings.json").read_text(encoding="utf-8")) == {"autoMemoryEnabled": False}
 

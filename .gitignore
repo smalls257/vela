@@ -9,3 +9,4 @@ __pycache__/
 .pytest_cache/
 tests/evals/.results/
 tests/sim/results/
+**/.planner/

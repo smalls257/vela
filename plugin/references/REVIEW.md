@@ -22,11 +22,11 @@ Read the area codes from the `areas:` block of `.claude/skills/planner/catalog/q
 
 Run `git status --porcelain` and keep its output as the baseline.
 
-Clear the folder, then make it. Each command is one Bash call, with the real session id and number written in and no variables. The folder sits inside `.git`, so it is never staged.
+Clear the folder, then make it. Each command is one Bash call, with the real session id and number written in and no variables. The folder sits in `.planner/` is gitignored, so nothing in it is ever staged. It is not under `.git/`, because Claude Code will not write there without asking.
 
 ```
-rm -rf .git/planner-findings/<session id>/<n>
-mkdir -p .git/planner-findings/<session id>/<n>
+rm -rf .planner/findings/<session id>/<n>
+mkdir -p .planner/findings/<session id>/<n>
 ```
 
 Dispatch the `planner:area-reviewer` subagent with the Agent tool, once per area, all five in one message so they run side by side. Give each one only:
@@ -38,13 +38,13 @@ Dispatch the `planner:area-reviewer` subagent with the Agent tool, once per area
 
 Give no conversation, no summary of what the lead said, and no other area's questions. If the Agent tool lists no `planner:area-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/area-reviewer.md` after the frontmatter as its instructions, then the same inputs, then this: you must not change any file. If you changed a file, return `{"area": "<your area code>", "error": "changed <path>"}` instead. Never review the pages yourself in this conversation.
 
-Save each reply exactly as it came back, with the Write tool, to `.git/planner-findings/<session id>/<n>/<AREA>.json`. If a reviewer errored, or could not be dispatched, write `{"area": "<AREA>", "error": "<what happened>"}` instead. Never write an empty findings list for a reviewer that did not finish: that would read as "checked, none".
+Save each reply exactly as it came back, with the Write tool, to `.planner/findings/<session id>/<n>/<AREA>.json`. If a reviewer errored, or could not be dispatched, write `{"area": "<AREA>", "error": "<what happened>"}` instead. Never write an empty findings list for a reviewer that did not finish: that would read as "checked, none".
 
 Then run `git status --porcelain` again and compare it with the baseline. If a tracked file changed that you did not change, a reviewer changed it: stop and show the user.
 
 ## 4. Merge
 
-Run `planner findings merge .git/planner-findings/<session id>/<n>`. It keeps the union, removes duplicates, drops every finding whose quote is not on the page it cites, and never votes. A finding may address an owed copy, an open reviewer question by its `R-` id, or `new`. Exit 1 means an area did not run or a finding was dropped, and the output says which. Exit 2 means the tool failed: show the error, and record the checkpoint with every area as `did not run (merge failed: <error>)` and no table rows.
+Run `planner findings merge .planner/findings/<session id>/<n>`. It keeps the union, removes duplicates, drops every finding whose quote is not on the page it cites, and never votes. A finding may address an owed copy, an open reviewer question by its `R-` id, or `new`. Exit 1 means an area did not run or a finding was dropped, and the output says which. Exit 2 means the tool failed: show the error, and record the checkpoint with every area as `did not run (merge failed: <error>)` and no table rows.
 
 Write the result into the session record, under `## Reviews` after `## Captures`. Add the heading if the record has none.
 
@@ -61,13 +61,13 @@ Write the result into the session record, under `## Reviews` after `## Captures`
 
 Number the kept findings `F<n>.1`, `F<n>.2` and so on, in the merge's order. Escape a `|` inside a cell as `\|`. In the quote cell, replace each inner straight `"` with `”`, as the merge does when it checks the quote, so the quote stays valid on the ledger side.
 
-Once the table is written, run `rm -rf .git/planner-findings/<session id>/<n>` again, with the real values written in, so no stale file is left to be read as fresh.
+Once the table is written, run `rm -rf .planner/findings/<session id>/<n>` again, with the real values written in, so no stale file is left to be read as fresh.
 
 Tell the lead the coverage in plain words: which areas found something, which ran and found nothing, and which did not run and why. An area that did not run is never reported as clean. Offer to run it again.
 
 ## Re-running areas
 
-A re-run of one or more areas is a new checkpoint, `n+1`, headed `### <n+1>. Re-run of checkpoint <n>: <areas>, <today>`. Dispatch only those areas into the new folder, and merge with `planner findings merge .git/planner-findings/<session id>/<n+1> --areas FIN,REG`, naming them. Areas not listed are neither read nor reported as did not run, and a file for one is ignored and listed under `ignored:`. The new findings get ids `F<n+1>.1` and on, so the ids of earlier checkpoints never change.
+A re-run of one or more areas is a new checkpoint, `n+1`, headed `### <n+1>. Re-run of checkpoint <n>: <areas>, <today>`. Dispatch only those areas into the new folder, and merge with `planner findings merge .planner/findings/<session id>/<n+1> --areas FIN,REG`, naming them. Areas not listed are neither read nor reported as did not run, and a file for one is ignored and listed under `ignored:`. The new findings get ids `F<n+1>.1` and on, so the ids of earlier checkpoints never change.
 
 ## 5. The digest
 

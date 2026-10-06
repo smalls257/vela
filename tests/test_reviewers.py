@@ -67,7 +67,7 @@ def test_review_dispatches_one_fresh_reviewer_per_area_with_a_fallback():
 
 def test_review_merges_in_code_and_never_reads_a_failure_as_clean():
     review = text("references/REVIEW.md")
-    assert "planner findings merge .git/planner-findings/<session id>/<n>" in review
+    assert "planner findings merge .planner/findings/<session id>/<n>" in review
     assert '{"area": "<AREA>", "error": "<what happened>"}' in review
     assert "Never write an empty findings list for a reviewer that did not finish" in review
     assert "An area that did not run is never reported as clean." in review
@@ -82,8 +82,8 @@ def test_review_tells_the_session_to_swap_inner_quotes_like_the_merge():
 def test_review_clears_stale_findings_and_numbers_from_the_record():
     review = text("references/REVIEW.md")
     assert "1 plus the number of `### ` headings under `## Reviews`" in review
-    assert review.count("rm -rf .git/planner-findings/<session id>/<n>") == 2
-    assert review.index("rm -rf .git/planner-findings/<session id>/<n>\nmkdir") < review.index("Save each reply")
+    assert review.count("rm -rf .planner/findings/<session id>/<n>") == 2
+    assert review.index("rm -rf .planner/findings/<session id>/<n>\nmkdir") < review.index("Save each reply")
     assert "no variables" in review
 
 

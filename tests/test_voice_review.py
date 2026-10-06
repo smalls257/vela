@@ -242,8 +242,8 @@ def test_harvest_reads_both_folders_and_retires_seeds_only_within_a_folder():
 def test_harvest_writes_the_paragraph_with_a_quoted_heredoc_and_a_cmp_check():
     harvest = harvest_text()
     assert "sed -n '<first>,<last>p'" in harvest
-    assert "cat .git/planner-harvest/<pr>-<n>.txt >> <file>" in harvest
-    assert "| cmp - .git/planner-harvest/<pr>-<n>.txt" in harvest
+    assert "cat .planner/harvest/<pr>-<n>.txt >> <file>" in harvest
+    assert "| cmp - .planner/harvest/<pr>-<n>.txt" in harvest
     assert "do not repair the file" in harvest
 
 
@@ -326,7 +326,7 @@ def test_harvest_quotes_free_values_and_rechecks_the_frontmatter():
     harvest = harvest_text()
     assert "page: '<page path>'" in harvest
     assert "harvested_from: '<full hash of the baseline draft commit>'" in harvest
-    assert harvest.index("| cmp - .git/planner-harvest/<pr>-<n>.txt") < harvest.index("confirm it parses as YAML")
+    assert harvest.index("| cmp - .planner/harvest/<pr>-<n>.txt") < harvest.index("confirm it parses as YAML")
 
 
 def test_harvest_says_when_the_pr_limit_hid_older_prs():
@@ -411,8 +411,8 @@ def test_the_decline_hash_command_is_reproducible(tmp_path):
     import hashlib
     paragraph = "Line one.\nLine two, with a tab\tand text.\n"
     harvest = harvest_text()
-    assert "shasum < .git/planner-harvest/<pr>-<n>.txt | cut -c1-12" in harvest
-    assert "rm -f .git/planner-harvest/<pr>-<n>.txt" in harvest
+    assert "shasum < .planner/harvest/<pr>-<n>.txt | cut -c1-12" in harvest
+    assert "rm -f .planner/harvest/<pr>-<n>.txt" in harvest
     (tmp_path / "p.txt").write_text(paragraph, encoding="utf-8")
     out = subprocess.run(["bash", "-c", "shasum < p.txt | cut -c1-12"], cwd=tmp_path, capture_output=True, text=True,
                          check=True).stdout.strip()
@@ -439,8 +439,8 @@ def test_the_full_hash_is_stored_and_a_no_asks_no_save_question():
 def test_retirement_runs_only_after_the_cmp_check_confirms_the_save():
     harvest = harvest_text()
     assert "and change no example yet" in harvest
-    assert harvest.index("| cmp - .git/planner-harvest/<pr>-<n>.txt") < harvest.index("Only now apply the retirements you planned in step 7")
-    assert harvest.index("Plan the room before you save") < harvest.index("| cmp - .git/planner-harvest/<pr>-<n>.txt")
+    assert harvest.index("| cmp - .planner/harvest/<pr>-<n>.txt") < harvest.index("Only now apply the retirements you planned in step 7")
+    assert harvest.index("Plan the room before you save") < harvest.index("| cmp - .planner/harvest/<pr>-<n>.txt")
 
 
 def test_step_references_name_their_section():
@@ -454,7 +454,7 @@ def test_step_references_name_their_section():
 # I1: Claude Code's Bash keeps no shell variable between calls, so harvest's temp file has a
 # fixed path every later call can name, and each block must run on its own in a fresh shell.
 
-HARVEST_FILE = ".git/planner-harvest/<pr>-<n>.txt"
+HARVEST_FILE = ".planner/harvest/<pr>-<n>.txt"
 
 
 def harvest_block(first_line):
@@ -472,13 +472,15 @@ def fresh_shell(repo, block, **slots):
 def test_harvest_names_its_temp_file_and_keeps_no_shell_variable():
     harvest = harvest_text()
     assert "$tmp" not in harvest and "mktemp" not in harvest
-    assert "mkdir -p .git/planner-harvest" in harvest
+    assert "mkdir -p .planner/harvest" in harvest
     assert "`<n>` is the paragraph's order" in harvest
-    assert "rm -rf .git/planner-harvest" in harvest
+    assert "rm -rf .planner/harvest" in harvest
 
 
 def test_harvest_step_four_and_step_eight_each_run_in_a_fresh_shell(pr_repo):
     repo = pr_repo
+    (repo / ".gitignore").write_text(".planner/\n", encoding="utf-8")  # as template/.gitignore does
+    run_git(repo, "add", ".gitignore")
     page = "04-solution-strategy.md"
     (repo / page).write_text("# Strategy\n\nFirst line of the owner's paragraph.\nIt’s kept   word for word.\n\nTail.\n",
                              encoding="utf-8")
@@ -486,9 +488,9 @@ def test_harvest_step_four_and_step_eight_each_run_in_a_fresh_shell(pr_repo):
     run_git(repo, "-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "merged")
     run_git(repo, "fetch", "-q", ".", "HEAD")
     slots = {"page": page, "first": "3", "last": "4", "pr": "42", "n": "1"}
-    extracted = fresh_shell(repo, harvest_block("mkdir -p .git/planner-harvest"), **slots)
+    extracted = fresh_shell(repo, harvest_block("mkdir -p .planner/harvest"), **slots)
     assert extracted.returncode == 0, extracted.stderr
-    stored = repo / ".git" / "planner-harvest" / "42-1.txt"
+    stored = repo / ".planner" / "harvest" / "42-1.txt"
     assert stored.read_text(encoding="utf-8") == "First line of the owner's paragraph.\nIt’s kept   word for word.\n"
     assert re.fullmatch(r"[0-9a-f]{12}\n", extracted.stdout), extracted.stdout
     assert run_git(repo, "status", "--porcelain") == "", "the temp file must not dirty the working tree"
@@ -496,7 +498,7 @@ def test_harvest_step_four_and_step_eight_each_run_in_a_fresh_shell(pr_repo):
     example = repo / "voice" / "examples" / "decision" / "VX-decision-004.md"
     example.parent.mkdir(parents=True)
     example.write_text("---\nid: VX-decision-004\nstate: active\n---\n\n", encoding="utf-8")
-    saved = fresh_shell(repo, harvest_block("cat .git/planner-harvest/<pr>-<n>.txt >> <file>"), file=str(example), **slots)
+    saved = fresh_shell(repo, harvest_block("cat .planner/harvest/<pr>-<n>.txt >> <file>"), file=str(example), **slots)
     assert saved.returncode == 0, saved.stderr
     assert example.read_text(encoding="utf-8").endswith("\n\nFirst line of the owner's paragraph.\nIt’s kept   word for word.\n")
     assert not stored.exists(), "step 8 removes the temp file on every exit"
@@ -504,12 +506,12 @@ def test_harvest_step_four_and_step_eight_each_run_in_a_fresh_shell(pr_repo):
 
 def test_harvest_step_eight_fails_on_a_changed_body_and_still_removes_the_file(pr_repo):
     repo = pr_repo
-    stored = repo / ".git" / "planner-harvest" / "7-2.txt"
+    stored = repo / ".planner" / "harvest" / "7-2.txt"
     stored.parent.mkdir(parents=True)
     stored.write_text("The paragraph.\n", encoding="utf-8")
     example = repo / "VX-decision-001.md"
     example.write_text("---\nid: VX-decision-001\n---\n\nSomething already here.\n", encoding="utf-8")
-    saved = fresh_shell(repo, harvest_block("cat .git/planner-harvest/<pr>-<n>.txt >> <file>"), file=str(example), pr="7", n="2")
+    saved = fresh_shell(repo, harvest_block("cat .planner/harvest/<pr>-<n>.txt >> <file>"), file=str(example), pr="7", n="2")
     assert saved.returncode != 0
     assert not stored.exists()
 
