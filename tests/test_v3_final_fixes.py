@@ -237,3 +237,37 @@ def test_a_passing_epics_gate_names_the_load_bearing_assumptions_it_rests_on():
     assert "Q-PTN-02@PTY-01" in notes[0] and "Q-PTN-03@PTY-01" not in notes[0], notes[0]  # load-bearing: no
     plain = run("check", "--vault", str(FIXTURE), "--today", "2026-11-20")[1]
     assert "Note:" not in plain
+
+
+# ------------------------------------------------------------------ W813 and the W809 scan
+
+def template_copy(tmp_path):
+    vault = tmp_path / "t"
+    shutil.copytree(REPO / "template", vault)
+    return vault
+
+
+def test_a_ledger_page_without_its_heading_warns_in_a_plain_check(tmp_path):
+    vault = template_copy(tmp_path)
+    page = vault / "11-unknowns-and-risks.md"
+    text = page.read_text(encoding="utf-8")
+    page.write_text(text.split("## Question ledger", 1)[0], encoding="utf-8")
+    code, out = check(vault, "2026-11-20")
+    assert code == 0
+    w813 = [l for l in out.splitlines() if " W813 " in l]
+    assert w813 == ["11-unknowns-and-risks.md:1: W813 11-unknowns-and-risks.md has no ## Question ledger heading; "
+                    "12 owed copies have nowhere to be recorded. Fix: Add ## Question ledger after ## Risks, "
+                    "as CONVENTIONS.md shows under \"Questions and the ledger\"."], out
+    gate = run("check", "--gate", "epics", "--vault", str(vault), "--today", "2026-11-20")[1]
+    assert any(" E805 " in l and "The page has no ## Question ledger heading." in l for l in gate.splitlines()), gate
+    assert " W813 " not in check(REPO / "template", "2026-11-20")[1]
+
+
+def test_sources_titles_never_raise_w809(tmp_path):
+    vault = template_copy(tmp_path)
+    edit(vault / "sources.md", "|---|---|---|---|---|---|\n",
+         "|---|---|---|---|---|---|\n| SRC-01 | Loyalty points rules for 2026 | @solution-lead | 2026-11-20 | exists | shared drive |\n")
+    assert [f for f in findings(check(vault, "2026-11-20")[1]) if f[0] == "W809"] == []
+    edit(vault / "02-constraints.md", "|---|---|---|---|\n",
+         "|---|---|---|---|\n| CST-1 | Customers keep their points | SRC-01 | one balance per customer |\n")
+    assert ("W809", "02-constraints.md") in findings(check(vault, "2026-11-20")[1])

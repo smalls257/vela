@@ -303,6 +303,7 @@ CODES = {
     "E810": "heading looks like a party or stored value but is not one",
     "W811": "subject defined off its page",
     "W812": "ledger row is dated in the future",
+    "W813": "ledger page has no question ledger heading",
 }
 
 # ------------------------------------------------------------- traceability

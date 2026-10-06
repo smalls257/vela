@@ -605,11 +605,24 @@ def _page_findings(vault):
                       "Merge the rows under the first heading.")
 
 
+def _missing_heading(vault):
+    """W813 when the ledger page exists without its heading while copies are owed: every answer would have
+    nowhere to go, and a plain check would otherwise say nothing until the epics gate."""
+    page = ledger_page(vault)
+    count = len(owed(vault))
+    if page is None or ledger.heading_line(page) or not count:
+        return
+    yield Finding(page.path, 1, "W813", f"{page.path} has no ## {ledger.HEADING} heading; {count} owed "
+                  f"cop{'y has' if count == 1 else 'ies have'} nowhere to be recorded.",
+                  f"Add ## {ledger.HEADING} after ## Risks, as CONVENTIONS.md shows under \"Questions and the ledger\".")
+
+
 def ledger_findings(vault, today=None):
     """E801 for a malformed row or an unreadable ledger table, E802 for a state without its evidence, E803 for a
     row that names nothing the catalogue can owe, W804 for a row whose copy is orphaned, no longer owed, or
-    shadowed, and W812 for a row dated after today."""
+    shadowed, W812 for a row dated after today, and W813 for a ledger page with no ledger heading."""
     yield from _page_findings(vault)
+    yield from _missing_heading(vault)
     for row in rows(vault):
         yield from _row_findings(vault).get(row.line, ())
         if today and ledger.is_date(row.date) and row.date > today:
@@ -887,6 +900,8 @@ def untyped_mentions(vault):
     for page in sorted(vault.pages, key=lambda p: p.path):
         if page.type == "session":
             continue  # captures are the raw record; close types what they name
+        if page.type == "sources":
+            continue  # a source's title names a document, not a subject
         kinds = _kinds_on(vault, page)
         told = set()
         for line, text in sorted(_fact_texts(page)):
