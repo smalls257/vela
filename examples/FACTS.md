@@ -119,6 +119,10 @@ Overlap: INI-004 Loyalty Revamp also touches CAP-013. INI-005 Mainframe Exit tou
 
 Risks: R-01 mainframe knowledge sits with two people (mitigation: MQ mapping documented in CON-006, pairing in Q1). R-02 if the March kiosk image slips, kiosks wait six months for the next one (mitigation: kiosks keep their old adapter until their cutover; API v1 kept 6+ months).
 
+## Question ledger (catalogue v1)
+
+The ledger on `11-unknowns-and-risks.md` disposes every one of the 57 copies catalogue v1 owes, so `planner check --gate epics` passes. Its rows show every state. Who pays Booking's running cost (Q-FIN-02) was asked of the finance business partner on 2026-11-19 and has no answer yet. That customers amend online once they can (Q-OPS-07) is a load-bearing assumption, with the online share of amendments as its signpost. Pricing is an exception to the data question, because it never receives a customer ID. One reviewer question, R-FIN-01, on points and cancelled bookings, is open.
+
 ## Concerns (all eight addressed or N/A)
 
 - Testing: consumer-driven contract tests on every Booking boundary; end-to-end only for hold-pay-confirm and amend-or-cancel; ledger simulator. Owner: QA lead.

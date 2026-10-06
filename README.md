@@ -29,6 +29,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 | `planner next` | The one app and mode to work on next, with the reason. `probe` means: ask the unknown's owner, or research it |
 | `planner health` | Stale pages and sources, overdue unknowns, and days since the last closed session, as Markdown |
 | `planner query get <ID>` | Where an ID lives and its state. `refs`, `find` and `status` too. Add `--json`. `/planner:ask` uses it |
+| `planner questions` | The questions the catalogue says this vault owes, one copy per subject, and where each stands in the question ledger. `--open`, `--area`, `--subject` and `--json` |
 | `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the slice a senior accepts |
 | `planner handoff verify <APP-id>` | What changed in that slice since handoff. Exits 1 when something accepted changed |
 | `planner voicecheck <before> <after>` | Fails when a rewrite lost or moved an ID, number, date, link, code span, table cell or negation |
@@ -72,7 +73,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `health`, `query`, `handoff`, `export`, `voicecheck`, `voicescore`), the session skills (dump, discover, shape, grill, epics, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` agent, and START and MODES under `references/` |
+| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `health`, `query`, `questions`, `handoff`, `export`, `voicecheck`, `voicescore`), the question catalogue in `catalog/questions.yaml`, the session skills (dump, discover, shape, grill, epics, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` agent, and START and MODES under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |

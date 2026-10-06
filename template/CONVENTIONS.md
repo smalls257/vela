@@ -19,7 +19,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `06-runtime/` | `06-flows.md`, `flows/FLO-nnn-<slug>.md`, `apps/<app>-runtime.md` |
 | `08-concerns/` | `08-concerns.md` with the `concern-matrix` block, then `concern-<name>.md` |
 | `09-decisions/` | Index, then `ADR-nnnn-<slug>.md` |
-| `11-unknowns-and-risks.md` | Every unknown and risk, and the `unknowns-index` block |
+| `11-unknowns-and-risks.md` | Every unknown and risk, the `unknowns-index` block, and the question ledger |
 | `12-glossary.md` | Terms |
 | `13-epics/` | Index, then `EPC-nnn-<slug>.md` |
 | `capabilities/` | `CAP-nnn-<slug>.md` per capability touched |
@@ -211,6 +211,7 @@ A fact table is recognised by its first header cells.
 | Containers | `Container \| Job \| ... \| State` | State `assumption`, `confirmed`, `unchanged`, `retired` |
 | Concern cells | `App \| State \| ...` | See below |
 | Session changes | `ID \| From \| To \| Source` | One row per item a session changed |
+| Question ledger | `Copy \| State \| Evidence \| By \| Date` | Only on `11-unknowns-and-risks.md`; see Questions and the ledger |
 
 ## Concern cells and waivers
 
@@ -223,6 +224,37 @@ Each concern page holds one cell per app in a table headed `App | State | ...`. 
 - `unexamined`: nobody has looked. An app with no row counts as `unexamined (no row)`.
 
 A waiver records that an `addressed` cell needs no epic work. The cell text starts `no work (@handle, review YYYY-MM-DD): <reason>`.
+
+## Questions and the ledger
+
+Code decides which questions the vault owes. The skills decide only how to ask them, and the ledger records how each one ended.
+
+**The catalogue.** `.claude/skills/planner/catalog/questions.yaml` ships with the plugin and carries a `version`. Each entry has an `id` such as `Q-FIN-01`, a focus `area`, a `scope`, a `trigger`, the `question`, a `why` (the regulation, practice or simulation miss that earned it a place) and a `severity`, `high` or `normal`. `blocks` lists the kinds of unit an open copy holds up: `app`, `contract`, `requirement`, `capability`, `decision` and `epic`. An initiative-scope entry may say which subject a yes `creates`, `party` or `stored-value`, and list the words that suggest that subject in `mentions`. The five focus areas are `FIN` Finance and liabilities, `DAT` Data and lawful basis, `PTN` Partners and contracts, `REG` Regulation and liability and `OPS` Operations and people. They are labels for readers, and they are not the areas of "Areas and stages".
+
+**Subjects and copies.** A scope names the kind of subject an entry applies to: `initiative` (the initiative in `.planner.yaml`), `app`, `contract`, `capability`, `party` or `stored-value`. A trigger is `exists`, or conditions joined by ` and `, each `<field>: <value>` or `<field> in [<value>, <value>]`. An app has the fields `change`, `state` and `stage`. A contract has `change`, `state` and `provider`, which is `external` when the contract has a `**Provider:**` bullet and `app` otherwise. A capability has `change`, `state`, `origin` and `domain`, and a party has `relationship`. The initiative and a stored value have none, so their entries use `exists`. Values are compared in lower case, and a missing field never matches. Code reads a trigger; it never runs one.
+
+`planner questions` applies each entry once to each subject of its scope that its trigger matches. Each result is a copy, with the ID `<entry>@<subject>`, for example `Q-DAT-02@APP-booking`. The ID follows the subject's ID, so renaming a file keeps it. A subject that is removed takes its copies with it, and a ledger row for one of them is reported as orphaned, never dropped.
+
+**The ledger.** The record is one table under `## Question ledger` on `11-unknowns-and-risks.md`, headed `| Copy | State | Evidence | By | Date |`. Every owed copy and every reviewer question ends in a row.
+
+- **Copy** is a copy ID; a wildcard such as `Q-OPS-01@APP-*`, which answers every copy whose subject starts with the text before the `*` (it must start with the scope's prefix, `APP-`, `CON-`, `CAP-`, `PTY-` or `SV-`); or a reviewer question, `R-<area>-nn` such as `R-FIN-01`.
+- **State** is one of the six below. **By** is the handle of whoever recorded or decided it, and **Date** is `YYYY-MM-DD`. Both are required unless the state is `open`.
+- **Evidence** is `key: value` pairs separated by `; `. A `;` inside double quotes or a wikilink does not split. The keys are `capture`, `item`, `source`, `belief`, `load-bearing`, `signpost`, `unknown`, `reason`, `covers`, and on a reviewer question `question`, `quote` and `severity`.
+
+| State | Valid only with |
+|---|---|
+| `open` | nothing. It is the default, and it never counts as disposed. |
+| `asked` | `capture:`, a link to the capture where it was asked, `[[<session>#^cNN]]` |
+| `answered` | `item:`, a link to the item that holds the answer, and `source:`, an `SRC-nn` from `sources.md` (a first-hand row counts) or the answer quoted in double quotes |
+| `assumed` | `belief:` what is believed, `load-bearing:` `yes` or `no`, and `signpost:` what would show it failing |
+| `unknown` | `unknown:`, an `UNK-nnn` whose `**Owner:**` starts with a handle |
+| `not-applicable` | `reason:` why it does not apply. By says who decided. |
+
+A copy's own row wins. Then the wildcard with the longest prefix, then an initiative row. An initiative row answers a lower scope at initiative level: `Q-OPS-03@INI-002` with `covers: capability` answers every `Q-OPS-03` copy for a capability, until one has its own row. Exceptions to a wildcard or an initiative row take their own row. A reviewer question carries `question:` with the question, `quote: "<the words>" in [[<page>]]`, and `severity: high` when it is one; without it, it is `normal`.
+
+`planner check` reads the ledger. A malformed row, or two rows for one copy, is E801. A state without the evidence it needs is E802. A row that names an entry the catalogue lacks, a subject that does not fit the entry's scope, or a reviewer area the catalogue lacks is E803. A row whose subject is gone, or whose subject no longer matches the trigger, is W804: it stays as a record. A copy with no row, or an `open` row, is never a finding in a plain check. The lead sets the pace.
+
+`planner questions` lists every owed copy with its focus area, severity, state, subject, what it blocks while it is open or asked, and the question, then the reviewer questions. `--json` prints the same as data, `--area FIN` keeps one focus area, `--subject APP-booking` one subject, and `--open` lists only the copies with no row or an `open` row. Its first line is the coverage: "50 owed, 3 undisposed, against catalogue v1". It never says complete, because the catalogue finds only what is written into it. An unknown `--area` exits 2, and a `--subject` that names no subject exits 1.
 
 ## Pages
 
@@ -394,6 +426,8 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
 | W318 | decided contract has no Tested by, by override | W323 | override not needed |
 | W324 | decided on the owner's behalf, not yet confirmed | | |
+| E801 | question ledger row is malformed | E802 | ledger state lacks the evidence it needs |
+| E803 | ledger row names nothing the catalogue owes | W804 | ledger row is orphaned or no longer owed |
 | E808 | party or stored value is missing a required fact | | |
 | E810 | heading looks like a party or stored value but is not one | | |
 | W811 | subject defined off its page | | |

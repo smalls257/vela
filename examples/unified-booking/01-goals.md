@@ -18,7 +18,7 @@ verified_by: "@hl-solution-lead"
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=0a1bc540: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=ebb8cad5: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -38,7 +38,7 @@ verified_by: "@hl-solution-lead"
 |---|---|---|---|
 | [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|UNK-006]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing |
 
-**Last session:** 2026-11-18
+**Last session:** 2026-11-19
 
 **Coverage gaps:** 0, listed on [[13-epics|Epics]]
 
@@ -47,8 +47,8 @@ verified_by: "@hl-solution-lead"
 
 ## Progress by app
 
-<!-- generated:progress-map sha=31a06fe4: do not edit, run planner render -->
-**As of:** 2026-11-18, the last session
+<!-- generated:progress-map sha=1d9383d3: do not edit, run planner render -->
+**As of:** 2026-11-19, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
 |---|---|---|---|---|---|---|---|

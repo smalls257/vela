@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import override, render, schema, trace
+from planner import override, questions, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -392,6 +392,14 @@ def subject_rules(vault, today):
                      "Use one of: " + ", ".join(schema.PARTY_RELATIONSHIPS) + ".")
 
 
+# ------------------------------------------------------------------ the question ledger
+
+def question_rules(vault, today):
+    """E801, E802, E803 and W804 on the question ledger. An open row, or a copy with no row, is
+    never a finding here: the lead sets the pace, and the gates decide when it matters."""
+    yield from questions.ledger_findings(vault)
+
+
 # ----------------------------------------------------------------- certainty
 
 def decided_units(vault):
@@ -685,5 +693,5 @@ def trace_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, certainty_rules, stage_rules, concern_rules,
+         contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules)

@@ -15,3 +15,8 @@ none
 ## Unknowns
 
 ## Risks
+
+## Question ledger
+
+| Copy | State | Evidence | By | Date |
+|---|---|---|---|---|

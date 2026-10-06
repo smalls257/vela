@@ -87,7 +87,9 @@ def test_missing_anchor(ub):
 def test_unknown_with_no_owner(ub):
     edit(ub / "11-unknowns-and-risks.md", "- **Owner:** @hl-platform-lead (Platform lead)\n- **Opened:** 2026-10-07 Grill\n",
          "- **Opened:** 2026-10-07 Grill\n")
-    assert broken(ub) == [("E302", "11-unknowns-and-risks.md")]
+    # The two ledger rows that rest on UNK-006 lose their owner with it, so each says so (E802).
+    assert broken(ub) == [("E302", "11-unknowns-and-risks.md"), ("E802", "11-unknowns-and-risks.md"),
+                          ("E802", "11-unknowns-and-risks.md")]
 
 
 def test_oversized_diagram(ub):

@@ -17,7 +17,7 @@ import traceback
 
 import yaml
 
-from planner import catalog, export, handoff, health, model, parse, progress, query, render, rules, schema, viewer, voicecheck, voicescore
+from planner import catalog, export, handoff, health, model, parse, progress, query, questions, render, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -248,6 +248,51 @@ def cmd_query(args, out):
         answer = query.status(vault, today)
     print_answer(answer, args.json, out)
     return 1 if answer.get("not_found") else 0
+
+
+def cmd_questions(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    if args.area is not None and args.area not in vault.catalogue.area_codes:
+        raise ToolError(f"--area {args.area} is not an area of catalogue v{vault.catalogue.version}. "
+                        f"Use one of: {', '.join(vault.catalogue.area_codes)}.")
+    if args.subject is not None and questions.subject(vault, args.subject) is None:
+        answer = {"subject": args.subject, "not_found": True}
+        print(json.dumps(answer, indent=2) if args.json else
+              f"planner questions: {args.subject} is not a subject in this vault: an initiative, app, contract, "
+              "capability, party or stored value ID.", file=out)
+        return 1
+    answer = questions.listing(vault, args.area, args.open, args.subject)
+    if args.json:
+        print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
+        return 0
+    print(questions_header(answer, args), file=out)
+    for copy in answer["copies"]:
+        print(question_line(copy), file=out)
+    for row in answer["reviewer"]:
+        print(question_line(row), file=out)
+    return 0
+
+
+def questions_header(answer, args):
+    kept = [f"area {args.area}" if args.area else "", f"subject {args.subject}" if args.subject else "",
+            "open only" if args.open else ""]
+    where = ", ".join(k for k in kept if k)
+    line = f"planner questions: {answer['coverage']}." + (f" Showing {where}." if where else "")
+    if answer["reviewer_questions"]:
+        count = answer["reviewer_questions"]
+        line += f" {count} reviewer question{'' if count == 1 else 's'}, {answer['reviewer_open']} open."
+    return line
+
+
+def question_line(entry):
+    state = entry["state"] + (f" via {entry['via']}" if entry["via"] else "")
+    if not entry["pending"]:
+        blocked = "settled"
+    else:
+        blocked = f"blocks {', '.join(entry['blocks'])}" if entry["blocks"] else "blocks nothing"
+    return " | ".join((entry["id"], entry["area"], entry["severity"], state, entry["subject"] or "reviewer", blocked,
+                       entry["question"]))
 
 
 def handoff_app(vault, app_id):
@@ -740,6 +785,13 @@ def build_parser():
         one.add_argument("--vault", default=".", help="vault root (default: current directory)")
         one.add_argument("--json", action="store_true", help="print JSON instead of text")
         one.set_defaults(func=cmd_query)
+    ques = sub.add_parser("questions", help="the questions the catalogue says this vault owes, and where each stands")
+    ques.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    ques.add_argument("--json", action="store_true", help="print JSON instead of text")
+    ques.add_argument("--area", help="only this area of the catalogue, such as FIN")
+    ques.add_argument("--open", action="store_true", help="list only copies with no row or an open row")
+    ques.add_argument("--subject", help="only copies about this subject, such as APP-booking")
+    ques.set_defaults(func=cmd_questions)
     hand = sub.add_parser("handoff", help="write the senior's handoff manifest, or verify the vault against it")
     hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id to write handoffs/<APP-id>.md; verify APP-id to compare")
     hand.add_argument("--vault", default=".", help="vault root (default: current directory)")
