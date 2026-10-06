@@ -29,7 +29,7 @@ def test_the_seed_loads_with_five_areas_and_about_twenty_entries():
     cat = catalog.parse_catalogue(seed())
     assert cat.version == 1
     assert cat.area_codes == ("FIN", "DAT", "PTN", "REG", "OPS")
-    assert 18 <= len(cat.entries) <= 25
+    assert 18 <= len(cat.entries) <= 30
     assert {e.area for e in cat.entries} == set(cat.area_codes)
     assert [e.id for e in cat.entries] == sorted(e.id for e in cat.entries)
 
@@ -43,7 +43,7 @@ def test_the_eight_existence_questions_are_initiative_scope_and_always_owed():
     cat = catalog.parse_catalogue(seed())
     words = {"FIN-01": "hold value", "DAT-01": "new party", "PTN-01": "ownership, operation or payment",
              "REG-01": "sold or promised across parties", "REG-02": "regulated or licensed",
-             "OPS-04": "more than one", "OPS-05": "retired", "OPS-06": "not yet in the room"}
+             "OPS-04": "more than one system, scheme, map or team doing the same job? Name them", "OPS-05": "retired", "OPS-06": "not yet in the room"}
     for short, phrase in words.items():
         entry = cat.entry(f"Q-{short}")
         assert entry.scope == "initiative" and entry.trigger.text == "exists", short
@@ -53,7 +53,7 @@ def test_the_eight_existence_questions_are_initiative_scope_and_always_owed():
 def test_the_high_severity_entries_are_lawful_basis_partner_clauses_and_stored_value():
     cat = catalog.parse_catalogue(seed())
     assert sorted(e.id for e in cat.entries if e.severity == "high") == [
-        "Q-DAT-01", "Q-DAT-02", "Q-FIN-01", "Q-FIN-03", "Q-PTN-01", "Q-PTN-02"]
+        "Q-DAT-01", "Q-DAT-02", "Q-DAT-05", "Q-FIN-01", "Q-FIN-03", "Q-PTN-01", "Q-PTN-02", "Q-PTN-05"]
 
 
 def test_every_scope_has_an_entry_and_the_new_kinds_are_created_by_a_yes():
@@ -67,6 +67,35 @@ def test_no_entry_names_a_persona_or_an_archetype():
     text = SEED.read_text(encoding="utf-8").lower()
     for pattern in (r"\bpersonas?\b", r"\barchetypes?\b", r"\byou are an? \b", r"\bas (?:the|a) (?:cfo|dpo|regulator)\b"):
         assert not re.search(pattern, text), pattern
+
+
+def test_the_questions_and_whys_assume_no_merger_and_no_rail_except_as_a_cited_example():
+    for entry in catalog.parse_catalogue(seed()).entries:
+        for word in (r"merger", r"mergers", r"post-merger", r"ferry", r"ferries", r"rail", r"ticket", r"tickets",
+                     r"passengers?", r"carriers?"):
+            assert not re.search(rf"\b{word}\b", entry.question, re.I), (entry.id, word)
+        assert not re.search(r"\b(merger|mergers|post-merger|ferry|ferries|tickets?|passengers?)\b", entry.why, re.I), entry.id
+        if re.search(r"\brail\b", entry.why, re.I):
+            assert "e.g. EU 2021/782 for rail" in entry.why, entry.id
+
+
+def test_each_split_question_asks_one_thing_and_its_follow_up_is_its_own_entry():
+    cat = catalog.parse_catalogue(seed())
+    assert not re.search(r"purpose", cat.entry("Q-DAT-01").question) and "purpose" in cat.entry("Q-DAT-05").question
+    assert not re.search(r"expiry|closure|conversion", cat.entry("Q-FIN-03").question)
+    assert "expiry" in cat.entry("Q-FIN-05").question
+    assert not re.search(r"who sets", cat.entry("Q-FIN-04").question) and "rate" in cat.entry("Q-FIN-06").question
+    assert not re.search(r"assign|notice", cat.entry("Q-PTN-02").question)
+    assert "assigned" in cat.entry("Q-PTN-05").question and "notice" in cat.entry("Q-PTN-06").question
+    assert not re.search(r"liable", cat.entry("Q-REG-01").question) and "liable" in cat.entry("Q-REG-05").question
+    for entry in cat.entries:
+        assert entry.question.count("?") <= 1 or entry.id == "Q-OPS-04", entry.id
+
+
+def test_every_contract_entry_filters_on_change_so_a_settled_contract_owes_nothing():
+    for entry in catalog.parse_catalogue(seed()).entries:
+        if entry.scope == "contract":
+            assert any(c.field == "change" for c in entry.trigger.conditions), entry.id
 
 
 # ------------------------------------------------------------------ the trigger language
@@ -102,6 +131,12 @@ def test_a_fact_that_is_not_text_never_matches():
     ("change in [new, ]", "app", "has an empty value"),
     ("change: new", "initiative", "fields: none: use exists"),
     ("", "app", "trigger must be text"),
+    ("change: new", "bogus", "trigger scope 'bogus' is not one of"),
+    ("exists", "bogus", "trigger scope 'bogus' is not one of"),
+    ("change: new and change: changed", "app", "trigger field 'change' appears twice"),
+    ("change in [new, New]", "app", "lists 'new' twice"),
+    ("domain: finance and", "capability", "has a stray 'and'"),
+    ("domain: and finance", "capability", "trigger part 'domain:' is not 'field: value'"),
     (["exists"], "app", "trigger must be text"),
 ])
 def test_a_trigger_outside_the_grammar_is_refused_with_its_reason(text, scope, said):
@@ -152,6 +187,30 @@ def test_creates_and_mentions_belong_to_initiative_entries_only():
     assert "mentions need a creates" in problems(data)
 
 
+def test_a_creates_that_is_null_says_it_is_empty():
+    data = seed()
+    data["entries"][0]["creates"] = None
+    assert "'creates' is empty" in problems(data)
+    data = seed()
+    data["entries"][1]["mentions"] = None
+    assert "'mentions' is empty" in problems(data)
+
+
+def test_an_area_no_entry_uses_is_refused():
+    data = seed()
+    data["areas"]["ZZZ"] = "Nobody asks these"
+    assert "area ZZZ is listed in 'areas' but no entry uses it" in problems(data)
+
+
+def test_a_key_written_twice_is_an_error_at_every_depth(tmp_path):
+    for text in ("version: 1\nversion: 2\n", "areas:\n  FIN: a\n  FIN: b\n",
+                 "entries:\n  - id: Q-FIN-01\n    severity: high\n    severity: normal\n"):
+        with pytest.raises(yaml.YAMLError) as exc:
+            catalog.load_yaml(text)
+        assert "duplicate key" in str(exc.value)
+    assert catalog.load_yaml("a: 1\nb: [1, 2]\n") == {"a": 1, "b": [1, 2]}
+
+
 @pytest.mark.parametrize("data", [None, [], {"version": 1}, {"version": 1, "areas": {"FIN": "x"}, "entries": []}])
 def test_a_catalogue_with_no_entries_is_refused(data):
     with pytest.raises(catalog.CatalogueError):
@@ -173,6 +232,15 @@ def test_the_cli_stops_with_exit_2_on_a_broken_catalogue(mini, tmp_path, monkeyp
     broken.write_text("version: [1\n", encoding="utf-8")
     monkeypatch.setattr(cli, "CATALOGUE", broken)
     assert check(mini)[0] == 2
+
+
+def test_the_cli_stops_with_exit_2_on_a_duplicate_key(mini, tmp_path, monkeypatch):
+    broken = tmp_path / "questions.yaml"
+    broken.write_text(SEED.read_text(encoding="utf-8").replace("version: 1\n", "version: 1\nversion: 1\n", 1),
+                      encoding="utf-8")
+    monkeypatch.setattr(cli, "CATALOGUE", broken)
+    code, out = check(mini)
+    assert code == 2 and "duplicate key" in out
 
 
 def test_the_vault_carries_the_catalogue(mini):

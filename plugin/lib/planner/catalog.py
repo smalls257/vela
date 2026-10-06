@@ -10,6 +10,8 @@ the CLI exits 2: an empty catalogue would make every vault look as if it owed no
 import re
 from dataclasses import dataclass
 
+import yaml
+
 from planner import schema
 
 SCOPES = ("initiative", "app", "contract", "capability", "party", "stored-value")
@@ -38,6 +40,30 @@ CONDITION_RE = re.compile(r"^(?P<field>[a-z][a-z_]*)(?:: (?P<value>[^\[\],]+)| i
 
 class CatalogueError(ValueError):
     """The catalogue cannot be read. The message lists every problem found."""
+
+
+class StrictLoader(yaml.SafeLoader):
+    """A YAML loader that refuses a key written twice in one mapping. PyYAML keeps the last one, so a
+    pasted second `severity:` would silently win and the first would never be read."""
+
+    def construct_mapping(self, node, deep=False):
+        if isinstance(node, yaml.MappingNode):
+            self.flatten_mapping(node)
+            seen = set()
+            for key_node, _ in node.value:
+                key = self.construct_object(key_node, deep=True)
+                if isinstance(key, (str, int, float, bool)) or key is None:
+                    if key in seen:
+                        raise yaml.constructor.ConstructorError(
+                            "while reading a mapping", node.start_mark,
+                            f"found duplicate key {key!r}", key_node.start_mark)
+                    seen.add(key)
+        return super().construct_mapping(node, deep=deep)
+
+
+def load_yaml(text):
+    """The data in catalogue YAML text. Raises yaml.YAMLError, including for a duplicate key."""
+    return yaml.load(text, Loader=StrictLoader)  # noqa: S506 - StrictLoader is a SafeLoader
 
 
 @dataclass(frozen=True)
@@ -96,6 +122,8 @@ def parse_trigger(text, scope):
 
     Grammar: `exists`, or conditions joined by ` and `, each `field: value` or `field in [a, b]`.
     Values are lower-case words and may hold spaces, as in `new consumers`."""
+    if scope not in SCOPES:
+        raise CatalogueError(f"trigger scope {scope!r} is not one of {', '.join(SCOPES)}")
     if not isinstance(text, str) or not text.strip():
         raise CatalogueError("trigger must be text, such as 'exists' or 'change in [new, changed]'")
     text = " ".join(text.split())
@@ -103,11 +131,15 @@ def parse_trigger(text, scope):
         return Trigger(text, ())
     fields = TRIGGER_FIELDS.get(scope, {})
     conditions = []
+    seen_fields = set()
     for part in text.split(" and "):
         match = CONDITION_RE.match(part)
         if not match:
             raise CatalogueError(f"trigger part '{part}' is not 'field: value' or 'field in [a, b]'")
         field = match["field"]
+        if field in seen_fields:
+            raise CatalogueError(f"trigger field '{field}' appears twice; use 'field in [a, b]' for either value")
+        seen_fields.add(field)
         if field not in fields:
             allowed = ", ".join(fields) or "none: use exists"
             raise CatalogueError(f"trigger field '{field}' is not one a {scope} subject has (fields: {allowed})")
@@ -115,6 +147,13 @@ def parse_trigger(text, scope):
         values = tuple(v.strip().lower() for v in raw)
         if any(not v for v in values):
             raise CatalogueError(f"trigger part '{part}' has an empty value")
+        repeated = sorted({v for v in values if values.count(v) > 1})
+        if repeated:
+            raise CatalogueError(f"trigger part '{part}' lists {', '.join(repr(v) for v in repeated)} twice")
+        dangling = [v for v in values if v == "and" or v.endswith(" and") or v.startswith("and ")]
+        if dangling:
+            raise CatalogueError(f"trigger value {dangling[0]!r} has a stray 'and'; join conditions as "
+                                 "'field: value and field: value'")
         allowed_values = fields[field]
         bad = [v for v in values if allowed_values is not None and v not in allowed_values]
         if bad:
@@ -134,6 +173,9 @@ def _text(entry, key, problems, where):
 
 def _word_list(entry, key, allowed, problems, where):
     value = entry.get(key, [])
+    if value is None:
+        problems.append(f"{where}: '{key}' is empty; leave it out or list words")
+        return ()
     if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
         problems.append(f"{where}: '{key}' must be a list of words")
         return ()
@@ -179,7 +221,10 @@ def _entry(raw, n, areas, problems):
     blocks = _word_list(raw, "blocks", BLOCK_KINDS, problems, where)
     mentions = _word_list(raw, "mentions", None, problems, where)
     creates = raw.get("creates", "")
-    if creates and creates not in CREATES:
+    if creates is None or (isinstance(creates, str) and not creates.strip() and "creates" in raw):
+        problems.append(f"{where}: 'creates' is empty; leave it out or use one of {', '.join(CREATES)}")
+        creates = ""
+    elif creates and creates not in CREATES:
         problems.append(f"{where}: creates {creates!r} is not one of {', '.join(CREATES)}")
     if (creates or mentions) and scope != "initiative":
         problems.append(f"{where}: only an initiative-scope entry may create a subject or list mentions")
@@ -226,6 +271,10 @@ def parse_catalogue(data):
             entry = _entry(raw, n, codes, problems)
             if entry is not None:
                 entries.append(entry)
+    used = {raw.get("area") for raw in raw_entries if isinstance(raw, dict)} if isinstance(raw_entries, list) else set()
+    for code in codes:
+        if code not in used:
+            problems.append(f"area {code} is listed in 'areas' but no entry uses it")
     seen = set()
     for entry in entries:
         if entry.id in seen:

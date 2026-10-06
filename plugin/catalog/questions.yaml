@@ -34,14 +34,14 @@ entries:
     scope: initiative
     trigger: exists
     question: Who pays for the change, and who carries its running cost once it is live?
-    why: Buckl et al. (2009) found that existing contracts and running costs shape the post-merger state; the simulated runs never named who carries what.
+    why: Enterprise-architecture practice treats existing contracts and running costs as constraints on the target state (Buckl et al., 2009). The simulated runs never named who carries what.
     severity: normal
 
   - id: Q-FIN-03
     area: FIN
     scope: stored-value
     trigger: exists
-    question: Who carries these balances on the books as money owed to customers, and what happens to them at conversion, expiry or closure?
+    question: Who carries these balances on the books as money owed to customers?
     why: Loyalty credit is deferred revenue, and breakage is recognised only when redemption becomes remote (RSM UK on IFRS 15). The simulated runs missed this liability every time.
     severity: high
     blocks: [decision, capability, epic]
@@ -50,8 +50,26 @@ entries:
     area: FIN
     scope: stored-value
     trigger: exists
-    question: If the holder changes or two schemes combine, how does one balance convert into the other, and who sets the rate?
-    why: The accounting for loyalty schemes "may depend on the details of the scheme" (RSM UK), so a merger of schemes is a finance decision before it is a system one.
+    question: Where stored value moves between schemes or systems, how does one balance convert into the other?
+    why: The accounting for loyalty schemes "may depend on the details of the scheme" (RSM UK), so moving value between schemes is a finance decision before it is a system one.
+    severity: normal
+    blocks: [decision]
+
+  - id: Q-FIN-05
+    area: FIN
+    scope: stored-value
+    trigger: exists
+    question: What happens to a balance at expiry or closure?
+    why: Breakage is recognised only when redemption becomes remote (RSM UK on IFRS 15), so the rule for expiry and closure decides when a liability leaves the books.
+    severity: normal
+    blocks: [decision]
+
+  - id: Q-FIN-06
+    area: FIN
+    scope: stored-value
+    trigger: exists
+    question: Who sets the rate at which a balance converts, and who approves it?
+    why: A conversion rate moves money between customers and the business, so someone with finance authority has to own it. The simulated runs left the rate to whoever built the system.
     severity: normal
     blocks: [decision]
 
@@ -60,11 +78,20 @@ entries:
     area: DAT
     scope: initiative
     trigger: exists
-    question: Will any data be used by a new party, or for a purpose other than the one it was collected for?
-    why: The ICO's guidance on data sharing after a merger says to "establish the purposes for which the data was originally obtained" and the lawful basis for sharing it. A yes creates the party subject.
+    question: Will any data be used by a new party?
+    why: The ICO's guidance on data sharing says to "establish the purposes for which the data was originally obtained" and the lawful basis for sharing it. A yes creates the party subject.
     severity: high
     blocks: [decision, contract, epic]
     creates: party
+
+  - id: Q-DAT-05
+    area: DAT
+    scope: initiative
+    trigger: exists
+    question: Will any data be used for a purpose other than the one it was collected for?
+    why: The ICO asks for the purposes the data was originally obtained for, and a lawful basis for any new one. A new purpose needs its own basis even when no new party appears.
+    severity: high
+    blocks: [decision, contract, epic]
 
   - id: Q-DAT-02
     area: DAT
@@ -88,8 +115,8 @@ entries:
     area: DAT
     scope: stored-value
     trigger: exists
-    question: Which system is the record of each customer's balance, and does every channel that shows it read that one?
-    why: Discover's read-backs in the simulated runs found balances that had to follow a customer across two systems when only one side had a place for them.
+    question: Which one system is the record of each customer's balance?
+    why: Simulated runs found balances that had to follow a customer across two systems when only one of them had a place to hold them. Every channel that shows a balance has to read the same record.
     severity: normal
     blocks: [capability]
 
@@ -99,7 +126,7 @@ entries:
     scope: initiative
     trigger: exists
     question: Does ownership, operation or payment change for anything, such as a system, an agreement, a team or a service?
-    why: Change-of-control clauses can fire even when no asset moves (Weil; legal due-diligence practice). A yes creates the party subject that Q-PTN-02 and Q-PTN-03 need.
+    why: Change-of-control clauses can fire even when no asset moves (legal due-diligence practice). A yes creates the party subject that Q-PTN-02 and Q-PTN-03 need.
     severity: high
     blocks: [decision, contract, epic]
     creates: party
@@ -109,26 +136,44 @@ entries:
     area: PTN
     scope: party
     trigger: relationship in [partner, supplier]
-    question: Does their agreement let us share data with a new owner, assign the agreement, or change who controls it, and what notice does it need?
-    why: Anti-assignment and change-of-control clauses decide whether a merger may use a partner's data at all. The simulated runs missed partner contracts that blocked sharing.
+    question: Does their agreement let us share data with a new owner or user of it?
+    why: Data-sharing and confidentiality clauses decide whether a partner's data may pass to anyone new. The simulated runs missed partner contracts that blocked sharing.
     severity: high
     blocks: [decision, contract, epic]
+
+  - id: Q-PTN-05
+    area: PTN
+    scope: party
+    trigger: relationship in [partner, supplier]
+    question: Does their agreement let it be assigned, or change who controls it?
+    why: Anti-assignment and change-of-control clauses can end or reprice an agreement when ownership moves, even if no asset does. Legal due-diligence practice reads them first.
+    severity: high
+    blocks: [decision, contract, epic]
+
+  - id: Q-PTN-06
+    area: PTN
+    scope: party
+    trigger: relationship in [partner, supplier]
+    question: What notice does a change to their agreement need, and who must give it?
+    why: A notice period that nobody tracks turns a planned date into a breach. The simulated runs never asked who had to give notice.
+    severity: normal
+    blocks: [decision]
 
   - id: Q-PTN-03
     area: PTN
     scope: party
     trigger: relationship in [partner, supplier]
     question: Who holds the agreement, when does it end, and what does leaving or changing it cost?
-    why: Buckl et al. (2009) found that existing contracts "have a high influence on costs" in the post-merger state.
+    why: Buckl et al. (2009) found that existing contracts "have a high influence on costs" when landscapes are combined.
     severity: normal
     blocks: [decision]
 
   - id: Q-PTN-04
     area: PTN
     scope: contract
-    trigger: "provider: external"
+    trigger: "provider: external and change in [new, changed]"
     question: Which agreement with the external provider covers this contract, and does the change stay inside it?
-    why: A contract with an outside provider is bounded by an agreement the initiative does not own (Volere, "changes in the other organizations or systems on your context diagram").
+    why: A new or changed contract with an outside provider is bounded by an agreement the initiative does not own (Volere, "changes in the other organizations or systems on your context diagram").
     severity: normal
     blocks: [contract]
 
@@ -137,8 +182,17 @@ entries:
     area: REG
     scope: initiative
     trigger: exists
-    question: Will anything be sold or promised across parties, such as a combined ticket or a bundle, and who is liable to the customer when one part fails?
-    why: Under EU Regulation 2021/782, carriers that form a "sole undertaking" must sell through-tickets, so a change of ownership can create passenger-rights liability. The simulated runs missed liability for combined products.
+    question: Will any product be sold or promised across parties, such as a bundle or a joint offer?
+    why: Some sectors make parties jointly answerable for a product sold across them, e.g. EU 2021/782 for rail. The simulated runs missed liability for combined products.
+    severity: normal
+    blocks: [decision, epic]
+
+  - id: Q-REG-05
+    area: REG
+    scope: initiative
+    trigger: exists
+    question: When one part of a product sold across parties fails, who is liable to the customer?
+    why: A customer deals with the seller, not with the party that failed, so liability has to be placed before the product is sold. The simulated runs never asked who answers to the customer.
     severity: normal
     blocks: [decision, epic]
 
@@ -166,8 +220,8 @@ entries:
     area: REG
     scope: party
     trigger: "relationship: customer group"
-    question: What has this group been promised today, and does the change alter it?
-    why: Passenger and consumer rights attach to what was promised at sale (EU Regulation 2021/782), so a change to a product changes what the operator owes.
+    question: What has this group been promised today, in contracts, terms or law?
+    why: Consumer rights attach to what was promised at sale, e.g. EU 2021/782 for rail, so a change to a product changes what the seller owes.
     severity: normal
 
   # ---------------------------------------------------------------- operations and people
@@ -193,8 +247,8 @@ entries:
     area: OPS
     scope: capability
     trigger: change in [new, extend, replace, narrow, retire]
-    question: Which team owns it after the change, and which capability map does it sit in?
-    why: Post-merger EA practice maps both companies onto one domain framework first (Buckl et al., 2009), so a changed capability needs an owner on the map that decides.
+    question: Which team owns it after the change?
+    why: Enterprise-architecture practice gives each capability one owning team and one place on a shared map (Buckl et al., 2009), so a changed capability needs an owner before the map can decide anything.
     severity: normal
     blocks: [capability, epic]
 
@@ -202,8 +256,8 @@ entries:
     area: OPS
     scope: initiative
     trigger: exists
-    question: Is there more than one of anything doing the same job, such as two systems, two schemes or two capability maps, and which one decides, or is it a new one?
-    why: Buckl et al. (2009) warn of "emotional tit-for-tat decisions" between two companies' capabilities. The simulated runs never asked which capability framework decides.
+    question: Is there more than one system, scheme, map or team doing the same job? Name them.
+    why: Buckl et al. (2009) warn of "emotional tit-for-tat decisions" when overlapping capabilities are settled. The simulated runs never asked which of two overlapping things decides.
     severity: normal
     blocks: [decision]
 
@@ -212,7 +266,7 @@ entries:
     scope: initiative
     trigger: exists
     question: What is being retired, and who still depends on it?
-    why: Baseline-against-target gap analysis (TOGAF, EA merger practice) treats each retirement as a gap that someone downstream may still rely on.
+    why: Baseline-against-target gap analysis (TOGAF) treats each retirement as a gap that someone downstream may still rely on.
     severity: normal
 
   - id: Q-OPS-06

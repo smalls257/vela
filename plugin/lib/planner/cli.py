@@ -53,7 +53,7 @@ def load_catalogue(path=None):
         raise ToolError(f"{path} is missing, so planner cannot work out which questions are owed. "
                         "Restore it from the toolkit repo.")
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data = catalog.load_yaml(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
         raise ToolError(f"{path} cannot be read as YAML: {exc}") from exc
     try:
