@@ -230,3 +230,188 @@ def test_epics_offers_the_e805_override_with_its_exact_bullet():
     assert "Leave the gate failing." in epics and "the whole vault, not one team" in epics
     assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
     assert "the override is the only way to a clean `--gate epics`" in epics
+
+
+# ------------------------------------------------------------------ close writes the ledger and proposes entries
+
+def test_close_writes_a_ledger_row_for_every_copy_taken_and_every_finding():
+    close = text("skills/close/SKILL.md")
+    assert "### The question ledger" in close
+    assert "`R-<AREA>-nn`" in close and "Its state is `open` unless the lead took it." in close
+    assert "Never write `answered` without an item link and a source" in close
+    assert "<!-- generated:undisposed-questions sha=00000000: do not edit, run planner render -->" in close
+
+
+def test_close_proposes_catalogue_entries_and_never_edits_the_catalogue():
+    close = text("skills/close/SKILL.md")
+    assert "### Gaps the catalogue missed" in close
+    assert '"Did any other gap turn up late, or by luck?"' in close
+    assert "Never edit `.claude/skills/planner/catalog/questions.yaml`" in close
+    assert "planner questions --stats" in close and "Pruning is the user's call." in close
+
+
+def test_close_reports_questions_and_reviews_in_the_pr_body():
+    close = text("skills/close/SKILL.md")
+    for label in ("**Questions:**", "**Reviews:**", "**Catalogue proposals:**"):
+        assert label in close
+    assert "Never write that the questions are complete." in close
+    assert "planner check --gate shape" in close
+
+
+def test_start_keeps_its_override_rule():
+    start = text("references/START.md")
+    assert "## The user may override any rule" in start and "Never refuse, and never ask twice." in start
+
+
+def test_close_writes_answered_rows_in_the_grammar_check_reads():
+    """An answered row needs answer: and a source check can verify. "The lead's own words in quotes"
+    with no page is E802, so close must never be told to write one."""
+    close = text("skills/close/SKILL.md")
+    assert "`answer:` the answer in one line" in close
+    assert '`"<the words>" in [[<page>]]`' in close
+    assert "the lead's own words in double quotes" not in close
+    assert "E801, E802 or E803" in close and "Never delete a row to quiet the check" in close
+
+
+def test_close_types_the_subjects_dump_named_and_never_invents_a_fact():
+    close = text("skills/close/SKILL.md")
+    assert "### Type the subjects Dump named" in close
+    assert "`type at close: PTY`" in close and "`type at close: SV`" in close
+    for label in ("**Relationship:**", "**Agreements:**", "**Holder:**", "**Owner:**"):
+        assert label in close
+    assert "Never fill a fact from general knowledge" in close
+
+
+def test_close_keeps_the_grill_record_of_a_decision_over_open_questions():
+    close = text("skills/close/SKILL.md")
+    assert "decided with <copy IDs> open (W807)" in close
+    assert "write no row for those copies" in close
+
+
+def test_close_keeps_its_existing_guards():
+    close = text("skills/close/SKILL.md")
+    for kept in ("### Voice review", "**Voicescore, optional.**", "### Harvest the owner's edits",
+                 "git merge --no-edit origin/main", "Never stage anything in `voice/local/`",
+                 "gh pr comment <number> --body-file <file>", "planner handoff <APP-id>",
+                 "planner voicecheck"):
+        assert kept in close, kept
+    assert len(close.splitlines()) < 500
+
+
+def test_the_rows_close_writes_for_a_small_session_pass_check(tmp_path):
+    """A realistic close outcome on a copy of the fixture: a Dump typed a stored value at close,
+    and the lead answered one copy with a quote, assumed one, ruled one out, made one an unknown,
+    and answered one for every stored value with a wildcard. A finding of copy `new` became a
+    reviewer question. The rows, the typed subject and the new UNK must all pass check."""
+    import shutil
+
+    from conftest import check, edit, findings, run
+    vault = tmp_path / "ub"
+    shutil.copytree(REPO / "examples" / "unified-booking", vault)
+
+    edit(vault / "03-context-and-scope.md", "- **Owner:** Finance, through INI-004 Loyalty Revamp\n", """\
+- **Owner:** Finance, through INI-004 Loyalty Revamp
+
+### SV-02 Travel credit
+
+- **Holder:** Booking, which keeps each credit against the booking reference it came from
+- **Owner:** not known yet, see [[11-unknowns-and-risks#UNK-009 Who carries travel credit|UNK-009]]
+""")
+    unknowns = vault / "11-unknowns-and-risks.md"
+    edit(unknowns, "## Risks\n", """\
+### UNK-009 Who carries travel credit
+
+- **Question:** Who carries travel credit as money owed to customers?
+- **Owner:** @hl-solution-lead (solution lead)
+- **Opened:** 2026-11-20 Dump
+- **State:** open
+- **Ask by:** 2026-12-18
+- **Blocks:** nothing in INI-002
+
+## Risks
+""")
+    rows = [
+        "| Q-DAT-04@SV-02 | answered | item: [[03-context-and-scope#SV-02 Travel credit\\|SV-02]]; "
+        "source: \"keeps each credit against the booking reference\" in [[03-context-and-scope]]; "
+        "answer: Booking holds the credit against its booking reference | @hl-solution-lead | 2026-11-20 |",
+        "| Q-FIN-05@SV-02 | assumed | belief: credit expires 12 months after the cancelled crossing; "
+        "load-bearing: yes; signpost: a customer asking to use credit after a year | @hl-solution-lead | 2026-11-20 |",
+        "| Q-FIN-06@SV-02 | not-applicable | reason: travel credit never converts into another scheme "
+        "| @hl-solution-lead | 2026-11-20 |",
+        "| Q-FIN-03@SV-02 | unknown | unknown: [[#UNK-009 Who carries travel credit\\|UNK-009]] "
+        "| @hl-solution-lead | 2026-11-20 |",
+        "| Q-FIN-04@SV-* | not-applicable | reason: INI-002 neither moves nor merges any value held for "
+        "customers | @hl-solution-lead | 2026-11-20 |",
+        "| R-FIN-02 | open | question: Does a refund to card cancel the credit, and who records it?; "
+        "quote: \"keeps each credit against the booking reference\" in [[03-context-and-scope]]; "
+        "severity: high | @hl-solution-lead | 2026-11-20 |",
+    ]
+    ledger = unknowns.read_text(encoding="utf-8").rstrip("\n") + "\n" + "\n".join(rows) + "\n"
+    unknowns.write_text(ledger, encoding="utf-8")
+
+    (vault / "sessions" / "2026-11-20-credit-dump.md").write_text("""\
+---
+id: 2026-11-20-credit-dump
+type: session
+title: "Dump: travel credit"
+date: 2026-11-20
+modes: [dump]
+status: closed
+summary: Typed travel credit as stored value and recorded where its owed questions stand.
+---
+
+# 2026-11-20 Dump: travel credit
+
+## Captures
+
+- [thought] (solution lead) A cancelled crossing can be kept as travel credit, held by Booking. type at close: SV → keep: [[03-context-and-scope#SV-02 Travel credit|SV-02]] (subject) ^c01
+- [thought] (solution lead) Q-FIN-05@SV-02: we believe credit expires after 12 months, and the plan rests on it → keep: [[11-unknowns-and-risks#Question ledger|Q-FIN-05@SV-02]] (assumed) ^c02
+- [thought] (solution lead) Q-FIN-06@SV-02: credit never converts into another scheme → keep: [[11-unknowns-and-risks#Question ledger|Q-FIN-06@SV-02]] (not-applicable) ^c03
+- [unknown] (solution lead) Q-FIN-03@SV-02: nobody here knows who carries the credit → keep: [[11-unknowns-and-risks#UNK-009 Who carries travel credit|UNK-009]] (open) ^c04
+- [thought] (solution lead) Q-FIN-04@SV-*: nothing in INI-002 moves or merges held value → keep: [[11-unknowns-and-risks#Question ledger|Q-FIN-04@SV-*]] (not-applicable) ^c05
+
+## Changes
+
+| ID | From | To | Source |
+|---|---|---|---|
+| UNK-009 | - | open | [[2026-11-20-credit-dump#^c04]] |
+| Q-DAT-04@SV-02 | - | answered | [[2026-11-20-credit-dump#^c01]] |
+| Q-FIN-05@SV-02 | - | assumed | [[2026-11-20-credit-dump#^c02]] |
+| Q-FIN-06@SV-02 | - | not-applicable | [[2026-11-20-credit-dump#^c03]] |
+| Q-FIN-03@SV-02 | - | unknown | [[2026-11-20-credit-dump#^c04]] |
+| Q-FIN-04@SV-* | - | not-applicable | [[2026-11-20-credit-dump#^c05]] |
+| R-FIN-02 | - | open | [[2026-11-20-credit-dump#^c01]] |
+""", encoding="utf-8")
+
+    code, out = run("render", "--vault", str(vault))
+    assert code == 0, out
+    code, out = check(vault, "2026-11-20")
+    assert code == 0 and findings(out) == [], out
+
+    code, out = run("questions", "--subject", "SV-02", "--vault", str(vault))
+    assert code == 0, out
+    for copy, state in (("Q-DAT-04@SV-02", "answered"), ("Q-FIN-05@SV-02", "assumed"),
+                        ("Q-FIN-06@SV-02", "not-applicable"), ("Q-FIN-03@SV-02", "unknown"),
+                        ("Q-FIN-04@SV-02", "not-applicable via Q-FIN-04@SV-*")):
+        line = next((l for l in out.splitlines() if l.startswith(copy + " ")), "")
+        assert f"| {state} |" in line, (copy, out)
+
+    code, out = run("check", "--gate", "shape", "--vault", str(vault), "--today", "2026-11-20")
+    assert any(" W806 " in l and "Q-FIN-05@SV-02" in l for l in out.splitlines()), out
+
+
+def test_an_answered_row_quoting_only_the_lead_is_refused(tmp_path):
+    """Why close quotes a page or cites an SRC-nn: words in quotes with no page fake a source."""
+    import shutil
+
+    from conftest import check, findings
+    vault = tmp_path / "ub"
+    shutil.copytree(REPO / "examples" / "unified-booking", vault)
+    unknowns = vault / "11-unknowns-and-risks.md"
+    row = ("| Q-FIN-02@INI-002 | answered | item: [[concern-ownership\\|Ownership]]; "
+           "source: \"Platform pays for it from next year\"; answer: Platform pays | @hl-solution-lead | 2026-11-20 |")
+    text = unknowns.read_text(encoding="utf-8")
+    old = next(l for l in text.splitlines() if l.startswith("| Q-FIN-02@INI-002 "))
+    unknowns.write_text(text.replace(old, row), encoding="utf-8")
+    code, out = check(vault, "2026-11-20")
+    assert ("E802", "11-unknowns-and-risks.md") in findings(out), out

@@ -21,6 +21,8 @@ Propose a mark for every capture that has none yet, at once, as a numbered list 
 
 - In a session whose `modes` include `shape`, the picked option is kept as an `assumption`, never an `inkling`. See section 3.
 - A person's `idea` or `thought` is kept as an `inkling` on the page it belongs to.
+- A capture that says `type at close: PTY` or `type at close: SV` is kept as that subject, marked `(subject)` in place of a state, because a party or stored value carries none. See "Type the subjects Dump named" in section 3.
+- A capture whose words start with a copy ID or a finding ID is kept as its ledger row, `→ keep: [[11-unknowns-and-risks#Question ledger|<copy>]] (<state>)`, with the state of the row. See "The question ledger" in section 3.
 - A person's `unknown` or `worry` is kept as an unknown with an owner handle and an ask-by date you propose, or as a concern cell.
 - An `unknown` capture is kept or dropped with a reason. It is never parked. For a `claude`-origin `unknown`, the user must choose: kept as an UNK with an owner and an ask-by date, or dropped with a reason. Claude never decides it alone. This rule wins over the park default for `claude` lines.
 - A person's `wild` line is parked, never dropped.
@@ -37,6 +39,43 @@ Write each mark into the line: `→ keep: [[<page>#<heading>|<ID>]] (<state>)`, 
 Write each kept item onto its page as structured content only: fact bullets, table rows and `### <ID> <short name>` headings, per `CONVENTIONS.md`. A Grill already wrote its decided items, and Discover already wrote its facts, so leave those alone. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet as written, and never move, merge or reword one. If the user overrode a rule during the session and no bullet records it yet, write it now, in the grammar of `CONVENTIONS.md` under "Overrides", with the handle, date and reason from the capture.
 
 For a session whose `modes` include `epics`, the epic pages already exist, so write no `assumption` item for a picked cut, and skip the `shape` paragraph that follows. Still add the `## Changes` rows for every epic whose state changed, `| EPC-nnn | - | draft | [[<id>#^cNN]] |` and `| EPC-nnn | draft | decided | ... |`, or `| EPC-nnn | reopened | decided | ... |` for a reopened epic, if the session has not already. For any other session whose `modes` include `shape`, write the picked option as an `assumption` item with an `**Options considered:**` bullet, at page level or under the item's heading: `- **Options considered:** <picked option> (picked); <option>: rejected, <reason>; ...`. `planner next` reads it: an `assumption` without it still needs a Shape, and one with it is ready for a Grill. If a capture says "that's decided", add a "grill to confirm" note to the item. The item must pass grill's GATE-2 afterwards: at `assumption`, with a preferred option and the rejected options with their reasons. New items get the next free ID of their kind: grep the vault for the existing IDs of that kind, and also read the `## Changes` tables of the records on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:sessions/<id>.md`), because another open session may already hold the next ID. Add one to the highest in use. Add one row to `## Changes` for each item whose state changed: `| ID | From | To | [[<id>#^cNN]] |`.
+
+### Type the subjects Dump named
+
+A kept capture that says `type at close: PTY` or `type at close: SV` names a subject the lead said exists. Write it on `03-context-and-scope.md`: a party as `### PTY-nn <name>` under `## Outside parties`, stored value as `### SV-nn <name>` under `## Value held for customers`, adding the section if the page lacks it, with the next free ID as above. A party needs `**Relationship:**` (`partner`, `supplier`, `regulator` or `customer group`) and `**Agreements:**` (the agreements, with their `SRC-nn`, or `none known`). Stored value needs `**Holder:**` and `**Owner:**`. Fill each from what the user said, in the captures or in this turn, and ask for any the user did not give. A fact the user does not know stays an unknown: write `not known yet, see [[11-unknowns-and-risks#UNK-nnn <name>|UNK-nnn]]`, and write that unknown with an owner and an ask-by date as section 2 says. A relationship has no "not known yet": if nobody knows it, write the unknown, leave the party untyped, and say so in the PR body. Never fill a fact from general knowledge, and never guess one. A missing fact is E808. A typed subject makes the catalogue owe its questions, so run `python3 .claude/skills/planner/bin/planner questions --subject <ID>` and keep the list for the ledger below.
+
+### The question ledger
+
+Every owed copy the lead took, and every finding a review checkpoint kept, ends in a row of the table under `## Question ledger` on `11-unknowns-and-risks.md`, in the grammar of `CONVENTIONS.md` under "Questions and the ledger". If the page has no such section, add it after `## Risks`: the heading, an empty block (`<!-- generated:undisposed-questions sha=00000000: do not edit, run planner render -->` and `<!-- /generated:undisposed-questions -->` on the next line), then the header `| Copy | State | Evidence | By | Date |` and `|---|---|---|---|---|`.
+
+List every capture whose words start with a copy ID such as `Q-FIN-03@SV-01`, a wildcard such as `Q-OPS-01@APP-*`, or a finding ID such as `F1.2`, and every row of the record's `## Reviews` tables. Propose a ledger row for each, at once, as a numbered list, and the user changes the ones they disagree with:
+
+- A finding about an owed copy that the lead did not take adds no row. The copy stays undisposed, and the `undisposed-questions` block shows it.
+- A finding with copy `new` becomes a reviewer question, `R-<AREA>-nn`, with the next free number for its area. Find it as for any new ID: the ledger, and the ledger rows and `## Changes` tables on the other `session/*` branches. Its evidence holds `question:`, `quote:` and `severity:` from its row in `## Reviews`. Its state is `open` unless the lead took it.
+- The state comes from what the lead said. `answered`: `item:` links the item the answer was written into, `answer:` the answer in one line, and `source:` is exactly one `SRC-nn` from `sources.md`, or exactly one quote of four or more words from a page's own text, `"<the words>" in [[<page>]]`. When the lead's word is the only source, quote the words section 3 wrote onto the item's page, or cite a first-hand `SRC-nn` row. A quote with no page is E802. `not-applicable`: `reason:`, with By the person who ruled it out. `assumed`: `belief:`, `load-bearing:` yes or no, and `signpost:`, asking the user for the last two. `unknown`: `unknown:` links the UNK that this close writes, with its owner and ask-by date. `asked`: `capture:` links the capture, when the question went to someone who has not answered yet.
+- One answer for several copies is one row: a wildcard such as `Q-OPS-01@APP-*`, or an initiative row with `covers: <scope>`. A copy that is an exception gets its own row.
+- By is the handle of whoever answered or ruled it out, and Date is today. Never write `answered` without an item link and a source, and never invent a source.
+- A Grill's capture "decided with <copy IDs> open (W807)" is a record of a decision, not an answer: write no row for those copies, and keep the note on the item's `## Changes` row as the Grill wrote it.
+
+Add a `## Changes` row for each new ledger row: `| <copy> | - | <state> | [[<id>#^cNN]] |`, citing the capture.
+
+Then run `python3 .claude/skills/planner/bin/planner check`. Each E801, E802 or E803 on the ledger is a row written wrong: show it and fix it with the user. If no source the check accepts exists, ask which state it is instead, such as `assumed` or `open`. Never delete a row to quiet the check, and never drop one without saying so.
+
+### Gaps the catalogue missed
+
+The catalogue grows from gaps found late or by luck. List each reviewer question this close wrote that is not `not-applicable`, then ask the user: "Did any other gap turn up late, or by luck?" For each one the user names, draft an entry:
+
+```yaml
+- id: Q-<AREA>-nn  # the next free number in that area of the catalogue
+  area: <AREA>
+  scope: <initiative, app, contract, capability, party or stored-value>
+  trigger: <exists, or a condition in the grammar of CONVENTIONS.md>
+  question: <the question, worded for any vault, not only this one>
+  why: <found late in session <id>: what was missed, and what finding it late cost>
+  severity: <high or normal>
+```
+
+Show each draft and ask for an explicit yes. Write the approved ones under `## Catalogue proposals` in the session record, as one YAML block, and list them in the PR body. Never edit `.claude/skills/planner/catalog/questions.yaml`: the catalogue belongs to the toolkit, so code decides what is owed only once the toolkit takes the entry. Then run `python3 .claude/skills/planner/bin/planner questions --stats`, and list in the PR body each entry whose copies in this vault all ended `not-applicable`, as one to prune or tighten. Pruning is the user's call.
 
 ## 4. Draft the prose
 
@@ -151,7 +190,7 @@ First bring in `main` if it moved since the branch was made, so render and check
 5. On a conflict, list the files with `git diff --name-only --diff-filter=U` and read each conflict hunk (`<<<<<<<` to `>>>>>>>`). If any hunk sits outside a `<!-- generated:` block, stop: run `git merge --abort`, show those files and lines, and leave the merge for the user.
 6. If every hunk sits inside a generated block, render rebuilds those blocks, so the side does not matter. Run `git merge --abort`, then `git merge --no-edit -X ours origin/main`. `-X ours` decides only the conflicting hunks, so every edit that merged cleanly, on either side, is kept. Never use `git checkout --ours` or `--theirs` on a file: that takes one side of the whole file and drops the other side's edits.
 
-Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/skills/planner/bin/planner check`. Fix each error with the user. An E321 or E322 is an override the check cannot read: fix its grammar, never delete it. A W303, W304, W316, W317, W318 or W324 is an override doing its job: list it under **Overrides**, and do not remove the bullet to quiet it. If the user leaves an error in place, put it in the PR body. CI will block the merge until it is fixed.
+Run `python3 .claude/skills/planner/bin/planner render`, then `python3 .claude/skills/planner/bin/planner check`. For a session whose `modes` include `shape`, run `python3 .claude/skills/planner/bin/planner check --gate shape` as well: each W806 is a question still `assumed`, so list it under **Questions** in the PR body. Run `python3 .claude/skills/planner/bin/planner questions --open --digest` and keep its first line, the coverage, for the PR body. Fix each error with the user. An E321 or E322 is an override the check cannot read: fix its grammar, never delete it. A W303, W304, W316, W317, W318 or W324 is an override doing its job: list it under **Overrides**, and do not remove the bullet to quiet it. If the user leaves an error in place, put it in the PR body. CI will block the merge until it is fixed.
 
 ## 7. Finish the record
 
@@ -182,6 +221,9 @@ Write the PR body to a temporary file. Fill the headings of the vault's PR templ
   - **Overrides:** every `**Override:**` bullet this session wrote, with its item, rules and reason, and every item decided on an owner's behalf that is not yet confirmed, with the owner @-mentioned so they can confirm or raise `/planner:challenge`. Or "none".
   - **Changed contracts:** each contract, and for each consumer, who was asked: present, async, in this PR, or "not consulted: <reason>".
   - **Overdue unknowns:** each `W705` line from section 6, with its owner @-mentioned.
+  - **Questions:** the coverage line from section 6, each ledger row this session wrote with its state, each W806 from the shape gate, each item decided with a question open (W807), each subject typed with the copies it now owes, and each left untyped with its unknown. Never write that the questions are complete.
+  - **Reviews:** each checkpoint's `**Coverage:**` line from `## Reviews`, word for word, with its dropped findings and their reasons; or "none: no checkpoint ran". An area that did not run is listed with its reason, never left out.
+  - **Catalogue proposals:** each entry the user approved, and each entry `--stats` names as one to prune or tighten; or "none".
   - **May still say the old value:** for each `decided` or `fact` value this session changed, run `grep -rn -F "<old wording>" --include='*.md' . | grep -v '^./sessions/'` and list every hit.
   - **Check:** the first line of the check output, and any error left in place.
 - **Minutes.** Ask the user how long the session took.
