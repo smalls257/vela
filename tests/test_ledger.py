@@ -306,7 +306,8 @@ def test_planner_questions_json_holds_every_field():
     _, answer = ask(FIXTURE)
     copy = next(c for c in answer["copies"] if c["id"] == "Q-PTN-02@PTY-02")
     assert copy == {"id": "Q-PTN-02@PTY-02", "entry": "Q-PTN-02", "area": "PTN", "severity": "high",
-                    "question": copy["question"], "subject": "PTY-02", "subject_kind": "party", "state": "assumed", "valid": True,
+                    "question": copy["question"], "subject": "PTY-02", "subject_kind": "party",
+                    "subject_page": "03-context-and-scope.md", "state": "assumed", "valid": True,
                     "row": copy["row"], "via": None, "pending": False, "blocks": ["ADR-0002", "CON-006"]}
     assert answer["reviewer"][0]["id"] == "R-FIN-01" and answer["reviewer"][0]["subject_kind"] == "reviewer"
 

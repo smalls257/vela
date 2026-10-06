@@ -63,7 +63,7 @@ def merge_one(tmp_path, vault, quote, area="REG"):
     folder.mkdir(exist_ok=True)
     for code in ("FIN", "DAT", "PTN", "REG", "OPS"):
         found = [{"finding": "Nobody has said who is liable.", "quote": quote, "page": "2026-11-20-points-dump",
-                  "copy": "new", "severity": "high", "question": "Who is liable?"}] if code == area else []
+                  "copy": "new", "severity": "high", "question": "Who is liable for the points?"}] if code == area else []
         (folder / f"{code}.json").write_text(json.dumps({"area": code, "findings": found}), encoding="utf-8")
     code, out = run("findings", "merge", str(folder), "--vault", str(vault), "--json")
     return json.loads(out)
