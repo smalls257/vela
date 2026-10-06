@@ -169,6 +169,19 @@ def summary(page, item_id=""):
     }
 
 
+def decisions(page):
+    """[(valid overrides, on-behalf decision or None)] for each scope on the page that holds
+    an override or a Decided by: the page level first, then each item in page order.
+    Viewer and export read this, so neither grows a second parser."""
+    ids = []
+    for bullet in page.bullets:
+        if bullet.label in schema.OVERRIDE_LABELS and not bullet.generated and bullet.item not in ids:
+            ids.append(bullet.item)
+    ids.sort(key=lambda i: (i != "",))
+    scopes = [(valid_overrides(page, i), on_behalf(page, i)) for i in ids]
+    return [(found, behalf) for found, behalf in scopes if found or behalf]
+
+
 def _scopes(vault):
     """{(path, item id or ""): page} for every page and item heading that holds one of our bullets."""
     out = {}

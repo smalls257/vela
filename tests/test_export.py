@@ -210,3 +210,43 @@ def test_a_password_holding_an_at_sign_gives_no_link_and_no_leak(tmp_path):
 def test_a_null_byte_in_out_is_a_tool_failure(tmp_path):
     code, text = run("export", "jira-csv", "--vault", str(FIXTURE), "--out", str(tmp_path / "a\0b.csv"))
     assert code == 2 and "Cannot write" in text and "Traceback" not in text
+
+
+def after_title(path, bullets):
+    """Put page-level bullets straight under the page's # title."""
+    lines = path.read_text(encoding="utf-8").split("\n")
+    at = next(i for i, line in enumerate(lines) if line.startswith("# "))
+    path.write_text("\n".join(lines[:at + 1] + ["", *bullets.rstrip("\n").split("\n")] + lines[at + 1:]), encoding="utf-8")
+
+
+def test_an_epic_that_carries_an_override_and_an_unconfirmed_decision_says_so_at_the_end_of_its_description(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    epic = vault / "13-epics" / "EPC-031-holds-and-confirms.md"
+    after_title(epic, "- **Override:** GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
+                "- **Decided by:** @hl-solution-lead, on behalf of @harbourline/booking-team\n")
+    _, _, rows = exported(tmp_path, vault=vault)
+    description = rows[1][1]
+    assert description.endswith("\n\nOverride: GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
+                                "Decided by @hl-solution-lead on behalf of @harbourline/booking-team (not yet confirmed)")
+    assert "Acceptance criteria:\n1." in description and description.index("Acceptance criteria") < description.index("Override:")
+    assert "Override:" not in rows[2][1], "an epic without overrides is unchanged"
+
+
+def test_a_confirmed_on_behalf_decision_names_the_confirmation_not_a_pending_one(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    after_title(vault / "13-epics" / "EPC-031-holds-and-confirms.md",
+                "- **Decided by:** @a, on behalf of @b\n- **Confirmed by:** @b on 2026-11-21\n")
+    _, _, rows = exported(tmp_path, vault=vault)
+    assert rows[1][1].endswith("Decided by @a on behalf of @b (confirmed by @b on 2026-11-21)")
+
+
+def test_an_override_reason_that_looks_like_a_formula_is_still_guarded(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    after_title(vault / "13-epics" / "EPC-031-holds-and-confirms.md", '- **Override:** grill by @a on 2026-11-20: =HYPERLINK("http://evil")\n')
+    _, _, rows = exported(tmp_path, vault=vault)
+    assert rows[1][1].endswith('Override: grill by @a on 2026-11-20: =HYPERLINK("http://evil")')
+    guarded = export.to_csv([("s", "=cmd|x\nOverride: grill", "EPC-001", "", "l")])
+    assert "'=cmd|x" in guarded

@@ -1,0 +1,45 @@
+schema_version: '1.1'
+name: e7-grill-override-stub
+description: A lead who explicitly overrides GATE-4 and GATE-5 gets CAP-021 decided, with the override and the on-behalf decision written down and check warning W316, not failing E316.
+tags:
+- e7-grill-override
+- stub
+plugins:
+- ../../../stub-conventions
+runs: 3
+execution:
+  prompt: 'Following CONVENTIONS.md in this vault, run a Grill session on CAP-021. I am the solution lead. Decide CAP-021 anyway on behalf of its owner. I override GATE-4 and GATE-5 because the Ask by date on UNK-001 is 2026-12-01 and amend and cancel cannot wait for it. Yes to the agenda, and yes to the read-back. This vault has no git remote and no gh, so fetch, push and gh will fail: say so and carry on. Do not wait for answers from me beyond what this message gives.'
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Bash
+  - Write
+  - Edit
+context:
+  scaffold_script: fixture.sh
+graders:
+- name: override-names-gate-4
+  type: regex
+  pattern: '^- \*\*Override:\*\* [^\n]*\bGATE-4\b'
+  flags: m
+  target:
+    source: file
+    path: capabilities/CAP-021-amend-or-cancel.md
+- name: decided-on-behalf
+  type: regex
+  pattern: '^- \*\*Decided by:\*\* @[A-Za-z0-9_-]+, on behalf of @'
+  flags: m
+  target:
+    source: file
+    path: capabilities/CAP-021-amend-or-cancel.md
+- name: state-is-decided
+  type: regex
+  pattern: '^state: decided$'
+  flags: m
+  target:
+    source: file
+    path: capabilities/CAP-021-amend-or-cancel.md

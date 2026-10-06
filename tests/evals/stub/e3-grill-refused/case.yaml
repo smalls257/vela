@@ -38,10 +38,24 @@ graders:
   min: 0
   max: 0
   arm: both
+- name: no-override-written-by-edit
+  type: tool_used
+  tool: Edit
+  input_match: '\*\*Override:\*\*'
+  min: 0
+  max: 0
+  arm: both
+- name: no-override-written-by-write
+  type: tool_used
+  tool: Write
+  input_match: '\*\*Override:\*\*'
+  min: 0
+  max: 0
+  arm: both
 - name: names-the-blocker
   type: regex
   pattern: UNK-001
 - name: offers-a-way-forward
   type: regex
-  pattern: (?:\b(Shape session|ask with|an ask to|research task)\b|/planner:shape)
+  pattern: (?:\b(Shape session|ask with|an ask to|research task|decide (?:it )?anyway|override)\b|/planner:shape)
   flags: i

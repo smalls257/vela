@@ -11,6 +11,8 @@ import html as html_lib
 import json
 import re
 
+from planner import override
+
 EXCLUDED_FOLDERS = ("sessions/",)
 DRAFT_STATES = ("inkling", "assumption", "fact", "proposed", "draft", "reopened")
 START_PAGE = "01-goals"
@@ -121,6 +123,18 @@ def link_problems(vault):
     return problems
 
 
+def override_lines(page):
+    """One entry per well-formed Override on the page, page level and items alike. The
+    parser is planner.override's, so the viewer cannot disagree with `planner check`."""
+    lines = []
+    for found, behalf in override.decisions(page):
+        pending = behalf is not None and not behalf.confirmed_by
+        for item in found:
+            lines.append({"rules": ", ".join(item.rules), "by": item.by, "date": item.date, "reason": item.reason,
+                          "pending_for": " ".join(behalf.owners) if pending else ""})
+    return lines
+
+
 def page_data(page):
     state = str(page.meta.get("state", ""))
     return {
@@ -131,6 +145,7 @@ def page_data(page):
         "body": neutralise(body_of(page)),
         "headings": [h.text for h in page.headings],
         "draft": state in DRAFT_STATES,
+        "overrides": override_lines(page),
     }
 
 
@@ -228,7 +243,8 @@ body { background: var(--bg); color: var(--fg); font-family: var(--body); font-s
 main { padding: 28px 40px 80px; min-width: 0; }
 @media (max-width: 760px) { main { padding: 20px 16px 60px; } }
 .crumb { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; }
-.draft-banner { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 4px; padding: 6px 12px; margin-bottom: 14px; font-weight: 600; }
+.draft-banner, .override-banner { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 4px; padding: 6px 12px; margin-bottom: 14px; font-weight: 600; }
+.override-banner { font-weight: 400; }
 article { max-width: 82ch; }
 article h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 12px; }
 article h2 { font-size: 1.3rem; margin: 30px 0 8px; }
@@ -484,7 +500,10 @@ async function show() {
   current = p.name;
   document.title = p.title + ' · ' + DATA.title;
   ui.crumb.textContent = p.path;
-  ui.banner.innerHTML = p.draft ? '<div class="draft-banner">Working draft: not agreed yet</div>' : '';
+  const overrideLine = o => `Decided by override: ${o.rules} by ${o.by} on ${o.date}: ${o.reason}` +
+    (o.pending_for ? ` (on behalf of ${o.pending_for}, not yet confirmed)` : '');
+  ui.banner.innerHTML = (p.draft ? '<div class="draft-banner">Working draft: not agreed yet</div>' : '') +
+    p.overrides.map(o => `<div class="override-banner">${esc(overrideLine(o))}</div>`).join('');
   const art = ui.page;
   art.replaceChildren(toNodes(p.body));
   art.querySelectorAll('h1,h2,h3,h4').forEach(h => h.id = 'h-' + slug(h.textContent));

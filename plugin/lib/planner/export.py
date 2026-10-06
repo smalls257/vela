@@ -8,7 +8,7 @@ import io
 import re
 import urllib.parse
 
-from planner import trace
+from planner import override, trace
 from planner.parse import FENCE
 
 EPICS_FOLDER = "13-epics/"
@@ -84,6 +84,21 @@ def criteria(epic):
     return found
 
 
+def decision_lines(epic):
+    """How the epic was decided when the rules were set aside: its overrides and on-behalf
+    decisions, page level and items alike, from planner.override's parser. A tracker reader
+    sees the same trail the vault carries."""
+    lines = []
+    for found, behalf in override.decisions(epic):
+        lines += [f"Override: {item.describe()}" for item in found]
+        if behalf is None:
+            continue
+        who = f"Decided by {behalf.by} on behalf of {' '.join(behalf.owners)}"
+        lines.append(who + (f" (confirmed by {behalf.confirmed_by} on {behalf.confirmed_on})" if behalf.confirmed_by
+                            else " (not yet confirmed)"))
+    return lines
+
+
 def handles(owner):
     """The owner field as team names: every handle loses its leading @ (a tracker wants a name, not a mention)."""
     if isinstance(owner, list):
@@ -106,6 +121,9 @@ def rows(vault, link_for):
         text = description(epic)
         if acs:
             text += ("\n\n" if text else "") + "Acceptance criteria:\n" + "\n".join(f"{i}. {c}" for i, c in enumerate(acs, start=1))
+        trail = decision_lines(epic)
+        if trail:
+            text += ("\n\n" if text else "") + "\n".join(trail)
         title = epic.meta.get("title")
         name = epic.id or epic.path
         out.append((title if isinstance(title, str) and title.strip() else name, text, name,

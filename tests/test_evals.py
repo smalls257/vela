@@ -1,4 +1,5 @@
 """The plugin-eval cases and their wrapper. Nothing here runs a model: the paid runs are by hand."""
+import re
 import shutil
 import subprocess
 import sys
@@ -23,7 +24,7 @@ def cases(arm):
 
 def test_both_arms_hold_the_same_cases_and_the_wrapper_knows_them():
     assert cases("plugin") == cases("stub") == sorted(run.CASES)
-    assert {"e1-dump", "e1-close", "e2-discover", "e3-grill-refused", "e4-shape", "e5-ask", "e6-epics"} == set(run.CASES)
+    assert {"e1-dump", "e1-close", "e2-discover", "e3-grill-refused", "e4-shape", "e5-ask", "e6-epics", "e7-grill-override"} == set(run.CASES)
 
 
 @pytest.mark.parametrize("arm", ARMS)
@@ -89,6 +90,44 @@ def test_file_checks_report_hits_and_misses(tmp_path):
 def test_wrapper_refuses_unpinned_models():
     with pytest.raises(SystemExit):
         run.main(["e1-dump"])
+
+
+def test_e7_and_e3_share_a_scaffold_and_disagree_only_on_the_override():
+    assert vault_of("e7-grill-override") == vault_of("e3-grill-refused") == "grill-refused"
+    for arm in ARMS:
+        e3 = {g["name"]: g for g in yaml.safe_load((EVALS / arm / "e3-grill-refused" / "case.yaml").read_text(encoding="utf-8"))["graders"]}
+        assert {"no-override-written-by-edit", "no-override-written-by-write"} <= set(e3)
+        assert all(e3[n]["max"] == 0 and e3[n]["arm"] == "both" for n in ("no-override-written-by-edit", "no-override-written-by-write"))
+        way = re.compile(e3["offers-a-way-forward"]["pattern"], re.I)
+        assert all(way.search(t) for t in ("I can decide anyway", "or override GATE-4", "a Shape session"))
+        e7 = yaml.safe_load((EVALS / arm / "e7-grill-override" / "case.yaml").read_text(encoding="utf-8"))
+        prompt = e7["execution"]["prompt"]
+        assert "Decide CAP-021 anyway on behalf of its owner. I override GATE-4 and GATE-5 because" in prompt
+        assert "Yes to the agenda, and yes to the read-back." in prompt
+        assert {"override-names-gate-4", "decided-on-behalf", "state-is-decided"} <= {g["name"] for g in e7["graders"]}
+
+
+def test_check_code_grades_demand_the_warning_and_refuse_the_error():
+    warned = "x.md:4: W316 decided while an open unknown blocks it, by override\n"
+    failed = "x.md:4: E316 decided while an open unknown blocks it\n"
+    assert all(l.startswith("pass") for l in run.check_code_lines(warned, ["W316"], ["E316"]))
+    assert [l.split(":")[0] for l in run.check_code_lines(failed, ["W316"], ["E316"])] == ["FAIL", "FAIL"]
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_an_override_run_passes_e7_grading_and_an_error_run_fails_it(tmp_path):
+    workspace = scaffolded(tmp_path, "grill-refused")
+    cap = workspace / "capabilities" / "CAP-021-amend-or-cancel.md"
+    spec = run.CASES["e7-grill-override"]
+    text = cap.read_text(encoding="utf-8").replace("state: assumption", "state: decided")
+    cap.write_text(text.replace("# CAP-021 Amend or cancel a booking\n", "# CAP-021 Amend or cancel a booking\n\n- **Decision:** [[2026-08-12-goals-and-data]]\n"
+                                "- **Override:** GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
+                                "- **Decided by:** @hl-solution-lead, on behalf of @hl-solution-lead\n", 1), encoding="utf-8")
+    graded = run.grade(workspace, spec)
+    assert any("pass: check reports W316" in l for l in graded) and any("pass: check never reports E316" in l for l in graded), graded
+    assert any("pass: decided states" in l for l in graded), graded
+    cap.write_text(cap.read_text(encoding="utf-8").replace("- **Override:** GATE-4, GATE-5 by", "- **Override:** GATE-5 by"), encoding="utf-8")
+    assert any(l.startswith("- FAIL: check reports W316") for l in run.grade(workspace, spec))
 
 
 def scaffolded(tmp_path, vault, arm="plugin"):

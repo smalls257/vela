@@ -36,8 +36,12 @@ from planner import schema  # noqa: E402  (the ID patterns live there; a copy he
 
 # Per case: the date check judges by, whether the epics gate applies, whether the workspace must stay
 # git-clean ("readonly"), and file checks on the kept workspace. "expect" patterns must match in some file
-# the glob names; "forbid" patterns must match in none. Checks read the files, never the transcript, because
+# the glob names; "forbid" patterns must match in none. "may_decide" is how many pages the run may move to
+# decided (default 0: only a Grill writes decided). "check_codes" / "check_never" are finding codes that
+# `planner check` must, and must not, report on the kept workspace. Checks read the files, never the transcript, because
 # a transcript holds the skill's own text and would pass on the instructions alone.
+OVERRIDE_BULLET = r"^- \*\*Override:\*\*"
+CAP_021 = "capabilities/CAP-021-*.md"
 DECIDED = r"^state: decided$|^- \*\*State:\*\* decided$"
 CLOSE_RECORD = "sessions/2026-10-05-mainframe-breaks-booking.md"
 CASES = {
@@ -57,7 +61,12 @@ CASES = {
                     "forbid": [("**/*.md", r"(?i)event bus[^\n]*(ready|Q4)[^\n]*\bfact\b")]},
     "e3-grill-refused": {"today": "2026-11-20", "gate": False,
                          "expect": [],
-                         "forbid": [("capabilities/CAP-021-*.md", DECIDED)]},
+                         "forbid": [("capabilities/CAP-021-*.md", DECIDED), (CAP_021, OVERRIDE_BULLET)]},
+    "e7-grill-override": {"today": "2026-11-20", "gate": False, "may_decide": 1,
+                          "expect": [(CAP_021, DECIDED),
+                                     (CAP_021, OVERRIDE_BULLET + r"[^\n]*\bGATE-4\b"),
+                                     (CAP_021, r"^- \*\*Decided by:\*\* @[A-Za-z0-9_-]+, on behalf of @")],
+                          "forbid": [], "check_codes": ["W316"], "check_never": ["E316"]},
     "e4-shape": {"today": "2026-11-20", "gate": False,
                  "expect": [("sessions/*.md", r"(?i)grill to confirm")],
                  "forbid": []},
@@ -178,8 +187,8 @@ def invented_ids(workspace):
     return problems or [f"pass: no invented IDs ({new} new, each recorded)"]
 
 
-def decided_growth(workspace):
-    """Only a Grill writes decided. Any rise in decided states over the scaffold is a failure."""
+def decided_growth(workspace, allowed=0):
+    """Only a Grill writes decided. A rise in decided states over the scaffold beyond `allowed` is a failure."""
     before = scaffold_state(workspace)
     if before is None:
         return ["FAIL: cannot read the scaffold commit, so decided states cannot be compared"]
@@ -188,7 +197,15 @@ def decided_growth(workspace):
     names = [p.relative_to(workspace).as_posix() for p in sorted(workspace.rglob("*.md")) if ".git" not in p.parts]
     now = count(vault_pages(lambda n: (workspace / n).read_text(encoding="utf-8", errors="replace"), names))
     was = count(before)
-    return [f"{'FAIL' if now > was else 'pass'}: decided states {was} -> {now}"]
+    return [f"{'FAIL' if now - was > allowed else 'pass'}: decided states {was} -> {now} (up to {allowed} allowed)"]
+
+
+def check_code_lines(output, wanted, never):
+    """Grades on the finding codes in `planner check` output. A code the case needs must appear; a code it
+    forbids must not. This is how a case proves an override turned an error into its warning."""
+    seen = set(re.findall(r"^\S+?:\d+: ([EW]\d{3}) ", output, re.M))
+    return [f"{'pass' if code in seen else 'FAIL'}: check reports {code}" for code in wanted] + \
+           [f"{'FAIL' if code in seen else 'pass'}: check never reports {code}" for code in never]
 
 
 def grade(workspace, spec):
@@ -209,7 +226,8 @@ def grade(workspace, spec):
     else:
         lines.append(f"- git status: {'DIRTY: ' + ' '.join(status.stdout.split()) if dirty else 'clean'}")
     lines.append(f"- {'FAIL: .inbox in git: ' + ' '.join(inbox.stdout.split()) if inbox.stdout.strip() else 'pass: .inbox not in git'}")
-    lines += [f"- {line}" for line in invented_ids(workspace) + decided_growth(workspace)]
+    lines += [f"- {line}" for line in invented_ids(workspace) + decided_growth(workspace, spec.get("may_decide", 0))]
+    lines += [f"- {line}" for line in check_code_lines(check.stdout, spec.get("check_codes", []), spec.get("check_never", []))]
     lines += [f"- {line}" for line in file_checks(workspace, spec["expect"], True) + file_checks(workspace, spec["forbid"], False)]
     return lines
 

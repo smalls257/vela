@@ -123,6 +123,56 @@ def test_page_below_decided_carries_the_draft_banner(tmp_path):
     assert "Working draft: not agreed yet" in html
 
 
+def pages_of(tmp_path, vault):
+    out = tmp_path / "viewer.html"
+    code, text = build(vault, out)
+    assert code == 0, text
+    html = out.read_text(encoding="utf-8")
+    return html, {p["name"]: p for p in bundle(html)["pages"]}
+
+
+def test_a_page_with_an_item_override_gets_one_banner_line_and_a_confirmed_decision_adds_nothing(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    html, pages = pages_of(tmp_path, vault)
+    assert pages["pricing-building-blocks"]["overrides"] == [{
+        "rules": "GATE-5", "by": "@hl-solution-lead", "date": "2026-07-28", "pending_for": "",
+        "reason": pages["pricing-building-blocks"]["overrides"][0]["reason"]}]
+    assert pages["pricing-building-blocks"]["overrides"][0]["reason"].startswith("the Revenue team was in its fare review")
+    assert pages["01-goals"]["overrides"] == []
+    assert "Decided by override: ${o.rules} by ${o.by} on ${o.date}: ${o.reason}" in html
+    assert "esc(overrideLine(o))" in html
+
+
+def test_an_unconfirmed_on_behalf_decision_is_named_on_its_banner_line(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    edit(vault / "05-building-blocks" / "pricing-building-blocks.md", "- **Confirmed by:** @hl-pricing-senior on 2026-08-12\n", "")
+    html, pages = pages_of(tmp_path, vault)
+    assert [o["pending_for"] for o in pages["pricing-building-blocks"]["overrides"]] == ["@harbourline/revenue-team"]
+    assert "(on behalf of ${o.pending_for}, not yet confirmed)" in html
+
+
+def test_every_override_on_a_page_gets_its_own_line_and_malformed_ones_get_none(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    edit(vault / "01-goals.md", "# Unified Booking\n", "# Unified Booking\n\n- **Override:** grill by @a on 2026-11-20: first\n"
+         "- **Override:** GATE-4 by @b on 2026-11-21: second\n- **Override:** nonsense\n")
+    _, pages = pages_of(tmp_path, vault)
+    assert [(o["rules"], o["reason"]) for o in pages["01-goals"]["overrides"]] == [("grill", "first"), ("GATE-4", "second")]
+
+
+def test_the_override_banner_is_built_from_escaped_text_and_adds_no_script(tmp_path):
+    vault = tmp_path / "ub"
+    shutil.copytree(FIXTURE, vault)
+    html, _ = pages_of(tmp_path, vault)
+    assert "innerHTML = (p.draft" in html and "esc(overrideLine(o))" in html
+    csp = re.search(r'Content-Security-Policy" content="([^"]*)"', html).group(1)
+    scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
+    assert csp.count("sha256-") == len(scripts) == 3, "the banner is inside the existing APP script, so no new hash"
+
+
+
 def test_voice_and_claude_folders_stay_out_of_the_bundle(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
@@ -503,3 +553,23 @@ def test_generated_diagrams_draw_under_the_csp_and_sanitiser(tmp_path, sensor, r
     assert not [c for c in classes if "diagram-error" in c], route
     assert "svg" in [t for t, _ in dom.tags]
     assert GENERATED_ROUTES[route] in text, f"{route} drew no {GENERATED_ROUTES[route]} label"
+
+
+@needs_chrome
+def test_override_banner_shows_the_text_in_the_browser_and_escapes_a_hostile_reason(tmp_path, sensor):
+    vault = tmp_path / "mini"
+    shutil.copytree(MINI, vault)
+    hostile = "<script>alert(1)</script> <img src=" + sensor.base + "/x.png onerror=alert(2)>"
+    body = (f"- **Override:** GATE-5 by @a on 2026-11-20: {hostile}\n- **Decided by:** @a, on behalf of @owner\n\nText.")
+    (vault / "19-overridden.md").write_text(PAGE.format(title="19-overridden", body=body), encoding="utf-8")
+    out = tmp_path / "viewer.html"
+    code, text = build(vault, out)
+    assert code == 0, text
+    sensor.requests.clear()
+    dom = dump_dom(out, "19-overridden")
+    assert sensor.requests == []
+    banner = re.search(r'<div class="override-banner">(.*?)</div>', dom, re.S).group(1)
+    assert banner.startswith("Decided by override: GATE-5 by @a on 2026-11-20: &lt;script&gt;alert(1)&lt;/script&gt; &lt;img src=")
+    assert banner.endswith("(on behalf of @owner, not yet confirmed)")
+    tags = [t for t, _ in audit(dom).tags]
+    assert "img" not in tags and tags.count("script") == 4
