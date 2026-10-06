@@ -130,8 +130,12 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 Catalogue v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
-<!-- generated:undisposed-questions sha=3f33512a: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=cb9b9aee: do not edit, run planner render -->
 **Questions:** 57 owed, 0 undisposed, against catalogue v1.
+
+| Copy | State | Area | Severity | Subject | Question |
+|---|---|---|---|---|---|
+| R-FIN-01 | open | FIN | normal | reviewer | Points are earned at reservation, so does a cancelled booking take its points back, and who tells the loyalty scheme? |
 <!-- /generated:undisposed-questions -->
 
 | Copy | State | Evidence | By | Date |

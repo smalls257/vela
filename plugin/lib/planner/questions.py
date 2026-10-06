@@ -246,9 +246,20 @@ class Disposition:
         return self.row is None or self.state == "open" or not self.valid
 
     @property
+    def label(self):
+        """Why it is undisposed, or how it stands: `no row`, `open`, `invalid (<state>)`, else its state."""
+        return state_label(self.state, self.valid)
+
+    @property
     def pending(self):
         """Undisposed, or asked and still waiting for its answer: what the gates hold up."""
         return self.undisposed or self.state == "asked"
+
+
+def state_label(state, valid=True):
+    if not valid:
+        return f"invalid ({state})"
+    return state or "no row"
 
 
 def ledger_page(vault):
@@ -630,9 +641,12 @@ def digest(vault, area=None, subject_id=None):
     for entry_id, found in groups.items():
         entry = found[0].copy.entry
         blocked = sorted({unit for d in found for unit in blocks(vault, d.copy)})
+        why = {}
+        for d in found:
+            why[d.label] = why.get(d.label, 0) + 1
         out.append({"band": _band(entry.severity, blocked), "entry": entry_id, "area": entry.area,
                     "severity": entry.severity, "question": entry.question, "copies": [d.copy.id for d in found],
-                    "blocks": blocked})
+                    "why": why, "blocks": blocked})
     if subject_id is None:
         for row in reviewer_rows(vault):
             if not (row.state == "open" or not row_valid(vault, row)) or (area is not None and row.area != area):
@@ -640,7 +654,7 @@ def digest(vault, area=None, subject_id=None):
             answer = reviewer_answer(vault, row)
             out.append({"band": _band(answer["severity"], []), "entry": row.copy, "area": row.area,
                         "severity": answer["severity"], "question": answer["question"], "copies": [row.copy],
-                        "blocks": []})
+                        "why": {state_label(row.state, answer["valid"]): 1}, "blocks": []})
     out.sort(key=lambda g: (g["band"], g["entry"]))
     undisposed = sum(1 for d in kept if d.undisposed)
     return {"catalogue": vault.catalogue.version, "coverage": coverage_line(vault, len(kept), undisposed),
@@ -656,7 +670,9 @@ def stats(vault, area=None):
         if area is not None and entry.area != area:
             continue
         mine = [d for d in found if d.copy.entry.id == entry.id]
-        states = {state: sum(1 for d in mine if (d.state or "no row") == state) for state in ("no row",) + ledger.STATES}
+        states = {state: sum(1 for d in mine if d.valid and (d.state or "no row") == state)
+                  for state in ("no row",) + ledger.STATES}
+        states["invalid"] = sum(1 for d in mine if not d.valid)
         na = states["not-applicable"]
         out.append({"entry": entry.id, "area": entry.area, "owed": len(mine),
                     "states": {k: v for k, v in states.items() if v}, "not_applicable": na,

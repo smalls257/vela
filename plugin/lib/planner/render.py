@@ -359,11 +359,15 @@ def undisposed_questions(vault, page):
     found = questions.dispositions(vault)
     undisposed = sum(1 for d in found if d.undisposed)
     out = [f"**Questions:** {questions.coverage_line(vault, len(found), undisposed)}."]
-    missing = [d for d in found if d.row is None or not d.valid]
-    if missing:
-        out += ["", "| Copy | Area | Severity | Subject | Question |", "|---|---|---|---|---|"]
-        out += [row(d.copy.id, d.copy.entry.area, d.copy.entry.severity, id_link(vault, d.copy.subject.id),
-                    cell(d.copy.entry.question)) for d in missing]
+    lines = [row(d.copy.id, d.label, d.copy.entry.area, d.copy.entry.severity, id_link(vault, d.copy.subject.id),
+                 cell(d.copy.entry.question)) for d in found if d.undisposed]
+    for r in questions.reviewer_rows(vault):
+        answer = questions.reviewer_answer(vault, r)
+        if r.state == "open" or not answer["valid"]:
+            lines.append(row(r.copy, questions.state_label(r.state, answer["valid"]), r.area, answer["severity"],
+                             "reviewer", cell(answer["question"] or "")))
+    if lines:
+        out += ["", "| Copy | State | Area | Severity | Subject | Question |", "|---|---|---|---|---|---|"] + lines
     return "\n".join(out)
 
 

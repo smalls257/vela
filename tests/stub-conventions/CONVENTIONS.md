@@ -350,7 +350,7 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `system-context` | `03-context-and-scope.md` | The after view: apps in one box, external providers outside it, and the same contract arrows. Retired apps are listed under it, not drawn. |
 | `app-context` | each app page | The app and its direct neighbours by contract, provided or consumed |
 | `capability-map` | `04a-capability-delta.md` | Every capability in a box per `domain`, labelled and coloured by `change` |
-| `undisposed-questions` | `11-unknowns-and-risks.md`, under `## Question ledger` | The coverage line, then every owed copy that no ledger row covers yet, with its focus area, severity, subject and question. It is the to-do list; the rows below it are the record. |
+| `undisposed-questions` | `11-unknowns-and-risks.md`, under `## Question ledger` | The coverage line, then every undisposed copy (no row, an `open` row or an invalid row) and every open reviewer question, with its state, focus area, severity, subject and question. It is the to-do list; the rows below it are the record. |
 | `progress-map` | `01-goals.md` | One row per app: its stage, how many of its items are at each state, with "(n by override)" after the decided count, the oldest open unknown that blocks it with its Opened date, and its next mode. It is judged as of the last session's date, so it changes only when the vault does. |
 
 A view with no generator is a list of links to where the data lives, never a copy kept by hand.

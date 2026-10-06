@@ -200,7 +200,7 @@ def test_a_semicolon_inside_a_quote_or_a_link_does_not_split_the_evidence():
     ("| Q-REG-01@INI-002 |", "| Q-REG-09@INI-002 |", "E803", "Q-REG-09, which is not in catalogue v1"),
     ("| Q-DAT-03@CON-002 |", "| Q-DAT-03@APP-booking |", "E803", "which is not a contract ID"),
     ("| Q-DAT-02@APP-* |", "| Q-DAT-02@CON-* |", "E803", "so it must start Q-DAT-02@APP-"),
-    ("| R-FIN-01 |", "| R-XYZ-01 |", "E803", "names area XYZ"),
+    ("| R-FIN-01 | open | question:", "| R-XYZ-01 | open | question:", "E803", "names area XYZ"),
     ("| Q-DAT-03@CON-002 |", "| Q-DAT-03@CON-099 |", "W804", "is orphaned: CON-099 is no longer in the vault"),
     ("| Q-DAT-02@APP-pricing |", "| Q-DAT-02@APP-ferrymaster |", "W804", "no longer matches the trigger 'change in [new, changed]'"),
     ("| Q-OPS-03@INI-002 |", "| Q-OPS-03@CAP-012 |", "E803", "covers: belongs on an initiative row such as Q-OPS-03@INI-002"),
@@ -406,7 +406,7 @@ def test_rows_of_a_misplaced_table_are_read_but_dispose_of_nothing(ub):
 def test_rows_under_a_second_ledger_heading_dispose_of_nothing(ub):
     path = ub / LEDGER
     text = path.read_text(encoding="utf-8")
-    start = text.index("| Copy | State")
+    start = text.index("| Copy | State | Evidence")
     path.write_text(text[:start].rstrip("\n") + "\n\n## Question ledger\n\n" + text[start:], encoding="utf-8")
     found = sorted(set(f[0] for f in broken(ub)))
     assert found == ["E801"]

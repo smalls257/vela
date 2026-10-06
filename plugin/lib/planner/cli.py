@@ -301,16 +301,29 @@ def questions_header(answer, args):
     return line
 
 
+BLOCKS_SHOWN = 3
+
+
+def blocks_text(units):
+    """The units a question holds up. A long list is cut to a count and the first few: --json has them all."""
+    if len(units) <= BLOCKS_SHOWN + 2:
+        return ", ".join(units)
+    return f"{len(units)} items: {', '.join(units[:BLOCKS_SHOWN])}, …"
+
+
 def print_digest(answer, out):
     groups = answer["groups"]
     print(f"planner questions --digest: {answer['coverage']}. {len(groups)} to take, most consequential first.", file=out)
     for n, group in enumerate(groups, start=1):
         head = f"[{group['area']}] {group['severity']}"
         if group["blocks"]:
-            head += f", blocks {', '.join(group['blocks'])}"
+            head += f", blocks {blocks_text(group['blocks'])}"
         print(f"{n}. {head}: {group['question']}", file=out)
-        many = ": one answer for all?" if len(group["copies"]) > 1 else ""
-        print(f"   {', '.join(group['copies'])}{many}", file=out)
+        why = ", ".join(f"{k} {v}" if len(group["why"]) > 1 else k for k, v in group["why"].items())
+        count = len(group["copies"])
+        lead = f"{count} copies ({why}): " if count > 1 else f"({why}) "
+        many = ": one answer for all?" if count > 1 else ""
+        print(f"   {lead}{', '.join(group['copies'])}{many}", file=out)
 
 
 def print_stats(answer, out):
@@ -328,7 +341,7 @@ def question_line(entry):
     if not entry["pending"]:
         blocked = "settled"
     else:
-        blocked = f"blocks {', '.join(entry['blocks'])}" if entry["blocks"] else "blocks nothing"
+        blocked = f"blocks {blocks_text(entry['blocks'])}" if entry["blocks"] else "blocks nothing"
     return " | ".join((entry["id"], entry["area"], entry["severity"], state, entry["subject"] or "reviewer", blocked,
                        entry["question"]))
 
