@@ -17,7 +17,7 @@ import traceback
 
 import yaml
 
-from planner import catalog, export, handoff, health, model, parse, progress, query, questions, render, rules, schema, viewer, voicecheck, voicescore
+from planner import catalog, export, handoff, health, model, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -359,6 +359,65 @@ def question_line(entry):
         blocked = f"blocks {blocks_text(entry['blocks'])}" if entry["blocks"] else "blocks nothing"
     return " | ".join((entry["id"], entry["area"], entry["severity"], state, entry["subject"] or "reviewer", blocked,
                        entry["question"]))
+
+
+def unfence(text):
+    """A reply that is one fenced block, as models often send JSON, without its fence. Anything else as it is."""
+    lines = text.strip().split("\n")
+    if len(lines) >= 2 and lines[0].startswith("```") and lines[-1].strip() == "```":
+        return "\n".join(lines[1:-1])
+    return text
+
+
+def read_findings(folder, codes):
+    """({area: (data, problem)}, ignored file names) from a folder of <AREA>.json files. A file that
+    cannot be read or parsed makes its area "did not run" with the reason; it never stops the merge."""
+    outputs, ignored = {}, []
+    for path in sorted(folder.iterdir()):
+        if path.suffix != ".json" or path.stem not in codes:
+            ignored.append(path.name)
+            continue
+        try:
+            outputs[path.stem] = (json.loads(unfence(path.read_text(encoding="utf-8"))), "")
+        except (OSError, UnicodeDecodeError) as exc:
+            outputs[path.stem] = (None, f"cannot read {path.name}: {exc}")
+        except json.JSONDecodeError as exc:
+            outputs[path.stem] = (None, f"{path.name} is not JSON: {exc.msg} at line {exc.lineno}")
+    return outputs, ignored
+
+
+def cmd_findings(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    folder = pathlib.Path(args.folder)
+    if not folder.is_dir():
+        raise ToolError(f"{folder} is not a folder. Write each reviewer's output to <folder>/<AREA>.json, such as FIN.json.")
+    vault = load_vault(root)
+    outputs, ignored = read_findings(folder, vault.catalogue.area_codes)
+    result = reviews.merge(vault, outputs, ignored)
+    if args.json:
+        print(json.dumps(result.as_dict(vault.catalogue.version), indent=2, ensure_ascii=False), file=out)
+        return 0 if result.clean else 1
+    ran = sum(1 for a in result.areas if a.ran)
+    print(f"planner findings merge: {len(result.kept)} kept, {len(result.duplicates)} "
+          f"duplicate{'' if len(result.duplicates) == 1 else 's'}, "
+          f"{len(result.dropped)} dropped, from {ran} of {len(result.areas)} areas.", file=out)
+    print(result.coverage, file=out)
+    for title, entries in (("kept", result.kept), ("duplicates", result.duplicates), ("dropped", result.dropped)):
+        if entries:
+            print(f"{title}:", file=out)
+        for entry in entries:
+            print(finding_line(entry), file=out)
+    for name in result.ignored:
+        print(f"ignored: {name} is not <AREA>.json for an area of catalogue v{vault.catalogue.version}", file=out)
+    return 0 if result.clean else 1
+
+
+def finding_line(entry):
+    if isinstance(entry, reviews.Kept):
+        return f"{entry.n}. [{entry.area}] {entry.severity}, {entry.copy}: {entry.question} | \"{entry.quote}\" in {entry.page}"
+    if isinstance(entry, reviews.Duplicate):
+        return f"- [{entry.area}] same as {entry.same_as}: {entry.question}"
+    return f"- [{entry.area}] {entry.reason}: {entry.question}"
 
 
 def handoff_app(vault, app_id):
@@ -864,6 +923,13 @@ def build_parser():
                          help="the undisposed copies grouped by entry and ranked, high and blocking first")
     view_of.add_argument("--stats", action="store_true", help="how often each entry ends not-applicable in this vault")
     ques.set_defaults(func=cmd_questions)
+    found = sub.add_parser("findings", help="merge the focused reviewers' findings and check every quote")
+    founds = found.add_subparsers(dest="what", required=True)
+    merge = founds.add_parser("merge", help="union, remove duplicates, drop a finding whose quote is not on its page")
+    merge.add_argument("folder", help="folder holding one <AREA>.json per reviewer, such as FIN.json")
+    merge.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    merge.add_argument("--json", action="store_true", help="print JSON instead of text")
+    merge.set_defaults(func=cmd_findings)
     hand = sub.add_parser("handoff", help="write the senior's handoff manifest, or verify the vault against it")
     hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id to write handoffs/<APP-id>.md; verify APP-id to compare")
     hand.add_argument("--vault", default=".", help="vault root (default: current directory)")
