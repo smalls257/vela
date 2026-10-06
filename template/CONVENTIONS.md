@@ -235,28 +235,28 @@ Code decides which questions the vault owes. The skills decide only how to ask t
 
 `planner questions` applies each entry once to each subject of its scope that its trigger matches. Each result is a copy, with the ID `<entry>@<subject>`, for example `Q-DAT-02@APP-booking`. The ID follows the subject's ID, so renaming a file keeps it. A subject that is removed takes its copies with it, and a ledger row for one of them is reported as orphaned, never dropped.
 
-**The ledger.** The record is one table under `## Question ledger` on `11-unknowns-and-risks.md`, headed `| Copy | State | Evidence | By | Date |`. Every owed copy and every reviewer question ends in a row.
+**The ledger.** The record is one table under `## Question ledger` on `11-unknowns-and-risks.md`, headed `| Copy | State | Evidence | By | Date |`, spelt exactly. Every owed copy and every reviewer question ends in a row.
 
 - **Copy** is a copy ID; a wildcard such as `Q-OPS-01@APP-*`, which answers every copy whose subject starts with the text before the `*` (it must start with the scope's prefix, `APP-`, `CON-`, `CAP-`, `PTY-` or `SV-`); or a reviewer question, `R-<area>-nn` such as `R-FIN-01`.
 - **State** is one of the six below. **By** is the handle of whoever recorded or decided it, and **Date** is `YYYY-MM-DD`. Both are required unless the state is `open`.
-- **Evidence** is `key: value` pairs separated by `; `. A `;` inside double quotes or a wikilink does not split. The keys are `capture`, `item`, `source`, `belief`, `load-bearing`, `signpost`, `unknown`, `reason`, `covers`, and on a reviewer question `question`, `quote` and `severity`.
+- **Evidence** is `key: value` pairs separated by `; `. A `;` inside double quotes or a wikilink does not split. The keys are `capture`, `item`, `source`, `answer`, `belief`, `load-bearing`, `signpost`, `unknown`, `reason`, `covers`, and on a reviewer question `question`, `quote` and `severity`.
 
 | State | Valid only with |
 |---|---|
 | `open` | nothing. It is the default, and it never counts as disposed. |
 | `asked` | `capture:`, a link to the capture where it was asked, `[[<session>#^cNN]]` |
-| `answered` | `item:`, a link to the item that holds the answer, and `source:`, an `SRC-nn` from `sources.md` (a first-hand row counts) or the answer quoted from a page, `"<the words>" in [[<page>]]` |
+| `answered` | `item:`, a link to the item that holds the answer, `answer:`, the answer in one line, and `source:`, which is exactly one `SRC-nn` from `sources.md` (a first-hand row counts) or exactly one quote from a page, `"<the words>" in [[<page>]]` |
 | `assumed` | `belief:` what is believed, `load-bearing:` `yes` or `no`, and `signpost:` what would show it failing |
-| `unknown` | `unknown:`, an `UNK-nnn` whose `**Owner:**` starts with a handle |
+| `unknown` | `unknown:`, an `UNK-nnn` that is still `open` and whose `**Owner:**` starts with a handle. A resolved unknown has an answer, so the row is `answered` |
 | `not-applicable` | `reason:` why it does not apply. By says who decided. |
 
 A copy's own row wins. Then the wildcard with the longest prefix, then an initiative row. An initiative row answers a lower scope at initiative level: `Q-OPS-03@INI-002` with `covers: capability` answers every `Q-OPS-03` copy for a capability, until one has its own row. Exceptions to a wildcard or an initiative row take their own row. A reviewer question carries `question:` with the question, `quote: "<the words>" in [[<page>]]`, and `severity: high` when it is one; without it, it is `normal`.
 
-A quote, whether a `source:` or a reviewer question's `quote:`, names its page, and `planner check` looks for the words on that page. Case, spacing, curly quotes and Markdown emphasis do not count, so the words may be copied as the page shows them. A quote with no page, a page that is not in the vault, the ledger page itself, or words that are not on the page is E802, so a quote is never taken on trust.
+A quote, whether a `source:` or a reviewer question's `quote:`, names its page, and `planner check` looks for the words in that page's hand-written text: not its frontmatter, a generated block, an HTML comment, or on `11-unknowns-and-risks.md` the ledger section. Case, spacing, curly quotes and Markdown emphasis do not count, so the words may be copied as the page shows them. A quote needs at least four words. A quote with no page, a page that is not in the vault, too few words, or words that are not on the page is E802, so a quote is never taken on trust. A `source:` that mixes a quote and an `SRC-nn`, or adds anything else, is E802 too. A key that belongs to another state, such as `reason:` on an `answered` row, is E802.
 
-`planner check` reads the ledger. A malformed row, or two rows for one copy, is E801. A state without the evidence it needs is E802. A row that names an entry the catalogue lacks, a subject that does not fit the entry's scope, or a reviewer area the catalogue lacks is E803. A row whose subject is gone, or whose subject no longer matches the trigger, is W804: it stays as a record. A copy with no row, or an `open` row, is never a finding in a plain check. The lead sets the pace.
+`planner check` reads the ledger. A malformed row, two rows for one copy, a table headed `Copy` whose header is not exactly the ledger's, a ledger table that is not under `## Question ledger`, or a second `## Question ledger` heading is E801. A row with any error disposes of nothing: `planner questions` shows it as `invalid` and counts the copy as undisposed. A state without the evidence it needs is E802. A row that names an entry the catalogue lacks, a subject that does not fit the entry's scope, or a reviewer area the catalogue lacks is E803. A row whose subject is gone, or whose subject no longer matches the trigger, is W804: it stays as a record. A wildcard that no copy uses, because each has a row of its own or a longer wildcard, and a wildcard on an initiative entry are W804 too. A row dated after today is W812. A copy with no row, or an `open` row, is never a finding in a plain check. The lead sets the pace.
 
-`planner questions` lists every owed copy with its focus area, severity, state, subject, what it blocks while it is open or asked, and the question, then the reviewer questions. `--json` prints the same as data, `--area FIN` keeps one focus area, `--subject APP-booking` one subject, and `--open` lists only the copies with no row or an `open` row. Its first line is the coverage: "50 owed, 3 undisposed, against catalogue v1". It never says complete, because the catalogue finds only what is written into it. An unknown `--area` exits 2, and a `--subject` that names no subject exits 1.
+`planner questions` lists every owed copy with its focus area, severity, state, subject, what it blocks while it is open or asked, and the question, then the reviewer questions. `--json` prints the same as data, `--area FIN` keeps one focus area, `--subject APP-booking` one subject, and `--open` lists only the copies with no row, an `open` row or an invalid row. Its first line is the coverage: "57 owed, 3 undisposed, against catalogue v1". It never says complete, because the catalogue finds only what is written into it. An unknown `--area` exits 2, and a `--subject` that names no subject exits 1.
 
 ## Pages
 
@@ -433,6 +433,7 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | E808 | party or stored value is missing a required fact | | |
 | E810 | heading looks like a party or stored value but is not one | | |
 | W811 | subject defined off its page | | |
+| W812 | ledger row is dated in the future | | |
 
 Codes are stable. A retired code is never reused.
 

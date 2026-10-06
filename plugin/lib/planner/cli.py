@@ -286,7 +286,7 @@ def questions_header(answer, args):
 
 
 def question_line(entry):
-    state = entry["state"] + (f" via {entry['via']}" if entry["via"] else "")
+    state = (entry["state"] if entry["valid"] else f"invalid ({entry['state']})") + (f" via {entry['via']}" if entry["via"] else "")
     if not entry["pending"]:
         blocked = "settled"
     else:

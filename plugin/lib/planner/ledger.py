@@ -25,9 +25,12 @@ PAGE_ID = "unknowns-and-risks"
 HEADING = "Question ledger"
 HEADER = ("Copy", "State", "Evidence", "By", "Date")
 STATES = ("open", "asked", "answered", "assumed", "unknown", "not-applicable")
-KEYS = ("capture", "item", "source", "belief", "load-bearing", "signpost", "unknown", "reason", "question", "quote",
+KEYS = ("capture", "item", "source", "answer", "belief", "load-bearing", "signpost", "unknown", "reason", "question", "quote",
         "severity", "covers")
 REVIEWER_KEYS = ("question", "quote", "severity")
+# What each state may carry. `covers` is allowed on any copy row, and a reviewer row may also carry REVIEWER_KEYS.
+STATE_KEYS = {"open": (), "asked": ("capture",), "answered": ("item", "source", "answer"),
+              "assumed": ("belief", "load-bearing", "signpost"), "unknown": ("unknown",), "not-applicable": ("reason",)}
 COPY_RE = re.compile(r"^(?P<entry>Q-[A-Z]{3}-\d{2})@(?P<subject>[A-Za-z0-9][A-Za-z0-9-]*?)(?P<wild>\*)?$")
 WILD_ONLY_RE = re.compile(r"^(?P<entry>Q-[A-Z]{3}-\d{2})@(?P<wild>\*)$")
 REVIEWER_RE = re.compile(r"^R-(?P<area>[A-Z]{3})-\d{2,}$")
@@ -152,8 +155,41 @@ def parse_row(path, line, cells):
 
 
 def ledger_tables(page):
-    """The page's hand-kept tables whose header is the ledger's."""
-    return [t for t in page.tables if not t.generated and tuple(t.header[:len(HEADER)]) == HEADER]
+    """The page's hand-kept tables whose header is exactly the ledger's."""
+    return [t for t in page.tables if not t.generated and tuple(t.header) == HEADER]
+
+
+def lookalike_tables(page):
+    """Hand-kept tables that start with `Copy` but whose header is not the ledger's: a typo, an extra column,
+    a different order. Planner never reads them as the ledger, so check reports them rather than let a
+    misspelt header hide every row."""
+    return [t for t in page.tables if not t.generated and t.header and str(t.header[0]).strip().lower() == "copy"
+            and tuple(t.header) != HEADER]
+
+
+def misplaced_tables(page):
+    """Ledger tables that do not sit under `## Question ledger`, the last heading before them."""
+    heads = sorted(page.headings, key=lambda h: h.line)
+    out = []
+    for table in ledger_tables(page):
+        above = [h for h in heads if h.line < table.line]
+        if not above or not (above[-1].level == 2 and above[-1].text == HEADING):
+            out.append(table)
+    return out
+
+
+def extra_headings(page):
+    """Every `## Question ledger` heading after the first."""
+    return [h for h in sorted(page.headings, key=lambda h: h.line) if h.level == 2 and h.text == HEADING][1:]
+
+
+def section_lines(page):
+    """The 1-based line range (first, last) of the `## Question ledger` section, or None."""
+    start = heading_line(page)
+    if not start:
+        return None
+    later = [h.line for h in page.headings if h.level == 2 and h.line > start]
+    return start, (min(later) - 1 if later else len(page.text.split("\n")))
 
 
 def heading_line(page):
@@ -173,4 +209,7 @@ def lines(page):
     found = {heading_line(page)} - {0}
     for table in ledger_tables(page):
         found.update(table.row_lines)
+        found.add(table.line)
+    found.update(t.line for t in lookalike_tables(page))
+    found.update(h.line for h in extra_headings(page))
     return found

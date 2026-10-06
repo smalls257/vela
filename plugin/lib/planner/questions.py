@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from planner import catalog, ledger, schema
 from planner.model import Finding, meta_line
-from planner.parse import links_in
+from planner.parse import links_in, split_frontmatter
 
 SUBJECT_ID_RE = {
     "initiative": schema.INITIATIVE_RE,
@@ -237,11 +237,13 @@ class Disposition:
     state: str  # the row's state, or "" when no row covers the copy
     row: object  # the ledger.Row that covers it, or None
     via: str  # "" for the copy's own row, else the covering row's Copy cell: a wildcard or an initiative row
+    valid: bool = True  # False when the row has an error, so it disposes of nothing
 
     @property
     def undisposed(self):
-        """No row says anything about it yet, or its row says `open`."""
-        return self.row is None or self.state == "open"
+        """No row says anything about it yet, its row says `open`, or its row is broken. A row that
+        fails its checks is not a record of anything, so `planner questions` agrees with `planner check`."""
+        return self.row is None or self.state == "open" or not self.valid
 
     @property
     def pending(self):
@@ -260,6 +262,11 @@ def rows(vault):
         page = ledger_page(vault)
         vault.cache["rows"] = tuple(ledger.rows(page)) if page is not None else ()
     return vault.cache["rows"]
+
+
+def row_valid(vault, row):
+    """True when the row has no shape, evidence or naming error. A warning does not break a row."""
+    return not any(f.is_error for f in _row_findings(vault).get(row.line, ()))
 
 
 def reviewer_rows(vault):
@@ -287,12 +294,12 @@ def _covers(vault, row, copy):
     return 0
 
 
-def dispositions(vault):
-    """One Disposition per owed copy, in copy order. The copy's own row wins, then the wildcard with
-    the longest prefix, then an initiative row that `covers:` the copy's scope. Exceptions take
-    their own row. A row whose shape is broken still counts here; check reports it as an error."""
-    if "dispositions" in vault.cache:
-        return vault.cache["dispositions"]
+def _assignments(vault):
+    """(copy, row, rank) for each owed copy: its own row, else the wildcard with the longest prefix, else an
+    initiative row that `covers:` its scope. Exceptions take their own row. A broken row is still the one
+    assigned, so a bad exception is never quietly replaced by the wildcard it was an exception to."""
+    if "assignments" in vault.cache:
+        return vault.cache["assignments"]
     readable = [r for r in rows(vault) if r.kind in ("copy", "wildcard") and r.state in ledger.STATES]
     out = []
     for copy in owed(vault):
@@ -301,9 +308,18 @@ def dispositions(vault):
             score = _covers(vault, row, copy)
             if score and (score > rank or (score == rank == 2 and len(row.subject) > len(best.subject))):
                 best, rank = row, score
-        via = "" if best is None or rank == 3 else best.copy
-        out.append(Disposition(copy, best.state if best else "", best, via))
-    vault.cache["dispositions"] = tuple(out)
+        out.append((copy, best, rank))
+    vault.cache["assignments"] = tuple(out)
+    return vault.cache["assignments"]
+
+
+def dispositions(vault):
+    """One Disposition per owed copy, in copy order."""
+    if "dispositions" not in vault.cache:
+        vault.cache["dispositions"] = tuple(
+            Disposition(copy, best.state if best else "", best, "" if best is None or rank == 3 else best.copy,
+                        best is None or row_valid(vault, best))
+            for copy, best, rank in _assignments(vault))
     return vault.cache["dispositions"]
 
 
@@ -315,8 +331,11 @@ def coverage_line(vault, owed_count, undisposed_count):
 # ------------------------------------------------------------------ the ledger rules
 
 QUOTE_RE = re.compile(r'^"(?P<text>[^"]+)"\s+in\s+\[\[(?P<page>[^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]$')
-_QUOTE_MARKS = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"'})
+MIN_QUOTE_WORDS = 4
+_QUOTE_MARKS = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
 _WIKILINK_TEXT = re.compile(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]")
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+UNK_RE = re.compile(r"\bUNK-\d{3}\b")
 
 
 def normal_text(text):
@@ -326,47 +345,96 @@ def normal_text(text):
     return " ".join(re.sub(r"[*_`]", "", text).lower().split())
 
 
+def quotable_text(page):
+    """The hand-written body of a page: no frontmatter, no generated block, no HTML comment, and on the
+    ledger page not the ledger section, so a row cannot be evidenced by itself."""
+    lines = page.text.split("\n")
+    _, body_start, _ = split_frontmatter(page.text)
+    skip = set(range(1, max(body_start, 1)))
+    for block in page.blocks:
+        skip.update(range(block.start, block.end + 1))
+    if page.id == ledger.PAGE_ID:
+        span = ledger.section_lines(page)
+        if span:
+            skip.update(range(span[0], span[1] + 1))
+    kept = "\n".join(line for n, line in enumerate(lines, start=1) if n not in skip)
+    return _HTML_COMMENT.sub(" ", kept)
+
+
 def quote_problem(vault, value, label):
     """Why `value` is not a quote that can be checked, or "" when it is on its page. A quote is
-    `"<the words>" in [[<page>]]`, and the words must be on that page, so evidence cannot be made up."""
+    `"<the words>" in [[<page>]]`, and the words must be hand-written text on that page, so evidence cannot
+    be made up."""
     match = QUOTE_RE.match(value)
     if not match:
         return f'{label} must be "<the words>" in [[<page>]], the words and the page they are on'
-    page = vault.page(match["page"].strip())
+    name = match["page"].strip()
+    page = vault.page(name)
     if page is None:
-        return f'{label} cites [[{match["page"].strip()}]], which is not a page in this vault'
-    if page.id == ledger.PAGE_ID:
-        return f"{label} cites the ledger page itself, which cannot evidence its own rows"
-    if normal_text(match["text"]) not in normal_text(page.text):
-        return f'{label} "{match["text"]}" is not on [[{match["page"].strip()}]]'
+        return f"{label} cites [[{name}]], which is not a page in this vault"
+    words = normal_text(match["text"])
+    if len(words.split()) < MIN_QUOTE_WORDS:
+        return f'{label} "{match["text"]}" has fewer than {MIN_QUOTE_WORDS} words, too few to show where it came from'
+    if words not in normal_text(quotable_text(page)):
+        return f'{label} "{match["text"]}" is not in the written text of [[{name}]]'
     return ""
-UNK_RE = re.compile(r"\bUNK-\d{3}\b")
 
 
 def _f(row, code, message, fix):
     return Finding(row.path, row.line, code, message, fix)
 
 
+def _links(value, row):
+    return links_in(value, row.line) if value else ()
+
+
+def _source_problem(vault, source):
+    """source: is exactly one SRC-nn that sources.md has, or exactly one verified quote. Nothing else, so an
+    SRC-nn beside a made-up sentence can never switch the quote check off."""
+    if not source:
+        return 'answered needs source: one SRC-nn from sources.md, or the answer quoted as "<the words>" in [[<page>]]'
+    if schema.SOURCE_ID_RE.match(source):
+        known = {i for i in vault.row_ids if schema.SOURCE_ID_RE.match(i)}
+        return "" if source in known else f"source {source} is not a row in sources.md"
+    if not QUOTE_RE.match(source):
+        return 'source must be exactly one SRC-nn, or exactly one quote as "<the words>" in [[<page>]]'
+    return quote_problem(vault, source, "source")
+
+
+def _unknown_problems(vault, row):
+    ids = UNK_RE.findall(row.get("unknown"))
+    if not ids:
+        return ["unknown needs unknown: the UNK-nnn that asks it"]
+    need = []
+    for unknown_id in ids:
+        item = vault.item(unknown_id)
+        if item is None or item.kind != "unknown":
+            need.append(f"{unknown_id} is not an unknown in this vault")
+        elif not schema.OWNER_BULLET_RE.match(item.fact("Owner")):
+            need.append(f"{unknown_id} has no owner handle")
+        elif item.fact("State").lower() == "resolved":
+            need.append(f"{unknown_id} is resolved; record the answer")
+        elif item.fact("State").lower() != "open":
+            need.append(f"{unknown_id} is {item.fact('State') or 'not open'}, so it is not asking the question")
+    return need
+
+
 def _evidence_problems(vault, row):
     """What the row's state needs and its evidence lacks, as phrases."""
     need = []
     state = row.state
+    allowed = ledger.STATE_KEYS.get(state, ()) + (ledger.REVIEWER_KEYS if row.kind == "reviewer" else ("covers",))
+    for key, _ in row.evidence:
+        if key not in allowed:
+            need.append(f"{key}: does not belong on a row that is {state}")
     if state == "asked" and not any(l.anchor.startswith("^c") for l in _links(row.get("capture"), row)):
         need.append("asked needs capture: a link to the capture where it was asked, such as [[<session>#^c07]]")
     if state == "answered":
         if not _links(row.get("item"), row):
             need.append("answered needs item: a link to the item that holds the answer")
-        source = row.get("source")
-        tokens = schema.SOURCE_TOKEN_RE.findall(source)
-        sources = {i for i in vault.row_ids if schema.SOURCE_ID_RE.match(i)}
-        if not tokens:
-            if not source:
-                need.append('answered needs source: an SRC-nn from sources.md, or the answer quoted as "<the words>" in [[<page>]]')
-            else:
-                need.append(quote_problem(vault, source, "source") or "")
-        for token in tokens:
-            if token not in sources:
-                need.append(f"source {token} is not a row in sources.md")
+        if not row.get("answer"):
+            need.append("answered needs answer: the answer, in one line")
+        need.append(_source_problem(vault, row.get("source")))
     if state == "assumed":
         if not row.get("belief"):
             need.append("assumed needs belief: what is believed")
@@ -375,15 +443,7 @@ def _evidence_problems(vault, row):
         if not row.get("signpost"):
             need.append("assumed needs signpost: what would show the belief is failing")
     if state == "unknown":
-        ids = UNK_RE.findall(row.get("unknown"))
-        found = [vault.item(i) for i in ids]
-        if not ids:
-            need.append("unknown needs unknown: the UNK-nnn that asks it")
-        for unknown_id, item in zip(ids, found):
-            if item is None or item.kind != "unknown":
-                need.append(f"{unknown_id} is not an unknown in this vault")
-            elif not schema.OWNER_BULLET_RE.match(item.fact("Owner")):
-                need.append(f"{unknown_id} has no owner handle")
+        need += _unknown_problems(vault, row)
     if state == "not-applicable" and not row.get("reason"):
         need.append("not-applicable needs reason: why the question does not apply")
     if row.kind == "reviewer":
@@ -392,14 +452,10 @@ def _evidence_problems(vault, row):
         if not row.get("quote"):
             need.append('a reviewer question needs quote: "<the words>" in [[<page>]]')
         else:
-            need.append(quote_problem(vault, row.get("quote"), "quote") or "")
+            need.append(quote_problem(vault, row.get("quote"), "quote"))
         if row.has("severity") and row.get("severity") not in catalog.SEVERITIES:
             need.append("severity is high or normal")
     return [n for n in need if n]
-
-
-def _links(value, row):
-    return links_in(value, row.line) if value else ()
 
 
 def _copy_problem(vault, row):
@@ -411,8 +467,13 @@ def _copy_problem(vault, row):
         prefix = SUBJECT_PREFIX[entry.scope]
         if not row.subject.startswith(prefix):
             return "E803", f"{row.copy} is a wildcard for a {entry.scope} entry, so it must start {row.entry}@{prefix}"
+        if entry.scope == "initiative":
+            return "W804", (f"{row.copy} is a wildcard on an initiative entry, which has one copy. "
+                            f"Write {row.entry}@{_initiative_id(vault) or 'INI-001'} instead.")
         if not any(_covers(vault, row, c) == 2 for c in owed(vault)):
             return "W804", f"{row.copy} matches no owed copy, so it covers nothing now. It stays as a record."
+        if not any(best is row for _, best, _ in _assignments(vault)):
+            return "W804", f"{row.copy} is shadowed: every copy it matches has a row of its own or a longer wildcard. It stays as a record."
         return None
     initiative_cover = row.subject == _initiative_id(vault) and entry.scope != "initiative"
     if row.has("covers") and not initiative_cover:
@@ -434,41 +495,74 @@ def _copy_problem(vault, row):
     return None
 
 
-def ledger_findings(vault):
-    """E801 for a malformed row, E802 for a state without its evidence, E803 for a row that names
-    nothing the catalogue can owe, and W804 for a row whose copy is orphaned or no longer owed."""
-    page = ledger_page(vault)
-    for other in vault.pages:
-        if other is page:
-            continue
-        for table in ledger.ledger_tables(other):
-            yield Finding(other.path, table.line, "E801", "A question ledger table belongs on 11-unknowns-and-risks.md, "
-                          "so planner never reads this one.", "Move its rows under ## Question ledger on 11-unknowns-and-risks.md.")
-    seen = {}
+def _row_findings(vault):
+    """{row line: [Finding]} for every row: E801 malformed, E802 evidence, E803 and W804 naming. Cached, because
+    dispositions need to know which rows are broken."""
+    if "row_findings" in vault.cache:
+        return vault.cache["row_findings"]
+    found, seen = {}, {}
     areas = vault.catalogue.area_codes
+    vault.cache["row_findings"] = found  # a wildcard check reads assignments, which never read findings
     for row in rows(vault):
+        out = found.setdefault(row.line, [])
         problems = list(row.problems)
         if row.kind and row.copy in seen:
             problems.append(f"it is also a row at line {seen[row.copy]}")
         seen.setdefault(row.copy, row.line)
         if problems:
-            yield _f(row, "E801", f"Question ledger row {row.copy or '(empty)'} is malformed: {'; '.join(problems)}.",
-                     "Write | <copy> | <state> | <key: value; key: value> | @handle | YYYY-MM-DD |, as CONVENTIONS.md shows.")
+            out.append(_f(row, "E801", f"Question ledger row {row.copy or '(empty)'} is malformed: {'; '.join(problems)}.",
+                          "Write | <copy> | <state> | <key: value; key: value> | @handle | YYYY-MM-DD |, as CONVENTIONS.md shows."))
             continue
         if row.kind == "reviewer" and row.area not in areas:
-            yield _f(row, "E803", f"{row.copy} names area {row.area}, which catalogue v{vault.catalogue.version} does not have.",
-                     f"Use one of: {', '.join(areas)}.")
+            out.append(_f(row, "E803", f"{row.copy} names area {row.area}, which catalogue v{vault.catalogue.version} does not have.",
+                          f"Use one of: {', '.join(areas)}."))
         elif row.kind != "reviewer":
             problem = _copy_problem(vault, row)
             if problem:
                 code, message = problem
                 fix = ("Fix the copy ID, or remove the row." if code == "E803"
                        else "Leave it as a record, or remove the row once nobody needs it.")
-                yield _f(row, code, message, fix)
+                out.append(_f(row, code, message, fix))
         need = _evidence_problems(vault, row)
         if need:
-            yield _f(row, "E802", f"{row.copy} is {row.state}, but {'; '.join(need)}.",
-                     "Add the evidence, or set the state to open.")
+            out.append(_f(row, "E802", f"{row.copy} is {row.state}, but {'; '.join(need)}.",
+                          "Add the evidence, or set the state to open."))
+    return found
+
+
+def _page_findings(vault):
+    """E801 for ledger tables and headings planner cannot read as the ledger."""
+    page = ledger_page(vault)
+    for other in vault.pages:
+        if other is not page:
+            for table in ledger.ledger_tables(other):
+                yield Finding(other.path, table.line, "E801", "A question ledger table belongs on 11-unknowns-and-risks.md, "
+                              "so planner never reads this one.", "Move its rows under ## Question ledger on 11-unknowns-and-risks.md.")
+        for table in ledger.lookalike_tables(other):
+            yield Finding(other.path, table.line, "E801",
+                          f"A table headed '{' | '.join(table.header)}' looks like the question ledger, but its header is not "
+                          f"exactly '{' | '.join(ledger.HEADER)}', so planner does not read its rows.",
+                          f"Make the header exactly | {' | '.join(ledger.HEADER)} |.")
+    if page is None:
+        return
+    for table in ledger.misplaced_tables(page):
+        yield Finding(page.path, table.line, "E801", f"A ledger table must sit under ## {ledger.HEADING}, and this one does not.",
+                      f"Move it under ## {ledger.HEADING}.")
+    for heading in ledger.extra_headings(page):
+        yield Finding(page.path, heading.line, "E801", f"## {ledger.HEADING} appears twice, and the ledger has one section.",
+                      "Merge the rows under the first heading.")
+
+
+def ledger_findings(vault, today=None):
+    """E801 for a malformed row or an unreadable ledger table, E802 for a state without its evidence, E803 for a
+    row that names nothing the catalogue can owe, W804 for a row whose copy is orphaned, no longer owed, or
+    shadowed, and W812 for a row dated after today."""
+    yield from _page_findings(vault)
+    for row in rows(vault):
+        yield from _row_findings(vault).get(row.line, ())
+        if today and ledger.is_date(row.date) and row.date > today:
+            yield _f(row, "W812", f"{row.copy} is dated {row.date}, which is after today ({today}).",
+                     "Correct the date, or leave it if the decision is booked ahead.")
 
 
 # ------------------------------------------------------------------ planner questions
@@ -477,31 +571,34 @@ def copy_answer(vault, d):
     c = d.copy
     return {"id": c.id, "entry": c.entry.id, "area": c.entry.area, "severity": c.entry.severity,
             "question": c.entry.question, "subject": c.subject.id, "subject_kind": c.subject.kind,
-            "state": d.state or "no row", "row": d.row.line if d.row else None, "via": d.via or None,
+            "state": d.state or "no row", "valid": d.valid, "row": d.row.line if d.row else None, "via": d.via or None,
             "pending": d.pending, "blocks": list(blocks(vault, c))}
 
 
-def reviewer_answer(row):
+def reviewer_answer(vault, row):
     severity = row.get("severity") if row.get("severity") in catalog.SEVERITIES else "normal"
+    valid = row_valid(vault, row)
     return {"id": row.copy, "entry": None, "area": row.area, "severity": severity, "question": row.get("question"),
-            "subject": None, "subject_kind": "reviewer", "state": row.state, "row": row.line, "via": None,
-            "pending": row.state in ("open", "asked"), "blocks": []}
+            "subject": None, "subject_kind": "reviewer", "state": row.state, "valid": valid, "row": row.line, "via": None,
+            "pending": row.state in ("open", "asked") or not valid, "blocks": []}
 
 
 def listing(vault, area=None, open_only=False, subject_id=None):
     """What `planner questions` reports, as data json.dumps can write. The counts cover the copies the
-    area and subject filters keep; --open then keeps only the undisposed ones in the list."""
+    area and subject filters keep; --open then keeps only the undisposed ones in the list. A row with an
+    error counts as undisposed, the same as check says."""
     kept = [d for d in dispositions(vault) if (area is None or d.copy.entry.area == area)
             and (subject_id is None or d.copy.subject.id == subject_id)]
     reviewers = [r for r in reviewer_rows(vault) if (area is None or r.area == area)] if subject_id is None else []
     undisposed = sum(1 for d in kept if d.undisposed)
+    reviewer_open = [r for r in reviewers if r.state == "open" or not row_valid(vault, r)]
     return {
         "catalogue": vault.catalogue.version,
         "coverage": coverage_line(vault, len(kept), undisposed),
         "owed": len(kept),
         "undisposed": undisposed,
         "reviewer_questions": len(reviewers),
-        "reviewer_open": sum(1 for r in reviewers if r.state == "open"),
+        "reviewer_open": len(reviewer_open),
         "copies": [copy_answer(vault, d) for d in kept if d.undisposed or not open_only],
-        "reviewer": [reviewer_answer(r) for r in reviewers if r.state == "open" or not open_only],
+        "reviewer": [reviewer_answer(vault, r) for r in reviewers if r in reviewer_open or not open_only],
     }

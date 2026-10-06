@@ -49,9 +49,10 @@ def test_the_fixture_ledger_is_realistic_and_leaves_nothing_undisposed():
     assert any(r.has("covers") for r in questions.rows(vault)), "the example shows an initiative row"
     assert not [d.copy.id for d in questions.dispositions(vault) if d.undisposed]
     vias = {d.copy.id: d.via for d in questions.dispositions(vault)}
-    assert vias["Q-DAT-02@APP-booking"] == "Q-DAT-02@APP-*"
+    assert vias["Q-DAT-02@APP-website"] == "Q-DAT-02@APP-*"
     assert vias["Q-DAT-02@APP-pricing"] == "", "an exception takes its own row"
-    assert vias["Q-OPS-03@CAP-014"] == "Q-OPS-03@INI-002"
+    assert vias["Q-OPS-03@CAP-013"] == "Q-OPS-03@INI-002"
+    assert vias["Q-OPS-03@CAP-014"] == "", "an own row beats an initiative row that covers"
 
 
 def test_the_fixture_is_clean_with_its_ledger():
@@ -99,12 +100,25 @@ def test_an_open_row_needs_no_by_or_date(ub):
 
 @pytest.mark.parametrize("old, new, said", [
     ("| asked | capture: [[2026-11-19-owed-questions#^c01]] |", "| asked | capture: by email |", "asked needs capture"),
-    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07 |",
-     "| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]] |", "answered needs source"),
-    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07 |",
-     "| answered | source: SRC-07 |", "answered needs item"),
-    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07 |",
-     "| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-99 |",
+    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     "| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |", "answered needs source"),
+    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     "| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07 |", "answered needs answer"),
+    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     "| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005; reason: x |", "reason: does not belong on a row that is answered"),
+    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     '| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: "Customers pay in cash." in [[concern-data]] SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |',
+     "source must be exactly one SRC-nn, or exactly one quote"),
+    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     '| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: "SRC-07 says customers pay in cash" in [[concern-data]]; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |',
+     "is not in the written text of [[concern-data]]"),
+    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     "| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: I made this up, see SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     "source must be exactly one SRC-nn, or exactly one quote"),
+    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     "| answered | source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |", "answered needs item"),
+    ("| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
+     "| answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\\|CON-005]]; source: SRC-99; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 |",
      "source SRC-99 is not a row in sources.md"),
     ("load-bearing: no; signpost: procurement's renewal notice each autumn", "load-bearing: maybe; signpost: x",
      "load-bearing: yes or no"),
@@ -113,6 +127,8 @@ def test_an_open_row_needs_no_by_or_date(ub):
      "| Q-OPS-06@INI-002 | unknown | unknown: finance |", "unknown needs unknown"),
     ("| Q-OPS-06@INI-002 | unknown | unknown: [[#UNK-006 Finance on Booking events\\|UNK-006]] |",
      "| Q-OPS-06@INI-002 | unknown | unknown: UNK-099 |", "UNK-099 is not an unknown in this vault"),
+    ("| Q-OPS-06@INI-002 | unknown | unknown: [[#UNK-006 Finance on Booking events\\|UNK-006]] |",
+     "| Q-OPS-06@INI-002 | unknown | unknown: [[#UNK-007 Booking on-call\\|UNK-007]] |", "UNK-007 is resolved; record the answer"),
     ("| Q-REG-01@INI-002 | not-applicable | reason: Booking sells single ferry crossings, and nothing is sold with another party |",
      "| Q-REG-01@INI-002 | not-applicable |  |", "not-applicable needs reason"),
     ('quote: "because points are earned at reservation" in [[04a-capability-delta]]',
@@ -125,18 +141,23 @@ def test_a_state_without_its_evidence_is_e802(ub, old, new, said):
 
 
 GOOD_QUOTE = ('source: "The only personal data is the customer ID." in [[concern-data]]')
-ROW_QUOTE = ('source: "Booking holds no card data and no contact details." in [[concern-data]]')
+ROW_QUOTE = ('source: "Notifications resolves contact details at send time from Customer identity." in [[concern-data]]')
 
 
 @pytest.mark.parametrize("quote, said", [
-    ('source: "the only PERSONAL   data is the *customer ID*" in [[concern-data\\|Data]]', None),
+    ('source: "notifications RESOLVES contact   details at send time from *Customer identity*" in [[concern-data\\|Data]]', None),
+    ('source: "Finance should read Booking events instead of FERRYMASTER?" in [[11-unknowns-and-risks]]',
+     'is not in the written text of [[11-unknowns-and-risks]]'),
+    ('source: "Should the finance reconciliation job read Booking events instead of FERRYMASTER?" in [[11-unknowns-and-risks]]', None),
+    ('source: "Catalogue v1 owes these questions. Each row says where one stands." in [[11-unknowns-and-risks]]', 'is not in the written text of [[11-unknowns-and-risks]]'),
+    ('source: "customer identity." in [[concern-data]]', "fewer than 4 words"),
     ('source: "gives 8 weeks\u2019 notice of changes" in [[concern-ownership]]', None),
-    ('source: "The only personal data is the customer ID."', 'source must be "<the words>" in [[<page>]]'),
-    ('source: "Customers pay in cash." in [[concern-data]]', 'source "Customers pay in cash." is not on [[concern-data]]'),
-    ('source: "Q-DAT-05@INI-002" in [[11-unknowns-and-risks]]', "cites the ledger page itself"),
+    ('source: "The only personal data is the customer ID."', 'source must be exactly one SRC-nn, or exactly one quote'),
+    ('source: "Customers pay in cash today." in [[concern-data]]', 'is not in the written text of [[concern-data]]'),
+    ('source: "CAP-013 Reserve a crossing (replace)" in [[04a-capability-delta]]', 'is not in the written text of [[04a-capability-delta]]'),
 ])
 def test_a_quoted_source_must_name_its_page_and_be_on_it(ub, quote, said):
-    edit(ub / LEDGER, 'source: "Booking holds no card data and no contact details." in [[concern-data]]', quote)
+    edit(ub / LEDGER, ROW_QUOTE, quote)
     if said is None:
         assert broken(ub) == []
         return
@@ -148,6 +169,16 @@ def test_a_quote_on_a_page_that_is_not_in_the_vault_is_refused():
     vault = cli.load_vault(FIXTURE)
     said = questions.quote_problem(vault, '"The only personal data is the customer ID." in [[concern-nope]]', "source")
     assert said == "source cites [[concern-nope]], which is not a page in this vault"
+
+
+def test_only_hand_written_body_text_can_be_quoted():
+    vault = cli.load_vault(FIXTURE)
+    text = questions.normal_text(questions.quotable_text(vault.page("04a-capability-delta")))
+    assert "every capability this initiative changes" in text
+    assert "reserve a crossing (replace)" not in text, "a generated block is not hand-written"
+    assert "initiative: ini-002" not in text, "frontmatter is not body text"
+    ledger_text = questions.normal_text(questions.quotable_text(vault.page("11-unknowns-and-risks")))
+    assert "should the finance reconciliation job" in ledger_text and "q-fin-02@ini-002" not in ledger_text
 
 
 def test_every_quote_in_the_fixture_ledger_is_on_its_page():
@@ -200,14 +231,38 @@ def test_removing_a_subject_orphans_its_rows_and_never_drops_them(ub):
 
 # ------------------------------------------------------------------ dispositions
 
+def drop_row(vault, prefix):
+    path = vault / LEDGER
+    kept = [l for l in path.read_text(encoding="utf-8").split("\n") if not l.startswith(prefix)]
+    path.write_text("\n".join(kept), encoding="utf-8")
+
+
 def test_a_copy_with_no_row_is_undisposed_and_never_a_finding(ub):
-    edit(ub / LEDGER, "| Q-OPS-02@CON-* | answered | item: [[booking-runtime#When a dependency is slow or down\\|Booking runtime]]; "
-         "source: SRC-04 | @hl-booking-senior | 2026-11-19 |\n", "")
+    drop_row(ub, "| Q-OPS-01@APP-* |")
     assert broken(ub) == []
     code, answer = ask(ub, "--open")
-    assert code == 0 and answer["undisposed"] == 7
-    assert [c["id"] for c in answer["copies"]] == [f"Q-OPS-02@CON-00{n}" for n in range(1, 8)]
+    assert code == 0 and answer["undisposed"] == 3
+    assert [c["id"] for c in answer["copies"]] == ["Q-OPS-01@APP-kiosks", "Q-OPS-01@APP-pricing", "Q-OPS-01@APP-website"]
     assert all(c["state"] == "no row" and c["pending"] for c in answer["copies"])
+
+
+def test_a_row_with_an_error_disposes_of_nothing(ub):
+    edit(ub / LEDGER, "; answer: Finance owns the points, through INI-004 Loyalty Revamp |", " |")
+    assert broken(ub) == [("E802", LEDGER)]
+    code, answer = ask(ub)
+    copy = next(c for c in answer["copies"] if c["id"] == "Q-FIN-03@SV-01")
+    assert copy["valid"] is False and copy["state"] == "answered" and copy["pending"]
+    assert answer["undisposed"] == 1 and answer["coverage"].startswith("57 owed, 1 undisposed")
+    assert [c["id"] for c in ask(ub, "--open")[1]["copies"]] == ["Q-FIN-03@SV-01"]
+    _, out = run("questions", "--vault", str(ub))
+    assert "Q-FIN-03@SV-01 | FIN | high | invalid (answered) | SV-01 | blocks nothing |" in out
+
+
+def test_a_broken_exception_is_not_quietly_replaced_by_its_wildcard(ub):
+    edit(ub / LEDGER, "reason: Pricing holds fare rules only, per the Data concern, so it holds no customer data", "reason:")
+    vault = cli.load_vault(ub)
+    d = next(d for d in questions.dispositions(vault) if d.copy.id == "Q-DAT-02@APP-pricing")
+    assert d.row.copy == "Q-DAT-02@APP-pricing" and not d.valid and d.undisposed
 
 
 def test_the_longest_wildcard_wins_and_an_own_row_beats_both(ub):
@@ -226,7 +281,7 @@ def test_planner_questions_prints_the_coverage_line_and_one_line_per_copy():
     assert lines[0] == "planner questions: 57 owed, 0 undisposed, against catalogue v1. 1 reviewer question, 1 open."
     assert "complete" not in out.lower()
     assert len(lines) == 59
-    assert "Q-DAT-02@APP-booking | DAT | high | answered via Q-DAT-02@APP-* | APP-booking | settled | What customer data" in out
+    assert "Q-DAT-02@APP-website | DAT | high | assumed via Q-DAT-02@APP-* | APP-website | settled | What customer data" in out
     assert lines[-1].startswith("R-FIN-01 | FIN | normal | open | reviewer | blocks nothing | Points are earned")
 
 
@@ -243,7 +298,7 @@ def test_planner_questions_json_holds_every_field():
     _, answer = ask(FIXTURE)
     copy = next(c for c in answer["copies"] if c["id"] == "Q-PTN-02@PTY-02")
     assert copy == {"id": "Q-PTN-02@PTY-02", "entry": "Q-PTN-02", "area": "PTN", "severity": "high",
-                    "question": copy["question"], "subject": "PTY-02", "subject_kind": "party", "state": "answered",
+                    "question": copy["question"], "subject": "PTY-02", "subject_kind": "party", "state": "answered", "valid": True,
                     "row": copy["row"], "via": None, "pending": False, "blocks": ["ADR-0002", "CON-006"]}
     assert answer["reviewer"][0]["id"] == "R-FIN-01" and answer["reviewer"][0]["subject_kind"] == "reviewer"
 
@@ -279,3 +334,59 @@ def test_a_ledger_saved_with_crlf_line_endings_still_reads(ub):
     code, answer = ask(ub)
     assert code == 0 and answer["undisposed"] == 0
     assert findings(check(ub, TODAY)[1]) == []
+
+
+# ------------------------------------------------------------------ the ledger's own shape
+
+@pytest.mark.parametrize("header", [
+    "| Copy | Status | Evidence | By | Date |",
+    "| copy | State | Evidence | By | Date |",
+    "| Copy | Evidence | State | By | Date |",
+    "| Copy | State | Evidence | By |",
+    "| Copy | State | Evidence | By | Date | Notes |",
+])
+def test_a_ledger_header_that_is_not_exact_is_e801_and_never_hides_the_ledger(ub, header):
+    edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n|---|---|---|---|---|", header + "\n|---|---|---|---|---|")
+    assert broken(ub) == [("E801", LEDGER)]
+    assert "looks like the question ledger, but its header is not exactly" in check(ub, TODAY)[1]
+
+
+def test_a_ledger_table_must_sit_directly_under_the_ledger_heading(ub):
+    edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n", "## Notes\n\n| Copy | State | Evidence | By | Date |\n")
+    assert broken(ub) == [("E801", LEDGER)]
+    assert "must sit under ## Question ledger" in check(ub, TODAY)[1]
+
+
+def test_a_second_ledger_heading_is_e801(ub):
+    path = ub / LEDGER
+    path.write_text(path.read_text(encoding="utf-8") + "\n## Question ledger\n", encoding="utf-8")
+    assert broken(ub) == [("E801", LEDGER)]
+    assert "appears twice" in check(ub, TODAY)[1]
+
+
+def test_a_fully_shadowed_wildcard_is_w804(ub):
+    path = ub / LEDGER
+    text = path.read_text(encoding="utf-8")
+    wild = next(l for l in text.split("\n") if l.startswith("| Q-DAT-02@APP-* |"))
+    own = "\n".join(wild.replace("Q-DAT-02@APP-*", f"Q-DAT-02@{app}", 1) for app in ("APP-website", "APP-call-centre", "APP-kiosks"))
+    path.write_text(text.replace(wild, wild + "\n" + own), encoding="utf-8")
+    assert [f for f in broken(ub) if f[0] == "W804"] == [("W804", LEDGER)]
+    assert "Q-DAT-02@APP-* is shadowed" in check(ub, TODAY)[1]
+
+
+def test_a_wildcard_on_an_initiative_entry_is_w804(ub):
+    edit(ub / LEDGER, "| Q-PTN-01@INI-002 |", "| Q-PTN-01@INI-* |")
+    assert [f for f in broken(ub) if f[0] == "W804"] == [("W804", LEDGER)]
+    assert "is a wildcard on an initiative entry" in check(ub, TODAY)[1]
+
+
+def test_a_row_dated_after_today_is_w812(ub):
+    edit(ub / LEDGER, "| @hl-solution-lead | 2026-11-19 |\n| Q-FIN-03@SV-01", "| @hl-solution-lead | 2026-12-01 |\n| Q-FIN-03@SV-01")
+    assert broken(ub) == [("W812", LEDGER)]
+
+
+def test_a_reviewer_quote_is_checked_against_its_page_too(ub):
+    edit(ub / LEDGER, 'quote: "because points are earned at reservation" in [[04a-capability-delta]]',
+         'quote: "because points are earned at booking" in [[04a-capability-delta]]')
+    assert broken(ub) == [("E802", LEDGER)]
+    assert 'quote "because points are earned at booking" is not in the written text' in check(ub, TODAY)[1]
