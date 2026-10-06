@@ -262,8 +262,8 @@ Three gates read it too. Each names a moment, and a skill runs it then:
 | Gate | When | What it reports |
 |---|---|---|
 | `planner check --gate shape` | the end of a Shape | W806 for each row still `assumed`. An assumption clears into a decision, a requirement or a constraint before Shape closes. |
-| `planner check --gate grill --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open` or `asked` row, that blocks the item. A warning: the lead may decide anyway. |
-| `planner check --gate epics` | before epics are called complete | E805 for each high-severity copy or reviewer question with no row, or an `open` or `asked` row. An `asked` question is still waiting for its answer. |
+| `planner check --gate grill --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open`, `asked` or invalid row, that blocks the item. A warning: the lead may decide anyway. An item no catalogue question can block gets one W807 saying so. |
+| `planner check --gate epics` | before epics are called complete | E805 for each high-severity copy or reviewer question with no row, or an `open`, `asked` or invalid row. An `asked` question is still waiting for its answer. |
 
 `--item` repeats, once per agenda item, and goes only with `--gate grill`, which needs at least one. An ID the vault does not hold exits 2.
 

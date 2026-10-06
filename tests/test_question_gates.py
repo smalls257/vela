@@ -158,3 +158,52 @@ def test_a_vault_with_no_ledger_page_still_fails_the_epics_gate_loudly(tmp_path)
     assert code == 1
     assert findings(out) == [("E805", LEDGER)] * 4
     assert f"{LEDGER}:1: E805 Q-DAT-01@INI-777 is high severity and has no ledger row:" in out
+
+
+# ------------------------------------------------------------------ fix round 1
+
+def strip_ledger_heading(vault):
+    """The ledger page with its `## Question ledger` section cut off, as an older vault would have it."""
+    path = vault / LEDGER
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text[:text.index("## Question ledger")], encoding="utf-8")
+
+
+def test_an_override_reaches_e805_at_line_1_when_the_ledger_heading_is_missing(ub):
+    strip_ledger_heading(ub)
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "epics")
+    assert code == 1 and f"{LEDGER}:1: E805" in out
+    assert "The page has no ## Question ledger heading." in out and "Add ## Question ledger to the page." in out
+    top = (ub / LEDGER).read_text(encoding="utf-8").replace("\n# ", "\n" + OVERRIDE + "# ", 1)
+    (ub / LEDGER).write_text(top, encoding="utf-8")
+    code, out = run("check", "--vault", str(ub), "--today", TODAY, "--gate", "epics")
+    codes = {c for c, _ in findings(out)}
+    assert "W805" in codes and "E805" not in codes and "W323" not in codes
+    # the only error left is the owed-questions session's own link to the heading this test cut off
+    assert codes - {"W805"} <= {"E202"}
+
+
+def test_the_epics_gate_says_plainly_when_the_vault_has_no_ledger_page(tmp_path):
+    vault = tmp_path / "bare"
+    vault.mkdir()
+    (vault / ".planner.yaml").write_text("initiative: INI-777\ntitle: Bare\n", encoding="utf-8")
+    code, out = run("check", "--vault", str(vault), "--today", TODAY, "--gate", "epics")
+    assert code == 1
+    assert "The vault has no 11-unknowns-and-risks.md ledger page." in out
+
+
+def test_an_invalid_high_reviewer_row_fails_the_gate_and_an_override_clears_it(ub):
+    edit(ub / LEDGER, "; severity: normal |", "; severity: high |")
+    edit(ub / LEDGER, '"because points are earned at reservation"', '"words the page never says"')
+    code, out = gate(ub, "--gate", "epics")
+    assert code == 1
+    assert "R-FIN-01 is high severity and is invalid (open):" in out
+    edit(ub / LEDGER, "## Question ledger\n\n", "## Question ledger\n\n" + OVERRIDE)
+    out = gate(ub, "--gate", "epics")[1]
+    assert "W805 R-FIN-01" in out and "W323" not in out
+
+
+def test_a_grill_item_no_question_can_block_is_said_not_passed_quietly(ub):
+    code, out = gate(ub, "--gate", "grill", "--item", "PTY-01")
+    assert code == 0
+    assert "No catalogue question blocks PTY-01" in out

@@ -49,7 +49,7 @@ authored: mixed
 | Copy | State | Evidence | By | Date |
 |---|---|---|---|---|
 | Q-DAT-01@INI-900 | not-applicable | reason: the shop uses no data in a new way or for a new party | @mini-lead | 2026-01-10 |
-| Q-DAT-05@INI-900 | not-applicable | reason: the shop and the till keep no customer data, so none is used for a second purpose | @mini-lead | 2026-01-10 |
-| Q-DAT-02@APP-* | not-applicable | reason: the shop and the till take payment at the counter and keep no customer data | @mini-lead | 2026-01-10 |
+| Q-DAT-05@INI-900 | not-applicable | reason: this vault records no customer data held or used, so none is recorded as used for a second purpose | @mini-lead | 2026-01-10 |
+| Q-DAT-02@APP-* | not-applicable | reason: this vault records no customer data held by the shop or the till | @mini-lead | 2026-01-10 |
 | Q-FIN-01@INI-900 | not-applicable | reason: the shop holds no value for customers | @mini-lead | 2026-01-10 |
 | Q-PTN-01@INI-900 | not-applicable | reason: nothing changes owner, operator or payer | @mini-lead | 2026-01-10 |

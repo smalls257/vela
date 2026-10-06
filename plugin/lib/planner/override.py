@@ -204,6 +204,8 @@ def unit_lines(vault, page, item_id):
             lines.update(table.row_lines)
     if page.id == ledger.PAGE_ID:
         lines.update(ledger.lines(page))  # a page-level override here may name a ledger code such as E805
+        if not ledger.heading_line(page):
+            lines.add(1)  # E805 reports at the top of a page that lacks the heading
     return lines
 
 

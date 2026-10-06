@@ -693,6 +693,16 @@ def _ledger_location(vault):
     return page.path, ledger.heading_line(page) or 1
 
 
+def _ledger_gap(vault):
+    """What is missing for the ledger to exist, in words for a finding: the page, or its heading. "" when both are there."""
+    page = ledger_page(vault)
+    if page is None:
+        return "The vault has no 11-unknowns-and-risks.md ledger page."
+    if not ledger.heading_line(page):
+        return "The page has no ## Question ledger heading."
+    return ""
+
+
 def _standing(d):
     return "has no ledger row" if d.row is None else f"is {state_label(d.state, d.valid)}" + (f" (by {d.via})" if d.via else "")
 
@@ -701,17 +711,23 @@ def epics_gate(vault):
     """E805 for each high-severity copy or reviewer question still open, asked or with no row. These
     are the questions whose silence costs most: lawful basis, partner clauses, stored-value liability."""
     path, heading = _ledger_location(vault)
+    gap = _ledger_gap(vault)
+    page = ledger_page(vault)
+    adding = ("Add the page, with a ## Question ledger heading. " if page is None
+              else "Add ## Question ledger to the page. " if gap else "")
     for d in dispositions(vault):
         if d.copy.entry.severity != "high" or not d.pending:
             continue
+        message = f"{d.copy.id} is high severity and {_standing(d)}: {d.copy.entry.question}"
         yield Finding(path, d.row.line if d.row else heading, "E805",
-                      f"{d.copy.id} is high severity and {_standing(d)}: {d.copy.entry.question}",
-                      "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an assumption. "
+                      f"{message} {gap}".strip() if d.row is None else message,
+                      adding + "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an assumption. "
                       "To call the epics complete anyway, add - **Override:** E805 by @handle on YYYY-MM-DD: <why> "
                       "under ## Question ledger.")
     for row in reviewer_rows(vault):
-        if row.get("severity") == "high" and row.state in ("open", "asked"):
-            yield Finding(path, row.line, "E805", f"{row.copy} is high severity and is {row.state}: {row.get('question')}",
+        if row.get("severity") == "high" and (row.state in ("open", "asked") or not row_valid(vault, row)):
+            label = state_label(row.state, row_valid(vault, row))
+            yield Finding(path, row.line, "E805", f"{row.copy} is high severity and is {label}: {row.get('question')}",
                           "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an "
                           "assumption, or override E805 under ## Question ledger.")
 
@@ -740,13 +756,25 @@ def unit_location(vault, unit_id):
     return None
 
 
+def can_be_blocked(vault, unit_id):
+    """Whether any catalogue entry blocks a unit of this ID's kind: a party, a stored value or a readme never is."""
+    kinds = {kind for entry in vault.catalogue.entries for kind in entry.blocks}
+    return any(uid == unit_id for kind in kinds for uid, _page, _item in _units(vault)[kind])
+
+
 def grill_gate(vault, items):
     """W807 for each copy still open, asked or with no row that blocks an item on the Grill's agenda.
     A warning, never an error: the lead may decide anyway, and the warning records that it was open."""
     for unit_id in items:
         where = unit_location(vault, unit_id)
         if where is None:
-            continue  # the CLI refuses an item the vault does not hold before check runs
+            yield Finding(*_ledger_location(vault), "W807", f"{unit_id} has no page or line to report on, so no open question can be shown against it.",
+                          "Name an item the vault holds as a heading, a page or a table row.")
+            continue
+        if not can_be_blocked(vault, unit_id):
+            yield Finding(where[0], where[1], "W807", f"No catalogue question blocks {unit_id}: it is not a unit of any kind the catalogue holds up.",
+                          "A Grill on it gets no ledger warning. Name the app, contract, requirement, capability or concern it touches.")
+            continue
         for d in dispositions(vault):
             if d.pending and unit_id in blocks(vault, d.copy):
                 yield Finding(where[0], where[1], "W807",
