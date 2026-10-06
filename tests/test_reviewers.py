@@ -204,3 +204,29 @@ def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agend
 
 def test_epics_reads_the_question_gate():
     assert "`E805`" in text("skills/epics/SKILL.md")
+
+
+def test_shape_shows_the_top_conditions_and_sends_the_rest_through_the_digest():
+    shape = text("skills/shape/SKILL.md")
+    assert "only the top few conditions" in shape and "coverage line" in shape
+    assert "python3 .claude/skills/planner/bin/planner questions --open --digest" in shape
+    assert "quotes the option's capture" in shape and "counterparties" in shape
+    assert "the shape gate will warn until" in shape
+
+
+def test_grill_records_a_decision_over_an_open_blocking_question():
+    grill = text("skills/grill/SKILL.md")
+    assert "python3 .claude/skills/planner/bin/planner check --gate grill --item <ID>" in grill
+    assert "Repeat `--item`" in grill and "exits 2" in grill and "can be stale" in grill
+    assert "Which do you want to take now?" in grill and "REVIEW section 5" in grill
+    assert "decided with <copy IDs> open (W807)" in grill and "`## Changes` row" in grill
+
+
+def test_epics_offers_the_e805_override_with_its_exact_bullet():
+    epics = text("skills/epics/SKILL.md")
+    assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
+    assert "under `## Question ledger`" in epics and "turns E805 into W805, which still prints" in epics
+    assert "python3 .claude/skills/planner/bin/planner questions --open --digest" in epics
+    assert "Leave the gate failing." in epics and "the whole vault, not one team" in epics
+    assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
+    assert "the override is the only way to a clean `--gate epics`" in epics

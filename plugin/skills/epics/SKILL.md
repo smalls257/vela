@@ -73,7 +73,13 @@ If the user tells you to decide an epic without a yes per criterion, or without 
 
 ## 7. Check the gate
 
-Run `python3 .claude/skills/planner/bin/planner render` and stage every file it reports, by exact path. Then run `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, such as the lawful basis for data, a partner's clauses or a stored-value liability. Offer to take it now, as a review checkpoint's digest would, or the user may override `E805` as `START.md` says, with the bullet at page level under `## Question ledger` on `11-unknowns-and-risks.md`.
+Run `python3 .claude/skills/planner/bin/planner render` and stage every file it reports, by exact path. Then run `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, such as the lawful basis for data, a partner's clauses or a stored-value liability. E805 covers the whole vault, not one team. Offer the user three choices for each:
+
+- Answer it now. Run `python3 .claude/skills/planner/bin/planner questions --open --digest`, take the line, and capture the answer. The gate clears once close writes its row. Before close, the override is the only way to a clean `--gate epics`.
+- Override it. Write `- **Override:** E805 by @<handle> on <today>: <reason>` at page level under `## Question ledger` on `11-unknowns-and-risks.md`. It turns E805 into W805, which still prints.
+- Leave the gate failing.
+
+Never call the epics complete past an E805 the user has neither taken nor overridden.
 
 Exit 0 means the epics are structurally complete. It does not mean they are decided. Handoff needs every epic `decided` and a clean gate, so list each epic still at `draft` before you finish. The gate checks the whole vault, so `E50x` lines on other teams' apps also fail the exit code. Report those separately as other teams' work, and do not treat them as this team's gap.
 
