@@ -26,6 +26,10 @@ Shared files live in `.claude/skills/planner/references/`. Read them when a step
    - people and teams affected who nobody has named yet.
 
    Raise each untouched one as a short statement of what nobody has mentioned yet, then ask the user about them. Capture the answers. This replaces the gentle prompts for a dump.
+
+   Follow each answer one step further:
+   - for money and contracts, ask which contracts, agreements or figures they mean, and who holds them. Capture each one as `[unknown]` with "to fetch:", the document and who holds it, so a later Discover can ask for it and read it;
+   - for the people affected, take each reading of the ask the user has given and ask who gains and who loses under it. A team that loses under one reading is a stakeholder, even if nobody named them.
 8. Commit a checkpoint after about every ten captures.
 
 ## Ends when
