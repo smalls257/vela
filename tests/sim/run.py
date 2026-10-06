@@ -496,7 +496,10 @@ def persona_prompt(persona):
         conflicts=lines(persona.get("conflicts") or [], lambda i: f"{i['who']}: {i['position']}"),
         decisions=lines(persona["decisions"], lambda i: f"{i['question']} Options: {'; '.join(i['options'])}. "
                         f"You would choose: {i['choice']}, because {i['reason']}"
-                        + (f" Refuse until: {i['refuse_until']}" if i.get("refuse_until") else "")))
+                        + (f" Refuse until: {i['refuse_until']}" if i.get("refuse_until") else "")
+                        + (f" If a gate blocks this decision, override it once: tell the assistant to decide it anyway"
+                           f" on the owner's behalf, name the gate it said failed, and give this reason: "
+                           f"{i['override_if_blocked']}" if i.get("override_if_blocked") else "")))
     # The U items are left out on purpose: a persona cannot leak a gap it was never told.
 
 

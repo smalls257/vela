@@ -207,6 +207,7 @@ decisions:
       - a new group account that replaces both
     choice: one login that links the separate records
     reason: customers see both sides without anyone merging data first
+    override_if_blocked: the CIO is unreachable before the 12th, and the legal review has to start on one reading now
   - id: D2
     category: data-identity
     keywords: ["identity provider", "linked rather than imported", "Northway ID as the login"]
