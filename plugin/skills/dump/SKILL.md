@@ -23,7 +23,7 @@ Shared files live in `.claude/skills/planner/references/`. Read them when a step
 
    When an answer names a contract, an agreement or a figure, ask who holds it, and capture it as `[unknown]` with "to fetch:", the document and who holds it, so a later Discover can ask for it and read it. Do the same for any contract or document the captures themselves name.
 
-   When the lead answers yes to an existence question, such as stored value or an outside party, capture it as `[thought]` with "type at close: PTY" or "type at close: SV". Dump writes no pages, so close does the typing.
+   When the lead answers yes to an existence question, such as stored value or an outside party, capture it as one `[thought]` that starts with the copy ID and ends with the subject note: `- [thought] (<name>) Q-FIN-01@INI-001: yes, <what>. type at close: SV`. Use `type at close: PTY` for an outside party. Dump writes no pages, so close types the subject and writes the copy's ledger row.
 8. Commit a checkpoint after about every ten captures.
 
 ## Ends when

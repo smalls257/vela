@@ -108,3 +108,33 @@ def test_an_open_row_with_bad_evidence_is_not_told_to_set_itself_open(tmp_path):
     ledger.write_text(ledger.read_text(encoding="utf-8").rstrip("\n") + "\n" + row + "\n", encoding="utf-8")
     line = next(l for l in check(vault, "2026-11-20")[1].splitlines() if " E802 " in l)
     assert line.endswith("Fix: Correct the evidence so check can verify it."), line
+
+
+# ------------------------------------------------------------------ 2. a yes to an existence question is one flow
+
+def test_dump_captures_a_yes_as_one_capture_that_starts_with_the_copy_id():
+    dump = text("skills/dump/SKILL.md")
+    assert "`- [thought] (<name>) Q-FIN-01@INI-001: yes, <what>. type at close: SV`" in dump
+    review = text("references/REVIEW.md")
+    assert "`type at close: PTY` or `type at close: SV`" in review
+
+
+def test_close_gives_a_typed_capture_one_mark_and_writes_the_existence_row():
+    close = text("skills/close/SKILL.md")
+    marks = close.split("## 2. Mark every capture", 1)[1].split("## 3.", 1)[0]
+    assert "Any other capture whose words start with a copy ID or a finding ID is kept as its ledger row" in marks
+    assert "It gets one mark, to the subject" in marks
+    typing = close.split("### Type the subjects Dump named", 1)[1].split("### The question ledger", 1)[0]
+    for rule in ("`answered`, `item:` linking the new subject", "first-hand", "the row is `unknown`",
+                 "write no second row"):
+        assert rule in typing, rule
+    assert "give each copy a capture answers its row below" not in close
+    assert "write its row below for each copy a capture answers" in typing
+
+
+def test_close_allocates_ids_before_it_writes_the_marks():
+    close = text("skills/close/SKILL.md")
+    two = close.split("## 2. Mark every capture", 1)[1].split("## 3.", 1)[0]
+    assert "Write each mark into the line" not in two
+    three = close.split("## 3. Write the promoted items", 1)[1].split("## 4.", 1)[0]
+    assert three.index("Write each mark into the line") > three.index("### Gaps the catalogue missed")

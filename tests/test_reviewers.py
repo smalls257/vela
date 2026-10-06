@@ -478,12 +478,13 @@ def _write_unknown(vault, opened, said):
 
 
 def _type_subject(vault, kind, said, opened):
-    """Close's typing rule. Returns the mark for the capture and the Changes rows."""
+    """Close's typing rule. Returns the mark for the capture, the Changes rows, and what the existence
+    copy's row needs: ("answered", a link to the subject) or ("unknown", the UNK that asks)."""
     scope = vault / "03-context-and-scope.md"
     facts = dict(said["facts"])
     if kind == "PTY" and facts["Relationship"] is None or kind == "SV" and facts["Holder"] is None:
         heading, unk = _write_unknown(vault, opened, said["unknown"])
-        return f"keep: [[11-unknowns-and-risks#{heading}|{unk}]] (open)", [(unk, "open")]
+        return f"keep: [[11-unknowns-and-risks#{heading}|{unk}]] (open)", [(unk, "open")], ("unknown", unk)
     changes = []
     if kind == "SV" and facts["Owner"] is None:
         heading, unk = _write_unknown(vault, opened, said["unknown"])
@@ -493,7 +494,13 @@ def _type_subject(vault, kind, said, opened):
     bullets = "".join(f"- **{label}:** {value}\n" for label, value in facts.items())
     section = "## Out of scope\n" if kind == "SV" else "## Value held for customers\n"
     _insert_before(scope, section, f"### {subject} {said['name']}\n\n{bullets}\n")
-    return f"keep: [[03-context-and-scope#{subject} {said['name']}|{subject}]] (subject)", changes
+    link = f"[[03-context-and-scope#{subject} {said['name']}\\|{subject}]]"
+    return f"keep: [[03-context-and-scope#{subject} {said['name']}|{subject}]] (subject)", changes, ("answered", link)
+
+
+def _has_row(vault, copy):
+    ledger = (vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8")
+    return any(l.startswith(f"| {copy} | ") for l in ledger.split("<!-- /generated:undisposed-questions -->")[-1].splitlines())
 
 
 def _evidence(vault, copy, said, session):
@@ -534,8 +541,16 @@ def _close(vault, record_name, said):
         cid, words = capture["cid"], capture["words"]
         typed, take = TYPES.search(words), TAKES.match(words)
         if typed:
-            mark, more = _type_subject(vault, typed["kind"], said[cid], record_name.split("-", 3)[3])
-            changes += [(item, state, f"[[{record_name}#^{cid}]]") for item, state in more]
+            # One mark, to the subject (or to the unknown when it stays untyped). The existence copy the
+            # capture starts with gets its row here, and its Changes row cites the capture.
+            mark, more, (state, what) = _type_subject(vault, typed["kind"], said[cid], record_name.split("-", 3)[3])
+            changes += [(item, s, f"[[{record_name}#^{cid}]]") for item, s in more]
+            if take and not _has_row(vault, take["id"]):
+                row_said = dict(said[cid]["yes"], state=state)
+                row_said["item" if state == "answered" else "unknown"] = what
+                ledger_rows.append(f"| {take['id']} | {state} | {_evidence(vault, take['id'], row_said, record_name)} "
+                                   f"| {LEAD} | {TODAY} |")
+                changes.append((take["id"], state, f"[[{record_name}#^{cid}]]"))
         elif take:
             copy = take["id"]
             if copy.startswith("F"):
@@ -580,8 +595,8 @@ summary: Travel credit for cancelled crossings.
 
 ## Captures
 
-- [thought] (solution lead) Customers who cancel can keep the fare as travel credit, held in Booking. type at close: SV ^c01
-- [thought] (solution lead) A travel insurer may sell cover with each crossing, and nobody here knows how we would deal with them. type at close: PTY ^c02
+- [thought] (solution lead) Q-FIN-01@INI-002: yes, customers who cancel can keep the fare as travel credit, held in Booking. type at close: SV ^c01
+- [thought] (solution lead) Q-DAT-01@INI-002: yes, a travel insurer may sell cover with each crossing and would see the booking, and nobody here knows how we would deal with them. type at close: PTY ^c02
 - [wild] (claude) Credit could be given away as a gift to another customer. ^c03
 
 ## Changes
@@ -636,10 +651,12 @@ DUMP_SAID = {
     "c01": {"name": "Travel credit",
             "facts": {"Holder": "Booking, which keeps each credit against its booking reference", "Owner": None},
             "unknown": {"name": "Who carries travel credit", "ask_by": "2026-12-18",
-                        "question": "Who carries travel credit as money owed to customers?"}},
+                        "question": "Who carries travel credit as money owed to customers?"},
+            "yes": {"about": "travel credit", "answer": "yes, Booking holds travel credit for customers who cancel"}},
     "c02": {"name": "Travel insurer", "facts": {"Relationship": None, "Agreements": "none known"},
             "unknown": {"name": "How we deal with a travel insurer", "ask_by": "2026-12-18",
-                        "question": "Would a travel insurer be our partner or our supplier?"}},
+                        "question": "Would a travel insurer be our partner or our supplier?"},
+            "yes": {}},
 }
 
 SHAPE_SAID = {
@@ -665,6 +682,12 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     from conftest import check, findings, run
     vault = tmp_path / "ub"
     shutil.copytree(REPO / "examples" / "unified-booking", vault)
+    # A vault where nobody has asked the two existence questions yet, so the gate holds both.
+    ledger = vault / "11-unknowns-and-risks.md"
+    ledger.write_text("".join(l for l in ledger.read_text(encoding="utf-8").splitlines(keepends=True)
+                              if not l.startswith(("| Q-FIN-01@INI-002 |", "| Q-DAT-01@INI-002 |"))), encoding="utf-8")
+    gate = run("check", "--gate", "epics", "--vault", str(vault), "--today", TODAY)[1]
+    assert any(" E805 Q-FIN-01@INI-002 " in l for l in gate.splitlines()), gate
     (vault / "sessions" / "2026-11-20-credit-dump.md").write_text(DUMP_RECORD, encoding="utf-8")
 
     _close(vault, "2026-11-20-credit-dump", DUMP_SAID)
@@ -676,6 +699,13 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     dump = (vault / "sessions" / "2026-11-20-credit-dump.md").read_text(encoding="utf-8")
     assert "→ keep: [[11-unknowns-and-risks#UNK-010 How we deal with a travel insurer|UNK-010]] (open) ^c02" in dump
     assert "→ park ^c03" in dump
+    assert "travel credit, held in Booking. type at close: SV → keep: [[03-context-and-scope#SV-02 Travel credit|SV-02]] (subject) ^c01" in dump
+    assert dump.count("→") == 3, dump  # one mark per capture, never a second one for the ledger row
+    rows = (vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8")
+    assert ("| Q-FIN-01@INI-002 | answered | item: [[03-context-and-scope#SV-02 Travel credit\\|SV-02]]; source: SRC-11; "
+            "answer: yes, Booking holds travel credit for customers who cancel |") in rows
+    assert "| Q-DAT-01@INI-002 | unknown | unknown: [[#UNK-010 How we deal with a travel insurer\\|UNK-010]] |" in rows
+    assert "| Q-FIN-01@INI-002 | - | answered | [[2026-11-20-credit-dump#^c01]] |" in dump
     owed = _states(vault, "SV-02")
     assert sorted(owed) == ["Q-DAT-04@SV-02", "Q-FIN-03@SV-02", "Q-FIN-04@SV-02", "Q-FIN-05@SV-02", "Q-FIN-06@SV-02"]
     assert set(owed.values()) == {"no row"}, owed
@@ -702,6 +732,8 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
 
     code, out = run("check", "--gate", "shape", "--vault", str(vault), "--today", TODAY)
     assert any(" W806 " in l and "Q-FIN-05@SV-02" in l for l in out.splitlines()), out
+    gate = run("check", "--gate", "epics", "--vault", str(vault), "--today", TODAY)[1]
+    assert not any(" E805 Q-FIN-01@" in l or " E805 Q-DAT-01@" in l for l in gate.splitlines()), gate
 
     # The rule the untyped party's mark exists for: a keep to the heading it never got is E202.
     record = vault / "sessions" / "2026-11-20-credit-dump.md"

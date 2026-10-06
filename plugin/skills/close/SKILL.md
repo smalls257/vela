@@ -17,12 +17,12 @@ Open records live on `session/<id>` branches, so first run `git branch --list 's
 
 ## 2. Mark every capture
 
-Propose a mark for every capture that has none yet, at once, as a numbered list with a one-line reason each. The user changes the ones they disagree with. Defaults:
+Propose a mark for every capture that has none yet, at once, as a numbered list with a one-line reason each. The user changes the ones they disagree with. Propose a keep by what it becomes and where, such as "an unknown on 11-unknowns-and-risks.md" or "a stored value on 03-context-and-scope.md". A new item gets its ID in section 3, and the marks are written into the lines at the end of it, once every ID exists. Defaults:
 
 - In a session whose `modes` include `shape`, the picked option is kept as an `assumption`, never an `inkling`. See section 3.
 - A person's `idea` or `thought` is kept as an `inkling` on the page it belongs to.
-- A capture that says `type at close: PTY` or `type at close: SV` is kept as that subject, `→ keep: [[03-context-and-scope#<heading>|<ID>]] (subject)`, because a party or stored value carries no state. If section 3 leaves it untyped, mark it as a keep to the unknown section 3 writes instead, `→ keep: [[11-unknowns-and-risks#<heading>|UNK-nnn]] (open)`, so no mark links a heading that does not exist.
-- A capture whose words start with a copy ID or a finding ID is kept as its ledger row, `→ keep: [[11-unknowns-and-risks#Question ledger|<copy>]] (<state>)`, with the state of the row. A finding the lead did not take has no capture, so it gets no mark. Section 3 says which of those still get a row.
+- A capture that says `type at close: PTY` or `type at close: SV` names a subject the lead said exists. It gets one mark, to the subject, `→ keep: [[03-context-and-scope#<heading>|<ID>]] (subject)`, because a party or stored value carries no state. That holds when its words also start with the existence question's copy ID: section 3 writes that copy's row, and the row's `## Changes` line cites the capture, so the capture needs no second mark. If section 3 leaves the subject untyped, mark it as a keep to the unknown section 3 writes instead, `→ keep: [[11-unknowns-and-risks#<heading>|UNK-nnn]] (open)`, so no mark links a heading that does not exist.
+- Any other capture whose words start with a copy ID or a finding ID is kept as its ledger row, `→ keep: [[11-unknowns-and-risks#Question ledger|<copy>]] (<state>)`, with the state of the row. A finding the lead did not take has no capture, so it gets no mark. Section 3 says which of those still get a row.
 - A person's `unknown` or `worry` is kept as an unknown with an owner handle and an ask-by date you propose, or as a concern cell.
 - An `unknown` capture is kept or dropped with a reason. It is never parked. For a `claude`-origin `unknown`, the user must choose: kept as an UNK with an owner and an ask-by date, or dropped with a reason. Claude never decides it alone. This rule wins over the park default for `claude` lines.
 - A person's `wild` line is parked, never dropped.
@@ -31,8 +31,6 @@ Propose a mark for every capture that has none yet, at once, as a numbered list 
 - A line you will copy word for word onto a page is a lifted line. List each one and ask the user to confirm it before you copy it.
 
 A line a Grill already marked `(decided)`, or a Discover already marked `(fact)`, keeps its mark. Leave it alone. It still appears under "Promoted on a nod" when its origin starts with `claude`.
-
-Write each mark into the line: `→ keep: [[<page>#<heading>|<ID>]] (<state>)`, `→ park` or `→ drop: <reason>`, before the `^cNN`.
 
 ## 3. Write the promoted items
 
@@ -48,7 +46,9 @@ A kept capture that says `type at close: PTY` or `type at close: SV` names a sub
 - Stored value: `**Holder:**` is a link to the app or party that holds the balances, or its name. `**Owner:**` is who carries them, or `not known yet, see [[11-unknowns-and-risks#UNK-nnn <name>|UNK-nnn]]`, with that unknown written as section 2 says. Only `**Owner:**` may say `not known yet`.
 - If nobody knows a party's relationship or a stored value's holder, write an unknown that asks, with an owner and an ask-by date, and leave the subject untyped. Mark its capture as a keep to that unknown, as section 2 says, and list it under **Questions** in the PR body.
 
-A typed subject makes the catalogue owe its questions. Run `python3 .claude/skills/planner/bin/planner questions --subject <ID>`, list its copies under **Questions** in the PR body, and give each copy a capture answers its row below.
+Then record the yes. Dump starts the capture with the existence question's copy ID, such as `Q-FIN-01@INI-001: yes, ... type at close: SV`. A capture with only the note comes from an older session: its copy is the initiative copy of the entry whose `creates:` is that kind, so ask the lead which question they answered if more than one fits. Write that copy's row in the ledger as the next part says: `answered`, `item:` linking the new subject, `answer:` the lead's yes in one line, and `source:` by the source rule there, which means a first-hand `SRC-nn` when the lead's word is the only source. If the subject stays untyped, the row is `unknown`, linking the unknown that asks for its relationship or holder: the yes is said, and the subject waits for that answer. If the copy already has a row, an earlier session recorded the yes, so write no second row. Add the `## Changes` row for the copy, citing the capture.
+
+A typed subject makes the catalogue owe its questions. Run `python3 .claude/skills/planner/bin/planner questions --subject <ID>`, list its copies under **Questions** in the PR body, and write its row below for each copy a capture answers. The rest stay undisposed until a session takes them.
 
 ### The question ledger
 
@@ -85,6 +85,10 @@ The catalogue grows from gaps found late or by luck. List each reviewer question
 ```
 
 Show each draft and ask for an explicit yes. Write the approved ones under `## Catalogue proposals` in the session record, as one YAML block, and list them in the PR body. Never edit `.claude/skills/planner/catalog/questions.yaml`: the catalogue belongs to the toolkit, so code decides what is owed only once the toolkit takes the entry. Then run `python3 .claude/skills/planner/bin/planner questions --stats`, and list in the PR body each entry whose copies in this vault all ended `not-applicable`, as one to prune or tighten. Pruning is the user's call.
+
+### Write the marks
+
+Every new item, subject, unknown and reviewer question now has its ID. Write each mark into the line: `→ keep: [[<page>#<heading>|<ID>]] (<state>)`, `→ park` or `→ drop: <reason>`, before the `^cNN`.
 
 ## 4. Draft the prose
 

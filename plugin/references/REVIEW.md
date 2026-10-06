@@ -75,6 +75,6 @@ Run `planner questions --open --digest`. Fold in the kept findings: one about an
 
 ## 6. Record what the lead does
 
-The lead sets the pace. What they take, capture as `START.md` says, starting the words with the copy ID or the finding ID, for example `- [thought] (Head of Finance) Q-FIN-03@SV-01: finance carries the balance today ^c14`. A ruling-out is a capture with its reason. A belief the lead states without a source is a capture tagged `thought` that says it is a belief, and close asks whether it is load-bearing.
+The lead sets the pace. What they take, capture as `START.md` says, starting the words with the copy ID or the finding ID, for example `- [thought] (Head of Finance) Q-FIN-03@SV-01: finance carries the balance today ^c14`. A yes to an existence question, one whose entry `creates` a party or stored value, also ends with the subject note, `type at close: PTY` or `type at close: SV`, as `dump/SKILL.md` shows, so close types the subject and writes the row in one go. A ruling-out is a capture with its reason. A belief the lead states without a source is a capture tagged `thought` that says it is a belief, and close asks whether it is load-bearing.
 
 Write nothing to a page because of a finding, beyond what the mode itself writes. Close writes the ledger rows from these captures and from the `## Reviews` tables, so every copy taken and every finding ends in a row. Whatever the lead does not take stays open and visible, in the ledger's `undisposed-questions` block and in `planner questions`.
