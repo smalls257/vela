@@ -1,7 +1,7 @@
 """Pages to a vault model, built once. Pure: no disk, clock or network."""
 from dataclasses import dataclass, field
 
-from planner import schema
+from planner import catalog, schema
 from planner.parse import links_in
 
 
@@ -57,6 +57,8 @@ class Vault:
     items: dict = field(default_factory=dict)  # item id -> [Item]
     row_ids: dict = field(default_factory=dict)  # goal/constraint/source id -> (Page, line)
     cells: list = field(default_factory=list)
+    catalogue: object = catalog.EMPTY  # the question catalogue; the CLI loads plugin/catalog/questions.yaml
+    cache: dict = field(default_factory=dict)  # results computed once per vault, such as the owed questions
 
     def page(self, name):
         found = self.by_name.get(name.lower())
@@ -124,8 +126,9 @@ class Vault:
 ITEM_KINDS = {"CON": "contract", "UNK": "unknown", "R": "risk", "CAP": "requirement", "PTY": "party", "SV": "stored-value"}
 
 
-def build(pages, config, other_names=()):
-    vault = Vault(config=config, pages=list(pages), other_names={n.lower() for n in other_names})
+def build(pages, config, other_names=(), catalogue=None):
+    vault = Vault(config=config, pages=list(pages), other_names={n.lower() for n in other_names},
+                  catalogue=catalogue if catalogue is not None else catalog.EMPTY)
     for page in vault.pages:
         vault.by_name.setdefault(page.name.lower(), []).append(page)
         if page.id:

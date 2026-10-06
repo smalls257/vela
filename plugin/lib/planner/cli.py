@@ -17,9 +17,10 @@ import traceback
 
 import yaml
 
-from planner import export, handoff, health, model, parse, progress, query, render, rules, schema, viewer, voicecheck, voicescore
+from planner import catalog, export, handoff, health, model, parse, progress, query, render, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
+CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
 
 
 class ToolError(Exception):
@@ -42,6 +43,23 @@ def load_config(root):
     if isinstance(days, bool) or not isinstance(days, int) or days < 1:
         raise ToolError(f".planner.yaml has stale_after_days: {days!r}. Write a whole number of days, such as 60.")
     return config
+
+
+def load_catalogue(path=None):
+    """The question catalogue the plugin ships. Missing or unreadable is a tool failure, never an empty
+    catalogue: an empty one would make every vault look as if it owed no questions."""
+    path = pathlib.Path(path or CATALOGUE)
+    if not path.is_file():
+        raise ToolError(f"{path} is missing, so planner cannot work out which questions are owed. "
+                        "Restore it from the toolkit repo.")
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        raise ToolError(f"{path} cannot be read as YAML: {exc}") from exc
+    try:
+        return catalog.parse_catalogue(data)
+    except catalog.CatalogueError as exc:
+        raise ToolError(f"{path} is not a valid question catalogue: {exc}") from exc
 
 
 def vault_files(root):
@@ -69,7 +87,7 @@ def load_vault(root):
         except (OSError, UnicodeDecodeError) as exc:
             raise ToolError(f"Cannot read {path}: {exc}") from exc
         pages.append(parse.parse_page(path.relative_to(root).as_posix(), text))
-    return model.build(pages, config, others)
+    return model.build(pages, config, others, load_catalogue())
 
 
 def parse_today(value):
