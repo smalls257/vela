@@ -134,3 +134,28 @@ def test_a_reviews_section_in_the_documented_form_passes_check(tmp_path):
     record.write_text(text, encoding="utf-8")
     code, out = check(vault, "2026-11-20")
     assert code == 0 and findings(out) == [], out
+
+
+# ------------------------------------------------------------------ the checkpoints replace the sweeps
+
+def test_dump_runs_the_checkpoint_after_the_pre_mortem_and_the_sweep_is_gone():
+    dump = text("skills/dump/SKILL.md")
+    assert "references/REVIEW.md" in dump and '"after the pre-mortem"' in dump
+    assert "concern sweep" not in dump
+    assert "nobody has named yet" not in dump
+    assert "to fetch:" in dump
+
+
+def test_discover_runs_the_checkpoint_after_the_read_back_and_the_implications_list_is_gone():
+    discover = text("skills/discover/SKILL.md")
+    assert "references/REVIEW.md" in discover and '"after the read-back"' in discover
+    assert "What these sources imply" not in discover
+    assert "### PTY-nn <name>" in discover and "### SV-nn <name>" in discover
+    assert "planner questions --subject <ID>" in discover
+
+
+def test_modes_has_no_question_cap_and_no_sweep():
+    modes = text("references/MODES.md")
+    assert "at most two questions" not in modes and "concern sweep" not in modes
+    assert "## Owed questions" in modes and "There is no cap on questions and no quota" in modes
+    assert modes.count("question ledger rows") == 4

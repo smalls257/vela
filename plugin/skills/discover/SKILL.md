@@ -1,6 +1,6 @@
 ---
 name: discover
-description: Discover session for an initiative vault. Registers documents and code repositories in sources.md, reads the ranked ones, shows "here's what I think exists" for correction, then writes facts that each cite a SRC-nn. Use when nobody is sure what exists today.
+description: Discover session for an initiative vault. Registers documents and code repositories in sources.md, reads the ranked ones, shows "here's what I think exists" for correction, writes facts that each cite a SRC-nn, then runs a review checkpoint for the questions owed. Use when nobody is sure what exists today.
 argument-hint: "[area, app or question]"
 disable-model-invocation: true
 ---
@@ -13,17 +13,6 @@ Find out what exists before anyone designs anything. Every fact this session wri
 2. List the files in `.inbox/` and the rows in `sources.md`. Also grep earlier session records for `to fetch:` captures, and ask the user whether each document has arrived: one that has goes in the register below, and one that has not stays an unknown. Add a row for each new document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists` for a document that describes what runs today, and `intends` for a plan, deck or roadmap. A local clone of a code repository is `Kind: repo`, with Location `<url>@<sha>` from `git -C <clone> remote get-url origin` and `git -C <clone> rev-parse HEAD`. A file that lives only in `.inbox/` has Location `local only`.
 3. Show the register and ask the user to rank it and cut what is not worth reading. Propose a `Kind` for each source it keeps, and the user says yes or corrects it. Do not move on until every kept source has a confirmed `Kind`, unless the user says to: then say once that an unconfirmed `Kind` can turn a plan into a fact, write the source's `Kind` as you proposed it, and record the override as `START.md` says. Read only the top-ranked sources. Before the user cuts a source, say which other sources cover the same area: sources that describe the same systems, teams or plans are worth reading together, because a clash between them only shows when both are read.
 4. Show "Here's what I think exists" as a numbered list. Label every line with its source `SRC-nn` and that source's `Kind`. Write nothing to a page yet. Write only the lines the user confirmed with an explicit yes for that line. Silence, or "looks fine" with no yes per line, does not count: ask again.
-   Under every such list, the first one included, add **What these sources imply**. Compare the lines with each other and with what the user has said. Name each of these you find, one bullet each, as a question that cites the line numbers:
-   - two systems, schemes or teams doing the same job, and what that means for anything that must span both;
-   - service levels, hours, targets or limits that differ between things that will have to work together;
-   - dates, terms or numbers that disagree between sources, or with what the user believes;
-   - two maps, models or standards of the same thing, and which one wins;
-   - a plan in an `intends` source that a fact from an `exists` source contradicts;
-   - something every line depends on that no line names an owner for;
-   - something that must follow a customer, booking or case across two systems, such as a need, a consent, an entitlement or a balance, where only one side has a place for it;
-   - a belief the user has stated that no line supports, or that a line contradicts. Name the claim and say which line, or that no source covers it.
-
-   Listing two lines side by side is not flagging them: say what clashes and why it matters. Ask the user which ones are worth an unknown.
 5. After each correction round, write what was confirmed and commit a checkpoint:
    - A line from an `exists` or `repo` source is a `fact`, with `sources: [SRC-nn]` on the page or `- **Source:** SRC-nn` on a contract.
    - A line from an `intends` source is an `assumption`, however sure it sounds. "Ready in Q4" in a deck is a plan, not a fact.
@@ -33,5 +22,7 @@ Find out what exists before anyone designs anything. Every fact this session wri
    - Say it in your own words. Never copy document text into the vault.
    - Claude's general knowledge is never a source.
    - Two sources that disagree become one unknown naming both, with an owner handle and an ask-by date, per `MODES.md`.
-6. Finish with a short Dump & Diverge segment: ask "What do these documents not say?" and capture the answers. Add `dump` to the record's `modes`.
-7. Run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR."
+   - A confirmed line that names an outside organisation, or value held for customers such as points, credits, balances or deposits, gets its typed section on `03-context-and-scope.md`: `### PTY-nn <name>` with `**Relationship:**` and `**Agreements:**`, or `### SV-nn <name>` with `**Holder:**` and `**Owner:**`, as `CONVENTIONS.md` says. The catalogue's questions fire only on typed subjects, so an untyped one is a question nobody will be owed.
+6. Once the confirmed lines are written, run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the read-back" and the confirmed lines as its focus. Add to that focus: service levels, hours, targets or limits that differ between things that must work together; dates, terms or numbers that disagree between sources; a plan in an `intends` source that a fact from an `exists` source contradicts; a need, consent or entitlement that must follow a customer across two systems where only one has a place for it. Show the lead its digest and capture what they take. When the lead says yes to an existence question, such as "does anyone hold value on customers' behalf?", type the subject as step 5 says, then run `planner questions --subject <ID>` and show the questions the new subject now owes.
+7. Finish with a short Dump & Diverge segment: ask "What do these documents not say?" and capture the answers. Add `dump` to the record's `modes`.
+8. Run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR."
