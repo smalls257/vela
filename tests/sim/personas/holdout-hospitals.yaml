@@ -23,6 +23,8 @@ topics:
   shape_1: what one front door means
   shape_2: who books the appointment behind the front door
   grill: what one front door means
+  grill_2: which booking system fronts the one front door
+  epics: the first app ready for epics
 
 knows:
   - id: K1
