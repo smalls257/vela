@@ -16,7 +16,8 @@ def test_get_an_item(mini):
         "id": "CON-001", "kind": "contract", "page": "05-building-blocks/shop-building-blocks.md",
         "heading": "CON-001 Sale API", "state": "decided", "owner": "@mini/shop-team", "sources": [],
         "decision": ["2026-01-10-shop-api"], "dissent": [], "blocked_by": [],
-        "link": "[[shop-building-blocks#CON-001 Sale API|CON-001]]", "also": []}
+        "link": "[[shop-building-blocks#CON-001 Sale API|CON-001]]", "also": [],
+        "override": [], "decided_by": None, "confirmed_by": None}
 
 
 def test_get_a_page_and_a_row(mini):

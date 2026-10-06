@@ -1,6 +1,6 @@
 # requirements-grill in an initiative vault
 
-The user's `requirements-grill` skill reads this file when it runs in a repository with `.planner.yaml` at its root. It keeps its own interview: one question at a time, a recommended answer with each, edge-case scenarios, and the refusal to discuss the "how". This file changes only where the answers go and what certainty they carry.
+The user's `requirements-grill` skill reads this file when it runs in a repository with `.planner.yaml` at its root. It keeps its own interview: one question at a time, a recommended answer with each, edge-case scenarios, and keeping to the "what" rather than the "how". This file changes only where the answers go and what certainty they carry.
 
 ## Scope
 
@@ -45,7 +45,7 @@ FR numbers are never reused. A removed FR stays, struck through, with the reason
 
 - Vault mode is a Shape, not a Grill. It writes at most `assumption`.
 - It never writes `fact`. Requirements state intent.
-- If the user says "decide FR1", refuse: "Requirements are recorded as assumptions. A Grill decides them." Offer `/planner:grill CAP-NNN.FRn`.
+- If the user says "decide FR1", say once: "Requirements are recorded as assumptions, so a Grill can test them before anyone builds to them." Offer `/planner:grill CAP-NNN.FRn`. If they still want it decided here, that is an override of `grill`: write it `decided`, with `- **Decision:** [[<session id>]]` and `- **Override:** grill by @<handle> on <today>: <their reason>` under its heading, as `START.md` says. The check then reports W317 instead of E317 for it.
 - The check enforces this: a session whose `modes` include only `requirements` cannot be the `**Decision:**` behind a `decided` item.
 - If the capability page is already `decided`, an open unknown that blocks one of its FRs makes the check fail with E316, because the capability was decided before the question was answered. Say so before writing the unknown, and let the user choose: keep the unknown and take the capability back to `assumption` in a Grill, or record the question as not blocking (`**Blocks:** nothing`) with the reason in `**Notes:**`.
 

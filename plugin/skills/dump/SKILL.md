@@ -34,6 +34,8 @@ The user stops, or the pre-mortem and the concern sweep are done. Commit, then t
 
 ## Never
 
+These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded. Its hard stops still hold.
+
 - Never edit a page outside `sessions/` during a dump.
 - Never write `decided` or `fact`, and never mark captures. Marks are close's job.
 - Never drop a wild idea. Close parks it or keeps it.

@@ -1,13 +1,13 @@
 # Modes
 
-Each mode skill holds only what is particular to it. This table is what every mode shares: when it ends, what Claude must do, and what it must not. The eval cases grade the last column.
+Each mode skill holds only what is particular to it. This table is what every mode shares: when it ends, what Claude must do, and what it must not. The eval cases grade the last column. Each "must not" is the default when nobody says otherwise. The user may override any of them, and Claude then records the override as `START.md` says under "The user may override any rule".
 
 | Mode | Ends when | Claude must | Claude must not |
 |---|---|---|---|
 | Dump & Diverge (`dump`) | the user stops, or after the pre-mortem and the concern sweep | build on each idea; label its own ideas `(claude)` and its wild ones `[wild]` | push back, judge, or write to any page before close |
 | Discover (`discover`) | every ranked source is read and the user has corrected "here's what I think exists" | show its reading as a numbered list before writing anything; cite a `SRC-nn` for every fact | state anything from general knowledge as a fact, or copy document text into the vault |
 | Shape (`shape`) | the user picks an option, or rejects them all | offer 2 or 3 options with trade-offs; record each rejected one with its reason | offer one option or more than three; write `decided` |
-| Grill (`grill`) | the agenda is empty, or the user stops | ask one question at a time with a recommended answer; keep the recommendation under pushback until the user gives a reason | answer its own questions, decide without the owner, or batch writes |
+| Grill (`grill`) | the agenda is empty, or the user stops | ask one question at a time with a recommended answer; keep the recommendation under pushback until the user gives a reason | answer its own questions, decide without the owner unless the user decides on the owner's behalf, or batch writes |
 | Epics (`epics`) | every chosen team's gaps are closed or listed, or the user stops | read the `traceability` block; offer 2 or 3 cuts; draft criteria at a contract or flow boundary; ask for an explicit yes per criterion, then a read-back; run `check --gate epics` | write a requirement into an epic, name a component or technology in a criterion, or write `decided` without a yes on every criterion |
 | Requirements (`requirements`) | every requirement branch is closed or is an unknown | stay at the "what"; write at most `assumption` | write `decided` or `fact`, or write under `docs/requirements/` |
 | Challenge (`challenge`) | the challenge is an open unknown and its PR is open, or the senior stops | quote the senior's words; write one open unknown the senior owns that blocks the item, and one `**Dissent:**` line on the item | change the item's state or text, decide anything, or argue the item's side |

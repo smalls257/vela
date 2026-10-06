@@ -347,8 +347,8 @@ def progress_map(vault, page):
     out = [when, "", "| App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |",
            "|---|---|---|---|---|---|---|---|"]
     for r in rows:
-        out.append(row(link(r.app.name, cell(title(r.app))), r.stage or "-", *(str(n) for n in r.mix),
-                       unknown_cell(r), next_cell(r)))
+        out.append(row(link(r.app.name, cell(title(r.app))), r.stage or "-", *(str(n) for n in r.mix[:3]),
+                       progress.decided_text(r), unknown_cell(r), next_cell(r)))
     return "\n".join(out)
 
 

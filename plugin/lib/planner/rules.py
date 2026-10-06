@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import render, schema, trace
+from planner import override, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -13,7 +13,8 @@ def check(vault, today, gate=None):
     """All findings for the vault, sorted by path, line and code.
 
     `gate="epics"` is the moment epics are called complete: every trace gap
-    becomes an error, even in a vault that has no epic yet.
+    becomes an error, even in a vault that has no epic yet. Overrides apply last,
+    so an override can soften an error but never hide one: see override.apply.
     """
     findings = []
     for rule in RULES:
@@ -22,7 +23,7 @@ def check(vault, today, gate=None):
         trace_warnings = {warning for warning, _ in schema.TRACE_CODES.values()}
         findings = [f for f in findings if f.code not in trace_warnings]
         findings.extend(trace_findings(vault, gated=True))
-    return sorted(set(findings))
+    return sorted(set(override.apply(vault, findings)))
 
 
 # ------------------------------------------------------------------ helpers

@@ -47,7 +47,7 @@ verified_by: "@hl-solution-lead"
 
 ## Progress by app
 
-<!-- generated:progress-map sha=3c7c8337: do not edit, run planner render -->
+<!-- generated:progress-map sha=31a06fe4: do not edit, run planner render -->
 **As of:** 2026-11-18, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
@@ -56,7 +56,7 @@ verified_by: "@hl-solution-lead"
 | [[call-centre-building-blocks\|Call centre desktop]] | epics | 0 | 0 | 0 | 2 | none | none |
 | [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 0 | 2 | none | none |
 | [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 0 | 2 | none | none |
-| [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 0 | 3 | none | none |
+| [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 0 | 3 (1 by override) | none | none |
 | [[website-building-blocks\|Public website]] | epics | 0 | 0 | 0 | 2 | none | none |
 | [[customer-identity-building-blocks\|Customer identity]] | - | 0 | 0 | 2 | 0 | none | none |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | - | 0 | 0 | 3 | 0 | none | none |

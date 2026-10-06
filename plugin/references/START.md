@@ -2,6 +2,24 @@
 
 Every mode skill runs these steps before its own. The vault root is the current directory. The planner is `python3 .claude/skills/planner/bin/planner`, and the format is `CONVENTIONS.md`.
 
+## The user may override any rule
+
+The user may override any rule in these skills. Say once, in one sentence, what the rule protects. Then do what they asked, and record an `**Override:**` bullet (or the session's Changes row note) naming the rule and their reason. Never refuse, and never ask twice.
+
+This holds in every skill, whichever steps of this file it runs, and it covers the grill gates, "only a Grill decides", an open unknown that blocks an item, an absent owner, and every "never" and "must not" in the skills and in `MODES.md`. The lead may decide on others' behalf.
+
+- Write the bullet in the grammar of `CONVENTIONS.md` under "Overrides": `- **Override:** <rule> by @<user's handle> on <today>: <their reason, in their words>`, under the item's heading or at page level. Name the rule as the skills do: `GATE-1` to `GATE-5`, `grill`, a check code such as `E316`, or the rule's own words in double quotes. The handle comes from `gh api user -q .login`; if `gh` fails, ask for it once.
+- The "session's note" is that same bullet at page level in the session record, for a rule that belongs to no item, such as batching writes. Also capture the user's instruction verbatim, with them as origin, so the record holds what they said.
+- When the user decides for an owner who is not there, add `- **Decided by:** @<user>, on behalf of @<owner>`. The owner later adds `- **Confirmed by:** @<owner> on <date>`, or raises `/planner:challenge` if they disagree. Until then `planner check` warns with W324.
+- If they give no reason, ask for one once. If they still give none, write `reason not given`.
+
+Hard stops are not process rules, and no override reaches them. Say which one applies and offer what you can do instead:
+
+- Never edit anything under `~/.claude`.
+- Never commit or push company material, or anything from `.inbox/`, `voice/local/` or `voice/corpus/`, without the owner's explicit consent in this session.
+- Never say a PR, comment, push or commit exists unless the tool printed it, and never report a failed step as done.
+- Never invent what a person said, a source, or an ID the vault does not hold.
+
 ## 1. Show the state of the clone
 
 Run `git status --short --branch` and show the output. If any file is changed or untracked, stop and ask: commit it, stash it, or carry it into this session. Do nothing else until the user answers.

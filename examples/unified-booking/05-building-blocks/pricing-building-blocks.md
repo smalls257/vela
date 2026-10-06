@@ -74,6 +74,9 @@ Components inside these containers belong to the Revenue team's tech design.
 - **Tested by:** Booking runs a contract test on its side. Pricing runs provider verification in its pipeline. Both run on every build, and a failure blocks the Pricing release.
 - **State:** decided
 - **Decision:** [[2026-07-28-solution-strategy]]
+- **Override:** GATE-5 by @hl-solution-lead on 2026-07-28: the Revenue team was in its fare review that week, and the strategy could not wait for it. The contract's API does not change, only its list of callers.
+- **Decided by:** @hl-solution-lead, on behalf of @harbourline/revenue-team
+- **Confirmed by:** @hl-pricing-senior on 2026-08-12
 
 ## Contracts this app consumes
 

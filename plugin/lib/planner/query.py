@@ -6,7 +6,7 @@ change of case.
 """
 import re
 
-from planner import model, progress, schema
+from planner import model, override, progress, schema
 
 LIST_FIELDS = ("apps", "delivers", "consumes", "flows", "depends_on", "sources")
 ROW_KINDS = ((schema.GOAL_ID_RE, "goal"), (schema.CONSTRAINT_ID_RE, "constraint"), (schema.SOURCE_ID_RE, "source"))
@@ -47,6 +47,7 @@ def page_answer(vault, pages, item_id):
         "blocked_by": blocked_by(vault, item_id),
         "link": f"[[{page.name}|{item_id}]]",
         "also": [p.path for p in pages[1:]],
+        **override.summary(page),
     }
 
 
@@ -67,6 +68,7 @@ def item_answer(vault, items):
         "blocked_by": blocked_by(vault, item.id),
         "link": f"[[{item.page.name}#{item.heading}|{item.id}]]",
         "also": [f"{i.page.path}:{i.line}" for i in items[1:]],
+        **override.summary(item.page, item.id),
     }
 
 
@@ -97,6 +99,7 @@ def row_answer(vault, item_id):
         "blocked_by": blocked_by(vault, item_id),
         "link": f"[[{page.name}|{item_id}]]",
         "also": [],
+        **override.summary(page),
     }
 
 
@@ -207,6 +210,7 @@ def status(vault, today):
         apps.append({
             "app": row.app.id, "title": text(row.app.meta.get("title")) or row.app.name, "stage": row.stage,
             "inkling": inkling, "assumption": assumption, "fact": fact, "decided": decided,
+            "decided_by_override": row.by_override,
             "oldest_unknown": row.oldest.id if row.oldest else None, "opened": row.opened or None,
             "next": row.mode, "subject": row.subject, "reason": row.reason,
         })

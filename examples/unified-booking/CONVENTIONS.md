@@ -106,7 +106,7 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 
 Every item has a state. `inkling` is a hunch. `assumption` is believed but not checked. `fact` has a source. `decided` came out of a Grill. `unknown` is a question with an owner, an ask-by date and a list of what it blocks.
 
-- **Only a Grill decides.** A `decided` page carries a page-level `- **Decision:** [[<session>]]` bullet, and a `decided` contract or functional requirement carries one under its heading. The linked session's `modes` must include `grill`. Goal rows take their decision from the Goals page's bullet.
+- **Only a Grill decides,** unless the user overrides it (see Overrides). A `decided` page carries a page-level `- **Decision:** [[<session>]]` bullet, and a `decided` contract or functional requirement carries one under its heading. The linked session's `modes` must include `grill`, or an `**Override:**` on the item names `grill`. Goal rows take their decision from the Goals page's bullet.
 - **A requirements session cannot decide.** It writes at most `assumption`.
 - **A fact needs a source.** A `fact` page lists `sources`. A `fact` contract or functional requirement carries `- **Source:** SRC-nn`. A goal row at `fact` needs its page to list `sources`.
 - **What counts as a source.** A document describing what exists gives a fact. A document stating intent gives an assumption. A person's first-hand knowledge gives a fact. Claude's general knowledge is never a source.
@@ -118,7 +118,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 
 A fact bullet is a list line `- **Label:** value`, one label per line. Unknown labels are prose. Bullets under a `### <ID> <name>` heading belong to that item. Bullets elsewhere belong to the page.
 
-Page level: `**Decision:**` (a link to the deciding Grill), `**Dissent:**` (`<name>, <date>: <reason>`) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`).
+Page level: `**Decision:**` (a link to the deciding Grill), `**Dissent:**` (`<name>, <date>: <reason>`) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`). `**Override:**`, `**Decided by:**` and `**Confirmed by:**` may go on any page or under any item heading; see Overrides.
 
 Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 
@@ -135,6 +135,7 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Provider:**` | Only for an external provider with no page. The contract then lives on the consumer's page. |
 | `**Dissent:**` | Optional. |
 | `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
+| `**Override:**`, `**Decided by:**`, `**Confirmed by:**` | Optional. See Overrides. |
 
 Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking a Grill session, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
 
@@ -153,6 +154,38 @@ Unknown, under `### UNK-nnn <short name>` on `11-unknowns-and-risks.md`:
 An item an open unknown lists in `**Blocks:**` cannot be `decided`. Resolve the unknown first.
 
 Risk, under `### R-nn <name>`: `**Owner:**` and `**State:**` are required. State is `open`, `mitigated`, `accepted` or `closed`. `**Mitigation:**` is optional.
+
+## Overrides
+
+The person using the skills may override any rule in them: a grill gate, "only a Grill decides", a blocking open unknown, an absent owner, or any other skill rule. The lead may decide on others' behalf. An override is never refused and never hidden. It is written on the item it sets a rule aside for, where reviewers, `planner check`, `/planner:ask` and the progress views all read it.
+
+```
+- **Override:** <rule>, <rule> by @handle on YYYY-MM-DD: <reason>
+- **Decided by:** @handle, on behalf of @owner
+- **Confirmed by:** @owner on YYYY-MM-DD
+```
+
+- **Override.** One or more rules, separated by `, `, then ` by `, the handle of the person who chose to override, ` on `, the date, `: ` and the reason. Several `**Override:**` bullets may sit on one item. A rule is one of these names, spelt exactly:
+
+  | Rule | Sets aside | Turns this error into this warning |
+  |---|---|---|
+  | `GATE-1`, `GATE-2`, `GATE-3`, `GATE-5` | that grill gate | none: the check cannot see these gates, so the bullet is the record |
+  | `GATE-4` | an open unknown blocks the item | E316 to W316 |
+  | `grill` | "only a Grill decides" | E303 to W303, and E317 to W317 |
+  | `E303`, `E304`, `E316`, `E317`, `E318` | that check rule alone | E303 to W303, E304 to W304, E316 to W316, E317 to W317, E318 to W318 |
+  | `"<the rule's words>"`, in double quotes | a skill rule with no name above, for example `"Shape offers 2 or 3 options"` | none |
+
+- **Where it sits.** Under an item's heading, it covers that contract or functional requirement. At page level, it covers the page and its goal rows, not the items under its headings. A rule that belongs to no item, such as how a session ran, goes at page level in the session record.
+- **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. Deciding on the owner's behalf is how a Grill passes GATE-5 with the owner absent, and it goes with `**Override:** GATE-5`.
+- **Confirmed by.** The owner adds it later: their handle, ` on ` and the date. A team owner is confirmed by one of its people. A confirmation by the person who decided does not count.
+- **An owner who disagrees** with a decision made on their behalf raises `/planner:challenge` on the item, as a senior does after handoff. Confirming and challenging are the only two answers.
+
+`planner check` reads them this way:
+
+- A well-formed override that names the rule an error enforces turns that error into its warning, and the warning quotes the override. Nothing else changes: the warning stays until the rule is met or the bullet goes.
+- A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
+- W323: an override names a rule the check can test, and the item does not break it, so the override sets nothing aside.
+- W324: an item carries `**Decided by:** ... on behalf of @owner` and no `**Confirmed by:**`, until the owner confirms.
 
 ## Fact tables
 
@@ -267,13 +300,13 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `system-context` | `03-context-and-scope.md` | The after view: apps in one box, external providers outside it, and the same contract arrows. Retired apps are listed under it, not drawn. |
 | `app-context` | each app page | The app and its direct neighbours by contract, provided or consumed |
 | `capability-map` | `04a-capability-delta.md` | Every capability in a box per `domain`, labelled and coloured by `change` |
-| `progress-map` | `01-goals.md` | One row per app: its stage, how many of its items are at each state, the oldest open unknown that blocks it with its Opened date, and its next mode. It is judged as of the last session's date, so it changes only when the vault does. |
+| `progress-map` | `01-goals.md` | One row per app: its stage, how many of its items are at each state, with "(n by override)" after the decided count, the oldest open unknown that blocks it with its Opened date, and its next mode. It is judged as of the last session's date, so it changes only when the vault does. |
 
 A view with no generator is a list of links to where the data lives, never a copy kept by hand.
 
 ## Progress and next step
 
-`planner status` prints one line per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, the oldest open unknown that blocks it with its age, and its next mode with the reason. An app's items are its building-blocks page, its runtime page and the contracts on its page. `planner next` prints the one app and mode to work on next. Both judge overdue unknowns by `--today YYYY-MM-DD`, or the system date, and say which. The `progress-map` block holds the same grid, judged as of the last session's date.
+`planner status` prints one line per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, with "(n by override)" after the decided count when n of them carry an `**Override:**`, the oldest open unknown that blocks it with its age, and its next mode with the reason. An app's items are its building-blocks page, its runtime page and the contracts on its page. `planner next` prints the one app and mode to work on next. Both judge overdue unknowns by `--today YYYY-MM-DD`, or the system date, and say which. The `progress-map` block holds the same grid, judged as of the last session's date.
 
 For each app the first rule that matches picks the mode. `planner next` takes the app whose rule has the lowest number, then the earliest stage, then the lowest app ID, and skips apps whose mode is `none`.
 
@@ -305,7 +338,7 @@ A `last_verified`, a source `Date` or the last closed session dated after today 
 
 `planner query` answers questions about IDs and never writes. Add `--json` for JSON.
 
-- `planner query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, and the wikilink to cite it by.
+- `planner query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, the wikilink to cite it by, and its overrides: `override` (each `**Override:**` bullet, its rules, handle, date and reason, or `malformed` with the problem), `decided_by` (who decided on whose behalf, and whether it is `confirmed`) and `confirmed_by`.
 - `planner query refs <ID>`: every page line that links to the ID, every list in page properties that names it, and every other line that holds the ID as a whole token (`via: mention`). The line that defines the ID is left out.
 - `planner query find <words>`: page titles, item headings and goal, constraint and source rows that hold every word, in any case. Put `--` before a word that starts with `-`.
 - `planner query status`: the `planner status` grid as data.
@@ -342,6 +375,11 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | W502 | no epic delivers a new or changed contract | E502 | no epic delivers a new or changed contract |
 | W503 | no epic covers a concern cell with work | E503 | no epic covers a concern cell with work |
 | W504 | epic delivers nothing | E504 | epic delivers nothing |
+| E321 | override is malformed | W303 | decided without a Grill, by override |
+| E322 | decided-by or confirmed-by is malformed | W304 | fact without a source, by override |
+| W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
+| W318 | decided contract has no Tested by, by override | W323 | override not needed |
+| W324 | decided on the owner's behalf, not yet confirmed | | |
 
 Codes are stable. A retired code is never reused.
 
@@ -376,8 +414,8 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 
 Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `planner check --gate epics` exits 0.
 
-In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks and the `last_verified`, `verified_by` and `handed_off` lines, so rendering or rereading a page changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
+In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
 
 `planner handoff verify <APP-id>` lists every item changed, added or removed since. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
 
-A senior who disputes a boundary or contract after handoff raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: it blocks the merge wherever planner-check is a required check, so a challenge cannot merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.
+A senior who disputes a boundary or contract after handoff, or an owner who disputes a decision made on their behalf, raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: it blocks the merge wherever planner-check is a required check, so a challenge cannot merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.

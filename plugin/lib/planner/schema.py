@@ -137,7 +137,10 @@ def expected_basename(page_type, page_id):
 
 CONTRACT_REQUIRED = ("Crosses the boundary", "Consumers", "Change policy", "Change", "State")
 OPTIONS_LABEL = "Options considered"  # what Shape recorded: the picked option, and each rejected one with its reason
-CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent", OPTIONS_LABEL)
+# The user's word over a rule, and a decision made on an absent owner's behalf. Allowed on any item or page.
+OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL = "Override", "Decided by", "Confirmed by"
+OVERRIDE_LABELS = (OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL)
+CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent", OPTIONS_LABEL) + OVERRIDE_LABELS
 CONTRACT_STATES = ("inkling", "assumption", "fact", "decided")
 CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 
@@ -151,7 +154,19 @@ RISK_REQUIRED = ("Owner", "State")
 RISK_OPTIONAL = ("Mitigation",)
 RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
-PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL)
+PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL) + OVERRIDE_LABELS
+
+# ------------------------------------------------------------------ overrides
+
+# Rule name in an **Override:** bullet -> the check codes it turns into warnings. A gate check
+# cannot see (GATE-1, 2, 3, 5) turns nothing: the bullet is the record.
+OVERRIDE_RULES = {
+    "GATE-1": (), "GATE-2": (), "GATE-3": (), "GATE-4": ("E316",), "GATE-5": (),
+    "grill": ("E303", "E317"),
+    "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E317": ("E317",), "E318": ("E318",),
+}
+# Error -> the warning it becomes when an Override on the same item names it.
+OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E317": "W317", "E318": "W318"}
 
 # ---------------------------------------------------------------- fact tables
 
@@ -229,6 +244,15 @@ CODES = {
     "E318": "decided contract has no Tested by",
     "E319": "stage does not fit the app's change",
     "E320": "contract is missing a required fact",
+    "E321": "override is malformed",
+    "E322": "decided-by or confirmed-by is malformed",
+    "W303": "decided without a Grill, by override",
+    "W304": "fact without a source, by override",
+    "W316": "decided while an open unknown blocks it, by override",
+    "W317": "decided by a requirements session, by override",
+    "W318": "decided contract has no Tested by, by override",
+    "W323": "override not needed",
+    "W324": "decided on the owner's behalf, not yet confirmed",
     "E401": "generated block was edited by hand",
     "W402": "generated block is out of date",
     "E403": "generated block not allowed here",

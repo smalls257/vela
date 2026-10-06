@@ -8,7 +8,7 @@ import datetime
 import re
 from dataclasses import dataclass
 
-from planner import model, schema, trace
+from planner import model, override, schema, trace
 
 OPENED_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})\b")
 SETTLED = ("decided", "fact")
@@ -20,6 +20,7 @@ class Unit:
     id: str
     state: str
     options: bool  # an **Options considered:** bullet is recorded
+    overridden: bool = False  # a well-formed **Override:** sits on it
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,7 @@ class Row:
     mode: str  # one of schema.NEXT_MODES
     subject: str  # the ID the suggestion is about
     reason: str  # one sentence
+    by_override: int = 0  # how many of the decided count were decided by override
 
 
 def text(value):
@@ -80,14 +82,21 @@ def consumed(vault, app):
 def units(vault, app):
     """The app page, its runtime page, then the contracts on its page by ID."""
     pages = [p for p in (app, runtime_page(vault, app)) if p is not None]
-    out = [Unit(p.id, text(p.meta.get("state")), bool(p.page_bullets(schema.OPTIONS_LABEL))) for p in pages]
-    out += [Unit(c.id, c.fact("State"), schema.OPTIONS_LABEL in c.facts) for c in provided(vault, app)]
+    out = [Unit(p.id, text(p.meta.get("state")), bool(p.page_bullets(schema.OPTIONS_LABEL)),
+                bool(override.valid_overrides(p))) for p in pages]
+    out += [Unit(c.id, c.fact("State"), schema.OPTIONS_LABEL in c.facts, bool(override.valid_overrides(c.page, c.id)))
+            for c in provided(vault, app)]
     return out
 
 
 def mix(vault, app):
     states = [u.state for u in units(vault, app)]
     return tuple(states.count(s) for s in schema.STATE_ITEM)
+
+
+def decided_by_override(vault, app):
+    """Decided units that carry an Override. They count as decided, and the grid says how many."""
+    return sum(1 for u in units(vault, app) if u.state == "decided" and u.overridden)
 
 
 def oldest_unknown(vault, app):
@@ -162,8 +171,15 @@ def grid(vault, as_of):
         oldest, opened = oldest_unknown(vault, app)
         rule, mode, subject, reason = suggest(vault, app, as_of, blocked)
         stage = text(app.meta.get("stage")) if app.meta.get("change") in schema.LADDERED_CHANGES else ""
-        rows.append(Row(app, stage, mix(vault, app), oldest, opened, rule, mode, subject, reason))
+        rows.append(Row(app, stage, mix(vault, app), oldest, opened, rule, mode, subject, reason,
+                        decided_by_override(vault, app)))
     return sorted(rows, key=lambda r: (not r.stage, stage_rank(r.app), r.app.id))
+
+
+def decided_text(row):
+    """The decided count, with how many came by override: "3 (1 by override)"."""
+    decided = row.mix[3]
+    return f"{decided} ({row.by_override} by override)" if row.by_override else str(decided)
 
 
 def best(rows):

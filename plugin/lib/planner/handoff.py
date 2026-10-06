@@ -12,8 +12,9 @@ from dataclasses import dataclass
 from planner import model, progress, trace
 from planner.parse import split_row
 
-# Lines a hash ignores: they change when a page is reread or handed off, not when its content does.
-VOLATILE = re.compile(r"^(last_verified|verified_by|handed_off):")
+# Lines a hash ignores: they change when a page is reread, handed off, or an owner confirms a decision
+# made on their behalf, not when its content does.
+VOLATILE = re.compile(r"^(last_verified|verified_by|handed_off):|^- \*\*[Cc]onfirmed [Bb]y:\*\*")
 KIND_ORDER = ("app", "runtime", "provides", "consumes", "epic", "unknown")
 HEADER = ("ID", "Kind", "Page", "State", "Hash")
 FACT = re.compile(r"^- \*\*(App|Commit|Written|Items):\*\* (.+)$")
@@ -71,7 +72,8 @@ def section_end(page, item):
 def item_text(item):
     lines = item.page.text.split("\n")
     skip = block_lines(item.page)
-    return [lines[n - 1] for n in range(item.line, section_end(item.page, item)) if n not in skip]
+    return [lines[n - 1] for n in range(item.line, section_end(item.page, item))
+            if n not in skip and not VOLATILE.match(lines[n - 1])]
 
 
 def page_text(vault, page):

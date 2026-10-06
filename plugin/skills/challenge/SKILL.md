@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Challenge
 
-A senior who accepted an app at handoff can still find that a boundary or a contract is wrong. This skill records that disagreement where the solution lead must answer it, without settling it. The challenged item keeps its state and its text. The senior's challenge becomes an open unknown that blocks it, so the vault cannot stay quietly `decided` on something a senior disputes.
+A senior who accepted an app at handoff can still find that a boundary or a contract is wrong. An owner whose item someone else decided on their behalf, with a `**Decided by:** @x, on behalf of @owner` bullet, uses this skill the same way when they disagree; when they agree, they add `- **Confirmed by:** @owner on <date>` instead. This skill records that disagreement where the solution lead must answer it, without settling it. The challenged item keeps its state and its text. The senior's challenge becomes an open unknown that blocks it, so the vault cannot stay quietly `decided` on something a senior disputes.
 
 The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONVENTIONS.md`.
 
@@ -20,8 +20,9 @@ Run steps 1, 2 and 5 of `.claude/skills/planner/references/START.md` with mode `
 Run `python3 .claude/skills/planner/bin/planner query get <ID> --json`.
 
 - If it says `not_found`, stop: "<ID> is not in this vault." Do not guess another ID.
-- A challenge is about a boundary or a contract. Go on only if `kind` is `contract`, `app-building-blocks` (what the app does and does not do) or `epic` (an epic's criteria or scope). For anything else, say a challenge does not cover it, and offer an ask to the item's owner instead.
-- Find the app: the page for a contract or app page, or each app in an epic's `apps`. Read its building-blocks page. If it has no `handed_off:`, say so: before handoff, a disagreement belongs in a Shape or a Grill with the solution lead. Ask whether to go on anyway.
+- A challenge is about a boundary or a contract. Go on if `kind` is `contract`, `app-building-blocks` (what the app does and does not do) or `epic` (an epic's criteria or scope), or if the answer's `decided_by` names the user among its `on_behalf_of` owners, whatever the kind. For anything else, say a challenge does not cover it, and offer an ask to the item's owner instead.
+- If `decided_by` is set, show who decided on whose behalf and the `override` bullets, so the owner sees what was set aside and why. The challenge leaves those bullets alone.
+- Find the app: the page for a contract or app page, or each app in an epic's `apps`. Read its building-blocks page. If it has no `handed_off:`, say so: before handoff, a disagreement belongs in a Shape or a Grill with the solution lead. Ask whether to go on anyway. An owner challenging a decision made on their behalf goes on with no handoff.
 - Run `python3 .claude/skills/planner/bin/planner handoff verify <APP-id>` and show the output, so the senior sees what changed since they accepted the slice. Exit 2 covers two cases, so show the tool's message. If it says "does not exist", there is no manifest: say so and go on. Any other exit 2 is a damaged manifest: tell the senior that what changed since handoff could not be read, and go on without claiming anything about it.
 
 ## 3. Hear the challenge
@@ -81,6 +82,8 @@ Write the PR body to a temporary file:
 Run `gh pr create --base main --head session/<id> --title "<today> Challenge: <ID>" --body-file <file> --reviewer <handle>`. If `gh` fails, say so, print the branch name and the exact command, and stop. Never say a PR exists unless `gh` printed its URL.
 
 ## Never
+
+These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Never change the challenged item's state or text. Only the `**Dissent:**` line is added.
 - Never decide, resolve, reopen or set back anything. Only a Grill decides, and the solution lead answers the challenge.

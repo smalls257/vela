@@ -26,7 +26,7 @@ $ARGUMENTS
 2. Find the pages. Start with `python3 .claude/skills/planner/bin/planner query find <words> --json` for the asker's words, then use Grep and Glob over the vault's `.md` files. Never search `voice/`. Search `sessions/` only if the question asks about a session or what was said.
    Never Read a file under `voice/` or `.inbox/`. Read `sessions/` only if the user asks. Try at least two sets of words before you decide no page covers it: the asker's words, and the vault's own words from `12-glossary.md`.
 3. Open every section you will cite with Read, and read it. Cite nothing you did not open in this answer. Assert nothing you did not open and read. A Grep snippet alone does not count.
-4. Before you cite any ID, run `python3 .claude/skills/planner/bin/planner query get <ID> --json`. Cite the ID by the `link` it returns, and take its state, `dissent` and `blocked_by` for the flags below. If the answer is `not_found`, never cite that ID, and never write it as if it existed: say `Not recorded: <ID> is not in this vault.` To find every page that mentions an item, run `python3 .claude/skills/planner/bin/planner query refs <ID> --json`. If `planner query` exits 2, it could not read the vault: show its message, say the IDs in this answer were not checked, and never treat that as `not_found` or "Not recorded".
+4. Before you cite any ID, run `python3 .claude/skills/planner/bin/planner query get <ID> --json`. Cite the ID by the `link` it returns, and take its state, `dissent`, `blocked_by`, `override` and `decided_by` for the flags below. If the answer is `not_found`, never cite that ID, and never write it as if it existed: say `Not recorded: <ID> is not in this vault.` To find every page that mentions an item, run `python3 .claude/skills/planner/bin/planner query refs <ID> --json`. If `planner query` exits 2, it could not read the vault: show its message, say the IDs in this answer were not checked, and never treat that as `not_found` or "Not recorded".
 5. Split the question into its parts. Each part is answered, in conflict, or unanswered.
 6. Write the answer in the shape below. Never create, edit or delete a file.
 7. Every claim is followed by its ID or labelled `Not from the vault:`. There is no third choice.
@@ -44,6 +44,8 @@ Put a flag next to any claim that rests on something not settled:
 - "assumed: not confirmed by the <app> senior", for a container at `assumption`;
 - "contested: see UNK-nnn", for an item an open unknown lists in `**Blocks:**`, which `planner query get` returns as `blocked_by`;
 - "dissent: <name>", for an item with a `**Dissent:**` bullet.
+- "decided by override: <rule>, by @x", for each entry in `override`, with its rules joined by commas, its `by` and its reason. An entry marked `malformed` overrides nothing: say "override not readable: <problem>".
+- "on behalf of @owner, not yet confirmed", when `decided_by` is set and its `confirmed` is false. When it is true, say "decided by @x on behalf of @owner, confirmed by @y" from `confirmed_by`.
 
 When two pages disagree, show both, cite both, and say which page owns the value.
 

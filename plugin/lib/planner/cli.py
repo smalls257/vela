@@ -430,7 +430,7 @@ def status_line(row, today):
     inkling, assumption, fact, decided = row.mix
     next_text = f"{row.mode} {row.subject}".strip() if row.mode != "none" else "none"
     return (f"{row.app.id} | stage {row.stage or '-'} | inkling {inkling}, assumption {assumption}, fact {fact}, "
-            f"decided {decided} | oldest open unknown: {oldest_text(row, today)} | next: {next_text}. {row.reason}")
+            f"decided {progress.decided_text(row)} | oldest open unknown: {oldest_text(row, today)} | next: {next_text}. {row.reason}")
 
 
 def cmd_status(args, out):

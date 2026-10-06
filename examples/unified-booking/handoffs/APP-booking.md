@@ -13,7 +13,7 @@ Written by `planner handoff APP-booking`. Do not edit it by hand. `planner hando
 | RUN-booking | runtime | 06-runtime/apps/booking-runtime.md | decided | ba7a880f4738 |
 | CON-001 | provides | 05-building-blocks/booking-building-blocks.md | decided | a42f555c03fc |
 | CON-002 | provides | 05-building-blocks/booking-building-blocks.md | decided | 0d8e16618ff4 |
-| CON-003 | consumes | 05-building-blocks/pricing-building-blocks.md | decided | b80d820ce36c |
+| CON-003 | consumes | 05-building-blocks/pricing-building-blocks.md | decided | 3a350618fc8f |
 | CON-004 | consumes | 05-building-blocks/vessel-schedule-building-blocks.md | fact | 74eb61ef2c10 |
 | CON-005 | consumes | 05-building-blocks/customer-identity-building-blocks.md | fact | de88c64b8b57 |
 | CON-006 | consumes | 05-building-blocks/ferrymaster-building-blocks.md | fact | 12ae5ada7d69 |

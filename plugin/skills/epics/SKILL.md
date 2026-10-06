@@ -49,7 +49,7 @@ If a criterion needs behaviour no page records, stop on that criterion. Say whic
 
 ## 6. Grill the criteria
 
-For each epic the user wants decided, run the gate in `.claude/skills/planner/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` or `reopened` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Show the table, and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it.
+For each epic the user wants decided, run the gate in `.claude/skills/planner/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` or `reopened` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Show the table, and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it. A failed gate gets grill's choice too: "decide anyway (override GATE-n)", with the `**Override:**` and `**Decided by:**` bullets grill writes.
 
 Then take each criterion in turn. Every criterion needs its own explicit yes before the epic can be confirmed:
 
@@ -69,6 +69,8 @@ Render (steps 2 and 7) rewrites generated blocks on other pages too. Stage every
 
 If the lead never confirms, the epic stays `draft`, and its agenda line says `status open`.
 
+If the user tells you to decide an epic without a yes per criterion, or without the read-back, say once that each yes is what makes a criterion something a tester can hold the team to. Then do it, and write `- **Override:** GATE-3 by @<handle> on <today>: <reason>` at page level, beside the `**Decision:**` line. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet an epic already carries when you edit it.
+
 ## 7. Check the gate
 
 Run `python3 .claude/skills/planner/bin/planner render` and stage every file it reports, by exact path. Then run `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs.
@@ -81,7 +83,9 @@ Every chosen team's gaps are closed or listed, or the user stops. Epics left at 
 
 ## Never
 
-- Never set `decided` without the lead's confirmation in this session, or while any criterion lacks its own explicit yes.
+These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
+
+- Never set `decided` without the lead's confirmation in this session, or while any criterion lacks its own explicit yes, unless the user overrides `GATE-3` and the bullet is written.
 - Never read exit 0 from the gate as `decided`.
 - Never put one epic under two owning teams.
 - Never name a component, table or technology in a criterion.
