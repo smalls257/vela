@@ -21,7 +21,7 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | `dump` | captures only, and the `## Reviews` of its checkpoint | promoted items at `inkling`, unknowns with owner and ask-by, question ledger rows |
 | `discover` | `sources.md` rows; facts after each correction round, with sources, and the parties and stored value they name | prose, question ledger rows |
 | `shape` | captures only, and the `## Reviews` of its checkpoint | `assumption` items with `**Options considered:**`, question ledger rows |
-| `boundary` | the picked cut's `**Options considered:**`; then, after each sheet's yeses, the app page, its containers and contracts, its runtime page and concern cells, all at `assumption`, with a checkpoint commit | prose, question ledger rows |
+| `boundary` | a stub page and `unexamined` concern rows for each app of the picked cut; then, after each sheet's yeses, the app page, its containers and contracts, its runtime page, its concern cells and the unknowns they link, at `assumption`, with a checkpoint commit | prose, question ledger rows |
 | `grill` | each decided item as its branch closes, with a checkpoint commit | prose, read-back, question ledger rows |
 | `epics` | `draft` epic pages, bullets and criteria only; `decided` only inside its Grill part | epic description paragraphs |
 | `requirements` | requirements on the capability page at `assumption`; unknowns | prose |
@@ -42,4 +42,4 @@ When two sources or two people disagree, write an unknown that names both. Do no
 
 ## Owed questions
 
-What a session must ask comes from code, not from this file. `planner questions` lists the copies the question catalogue owes, and a review checkpoint adds what one focused reviewer per focus area finds, as `REVIEW.md` says. Dump runs one after its pre-mortem, Discover after its read-back, Shape before it shows its options, and a Grill on its agenda. There is no cap on questions and no quota: the digest ranks them, the lead takes what they want, and the rest stay open and visible in the ledger. Between checkpoints, ask whatever the work needs.
+What a session must ask comes from code, not from this file. `planner questions` lists the copies the question catalogue owes, and a review checkpoint adds what one focused reviewer per focus area finds, as `REVIEW.md` says. Dump runs one after its pre-mortem, Discover after its read-back, Shape before it shows its options, Boundary once its app pages are written, and a Grill on its agenda. There is no cap on questions and no quota: the digest ranks them, the lead takes what they want, and the rest stay open and visible in the ledger. Between checkpoints, ask whatever the work needs.

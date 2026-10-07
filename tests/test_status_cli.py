@@ -46,3 +46,13 @@ def test_next_suggests_a_boundary_once_the_strategy_is_decided_and_no_app_exists
         "owner: \"@lead\"\nauthored: authored\n---\n# Solution strategy\n", encoding="utf-8")
     code, out = run("next", "--vault", str(tmp_path), "--today", "2026-01-15")
     assert code == 0 and out.startswith("planner next: initiative, boundary.")
+
+
+def test_a_stub_app_page_with_no_containers_goes_back_to_boundary(tmp_path):
+    (tmp_path / ".planner.yaml").write_text("initiative: INI-001\ntitle: New\n", encoding="utf-8")
+    (tmp_path / "05-building-blocks").mkdir()
+    (tmp_path / "05-building-blocks" / "links-building-blocks.md").write_text(
+        "---\nid: APP-links\ntype: app-building-blocks\ntitle: Links\nstate: inkling\nchange: new\nstage: baseline\n"
+        "owner: \"@lead\"\nauthored: authored\n---\n# Links\n\nIts boundary sheet is still to be read back.\n", encoding="utf-8")
+    code, out = run("next", "--vault", str(tmp_path), "--today", "2026-01-15")
+    assert code == 0 and out.startswith("planner next: APP-links, boundary APP-links.")

@@ -278,7 +278,7 @@ A question only fires on a subject someone typed. So W809 warns, "possibly an un
 
 ## Pages
 
-- **App pages go one level in.** A new or changed app gets a building-blocks page (what it does, what it does not do, the `app-context` block, containers, contracts it provides, the `contracts-consumed` block) and a runtime page (its part in each flow, and how it behaves when something fails).
+- **App pages go one level in.** A new or changed app gets a building-blocks page (what it does, what it does not do, the `app-context` block, containers, contracts it provides, the `contracts-consumed` block) and a runtime page (its part in each flow, and how it behaves when something fails, under `## On failure`).
 - **Slim pages for unchanged apps.** An `integrated` or `unchanged` app gets one page with its job, why it is a black box, the `app-context` block, and the contracts it provides at `fact`. It has no runtime page; the consumer's runtime page says what happens when it fails.
 - **Contracts live on the provider's page.** A contract with an external provider lives on its consumer's page with a `**Provider:**` bullet.
 - **Containers, never components.** Each container row says who proposed it and its state.
@@ -381,6 +381,7 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 | Rule | Mode | Matches when |
 |---|---|---|
 | 1 | Probe | an open unknown that blocks the app is past its ask-by date |
+| 2 | Boundary | the app page is a Boundary stub: it says "Its boundary sheet is still to be read back." and has no containers table |
 | 2 | Discover | the app page lists no `sources` |
 | 3 | Shape | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
 | 4 | Discover | an item has options recorded, but the app's `stage` is before `target`, so it fails GATE-1 |

@@ -120,6 +120,12 @@ def in_grill_stage(app):
     return stage in order and order.index(stage) >= order.index("target")
 
 
+def is_boundary_stub(app):
+    """A page a Boundary wrote as a stub and has not read back yet: its stub line, and no containers table."""
+    return (schema.BOUNDARY_STUB_LINE in app.text
+            and not any(t.header[:2] == schema.CONTAINERS_HEADER for t in app.tables))
+
+
 def suggest(vault, app, as_of, blocked):
     """(rule number, mode, subject ID, reason) by the first rule that matches."""
     mine = units(vault, app)
@@ -127,6 +133,8 @@ def suggest(vault, app, as_of, blocked):
     for unknown in model.blocking_unknowns(vault, app):
         if overdue(unknown, as_of):
             return 1, "probe", unknown.id, f"{unknown.id} was due an answer by {unknown.fact('Ask by')} and still blocks {app.id}."
+    if is_boundary_stub(app):
+        return 2, "boundary", app.id, f"{app.id} is a stub with no containers table, so its boundary sheet is still to read back."
     if not (isinstance(sources, list) and sources):
         return 2, "discover", app.id, f"{app.id} lists no sources."
     for unit in mine:

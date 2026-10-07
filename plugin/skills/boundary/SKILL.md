@@ -27,11 +27,13 @@ Offer 2 or 3 ways to cut the direction into apps, never one and never more than 
 
 Capture each cut as a `[thought] (claude)` line. Say which cut you prefer and why. Capture the user's reaction to each and the cut they pick. A rejected cut gets a capture with its reason. If they reject them all, capture why and offer new cuts.
 
-Write the picked cut on `05-building-blocks/05-building-blocks.md` as a page-level `- **Options considered:** <picked cut> (picked); <cut>: rejected, <reason>; ...` bullet, at once, with its capture and a `## Changes` row.
+Write the picked cut on `05-building-blocks/05-building-blocks.md` under `## <the picked cut>`: the apps it names, each with its `change`, and a `- **Options considered:**` bullet, `<picked cut> (picked); <cut>: rejected, <reason>; ...`.
+
+Then write a stub for every app of the picked cut whose `change` is `new` or `changed`, so every later link has a page to point at. A stub is `05-building-blocks/<slug>-building-blocks.md` with the frontmatter in section 4 at `state: inkling`, and, under its title, exactly the line `Its boundary sheet is still to be read back.`, which section 4 replaces. Give it an `unexamined` row on each concern page. `planner next` sends a stub with no containers table back to Boundary, so an app this session does not reach is never lost. Mark the capture of the picked cut at once, `→ keep: [[05-building-blocks#<the picked cut>|cut]] (assumption)`, add one `## Changes` row per stub, `| APP-<slug> | - | inkling | [[<id>#^cNN]] |`, run `planner check`, and commit the checkpoint.
 
 ## 3. Read back one boundary sheet per app
 
-Take the apps of the picked cut whose `change` is `new` or `changed`, one at a time. An `integrated`, `unchanged` or `retired` app gets a page only for what crosses its boundary. For each, show its sheet as a numbered list:
+Take the stubs one at a time. For each, show its sheet as a numbered list:
 
 1. **Does:** what the app decides or keeps, in the domain's words.
 2. **Does not:** the jobs that stay elsewhere, each naming the app or party that keeps it.
@@ -39,22 +41,24 @@ Take the apps of the picked cut whose `change` is `new` or `changed`, one at a t
 4. **Provides:** each contract, as `CON-nnn <name>`, with what crosses the boundary in each direction and each consumer.
 5. **Consumes:** each contract it relies on, provided by another app or an outside provider.
 6. **On failure:** what the app and each consumer do when it, or something it consumes, is down or slow.
-7. **Concerns:** one line per concern page: `unknown` with the unknown that must be answered first, `n/a` with why, or `unexamined`. Never `addressed`, because only a Grill decides one.
+7. **Concerns:** one line per concern page: `unknown` with the question that must be answered first, `unchanged` when a changed app's existing practice holds, `n/a` with why, or `unexamined`. Never `addressed`, because only a Grill decides one.
 
-Label every line with what it rests on: a decided item, a `SRC-nn`, the user's own words, or `(claude)` for your proposal. A line with nothing under it is a proposal, and it says so. Write nothing until the user has given an explicit yes to that line. Silence, or "looks fine" with no yes per line, does not count: ask again. A correction replaces the line, and the corrected line needs its own yes. A line the user cannot answer becomes an unknown with an owner handle and an ask-by date, and the item it blocks lists it.
+Label every line with what it rests on: a `SRC-nn`, a decided item and the Grill that decided it, the user's own words, or `(claude)` for your proposal. A line with nothing under it is a proposal, and it says so. Write nothing until the user has given an explicit yes to that line. Silence, or "looks fine" with no yes per line, does not count: ask again. A correction replaces the line, and the corrected line needs its own yes. A line the user cannot answer becomes an unknown on `11-unknowns-and-risks.md`, `### UNK-nnn <short name>`, with `**Question:**`, an `**Owner:**` handle, `**State:** open`, an `**Ask by:**` date and `**Blocks:**` linking what it blocks, written in the same checkpoint as the line that links it.
 
 ## 4. Write the confirmed lines
 
-After each sheet, write what was confirmed and commit a checkpoint:
+After each sheet, write what was confirmed and commit a checkpoint. The required fields for each page type are in the Frontmatter table of `CONVENTIONS.md`; a missing one is E103.
 
-- **The app page:** `05-building-blocks/<app>-building-blocks.md`, `type: app-building-blocks`, `id: APP-<slug>`, `state: assumption`, the app's `change`, its `owner` handle, `authored: authored`, and the `sources` its lines rest on. "Does" and "does not" become its opening paragraphs. Set `stage` by the ladder in `CONVENTIONS.md`, never higher than its entry list allows: `target` once the page cites a source that is not a dump, `baseline` before that. An app that already has a page keeps it: change only the lines the user confirmed.
+- **The app page:** fill the stub. `id: APP-<slug>`, the slug the file name starts with, `type: app-building-blocks`, `title`, `state: assumption`, the app's `change`, `owner` (the handle of the team that will build it, or the user's handle until one is named), `authored: authored`, and `sources`. `sources` lists every `SRC-nn` the lines rest on and, for lines resting on a decided item or the user's words, the session id of the Grill or of this session, so the page never lists none. Set `stage` by the ladder in `CONVENTIONS.md`, never higher than its entry list allows: `target` once the page cites a source that is not a dump, `baseline` before that. "Does" and "does not" become its opening paragraphs. An app that already had a page before this session keeps it: change only the lines the user confirmed.
 - **Containers:** the table `| Container | Job | Contracts served or used | Proposed by | State |`, every State `assumption`.
-- **Contracts it provides:** under `## Contracts this app provides`, one `### CON-nnn <name>` each, with every required bullet: `**Crosses the boundary:**`, `**Consumers:**` linking each consumer's page, `**Change policy:**`, `**Change:**` and `**State:** assumption`. An outside provider's contract lives on the consumer's page with `**Provider:**`. New IDs take the next free number: grep the vault for the existing IDs of that kind, and read the `## Changes` tables of the records on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'`, because another open session may already hold the next one.
-- **The runtime page:** `06-runtime/apps/<app>-runtime.md`, `type: app-runtime`, `id: RUN-<slug>`, `state: assumption`, with the confirmed failure line under `## On failure`.
-- **Concern cells:** one row for the app on each concern page, as confirmed.
+- **Contracts it provides:** under `## Contracts this app provides`, one `### CON-nnn <name>` each, with every required bullet: `**Crosses the boundary:**`, `**Consumers:**` linking each consumer's page, `**Change policy:**`, `**Change:**` and `**State:** assumption`. New IDs take the next free number: grep the vault for the existing IDs of that kind, and read the `## Changes` tables of the records on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'`, because another open session may already hold the next one.
+- **Contracts it consumes:** add the app to the `**Consumers:**` bullet of each contract it consumes, on the provider's page. A provider outside the initiative with no page gets its contract on this app's page with a `**Provider:**` bullet. An `integrated` or `unchanged` app in the initiative with no page gets a slim page as `CONVENTIONS.md` says under "Pages", no `stage`, holding only the contract it provides, at `fact` with its `**Source:**` when a source describes it, or at `assumption`.
+- **What was weighed:** a `- **Options considered:**` bullet, `<the picked cut> (picked); <cut>: rejected, <reason>; ...`, on the app page, on its runtime page and under each `### CON-nnn` it provides. `planner next` and the Grill's GATE-2 read it on the item itself: without it the app goes back to Shape.
+- **The runtime page:** `06-runtime/apps/<slug>-runtime.md` with `id: RUN-<slug>`, `type: app-runtime`, `title`, `state: assumption`, the same `owner`, `authored: authored` and `sources`, and the confirmed failure line under `## On failure`.
+- **Concern cells:** replace the app's `unexamined` row on each concern page with the confirmed state. A line with no yes keeps `unexamined`: it claims nothing. An `unknown` cell links its unknown.
 - **Scope:** the app in the apps-in-scope list on `03-context-and-scope.md`, linking its page.
 
-Each line written also gets a capture line and a `## Changes` row. Mark that capture at once: `→ keep: [[<page>#<heading>|<ID>]] (assumption)`. This is an exception to leaving marks off until close, as Discover does for facts. Close leaves these alone.
+Each sheet gets one capture line per item with an ID that changed (the app, its runtime page, each contract, each unknown), marked at once, `→ keep: [[<page>#<heading>|<ID>]] (assumption)`, or `(open)` for an unknown, and one `## Changes` row each, `| <ID> | <from> | <to> | [[<id>#^cNN]] |`. Containers and concern cells have no ID, so they go in their app's capture. This is an exception to leaving marks off until close, as Discover does for facts. Close leaves these alone.
 
 Then run `python3 .claude/skills/planner/bin/planner render` and `python3 .claude/skills/planner/bin/planner check`, fix every error the new pages cause, and commit the checkpoint with every file render reported, by exact path.
 

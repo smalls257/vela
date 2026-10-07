@@ -192,6 +192,8 @@ CONSTRAINTS_HEADER = ("ID", "Constraint")
 SOURCES_HEADER = ("ID", "Title", "Owner", "Date", "Kind", "Location")
 SOURCE_KINDS = ("exists", "intends", "repo")
 CONTAINERS_HEADER = ("Container", "Job")
+# The line a Boundary writes under a stub app page's title; planner next sends such a page back to Boundary.
+BOUNDARY_STUB_LINE = "Its boundary sheet is still to be read back."
 CONTAINER_STATES = ("assumption", "confirmed", "unchanged", "retired")
 CELLS_HEADER = ("App", "State")
 CELL_STATES = ("addressed", "unchanged", "n/a", "unknown", "unexamined")
