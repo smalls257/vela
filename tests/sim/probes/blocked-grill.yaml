@@ -1,0 +1,16 @@
+# A Grill on an item an open unknown blocks, with a lead who does not override. From the vault the boundary session
+# left: UNK-050, whether the Northway Platform team commits to building the Account link service, blocks its page,
+# and the lead owns that unknown. Claude asks the lead first, never drafts a message for them to send, ends the
+# blocked session rather than filling it, and scopes its review to what the session changed.
+snapshot:
+  coastal-merger: after-boundary-s2
+opening: "/planner:grill APP-account-link-service and its contracts"
+cap: 12
+close: 8
+criteria:
+  - check: drafted-messages
+    at_most: 0
+  - check: main-session-turns
+    at_most: 8
+  - check: decided-without-yes
+    at_most: 0

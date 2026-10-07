@@ -794,6 +794,35 @@ def area_coverage(run, criterion):
     return passed, summary, detail
 
 
+@check("drafted-messages", "at_most")
+def drafted_messages(run, criterion):
+    """Messages drafted for the lead to send, counted by code: the skills say Claude never drafts one."""
+    turns = sim.drafted_messages(run.transcript)
+    passed = len(turns) <= criterion["at_most"]
+    return passed, f"messages drafted for the lead to send: {len(turns)} (need at most {criterion['at_most']})", \
+        [f"- T{t}" for t in turns]
+
+
+@check("merge-scoped")
+def merge_scoped(run, criterion):
+    """Every planner findings merge the session ran names --changed, so a new question can only be about what this
+    session changed. A session that merged nothing fails: its checkpoint never ran."""
+    merges = [(e["turn"], str(t.get("input", ""))) for e in run.transcript.entries if e.get("speaker") == "assistant"
+              for t in e.get("tool_calls") or [] if "findings merge" in str(t.get("input", ""))]
+    scoped = [m for m in merges if "--changed" in m[1]]
+    passed = bool(merges) and len(scoped) == len(merges)
+    return passed, f"findings merges: {len(merges)}; with --changed: {len(scoped)}", \
+        [f"- T{turn}: {sim.short(text, 200)}" for turn, text in merges]
+
+
+@check("main-session-turns", "at_most")
+def main_session_turns(run, criterion):
+    """Assistant turns before close. A blocked session ends rather than filling itself with other work."""
+    turns = [e for e in run.transcript.spoken() if e["speaker"] == "assistant" and e.get("mode") != "close"]
+    passed = len(turns) <= criterion["at_most"]
+    return passed, f"assistant turns before close: {len(turns)} (need at most {criterion['at_most']})", []
+
+
 def score(run, case):
     rows = []
     for criterion in case["criteria"]:

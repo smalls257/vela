@@ -1,0 +1,16 @@
+# A Grill on an app nothing blocks, from the vault the boundary session left, so its review checkpoint runs. Does
+# the merge name --changed, so a new question can only be about what this session changed? Every area runs, nothing
+# is decided without an explicit yes, and Claude drafts no message for the lead to send.
+snapshot:
+  coastal-merger: after-boundary-s2
+opening: "/planner:grill APP-northway-id"
+cap: 14
+close: 8
+criteria:
+  - check: merge-scoped
+  - check: area-coverage
+    require: ran
+  - check: drafted-messages
+    at_most: 0
+  - check: decided-without-yes
+    at_most: 0
