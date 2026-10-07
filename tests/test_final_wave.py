@@ -109,7 +109,7 @@ def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
 
 def test_start_says_what_a_probe_suggestion_means():
     start = read("plugin", "references", "START.md").split("## 4.", 1)[1].split("## 5.", 1)[0]
-    assert "When `planner next` suggests `probe`, it means the ask-or-research offer above. There is no Probe skill." in start
+    assert "When `planner next` suggests `probe`, it means the question to the user and the research offer above. There is no Probe skill." in start
 
 
 # M3: CONVENTIONS' negation sentence matches voicecheck

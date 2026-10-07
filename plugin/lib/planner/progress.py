@@ -140,7 +140,7 @@ def suggest(vault, app, as_of, blocked):
     laddered = app.meta.get("change") in schema.LADDERED_CHANGES
     for unit in mine:
         # An integrated or unchanged app's page records what exists; there are no options to shape for it.
-        if not laddered and unit.state in ("inkling", "assumption"):
+        if not laddered and unit.state in ("inkling", "assumption") and unit.id not in blocked:
             return 3, "discover", unit.id, (f"{unit.id} is at {unit.state} on an app the initiative does not change, so it "
                                             f"needs a source to reach fact.")
         if laddered and (unit.state == "inkling" or (unit.state == "assumption" and not unit.options)):

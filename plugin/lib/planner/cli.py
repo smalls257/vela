@@ -104,10 +104,15 @@ def parse_today(value):
 PLUGIN_CONVENTIONS = pathlib.Path(__file__).resolve().parents[2] / "vault" / "CONVENTIONS.md"
 
 
+def same_text(one, other):
+    """Equal once line endings are read alike, so a Windows checkout's CRLF is not a different copy."""
+    return one.read_bytes().replace(b"\r\n", b"\n") == other.read_bytes().replace(b"\r\n", b"\n")
+
+
 def conventions_findings(root):
     """W717 when the vault's CONVENTIONS.md is not the plugin's. A missing copy on either side is not judged."""
     mine = root / "CONVENTIONS.md"
-    if not (mine.is_file() and PLUGIN_CONVENTIONS.is_file()) or mine.read_bytes() == PLUGIN_CONVENTIONS.read_bytes():
+    if not (mine.is_file() and PLUGIN_CONVENTIONS.is_file()) or same_text(mine, PLUGIN_CONVENTIONS):
         return []
     return [model.Finding("CONVENTIONS.md", 1, "W717",
                           "CONVENTIONS.md is not the copy the installed plugin ships, so the skills may follow rules "
@@ -121,7 +126,7 @@ def cmd_upgrade(args, out):
         raise ToolError(f"the plugin's CONVENTIONS.md is missing at {PLUGIN_CONVENTIONS}; reinstall the plugin.")
     mine = root / "CONVENTIONS.md"
     new = PLUGIN_CONVENTIONS.read_bytes()
-    if mine.is_file() and mine.read_bytes() == new:
+    if mine.is_file() and same_text(mine, PLUGIN_CONVENTIONS):
         print("planner upgrade: CONVENTIONS.md is already the plugin's copy. Nothing changed.", file=out)
         return 0
     old_lines = mine.read_text(encoding="utf-8").splitlines() if mine.is_file() else []
@@ -459,18 +464,30 @@ def read_findings(folder, codes):
 
 
 def changed_pages(vault, value):
-    """The vault paths --changed names, comma-separated, or None when it is not given."""
+    """What --changed names, comma-separated: each page's vault path mapped to None for the whole page, or to its
+    (first, last) line ranges for `<page>:40-52+88-90`. None when --changed is not given."""
     if value is None:
         return None
-    paths, missing = set(), []
+    paths, missing = {}, []
     for ref in (r.strip() for r in value.split(",")):
         if not ref:
             continue
-        page = reviews.find_page(vault, ref)
+        name, _, spans = ref.partition(":")
+        page = reviews.find_page(vault, name)
         if page is None:
-            missing.append(ref)
-        else:
-            paths.add(page.path)
+            missing.append(name)
+            continue
+        if not spans:
+            paths[page.path] = None
+            continue
+        ranges = []
+        for span in spans.split("+"):
+            first, _, last = span.partition("-")
+            if not (first.isdigit() and (last or first).isdigit()) or int(last or first) < int(first):
+                raise ToolError(f"--changed {ref}: write the lines as <first>-<last>, joined by +, such as {name}:40-52+88-90.")
+            ranges.append((int(first), int(last or first)))
+        if paths.get(page.path, ()) is not None:
+            paths[page.path] = (paths.get(page.path) or []) + ranges
     if missing:
         raise ToolError(f"--changed names {', '.join(missing)}, which {'is' if len(missing) == 1 else 'are'} not a page "
                         "in this vault. List the pages this session changed, and its own record.")

@@ -628,3 +628,25 @@ def test_a_message_drafted_for_the_lead_is_counted_by_code(tmp_path):
     t.add(session=1, mode="grill", speaker="assistant", text="Here it is:\n\n> **Subject: Who owns Northway ID?**\n> Hi,", turn=2)
     t.add(session=1, mode="grill", speaker="assistant", text="The subject of this grill is the login.", turn=4)
     assert sim.drafted_messages(t) == [2]
+
+
+def test_the_drafted_message_detector_counts_salutations_and_skips_planner_bullets(tmp_path):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    t.add(session=1, mode="grill", speaker="assistant", text="> Hi Priya,\n> Can your team run it?", turn=2)
+    t.add(session=1, mode="grill", speaker="assistant", text="- **Subject:** SV-01 Tidemiles", turn=4)
+    t.add(session=1, mode="grill", speaker="assistant", text="```\nHello [name],\nOne question.\n```", turn=6)
+    assert sim.drafted_messages(t) == [2, 6]
+
+
+def test_earlier_sessions_reach_the_persona_in_number_order(tmp_path):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    for session in (1, 2, 10):
+        t.add(session=session, mode="dump", speaker="lead", text=f"SESSION {session} WORDS", turn=session)
+    text = sim.persona_input(t, 11, "grill")
+    assert text.index("SESSION 1 WORDS") < text.index("SESSION 2 WORDS") < text.index("SESSION 10 WORDS")
+
+
+def test_a_state_line_the_union_drops_is_reported(tmp_path):
+    hunk = sim.CONFLICT_HUNK.search("<<<<<<< HEAD\n- **State:** open\n=======\n- **State:** resolved\n- **Notes:** x\n>>>>>>> b\n")
+    lost = []
+    assert sim.union_hunk(hunk, lost) == "- **State:** open\n- **Notes:** x\n" and lost == ["- **State:** resolved"]

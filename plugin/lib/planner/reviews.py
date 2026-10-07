@@ -242,7 +242,7 @@ def _check_finding(vault, raw, owed_ids, about, changed=None):
     page = find_page(vault, raw["page"])
     if page is None:
         return None, f"it cites {raw['page'].strip()}, which is not a page in this vault"
-    if copy == "new" and changed is not None and page.path not in changed:
+    if copy == "new" and changed is not None and not in_change(page, raw["quote"], changed):
         return None, OUTSIDE_CHANGE
     # One quote checker for the ledger and the merge, so the two rules cannot drift apart.
     # A straight quote mark inside the words would end the quoted span early; quote_problem reads curly as straight.
@@ -257,6 +257,27 @@ def _check_finding(vault, raw, owed_ids, about, changed=None):
     return (severity, copy, flat(raw["question"]), flat(raw["finding"]), flat(raw["quote"]), page.path), ""
 
 
+def quote_line(page, quote):
+    """The line the quote starts on, reading curly and straight quote marks alike, or None."""
+    for words in (quote.strip(), quote.strip().replace("”", '"').replace("“", '"'), quote.strip().replace('"', "”")):
+        at = page.text.find(words)
+        if at >= 0:
+            return page.text.count("\n", 0, at) + 1
+    return None
+
+
+def in_change(page, quote, changed):
+    """Whether a quote sits in what the session changed: `changed` maps a page path to None (the whole page) or to
+    its changed (first, last) line ranges."""
+    if page.path not in changed:
+        return False
+    ranges = changed[page.path]
+    if ranges is None:
+        return True
+    line = quote_line(page, quote)
+    return line is not None and any(first <= line <= last for first, last in ranges)
+
+
 def open_reviewer_ids(vault):
     """The R-<AREA>-nn ids a finding may address: reviewer questions still open, or whose row has an error."""
     return {r.copy.upper(): r.copy for r in questions.reviewer_rows(vault)
@@ -268,7 +289,8 @@ def merge(vault, outputs, ignored=(), only=None, skipped=(), changed=None):
     (data, problem): the reviewer's parsed JSON, or None and why the CLI could not read it.
     `only` lists the area codes that ran, for a re-run or a checkpoint that skips some. The others are neither
     read nor reported, except those in `skipped`, which are reported as skipped and never read. `changed`, when
-    given, holds the paths of the pages this session changed: a new question quoting any other page is dropped."""
+    given, maps each page this session changed to None or its changed line ranges: a new question quoting any
+    other page or line is dropped."""
     owed = questions.owed(vault)
     owed_ids = {c.id.upper(): c.id for c in owed}
     owed_ids.update(open_reviewer_ids(vault))

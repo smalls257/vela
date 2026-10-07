@@ -365,7 +365,8 @@ def test_claude_asks_the_lead_first_never_drafts_an_ask_and_ends_a_blocked_sessi
     assert "Never draft an ask, an email or a chase for the user to send." in grill
     for path in (PLUGIN / "skills").glob("*/SKILL.md"):
         body = path.read_text(encoding="utf-8")
-        assert "draft a short ask" not in body and "an ask instead" not in body, path
+        for phrase in ("draft a short ask", "an ask instead", "offer an ask", "an ask to the"):
+            assert phrase not in body, (path, phrase)
 
 
 def test_a_review_is_about_what_this_session_changed_and_a_group_can_wait_on_one_unknown():
@@ -373,4 +374,4 @@ def test_a_review_is_about_what_this_session_changed_and_a_group_can_wait_on_one
     assert "--changed <paths>" in review and "`Changed: <paths>`" in review
     assert "it quotes a `Changed:` page" in agent
     assert "waits on UNK-050: Q-DAT-02@APP-account-link-service, R-OPS-12, F2.4" in review
-    assert "A capture `waits on UNK-nnn: <IDs>` gives one `unknown` row per ID" in close
+    assert "A capture `waits on UNK-nnn: <IDs>` makes each ID's row `unknown`" in close and "changed in place" in close

@@ -552,7 +552,8 @@ def persona_input(transcript, session_index, mode):
     spoken = transcript.spoken()
     current = [e for e in spoken if e.get("session") == session_index]
     earlier = []
-    for session in sorted({e.get("session") for e in spoken if e.get("session") != session_index}, key=str):
+    for session in sorted({e.get("session") for e in spoken if e.get("session") != session_index},
+                          key=lambda s: (s is None, s if isinstance(s, int) else 0, str(s))):
         said = [e for e in spoken if e.get("session") == session and e["speaker"] == "lead"][-2:]
         earlier += [{**e, "text": e["text"] if len(e["text"]) <= 300 else e["text"][:300] + " [...]"} for e in said]
     latest = next((e["text"] for e in reversed(spoken) if e["speaker"] == "assistant"), "")
@@ -637,6 +638,8 @@ def build_vault_from(arm_dir, start, persona):
         shutil.rmtree(skills)
     shutil.copytree(PLUGIN, skills / "planner", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     inbox = vault / ".inbox"
+    # As planner upgrade would: a snapshot saved before the format changed starts with the plugin's own copy.
+    shutil.copyfile(PLUGIN / "vault" / "CONVENTIONS.md", vault / "CONVENTIONS.md")
     for doc in persona.get("docs") or []:
         inbox.mkdir(exist_ok=True)
         (inbox / doc["name"]).write_text(doc["text"].strip() + "\n", encoding="utf-8")
@@ -672,39 +675,55 @@ def arm_env(arm_dir, stub):
 CONFLICT_HUNK = re.compile(r"<<<<<<< [^\n]*\n(.*?)=======\n(.*?)>>>>>>> [^\n]*\n", re.S)
 
 
-def union_hunk(match):
-    """How a reviewer settles a clash between two session PRs: main's state line and generated blocks (render
-    rebuilds those), and every other line from both sides, main's first."""
+STATE_LINE = re.compile(r"^\s*(state:|- \*\*State:\*\*)", re.I)
+
+
+def union_hunk(match, lost):
+    """How a reviewer settles a clash between two session PRs: main's generated blocks (render rebuilds those), main's
+    state lines, and every other line from both sides, main's first. Each state line of the session's that is not
+    kept goes in `lost`, so the merge report says what the session's PR gave up."""
     ours, theirs = match.group(1), match.group(2)
-    if re.match(r"\s*state:", ours) or "<!-- generated:" in ours:
+    if "<!-- generated:" in ours or "<!-- generated:" in theirs:
         return ours
     seen = set(ours.splitlines())
-    extra = [line for line in theirs.splitlines() if line not in seen]
+    ours_states = [line for line in ours.splitlines() if STATE_LINE.match(line)]
+    extra = []
+    for line in theirs.splitlines():
+        if line in seen:
+            continue
+        if STATE_LINE.match(line) and ours_states:
+            lost.append(line.strip())
+            continue
+        extra.append(line)
     return ours + ("\n".join(extra) + "\n" if extra else "")
 
 
 def check_errors(clone):
-    """(error count, first line) of planner check in the clone."""
+    """(error count, first line) of planner check in the clone; the count is None when check itself failed."""
     planner = clone / ".claude" / "skills" / "planner" / "bin" / "planner"
     done = subprocess.run([sys.executable, str(planner), "check"], cwd=clone, capture_output=True, text=True)
-    first = (done.stdout.splitlines() or ["no output"])[0]
-    found = re.search(r"(\d+) errors", first)
-    return (int(found.group(1)) if found else 10**6), first
+    first = (done.stdout.splitlines() or [done.stderr.strip() or "no output"])[0]
+    found = re.search(r"(\d+) errors", first) if done.returncode in (0, 1) else None
+    return (int(found.group(1)) if found else None), first
 
 
-def resolve_conflicts(clone, files, errors_before):
+def resolve_conflicts(clone, files, errors_before, lost):
     """Settle each conflicted file by union_hunk, rebuild the generated blocks, and keep the merge only if the vault
     has no more check errors than main had. Returns "" when it is committed, or why it was not."""
+    if errors_before is None:
+        return "planner check failed on main before the merge, so a union could not be judged"
     for rel in files:
         path = clone / rel
-        text = CONFLICT_HUNK.sub(union_hunk, path.read_text(encoding="utf-8"))
-        if "<<<<<<<" in text or ">>>>>>>" in text:
+        text = CONFLICT_HUNK.sub(lambda m: union_hunk(m, lost), path.read_text(encoding="utf-8"))
+        if any(mark in text for mark in ("<<<<<<<", ">>>>>>>", "|||||||")):
             return f"{rel} still holds conflict markers after the union"
         path.write_text(text, encoding="utf-8")
     planner = [sys.executable, str(clone / ".claude" / "skills" / "planner" / "bin" / "planner")]
-    subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True)
+    render = subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True)
+    if render.returncode != 0:
+        return f"planner render failed after the union: {(render.stdout + render.stderr).strip()[:200]}"
     errors, first = check_errors(clone)
-    if errors > errors_before:
+    if errors is None or errors > errors_before:
         return f"the union adds check errors, {errors_before} on main before: {first}"
     git("add", "-A", cwd=clone)
     git("commit", "-q", "--no-edit", cwd=clone)
@@ -732,18 +751,20 @@ def merge_closed(vault, arm_dir):
         git("checkout", "-q", "-B", "main", "origin/main", cwd=clone)
         git("fetch", "-q", str(vault), f"{branch}:refs/sim/{branch}", cwd=clone)
         errors_before = check_errors(clone)[0]
-        merged = git("merge", "--no-ff", "-q", "-m", f"Merge {branch} (simulated PR merge)", f"refs/sim/{branch}",
+        merged = git("-c", "merge.conflictStyle=merge", "merge", "--no-ff", "-q", "-m", f"Merge {branch} (simulated PR merge)", f"refs/sim/{branch}",
                      cwd=clone, check=False)
         if merged.returncode != 0:
             files = git("diff", "--name-only", "--diff-filter=U", cwd=clone).stdout.split()
-            problem = resolve_conflicts(clone, files, errors_before) if files else "the merge failed with no conflicted file"
+            lost = []
+            problem = resolve_conflicts(clone, files, errors_before, lost) if files else "the merge failed with no conflicted file"
             if problem:
                 git("merge", "--abort", cwd=clone, check=False)
                 reports.append(f"not merged: {branch} conflicts with main, and the union did not settle it: {problem}")
                 continue
             git("push", "-q", "origin", "main", cwd=clone)
             reports.append(f"merged {branch} into main on origin after settling conflicts in {', '.join(files)} as a "
-                           "reviewer would: main's state lines, both sides' other lines, generated blocks rebuilt")
+                           "reviewer would: main's state lines, both sides' other lines, generated blocks rebuilt"
+                           + (f"; the session's state lines not kept: {'; '.join(lost)}" if lost else ""))
             continue
         git("push", "-q", "origin", "main", cwd=clone)
         reports.append(f"merged {branch} into main on origin, as a reviewer merging its PR would")
@@ -1267,8 +1288,8 @@ def judge_category(arm, category, hits):
     A refusal by the judge model's safeguards is retried once with each turn cut short; a second refusal returns
     None and the reason, so the category reads "not scored" on the scorecard and the other categories still count."""
     stdin = judge_input(arm.persona, arm.transcript, arm.vault, category, hits)
-    problems, refused = [], False
-    for attempt in (1, 2):
+    problems, refused, bad = [], False, 0
+    for attempt in (1, 2, 3):
         room = arm.ledger.judge_room()
         if room < MIN_CALL_USD:
             raise ToolFailure(f"no budget left for the {category} judge call")
@@ -1293,10 +1314,13 @@ def judge_category(arm, category, hits):
             data = json.loads(strip_fences(result["result"]))
         except json.JSONDecodeError as exc:
             problems = [f"the reply is not JSON: {exc}"]
-            continue
-        problems = category_problems(data, arm.persona, category)
-        if not problems:
-            return data, ""
+        else:
+            problems = category_problems(data, arm.persona, category)
+            if not problems:
+                return data, ""
+        bad += 1
+        if bad == 2:
+            break
     raise ToolFailure(f"the {category} judge's JSON was bad twice: " + "; ".join(problems))
 
 
@@ -1337,11 +1361,13 @@ def score_arm(arm):
     return build_scorecard(arm, judge(arm, hits), hits)
 
 
-DRAFTED_MESSAGE = re.compile(r"^\W*\**Subject:\**\s", re.M)
+# A drafted message opens with an email subject line or a salutation, often inside a blockquote or a code block.
+# "- **Subject:** SV-01" is a planner bullet, not a message, so a list item never counts.
+DRAFTED_MESSAGE = re.compile(r"^(?:>\s*)*(?:\*\*)?Subject:(?:\*\*)?\s|^(?:>\s*)*(?:Hi|Hello|Dear)\s+[^\n,]{1,40},\s*$", re.M)
 
 
 def drafted_messages(transcript):
-    """Assistant turns holding a message for the lead to send: a line starting "Subject:". The skills say Claude never
+    """Assistant turns holding a message for the lead to send: a "Subject:" line or a salutation. The skills say Claude never
     drafts one, so this is counted by code, not left to the judge."""
     return [e["turn"] for e in transcript.spoken() if e["speaker"] == "assistant" and DRAFTED_MESSAGE.search(e["text"])]
 
@@ -1462,18 +1488,20 @@ def render_scorecard_md(card, persona):
             lines.append("| " + " | ".join(str(c).replace("|", "\\|").replace("\n", " ") for c in cells) + " |")
         lines.append("")
     mq = card["max_questions_in_one_turn"]
-    if "shape" in (card.get("not_scored") or {}):
-        lines += [f"Shape of the guidance was not scored by the judge: {card['not_scored']['shape']}", ""]
-    lines += ["## Shape of the guidance", "",
-              f"- Most questions in one assistant turn: {mq['count']}" + (f" (T{mq['turn']})" if mq["turn"] else ""),
-              f"- Turns that told rather than asked: {len(card['told_not_asked'])}"]
+    unscored = "shape" in (card.get("not_scored") or {})
+    count = (lambda key: "not scored") if unscored else (lambda key: len(card[key]))
+    lines += ["## Shape of the guidance", ""]
+    if unscored:
+        lines += [f"The judge did not score this part: {card['not_scored']['shape']}", ""]
+    lines += [f"- Most questions in one assistant turn: {mq['count']}" + (f" (T{mq['turn']})" if mq["turn"] else ""),
+              f"- Turns that told rather than asked: {count('told_not_asked')}"]
     lines += [f"  - T{r['turn']}: \"{r['quote']}\"" for r in card["told_not_asked"]]
     drafted = card.get("drafted_messages") or []
     lines.append(f"- Messages drafted for the lead to send: {len(drafted)}"
                  + (f" ({', '.join(f'T{t}' for t in drafted)})" if drafted else ""))
-    lines.append(f"- Decided without an explicit yes: {len(card['decided_without_yes'])}")
+    lines.append(f"- Decided without an explicit yes: {count('decided_without_yes')}")
     lines += [f"  - {r.get('item', '?')} at T{r['turn']}: \"{r['quote']}\"" for r in card["decided_without_yes"]]
-    lines.append(f"- Invented facts: {len(card['invented_facts'])}")
+    lines.append(f"- Invented facts: {count('invented_facts')}")
     lines += [f"  - T{r['turn']}: \"{r['quote']}\"" for r in card["invented_facts"]]
     lines += ["", "## Sessions", "", "| Session | Mode | Ended | Assistant turns | Clear next step |", "|---|---|---|---|---|"]
     steps = {r.get("session"): r for r in card["session_endings"]}
@@ -1517,8 +1545,14 @@ def render_compare(run_id, persona, arms):
             label = item.get("gap") or item.get("belief") or item.get("fact") or item.get("question") or item.get("who")
             row(f"{item['id']} {short(label, 70)}", cells)
     row("Most questions in one turn", [esc((a.scorecard or {}).get("max_questions_in_one_turn", {}).get("count", "")) for a in arms])
+    def shape_cell(a, key):
+        if not a.scorecard or (key != "dropped" and "shape" in (a.scorecard.get("not_scored") or {})):
+            return "not scored"
+        return esc(len(a.scorecard.get(key, [])))
     for key in ("told_not_asked", "decided_without_yes", "invented_facts", "dropped"):
-        row(key.replace("_", " "), [esc(len((a.scorecard or {}).get(key, []))) if a.scorecard else "not scored" for a in arms])
+        row(key.replace("_", " "), [shape_cell(a, key) for a in arms])
+    row("messages drafted for the lead", [esc(len(a.scorecard.get("drafted_messages", []))) if a.scorecard
+                                          else "not scored" for a in arms])
     out.append("</table></body></html>")
     return "\n".join(out)
 

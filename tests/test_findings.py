@@ -252,3 +252,17 @@ def test_a_new_question_about_a_page_this_session_did_not_change_is_dropped(tmp_
                     "--changed", "03-context-and-scope,04a-capability-delta.md")
     assert code == 0 and len(json.loads(out)["kept"]) == 2
     assert run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--changed", "no-such-page")[0] == 2
+
+
+def test_changed_can_name_only_some_lines_of_a_page(tmp_path):
+    page = (FIXTURE / "03-context-and-scope.md").read_text(encoding="utf-8")
+    line = next(n for n, text in enumerate(page.splitlines(), 1) if "the vendor contract, which runs to 2028" in text)
+    new = finding(copy="new", severity="normal", page="03-context-and-scope", quote="the vendor contract, which runs to 2028",
+                  question="Can the vendor contract be ended early?")
+    all_ran(tmp_path / "f", PTN=[new])
+    inside = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--json",
+                 "--changed", f"03-context-and-scope.md:{line - 1}-{line + 1}")
+    outside = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--json",
+                  "--changed", f"03-context-and-scope.md:1-{line - 1}+{line + 5}")
+    assert len(json.loads(inside[1])["kept"]) == 1 and json.loads(outside[1])["kept"] == []
+    assert run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--changed", "03-context-and-scope.md:9-2")[0] == 2
