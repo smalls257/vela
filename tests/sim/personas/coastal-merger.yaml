@@ -29,7 +29,10 @@ topics:
   shape_2: loyalty in one account
   grill: what one account means
   grill_2: which identity provider fronts the one login
-  epics: the first app ready for epics
+  discover_3: what Northway ID, SeaBook and RailCore can integrate with
+  shape_3: which app owns the one login and what it offers
+  grill_3: the Group Account app's boundary and contracts
+  epics: Group Account
 
 knows:
   - id: K1
@@ -106,6 +109,21 @@ knows:
     keywords: ["peak season", "May to September", "May through September", "freeze"]
     fact: The ferry peak season runs May to September, and ferry operations freeze system changes during it.
     owner: Ferry Operations director
+  - id: K16
+    category: fact
+    keywords: ["Platform team", "Northway Platform", "runs Northway ID"]
+    fact: The Northway Platform team runs Northway ID and has said it could run a new shared account service on top of it, with the same on-call rota and its 99.9% target.
+    owner: Northway Platform team
+  - id: K17
+    category: fact
+    keywords: ["outbound call", "SeaBook can call", "REST call"]
+    fact: The Ferry Booking team can make SeaBook call an outside REST API at sign-in, in the release after the peak-season freeze; it cannot accept incoming calls.
+    owner: Ferry Booking team
+  - id: K18
+    category: fact
+    keywords: ["RailCore integration", "integration fee", "vendor change request"]
+    fact: RailCore's vendor allows an outbound call at sign-in through a paid change request, about six weeks' lead time.
+    owner: Northway Digital team
 
 wrong:
   - id: W1
@@ -251,6 +269,36 @@ decisions:
       - linked itineraries, booked separately and shown together
     choice: separate ferry and rail tickets bought together in one basket
     reason: it is the simplest thing customers would notice
+  - id: D6
+    category: fact
+    keywords: ["Group Account", "shared account service", "account service"]
+    question: Which app owns the one login?
+    options:
+      - a new Group Account app that sits on Northway ID and links the ferry and rail accounts
+      - extend Northway ID itself to hold the links
+      - extend SeaBook to hold the links
+    choice: a new Group Account app on Northway ID, run by the Northway Platform team
+    reason: Northway ID stays an identity provider, and neither booking engine has to own the other side's customers
+  - id: D7
+    category: fact
+    keywords: ["link-account", "link account", "linking API"]
+    question: What does Group Account offer SeaBook and RailCore?
+    options:
+      - a link-account API each booking engine calls at sign-in
+      - a nightly sync of customer records
+      - events each side subscribes to
+    choice: a link-account API each booking engine calls at sign-in, and each side keeps its own records
+    reason: both engines can make an outbound call, and nothing has to be copied
+  - id: D8
+    category: fact
+    keywords: ["hand off", "handoff", "handed off"]
+    question: When is Group Account handed to the team that builds it?
+    options:
+      - once its boundary and contracts are decided, to the Northway Platform team
+      - now, and let the team define the contracts
+      - after the CIO confirms the reading of one account
+    choice: once its boundary and contracts are decided, to the Northway Platform team
+    reason: the team builds against agreed contracts, and the CIO reading can still change the scope later
 
 docs:
   - name: cio-memo.md

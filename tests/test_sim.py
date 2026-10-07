@@ -230,11 +230,11 @@ def test_every_persona_and_script_validates():
 
 def test_the_coastal_merger_brief_is_big_and_messy():
     persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
-    assert 12 <= len(persona["knows"]) <= 15
+    assert 12 <= len(persona["knows"]) <= 18  # K16-K18: what a lead knows once an app is in sight
     assert 5 <= len(persona["wrong"]) <= 6
     assert 6 <= len(persona["unaware"]) <= 8
     assert 3 <= len(persona["conflicts"]) <= 4
-    assert 4 <= len(persona["decisions"]) <= 5 and any(d.get("refuse_until") for d in persona["decisions"])
+    assert 4 <= len(persona["decisions"]) <= 8 and any(d.get("refuse_until") for d in persona["decisions"])
     assert 3 <= len(persona["docs"]) <= 4
     prompt = sim.persona_prompt(persona)
     for gap in persona["unaware"]:
