@@ -1,0 +1,87 @@
+# The complete run, finished: from the vault complete-cio left after its first four sessions (the CIO's and
+# the DPO's replies read, the login owner decided), with the vault's CONVENTIONS.md brought up to date for the new
+# boundary mode. A Boundary turns the decided direction into apps; a Grill decides them; then epics and handoff.
+name: complete-boundary
+start: coastal-merger/after-cio-s4
+news:
+  knows:
+    - id: K19
+      category: fact
+      keywords: ["linked, not merged", "link, don't merge", "1 June 2027"]
+      fact: >-
+        The CIO replied in writing on 7 October. "One account" means one sign-in that links the ferry and rail
+        accounts; it does not mean merging customer records, and each company keeps its own. The Northway Platform
+        team owns the shared account service. "Next summer" means live by 1 June 2027. Anything still open should
+        go to the build team as a named risk with an owner, not hold the start.
+      owner: CIO
+    - id: K20
+      category: fact
+      keywords: ["consent at sign-in", "customer links them", "each adult"]
+      fact: >-
+        The Data Protection Officer replied on 7 October. Linking a ferry and a rail account is lawful when the
+        customer links them at sign-in and consents; matching records across the two companies without that is
+        not. A household needs each adult's own consent, so households stay out of the first release.
+      owner: Data Protection Officer
+    - id: K21
+      category: fact
+      keywords: ["Platform team lead", "accept the slice", "takes the app"]
+      fact: >-
+        The Northway Platform team lead will take Group Account at handoff once its contracts are decided, and
+        will own its epics.
+      owner: Northway Platform team
+  decisions:
+    - id: D6
+      override_if_blocked: the CIO wrote on 7 October that open questions must not hold the start; carry them as named risks with owners
+    - id: D7
+      override_if_blocked: the CIO wrote on 7 October that open questions must not hold the start; carry them as named risks with owners
+    - id: D8
+      override_if_blocked: the CIO wrote on 7 October that open questions must not hold the start; the Platform team takes the open ones as named risks
+  docs:
+    - name: cio-reply.md
+      text: |
+        # From the CIO, 7 October
+
+        Thanks for the questions. To be clear on "one account": one sign-in that links the ferry and rail
+        accounts. We are not merging customer records, and each company keeps its own. The Northway Platform team
+        owns the shared account service. "Next summer" means live by 1 June 2027. Don't let open questions hold
+        the start: give anything still open to the build team as a named risk with an owner.
+    - name: dpo-reply.md
+      text: |
+        # From the Data Protection Officer, 7 October
+
+        Linking a ferry account and a rail account is lawful when the customer links them at sign-in and
+        consents. Matching records across Harbourline and Northway without that consent is not. A household
+        needs each adult's own consent, so please keep households out of the first release.
+sessions:
+  - mode: boundary
+    cap: 24
+    planner: "/planner:boundary the decided login owner and offer"
+    baseline: "Turn the decided login owner into apps: who owns what, their contracts and how they fail, following CONVENTIONS.md."
+  - mode: close
+    cap: 10
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
+  - mode: grill
+    cap: 22
+    planner: "/planner:grill the app pages and contracts the boundary session wrote"
+    baseline: "Take me through the new app pages and contracts and record what I decide, following CONVENTIONS.md."
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
+  - mode: epics
+    cap: 20
+    planner: "/planner:epics Northway Platform team"
+    baseline: "Draft the epics for the Northway Platform team, following CONVENTIONS.md."
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
+  - mode: grill
+    cap: 16
+    planner: "/planner:grill handing the Platform team's app to the Northway Platform team"
+    baseline: "Take me through handing the Platform team's app to the Northway Platform team and record it, following CONVENTIONS.md."
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
