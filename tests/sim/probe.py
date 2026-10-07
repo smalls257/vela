@@ -95,6 +95,7 @@ def case_problems(case):
         for persona, name in snapshots.items():
             if not (SNAPSHOTS / str(persona) / str(name)).is_dir():
                 problems.append(f"snapshot {persona}/{name} is not a folder in {SNAPSHOTS}")
+    problems += sim.news_problems(case.get("news"))
     if not isinstance(case.get("opening"), str) or not case["opening"].startswith("/planner:"):
         problems.append("'opening' must be a /planner: command")
     elif case["opening"].split()[0].split(":", 1)[1] not in sim.MODES:
@@ -199,13 +200,17 @@ def build_probe_vault(run_dir, snapshot, persona):
 DECIDED = re.compile(r"^\s*state:\s*decided\b|\*\*State:\*\*\s*decided\b|\|\s*decided\s*\|"
                      r"|^\s*-\s*\*\*Decision:\*\*", re.I)
 YES = re.compile(r"(?<![a-z])yes\b")
+# A read-back asks for the yes as often in words as with a question mark: "I need an explicit yes to write it".
+ASKS_FOR_YES = re.compile(r"\?|\b(?:explicit|your) yes\b|\bsay yes\b|\bneed (?:a|your) yes\b", re.I)
+GENERATED = re.compile(r"<!-- generated:.*?<!-- /generated:[^>]*-->", re.S)
 
 
 def decided_lines(vault):
     """Every vault line that records something as decided: a state, a table cell, a capture mark, a Decision
-    bullet. Counted, so a second copy of the same line is a second decision."""
+    bullet. Counted, so a second copy of the same line is a second decision. A generated block is left out: render
+    copies a decided contract into the consumer's contracts-consumed table, and that copy decides nothing."""
     return collections.Counter((rel, line.strip()) for rel, text in sim.vault_pages(vault)
-                               for line in text.splitlines() if DECIDED.search(line))
+                               for line in GENERATED.sub("", text).splitlines() if DECIDED.search(line))
 
 
 def explicit_yes(lead_message, asked):
@@ -249,7 +254,7 @@ class ProbeRun(sim.Arm):
         for (rel, line), count in (now - self.seen).items():
             for _ in range(count):
                 self.decisions.append({"turn": turn, "file": rel, "line": line,
-                                       "with_yes": explicit_yes(message, "?" in previous)})
+                                       "with_yes": explicit_yes(message, bool(ASKS_FOR_YES.search(previous)))})
         self.seen = now
         return parsed, result
 
@@ -989,6 +994,8 @@ def main(argv=None):
                 raise ToolFailure(f"the persona is not valid ({len(problems)} problems, listed in {path})")
             raise ToolFailure("the persona is not valid:\n  " + "\n  ".join(problems))
         case = load_case(args.case)
+        # A case's news changes the lead for this probe only, such as an override the persona would otherwise give.
+        persona = sim.with_news(persona, case.get("news"))
         snapshot_dir(case, persona_name)
         opening_text(case, persona)
         ledger = LoopLedger(args.loop_ledger)

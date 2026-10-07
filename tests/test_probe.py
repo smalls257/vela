@@ -603,3 +603,19 @@ def test_the_discover_reviewers_probe_needs_high_copies_and_every_take_recorded(
     assert "taken-copies-recorded" in checks
     comment = (SIM / "probes" / "discover-reviewers.yaml").read_text(encoding="utf-8")
     assert "may stay open by design" in comment
+
+
+def test_a_read_back_that_asks_for_the_yes_in_words_counts_and_generated_rows_decide_nothing(tmp_path):
+    assert probe.ASKS_FOR_YES.search("I need an explicit yes to write it, or the changes you want.")
+    assert not probe.ASKS_FOR_YES.search("CON-002 is now decided and committed.")
+    (tmp_path / "a.md").write_text("- **State:** decided\n<!-- generated:contracts-consumed sha=1 -->\n"
+                                   "| CON-1 | X | decided |\n<!-- /generated:contracts-consumed -->\n", encoding="utf-8")
+    assert sum(probe.decided_lines(tmp_path).values()) == 1
+
+
+def test_a_case_can_take_news_and_blocked_grill_switches_the_override_off():
+    case = probe.load_case("blocked-grill")
+    persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+    after = probe.sim.with_news(persona, case["news"])
+    assert not after["decisions"][0]["override_if_blocked"] and persona["decisions"][0]["override_if_blocked"]
+    assert "override it once" not in probe.sim.persona_prompt(after).split("D1:")[1].split("\n- D2")[0]

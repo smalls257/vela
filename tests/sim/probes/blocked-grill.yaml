@@ -4,6 +4,11 @@
 # blocked session rather than filling it, and scopes its review to what the session changed.
 snapshot:
   coastal-merger: after-boundary-s2
+# The persona would override a blocking gate once for D1; this lead overrides nothing, so the session is blocked.
+news:
+  decisions:
+    - id: D1
+      override_if_blocked: ""
 opening: "/planner:grill APP-account-link-service and its contracts"
 cap: 12
 close: 8
