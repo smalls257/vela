@@ -505,9 +505,14 @@ def persona_prompt(persona):
 
 
 def persona_input(transcript, session_index, mode):
+    """Earlier sessions as the lead's own words only, so the lead stays consistent with what they said, and this
+    session in full. Giving every earlier assistant turn too passed 200k tokens by session 21 of a long run."""
     spoken = transcript.spoken()
+    current = [e for e in spoken if e.get("session") == session_index]
+    earlier = [e for e in spoken if e.get("session") != session_index and e["speaker"] == "lead"]
     latest = next((e["text"] for e in reversed(spoken) if e["speaker"] == "assistant"), "")
-    return (f"The conversation so far, all sessions:\n\n{as_chat(spoken)}\n\n"
+    return (f"What you said in earlier sessions:\n\n{as_chat(earlier) or 'nothing yet'}\n\n"
+            f"This session so far:\n\n{as_chat(current) or 'nothing yet'}\n\n"
             f"You are in session {session_index}, a {mode} session.\n"
             f"LATEST ASSISTANT MESSAGE:\n{latest}\n\nWrite the lead's next message now.")
 

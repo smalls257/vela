@@ -520,3 +520,13 @@ def test_a_resumed_session_adds_only_the_increase_in_its_running_cost(monkeypatc
     arm.assistant_turn("third", "s1")
     assert round(arm.ledger.spent, 2) == 0.45
     assert budgets[2] > budgets[1] - 0.2  # the cap given to claude includes what the session already spent
+
+
+def test_the_persona_sees_only_its_own_earlier_words_and_this_session_in_full(tmp_path):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    t.add(session=1, mode="dump", speaker="lead", text="EARLIER LEAD WORDS", turn=1)
+    t.add(session=1, mode="dump", speaker="assistant", text="EARLIER ASSISTANT WALL", turn=2)
+    t.add(session=2, mode="shape", speaker="assistant", text="CURRENT ASSISTANT", turn=3)
+    text = sim.persona_input(t, 2, "shape")
+    assert "EARLIER LEAD WORDS" in text and "CURRENT ASSISTANT" in text
+    assert "EARLIER ASSISTANT WALL" not in text
