@@ -6,6 +6,7 @@ Exit codes: 0 clean, 1 findings, 2 the tool itself failed.
 import argparse
 import codecs
 import datetime
+import difflib
 import importlib.util
 import json
 import os
@@ -98,13 +99,47 @@ def parse_today(value):
     return value, "--today"
 
 
+# The format the installed skills follow. A vault keeps its own copy, from the day it was made, so a plugin update
+# that changes the format would leave the vault's copy saying rules the skills no longer follow.
+PLUGIN_CONVENTIONS = pathlib.Path(__file__).resolve().parents[2] / "vault" / "CONVENTIONS.md"
+
+
+def conventions_findings(root):
+    """W717 when the vault's CONVENTIONS.md is not the plugin's. A missing copy on either side is not judged."""
+    mine = root / "CONVENTIONS.md"
+    if not (mine.is_file() and PLUGIN_CONVENTIONS.is_file()) or mine.read_bytes() == PLUGIN_CONVENTIONS.read_bytes():
+        return []
+    return [model.Finding("CONVENTIONS.md", 1, "W717",
+                          "CONVENTIONS.md is not the copy the installed plugin ships, so the skills may follow rules "
+                          "it does not state.",
+                          "Run planner upgrade, review the change with git diff CONVENTIONS.md, and commit it.")]
+
+
+def cmd_upgrade(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    if not PLUGIN_CONVENTIONS.is_file():
+        raise ToolError(f"the plugin's CONVENTIONS.md is missing at {PLUGIN_CONVENTIONS}; reinstall the plugin.")
+    mine = root / "CONVENTIONS.md"
+    new = PLUGIN_CONVENTIONS.read_bytes()
+    if mine.is_file() and mine.read_bytes() == new:
+        print("planner upgrade: CONVENTIONS.md is already the plugin's copy. Nothing changed.", file=out)
+        return 0
+    old_lines = mine.read_text(encoding="utf-8").splitlines() if mine.is_file() else []
+    mine.write_bytes(new)
+    changed = sum(1 for line in difflib.unified_diff(old_lines, new.decode("utf-8").splitlines(), lineterm="")
+                  if line[:1] in "+-" and not line.startswith(("+++", "---")))
+    print(f"planner upgrade: CONVENTIONS.md replaced with the plugin's copy, {changed} lines changed. "
+          "Review it with git diff CONVENTIONS.md, then commit it.", file=out)
+    return 0
+
+
 def cmd_check(args, out):
     root = pathlib.Path(args.vault).resolve()
     today, origin = parse_today(args.today)
     started = time.perf_counter()
     vault = load_vault(root)
     items = gate_items(vault, args.gate, args.item)
-    findings = rules.check(vault, today, gate=args.gate, items=items)
+    findings = rules.check(vault, today, gate=args.gate, items=items) + conventions_findings(root)
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     elapsed = time.perf_counter() - started
@@ -423,6 +458,25 @@ def read_findings(folder, codes):
     return outputs, ignored
 
 
+def changed_pages(vault, value):
+    """The vault paths --changed names, comma-separated, or None when it is not given."""
+    if value is None:
+        return None
+    paths, missing = set(), []
+    for ref in (r.strip() for r in value.split(",")):
+        if not ref:
+            continue
+        page = reviews.find_page(vault, ref)
+        if page is None:
+            missing.append(ref)
+        else:
+            paths.add(page.path)
+    if missing:
+        raise ToolError(f"--changed names {', '.join(missing)}, which {'is' if len(missing) == 1 else 'are'} not a page "
+                        "in this vault. List the pages this session changed, and its own record.")
+    return paths
+
+
 def cmd_findings(args, out):
     root = pathlib.Path(args.vault).resolve()
     folder = pathlib.Path(args.folder)
@@ -441,7 +495,7 @@ def cmd_findings(args, out):
     outputs, ignored = read_findings(folder, vault.catalogue.area_codes)
     if only is not None:
         ignored += [f"{code}.json" for code in sorted(outputs) if code not in only]
-    result = reviews.merge(vault, outputs, ignored, only, skipped)
+    result = reviews.merge(vault, outputs, ignored, only, skipped, changed_pages(vault, args.changed))
     if args.json:
         print(json.dumps(result.as_dict(vault.catalogue.version), indent=2, ensure_ascii=False), file=out)
         return 0 if result.clean else 1
@@ -969,6 +1023,9 @@ def build_parser():
     nxt.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nxt.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
     nxt.set_defaults(func=cmd_next)
+    upgrade = sub.add_parser("upgrade", help="replace the vault's CONVENTIONS.md with the installed plugin's copy")
+    upgrade.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    upgrade.set_defaults(func=cmd_upgrade)
     report = sub.add_parser("health", help="stale pages and sources, overdue unknowns and session gaps, as Markdown")
     report.add_argument("--vault", default=".", help="vault root (default: current directory)")
     report.add_argument("--today", help="date to judge by, YYYY-MM-DD (default: system date)")
@@ -1010,6 +1067,8 @@ def build_parser():
     merge.add_argument("--areas", help="only these areas, such as FIN,REG, for a re-run; the others are not read")
     merge.add_argument("--skipped", help="with --areas: areas left out because nothing in them was in scope, "
                                          "such as OPS; the coverage line says so")
+    merge.add_argument("--changed", help="the pages this session changed, and its record, comma-separated: a new "
+                                         "question quoting any other page is dropped")
     merge.set_defaults(func=cmd_findings)
     hand = sub.add_parser("handoff", help="write the senior's handoff manifest, or verify the vault against it")
     hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id to write handoffs/<APP-id>.md; verify APP-id to compare")

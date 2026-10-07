@@ -25,6 +25,9 @@ NEAR = 0.6
 NEAR_SAME_QUOTE = 0.2
 SKIPPED = "skipped (nothing in scope)"
 UNRELATED_QUOTE = "the quote does not mention what the finding is about"
+# A new question is about what this session changed. One about a page it left alone was owed when that page was
+# written, and raising it again every session is what made the digest grow faster than any lead could answer it.
+OUTSIDE_CHANGE = "it is a new question about a page this session did not change"
 
 # Content words: English, lower case, function words gone, then a crude stem (one suffix off, a final e off,
 # the first STEM_LENGTH letters kept), so "owner", "owns" and "ownership" meet. Crude on purpose: the rule
@@ -217,7 +220,7 @@ def find_page(vault, ref):
     return vault.page(name[:-3] if name.endswith(".md") else name)
 
 
-def _check_finding(vault, raw, owed_ids, about):
+def _check_finding(vault, raw, owed_ids, about, changed=None):
     """(Kept fields without n, or None, and the reason it was dropped). `about` maps a copy ID to what else
     names its subject: an owed copy's subject name, or an open reviewer question's own words."""
     if not isinstance(raw, dict):
@@ -239,6 +242,8 @@ def _check_finding(vault, raw, owed_ids, about):
     page = find_page(vault, raw["page"])
     if page is None:
         return None, f"it cites {raw['page'].strip()}, which is not a page in this vault"
+    if copy == "new" and changed is not None and page.path not in changed:
+        return None, OUTSIDE_CHANGE
     # One quote checker for the ledger and the merge, so the two rules cannot drift apart.
     # A straight quote mark inside the words would end the quoted span early; quote_problem reads curly as straight.
     words = raw["quote"].strip().replace('"', "”")
@@ -258,11 +263,12 @@ def open_reviewer_ids(vault):
             if r.state == "open" or not questions.row_valid(vault, r)}
 
 
-def merge(vault, outputs, ignored=(), only=None, skipped=()):
+def merge(vault, outputs, ignored=(), only=None, skipped=(), changed=None):
     """The merge of every area's output. `outputs` maps each area code of the catalogue to
     (data, problem): the reviewer's parsed JSON, or None and why the CLI could not read it.
     `only` lists the area codes that ran, for a re-run or a checkpoint that skips some. The others are neither
-    read nor reported, except those in `skipped`, which are reported as skipped and never read."""
+    read nor reported, except those in `skipped`, which are reported as skipped and never read. `changed`, when
+    given, holds the paths of the pages this session changed: a new question quoting any other page is dropped."""
     owed = questions.owed(vault)
     owed_ids = {c.id.upper(): c.id for c in owed}
     owed_ids.update(open_reviewer_ids(vault))
@@ -290,7 +296,7 @@ def merge(vault, outputs, ignored=(), only=None, skipped=()):
             continue
         found = lost = 0
         for raw in data["findings"]:
-            fields, why = _check_finding(vault, raw, owed_ids, about)
+            fields, why = _check_finding(vault, raw, owed_ids, about, changed)
             question = flat(str(raw.get("question", ""))) if isinstance(raw, dict) else ""
             if fields is None:
                 dropped.append(Dropped(code, question or "(no question)", why))

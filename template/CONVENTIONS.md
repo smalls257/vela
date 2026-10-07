@@ -383,6 +383,7 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 | 1 | Probe | an open unknown that blocks the app is past its ask-by date |
 | 2 | Boundary | the app page is a Boundary stub: it says "Its boundary sheet is still to be read back." and has no containers table |
 | 2 | Discover | the app page lists no `sources` |
+| 3 | Discover | the app is `integrated` or `unchanged`, and one of its items is at `inkling` or `assumption`: what exists needs a source to reach `fact` |
 | 3 | Shape | one of its items is at `inkling`, or at `assumption` with no `**Options considered:**` |
 | 4 | Discover | an item has options recorded, but the app's `stage` is before `target`, so it fails GATE-1 |
 | 5 | Grill | an item at `assumption` has options recorded and no open unknown blocks it |
@@ -395,11 +396,12 @@ While no app page exists, `planner next` suggests `initiative, boundary` once `0
 
 ## Keeping the vault fresh
 
-`stale_after_days` in `.planner.yaml` sets how old a check may be before it is stale. The default is 60. Three warnings follow from it, and none of them blocks a PR:
+`stale_after_days` in `.planner.yaml` sets how old a check may be before it is stale. The default is 60. Three warnings follow from it, and a fourth checks this file itself. None of them blocks a PR:
 
 - W704: a page's `last_verified` is more than `stale_after_days` before today.
 - W716: a `sources.md` row's `Date` is more than `stale_after_days` before today, or is not a date.
 - W711: the last session with `status: closed` is more than 30 days before today. A vault with no closed session yet is not judged.
+- W717: this file is not the copy the installed plugin ships. `planner upgrade` replaces it with the plugin's copy; review the change with `git diff CONVENTIONS.md` and commit it.
 
 A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: W704, W716 or W711 says it is "dated in the future (<date>); check for a typo." `planner health` marks the row the same way.
 

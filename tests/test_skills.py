@@ -354,3 +354,23 @@ def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
     assert "/planner:grill <APP-id>" in b
     assert "| Boundary (`boundary`) |" in modes and "| `boundary` |" in modes
     assert "Boundary already wrote its app, contract and runtime pages" in close
+
+
+def test_claude_asks_the_lead_first_never_drafts_an_ask_and_ends_a_blocked_session():
+    modes, start, grill = text("references/MODES.md"), text("references/START.md"), text("skills/grill/SKILL.md")
+    assert "**Ask the lead first.**" in modes and "**A blocked session ends.**" in modes
+    assert "Claude never drafts an email, a message, a chase or an ask for anyone to send, and never offers to." in modes
+    assert "Never fill a blocked session with other work." in modes
+    assert "Never draft an ask for the user to send, and never offer to." in start
+    assert "Never draft an ask, an email or a chase for the user to send." in grill
+    for path in (PLUGIN / "skills").glob("*/SKILL.md"):
+        body = path.read_text(encoding="utf-8")
+        assert "draft a short ask" not in body and "an ask instead" not in body, path
+
+
+def test_a_review_is_about_what_this_session_changed_and_a_group_can_wait_on_one_unknown():
+    review, agent, close = text("references/REVIEW.md"), text("agents/area-reviewer.md"), text("skills/close/SKILL.md")
+    assert "--changed <paths>" in review and "`Changed: <paths>`" in review
+    assert "it quotes a `Changed:` page" in agent
+    assert "waits on UNK-050: Q-DAT-02@APP-account-link-service, R-OPS-12, F2.4" in review
+    assert "A capture `waits on UNK-nnn: <IDs>` gives one `unknown` row per ID" in close

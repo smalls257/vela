@@ -56,3 +56,25 @@ def test_a_stub_app_page_with_no_containers_goes_back_to_boundary(tmp_path):
         "owner: \"@lead\"\nauthored: authored\n---\n# Links\n\nIts boundary sheet is still to be read back.\n", encoding="utf-8")
     code, out = run("next", "--vault", str(tmp_path), "--today", "2026-01-15")
     assert code == 0 and out.startswith("planner next: APP-links, boundary APP-links.")
+
+
+def test_an_unchanged_app_at_assumption_goes_to_discover_not_shape(tmp_path):
+    (tmp_path / ".planner.yaml").write_text("initiative: INI-001\ntitle: New\n", encoding="utf-8")
+    (tmp_path / "05-building-blocks").mkdir()
+    (tmp_path / "05-building-blocks" / "rail-building-blocks.md").write_text(
+        "---\nid: APP-rail\ntype: app-building-blocks\ntitle: Rail\nstate: assumption\nchange: unchanged\n"
+        "owner: \"@lead\"\nauthored: authored\nsources: [SRC-01]\n---\n# Rail\n\nRail sells rail tickets.\n", encoding="utf-8")
+    code, out = run("next", "--vault", str(tmp_path), "--today", "2026-01-15")
+    assert code == 0 and out.startswith("planner next: APP-rail, discover APP-rail."), out
+
+
+def test_check_warns_when_the_vaults_conventions_are_not_the_plugins_and_upgrade_replaces_them(tmp_path):
+    (tmp_path / ".planner.yaml").write_text("initiative: INI-001\ntitle: New\n", encoding="utf-8")
+    (tmp_path / "CONVENTIONS.md").write_text("# Conventions\n\nAn old copy.\n", encoding="utf-8")
+    code, out = run("check", "--vault", str(tmp_path), "--today", "2026-01-15")
+    assert "CONVENTIONS.md:1: W717" in out
+    code, out = run("upgrade", "--vault", str(tmp_path))
+    assert code == 0 and out.startswith("planner upgrade: CONVENTIONS.md replaced with the plugin's copy")
+    assert (tmp_path / "CONVENTIONS.md").read_bytes() == (REPO / "template" / "CONVENTIONS.md").read_bytes()
+    assert "W717" not in run("check", "--vault", str(tmp_path), "--today", "2026-01-15")[1]
+    assert run("upgrade", "--vault", str(tmp_path))[1].startswith("planner upgrade: CONVENTIONS.md is already")

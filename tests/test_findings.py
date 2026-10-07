@@ -235,3 +235,20 @@ def test_areas_names_only_codes_of_the_catalogue(tmp_path):
     all_ran(tmp_path / "f")
     code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--areas", "FIN,XYZ")
     assert code == 2 and "XYZ" in out
+
+
+def test_a_new_question_about_a_page_this_session_did_not_change_is_dropped(tmp_path):
+    new = finding(copy="new", severity="normal", page="03-context-and-scope", quote="the vendor contract, which runs to 2028",
+                  question="Can the vendor contract be ended early?")
+    all_ran(tmp_path / "f", FIN=[finding()], PTN=[new])
+    code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--json",
+                    "--changed", "04a-capability-delta.md")
+    result = json.loads(out)
+    assert code == 1
+    assert [k["copy"] for k in result["kept"]] == ["Q-FIN-03@SV-01"]  # an owed copy is kept whatever page it quotes
+    assert result["dropped"] == [{"area": "PTN", "question": "Can the vendor contract be ended early?",
+                                  "reason": "it is a new question about a page this session did not change"}]
+    code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--json",
+                    "--changed", "03-context-and-scope,04a-capability-delta.md")
+    assert code == 0 and len(json.loads(out)["kept"]) == 2
+    assert run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--changed", "no-such-page")[0] == 2

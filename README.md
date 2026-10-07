@@ -28,6 +28,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 | Command | What it tells you |
 |---|---|
 | `planner status` | Every app's stage, certainty mix and oldest open unknown |
+| `planner upgrade` | Replace the vault's `CONVENTIONS.md` with the installed plugin's copy, after `planner check` warns W717 |
 | `planner next` | The one app and mode to work on next, with the reason. `probe` means: ask the unknown's owner, or research it |
 | `planner health` | Stale pages and sources, overdue unknowns, and days since the last closed session, as Markdown |
 | `planner query get <ID>` | Where an ID lives and its state. `refs`, `find` and `status` too. Add `--json`. `/planner:ask` uses it |
@@ -94,7 +95,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `health`, `query`, `questions`, `findings`, `handoff`, `export`, `voicecheck`, `voicescore`), the question catalogue in `catalog/questions.yaml`, the session skills (dump, discover, shape, grill, epics, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
+| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `health`, `query`, `questions`, `findings`, `handoff`, `export`, `voicecheck`, `voicescore`, `upgrade`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, shape, boundary, grill, epics, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |

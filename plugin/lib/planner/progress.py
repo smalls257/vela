@@ -137,8 +137,13 @@ def suggest(vault, app, as_of, blocked):
         return 2, "boundary", app.id, f"{app.id} is a stub with no containers table, so its boundary sheet is still to read back."
     if not (isinstance(sources, list) and sources):
         return 2, "discover", app.id, f"{app.id} lists no sources."
+    laddered = app.meta.get("change") in schema.LADDERED_CHANGES
     for unit in mine:
-        if unit.state == "inkling" or (unit.state == "assumption" and not unit.options):
+        # An integrated or unchanged app's page records what exists; there are no options to shape for it.
+        if not laddered and unit.state in ("inkling", "assumption"):
+            return 3, "discover", unit.id, (f"{unit.id} is at {unit.state} on an app the initiative does not change, so it "
+                                            f"needs a source to reach fact.")
+        if laddered and (unit.state == "inkling" or (unit.state == "assumption" and not unit.options)):
             return 3, "shape", unit.id, f"{unit.id} is at {unit.state} with no options recorded."
     ready = [u for u in mine if u.state == "assumption" and u.options and u.id not in blocked]
     if ready and not in_grill_stage(app):

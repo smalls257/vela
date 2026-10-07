@@ -51,7 +51,7 @@ If `gh` fails, say: "gh could not list merged PRs (<the error>), so review comme
 
 ## 4. Offer the overdue unknowns and the next step
 
-Run `python3 .claude/skills/planner/bin/planner check` and read its first line, which says which date it used. For each `W705` line, name the unknown, its owner and its ask-by date. Offer two things: draft a short ask the user can send to the owner, or turn the question into a research task Claude does now with a source. A research answer becomes a capture with the source named. It never becomes a `fact` without a row in `sources.md`.
+Run `python3 .claude/skills/planner/bin/planner check` and read its first line, which says which date it used. For each `W705` line, name the unknown, its owner and its ask-by date. Ask the user whether they know the answer now, and how, as `MODES.md` says under "Unknowns". If they do not, offer to turn the question into a research task Claude does now with a source. Never draft an ask for the user to send, and never offer to. A research answer becomes a capture with the source named. It never becomes a `fact` without a row in `sources.md`.
 
 Then run `python3 .claude/skills/planner/bin/planner next` and show its line. If the user has not said what this session is for, offer that app and mode first. It is a suggestion from the rules in `CONVENTIONS.md` under "Progress and next step", never a decision. When `planner next` suggests `probe`, it means the ask-or-research offer above. There is no Probe skill.
 

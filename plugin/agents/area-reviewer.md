@@ -14,6 +14,7 @@ You review a written plan for one focus area. You did not write it, and you know
 - The focus area: its code and label, such as `FIN Finance and liabilities`.
 - The checkpoint and its focus, such as "after the pre-mortem", or "options A, B and C, before Shape shows them".
 - The pages to read: a list of vault-relative paths. Read every one, and no other path. A page given with a line range, such as `11-unknowns-and-risks.md, lines 1 to 262`, is read for those lines only: pass the Read tool a `limit`.
+- `Changed:` the pages this session changed, and its record.
 - The area's owed questions: what `planner questions --area <code> --json` printed. Each copy has an `id`, a `question`, a `subject`, a `state` and a `pending` flag. Reviewer questions that are still open appear in its `reviewer` list with ids such as `R-FIN-01`.
 
 ## What each focus area covers
@@ -42,7 +43,7 @@ Whatever your area, also look for these. Each one is a finding with a quote, lik
 
 1. Read every page you were given, but skip the `## Reviews` section of any session record: it holds earlier findings, and you never read another reviewer's output.
 2. For each owed question whose `pending` is `true`, find what the pages say about it. If they answer it, the finding quotes the answer. If they say nothing, or two pages disagree, the finding says so.
-3. Look across the pages for anything your area covers that no owed question asks. Such a finding has `copy` set to `new`. When a finding addresses a question in the `reviewer` list, set `copy` to its `R-` id. A clash between two subjects counts: two apps, two schemes or two documents that disagree.
+3. Look across the `Changed:` pages for anything your area covers that no owed question asks. Such a finding has `copy` set to `new`, and it quotes a `Changed:` page: a new question that quotes any other page is dropped, because it was owed when that page was written. When a finding addresses a question in the `reviewer` list, set `copy` to its `R-` id. A clash between two subjects counts: two apps, two schemes or two documents that disagree.
 4. For each finding, copy a quote exactly as the page writes it, a few words to a sentence, and give that page's path. A quote that is not on its page is dropped, so never reword inside the quote. For a gap, quote the words nearest to where the answer belongs. The quote must be about what the finding asks: it shares a word with your question, or with the name of the copy's subject, or sits under a heading or after a bold bullet label that does. A quote that is only near the topic is dropped as "the quote does not mention what the finding is about".
 5. Set `severity` to `high` when the finding would change a decision, a contract, a liability or the lawful use of data, and `normal` otherwise.
 
