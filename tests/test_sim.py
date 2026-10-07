@@ -530,3 +530,38 @@ def test_the_persona_sees_only_its_own_earlier_words_and_this_session_in_full(tm
     text = sim.persona_input(t, 2, "shape")
     assert "EARLIER LEAD WORDS" in text and "CURRENT ASSISTANT" in text
     assert "EARLIER ASSISTANT WALL" not in text
+
+
+def test_news_adds_facts_and_inbox_documents_without_touching_the_persona():
+    persona = {"knows": [{"id": "K1", "fact": "old"}], "docs": [{"name": "a.md", "text": "A"}]}
+    news = {"knows": [{"id": "K19", "fact": "the CIO replied"}], "docs": [{"name": "cio-reply.md", "text": "Link."}]}
+    after = sim.with_news(persona, news)
+    assert [k["id"] for k in after["knows"]] == ["K1", "K19"]
+    assert [d["name"] for d in after["docs"]] == ["a.md", "cio-reply.md"]
+    assert [k["id"] for k in persona["knows"]] == ["K1"] and len(persona["docs"]) == 1
+    assert sim.with_news(persona, None) is persona
+
+
+def test_a_script_with_bad_news_or_a_missing_start_is_refused():
+    persona = {"opening": "x", "topics": {}}
+    session = [{"mode": "dump", "cap": 1, "planner": "/planner:dump", "baseline": "go"}]
+    assert sim.script_problems({"sessions": session, "news": {"knows": [{"fact": "no id"}]}}, persona)
+    assert sim.script_problems({"sessions": session, "news": {"rumours": []}}, persona)
+    assert sim.script_problems({"sessions": session, "start": "no-such-snapshot"}, persona)
+
+
+def test_a_vault_built_from_a_snapshot_gets_the_current_plugin_and_the_news_documents(tmp_path, monkeypatch):
+    snapshots = tmp_path / "snapshots"
+    (snapshots / "s" / ".claude" / "skills" / "planner").mkdir(parents=True)
+    (snapshots / "s" / ".claude" / "skills" / "planner" / "STALE").write_text("old", encoding="utf-8")
+    (snapshots / "s" / "01-goals.md").write_text("# Goals\n", encoding="utf-8")
+    monkeypatch.setattr(sim, "SNAPSHOTS", snapshots)
+    arm = tmp_path / "arm"
+    arm.mkdir()
+    persona = {"docs": [{"name": "cio-reply.md", "text": "Link, don't merge."}]}
+    vault, notes = sim.build_vault_from(arm, "s", persona)
+    assert (vault / "01-goals.md").exists() and (vault / ".inbox" / "cio-reply.md").exists()
+    assert not (vault / ".claude" / "skills" / "planner" / "STALE").exists()
+    assert (vault / ".claude" / "skills" / "planner" / "skills").is_dir()
+    log = subprocess.run(["git", "log", "--oneline", "origin/main"], cwd=vault, capture_output=True, text=True)
+    assert "Vault from snapshot s" in log.stdout

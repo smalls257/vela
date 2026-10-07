@@ -42,6 +42,7 @@ import sys
 import yaml
 
 HERE = pathlib.Path(__file__).resolve().parent
+SNAPSHOTS = HERE / "snapshots"
 REPO = HERE.parent.parent
 PLUGIN = REPO / "plugin"
 PLANNER = PLUGIN / "bin" / "planner"
@@ -178,10 +179,40 @@ def opening(session, arm, persona):
     return template.format(opening=persona["opening"].strip(), topics=persona.get("topics") or {})
 
 
+def with_news(persona, news):
+    """The persona as it stands once a script's news has arrived: facts the lead now knows, appended as K items,
+    and documents now in the inbox. The persona file is untouched, so a run from the start never sees them."""
+    if not news:
+        return persona
+    out = dict(persona)
+    out["knows"] = list(persona["knows"]) + list(news.get("knows") or [])
+    out["docs"] = list(persona.get("docs") or []) + list(news.get("docs") or [])
+    return out
+
+
+def news_problems(news):
+    if news is None:
+        return []
+    if not isinstance(news, dict) or set(news) - {"knows", "docs"}:
+        return ["'news' must be a mapping with only 'knows' and 'docs'"]
+    problems = []
+    for item in news.get("knows") or []:
+        if not (isinstance(item, dict) and str(item.get("id", "")).startswith("K") and item.get("fact")):
+            problems.append(f"news knows item {item!r} needs an id K.. and a fact")
+    for doc in news.get("docs") or []:
+        if not (isinstance(doc, dict) and doc.get("name") and doc.get("text")):
+            problems.append(f"news doc {doc!r} needs a name and a text")
+    return problems
+
+
 def script_problems(data, persona):
     if not isinstance(data, dict) or not isinstance(data.get("sessions"), list) or not data["sessions"]:
         return ["the script must be a mapping with a non-empty 'sessions' list"]
-    problems = []
+    problems = news_problems(data.get("news"))
+    if data.get("start") is not None and not (SNAPSHOTS / str(data["start"])).is_dir():
+        problems.append(f"'start' {data['start']!r} is not a folder in {SNAPSHOTS}")
+    if any(problems):
+        return problems
     for n, session in enumerate(data["sessions"], 1):
         if not isinstance(session, dict):
             problems.append(f"session {n} must be a mapping")
@@ -578,6 +609,34 @@ def build_vault(arm_dir, arm, persona):
     return vault, notes
 
 
+
+def build_vault_from(arm_dir, start, persona):
+    """A script with 'start: <snapshot>' begins from that saved vault, with the current plugin installed over it,
+    so a long run can pick up where an earlier one stopped. Its .inbox must hold the persona's docs."""
+    snapshot = SNAPSHOTS / start
+    if not snapshot.is_dir():
+        raise ToolFailure(f"the script's start {start!r} is not a folder in {SNAPSHOTS}")
+    vault, origin = arm_dir / "vault", arm_dir / "origin.git"
+    shutil.copytree(snapshot, vault, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+    skills = vault / ".claude" / "skills"
+    if skills.exists():
+        shutil.rmtree(skills)
+    shutil.copytree(PLUGIN, skills / "planner", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    inbox = vault / ".inbox"
+    for doc in persona.get("docs") or []:
+        inbox.mkdir(exist_ok=True)
+        (inbox / doc["name"]).write_text(doc["text"].strip() + "\n", encoding="utf-8")
+    git("init", "-q", "-b", "main", cwd=vault)
+    git("add", "-A", cwd=vault)
+    git("commit", "-q", "-m", f"Vault from snapshot {start}", cwd=vault)
+    git("config", "user.name", "Sim Lead", cwd=vault)
+    git("config", "user.email", "sim-lead@example.invalid", cwd=vault)
+    git("init", "-q", "--bare", "-b", "main", str(origin), cwd=arm_dir)
+    git("remote", "add", "origin", str(origin), cwd=vault)
+    git("push", "-q", "-u", "origin", "main", cwd=vault)
+    return vault, [f"vault copied from snapshot {start}, current plugin installed"]
+
+
 def write_gh_stub(bin_dir):
     bin_dir.mkdir(parents=True, exist_ok=True)
     gh = bin_dir / "gh"
@@ -764,7 +823,11 @@ class Arm:
         return reason
 
     def run(self, script):
-        self.vault, self.notes = build_vault(self.dir, self.name, self.persona)
+        self.persona = with_news(self.persona, script.get("news"))
+        if script.get("start"):
+            self.vault, self.notes = build_vault_from(self.dir, script["start"], self.persona)
+        else:
+            self.vault, self.notes = build_vault(self.dir, self.name, self.persona)
         for note in self.notes:
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
         for index, session in enumerate(script["sessions"], 1):

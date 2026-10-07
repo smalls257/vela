@@ -1,0 +1,88 @@
+# The complete run, continued: the CIO and the Data Protection Officer have replied. It starts from the vault the
+# complete script left after 21 sessions, with the one session PR that conflicted merged by hand as a reviewer
+# would. The news is what a lead would have a week later. The hidden gaps and wrong beliefs are unchanged.
+name: complete-cio
+start: coastal-merger/after-complete-s21
+news:
+  knows:
+    - id: K19
+      category: fact
+      keywords: ["linked, not merged", "link, don't merge", "1 June 2027"]
+      fact: >-
+        The CIO replied in writing on 7 October. "One account" means one sign-in that links the ferry and rail
+        accounts; it does not mean merging customer records, and each company keeps its own. The Northway Platform
+        team owns the shared account service. "Next summer" means live by 1 June 2027. Anything still open should
+        go to the build team as a named risk with an owner, not hold the start.
+      owner: CIO
+    - id: K20
+      category: fact
+      keywords: ["consent at sign-in", "customer links them", "each adult"]
+      fact: >-
+        The Data Protection Officer replied on 7 October. Linking a ferry and a rail account is lawful when the
+        customer links them at sign-in and consents; matching records across the two companies without that is
+        not. A household needs each adult's own consent, so households stay out of the first release.
+      owner: Data Protection Officer
+    - id: K21
+      category: fact
+      keywords: ["Platform team lead", "accept the slice", "takes the app"]
+      fact: >-
+        The Northway Platform team lead will take Group Account at handoff once its contracts are decided, and
+        will own its epics.
+      owner: Northway Platform team
+  docs:
+    - name: cio-reply.md
+      text: |
+        # From the CIO, 7 October
+
+        Thanks for the questions. To be clear on "one account": one sign-in that links the ferry and rail
+        accounts. We are not merging customer records, and each company keeps its own. The Northway Platform team
+        owns the shared account service. "Next summer" means live by 1 June 2027. Don't let open questions hold
+        the start: give anything still open to the build team as a named risk with an owner.
+    - name: dpo-reply.md
+      text: |
+        # From the Data Protection Officer, 7 October
+
+        Linking a ferry account and a rail account is lawful when the customer links them at sign-in and
+        consents. Matching records across Harbourline and Northway without that consent is not. A household
+        needs each adult's own consent, so please keep households out of the first release.
+sessions:
+  - mode: discover
+    cap: 14
+    planner: "/planner:discover the CIO's and the Data Protection Officer's replies"
+    baseline: "Read the CIO's and the Data Protection Officer's replies and record what they settle, following CONVENTIONS.md."
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
+  - mode: grill
+    cap: 18
+    planner: "/planner:grill what one account means, which app owns the one login, and what it offers"
+    baseline: "Take me through what one account means, which app owns the one login and what it offers, and record what I decide, following CONVENTIONS.md."
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
+  - mode: grill
+    cap: 20
+    planner: "/planner:grill the Group Account app's boundary, contracts and failure behaviour"
+    baseline: "Take me through the Group Account boundary, contracts and failure behaviour and record what I decide, following CONVENTIONS.md."
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
+  - mode: epics
+    cap: 20
+    planner: "/planner:epics Northway Platform team, for Group Account"
+    baseline: "Draft the epics for Group Account for the Northway Platform team, following CONVENTIONS.md."
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
+  - mode: grill
+    cap: 16
+    planner: "/planner:grill handing Group Account to the Northway Platform team"
+    baseline: "Take me through handing Group Account to the Northway Platform team and record it, following CONVENTIONS.md."
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
