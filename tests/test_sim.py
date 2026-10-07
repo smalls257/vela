@@ -565,3 +565,11 @@ def test_a_vault_built_from_a_snapshot_gets_the_current_plugin_and_the_news_docu
     assert (vault / ".claude" / "skills" / "planner" / "skills").is_dir()
     log = subprocess.run(["git", "log", "--oneline", "origin/main"], cwd=vault, capture_output=True, text=True)
     assert "Vault from snapshot s" in log.stdout
+
+
+def test_news_can_change_how_the_lead_takes_a_decision():
+    persona = {"knows": [], "decisions": [{"id": "D6", "choice": "x"}, {"id": "D7", "choice": "y"}]}
+    after = sim.with_news(persona, {"decisions": [{"id": "D6", "override_if_blocked": "the CIO said not to wait"}]})
+    assert after["decisions"][0] == {"id": "D6", "choice": "x", "override_if_blocked": "the CIO said not to wait"}
+    assert after["decisions"][1] == {"id": "D7", "choice": "y"} and "override_if_blocked" not in persona["decisions"][0]
+    assert sim.news_problems({"decisions": [{"id": "D6", "choice": "changed"}]})

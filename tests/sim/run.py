@@ -181,21 +181,27 @@ def opening(session, arm, persona):
 
 def with_news(persona, news):
     """The persona as it stands once a script's news has arrived: facts the lead now knows, appended as K items,
-    and documents now in the inbox. The persona file is untouched, so a run from the start never sees them."""
+    documents now in the inbox, and changes to how the lead takes a decision (an override they would now give). The persona file is untouched, so a run from the start never sees them."""
     if not news:
         return persona
     out = dict(persona)
     out["knows"] = list(persona["knows"]) + list(news.get("knows") or [])
     out["docs"] = list(persona.get("docs") or []) + list(news.get("docs") or [])
+    changes = {d["id"]: d for d in news.get("decisions") or []}
+    out["decisions"] = [{**d, **changes.get(d["id"], {})} for d in persona.get("decisions") or []]
     return out
 
 
 def news_problems(news):
     if news is None:
         return []
-    if not isinstance(news, dict) or set(news) - {"knows", "docs"}:
-        return ["'news' must be a mapping with only 'knows' and 'docs'"]
+    if not isinstance(news, dict) or set(news) - {"knows", "docs", "decisions"}:
+        return ["'news' must be a mapping with only 'knows', 'docs' and 'decisions'"]
     problems = []
+    for change in news.get("decisions") or []:
+        if not (isinstance(change, dict) and str(change.get("id", "")).startswith("D")
+                and set(change) - {"id"} <= {"override_if_blocked", "refuse_until"}):
+            problems.append(f"news decisions item {change!r} needs an id D.. and only override_if_blocked or refuse_until")
     for item in news.get("knows") or []:
         if not (isinstance(item, dict) and str(item.get("id", "")).startswith("K") and item.get("fact")):
             problems.append(f"news knows item {item!r} needs an id K.. and a fact")

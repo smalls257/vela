@@ -1,6 +1,7 @@
 # The complete run, continued: the CIO and the Data Protection Officer have replied. It starts from the vault the
 # complete script left after 21 sessions, with the one session PR that conflicted merged by hand as a reviewer
-# would. The news is what a lead would have a week later. The hidden gaps and wrong beliefs are unchanged.
+# would. The news is what a lead would have a week later, and the CIO's "don't wait" turns into an override the
+# lead gives once on each of D6-D8 when a gate blocks it. The hidden gaps and wrong beliefs are unchanged.
 name: complete-cio
 start: coastal-merger/after-complete-s21
 news:
@@ -29,6 +30,13 @@ news:
         The Northway Platform team lead will take Group Account at handoff once its contracts are decided, and
         will own its epics.
       owner: Northway Platform team
+  decisions:
+    - id: D6
+      override_if_blocked: the CIO wrote on 7 October that open questions must not hold the start; carry them as named risks with owners
+    - id: D7
+      override_if_blocked: the CIO wrote on 7 October that open questions must not hold the start; carry them as named risks with owners
+    - id: D8
+      override_if_blocked: the CIO wrote on 7 October that open questions must not hold the start; the Platform team takes the open ones as named risks
   docs:
     - name: cio-reply.md
       text: |
