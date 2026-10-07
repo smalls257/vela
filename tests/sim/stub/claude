@@ -13,7 +13,8 @@ It answers as one of three roles, told apart by the system prompt run.py passes:
 Knobs, all environment variables:
   SIM_STUB_COST   total_cost_usd of every assistant and persona call (default 0.01); the judge costs 0.01
   SIM_STUB_DROP   a field to leave out of the assistant's result event, such as total_cost_usd
-  SIM_STUB_JUDGE  "bad" makes the judge reply with text that is not JSON; "nosearch" leaves out every search note
+  SIM_STUB_JUDGE  "bad" makes the judge reply with text that is not JSON; "nosearch" leaves out every search note;
+                  "refuse:<category>" makes that category's judge call stop with stop_reason refusal, every time
   SIM_STUB_LOG    a file to append one JSON line per call to: role, judge category, argv, cwd, the gh on PATH
   SIM_STUB_REPLY  a file whose text is the assistant's first turn of a session, instead of the default
   SIM_STUB_WRITE  "<path>::<text>": the assistant's first turn of a session appends <text> to <path> in its cwd
@@ -93,6 +94,10 @@ def persona(stdin, argv):
 def judge(stdin, argv, category):
     """One category's verdicts, each with its search note first, as run.py demands."""
     mode = os.environ.get("SIM_STUB_JUDGE")
+    if mode == f"refuse:{category}":
+        refusal = result("API Error: the safeguards flagged this message.", "judge", argv, cost=0.01)
+        print(json.dumps({**refusal, "stop_reason": "refusal"}))
+        return
     if mode == "bad":
         print(json.dumps(result("I think the planner arm did well.", "judge", argv, cost=0.01)))
         return

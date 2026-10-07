@@ -573,3 +573,58 @@ def test_news_can_change_how_the_lead_takes_a_decision():
     assert after["decisions"][0] == {"id": "D6", "choice": "x", "override_if_blocked": "the CIO said not to wait"}
     assert after["decisions"][1] == {"id": "D7", "choice": "y"} and "override_if_blocked" not in persona["decisions"][0]
     assert sim.news_problems({"decisions": [{"id": "D6", "choice": "changed"}]})
+
+
+def test_a_judge_refusal_is_retried_once_cut_short_then_that_category_reads_not_scored(tmp_path):
+    code, err, run_dir, calls = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "refuse:wrong"})
+    assert code == 0, err
+    assert [c["category"] for c in calls if c["role"] == "judge"].count("wrong") == 2
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert list(card["not_scored"]) == ["wrong"] and card["wrong"] == []
+    assert any(c.startswith("judge: wrong not scored: the judge model refused twice") for c in card["check_these"])
+    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "## Wrong beliefs challenged (W): not scored" in md
+    assert "## Facts captured (K):" in md  # the other categories still count
+
+
+def test_two_closed_sessions_that_clash_are_merged_by_union_keeping_mains_state(tmp_path):
+    persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+    arm_dir = tmp_path / "planner"
+    arm_dir.mkdir()
+    vault, _ = sim.build_vault(arm_dir, "planner", persona)
+    page = "12-glossary.md"
+    base = (vault / page).read_text(encoding="utf-8")
+    for name, line in (("2026-10-05-first", "- **Term A:** first session's line"),
+                       ("2026-10-05-second", "- **Term B:** second session's line")):
+        sim.git("switch", "-q", "-c", f"session/{name}", "main", cwd=vault)
+        (vault / page).write_text(base.rstrip("\n") + "\n\n" + line + "\n", encoding="utf-8")
+        (vault / "sessions" / f"{name}.md").write_text(
+            f"---\nid: {name}\ntype: session\ndate: 2026-10-05\nmodes: [dump]\nstatus: closed\nsummary: a test\n---\n"
+            f"# {name}\n", encoding="utf-8")
+        sim.git("add", page, f"sessions/{name}.md", cwd=vault)
+        sim.git("commit", "-q", "-m", f"Close session {name}", cwd=vault)
+    reports = sim.merge_closed(vault, arm_dir)
+    assert reports[0].startswith("merged session/2026-10-05-first")
+    assert reports[1].startswith("merged session/2026-10-05-second into main on origin after settling conflicts in "
+                                 "12-glossary.md"), reports[1]
+    sim.git("fetch", "-q", "origin", cwd=vault)
+    merged = sim.git("show", f"origin/main:{page}", cwd=vault).stdout
+    assert "first session's line" in merged and "second session's line" in merged and "<<<<<<<" not in merged
+
+
+def test_the_persona_gets_only_where_it_left_each_earlier_session_and_rules_against_repeating_and_inventing(tmp_path):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    for n, text in enumerate(["FIRST WORDS", "MIDDLE WORDS", "LAST WORDS " + "x" * 400], 1):
+        t.add(session=1, mode="dump", speaker="lead", text=text, turn=n)
+    t.add(session=2, mode="shape", speaker="assistant", text="CURRENT ASSISTANT", turn=4)
+    text = sim.persona_input(t, 2, "shape")
+    assert "FIRST WORDS" not in text and "MIDDLE WORDS" in text and "LAST WORDS" in text and "[...]" in text
+    rules = sim.persona_prompt(coastal())
+    assert "Say a worry once." in rules and "You can do nothing outside this chat." in rules
+
+
+def test_a_message_drafted_for_the_lead_is_counted_by_code(tmp_path):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    t.add(session=1, mode="grill", speaker="assistant", text="Here it is:\n\n> **Subject: Who owns Northway ID?**\n> Hi,", turn=2)
+    t.add(session=1, mode="grill", speaker="assistant", text="The subject of this grill is the login.", turn=4)
+    assert sim.drafted_messages(t) == [2]

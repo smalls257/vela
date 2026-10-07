@@ -506,6 +506,10 @@ Rules, in order of priority:
 8. Anything you were not given, you do not know. Say "honestly not sure" rather than invent a fact.
 9. When the assistant says the session is over, or tells you to run another command and has nothing left to
    ask you, reply with exactly {end} and nothing else.
+10. Say a worry once. Do not repeat a worry, a deadline or a blocker you have already said in this session unless
+   the assistant asks about it. Answer what the assistant asked, then let it move on.
+11. You can do nothing outside this chat. Never say you ran a command or a skill, sent or received a message, made
+   a call or got a reply, unless one of your facts says it happened. You may say once what you will do later.
 
 Your opening worry: {opening}
 
@@ -542,13 +546,17 @@ def persona_prompt(persona):
 
 
 def persona_input(transcript, session_index, mode):
-    """Earlier sessions as the lead's own words only, so the lead stays consistent with what they said, and this
-    session in full. Giving every earlier assistant turn too passed 200k tokens by session 21 of a long run."""
+    """This session in full, and from each earlier session only the lead's last two messages, each cut to 300
+    characters, so the lead stays consistent with where it left off. Every earlier assistant turn passed 200k
+    tokens by session 21 of a long run, and every earlier lead message made the lead repeat its own worries."""
     spoken = transcript.spoken()
     current = [e for e in spoken if e.get("session") == session_index]
-    earlier = [e for e in spoken if e.get("session") != session_index and e["speaker"] == "lead"]
+    earlier = []
+    for session in sorted({e.get("session") for e in spoken if e.get("session") != session_index}, key=str):
+        said = [e for e in spoken if e.get("session") == session and e["speaker"] == "lead"][-2:]
+        earlier += [{**e, "text": e["text"] if len(e["text"]) <= 300 else e["text"][:300] + " [...]"} for e in said]
     latest = next((e["text"] for e in reversed(spoken) if e["speaker"] == "assistant"), "")
-    return (f"What you said in earlier sessions:\n\n{as_chat(earlier) or 'nothing yet'}\n\n"
+    return (f"Where you left each earlier session, in your own words:\n\n{as_chat(earlier) or 'nothing yet'}\n\n"
             f"This session so far:\n\n{as_chat(current) or 'nothing yet'}\n\n"
             f"You are in session {session_index}, a {mode} session.\n"
             f"LATEST ASSISTANT MESSAGE:\n{latest}\n\nWrite the lead's next message now.")
@@ -661,6 +669,48 @@ def arm_env(arm_dir, stub):
     return env
 
 
+CONFLICT_HUNK = re.compile(r"<<<<<<< [^\n]*\n(.*?)=======\n(.*?)>>>>>>> [^\n]*\n", re.S)
+
+
+def union_hunk(match):
+    """How a reviewer settles a clash between two session PRs: main's state line and generated blocks (render
+    rebuilds those), and every other line from both sides, main's first."""
+    ours, theirs = match.group(1), match.group(2)
+    if re.match(r"\s*state:", ours) or "<!-- generated:" in ours:
+        return ours
+    seen = set(ours.splitlines())
+    extra = [line for line in theirs.splitlines() if line not in seen]
+    return ours + ("\n".join(extra) + "\n" if extra else "")
+
+
+def check_errors(clone):
+    """(error count, first line) of planner check in the clone."""
+    planner = clone / ".claude" / "skills" / "planner" / "bin" / "planner"
+    done = subprocess.run([sys.executable, str(planner), "check"], cwd=clone, capture_output=True, text=True)
+    first = (done.stdout.splitlines() or ["no output"])[0]
+    found = re.search(r"(\d+) errors", first)
+    return (int(found.group(1)) if found else 10**6), first
+
+
+def resolve_conflicts(clone, files, errors_before):
+    """Settle each conflicted file by union_hunk, rebuild the generated blocks, and keep the merge only if the vault
+    has no more check errors than main had. Returns "" when it is committed, or why it was not."""
+    for rel in files:
+        path = clone / rel
+        text = CONFLICT_HUNK.sub(union_hunk, path.read_text(encoding="utf-8"))
+        if "<<<<<<<" in text or ">>>>>>>" in text:
+            return f"{rel} still holds conflict markers after the union"
+        path.write_text(text, encoding="utf-8")
+    planner = [sys.executable, str(clone / ".claude" / "skills" / "planner" / "bin" / "planner")]
+    subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True)
+    errors, first = check_errors(clone)
+    if errors > errors_before:
+        return f"the union adds check errors, {errors_before} on main before: {first}"
+    git("add", "-A", cwd=clone)
+    git("commit", "-q", "--no-edit", cwd=clone)
+    return ""
+
+
 def merge_closed(vault, arm_dir):
     """Stand in for the reviewer merging a closed session's PR, so the next session's START pulls its work.
     Only a branch whose records are all closed is merged; every action is reported."""
@@ -681,11 +731,19 @@ def merge_closed(vault, arm_dir):
         git("fetch", "-q", "origin", cwd=clone)
         git("checkout", "-q", "-B", "main", "origin/main", cwd=clone)
         git("fetch", "-q", str(vault), f"{branch}:refs/sim/{branch}", cwd=clone)
+        errors_before = check_errors(clone)[0]
         merged = git("merge", "--no-ff", "-q", "-m", f"Merge {branch} (simulated PR merge)", f"refs/sim/{branch}",
                      cwd=clone, check=False)
         if merged.returncode != 0:
-            git("merge", "--abort", cwd=clone, check=False)
-            reports.append(f"not merged: {branch} conflicts with main: {merged.stdout.strip()} {merged.stderr.strip()}")
+            files = git("diff", "--name-only", "--diff-filter=U", cwd=clone).stdout.split()
+            problem = resolve_conflicts(clone, files, errors_before) if files else "the merge failed with no conflicted file"
+            if problem:
+                git("merge", "--abort", cwd=clone, check=False)
+                reports.append(f"not merged: {branch} conflicts with main, and the union did not settle it: {problem}")
+                continue
+            git("push", "-q", "origin", "main", cwd=clone)
+            reports.append(f"merged {branch} into main on origin after settling conflicts in {', '.join(files)} as a "
+                           "reviewer would: main's state lines, both sides' other lines, generated blocks rebuilt")
             continue
         git("push", "-q", "origin", "main", cwd=clone)
         reports.append(f"merged {branch} into main on origin, as a reviewer merging its PR would")
@@ -1063,8 +1121,15 @@ def hint_lines(persona, category, hits):
     return "\n".join(lines)
 
 
-def judge_input(persona, transcript, vault, category, hits):
-    """One call's input: its own brief items and their hints, the transcript, and only what the category needs."""
+def compact_chat(entries, limit=800):
+    """The transcript with each turn cut to `limit` characters, for a judge call to retry after a refusal."""
+    return as_chat([{**e, "text": e["text"] if len(e["text"]) <= limit else e["text"][:limit] + " [...]"}
+                    for e in entries])
+
+
+def judge_input(persona, transcript, vault, category, hits, compact=False):
+    """One call's input: its own brief items and their hints, the transcript, and only what the category needs.
+    `compact` cuts each turn short: the retry after the judge model's safeguards refused the full input."""
     reads = JUDGE_READS[category]
     strip = lambda items: [{k: v for k, v in i.items() if k != "keywords"} for i in items or []]
     kinds = list(ID_KINDS) if "whole brief" in reads else [category]
@@ -1078,7 +1143,7 @@ def judge_input(persona, transcript, vault, category, hits):
     if "inbox" in reads:
         docs = "\n\n".join(f"----- INBOX {d['name']} -----\n{d['text']}" for d in persona.get("docs") or [])
         parts.append(f"INBOX DOCUMENTS:\n{docs or 'none'}")
-    parts.append(f"THE TRANSCRIPT:\n{as_chat(transcript.spoken())}")
+    parts.append(f"THE TRANSCRIPT:\n{compact_chat(transcript.spoken()) if compact else as_chat(transcript.spoken())}")
     if "vault" in reads:
         pages = "\n\n".join(f"----- FILE {name} -----\n{text}" for name, text in vault_pages(vault))
         parts.append(f"THE FINAL VAULT:\n{pages}")
@@ -1198,15 +1263,17 @@ def thinking_tokens(result):
 
 
 def judge_category(arm, category, hits):
-    """One judge call for one category. Re-ask once on bad JSON with the problems named, then give up with exit 2."""
+    """One judge call for one category. Re-ask once on bad JSON with the problems named, then give up with exit 2.
+    A refusal by the judge model's safeguards is retried once with each turn cut short; a second refusal returns
+    None and the reason, so the category reads "not scored" on the scorecard and the other categories still count."""
     stdin = judge_input(arm.persona, arm.transcript, arm.vault, category, hits)
-    problems = []
+    problems, refused = [], False
     for attempt in (1, 2):
         room = arm.ledger.judge_room()
         if room < MIN_CALL_USD:
             raise ToolFailure(f"no budget left for the {category} judge call")
         raw = arm.raw(f"judge-{category}")
-        prompt = stdin if attempt == 1 else (stdin + "\n\nYOUR LAST REPLY WAS REJECTED:\n- " + "\n- ".join(problems)
+        prompt = stdin if not problems else (stdin + "\n\nYOUR LAST REPLY WAS REJECTED:\n- " + "\n- ".join(problems)
                                              + "\nReply again with the JSON object only.")
         done = call(text_call_argv(arm.args.judge_model, judge_system_prompt(category), room, thinking=True),
                     env=arm.env, cwd=arm.dir / "persona-cwd", raw_path=raw, kind="judge", stdin=prompt)
@@ -1214,6 +1281,12 @@ def judge_category(arm, category, hits):
         arm.ledger.add(float(result["total_cost_usd"]))
         arm.judge_calls.append({"category": category, "attempt": attempt, "raw": raw.name,
                                 "cost_usd": result["total_cost_usd"], "thinking_tokens": thinking_tokens(result)})
+        if result.get("stop_reason") == "refusal":
+            if refused:
+                return None, f"the judge model refused twice, the second time with each turn cut to 800 characters. Read {raw}"
+            refused, problems = True, []
+            stdin = judge_input(arm.persona, arm.transcript, arm.vault, category, hits, compact=True)
+            continue
         if result["is_error"]:
             raise ToolFailure(f"the {category} judge call reported an error ({result.get('subtype')}). Read {raw}")
         try:
@@ -1223,16 +1296,24 @@ def judge_category(arm, category, hits):
             continue
         problems = category_problems(data, arm.persona, category)
         if not problems:
-            return data
+            return data, ""
     raise ToolFailure(f"the {category} judge's JSON was bad twice: " + "; ".join(problems))
 
 
 def judge(arm, hits):
     """One call per category, so each call is small enough for the judge to look at every item in it."""
     arm.judge_calls = []
-    data = {}
+    data = {"not_scored": {}}
     for category in JUDGE_CATEGORIES:
-        reply = judge_category(arm, category, hits)
+        reply, why = judge_category(arm, category, hits)
+        if reply is None:
+            data["not_scored"][category] = why
+            if category == "shape":
+                data["shape_search"] = ""
+                data.update({key: [] for key in SHAPE_LISTS})
+            else:
+                data[category] = []
+            continue
         if category == "shape":
             data["shape_search"] = reply["search"]
             data.update({key: reply[key] for key in SHAPE_LISTS})
@@ -1256,12 +1337,24 @@ def score_arm(arm):
     return build_scorecard(arm, judge(arm, hits), hits)
 
 
+DRAFTED_MESSAGE = re.compile(r"^\W*\**Subject:\**\s", re.M)
+
+
+def drafted_messages(transcript):
+    """Assistant turns holding a message for the lead to send: a line starting "Subject:". The skills say Claude never
+    drafts one, so this is counted by code, not left to the judge."""
+    return [e["turn"] for e in transcript.spoken() if e["speaker"] == "assistant" and DRAFTED_MESSAGE.search(e["text"])]
+
+
 def build_scorecard(arm, data, hits):
     card = enforce_citations(data, arm.transcript, arm.vault)
     card["hits"] = hits
-    card["check_these"] = judge_alerts(arm.judge_calls) + disagreements(card, hits)
+    card["not_scored"] = data.get("not_scored") or {}
+    card["check_these"] = ([f"judge: {category} not scored: {why}" for category, why in card["not_scored"].items()]
+                           + judge_alerts(arm.judge_calls) + disagreements(card, hits))
     card["judge_calls"] = arm.judge_calls
     card["max_questions_in_one_turn"] = max_questions(arm.transcript)
+    card["drafted_messages"] = drafted_messages(arm.transcript)
     card["endings"] = arm.endings
     card["spent_usd"] = round(arm.prior_spent + arm.ledger.spent, 4)
     card["judge_usd"] = round(sum(c["cost_usd"] for c in arm.judge_calls), 4)
@@ -1352,6 +1445,9 @@ def render_scorecard_md(card, persona):
     hits = card.get("hits") or {}
     for kind, flag in SCORE_LISTS.items():
         rows = card[kind]
+        if kind in (card.get("not_scored") or {}):
+            lines += [f"## {titles[kind]}: not scored", "", f"- {card['not_scored'][kind]}", ""]
+            continue
         if not rows:
             continue
         count = sum(1 for r in rows if r[flag])
@@ -1366,10 +1462,15 @@ def render_scorecard_md(card, persona):
             lines.append("| " + " | ".join(str(c).replace("|", "\\|").replace("\n", " ") for c in cells) + " |")
         lines.append("")
     mq = card["max_questions_in_one_turn"]
+    if "shape" in (card.get("not_scored") or {}):
+        lines += [f"Shape of the guidance was not scored by the judge: {card['not_scored']['shape']}", ""]
     lines += ["## Shape of the guidance", "",
               f"- Most questions in one assistant turn: {mq['count']}" + (f" (T{mq['turn']})" if mq["turn"] else ""),
               f"- Turns that told rather than asked: {len(card['told_not_asked'])}"]
     lines += [f"  - T{r['turn']}: \"{r['quote']}\"" for r in card["told_not_asked"]]
+    drafted = card.get("drafted_messages") or []
+    lines.append(f"- Messages drafted for the lead to send: {len(drafted)}"
+                 + (f" ({', '.join(f'T{t}' for t in drafted)})" if drafted else ""))
     lines.append(f"- Decided without an explicit yes: {len(card['decided_without_yes'])}")
     lines += [f"  - {r.get('item', '?')} at T{r['turn']}: \"{r['quote']}\"" for r in card["decided_without_yes"]]
     lines.append(f"- Invented facts: {len(card['invented_facts'])}")
