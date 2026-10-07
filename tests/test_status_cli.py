@@ -37,3 +37,12 @@ def test_the_fixture_has_nothing_left_to_do():
     assert out == "planner next: nothing to do. Every app's items are settled and its epics decided. Today is 2026-11-20 (--today).\n"
     code, out = run("status", "--vault", str(FIXTURE), "--today", "2026-11-20")
     assert out.splitlines()[0] == "planner status: 9 apps. Today is 2026-11-20 (--today)."
+
+
+def test_next_suggests_a_boundary_once_the_strategy_is_decided_and_no_app_exists(tmp_path):
+    (tmp_path / ".planner.yaml").write_text("initiative: INI-001\ntitle: New\n", encoding="utf-8")
+    (tmp_path / "04-solution-strategy.md").write_text(
+        "---\nid: solution-strategy\ntype: initiative-section\ntitle: Solution strategy\nstate: decided\n"
+        "owner: \"@lead\"\nauthored: authored\n---\n# Solution strategy\n", encoding="utf-8")
+    code, out = run("next", "--vault", str(tmp_path), "--today", "2026-01-15")
+    assert code == 0 and out.startswith("planner next: initiative, boundary.")

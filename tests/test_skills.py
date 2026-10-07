@@ -217,7 +217,7 @@ def test_discover_marks_its_fact_captures_and_close_leaves_them():
                        text("skills/close/SKILL.md"))
     assert "→ keep: [[<page>#<heading>|<ID>]] (fact)" in d
     assert "(fact)" in start and "second is a Discover" in start
-    assert "or a Discover already marked `(fact)`, keeps its mark" in close
+    assert "a Discover already marked `(fact)`, or a Boundary already marked `(assumption)`, keeps its mark" in close
 
 
 # /ask (V1-15)
@@ -342,3 +342,15 @@ def test_tech_design_from_vault_reads_the_slice_and_links_back():
     assert "Never copy vault text into the design doc." in ref
     assert "`challenges: <vault ID>`" in ref
     assert "The design never edits the vault." in ref
+
+
+def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
+    b, modes, close = text("skills/boundary/SKILL.md"), text("references/MODES.md"), text("skills/close/SKILL.md")
+    assert "Offer 2 or 3 ways to cut the direction into apps, never one and never more than three" in b
+    assert "Write nothing until the user has given an explicit yes to that line" in b
+    assert "every page it writes is an `assumption` until a Grill" in b and "Never `addressed`" in b
+    assert "→ keep: [[<page>#<heading>|<ID>]] (assumption)" in b
+    assert 'the checkpoint "after the pages are written"' in b and "questions --subject <ID>" in b
+    assert "/planner:grill <APP-id>" in b
+    assert "| Boundary (`boundary`) |" in modes and "| `boundary` |" in modes
+    assert "Boundary already wrote its app, contract and runtime pages" in close

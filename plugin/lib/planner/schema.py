@@ -87,7 +87,7 @@ ENUMS = {
     "status": ("open", "closed"),
 }
 LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes")
-SESSION_MODES = ("dump", "discover", "shape", "grill", "requirements", "epics", "challenge", "answer")
+SESSION_MODES = ("dump", "discover", "shape", "boundary", "grill", "requirements", "epics", "challenge", "answer")
 LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
 
 HANDLE = r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?"
@@ -232,7 +232,7 @@ SESSION_GAP_DAYS = 30  # W711 when no session has closed for longer than this
 # ------------------------------------------------------------ progress
 
 # What `planner status`, `planner next` and the progress-map block may suggest.
-NEXT_MODES = ("probe", "discover", "shape", "grill", "epics", "dump", "none")
+NEXT_MODES = ("probe", "discover", "shape", "boundary", "grill", "epics", "dump", "none")
 
 # ------------------------------------------------------------- finding codes
 

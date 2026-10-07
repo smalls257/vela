@@ -99,7 +99,7 @@ In the answer session, a Grill works on that branch and adds `grill` to `modes`.
 
 ## Captures during the session
 
-Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close. The first exception is a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`. The second is a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)` at once.
+Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close. The first exception is a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`. The second is a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)` at once. The third is a Boundary, which marks the capture of each line it writes `→ keep: [[<page>#<heading>|<ID>]] (assumption)` at once.
 
 - A person's words are quoted verbatim, with their name, role or handle as the origin.
 - Claude's own idea has origin `claude`.

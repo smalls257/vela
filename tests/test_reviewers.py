@@ -158,7 +158,7 @@ def test_modes_has_no_question_cap_and_no_sweep():
     modes = text("references/MODES.md")
     assert "at most two questions" not in modes and "concern sweep" not in modes
     assert "## Owed questions" in modes and "There is no cap on questions and no quota" in modes
-    assert modes.count("question ledger rows") == 4
+    assert modes.count("question ledger rows") == 5  # dump, discover, shape, boundary and grill write them at close
 
 
 def test_the_checks_every_area_makes_live_in_the_agent_and_not_in_the_skills():

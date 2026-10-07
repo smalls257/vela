@@ -70,7 +70,7 @@ def assistant(argv):
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with open(path, "a", encoding="utf-8") as out:
             out.write(written + "\n")
-    commands = ["planner:dump", "planner:close", "planner:discover", "planner:shape", "planner:grill", "planner:epics"] if "--plugin-dir" in argv else []
+    commands = ["planner:dump", "planner:close", "planner:discover", "planner:shape", "planner:boundary", "planner:grill", "planner:epics"] if "--plugin-dir" in argv else []
     events = [{"type": "system", "subtype": "init", "session_id": session_id, "slash_commands": commands},
               {"type": "assistant", "message": {"content": [
                   {"type": "text", "text": text},

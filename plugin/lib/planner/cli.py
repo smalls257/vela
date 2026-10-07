@@ -913,14 +913,23 @@ def cmd_status(args, out):
     return 0
 
 
+def first_step(vault):
+    """What to do while no app page exists. Once a Grill has decided the solution strategy, the direction is set
+    and only a Boundary session turns it into apps; before that, the work is still finding out and shaping."""
+    strategy = vault.page("04-solution-strategy")
+    if strategy is not None and strategy.meta.get("state") == "decided":
+        return ("initiative, boundary. The solution strategy is decided and no app page exists yet, so run a Boundary "
+                "session to turn it into apps.")
+    return "initiative, dump. No app page exists yet, so start with a Dump & Diverge or a Discover."
+
+
 def cmd_next(args, out):
     root = pathlib.Path(args.vault).resolve()
     today, origin = parse_today(args.today)
     vault = load_vault(root)
     when = f"Today is {today} ({origin})."
     if not vault.apps:
-        print(f"planner next: initiative, dump. No app page exists yet, so start with a Dump & Diverge or a Discover. {when}",
-              file=out)
+        print(f"planner next: {first_step(vault)} {when}", file=out)
         return 0
     row = progress.best(progress.grid(vault, today))
     if row is None:

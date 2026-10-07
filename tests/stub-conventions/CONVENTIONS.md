@@ -83,7 +83,7 @@ Field values:
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
-- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
+- `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
 
 ## IDs
 
@@ -389,6 +389,8 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 | 7 | none, waits | a contract it provides or consumes is not `decided` or `fact` |
 | 8 | Epics | the app is `new` or `changed`, and no epic lists it, or one that does is not `decided` |
 | 9 | none | nothing is open |
+
+While no app page exists, `planner next` suggests `initiative, boundary` once `04-solution-strategy.md` is `decided`, and `initiative, dump` before that.
 
 ## Keeping the vault fresh
 
