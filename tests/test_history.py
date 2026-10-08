@@ -71,10 +71,12 @@ def test_the_reading_layout_puts_what_is_true_first_and_history_last():
 
 
 def test_a_page_with_only_its_template_is_not_started():
-    assert reading.not_started("# Constraints\n\nWhat this initiative cannot change.\n\n| ID | Constraint |\n|---|---|\n")
+    assert reading.not_started("# Constraints\n\nWhat this initiative cannot change.\n\n| ID | Constraint |\n|---|---|\n",
+                               "initiative-section", "inkling")
     assert reading.not_started("# Cost\n\nRunning cost.\n\n## Per app\n\n| App | State | Why |\n|---|---|---|\n"
-                               "| [[coach-building-blocks\\|Coach]] | unexamined | |\n")
-    assert not reading.not_started("# Constraints\n\nOne line.\n\n| ID | Constraint |\n|---|---|\n| CST-1 | March | \n")
+                               "| [[coach-building-blocks\\|Coach]] | unexamined | |\n", "concern", "")
+    assert not reading.not_started("# Constraints\n\nOne line.\n\n| ID | Constraint |\n|---|---|\n| CST-1 | March | \n",
+                                   "initiative-section", "inkling")
 
 
 def test_style_names_what_reads_as_a_log():
@@ -89,3 +91,56 @@ def test_style_names_what_reads_as_a_log():
 def test_an_empty_section_is_left_out_of_the_reading_view():
     out = reading.arrange("# Cost\n\nRunning cost.\n\n## Strategy\n\n## Per app\n\n| App | State |\n|---|---|\n| A | unknown |\n")
     assert "## Strategy" not in out and "## Per app" in out
+
+
+def test_a_source_row_is_a_valid_anchor(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    page = vault / "03-context-and-scope.md"
+    page.write_text(page.read_text(encoding="utf-8") + "\nAs [[sources#SRC-04|the latency measurement]] shows.\n",
+                    encoding="utf-8")
+    assert "E202" not in run("check", "--vault", str(vault), "--today", "2026-11-20")[1]
+
+
+def test_history_under_an_id_with_no_item_on_the_page_is_an_error(tmp_path):
+    vault = moved(tmp_path)
+    path = vault / PAGE
+    path.write_text(path.read_text(encoding="utf-8") + "\n#### CON-999\n\n- **Override:** GATE-4 by @a on 2026-11-20: x\n",
+                    encoding="utf-8")
+    code, out = run("check", "--vault", str(vault), "--today", "2026-11-20")
+    assert code == 1 and "E323" in out and "CON-999" in out
+
+
+def test_a_party_under_history_is_not_a_mistyped_heading(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    page = vault / "03-context-and-scope.md"
+    text = page.read_text(encoding="utf-8")
+    first = next(l for l in text.splitlines() if l.startswith("### PTY-"))
+    page.write_text(text + f"\n## History\n\n#### {first.split()[1]}\n\n- **Dissent:** @a, 2026-11-20: no\n", encoding="utf-8")
+    assert "E810" not in run("check", "--vault", str(vault), "--today", "2026-11-20")[1]
+
+
+def test_rewriting_never_crosses_a_code_span():
+    hostile = "x (SRC-01 `) <a href=\"https://evil.example\">y</a> <details> ` z `f(SRC-01)`"
+    out = reading.arrange(hostile)
+    assert "`) <a href=\"https://evil.example\">y</a> <details> `" in out and "`f(SRC-01)`" in out
+
+
+def test_only_template_pages_at_inkling_are_hidden():
+    one_line = "# Teach a stock trade\n\nA reader learns to place one stock trade.\n"
+    assert not reading.not_started(one_line, "capability", "assumption")
+    assert not reading.not_started(one_line, "", "")
+    assert reading.not_started("# Glossary\n\nTerms.\n", "initiative-section", "inkling")
+
+
+def test_planner_style_prints_each_problem_with_its_file_line(tmp_path):
+    vault = moved(tmp_path)
+    code, out = run("style", "05-building-blocks/booking-building-blocks.md", "--vault", str(vault))
+    lines = (vault / PAGE).read_text(encoding="utf-8").splitlines()
+    for row in out.splitlines()[1:]:
+        n = int(row.split(":")[1])
+        if "bullet sits above" in row:
+            assert lines[n - 1].lstrip().startswith("- **"), row
+    assert code in (0, 1) and out.startswith("planner style:")
+    assert run("style", "no-such-page", "--vault", str(vault))[0] == 2

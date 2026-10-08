@@ -131,7 +131,7 @@ def pages_of(tmp_path, vault):
     return html, {p["name"]: p for p in bundle(html)["pages"]}
 
 
-def test_a_page_with_an_item_override_gets_one_banner_line_and_a_confirmed_decision_adds_nothing(tmp_path):
+def test_an_item_override_is_listed_and_no_page_gets_an_override_banner(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
     html, pages = pages_of(tmp_path, vault)
@@ -143,7 +143,7 @@ def test_a_page_with_an_item_override_gets_one_banner_line_and_a_confirmed_decis
     assert "override-banner" not in html  # the Override bullet is in the folded History, not a box up top
 
 
-def test_an_unconfirmed_on_behalf_decision_is_named_on_its_banner_line(tmp_path):
+def test_an_unconfirmed_on_behalf_decision_gets_one_status_line(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
     edit(vault / "05-building-blocks" / "pricing-building-blocks.md", "- **Confirmed by:** @hl-pricing-senior on 2026-08-12\n", "")

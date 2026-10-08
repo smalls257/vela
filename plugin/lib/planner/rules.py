@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import override, questions, render, schema, trace
+from planner import override, parse, questions, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -180,6 +180,18 @@ def duplicate_rules(vault, today):
 
 # --------------------------------------------------------------------- links
 
+def history_rules(vault, today):
+    """E323: a "#### <ID>" under History gives its bullets to that item, so one with no item of that ID on its page
+    would hold a decision or an override no rule reads."""
+    for page in vault.pages:
+        here = {i.id for found in vault.items.values() for i in found if i.page is page}
+        for item_id, (line, _) in parse.history_items(page).items():
+            if item_id not in here:
+                yield _f(page, line, "E323", f"'#### {item_id}' under History names no item on this page, so what is "
+                         "under it counts for nothing.", f"Use the ID of a '### <ID>' heading on this page, or move it "
+                         f"to the History of the page where {item_id} is.")
+
+
 def link_rules(vault, today):
     for page in vault.pages:
         for link in page.links:
@@ -200,6 +212,9 @@ def link_rules(vault, today):
             texts = [h.text for h in target.headings]
             if link.anchor in texts:
                 continue
+            row = vault.row_ids.get(link.anchor)
+            if row is not None and row[0] is target:
+                continue  # [[sources#SRC-04|the latency measurement]]: a source row is cited by its ID
             words = link.anchor.split()
             first = words[0] if words else ""
             near = [t for t in texts if first and t.split() and t.split()[0] == first]
@@ -387,9 +402,12 @@ def subject_rules(vault, today):
                 yield _f(item.page, item.line, "E808", f"{item.id} is a {what} with no **{label}:** bullet.",
                          f"Add '- **{label}:** ...' under the {item.id} heading.")
     for page in vault.pages:
+        history = parse.history_items(page)
         for heading in page.headings:
             first = heading.text.split()[0] if isinstance(heading.text, str) and heading.text.split() else ""
-            if schema.SUBJECT_LOOKALIKE_RE.match(first) and not (heading.level == 3 and schema.ITEM_ID_RE.match(first)):
+            in_history = heading.level == 4 and history.get(first, (0,))[0] == heading.line
+            if schema.SUBJECT_LOOKALIKE_RE.match(first) and not (heading.level == 3 and schema.ITEM_ID_RE.match(first)) \
+                    and not in_history:
                 form = "### PTY-nn <name>" if first.upper().startswith("PTY") else "### SV-nn <name>"
                 yield _f(page, heading.line, "E810", f"'{heading.text}' looks like a subject heading but does not read as one.",
                          f"Write it as '{form}': level 3, a two-digit ID in capitals, then a space and the name.")
@@ -707,5 +725,5 @@ def trace_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules)

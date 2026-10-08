@@ -80,7 +80,7 @@ When the user grills an app's handoff, or `planner ladder` shows an app's pages 
 When an item's branch closes, write it at once, before the next question:
 
 - Set its state to `decided`: the page's `state:` field, or the contract's `**State:**` bullet.
-- Add `- **Decision:** [[<session id>]]` at page level, or under the contract's heading.
+- Add `- **Decision:** [[<session id>]]` under the page's `## History`: directly under it for the page, under `#### <ID>` for a contract.
 - For a contract, record where the provider stands as well as each consumer, as a capture: present, async with channel and date, asked in the PR, or "not consulted: <reason>".
 - If anyone disagrees, add `- **Dissent:** <name>, <date>: <reason>`. The item can still be decided.
 - If the user overrode a gate for it, add the `**Override:**` bullet, and `**Decided by:**` when the owner is not the user, as section 2 says.
@@ -88,7 +88,7 @@ When an item's branch closes, write it at once, before the next question:
 - Mark the deciding capture line now: `→ keep: [[<page>#<heading>|<ID>]] (decided)`. This is the one exception to leaving marks off until close.
 - Commit with the message `grill: <ID> decided`. Stage the session record and the changed pages, by exact path.
 
-A functional requirement is a `### CAP-nnn.FRn <what the capability does>` heading on the capability page, and it is decided the same way. Its `**State:**` bullet moves to `decided`, `- **Decision:** [[<session id>]]` goes under its heading, and the `## Changes` row cites its ID. A `fact` FR needs a `**Source:**` bullet. An open unknown that blocks the FR fails GATE-4 for it. A requirements session may write an FR at `assumption` only. Only a Grill makes it `decided`.
+A functional requirement is a `### CAP-nnn.FRn <what the capability does>` heading on the capability page, and it is decided the same way. Its `**State:**` bullet moves to `decided`, `- **Decision:** [[<session id>]]` goes under `#### <its ID>` in the capability page's `## History`, and the `## Changes` row cites its ID. A `fact` FR needs a `**Source:**` bullet. An open unknown that blocks the FR fails GATE-4 for it. A requirements session may write an FR at `assumption` only. Only a Grill makes it `decided`.
 
 Write fact bullets and table cells only. Prose waits for close.
 

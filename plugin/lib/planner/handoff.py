@@ -9,7 +9,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 
-from planner import model, progress, trace
+from planner import model, parse, progress, trace
 from planner.parse import split_row
 
 # Lines a hash ignores: they change when a page is reread, handed off, or an owner confirms a decision
@@ -70,10 +70,15 @@ def section_end(page, item):
 
 
 def item_text(item):
+    """The item's section, and its "#### <ID>" block under the page's History, so a change to its decision or
+    override is charged to the item, not to the page."""
     lines = item.page.text.split("\n")
     skip = block_lines(item.page)
-    return [lines[n - 1] for n in range(item.line, section_end(item.page, item))
-            if n not in skip and not VOLATILE.match(lines[n - 1])]
+    spans = [range(item.line, section_end(item.page, item))]
+    history = parse.history_items(item.page).get(item.id)
+    if history:
+        spans.append(range(*history))
+    return [lines[n - 1] for span in spans for n in span if n not in skip and not VOLATILE.match(lines[n - 1])]
 
 
 def page_text(vault, page):
@@ -84,6 +89,8 @@ def page_text(vault, page):
         for item in found:
             if item.page is page:
                 skip.update(range(item.line, section_end(page, item)))
+    for first, end in parse.history_items(page).values():
+        skip.update(range(first, end))
     return [line for n, line in enumerate(lines, start=1) if n not in skip and not VOLATILE.match(line)]
 
 

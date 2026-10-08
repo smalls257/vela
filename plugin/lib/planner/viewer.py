@@ -118,7 +118,8 @@ def link_problems(vault):
             target = pages.get(name)
             if target is None:
                 problems.append(f"{page.path}:{link.line}: [[{link.target}]] is not in the viewer")
-            elif link.anchor and not link.anchor.startswith("^") and link.anchor not in [h.text for h in target.headings]:
+            elif link.anchor and not link.anchor.startswith("^") and link.anchor not in [h.text for h in target.headings] \
+                    and not (vault.row_ids.get(link.anchor) or (None,))[0] is target:
                 problems.append(f"{page.path}:{link.line}: #{link.anchor} matches no heading in {target.name}")
     return problems
 
@@ -143,7 +144,7 @@ def page_data(page):
         "title": str(page.meta.get("title") or page.name),
         "meta": {k: (v if isinstance(v, (str, list)) else str(v)) for k, v in page.meta.items()},
         "body": reading.arrange(neutralise(body_of(page))),
-        "not_started": reading.not_started(body_of(page)),
+        "not_started": reading.not_started(body_of(page), page.type, state),
         "headings": [h.text for h in page.headings],
         "draft": state in DRAFT_STATES,
         "state": state,
@@ -450,8 +451,8 @@ function buildTree(filter) {
   const root = {};
   const f = (filter || '').toLowerCase();
   for (const p of pages) {
-    if (p.not_started) continue;
-    if (f && !(p.path + ' ' + p.title + ' ' + (p.meta.id || '')).toLowerCase().includes(f)) continue;
+    const hit = !f || (p.path + ' ' + p.title + ' ' + (p.meta.id || '')).toLowerCase().includes(f);
+    if (!hit || (p.not_started && !f)) continue;
     const parts = p.path.split('/'); let node = root;
     for (const part of parts.slice(0, -1)) node = (node[part] = node[part] || {});
     (node.__pages = node.__pages || []).push(p);
@@ -471,7 +472,7 @@ function buildTree(filter) {
     }
     return s + '</ul>';
   }
-  const idle = pages.filter(p => p.not_started);
+  const idle = f ? [] : pages.filter(p => p.not_started);
   ui.tree.innerHTML = html(root) + (idle.length ? `<div class="not-started">Not started: ${idle.map(p =>
     `<a href="#/${encodeURIComponent(p.name)}">${esc(p.title)}</a>`).join(', ')}</div>` : '');
 }

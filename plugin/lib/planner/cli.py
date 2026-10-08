@@ -990,10 +990,14 @@ def cmd_style(args, out):
     missing = [ref for ref, page in zip(args.pages or [], pages) if page is None]
     if missing:
         raise ToolError(f"{', '.join(missing)} {'is' if len(missing) == 1 else 'are'} not a page in this vault.")
-    found = [(page, n, why) for page in pages if page.type != "session"
-             for n, why in reading.style_problems(viewer.body_of(page), page.type)]
-    offset = {page.path: page.text.split("\n").index(viewer.body_of(page).split("\n")[0]) if viewer.body_of(page) else 0
-              for page in pages}
+    found, offset = [], {}
+    for page in pages:
+        if page.type == "session":
+            continue
+        _, body_start, _ = parse.split_frontmatter(page.text)
+        body = "\n".join(page.text.replace("\r\n", "\n").split("\n")[body_start - 1:])
+        offset[page.path] = body_start - 1
+        found += [(page, n, why) for n, why in reading.style_problems(body, page.type)]
     print(f"planner style: {len(found)} to fix in {len(pages)} pages.", file=out)
     for page, n, why in found:
         print(f"{page.path}:{n + offset[page.path]}: {why}", file=out)

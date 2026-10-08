@@ -177,6 +177,25 @@ def split_frontmatter(text):
                              "Add a closing --- line after the frontmatter.")
 
 
+def history_items(page):
+    """{item ID: (first line, line after the last)} for each "#### <ID>" under the page's "## History"."""
+    out, in_history, open_id, start = {}, False, None, 0
+    total = len(page.text.split("\n")) + 1
+    for heading in page.headings:
+        if open_id and heading.level <= 4:
+            out[open_id] = (start, heading.line)
+            open_id = None
+        if heading.level <= 2:
+            in_history = heading.text.strip().lower() == schema.HISTORY_HEADING.lower()
+            continue
+        first = heading.text.split()[0] if heading.text.split() else ""
+        if in_history and heading.level == 4 and schema.ITEM_ID_RE.match(first):
+            open_id, start = first, heading.line
+    if open_id:
+        out[open_id] = (start, total)
+    return out
+
+
 def parse_page(path, text):
     """Parse one Markdown file. `path` is vault-relative with / separators."""
     text = text.lstrip("﻿").replace("\r\n", "\n")

@@ -96,7 +96,7 @@ Every new item, subject, unknown and reviewer question now has its ID. Write eac
 
 Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. Those are:
 
-- the opening prose of every page this session changed (`git diff --name-only --diff-filter=d main...HEAD`, leaving out `sessions/` and `sources.md`), rewritten whole to say what is true now, as `CONVENTIONS.md` says under "Pages". Replace the old opening; never add a paragraph about what changed, because that is the page's `## History`;
+- the opening prose of every page this session changed (`git diff --name-only --diff-filter=d main...HEAD`, leaving out `sessions/` and `sources.md`), rewritten to say what is true now, as `CONVENTIONS.md` says under "Pages". Keep the owner's own wording wherever the facts it states have not changed, because a later close harvests those edits; rewrite only what the session made untrue or left out. Never add a paragraph about what changed: that is the page's `## History`;
 - the `## Strategy` paragraph of each concern page whose cells this session changed;
 - the paragraphs below.
 

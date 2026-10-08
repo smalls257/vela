@@ -69,7 +69,7 @@ Render (steps 2 and 7) rewrites generated blocks on other pages too. Stage every
 
 If the lead never confirms, the epic stays `draft`, and its agenda line says `status open`.
 
-If the user tells you to decide an epic without a yes per criterion, or without the read-back, say once that each yes is what makes a criterion something a tester can hold the team to. Then do it, and write `- **Override:** GATE-3 by @<handle> on <today>: <reason>` at page level, beside the `**Decision:**` line. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet an epic already carries when you edit it.
+If the user tells you to decide an epic without a yes per criterion, or without the read-back, say once that each yes is what makes a criterion something a tester can hold the team to. Then do it, and write `- **Override:** GATE-3 by @<handle> on <today>: <reason>` under the epic page's `## History`, with its `**Decision:**` line. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet an epic already carries when you edit it.
 
 ## 7. Check the gate
 

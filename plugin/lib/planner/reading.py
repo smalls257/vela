@@ -58,11 +58,29 @@ def citation_sup(match):
     return f"<sup>{', '.join(parts)}</sup>" if parts else ""
 
 
+CODE_SPAN = re.compile(r"(`+)(?:(?!\1).)+?\1")
+BARE_LINK = re.compile(r"\[\[([^\]|#]*)#([^\]|]+)\]\]")
+
+
 def tidy(line):
-    line = LINK.sub(friendly_label, line)
-    if not line.lstrip().startswith(("|", "-", "*", "#", ">")):
-        line = CITATION.sub(citation_sup, line)
-    return line
+    """Friendly link labels and folded citations, outside code spans only: a rewrite that crossed a code span could
+    move text out of it, and the code span is what kept that text from being read as HTML."""
+    pieces, last = [], 0
+    for span in CODE_SPAN.finditer(line):
+        pieces.append(tidy_prose(line[last:span.start()], line))
+        pieces.append(span.group(0))
+        last = span.end()
+    pieces.append(tidy_prose(line[last:], line))
+    return "".join(pieces)
+
+
+def tidy_prose(text, whole):
+    text = BARE_LINK.sub(lambda m: f"[[{m.group(1)}#{m.group(2)}|{LEADING_ID.sub('', m.group(2)).strip() or m.group(2)}]]"
+                         if re.match(ID, m.group(2)) else m.group(0), text)
+    text = LINK.sub(friendly_label, text)
+    if not whole.lstrip().startswith(("|", "-", "*", "#", ">")):
+        text = CITATION.sub(citation_sup, text)
+    return text
 
 
 def drop_empty_sections(lines):
@@ -96,8 +114,12 @@ def arrange(markdown):
     lines = markdown.split("\n")
     names = item_names(lines)
     body, blocks, history = [], [], {}
-    owner, in_fence, in_history, block = "", None, False, None
+    owner, in_fence, in_history, block, moving = "", None, False, None, False
     for line in lines:
+        if moving and line.strip() and line[:1] in " \t" and not in_history:
+            history.setdefault(owner, []).append(line.rstrip())  # a line nested under a moved history bullet
+            continue
+        moving = False
         if in_fence:
             (block if block is not None else history.setdefault(owner, []) if in_history else body).append(line)
             if FENCE.match(line) and FENCE.match(line).group(1) == in_fence:
@@ -130,7 +152,7 @@ def arrange(markdown):
                 owner = ""
                 if in_history:
                     continue
-            if re.fullmatch(ID, first) and level >= 3:
+            if re.fullmatch(ID, first) and (level == 3 or (level == 4 and in_history)):
                 owner = first
                 if in_history:
                     continue
@@ -142,6 +164,7 @@ def arrange(markdown):
             continue
         if HISTORY_BULLET.match(line):
             history.setdefault(owner, []).append(line.strip())
+            moving = True
             continue
         body.append(tidy(line))
     out = "\n".join(drop_empty_sections(body)).rstrip("\n")
@@ -161,10 +184,16 @@ def arrange(markdown):
     return out + "\n"
 
 
-def not_started(markdown):
-    """True when a page holds only what its template wrote: headings, a table header, and at most one line of
-    description. A bullet, a table row, a second line of prose or a diagram means someone has written in it.
-    Generated blocks are not the page's own words, so they do not count."""
+TEMPLATE_TYPES = ("initiative-section", "index", "concern")  # the kinds of page the template writes before anyone else
+
+
+def not_started(markdown, page_type="", state=""):
+    """True when a page the template made holds only what the template wrote: headings, a table header, and at most
+    one line of description. A bullet, a table row, a second line of prose or a diagram means someone has written in
+    it, and generated blocks are not the page's own words. A page of another kind, such as a capability or a voice
+    example, or one past inkling, is never hidden: a single line there is someone's writing."""
+    if page_type not in TEMPLATE_TYPES or state not in ("", "inkling"):
+        return False
     rows, prose, in_gen, after_separator = 0, 0, False, False
     for line in markdown.split("\n"):
         stripped = line.strip()
@@ -195,13 +224,21 @@ def not_started(markdown):
 # ------------------------------------------------------------------ planner style
 
 PROSE_PAGE_TYPES = ("app-building-blocks", "app-runtime", "initiative-section", "capability", "epic", "concern", "flow")
-BARE_ID = re.compile(rf"(?<![\w#\[|-]){ID}(?![\w-])")
+# The vault's own ID kinds, so ISO-8601, UTF-8 or SHA-256 in a sentence is not taken for one.
+VAULT_ID = (r"(?:(?:APP|RUN|CAP|FLO|EPC|ADR|CON|UNK|PTY|SV|SRC|CST|INI)-\d+(?:\.FR\d+)?|R-\d+|R-[A-Z]{3}-\d+"
+            r"|Q-[A-Z]{3}-\d+(?:@\S+)?)")
+BARE_ID = re.compile(rf"(?<![\w-]){VAULT_ID}(?![\w-])")
+BREADCRUMB = re.compile(r"^\s*(?:\[\[[^\]]+\]\]\s*/\s*)+[^/]*$")
 
 
 def visible(line):
-    """A prose line as a reader sees it: link targets dropped, labels kept, code spans dropped."""
+    """A prose line as a reader sees it: code and URLs dropped, a link shown as its label, or as its anchor when it
+    has no label, which is what the viewer shows."""
     line = re.sub(r"`[^`]*`", "", line)
-    return re.sub(r"\[\[[^\]|]*\|([^\]]*)\]\]|\[\[([^\]]*)\]\]", lambda m: m.group(1) or m.group(2), line)
+    line = re.sub(r"https?://\S+", "", line)
+    line = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", line)
+    return re.sub(r"\[\[([^\]|#]*)(?:#([^\]|]*))?(?:\|([^\]]*))?\]\]",
+                  lambda m: m.group(3) if m.group(3) is not None else (m.group(2) or m.group(1)), line)
 
 
 def style_problems(markdown, page_type):
@@ -235,7 +272,8 @@ def style_problems(markdown, page_type):
         if HISTORY_BULLET.match(line) and not in_history:
             problems.append((n, f"{HISTORY_BULLET.match(line).group(1)} bullet sits above ## History; move it there"))
             continue
-        prose = not stripped.startswith(("|", "-", "*", ">")) and not re.match(r"\d+\.", stripped)
+        prose = not stripped.startswith(("|", "-", "*", ">")) and not re.match(r"\d+\.", stripped) \
+            and not BREADCRUMB.match(stripped)
         if prose and not seen_h2:
             opening += 1
         if prose and not in_history:
