@@ -194,6 +194,7 @@ def parse_page(path, text):
 def _parse_body(page, lines, body_start):
     in_fence, fence_kind, fence_start, fence_lines = None, "", 0, []
     item = ""
+    in_history = False  # under the page's "## History": "#### <ID>" there gives the bullets below it to that item
     open_block = None  # (name, sha, start_line, content_lines)
     table = None  # (header, line, rows, row_lines, generated)
     i = body_start - 1
@@ -232,7 +233,11 @@ def _parse_body(page, lines, body_start):
             level, htext = len(heading.group(1)), heading.group(2)
             page.headings.append(Heading(level, htext, n))
             first = htext.split()[0] if htext.split() else ""
+            if level <= 2:
+                in_history = htext.strip().lower() == schema.HISTORY_HEADING.lower()
             if level == 3 and schema.ITEM_ID_RE.match(first):
+                item = first
+            elif level == 4 and in_history and schema.ITEM_ID_RE.match(first):
                 item = first
             elif level <= 3:
                 item = ""

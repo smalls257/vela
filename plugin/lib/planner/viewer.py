@@ -11,7 +11,7 @@ import html as html_lib
 import json
 import re
 
-from planner import override
+from planner import override, reading
 
 EXCLUDED_FOLDERS = ("sessions/",)
 DRAFT_STATES = ("inkling", "assumption", "fact", "proposed", "draft", "reopened")
@@ -142,9 +142,11 @@ def page_data(page):
         "name": page.name,
         "title": str(page.meta.get("title") or page.name),
         "meta": {k: (v if isinstance(v, (str, list)) else str(v)) for k, v in page.meta.items()},
-        "body": neutralise(body_of(page)),
+        "body": reading.arrange(neutralise(body_of(page))),
+        "not_started": reading.not_started(body_of(page)),
         "headings": [h.text for h in page.headings],
         "draft": state in DRAFT_STATES,
+        "state": state,
         "overrides": override_lines(page),
     }
 
@@ -243,8 +245,12 @@ body { background: var(--bg); color: var(--fg); font-family: var(--body); font-s
 main { padding: 28px 40px 80px; min-width: 0; }
 @media (max-width: 760px) { main { padding: 20px 16px 60px; } }
 .crumb { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; }
-.draft-banner, .override-banner { border: 1px solid var(--warn); background: var(--warn-soft); color: var(--warn); border-radius: 4px; padding: 6px 12px; margin-bottom: 14px; font-weight: 600; }
-.override-banner { font-weight: 400; }
+.status-line { color: var(--muted); font-size: 0.85rem; margin-bottom: 4px; }
+details { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 8px; }
+summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+sup { font-size: 0.7rem; margin-left: 2px; }
+sup a { color: var(--muted); }
+.not-started { color: var(--muted); font-size: 0.8rem; margin-top: 12px; }
 article { max-width: 82ch; }
 article h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 12px; }
 article h2 { font-size: 1.3rem; margin: 30px 0 8px; }
@@ -370,7 +376,7 @@ if (window.marked) marked.use({ renderer: {
 // build step can disagree about what is code, so everything marked produces is
 // parsed into an inert <template> and rebuilt from an allowlist before it is shown.
 const HTML_OK = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'code', 'pre',
-  'blockquote', 'hr', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'div', 'span']);
+  'blockquote', 'hr', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'del', 'div', 'span', 'details', 'summary', 'sup']);
 const HTML_DROP = new Set(['script', 'style', 'iframe', 'svg', 'img', 'object', 'embed', 'template', 'noscript', 'textarea',
   'title', 'math', 'video', 'audio', 'link', 'meta', 'base', 'form', 'select', 'option', 'button', 'input', 'frame',
   'frameset', 'applet', 'canvas', 'picture', 'source', 'track', 'map', 'area', 'head']);
@@ -444,6 +450,7 @@ function buildTree(filter) {
   const root = {};
   const f = (filter || '').toLowerCase();
   for (const p of pages) {
+    if (p.not_started) continue;
     if (f && !(p.path + ' ' + p.title + ' ' + (p.meta.id || '')).toLowerCase().includes(f)) continue;
     const parts = p.path.split('/'); let node = root;
     for (const part of parts.slice(0, -1)) node = (node[part] = node[part] || {});
@@ -464,7 +471,9 @@ function buildTree(filter) {
     }
     return s + '</ul>';
   }
-  ui.tree.innerHTML = html(root);
+  const idle = pages.filter(p => p.not_started);
+  ui.tree.innerHTML = html(root) + (idle.length ? `<div class="not-started">Not started: ${idle.map(p =>
+    `<a href="#/${encodeURIComponent(p.name)}">${esc(p.title)}</a>`).join(', ')}</div>` : '');
 }
 
 const backlinks = new Map();
@@ -500,10 +509,9 @@ async function show() {
   current = p.name;
   document.title = p.title + ' · ' + DATA.title;
   ui.crumb.textContent = p.path;
-  const overrideLine = o => `Decided by override: ${o.rules} by ${o.by} on ${o.date}: ${o.reason}` +
-    (o.pending_for ? ` (on behalf of ${o.pending_for}, not yet confirmed)` : '');
-  ui.banner.innerHTML = (p.draft ? '<div class="draft-banner">Working draft: not agreed yet</div>' : '') +
-    p.overrides.map(o => `<div class="override-banner">${esc(overrideLine(o))}</div>`).join('');
+  const pending = p.overrides.filter(o => o.pending_for).map(o => o.pending_for);
+  ui.banner.innerHTML = (p.draft ? `<div class="status-line">${esc(p.state)}: not agreed yet</div>` : '') +
+    (pending.length ? `<div class="status-line">decided on behalf of ${esc([...new Set(pending)].join(', '))}, not yet confirmed</div>` : '');
   const art = ui.page;
   art.replaceChildren(toNodes(p.body));
   art.querySelectorAll('h1,h2,h3,h4').forEach(h => h.id = 'h-' + slug(h.textContent));
@@ -516,7 +524,9 @@ async function show() {
   document.querySelectorAll('.nav a').forEach(el => el.classList.toggle('on', el.dataset.name === p.name));
   if (anchor) {
     const heads = [...art.querySelectorAll('h1,h2,h3,h4')];
-    const target = heads.find(el => el.textContent.trim() === anchor) || heads.find(el => el.textContent.trim().startsWith(anchor));
+    const bare = anchor.replace(/^(?:[A-Z][A-Z0-9]*-\d+(?:\.FR\d+)?|G\d+)\s+/, '');
+    const target = heads.find(el => el.textContent.trim() === anchor) || heads.find(el => el.textContent.trim() === bare)
+      || heads.find(el => el.textContent.trim().startsWith(anchor));
     if (target) { target.scrollIntoView(); return; }
   }
   window.scrollTo(0, 0);

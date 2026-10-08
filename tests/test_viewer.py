@@ -120,7 +120,7 @@ def test_page_below_decided_carries_the_draft_banner(tmp_path):
     pages = {p["name"]: p for p in bundle(html)["pages"]}
     assert pages["03-context-and-scope"]["draft"] is True
     assert pages["01-goals"]["draft"] is False
-    assert "Working draft: not agreed yet" in html
+    assert "${esc(p.state)}: not agreed yet" in html and "draft-banner" not in html  # a quiet line, not a yellow box
 
 
 def pages_of(tmp_path, vault):
@@ -140,8 +140,7 @@ def test_a_page_with_an_item_override_gets_one_banner_line_and_a_confirmed_decis
         "reason": pages["pricing-building-blocks"]["overrides"][0]["reason"]}]
     assert pages["pricing-building-blocks"]["overrides"][0]["reason"].startswith("the Revenue team was in its fare review")
     assert pages["01-goals"]["overrides"] == []
-    assert "Decided by override: ${o.rules} by ${o.by} on ${o.date}: ${o.reason}" in html
-    assert "esc(overrideLine(o))" in html
+    assert "override-banner" not in html  # the Override bullet is in the folded History, not a box up top
 
 
 def test_an_unconfirmed_on_behalf_decision_is_named_on_its_banner_line(tmp_path):
@@ -150,7 +149,7 @@ def test_an_unconfirmed_on_behalf_decision_is_named_on_its_banner_line(tmp_path)
     edit(vault / "05-building-blocks" / "pricing-building-blocks.md", "- **Confirmed by:** @hl-pricing-senior on 2026-08-12\n", "")
     html, pages = pages_of(tmp_path, vault)
     assert [o["pending_for"] for o in pages["pricing-building-blocks"]["overrides"]] == ["@harbourline/revenue-team"]
-    assert "(on behalf of ${o.pending_for}, not yet confirmed)" in html
+    assert "decided on behalf of ${esc([...new Set(pending)].join(', '))}, not yet confirmed" in html
 
 
 def test_every_override_on_a_page_gets_its_own_line_and_malformed_ones_get_none(tmp_path):
@@ -166,7 +165,7 @@ def test_the_override_banner_is_built_from_escaped_text_and_adds_no_script(tmp_p
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
     html, _ = pages_of(tmp_path, vault)
-    assert "innerHTML = (p.draft" in html and "esc(overrideLine(o))" in html
+    assert "innerHTML = (p.draft" in html and "esc([...new Set(pending)]" in html
     csp = re.search(r'Content-Security-Policy" content="([^"]*)"', html).group(1)
     scripts = re.findall(r"<script>(.*?)</script>", html, re.S)
     assert csp.count("sha256-") == len(scripts) == 3, "the banner is inside the existing APP script, so no new hash"
@@ -397,7 +396,7 @@ def hostile_pages(base):
             f'```mermaid\n%%{{init: {{"themeCSS": "g{{background:image-set(\\"{base}/b2b.png\\" 1x)}}"}}}}%%\ngraph TD\n  A --> B\n```',
             f'```mermaid\n---\nconfig:\n  themeCSS: "g{{background:url({base}/fm.png)}}"\n---\ngraph TD\n  A --> B\n```',
         ]),
-        "## Props": "A heading that is named after a viewer element.\n\n## Backlinks\n\n## Page\n",
+        "## Props": "A heading that is named after a viewer element.\n\n## Backlinks\n\nText.\n\n## Page\n\nText.\n",  # the reading view drops empty sections
     }
 
 
@@ -532,7 +531,7 @@ def test_fixture_viewer_draws_its_diagrams_and_generated_blocks_without_network(
     classes = [a.get("class", "") for t, a in dom.tags if t == "div"]
     assert classes.count("mermaid") == 2
     assert not [c for c in classes if "diagram-error" in c]
-    assert [c for c in classes if c == "gen"]
+    assert not [c for c in classes if c == "gen"], "generated blocks read as plain sections now, with no box"
 
 
 GENERATED_ROUTES = {"05-building-blocks": "CON-007", "03-context-and-scope": "CON-006", "04a-capability-delta": "CAP-014",
@@ -568,8 +567,9 @@ def test_override_banner_shows_the_text_in_the_browser_and_escapes_a_hostile_rea
     sensor.requests.clear()
     dom = dump_dom(out, "19-overridden")
     assert sensor.requests == []
-    banner = re.search(r'<div class="override-banner">(.*?)</div>', dom, re.S).group(1)
-    assert banner.startswith("Decided by override: GATE-5 by @a on 2026-11-20: &lt;script&gt;alert(1)&lt;/script&gt; &lt;img src=")
-    assert banner.endswith("(on behalf of @owner, not yet confirmed)")
+    status = re.search(r'<div class="status-line">(decided on behalf.*?)</div>', dom, re.S).group(1)
+    assert status == "decided on behalf of @owner, not yet confirmed"
+    history = re.search(r"<details>(.*?)</details>", dom, re.S).group(1)
+    assert "&lt;script&gt;alert(1)&lt;/script&gt; &lt;img src=" in history
     tags = [t for t, _ in audit(dom).tags]
     assert "img" not in tags and tags.count("script") == 4

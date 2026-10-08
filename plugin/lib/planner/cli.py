@@ -18,7 +18,7 @@ import traceback
 
 import yaml
 
-from planner import catalog, export, handoff, health, ladder, model, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
+from planner import catalog, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -981,6 +981,25 @@ def status_line(row, today, vault=None):
             f"decided {progress.decided_text(row)} | oldest open unknown: {oldest_text(row, today)} | next: {next_text}. {row.reason}")
 
 
+def cmd_style(args, out):
+    """Where the named pages read as a log rather than a document: history above ## History, IDs and bare source
+    IDs in prose, no opening prose. Close runs it on the pages a session changed."""
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    pages = [reviews.find_page(vault, ref) for ref in args.pages] if args.pages else list(vault.pages)
+    missing = [ref for ref, page in zip(args.pages or [], pages) if page is None]
+    if missing:
+        raise ToolError(f"{', '.join(missing)} {'is' if len(missing) == 1 else 'are'} not a page in this vault.")
+    found = [(page, n, why) for page in pages if page.type != "session"
+             for n, why in reading.style_problems(viewer.body_of(page), page.type)]
+    offset = {page.path: page.text.split("\n").index(viewer.body_of(page).split("\n")[0]) if viewer.body_of(page) else 0
+              for page in pages}
+    print(f"planner style: {len(found)} to fix in {len(pages)} pages.", file=out)
+    for page, n, why in found:
+        print(f"{page.path}:{n + offset[page.path]}: {why}", file=out)
+    return 1 if found else 0
+
+
 def cmd_ladder(args, out):
     """For each app on the ladder: its typed stage, the stage its pages reach, and what the next stage still needs."""
     root = pathlib.Path(args.vault).resolve()
@@ -1065,6 +1084,10 @@ def build_parser():
     nxt.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nxt.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
     nxt.set_defaults(func=cmd_next)
+    sty = sub.add_parser("style", help="where pages read as a log rather than a document; close runs it on changed pages")
+    sty.add_argument("pages", nargs="*", help="pages to read, by path or name (default: every page)")
+    sty.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    sty.set_defaults(func=cmd_style)
     lad = sub.add_parser("ladder", help="each app's typed stage, the stage its pages reach, and what the next needs")
     lad.add_argument("--vault", default=".", help="vault root (default: current directory)")
     lad.set_defaults(func=cmd_ladder)

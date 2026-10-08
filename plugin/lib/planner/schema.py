@@ -193,6 +193,10 @@ CONSTRAINTS_HEADER = ("ID", "Constraint")
 SOURCES_HEADER = ("ID", "Title", "Owner", "Date", "Kind", "Location")
 SOURCE_KINDS = ("exists", "intends", "repo")
 CONTAINERS_HEADER = ("Container", "Job")
+# A page's history sits at its end under this heading, so the page opens with what is true now. "#### <ID>" under
+# it holds an item's history. HISTORY_LABELS are the bullets that belong there.
+HISTORY_HEADING = "History"
+HISTORY_LABELS = ("Decision", "Override", "Decided by", "Confirmed by", "Options considered", "Dissent")
 # The line a Boundary writes under a stub app page's title; planner next sends such a page back to Boundary.
 BOUNDARY_STUB_LINE = "Its boundary sheet is still to be read back."
 CONTAINER_STATES = ("assumption", "confirmed", "unchanged", "retired")

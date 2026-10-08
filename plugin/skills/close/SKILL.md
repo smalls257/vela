@@ -20,6 +20,7 @@ Open records live on `session/<id>` branches, so first run `git branch --list 's
 Propose a mark for every capture that has none yet, at once, as a numbered list with a one-line reason each. The user changes the ones they disagree with. Propose a keep by what it becomes and where, such as "an unknown on 11-unknowns-and-risks.md" or "a stored value on 03-context-and-scope.md". A new item gets its ID in section 3, and the marks are written into the lines at the end of it, once every ID exists. Defaults:
 
 - In a session whose `modes` include `shape`, the picked option is kept as an `assumption`, never an `inkling`. See section 3.
+- A capture that names something the initiative cannot change, such as a date, a budget, a law, a contract term or a system it must keep, is kept as a constraint: a row on `02-constraints.md`, `| CST-n | <the constraint> | <where it comes from, as a link on the words> | <what it forces> |`.
 - A person's `idea` or `thought` is kept as an `inkling` on the page it belongs to.
 - A capture that says `type at close: PTY` or `type at close: SV` names a subject the lead said exists. It gets one mark, to the subject, `→ keep: [[03-context-and-scope#<heading>|<ID>]] (subject)`, because a party or stored value carries no state. That holds when its words also start with the existence question's copy ID: section 3 writes that copy's row, and the row's `## Changes` line cites the capture, so the capture needs no second mark. If section 3 leaves the subject untyped, mark it as a keep to the unknown section 3 writes instead, `→ keep: [[11-unknowns-and-risks#<heading>|UNK-nnn]] (open)`, so no mark links a heading that does not exist.
 - Any other capture whose words start with a copy ID or a finding ID is kept as its ledger row, `→ keep: [[11-unknowns-and-risks#Question ledger|<copy>]] (<state>)`, with the state of the row. A finding the lead did not take has no capture, so it gets no mark. Section 3 says which of those still get a row.
@@ -93,7 +94,13 @@ Every new item, subject, unknown and reviewer question now has its ID. Write eac
 
 ## 4. Draft the prose
 
-Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. For a session whose `modes` include `epics`, each epic it drafted owes a description paragraph, so list those epics under "Prose drafted" in the PR body. The epics session already wrote each `**Owning team:**` line; close leaves it as written. Prose is drafted here and nowhere else. Commit each drafted page, by exact path, with the message `draft: prose for <id>`. That commit holds each drafted page whole, including its structured section-3 edits, because a page cannot be committed in halves. The reviewer's later edits then show as a diff against it.
+Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. Those are:
+
+- the opening prose of every page this session changed (`git diff --name-only --diff-filter=d main...HEAD`, leaving out `sessions/` and `sources.md`), rewritten whole to say what is true now, as `CONVENTIONS.md` says under "Pages". Replace the old opening; never add a paragraph about what changed, because that is the page's `## History`;
+- the `## Strategy` paragraph of each concern page whose cells this session changed;
+- the paragraphs below.
+
+Then run `python3 .claude/skills/planner/bin/planner style <each changed page>` and fix every line it prints: move a history bullet under `## History`, and put a link on the words in place of an ID. A page it says has no opening prose gets one. Fix only what it names. For a session whose `modes` include `epics`, each epic it drafted owes a description paragraph, so list those epics under "Prose drafted" in the PR body. The epics session already wrote each `**Owning team:**` line; close leaves it as written. Prose is drafted here and nowhere else. Commit each drafted page, by exact path, with the message `draft: prose for <id>`. That commit holds each drafted page whole, including its structured section-3 edits, because a page cannot be committed in halves. The reviewer's later edits then show as a diff against it.
 
 ### Voice review
 
