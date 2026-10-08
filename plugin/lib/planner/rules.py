@@ -118,6 +118,9 @@ def _enum_findings(vault, page, page_type, spec):
     if "handed_off" in meta and not (isinstance(meta["handed_off"], str) and schema.HANDED_OFF_RE.match(meta["handed_off"])):
         yield _f(page, meta_line(page, "handed_off"), "E105", "'handed_off' is not in the form '<name>, <date>, PR #N'.",
                  "Write handed_off: \"Booking senior, 2026-11-20, PR #41\".")
+    elif isinstance(meta.get("handed_off"), str) and meta["handed_off"].endswith("PR pending"):
+        yield _f(page, meta_line(page, "handed_off"), "W325", f"{page.id} is handed off, but its PR number is not recorded yet.",
+                 "Once the PR exists, write its number in place of 'pending', as close does after gh prints the URL.")
     initiative = vault.config.get("initiative")
     if "initiative" in meta and meta["initiative"] != initiative:
         yield _f(page, meta_line(page, "initiative"), "E105",

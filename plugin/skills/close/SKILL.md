@@ -257,4 +257,4 @@ Then run the command below, with one `--reviewer` per remaining reviewer (none, 
 gh pr create --base main --head session/<id> --title "<date> <Mode name>: <topic>" --body-file <file> --reviewer <handle> --reviewer <org/team>
 ```
 
-If `gh` fails, say so, print the branch name and the exact command, and stop. Never say a PR exists unless `gh` printed its URL. Show the URL.
+If `gh` fails, say so, print the branch name and the exact command, and stop. Never say a PR exists unless `gh` printed its URL. Show the URL. If this session wrote `handed_off: "<senior>, <date>, PR pending"`, replace `pending` with `#<the PR's number>`, commit it as `Handoff PR number for <APP-id>`, and push. If `gh` failed, leave `pending`: W325 says so until someone writes the number.

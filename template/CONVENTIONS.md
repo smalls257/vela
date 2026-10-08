@@ -79,7 +79,7 @@ Field values:
 - `change` on an app page: `new`, `changed`, `integrated`, `unchanged` or `retired`.
 - `stage`: `baseline`, `target`, `boundaries`, `contracts`, `handoff`, `epics`. Required when `change` is `new` or `changed`, absent otherwise.
 - `last_verified`: the date someone last reread the page against its sources, `YYYY-MM-DD`. `verified_by`: that person's handle, `"@handle"`. Set both together. A page without them is never judged stale.
-- `handed_off`: set once a senior takes the app. Form: `"<name>, <date>, PR #N"`.
+- `handed_off`: set once a senior takes the app. Form: `"<name>, <date>, PR #N"`, or `"<name>, <date>, PR pending"` until the PR exists; W325 warns until the number is written.
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.

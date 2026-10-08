@@ -66,6 +66,15 @@ Silence, "ok", "next", "sure" with nothing else, or a change of subject do not c
 
 Capture each answer. The user's own words take their name as origin. When the user accepts your recommendation as it stands, the origin is `claude, from <name>`.
 
+## Handing an app over
+
+When the user grills an app's handoff, or `planner ladder` shows an app's pages reach `handoff`:
+
+1. Run `python3 .claude/skills/planner/bin/planner ladder` and `python3 .claude/skills/planner/bin/planner check --gate epics`, and read the lists under "Handoff" in `CONVENTIONS.md`. Say once what is not met, as one list, and offer the override as `START.md` says. Do not ask about each line.
+2. The senior who takes the app is named, with a handle. They are present and say yes, or their answer is quoted with the channel and the date, or the user decides on their behalf, recorded as GATE-5 says. If nobody is named, ask the user first, as `MODES.md` says under "Unknowns"; if they cannot name one, write the unknown and end the session.
+3. Read back what the senior takes: the app, its runtime page, the contracts it provides and consumes, its epics, and every open unknown that blocks any of them. Get an explicit yes.
+4. On the app page, write `handed_off: "<senior>, <today>, PR pending"` and set `stage` to the stage `planner ladder` says the pages reach. Commit. Close writes the manifest and the PR number.
+
 ## 4. Write each decision as its branch closes
 
 When an item's branch closes, write it at once, before the next question:

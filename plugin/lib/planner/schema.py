@@ -93,7 +93,8 @@ LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
 HANDLE = r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?"
 OWNER_RE = re.compile(rf"^{HANDLE}(?: {HANDLE})*$")
 OWNER_BULLET_RE = re.compile(rf"^{HANDLE}\b")
-HANDED_OFF_RE = re.compile(r"^.+, \d{4}-\d{2}-\d{2}, PR #\d+$")
+# "PR pending" until close has opened the PR and knows its number; W325 warns until then.
+HANDED_OFF_RE = re.compile(r"^.+, \d{4}-\d{2}-\d{2}, PR (?:#\d+|pending)$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 INITIATIVE_RE = re.compile(r"^INI-\d{3}$")
 
