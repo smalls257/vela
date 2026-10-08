@@ -18,7 +18,7 @@ none
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=5cb8219b: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=21456430: do not edit, run planner render -->
 **Questions:** 12 owed, 12 undisposed, against catalogue v1.
 
 | Copy | State | Area | Severity | Subject | Question |
@@ -29,7 +29,7 @@ none
 | Q-FIN-02@INI-001 | no row | FIN | normal | INI-001 | Who pays for the change, and who carries its running cost once it is live? |
 | Q-OPS-04@INI-001 | no row | OPS | normal | INI-001 | Is there more than one system, scheme, map or team doing the same job? Name them. |
 | Q-OPS-05@INI-001 | no row | OPS | normal | INI-001 | What is being retired, and who still depends on it? |
-| Q-OPS-06@INI-001 | no row | OPS | normal | INI-001 | Who is affected by this change but not yet in the room? |
+| Q-OPS-06@INI-001 | no row | OPS | normal | INI-001 | Who is affected by this change but not yet in the room, and who wants something different from it? |
 | Q-OPS-07@INI-001 | no row | OPS | normal | INI-001 | Which beliefs does the plan rest on that no source supports, and which one would change the plan most if it were wrong? |
 | Q-PTN-01@INI-001 | no row | PTN | high | INI-001 | Does ownership, operation or payment change for anything, such as a system, an agreement, a team or a service? |
 | Q-REG-01@INI-001 | no row | REG | normal | INI-001 | Will any product be sold or promised across parties, such as a bundle or a joint offer? |

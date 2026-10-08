@@ -288,8 +288,8 @@ entries:
     area: OPS
     scope: initiative
     trigger: exists
-    question: Who is affected by this change but not yet in the room?
-    why: '"Failure to recognize stakeholders results in missing requirements" (Volere). In the simulated runs the assistant never named a stakeholder first.'
+    question: Who is affected by this change but not yet in the room, and who wants something different from it?
+    why: '"Failure to recognize stakeholders results in missing requirements" (Volere). In the simulated runs the assistant never named a stakeholder first, and in the trading run it asked after only one of four people who each wanted something different.'
     severity: normal
 
   - id: Q-OPS-07
