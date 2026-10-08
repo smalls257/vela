@@ -1,7 +1,8 @@
 # A Grill on an item an open unknown blocks, with a lead who does not override. From the vault the boundary session
 # left: UNK-050, whether the Northway Platform team commits to building the Account link service, blocks its page,
 # and the lead owns that unknown. Claude asks the lead first, never drafts a message for them to send, ends the
-# blocked session rather than filling it, and scopes its review to what the session changed.
+# blocked session rather than filling it. How long the session runs is not a check: once the lead declines the
+# override, they may ask for other work, and the 2026-10-07 run did (it stopped at T4, then took owed questions).
 snapshot:
   coastal-merger: after-boundary-s2
 # The persona would override a blocking gate once for D1; this lead overrides nothing, so the session is blocked.
@@ -15,7 +16,5 @@ close: 8
 criteria:
   - check: drafted-messages
     at_most: 0
-  - check: main-session-turns
-    at_most: 8
   - check: decided-without-yes
     at_most: 0
