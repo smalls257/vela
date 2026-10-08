@@ -93,7 +93,8 @@ SNAPSHOT_DIRS = sorted(p for p in (SIM / "snapshots").glob("*/*") if p.is_dir())
 def test_the_snapshots_are_the_ones_the_cases_name():
     names = {p.relative_to(SIM / "snapshots").as_posix() for p in SNAPSHOT_DIRS}
     assert names == {"coastal-merger/empty", "coastal-merger/after-s2", "coastal-merger/after-s4", "coastal-merger/after-v3-s8",
-                     "coastal-merger/after-complete-s21", "coastal-merger/after-cio-s4", "coastal-merger/after-boundary-s2",  # where scripts start, not probes
+                     "coastal-merger/after-complete-s21", "coastal-merger/after-cio-s4", "coastal-merger/after-boundary-s2",
+                     "trading-coach/after-handoff-grill-s25",  # where scripts start, not probes
                      "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
     for case_path in sorted((SIM / "probes").glob("*.yaml")):
         case = probe.load_case(str(case_path))
