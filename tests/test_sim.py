@@ -225,6 +225,8 @@ def test_every_persona_and_script_validates():
         assert sim.persona_problems(persona) == [], persona_path
         for script_path in sorted((SIM / "scripts").glob("*.yaml")):
             script = yaml.safe_load(script_path.read_text(encoding="utf-8"))
+            if script.get("persona") not in (None, persona_path.stem):
+                continue  # a script written for one persona's topics
             assert sim.script_problems(script, persona) == [], script_path
 
 
@@ -650,3 +652,31 @@ def test_a_state_line_the_union_drops_is_reported(tmp_path):
     hunk = sim.CONFLICT_HUNK.search("<<<<<<< HEAD\n- **State:** open\n=======\n- **State:** resolved\n- **Notes:** x\n>>>>>>> b\n")
     lost = []
     assert sim.union_hunk(hunk, lost) == "- **State:** open\n- **Notes:** x\n" and lost == ["- **State:** resolved"]
+
+
+def test_news_can_arrive_after_a_given_session(tmp_path):
+    script = {"sessions": TWO_SESSIONS["sessions"], "events": [
+        {"after": 1, "knows": [{"id": "K90", "category": "fact", "keywords": ["counsel replied"],
+                                "fact": "Counsel replied: education is fine."}],
+         "docs": [{"name": "counsel-reply.md", "text": "# Counsel\n\nEducation is fine."}]}]}
+    path = tmp_path / "events.yaml"
+    path.write_text(yaml.safe_dump(script), encoding="utf-8")
+    out, log = tmp_path / "results", tmp_path / "stub-log.jsonl"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(path),
+                           "--arms", "planner", "--out", str(out), *MODELS, "--budget", "5"],
+                          capture_output=True, text=True, env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
+    assert done.returncode == 0, done.stderr
+    arm = sorted(out.iterdir())[0] / "planner"
+    news = [e for e in entries(arm) if e.get("event") == "news"]
+    assert len(news) == 1 and news[0]["session"] == 2 and "K90" in news[0]["text"]
+    assert (arm / "vault" / ".inbox" / "counsel-reply.md").is_file()
+    persona_calls = [c for c in (json.loads(l) for l in log.read_text().splitlines()) if c["role"] == "persona"]
+    assert persona_calls, "the stub ran no persona call"
+
+
+def test_an_event_must_say_after_which_session():
+    persona = {"opening": "x", "topics": {}}
+    sessions = TWO_SESSIONS["sessions"]
+    assert sim.script_problems({"sessions": sessions, "events": [{"knows": []}]}, persona)
+    assert sim.script_problems({"sessions": sessions, "events": [{"after": len(sessions)}]}, persona)
+    assert sim.script_problems({"sessions": sessions, "events": [{"after": 1}, {"after": 1}]}, persona)

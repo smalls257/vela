@@ -1,5 +1,6 @@
 # The complete pipeline: the full script, then Group Account taken through boundaries, contracts and handoff to epics.
 name: complete
+persona: coastal-merger
 sessions:
   - mode: dump
     cap: 14

@@ -215,6 +215,21 @@ def script_problems(data, persona):
     if not isinstance(data, dict) or not isinstance(data.get("sessions"), list) or not data["sessions"]:
         return ["the script must be a mapping with a non-empty 'sessions' list"]
     problems = news_problems(data.get("news"))
+    events = data.get("events")
+    if events is not None:
+        if not isinstance(events, list):
+            problems.append("'events' must be a list, each with 'after: <session number>' and its news")
+        else:
+            afters = []
+            for event in events:
+                if not isinstance(event, dict) or not isinstance(event.get("after"), int) \
+                        or not 1 <= event["after"] < len(data["sessions"]):
+                    problems.append(f"event {event!r} needs 'after', a session number before the last session")
+                    continue
+                afters.append(event["after"])
+                problems += news_problems({k: v for k, v in event.items() if k != "after"})
+            if len(afters) != len(set(afters)):
+                problems.append("two events have the same 'after'; put their news in one event")
     if data.get("start") is not None and not (SNAPSHOTS / str(data["start"])).is_dir():
         problems.append(f"'start' {data['start']!r} is not a folder in {SNAPSHOTS}")
     if any(problems):
@@ -252,6 +267,9 @@ def load_brief(persona_ref, script_ref):
     if problems:
         raise ToolFailure(f"{persona_path} is not a valid persona:\n  " + "\n  ".join(problems))
     script = load_yaml(script_path)
+    written_for = script.get("persona") if isinstance(script, dict) else None
+    if written_for and written_for != persona_path.stem:
+        raise ToolFailure(f"{script_path.name} is written for the persona {written_for}, not {persona_path.stem}")
     problems = script_problems(script, persona)
     if problems:
         raise ToolFailure(f"{script_path} is not a valid script:\n  " + "\n  ".join(problems))
@@ -915,13 +933,31 @@ class Arm:
             self.vault, self.notes = build_vault(self.dir, self.name, self.persona)
         for note in self.notes:
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
+        events = {e["after"]: e for e in script.get("events") or []}
         for index, session in enumerate(script["sessions"], 1):
+            if index - 1 in events:
+                self.arrive(index, session["mode"], events[index - 1])
             if self.ledger.session_room() < MIN_CALL_USD:
                 self.endings.append({"session": index, "mode": session["mode"], "reason": "not run: budget", "turns": 0})
                 self.transcript.add(speaker="driver", session=index, mode=session["mode"], event="session-skipped",
                                     text=f"Session {index} ({session['mode']}) not run: the session budget is spent")
                 continue
             self.run_session(index, session)
+
+    def arrive(self, index, mode, event):
+        """News that reaches the lead between sessions: facts they now know, documents now in the inbox, and how
+        they now take a decision. What a lead would hear back while the work goes on, not before it starts."""
+        news = {k: v for k, v in event.items() if k != "after"}
+        self.persona = with_news(self.persona, news)
+        inbox = self.vault / ".inbox"
+        for doc in news.get("docs") or []:
+            inbox.mkdir(exist_ok=True)
+            (inbox / doc["name"]).write_text(doc["text"].strip() + "\n", encoding="utf-8")
+        said = [f"facts {', '.join(k['id'] for k in news.get('knows') or [])}" if news.get("knows") else "",
+                f"documents {', '.join(d['name'] for d in news.get('docs') or [])}" if news.get("docs") else "",
+                f"decision changes {', '.join(d['id'] for d in news.get('decisions') or [])}" if news.get("decisions") else ""]
+        self.transcript.add(speaker="driver", session=index, mode=mode, event="news",
+                            text=f"News arrives after session {event['after']}: " + "; ".join(s for s in said if s))
 
     def early(self):
         return any(e["reason"] != "persona-end" for e in self.endings)

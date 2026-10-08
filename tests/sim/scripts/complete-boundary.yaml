@@ -2,6 +2,7 @@
 # the DPO's replies read, the login owner decided), with the vault's CONVENTIONS.md brought up to date for the new
 # boundary mode. A Boundary turns the decided direction into apps; a Grill decides them; then epics and handoff.
 name: complete-boundary
+persona: coastal-merger
 start: coastal-merger/after-cio-s4
 news:
   knows:

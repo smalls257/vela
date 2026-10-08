@@ -1,0 +1,315 @@
+# The simulated lead for an AI trading coach with no definition yet. Everything here is made up: Kestrel Markets,
+# TickerTalk, Brightwater Securities and Quoteline are fictional. The rules the gaps rest on are real US retail-
+# brokerage practice, simplified: advice versus education, options approval and the Options Disclosure Document,
+# the pattern day trader rule, discretionary authority, communications with the public, and market-data licensing.
+# The persona prompt gets knows, wrong, conflicts and decisions. It never sees unaware: a gap it was never told
+# cannot leak. The judge sees all of it. Keywords follow the rules at the top of coastal-merger.yaml.
+name: Jordan Reyes
+role: head of product at Kestrel Markets, just made lead for the trading coach
+org: Kestrel Markets, a 60-person fintech whose only product today is TickerTalk, a free market-news app
+handle: "@sim-lead"
+style: >-
+  Sharp but stretched thin, typing between meetings. Answers in short bursts of one to three sentences. Sometimes
+  answers a different question from the one asked, usually the one that worries them most right now. Says
+  "honestly not sure" often. Changes their mind once when given a good reason, and says so plainly. Never
+  writes lists unless asked to confirm one.
+opening: >-
+  Our CEO wants "an AI coach that teaches people to trade one stock or option at a time, and trades for them
+  when they're ready", live by March. I run product for our news app. I've been told to make it happen and I
+  don't know where to start.
+
+topics:
+  discover_1: what Kestrel runs today, and what Brightwater and Quoteline allow
+  shape_1: what the first release does
+  discover_2: the Signal model, its data and its backtest
+  shape_2: which instruments the coach teaches first
+  grill: what the first release does
+  discover_3: outside counsel's reply
+  grill_2: which instruments come first and where Signal sits
+  boundary: the decided first release
+  discover_4: Brightwater's written reply
+  grill_3: the coach app's page and contracts
+  epics: the Coach team
+  grill_4: handing the coach app to the Coach team
+
+knows:
+  - id: K1
+    category: fact
+    keywords: ["teaches people to trade", "trades for them when", "CEO's line"]
+    fact: The CEO's mandate is one line, "an AI coach that teaches people to trade one stock or option at a time, and trades for them when they're ready", live by March. Nobody has said what it means.
+    owner: CEO
+  - id: K2
+    category: fact
+    keywords: ["TickerTalk", "400,000"]
+    fact: Kestrel's only product is TickerTalk, a free market-news app with about 400,000 monthly users. It holds no money and places no orders.
+    owner: Mobile team
+  - id: K3
+    category: third-party-contract
+    keywords: ["Brightwater", "broker-dealer partner"]
+    fact: Brightwater Securities is the broker-dealer Kestrel signed with in June. Brightwater opens the accounts, holds the money and executes orders, through its API.
+    owner: Partnerships manager
+  - id: K4
+    category: fact
+    keywords: ["Signal", "next-day"]
+    fact: The ML team of three built Signal, a model that predicts next-day price moves for 50 large-cap stocks.
+    owner: ML lead
+  - id: K5
+    category: data-identity
+    keywords: ["watchlist", "reading history"]
+    fact: TickerTalk holds each user's email, watchlists and reading history. Users agreed to it for personalising news.
+    owner: Mobile team
+  - id: K6
+    category: fact
+    keywords: ["Quoteline", "15 minutes", "delayed quotes"]
+    fact: Market data comes from Quoteline, and TickerTalk shows quotes delayed by 15 minutes.
+    owner: Data engineer
+  - id: K7
+    category: timeline
+    keywords: ["board demo", "by March", "January demo"]
+    fact: The board expects a demo in January and a launch by March.
+    owner: CEO
+  - id: K8
+    category: fact
+    keywords: ["mobile team", "six engineers"]
+    fact: The mobile team is six engineers who build and run the TickerTalk iOS and Android apps.
+    owner: Mobile lead
+  - id: K9
+    category: legal-regulatory
+    keywords: ["compliance consultant", "two days a week"]
+    fact: Compliance is one outside consultant who works two days a week for Kestrel.
+    owner: Compliance consultant
+  - id: K10
+    category: finance-liability
+    keywords: ["2.5 million", "this year's budget"]
+    fact: The budget for the coach this year is 2.5 million dollars, including any licences.
+    owner: CFO
+  - id: K11
+    category: fact
+    keywords: ["sandbox", "paper account"]
+    fact: Brightwater offers sandbox paper accounts that take orders through the same API without real money.
+    owner: Partnerships manager
+  - id: K12
+    category: fact
+    keywords: ["outsourced support", "email only"]
+    fact: Customer support is outsourced, email only, weekdays nine to five.
+    owner: Operations manager
+  - id: K13
+    category: data-identity
+    keywords: ["KYC", "account ID back"]
+    fact: Brightwater does the identity checks (KYC) when an account opens and gives Kestrel only an account ID back.
+    owner: Partnerships manager
+  - id: K14
+    category: fact
+    keywords: ["options chain", "no options data"]
+    fact: The current Quoteline package has no options chain data.
+    owner: Data engineer
+
+wrong:
+  - id: W1
+    category: legal-regulatory
+    keywords: ["investment advice", "Regulation Best Interest", "Reg BI", "registered investment adviser"]
+    belief: If we call it coaching or education, it is not investment advice, so nothing needs registering.
+    truth: Telling a customer to trade this stock or this call now is a recommendation whatever it is called. It needs a registered investment adviser, or the broker-dealer's own Regulation Best Interest duty and supervision.
+  - id: W2
+    category: cross-source-mismatch
+    keywords: ["OPRA", "real-time licence", "real-time license", "exchange fees"]
+    belief: Our Quoteline licence lets us show live quotes and options prices in the coach.
+    truth: The licence covers 15-minute delayed equity quotes for display only. Real-time quotes need exchange fees per user, and options prices need an OPRA licence.
+  - id: W3
+    category: finance-liability
+    keywords: ["look-ahead", "lookahead", "survivorship", "out-of-sample"]
+    belief: Signal's backtest shows 31% a year, so the model works.
+    truth: The backtest picks today's 50 largest stocks across 2015 to 2025, which is survivorship bias, uses closing prices it could not have known at the time, and counts no costs. It has never been tested forward.
+  - id: W4
+    category: third-party-contract
+    keywords: ["options agreement", "options approval", "approval level"]
+    belief: Brightwater already lets our users trade options.
+    truth: The agreement covers equities only. Options need Brightwater's options agreement and an options approval level for each customer.
+  - id: W5
+    category: legal-regulatory
+    keywords: ["hypothetical performance", "communications with the public", "2210"]
+    belief: Paper trading and its results need no compliance review.
+    truth: Showing paper or backtested results to customers is a communication with the public, and hypothetical performance rules apply when it leads to live trading.
+
+unaware:
+  - id: U1
+    category: legal-regulatory
+    keywords: ["Options Disclosure Document", "Characteristics and Risks"]
+    gap: Before a customer is approved for options, the broker must deliver the Options Disclosure Document.
+    why: A coach that moves someone from a paper call to a real call has to wait for Brightwater's approval and that document.
+  - id: U2
+    category: legal-regulatory
+    keywords: ["pattern day trader", "pattern day trading", "25,000", "day trades"]
+    gap: Four or more day trades in five business days in a margin account make a customer a pattern day trader, who needs 25,000 dollars of equity.
+    why: A coach that teaches short-term trades can push small accounts into a restriction they never heard of.
+  - id: U3
+    category: finance-liability
+    keywords: ["discretionary", "trading authorization", "trading authorisation", "power of attorney"]
+    gap: Placing trades for a customer without their approval of each one is discretionary authority.
+    why: It needs written authorisation, a registered firm to supervise it, and someone liable for every loss or error. "Trades for them when they're ready" is exactly this.
+  - id: U4
+    category: data-identity
+    keywords: ["new purpose", "training data", "consent for training", "train Signal on"]
+    gap: Users agreed to their watchlists and reading history being used for news. Training Signal on them, or on their trades, is a new purpose.
+    why: It needs fresh consent and a privacy review before any user data goes into the model.
+  - id: U5
+    category: unnamed-stakeholder
+    keywords: ["Brightwater compliance", "Brightwater's compliance", "supervisory approval"]
+    gap: Brightwater's compliance team must approve any third-party app that sends orders or shows trade content to its customers.
+    why: They are not in the room, and their review sits on the path to every live trade.
+  - id: U6
+    category: third-party-contract
+    keywords: ["non-display", "derived data", "derived works"]
+    gap: The Quoteline licence forbids using its data to train models or make derived data without a non-display addendum.
+    why: Signal was trained on Quoteline prices, so the model itself may already breach the licence.
+  - id: U7
+    category: finance-liability
+    keywords: ["early assignment", "assigned early", "assignment risk"]
+    gap: A customer who sells a call can be assigned early and have their shares called away.
+    why: A lesson on covered calls that leaves out assignment teaches a trade whose worst case the customer never saw.
+
+conflicts:
+  - id: C1
+    category: stakeholder-conflict
+    keywords: ["auto-trade", "autopilot", "trade automatically"]
+    who: CEO
+    position: Wants the coach to trade automatically for users who opt in, by March, because that is the demo the board wants.
+  - id: C2
+    category: stakeholder-conflict
+    keywords: ["education only", "no recommendations"]
+    who: Compliance consultant
+    position: Wants education only in year one, with no recommendations and no live trading at all.
+  - id: C3
+    category: stakeholder-conflict
+    keywords: ["beat the market", "31% a year in", "launch ads"]
+    who: Head of Growth
+    position: Wants the launch ads to say "Signal beat the market by 31% a year".
+  - id: C4
+    category: stakeholder-conflict
+    keywords: ["retrain", "every user's trades"]
+    who: ML lead
+    position: Wants every user's trades and reading history to retrain Signal weekly.
+
+decisions:
+  - id: D1
+    category: legal-regulatory
+    keywords: ["first release", "release one"]
+    question: What does the first release of the coach do?
+    options:
+      - lessons and paper trading only
+      - personalised trade ideas the user places themselves
+      - the coach places trades for users who opt in
+    choice: lessons and paper trading only, with the coach walking through one stock or option trade at a time
+    reason: nothing regulated goes live before counsel and Brightwater have read it
+  - id: D2
+    category: finance-liability
+    keywords: ["one stock at a time", "covered call", "long call", "long put"]
+    question: Which instruments does the coach teach first?
+    options:
+      - one large-cap stock at a time
+      - stocks, then covered calls
+      - stocks, calls and puts together
+    choice: one large-cap stock at a time first, then covered calls and long calls and puts, all in paper trading
+    reason: options come after the customer has traded the stock, and only on paper until approval exists
+  - id: D3
+    category: third-party-contract
+    keywords: ["Brightwater holds", "never hold money"]
+    question: Who holds customers' accounts and money?
+    options:
+      - Brightwater, with Kestrel as an app on its API
+      - Kestrel becomes a broker-dealer
+      - nobody, paper only
+    choice: Brightwater, with Kestrel never holding money
+    reason: becoming a broker-dealer takes longer than the whole plan
+  - id: D4
+    category: legal-regulatory
+    keywords: ["where Signal sits", "explains moves", "never suggests"]
+    question: Where does Signal sit in the first release?
+    options:
+      - it explains what moved a stock, after the fact
+      - it suggests trades
+      - it stays out of release one
+    choice: it explains what moved a stock after the fact, and never suggests a trade
+    reason: a suggestion is a recommendation, and nobody has cleared one
+  - id: D5
+    category: third-party-contract
+    keywords: ["Brightwater's quotes", "delayed elsewhere"]
+    question: Where do quotes in the coach come from?
+    options:
+      - stay on Quoteline's delayed quotes
+      - buy a real-time licence from Quoteline
+      - use Brightwater's quotes inside the trade screen, delayed elsewhere
+    choice: use Brightwater's quotes inside the trade screen, delayed elsewhere
+    reason: it costs nothing extra and stays inside a licence someone else holds
+    refuse_until: someone confirms in writing that Brightwater's quotes may be shown inside a third-party app
+  - id: D6
+    category: fact
+    keywords: ["Coach app", "Coach service", "lesson engine"]
+    question: Which app owns the lessons and the paper portfolio?
+    options:
+      - a new Coach service that runs lessons and sends paper orders to Brightwater's sandbox
+      - extend the TickerTalk app to hold them
+      - use Brightwater's sandbox as the whole simulator
+    choice: a new Coach service that runs lessons and sends paper orders to Brightwater's sandbox
+    reason: the news app stays a news app, and the coach can move to live orders later without moving house
+  - id: D7
+    category: fact
+    keywords: ["lessons API", "paper-order API"]
+    question: What does the Coach service offer the mobile app?
+    options:
+      - a lessons and paper-order API the app calls
+      - web pages embedded in the app
+      - a nightly sync
+    choice: a lessons and paper-order API the app calls
+    reason: the app needs answers while the customer is in the lesson
+  - id: D8
+    category: fact
+    keywords: ["hand off", "handoff", "handed off"]
+    question: When is the Coach service handed to the team that builds it?
+    options:
+      - once its boundary and contracts are decided, to the Coach team
+      - now, and let the team define the contracts
+      - after the board demo
+    choice: once its boundary and contracts are decided, to the Coach team
+    reason: the team builds against agreed contracts, and the demo date does not change what they are
+
+docs:
+  - name: ceo-memo.md
+    text: |
+      # From the CEO: the trading coach
+
+      Written 2026-09-28, to the leadership team.
+
+      An AI coach that teaches people to trade one stock or option at a time, and trades for them when they're
+      ready. Live by March, demo to the board in January. Signal is our edge: its backtest beats the market by 31%
+      a year. TickerTalk's 400,000 users are the launch audience. Brightwater handles the brokerage side.
+  - name: brightwater-agreement-summary.md
+    text: |
+      # Brightwater Securities: agreement summary
+
+      Prepared by the partnerships manager, 2026-06-20.
+
+      - Brightwater opens accounts, performs KYC, holds customer money and executes equity orders through its API.
+      - Kestrel receives an account ID and order status. Kestrel never holds customer money.
+      - Scope: equities. Options are not covered by this agreement.
+      - Section 7.2: any customer-facing content about trading that Kestrel shows to Brightwater customers must be
+        approved by Brightwater before use.
+      - Sandbox paper accounts are available for testing.
+  - name: quoteline-licence-summary.md
+    text: |
+      # Quoteline market data licence: summary
+
+      Prepared by the data engineer, 2026-03-02.
+
+      - Display of US equity quotes delayed by 15 minutes, in Kestrel's own apps.
+      - No options data.
+      - Clause 9: no non-display use, including models, algorithms and derived data, without a separate addendum.
+  - name: signal-backtest.md
+    text: |
+      # Signal backtest results
+
+      Prepared by the ML team, 2026-09-10.
+
+      Universe: the 50 largest US stocks by market value as of September 2026. Period: 2015 to 2025. Signal's daily
+      long-short portfolio returned 31% a year against 11% for the index. Entries use each day's closing price.
+      Transaction costs not included. Next step: train on TickerTalk users' watchlists to improve picks.

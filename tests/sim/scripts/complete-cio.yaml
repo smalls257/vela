@@ -3,6 +3,7 @@
 # would. The news is what a lead would have a week later, and the CIO's "don't wait" turns into an override the
 # lead gives once on each of D6-D8 when a gate blocks it. The hidden gaps and wrong beliefs are unchanged.
 name: complete-cio
+persona: coastal-merger
 start: coastal-merger/after-complete-s21
 news:
   knows:
