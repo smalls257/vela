@@ -1258,12 +1258,26 @@ def category_problems(data, persona, category):
     return problems
 
 
+def turn_number(value):
+    """A cited turn as a number: 193, or "T193" and "193" as the judge sometimes writes them. None otherwise."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    found = re.fullmatch(r"\s*T?(\d+)\s*", str(value)) if isinstance(value, str) else None
+    return int(found.group(1)) if found else None
+
+
 def cited(row, turns):
-    """True when row cites a turn that exists and quotes it exactly, give or take whitespace, quotes and emphasis."""
-    turn, quote = row.get("turn"), row.get("quote")
-    if isinstance(turn, bool) or not isinstance(turn, int) or turn not in turns:
+    """True when row cites a turn that exists and quotes it exactly, give or take whitespace, quotes and emphasis.
+    A turn written "T193" counts: the trading run's judge wrote every turn that way, and all its claims were dropped."""
+    turn, quote = turn_number(row.get("turn")), row.get("quote")
+    if turn is None or turn not in turns:
         return False
-    return isinstance(quote, str) and bool(normalise(quote)) and normalise(quote) in normalise(turns[turn])
+    if isinstance(quote, str) and bool(normalise(quote)) and normalise(quote) in normalise(turns[turn]):
+        row["turn"] = turn
+        return True
+    return False
 
 
 def enforce_citations(data, transcript, vault):

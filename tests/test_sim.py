@@ -680,3 +680,11 @@ def test_an_event_must_say_after_which_session():
     assert sim.script_problems({"sessions": sessions, "events": [{"knows": []}]}, persona)
     assert sim.script_problems({"sessions": sessions, "events": [{"after": len(sessions)}]}, persona)
     assert sim.script_problems({"sessions": sessions, "events": [{"after": 1}, {"after": 1}]}, persona)
+
+
+def test_a_turn_cited_as_T193_counts_like_193():
+    turns = {193: "Release one for users is lessons and paper."}
+    assert sim.cited({"turn": "T193", "quote": "release one for users is lessons"}, turns)
+    assert sim.cited({"turn": 193, "quote": "release one for users is lessons"}, turns)
+    assert not sim.cited({"turn": "T194", "quote": "release one"}, turns)
+    assert not sim.cited({"turn": True, "quote": "release one"}, turns)
