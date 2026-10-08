@@ -247,6 +247,7 @@ Write the PR body to a temporary file. Fill the headings of the vault's PR templ
   - **Catalogue proposals:** each entry the user approved, and each entry `--stats` names as one to prune or tighten; or "none".
   - **May still say the old value:** for each `decided` or `fact` value this session changed, run `grep -rn -F "<old wording>" --include='*.md' . | grep -v '^./sessions/'` and list every hit.
   - **Check:** the first line of the check output, and any error left in place.
+  - **Stage:** run `python3 .claude/skills/planner/bin/planner ladder` and copy each line whose `pages reach` is later than its `stage`, word for word; or "none". This is a line in the report, never a question: the lead types `stage` on the app page when they choose, in this session or a later one.
 - **Minutes.** Ask the user how long the session took.
 - **Structural fixes** and **Prose edits.** Write "Filled in by the reviewer."
 

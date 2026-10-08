@@ -36,7 +36,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 
 An area is an app whose `change` is `new` or `changed`, or one of `initiative`, `capabilities`, `concern-<name>` and `epics`. Only apps move through stages. The initiative is at Frame while no app has a stage. Frame is never typed.
 
-`stage` sits on the app's building-blocks page and means "in this stage now". It is typed by hand. The `where-it-stands` block shows counts beside it, so a stage the counts contradict is easy to see. Apps whose `change` is `integrated`, `unchanged` or `retired` sit outside the ladder and take no `stage`.
+`stage` sits on the app's building-blocks page and means "in this stage now". It is typed by hand. `planner ladder` shows, for each app on the ladder, the latest stage whose entry list its pages already meet, with every stage below it, and what the next stage still needs; `planner status` adds `pages reach <stage>` when that is later than the typed stage. Neither changes the stage. The `where-it-stands` block shows counts beside it, so a stage the counts contradict is easy to see. Apps whose `change` is `integrated`, `unchanged` or `retired` sit outside the ladder and take no `stage`.
 
 The ladder checklist. Before typing a stage, check its entry list:
 

@@ -18,7 +18,7 @@ import traceback
 
 import yaml
 
-from planner import catalog, export, handoff, health, model, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
+from planner import catalog, export, handoff, health, ladder, model, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -966,11 +966,36 @@ def oldest_text(row, today):
     return f"{row.oldest.id}, open {days_between(row.opened, today)} days (opened {row.opened})"
 
 
-def status_line(row, today):
+def ladder_note(vault, app):
+    """" | pages reach <stage>" when the app's pages meet a later stage's entry list than its typed stage, else "".
+    Said once, here and in close's report, never asked: the lead types the stage, or leaves it."""
+    reached = ladder.ahead_of_stage(vault, app)
+    return f" | pages reach {reached}" if reached else ""
+
+
+def status_line(row, today, vault=None):
     inkling, assumption, fact, decided = row.mix
     next_text = f"{row.mode} {row.subject}".strip() if row.mode != "none" else "none"
-    return (f"{row.app.id} | stage {row.stage or '-'} | inkling {inkling}, assumption {assumption}, fact {fact}, "
+    note = ladder_note(vault, row.app) if vault is not None else ""
+    return (f"{row.app.id} | stage {row.stage or '-'}{note} | inkling {inkling}, assumption {assumption}, fact {fact}, "
             f"decided {progress.decided_text(row)} | oldest open unknown: {oldest_text(row, today)} | next: {next_text}. {row.reason}")
+
+
+def cmd_ladder(args, out):
+    """For each app on the ladder: its typed stage, the stage its pages reach, and what the next stage still needs."""
+    root = pathlib.Path(args.vault).resolve()
+    vault = load_vault(root)
+    apps = [a for a in vault.apps if a.meta.get("change") in schema.LADDERED_CHANGES]
+    print(f"planner ladder: {len(apps)} apps on the ladder.", file=out)
+    for app in apps:
+        reached, gaps = ladder.allows(vault, app)
+        typed = app.meta.get("stage") or "-"
+        head = f"{app.id} | stage {typed} | pages reach {reached}"
+        if gaps:
+            shown = "; ".join(gaps[:3]) + (f"; and {len(gaps) - 3} more" if len(gaps) > 3 else "")
+            head += f" | next stage needs: {shown}"
+        print(head, file=out)
+    return 0
 
 
 def cmd_status(args, out):
@@ -980,7 +1005,7 @@ def cmd_status(args, out):
     rows = progress.grid(vault, today)
     print(f"planner status: {len(rows)} apps. Today is {today} ({origin}).", file=out)
     for row in rows:
-        print(status_line(row, today), file=out)
+        print(status_line(row, today, vault), file=out)
     return 0
 
 
@@ -1040,6 +1065,9 @@ def build_parser():
     nxt.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nxt.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
     nxt.set_defaults(func=cmd_next)
+    lad = sub.add_parser("ladder", help="each app's typed stage, the stage its pages reach, and what the next needs")
+    lad.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    lad.set_defaults(func=cmd_ladder)
     upgrade = sub.add_parser("upgrade", help="replace the vault's CONVENTIONS.md with the installed plugin's copy")
     upgrade.add_argument("--vault", default=".", help="vault root (default: current directory)")
     upgrade.set_defaults(func=cmd_upgrade)
