@@ -225,7 +225,7 @@ def test_grill_records_a_decision_over_an_open_blocking_question():
 def test_epics_offers_the_e805_override_with_its_exact_bullet():
     epics = text("skills/epics/SKILL.md")
     assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
-    assert "under `## Question ledger`" in epics and "turns E805 into W805, which still prints" in epics
+    assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
     assert "python3 .claude/skills/planner/bin/planner questions --open --digest" in epics
     assert "Leave the gate failing." in epics and "the whole vault, not one team" in epics
     assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics

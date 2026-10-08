@@ -997,7 +997,7 @@ def cmd_style(args, out):
         _, body_start, _ = parse.split_frontmatter(page.text)
         body = "\n".join(page.text.replace("\r\n", "\n").split("\n")[body_start - 1:])
         offset[page.path] = body_start - 1
-        found += [(page, n, why) for n, why in reading.style_problems(body, page.type)]
+        found += [(page, n, why) for n, why in reading.style_problems(body, page.type, parse.KNOWN_LABELS.values())]
     print(f"planner style: {len(found)} to fix in {len(pages)} pages.", file=out)
     for page, n, why in found:
         print(f"{page.path}:{n + offset[page.path]}: {why}", file=out)

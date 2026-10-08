@@ -144,3 +144,27 @@ def test_planner_style_prints_each_problem_with_its_file_line(tmp_path):
             assert lines[n - 1].lstrip().startswith("- **"), row
     assert code in (0, 1) and out.startswith("planner style:")
     assert run("style", "no-such-page", "--vault", str(vault))[0] == 2
+
+
+def test_an_items_fact_bullets_fold_under_its_sentence_and_stay_open_without_one():
+    with_prose = reading.arrange("# A\n\n### CON-001 Entry\n\nThe entry passes the reader's ID to Coach.\n\n"
+                                 "- **Change:** new\n- **State:** decided\n")
+    assert "The entry passes" in with_prose.split("<details><summary>Details</summary>")[0]
+    assert "**Change:** new" in with_prose.split("<details><summary>Details</summary>")[1]
+    bare = reading.arrange("# A\n\n### CON-001 Entry\n\n- **Change:** new\n")
+    assert "<details>" not in bare and "**Change:** new" in bare
+
+
+def test_style_flags_labels_nothing_reads_items_with_no_sentence_and_asides():
+    text = ("# Coach\n\nCoach teaches (the product lead, no source).\n\n- **Brightwater, what it does:** holds money\n\n"
+            "### CON-001 Entry\n\n- **Change:** new\n- **Consumers:** [[t#UNK-002 Name|UNK-002]]\n")
+    problems = [why for _, why in reading.style_problems(text, "app-building-blocks", ["Change", "Consumers"])]
+    assert any("bracketed aside" in p for p in problems)
+    assert any("'Brightwater, what it does' is not a fact bullet" in p for p in problems)
+    assert any("only bullets" in p for p in problems)
+    assert any("a link labelled UNK-002" in p for p in problems)
+
+
+def test_the_question_ledger_folds_in_place():
+    out = reading.arrange("# Unknowns\n\nWhat is open.\n\n## Question ledger\n\n| Copy | State |\n|---|---|\n| Q-1 | open |\n\n## Later\n\nText.\n")
+    assert "<details><summary>Question ledger</summary>" in out and out.index("| Q-1 | open |") < out.index("## Later")

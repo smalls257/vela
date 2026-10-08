@@ -63,6 +63,7 @@ Merged prose belongs to the vault and the people who edited it. When a session c
 ## Numbers and IDs
 
 - Cite a generated block rather than restating its numbers. Write "the open unknowns are listed in Where it stands", not "there are 3 open unknowns".
+- Write paragraphs, not lists. A run of bullets that are not fact bullets is a paragraph waiting to be written. Say who says a thing in the sentence, never in a bracket: "the product lead says", not "(the product lead, no source)".
 - Name things, never number them: no `UNK-027`, `CON-001` or `SRC-06` in a paragraph. Put a link on the words that rely on a source or point at an item, as `CONVENTIONS.md` says under "Pages".
 - Say what is true now. A paragraph never tells how a decision was reached; that is the page's `## History`.
 - Every number, date and ID in a draft must come from a capture, a source or a page. If you cannot point to where it came from, leave it out.

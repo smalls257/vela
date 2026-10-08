@@ -83,6 +83,67 @@ def tidy_prose(text, whole):
     return text
 
 
+# Sections that are a record, not the current state: they fold like History, in place.
+FOLDED_SECTIONS = ("Question ledger",)
+
+
+def fold_records(lines):
+    out, inside = [], False
+    for line in lines:
+        heading = HEADING.match(line)
+        if heading and len(heading.group(1)) <= 2:
+            if inside:
+                out += ["", "</details>", ""]
+                inside = False
+            if heading.group(2).strip() in FOLDED_SECTIONS:
+                out += ["", f"<details><summary>{heading.group(2).strip()}</summary>", ""]
+                inside = True
+                continue
+        out.append(line)
+    if inside:
+        out += ["", "</details>"]
+    return out
+
+
+def fold_item_details(lines):
+    """Under an item heading that opens with prose, its run of bullets folds into "Details": the sentence says what
+    the item is, and the fact bullets are there for whoever wants them. An item with no prose keeps its bullets
+    open, so nothing goes missing."""
+    out, in_item, said, run = [], False, False, []
+
+    def flush():
+        nonlocal run
+        if run and in_item and said:
+            out.extend(["", "<details><summary>Details</summary>", ""] + run + ["", "</details>", ""])
+        else:
+            out.extend(run)
+        run = []
+
+    for line in lines:
+        heading = HEADING.match(line)
+        if heading:
+            flush()
+            words = heading.group(2).split()
+            level = len(heading.group(1))
+            if level <= 3:
+                in_item, said = level == 3, False
+            out.append(line)
+            continue
+        stripped = line.strip()
+        if stripped.startswith(("- ", "* ")) or (run and stripped and line[:1] in " \t"):
+            run.append(line)
+            continue
+        if run and not stripped:
+            run.append(line)
+            continue
+        flush()
+        if in_item and stripped and not stripped.startswith(("|", "<")):
+            said = True
+        out.append(line)
+    flush()
+    return out
+
+
 def drop_empty_sections(lines):
     """A heading with nothing under it before the next heading of its level or higher says nothing to a reader."""
     out = []
@@ -167,7 +228,7 @@ def arrange(markdown):
             moving = True
             continue
         body.append(tidy(line))
-    out = "\n".join(drop_empty_sections(body)).rstrip("\n")
+    out = "\n".join(fold_records(fold_item_details(drop_empty_sections(body)))).rstrip("\n")
     for found in blocks:
         out += "\n\n" + "\n".join(found).rstrip("\n")
     kept = {k: [l for l in v if l.strip()] for k, v in history.items()}
@@ -241,9 +302,18 @@ def visible(line):
                   lambda m: m.group(3) if m.group(3) is not None else (m.group(2) or m.group(1)), line)
 
 
-def style_problems(markdown, page_type):
-    """(line, problem) for each place a page reads as a log rather than a document. Read by `planner style`."""
+LABELLED = re.compile(r"^\s*[-*]\s+\*\*([^*]+?):\*\*")
+ASIDE = re.compile(r"\(([^()]*\b(?:no source|fact|assumption|inkling|decided|SRC-\d+|says|said)\b[^()]*)\)", re.I)
+ID_LABEL = re.compile(rf"\[\[[^\]|]*\|\s*{VAULT_ID}\s*\]\]")
+
+
+def style_problems(markdown, page_type, known_labels=()):
+    """(line, problem) for each place a page reads as a list or a log rather than a document. Read by `planner
+    style`. `known_labels` are the fact-bullet labels `planner check` reads; any other bold label is prose dressed up
+    as data."""
+    known = {label.lower() for label in known_labels}
     problems, in_fence, in_gen, in_history, seen_h2, opening = [], None, False, False, False, 0
+    item_line, item_said = 0, True
     for n, line in enumerate(markdown.split("\n"), 1):
         fence = FENCE.match(line)
         if in_fence:
@@ -262,12 +332,29 @@ def style_problems(markdown, page_type):
             continue
         heading = HEADING.match(line)
         if heading:
+            if item_line and not item_said:
+                problems.append((item_line, "this item has only bullets; open it with a sentence or two that say "
+                                            "what it is now"))
+            item_line, item_said = 0, True
             if len(heading.group(1)) == 2:
                 seen_h2 = True
                 in_history = heading.group(2).strip().lower() == schema.HISTORY_HEADING.lower()
+            words = heading.group(2).split()
+            if len(heading.group(1)) == 3 and words and re.fullmatch(VAULT_ID, words[0]) and not in_history:
+                item_line, item_said = n, False
             continue
         stripped = line.strip()
         if not stripped:
+            continue
+        if ID_LABEL.search(line) and not in_history:
+            problems.append((n, f"a link labelled {ID_LABEL.search(line).group(0).split('|')[-1].rstrip(']')}; "
+                                "label it with the thing's name"))
+        labelled = LABELLED.match(line)
+        if item_line and not item_said and not stripped.startswith(("-", "*", "|")):
+            item_said = True
+        if labelled and not HISTORY_BULLET.match(line) and labelled.group(1).strip().lower() not in known and not in_history:
+            problems.append((n, f"'{labelled.group(1).strip()}' is not a fact bullet planner check reads; write it as "
+                                "prose"))
             continue
         if HISTORY_BULLET.match(line) and not in_history:
             problems.append((n, f"{HISTORY_BULLET.match(line).group(1)} bullet sits above ## History; move it there"))
@@ -276,12 +363,17 @@ def style_problems(markdown, page_type):
             and not BREADCRUMB.match(stripped)
         if prose and not seen_h2:
             opening += 1
+        if prose and not in_history and ASIDE.search(stripped):
+            problems.append((n, f"a bracketed aside, ({ASIDE.search(stripped).group(1)[:40]}); say it in the sentence, "
+                                "as \"the product lead says\" or a link on the words"))
         if prose and not in_history:
             if re.search(r"\(\s*SRC-\d+", stripped) or re.search(r"\bSRC-\d+\b", visible(stripped)):
                 problems.append((n, "a bare source ID in prose; put the link on the words that rely on it"))
             elif BARE_ID.search(visible(stripped)):
                 problems.append((n, f"an ID ({BARE_ID.search(visible(stripped)).group(0)}) in prose; name the thing, "
                                     "and link the name"))
+    if item_line and not item_said:
+        problems.append((item_line, "this item has only bullets; open it with a sentence or two that say what it is now"))
     if page_type in PROSE_PAGE_TYPES and opening == 0:
         problems.append((1, "no opening prose: the page should say in a paragraph or two what is true now"))
     return problems
