@@ -688,3 +688,12 @@ def test_a_turn_cited_as_T193_counts_like_193():
     assert sim.cited({"turn": 193, "quote": "release one for users is lessons"}, turns)
     assert not sim.cited({"turn": "T194", "quote": "release one"}, turns)
     assert not sim.cited({"turn": True, "quote": "release one"}, turns)
+
+
+def test_a_lead_turn_that_says_a_brief_id_is_flagged(tmp_path):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    t.add(session=1, mode="grill", speaker="lead", text="I'll lock D1 now.", turn=1)
+    t.add(session=1, mode="grill", speaker="lead", text="UNK-004 and CON-001 are fine, and so is option D.", turn=3)
+    assert sim.leaked_brief_ids(t) == [1]
+    rules = sim.persona_prompt(coastal())
+    assert "Never report what someone said back" in rules and "are your private notes" in rules

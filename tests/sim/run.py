@@ -527,7 +527,11 @@ Rules, in order of priority:
 10. Say a worry once. Do not repeat a worry, a deadline or a blocker you have already said in this session unless
    the assistant asks about it. Answer what the assistant asked, then let it move on.
 11. You can do nothing outside this chat. Never say you ran a command or a skill, sent or received a message, made
-   a call or got a reply, unless one of your facts says it happened. You may say once what you will do later.
+   a call or got a reply, unless one of your facts says it happened. Never report what someone said back, such as
+   "Back from the CEO, they said...": if asked what someone thinks and no fact says, say you have not heard yet.
+   You may say once what you will do later.
+12. The IDs in this brief (K1, W2, C3, D4 and the like) are your private notes. Never say them, and never call a
+   belief or a decision by its ID: say it in your own words.
 
 Your opening worry: {opening}
 
@@ -1416,6 +1420,14 @@ def score_arm(arm):
 DRAFTED_MESSAGE = re.compile(r"^(?:>\s*)*(?:\*\*)?Subject:(?:\*\*)?\s|^(?:>\s*)*(?:Hi|Hello|Dear)\s+[^\n,]{1,40},\s*$", re.M)
 
 
+BRIEF_ID = re.compile(r"(?<![\w-])[KWCUD]\d{1,2}(?![\w-])")
+
+
+def leaked_brief_ids(transcript):
+    """Lead turns that say an ID of the hidden brief, such as "I'll lock D1". The persona is told never to."""
+    return [e["turn"] for e in transcript.spoken() if e["speaker"] == "lead" and BRIEF_ID.search(e["text"])]
+
+
 def drafted_messages(transcript):
     """Assistant turns holding a message for the lead to send: a "Subject:" line or a salutation. The skills say Claude never
     drafts one, so this is counted by code, not left to the judge."""
@@ -1431,6 +1443,9 @@ def build_scorecard(arm, data, hits):
     card["judge_calls"] = arm.judge_calls
     card["max_questions_in_one_turn"] = max_questions(arm.transcript)
     card["drafted_messages"] = drafted_messages(arm.transcript)
+    leaks = leaked_brief_ids(arm.transcript)
+    if leaks:
+        card["check_these"].append(f"persona: said a brief ID in {len(leaks)} turns ({', '.join(f'T{t}' for t in leaks[:8])})")
     card["endings"] = arm.endings
     card["spent_usd"] = round(arm.prior_spent + arm.ledger.spent, 4)
     card["judge_usd"] = round(sum(c["cost_usd"] for c in arm.judge_calls), 4)
