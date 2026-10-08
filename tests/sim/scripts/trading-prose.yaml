@@ -1,0 +1,80 @@
+# A short check of the reading-as-current-state skills: one grill on the TickerTalk pages, then close, which must
+# rewrite the opening prose of each page it changed, put history under ## History, and pass planner style.
+name: trading-prose
+persona: trading-coach
+start: trading-coach/after-handoff-grill-s25
+news:
+  knows:
+  - id: K15
+    category: legal-regulatory
+    keywords:
+    - outside counsel
+    - counsel's reply
+    fact: 'Outside counsel replied on 20 October: lessons and paper trading may launch once marketing is reviewed. Any trade
+      idea for a particular customer is a recommendation, allowed only under Brightwater''s supervision. No trading on a customer''s
+      behalf in release one.'
+    owner: Outside counsel
+  - id: K16
+    category: third-party-contract
+    keywords:
+    - Brightwater replied
+    - Brightwater's reply
+    - content review
+    fact: 'Brightwater replied in writing on 3 November: the Coach service may send paper orders to the sandbox and show Brightwater''s
+      quotes in its trade screens; every lesson goes through Brightwater''s content review, ten business days; live options
+      need its options agreement.'
+    owner: Partnerships manager
+  - id: K17
+    category: fact
+    keywords:
+    - Coach team
+    - four engineers
+    fact: 'The Coach team is formed: four engineers from the ML and mobile teams. Its lead will take the Coach service at
+      handoff and own its epics.'
+    owner: CTO
+  - id: K18
+    category: fact
+    keywords:
+    - Coach lead
+    - '@coach-lead'
+    fact: 'The CTO named the Coach lead on 9 October: GitHub handle @coach-lead. They have read the Coach pages, will take
+      the Coach service at handoff, own its runtime and support, and own its epics.'
+    owner: CTO
+  docs:
+  - name: counsel-reply.md
+    text: '# From outside counsel, 20 October
+
+
+      Lessons and paper trading may launch once the marketing and any shown results are reviewed. A trade idea for a particular
+      customer, this stock or this option now, is a recommendation: it is allowed only as Brightwater''s recommendation, under
+      its Regulation Best Interest duty and its supervision. Kestrel must not trade on a customer''s behalf in the first release.
+      Options lessons are education; a live options trade needs Brightwater''s options approval for that customer.'
+  - name: brightwater-reply.md
+    text: '# From Brightwater Securities, 3 November
+
+
+      The Coach service may send paper orders to the sandbox through the existing API, and may show Brightwater''s quotes
+      inside its trade screens. Every lesson and screen shown to Brightwater customers goes through our content review first,
+      which takes ten business days. Live options trading needs our options agreement and each customer''s options approval.'
+  decisions:
+  - id: D5
+    override_if_blocked: the CEO wants the January demo, and counsel's reply says the first release may go ahead as lessons
+      and paper trading; the open questions go to the build team as named risks with owners
+  - id: D6
+    override_if_blocked: the CEO wants the January demo, and counsel's reply says the first release may go ahead as lessons
+      and paper trading; the open questions go to the build team as named risks with owners
+  - id: D7
+    override_if_blocked: the CEO wants the January demo, and counsel's reply says the first release may go ahead as lessons
+      and paper trading; the open questions go to the build team as named risks with owners
+  - id: D8
+    override_if_blocked: the CEO wants the January demo, and counsel's reply says the first release may go ahead as lessons
+      and paper trading; the open questions go to the build team as named risks with owners
+sessions:
+- mode: grill
+  cap: 16
+  planner: /planner:grill the TickerTalk page and its runtime page
+  baseline: Take me through the TickerTalk page and its runtime page and record what I decide, following CONVENTIONS.md.
+- mode: close
+  cap: 12
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
