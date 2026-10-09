@@ -18,7 +18,7 @@ import traceback
 
 import yaml
 
-from planner import catalog, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
+from planner import catalog, completeness, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -1029,6 +1029,7 @@ def cmd_status(args, out):
     print(f"planner status: {len(rows)} apps. Today is {today} ({origin}).", file=out)
     for row in rows:
         print(status_line(row, today, vault), file=out)
+    print(completeness.line(vault), file=out)
     return 0
 
 

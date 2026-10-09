@@ -21,8 +21,8 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | `dump` | captures only, and the `## Reviews` of its checkpoint | promoted items at `inkling`, unknowns with owner and ask-by, question ledger rows |
 | `discover` | `sources.md` rows; facts after each correction round, with sources, and the parties and stored value they name | prose, question ledger rows |
 | `shape` | captures only, and the `## Reviews` of its checkpoint | `assumption` items with `**Options considered:**`, question ledger rows |
-| `boundary` | a stub page and `unexamined` concern rows for each app of the picked cut; then, after each sheet's yeses, the app page, its containers and contracts, its runtime page, its concern cells and the unknowns they link, at `assumption`, with a checkpoint commit | prose, question ledger rows |
-| `grill` | each decided item as its branch closes, with a checkpoint commit | prose, read-back, question ledger rows |
+| `boundary` | a stub page and `unexamined` concern rows for each app of the picked cut; then, after each sheet's yeses, the app page, its containers and contracts, its runtime page, its capability and flow pages, its concern cells and the unknowns they link, at `assumption`, with a checkpoint commit | prose, question ledger rows |
+| `grill` | each decided item as its branch closes, with a checkpoint commit | prose, read-back, question ledger rows, decision records for decided pages, glossary terms |
 | `epics` | `draft` epic pages, bullets and criteria only; `decided` only inside its Grill part | epic description paragraphs |
 | `requirements` | requirements on the capability page at `assumption`; unknowns | prose |
 | `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |

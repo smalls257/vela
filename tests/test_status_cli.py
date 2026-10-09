@@ -78,3 +78,9 @@ def test_check_warns_when_the_vaults_conventions_are_not_the_plugins_and_upgrade
     assert (tmp_path / "CONVENTIONS.md").read_bytes() == (REPO / "template" / "CONVENTIONS.md").read_bytes()
     assert "W717" not in run("check", "--vault", str(tmp_path), "--today", "2026-01-15")[1]
     assert run("upgrade", "--vault", str(tmp_path))[1].startswith("planner upgrade: CONVENTIONS.md is already")
+
+
+def test_status_ends_with_a_completeness_line_that_never_says_done():
+    code, out = run("status", "--vault", str(FIXTURE), "--today", "2026-11-20")
+    last = out.strip().splitlines()[-1]
+    assert last.startswith("Completeness: ") and "items settled 22 of 22" in last and "done" not in last.lower()
