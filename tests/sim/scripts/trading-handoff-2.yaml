@@ -1,0 +1,174 @@
+# The handoff again, from the vault the full trading run left, now that the CTO has named the Coach lead.
+name: trading-handoff-2
+persona: trading-coach
+start: trading-coach/after-full-26
+news:
+  knows:
+  - id: K15
+    category: legal-regulatory
+    keywords:
+    - outside counsel
+    - counsel's reply
+    fact: 'Outside counsel replied on 8 October: lessons and paper trading may launch once marketing is reviewed. Any trade
+      idea for a particular customer is a recommendation, allowed only under Brightwater''s supervision. No trading on a customer''s
+      behalf in release one.'
+    owner: Outside counsel
+  - id: K19
+    category: fact
+    keywords:
+    - CEO's note
+    - paper-only first release
+    fact: 'The CEO wrote on 6 October: release one is lessons and paper trading on a fixed list of US stocks, and is accepted
+      as a first release if the January board demo shows where it goes next. Trading for customers waits for a later release,
+      after counsel and Brightwater sign off. The CEO settles disagreements with compliance once counsel has ruled.'
+    owner: CEO
+  - id: K20
+    category: legal-regulatory
+    keywords:
+    - fixed list
+    - same list for every reader
+    fact: Counsel's reply also clears a fixed list of about 50 US stocks, shown to every reader alike as teaching material,
+      as education rather than advice. The ruling is in writing, dated 8 October.
+    owner: Outside counsel
+  - id: K21
+    category: finance-liability
+    keywords:
+    - CFO holds
+    - content writer
+    fact: The CFO holds the 2.5 million dollar budget for the coach's first year, licences included. The product lead owns
+      the stock list and the lessons, written by a contracted content writer and paid from that budget.
+    owner: CFO
+  - id: K22
+    category: fact
+    keywords:
+    - '@mobile-lead'
+    - two engineers
+    fact: The mobile lead, @mobile-lead, confirmed on 7 October that two mobile engineers can build the coach entry by March.
+      The compliance consultant reviews each lesson before it ships.
+    owner: Mobile lead
+  - id: K23
+    category: third-party-contract
+    keywords:
+    - Quoteline replied
+    - display use
+    fact: 'Quoteline replied on 7 October: showing delayed quotes inside lessons is display use and the licence allows it.
+      Using its prices to train or run Signal is non-display use and needs an addendum with its own fees; clause 9 says the
+      same.'
+    owner: Data engineer
+  - id: K24
+    category: third-party-contract
+    keywords:
+    - all US-listed equities
+    - sandbox covers
+    fact: Partnerships confirmed that Brightwater's sandbox covers all US-listed equities, and Quoteline's delayed feed covers
+      every stock on the list.
+    owner: Partnerships manager
+  - id: K25
+    category: fact
+    keywords:
+    - not forward-tested
+    - Signal stays out
+    fact: The ML lead accepts that Signal's backtest was never tested forward, agrees Signal stays out of release one, and
+      will own and retrain it afterwards.
+    owner: ML lead
+  - id: K26
+    category: legal-regulatory
+    keywords:
+    - year one starts
+    - any real order
+    fact: Year one starts at the March launch. Compliance's 'no live trading' covers any real order, including one placed
+      through Brightwater.
+    owner: Compliance consultant
+  - id: K27
+    category: third-party-contract
+    keywords:
+    - Partnerships read
+    - 90 days
+    fact: 'Partnerships read the signed Brightwater agreement on 8 October: equities only; Kestrel never holds money; Brightwater
+      holds customers'' balances as its own customers'' money; options need a separate agreement; either side may exit with
+      90 days'' notice.'
+    owner: Partnerships manager
+  - id: K16
+    category: third-party-contract
+    keywords:
+    - Brightwater replied
+    - Brightwater's reply
+    - content review
+    fact: 'Brightwater replied in writing on 3 November: the Coach service may send paper orders to the sandbox and show Brightwater''s
+      quotes in its trade screens; every lesson goes through Brightwater''s content review, ten business days; live options
+      need its options agreement.'
+    owner: Partnerships manager
+  - id: K17
+    category: fact
+    keywords:
+    - Coach team
+    - four engineers
+    fact: 'The Coach team is formed: four engineers from the ML and mobile teams. Its lead will take the Coach service at
+      handoff and own its epics.'
+    owner: CTO
+  - id: K29
+    category: fact
+    keywords:
+    - '@coach-lead'
+    - CTO named
+    fact: 'The CTO named the Coach team lead on 9 October: GitHub handle @coach-lead. They have read the Coach pages, will
+      take the Coach service at handoff, and own its runtime, its support and its epics.'
+    owner: CTO
+  docs:
+  - name: counsel-reply.md
+    text: '# From outside counsel, 8 October
+
+
+      Lessons and paper trading may launch once the marketing and any shown results are reviewed. A trade idea for a particular
+      customer, this stock or this option now, is a recommendation: it is allowed only as Brightwater''s recommendation, under
+      its Regulation Best Interest duty and its supervision. Kestrel must not trade on a customer''s behalf in the first release.
+      Options lessons are education; a live options trade needs Brightwater''s options approval for that customer.'
+  - name: ceo-note.md
+    text: '# From the CEO, 6 October
+
+
+      Release one is lessons and paper trading on a fixed list of US stocks. I accept that as the first release if the January
+      board demo shows where it goes next. Trading for customers waits for a later release, after counsel and Brightwater
+      sign off. Where compliance and I disagree, I decide once counsel has ruled.'
+  - name: quoteline-reply.md
+    text: '# From Quoteline, 7 October
+
+
+      Showing delayed quotes inside lessons is display use, which your licence allows. Using our prices to train or run a
+      model is non-display use and needs an addendum with its own fees, as clause 9 says.'
+  - name: agreement-read.md
+    text: '# Partnerships: the signed Brightwater agreement, read in full, 8 October
+
+
+      Equities only. Kestrel never holds customer money; Brightwater holds customers'' balances as its own customers'' money.
+      Options need a separate options agreement. The sandbox covers all US-listed equities. Either side may exit with 90 days''
+      notice.'
+  - name: brightwater-reply.md
+    text: '# From Brightwater Securities, 3 November
+
+
+      The Coach service may send paper orders to the sandbox through the existing API, and may show Brightwater''s quotes
+      inside its trade screens. Every lesson and screen shown to Brightwater customers goes through our content review first,
+      which takes ten business days. Live options trading needs our options agreement and each customer''s options approval.'
+  decisions:
+  - id: D5
+    override_if_blocked: the CEO wants the January demo, and counsel's reply says the first release may go ahead as lessons
+      and paper trading; the open questions go to the build team as named risks with owners
+  - id: D6
+    override_if_blocked: the CEO wants the January demo, and counsel's reply says the first release may go ahead as lessons
+      and paper trading; the open questions go to the build team as named risks with owners
+  - id: D7
+    override_if_blocked: the CEO wants the January demo, and counsel's reply says the first release may go ahead as lessons
+      and paper trading; the open questions go to the build team as named risks with owners
+  - id: D8
+    override_if_blocked: the CEO wants the January demo, and counsel's reply says the first release may go ahead as lessons
+      and paper trading; the open questions go to the build team as named risks with owners
+sessions:
+- mode: grill
+  cap: 18
+  planner: /planner:grill handing the coach app to the Coach team lead, @coach-lead
+  baseline: Take me through handing the coach app to the Coach team lead, @coach-lead, and record it, following CONVENTIONS.md.
+- mode: close
+  cap: 12
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
