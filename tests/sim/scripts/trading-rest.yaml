@@ -1,6 +1,7 @@
 # The trading run from session 13, after counsel's reply and the answers a lead would have back by then: the CEO,
 # Quoteline, Partnerships, the mobile lead and the ML lead. Brightwater's reply and the Coach team still arrive
-# after the boundary session. More answers can be dropped into the arm's news-inbox while it runs.
+# after the boundary session. More answers can be dropped into the arm's news-inbox while it runs. Every reply is
+# dated on or before the run's today, 2026-10-09: the first run's lead noticed replies dated after it.
 name: trading-rest
 persona: trading-coach
 start: trading-coach/after-s12
@@ -11,7 +12,7 @@ news:
     keywords:
     - outside counsel
     - counsel's reply
-    fact: 'Outside counsel replied on 20 October: lessons and paper trading may launch once marketing is reviewed. Any trade
+    fact: 'Outside counsel replied on 8 October: lessons and paper trading may launch once marketing is reviewed. Any trade
       idea for a particular customer is a recommendation, allowed only under Brightwater''s supervision. No trading on a customer''s
       behalf in release one.'
     owner: Outside counsel
@@ -20,7 +21,7 @@ news:
     keywords:
     - CEO's note
     - paper-only first release
-    fact: 'The CEO wrote on 13 October: release one is lessons and paper trading on a fixed list of US stocks, and is accepted
+    fact: 'The CEO wrote on 6 October: release one is lessons and paper trading on a fixed list of US stocks, and is accepted
       as a first release if the January board demo shows where it goes next. Trading for customers waits for a later release,
       after counsel and Brightwater sign off. The CEO settles disagreements with compliance once counsel has ruled.'
     owner: CEO
@@ -30,7 +31,7 @@ news:
     - fixed list
     - same list for every reader
     fact: Counsel's reply also clears a fixed list of about 50 US stocks, shown to every reader alike as teaching material,
-      as education rather than advice. The ruling is in writing, dated 20 October.
+      as education rather than advice. The ruling is in writing, dated 8 October.
     owner: Outside counsel
   - id: K21
     category: finance-liability
@@ -45,7 +46,7 @@ news:
     keywords:
     - '@mobile-lead'
     - two engineers
-    fact: The mobile lead, @mobile-lead, confirmed on 14 October that two mobile engineers can build the coach entry by March.
+    fact: The mobile lead, @mobile-lead, confirmed on 7 October that two mobile engineers can build the coach entry by March.
       The compliance consultant reviews each lesson before it ships.
     owner: Mobile lead
   - id: K23
@@ -53,7 +54,7 @@ news:
     keywords:
     - Quoteline replied
     - display use
-    fact: 'Quoteline replied on 14 October: showing delayed quotes inside lessons is display use and the licence allows it.
+    fact: 'Quoteline replied on 7 October: showing delayed quotes inside lessons is display use and the licence allows it.
       Using its prices to train or run Signal is non-display use and needs an addendum with its own fees; clause 9 says the
       same.'
     owner: Data engineer
@@ -86,13 +87,13 @@ news:
     keywords:
     - Partnerships read
     - 90 days
-    fact: 'Partnerships read the signed Brightwater agreement on 15 October: equities only; Kestrel never holds money; Brightwater
+    fact: 'Partnerships read the signed Brightwater agreement on 8 October: equities only; Kestrel never holds money; Brightwater
       holds customers'' balances as its own customers'' money; options need a separate agreement; either side may exit with
       90 days'' notice.'
     owner: Partnerships manager
   docs:
   - name: counsel-reply.md
-    text: '# From outside counsel, 20 October
+    text: '# From outside counsel, 8 October
 
 
       Lessons and paper trading may launch once the marketing and any shown results are reviewed. A trade idea for a particular
@@ -100,20 +101,20 @@ news:
       its Regulation Best Interest duty and its supervision. Kestrel must not trade on a customer''s behalf in the first release.
       Options lessons are education; a live options trade needs Brightwater''s options approval for that customer.'
   - name: ceo-note.md
-    text: '# From the CEO, 13 October
+    text: '# From the CEO, 6 October
 
 
       Release one is lessons and paper trading on a fixed list of US stocks. I accept that as the first release if the January
       board demo shows where it goes next. Trading for customers waits for a later release, after counsel and Brightwater
       sign off. Where compliance and I disagree, I decide once counsel has ruled.'
   - name: quoteline-reply.md
-    text: '# From Quoteline, 14 October
+    text: '# From Quoteline, 7 October
 
 
       Showing delayed quotes inside lessons is display use, which your licence allows. Using our prices to train or run a
       model is non-display use and needs an addendum with its own fees, as clause 9 says.'
   - name: agreement-read.md
-    text: '# Partnerships: the signed Brightwater agreement, read in full, 15 October
+    text: '# Partnerships: the signed Brightwater agreement, read in full, 8 October
 
 
       Equities only. Kestrel never holds customer money; Brightwater holds customers'' balances as its own customers'' money.
