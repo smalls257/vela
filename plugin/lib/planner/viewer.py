@@ -473,8 +473,9 @@ function buildTree(filter) {
     return s + '</ul>';
   }
   const idle = f ? [] : pages.filter(p => p.not_started);
-  ui.tree.innerHTML = html(root) + (idle.length ? `<div class="not-started">Not started: ${idle.map(p =>
-    `<a href="#/${encodeURIComponent(p.name)}">${esc(p.title)}</a>`).join(', ')}</div>` : '');
+  // One page per row, like the rest of the menu: nav links are blocks, so a comma between them took a row of its own.
+  ui.tree.innerHTML = html(root) + (idle.length ? `<div class="not-started">Not started<ul>${idle.map(p =>
+    `<li><a href="#/${encodeURIComponent(p.name)}" data-name="${esc(p.name)}">${esc(p.title)}</a></li>`).join('')}</ul></div>` : '');
 }
 
 const backlinks = new Map();
