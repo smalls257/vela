@@ -938,9 +938,12 @@ class Arm:
         for note in self.notes:
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
         events = {e["after"]: e for e in script.get("events") or []}
+        inbox = self.dir / "news-inbox"
+        (inbox / "applied").mkdir(parents=True, exist_ok=True)
         for index, session in enumerate(script["sessions"], 1):
             if index - 1 in events:
                 self.arrive(index, session["mode"], events[index - 1])
+            self.arrive_live(index, session["mode"], inbox)
             if self.ledger.session_room() < MIN_CALL_USD:
                 self.endings.append({"session": index, "mode": session["mode"], "reason": "not run: budget", "turns": 0})
                 self.transcript.add(speaker="driver", session=index, mode=session["mode"], event="session-skipped",
@@ -962,6 +965,22 @@ class Arm:
                 f"decision changes {', '.join(d['id'] for d in news.get('decisions') or [])}" if news.get("decisions") else ""]
         self.transcript.add(speaker="driver", session=index, mode=mode, event="news",
                             text=f"News arrives after session {event['after']}: " + "; ".join(s for s in said if s))
+
+    def arrive_live(self, index, mode, inbox):
+        """News dropped into the arm's news-inbox while the run goes on: each *.yaml there, in name order, holds
+        the same keys as a script's news. It reaches the lead before the next session and moves to applied/, so
+        a person watching can answer what a lead would get back in the world. A file that is not valid news is
+        refused loudly and left where it is, never half applied."""
+        for path in sorted(inbox.glob("*.yaml")):
+            try:
+                news = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            except yaml.YAMLError as exc:
+                raise ToolFailure(f"{path} is not YAML: {exc}") from exc
+            problems = news_problems(news)
+            if problems:
+                raise ToolFailure(f"{path} is not valid news: " + "; ".join(problems))
+            self.arrive(index, mode, {"after": index - 1, **news})
+            path.rename(inbox / "applied" / path.name)
 
     def early(self):
         return any(e["reason"] != "persona-end" for e in self.endings)

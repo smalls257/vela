@@ -697,3 +697,23 @@ def test_a_lead_turn_that_says_a_brief_id_is_flagged(tmp_path):
     assert sim.leaked_brief_ids(t) == [1]
     rules = sim.persona_prompt(coastal())
     assert "Never report what someone said back" in rules and "are your private notes" in rules
+
+
+def test_news_dropped_into_the_inbox_reaches_the_lead_before_the_next_session(tmp_path):
+    persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+    arm = sim.Arm.__new__(sim.Arm)
+    arm.persona, arm.vault, arm.dir = persona, tmp_path / "vault", tmp_path
+    arm.vault.mkdir()
+    arm.transcript = sim.Transcript(tmp_path / "t.jsonl")
+    inbox = tmp_path / "news-inbox"
+    (inbox / "applied").mkdir(parents=True)
+    (inbox / "01-counsel.yaml").write_text(yaml.safe_dump({"knows": [
+        {"id": "K90", "category": "fact", "keywords": ["counsel cleared"], "fact": "Counsel cleared the list."}]}),
+        encoding="utf-8")
+    arm.arrive_live(13, "discover", inbox)
+    assert any(k["id"] == "K90" for k in arm.persona["knows"])
+    assert (inbox / "applied" / "01-counsel.yaml").is_file() and not (inbox / "01-counsel.yaml").exists()
+    (inbox / "02-bad.yaml").write_text("rumours: []\n", encoding="utf-8")
+    with pytest.raises(sim.ToolFailure):
+        arm.arrive_live(14, "close", inbox)
+    assert (inbox / "02-bad.yaml").exists()
