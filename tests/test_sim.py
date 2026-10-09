@@ -717,3 +717,12 @@ def test_news_dropped_into_the_inbox_reaches_the_lead_before_the_next_session(tm
     with pytest.raises(sim.ToolFailure):
         arm.arrive_live(14, "close", inbox)
     assert (inbox / "02-bad.yaml").exists()
+
+
+def test_a_lead_turn_that_claims_an_action_outside_the_chat_is_flagged(tmp_path):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    t.add(session=1, mode="grill", speaker="lead", text="Shape's done. It's pushed, session/x.", turn=1)
+    t.add(session=1, mode="grill", speaker="lead", text="Spoke to the consultant, she said yes.", turn=3)
+    t.add(session=1, mode="grill", speaker="lead", text="I'll ask the consultant tomorrow.", turn=5)
+    assert sim.claimed_actions(t) == [1, 3]
+    assert "You cannot run commands" in sim.persona_prompt(coastal())

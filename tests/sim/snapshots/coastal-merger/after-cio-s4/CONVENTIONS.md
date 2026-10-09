@@ -224,6 +224,8 @@ Each concern page holds one cell per app in a table headed `App | State | ...`. 
 - `unknown`: an open unknown must be answered first. The row links it.
 - `unexamined`: nobody has looked. An app with no row counts as `unexamined (no row)`.
 
+**Who writes a cell.** `unchanged`, `n/a` (with why) and `unknown` (linking its open unknown) state what is so, not a choice, so any mode writes them on the lead's yes, and close writes them from a capture that says so. A cell whose unknown is resolved moves on in the same session: to `unchanged` or `n/a` if the answer says nothing changes, or it waits for a Grill. Only `addressed` is a decision, and only a Grill writes it. A Grill takes a cell to its agenda when the lead states what the initiative does for the app under the concern: that statement is the cell's preferred option, and a cell with no real choice needs no rejected options.
+
 A waiver records that an `addressed` cell needs no epic work. The cell text starts `no work (@handle, review YYYY-MM-DD): <reason>`.
 
 ## Questions and the ledger

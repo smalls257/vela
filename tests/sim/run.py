@@ -522,8 +522,8 @@ Rules, in order of priority:
    record, say yes. If it says gh failed and asks for your handle, it is {handle}. If it asks for reviewers or
    owners nobody named, name a role, never invent a person.
 8. Anything you were not given, you do not know. Say "honestly not sure" rather than invent a fact.
-9. When the assistant says the session is over, or tells you to run another command and has nothing left to
-   ask you, reply with exactly {end} and nothing else.
+9. When the assistant says the session is over, or tells you to run a command, reply with exactly {end} and
+   nothing else. You cannot run commands; the next session is how a command runs.
 10. Say a worry once. Do not repeat a worry, a deadline or a blocker you have already said in this session unless
    the assistant asks about it. Answer what the assistant asked, then let it move on.
 11. You can do nothing outside this chat. Never say you ran a command or a skill, sent or received a message, made
@@ -1442,6 +1442,18 @@ DRAFTED_MESSAGE = re.compile(r"^(?:>\s*)*(?:\*\*)?Subject:(?:\*\*)?\s|^(?:>\s*)*
 BRIEF_ID = re.compile(r"(?<![\w-])[KWCUD]\d{1,2}(?![\w-])")
 
 
+CLAIMED_ACTION = re.compile(
+    r"\b(?:i\s+(?:just\s+)?(?:ran|pushed|ran it|spoke to|talked to|called|checked with|caught)|just ran|it'?s pushed|"
+    r"shape'?s done|(?:back|heard back) from|spoke to|caught them|(?:they|she|he) (?:said|confirmed|replied|wrote)|"
+    r"got (?:the|their) (?:answer|name|reply))\b", re.I)
+
+
+def claimed_actions(transcript):
+    """Lead turns that report something done outside the chat, such as running a command, pushing a branch, or a
+    reply from someone. The persona cannot do any of that, so each one is something it made up."""
+    return [e["turn"] for e in transcript.spoken() if e["speaker"] == "lead" and CLAIMED_ACTION.search(e["text"])]
+
+
 def leaked_brief_ids(transcript):
     """Lead turns that say an ID of the hidden brief, such as "I'll lock D1". The persona is told never to."""
     return [e["turn"] for e in transcript.spoken() if e["speaker"] == "lead" and BRIEF_ID.search(e["text"])]
@@ -1462,6 +1474,10 @@ def build_scorecard(arm, data, hits):
     card["judge_calls"] = arm.judge_calls
     card["max_questions_in_one_turn"] = max_questions(arm.transcript)
     card["drafted_messages"] = drafted_messages(arm.transcript)
+    claimed = claimed_actions(arm.transcript)
+    if claimed:
+        card["check_these"].append(f"persona: claimed an action outside the chat in {len(claimed)} turns "
+                                   f"({', '.join(f'T{t}' for t in claimed[:8])}); read them before trusting what followed")
     leaks = leaked_brief_ids(arm.transcript)
     if leaks:
         card["check_these"].append(f"persona: said a brief ID in {len(leaks)} turns ({', '.join(f'T{t}' for t in leaks[:8])})")
