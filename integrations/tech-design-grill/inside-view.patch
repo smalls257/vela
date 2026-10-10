@@ -1,0 +1,83 @@
+diff -ruN a/tech-design-grill/FRONTMATTER-FORMAT.md b/tech-design-grill/FRONTMATTER-FORMAT.md
+--- a/tech-design-grill/FRONTMATTER-FORMAT.md
++++ b/tech-design-grill/FRONTMATTER-FORMAT.md
+@@ -20,6 +20,7 @@
+     acknowledged_by: <who said to go ahead with it>
+     why: <their reason>
+     revisit: <when, or the condition that reopens it>
++    oq: <OQ-XXX, when the gap is an open question; else omitted>
+ last_session: <ISO 8601 timestamp>   # auto-updated by skill on save
+ prereqs:                       # optional list, may be []
+   - path: docs/requirements/<slug>.md
+diff -ruN a/tech-design-grill/TECH-DESIGN-FORMAT.md b/tech-design-grill/TECH-DESIGN-FORMAT.md
+--- a/tech-design-grill/TECH-DESIGN-FORMAT.md
++++ b/tech-design-grill/TECH-DESIGN-FORMAT.md
+@@ -13,6 +13,11 @@
+ prereqs:
+   - path: docs/requirements/<slug>.md
+     expected_status: complete
++vault:                     # vault mode only, else omitted
++  app: <APP-id>
++  initiative: <INI-nnn>
++  commit: <short sha the design read>
++  origin: <vault remote URL>
+ ---
+ 
+ # Tech Design — <Title>
+@@ -30,13 +35,15 @@
+ - Owns: <data / decisions>
+ - Depends on: <other components>
+ - Exposes: <surface>
++- Container: <the container it runs in; in vault mode, a Container name from the app page's main containers table>
+ 
+ ## Responsibility matrix
+ | Component | Owns | Reads from | Writes to |
+ |-----------|------|------------|-----------|
+ 
+ ## Data model
+-<entities, relationships, persistence choice>
++<entities and relationships as a mermaid erDiagram, then:>
++- **Persistence:** <store per entity>
+ 
+ ## API contracts
+ ### <Component> public surface
+@@ -74,18 +81,37 @@
+ |----|------|----------|-----------|
+ 
+ ## ADRs
+-- [ADR-0001](../adr/0001-<slug>.md) — <title>
++- [ADR-0001](../adr/0001-<slug>-<topic>.md) — <title>
+ 
+ ## Operations
+ - **Deploy:** <how>
+ - **Monitor:** <metrics, logs, traces>
+ - **Scale:** <scaling axis, limits>
++
++## Trace
++| Target | Component |
++|--------|-----------|
++| <FR-XXX; in vault mode CAP-nnn.FRn@APP-id, CON-nnn or EPC-nnn.ACn> | <ComponentName, or Operations> |
++
++## Open questions
++### OQ-001: <question>
++**What we know:** <...>
++**What would unblock:** <...>
++**Affects:** <components, trace targets>
++**Challenges:** <vault ID; vault mode only, when the vault is wrong or silent>
+ ~~~
+ 
+ ## Rules
+ 
+ - Every Component has a Responsibility-matrix row.
+-- Every FR-XXX from requirements is traced to at least one Component.
++- Every FR-XXX from requirements is traced to at least one Component, by a row of the Trace table. In vault
++  mode the targets are those `TECH-DESIGN-FROM-VAULT.md` lists, one row per target; a criterion met by running the
++  service rather than by a component names `Operations`. IDs mentioned elsewhere in the doc are not traces.
++- In vault mode every Component names its Container, so a reader can zoom from the vault's containers to the
++  components inside them.
++- Team ADRs are linked, never cited bare: `ADR-NNNN` is also the vault's own pattern. A vault ADR is cited with its
++  initiative and commit, as `INI-002 ADR-0002 @ <sha>`.
++- `Open questions` is omitted when there are none. Each open OQ is named by a `gaps[]` entry's `oq:` field.
+ - ADRs are lazy — only when hard-to-reverse + surprising + real trade-off.
+ - Glossary from requirements doc gets promoted to root `CONTEXT.md`
+   (lazy creation, see `CONTEXT-FORMAT.md`).
