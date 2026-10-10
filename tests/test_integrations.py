@@ -10,9 +10,17 @@ import yaml
 
 from conftest import REPO
 
-INTEGRATIONS = sorted(p for p in (REPO / "integrations").iterdir() if p.is_dir())
+# A folder with vault-mode.patch changes one of the user's existing skills; one without is a new skill the toolkit
+# ships whole, such as work-breakdown.
+ALL = sorted(p for p in (REPO / "integrations").iterdir() if p.is_dir())
+INTEGRATIONS = [p for p in ALL if (p / "vault-mode.patch").is_file()]
+NEW_SKILLS = [p for p in ALL if p not in INTEGRATIONS]
 UPSTREAM = pathlib.Path.home() / ".claude" / "skills"
-PATCHED_FILES = {"SKILL.md", "PREREQ-CHECK.md"}
+PATCHED_FILES = {
+    "requirements-grill": {"SKILL.md", "PREREQ-CHECK.md"},
+    # Design 11 adds the review checkpoint and the complete-with-gaps status.
+    "tech-design-grill": {"SKILL.md", "PREREQ-CHECK.md", "FRONTMATTER-FORMAT.md", "NEG-AUDIT.md", "REVIEW-CHECKPOINT.md"},
+}
 
 
 def ids(paths):
@@ -31,7 +39,7 @@ def test_layout(folder):
 def test_patch_touches_only_skill_and_prereq(folder):
     patch = (folder / "vault-mode.patch").read_text(encoding="utf-8")
     touched = set(re.findall(rf"^\+\+\+ b/{folder.name}/(\S+)$", patch, re.M))
-    assert touched == PATCHED_FILES
+    assert touched == PATCHED_FILES[folder.name]
 
 
 @pytest.mark.parametrize("folder", INTEGRATIONS, ids=ids(INTEGRATIONS))
@@ -65,10 +73,25 @@ def test_reversing_the_patch_gives_the_upstream_skill(folder, tmp_path):
     upstream = UPSTREAM / folder.name
     if not upstream.is_dir():
         pytest.skip(f"{upstream} is not on this machine, so only the reverse apply was checked")
+    if same_tree(upstream, folder / "skill"):
+        return  # installed: the user's skill is the patched copy
     for path in sorted(upstream.iterdir()):
         if path.is_file():
             assert (work / path.name).read_bytes() == path.read_bytes(), (
                 f"{path.name} differs from {upstream}: your skill changed since the copy. Re-copy it and re-apply the edits.")
+
+
+def same_tree(a, b):
+    names = lambda d: sorted(p.name for p in d.iterdir() if p.is_file())
+    return names(a) == names(b) and all((a / n).read_bytes() == (b / n).read_bytes() for n in names(a))
+
+
+@pytest.mark.parametrize("folder", NEW_SKILLS, ids=ids(NEW_SKILLS))
+def test_a_new_skill_ships_whole_with_install_steps(folder):
+    text = (folder / "skill" / "SKILL.md").read_text(encoding="utf-8")
+    assert yaml.safe_load(text.split("---\n", 2)[1])["name"] == folder.name
+    install = (folder / "INSTALL.md").read_text(encoding="utf-8")
+    assert f"cp -R <toolkit>/integrations/{folder.name}/skill ~/.claude/skills/{folder.name}" in install
 
 
 def test_prereq_check_is_byte_identical_across_the_copies():

@@ -8,12 +8,18 @@ YAML frontmatter block.
 ```yaml
 ---
 slug: <kebab-case>             # required
-status: in-progress | complete # required
+status: in-progress | complete | complete-with-gaps # required
 deferred:                      # optional list, may be []
   - id: D-001
     section: "§<n> <title>"
     reason: <why deferred>
     blocks: <downstream IDs if known, or "none">
+gaps:                          # required when status is complete-with-gaps, else omitted
+  - id: G-001
+    what: <the violation or open finding, in one line>
+    acknowledged_by: <who said to go ahead with it>
+    why: <their reason>
+    revisit: <when, or the condition that reopens it>
 last_session: <ISO 8601 timestamp>   # auto-updated by skill on save
 prereqs:                       # optional list, may be []
   - path: docs/requirements/<slug>.md
@@ -24,7 +30,7 @@ prereqs:                       # optional list, may be []
 ## Rules
 
 - `slug` is the canonical kebab-case identifier shared across all docs for one feature.
-- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`).
+- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`) and every review finding is disposed of (`REVIEW-CHECKPOINT.md`). It is `complete-with-gaps` when the user acknowledged a violation or an open finding instead of fixing it; each one is a `gaps[]` entry, with a stable `G-XXX` ID that is never renumbered. A downstream skill reads `gaps[]` and carries them forward.
 - `deferred[]` entries each have a stable `id`. Once assigned, never renumber.
   If a gap appears (D-001, D-003 — D-002 removed), preserve the gap; do not
   renumber. The original ID keeps the audit trail intact.

@@ -19,11 +19,12 @@ without explicit user acknowledgment blocks completion.
 
 ## Closing the audit
 
-If every box is YES, set `status: complete` in frontmatter and stop.
+If every box is YES, and `REVIEW-CHECKPOINT.md` left no finding open, set `status: complete` in frontmatter and stop.
 
 If any box is NO, do one of:
 1. Fix the violation, re-run the audit.
 2. Open an `OQ-XXX` / `D-XXX` entry with rationale and tell the user you cannot
    close the audit without acknowledgment. Set `status: in-progress`.
 3. Stop the skill and ask the user to confirm the violation is intentional. If
-   confirmed, record the acknowledgment in the doc with rationale.
+   confirmed, record the acknowledgment in the doc with rationale, add a
+   `gaps[]` entry for it, and set `status: complete-with-gaps`, never `complete`.

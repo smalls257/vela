@@ -1,54 +1,54 @@
---- a/tech-design-grill/SKILL.md
-+++ b/tech-design-grill/SKILL.md
-@@ -1,6 +1,6 @@
+diff -ruN a/tech-design-grill/FRONTMATTER-FORMAT.md b/tech-design-grill/FRONTMATTER-FORMAT.md
+--- a/tech-design-grill/FRONTMATTER-FORMAT.md
++++ b/tech-design-grill/FRONTMATTER-FORMAT.md
+@@ -8,12 +8,18 @@
+ ```yaml
  ---
- name: tech-design-grill
--description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
-+description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc. Triggers include "tech design", "design the system", "how should we build this", "architecture session". Also runs from an initiative vault. Given `--vault <path> --app <APP-id>`, it starts from that app's handed-off pages instead of a requirements doc.
- ---
+ slug: <kebab-case>             # required
+-status: in-progress | complete # required
++status: in-progress | complete | complete-with-gaps # required
+ deferred:                      # optional list, may be []
+   - id: D-001
+     section: "§<n> <title>"
+     reason: <why deferred>
+     blocks: <downstream IDs if known, or "none">
++gaps:                          # required when status is complete-with-gaps, else omitted
++  - id: G-001
++    what: <the violation or open finding, in one line>
++    acknowledged_by: <who said to go ahead with it>
++    why: <their reason>
++    revisit: <when, or the condition that reopens it>
+ last_session: <ISO 8601 timestamp>   # auto-updated by skill on save
+ prereqs:                       # optional list, may be []
+   - path: docs/requirements/<slug>.md
+@@ -24,7 +30,7 @@
+ ## Rules
  
- <what-to-do>
-@@ -9,11 +9,11 @@
+ - `slug` is the canonical kebab-case identifier shared across all docs for one feature.
+-- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`).
++- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`) and every review finding is disposed of (`REVIEW-CHECKPOINT.md`). It is `complete-with-gaps` when the user acknowledged a violation or an open finding instead of fixing it; each one is a `gaps[]` entry, with a stable `G-XXX` ID that is never renumbered. A downstream skill reads `gaps[]` and carries them forward.
+ - `deferred[]` entries each have a stable `id`. Once assigned, never renumber.
+   If a gap appears (D-001, D-003 — D-002 removed), preserve the gap; do not
+   renumber. The original ID keeps the audit trail intact.
+diff -ruN a/tech-design-grill/NEG-AUDIT.md b/tech-design-grill/NEG-AUDIT.md
+--- a/tech-design-grill/NEG-AUDIT.md
++++ b/tech-design-grill/NEG-AUDIT.md
+@@ -19,11 +19,12 @@
  
- Ask one question at a time. Provide your recommended answer with each question. Wait for feedback before continuing.
+ ## Closing the audit
  
--Pure *how*. Assumes *what* is settled in `docs/requirements/<slug>.md` with `status: complete` — refuse to start otherwise.
-+Pure *how*. Assumes *what* is settled in `docs/requirements/<slug>.md` with `status: complete` — refuse to start otherwise. In vault mode (see `PREREQ-CHECK.md`), the *what* is the handed-off app's pages instead: follow `TECH-DESIGN-FROM-VAULT.md` from the vault's planner plugin.
+-If every box is YES, set `status: complete` in frontmatter and stop.
++If every box is YES, and `REVIEW-CHECKPOINT.md` left no finding open, set `status: complete` in frontmatter and stop.
  
- If the codebase can answer a question (brownfield), explore the code instead of asking.
- 
--Trace every `FR-XXX` to an owning component. Reject the design if any FR has no owner.
-+Trace every `FR-XXX` to an owning component. Reject the design if any FR has no owner. In vault mode, trace the targets `TECH-DESIGN-FROM-VAULT.md` lists the same way.
- 
- Capture answers inline in `docs/tech-design/<slug>.md` and `CONTEXT.md` as decisions crystallise. Do not batch.
- 
-@@ -25,7 +25,7 @@
- 
- ## Inputs
- 
--- **Required prereq:** `docs/requirements/<slug>.md` with `status: complete`. If missing or in-progress, stop and tell the user to run `requirements-grill`.
-+- **Required prereq:** `docs/requirements/<slug>.md` with `status: complete`. If missing or in-progress, stop and tell the user to run `requirements-grill`. In vault mode, the prereq is the app page's `handed_off` field instead (see `PREREQ-CHECK.md`).
- - **Auto-scan at start (silent):** existing `CONTEXT.md`, `docs/adr/*.md`, codebase if brownfield. See `PREREQ-CHECK.md`.
- - **External context (any time):** accept and integrate.
- 
-@@ -37,7 +37,7 @@
- 
- ## Boot sequence
- 
--1. Run `PREREQ-CHECK.md`. Refuse to start without a complete requirements doc.
-+1. Run `PREREQ-CHECK.md`. Refuse to start without a complete requirements doc, or, in vault mode, without `handed_off` on the app page.
- 2. **Promote glossary.** Read `Glossary` section of requirements doc. Offer to seed `CONTEXT.md` from it on first run.
- 3. **Trace requirements.** Read every `FR-XXX`. Build internal map: which component will own each FR. Reject the design if any FR has no owner.
- 
-@@ -81,6 +81,8 @@
- 
- Do **not** open functional-requirement questions. If gaps surface, stop the session and tell the user to revisit `requirements-grill`. Don't paper over.
- 
-+In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with the solution lead, and carry on with the branches it does not touch.
-+
- ## References
- 
- - `TECH-DESIGN-FORMAT.md`
+ If any box is NO, do one of:
+ 1. Fix the violation, re-run the audit.
+ 2. Open an `OQ-XXX` / `D-XXX` entry with rationale and tell the user you cannot
+    close the audit without acknowledgment. Set `status: in-progress`.
+ 3. Stop the skill and ask the user to confirm the violation is intentional. If
+-   confirmed, record the acknowledgment in the doc with rationale.
++   confirmed, record the acknowledgment in the doc with rationale, add a
++   `gaps[]` entry for it, and set `status: complete-with-gaps`, never `complete`.
+diff -ruN a/tech-design-grill/PREREQ-CHECK.md b/tech-design-grill/PREREQ-CHECK.md
 --- a/tech-design-grill/PREREQ-CHECK.md
 +++ b/tech-design-grill/PREREQ-CHECK.md
 @@ -2,6 +2,15 @@
@@ -67,3 +67,131 @@
  ## Resolution
  
  1. Read your own prereq list from the **Inputs** section of this skill's content
+diff -ruN a/tech-design-grill/REVIEW-CHECKPOINT.md b/tech-design-grill/REVIEW-CHECKPOINT.md
+--- a/tech-design-grill/REVIEW-CHECKPOINT.md
++++ b/tech-design-grill/REVIEW-CHECKPOINT.md
+@@ -0,0 +1,36 @@
++# Review Checkpoint
++
++Run this once the design's sections are written, before `NEG-AUDIT.md`. The interview only surfaces what someone in the room knows. Fresh reviewers, each reading one area with no memory of the session, find what nobody mentioned: a vendor limit, a licence clause, a nightly reset.
++
++## 1. Dispatch five reviewers
++
++Start five subagents in parallel, each with a fresh context and only these inputs: the design doc, `CONTEXT.md`, the ADRs, and the design's inputs (the requirements doc, or in vault mode the app's vault pages named in `TECH-DESIGN-FROM-VAULT.md`). Give each one area:
++
++| Area | Asks |
++|---|---|
++| Vendors and integrations | What does each outside service, SDK and partner actually allow: rate limits, sandboxes and their resets, quotas, terms, what happens when it changes or is down? |
++| Data and licensing | What may be stored, cached, shown, shared or used for training, under which licence or consent, for how long, and who may see it? |
++| Failure and recovery | What happens when each dependency is slow, wrong or gone, mid-operation; what is retried, what is lost, what does the user see, how is it repaired? |
++| Security | Who can do what, how it is proven, where secrets live, what an attacker gains from each component. |
++| Operations | How it is deployed, observed, paged, rolled back and paid for; what someone on call needs at 3am. |
++
++Each reviewer returns at most 8 findings, each with: the area, a severity (`high`, `medium`, `low`), the design text it rests on quoted exactly with its section, what goes wrong in one concrete scenario, and the question the design must answer. A reviewer that finds nothing says so.
++
++## 2. Check and merge
++
++- Drop a finding whose quote is not in the design doc word for word. A reviewer that misquotes is guessing.
++- Merge findings that ask the same question; keep the higher severity and both areas.
++- Drop a finding that an existing `OQ-XXX`, `D-XXX` or ADR already answers, and say which.
++- Rank: high first, then by how many components the scenario touches.
++
++## 3. Dispose with the user
++
++Show the merged list once, ranked, one line each. Then take them in order, one at a time, as `GRILL-LOOP.md` does, with your recommended disposition:
++
++- **Answer now:** the user knows; update the design section and note the finding as resolved.
++- **Open question:** write an `OQ-XXX` with the scenario, what would unblock it, and what it affects.
++- **Defer:** a `D-XXX`, when the answer is known and deliberately postponed.
++- **Accept the gap:** the user goes ahead knowingly; it becomes a `gaps[]` entry and the status can be at most `complete-with-gaps`.
++- **Not applicable:** with the reason, in one line.
++
++Never drop a high-severity finding without one of these. Then go on to `NEG-AUDIT.md`.
+diff -ruN a/tech-design-grill/SKILL.md b/tech-design-grill/SKILL.md
+--- a/tech-design-grill/SKILL.md
++++ b/tech-design-grill/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: tech-design-grill
+-description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
++description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc, or, in vault mode (`--vault <path> --app <APP-id>`), an app handed off from a planner initiative vault. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
+ ---
+ 
+ <what-to-do>
+@@ -9,11 +9,11 @@
+ 
+ Ask one question at a time. Provide your recommended answer with each question. Wait for feedback before continuing.
+ 
+-Pure *how*. Assumes *what* is settled in `docs/requirements/<slug>.md` with `status: complete` — refuse to start otherwise.
++Pure *how*. Assumes *what* is settled in `docs/requirements/<slug>.md` with `status: complete` — refuse to start otherwise. In vault mode the *what* is the app's handed-off pages in the vault instead; see **Vault mode** below.
+ 
+ If the codebase can answer a question (brownfield), explore the code instead of asking.
+ 
+-Trace every `FR-XXX` to an owning component. Reject the design if any FR has no owner.
++Trace every `FR-XXX` (in vault mode, every allocated requirement row, contract and epic criterion) to an owning component. Reject the design if any has no owner.
+ 
+ Capture answers inline in `docs/tech-design/<slug>.md` and `CONTEXT.md` as decisions crystallise. Do not batch.
+ 
+@@ -25,7 +25,7 @@
+ 
+ ## Inputs
+ 
+-- **Required prereq:** `docs/requirements/<slug>.md` with `status: complete`. If missing or in-progress, stop and tell the user to run `requirements-grill`.
++- **Required prereq:** `docs/requirements/<slug>.md` with `status: complete`. If missing or in-progress, stop and tell the user to run `requirements-grill`. In vault mode, the prereq is the app page's `handed_off` field instead (see `PREREQ-CHECK.md`).
+ - **Auto-scan at start (silent):** existing `CONTEXT.md`, `docs/adr/*.md`, codebase if brownfield. See `PREREQ-CHECK.md`.
+ - **External context (any time):** accept and integrate.
+ 
+@@ -35,9 +35,18 @@
+ - `docs/adr/NNNN-<slug>-<topic>.md` — lazy. See `ADR-FORMAT.md`.
+ - `CONTEXT.md` at repo root — lazy. See `CONTEXT-FORMAT.md`.
+ 
++## Vault mode
++
++Given `--vault <path> --app <APP-id>`, the design is for one app of a planner initiative vault.
++
++- `PREREQ-CHECK.md` checks the app is handed off, then you read `<vault>/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md` and follow it. It replaces the requirements-doc prereq, says what to read in the vault and in what order, and how to link back.
++- The app's requirements are the rows of its `## Requirements allocated` table: its share of each functional requirement, and the contracts that carry the part that crosses to another app. Each row is a trace target, as `CAP-nnn.FRn@APP-<slug>`, alongside the contracts it provides and consumes and its epics' acceptance criteria.
++- Never edit the vault. A gap or a disputed vault answer is an `OQ-XXX` with `challenges: <vault ID>`; tell the senior to raise it with `/planner:challenge`.
++- Requirements are not written in the team's repository: there is no `docs/requirements/<slug>.md` in vault mode. If the design shows a requirement is missing, that is a challenge, not a draft.
++
+ ## Boot sequence
+ 
+-1. Run `PREREQ-CHECK.md`. Refuse to start without a complete requirements doc.
++1. Run `PREREQ-CHECK.md`. Refuse to start without a complete requirements doc, or, in vault mode, without the app's `handed_off:` in the vault.
+ 2. **Promote glossary.** Read `Glossary` section of requirements doc. Offer to seed `CONTEXT.md` from it on first run.
+ 3. **Trace requirements.** Read every `FR-XXX`. Build internal map: which component will own each FR. Reject the design if any FR has no owner.
+ 
+@@ -66,6 +75,10 @@
+ 
+ Update the design doc + `CONTEXT.md` after each section. Do not batch.
+ 
++## Review checkpoint
++
++Before the completion gate, run `REVIEW-CHECKPOINT.md`: five fresh-context reviewers read the written design, one area each, and their checked findings become `OQ-XXX` entries the user disposes of. The interview cannot see what nobody in the room knows; the reviewers are there for the vendor limit, the licence clause or the reset nobody mentioned.
++
+ ## Completion gate
+ 
+ Run `NEG-AUDIT.md`. Focus:
+@@ -75,12 +88,14 @@
+ - **God Class** — Any component owning too much?
+ - **Distributed Monolith** — Can components actually deploy / change independently?
+ 
+-Flip `status: complete` only if neg-audit passes.
++Flip `status: complete` only if neg-audit passes and every review finding is disposed of. If the user acknowledges a violation or an open finding instead of fixing it, the status is `complete-with-gaps`, with one `gaps[]` entry for each (see `FRONTMATTER-FORMAT.md`). Never write `complete` over an acknowledged gap.
+ 
+ ## Hard rule
+ 
+ Do **not** open functional-requirement questions. If gaps surface, stop the session and tell the user to revisit `requirements-grill`. Don't paper over.
+ 
++In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with `/planner:challenge`, and carry on with the branches it does not touch.
++
+ ## References
+ 
+ - `TECH-DESIGN-FORMAT.md`
+@@ -90,5 +105,6 @@
+ - `PREREQ-CHECK.md`
+ - `FRONTMATTER-FORMAT.md`
+ - `NEG-AUDIT.md`
++- `REVIEW-CHECKPOINT.md`
+ 
+ </supporting-info>

@@ -1,6 +1,6 @@
 ---
 name: tech-design-grill
-description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc. Triggers include "tech design", "design the system", "how should we build this", "architecture session". Also runs from an initiative vault. Given `--vault <path> --app <APP-id>`, it starts from that app's handed-off pages instead of a requirements doc.
+description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc, or, in vault mode (`--vault <path> --app <APP-id>`), an app handed off from a planner initiative vault. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
 ---
 
 <what-to-do>
@@ -9,11 +9,11 @@ Interview the user relentlessly about every tech-design decision until shared un
 
 Ask one question at a time. Provide your recommended answer with each question. Wait for feedback before continuing.
 
-Pure *how*. Assumes *what* is settled in `docs/requirements/<slug>.md` with `status: complete` — refuse to start otherwise. In vault mode (see `PREREQ-CHECK.md`), the *what* is the handed-off app's pages instead: follow `TECH-DESIGN-FROM-VAULT.md` from the vault's planner plugin.
+Pure *how*. Assumes *what* is settled in `docs/requirements/<slug>.md` with `status: complete` — refuse to start otherwise. In vault mode the *what* is the app's handed-off pages in the vault instead; see **Vault mode** below.
 
 If the codebase can answer a question (brownfield), explore the code instead of asking.
 
-Trace every `FR-XXX` to an owning component. Reject the design if any FR has no owner. In vault mode, trace the targets `TECH-DESIGN-FROM-VAULT.md` lists the same way.
+Trace every `FR-XXX` (in vault mode, every allocated requirement row, contract and epic criterion) to an owning component. Reject the design if any has no owner.
 
 Capture answers inline in `docs/tech-design/<slug>.md` and `CONTEXT.md` as decisions crystallise. Do not batch.
 
@@ -35,9 +35,18 @@ Use `D-XXX` for explicit deferrals (logged in frontmatter `deferred[]`). Offer a
 - `docs/adr/NNNN-<slug>-<topic>.md` — lazy. See `ADR-FORMAT.md`.
 - `CONTEXT.md` at repo root — lazy. See `CONTEXT-FORMAT.md`.
 
+## Vault mode
+
+Given `--vault <path> --app <APP-id>`, the design is for one app of a planner initiative vault.
+
+- `PREREQ-CHECK.md` checks the app is handed off, then you read `<vault>/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md` and follow it. It replaces the requirements-doc prereq, says what to read in the vault and in what order, and how to link back.
+- The app's requirements are the rows of its `## Requirements allocated` table: its share of each functional requirement, and the contracts that carry the part that crosses to another app. Each row is a trace target, as `CAP-nnn.FRn@APP-<slug>`, alongside the contracts it provides and consumes and its epics' acceptance criteria.
+- Never edit the vault. A gap or a disputed vault answer is an `OQ-XXX` with `challenges: <vault ID>`; tell the senior to raise it with `/planner:challenge`.
+- Requirements are not written in the team's repository: there is no `docs/requirements/<slug>.md` in vault mode. If the design shows a requirement is missing, that is a challenge, not a draft.
+
 ## Boot sequence
 
-1. Run `PREREQ-CHECK.md`. Refuse to start without a complete requirements doc, or, in vault mode, without `handed_off` on the app page.
+1. Run `PREREQ-CHECK.md`. Refuse to start without a complete requirements doc, or, in vault mode, without the app's `handed_off:` in the vault.
 2. **Promote glossary.** Read `Glossary` section of requirements doc. Offer to seed `CONTEXT.md` from it on first run.
 3. **Trace requirements.** Read every `FR-XXX`. Build internal map: which component will own each FR. Reject the design if any FR has no owner.
 
@@ -66,6 +75,10 @@ Only when **all three** hold:
 
 Update the design doc + `CONTEXT.md` after each section. Do not batch.
 
+## Review checkpoint
+
+Before the completion gate, run `REVIEW-CHECKPOINT.md`: five fresh-context reviewers read the written design, one area each, and their checked findings become `OQ-XXX` entries the user disposes of. The interview cannot see what nobody in the room knows; the reviewers are there for the vendor limit, the licence clause or the reset nobody mentioned.
+
 ## Completion gate
 
 Run `NEG-AUDIT.md`. Focus:
@@ -75,13 +88,13 @@ Run `NEG-AUDIT.md`. Focus:
 - **God Class** — Any component owning too much?
 - **Distributed Monolith** — Can components actually deploy / change independently?
 
-Flip `status: complete` only if neg-audit passes.
+Flip `status: complete` only if neg-audit passes and every review finding is disposed of. If the user acknowledges a violation or an open finding instead of fixing it, the status is `complete-with-gaps`, with one `gaps[]` entry for each (see `FRONTMATTER-FORMAT.md`). Never write `complete` over an acknowledged gap.
 
 ## Hard rule
 
 Do **not** open functional-requirement questions. If gaps surface, stop the session and tell the user to revisit `requirements-grill`. Don't paper over.
 
-In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with the solution lead, and carry on with the branches it does not touch.
+In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with `/planner:challenge`, and carry on with the branches it does not touch.
 
 ## References
 
@@ -92,5 +105,6 @@ In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `chal
 - `PREREQ-CHECK.md`
 - `FRONTMATTER-FORMAT.md`
 - `NEG-AUDIT.md`
+- `REVIEW-CHECKPOINT.md`
 
 </supporting-info>
