@@ -83,7 +83,7 @@ Field values:
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
-- `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
+- `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `allocate`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
 
 ## IDs
 
@@ -377,6 +377,7 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `system-context` | `03-context-and-scope.md` | The after view: apps in one box, external providers outside it, and the same contract arrows. Retired apps are listed under it, not drawn. |
 | `app-context` | each app page | The app and its direct neighbours by contract, provided or consumed |
 | `capability-map` | `04a-capability-delta.md` | Every capability in a box per `domain`, labelled and coloured by `change` |
+| `allocation` | `04a-capability-delta.md` | One row per functional requirement, one column per app that carries any: each cell is that app's share, with the contracts it goes through. A blank row is a requirement nobody owns yet. |
 | `undisposed-questions` | `11-unknowns-and-risks.md`, under `## Question ledger` | The coverage line, then every undisposed copy (no row, an `open` row or an invalid row), every `asked` copy, and every open, invalid or asked reviewer question, with its state, focus area, severity, subject and question. It is the to-do list; the rows below it are the record. |
 | `progress-map` | `01-goals.md` | One row per app: its stage, how many of its items are at each state, with "(n by override)" after the decided count, the oldest open unknown that blocks it with its Opened date, and its next mode. It is judged as of the last session's date, so it changes only when the vault does. |
 
@@ -475,6 +476,24 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 
 Codes are stable. A retired code is never reused.
 
+## Requirements and allocation
+
+Requirements come in two levels, both in the vault. A capability's functional requirements say what the business needs and name no app: `### CAP-nnn.FRn <short name>` under `## Functional requirements` on its capability page, with a paragraph of what it does, `**State:**`, and its acceptance criteria as bullets. `/planner:requirements` writes them at `assumption`, after the strategy is decided and before boundary, so boundary can test each cut against them, and a Grill decides them.
+
+Allocation divides each requirement among the apps and contracts that deliver it. `/planner:allocate`, after boundary and before epics, writes each app page's share in one table under `## Requirements allocated`:
+
+| Requirement | Share | Through | State |
+|---|---|---|---|
+| `[[CAP-002-paper-trade-a-stock#CAP-002.FR2 Place a paper order\|CAP-002.FR2]]` | accepts the order, rejects fractions and shorting, records the fill | CON-006 | assumption |
+
+- **Requirement** links the functional requirement's heading. **Share** says this app's part in the domain's words. **Through** names the contracts that carry the part across to another app, or `—`. **State** is `inkling`, `assumption` or `decided`; a `decided` row needs the page's `**Decision:**`, written by a Grill, as goal rows do.
+- A contract's obligation is a row on its provider's table that names it in **Through**. A contract with an outside provider takes the row on its consumer's page.
+- When dividing a requirement shows two apps must talk in a way no contract covers, allocation writes that contract at `assumption` on the provider's page with every required bullet, and raises it.
+
+`planner check` reports E330 for a row that names no functional requirement of this vault, E331 for a **Through** that names no contract, E332 for a State outside the three, and E333 for a `decided` row on a page with no Decision. T7 is a trace gap: a requirement at `assumption`, `fact` or `decided` that no table carries. It warns, and is an error under `--gate epics`. The `allocation` block on `04a-capability-delta.md` shows every requirement against every app.
+
+An app's allocated rows are its team's input. Epics take their acceptance criteria from them, and the team's `tech-design-grill` traces its components to them.
+
 ## Epics and traceability
 
 An epic page holds a description, the owning team, 4 to 7 numbered acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behaviour a tester can see at a contract or flow boundary, never inside a container.
@@ -489,6 +508,7 @@ Four trace rules run once the vault holds an epic. They are warnings in `planner
 | T2 | Every contract whose `**Change:**` is `new` or `changed` is in some epic's `delivers`. A contract with an external `**Provider:**` may be in `consumes` instead. | W502, E502 |
 | T4 | Every `addressed` cell is covered: a waiver, or an acceptance criterion with the concern's marker on an epic whose `apps` lists the app. An Ownership cell is covered by any epic whose `apps` lists the app. | W503, E503 |
 | T6 | No epic has an empty `delivers` | W504, E504 |
+| T7 | Every functional requirement at `assumption`, `fact` or `decided` is carried by at least one app's `## Requirements allocated` table | W505, E505 |
 
 A cell that starts `no work` but does not follow the waiver form covers nothing, and T4 says so.
 

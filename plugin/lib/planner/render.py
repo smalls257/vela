@@ -5,7 +5,7 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 """
 import hashlib
 
-from planner import diagrams, progress, questions, schema, trace
+from planner import allocation, diagrams, progress, questions, schema, trace
 from planner.model import Finding, blocking_unknowns
 
 OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
@@ -376,6 +376,21 @@ def undisposed_questions(vault, page):
     return "\n".join(out)
 
 
+def allocation_block(vault, page):
+    """One row per functional requirement, one column per app that carries any: each cell is that app's share,
+    with the contracts it goes through. A blank row is a requirement nobody owns yet."""
+    apps, lines = allocation.matrix(vault)
+    if not lines:
+        return "**Allocation:** no functional requirements yet."
+    open_ = sum(1 for _, shares in lines if not shares)
+    head = f"**Allocation:** {len(lines)} requirements, {open_} not allocated."
+    out = [head, "", row("Requirement", *[link(a.name, cell(title(a))) for a in apps]) if apps else row("Requirement"),
+           "|" + "---|" * (len(apps) + 1)]
+    for req, shares in lines:
+        out.append(row(link(req.page.name, cell(req.id), req.heading), *[cell(shares.get(a.id, "")) for a in apps]))
+    return "\n".join(out)
+
+
 GENERATORS = {
     "where-it-stands": where_it_stands,
     "concern-matrix": concern_matrix,
@@ -391,6 +406,7 @@ GENERATORS = {
     "capability-map": capability_map,
     "progress-map": progress_map,
     "undisposed-questions": undisposed_questions,
+    "allocation": allocation_block,
 }
 
 

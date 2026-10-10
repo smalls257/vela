@@ -15,3 +15,11 @@ Every capability this initiative changes. Each capability page holds what provid
 <!-- generated:capability-map sha=140bedbf: do not edit, run planner render -->
 none
 <!-- /generated:capability-map -->
+
+## Allocation
+
+What each app carries of each functional requirement.
+
+<!-- generated:allocation sha=90e52f6b: do not edit, run planner render -->
+**Allocation:** no functional requirements yet.
+<!-- /generated:allocation -->

@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import override, parse, questions, render, schema, trace
+from planner import allocation, override, parse, questions, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -487,6 +487,28 @@ def page_state_rules(vault, today):
                              "Set state: fact, and list the sources the rows cite in its sources field.")
 
 
+def allocation_rules(vault, today):
+    """E330-E333: an allocation row must name a functional requirement that exists, contracts that exist, a state,
+    and a Decision on its page when it says decided."""
+    known = {item.id for found in vault.items.values() for item in found if item.kind == "requirement"}
+    contracts = {c.id for c in vault.contracts}
+    for row in allocation.rows(vault):
+        if row.requirement not in known:
+            yield _f(row.app, row.line, "E330", f"An allocation row on {row.app.id} names "
+                     f"{row.requirement or 'no functional requirement'}, which is not a CAP-nnn.FRn heading in this vault.",
+                     "Link the requirement's heading, [[CAP-nnn-<slug>#CAP-nnn.FRn <name>|CAP-nnn.FRn]].")
+        for cid in row.through:
+            if cid not in contracts:
+                yield _f(row.app, row.line, "E331", f"An allocation row on {row.app.id} says it goes through {cid}, "
+                         "which is no contract in this vault.", "Name the contract that carries it, or write it first.")
+        if row.state not in allocation.ALLOCATED_STATES:
+            yield _f(row.app, row.line, "E332", f"An allocation row on {row.app.id} has State '{row.state}'.",
+                     "Use inkling, assumption or decided.")
+        elif row.state == "decided" and not row.app.page_bullets("Decision"):
+            yield _f(row.app, row.line, "E333", f"An allocation row on {row.app.id} is decided, but the page has no "
+                     "Decision bullet.", "Decide it in a Grill, which writes the page's Decision under ## History.")
+
+
 def certainty_rules(vault, today):
     for unit_id, page, line, decisions in decided_units(vault):
         sessions = [vault.resolve(l, page) for b in decisions for l in b.links]
@@ -755,5 +777,5 @@ def trace_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, allocation_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules)

@@ -67,3 +67,11 @@ flowchart TB
 ## Capabilities checked and left alone
 
 [[CAP-011-find-a-crossing|Find a crossing]] and [[CAP-015-take-payment|Take payment]] are in the flows but don't change. Take payment now reports its outcome to Booking instead of to each channel; Tidepay itself is untouched.
+
+## Allocation
+
+What each app carries of each functional requirement.
+
+<!-- generated:allocation sha=90e52f6b: do not edit, run planner render -->
+**Allocation:** no functional requirements yet.
+<!-- /generated:allocation -->

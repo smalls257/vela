@@ -87,7 +87,7 @@ ENUMS = {
     "status": ("open", "closed"),
 }
 LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes")
-SESSION_MODES = ("dump", "discover", "shape", "boundary", "grill", "requirements", "epics", "challenge", "answer")
+SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "grill", "requirements", "epics", "challenge", "answer")
 LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
 
 HANDLE = r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?"
@@ -193,6 +193,8 @@ CONSTRAINTS_HEADER = ("ID", "Constraint")
 SOURCES_HEADER = ("ID", "Title", "Owner", "Date", "Kind", "Location")
 SOURCE_KINDS = ("exists", "intends", "repo")
 CONTAINERS_HEADER = ("Container", "Job")
+# An app page's share of each functional requirement, under ## Requirements allocated.
+ALLOCATION_HEADER = ("Requirement", "Share", "Through", "State")
 # A page's history sits at its end under this heading, so the page opens with what is true now. "#### <ID>" under
 # it holds an item's history. HISTORY_LABELS are the bullets that belong there.
 HISTORY_HEADING = "History"
@@ -220,6 +222,7 @@ BLOCKS = {
     "system-context": "context-and-scope",
     "app-context": "type:app-building-blocks",
     "capability-map": "capability-delta",
+    "allocation": "capability-delta",
     "progress-map": "goals",
     "undisposed-questions": "unknowns-and-risks",
 }
@@ -239,7 +242,7 @@ SESSION_GAP_DAYS = 30  # W711 when no session has closed for longer than this
 # ------------------------------------------------------------ progress
 
 # What `planner status`, `planner next` and the progress-map block may suggest.
-NEXT_MODES = ("probe", "discover", "shape", "boundary", "grill", "epics", "dump", "none")
+NEXT_MODES = ("probe", "discover", "shape", "requirements", "boundary", "allocate", "grill", "epics", "dump", "none")
 
 # ------------------------------------------------------------- finding codes
 
@@ -316,7 +319,8 @@ CODES = {
 # ------------------------------------------------------------- traceability
 
 # Rule -> (code in a plain check, code under --gate epics).
-TRACE_CODES = {"T1": ("W501", "E501"), "T2": ("W502", "E502"), "T4": ("W503", "E503"), "T6": ("W504", "E504")}
+TRACE_CODES = {"T1": ("W501", "E501"), "T2": ("W502", "E502"), "T4": ("W503", "E503"), "T6": ("W504", "E504"),
+               "T7": ("W505", "E505")}
 GATES = ("epics", "shape", "grill")
 TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
 OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker

@@ -16,7 +16,7 @@ MARKER = re.compile(r"\[([A-Za-z][A-Za-z0-9-]*)\]")
 
 @dataclass(frozen=True)
 class Gap:
-    rule: str  # "T1", "T2", "T4" or "T6"
+    rule: str  # "T1", "T2", "T4", "T6" or "T7"
     subject: str  # what the gap is about, for example "CAP-014" or "concern-data × APP-website"
     page: object  # the page the finding points at
     line: int  # 0 means "the line of `field` in the frontmatter"
@@ -83,7 +83,7 @@ def ac_markers(page):
 def report(vault):
     all_epics = epics(vault)
     gaps, checked = [], 0
-    for rule in (_t1, _t2, _t4, _t6):
+    for rule in (_t1, _t2, _t4, _t6, _t7):
         found, count = rule(vault, all_epics)
         gaps.extend(found)
         checked += count
@@ -159,6 +159,16 @@ def _t4(vault, all_epics):
                             f"End the numbered acceptance criterion that does this work with [{name}] on an epic listing {app.id}, "
                             "or write a waiver: no work (@handle, review YYYY-MM-DD): <reason>."))
     return gaps, count
+
+
+def _t7(vault, all_epics):
+    """A functional requirement nobody is allocated: every epic can pass while it goes unbuilt."""
+    from planner import allocation
+    gaps = [Gap("T7", r.id, r.page, r.line, "", r.heading,
+                f"{r.id} is at {r.fact('State')}, but no app's Requirements allocated table carries it, so no team owns it.",
+                f"Run /planner:allocate {r.id.split('.')[0]}, or add a row for {r.id} to the app page that delivers it.")
+            for r in allocation.unallocated(vault)]
+    return gaps, len([r for r in allocation.requirements(vault) if r.fact("State") in allocation.CARRIED_STATES])
 
 
 def _t6(vault, all_epics):
