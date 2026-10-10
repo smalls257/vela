@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Fast checks on the files in this commit only: about 1 to 3 seconds. Full-repo work waits for pre-push.
+# Limitation, accepted: it scans the working-tree copy of each staged file, which differs from the staged
+# copy only after a partial `git add -p`.
+set -uo pipefail
+export SEMGREP_SEND_METRICS=off SEMGREP_ENABLE_VERSION_CHECK=0
+files=()
+# .semgrep/ holds the rules' fixtures, deliberately bad code: naming a file skips .semgrepignore, so skip them here.
+while IFS= read -r -d '' f; do case "$f" in .semgrep/*) ;; *) files+=("$f");; esac; done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.py' '*.js' '*.html' plugin/bin/planner)
+[ ${#files[@]} -eq 0 ] && exit 0
+status=0
+py=()
+for f in "${files[@]}"; do case "$f" in *.py|plugin/bin/planner) py+=("$f");; esac; done
+if [ ${#py[@]} -gt 0 ]; then
+  ruff check --no-cache --quiet --select E9,F63,F7,F82,E722,S506 --extend-exclude .semgrep "${py[@]}" || status=1
+fi
+semgrep scan --config .semgrep --metrics=off --disable-version-check --error --quiet "${files[@]}" || status=1
+[ $status -ne 0 ] && echo "pre-commit: fix the findings above, or mark a deliberate one '# nosemgrep: <rule-id> -- <why>'." >&2
+exit $status

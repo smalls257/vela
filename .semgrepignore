@@ -1,0 +1,14 @@
+# Replaces semgrep's default ignore list, which skips tests/ and would hide tests/sim and tests/evals.
+# Semgrep also reads .gitignore.
+.git/
+.claude/worktrees/
+.superpowers/
+worktrees/
+**/__pycache__/
+# vendored, minified
+plugin/lib/planner/assets/*.min.js
+# generated: rebuilt by prototypes/explorer/build.py and gallery/assets/build_index.py
+prototypes/explorer/out/
+prototypes/gallery/assets/assets.bundle.js
+# rule fixtures are deliberately bad code; `semgrep --test .semgrep` runs them
+.semgrep/

@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# The repo's gate, one script for every layer that runs it: pre-push, CI, and by hand.
+#   .githooks/gate fast   rules + sync + vault checks + the fast test subset   (about 70 s)
+#   .githooks/gate full   the same with the whole pytest suite                 (about 160 s)
+#   .githooks/gate static rules + sync + vault checks, no tests                (about 10 s)
+# Each stage prints its name and its time, so a failure says where and a slow push says which stage.
+set -uo pipefail
+mode="${1:-fast}"
+root="$(git rev-parse --show-toplevel)" || exit 2
+cd "$root" || exit 2
+export SEMGREP_SEND_METRICS=off SEMGREP_ENABLE_VERSION_CHECK=0
+failed=()
+
+stage() {  # stage <name> <command...>: run, time, record failure, never stop early
+  local name="$1"; shift
+  local start=$SECONDS
+  printf 'gate: %-18s ' "$name"
+  if out="$("$@" 2>&1)"; then
+    printf 'ok   %3ds\n' $((SECONDS - start))
+  else
+    printf 'FAIL %3ds\n' $((SECONDS - start))
+    printf '%s\n' "$out" | tail -40 | sed 's/^/    /'
+    failed+=("$name")
+  fi
+}
+
+need() { command -v "$1" >/dev/null || { echo "gate: $1 is not installed; $2" >&2; exit 2; }; }
+need semgrep "brew install semgrep (or pip install semgrep)"
+need ruff "brew install ruff (or pip install ruff)"
+
+conventions_in_sync() {
+  local copy status=0
+  for copy in plugin/vault/CONVENTIONS.md examples/unified-booking/CONVENTIONS.md tests/stub-conventions/CONVENTIONS.md; do
+    cmp -s template/CONVENTIONS.md "$copy" || { echo "$copy differs from template/CONVENTIONS.md; copy the template over it"; status=1; }
+  done
+  return $status
+}
+
+planner_check() {  # warnings are fine (the example is dated ahead); errors and tool failures are not
+  python3 plugin/bin/planner check --vault "$1"
+}
+
+FAST_IGNORES=(--ignore=tests/test_viewer.py --ignore=tests/test_sim.py --ignore=tests/test_probe.py --ignore=tests/test_evals.py)
+
+stage "semgrep rule tests" bash -c 'cd .semgrep && semgrep --test --metrics=off --disable-version-check --quiet .'
+stage "semgrep scan"       semgrep scan --config .semgrep --metrics=off --disable-version-check --error --quiet .
+stage "ruff correctness"   ruff check --no-cache --select E9,F63,F7,F82,E722,S506 --extend-exclude .semgrep .
+stage "conventions sync"   conventions_in_sync
+stage "check template"     planner_check template
+stage "check example"      planner_check examples/unified-booking
+case "$mode" in
+  static) ;;
+  fast)   stage "pytest (fast)" python3 -m pytest -q -p no:cacheprovider tests "${FAST_IGNORES[@]}" ;;
+  full)   stage "pytest (full)" python3 -m pytest -q -p no:cacheprovider ;;
+  *) echo "gate: unknown mode '$mode' (static, fast, full)" >&2; exit 2 ;;
+esac
+
+if [ ${#failed[@]} -gt 0 ]; then
+  echo "gate: FAILED: ${failed[*]}" >&2
+  exit 1
+fi
+echo "gate: passed ($mode)"

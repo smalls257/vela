@@ -829,7 +829,7 @@ def cached(embed, folder):
         keys = [voicescore.cache_key(t) for t in texts]
         found = {}
         for key in set(keys):
-            try:
+            try:  # nosemgrep: except-pass -- an unreadable cache entry is a miss: it is re-embedded and rewritten
                 found[key] = json.loads((folder / f"{key}.json").read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 pass

@@ -1,0 +1,71 @@
+rules:
+  # Distributed Monolith. plugin/ ships alone into a vault's .claude/skills/planner; prototypes/ and tests/
+  # do not ship. An import across that line works in this repo and breaks in every installed vault.
+  - id: plugin-imports-only-plugin
+    languages: [python]
+    severity: ERROR
+    message: >-
+      plugin/ is copied into vaults on its own. This reaches for code that is not shipped with it, so it works
+      here and fails in every installed vault (Distributed Monolith). Move the code into plugin/lib/planner.
+    paths:
+      include: ["/plugin/"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $MOD
+              - pattern: from $MOD import $NAME
+          - metavariable-regex:
+              metavariable: $MOD
+              regex: ^(tests|conftest|prototypes|sim|evals|probe|record|pins|build|comfy|jobs)(\.|$)
+      - patterns:
+          # plugin/bin/planner puts its own lib/ on the path; nothing else in plugin/ may extend sys.path.
+          - pattern-either:
+              - pattern: sys.path.insert(..., $P)
+              - pattern: sys.path.append($P)
+          - pattern-not: sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
+  # The vault and the user's ~/.claude are different things. Tests and the simulator read ~/.claude/skills
+  # (the user's installed skills) and must never write there: a run would change the user's real setup.
+  - id: no-write-under-home-claude
+    languages: [python]
+    severity: ERROR
+    message: >-
+      This writes under ~/.claude, the user's live Claude Code setup. Write into the vault or a tmp_path
+      instead; read-only use of ~/.claude/skills is fine.
+    mode: taint
+    pattern-sources:
+      - pattern: pathlib.Path.home()
+      - pattern: Path.home()
+      - pattern: os.path.expanduser("...")
+    pattern-propagators:
+      - pattern: $A / $B
+        from: $A
+        to: $A / $B
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $P.write_text(...)
+              - pattern: $P.write_bytes(...)
+              - pattern: $P.mkdir(...)
+              - pattern: $P.unlink(...)
+              - pattern: $P.touch(...)
+              - pattern: $P.rename(...)
+              - pattern: $P.symlink_to(...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern-either:
+              - pattern: shutil.copytree($SRC, $P, ...)
+              - pattern: shutil.copy($SRC, $P, ...)
+              - pattern: shutil.copy2($SRC, $P, ...)
+              - pattern: shutil.move($SRC, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern-either:
+              - pattern: shutil.rmtree($P, ...)
+              - pattern: os.remove($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: open($P, $MODE, ...)
+          - metavariable-regex:
+              metavariable: $MODE
+              regex: ^['"][wax+]
+          - focus-metavariable: $P
