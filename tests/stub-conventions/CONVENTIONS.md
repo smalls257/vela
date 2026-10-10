@@ -152,7 +152,7 @@ Unknown, under `### UNK-nnn <short name>` on `11-unknowns-and-risks.md`:
 | `**Outcome:**`, `**Resolved in:**` | Required once `resolved`. |
 | `**Opened:**`, `**Notes:**` | Optional. |
 
-When an unknown is resolved, every page that mentions it must stop calling it open. `planner check` reports W334 for a sentence that links a resolved unknown with wording such as "still open", "not decided", "waiting on" or "pending", outside `## History` and generated blocks. A link label that only repeats the question's heading is its name, not a claim, so "[[…#UNK-044 How long a paper order may stay pending|how long a paper order may stay pending]]" is fine. Close rewrites these sentences, using `planner query refs <ID>` to find them.
+When an unknown is resolved, every page that mentions it must stop calling it open. `planner check` reports W334 for a sentence that links a resolved unknown with wording such as "still open", "not decided", "waiting on" or "pending", outside `## History` and generated blocks. A link label that only repeats the question's heading is its name, not a claim, so "[[…#UNK-001 Ledger write latency|ledger write latency]]" names the question and claims nothing about it. Close rewrites these sentences, using `planner query refs <ID>` to find them.
 
 An item an open unknown lists in `**Blocks:**` cannot be `decided`. Resolve the unknown first.
 
