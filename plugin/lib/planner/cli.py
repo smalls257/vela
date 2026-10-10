@@ -18,7 +18,7 @@ import traceback
 
 import yaml
 
-from planner import catalog, completeness, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
+from planner import allocation, catalog, completeness, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -1037,6 +1037,9 @@ def first_step(vault):
     """What to do while no app page exists. Once a Grill has decided the solution strategy, the direction is set
     and only a Boundary session turns it into apps; before that, the work is still finding out and shaping."""
     strategy = vault.page("04-solution-strategy")
+    if strategy is not None and strategy.meta.get("state") == "decided" and not allocation.requirements(vault):
+        return ("initiative, requirements. The solution strategy is decided and no capability has functional "
+                "requirements yet, so write them before Boundary cuts the apps against them.")
     if strategy is not None and strategy.meta.get("state") == "decided":
         return ("initiative, boundary. The solution strategy is decided and no app page exists yet, so run a Boundary "
                 "session to turn it into apps.")

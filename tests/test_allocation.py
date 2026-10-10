@@ -57,3 +57,11 @@ def test_the_allocation_block_shows_each_requirement_against_each_app(tmp_path):
     page = (vault / "04a-capability-delta.md").read_text(encoding="utf-8")
     assert "**Allocation:** 1 requirements, 0 not allocated." in page
     assert "holds the seat (CON-001)" in page
+
+
+def test_next_suggests_allocate_before_epics_while_a_requirement_is_unallocated(tmp_path):
+    vault = vault_with(tmp_path)
+    out = run("next", "--vault", str(vault), "--today", "2026-11-20")[1]
+    assert "allocate CAP-014" in out, out
+    carried = vault_with(tmp_path / "b", {"share": "holds the seat", "through": "CON-001", "state": "assumption"})
+    assert "allocate" not in run("next", "--vault", str(carried), "--today", "2026-11-20")[1]

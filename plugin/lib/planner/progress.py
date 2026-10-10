@@ -8,7 +8,7 @@ import datetime
 import re
 from dataclasses import dataclass
 
-from planner import model, override, schema, trace
+from planner import allocation, model, override, schema, trace
 
 OPENED_DATE = re.compile(r"^(\d{4}-\d{2}-\d{2})\b")
 SETTLED = ("decided", "fact")
@@ -161,6 +161,11 @@ def suggest(vault, app, as_of, blocked):
         return 7, "none", contract.id, f"{app.id} waits on {contract.id}, which is at {contract.fact('State') or 'no state'}."
     if app.meta.get("change") not in schema.LADDERED_CHANGES:
         return 9, "none", "", f"{app.id} sits outside the ladder and has nothing open."
+    # Epics take each team's criteria from its allocated rows, so a requirement nobody carries comes first.
+    loose = allocation.unallocated(vault)
+    if loose:
+        return 8, "allocate", loose[0].id.split(".")[0], (f"{loose[0].id} is at {loose[0].fact('State')} and no app's "
+                                                          "Requirements allocated table carries it.")
     epics = [e for e in trace.epics(vault) if app.id in trace.listed(e, "apps")]
     unsettled = [e for e in epics if e.meta.get("state") != "decided"]
     if not epics:

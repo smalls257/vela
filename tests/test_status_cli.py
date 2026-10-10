@@ -45,7 +45,14 @@ def test_next_suggests_a_boundary_once_the_strategy_is_decided_and_no_app_exists
         "---\nid: solution-strategy\ntype: initiative-section\ntitle: Solution strategy\nstate: decided\n"
         "owner: \"@lead\"\nauthored: authored\n---\n# Solution strategy\n", encoding="utf-8")
     code, out = run("next", "--vault", str(tmp_path), "--today", "2026-01-15")
-    assert code == 0 and out.startswith("planner next: initiative, boundary.")
+    assert code == 0 and out.startswith("planner next: initiative, requirements."), out
+    (tmp_path / "capabilities").mkdir()
+    (tmp_path / "capabilities" / "CAP-001-hold.md").write_text(
+        "---\nid: CAP-001\ntype: capability\ntitle: Hold\nstate: assumption\nowner: \"@lead\"\nauthored: authored\n"
+        "origin: proposed\nchange: new\n---\n# Hold\n\n## Functional requirements\n\n### CAP-001.FR1 Hold a seat\n\n"
+        "- **State:** assumption\n", encoding="utf-8")
+    code, out = run("next", "--vault", str(tmp_path), "--today", "2026-01-15")
+    assert code == 0 and out.startswith("planner next: initiative, boundary."), out
 
 
 def test_a_stub_app_page_with_no_containers_goes_back_to_boundary(tmp_path):
