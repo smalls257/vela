@@ -246,8 +246,8 @@ class ProbeRun(sim.Arm):
         for note in self.notes:
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
 
-    def assistant_turn(self, message, session_id):
-        parsed, result = super().assistant_turn(message, session_id)
+    def assistant_turn(self, message, session_id, cwd=None):
+        parsed, result = super().assistant_turn(message, session_id, cwd)
         turn = self.transcript.turn + 1  # the turn number the transcript is about to give this reply
         previous = next((e["text"] for e in reversed(self.transcript.spoken()) if e["speaker"] == "assistant"), "")
         now = decided_lines(self.vault)

@@ -20,6 +20,7 @@ Knobs, all environment variables:
   SIM_STUB_WRITE  "<path>::<text>": the assistant's first turn of a session appends <text> to <path> in its cwd
 """
 import json
+import pathlib
 import os
 import re
 import shutil
@@ -72,6 +73,8 @@ def assistant(argv):
         with open(path, "a", encoding="utf-8") as out:
             out.write(written + "\n")
     commands = ["planner:dump", "planner:close", "planner:discover", "planner:shape", "planner:boundary", "planner:grill", "planner:epics"] if "--plugin-dir" in argv else []
+    skills = pathlib.Path.cwd() / ".claude" / "skills"
+    commands += sorted(d.name for d in skills.iterdir() if (d / "SKILL.md").is_file()) if skills.is_dir() else []  # project skills, as the CLI lists them
     events = [{"type": "system", "subtype": "init", "session_id": session_id, "slash_commands": commands},
               {"type": "assistant", "message": {"content": [
                   {"type": "text", "text": text},

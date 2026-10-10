@@ -238,7 +238,9 @@ def script_problems(data, persona):
         if not isinstance(session, dict):
             problems.append(f"session {n} must be a mapping")
             continue
-        if session.get("mode") not in MODES:
+        if session.get("repo") and session["repo"] not in (data.get("team_repos") or {}):
+            problems.append(f"session {n}: repo {session['repo']!r} is not one of the script's team_repos")
+        if session.get("mode") not in MODES and not session.get("repo"):
             problems.append(f"session {n}: mode {session.get('mode')!r} is not one of {', '.join(MODES)}")
         if not isinstance(session.get("cap"), int) or session["cap"] < 1:
             problems.append(f"session {n}: 'cap' must be a whole number of assistant turns, at least 1")
@@ -253,6 +255,8 @@ def script_problems(data, persona):
             except (KeyError, IndexError, ValueError) as exc:
                 problems.append(f"session {n}: the {arm} opening names {exc}, which the persona does not hold")
                 continue
+            if session.get("repo"):
+                continue  # a team session runs the team's own skills, or plain words, in the team's repo
             if arm == "planner" and not text.startswith(f"/planner:{session['mode']}"):
                 problems.append(f"session {n}: the planner opening must start with /planner:{session['mode']}")
             if arm == "baseline" and text.startswith("/"):
@@ -567,14 +571,15 @@ def persona_prompt(persona):
     # The U items are left out on purpose: a persona cannot leak a gap it was never told.
 
 
-def persona_input(transcript, session_index, mode):
+def persona_input(transcript, session_index, mode, speaker=""):
     """This session in full, and from each earlier session only the lead's last two messages, each cut to 300
     characters, so the lead stays consistent with where it left off. Every earlier assistant turn passed 200k
     tokens by session 21 of a long run, and every earlier lead message made the lead repeat its own worries."""
     spoken = transcript.spoken()
     current = [e for e in spoken if e.get("session") == session_index]
     earlier = []
-    for session in sorted({e.get("session") for e in spoken if e.get("session") != session_index},
+    mine = {e.get("session") for e in spoken if e["speaker"] == "lead" and e.get("persona", "") == speaker}
+    for session in sorted({e.get("session") for e in spoken if e.get("session") != session_index and e.get("session") in mine},
                           key=lambda s: (s is None, s if isinstance(s, int) else 0, str(s))):
         said = [e for e in spoken if e.get("session") == session and e["speaker"] == "lead"][-2:]
         earlier += [{**e, "text": e["text"] if len(e["text"]) <= 300 else e["text"][:300] + " [...]"} for e in said]
@@ -674,6 +679,30 @@ def build_vault_from(arm_dir, start, persona):
     git("remote", "add", "origin", str(origin), cwd=vault)
     git("push", "-q", "-u", "origin", "main", cwd=vault)
     return vault, [f"vault copied from snapshot {start}, current plugin installed"]
+
+
+USER_SKILLS = pathlib.Path.home() / ".claude" / "skills"
+
+
+def build_team_repo(arm_dir, name, spec):
+    """A team's own repository beside the vault, as a team that took an app at handoff would have: a git repo whose
+    .claude/skills holds copies of the named skills from the user's ~/.claude/skills, read and never changed, and a
+    README that says the initiative vault is at ../vault. The calls that run in it load only its project skills."""
+    repo = arm_dir / f"team-{name}"
+    (repo / ".claude" / "skills").mkdir(parents=True)
+    for skill in spec.get("skills") or []:
+        source = USER_SKILLS / skill
+        if not (source / "SKILL.md").is_file():
+            raise ToolFailure(f"team repo {name}: no skill {skill} at {source}")
+        shutil.copytree(source, repo / ".claude" / "skills" / skill)
+    (repo / "README.md").write_text(f"# {spec.get('title') or name}\n\nThe team's repository. The initiative vault it "
+                                    "was handed off from is at `../vault`.\n", encoding="utf-8")
+    git("init", "-q", "-b", "main", str(repo), cwd=arm_dir)
+    git("config", "user.name", "Sim Lead", cwd=repo)
+    git("config", "user.email", "sim-lead@example.invalid", cwd=repo)
+    git("add", "-A", cwd=repo)
+    git("commit", "-q", "-m", f"Team repo for {name}", cwd=repo)
+    return repo
 
 
 def write_gh_stub(bin_dir):
@@ -813,6 +842,7 @@ class Arm:
         (self.dir / "persona-cwd").mkdir()
         self.transcript = Transcript(self.dir / "transcript.jsonl")
         self.session_costs = {}
+        self.repos, self.extra_personas = {}, {}
 
     @classmethod
     def reopen(cls, name, run_dir, args, persona, share, record):
@@ -841,14 +871,29 @@ class Arm:
     def log(self, message):
         print(f"[{self.name}] {message} (spent ${self.ledger.spent:.2f} of ${self.ledger.share:.2f})", file=sys.stderr)
 
-    def assistant_turn(self, message, session_id):
+    def persona_for(self, session):
+        """(persona, name) for a session: the run's own lead, or the persona the session names, such as an app's
+        senior in a team repo."""
+        name = session.get("persona")
+        if not name:
+            return self.persona, ""
+        if name not in self.extra_personas:
+            path = resolve(name, "personas")
+            persona = load_yaml(path)
+            problems = persona_problems(persona)
+            if problems:
+                raise ToolFailure(f"{path} is not a valid persona:\n  " + "\n  ".join(problems))
+            self.extra_personas[name] = persona
+        return self.extra_personas[name], name
+
+    def assistant_turn(self, message, session_id, cwd=None):
         # A resumed session reports total_cost_usd as its running total, so only the increase is new spend, and
         # --max-budget-usd caps that running total: allow what was already spent in the session plus the room left.
         before = self.session_costs.get(session_id, 0.0) if session_id else 0.0
         room = self.ledger.session_room()
         raw = self.raw("assistant")
         done = call(assistant_argv(message, self.args.model, session_id, room + before, self.name, self.dir / "origin.git"),
-                    env=self.env, cwd=self.vault, raw_path=raw, kind="assistant")
+                    env=self.env, cwd=cwd or self.vault, raw_path=raw, kind="assistant")
         parsed = parse_stream(done.stdout, raw)
         result = parsed["result"]
         total = float(result["total_cost_usd"])
@@ -862,8 +907,9 @@ class Arm:
         return parsed, result
 
     def check_plugin(self, init, message, raw):
-        """A planner arm whose plugin did not load would run as a second baseline and score as the planner."""
-        if self.name == "baseline" or not message.startswith("/planner:") or init is None:
+        """A planner arm whose plugin did not load would run as a second baseline and score as the planner, and a team
+        session whose skill did not load would answer from nothing. Either is a tool failure."""
+        if self.name == "baseline" or not message.startswith("/") or init is None:
             return
         commands = init.get("slash_commands")
         if not isinstance(commands, list):
@@ -871,14 +917,14 @@ class Arm:
             return
         wanted = message.split()[0].lstrip("/")
         if wanted not in [str(c).lstrip("/") for c in commands]:
-            raise ToolFailure(f"{wanted} is not among the session's slash commands, so the plugin did not load. Read {raw}")
+            raise ToolFailure(f"{wanted} is not among the session's slash commands, so its plugin or skill did not load. Read {raw}")
 
-    def persona_turn(self, session_index, mode):
+    def persona_turn(self, session_index, mode, persona=None, speaker=""):
         room = self.ledger.session_room()
         raw = self.raw("persona")
-        done = call(text_call_argv(self.args.persona_model, persona_prompt(self.persona), room),
+        done = call(text_call_argv(self.args.persona_model, persona_prompt(persona or self.persona), room),
                     env=self.env, cwd=self.dir / "persona-cwd", raw_path=raw, kind="persona",
-                    stdin=persona_input(self.transcript, session_index, mode))
+                    stdin=persona_input(self.transcript, session_index, mode, speaker))
         result = parse_single(done.stdout, raw)
         self.ledger.add(float(result["total_cost_usd"]))
         if result["is_error"] and not budget_stop(result):
@@ -889,14 +935,17 @@ class Arm:
         mode, cap = session["mode"], session["cap"]
         self.transcript.add(speaker="driver", session=index, mode=mode, event="session-start",
                             text=f"Session {index}: {mode}, cap {cap} assistant turns")
-        message, session_id, turns = opening(session, self.name, self.persona), None, 0
-        self.transcript.add(speaker="lead", session=index, mode=mode, text=message, cost_usd=0, scripted=True)
+        speaker_persona, speaker = self.persona_for(session)
+        cwd = self.repos[session["repo"]] if session.get("repo") else self.vault
+        message, session_id, turns = opening(session, self.name, speaker_persona), None, 0
+        self.transcript.add(speaker="lead", session=index, mode=mode, text=message, cost_usd=0, scripted=True,
+                            persona=speaker)
         reason = None
         while reason is None:
             if self.ledger.session_room() < MIN_CALL_USD:
                 reason = "budget"
                 break
-            parsed, result = self.assistant_turn(message, session_id)
+            parsed, result = self.assistant_turn(message, session_id, cwd)
             session_id, turns = result["session_id"], turns + 1
             self.transcript.add(speaker="assistant", session=index, mode=mode, text=parsed["text"],
                                 cost_usd=result["total_cost_usd"], tool_calls=parsed["tools"],
@@ -907,7 +956,7 @@ class Arm:
             if budget_stop(result) or self.ledger.session_room() < MIN_CALL_USD:
                 reason = "budget"
                 break
-            reply = self.persona_turn(index, mode)
+            reply = self.persona_turn(index, mode, speaker_persona, speaker)
             if budget_stop(reply):
                 reason = "budget"
                 break
@@ -915,7 +964,7 @@ class Arm:
             ended = END in text
             if not ended:
                 self.transcript.add(speaker="lead", session=index, mode=mode, text=text,
-                                    cost_usd=reply["total_cost_usd"], scripted=False)
+                                    cost_usd=reply["total_cost_usd"], scripted=False, persona=speaker)
             if ended:
                 reason = "persona-end"
             elif turns >= cap:
@@ -937,6 +986,10 @@ class Arm:
             self.vault, self.notes = build_vault(self.dir, self.name, self.persona)
         for note in self.notes:
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
+        for name, spec in (script.get("team_repos") or {}).items():
+            self.repos[name] = build_team_repo(self.dir, name, spec)
+            self.transcript.add(speaker="driver", session=0, mode="setup", event="setup",
+                                text=f"team repo {name} at team-{name}, with skills {', '.join(spec.get('skills') or [])}")
         events = {e["after"]: e for e in script.get("events") or []}
         inbox = self.dir / "news-inbox"
         (inbox / "applied").mkdir(parents=True, exist_ok=True)

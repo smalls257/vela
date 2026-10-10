@@ -220,7 +220,7 @@ def test_every_persona_and_script_validates():
     """A holdout persona is checked in test_probe.py, by counts only, so a failure here never prints its brief."""
     for persona_path in sorted((SIM / "personas").glob("*.yaml")):
         persona = yaml.safe_load(persona_path.read_text(encoding="utf-8"))
-        if persona.get("holdout") is True:
+        if persona.get("holdout") is True or persona.get("team_persona") is True:
             continue
         assert sim.persona_problems(persona) == [], persona_path
         for script_path in sorted((SIM / "scripts").glob("*.yaml")):
@@ -726,3 +726,25 @@ def test_a_lead_turn_that_claims_an_action_outside_the_chat_is_flagged(tmp_path)
     t.add(session=1, mode="grill", speaker="lead", text="I'll ask the consultant tomorrow.", turn=5)
     assert sim.claimed_actions(t) == [1, 3]
     assert "You cannot run commands" in sim.persona_prompt(coastal())
+
+
+def test_a_team_session_runs_in_the_team_repo_with_copies_of_the_named_skills(tmp_path):
+    script = {"name": "team", "persona": "coastal-merger",
+              "team_repos": {"x": {"title": "X", "skills": ["requirements-grill"]}},
+              "sessions": [{"mode": "requirements-grill", "cap": 2, "repo": "x", "persona": "coach-lead",
+                            "planner": "/requirements-grill x", "baseline": "/requirements-grill x"}]}
+    if not (sim.USER_SKILLS / "requirements-grill" / "SKILL.md").is_file():
+        pytest.skip("the user's requirements-grill skill is not installed on this machine")
+    path = tmp_path / "team.yaml"
+    path.write_text(yaml.safe_dump(script), encoding="utf-8")
+    out, log = tmp_path / "results", tmp_path / "stub-log.jsonl"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(path),
+                           "--arms", "planner", "--out", str(out), *MODELS, "--budget", "2"],
+                          capture_output=True, text=True, env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
+    assert done.returncode == 0, done.stderr
+    arm = sorted(out.iterdir())[0] / "planner"
+    assert (arm / "team-x" / ".claude" / "skills" / "requirements-grill" / "SKILL.md").is_file()
+    calls = [json.loads(l) for l in log.read_text().splitlines()]
+    assert any(c["role"] == "assistant" and c["cwd"].endswith("team-x") for c in calls)
+    lead = [e for e in entries(arm) if e["speaker"] == "lead"]
+    assert lead and all(e.get("persona") == "coach-lead" for e in lead)
