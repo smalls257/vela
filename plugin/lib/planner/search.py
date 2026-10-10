@@ -25,12 +25,13 @@ WEIGHT = {"title": 6, "heading": 4, "opening": 2, "text": 1}
 
 
 def stem(word):
-    """A crude stem, enough that "orders" finds "order" and "trading" finds "trade"."""
+    """A crude stem, enough that "orders" finds "order", "places" finds "place" and "trading" finds "trade".
+    A final "e" goes too, so "place", "places" and "placed" all come to "plac"."""
     for suffix in ("ing", "ies", "es", "ed", "s"):
         if word.endswith(suffix) and len(word) - len(suffix) >= 3:
-            base = word[: -len(suffix)]
-            return base + "y" if suffix == "ies" else base
-    return word
+            word = word[: -len(suffix)] + ("y" if suffix == "ies" else "")
+            break
+    return word[:-1] if word.endswith("e") and len(word) >= 4 else word
 
 
 def terms(words):

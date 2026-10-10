@@ -35,3 +35,11 @@ def test_json_gives_viewer_links():
     code, out = run("query", "search", "seat", "hold", "--vault", str(FIXTURE), "--json")
     hits = json.loads(out)["hits"]
     assert hits and all(h["view"].startswith("#/") for h in hits)
+
+
+def test_a_word_and_its_plural_share_a_stem():
+    import sys
+    sys.path.insert(0, str(REPO / "plugin" / "lib"))
+    from planner.search import stem
+    assert stem("place") == stem("places") == stem("placed")
+    assert stem("trade") == stem("trades") == stem("trading")

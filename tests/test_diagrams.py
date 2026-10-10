@@ -71,3 +71,10 @@ def test_flowchart_ids_and_separators(lines, expected):
 ])
 def test_sequence_ids_create_and_bidirectional(lines, expected):
     assert sequence_participants(lines) == expected
+
+
+def test_a_linked_provider_is_named_by_its_link_label():
+    from planner.diagrams import external_name
+    assert external_name("[[03-context-and-scope#PTY-01 Brightwater|Brightwater]]") == "Brightwater"
+    assert external_name("[[03-context-and-scope#PTY-01 Brightwater]]") == "PTY-01 Brightwater"
+    assert external_name("Tidepay") == "Tidepay"

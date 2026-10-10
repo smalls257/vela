@@ -80,7 +80,17 @@ def app_node(page, style=None, show_change=True):
     return Node(node_key("n_", name), safe_label(label, name), style or APP_STYLE.get(change, "unchanged"), name, page)
 
 
+LINKED_NAME = re.compile(r"\[\[([^\]|#]*)(?:#([^\]|]*))?(?:\\?\|([^\]]*))?\]\]")
+
+
+def external_name(text):
+    """A provider as a reader names it: "[[03-context-and-scope#PTY-01 Brightwater|Brightwater]]" is Brightwater,
+    not "03-context-and-scope PTY-01 Brightwater Brightwater"."""
+    return LINKED_NAME.sub(lambda m: m.group(3) or m.group(2) or m.group(1), text).strip()
+
+
 def external_node(name):
+    name = external_name(name)
     return Node(node_key("x_", name.lower()), safe_label(name, "external"), "external", name, None)
 
 
