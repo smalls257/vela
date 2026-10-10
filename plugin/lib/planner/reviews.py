@@ -12,7 +12,7 @@ ran and found nothing. An area the session left out because nothing in it was in
 import re
 from dataclasses import dataclass
 
-from planner import catalog, questions
+from planner import catalog, parse, questions
 
 FIELDS = ("finding", "quote", "page", "copy", "severity", "question")
 QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
@@ -28,6 +28,9 @@ UNRELATED_QUOTE = "the quote does not mention what the finding is about"
 # A new question is about what this session changed. One about a page it left alone was owed when that page was
 # written, and raising it again every session is what made the digest grow faster than any lead could answer it.
 OUTSIDE_CHANGE = "it is a new question about a page this session did not change"
+# A decided page or item is settled. A new question about it reopens what a Grill closed, so only one that would
+# change a decision, a contract, a liability or the lawful use of data, which is what high severity means, is kept.
+ON_DECIDED = "it is a new question about something already decided, and it is not high severity"
 
 # Content words: English, lower case, function words gone, then a crude stem (one suffix off, a final e off,
 # the first STEM_LENGTH letters kept), so "owner", "owns" and "ownership" meet. Crude on purpose: the rule
@@ -244,6 +247,8 @@ def _check_finding(vault, raw, owed_ids, about, changed=None):
         return None, f"it cites {raw['page'].strip()}, which is not a page in this vault"
     if copy == "new" and changed is not None and not in_change(page, raw["quote"], changed):
         return None, OUTSIDE_CHANGE
+    if copy == "new" and changed is not None and severity != "high" and on_decided(vault, page, raw["quote"]):
+        return None, ON_DECIDED
     # One quote checker for the ledger and the merge, so the two rules cannot drift apart.
     # A straight quote mark inside the words would end the quoted span early; quote_problem reads curly as straight.
     words = raw["quote"].strip().replace('"', "”")
@@ -276,6 +281,26 @@ def in_change(page, quote, changed):
         return True
     line = quote_line(page, quote)
     return line is not None and any(first <= line <= last for first, last in ranges)
+
+
+def on_decided(vault, page, quote):
+    """Whether a quote sits on a decided page, or under a decided item's heading or History block."""
+    if page.meta.get("state") == "decided":
+        return True
+    line = quote_line(page, quote)
+    if line is None:
+        return False
+    history = parse.history_items(page)
+    for found in vault.items.values():
+        for item in found:
+            if item.page is not page or item.fact("State") != "decided":
+                continue
+            later = [h.line for h in page.headings if h.line > item.line and h.level <= 3]
+            end = later[0] if later else len(page.text.split("\n")) + 1
+            span = history.get(item.id)
+            if item.line <= line < end or (span and span[0] <= line < span[1]):
+                return True
+    return False
 
 
 def open_reviewer_ids(vault):

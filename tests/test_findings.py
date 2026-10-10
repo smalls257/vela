@@ -238,7 +238,8 @@ def test_areas_names_only_codes_of_the_catalogue(tmp_path):
 
 
 def test_a_new_question_about_a_page_this_session_did_not_change_is_dropped(tmp_path):
-    new = finding(copy="new", severity="normal", page="03-context-and-scope", quote="the vendor contract, which runs to 2028",
+    # High severity: the example vault is decided, and a normal new question on a decided page is dropped.
+    new = finding(copy="new", severity="high", page="03-context-and-scope", quote="the vendor contract, which runs to 2028",
                   question="Can the vendor contract be ended early?")
     all_ran(tmp_path / "f", FIN=[finding()], PTN=[new])
     code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--json",
@@ -255,9 +256,10 @@ def test_a_new_question_about_a_page_this_session_did_not_change_is_dropped(tmp_
 
 
 def test_changed_can_name_only_some_lines_of_a_page(tmp_path):
+    # High severity: the example vault is decided, and a normal new question on a decided page is dropped.
     page = (FIXTURE / "03-context-and-scope.md").read_text(encoding="utf-8")
     line = next(n for n, text in enumerate(page.splitlines(), 1) if "the vendor contract, which runs to 2028" in text)
-    new = finding(copy="new", severity="normal", page="03-context-and-scope", quote="the vendor contract, which runs to 2028",
+    new = finding(copy="new", severity="high", page="03-context-and-scope", quote="the vendor contract, which runs to 2028",
                   question="Can the vendor contract be ended early?")
     all_ran(tmp_path / "f", PTN=[new])
     inside = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--json",
@@ -266,3 +268,20 @@ def test_changed_can_name_only_some_lines_of_a_page(tmp_path):
                   "--changed", f"03-context-and-scope.md:1-{line - 1}+{line + 5}")
     assert len(json.loads(inside[1])["kept"]) == 1 and json.loads(outside[1])["kept"] == []
     assert run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--changed", "03-context-and-scope.md:9-2")[0] == 2
+
+
+def test_a_new_question_about_a_decided_page_is_dropped_unless_it_is_high_severity(tmp_path):
+    page = (FIXTURE / "05-building-blocks" / "booking-building-blocks.md").read_text(encoding="utf-8")
+    assert "state: decided" in page
+    quote = "Booking decides whether a booking is held, confirmed, amended or cancelled"
+    normal = finding(copy="new", severity="normal", page="05-building-blocks/booking-building-blocks.md", quote=quote,
+                     question="Who decides whether a booking is held, confirmed, amended or cancelled after a refund?")
+    all_ran(tmp_path / "f", OPS=[normal])
+    changed = ["--changed", "05-building-blocks/booking-building-blocks.md"]
+    code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--json", *changed)
+    result = json.loads(out)
+    assert result["kept"] == [] and result["dropped"][0]["reason"] == (
+        "it is a new question about something already decided, and it is not high severity")
+    all_ran(tmp_path / "g", OPS=[dict(normal, severity="high")])
+    out = run("findings", "merge", str(tmp_path / "g"), "--vault", str(FIXTURE), "--json", *changed)[1]
+    assert len(json.loads(out)["kept"]) == 1
