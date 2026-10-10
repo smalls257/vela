@@ -152,6 +152,8 @@ Unknown, under `### UNK-nnn <short name>` on `11-unknowns-and-risks.md`:
 | `**Outcome:**`, `**Resolved in:**` | Required once `resolved`. |
 | `**Opened:**`, `**Notes:**` | Optional. |
 
+When an unknown is resolved, every page that mentions it must stop calling it open. `planner check` reports W334 for a sentence that links a resolved unknown with wording such as "still open", "not decided", "waiting on" or "pending", outside `## History` and generated blocks. A link label that only repeats the question's heading is its name, not a claim, so "[[…#UNK-044 How long a paper order may stay pending|how long a paper order may stay pending]]" is fine. Close rewrites these sentences, using `planner query refs <ID>` to find them.
+
 An item an open unknown lists in `**Blocks:**` cannot be `decided`. Resolve the unknown first.
 
 Risk, under `### R-nn <name>`: `**Owner:**` and `**State:**` are required. State is `open`, `mitigated`, `accepted` or `closed`. `**Mitigation:**` is optional.
@@ -464,6 +466,7 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | W505 | no app carries a functional requirement | E505 | no app carries a functional requirement |
 | E330 | allocation row names no functional requirement | E331 | allocation row goes through no such contract |
 | E332 | allocation row has no valid state | E333 | allocation row is a fact on a page with no sources |
+| W334 | prose calls an answered question open | | |
 | E321 | override is malformed | W303 | decided without a Grill, by override |
 | E322 | decided-by or confirmed-by is malformed | W304 | fact without a source, by override |
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |

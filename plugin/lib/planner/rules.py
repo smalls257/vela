@@ -512,6 +512,65 @@ def allocation_rules(vault, today):
                      "but the page lists no sources.", "Add sources: [SRC-nn] to the page, or lower the row to assumption.")
 
 
+# Wording that says a question is still waiting. Matched only in the sentence that links an answered one.
+STALE_WORDING = re.compile(r"\b(still open|remains? open|is open|still to be (decided|answered|settled)|not (yet )?"
+                           r"(decided|answered|known|settled|confirmed|in writing)|waits? (on|for)|waiting (on|for)|"
+                           r"pending|unanswered|open question|undecided|to be confirmed|is unclear)\b", re.I)
+UNKNOWN_ANCHOR = re.compile(r"^(UNK-\d{3})\b")
+# A sentence that already says the question was answered is not stale, whatever else it says.
+SAYS_ANSWERED = re.compile(r"\b(resolved|answered|confirmed|ruled|agreed|measured|settled at|now known)\b", re.I)
+
+
+LINK_PARTS = re.compile(r"\[\[([^\]|]*?)(?:\\?\|([^\]]*))?\]\]")
+
+
+def prose_of(sentence):
+    """The sentence as a reader takes it, for the stale-wording test. A link's target never counts, and nor does a
+    label that only repeats the linked heading ("how long a paper order may stay pending" names the question; it
+    says nothing about its state). A label that adds words, such as "still open", is what the sentence claims."""
+    def keep(m):
+        target, label = m.group(1), (m.group(2) or "")
+        return "" if not label or label.lower() in target.lower() else label
+    return LINK_PARTS.sub(keep, sentence)
+
+
+def stale_mention_rules(vault, today):
+    """W334: prose that calls an answered question open. Close rewrites the pages a session changed, and the session
+    that answers a question rarely changes the pages that describe it, so their sentences go stale while every other
+    check stays green. Only the sentence holding the link is read, and History and generated blocks are left alone."""
+    for page in vault.pages:
+        if page.type == "session" or page.id == "unknowns-and-risks":
+            continue
+        lines = page.text.split("\n")
+        skip, inside = set(), False
+        for n, line in enumerate(lines, 1):
+            if line.startswith("<!-- generated:"):
+                inside = True
+            if inside or line.strip().lower() == f"## {schema.HISTORY_HEADING.lower()}":
+                skip.add(n)
+            if line.startswith("<!-- /generated:"):
+                inside = False
+        history = next((n for n, l in enumerate(lines, 1) if l.strip().lower() == f"## {schema.HISTORY_HEADING.lower()}"),
+                       len(lines) + 1)
+        seen = set()
+        for link in page.links:
+            m = UNKNOWN_ANCHOR.match(link.anchor or "")
+            if not m or link.line in skip or link.line >= history or (link.line, m.group(1)) in seen:
+                continue
+            items = vault.items.get(m.group(1)) or []
+            if not items or items[0].kind != "unknown" or items[0].fact("State") != "resolved":
+                continue
+            line = lines[link.line - 1] if 0 < link.line <= len(lines) else ""
+            sentence = next((s for s in re.split(r"(?<=[.!?])\s+", line) if m.group(1) in s), line)
+            prose = prose_of(sentence)
+            found = STALE_WORDING.search(prose)
+            if found and not SAYS_ANSWERED.search(prose):
+                seen.add((link.line, m.group(1)))
+                yield _f(page, link.line, "W334", f"This sentence says '{found.group(0)}' of {m.group(1)}, which is resolved: "
+                         f"{(items[0].fact('Outcome') or 'see its Outcome')[:120]}",
+                         f"Rewrite the sentence to say what was answered, or run planner query refs {m.group(1)} to find every mention.")
+
+
 def certainty_rules(vault, today):
     for unit_id, page, line, decisions in decided_units(vault):
         sessions = [vault.resolve(l, page) for b in decisions for l in b.links]
@@ -783,5 +842,5 @@ def trace_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, allocation_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules)

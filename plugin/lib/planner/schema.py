@@ -274,6 +274,7 @@ CODES = {
     "E320": "contract is missing a required fact",
     "E321": "override is malformed",
     "E322": "decided-by or confirmed-by is malformed",
+    "W334": "prose calls an answered question open",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",
