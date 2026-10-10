@@ -45,3 +45,21 @@ def test_dark_has_to_be_earned(tmp_path):
                               if not l.startswith("state:")) + "\n", encoding="utf-8")
     found, _ = lit(vault)
     assert found["APP-kiosks"].level == "unexamined"
+
+
+def test_ask_names_who_holds_the_answer(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    page = vault / "11-unknowns-and-risks.md"
+    page.write_text(page.read_text(encoding="utf-8").rstrip("\n") + (
+        "\n\n### UNK-099 Seat map vendor terms\n\nWhether the seat map vendor allows holds.\n\n"
+        "- **Question:** Do the vendor terms allow a ten-minute hold?\n- **Owner:** @hl-solution-lead\n"
+        "- **Ask:** @vendor-manager\n- **State:** open\n- **Blocks:** [[booking-building-blocks]]\n- **Ask by:** 2026-12-01\n"),
+        encoding="utf-8")
+    found, _ = lit(vault)
+    held = [r for r in found["APP-booking"].reasons if r.get("unknown") == "UNK-099"]
+    assert held and held[0]["ask"] == "@vendor-manager"
+    from conftest import run
+    import json
+    answer = json.loads(run("query", "get", "UNK-099", "--vault", str(vault), "--json")[1])
+    assert answer["ask"] == "@vendor-manager"

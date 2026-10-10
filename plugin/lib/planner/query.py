@@ -69,6 +69,7 @@ def item_answer(vault, items):
         "link": f"[[{item.page.name}#{item.heading}|{item.id}]]",
         "also": [f"{i.page.path}:{i.line}" for i in items[1:]],
         **override.summary(item.page, item.id),
+        **({"ask": item.fact("Ask")} if item.kind == "unknown" and item.fact("Ask") else {}),
     }
 
 

@@ -146,6 +146,7 @@ Unknown, under `### UNK-nnn <short name>` on `11-unknowns-and-risks.md`:
 |---|---|
 | `**Question:**` | Required. The heading stays a short name, so rewording the question breaks no link. |
 | `**Owner:**` | Required. Starts with a handle: `@hl-platform-lead (Platform lead)`. |
+| `**Ask:**` | Optional. Who holds the answer, when that is not the owner: a handle such as `@privacy-lead`, or a role in words such as `outside counsel`. The owner answers for the question; the person to ask answers it. Views of who to ask group by this, then by the owner. |
 | `**State:**` | Required. `open` or `resolved`. |
 | `**Blocks:**` | Required. Links to what it blocks, or a value starting `nothing`. |
 | `**Ask by:**` | Required while `open`. `YYYY-MM-DD`. Past this date the check warns. |

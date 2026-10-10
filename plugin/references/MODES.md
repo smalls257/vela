@@ -38,7 +38,7 @@ No mode writes inside a generated block. `planner render` fills them. Close runs
 
 ## Unknowns
 
-Any question nobody present can answer becomes an unknown on `11-unknowns-and-risks.md`, with `**Owner:**` starting with a handle, `**Ask by:**` and `**Blocks:**`. There is no separate Probe skill.
+Any question nobody present can answer becomes an unknown on `11-unknowns-and-risks.md`, with `**Owner:**` starting with a handle, `**Ask by:**` and `**Blocks:**`. When the owner is not the person who holds the answer, add `**Ask:**` with that person's handle or role, rather than a parenthesis after the owner. There is no separate Probe skill.
 
 - **Ask the lead first.** Before an unknown waits on anyone else, ask the lead whether they know the answer now, and how they know it. A first-hand answer gets its own row in `sources.md` and is captured with its source. A document they can name goes to Discover.
 - **The lead does the asking.** The unknown's owner and ask-by date are the record of who is asked and by when. Claude never drafts an email, a message, a chase or an ask for anyone to send, and never offers to. A research task Claude does now with a source may still be offered.

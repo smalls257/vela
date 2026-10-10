@@ -360,6 +360,10 @@ def unknown_rules(vault, today):
         if owner and not schema.OWNER_BULLET_RE.match(owner):
             yield _f(page, unknown.facts["Owner"].line, "E302", f"{unknown.id} owner '{owner}' is not a GitHub handle or team.",
                      "Start the Owner value with @handle or @org/team.")
+        ask = unknown.fact("Ask")
+        if ask.startswith("@") and not schema.OWNER_BULLET_RE.match(ask):
+            yield _f(page, unknown.facts["Ask"].line, "E302", f"{unknown.id} ask '{ask}' starts like a handle but is not one.",
+                     "Write a handle, @handle or @org/team, or the person's role in words, such as 'outside counsel'.")
         blocks = unknown.facts.get("Blocks")
         if blocks and blocks.value and not blocks.links and not blocks.value.lower().startswith("nothing"):
             yield _f(page, blocks.line, "E302", f"{unknown.id} says what it blocks in words only.",

@@ -46,8 +46,9 @@ def days_until(as_of, date):
 def hold(light, unknown, as_of, via=""):
     ask = unknown.fact("Ask by")
     through = f" through {via}" if via else ""
-    light.reasons.append({"kind": "held", "unknown": unknown.id,
-                          "text": f"{unknown.id} {unknown.heading.split(' ', 1)[-1]} holds it{through}, ask by {ask or 'no date'}"})
+    who = unknown.fact("Ask") or unknown.fact("Owner").split(" ")[0]
+    light.reasons.append({"kind": "held", "unknown": unknown.id, "ask": who,
+                          "text": f"{unknown.id} {unknown.heading.split(' ', 1)[-1]} holds it{through}; ask {who} by {ask or 'no date'}"})
     if not progress.is_date(ask):
         light.raise_to("caution", 0.45)
         return
