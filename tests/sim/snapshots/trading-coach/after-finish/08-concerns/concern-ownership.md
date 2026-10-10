@@ -1,0 +1,27 @@
+---
+id: concern-ownership
+type: concern
+title: Ownership
+arc42: "§8"
+owner: "@solution-lead"
+authored: authored
+---
+
+# Ownership
+
+Which team owns each app and each piece of new work.
+
+## Strategy
+
+Coach's page names the product lead as owner for now, and no team is recorded to run it. Nobody is named yet for [[11-unknowns-and-risks#UNK-018 Who writes the lessons and defines ready|writing the lessons and defining ready]]. TickerTalk's ownership has not been examined.
+
+[[sources#SRC-16|the answers the product lead gathered by 9 October]] say the Coach team runs the Coach service on Kestrel's AWS account, with the platform engineer's help for the first month, according to the CTO; the help is a plan, so it is an assumption. The Coach lead, @coach-lead, wrote in the Coach channel on 9 October that the four containers are right as written (Lessons, Paper practice, Quote display and Board demo) and that they own Coach's epics. Fieldnote Learning is the contracted lesson writer, starting 12 October, which is also an assumption until it starts.
+
+[[sources#SRC-19|The Coach lead says]] they own the review of Coach's failure cases during the build. [[sources#SRC-22|The product lead recalls]] the mobile lead saying that two engineers can build it by March, but is mixed up on the date and has nothing in writing. That looks ahead and is unconfirmed, so it is an assumption, and the mobile lead is to confirm it in [[11-unknowns-and-risks#UNK-019 Mobile capacity for March|the capacity question]].
+
+## Per app
+
+| App | State | Why |
+|---|---|---|
+| [[coach-building-blocks\|Coach]] | unknown | [[11-unknowns-and-risks#UNK-018 Who writes the lessons and defines ready\|Who writes the lessons and defines ready]]: who writes the lessons and defines "ready" |
+| [[tickertalk-building-blocks\|TickerTalk]] | unexamined | |
