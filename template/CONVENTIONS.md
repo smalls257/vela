@@ -411,6 +411,7 @@ While no app page exists, `planner next` suggests `initiative, boundary` once `0
 - W704: a page's `last_verified` is more than `stale_after_days` before today.
 - W716: a `sources.md` row's `Date` is more than `stale_after_days` before today, or is not a date.
 - W711: the last session with `status: closed` is more than 30 days before today. A vault with no closed session yet is not judged.
+- W326: a goals page whose every goal is further along than the page's own `state`, or a constraints page at `inkling` or `assumption` whose every row cites where it comes from. Close sets the page's state as the warning says.
 - W717: this file is not the copy the installed plugin ships. `planner upgrade` replaces it with the plugin's copy; review the change with `git diff CONVENTIONS.md` and commit it.
 
 A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: W704, W716 or W711 says it is "dated in the future (<date>); check for a typo." `planner health` marks the row the same way.

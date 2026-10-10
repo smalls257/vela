@@ -124,7 +124,7 @@ def test_fact_page_without_sources(mini):
 def test_decided_without_decision_bullet(mini):
     edit(mini / GOALS, "- **Decision:** [[2026-01-10-shop-api]]\n", "")
     _, out = check(mini)
-    assert codes(out) == [("E303", GOALS)]
+    assert [c for c in codes(out) if c[0] != "W326"] == [("E303", GOALS)]  # W326 also says the page state lags
 
 
 def test_decided_by_a_session_that_is_not_a_grill(mini):
@@ -218,7 +218,7 @@ def test_decided_goal_row_needs_a_grill(mini):
     edit(mini / GOALS, "state: decided\n", "state: assumption\n")
     edit(mini / GOALS, "- **Decision:** [[2026-01-10-shop-api]]\n", "")
     _, out = check(mini)
-    assert codes(out) == [("E303", GOALS)]
+    assert [c for c in codes(out) if c[0] != "W326"] == [("E303", GOALS)]  # W326 also says the page state lags
     assert "G1" in out
 
 
@@ -254,3 +254,14 @@ def test_an_epics_session_that_includes_grill_still_decides_and_passes(mini):
     edit(mini / "sessions/2026-01-10-shop-api.md", "modes: [grill]", "modes: [epics, shape, grill]")
     _, out = check(mini)
     assert codes(out) == []
+
+
+def test_a_goals_page_whose_goals_are_all_decided_warns_until_its_state_follows(tmp_path):
+    from conftest import REPO
+    import shutil
+    vault = tmp_path / "v"
+    shutil.copytree(REPO / "examples" / "unified-booking", vault)
+    page = vault / "01-goals.md"
+    page.write_text(page.read_text(encoding="utf-8").replace("state: decided\n", "state: inkling\n", 1), encoding="utf-8")
+    out = check(vault)[1]
+    assert "W326" in out and "every goal on it is at least decided" in out

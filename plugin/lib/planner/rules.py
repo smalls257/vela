@@ -457,6 +457,36 @@ def _modes(session):
     return modes if isinstance(modes, list) else []
 
 
+STATE_ORDER = ("inkling", "assumption", "fact", "decided")
+
+
+def page_state_rules(vault, today):
+    """W326: a page whose rows are all further along than the page says. A goals page whose every goal is decided,
+    or a constraints page whose every constraint cites its source, still reads inkling until someone types its state,
+    and the page then looks unsettled to every reader and to planner status."""
+    for page in vault.pages:
+        state = page.meta.get("state")
+        if page.type != "initiative-section" or state not in STATE_ORDER:
+            continue
+        for table in page.tables:
+            if table.generated or not table.rows:
+                continue
+            head = tuple(table.header)
+            if head[:len(schema.GOALS_HEADER)] == schema.GOALS_HEADER:
+                rows = [r[3].strip() for r in table.rows if len(r) > 3]
+                least = min((s for s in rows if s in STATE_ORDER), key=STATE_ORDER.index, default=None)
+                if least and len(rows) == len([s for s in rows if s in STATE_ORDER]) \
+                        and STATE_ORDER.index(least) > STATE_ORDER.index(state):
+                    yield _f(page, meta_line(page, "state"), "W326",
+                             f"{page.id} is {state}, but every goal on it is at least {least}.",
+                             f"Set state: {least}, the least settled goal, with the page's Decision in its History.")
+            elif head[:len(schema.CONSTRAINTS_HEADER)] == schema.CONSTRAINTS_HEADER and state in ("inkling", "assumption"):
+                if all("[[" in " ".join(r[2:]) or "SRC-" in " ".join(r[2:]) for r in table.rows):
+                    yield _f(page, meta_line(page, "state"), "W326",
+                             f"{page.id} is {state}, but every constraint on it cites where it comes from.",
+                             "Set state: fact, and list the sources the rows cite in its sources field.")
+
+
 def certainty_rules(vault, today):
     for unit_id, page, line, decisions in decided_units(vault):
         sessions = [vault.resolve(l, page) for b in decisions for l in b.links]
@@ -725,5 +755,5 @@ def trace_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules)

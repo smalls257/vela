@@ -153,7 +153,7 @@ def test_fact_fr_needs_a_source(mini):
     _, out = check(mini)
     assert codes(out) == [("E304", CAP)]
     add_cap(mini, CAP_PAGE.replace("- **State:** assumption", "- **State:** fact\n- **Source:** SRC-01"))
-    assert codes(check(mini)[1]) == []
+    assert [c for c in codes(check(mini)[1]) if c[0] != "W326"] == []  # W326: the page could say fact now
 
 
 def test_fr_state_must_be_in_the_enum_and_present(mini):
@@ -202,9 +202,9 @@ def test_goal_row_at_fact_needs_the_page_to_list_sources(mini):
     edit(mini / GOALS, "- **Decision:** [[2026-01-10-shop-api]]\n", "")
     edit(mini / GOALS, 'sources: ["2026-01-10-shop-api"]\n', "")
     _, out = check(mini)
-    assert codes(out) == [("E304", GOALS)] and "Goal G1 is a fact" in out
+    assert [c for c in codes(out) if c[0] != "W326"] == [("E304", GOALS)] and "Goal G1 is a fact" in out
     edit(mini / GOALS, "authored: mixed\n", "authored: mixed\nsources: [SRC-01]\n")
-    assert codes(check(mini)[1]) == []
+    assert [c for c in codes(check(mini)[1]) if c[0] != "W326"] == []  # W326: the page could say fact now
 
 
 # 1, M6, M9, M5, M4, 7, M2, M3, README: the words the skills and template must carry
