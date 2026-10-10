@@ -18,7 +18,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, catalog, completeness, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
+from planner import allocation, catalog, completeness, search, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -293,6 +293,23 @@ def print_answer(answer, as_json, out):
             print(f"{key}: {value if value not in (None, '') else 'none'}", file=out)
 
 
+def print_search(answer, out):
+    """Hits as a reader scans them: where, the heading, one line of what it says, and the flows that cross it."""
+    if answer.get("not_found"):
+        meant = ", ".join(answer["terms"]) or "nothing but common words"
+        print(f"planner query search: nothing holds enough of: {meant}. Try the vault's own words; 12-glossary.md has them.",
+              file=out)
+        return
+    print(f"planner query search: {len(answer['hits'])} places for {', '.join(answer['terms'])}"
+          + (f", {answer['more']} more with --limit" if answer["more"] else "") + ".", file=out)
+    for n, hit in enumerate(answer["hits"], 1):
+        where = hit["page"] + (f" › {hit['heading']}" if hit["heading"] else "")
+        print(f"{n}. {hit['title']}: {where}", file=out)
+        print(f"   {hit['snippet']}", file=out)
+        if hit["flows"]:
+            print(f"   Flows that cross it: {'; '.join(f['title'] + ' (' + f['page'] + ')' for f in hit['flows'])}", file=out)
+
+
 def cmd_query(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
@@ -304,6 +321,11 @@ def cmd_query(args, out):
         if not any(w.strip() for w in args.words):
             raise ToolError("planner query find needs at least one word that is not blank.")
         answer = query.find(vault, args.words)
+    elif args.what == "search":
+        answer = search.search(vault, args.words, limit=args.limit)
+        if not args.json:
+            print_search(answer, out)
+            return 1 if answer.get("not_found") else 0
     else:
         today, _ = parse_today(args.today)
         answer = query.status(vault, today)
@@ -1131,16 +1153,20 @@ def build_parser():
     report.add_argument("--vault", default=".", help="vault root (default: current directory)")
     report.add_argument("--today", help="date to judge by, YYYY-MM-DD (default: system date)")
     report.set_defaults(func=cmd_health)
-    ask = sub.add_parser("query", help="read-only answers about IDs, for /ask: get, refs, find, status")
+    ask = sub.add_parser("query", help="read-only answers about IDs, for /ask: get, refs, find, search, status")
     asks = ask.add_subparsers(dest="what", required=True)
     for name, helptext in (("get", "an ID's page, heading, state, owner, sources and decision"),
                            ("refs", "every page that links to an ID"), ("find", "page titles and item headings with these words"),
+                           ("search", "plain-word search, ranked, with the flows that cross each place"),
                            ("status", "the planner status grid")):
         one = asks.add_parser(name, help=helptext)
         if name in ("get", "refs"):
             one.add_argument("id", help="an ID, for example CON-001 or APP-booking")
         if name == "find":
             one.add_argument("words", nargs="+", help="words that must all appear, in any case; put -- before a word that starts with -")
+        if name == "search":
+            one.add_argument("words", nargs="+", help="what you are looking for, in your own words")
+            one.add_argument("--limit", type=int, default=8, help="how many places to show (default: 8)")
         if name == "status":
             one.add_argument("--today", help="date to judge by, YYYY-MM-DD (default: system date)")
         one.add_argument("--vault", default=".", help="vault root (default: current directory)")

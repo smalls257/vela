@@ -426,6 +426,7 @@ A `last_verified`, a source `Date` or the last closed session dated after today 
 - `planner query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, the wikilink to cite it by, and its overrides: `override` (each `**Override:**` bullet, its rules, handle, date and reason, or `malformed` with the problem), `decided_by` (who decided on whose behalf, and whether it is `confirmed`) and `confirmed_by`.
 - `planner query refs <ID>`: every page line that links to the ID, every list in page properties that names it, and every other line that holds the ID as a whole token (`via: mention`). The line that defines the ID is left out.
 - `planner query find <words>`: page titles, item headings and goal, constraint and source rows that hold every word, in any case. Put `--` before a word that starts with `-`.
+- `planner query search <words>`: plain-word search. It ranks every page and section by how many of the meaningful words it holds and where (title, heading, opening, text), leaves out History, and lists the flows whose steps link each place. A "how" question ranks flows higher. `/planner:find` uses it.
 - `planner query status`: the `planner status` grid as data.
 
 An ID the vault does not hold comes back as `not_found` and exits 1. An ID is matched exactly, so `con-001` is not `CON-001`.

@@ -17,6 +17,7 @@ A Claude Code toolkit for planning at the initiative level. It covers everything
    - `/planner:allocate` divides each requirement among the apps and contracts that carry it, so every requirement has an owner before epics.
    - `/planner:grill` is the only thing that can mark an item `decided`, and only after your explicit yes.
    - `/planner:ask` answers questions from the vault. It is read-only, and anything the vault doesn't hold comes back as `Not recorded:`.
+   - `/planner:find` finds where something is, in seconds, mid-conversation: "how does coach talk to brightwater" gives the best place to look and the flows that cross it.
    - Discover, Shape and Grill each run a review checkpoint too. Between sessions, `python3 .claude/skills/planner/bin/planner questions --digest` shows what is still owed. See "What v3 adds" below.
 5. **Before each PR,** run `python3 .claude/skills/planner/bin/planner check`. CI runs it too. If you make it a required check, a broken vault can't merge.
 6. **For the CIO,** run `python3 .claude/skills/planner/bin/planner view --out ~/Desktop/<name>.html` and email the file. It works offline and can't run page script or make network calls.
@@ -36,6 +37,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 | `planner next` | The one app and mode to work on next, with the reason. `probe` means: ask the unknown's owner, or research it |
 | `planner health` | Stale pages and sources, overdue unknowns, and days since the last closed session, as Markdown |
 | `planner query get <ID>` | Where an ID lives and its state. `refs`, `find` and `status` too. Add `--json`. `/planner:ask` uses it |
+| `planner query search <words>` | Plain-word search, ranked, with the flows that cross each place. `/planner:find` uses it |
 | `planner questions` | The questions the catalogue says this vault owes, one copy per subject, and where each stands in the question ledger. `--open`, `--area`, `--subject` and `--json`; `--digest` ranks the pending ones, `--stats` counts how often each entry ends not-applicable |
 | `planner findings merge <folder>` | Merges the focused reviewers' findings: keeps the union, removes duplicates, drops any finding whose quote is not on the page it cites, and says per area whether it found something, found nothing, or did not run |
 | `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the slice a senior accepts |

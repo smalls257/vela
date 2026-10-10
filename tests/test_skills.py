@@ -11,7 +11,7 @@ from conftest import REPO
 
 PLUGIN = REPO / "plugin"
 SKILLS = sorted(p.parent for p in (PLUGIN / "skills").glob("*/SKILL.md"))
-READ_ONLY = {"ask"}  # every other skill writes to the vault
+READ_ONLY = {"ask", "find"}  # every other skill writes to the vault
 # Files a reference may name that live outside references/: vault files, and files of the user's grill skills.
 OTHER_FILES = {"CONVENTIONS.md", "CLAUDE.md", "SKILL.md", "CONTEXT.md", "NEG-AUDIT.md", "PREREQ-CHECK.md", "GRILL-LOOP.md",
                "REQUIREMENTS-FORMAT.md", "TECH-DESIGN-FORMAT.md"}
