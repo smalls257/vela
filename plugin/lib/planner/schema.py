@@ -70,11 +70,17 @@ PAGE_TYPES = {
     },
 }
 
-# Any page but a session record may say when someone last checked it against its sources.
+# Any page but a session record may say when someone last checked it against its sources, and where its work lives
+# outside the vault (links.py): `links:`, label to URL, or label to key with .planner.yaml's link_templates.
 VERIFY_FIELDS = ("last_verified", "verified_by")
+LINKS_FIELD, LINKS_LABEL, LINK_TEMPLATES_KEY = "links", "Links", "link_templates"
 for _type, _spec in PAGE_TYPES.items():
     if _type != "session":
-        _spec["optional"] = _spec["optional"] + VERIFY_FIELDS
+        _spec["optional"] = _spec["optional"] + VERIFY_FIELDS + (LINKS_FIELD,)
+# An app page may name the picture views draw for it, as one short word, such as `icon: payments`.
+ICON_FIELD = "icon"
+ICON_RE = re.compile(r"^[a-z][a-z0-9-]{0,23}$")
+PAGE_TYPES["app-building-blocks"]["optional"] += (ICON_FIELD,)
 
 # Field value rules shared by every type.
 ENUMS = {
@@ -141,7 +147,7 @@ OPTIONS_LABEL = "Options considered"  # what Shape recorded: the picked option, 
 # The user's word over a rule, and a decision made on an absent owner's behalf. Allowed on any item or page.
 OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL = "Override", "Decided by", "Confirmed by"
 OVERRIDE_LABELS = (OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL)
-CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent", OPTIONS_LABEL) + OVERRIDE_LABELS
+CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent", OPTIONS_LABEL, LINKS_LABEL) + OVERRIDE_LABELS
 CONTRACT_STATES = ("inkling", "assumption", "fact", "decided")
 CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 
@@ -159,9 +165,10 @@ PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL) + OVERRIDE_LABELS
 
 # Subjects the question catalogue fires on that are not pages: an outside party, and value held for customers.
 PARTY_REQUIRED = ("Relationship", "Agreements")
+PARTY_OPTIONAL = (LINKS_LABEL,)
 PARTY_RELATIONSHIPS = ("partner", "supplier", "regulator", "customer group")
 STORED_VALUE_REQUIRED = ("Holder", "Owner")
-SUBJECT_LABELS = PARTY_REQUIRED + STORED_VALUE_REQUIRED
+SUBJECT_LABELS = PARTY_REQUIRED + STORED_VALUE_REQUIRED + PARTY_OPTIONAL
 SUBJECT_PAGE = "03-context-and-scope.md"  # the one home of parties and stored value
 # A heading whose first word begins like a subject ID (PTY or SV, any case), whether or not it is well formed.
 SUBJECT_LOOKALIKE_RE = re.compile(r"^(PTY|SV)(?![A-Za-z])", re.IGNORECASE)

@@ -44,7 +44,7 @@ Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the 
 | `planner handoff verify <APP-id>` | What changed in that slice since handoff. Exits 1 when something accepted changed |
 | `planner voicecheck <before> <after>` | Fails when a rewrite lost or moved an ID, number, date, link, code span, table cell or negation |
 | `planner voicescore <page>` | Optional: whether each prose paragraph sits inside or outside your own voice's range. See "Optional: voicescore" below |
-| `planner export jira-csv --out epics.csv` | One row per epic for Jira's CSV import. Export only: nothing is read back and no page carries a Jira field |
+| `planner export jira-csv --out epics.csv` | One row per epic for Jira's CSV import. Export only: nothing is read back and no page carries a Jira field. A page's generic `links:` may point at its ticket, as at any other URL |
 
 `planner render` fills every generated block, including the generated diagrams: the context map, system context, each app's context and the capability map. Never edit inside a block. Close runs `planner render` for you.
 

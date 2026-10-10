@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, override, parse, questions, releases, render, schema, trace
+from planner import allocation, links, override, parse, questions, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -877,6 +877,31 @@ def trace_rules(vault, today):
         yield from (f for f in trace_findings(vault, gated=False) if f.code == schema.TRACE_CODES["T7"][0])
 
 
+def link_field_rules(vault, today):
+    """E105 for a `links:` map, a **Links:** bullet or an `icon:` planner cannot read. Links are never fetched."""
+    _, broken = links.templates(vault.config)
+    for problem in broken:
+        page = next((p for p in vault.pages if p.meta.get(schema.LINKS_FIELD)), None)
+        if page is not None:  # a template nobody uses breaks nothing
+            yield _f(page, meta_line(page, schema.LINKS_FIELD), "E105", problem + ".",
+                     "Write it as link_templates: {Tracker: \"https://tracker.example.com/browse/{key}\"}.")
+    for page in vault.pages:
+        if not page.meta:
+            continue
+        for problem in links.of_page(page, vault.config)[1]:
+            yield _f(page, meta_line(page, schema.LINKS_FIELD), "E105", problem[0].upper() + problem[1:] + ".",
+                     "Write each link as Label: https://..., or add a link_templates entry for the label to .planner.yaml.")
+        icon = page.meta.get(schema.ICON_FIELD)
+        if icon is not None and not (isinstance(icon, str) and schema.ICON_RE.match(icon)):
+            yield _f(page, meta_line(page, schema.ICON_FIELD), "E105", f"'icon: {icon}' is not one short lower-case word.",
+                     "Write icon: payments, or remove the field; views pick an icon from the title without it.")
+    for found in vault.items.values():
+        item = found[0]
+        for problem in links.of_item(item)[1]:
+            yield _f(item.page, item.facts[schema.LINKS_LABEL].line, "E105", problem + ".",
+                     "Write - **Links:** [API spec](https://...), [Docs](https://...).")
+
+
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules, trace_rules, freshness_rules)
+         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules)

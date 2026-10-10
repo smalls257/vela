@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.planner.yaml` | `initiative` (`INI-nnn`), `title`, and `stale_after_days` (default 60) |
+| `.planner.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -58,7 +58,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 |---|---|---|---|
 | `index` | `id`, `type`, `title`, `authored` | `initiative`, `arc42`, `c4`, `owner`, `sources` | none |
 | `initiative-section` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `c4`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
-| `app-building-blocks` | as above, plus `change` | `stage`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `domain` | `inkling`, `assumption`, `fact`, `decided` |
+| `app-building-blocks` | as above, plus `change` | `stage`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `domain`, `icon` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-runtime` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
@@ -68,7 +68,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `session` | `id`, `type`, `date`, `modes`, `status`, `summary` | `title` | none: `status` is `open` or `closed` |
 | `sources` | `id`, `type`, `title`, `authored` | `owner` | none |
 
-Every type except `session` may also carry `last_verified` and `verified_by`.
+Every type except `session` may also carry `last_verified`, `verified_by` and `links`.
 
 Field values:
 
@@ -137,6 +137,7 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Provider:**` | Only for an external provider with no page. The contract then lives on the consumer's page. |
 | `**Dissent:**` | Optional. |
 | `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
+| `**Links:**` | Optional. Where the contract is written down outside the vault, such as its API spec. See Links out of the vault. |
 | `**Override:**`, `**Decided by:**`, `**Confirmed by:**` | Optional. See Overrides. |
 
 Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking a Grill session, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
@@ -168,6 +169,7 @@ Parties and stored value carry no `**State:**`. A stored value's `**Owner:**` is
 |---|---|---|
 | Party | `**Relationship:**` | Required. `partner`, `supplier`, `regulator` or `customer group`, in any case. |
 | Party | `**Agreements:**` | Required. The agreements it is party to, with their `SRC-nn` where one is registered, or `none known`. |
+| Party | `**Links:**` | Optional. Its API spec, docs or portal. See Links out of the vault. |
 | Stored value | `**Holder:**` | Required. The app or party that holds the balances: a link to its page or heading, or its name. |
 | Stored value | `**Owner:**` | Required. Who carries the balances as money owed to customers, such as a finance team, or `not known yet` with a link to the unknown that asks. |
 
@@ -522,6 +524,14 @@ Nothing else records a release. What the system looks like after each one is wor
 ## Domains
 
 An app page may say which domain it belongs to, as `domain: <name>` in its frontmatter, such as `domain: Channels`. Views of the system group apps by it, so a map of twenty apps opens as a handful of domains. Boundary asks for it when it cuts the apps. An app with no domain is shown under "No domain".
+
+An app page may also name the picture views draw for it, as `icon: <word>`, one short lower-case word such as `icon: payments`. Without it a view picks one from the app's title, domain and opening words. Anything else is E105.
+
+## Links out of the vault
+
+A page may say where its work lives outside the vault, as `links:` in its frontmatter: a map of label to URL, such as `links: {Tracker: "https://tracker.example.com/browse/BOOK-12"}` on an epic or `links: {Confluence: "https://wiki.example.com/x/BOOK", GitHub: "https://github.example.com/acme/booking"}` on an app page. A contract or an outside party, which are items rather than pages, holds them in a `**Links:**` bullet of Markdown links: `- **Links:** [API spec](https://docs.example.com/tidepay/openapi.yaml), [Docs](https://docs.example.com/tidepay)`.
+
+When many pages link one tool, `.planner.yaml` may say once where it lives, as `link_templates: {Tracker: "https://tracker.example.com/browse/{key}"}`. A page then writes only the key, `links: {Tracker: BOOK-12}`, and `{key}` is filled from it. A link that is neither an `http` or `https` URL nor a key for a label with a template, a `**Links:**` bullet with no Markdown link, or a template with no `{key}`, is E105. Planner reads links and checks their form; it never opens one, so `planner check` stays offline.
 
 ## Epics and traceability
 
