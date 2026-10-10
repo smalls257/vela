@@ -1,74 +1,145 @@
-# What this tool is for
+# How the planner works, and how to use it
 
-## The problem
+## The problem, briefly
 
-A big piece of work usually starts as one sentence from someone senior. "One customer, one journey, one account across ferry and rail by next summer." "An AI coach that teaches people to trade one stock or option at a time, and trades for them when they're ready, live by March."
+A large initiative arrives as one vague sentence, and a solution lead has to turn it into work that teams can build. The usual failures are predictable:
 
-Someone, usually a solution lead, is handed that sentence and told to make it happen. Nobody has said what it means. Several teams, several systems, outside partners, rules and money are involved, and nobody has the whole picture.
+- the legal, money and partner questions are asked too late;
+- decisions are made in meetings and never written down;
+- open questions have no owner;
+- beliefs are treated as facts;
+- work falls between teams;
+- notes go stale.
 
-What normally happens next is meetings, slides, chat threads and a few documents. It feels like progress. But a few things go wrong almost every time:
+The planner is a structured way to do that planning so those failures don't happen silently.
 
-- **The important questions get asked too late.** Can we legally use this customer data? Does the partner contract allow it? Who carries the money customers have built up? Is this advice that needs a licence? Nobody meant to skip them; they just never came up. They surface months later, when changing course is expensive.
-- **Decisions are made but not written down.** Someone says "yes, let's do that" in a meeting. Three weeks later two people remember it differently.
-- **Open questions have no owner.** "We need to check with legal" gets said, and then nobody checks, because nobody was named and no date was set.
-- **Beliefs pass for facts.** "The backtest shows 31% a year, so the model works." Nobody asks how the backtest was done.
-- **The split between teams is fuzzy.** Each team builds its part, and a piece that falls between two teams gets built twice, or not at all.
-- **The written record decays.** Notes describe what people thought in March, not what is true now.
+## What you get
 
-None of this is about lack of skill. A vague goal, many people, and many unknowns produce these failures on their own unless something pushes back.
+- **A vault:** a git repository of Markdown pages, one per part of the plan, in a fixed layout. It is created from `template/`. Changes reach `main` only through pull requests, so every decision is reviewed and kept in history.
+- **The planner plugin for Claude Code:** session commands such as `/planner:discover` and `/planner:grill`, plus focused reviewer agents.
+- **The `planner` command-line tool,** which ships inside the plugin. It checks the vault against its rules, fills in the generated sections, and reports progress. It runs in CI on every pull request.
 
-## What the tool is
+You run sessions from inside the vault. Each session works on its own branch, writes to the pages, runs the checks, and ends by opening a pull request.
 
-It's two things working together.
+## The steps, in order
 
-1. **A shared folder of plain documents** (we call it the vault) kept in git. It holds the goals, the constraints, what exists today, the chosen direction, the apps and how they talk to each other, the open questions, the risks, and finally the work broken into epics. Anyone can read it, and every change goes through a reviewed pull request.
-2. **A set of guided working sessions** you run in Claude Code. Each session has one job, such as "find out what exists" or "decide this". It runs that job with you, writes the results into the documents, checks them, and opens the pull request.
+| # | Command | When | What you do | What it writes |
+|---|---|---|---|---|
+| 1 | `/planner:dump` | at the very start | say everything you know and fear, unfiltered | notes only; nothing is promoted to a page until close |
+| 2 | `/planner:discover` | when you have documents, or need to know what exists | rank the sources; confirm what Claude read, line by line | facts on the pages, each linked to its source; each source registered in `sources.md` |
+| 3 | `/planner:shape` | when you roughly know what you want | react to 2 or 3 options | the option you pick, at `assumption`, with the rejected ones and why |
+| 4 | `/planner:grill` | to decide something | answer one question at a time, then say yes to the final wording | the item marked `decided`, with who decided it and when |
+| 5 | `/planner:requirements` | once the strategy is decided | confirm each business requirement and its acceptance criteria | requirements on the capability pages, naming no app |
+| 6 | `/planner:boundary` | once the direction is decided | pick how to cut the work into apps; confirm each app's sheet | app pages: what each does and doesn't do, its parts, its contracts, how it fails, its journeys |
+| 7 | `/planner:allocate` | once the apps exist | confirm each app's share of each requirement | each app's share, and which contract carries what crosses between apps |
+| 8 | `/planner:grill` | to decide the apps, contracts and shares | as in step 4 | the app pages and contracts marked `decided` |
+| 9 | `/planner:epics` | once an app's contracts are decided | pick how to cut each team's work; say yes to each acceptance criterion | epic pages, one owning team each |
+| 10 | `/planner:grill` handing an app over | when the app's team is ready to take it | name the senior; confirm what they take | `handed_off` on the app page, and a record of exactly what they accepted |
+| — | `/planner:close` | at the end of **every** session | confirm what each note becomes | the notes sorted into the pages, ledger rows, the opening prose rewritten, the checks run, the pull request opened |
 
-You bring the knowledge and the decisions. The tool brings the questions, the discipline and the record keeping.
+Then, in the app team's own repository:
 
-## How it helps
+| Command | What it writes |
+|---|---|
+| `tech-design-grill` | the technical design for one app, traced to the requirements allocated to it, plus decision records |
+| `work-breakdown` | stories traced to those requirements and to the design's components, with sized tasks and the order to build in |
 
-**It asks the questions people forget.** It keeps a checklist of questions that matter in this kind of work: money owed to customers, data use, partner contracts, regulation, and who runs things out of hours. It also sends separate fresh reviewers over the documents, each looking at one area only. In our test projects, this is how the tool raised things like "the hotel contracts forbid sharing customer data" and "is a trade suggestion legally advice?" before anyone had to remember them.
+You don't have to follow the order strictly. `planner next` suggests the next step from the state of the vault, and every rule can be overridden (see below).
 
-**Nothing becomes decided by accident.** Only a decision session can mark something decided, and only after reading it back to you and getting a clear yes. You can always overrule this, for example to decide on someone's behalf because a deadline won't wait. The tool lets you, and writes down that you did and why, so the owner can confirm or challenge it later.
+## What a session looks like
 
-**Every open question gets an owner and a date.** "Check with legal" becomes a question with a named person and an ask-by date. When the answer comes back, the tool closes the question and records the answer with where it came from. It asks you first whether you already know before treating anything as waiting on someone else, and it never drafts emails for you to send.
+Every session follows the same pattern.
 
-**It keeps facts and beliefs apart.** A fact needs a source you can point to. A belief is recorded as a belief, with what would prove it wrong. When a document and a person disagree, the tool records both sides instead of quietly picking one.
+1. **Start.** Claude checks the repository is clean, pulls `main`, lists overdue questions, shows `planner next`'s suggestion, and opens a session record on a new branch.
+2. **The work.** It asks one question at a time, each with a recommended answer. When it writes something, it first reads it back as a numbered list. Nothing is written without your explicit yes to that line: "looks fine" doesn't count. What you say is kept as notes in the session record, each with who said it.
+3. **A review checkpoint,** once per session at a set point. Five reviewers each read only the written pages, in a fresh context, one area each: money, data, partners, regulation, and operations. Code merges what they find and drops any finding that misquotes a page. You see one ranked list and choose what to take up. New questions are only raised about what this session changed, and questions about something already decided are only raised if they're serious.
+4. **Close.** You confirm what each note becomes: a fact, an open question, a risk, or discarded. Claude writes those into the pages, rewrites the opening paragraph of each page it changed, runs the checks, fixes what they report, and opens the pull request.
 
-**It splits the work cleanly between teams.** Once the direction is decided, the tool helps you cut it into apps. For each app it records what the app does, what it does not do, what it promises to other apps, and how it behaves when something fails. Each business requirement is then shared out among the apps and the agreements between them, so every requirement has an owner and nothing falls between teams.
+**Things Claude won't do:**
+- decide anything outside a grill;
+- turn something into a fact without a source;
+- copy document text into the vault;
+- draft emails or messages for you to send;
+- act as if it ran a command it didn't run.
 
-**It hands each app over properly.** When an app is ready, the team that will build it takes it with a record of exactly what they accepted. If any of that changes later, the tool can show precisely what moved. The team then does its own technical design in its own repository, starting from that record.
+When it's blocked, it says so once, offers you a way forward, and stops.
 
-**The documents read as the current state.** Each page opens with plain paragraphs saying what is true now. How it got that way, with the decisions, overrides and options considered, is kept at the bottom, folded away for anyone who wants it.
+## The documents
 
-**It checks itself with code, not just with instructions.** Instructions to an AI are suggestions. So wherever possible the rules are checked by code: a page can't claim to be decided without a recorded decision, every open question needs an owner, and every requirement needs a team. Those checks run on every change.
+| Page | Holds |
+|---|---|
+| `01-goals.md` | the goals and how each is measured; a generated "where it stands" summary |
+| `02-constraints.md` | what the initiative can't change, and where each constraint comes from |
+| `03-context-and-scope.md` | what exists today, the outside parties, and value held for customers |
+| `04-solution-strategy.md` | the chosen direction and the options rejected |
+| `04a-capability-delta.md`, `capabilities/` | the business capabilities that change, their requirements, and the allocation table |
+| `05-building-blocks/` | one page per app: what it does and doesn't do, its parts, its contracts, its share of each requirement |
+| `06-runtime/` | each app's failure behaviour, and the journeys through the apps |
+| `08-concerns/` | security, data, cost, operations and so on, with one cell per app |
+| `09-decisions/` | a record for each decision that shapes the design |
+| `11-unknowns-and-risks.md` | every open question, with its owner and ask-by date; the risks; the question ledger |
+| `12-glossary.md` | terms a newcomer wouldn't know |
+| `13-epics/` | the work, cut by team, with acceptance criteria |
+| `sources.md`, `sessions/` | every source cited; the record of every session |
 
-## What it is not
+Each page opens with a paragraph or two saying what is true now. How it got there (decisions, overrides, options considered) sits under `## History` at the bottom. `planner view` builds a single-file HTML viewer of the whole vault, with history and details folded.
 
-It doesn't replace the people. It can't decide for you, it won't invent facts, and it doesn't talk to anyone outside the session. It can't make a vague goal clear on its own: it can only make sure the right questions get asked, the answers get written down, and the gaps stay visible until someone closes them.
+## How sure is each thing
 
-## A worked example
+Every item has a state:
 
-The trading coach started as the CEO's single sentence. Over a few dozen sessions, the tool did the following:
+- **inkling:** a hunch;
+- **assumption:** believed, not checked;
+- **fact:** has a source;
+- **decided:** came out of a grill with your yes.
 
-- **It found what exists today.** There's a news app with 400,000 readers, a broker partner that only covers stocks, a market-data licence that only allows delayed quotes, and a model whose impressive backtest turned out to use hindsight.
-- **It surfaced the hard questions.** Is a trade suggestion legally advice? Does "trades for them" count as acting on a customer's behalf, which needs written authority? Can readers' data be used to train the model, or is that a new use that needs their consent?
-- **It recorded the decision and the reasons.** Release one is lessons and practice trading on paper only, nothing done on anyone's behalf, and a private demo for the board.
-- **It cut the work in two.** That gave a new Coach service and a small change to the news app, each with its agreements written down.
-- **It shared out the requirements, split the work into team-sized pieces, and handed Coach to its team lead.** It passed on 15 items to take forward, including the questions still open.
-- **The Coach team then wrote its own technical design and a breakdown** of 15 stories and 70 tasks, from that hand-over.
+Open questions are **unknowns**. Each has an owner, an ask-by date, and the items it blocks. A blocked item can't be decided until the unknown is answered.
 
-## How we know it works
+**Overrides.** You may break any rule, for example deciding past an open question, or on an absent owner's behalf. The tool records an `**Override:**` line with your handle, the date and your reason, and `check` shows it as a warning, not an error. An owner you decided for can later confirm with a `**Confirmed by:**` line, or reopen it with `/planner:challenge`.
 
-We test it with simulated projects. A simulated lead plays the person with the vague goal. They know some things, believe some wrong things, and are unaware of some hidden problems we planted. Replies from other people arrive partway through, as they would in real life. After each run we score what the tool uncovered and what it missed, and we read the documents it produced.
+## Questions nobody thought to ask
 
-Those runs keep finding things to fix. For a long time no session ever wrote the app pages, so no project could reach handoff. Open questions were never closed when answers arrived. The list of questions kept growing faster than anyone could answer it. Each of those is now fixed and checked.
+Two mechanisms make sure the important questions come up:
 
-The simulated people aren't perfect either. They sometimes invent replies, so the scores are a guide, not proof. We also haven't yet compared the tool against plain Claude Code with no tool at all, which is the comparison that would really show its value.
+- **A question catalogue** in `plugin/catalog/questions.yaml`. It holds about 30 questions, each tied to a kind of thing in the vault. When you record that the initiative holds money for customers, the catalogue owes "who carries that balance on the books?". When an app holds customer data, it owes "on what legal basis?".
+- **The reviewers** at each checkpoint, which raise questions the catalogue doesn't cover.
 
-## What's still open
+Every owed or raised question ends up in the question ledger on `11-unknowns-and-risks.md`, with how it was settled: answered with a source, a stated belief, an open unknown, or not applicable with a reason. `planner questions --digest` shows the open ones, ranked.
 
-- **Thorough versus overwhelming.** The tool can raise a lot of questions. We've cut that back so it raises new ones only about what changed, and doesn't reopen decided things unless something serious comes up. Whether that balance is right is still a judgement call.
-- **What "done" means.** A design can be complete with gaps that everyone has accepted, which is different from complete with no gaps. The tool should say which.
-- **Who writes.** Should the tool draft the documents from what you say, or mainly interview you and leave the writing to you? Today it drafts, and you review.
+## The checks and commands
+
+| Command | Use |
+|---|---|
+| `planner check` | every rule: links, states, sources, owners, overrides, the ledger, the allocation table. Errors block the pull request in CI |
+| `planner check --gate epics` | the stricter check before epics count as done: every requirement allocated, every high-severity question settled |
+| `planner render` | fills the generated sections: indexes, diagrams, the allocation table, "where it stands" |
+| `planner status` / `next` | each app's stage and what to do next; ends with a completeness score |
+| `planner ladder` | the stage each app's pages actually reach, and what the next stage needs |
+| `planner style <pages>` | where a page still reads as a list or a log, not a document; close runs it |
+| `planner questions` | the owed and open questions, by area or subject |
+| `planner handoff <APP>` / `handoff verify` | writes the record of what a team accepted; later, shows what changed since |
+| `planner view` | the HTML viewer of the vault |
+| `planner upgrade` | updates the vault's `CONVENTIONS.md` when the plugin changes |
+
+## Handing work to teams
+
+When an app's contracts and epics are decided, a handoff grill names the senior who takes it. Close writes `handoffs/APP-<name>.md`. It lists every item the team accepted (the app page, its runtime page, its contracts, its epics, and the open questions that block it), each with a fingerprint. `planner handoff verify` shows exactly what changed since. If the senior disagrees with something, `/planner:challenge` records the disagreement as an open question they own, and the solution lead answers it.
+
+The team then designs in its own repository. Its input is the app's page, its contracts, its share of each requirement, its epics and its concern cells. The design traces every component to that input, and the work breakdown traces every story to it.
+
+## How the tool is tested
+
+`tests/sim/` runs whole projects with a simulated lead, played by another model:
+- The lead knows some facts, believes some wrong things, and is unaware of planted problems such as a contract clause or a regulation.
+- Scripted replies from other people arrive partway through the run.
+- A scorecard shows which planted problems were found, which beliefs were challenged, and which decisions got an explicit yes. It also flags lapses: drafted emails, invented actions, or leaked brief IDs.
+- Probes rerun one session from a saved vault, so a single skill can be tested for a few dollars.
+
+These runs found most of the gaps fixed so far, such as no session ever writing app pages, and answered questions never being closed.
+
+## What is still open
+
+- **Thorough versus overwhelming.** How many questions to raise before they bury the lead.
+- **What "complete" means.** A design marked complete with known gaps the team has accepted is not the same as one with no gaps.
+- **Whether the tool should draft the pages or mainly interview you.** Today it drafts and you review.
+- **No comparison with plain Claude Code yet.** The tool hasn't been run against Claude Code with no planner at all, which is the comparison that would show its real value.
