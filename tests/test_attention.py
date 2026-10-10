@@ -63,3 +63,10 @@ def test_ask_names_who_holds_the_answer(tmp_path):
     import json
     answer = json.loads(run("query", "get", "UNK-099", "--vault", str(vault), "--json")[1])
     assert answer["ask"] == "@vendor-manager"
+
+
+def test_one_question_light_matches_what_it_holds(tmp_path):
+    vault = cli.load_vault(FIXTURE)
+    for unknown in vault.unknowns:
+        light = attention.question_light(unknown, "2026-11-20")
+        assert light.level in attention.LEVELS and light.reasons[0]["unknown"] == unknown.id

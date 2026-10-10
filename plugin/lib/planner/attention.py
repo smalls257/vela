@@ -60,6 +60,14 @@ def hold(light, unknown, as_of, via=""):
         light.raise_to("caution", max(0.25, 1 - left / 30) if soon else min(0.5, max(0.25, 1 - left / 30)))
 
 
+def question_light(unknown, as_of):
+    """The light one open question gives whatever it holds: warning past its ask-by date, caution before.
+    Views that draw the questions themselves (strips, markers, buds) colour them by this."""
+    light = Light()
+    hold(light, unknown, as_of)
+    return light
+
+
 def settle(light, state, unexamined=(), overrides=()):
     if not state:
         light.reasons.append({"kind": "unexamined", "text": "no state recorded"})
