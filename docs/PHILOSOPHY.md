@@ -23,6 +23,36 @@ You run sessions from inside the vault. Each session works on its own branch, wr
 
 ## The steps, in order
 
+The whole journey, from the executive's sentence to a team's build plan:
+
+```mermaid
+flowchart TB
+  idea(["The executive's one sentence"])
+  subgraph find["1. Find out and choose a direction"]
+    direction LR
+    dump["dump<br/>everything you know"] --> discover["discover<br/>what exists today"] --> shape["shape<br/>2 or 3 options"] --> grill1["grill<br/>decide the strategy"]
+  end
+  subgraph divide["2. Divide the work"]
+    direction LR
+    req["requirements<br/>what the business needs"] --> boundary["boundary<br/>cut into apps"] --> allocate["allocate<br/>each app's share"] --> grill2["grill<br/>decide apps, contracts"]
+  end
+  subgraph hand["3. Hand it to the teams"]
+    direction LR
+    epics["epics<br/>each team's work"] --> handoff["handoff<br/>a senior takes the app"]
+  end
+  subgraph team["4. In the team's own repository"]
+    direction LR
+    design["tech-design-grill<br/>how to build it"] --> breakdown["work-breakdown<br/>stories and tasks"]
+  end
+  idea --> find --> divide --> hand --> team
+  classDef vault fill:#eef3ff,stroke:#2448b8;
+  classDef teamrepo fill:#f2f8ee,stroke:#3c7a2a;
+  class dump,discover,shape,grill1,req,boundary,allocate,grill2,epics,handoff vault;
+  class design,breakdown teamrepo;
+```
+
+Stages 1 to 3 happen in the vault, run by the solution lead. Stage 4 is the app's senior, in their own repository. If the senior disagrees with something they were handed, `/planner:challenge` sends it back to the vault as an open question for the lead.
+
 | # | Command | When | What you do | What it writes |
 |---|---|---|---|---|
 | 1 | `/planner:dump` | at the very start | say everything you know and fear, unfiltered | notes only; nothing is promoted to a page until close |
@@ -50,6 +80,20 @@ You don't have to follow the order strictly. `planner next` suggests the next st
 
 Every session follows the same pattern.
 
+```mermaid
+flowchart TB
+  start["Start: pull main, open a branch, list overdue questions"]
+  subgraph work["The work, one item at a time"]
+    direction LR
+    ask["Ask one question,<br/>with a recommended answer"] --> readback["Read back what<br/>would be written"] --> yes["You say yes<br/>to each line"] --> write["Written to<br/>the pages"]
+  end
+  subgraph finish["Finish"]
+    direction LR
+    review["Review checkpoint<br/>5 fresh reviewers"] --> close["Close<br/>sort notes, run checks"] --> pr(["Pull request"])
+  end
+  start --> work --> finish
+```
+
 1. **Start.** Claude checks the repository is clean, pulls `main`, lists overdue questions, shows `planner next`'s suggestion, and opens a session record on a new branch.
 2. **The work.** It asks one question at a time, each with a recommended answer. When it writes something, it first reads it back as a numbered list. Nothing is written without your explicit yes to that line: "looks fine" doesn't count. What you say is kept as notes in the session record, each with who said it.
 3. **A review checkpoint,** once per session at a set point. Five reviewers each read only the written pages, in a fresh context, one area each: money, data, partners, regulation, and operations. Code merges what they find and drops any finding that misquotes a page. You see one ranked list and choose what to take up. New questions are only raised about what this session changed, and questions about something already decided are only raised if they're serious.
@@ -63,6 +107,27 @@ Every session follows the same pattern.
 - act as if it ran a command it didn't run.
 
 When it's blocked, it says so once, offers you a way forward, and stops.
+
+## How one requirement flows down
+
+Requirements come in two levels in the vault, then a third in the team's repository. This is one requirement from the trading-coach test project, all the way down. The contracts, components and story are what that run produced. Its requirement and shares are written the way `/planner:allocate` now writes them, because that run came before allocate existed.
+
+```mermaid
+flowchart TB
+  fr["<b>Requirement</b> (capability page, no app named)<br/>A reader places a paper order for a stock on the list<br/>and sees it pending until it fills or is turned down"]
+  fr --> tt["<b>TickerTalk's share</b><br/>shows the order form and the order's status<br/>inside the news app"]
+  fr --> coach["<b>Coach's share</b><br/>takes the order and sends it only<br/>to the broker's sandbox, never a real order"]
+  tt -- "through CON-002 Paper trades" --> coach
+  coach -- "through CON-003 Brightwater sandbox" --> bw(["Brightwater, the broker partner"])
+  coach --> comp["<b>Design components</b> (Coach's repo)<br/>Paper trading, SandboxAccounts"]
+  comp --> story["<b>Story S-09</b> Sandbox accounts and placing an order<br/>6 tasks, sized S to L"]
+  classDef vault fill:#eef3ff,stroke:#2448b8;
+  classDef teamrepo fill:#f2f8ee,stroke:#3c7a2a;
+  class fr,coach,tt vault;
+  class comp,story teamrepo;
+```
+
+Every link in that chain is checked. In the vault, `planner check` reports a requirement no app carries and a share that names a contract that doesn't exist. In the team's repository, `tech-design-grill` won't finish while an allocated requirement has no component, and `work-breakdown` won't finish while one has no story.
 
 ## The documents
 
@@ -87,6 +152,16 @@ Each page opens with a paragraph or two saying what is true now. How it got ther
 ## How sure is each thing
 
 Every item has a state:
+
+```mermaid
+flowchart LR
+  inkling["inkling<br/>a hunch"] -- "shape" --> assumption["assumption<br/>believed, not checked"]
+  assumption -- "discover:<br/>a source" --> fact["fact<br/>has a source"]
+  assumption -- "grill:<br/>your yes" --> decided["decided"]
+  fact -- "grill" --> decided
+  unknown(["open unknown<br/>owner + ask-by date"]) -. "blocks" .-> decided
+  unknown -- "answered" --> resolved(["resolved,<br/>with its source"])
+```
 
 - **inkling:** a hunch;
 - **assumption:** believed, not checked;
