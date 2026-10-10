@@ -15,7 +15,7 @@ The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONV
 
 Run the steps in `.claude/skills/planner/references/START.md` with mode `allocate`. Read the Allocate row of `.claude/skills/planner/references/MODES.md`.
 
-Run `planner render` and read the `allocation` block on `04a-capability-delta.md`: every functional requirement against every app, and the blank rows nobody carries. The scope is the user's argument: a capability's requirements, the requirements an app's capabilities and flows touch, or every requirement. Read each requirement in scope with its criteria, the app pages and their contracts, the runtime pages and the flows. If there are no functional requirements yet, say so and offer `/planner:requirements`; if there are no app pages, offer `/planner:boundary`.
+If `04a-capability-delta.md` has no `allocation` block, as in a vault started before it existed, add an `## Allocation` section with the empty block markers as `CONVENTIONS.md` shows under "Generated blocks". Run `planner render` and read the `allocation` block on `04a-capability-delta.md`: every functional requirement against every app, and the blank rows nobody carries. The scope is the user's argument: a capability's requirements, the requirements an app's capabilities and flows touch, or every requirement. Read each requirement in scope with its criteria, the app pages and their contracts, the runtime pages and the flows. If there are no functional requirements yet, say so and offer `/planner:requirements`; if there are no app pages, offer `/planner:boundary`.
 
 ## 2. One requirement at a time
 
