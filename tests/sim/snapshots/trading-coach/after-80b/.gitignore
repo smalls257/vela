@@ -1,0 +1,8 @@
+.inbox/
+voice/corpus/
+voice/local/
+.obsidian/workspace*.json
+.obsidian/cache
+__pycache__/
+*.pyc
+.planner/

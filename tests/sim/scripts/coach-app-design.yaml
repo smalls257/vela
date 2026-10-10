@@ -3,7 +3,7 @@
 # The Coach lead answers. The start is re-pointed at the vault the trading-80 pass leaves.
 name: coach-app-design
 persona: trading-coach
-start: trading-coach/after-final
+start: trading-coach/after-80b
 news:
   knows:
   - id: K15
