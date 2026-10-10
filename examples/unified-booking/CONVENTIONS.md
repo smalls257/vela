@@ -15,6 +15,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
 | `04-solution-strategy.md`, `04a-capability-delta.md` | The core move; links to every capability that changes |
+| `04b-releases.md` | One section per release, listing the functional requirements it delivers |
 | `05-building-blocks/` | Index with the `context-map` block, then `<app>-building-blocks.md` per app, with its contracts |
 | `06-runtime/` | `06-flows.md`, `flows/FLO-nnn-<slug>.md`, `apps/<app>-runtime.md` |
 | `08-concerns/` | `08-concerns.md` with the `concern-matrix` block, then `concern-<name>.md` |
@@ -57,7 +58,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 |---|---|---|---|
 | `index` | `id`, `type`, `title`, `authored` | `initiative`, `arc42`, `c4`, `owner`, `sources` | none |
 | `initiative-section` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `c4`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
-| `app-building-blocks` | as above, plus `change` | `stage`, `initiative`, `arc42`, `c4`, `sources`, `handed_off` | `inkling`, `assumption`, `fact`, `decided` |
+| `app-building-blocks` | as above, plus `change` | `stage`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `domain` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-runtime` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
@@ -468,6 +469,8 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | E330 | allocation row names no functional requirement | E331 | allocation row goes through no such contract |
 | E332 | allocation row has no valid state | E333 | allocation row is a fact on a page with no sources |
 | W334 | prose calls an answered question open | | |
+| E340 | release row names no functional requirement | E341 | release row names a criterion the requirement does not have |
+| E342 | release has no valid state | W343 | no release delivers a functional requirement |
 | E321 | override is malformed | W303 | decided without a Grill, by override |
 | E322 | decided-by or confirmed-by is malformed | W304 | fact without a source, by override |
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
@@ -501,6 +504,24 @@ Allocation divides each requirement among the apps and contracts that deliver it
 `planner check` reports E330 for a row that names no functional requirement of this vault, E331 for a **Through** that names no contract, E332 for a State outside the four, and E333 for a `fact` row on a page with no sources. A `decided` row answers to the decision rules as `CAP-nnn.FRn@APP-<slug>`: E303 when the page's Decision links no Grill, E317 when it links only a requirements session. T7 is a trace gap: a requirement at `assumption`, `fact` or `decided` that no row at `assumption` or later carries. It warns, and is an error under `--gate epics`. The `allocation` block on `04a-capability-delta.md` shows every requirement against every app.
 
 An app's allocated rows are its team's input. Epics take their acceptance criteria from them, and the team's `tech-design-grill` traces its components to them.
+
+## Releases
+
+`04b-releases.md` holds one `## <release name>` section per release, such as `## Release one: January board demo`, in the order they ship. Under the heading, `- **Target:** YYYY-MM-DD` and `- **State:**` (`inkling`, `assumption` or `decided`), then a table of what it delivers:
+
+| Delivers | Criteria | Note |
+|---|---|---|
+| `[[CAP-002-paper-trade-a-stock#CAP-002.FR2 Place a paper order\|CAP-002.FR2]]` | AC1, AC2 | AC3 in release two |
+
+**Criteria** is `all`, or the acceptance criteria this release delivers, numbered in the order they appear under the requirement: AC1 is the first bullet. A requirement may be split across releases this way, so an epic never needs a release of its own.
+
+Nothing else records a release. What the system looks like after each one is worked out from the requirements it delivers: each app that carries a share of one changes, or arrives if it is new, and each contract its share goes through exists. Today is every app whose `change` is not `new`, and every contract whose `**Change:**` is not `new`.
+
+`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, and E342 for a release with no valid State. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. A Grill decides a release, as it decides any other item.
+
+## Domains
+
+An app page may say which domain it belongs to, as `domain: <name>` in its frontmatter, such as `domain: Channels`. Views of the system group apps by it, so a map of twenty apps opens as a handful of domains. Boundary asks for it when it cuts the apps. An app with no domain is shown under "No domain".
 
 ## Epics and traceability
 

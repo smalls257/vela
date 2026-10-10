@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, override, parse, questions, render, schema, trace
+from planner import allocation, override, parse, questions, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -575,6 +575,38 @@ def stale_mention_rules(vault, today):
                          f"Rewrite the sentence to say what was answered, or run planner query refs {m.group(1)} to find every mention.")
 
 
+def release_rules(vault, today):
+    """E340-E342 and W343. A release row must name a requirement of this vault and criteria it has; each release a
+    state. Once any release exists, a requirement at assumption or later that no release delivers is a warning:
+    nothing says when it ships."""
+    found = releases.releases(vault)
+    if not found:
+        return
+    page = releases.page(vault)
+    reqs = {r.id: r for r in allocation.requirements(vault)}
+    for release in found:
+        if release.state not in releases.STATES:
+            yield _f(page, release.line, "E342", f"Release '{release.name}' has State '{release.state or 'none'}'.",
+                     "Add '- **State:** inkling', assumption or decided under its heading.")
+        for row in release.rows:
+            if row.requirement not in reqs:
+                yield _f(page, row.line, "E340", f"A row of '{release.name}' names {row.requirement or 'no requirement'}, "
+                         "which is not a CAP-nnn.FRn heading in this vault.", "Link the requirement's heading.")
+                continue
+            _, problem = releases.criteria_of(row.raw_criteria)
+            count = releases.criteria_count(reqs[row.requirement])
+            over = [n for n in row.criteria if n > count or n < 1]
+            if problem or over:
+                yield _f(page, row.line, "E341", f"A row of '{release.name}' asks for "
+                         f"{problem or ', '.join(f'AC{n}' for n in over)} of {row.requirement}, which lists {count} criteria.",
+                         "Write all, or ACn for the nth acceptance criterion under the requirement.")
+    delivered = {row.requirement for r in found for row in r.rows}
+    for req in allocation.due(vault):
+        if req.id not in delivered:
+            yield _f(req.page, req.line, "W343", f"{req.id} is at {req.fact('State')}, but no release on 04b-releases.md "
+                     "delivers it, so nothing says when it ships.", "Add it to the release that delivers it.")
+
+
 def certainty_rules(vault, today):
     for unit_id, page, line, decisions in decided_units(vault):
         sessions = [vault.resolve(l, page) for b in decisions for l in b.links]
@@ -846,5 +878,5 @@ def trace_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules)

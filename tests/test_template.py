@@ -82,7 +82,7 @@ def test_installed_plugin_checks_the_vault(tmp_path):
     result = subprocess.run([sys.executable, ".claude/skills/planner/bin/planner", "check"],
                             cwd=vault, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.startswith("planner check: 0 errors, 0 warnings in 22 pages.")
+    assert result.stdout.startswith("planner check: 0 errors, 0 warnings in 23 pages.")
 
 
 def test_readme_install_step_works_on_a_fresh_copy(tmp_path):

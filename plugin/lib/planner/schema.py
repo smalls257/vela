@@ -25,7 +25,7 @@ PAGE_TYPES = {
     },
     "app-building-blocks": {
         "required": ("id", "type", "title", "state", "owner", "authored", "change"),
-        "optional": ("stage", "initiative", "arc42", "c4", "sources", "handed_off"),
+        "optional": ("stage", "initiative", "arc42", "c4", "sources", "handed_off", "domain"),
         "states": STATE_ITEM,
     },
     "app-runtime": {
@@ -275,6 +275,10 @@ CODES = {
     "E321": "override is malformed",
     "E322": "decided-by or confirmed-by is malformed",
     "W334": "prose calls an answered question open",
+    "E340": "release row names no functional requirement",
+    "E341": "release row names a criterion the requirement does not have",
+    "E342": "release has no valid state",
+    "W343": "no release delivers a functional requirement",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",
