@@ -29,7 +29,8 @@ authored: authored
 
 
 def codes(out):
-    return sorted(f for f in findings(out) if f[0] != "W402")
+    # W505: these vaults hold an FR and an app but no allocation, which T7 rightly reports; the tests are about FR states.
+    return sorted(f for f in findings(out) if f[0] not in ("W402", "W505"))
 
 
 def add_cap(vault, text=CAP_PAGE):

@@ -2,7 +2,8 @@
 
 A capability's requirements say what the business needs, naming no app. Each app page's `## Requirements allocated`
 table says its share of each, and which contracts carry the part that crosses to another app. One computation feeds
-the E330-E333 findings, T7 in the trace report, and the `allocation` block, so they never disagree.
+the E330-E333 findings, T7 in the trace report, and the `allocation` block. The block counts the same requirements
+T7 does, so its "not allocated" number is T7's gap count.
 """
 import re
 from dataclasses import dataclass
@@ -11,8 +12,9 @@ from planner import schema
 
 REQUIREMENT_ID = re.compile(r"\bCAP-\d{3}\.FR\d+\b")
 CONTRACT_ID = re.compile(r"\bCON-\d{3}\b")
-ALLOCATED_STATES = ("inkling", "assumption", "decided")
-CARRIED_STATES = ("assumption", "fact", "decided")  # a requirement at one of these must be allocated
+# A row at fact records a share an integrated app already carries; like a goal row at fact, its page needs sources.
+ALLOCATED_STATES = ("inkling", "assumption", "fact", "decided")
+CARRIED_STATES = ("assumption", "fact", "decided")  # a requirement at one of these must be allocated, by a row at one
 
 
 @dataclass(frozen=True)
@@ -47,10 +49,11 @@ def requirements(vault):
 
 
 def carried(vault):
-    """{requirement ID: [rows that carry it]}."""
+    """{requirement ID: [rows that carry it]}. An inkling row, or one with no valid state, is a guess at a share,
+    not an owner, so it carries nothing."""
     out = {}
     for row in rows(vault):
-        if row.requirement:
+        if row.requirement and row.state in CARRIED_STATES:
             out.setdefault(row.requirement, []).append(row)
     return out
 
@@ -58,15 +61,25 @@ def carried(vault):
 def unallocated(vault):
     """Requirements at assumption, fact or decided that no app's table carries."""
     have = carried(vault)
-    return [r for r in requirements(vault) if r.fact("State") in CARRIED_STATES and r.id not in have]
+    return [r for r in due(vault) if r.id not in have]
+
+
+def due(vault):
+    """The requirements that must be allocated: those at assumption, fact or decided. T7 and the block both count these."""
+    return [r for r in requirements(vault) if r.fact("State") in CARRIED_STATES]
+
+
+def decided_rows(vault):
+    """(subject, row) for each decided row, the subject named as `CAP-nnn.FRn@APP-x` for the decision rules."""
+    return [(f"{r.requirement}@{r.app.id}", r) for r in rows(vault) if r.state == "decided" and r.requirement]
 
 
 def matrix(vault):
-    """(apps that carry anything, [(requirement, {app id: share})]) for the allocation block."""
+    """(apps that carry anything, [(requirement, {app id: share})]) for the allocation block, over the due requirements."""
     have = carried(vault)
     apps = sorted({row.app.id: row.app for rows_ in have.values() for row in rows_}.values(), key=lambda p: p.id)
     out = []
-    for req in requirements(vault):
+    for req in due(vault):
         shares = {}
         for row in have.get(req.id, []):
             through = f" ({', '.join(row.through)})" if row.through else ""

@@ -28,7 +28,7 @@ Each reviewer returns at most 8 findings, each with: the area, a severity (`high
 Show the merged list once, ranked, one line each. Then take them in order, one at a time, as `GRILL-LOOP.md` does, with your recommended disposition:
 
 - **Answer now:** the user knows; update the design section and note the finding as resolved.
-- **Open question:** write an `OQ-XXX` with the scenario, what would unblock it, and what it affects.
+- **Open question:** write an `OQ-XXX` with the scenario, what would unblock it, and what it affects. While it is open the design can be at most `complete-with-gaps`, with a `gaps[]` entry naming the OQ.
 - **Defer:** a `D-XXX`, when the answer is known and deliberately postponed.
 - **Accept the gap:** the user goes ahead knowingly; it becomes a `gaps[]` entry and the status can be at most `complete-with-gaps`.
 - **Not applicable:** with the reason, in one line.

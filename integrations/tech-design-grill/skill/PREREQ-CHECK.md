@@ -35,6 +35,12 @@ Without either, run the steps below as written.
      - **If resume:** reload the deferred[] entries from frontmatter and restart
        grill from the first section that has a D-XXX or OQ-XXX entry still open.
      - **If new slug:** ask for a new slug and proceed as if file missing.
+   - If file exists with `status: complete-with-gaps`:
+     > *"Doc marked complete with gaps (list each `gaps[]` entry). Reopen to close
+     > the gaps, overwrite (re-grill), or pick a new slug?"*
+     - **If reopen:** set `status: in-progress` and restart the grill from the
+       first section a gap names; each closed gap is removed from `gaps[]`.
+     - **If overwrite** or **new slug:** as for `complete` below.
    - If file exists with `status: complete`:
      > *"Doc marked complete. Overwrite (re-grill) or pick new slug?"*
      - **If overwrite:** confirm once, then proceed as if file missing.

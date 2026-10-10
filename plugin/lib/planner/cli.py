@@ -1033,6 +1033,27 @@ def cmd_status(args, out):
     return 0
 
 
+def initiative_step(vault, row):
+    """A step for the whole initiative that comes before the per-app frontier, or None. Requirements cut across
+    apps, so their gaps are not any one app's: an unallocated requirement is allocate's work before the Grill that
+    decides the apps, and a changing capability with no requirements, before the first epic, is requirements' work.
+    An overdue unknown (rule 1) still comes first."""
+    if row is not None and row.rule <= 1:
+        return None
+    loose = allocation.unallocated(vault)
+    if loose:
+        return (f"initiative, allocate {loose[0].id.split('.')[0]}. {loose[0].id} is at {loose[0].fact('State')} and no "
+                f"app's Requirements allocated table carries it, so no team owns it yet.")
+    have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
+    bare = [c for c in sorted(vault.of_type("capability"), key=lambda p: p.id)
+            if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
+            and c.id not in have]
+    if bare and not vault.of_type("epic"):
+        return (f"initiative, requirements {bare[0].id}. {bare[0].id} is {bare[0].meta['change']} and has no functional "
+                "requirements, so allocate has nothing to divide among the apps for it.")
+    return None
+
+
 def first_step(vault):
     """What to do while no app page exists. Once a Grill has decided the solution strategy, the direction is set
     and only a Boundary session turns it into apps; before that, the work is still finding out and shaping."""
@@ -1055,6 +1076,10 @@ def cmd_next(args, out):
         print(f"planner next: {first_step(vault)} {when}", file=out)
         return 0
     row = progress.best(progress.grid(vault, today))
+    step = initiative_step(vault, row)
+    if step:
+        print(f"planner next: {step} {when}", file=out)
+        return 0
     if row is None:
         print(f"planner next: nothing to do. Every app's items are settled and its epics decided. {when}", file=out)
         return 0

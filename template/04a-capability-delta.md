@@ -20,6 +20,6 @@ none
 
 What each app carries of each functional requirement.
 
-<!-- generated:allocation sha=90e52f6b: do not edit, run planner render -->
-**Allocation:** no functional requirements yet.
+<!-- generated:allocation sha=7a7b4fb4: do not edit, run planner render -->
+**Allocation:** no functional requirements at assumption or later yet.
 <!-- /generated:allocation -->

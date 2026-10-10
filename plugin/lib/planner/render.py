@@ -381,9 +381,10 @@ def allocation_block(vault, page):
     with the contracts it goes through. A blank row is a requirement nobody owns yet."""
     apps, lines = allocation.matrix(vault)
     if not lines:
-        return "**Allocation:** no functional requirements yet."
+        return "**Allocation:** no functional requirements at assumption or later yet."
     open_ = sum(1 for _, shares in lines if not shares)
-    head = f"**Allocation:** {len(lines)} requirements, {open_} not allocated."
+    noun = "requirement" if len(lines) == 1 else "requirements"
+    head = f"**Allocation:** {len(lines)} {noun} at assumption or later, {open_} not allocated."
     out = [head, "", row("Requirement", *[link(a.name, cell(title(a))) for a in apps]) if apps else row("Requirement"),
            "|" + "---|" * (len(apps) + 1)]
     for req, shares in lines:

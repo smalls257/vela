@@ -79,7 +79,7 @@ When the user grills an app's handoff, or `planner ladder` shows an app's pages 
 
 When an item's branch closes, write it at once, before the next question:
 
-- Set its state to `decided`: the page's `state:` field, or the contract's `**State:**` bullet.
+- Set its state to `decided`: the page's `state:` field, or the contract's `**State:**` bullet. A Grill on an app page also takes its `## Requirements allocated` rows: read each row back as part of the app's agenda, as `CAP-nnn.FRn@APP-<slug>`, and set each row the user confirms to `decided` in its State cell. The page's `**Decision:**` answers for them, as it does for goal rows.
 - Add `- **Decision:** [[<session id>]]` under the page's `## History`: directly under it for the page, under `#### <ID>` for a contract.
 - For a contract, record where the provider stands as well as each consumer, as a capture: present, async with channel and date, asked in the PR, or "not consulted: <reason>".
 - If anyone disagrees, add `- **Dissent:** <name>, <date>: <reason>`. The item can still be decided.

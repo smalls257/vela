@@ -168,7 +168,7 @@ def _t7(vault, all_epics):
                 f"{r.id} is at {r.fact('State')}, but no app's Requirements allocated table carries it, so no team owns it.",
                 f"Run /planner:allocate {r.id.split('.')[0]}, or add a row for {r.id} to the app page that delivers it.")
             for r in allocation.unallocated(vault)]
-    return gaps, len([r for r in allocation.requirements(vault) if r.fact("State") in allocation.CARRIED_STATES])
+    return gaps, len(allocation.due(vault))
 
 
 def _t6(vault, all_epics):

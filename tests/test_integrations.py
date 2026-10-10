@@ -67,14 +67,20 @@ def test_vault_mode_names_a_planner_reference_that_exists(folder):
 def test_reversing_the_patch_gives_the_upstream_skill(folder, tmp_path):
     work = tmp_path / folder.name
     shutil.copytree(folder / "skill", work)
-    result = subprocess.run(["patch", "-p1", "-R", "-s", "-i", str(folder / "vault-mode.patch")], cwd=tmp_path,
+    # -E removes a file the patch created, so the reverse leaves no empty file behind.
+    result = subprocess.run(["patch", "-p1", "-R", "-E", "-s", "-i", str(folder / "vault-mode.patch")], cwd=tmp_path,
                             capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
     upstream = UPSTREAM / folder.name
     if not upstream.is_dir():
         pytest.skip(f"{upstream} is not on this machine, so only the reverse apply was checked")
     if same_tree(upstream, folder / "skill"):
-        return  # installed: the user's skill is the patched copy
+        # Installed: the user's skill is the patched copy, so the original is the backup taken before installing.
+        backups = sorted((REPO / "tests" / "sim" / "results").glob(f"skill-backups-*/{folder.name}"))
+        if not backups:
+            pytest.skip(f"{upstream} is the patched copy and no backup of the original is on this machine")
+        upstream = backups[-1]
+    assert same_tree(work, upstream), f"reversing the patch does not give {upstream} file for file"
     for path in sorted(upstream.iterdir()):
         if path.is_file():
             assert (work / path.name).read_bytes() == path.read_bytes(), (

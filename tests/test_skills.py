@@ -217,7 +217,7 @@ def test_discover_marks_its_fact_captures_and_close_leaves_them():
                        text("skills/close/SKILL.md"))
     assert "→ keep: [[<page>#<heading>|<ID>]] (fact)" in d
     assert "(fact)" in start and "second is a Discover" in start
-    assert "a Discover already marked `(fact)`, or a Boundary already marked `(assumption)`, keeps its mark" in close
+    assert "a Discover already marked `(fact)`, or a Boundary, Requirements or Allocate session already marked `(assumption)`, keeps its mark" in close
 
 
 # /ask (V1-15)

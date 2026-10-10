@@ -9,13 +9,13 @@ import hashlib
 import re
 from dataclasses import dataclass
 
-from planner import model, parse, progress, trace
+from planner import allocation, model, parse, progress, trace
 from planner.parse import split_row
 
 # Lines a hash ignores: they change when a page is reread, handed off, or an owner confirms a decision
 # made on their behalf, not when its content does.
 VOLATILE = re.compile(r"^(last_verified|verified_by|handed_off):|^- \*\*[Cc]onfirmed [Bb]y:\*\*")
-KIND_ORDER = ("app", "runtime", "provides", "consumes", "epic", "unknown")
+KIND_ORDER = ("app", "runtime", "provides", "consumes", "requirement", "epic", "unknown")
 HEADER = ("ID", "Kind", "Page", "State", "Hash")
 FACT = re.compile(r"^- \*\*(App|Commit|Written|Items):\*\* (.+)$")
 
@@ -108,7 +108,8 @@ def item_entry(item, kind):
 
 def slice_of(vault, app):
     """Every entry in the app's slice: the app page, its runtime page, contracts provided and
-    consumed, epics whose `apps` lists it, and open unknowns that block any of those."""
+    consumed, the functional requirements its allocation rows carry, epics whose `apps` lists it,
+    and open unknowns that block any of those."""
     entries = [page_entry(vault, app, "app")]
     runtime = progress.runtime_page(vault, app)
     if runtime is not None:
@@ -116,6 +117,10 @@ def slice_of(vault, app):
     # A contract kept on this page for an external provider is one the app consumes.
     entries += [item_entry(c, "consumes" if c.fact("Provider") else "provides") for c in progress.provided(vault, app)]
     entries += [item_entry(c, "consumes") for c in progress.consumed(vault, app)]
+    # The design answers for each requirement's acceptance criteria, which live on the capability page,
+    # so a criterion edited after handoff must show up in handoff verify.
+    carried = {r.requirement for r in allocation.rows(vault) if r.app is app and r.requirement}
+    entries += [item_entry(r, "requirement") for r in allocation.requirements(vault) if r.id in carried]
     entries += [page_entry(vault, e, "epic") for e in trace.epics(vault) if app.id in trace.listed(e, "apps")]
     ids = {e.id for e in entries}
     blocking = {u.id: u for u in model.blocking_unknowns(vault, app)}

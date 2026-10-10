@@ -55,13 +55,92 @@ def test_the_allocation_block_shows_each_requirement_against_each_app(tmp_path):
     vault = vault_with(tmp_path, {"share": "holds the seat", "through": "CON-001", "state": "assumption"})
     run("render", "--vault", str(vault))
     page = (vault / "04a-capability-delta.md").read_text(encoding="utf-8")
-    assert "**Allocation:** 1 requirements, 0 not allocated." in page
+    assert "**Allocation:** 1 requirement at assumption or later, 0 not allocated." in page
     assert "holds the seat (CON-001)" in page
 
 
 def test_next_suggests_allocate_before_epics_while_a_requirement_is_unallocated(tmp_path):
     vault = vault_with(tmp_path)
     out = run("next", "--vault", str(vault), "--today", "2026-11-20")[1]
-    assert "allocate CAP-014" in out, out
+    assert out.startswith("planner next: initiative, allocate CAP-014."), out
     carried = vault_with(tmp_path / "b", {"share": "holds the seat", "through": "CON-001", "state": "assumption"})
     assert "allocate" not in run("next", "--vault", str(carried), "--today", "2026-11-20")[1]
+
+
+def add_row(vault, page, cells):
+    path = vault / page
+    text = path.read_text(encoding="utf-8")
+    if "## Requirements allocated" not in text:
+        text = text.rstrip("\n") + "\n\n## Requirements allocated\n\n| Requirement | Share | Through | State |\n|---|---|---|---|\n"
+    path.write_text(text + "| " + " | ".join(cells) + " |\n", encoding="utf-8")
+
+
+LINK = "[[CAP-014-hold-a-seat#CAP-014.FR1 Hold a seat while paying\\|CAP-014.FR1]]"
+
+
+def test_a_decided_row_needs_a_grill_like_any_decided_item(tmp_path):
+    vault = vault_with(tmp_path, {"share": "holds the seat", "through": "CON-001", "state": "decided"})
+    assert "E303" not in check(vault)[1]  # Booking's Decision links the Grill that decided it
+    app = vault / APP
+    app.write_text("\n".join(l for l in app.read_text(encoding="utf-8").splitlines()
+                              if not l.startswith("- **Decision:**")) + "\n", encoding="utf-8")
+    out = check(vault)[1]
+    assert "E303" in out and "CAP-014.FR1@APP-booking" in out, out
+
+
+def test_an_inkling_row_is_a_guess_and_carries_nothing(tmp_path):
+    vault = vault_with(tmp_path, {"share": "maybe holds it", "through": "—", "state": "inkling"})
+    assert "W505" in check(vault)[1]
+
+
+def test_a_fact_row_needs_its_page_sources(tmp_path):
+    vault = vault_with(tmp_path, {"share": "holds the seat today", "through": "—", "state": "fact"})
+    out = check(vault)[1]
+    assert "E333" not in out and "W505" not in out, out  # Booking lists sources
+    edit_page = vault / APP
+    text = edit_page.read_text(encoding="utf-8")
+    start = text.index("\nsources:")
+    edit_page.write_text(text[:start] + text[text.index("\n", start + 1):], encoding="utf-8")
+    assert "E333" in check(vault)[1]
+
+
+def test_a_short_row_has_no_state(tmp_path):
+    vault = vault_with(tmp_path)
+    add_row(vault, APP, [LINK, "holds the seat"])
+    assert "E332" in check(vault)[1]
+
+
+def test_t7_warns_before_the_first_epic_because_allocation_comes_first(tmp_path):
+    vault = vault_with(tmp_path)
+    shutil.rmtree(vault / "13-epics")
+    out = check(vault)[1]
+    assert "W505" in out and "W501" not in out, out
+
+
+def test_the_block_joins_two_shares_of_one_app_and_shows_each_app(tmp_path):
+    vault = vault_with(tmp_path, {"share": "holds the seat", "through": "CON-001", "state": "assumption"})
+    add_row(vault, APP, [LINK, "releases it after ten minutes", "—", "assumption"])
+    add_row(vault, "05-building-blocks/website-building-blocks.md", [LINK, "shows the hold's countdown", "—", "assumption"])
+    run("render", "--vault", str(vault))
+    page = (vault / "04a-capability-delta.md").read_text(encoding="utf-8")
+    assert "holds the seat (CON-001); releases it after ten minutes" in page
+    assert "shows the hold's countdown" in page
+
+
+def test_handoff_verify_sees_a_carried_requirement_change(tmp_path):
+    vault = vault_with(tmp_path, {"share": "holds the seat", "through": "CON-001", "state": "assumption"})
+    code, out = run("handoff", "APP-booking", "--vault", str(vault), "--today", "2026-11-20", "--replace")
+    assert code == 0, out
+    assert "CAP-014.FR1" in (vault / "handoffs" / "APP-booking.md").read_text(encoding="utf-8")
+    cap = vault / CAP
+    cap.write_text(cap.read_text(encoding="utf-8").replace("ten minutes", "fifteen minutes"), encoding="utf-8")
+    code, out = run("handoff", "verify", "APP-booking", "--vault", str(vault), "--today", "2026-11-20")
+    assert code == 1 and "CAP-014.FR1" in out, out
+
+
+def test_next_suggests_requirements_for_a_changing_capability_before_the_first_epic(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    shutil.rmtree(vault / "13-epics")
+    out = run("next", "--vault", str(vault), "--today", "2026-11-20")[1]
+    assert out.startswith("planner next: initiative, requirements CAP-"), out

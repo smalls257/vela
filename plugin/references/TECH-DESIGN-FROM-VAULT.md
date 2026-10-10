@@ -32,6 +32,8 @@ The app's allocated rows are its requirements: they take the place of `FR-XXX` i
 - each contract it consumes;
 - each acceptance criterion of its epics, as `EPC-nnn.ACn`.
 
+An app handed off before allocation existed has no `## Requirements allocated` table. Its requirement targets are then each `CAP-nnn.FRn` of the capabilities its epics deliver, as before; tell the senior the app has no allocation, so the split of each requirement between apps is the design's reading, not the vault's.
+
 Every trace target maps to at least one component. Reject the design if one has no owner, as the skill does for an FR.
 
 ## Linking back

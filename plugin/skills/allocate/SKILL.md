@@ -33,7 +33,7 @@ Label every line with what it rests on: the requirement, an app page, a contract
 - **Each share** is a row in the app page's `## Requirements allocated` table, `| Requirement | Share | Through | State |`, added under that heading if the page lacks it: the requirement's link `[[CAP-nnn-<slug>#CAP-nnn.FRn <name>|CAP-nnn.FRn]]`, the share, the contracts it goes through or `—`, and `assumption`.
 - **A contract's obligation** is the row on the provider's table that names the contract in Through, with the guarantee in its Share. For a contract with an outside provider, the row goes on its consumer's page.
 - **A missing contract** the user confirmed is written on the provider's page as `CONVENTIONS.md` says for contracts, with every required bullet, `**State:** assumption` and `**Change:** new`, then linked from each consumer. Tell the user it is a new contract that boundary did not draw, and that it needs a Grill like any other.
-- Each written row and contract gets a capture marked at once, `→ keep: [[<page>#<heading>|<ID>]] (assumption)`, as Boundary does; rows have no ID of their own, so the capture names the requirement.
+- Each written row and contract gets a capture marked at once, `→ keep: [[<page>#<heading>|<ID>]] (assumption)`, as Boundary does; rows have no ID of their own, so the capture links the app page's `Requirements allocated` heading and names the row as `CAP-nnn.FRn@APP-<slug>`, and so does its `## Changes` row in the session record.
 
 Then run `planner render` and `planner check`, fix every error, and commit a checkpoint. The `allocation` block should show the requirement carried, and T7 should no longer name it.
 
@@ -41,7 +41,7 @@ Then run `planner render` and `planner check`, fix every error, and commit a che
 
 Once the rows in scope are written, run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the rows are written" and the app pages and contracts this session changed as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
 
-Run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR. Then `/planner:grill APP-<slug>` decides each app's allocated rows with its page, and `/planner:epics` takes each team's criteria from them."
+Run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR. Then `/planner:grill APP-<slug>` decides each app's allocated rows with its page, which sets each confirmed row's State to decided, and `/planner:epics` takes each team's criteria from them."
 
 ## Never
 

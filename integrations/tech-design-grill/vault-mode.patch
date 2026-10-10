@@ -26,7 +26,7 @@ diff -ruN a/tech-design-grill/FRONTMATTER-FORMAT.md b/tech-design-grill/FRONTMAT
  
  - `slug` is the canonical kebab-case identifier shared across all docs for one feature.
 -- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`).
-+- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`) and every review finding is disposed of (`REVIEW-CHECKPOINT.md`). It is `complete-with-gaps` when the user acknowledged a violation or an open finding instead of fixing it; each one is a `gaps[]` entry, with a stable `G-XXX` ID that is never renumbered. A downstream skill reads `gaps[]` and carries them forward.
++- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`) and no review finding is left open (`REVIEW-CHECKPOINT.md`): each was answered, deferred, or ruled not applicable. It is `complete-with-gaps` when a finding is left as an open `OQ-XXX`, or the user acknowledged a violation instead of fixing it; each one is a `gaps[]` entry, with a stable `G-XXX` ID that is never renumbered. A downstream skill reads `gaps[]` and carries them forward.
  - `deferred[]` entries each have a stable `id`. Once assigned, never renumber.
    If a gap appears (D-001, D-003 — D-002 removed), preserve the gap; do not
    renumber. The original ID keeps the audit trail intact.
@@ -38,7 +38,7 @@ diff -ruN a/tech-design-grill/NEG-AUDIT.md b/tech-design-grill/NEG-AUDIT.md
  ## Closing the audit
  
 -If every box is YES, set `status: complete` in frontmatter and stop.
-+If every box is YES, and `REVIEW-CHECKPOINT.md` left no finding open, set `status: complete` in frontmatter and stop.
++If every box is YES, and `REVIEW-CHECKPOINT.md` left no finding open (none left as an open `OQ-XXX` or an accepted gap), set `status: complete` in frontmatter and stop. If one is left open, set `status: complete-with-gaps` with a `gaps[]` entry for it.
  
  If any box is NO, do one of:
  1. Fix the violation, re-run the audit.
@@ -67,6 +67,19 @@ diff -ruN a/tech-design-grill/PREREQ-CHECK.md b/tech-design-grill/PREREQ-CHECK.m
  ## Resolution
  
  1. Read your own prereq list from the **Inputs** section of this skill's content
+@@ -26,6 +35,12 @@
+      - **If resume:** reload the deferred[] entries from frontmatter and restart
+        grill from the first section that has a D-XXX or OQ-XXX entry still open.
+      - **If new slug:** ask for a new slug and proceed as if file missing.
++   - If file exists with `status: complete-with-gaps`:
++     > *"Doc marked complete with gaps (list each `gaps[]` entry). Reopen to close
++     > the gaps, overwrite (re-grill), or pick a new slug?"*
++     - **If reopen:** set `status: in-progress` and restart the grill from the
++       first section a gap names; each closed gap is removed from `gaps[]`.
++     - **If overwrite** or **new slug:** as for `complete` below.
+    - If file exists with `status: complete`:
+      > *"Doc marked complete. Overwrite (re-grill) or pick new slug?"*
+      - **If overwrite:** confirm once, then proceed as if file missing.
 diff -ruN a/tech-design-grill/REVIEW-CHECKPOINT.md b/tech-design-grill/REVIEW-CHECKPOINT.md
 --- a/tech-design-grill/REVIEW-CHECKPOINT.md
 +++ b/tech-design-grill/REVIEW-CHECKPOINT.md
@@ -101,7 +114,7 @@ diff -ruN a/tech-design-grill/REVIEW-CHECKPOINT.md b/tech-design-grill/REVIEW-CH
 +Show the merged list once, ranked, one line each. Then take them in order, one at a time, as `GRILL-LOOP.md` does, with your recommended disposition:
 +
 +- **Answer now:** the user knows; update the design section and note the finding as resolved.
-+- **Open question:** write an `OQ-XXX` with the scenario, what would unblock it, and what it affects.
++- **Open question:** write an `OQ-XXX` with the scenario, what would unblock it, and what it affects. While it is open the design can be at most `complete-with-gaps`, with a `gaps[]` entry naming the OQ.
 +- **Defer:** a `D-XXX`, when the answer is known and deliberately postponed.
 +- **Accept the gap:** the user goes ahead knowingly; it becomes a `gaps[]` entry and the status can be at most `complete-with-gaps`.
 +- **Not applicable:** with the reason, in one line.
@@ -177,7 +190,7 @@ diff -ruN a/tech-design-grill/SKILL.md b/tech-design-grill/SKILL.md
  - **Distributed Monolith** — Can components actually deploy / change independently?
  
 -Flip `status: complete` only if neg-audit passes.
-+Flip `status: complete` only if neg-audit passes and every review finding is disposed of. If the user acknowledges a violation or an open finding instead of fixing it, the status is `complete-with-gaps`, with one `gaps[]` entry for each (see `FRONTMATTER-FORMAT.md`). Never write `complete` over an acknowledged gap.
++Flip `status: complete` only if neg-audit passes and no review finding is left open: each was answered, deferred as a `D-XXX`, or ruled not applicable. A finding left as an open `OQ-XXX`, or a violation the user acknowledges instead of fixing, makes the status `complete-with-gaps`, with one `gaps[]` entry for each (see `FRONTMATTER-FORMAT.md`). Never write `complete` over an acknowledged gap.
  
  ## Hard rule
  

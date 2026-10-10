@@ -403,7 +403,7 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 | 8 | Epics | the app is `new` or `changed`, and no epic lists it, or one that does is not `decided` |
 | 9 | none | nothing is open |
 
-While no app page exists, `planner next` suggests `initiative, boundary` once `04-solution-strategy.md` is `decided`, and `initiative, dump` before that.
+Requirements cut across apps, so two steps are the initiative's, not any app's, and `planner next` names them ahead of every app rule but rule 1: `initiative, allocate CAP-nnn` while a functional requirement at `assumption`, `fact` or `decided` has no row carrying it, and, before the first epic, `initiative, requirements CAP-nnn` while a changing capability has no functional requirements. While no app page exists, `planner next` suggests `initiative, requirements` once `04-solution-strategy.md` is `decided` and no capability has functional requirements, then `initiative, boundary`, and `initiative, dump` before the strategy is decided.
 
 ## Keeping the vault fresh
 
@@ -460,6 +460,9 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | W502 | no epic delivers a new or changed contract | E502 | no epic delivers a new or changed contract |
 | W503 | no epic covers a concern cell with work | E503 | no epic covers a concern cell with work |
 | W504 | epic delivers nothing | E504 | epic delivers nothing |
+| W505 | no app carries a functional requirement | E505 | no app carries a functional requirement |
+| E330 | allocation row names no functional requirement | E331 | allocation row goes through no such contract |
+| E332 | allocation row has no valid state | E333 | allocation row is a fact on a page with no sources |
 | E321 | override is malformed | W303 | decided without a Grill, by override |
 | E322 | decided-by or confirmed-by is malformed | W304 | fact without a source, by override |
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
@@ -486,11 +489,11 @@ Allocation divides each requirement among the apps and contracts that deliver it
 |---|---|---|---|
 | `[[CAP-002-paper-trade-a-stock#CAP-002.FR2 Place a paper order\|CAP-002.FR2]]` | accepts the order, rejects fractions and shorting, records the fill | CON-006 | assumption |
 
-- **Requirement** links the functional requirement's heading. **Share** says this app's part in the domain's words. **Through** names the contracts that carry the part across to another app, or `—`. **State** is `inkling`, `assumption` or `decided`; a `decided` row needs the page's `**Decision:**`, written by a Grill, as goal rows do.
+- **Requirement** links the functional requirement's heading. **Share** says this app's part in the domain's words. **Through** names the contracts that carry the part across to another app, or `—`. **State** is `inkling`, `assumption`, `fact` or `decided`. A `fact` row records a share an app already carries, and needs the page's `sources`, as a goal row at `fact` does. A `decided` row needs the page's `**Decision:**` to link a Grill, as goal rows do; a Grill on the app decides its rows with its page. An `inkling` row carries nothing: only a row at `assumption` or later counts as the requirement's owner.
 - A contract's obligation is a row on its provider's table that names it in **Through**. A contract with an outside provider takes the row on its consumer's page.
 - When dividing a requirement shows two apps must talk in a way no contract covers, allocation writes that contract at `assumption` on the provider's page with every required bullet, and raises it.
 
-`planner check` reports E330 for a row that names no functional requirement of this vault, E331 for a **Through** that names no contract, E332 for a State outside the three, and E333 for a `decided` row on a page with no Decision. T7 is a trace gap: a requirement at `assumption`, `fact` or `decided` that no table carries. It warns, and is an error under `--gate epics`. The `allocation` block on `04a-capability-delta.md` shows every requirement against every app.
+`planner check` reports E330 for a row that names no functional requirement of this vault, E331 for a **Through** that names no contract, E332 for a State outside the four, and E333 for a `fact` row on a page with no sources. A `decided` row answers to the decision rules as `CAP-nnn.FRn@APP-<slug>`: E303 when the page's Decision links no Grill, E317 when it links only a requirements session. T7 is a trace gap: a requirement at `assumption`, `fact` or `decided` that no row at `assumption` or later carries. It warns, and is an error under `--gate epics`. The `allocation` block on `04a-capability-delta.md` shows every requirement against every app.
 
 An app's allocated rows are its team's input. Epics take their acceptance criteria from them, and the team's `tech-design-grill` traces its components to them.
 
@@ -500,7 +503,7 @@ An epic page holds a description, the owning team, 4 to 7 numbered acceptance cr
 
 A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
 
-Four trace rules run once the vault holds an epic. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger).
+Five trace rules run once the vault holds an epic, and T7 alone runs as soon as it holds an app page, because allocation comes before epics. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger).
 
 | Rule | Passes when | Codes |
 |---|---|---|
@@ -526,7 +529,7 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 
 Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `planner check --gate epics` exits 0.
 
-In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
+In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the functional requirements its allocation rows carry, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
 
 `planner handoff verify <APP-id>` lists every item changed, added or removed since. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
 

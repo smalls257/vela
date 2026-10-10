@@ -449,6 +449,9 @@ def decided_units(vault):
         if contract.fact("State") == "decided":
             bullet = contract.facts.get("Decision")
             yield contract.id, contract.page, contract.line, [bullet] if bullet else []
+    # An allocation row has no heading of its own, so its Decision is the app page's, as for a goal row.
+    for subject, row in allocation.decided_rows(vault):
+        yield subject, row.app, row.line, row.app.page_bullets("Decision")
 
 
 def _modes(session):
@@ -488,8 +491,8 @@ def page_state_rules(vault, today):
 
 
 def allocation_rules(vault, today):
-    """E330-E333: an allocation row must name a functional requirement that exists, contracts that exist, a state,
-    and a Decision on its page when it says decided."""
+    """E330-E333: an allocation row must name a functional requirement that exists, contracts that exist, and a
+    state, and a fact row needs its page's sources. A decided row answers to the decision rules in decided_units."""
     known = {item.id for found in vault.items.values() for item in found if item.kind == "requirement"}
     contracts = {c.id for c in vault.contracts}
     for row in allocation.rows(vault):
@@ -503,10 +506,10 @@ def allocation_rules(vault, today):
                          "which is no contract in this vault.", "Name the contract that carries it, or write it first.")
         if row.state not in allocation.ALLOCATED_STATES:
             yield _f(row.app, row.line, "E332", f"An allocation row on {row.app.id} has State '{row.state}'.",
-                     "Use inkling, assumption or decided.")
-        elif row.state == "decided" and not row.app.page_bullets("Decision"):
-            yield _f(row.app, row.line, "E333", f"An allocation row on {row.app.id} is decided, but the page has no "
-                     "Decision bullet.", "Decide it in a Grill, which writes the page's Decision under ## History.")
+                     "Use inkling, assumption, fact or decided.")
+        elif row.state == "fact" and not row.app.meta.get("sources"):
+            yield _f(row.app, row.line, "E333", f"The allocation row for {row.requirement} on {row.app.id} is a fact, "
+                     "but the page lists no sources.", "Add sources: [SRC-nn] to the page, or lower the row to assumption.")
 
 
 def certainty_rules(vault, today):
@@ -767,13 +770,16 @@ def trace_findings(vault, gated):
 
 
 def trace_rules(vault, today):
-    """T1, T2, T4 and T6 as warnings, once the vault has its first epic.
+    """T1, T2, T4 and T6 as warnings, once the vault has its first epic; T7 once it has its first app page.
 
-    Before that every changing capability would warn on every PR for months,
-    and a warning nobody can act on teaches people to skip the output.
+    Before the first epic every changing capability would warn on every PR for months,
+    and a warning nobody can act on teaches people to skip the output. T7 is different:
+    allocation comes before epics, so it is the warning that allocate session acts on.
     """
     if vault.of_type("epic"):
         yield from trace_findings(vault, gated=False)
+    elif vault.apps:
+        yield from (f for f in trace_findings(vault, gated=False) if f.code == schema.TRACE_CODES["T7"][0])
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,

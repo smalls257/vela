@@ -30,7 +30,7 @@ prereqs:                       # optional list, may be []
 ## Rules
 
 - `slug` is the canonical kebab-case identifier shared across all docs for one feature.
-- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`) and every review finding is disposed of (`REVIEW-CHECKPOINT.md`). It is `complete-with-gaps` when the user acknowledged a violation or an open finding instead of fixing it; each one is a `gaps[]` entry, with a stable `G-XXX` ID that is never renumbered. A downstream skill reads `gaps[]` and carries them forward.
+- `status` flips to `complete` only when neg-audit passes (`NEG-AUDIT.md`) and no review finding is left open (`REVIEW-CHECKPOINT.md`): each was answered, deferred, or ruled not applicable. It is `complete-with-gaps` when a finding is left as an open `OQ-XXX`, or the user acknowledged a violation instead of fixing it; each one is a `gaps[]` entry, with a stable `G-XXX` ID that is never renumbered. A downstream skill reads `gaps[]` and carries them forward.
 - `deferred[]` entries each have a stable `id`. Once assigned, never renumber.
   If a gap appears (D-001, D-003 — D-002 removed), preserve the gap; do not
   renumber. The original ID keeps the audit trail intact.

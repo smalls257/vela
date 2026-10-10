@@ -88,7 +88,7 @@ Run `NEG-AUDIT.md`. Focus:
 - **God Class** — Any component owning too much?
 - **Distributed Monolith** — Can components actually deploy / change independently?
 
-Flip `status: complete` only if neg-audit passes and every review finding is disposed of. If the user acknowledges a violation or an open finding instead of fixing it, the status is `complete-with-gaps`, with one `gaps[]` entry for each (see `FRONTMATTER-FORMAT.md`). Never write `complete` over an acknowledged gap.
+Flip `status: complete` only if neg-audit passes and no review finding is left open: each was answered, deferred as a `D-XXX`, or ruled not applicable. A finding left as an open `OQ-XXX`, or a violation the user acknowledges instead of fixing, makes the status `complete-with-gaps`, with one `gaps[]` entry for each (see `FRONTMATTER-FORMAT.md`). Never write `complete` over an acknowledged gap.
 
 ## Hard rule
 
