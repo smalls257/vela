@@ -17,6 +17,7 @@ The user's `tech-design-grill` skill reads this file when it is given `--vault <
 | The app's building-blocks page | `05-building-blocks/<app>-building-blocks.md` | what the app does and does not do, its containers, the contracts it provides |
 | The app's runtime page | `06-runtime/apps/<app>-runtime.md` | its part in each flow, how it behaves on failure |
 | Contracts it consumes | the `contracts-consumed` block on the app page; follow each link | what it calls and who tests each side |
+| Its allocated requirements | the `## Requirements allocated` table on the app page; follow each row's link to the capability's requirement and its acceptance criteria | **the requirements this design answers for**: each row is this app's share of a requirement, and Through names the contracts that carry it |
 | Its epics | the `epics-for-app` block on the app page; open each epic | the acceptance criteria the design must meet |
 | Capabilities its epics deliver | the `delivers` list on each epic; open each `CAP-` page | functional requirements, where recorded |
 | Unknowns that block it | `11-unknowns-and-risks.md`: open unknowns whose `**Blocks:**` links the app's pages | questions the design must not settle on its own |
@@ -24,12 +25,12 @@ The user's `tech-design-grill` skill reads this file when it is given `--vault <
 
 ## Trace targets
 
-In place of `FR-XXX`, the trace targets are:
+The app's allocated rows are its requirements: they take the place of `FR-XXX` in `docs/requirements/<slug>.md`, which a vault design does not need. The trace targets are:
 
+- each row of the app's `## Requirements allocated` table, as `CAP-nnn.FRn@APP-<slug>`;
 - each contract the app provides (`CON-nnn` on its page);
 - each contract it consumes;
-- each acceptance criterion of its epics, as `EPC-nnn.ACn`;
-- each functional requirement on a capability its epics deliver, as `CAP-nnn.FRn`.
+- each acceptance criterion of its epics, as `EPC-nnn.ACn`.
 
 Every trace target maps to at least one component. Reject the design if one has no owner, as the skill does for an FR.
 

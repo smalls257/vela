@@ -310,7 +310,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
     assert "4 to 7 numbered criteria" in epics
     assert "`[testing]`" in epics
-    assert "offer to run requirements-grill on that `CAP-NNN`" in epics and "Never write the requirement into the epic." in epics
+    assert "offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
     assert "an explicit yes to each criterion on its own" in epics and "while any criterion lacks its own explicit yes" in epics
     assert "It does not mean they are decided." in epics and "Report those separately" in epics

@@ -45,7 +45,7 @@ Write no description paragraph yet. Prose is drafted at close, through `house-vo
 
 ## 5. Behaviour the vault does not hold
 
-If a criterion needs behaviour no page records, stop on that criterion. Say which capability it belongs to, and offer to run requirements-grill on that `CAP-NNN`. Add `requirements` to the session's `modes` if the user says yes. The requirement is written once, on the capability, at most `assumption`, and the criterion cites it. Never write the requirement into the epic. If the user declines, leave the criterion out and list it under the epic's `## Out of scope` as waiting on that `CAP-NNN`.
+Start each team's criteria from its apps' `## Requirements allocated` rows: each row is a share of a requirement the team owns, and its criteria are the acceptance criteria of that requirement as far as that share carries them. Name the requirement's ID beside the criterion it comes from. If a criterion needs behaviour no requirement holds, stop on that criterion. Say which capability it belongs to, and offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`. The requirement is written once, on the capability, at most `assumption`, and the criterion cites it. Never write the requirement into the epic. If the user declines, leave the criterion out and list it under the epic's `## Out of scope` as waiting on that `CAP-nnn`.
 
 ## 6. Grill the criteria
 

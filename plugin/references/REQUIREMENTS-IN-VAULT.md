@@ -1,5 +1,7 @@
 # requirements-grill in an initiative vault
 
+In a vault, `/planner:requirements` is the way to write a capability's requirements: it runs after the strategy is decided, and `/planner:allocate` then divides them among the apps. This file is for a team that still runs its own `requirements-grill` against a vault; it writes in the same format, so either way the requirements land on the capability page.
+
 The user's `requirements-grill` skill reads this file when it runs in a repository with `.planner.yaml` at its root. It keeps its own interview: one question at a time, a recommended answer with each, edge-case scenarios, and keeping to the "what" rather than the "how". This file changes only where the answers go and what certainty they carry.
 
 ## Scope
