@@ -53,3 +53,21 @@ def test_turning_the_hooks_off_is_named(command):
 
 def test_the_setting_named_inside_a_commit_message_is_not_a_change():
     assert gates.bypass_reason("git commit -m 'core.hooksPath to .githooks turns the hooks on'") is None
+
+
+IGNORE = (REPO / ".semgrepignore").read_text().splitlines()
+
+
+@pytest.mark.parametrize("path", ["prototypes/explorer/out/booking-demo.html", "plugin/lib/planner/assets/d3.min.js",
+                                  "prototypes/gallery/assets/assets.bundle.js", ".semgrep/prototypes.js",
+                                  "plugin/lib/planner/__pycache__/x.py"])
+def test_files_semgrepignore_names_are_not_scanned_even_when_named(path):
+    # Naming a file on semgrep's command line scans it despite .semgrepignore; a generated page then pasted
+    # whole base64 lines into the Stop hook's feedback and pushed a session past its context window.
+    assert gates.semgrep_ignores(path, IGNORE)
+
+
+@pytest.mark.parametrize("path", ["prototypes/explorer/build.py", "prototypes/explorer/assets/js/core.js",
+                                  "tests/sim/test_x.py", "plugin/lib/planner/assets/app.js"])
+def test_hand_written_files_are_scanned(path):
+    assert not gates.semgrep_ignores(path, IGNORE)

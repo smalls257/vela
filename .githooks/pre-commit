@@ -5,8 +5,13 @@
 set -uo pipefail
 export SEMGREP_SEND_METRICS=off SEMGREP_ENABLE_VERSION_CHECK=0
 files=()
-# .semgrep/ holds the rules' fixtures, deliberately bad code: naming a file skips .semgrepignore, so skip them here.
-while IFS= read -r -d '' f; do case "$f" in .semgrep/*) ;; *) files+=("$f");; esac; done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.py' '*.js' '*.html' plugin/bin/planner)
+# Naming a file to semgrep skips .semgrepignore, so gates.py drops what it lists (generated pages, vendored code,
+# the rules' fixtures) here. A temp file, not a pipe, so a failing filter stops the commit instead of scanning nothing.
+listed=$(mktemp) || exit 1
+trap 'rm -f "$listed"' EXIT
+git diff --cached --name-only --diff-filter=ACMR -z -- '*.py' '*.js' '*.html' plugin/bin/planner \
+  | python3 .claude/hooks/gates.py scannable > "$listed" || { echo "pre-commit: could not list the files to check." >&2; exit 1; }
+while IFS= read -r -d '' f || [ -n "$f" ]; do files+=("$f"); done < "$listed"
 [ ${#files[@]} -eq 0 ] && exit 0
 status=0
 py=()

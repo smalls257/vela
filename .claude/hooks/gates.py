@@ -6,6 +6,7 @@
   gates.py session-start SessionStart: warns when this clone has not set core.hooksPath to .githooks
   gates.py before-stop  Stop and SubagentStop: semgrep on every changed file, CONVENTIONS sync, and the
                         tests named after changed planner modules (about 3 to 20 s)
+  gates.py scannable    for .githooks/pre-commit: filters NUL-separated paths to the ones the gates lint
 
 The decisions (what a command bypasses, which tests a change needs) are pure functions over strings, so
 tests/test_gates.py can drive them without git, a network or Claude Code. Only main() touches the process.
@@ -96,6 +97,27 @@ def tests_for(changed):
     return sorted(set(out))
 
 
+def semgrep_ignores(path, ignore_lines):
+    """Whether a .semgrepignore line covers this repo-relative path. Pure. Semgrep honours the file only when it
+    walks a directory; a file named on its command line is scanned regardless, so the hooks filter first.
+    Covers the forms that file uses: `dir/`, `**/dir/`, and a glob over a path."""
+    parts = pathlib.PurePosixPath(path).parts
+    for line in ignore_lines:
+        pattern = line.strip()
+        if not pattern or pattern.startswith("#"):
+            continue
+        if pattern.endswith("/"):
+            dirs = pattern.rstrip("/").split("/")
+            anywhere = dirs[0] == "**"
+            dirs = dirs[1:] if anywhere else dirs
+            starts = range(len(parts) - len(dirs)) if anywhere else [0]
+            if any(list(parts[i:i + len(dirs)]) == dirs for i in starts):
+                return True
+        elif pathlib.PurePosixPath(path).match(pattern) and pattern.count("/") == path.count("/"):
+            return True
+    return False
+
+
 def stop_decision(problems, already_continuing):
     """The Stop hook's JSON, or None to let Claude stop. Pure. When Claude is already continuing because of
     this hook (stop_hook_active), block no further: say it to the user instead of looping."""
@@ -142,6 +164,14 @@ def lint(root, files):
     return problems
 
 
+def scannable(root, paths):
+    """The paths the gates lint: code files, minus what .semgrepignore names (generated pages, vendored and
+    minified code, the rules' own fixtures)."""
+    ignore = (root / ".semgrepignore").read_text().splitlines()
+    return [p for p in paths if (p.endswith(SCANNED) or p == "plugin/bin/planner")
+            and not semgrep_ignores(p, ignore) and (root / p).is_file()]
+
+
 def changed_files(root):
     code, out = run(["git", "status", "--porcelain", "-z", "--untracked-files=all"], root, 10)
     if code:
@@ -156,11 +186,13 @@ def changed_files(root):
 def after_edit(event):
     root = repo_root(event.get("cwd") or ".")
     path = pathlib.Path(event.get("tool_input", {}).get("file_path", ""))
-    try:
-        rel = path.resolve().relative_to(root).as_posix()
-    except ValueError:
+    # Find the root by identity, not spelling: on a case-insensitive disk git says ~/Code while Claude may say
+    # ~/code, and a string prefix test then skips every edit as "outside this checkout".
+    base = next((p for p in path.resolve().parents if p.exists() and os.path.samefile(p, root)), None)
+    if base is None:
         return 0  # outside this checkout
-    if not (rel.endswith(SCANNED) or rel == "plugin/bin/planner") or rel.startswith(".semgrep/"):
+    rel = path.resolve().relative_to(base).as_posix()
+    if not scannable(root, [rel]):
         return 0
     problems = lint(root, [rel])
     if problems:
@@ -188,10 +220,9 @@ def before_stop(event):
     if not changed:
         return 0
     problems = []
-    scannable = [f for f in changed if (f.endswith(SCANNED) or f == "plugin/bin/planner")
-                 and not f.startswith(".semgrep/") and (root / f).is_file()]
-    if scannable:
-        problems += lint(root, scannable)
+    code_files = scannable(root, changed)
+    if code_files:
+        problems += lint(root, code_files)
     template = (root / "template/CONVENTIONS.md").read_bytes()
     problems += [f"{c} differs from template/CONVENTIONS.md" for c in CONVENTIONS if (root / c).read_bytes() != template]
     tests = [t for t in tests_for(changed) if (root / t).is_file()]
@@ -216,9 +247,23 @@ def session_start(event):
     return 0
 
 
+def print_scannable(paths_in):
+    """For .githooks/pre-commit: NUL-separated repo-relative paths in, the ones the gates lint out, so the
+    commit gate and these hooks share one reading of .semgrepignore."""
+    root = repo_root(".")
+    print("\0".join(scannable(root, [p for p in paths_in.split("\0") if p])), end="")
+    return 0
+
+
 def main(argv):
     hooks = {"after-edit": after_edit, "guard-bash": guard_bash, "before-stop": before_stop,
              "session-start": session_start}
+    if argv[1:] == ["scannable"]:
+        try:
+            return print_scannable(sys.stdin.read())
+        except (RuntimeError, OSError) as exc:
+            print(f"gates.py scannable: could not filter the files: {exc}", file=sys.stderr)
+            return 1
     if len(argv) != 2 or argv[1] not in hooks:
         print(f"usage: gates.py {{{','.join(hooks)}}}", file=sys.stderr)
         return 1
