@@ -13,12 +13,14 @@ import os
 import pathlib
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, search, export, handoff, health, ladder, model, reading, parse, progress, query, questions, releases, render, reviews, rules, schema, viewer, voicecheck, voicescore
+from planner import allocation, capture, catalog, completeness, search, export, freshness, handoff, health, ladder, model, reading, parse, progress, publish, query, questions, releases, render, reviews, roles, rules, schema, viewer, voicecheck, voicescore
+from planner.edge import copies, vaultgit
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -135,6 +137,157 @@ def cmd_upgrade(args, out):
                   if line[:1] in "+-" and not line.startswith(("+++", "---")))
     print(f"planner upgrade: CONVENTIONS.md replaced with the plugin's copy, {changed} lines changed. "
           "Review it with git diff CONVENTIONS.md, then commit it.", file=out)
+    return 0
+
+
+def detect_role(root):
+    """The roles.Role for a folder. A git that cannot run is a tool failure only when nothing else decides the role."""
+    return roles.decide(vaultgit.role_facts(root))
+
+
+def print_role(found, out):
+    print(f"planner role: {found.role}. {found.reason[0].upper()}{found.reason[1:]}.", file=out)
+    for note in found.notes:
+        print(f"  Note: {note}.", file=out)
+    for warning in found.warnings:
+        print(f"  Warning: {warning}.", file=out)
+
+
+def cmd_role(args, out):
+    found = detect_role(pathlib.Path(args.vault).resolve())
+    if args.json:
+        print(json.dumps(found.as_dict(), indent=2), file=out)
+    else:
+        print_role(found, out)
+    return 0 if found.role != roles.NONE else 1
+
+
+def refuse_reader(root, action):
+    """Stop a reader from doing an owner's job, naming whom to write to (a bare 'not allowed' is a Silent Fallback)."""
+    try:
+        stamp = copies.read_own_stamp(root)
+    except copies.SourceUnreadable:
+        stamp = None  # the refusal still stands; only the name of the owner is lost
+    who = (stamp or {}).get("owner", {})
+    contact = who.get("name") or who.get("contact")
+    return ToolError(f"{action} is the owner's job, and this is a published copy. "
+                     + (f"That is {contact}'s call. Send a proposal and they decide." if contact
+                        else "Send the owner a proposal and they decide."))
+
+
+def check_counts(files, today):
+    """(errors, warnings) of planner check on exactly these committed files."""
+    with tempfile.TemporaryDirectory() as folder:
+        copies.write_folder(files, folder + "/vault")
+        root = pathlib.Path(folder) / "vault"
+        vault = load_vault(root)
+        found = rules.check(vault, today) + conventions_findings(root)
+    errors = sum(1 for f in found if f.is_error)
+    return errors, len(found) - errors
+
+
+def cmd_publish(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    found = detect_role(root)
+    if found.role == roles.READER:
+        raise refuse_reader(root, "Publishing")
+    if found.role != roles.OWNER:
+        raise ToolError(f"cannot publish: {found.reason}.")
+    target = pathlib.Path(args.out).expanduser().resolve()
+    if target == root or root in target.parents:
+        raise ToolError(f"--out {target} is inside the vault; publish to a folder outside it.")
+    today, _ = parse_today(args.today)
+    try:
+        files, skipped, executable = vaultgit.committed_files(root)
+        commit, short = vaultgit.head(root)
+        dirty_files = vaultgit.uncommitted(root)
+        git_name, git_email = vaultgit.user_identity(root)
+        files = publish.selected(files)
+        if ".planner.yaml" not in files:
+            raise ToolError("HEAD has no .planner.yaml, so there is no initiative to publish. Commit it first.")
+        config = load_config_text(files[".planner.yaml"])
+        owner = publish.owner_contact(config, git_name, git_email, args.owner_name or "", args.owner_contact or "")
+        counts = check_counts(files, today)
+        stamp = publish.build_stamp(config, commit, short, today, bool(dirty_files), owner, counts, files)
+        stamped = publish.with_stamp(files, stamp)
+        if target.suffix.lower() == ".zip":
+            copies.write_zip(publish.zip_bytes(stamped, publish.copy_name(config["title"], short),
+                                               {p for p in executable if executable[p] and p in stamped}), target)
+        else:
+            copies.write_folder(stamped, target, {p for p in executable if executable[p] and p in stamped})
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"cannot read the vault's commit: {exc}. Is there at least one commit?") from exc
+    except publish.PublishError as exc:
+        raise ToolError(str(exc)) from exc
+    except OSError as exc:
+        raise ToolError(f"cannot write {target}: {exc.strerror or exc}") from exc
+    print(f"planner publish: wrote {target.name} ({len(stamped)} files) at {short}, {counts[0]} errors and {counts[1]} warnings "
+          f"at publish. Contact: {owner['name']} <{owner['contact']}>.", file=out)
+    note = publish.dirty_message(short, len(dirty_files))
+    if note:
+        print(f"  {note[0].upper()}{note[1:]} The stamp says dirty: true.", file=out)
+    if skipped:
+        print(f"  Not copied (links or submodules a read copy cannot carry): {', '.join(skipped[:5])}.", file=out)
+    return 0
+
+
+def load_config_text(data):
+    """.planner.yaml read from committed bytes, with the same rules as load_config."""
+    with tempfile.TemporaryDirectory() as folder:
+        (pathlib.Path(folder) / ".planner.yaml").write_bytes(data)
+        return load_config(pathlib.Path(folder))
+
+
+def owner_freshness(root, timeout, checked_at):
+    """freshness.Report for a git owner: fetch with a timeout, then count behind, ahead and uncommitted. Never pulls."""
+    try:
+        full, short = vaultgit.head(root)
+    except vaultgit.GitUnavailable as exc:
+        return freshness.Report("owner", freshness.UNKNOWN, checked_at, f"I cannot read this clone's commits yet: {exc}.")
+    local = {"commit": short, "date": vaultgit.commit_date(root, "HEAD")}
+    uncommitted = len(vaultgit.uncommitted(root))
+    upstream_name = vaultgit.upstream(root)
+    if not vaultgit.has_origin(root):
+        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this vault has no remote called origin, so there is nothing to compare with", checked_at)
+    fetch_error = vaultgit.fetch(root, timeout)
+    if not upstream_name:
+        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this branch has no upstream, so there is nothing to compare with", checked_at)
+    behind, ahead = vaultgit.behind_ahead(root, upstream_name)
+    latest = {"commit": vaultgit.head_short(root, upstream_name), "date": vaultgit.commit_date(root, upstream_name)}
+    return freshness.owner_report(local, latest, behind, ahead, uncommitted, fetch_error, "", checked_at)
+
+
+def reader_freshness(root, checked_at):
+    """freshness.Report for a reader's workspace: baseline stamp against the stamp at the remembered source."""
+    try:
+        workspace = copies.read_workspace(root)
+    except copies.SourceUnreadable as exc:
+        return freshness.Report("reader", freshness.UNKNOWN, checked_at, f"{exc}")
+    stamp, unreachable, unreadable = None, "", ""
+    try:
+        stamp = copies.read_source_stamp(workspace.get("source_path") or "")
+    except copies.SourceUnreachable as exc:
+        unreachable = str(exc)
+    except copies.SourceUnreadable as exc:
+        unreadable = str(exc)
+    return freshness.reader_report(workspace, stamp, unreachable, unreadable, checked_at)
+
+
+def cmd_freshness(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    found = detect_role(root)
+    today, _ = parse_today(args.today)
+    checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
+    if found.role == roles.OWNER:
+        report = owner_freshness(root, args.timeout, checked_at)
+    elif found.role == roles.READER:
+        report = reader_freshness(root, checked_at)
+    else:
+        raise ToolError(f"cannot check freshness: {found.reason}.")
+    if args.json:
+        print(json.dumps(report.as_dict(), indent=2), file=out)
+    else:
+        print(f"planner freshness: {report.message}", file=out)
     return 0
 
 
@@ -1212,6 +1365,23 @@ def build_parser():
                          help="with --serve, the model that answers questions (default: haiku; the page's Think harder asks sonnet)")
     explore.add_argument("--no-open", action="store_true", help="with --serve, do not open the browser")
     explore.set_defaults(func=cmd_explore)
+    role = sub.add_parser("role", help="owner or reader: decided by access to the vault's git repo, never by title or config")
+    role.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    role.add_argument("--json", action="store_true", help="the answer as JSON")
+    role.set_defaults(func=cmd_role)
+    pub = sub.add_parser("publish", help="write a read copy of the committed vault, as a folder or a .zip, for people without git")
+    pub.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    pub.add_argument("--out", required=True, help="a new folder, or a path ending in .zip")
+    pub.add_argument("--today", help="the date to stamp, YYYY-MM-DD (default: system date)")
+    pub.add_argument("--owner-name", help="who readers write to (default: git user.name)")
+    pub.add_argument("--owner-contact", help="how readers reach the owner (default: owner_contact in .planner.yaml, else git user.email)")
+    pub.set_defaults(func=cmd_publish)
+    fresh = sub.add_parser("freshness", help="whether anything changed since this clone or copy was made; reports, never updates")
+    fresh.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
+    fresh.add_argument("--json", action="store_true", help="the answer as JSON")
+    fresh.add_argument("--today", help="the date to stamp the check with, YYYY-MM-DD (default: system date)")
+    fresh.add_argument("--timeout", type=int, default=vaultgit.FETCH_TIMEOUT, help="seconds an owner's git fetch may take (default 8)")
+    fresh.set_defaults(func=cmd_freshness)
     status = sub.add_parser("status", help="each app's stage, certainty mix, oldest open unknown and next mode")
     status.add_argument("--vault", default=".", help="vault root (default: current directory)")
     status.add_argument("--today", help="date to judge overdue unknowns and ages by, YYYY-MM-DD (default: system date)")
