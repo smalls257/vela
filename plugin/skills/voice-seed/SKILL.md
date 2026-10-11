@@ -13,13 +13,15 @@ An example's format is in `CONVENTIONS.md` under "Voice examples".
 
 ## 1. Start clean
 
-Run step 1 of `.claude/skills/planner/references/START.md`: show the state of the clone, stop on any changed or untracked file, and pull `main`. Do not create a branch yet. Step 7 does that, and only if something committed changes.
+Run step 1 of `${CLAUDE_PLUGIN_ROOT}/references/START.md`: show the state of the clone, stop on any changed or untracked file, and pull `main`. Do not create a branch yet. Step 7 does that, and only if something committed changes.
 
 ## 2. Who the owner is
 
 Get the user's handle with `gh api user -q .login`. If `gh` fails, ask the user for it. The owner is that handle, with an `@` in front. Every example this skill writes carries it as `author`.
 
 ## 3. Collect the passages, one voice type at a time
+
+In a reader copy (no `.git`), only the local-only place is open: say so, and never offer the committed place or a branch.
 
 First say this plainly: "`voice/examples/` is committed, pushed and opened as a PR, so anyone with access to this repository can read what goes there." Then offer two places for the run:
 
@@ -30,7 +32,7 @@ If the owner says their employer owns the text, or is not sure, recommend local 
 
 Take the voice type the user named, or all three in this order: diagnosis, decision, how-it-works. For each type:
 
-1. Say what the type is for, from the table in `.claude/skills/planner/skills/house-voice/SKILL.md`. Diagnosis says why something hurts now, as on the goals page. Decision says what was chosen and why, as in the strategy, the ADRs and the capability delta. How-it-works says how a system behaves, as on the context, app, runtime, flow and concern pages.
+1. Say what the type is for, from the table in `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`. Diagnosis says why something hurts now, as on the goals page. Decision says what was chosen and why, as in the strategy, the ADRs and the capability delta. How-it-works says how a system behaves, as on the context, app, runtime, flow and concern pages.
 2. Ask the owner to paste 2 or 3 passages of their own writing of that type, one at a time. Each should be one or two paragraphs, about 80 to 300 words, from something they wrote themselves.
 3. For each passage, ask and wait for an explicit yes to each:
    - "Did you write this yourself?"

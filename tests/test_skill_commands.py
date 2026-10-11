@@ -17,7 +17,7 @@ def text(rel):
 def test_start_offers_planner_next_as_a_suggestion():
     start = text("references/START.md")
     assert "## 4. Offer the overdue unknowns and the next step" in start
-    assert "Then run `python3 .claude/skills/planner/scripts/planner next` and show its line." in start
+    assert "Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner next` and show its line." in start
     assert "never a decision" in start
 
 
@@ -39,7 +39,7 @@ def test_options_considered_is_one_bullet_in_every_skill():
 
 def test_close_writes_the_handoff_manifest_when_a_senior_takes_an_app():
     close = text("skills/close/SKILL.md")
-    assert "If this session set `handed_off:` on an app page, run `python3 .claude/skills/planner/scripts/planner handoff <APP-id>` now." in close
+    assert "If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff <APP-id>` now." in close
     assert "run it with `--replace` only once they say so in this session" in close
     assert "any manifest `planner handoff` wrote" in close
 

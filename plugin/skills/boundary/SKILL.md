@@ -9,11 +9,11 @@ disable-model-invocation: true
 
 Turn a decided direction into apps a team senior can take. Until an app page exists, the catalogue's app and contract questions are owed by nothing, `planner status` has nothing to show, and epics and handoff have nothing to work on. Boundary never decides: every page it writes is an `assumption` until a Grill.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. The page formats are `CONVENTIONS.md`: "Frontmatter", "IDs", "Fact bullets" for contracts, "Fact tables" for containers, "Concern cells and waivers", and the ladder under "Areas and stages".
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The page formats are `CONVENTIONS.md`: "Frontmatter", "IDs", "Fact bullets" for contracts, "Fact tables" for containers, "Concern cells and waivers", and the ladder under "Areas and stages".
 
 ## 1. Start
 
-Run the steps in `.claude/skills/planner/references/START.md` with mode `boundary`. Read the Boundary row of `.claude/skills/planner/references/MODES.md`.
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `boundary`. Read the Boundary row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 Read the direction: `04-solution-strategy.md` and every page it links for the picked option, `03-context-and-scope.md` for the systems today and the apps in and out of scope, the existing building-blocks pages, `06-runtime/06-flows.md`, the concern pages, and the open unknowns and risks that block any of them. If the direction is not `decided`, say so and name what is still open: an app cut on an undecided direction may be cut again. Go on only if the user says to, and record that as an override as `START.md` says.
 
@@ -67,11 +67,11 @@ After each sheet, write what was confirmed and commit a checkpoint. The required
 
 Each sheet gets one capture line per item with an ID that changed (the app, its runtime page, each contract, each unknown), marked at once, `→ keep: [[<page>#<heading>|<ID>]] (assumption)`, or `(open)` for an unknown, and one `## Changes` row each, `| <ID> | <from> | <to> | [[<id>#^cNN]] |`. Containers and concern cells have no ID, so they go in their app's capture. This is an exception to leaving marks off until close, as Discover does for facts. Close leaves these alone.
 
-Then run `python3 .claude/skills/planner/scripts/planner render` and `python3 .claude/skills/planner/scripts/planner check`, fix every error the new pages cause, and commit the checkpoint with every file render reported, by exact path.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render` and `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check`, fix every error the new pages cause, and commit the checkpoint with every file render reported, by exact path.
 
 ## 5. Review the new apps and contracts
 
-Once every sheet is written, run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the pages are written" and the new app, contract and runtime pages as its focus. Each new app and contract is a subject now, so the catalogue owes its app and contract questions: run `python3 .claude/skills/planner/scripts/planner questions --subject <ID>` for each and show the copies it owes. Show the lead the digest as REVIEW section 5 says, and capture what they take.
+Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the pages are written" and the new app, contract and runtime pages as its focus. Each new app and contract is a subject now, so the catalogue owes its app and contract questions: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>` for each and show the copies it owes. Show the lead the digest as REVIEW section 5 says, and capture what they take.
 
 ## 6. Finish
 

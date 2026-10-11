@@ -10,23 +10,23 @@ from conftest import REPO
 
 PLUGIN = REPO / "plugin"
 ASK = PLUGIN / "skills" / "ask" / "SKILL.md"
-QUERY_TOOL = "Bash(python3 .claude/skills/planner/scripts/planner query *)"
+PLANNER_TOOL = "Bash(python3 *scripts/planner *)"  # the one loose pattern, ruled in design session 15
 
 
 def ask_meta():
     return yaml.safe_load(ASK.read_text(encoding="utf-8").split("---\n", 2)[1])
 
 
-def test_ask_may_run_planner_query_and_nothing_else_of_planner():
+def test_ask_runs_the_planner_by_the_one_loose_pattern_and_stays_read_only_by_disallowed_tools():
     allowed = ask_meta()["allowed-tools"]
-    assert QUERY_TOOL in allowed
-    assert allowed.count("planner/scripts/planner") == 1  # query only: never render, check or handoff
+    assert PLANNER_TOOL in allowed and allowed.count("scripts/planner") == 1
+    assert "Write" not in allowed.split() and "Edit" not in allowed.split()
     assert ask_meta()["disallowed-tools"] == "Write Edit NotebookEdit"
 
 
 def test_ask_resolves_every_id_before_citing_it():
     ask = ASK.read_text(encoding="utf-8")
-    assert "Before you cite any ID, run `python3 .claude/skills/planner/scripts/planner query get <ID> --json`." in ask
+    assert "Before you cite any ID, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query get <ID> --json`." in ask
     assert "Cite the ID by the `link` it returns" in ask
     assert "If the answer is `not_found`, never cite that ID" in ask
     assert "`Not recorded: <ID> is not in this vault.`" in ask

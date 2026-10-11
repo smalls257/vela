@@ -15,7 +15,7 @@ READ_ONLY = {"ask", "find"}  # every other skill writes to the vault
 # Files a reference may name that live outside references/: vault files, and files of the user's grill skills.
 OTHER_FILES = {"CONVENTIONS.md", "CLAUDE.md", "SKILL.md", "CONTEXT.md", "NEG-AUDIT.md", "PREREQ-CHECK.md", "GRILL-LOOP.md",
                "REQUIREMENTS-FORMAT.md", "TECH-DESIGN-FORMAT.md"}
-INSTALLED = re.compile(r"\.claude/skills/planner/([A-Za-z0-9_./-]+)")
+INSTALLED = re.compile(r"(?:\.claude/skills/planner|\$\{CLAUDE_PLUGIN_ROOT\})/([A-Za-z0-9_./-]+)")
 SIBLING = re.compile(r"`([A-Z][A-Z0-9-]*\.md)`")
 
 
@@ -275,7 +275,7 @@ def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
 
 def test_close_drafts_prose_through_house_voice():
     close = text("skills/close/SKILL.md")
-    assert "Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it" in close
+    assert "Read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and follow it" in close
     assert "draft: prose for <id>" in close
     assert "Prose to draft" not in close
 

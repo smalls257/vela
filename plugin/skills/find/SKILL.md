@@ -3,7 +3,7 @@ name: find
 description: Find where something is in the vault, fast, in the middle of a conversation. Takes a question in plain words ("how does coach talk to brightwater", "paper order", "who holds the budget"), and answers in a few lines with the places to look, best first, and the flows that cross them. Use when the user needs to locate a flow, an app, a contract or a question quickly, not a careful cited answer; that is /planner:ask.
 argument-hint: "<what you are looking for, in your own words>"
 model: haiku
-allowed-tools: Read Bash(python3 .claude/skills/planner/scripts/planner query search *) Bash(python3 .claude/skills/planner/scripts/planner query get *)
+allowed-tools: Read Bash(python3 *scripts/planner *)
 disallowed-tools: Write Edit NotebookEdit
 ---
 
@@ -17,7 +17,9 @@ $ARGUMENTS
 
 ## Steps
 
-1. Run `python3 .claude/skills/planner/scripts/planner query search <the user's words> --limit 6`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from").
+
+1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query search <the user's words> --limit 6`.
 2. If it finds nothing, or the top places don't match what was asked, the user's words are probably not the vault's. Think of the words the vault would use: the app, partner and flow names in the hits, and plain synonyms ("book" → "hold", "pay", "confirm"; "talk to" → the partner's name and "contract"). Search once or twice more with those. Read `12-glossary.md` only if that still fails. Stop after three searches in all.
 3. Answer in this shape, and nothing longer:
 

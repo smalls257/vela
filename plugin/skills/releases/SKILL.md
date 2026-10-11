@@ -9,11 +9,11 @@ disable-model-invocation: true
 
 Say when people get each part of what the initiative builds. Requirements say what the business needs and allocation says who carries it; neither says by when. A release is a date somebody outside the team will see, and the requirements, or only some of a requirement's checks, that must hold on that day. A releases session never decides: what it writes is an `assumption` until a Grill.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md` under "Releases".
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md` under "Releases".
 
 ## 1. Start
 
-Run the steps in `.claude/skills/planner/references/START.md` with mode `releases`. Read the Releases row of `.claude/skills/planner/references/MODES.md`.
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `releases`. Read the Releases row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 Read `04b-releases.md`, every capability page's functional requirements with their acceptance criteria, `04a-capability-delta.md`, the `allocation` block (run `planner render` first), the goals and constraints for dates anybody already gave, and the open unknowns. If there are no functional requirements, say so and offer `/planner:requirements`. If requirements exist and none is allocated, offer `/planner:allocate`, and go on only if the user says to, recording that as an override as `START.md` says. A release that already exists is kept: change only the lines the user confirms.
 
@@ -53,7 +53,7 @@ Then run `planner render` and `planner check`, fix every error (E340 and E341 me
 
 ## 4. Review, then finish
 
-Run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the releases are written" and `04b-releases.md` as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
+Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the releases are written" and `04b-releases.md` as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
 
 Run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR. Then a Grill on `releases` decides them, and `/planner:epics` cuts each team's epics against them."
 

@@ -15,11 +15,11 @@ Use whatever access the user already has: local files, a clone, an export they m
 
 ## Steps
 
-1. Run the steps in `.claude/skills/planner/references/START.md` with mode `discover` (an import is a Discover that arrives in bulk; there is no `import` mode in the record). Read the Discover row of `.claude/skills/planner/references/MODES.md`. Only the owner writes plan pages. On a reader copy the import is allowed, and everything it writes is a draft for the owner.
+1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `discover` (an import is a Discover that arrives in bulk; there is no `import` mode in the record). Read the Discover row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. Only the owner writes plan pages. On a reader copy the import is allowed, and everything it writes is a draft for the owner.
 2. Read the `## Import ledger` in earlier session records. If one exists, this is a resume: list what is pending and carry on from it. Otherwise ask where the material lives, and agree with the user how each place is reached.
 3. Register before reading. Add a `sources.md` row for every source you will use: `ID | Title | Owner | Date | Kind | Location`. Kind is `exists`, `intends` or `repo`, as `CONVENTIONS.md` defines. Propose a Kind for each and have the user confirm it, or override as `START.md` says. Location must let someone find it again: a path, a URL, `<url>@<sha>` for a repo, or `export of <space> on <date>`. A source you do not read is still listed, as skipped, with why.
 4. Show the import map before writing a single plan page. One block per vault section: goals, constraints, context and scope, strategy, capabilities, apps and building blocks, contracts, flows, concerns, decisions, requirements, releases, epics, unknowns and risks, glossary. Under each say what was found, from which `SRC-nn`, what is duplicated, and what clashes. The user corrects the map. Write nothing until they have.
-5. Write the pages in `CONVENTIONS.md` format, in batches, committing a checkpoint after each. Every line cites its source, and its state follows where it came from:
+5. Write the pages in `CONVENTIONS.md` format, in batches, committing a checkpoint after each (in a reader copy, which has no git, write the batch and skip the commit; START.md says what a reader copy skips). Every line cites its source, and its state follows where it came from:
    - `exists` or `repo` gives a `fact`.
    - `intends` gives an `assumption`, or an `inkling` if it is vague. Anything about the future is an `assumption` whatever the Kind.
    - A decision is `decided` only when the source names who decided it and when. Otherwise it is an `assumption` plus an unknown asking the owner to confirm it. When `CONVENTIONS.md` has the `**Pending approval:**` rule and this is a reader copy, decisions carry it. If that rule is not there yet, note that in the report as coming.
@@ -36,7 +36,7 @@ Do not say the import is done until each of these holds:
 - [ ] Every written line cites a `SRC-nn`, and its state follows step 5. Nothing is invented.
 - [ ] Every clash is one unknown naming both sources, with an owner and an ask-by date.
 - [ ] The import ledger in the session record lists processed and pending sources.
-- [ ] `python3 .claude/skills/planner/scripts/planner check` has run. Errors are fixed and warnings are listed.
+- [ ] `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check` has run. Errors are fixed and warnings are listed.
 - [ ] `planner capture` and `planner next` have run.
 - [ ] The session record holds an `## Import report`: coverage per section (rich, thin or empty), skipped sources, open clashes, and the next recommended session.
 

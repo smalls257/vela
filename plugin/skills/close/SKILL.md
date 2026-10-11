@@ -9,7 +9,20 @@ disable-model-invocation: true
 
 Close turns a session record into a reviewed PR. Run every step in order. Never skip a step to save time, and never report a step as done when it failed.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md`.
+
+## Reader copy: no git, no PR
+
+Run `planner role` first. If it says `reader` (a published copy: `.planner/workspace.json`, no `.git`), say once, plainly: "This is a read copy, so close writes your session record and stops. Nothing is committed, pushed or sent." Then run the sections below with these changes, and no other:
+
+- **Section 1:** find the open record with `grep -l '^status: open' sessions/*.md`. There are no branches; run no `git` or `gh` command.
+- **Section 3:** an item the session decided or overrode keeps `decided` and gets `- **Pending approval:** @<handle>, <today>` beside it (see "Pending approval" in `CONVENTIONS.md`). Use the handle START.md asked for. An owner's decision never gets the marker; here every decision is a reader's.
+- **Section 4:** the changed pages are the ones the session's `## Changes` table and captures name, not `git diff`. Skip the examples harvest (it needs `gh` and `git`). Skip the `git restore` and checkpoint-commit lines of the voice review: write the rewrite to the page only after `planner voicecheck` passes, and keep the earlier draft in a copy beside it until then.
+- **Section 6:** run only the render and the check. Skip the fetch and the merge of `main`.
+- **Section 7:** write `summary:` and set `status: closed`, render and check; stage nothing. Never write a handoff manifest: handoff is the owner's.
+- **Section 8:** skip it. Say: "Nothing was committed, pushed or sent. Your changes are in this folder; sending them to the owner as a proposal (`/planner:propose`) is not built yet." Never say a PR exists.
+
+Write the session record as usual: it is the one record of what you did.
 
 ## 1. Find the session
 
@@ -51,7 +64,7 @@ A kept capture that says `type at close: PTY` or `type at close: SV` names a sub
 
 Then record the yes. Dump starts the capture with the existence question's copy ID, such as `Q-FIN-01@INI-001: yes, ... type at close: SV`. A capture with only the note comes from an older session: its copy is the initiative copy of the entry whose `creates:` is that kind, so ask the lead which question they answered if more than one fits. Write that copy's row in the ledger as the next part says: `answered`, `item:` linking the new subject, `answer:` the lead's yes in one line, and `source:` by the source rule there, which means a first-hand `SRC-nn` when the lead's word is the only source. If the subject stays untyped, the row is `unknown`, linking the unknown that asks for its relationship or holder: the yes is said, and the subject waits for that answer. If the copy already has a row, an earlier session recorded the yes, so write no second row. Add the `## Changes` row for the copy, citing the capture.
 
-A typed subject makes the catalogue owe its questions. Run `python3 .claude/skills/planner/scripts/planner questions --subject <ID>`, list its copies under **Questions** in the PR body, and write its row below for each copy a capture answers. The rest stay undisposed until a session takes them.
+A typed subject makes the catalogue owe its questions. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>`, list its copies under **Questions** in the PR body, and write its row below for each copy a capture answers. The rest stay undisposed until a session takes them.
 
 ### The question ledger
 
@@ -72,7 +85,7 @@ List every capture whose words start with a copy ID such as `Q-FIN-03@SV-01`, a 
 
 Add a `## Changes` row for each new ledger row: `| <copy> | - | <state> | [[<id>#^cNN]] |`, citing the capture. A reviewer question the lead did not take has no capture, so its row cites its checkpoint's heading in `## Reviews` instead: `[[<id>#<n>. <checkpoint>, <date>]]`.
 
-Then run `python3 .claude/skills/planner/scripts/planner check`. Each E801, E802 or E803 on the ledger is a row written wrong: show it and fix it with the user. If no source the check accepts exists, ask which state it is instead, such as `assumed` or `open`. Never delete a row to quiet the check, and never drop one without saying so.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check`. Each E801, E802 or E803 on the ledger is a row written wrong: show it and fix it with the user. If no source the check accepts exists, ask which state it is instead, such as `assumed` or `open`. Never delete a row to quiet the check, and never drop one without saying so.
 
 ### Gaps the catalogue missed
 
@@ -88,7 +101,7 @@ The catalogue grows from gaps found late or by luck. List each reviewer question
   severity: <high or normal>
 ```
 
-Show each draft and ask for an explicit yes. Write the approved ones under `## Catalogue proposals` in the session record, as one YAML block, and list them in the PR body. Never edit `.claude/skills/planner/catalog/questions.yaml`: the catalogue belongs to the toolkit, so code decides what is owed only once the toolkit takes the entry. Then run `python3 .claude/skills/planner/scripts/planner questions --stats`, and list in the PR body each entry whose copies in this vault all ended `not-applicable`, as one to prune or tighten. Pruning is the user's call.
+Show each draft and ask for an explicit yes. Write the approved ones under `## Catalogue proposals` in the session record, as one YAML block, and list them in the PR body. Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`: the catalogue belongs to the toolkit, so code decides what is owed only once the toolkit takes the entry. Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --stats`, and list in the PR body each entry whose copies in this vault all ended `not-applicable`, as one to prune or tighten. Pruning is the user's call.
 
 ### Write the marks
 
@@ -96,17 +109,17 @@ Every new item, subject, unknown and reviewer question now has its ID. Write eac
 
 ## 4. Draft the prose
 
-Read `.claude/skills/planner/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. Those are:
+Read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and follow it for every paragraph this session needs. Those are:
 
 - the opening prose of every page this session changed (`git diff --name-only --diff-filter=d main...HEAD`, leaving out `sessions/` and `sources.md`), rewritten to say what is true now, as `CONVENTIONS.md` says under "Pages". Keep the owner's own wording wherever the facts it states have not changed, because a later close harvests those edits; rewrite only what the session made untrue or left out. Never add a paragraph about what changed: that is the page's `## History`;
-- the sentences on other pages that mention an item whose state this session changed. For each unknown this session resolved and each item it decided, run `python3 .claude/skills/planner/scripts/planner query refs <ID>`, open each page it lists, and rewrite the sentence that links the item so it says what is true now: "the account opens at the first practice trade", not "when the account opens is still open". Leave `## History` alone. `planner check` reports W334 for a sentence still calling an answered question open;
+- the sentences on other pages that mention an item whose state this session changed. For each unknown this session resolved and each item it decided, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query refs <ID>`, open each page it lists, and rewrite the sentence that links the item so it says what is true now: "the account opens at the first practice trade", not "when the account opens is still open". Leave `## History` alone. `planner check` reports W334 for a sentence still calling an answered question open;
 - the `## Strategy` paragraph of each concern page whose cells this session changed;
 - the opening sentence of each `### <ID>` item this session wrote or changed, before its fact bullets;
 - a decision record for each page this session made `decided` whose decision shapes the whole design: the solution strategy or another initiative section, an app page, or a flow. Write it as `09-decisions/ADR-nnnn-<slug>.md`, with `id`, `type: decision`, `title`, `state: decided`, `owner`, `authored: authored` and `sources`, and these sections: `## Context` (what forced the choice), `## Decision` (what was chosen, linking the decided page), `## Alternatives considered` (a table, `| Alternative | Why rejected |`, from its `**Options considered:**`) and `## Consequences` (what it commits people to). Put its `**Decision:**` bullet, linking the Grill, under `## History`, and link the record from `09-decisions/09-decisions.md`. Contracts and unknowns get no record of their own;
 - a glossary entry for each term the session used that a newcomer to the initiative would not know, such as a product name or a word like "paper trading": one paragraph on `12-glossary.md`, the term in bold, then what it means here;
 - the paragraphs below.
 
-Then run `python3 .claude/skills/planner/scripts/planner style <each changed page>` and fix every line it prints: move a history bullet under `## History`; write a labelled bullet nothing reads as a sentence in its section, merged with any prose that already says it; open an item that has only bullets with a sentence; say a bracketed aside in the sentence; label a link with the thing's name; and give a page with no opening prose one. Fix only what it names, and run it again until it prints nothing. For a session whose `modes` include `epics`, each epic it drafted owes a description paragraph, so list those epics under "Prose drafted" in the PR body. The epics session already wrote each `**Owning team:**` line; close leaves it as written. Prose is drafted here and nowhere else. Commit each drafted page, by exact path, with the message `draft: prose for <id>`. That commit holds each drafted page whole, including its structured section-3 edits, because a page cannot be committed in halves. The reviewer's later edits then show as a diff against it.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner style <each changed page>` and fix every line it prints: move a history bullet under `## History`; write a labelled bullet nothing reads as a sentence in its section, merged with any prose that already says it; open an item that has only bullets with a sentence; say a bracketed aside in the sentence; label a link with the thing's name; and give a page with no opening prose one. Fix only what it names, and run it again until it prints nothing. For a session whose `modes` include `epics`, each epic it drafted owes a description paragraph, so list those epics under "Prose drafted" in the PR body. The epics session already wrote each `**Owning team:**` line; close leaves it as written. Prose is drafted here and nowhere else. Commit each drafted page, by exact path, with the message `draft: prose for <id>`. That commit holds each drafted page whole, including its structured section-3 edits, because a page cannot be committed in halves. The reviewer's later edits then show as a diff against it.
 
 ### Voice review
 
@@ -115,13 +128,13 @@ A fresh reader checks the drafts, because the drafter cannot judge its own voice
 **Voicescore, optional.** `planner voicescore` places each paragraph against the owner's own range with a style embedding, a second reading of a different kind from the reviewer's. It is information, not a gate. It runs only when it is installed and the owner has at least 5 active `owner` and `owner-edit` examples. Run it after step 1 and before step 2:
 
 - Write the paragraphs of step 1's list to `.planner/voicescore-input.md`, in list order, one blank line between them, so ¶n is entry n. It sits in `.planner/` is gitignored, so nothing in it is ever staged. It is not under `.git/`, because Claude Code will not write there without asking.
-- Run `python3 .claude/skills/planner/scripts/planner voicescore .planner/voicescore-input.md --json`, then `rm -f .planner/voicescore-input.md`.
+- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner voicescore .planner/voicescore-input.md --json`, then `rm -f .planner/voicescore-input.md`.
 - It did not run when it printed `"ran": false` (keep its `reason`), when `"reliable"` is false (the reason is "fewer than 5 owner examples"), when its paragraph count differs from the list (the reason is "its paragraphs did not match the list"), or when the command failed in any other way (the reason is what it printed). Then the PR body says "voicescore: not run (<reason>)" and the reviewer gets no labels.
 - Otherwise add each paragraph's `label` to its entry, marked "voicescore hint", and keep the `summary` line for the PR body, such as "voicescore: 3 of 4 paragraphs inside your range; ¶2 outside (p96)".
 - Never block, rewrite or skip a paragraph because of its voicescore. Only the reviewer's flags lead to a rewrite.
 
 1. List only the prose paragraphs this section drafted, from the `draft: prose for <id>` commit. Leave out the bullets, table rows and headings section 3 wrote, even though the commit holds them. For each paragraph give a number, the page path, its voice type from house-voice's table, and the paragraph's text. Run `git status --porcelain` and keep the output.
-2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to the part "Harvest the owner's edits". The harvest does not depend on the review.
+2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `${CLAUDE_PLUGIN_ROOT}/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to the part "Harvest the owner's edits". The harvest does not depend on the review.
 3. Run `git status --porcelain` again. If the output differs from step 1 of this part, the reviewer changed a file: stop and show the user. If the reviewer errored, or returned anything but the table, treat the review as not run, write "**Voice review:** not run: <the reason>" in the PR body, and go on to the part "Harvest the owner's edits". If it flagged no paragraph, skip steps 4 and 5 of this part: there is nothing to rewrite and no commit, so go on to the part "Harvest the owner's edits".
 4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file. Before you rewrite a page, check it holds no uncommitted edit from sections 2 and 3, because a restore would discard that edit. For each `<page>`:
 
@@ -135,7 +148,7 @@ A fresh reader checks the drafts, because the drafter cannot judge its own voice
    ```
    tmp=$(mktemp)
    git show HEAD:<page> > "$tmp"
-   python3 .claude/skills/planner/scripts/planner voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)
+   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)
    ```
 
    voicecheck fails if a rewrite lost, added or moved a wikilink, code span, date, ID, number (with its units or currency), table cell, version, frontmatter line or negation.
@@ -217,7 +230,7 @@ First bring in `main` if it moved since the branch was made, so render and check
 5. On a conflict, list the files with `git diff --name-only --diff-filter=U` and read each conflict hunk (`<<<<<<<` to `>>>>>>>`). If any hunk sits outside a `<!-- generated:` block, stop: run `git merge --abort`, show those files and lines, and leave the merge for the user.
 6. If every hunk sits inside a generated block, render rebuilds those blocks, so the side does not matter. Run `git merge --abort`, then `git merge --no-edit -X ours origin/main`. `-X ours` decides only the conflicting hunks, so every edit that merged cleanly, on either side, is kept. Never use `git checkout --ours` or `--theirs` on a file: that takes one side of the whole file and drops the other side's edits.
 
-Run `python3 .claude/skills/planner/scripts/planner render`, then `python3 .claude/skills/planner/scripts/planner check`. Fix each W326 at once: set the page's `state` as the warning says, because a page whose rows have moved on but whose own state has not reads as unsettled to everyone. For a session whose `modes` include `shape`, run `python3 .claude/skills/planner/scripts/planner check --gate shape` as well: each W806 is a question still `assumed`, so list it under **Questions** in the PR body. Run `python3 .claude/skills/planner/scripts/planner questions --open --digest` and keep its first line, the coverage, for the PR body.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render`, then `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check`. Fix each W326 at once: set the page's `state` as the warning says, because a page whose rows have moved on but whose own state has not reads as unsettled to everyone. For a session whose `modes` include `shape`, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate shape` as well: each W806 is a question still `assumed`, so list it under **Questions** in the PR body. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --open --digest` and keep its first line, the coverage, for the PR body.
 
 Two warnings point at questions the ledger cannot see, so list each one to the user, never only in the PR body:
 
@@ -228,7 +241,7 @@ Carry each one into the PR body's **Questions** line with what the user chose. F
 
 ## 7. Finish the record
 
-If this session set `handed_off:` on an app page, run `python3 .claude/skills/planner/scripts/planner handoff <APP-id>` now. It writes `handoffs/<APP-id>.md`, the record of what the senior accepts. If the manifest already exists, the senior is accepting changes: run it with `--replace` only once they say so in this session.
+If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff <APP-id>` now. It writes `handoffs/<APP-id>.md`, the record of what the senior accepts. If the manifest already exists, the senior is accepting changes: run it with `--replace` only once they say so in this session.
 
 Stage every file `planner render` reported, any manifest `planner handoff` wrote, every example harvested or retired in `voice/examples/`, plus the session record and the changed pages, by exact path. Never stage anything in `voice/local/`. Never use `git add -A`. Before pushing, `git status --short` must show nothing modified. A rewritten block left out of the commit fails CI's render check. Draft a one-line `summary:` and let the user accept or edit it. Set `status: closed`, then stage. Commit with the message `Close session <id>`. Run `git push -u origin session/<id>`. For a session whose `modes` include `answer`, push to the challenge's branch instead: `git push origin <branch>`. If the push fails, show the error, print the commands for the user to run, and stop. Do not open a PR for a branch that is not pushed.
 
@@ -260,7 +273,7 @@ Write the PR body to a temporary file. Fill the headings of the vault's PR templ
   - **Catalogue proposals:** each entry the user approved, and each entry `--stats` names as one to prune or tighten; or "none".
   - **May still say the old value:** for each `decided` or `fact` value this session changed, run `grep -rn -F "<old wording>" --include='*.md' . | grep -v '^./sessions/'` and list every hit.
   - **Check:** the first line of the check output, and any error left in place.
-  - **Stage:** run `python3 .claude/skills/planner/scripts/planner ladder` and copy each line whose `pages reach` is later than its `stage`, word for word; or "none". This is a line in the report, never a question: the lead types `stage` on the app page when they choose, in this session or a later one.
+  - **Stage:** run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner ladder` and copy each line whose `pages reach` is later than its `stage`, word for word; or "none". This is a line in the report, never a question: the lead types `stage` on the app page when they choose, in this session or a later one.
 - **Minutes.** Ask the user how long the session took.
 - **Structural fixes** and **Prose edits.** Write "Filled in by the reviewer."
 

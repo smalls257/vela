@@ -9,11 +9,11 @@ disable-model-invocation: true
 
 Make every requirement somebody's. A capability's requirements say what the business needs; the apps and contracts are now drawn. Allocation says, for each requirement, which app carries which part, and which contract carries the part that crosses between them, so every requirement has an owner before anyone cuts epics. Allocation never decides: each row is an `assumption` until a Grill.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md` under "Requirements and allocation".
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md` under "Requirements and allocation".
 
 ## 1. Start
 
-Run the steps in `.claude/skills/planner/references/START.md` with mode `allocate`. Read the Allocate row of `.claude/skills/planner/references/MODES.md`.
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `allocate`. Read the Allocate row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 If `04a-capability-delta.md` has no `allocation` block, as in a vault started before it existed, add an `## Allocation` section with the empty block markers as `CONVENTIONS.md` shows under "Generated blocks". Run `planner render` and read the `allocation` block on `04a-capability-delta.md`: every functional requirement against every app, and the blank rows nobody carries. The scope is the user's argument: a capability's requirements, the requirements an app's capabilities and flows touch, or every requirement. Read each requirement in scope with its criteria, the app pages and their contracts, the runtime pages and the flows. If there are no functional requirements yet, say so and offer `/planner:requirements`; if there are no app pages, offer `/planner:boundary`.
 
@@ -39,7 +39,7 @@ Then run `planner render` and `planner check`, fix every error, and commit a che
 
 ## 4. Review, then finish
 
-Once the rows in scope are written, run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the rows are written" and the app pages and contracts this session changed as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
+Once the rows in scope are written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the rows are written" and the app pages and contracts this session changed as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
 
 Run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR. Then `/planner:grill APP-<slug>` decides each app's allocated rows with its page, which sets each confirmed row's State to decided, and `/planner:epics` takes each team's criteria from them."
 

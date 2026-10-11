@@ -45,7 +45,7 @@ def test_the_agent_reads_active_examples_and_never_rewrites():
 def test_close_dispatches_a_fresh_reviewer_and_never_reviews_itself():
     close = close_text()
     assert "Dispatch the `planner:voice-reviewer` subagent with the Agent tool" in close
-    assert "everything in `.claude/skills/planner/agents/voice-reviewer.md` after the frontmatter" in close
+    assert "everything in `${CLAUDE_PLUGIN_ROOT}/agents/voice-reviewer.md` after the frontmatter" in close
     assert "Never review the drafts yourself in this conversation." in close
     assert '"**Voice review:** not run: <the reason>"' in close
 
@@ -82,8 +82,8 @@ def recipe_commands():
     """The fenced voicecheck block in close's text, with the planner path pointed at this repo."""
     found = re.search(r"^ *```\n( *tmp=\$\(mktemp\)\n.*?)^ *```", close_text(), re.S | re.M)
     block = textwrap.dedent(found.group(1))
-    assert ".claude/skills/planner/scripts/planner" in block
-    return block.replace(".claude/skills/planner/scripts/planner", str(PLUGIN / "scripts" / "planner"))
+    assert "${CLAUDE_PLUGIN_ROOT}/scripts/planner" in block
+    return block.replace("${CLAUDE_PLUGIN_ROOT}/scripts/planner", str(PLUGIN / "scripts" / "planner"))
 
 
 def guard_command():

@@ -9,17 +9,17 @@ disable-model-invocation: true
 
 The user has a hunch, a one-liner or nothing yet. Collect everything as captures. Push back on nothing. The plan pages change only at `/planner:close`.
 
-Shared files live in `.claude/skills/planner/references/`. Read them when a step names them.
+Shared files live in `${CLAUDE_PLUGIN_ROOT}/references/`. Read them when a step names them.
 
 ## Steps
 
-1. Run the steps in `.claude/skills/planner/references/START.md` with mode `dump`. Read the Dump & Diverge row of `.claude/skills/planner/references/MODES.md`.
+1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `dump`. Read the Dump & Diverge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 2. Read `01-goals.md`, `11-unknowns-and-risks.md` and any parked captures in earlier session records (`→ park`), so you can build on what is already there. Do not repeat a parked idea as new.
 3. Let the user talk. Capture each point as its own line, in their words, with their name or role as the origin. Tag it `idea`, `thought`, `unknown`, `worry` or `wild`.
 4. Build on what they say. For each idea, offer one "what if" that removes a constraint, borrows from another domain, or turns the idea around. Write each as a capture with origin `(claude)`. Tag the far-fetched ones `[wild]`. Never judge an idea, and never say one will not work.
 5. Collect questions as `[unknown]` captures. Do not try to answer them now.
 6. When the user slows down, run the pre-mortem. Say: "It is six months from now and this initiative has failed. What went wrong?" Capture every answer as a `[worry]`.
-7. After the pre-mortem, run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the pre-mortem" and the captures as its focus. The session record is the written plan here, so the reviewers read it with the vault's pages. Show the lead the digest it ends with, as REVIEW section 5 says: the high and blocking lines in full, the rest as one count per area with the command that lists them, and `--all` when the lead wants every line. Capture what they take. The digest lists questions nobody has answered. It is not a verdict on any idea. Show it without comment on the ideas, and keep building on what the lead says.
+7. After the pre-mortem, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the pre-mortem" and the captures as its focus. The session record is the written plan here, so the reviewers read it with the vault's pages. Show the lead the digest it ends with, as REVIEW section 5 says: the high and blocking lines in full, the rest as one count per area with the command that lists them, and `--all` when the lead wants every line. Capture what they take. The digest lists questions nobody has answered. It is not a verdict on any idea. Show it without comment on the ideas, and keep building on what the lead says.
 
    When an answer names a contract, an agreement or a figure, ask who holds it, and capture it as `[unknown]` with "to fetch:", the document and who holds it, so a later Discover can ask for it and read it. Do the same for any contract or document the captures themselves name.
 

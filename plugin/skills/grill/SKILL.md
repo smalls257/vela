@@ -9,11 +9,13 @@ disable-model-invocation: true
 
 A Grill is the only session that makes an item `decided`. It decides items that are ready, or that the user chooses to decide anyway on an override, asks one question at a time, and writes each decision the moment its branch closes.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md`.
+
+In a reader copy (`planner role` says `reader`), a Grill may still decide, but beside every item it decides write `- **Pending approval:** @<handle>, <today>`, and say that the owner sees it before it counts.
 
 ## 1. Start
 
-Run the steps in `.claude/skills/planner/references/START.md` with mode `grill`. Read the Grill row of `.claude/skills/planner/references/MODES.md`.
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `grill`. Read the Grill row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 If the user names a challenge to answer, by its PR number or the challenged ID, START will take its "Answer a challenge" path: the record is an answer session on the challenge's own branch, and you add `grill` to its `modes`, so it reads `modes: [answer, grill]`. Read the Answer row of `MODES.md` too. The agenda holds the challenge's `UNK-nnn` and the challenged item. Resolve the unknown with the senior as its owner: set `**State:** resolved`, add `**Outcome:**` and `**Resolved in:** [[<session id>]]`, and add the row `| UNK-nnn | open | resolved | [[<session id>#^cNN]] |`. If the answer changes the item, set it back first, to `reopened` for an epic or to `assumption` for anything else, then decide it again through the gate below.
 
@@ -41,8 +43,8 @@ When the user picks "decide anyway (override GATE-n)", the item goes on the agen
 
 Before you show the agenda for GATE-3, find the open questions under each item, in two ways:
 
-- Run `python3 .claude/skills/planner/scripts/planner check --gate grill --item <ID>`. Repeat `--item` once per item on the agenda. An ID that is not in the vault exits 2. Each W807 is an owed question, still open, asked or with no ledger row, that blocks that item. W807 can be stale for an answer captured this session, because close writes its row later: skip a W807 the session record already answers.
-- Run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "on the agenda" and the agenda items as its focus.
+- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate grill --item <ID>`. Repeat `--item` once per item on the agenda. An ID that is not in the vault exits 2. Each W807 is an owed question, still open, asked or with no ledger row, that blocks that item. W807 can be stale for an answer captured this session, because close writes its row later: skip a W807 the session record already answers.
+- Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "on the agenda" and the agenda items as its focus.
 
 Route both lists through the digest in REVIEW section 5, grouped under their item, each with its copy or finding ID. Show the high and blocking lines in full and the rest counted by area, as the digest prints them, and run the command a count names when the lead asks for it. Ask: "Which do you want to take now?" The Grill asks the ones taken before the item is decided. An owed question that blocks an item is a question to ask, not a gate. The user may decide the item with it still open. Then capture "decided with <copy IDs> open (W807)" with the user as origin, and add a note to that item's `## Changes` row. W807 prints only under `--gate grill --item`, so a plain check and CI never show it again: the capture is the record that the question was open when the item was decided.
 
@@ -68,9 +70,9 @@ Capture each answer. The user's own words take their name as origin. When the us
 
 ## Handing an app over
 
-When the user grills an app's handoff, or `planner ladder` shows an app's pages reach `handoff`:
+When the user grills an app's handoff, or `planner ladder` shows an app's pages reach `handoff`: in a reader copy, stop here and say "Handing an app to a senior is the owner's call: it stamps their commit. Name the owner from `.planner/published.json` and send a proposal." Otherwise:
 
-1. Run `python3 .claude/skills/planner/scripts/planner ladder` and `python3 .claude/skills/planner/scripts/planner check --gate epics`, and read the lists under "Handoff" in `CONVENTIONS.md`. Say once what is not met, as one list, and offer the override as `START.md` says. Do not ask about each line.
+1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner ladder` and `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate epics`, and read the lists under "Handoff" in `CONVENTIONS.md`. Say once what is not met, as one list, and offer the override as `START.md` says. Do not ask about each line.
 2. The senior who takes the app is named, with a handle. They are present and say yes, or their answer is quoted with the channel and the date, or the user decides on their behalf, recorded as GATE-5 says. If nobody is named, ask the user first, as `MODES.md` says under "Unknowns"; if they cannot name one, write the unknown and end the session.
 3. Read back what the senior takes: the app, its runtime page, the contracts it provides and consumes, its epics, and every open unknown that blocks any of them. Also read back the links recorded for the app and each of its epics, and say which have none: "The team will look for the code, the wiki and the tracker items here. Anything to add before you hand over?" Record only what the user gives, and let them skip. Get an explicit yes.
 4. On the app page, write `handed_off: "<senior>, <today>, PR pending"` and set `stage` to the stage `planner ladder` says the pages reach. If an open unknown asks who the senior is, resolve it with the name. Commit. Do not run `planner handoff` here: close writes the manifest once everything is committed, so it records a clean commit, and then the PR number.

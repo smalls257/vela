@@ -9,11 +9,11 @@ disable-model-invocation: true
 
 Say what the business needs, once, before anyone decides which app does it. A requirement here names no app: boundary cuts the work into apps afterwards, and `/planner:allocate` divides each requirement among them. A requirements session never decides: what it writes is an `assumption` until a Grill.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md` under "Requirements and allocation" and "Fact bullets" (the functional requirement row).
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md` under "Requirements and allocation" and "Fact bullets" (the functional requirement row).
 
 ## 1. Start
 
-Run the steps in `.claude/skills/planner/references/START.md` with mode `requirements`. Read the Requirements row of `.claude/skills/planner/references/MODES.md`. If `04-solution-strategy.md` is not `decided`, say so: requirements written against an undecided strategy may be written again. Go on only if the user says to, and record that as an override as `START.md` says.
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `requirements`. Read the Requirements row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. If `04-solution-strategy.md` is not `decided`, say so: requirements written against an undecided strategy may be written again. Go on only if the user says to, and record that as an override as `START.md` says.
 
 Read the strategy, the goals, the constraints, `04a-capability-delta.md` and every capability page. List the capabilities the strategy needs: the user's argument, or every one the strategy implies. For each that has no page, propose its name in the domain's words, such as "Paper-trade a stock", with its `change` (`new`, `extend`, `replace`, `narrow` or `retire`), and on the user's yes write `capabilities/CAP-nnn-<slug>.md`: `id`, `type: capability`, `title`, `state: assumption`, `owner`, `authored: authored`, `origin: proposed`, its `change`, opening prose saying what the business can do with it, and a link from `04a-capability-delta.md`. Take the next free number as `CONVENTIONS.md` says under "IDs".
 
@@ -43,7 +43,7 @@ Number new requirements after the highest on the page; numbers are never reused,
 
 ## 4. Review, then finish
 
-Once a capability's requirements are written, run the review checkpoint in `.claude/skills/planner/references/REVIEW.md`, with the checkpoint "after the requirements are written" and that capability page as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
+Once a capability's requirements are written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the requirements are written" and that capability page as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
 
 When every capability is done, or the user stops, run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR. Then `/planner:grill CAP-nnn` decides the requirements, and `/planner:boundary` cuts the apps against them."
 

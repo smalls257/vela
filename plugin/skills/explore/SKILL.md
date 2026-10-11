@@ -3,14 +3,14 @@ name: explore
 description: Build the vault explorer and open it in the browser, served from this machine so the search box can also ask Claude about the vault. One page for a live conversation, showing the map of apps and contracts, each flow played across them, who holds each open answer, why things were decided, and where each app stands. Use when the user wants to look at the whole initiative, present a flow to a senior, or see what needs them. For one fact, use /planner:find or /planner:ask.
 argument-hint: "[console|graphite|daylight|vaporwave] [--today YYYY-MM-DD] [--design APP-x=<path to its tech design>]"
 disable-model-invocation: true
-allowed-tools: Read Bash(python3 .claude/skills/planner/scripts/planner explore *) Bash(python3 .claude/skills/planner/scripts/planner check *) Bash(uname *) Bash(open *) Bash(xdg-open *)
+allowed-tools: Read Bash(python3 *scripts/planner *) Bash(uname *) Bash(open *) Bash(xdg-open *)
 ---
 
 # Explore the vault
 
 The explorer is one HTML page drawn from the vault: the map, each flow played step by step, who holds each open question, why things were decided, and each app's stage. It is for looking and presenting. It never changes a vault page.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. Run from the vault root.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). Run from the vault root.
 
 ## Asked for
 
@@ -18,7 +18,7 @@ $ARGUMENTS
 
 ## Steps
 
-1. Build the page and serve it. Run `python3 .claude/skills/planner/scripts/planner explore --serve` in the background, since it keeps running until the user stops it, and add what the user asked for:
+1. Build the page and serve it. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner explore --serve` in the background, since it keeps running until the user stops it, and add what the user asked for:
    - `--serve` is the default here: it serves the page on this machine only (127.0.0.1) and opens the browser, and the search box can then ask Claude. Leave it off, for a static build the user can email or open from disk, only when the user says so, or asks for a file.
    - `--model sonnet` only if the user wants every answer on Sonnet; the default is haiku, and the page has its own Think harder toggle.
    - `--port <n>` only if the user names one.

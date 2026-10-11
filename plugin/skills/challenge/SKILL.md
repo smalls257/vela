@@ -9,21 +9,23 @@ disable-model-invocation: true
 
 A senior who accepted an app at handoff can still find that a boundary or a contract is wrong. An owner whose item someone else decided on their behalf, with a `**Decided by:** @x, on behalf of @owner` bullet, uses this skill the same way when they disagree; when they agree, they add `- **Confirmed by:** @owner on <date>` instead. This skill records that disagreement where the solution lead must answer it, without settling it. The challenged item keeps its state and its text. The senior's challenge becomes an open unknown that blocks it, so the vault cannot stay quietly `decided` on something a senior disputes.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md`.
 
 ## 1. Start
 
-Run steps 1, 2 and 5 of `.claude/skills/planner/references/START.md` with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `.claude/skills/planner/references/MODES.md`.
+First run `planner role`. In a reader copy (a published copy with no `.git`), stop: say "That is the owner's call, and a challenge opens a PR, which needs git. Your disagreement is a proposal: write it down and send it to <the owner named in `.planner/published.json`>." Write nothing and open no session.
+
+Run steps 1, 2 and 5 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 ## 2. Find the challenged item
 
-Run `python3 .claude/skills/planner/scripts/planner query get <ID> --json`.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query get <ID> --json`.
 
 - If it says `not_found`, stop: "<ID> is not in this vault." Do not guess another ID.
 - A challenge is about a boundary or a contract. Go on if `kind` is `contract`, `app-building-blocks` (what the app does and does not do) or `epic` (an epic's criteria or scope), or if the answer's `decided_by` names the user among its `on_behalf_of` owners, whatever the kind. For anything else, say a challenge does not cover it, and name the item's owner, who answers for it. Never draft a message to them, and never offer to.
 - If `decided_by` is set, show who decided on whose behalf and the `override` bullets, so the owner sees what was set aside and why. The challenge leaves those bullets alone.
 - Find the app: the page for a contract or app page, or each app in an epic's `apps`. Read its building-blocks page. If it has no `handed_off:`, say so: before handoff, a disagreement belongs in a Shape or a Grill with the solution lead. Ask whether to go on anyway. An owner challenging a decision made on their behalf goes on with no handoff.
-- Run `python3 .claude/skills/planner/scripts/planner handoff verify <APP-id>` and show the output, so the senior sees what changed since they accepted the slice. Exit 2 covers two cases, so show the tool's message. If it says "does not exist", there is no manifest: say so and go on. Any other exit 2 is a damaged manifest: tell the senior that what changed since handoff could not be read, and go on without claiming anything about it.
+- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff verify <APP-id>` and show the output, so the senior sees what changed since they accepted the slice. Exit 2 covers two cases, so show the tool's message. If it says "does not exist", there is no manifest: say so and go on. Any other exit 2 is a damaged manifest: tell the senior that what changed since handoff could not be read, and go on without claiming anything about it.
 
 ## 3. Hear the challenge
 
@@ -62,7 +64,7 @@ Never touch the item's `state:`, `**State:**`, wording, criteria or any other li
 
 ## 5. Render and check
 
-Run `python3 .claude/skills/planner/scripts/planner render`, then `python3 .claude/skills/planner/scripts/planner check`. If the challenged item is `decided`, check now reports E316: "decided, but open unknown UNK-nnn blocks it". That is deliberate and stays in the PR. It tells the solution lead an answer is owed. Fix any other error with the senior, or stop and show it.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render`, then `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check`. If the challenged item is `decided`, check now reports E316: "decided, but open unknown UNK-nnn blocks it". That is deliberate and stays in the PR. It tells the solution lead an answer is owed. Fix any other error with the senior, or stop and show it.
 
 ## 6. Close the record and open the PR
 

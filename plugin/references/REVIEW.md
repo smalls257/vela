@@ -2,7 +2,7 @@
 
 A review checkpoint finds the questions the plan owes and nobody has asked. Code works out what the catalogue owes (`planner questions`). One focused reviewer per focus area, each in a fresh context, reads only the written pages and finds what code cannot. `planner findings merge` combines what they return. The lead never sees the reviewers, only one ranked digest.
 
-The planner is `python3 .claude/skills/planner/scripts/planner`. The skill that sends you here names the checkpoint and its focus.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`. The skill that sends you here names the checkpoint and its focus.
 
 ## Numbering
 
@@ -23,9 +23,9 @@ Each area's reviewer also gets the page of each subject its pending copies name:
 
 ## 2. The owed questions
 
-Read the area codes from the `areas:` block of `.claude/skills/planner/catalog/questions.yaml`. Today they are `FIN`, `DAT`, `PTN`, `REG` and `OPS`, but use what the block says. For each area run `planner questions --area <AREA> --json` and keep its output for that area's reviewer. A copy in that output is pending when its `pending` field is `true`: that covers `no row`, `open`, `asked` and an invalid row.
+Read the area codes from the `areas:` block of `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`. Today they are `FIN`, `DAT`, `PTN`, `REG` and `OPS`, but use what the block says. For each area run `planner questions --area <AREA> --json` and keep its output for that area's reviewer. A copy in that output is pending when its `pending` field is `true`: that covers `no row`, `open`, `asked` and an invalid row.
 
-Then decide which areas this checkpoint reviews. An area is skipped only when both hold: nothing is owed in it, because no copy and no reviewer question in its output has `pending` set to `true`; and nothing in this checkpoint's material touches what it covers, by the table "What each focus area covers" in `.claude/skills/planner/agents/area-reviewer.md`. The material is this session's captures and the pages it changed. When in doubt, review the area. A skipped area is never silently absent: the merge reports it as `skipped (nothing in scope)` (section 4), and you tell the lead which areas were skipped and offer to run them.
+Then decide which areas this checkpoint reviews. An area is skipped only when both hold: nothing is owed in it, because no copy and no reviewer question in its output has `pending` set to `true`; and nothing in this checkpoint's material touches what it covers, by the table "What each focus area covers" in `${CLAUDE_PLUGIN_ROOT}/agents/area-reviewer.md`. The material is this session's captures and the pages it changed. When in doubt, review the area. A skipped area is never silently absent: the merge reports it as `skipped (nothing in scope)` (section 4), and you tell the lead which areas were skipped and offer to run them.
 
 ## 3. One reviewer per area
 
@@ -46,7 +46,7 @@ Dispatch the `planner:area-reviewer` subagent with the Agent tool, once per area
 - `Changed: <paths>`: this session's record and every page this session has changed, from section 1, comma-separated. A page most sessions touch only in part, `11-unknowns-and-risks.md` above all, goes in with the lines this session changed, `11-unknowns-and-risks.md:40-52+88-90`: the `+<start>,<count>` of each hunk header in `git diff -U0 main...HEAD -- <page>`. A new question is about these; an owed copy may be about any page;
 - that area's `planner questions --area <AREA> --json` output.
 
-Give no conversation, no summary of what the lead said, and no other area's questions. If the Agent tool lists no `planner:area-reviewer`, dispatch a general-purpose subagent instead, with `model` set to `sonnet` as well, and give it everything in `.claude/skills/planner/agents/area-reviewer.md` after the frontmatter as its instructions, then the same inputs, then this: you must not change any file. If you changed a file, return `{"area": "<your area code>", "error": "changed <path>"}` instead. Never review the pages yourself in this conversation.
+Give no conversation, no summary of what the lead said, and no other area's questions. If the Agent tool lists no `planner:area-reviewer`, dispatch a general-purpose subagent instead, with `model` set to `sonnet` as well, and give it everything in `${CLAUDE_PLUGIN_ROOT}/agents/area-reviewer.md` after the frontmatter as its instructions, then the same inputs, then this: you must not change any file. If you changed a file, return `{"area": "<your area code>", "error": "changed <path>"}` instead. Never review the pages yourself in this conversation.
 
 Save each reply exactly as it came back, with the Write tool, to `.planner/findings/<session id>/<n>/<AREA>.json`. If a reviewer errored, or could not be dispatched, write `{"area": "<AREA>", "error": "<what happened>"}` instead. Never write an empty findings list for a reviewer that did not finish: that would read as "checked, none".
 
