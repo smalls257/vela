@@ -20,7 +20,6 @@ gaps:                          # required when status is complete-with-gaps, els
     acknowledged_by: <who said to go ahead with it>
     why: <their reason>
     revisit: <when, or the condition that reopens it>
-    oq: <OQ-XXX, when the gap is an open question; else omitted>
 last_session: <ISO 8601 timestamp>   # auto-updated by skill on save
 prereqs:                       # optional list, may be []
   - path: docs/requirements/<slug>.md
