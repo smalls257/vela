@@ -281,17 +281,29 @@ def reader_freshness(root, checked_at):
     return freshness.reader_report(workspace, stamp, unreachable, unreadable, checked_at)
 
 
+def freshness_report(root, found, timeout, today):
+    """The freshness.Report for a folder whose role is `found`. `planner freshness`, `explore` and the helper's
+    /freshness all ask here, so the three can never disagree."""
+    checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
+    if found.role == roles.OWNER:
+        return owner_freshness(root, timeout, checked_at)
+    if found.role == roles.READER:
+        return reader_freshness(root, checked_at)
+    raise ToolError(f"cannot check freshness: {found.reason}.")
+
+
+def page_freshness(root, found, today):
+    """What the explorer page is stamped with at build time: the report as a dict, or None when no role decides one."""
+    if found.role == roles.NONE:
+        return None
+    return freshness_report(root, found, vaultgit.FETCH_TIMEOUT, today).as_dict()
+
+
 def cmd_freshness(args, out):
     root = pathlib.Path(args.vault).resolve()
     found = detect_role(root)
     today, _ = parse_today(args.today)
-    checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
-    if found.role == roles.OWNER:
-        report = owner_freshness(root, args.timeout, checked_at)
-    elif found.role == roles.READER:
-        report = reader_freshness(root, checked_at)
-    else:
-        raise ToolError(f"cannot check freshness: {found.reason}.")
+    report = freshness_report(root, found, args.timeout, today)
     if args.json:
         print(json.dumps(report.as_dict(), indent=2), file=out)
     else:
@@ -369,7 +381,8 @@ def explore_workspace(folder, today, out):
     from planner.explorer import build as explorer, pins as explorer_pins  # lazy: the explorer imports this module
     try:
         lines = explorer.generate(folder, folder / ".planner" / "explorer.html", today, pins_path=folder / explorer_pins.PINS_FILE,
-                                  assets_config=None, design_args=[], theme="console")
+                                  assets_config=None, design_args=[], theme="console",
+                                  freshness=page_freshness(folder, detect_role(folder), today))
     except explorer.ExplorerError as exc:
         raise ToolError(f"the workspace was written at {folder}, but the explorer page could not be built: {exc}") from exc
     for line in lines:
@@ -533,6 +546,14 @@ def ignores_planner_dir(root):
     return any(line.strip() in IGNORES_PLANNER_DIR for line in gitignore.read_text(encoding="utf-8").splitlines())
 
 
+def live_freshness(root, found, today, unavailable):
+    """The helper's answer to GET /freshness: the same report `planner freshness --json` prints, asked again now."""
+    try:
+        return freshness_report(root, found, vaultgit.FETCH_TIMEOUT, today).as_dict()
+    except ToolError as exc:
+        raise unavailable(str(exc)) from exc
+
+
 def cmd_explore(args, out):
     """Build the explorer page. The page and the pinned layout both go in the vault's .planner/ folder unless
     --out says otherwise; nothing is written beside the plugin."""
@@ -540,9 +561,11 @@ def cmd_explore(args, out):
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
     target = pathlib.Path(args.out) if args.out else root / ".planner" / "explorer.html"
+    found = detect_role(root)
     try:
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
-                                  assets_config=args.assets, design_args=args.design, theme=args.theme)
+                                  assets_config=args.assets, design_args=args.design, theme=args.theme,
+                                  freshness=page_freshness(root, found, today))
     except explorer.ExplorerError as exc:
         raise ToolError(str(exc)) from exc
     for line in lines:
@@ -555,7 +578,8 @@ def cmd_explore(args, out):
         if not 0 <= args.port <= 65535:
             raise ToolError(f"--port {args.port} is not a port number (0 to 65535)")
         try:
-            explorer_serve.serve(root, target, args.port, args.model, not args.no_open, lambda line: print(f"planner explore: {line}", file=out, flush=True))
+            explorer_serve.serve(root, target, args.port, args.model, not args.no_open, lambda line: print(f"planner explore: {line}", file=out, flush=True),
+                                 freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable))
         except OSError as exc:
             raise ToolError(f"cannot serve the page on port {args.port}: {exc}") from exc
     return 0

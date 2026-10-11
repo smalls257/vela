@@ -198,6 +198,41 @@ def test_an_error_result_and_a_missing_result_are_visible_errors(helper, monkeyp
     assert "no result event" in ask(server)[-1]["message"]
 
 
+REPORT = {"role": "reader", "state": "newer", "checked_at": "2026-10-18T09:12:00", "have": {"commit": "9f3c2ab", "date": "2026-10-11"},
+          "latest": {"commit": "4d1e8a0", "date": "2026-10-20"}, "behind": None, "ahead": None, "uncommitted": None, "message": "A newer copy was published."}
+
+
+def test_freshness_returns_the_report_the_cli_would_print(helper):
+    server, _, _ = helper
+    server.freshness = lambda: REPORT
+    response = request(server, "GET", "/freshness")
+    assert response.status == 200 and response.getheader("Cache-Control") == "no-store" and json.loads(response.read()) == REPORT
+
+
+def test_freshness_that_cannot_run_is_a_503_with_the_reason_and_is_logged(helper):
+    server, _, lines = helper
+
+    def cannot():
+        raise serve.FreshnessUnavailable("cannot check freshness: this folder is neither a vault repo nor a published copy")
+    server.freshness = cannot
+    response = request(server, "GET", "/freshness")
+    assert response.status == 503 and "neither a vault repo" in json.loads(response.read())["error"]
+    assert any("freshness:" in line for line in lines)
+
+
+def test_a_helper_started_without_a_freshness_check_says_so(helper):
+    server, _, _ = helper
+    response = request(server, "GET", "/freshness")
+    assert response.status == 404 and "without a freshness check" in json.loads(response.read())["error"]
+
+
+def test_freshness_is_refused_to_another_origin_like_every_route(helper):
+    server, _, _ = helper
+    server.freshness = lambda: REPORT
+    assert request(server, "GET", "/freshness", host="evil.example").status == 403
+    assert request(server, "GET", "/freshness", origin="http://evil.example").status == 403
+
+
 def test_each_ask_is_logged_with_its_outcome(helper):
     server, _, lines = helper
     ask(server)
@@ -232,8 +267,9 @@ def test_a_port_out_of_range_is_a_tool_error(tmp_path):
     assert "not a port number" in out.getvalue()
 
 
-def test_only_ask_js_can_reach_the_network_and_it_checks_for_a_file_first():
-    """The page's offline promise: no module but ask.js names a network call, and ask.js decides on file: before it looks for the helper."""
+def test_only_ask_js_and_freshness_js_can_reach_the_network_and_each_checks_for_a_file_first():
+    """The page's offline promise: no module but ask.js and freshness.js names a network call, ask.js decides on file:
+    before it looks for the helper, and freshness.js asks only its own origin's /freshness, and only when served."""
     scripts = REPO / "plugin/lib/planner/explorer/assets/js"
     network = ("fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "sendBeacon")
     for script in scripts.glob("*.js"):
@@ -241,5 +277,9 @@ def test_only_ask_js_can_reach_the_network_and_it_checks_for_a_file_first():
         if script.name == "ask.js":
             assert text.index('loc.protocol === "file:"') < text.index('fetchFn("/health")')
             assert 'fetchFn("/ask"' in text and "XMLHttpRequest" not in text
+        elif script.name == "freshness.js":
+            assert text.index("if (!served() ||") < text.index('fetchFn("/freshness")')
+            assert 'location.protocol === "http:" || location.protocol === "https:"' in text
+            assert text.count("fetchFn(") == 1 and "XMLHttpRequest" not in text and "://" not in text.replace('"http:"', "").replace('"https:"', "")
         elif script.name != "selftest.js":  # the self-test wraps fetch to prove none is made
             assert not [word for word in network if word in text], script.name

@@ -70,6 +70,10 @@ def claude_argv(model_id, prompt, home, session_id=None):
     return argv + ["--", prompt]  # "--" so a question that starts with "-" is still the prompt
 
 
+class FreshnessUnavailable(Exception):
+    """The freshness check cannot run now (no role decides one); the message says why and reaches the page as a 503."""
+
+
 class BadRequest(Exception):
     """A request the page should not have sent; the message says what to change."""
 
@@ -230,7 +234,8 @@ def stream_answer(vault, model_key, prompt, session_id, timeout=ASK_TIMEOUT, hom
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
-    """GET / is the page, GET /health says the helper is here, POST /ask streams an answer."""
+    """GET / is the page, GET /health says the helper is here, GET /freshness is `planner freshness --json` asked again
+    now (the page polls it on load and on window focus), POST /ask streams an answer."""
 
     def log_message(self, fmt, *args):
         self.server.log(f"{self.address_string()} {fmt % args}")
@@ -257,6 +262,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path == "/health":
             self.send_json(200, {"ok": True, "vault": self.server.vault.name, "model": self.server.default_model,
                                  "models": MODELS, "claude": shutil.which("claude") is not None, "maxQuestion": MAX_QUESTION})
+        elif self.path == "/freshness":
+            self.send_freshness()
         elif self.path in ("/", "/index.html"):
             data = self.server.page.read_bytes()
             self.send_response(200)
@@ -267,6 +274,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(data)
         else:
             self.send_json(404, {"error": f"nothing at {self.path}"})
+
+    def send_freshness(self):
+        if self.server.freshness is None:
+            self.send_json(404, {"error": "this helper was started without a freshness check"})
+            return
+        try:
+            report = self.server.freshness()
+        except FreshnessUnavailable as exc:
+            self.server.log(f"freshness: {exc}")
+            self.send_json(503, {"error": str(exc)})
+            return
+        self.send_json(200, report)
 
     def do_POST(self):
         # A browser always names the origin of a POST; a missing one is a script, not the page.
@@ -313,18 +332,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
 class Server(http.server.ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, vault, page, port, default_model, ask_timeout, log):
+    def __init__(self, vault, page, port, default_model, ask_timeout, log, freshness=None):
         super().__init__((LOOPBACK, port), Handler)
         self.vault, self.page, self.default_model, self.ask_timeout, self.log = pathlib.Path(vault), pathlib.Path(page), default_model, ask_timeout, log
+        self.freshness = freshness  # a callable returning the report dict, or None
 
     @property
     def url(self):
         return f"http://{LOOPBACK}:{self.server_port}/"
 
 
-def serve(vault, page, port, model, open_browser, log, ask_timeout=ASK_TIMEOUT):
+def serve(vault, page, port, model, open_browser, log, ask_timeout=ASK_TIMEOUT, freshness=None):
     """Serve until Ctrl-C. `open_browser` is the caller's choice: tests and remote shells say no."""
-    server = Server(vault, page, port, model, ask_timeout, log)
+    server = Server(vault, page, port, model, ask_timeout, log, freshness)
     if shutil.which("claude") is None:
         log("claude is not on PATH: the page will load, and Ask Claude will say so when asked")
     log(f"serving {server.url} (Ctrl-C stops it); questions run on {MODELS[model]} unless the page asks for sonnet")

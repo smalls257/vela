@@ -26,11 +26,11 @@ import os
 import pathlib
 import re
 
-from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, progress,
-                     reading, schema, trace)
+from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
+                     reading, roles, schema, trace)
 from planner import search as planner_search
 
-from . import (asks_data, assets_inline, design_data, flows_data, icons_data, inside_data, pages_data,
+from . import (asks_data, assets_inline, design_data, draft_data, flows_data, icons_data, inside_data, pages_data,
                roles_data, serve)
 from . import pins as pinning
 from .record import (HANDLE, LABELLED_LINE, PROSE_LIMIT, Keys, inline_html,
@@ -49,9 +49,9 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "geometry", "search", "minimap", "reader", "panel", "panelsize", "motion", "view-map",
               "mapgroups", "releases", "flowkit", "view-flows", "rehearse", "view-asks", "view-garden", "view-progress",
-              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "selftest", "main")
+              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "drafts", "freshness", "selftest", "main")
 CSS_MODULES = ("base", "nav", "panel", "map", "flows", "rehearse", "asks", "garden", "pages", "reader", "roles",
-               "releases", "ask", "inside", "themes", "plain")
+               "releases", "ask", "inside", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -192,8 +192,13 @@ def page_entity(page, keys, config=None):
         "prose": prose_html, "text": prose_text, "cut": cut,
         "facts": [{"label": b.label, "html": inline_html(b.value, keys, page), "text": plain(b.value),
                    "refs": refs_in(b.value, keys, page)} for b in page.bullets if not b.item and not b.generated],
-        "links": link_rows(links.of_page(page, config or {})[0]),
+        "links": link_rows(links.of_page(page, config or {})[0]), "pending": pending_row(pending.pending_for(page)),
     }
+
+
+def pending_row(found):
+    """A reader's unreviewed decision as the page shows it: who and when, or None."""
+    return {"by": found.by, "date": found.date} if found else None
 
 
 PAGE_KINDS = {"app-building-blocks": "app", "app-runtime": "runtime", "epic": "epic", "capability": "capability",
@@ -214,6 +219,7 @@ def item_entity(item, keys):
         "state": item.fact("State"), "change": item.fact("Change"), "owner": owner, "ownerKey": owner_handle(owner),
         "prose": prose_html, "text": prose_text, "cut": cut,
         "facts": [f for f in item_facts(item, keys) if f["label"] != schema.LINKS_LABEL], "links": link_rows(links.of_item(item)[0]),
+        "pending": pending_row(pending.pending_for(item.page, item.id)),
     }
 
 
@@ -474,7 +480,7 @@ def map_nodes(vault, keys, m, pins_path, seed=None):
 def lights_data(vault, keys, today):
     """attention.lights, keyed as the page keys things, plus the ranked order and what is held above the map."""
     found, above = attention.lights(vault, today)
-    to_key = {a.id: keys.page(a) for a in vault.apps} | {f.id: keys.page(f) for f in vault.of_type("flow")}
+    to_key = {p.id: keys.page(p) for p in vault.pages if p.id}
     lights = {to_key.get(k, k): v.as_dict() for k, v in found.items()}
     ranked = [to_key.get(k, k) for k, _ in attention.ranked(found)]
     page_by_id = {p.id: p for p in vault.pages if p.id}
@@ -502,13 +508,14 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None):
         "initiative": initiative, "title": str(vault.config.get("title", "")),
         "vaultId": vault_id(root, initiative),
         "today": today,
-        "vault": "", "entities": entities,
+        "vault": "", "entities": entities, "role": roles.NONE, "draft": None, "freshness": None,
         "map": system_map(vault, keys), "apps": app_details(vault, keys, blocked),
         "unknowns": unknowns(vault, keys), "risks": [r.id for r in vault.risks],
         "blockedBy": {k: [u.id for u in v] for k, v in blocked.items()},
         "progress": progress_data(vault, root, keys, today), "trace": trace_data(vault, keys),
         "backlinks": backlinks(vault, keys), "search": search_index(vault, keys), "ask": {"rules": list(serve.RULES)},
     }
+    data["pending"] = pending_list(vault, keys)
     data["owners"] = owners(entities)
     data["nodes"], data["pins"] = map_nodes(vault, keys, data["map"], pins_path, seed)
     app_meta = {keys.page(a): a.meta for a in vault.apps}
@@ -532,6 +539,13 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None):
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
     data["theme"] = THEME_IDS[0]
     return data
+
+
+def pending_list(vault, keys):
+    """Every well-formed Pending approval marker, for the header chip and the Drafts view."""
+    page_of = {p.path: p for p in vault.pages}
+    return [{"key": m.item or keys.page(page_of[m.path]), "subject": m.subject, "by": m.by, "date": m.date, "path": m.path}
+            for m in pending.items(vault)]
 
 
 def link_problems(vault):
@@ -641,13 +655,35 @@ def pin_lines(data, pins_path, was_there, root):
     return [f"pinned new positions in {shown(pins_path, root)}: {names}"]
 
 
-def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0]):
+def access_data(root, vault, freshness):
+    """Who is looking, what a reader has drafted, and how fresh the copy was when the page was built."""
+    found = cli.detect_role(root)
+    draft = draft_data.for_workspace(root, vault, Keys(vault)) if found.role == roles.READER else None
+    return {"role": found.role, "draft": draft, "freshness": freshness}
+
+
+def draft_lines(data):
+    draft = data["draft"]
+    if draft is None:
+        return []
+    if draft["problem"]:
+        return [f"draft: cannot compare with the baseline, {draft['problem']}"]
+    return [f"draft: {plural_pages(draft['count'])} changed since the copy you opened"] if draft["count"] else []
+
+
+def plural_pages(n):
+    return f"{n} page" if n == 1 else f"{n} pages"
+
+
+def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None):
     """Build the page for the vault at `root` and write it to `out`. Returns the report lines: what the build
     chose, what it left out and why, and the one-line summary last. Raises ExplorerError, writing nothing, when
     the vault, the assets, the pins or a design cannot be read.
 
     `pins_path` is the file that keeps every app's cell (None computes the layout and keeps nothing); `seed` is a
-    pins file to start from when that one does not exist yet."""
+    pins file to start from when that one does not exist yet. `freshness` is the report (a dict) `planner freshness`
+    gave at build time, or None; the build stamps it into the page, and never asks for it itself, so a build makes
+    no network call."""
     root, out = pathlib.Path(root).resolve(), pathlib.Path(out)
     if not progress.is_date(today):
         raise ExplorerError(f"--today {today!r} is not a YYYY-MM-DD date")
@@ -667,6 +703,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     except design_data.DesignError as exc:
         raise ExplorerError(f"--design: {exc}") from exc
     data["theme"] = theme
+    data.update(access_data(root, vault, freshness))
     said = link_sources(data, root, design_args, out.parent)
     page = render(data, assets)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -677,6 +714,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
              for key, asked in data["iconsUnknown"]]
     said += [f"a link was left out, {problem} (planner check reports it as E105)" for problem in data["linkProblems"]]
     said += design_lines(data["designs"])
+    said += draft_lines(data)
     m = data["map"]
     said.append(f"wrote {out} for {data['initiative']} {data['title']}: {len(m['apps'])} apps, "
                 f"{len(m['contracts'])} contracts, {len(data['unknowns'])} unknowns, {len(data['trace']['epics'])} epics, "

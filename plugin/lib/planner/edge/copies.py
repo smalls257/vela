@@ -165,6 +165,28 @@ def read_published(source_path):
     return files, stamp
 
 
+BASELINE = pathlib.Path(".planner") / "baseline"
+
+
+def read_tree(folder, skip_published=False):
+    """{vault-relative path: bytes} of every file under `folder`. With skip_published the generated and private
+    parts a publish leaves out (.planner/, .git/, voice/local/, the vendored plugin) and OS junk are skipped too,
+    so a working copy is compared with its baseline on the same footing. An unreadable file raises OpenError."""
+    folder = pathlib.Path(folder)
+    files = {}
+    try:
+        for path in sorted(folder.rglob("*")):
+            if not path.is_file() or path.is_symlink():
+                continue
+            rel = path.relative_to(folder).as_posix()
+            if skip_published and (publish.is_excluded(rel) or opening.is_junk(rel)):
+                continue
+            files[rel] = path.read_bytes()
+    except OSError as exc:
+        raise opening.OpenError(f"cannot read {folder}: {exc}") from exc
+    return files
+
+
 def read_existing_workspace(folder):
     """The workspace.json already in `folder`, or None when there is none. Unreadable is an error, not 'none'."""
     path = pathlib.Path(folder) / WORKSPACE

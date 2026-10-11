@@ -62,3 +62,37 @@ def make_workspace(tmp_path, source, name="workspace"):
                  "base_date": stamp["date"], "opened": "2026-10-12", "author": "Sam Okoye"}
     (root / ".planner" / "workspace.json").write_text(json.dumps(workspace, indent=2), encoding="utf-8")
     return root
+
+
+SNAPSHOT = pathlib.Path(__file__).resolve().parent / "sim" / "snapshots" / "trading-coach" / "after-capture-boundary"
+HOSTILE = "a reader's cap is a <b>must</b> & never a may, </script><img src=x onerror=alert(1)>"
+
+
+def commit_snapshot(tmp_path, name="src"):
+    """The trading-coach snapshot committed in its own repo (it carries .planner.yaml, so it can be published)."""
+    root = tmp_path / name
+    shutil.copytree(SNAPSHOT, root)
+    git(tmp_path, "init", "-q", "-b", "main", str(root))
+    git(root, "config", "user.name", "Priya Nair")
+    git(root, "config", "user.email", "priya@example.com")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "first")
+    return root
+
+
+def draft_workspace(tmp_path):
+    """(source repo, published folder, reader workspace) after the reader edited a page (with markup in the new line),
+    added a page and recorded a pending-approval decision on CON-001, which nothing else lights."""
+    from conftest import run
+    src = commit_snapshot(tmp_path)
+    published, workspace = tmp_path / "published", tmp_path / "workspace"
+    assert run("publish", "--vault", str(src), "--out", str(published), "--today", "2026-10-11")[0] == 0
+    assert run("open", str(published), "--into", str(workspace), "--author", "Sam Okoye", "--today", "2026-10-12")[0] == 0
+    page = workspace / "05-building-blocks" / "coach-building-blocks.md"
+    text = page.read_text(encoding="utf-8")
+    assert "so no real order ever crosses." in text and "#### CON-001 Lessons and track\n\n" in text
+    text = text.replace("so no real order ever crosses.", f"so no real order ever crosses, and {HOSTILE}.", 1)
+    text = text.replace("#### CON-001 Lessons and track\n\n", "#### CON-001 Lessons and track\n\n- **Pending approval:** @sam, 2026-10-12\n", 1)
+    page.write_text(text, encoding="utf-8")
+    (workspace / "reader-notes.md").write_text("# Notes\n\nWhat Finance said on Tuesday.\n", encoding="utf-8")
+    return src, published, workspace
