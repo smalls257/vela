@@ -1,0 +1,163 @@
+"""Browser smoke test for the explorer page. Runs the #selftest in headless Chrome.
+
+    python3 -m pytest -q -m browser tests/test_explorer_browser.py
+
+Requires Chrome or Chromium. Set env var CHROME to override the default search paths.
+If Chrome is not found and CI env var is set, the test fails instead of skipping.
+"""
+import html
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+
+import pytest
+
+REPO = pathlib.Path(__file__).resolve().parent.parent
+
+# Vault snapshots to test: map of (name, path) for snapshots that exist.
+SNAPSHOT_BASE = REPO / "tests" / "sim" / "snapshots"
+SNAPSHOTS = {
+    "coastal-merger/empty": SNAPSHOT_BASE / "coastal-merger" / "empty",
+    "coastal-merger/after-boundary-s2": SNAPSHOT_BASE / "coastal-merger" / "after-boundary-s2",
+    "trading-coach/after-handoff-2": SNAPSHOT_BASE / "trading-coach" / "after-handoff-2",
+    "trading-coach/after-80b": SNAPSHOT_BASE / "trading-coach" / "after-80b",
+    "holdout-hospitals/after-discover": SNAPSHOT_BASE / "holdout-hospitals" / "after-discover",
+}
+
+
+def find_chrome():
+    """Find Chrome binary. Returns path or None. Raises RuntimeError if CI and not found."""
+    # Try env var CHROME first
+    if "CHROME" in os.environ:
+        path = pathlib.Path(os.environ["CHROME"])
+        if path.exists():
+            return path
+        return None
+
+    # Try default macOS path
+    mac_default = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    if mac_default.exists():
+        return mac_default
+
+    # Try shutil.which with common names
+    for name in ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]:
+        found = shutil.which(name)
+        if found:
+            return pathlib.Path(found)
+
+    # Not found: skip unless CI
+    if os.environ.get("CI"):
+        raise RuntimeError("no Chrome/Chromium found; set CHROME env var or install chrome")
+    pytest.skip("no Chrome/Chromium found; set CHROME")
+
+
+@pytest.fixture(scope="module")
+def chrome_path():
+    """Find Chrome once per test session."""
+    return find_chrome()
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize(
+    "vault_name,vault_path",
+    [(name, path) for name, path in SNAPSHOTS.items() if path.exists()],
+    ids=lambda x: x[0] if isinstance(x, tuple) else None,
+)
+def test_explorer_selftest(tmp_path, chrome_path, vault_name, vault_path):
+    """Build explorer for a vault and check #selftest in headless Chrome."""
+    if chrome_path is None:
+        pytest.skip("Chrome not available")
+
+    # Copy vault to tmp
+    vault_copy = tmp_path / "vault"
+    shutil.copytree(vault_path, vault_copy)
+
+    # Run planner explore
+    cmd = [
+        sys.executable,
+        str(REPO / "plugin" / "bin" / "planner"),
+        "explore",
+        str(vault_copy),
+        "--today",
+        "2026-10-10",
+    ]
+    result = subprocess.run(cmd, timeout=120, capture_output=True, text=True)
+    assert result.returncode == 0, f"planner explore failed: {result.stderr}"
+
+    # Run Chrome to extract selftest
+    html_path = vault_copy / ".planner" / "explorer.html"
+    assert html_path.exists(), f"explorer.html not found at {html_path}"
+
+    # Extract and check selftest
+    _check_selftest_in_chrome(chrome_path, html_path, vault_name)
+
+    # Check that the page doesn't contain home path
+    page_text = html_path.read_text(encoding="utf-8")
+    assert str(pathlib.Path.home()) not in page_text, (
+        f"page contains home path {pathlib.Path.home()}"
+    )
+
+
+@pytest.mark.browser
+def test_explorer_selftest_800x600(tmp_path, chrome_path):
+    """Test explorer at small viewport (800x600)."""
+    if chrome_path is None:
+        pytest.skip("Chrome not available")
+
+    vault_name = "trading-coach/after-80b"
+    vault_path = SNAPSHOT_BASE / "trading-coach" / "after-80b"
+    if not vault_path.exists():
+        pytest.skip(f"{vault_name} not found")
+
+    # Copy vault to tmp
+    vault_copy = tmp_path / "vault"
+    shutil.copytree(vault_path, vault_copy)
+
+    # Run planner explore
+    cmd = [
+        sys.executable,
+        str(REPO / "plugin" / "bin" / "planner"),
+        "explore",
+        str(vault_copy),
+        "--today",
+        "2026-10-10",
+    ]
+    result = subprocess.run(cmd, timeout=120, capture_output=True, text=True)
+    assert result.returncode == 0, f"planner explore failed: {result.stderr}"
+
+    # Run Chrome at small viewport
+    html_path = vault_copy / ".planner" / "explorer.html"
+    assert html_path.exists()
+    _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="800,600")
+
+
+def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600,1000"):
+    """Run Chrome headless and check #selftest output."""
+    cmd = [
+        str(chrome_path),
+        "--headless=new",
+        "--disable-gpu",
+        "--no-sandbox",
+        f"--window-size={viewport}",
+        "--virtual-time-budget=60000",
+        "--dump-dom",
+        f"file://{html_path}#map&selftest",
+    ]
+
+    result = subprocess.run(cmd, timeout=180, capture_output=True, text=True)
+
+    # Extract selftest data from DOM
+    match = re.search(r'data-selftest="([^"]*)"', result.stdout)
+    assert match, f"data-selftest not found in Chrome output for {vault_name}"
+
+    selftest_text = html.unescape(match.group(1))
+
+    # Extract FAIL lines if any
+    fail_lines = [line for line in selftest_text.split(" || ") if line.startswith("FAIL")]
+
+    assert selftest_text.startswith(
+        "SELFTEST OK"
+    ), f"{vault_name} selftest failed:\n" + "\n".join(fail_lines)

@@ -45,3 +45,9 @@ def mini(tmp_path):
 
 def check(vault, today="2026-01-15"):
     return run("check", "--vault", str(vault), "--today", today)
+
+
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line("markers", "browser: browser smoke tests (require Chrome; slow)")
+
