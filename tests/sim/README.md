@@ -73,8 +73,12 @@ The reasoning, for a Sonnet-class assistant model:
 - Each assistant turn has a persona turn. On a Haiku-class model, over a transcript that grows to about
   40k tokens, that is about $2 to $4 an arm.
 - The judge is six calls an arm, one per category. Each holds the transcript and only what its category needs:
-  the vault for K and D, the inbox for W and the shape. On the smoke run that is about 8k to 17k tokens a call,
-  60k to 70k an arm, plus the thinking each call does: about $0.50 to $1 an arm.
+  the inbox for W and the shape, and for K and D a page index plus, per item, the vault passages that hold its
+  keywords. No call sends more than `JUDGE_INPUT_CHARS` (300k characters, about 100k tokens); a 69-page vault of
+  990k characters once sent whole came back `prompt_too_long`. Whatever is left out (passages, or turns cut
+  short) is named under Check these. `python3 tests/sim/run.py --dry-judge <run-dir>` prints every input's size
+  and its cuts without calling claude. On the smoke run a call is about 8k to 17k tokens, 60k to 70k an arm, plus
+  the thinking each call does: about $0.50 to $1 an arm.
 
 So the default two arms come to about **$25 to $90** on a Sonnet-class model, and several times that on an
 Opus-class model. The smoke script comes to about **$3 to $8** for two arms. These rates are assumptions; check

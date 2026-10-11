@@ -754,3 +754,106 @@ def test_a_team_session_runs_in_the_team_repo_with_copies_of_the_named_skills(tm
     assert any(c["role"] == "assistant" and c["cwd"].endswith("team-x") for c in calls)
     lead = [e for e in entries(arm) if e["speaker"] == "lead"]
     assert lead and all(e.get("persona") == "coach-lead" for e in lead)
+
+
+def padded_vault(tmp_path, persona, pages=60, chars=60_000):
+    """A vault far over the judge's budget: every page is a run of sections, and the first keyword of each knows and
+    decisions item sits in a few of them. Returns the vault folder and the facts' markers."""
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    items = [i for kind in ("knows", "decisions") for i in persona[kind]]
+    for n in range(pages):
+        sections = []
+        for s in range(chars // 600):
+            item = items[(n + s) % len(items)] if s % 2 == 0 else None
+            mention = f" Recorded: {item['keywords'][0]}." if item else ""
+            sections.append(f"## Section {n}.{s}\n\n" + "Filler about nothing in particular. " * 15 + mention)
+        (vault / f"page-{n:02d}.md").write_text("\n\n".join(sections), encoding="utf-8")
+    return vault
+
+
+def short_transcript(tmp_path):
+    path = tmp_path / "transcript.jsonl"
+    rows = [{"turn": t, "session": 1, "mode": "dump", "speaker": "lead" if t % 2 else "assistant",
+             "text": f"turn {t} " + "words " * 40} for t in range(1, 21)]
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    return sim.Transcript.load(path)
+
+
+def test_a_vault_over_the_old_budget_gives_every_item_its_evidence_under_the_budget(tmp_path):
+    persona = coastal()
+    vault = padded_vault(tmp_path, persona)
+    transcript = short_transcript(tmp_path)
+    hits = sim.vault_hits(persona, transcript, vault)
+    whole = sum(len(text) for _, text in sim.vault_pages(vault))
+    assert whole > 3 * sim.JUDGE_INPUT_CHARS, "the fixture must be too big for the old input, which sent the whole vault"
+    for category in ("knows", "decisions"):
+        text, cuts = sim.build_judge_input(persona, transcript, vault, category, hits)
+        assert len(text) <= sim.JUDGE_INPUT_CHARS
+        assert "PAGE INDEX of the final vault" in text and "FILE page-00.md" in text
+        for item in persona[category]:
+            block = text.split(f"=== EVIDENCE FOR {item['id']} ===\n", 1)[1].split("\n\n=== EVIDENCE FOR", 1)[0]
+            assert item["keywords"][0] in block, f"{item['id']} lost its evidence"
+        assert any("left out" in cut for cut in cuts), "something was cut, so the cut is named"
+    for category in ("wrong", "unaware", "conflicts", "shape"):
+        assert "THE FINAL VAULT" not in sim.judge_input(persona, transcript, vault, category, hits)
+
+
+def test_an_item_no_page_mentions_says_so_and_a_long_transcript_is_cut_in_the_open(tmp_path):
+    persona = coastal()
+    vault = padded_vault(tmp_path, persona, pages=2, chars=3_000)
+    (vault / "page-00.md").write_text("## Only\n\nnothing here", encoding="utf-8")
+    (vault / "page-01.md").write_text("## Only\n\nnothing here either", encoding="utf-8")
+    path = tmp_path / "long.jsonl"
+    rows = [{"turn": t, "session": 1, "mode": "dump", "speaker": "lead" if t % 2 else "assistant", "text": "long " * 400}
+            for t in range(1, 201)]
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    transcript = sim.Transcript.load(path)
+    hits = sim.vault_hits(persona, transcript, vault)
+    text, cuts = sim.build_judge_input(persona, transcript, vault, "knows", hits)
+    assert len(text) <= sim.JUDGE_INPUT_CHARS
+    assert any(c.startswith("K1: no page holds a keyword") for c in cuts)
+    assert any(c.startswith("transcript: every turn cut to") for c in cuts)
+    assert "no page of the final vault holds one of its keywords" in text
+
+
+def test_a_cut_judge_input_is_named_in_check_these_on_the_scorecard(full_run, tmp_path):
+    import shutil
+    run_dir = tmp_path / full_run["run"].name
+    shutil.copytree(full_run["run"], run_dir, symlinks=True)
+    persona = coastal()
+    big = padded_vault(tmp_path, persona)
+    for page in big.glob("*.md"):
+        shutil.copy(page, run_dir / "planner" / "vault" / page.name)
+    for arm in ("planner-seuss", "baseline"):
+        shutil.rmtree(run_dir / arm)
+    summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    summary["per_arm"] = {"planner": summary["per_arm"]["planner"]}
+    summary["arms"] = ["planner"]
+    (run_dir / "run.json").write_text(json.dumps(summary), encoding="utf-8")
+    log = tmp_path / "rejudge-log.jsonl"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "--rejudge", str(run_dir), "--stub",
+                           "--judge-model", "j", "--budget", "1"],
+                          capture_output=True, text=True, env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
+    assert done.returncode == 0, done.stderr
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert set(card["judge_cuts"]) >= {"knows", "decisions"}
+    assert any(c.startswith("judge input (knows) was cut to fit") for c in card["check_these"])
+    assert "judge input (knows) was cut to fit" in (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    sizes = [json.loads(line)["stdin_chars"] for line in log.read_text(encoding="utf-8").splitlines()]
+    assert len(sizes) == len(sim.JUDGE_CATEGORIES) and max(sizes) <= sim.JUDGE_INPUT_CHARS
+
+
+def test_a_prompt_too_long_judge_call_says_so_instead_of_error_success(tmp_path):
+    code, err, _, _ = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "toolong:knows"})
+    assert code == 2
+    assert "the knows judge call failed because the prompt was too long for the model" in err
+    assert "(success)" not in err
+
+
+def test_dry_judge_reports_every_input_size_without_calling_claude(full_run):
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "--dry-judge", str(full_run["run"])],
+                          capture_output=True, text=True, timeout=600)
+    assert done.returncode == 0, done.stderr
+    assert "[planner] knows: " in done.stdout and f"of {sim.JUDGE_INPUT_CHARS}" in done.stdout
+    assert done.stdout.count("[planner] ") == len(sim.JUDGE_CATEGORIES)

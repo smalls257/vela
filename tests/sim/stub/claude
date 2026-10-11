@@ -15,7 +15,9 @@ Knobs, all environment variables:
   SIM_STUB_DROP   a field to leave out of the assistant's result event, such as total_cost_usd
   SIM_STUB_JUDGE  "bad" makes the judge reply with text that is not JSON; "nosearch" leaves out every search note;
                   "refuse:<category>" makes that category's judge call stop with stop_reason refusal, every time
-  SIM_STUB_LOG    a file to append one JSON line per call to: role, judge category, argv, cwd, the gh on PATH
+                  "toolong:<category>" makes that category's judge call fail as the real CLI does when the prompt is over
+                  the window: is_error true, subtype "success", terminal_reason "prompt_too_long"
+  SIM_STUB_LOG    a file to append one JSON line per call to: role, judge category, argv, cwd, the gh on PATH, the characters on stdin
   SIM_STUB_REPLY  a file whose text is the assistant's first turn of a session, instead of the default
   SIM_STUB_WRITE  "<path>::<text>": the assistant's first turn of a session appends <text> to <path> in its cwd
 """
@@ -33,12 +35,13 @@ def value_after(argv, flag):
     return argv[argv.index(flag) + 1] if flag in argv else None
 
 
-def log(argv, role, category=None):
+def log(argv, role, category=None, stdin_chars=None):
     path = os.environ.get("SIM_STUB_LOG")
     if path:
         with open(path, "a", encoding="utf-8") as out:
             out.write(json.dumps({"role": role, "category": category, "argv": argv, "cwd": os.getcwd(),
-                                  "gh": shutil.which("gh"), "tmpdir": os.environ.get("TMPDIR")}) + "\n")
+                                  "gh": shutil.which("gh"), "tmpdir": os.environ.get("TMPDIR"),
+                                  "stdin_chars": stdin_chars}) + "\n")
 
 
 def result(text, session_id, argv, cost=None):
@@ -104,6 +107,11 @@ def judge(stdin, argv, category):
         refusal = result("API Error: the safeguards flagged this message.", "judge", argv, cost=0.01)
         print(json.dumps({**refusal, "stop_reason": "refusal"}))
         return
+    if mode == f"toolong:{category}":
+        print(json.dumps({"type": "result", "subtype": "success", "is_error": True, "terminal_reason": "prompt_too_long",
+                          "api_error_status": 400, "session_id": "judge", "total_cost_usd": 0, "num_turns": 1,
+                          "result": "Prompt is too long: the request is ~341431 tokens (limit 200000)."}))
+        return
     if mode == "bad":
         print(json.dumps(result("I think the planner arm did well.", "judge", argv, cost=0.01)))
         return
@@ -147,11 +155,11 @@ def main():
     system = value_after(argv, "--system-prompt") or ""
     role = "judge" if system.startswith("SIMULATOR JUDGE") else "persona" if system.startswith("SIMULATOR PERSONA") else "assistant"
     category = re.match(r"SIMULATOR JUDGE: (\w+)", system).group(1) if role == "judge" else None
-    log(argv, role, category)
+    stdin = sys.stdin.read() if role != "assistant" else None
+    log(argv, role, category, None if stdin is None else len(stdin))
     if role == "assistant":
         assistant(argv)
     else:
-        stdin = sys.stdin.read()
         persona(stdin, argv) if role == "persona" else judge(stdin, argv, category)
 
 

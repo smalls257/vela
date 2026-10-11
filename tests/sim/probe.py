@@ -497,7 +497,7 @@ def ask_options_judge(run, entry, blocks):
         run.judge_calls.append({"category": "options", "attempt": attempt, "raw": raw.name,
                                 "cost_usd": result["total_cost_usd"]})
         if result["is_error"]:
-            raise ToolFailure(f"the options judge call reported an error ({result.get('subtype')}). Read {raw}")
+            raise ToolFailure(f"the options judge call {sim.error_in_words(result)}. Read {raw}")
         try:
             data = json.loads(sim.strip_fences(result["result"]))
         except json.JSONDecodeError as exc:
