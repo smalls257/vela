@@ -12,6 +12,7 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | Epics (`epics`) | every chosen team's gaps are closed or listed, or the user stops | read the `traceability` block; offer 2 or 3 cuts; draft criteria at a contract or flow boundary; ask for an explicit yes per criterion, then a read-back; run `check --gate epics` | write a requirement into an epic, name a component or technology in a criterion, or write `decided` without a yes on every criterion |
 | Requirements (`requirements`) | every capability in scope has its requirements written or its open lines listed, or the user stops | stay at the "what" and name no app; read back each requirement and its acceptance criteria and write only what has an explicit yes | write `decided` or `fact`, name an app, or write under `docs/requirements/` |
 | Allocate (`allocate`) | every requirement in scope is carried or its gap is an unknown, or the user stops | read back each requirement's shares and the contracts they cross; write only lines with an explicit yes; propose a missing contract at `assumption` | write `decided`, allocate inside one app, or reword a requirement to fit |
+| Releases (`releases`) | every requirement at `assumption` or later is on a release or marked "later, no date", or the user stops | ask one question at a time with a recommended answer; say each release's date and who sees it; write only what has an explicit yes | write `decided`, invent a date, or write a requirement on a release the user did not place it on |
 | Challenge (`challenge`) | the challenge is an open unknown and its PR is open, or the senior stops | quote the senior's words; write one open unknown the senior owns that blocks the item, and one `**Dissent:**` line on the item | change the item's state or text, decide anything, or argue the item's side |
 | Answer (`answer`) | the challenged item is decided again, set back, or its unknown resolved, or the lead stops | work on the challenge's own branch; decide only inside a Grill part, with `grill` added to `modes` | open a second PR, or decide anything outside a Grill |
 
@@ -27,6 +28,7 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | `epics` | `draft` epic pages, bullets and criteria only; `decided` only inside its Grill part | epic description paragraphs |
 | `requirements` | capability pages it needs; requirements on them at `assumption`, each with a checkpoint commit; unknowns | prose |
 | `allocate` | rows in each app's `## Requirements allocated` table at `assumption`, and any missing contract it proposed, with a checkpoint commit; unknowns | prose |
+| `releases` | `04b-releases.md`: each release's heading, Target, State and rows at `assumption`, with a checkpoint commit; unknowns | prose |
 | `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |
 | `answer` | what its Grill decides, or the item set back, on the challenge's branch | a push to that branch and a comment on the challenge PR, never a new PR |
 
@@ -38,7 +40,7 @@ No mode writes inside a generated block. `planner render` fills them. Close runs
 
 ## Unknowns
 
-Any question nobody present can answer becomes an unknown on `11-unknowns-and-risks.md`, with `**Owner:**` starting with a handle, `**Ask by:**` and `**Blocks:**`. When the owner is not the person who holds the answer, add `**Ask:**` with that person's handle or role, rather than a parenthesis after the owner. There is no separate Probe skill.
+Any question nobody present can answer becomes an unknown on `11-unknowns-and-risks.md`, with `**Owner:**` starting with a handle, `**Ask by:**` and `**Blocks:**`. When the owner is not the person who holds the answer, add `**Ask:**` with that person's handle or role, rather than a parenthesis after the owner. The moment is concrete: when the lead cannot answer a line, ask "Who would actually know this? If that is not the owner, give me a name or a role, like outside counsel." Boundary, Requirements, Allocate and Epics each do this; leave the line out when the owner holds the answer. There is no separate Probe skill.
 
 - **Ask the lead first.** Before an unknown waits on anyone else, ask the lead whether they know the answer now, and how they know it. A first-hand answer gets its own row in `sources.md` and is captured with its source. A document they can name goes to Discover.
 - **The lead does the asking.** The unknown's owner and ask-by date are the record of who is asked and by when. Claude never drafts an email, a message, a chase or an ask for anyone to send, and never offers to. A research task Claude does now with a source may still be offered.

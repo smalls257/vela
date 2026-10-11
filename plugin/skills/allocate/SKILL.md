@@ -26,7 +26,7 @@ For each requirement in scope that is not fully allocated, read back a numbered 
 3. **A missing contract:** a crossing no contract covers. Propose the contract: its provider, its consumers, what crosses, and its change.
 4. **What is left:** any criterion no share covers. It is either a share for an app, or a gap the user names as an unknown.
 
-Label every line with what it rests on: the requirement, an app page, a contract, a source, or `(claude)` for your proposal. Write nothing until the user has given an explicit yes to that line. A line the user cannot answer becomes an unknown with an owner handle, an ask-by date and `**Blocks:**` linking the requirement, written in the same checkpoint. Ask the lead first, as `MODES.md` says under "Unknowns".
+Label every line with what it rests on: the requirement, an app page, a contract, a source, or `(claude)` for your proposal. Write nothing until the user has given an explicit yes to that line. A line the user cannot answer becomes an unknown with an owner handle, an ask-by date and `**Blocks:**` linking the requirement, written in the same checkpoint. Ask the lead first, as `MODES.md` says under "Unknowns". When the owner is not the person who would actually know, ask once: "Who would actually know this? If that is not the owner, give me a name or a role, like outside counsel." Write the answer as `**Ask:** @handle` or `**Ask:** outside counsel`, and leave the line out when the owner holds the answer.
 
 ## 3. Write the confirmed rows
 

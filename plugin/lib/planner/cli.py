@@ -18,7 +18,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, catalog, completeness, search, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
+from planner import allocation, catalog, completeness, search, export, handoff, health, ladder, model, reading, parse, progress, query, questions, releases, render, reviews, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -1090,7 +1090,7 @@ def cmd_status(args, out):
 def initiative_step(vault, row):
     """A step for the whole initiative that comes before the per-app frontier, or None. Requirements cut across
     apps, so their gaps are not any one app's: an unallocated requirement is allocate's work before the Grill that
-    decides the apps, and a changing capability with no requirements, before the first epic, is requirements' work.
+    decides the apps, a changing capability with no requirements, before the first epic, is requirements' work, and dated releases come after allocation and before epics.
     An overdue unknown (rule 1) still comes first."""
     if row is not None and row.rule <= 1:
         return None
@@ -1098,6 +1098,9 @@ def initiative_step(vault, row):
     if loose:
         return (f"initiative, allocate {loose[0].id.split('.')[0]}. {loose[0].id} is at {loose[0].fact('State')} and no "
                 f"app's Requirements allocated table carries it, so no team owns it yet.")
+    if allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic"):
+        return ("initiative, releases. Every requirement is carried by an app and no release says when anyone gets any of "
+                "it, so date the releases before epics are cut.")
     have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
     bare = [c for c in sorted(vault.of_type("capability"), key=lambda p: p.id)
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
