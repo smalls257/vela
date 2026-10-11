@@ -89,13 +89,39 @@ def opened_message(stamp, folder):
     return lines
 
 
-def reopen_message(existing, stamp):
-    """What to say when the folder already holds a workspace. Phase 3 replays drafts onto a newer copy; until then, stop."""
-    same = existing.get("initiative") in (None, stamp["initiative"])
+SAME, NEWER, OLDER, OTHER_INITIATIVE = "same", "newer", "older", "other-initiative"
+
+
+def reopen_verdict(existing, stamp):
+    """How the copy being opened relates to the workspace already in the folder: the same publish, a newer one to
+    replay onto, an older one (never replayed: it would turn the owner's corrections back), or another initiative."""
+    if existing.get("initiative") not in (None, stamp["initiative"]):
+        return OTHER_INITIATIVE
+    same_hash = not existing.get("base_tree_hash") or existing["base_tree_hash"] == stamp.get("tree_hash")
+    if existing.get("base_commit") == stamp["commit"] and same_hash:
+        return SAME
+    if stamp["date"] < (existing.get("base_date") or ""):
+        return OLDER
+    return NEWER
+
+
+def reopen_refusal(existing, stamp, verdict):
+    """Why a re-open stops, in plain words, or "" when it goes on (a newer copy)."""
     base = existing.get("base_commit", "")[:7] or "an unknown commit"
-    if not same:
+    if verdict == OTHER_INITIATIVE:
         return (f"That folder already holds a workspace for {existing.get('initiative')}, not {stamp['initiative']}. "
                 "Pass --into with a different folder.")
-    return (f"You already have this workspace open at {base}. I stopped so your drafts are not overwritten. "
-            "Opening a newer copy onto it, which keeps your drafts and replays them over the new pages, is not built yet. "
-            "Until it is, work on in this workspace, or open the newer copy into a different folder with --into.")
+    if verdict == OLDER:
+        return (f"The copy you gave me was published {stamp['date']} ({stamp['short']}), before the one this workspace is on "
+                f"({base}, {existing.get('base_date', 'an unknown date')}). Replaying onto an older copy would turn the owner's corrections back, so I stopped. "
+                "Open the newest copy you were sent.")
+    return ""
+
+
+def workspace_record_after_replay(existing, stamp, source, source_path, replayed, author):
+    """workspace.json once the drafts sit on the new copy: the base moves, who opened it and when do not."""
+    record = {**existing, "source": source, "source_path": source_path, "base_commit": stamp["commit"], "base_date": stamp["date"],
+              "base_tree_hash": stamp.get("tree_hash", ""), "replayed": replayed}
+    if author:
+        record["author"] = author
+    return record

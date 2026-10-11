@@ -668,7 +668,11 @@ def draft_lines(data):
         return []
     if draft["problem"]:
         return [f"draft: cannot compare with the baseline, {draft['problem']}"]
-    return [f"draft: {plural_pages(draft['count'])} changed since the copy you opened"] if draft["count"] else []
+    said = [f"draft: {plural_pages(draft['count'])} changed since the copy you opened"] if draft["count"] else []
+    waiting = len(draft.get("conflicts", []))
+    if waiting:
+        said.insert(0, f"draft: {waiting} {'conflict' if waiting == 1 else 'conflicts'} from the last re-open still to settle (your version sits beside each page as .mine.md)")
+    return said
 
 
 def plural_pages(n):

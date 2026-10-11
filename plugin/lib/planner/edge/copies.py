@@ -10,7 +10,7 @@ import pathlib
 import shutil
 import zipfile
 
-from planner import opening, publish
+from planner import opening, publish, replay
 
 WORKSPACE = pathlib.Path(".planner") / "workspace.json"
 STAMP = pathlib.PurePosixPath(publish.STAMP_PATH)
@@ -170,7 +170,8 @@ BASELINE = pathlib.Path(".planner") / "baseline"
 
 def read_tree(folder, skip_published=False):
     """{vault-relative path: bytes} of every file under `folder`. With skip_published the generated and private
-    parts a publish leaves out (.planner/, .git/, voice/local/, the vendored plugin) and OS junk are skipped too,
+    parts a publish leaves out (.planner/, .git/, voice/local/, the vendored plugin), OS junk and a replay's saved
+    sides of a conflict (`page.mine.md`) are skipped too,
     so a working copy is compared with its baseline on the same footing. An unreadable file raises OpenError."""
     folder = pathlib.Path(folder)
     files = {}
@@ -179,7 +180,7 @@ def read_tree(folder, skip_published=False):
             if not path.is_file() or path.is_symlink():
                 continue
             rel = path.relative_to(folder).as_posix()
-            if skip_published and (publish.is_excluded(rel) or opening.is_junk(rel)):
+            if skip_published and (publish.is_excluded(rel) or opening.is_junk(rel) or replay.is_mine_file(rel)):
                 continue
             files[rel] = path.read_bytes()
     except OSError as exc:

@@ -21,8 +21,8 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, review, reviews, roles, rules, schema, viewer, voicecheck, voicescore
-from planner.edge import copies, reviewgit, vaultgit
+from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, viewer, voicecheck, voicescore
+from planner.edge import copies, replays, reviewgit, vaultgit
 from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
@@ -74,7 +74,7 @@ def vault_files(root):
     for path in sorted(root.rglob("*.md")):
         rel = path.relative_to(root)
         parts = rel.parts
-        if any(p.startswith(".") for p in parts[:-1]):
+        if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel.as_posix()):
             continue
         if (len(parts) == 1 and parts[0] in schema.SKIP_FILES) or parts[0] in schema.SKIP_DIRS:
             others.append(path.stem)
@@ -358,10 +358,11 @@ def cmd_open(args, out):
         in_cowork = bool(env.get("PLANNER_COWORK") or env.get("CLAUDE_COWORK"))
         folder = workspace_folder(publish.slug(stamp["title"]), args.into, env, in_cowork)
         existing = copies.read_existing_workspace(folder)
-        if existing is not None:
-            raise opening.OpenError(opening.reopen_message(existing, stamp))
         today, _ = parse_today(args.today)
-        record = opening.workspace_record(stamp, pathlib.Path(args.source).name, os.path.abspath(os.path.expanduser(args.source)),
+        source_path = os.path.abspath(os.path.expanduser(args.source))
+        if existing is not None:
+            return reopen_workspace(folder, existing, (files, stamp), (pathlib.Path(args.source).name, source_path), args.author, today, out)
+        record = opening.workspace_record(stamp, pathlib.Path(args.source).name, source_path,
                                           today, reader_author(args.author, pathlib.Path.cwd()),
                                           str(PLANNER_PROGRAM))
         copies.write_workspace(folder, opening.content_files(files) | {publish.STAMP_PATH: files[publish.STAMP_PATH]}, record)
@@ -375,6 +376,41 @@ def cmd_open(args, out):
     for note in environment_notes(env):
         print(f"  Note: {note}", file=out)
     print(f"  Work from that folder: cd {folder}", file=out)
+    return 0
+
+
+def reopen_workspace(folder, existing, published, source, author_flag, today, out):
+    """`planner open <newer copy> --into <workspace>`: the reader's drafts replayed onto the newer copy (design session 15
+    section 8). Pure planning in replay.py; edge/replays.py writes it in an order that leaves the old baseline until the end."""
+    files, stamp = published
+    verdict = opening.reopen_verdict(existing, stamp)
+    refusal = opening.reopen_refusal(existing, stamp, verdict)
+    if refusal:
+        raise opening.OpenError(refusal)
+    if verdict == opening.SAME:
+        print(f"planner open: this workspace is already on {stamp['short']} (published {stamp['date']}); there is nothing to replay and nothing was changed.", file=out)
+        return 0
+    baseline_dir = folder / copies.BASELINE
+    if not baseline_dir.is_dir():
+        raise opening.OpenError(f"{baseline_dir} is missing, so I cannot tell what you changed and would risk overwriting it. "
+                                "Open the newer copy into a new folder with --into instead.")
+    new_files = {path: data for path, data in opening.content_files(files).items() if not publish.is_excluded(path)}
+    carried = replays.open_conflicts(folder)
+    result = replay.plan(copies.read_tree(baseline_dir, skip_published=True), copies.read_tree(folder, skip_published=True), new_files,
+                         replays.existing_mine(folder))
+    old, new = (existing.get("base_commit", "")[:7], existing.get("base_date", "")), (stamp["short"], stamp["date"])
+    stale, unreadable = proposal_files.written_against(folder.parent / "proposals", existing.get("base_commit", ""))
+    record = opening.workspace_record_after_replay(existing, stamp, source[0], source[1], today, author_flag or "")
+    journal = replays.record_json({"commit": old[0], "date": old[1]}, {"commit": new[0], "date": new[1]}, result, carried, today)
+    replays.apply(folder, result, new_files | {publish.STAMP_PATH: files[publish.STAMP_PATH]}, journal, record, f"{today}-{stamp['short']}")
+    print(f"planner open: {folder}", file=out)
+    for line in replay.report(result, old, new, replay.stale_lines(stale, old[0])):
+        print(line, file=out)
+    for name, why in unreadable:
+        print(f"  Could not read the proposal {name}, so I do not know whether it is stale: {why}", file=out)
+    explore_workspace(folder, today, out)
+    checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
+    print(f"planner open: {reader_freshness(folder, checked_at).message}", file=out)
     return 0
 
 
@@ -479,6 +515,19 @@ def print_groups(groups, as_json, out):
         print(f"  {g.key}{' (pending decision)' if g.pending else ''}: {len(g.hunks)} change(s) in {', '.join(files)}", file=out)
 
 
+def refuse_while_conflicted(root):
+    """A proposal built while a replay conflict is open would carry the owner's page as if it were the reader's choice."""
+    try:
+        open_conflicts = replays.open_conflicts(root)
+    except opening.OpenError as exc:
+        raise ToolError(str(exc)) from exc
+    if not open_conflicts:
+        return
+    listing = "; ".join(f"{c['path']} (your version: {c['mine']})" for c in open_conflicts[:5])
+    raise ToolError(f"{len(open_conflicts)} page(s) still conflict with the owner's newer copy: {listing}. Open each pair, copy over what you want to keep, "
+                    "then delete the .mine file. Then run propose again. Nothing was written.")
+
+
 def cmd_propose(args, out):
     root = pathlib.Path(args.vault).resolve()
     found = detect_role(root)
@@ -488,6 +537,7 @@ def cmd_propose(args, out):
     if found.role != roles.READER:
         raise ToolError(f"cannot propose: {found.reason}.")
     today, _ = parse_today(args.today)
+    refuse_while_conflicted(root)
     baseline_dir = root / copies.BASELINE
     if not baseline_dir.is_dir():
         raise ToolError(f"{baseline_dir} is missing, so I have nothing to compare your pages with. Open the published copy again into a new folder.")

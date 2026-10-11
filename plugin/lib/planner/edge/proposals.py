@@ -7,6 +7,7 @@ that climbs out of the folder cannot write anywhere.
 """
 import os
 import pathlib
+import re
 import shutil
 import zipfile
 from dataclasses import dataclass
@@ -133,3 +134,29 @@ def write_answer(path, text):
     except OSError as exc:
         raise ProposalIOError(f"cannot write {path}: {exc.strerror or exc}") from exc
     return path
+
+
+BASE_RE = re.compile(r"^# base: (?P<commit>[0-9a-f]{7,64})\s*$", re.MULTILINE)
+
+
+def written_against(parent, commit):
+    """([proposals in `parent` whose patch says it was written against `commit`], [(path, why it could not be read)]).
+
+    A folder or a .zip beside the workspace. Answers and anything that is not a proposal are not looked at; one that
+    is a proposal and cannot be read is returned with the reason, never skipped without a word."""
+    parent = pathlib.Path(parent)
+    if not parent.is_dir():
+        return [], []
+    found, unreadable = [], []
+    for entry in sorted(parent.iterdir()):
+        if entry.name.startswith(".") or not (entry.is_dir() and (entry / PATCH).is_file() or entry.suffix == ".zip"):
+            continue
+        try:
+            head = read(entry).patch[:2000].decode("utf-8", "replace")
+        except ProposalIOError as exc:
+            unreadable.append((entry.name, str(exc)))
+            continue
+        match = BASE_RE.search(head)
+        if commit and match and (commit.startswith(match["commit"]) or match["commit"].startswith(commit)):
+            found.append(entry.name)
+    return found, unreadable

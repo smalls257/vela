@@ -104,7 +104,7 @@ def test_where_the_workspace_goes_by_rule(tmp_path, monkeypatch):
         cli.workspace_folder(slug, None, {}, False)
 
 
-def test_reopening_the_same_initiative_stops_and_keeps_drafts(tmp_path, published):
+def test_reopening_the_same_publish_changes_nothing_and_keeps_drafts(tmp_path, published):
     folder, _ = published
     ws = tmp_path / "ws"
     assert open_copy(folder, ws)[0] == 0
@@ -112,7 +112,7 @@ def test_reopening_the_same_initiative_stops_and_keeps_drafts(tmp_path, publishe
     page.write_text(page.read_text(encoding="utf-8") + "\nmy draft\n", encoding="utf-8")
     before = digest(ws)
     code, text = open_copy(folder, ws)
-    assert code == 2 and "already have this workspace open" in text and "not built yet" in text
+    assert code == 0 and "already on" in text and "nothing to replay" in text
     assert digest(ws) == before
 
 
