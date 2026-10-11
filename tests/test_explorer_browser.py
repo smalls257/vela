@@ -16,6 +16,7 @@ import sys
 import threading
 
 import pytest
+from sharing import draft_workspace
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
@@ -195,6 +196,63 @@ def test_a_served_page_finds_its_helper(tmp_path, chrome_path):
         selftest = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1))
         assert selftest.startswith("SELFTEST OK"), [line for line in selftest.split(" || ") if line.startswith("FAIL")]
         assert "ask when served: the page found its helper with one /health request" in selftest
+    finally:
+        watchdog.cancel()
+        server.send_signal(signal.SIGINT)
+        try:
+            server.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait()
+
+
+def _selftest_lines(dom):
+    return html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1)).split(" || ")
+
+
+@pytest.mark.browser
+def test_a_reader_workspace_shows_its_draft_and_its_pending_decision(tmp_path, chrome_path):
+    """publish a snapshot, open it, edit a page and record a pending-approval decision, explore: the page's own #selftest
+    passes with the draft badge, the Drafts view, the pending badge and the stamped freshness all drawn."""
+    _, _, workspace = draft_workspace(tmp_path)
+    result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(workspace), "--today", "2026-10-12"],
+                            timeout=120, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    page = workspace / ".planner" / "explorer.html"
+    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
+                          "--dump-dom", f"file://{page}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
+    lines = _selftest_lines(dom)
+    assert lines[0].startswith("SELFTEST OK"), [line for line in lines if line.startswith("FAIL")]
+    assert 'ok draft badge: "Draft: 2 pages changed" in the top bar of this reader\'s page' in lines
+    assert any(line.startswith("ok drafts view: #drafts lists 2 changed pages") for line in lines)
+    assert any(line.startswith('ok pending approval: CON-001 (@sam, 2026-10-12) is lit "pending"') for line in lines)
+    assert "ok freshness on a file: no request at load, none when asked to poll" in lines
+    assert str(pathlib.Path.home()) not in page.read_text(encoding="utf-8")
+
+
+@pytest.mark.browser
+def test_a_served_reader_page_asks_freshness_once_on_load(tmp_path, chrome_path):
+    """The same workspace served: the page polls /freshness (the helper's answer is `planner freshness --json`) and its self-test passes."""
+    _, _, workspace = draft_workspace(tmp_path)
+    env = {**os.environ, "PATH": f"{REPO / 'tests' / 'explorer_stub'}:{os.environ['PATH']}"}
+    server = subprocess.Popen([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(workspace), "--today", "2026-10-12",
+                               "--serve", "--no-open", "--port", "0"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+    watchdog = threading.Timer(120, server.kill)
+    watchdog.start()
+    try:
+        url = None
+        for line in server.stdout:
+            found = re.search(r"serving (http://\S+?/) ", line)
+            if found:
+                url = found.group(1)
+                break
+        assert url, "planner explore --serve never printed its address"
+        dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
+                              "--dump-dom", f"{url}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
+        lines = _selftest_lines(dom)
+        assert lines[0].startswith("SELFTEST OK"), [line for line in lines if line.startswith("FAIL")]
+        assert "ok freshness when served: at most one /freshness request at load" in lines
+        assert "ok freshness when served: a poll asks /freshness once and shows the banner from the answer" in lines
     finally:
         watchdog.cancel()
         server.send_signal(signal.SIGINT)

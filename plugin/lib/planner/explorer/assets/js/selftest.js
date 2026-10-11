@@ -249,7 +249,7 @@ const SelfTest = (() => {
       ok(r.drawn > 0 && $$("#board .m-badge").length === r.drawn, `trace in Plain: ${E[D.flows[0].key].id}'s ${r.drawn} hops lit at once, each numbered`, `trace drew ${r.drawn}, ${$$("#board .m-badge").length} badges`);
     }
     FX.set(true); await frames();
-    ok(!document.documentElement.classList.contains("plain") && $$("#board .halo").length === $$("#board g.hit.lit:not([data-agg])").length, `effects On again: ${$$("#board .halo").length} lit lamps glow`, "effects On did not restore the glow");
+    ok(!document.documentElement.classList.contains("plain") && $$("#board .halo").length === $$("#board g.hit.lit:not(.pending):not([data-agg])").length, `effects On again: ${$$("#board .halo").length} lit lamps glow (a pending approval is a ring, with no halo)`, "effects On did not restore the glow");
     const provider = D.map.apps.find((a) => D.map.contracts.some((c) => c.provider === a.key && c.consumers.some((k) => k !== a.key)));
     if (provider) {
       const want = new Set(D.map.contracts.filter((c) => c.provider === provider.key).flatMap((c) => c.consumers).filter((k) => k !== provider.key));
@@ -676,10 +676,78 @@ const SelfTest = (() => {
     ok(!themed.length && !anim, `inside in every theme (${Theme.LIST.map((t) => t.label).join(", ")}) lays out cleanly; in Plain a level change runs ${anim} animations`, `inside themes: ${themed.join("; ")}; Plain animations ${anim}`);
     FX.set(fx);
   }
+  /* Reader drafts, pending approval and freshness: the build's data drawn as the spec says, and the file:// page
+     touching nothing. Synthetic rows stand in where this vault has no draft, so every build checks the drawing. */
+  async function draftChecks(ok) {
+    const frames = () => Promise.resolve();
+    const want = D.role === "reader" && D.draft && (D.draft.count > 0 || D.draft.problem), badge = $("#draft-badge");
+    ok(!!badge === !!want && (!want || badge.textContent === Drafts.heading()),
+      want ? `draft badge: "${Drafts.heading()}" in the top bar of this reader's page` : `draft badge: none for role ${D.role} with no changes`,
+      `draft badge: role ${D.role}, draft ${D.draft ? D.draft.count : "none"}, badge "${badge ? badge.textContent : "none"}"`);
+    const evil = "<img src=x onerror=\"window.__draftpayload = 1\"> & <b>bold</b>";
+    const block = Drafts.diffBlock([["hunk", "@@ -1 +1 @@"], ["del", "old line"], ["add", evil], ["ctx", "same"]]);
+    ok(!block.querySelector("img, b, script") && $$(".tx", block)[2].textContent === evil && $$(".sym", block).map((x) => x.textContent).join("") === "-+ " && !window.__draftpayload,
+      "drafts view: a diff line is escaped text, and additions and removals carry a + and - symbol as well as a colour", `drafts view: markup in a line became elements (${block.innerHTML.slice(0, 120)})`);
+    if (want && D.draft.count) {
+      Drafts.open(); await frames();
+      const cards = $$("#main .dpage"), rows = cards.map((c) => $$(".dl", c).length), expect = D.draft.pages.map((p) => p.lines.length);
+      ok(location.hash.startsWith("#drafts") && cards.length === D.draft.pages.length && rows.every((n, i) => n === expect[i]) && /changed/.test($("#main h1").textContent),
+        `drafts view: #drafts lists ${plural(cards.length, "changed page")} with ${rows.reduce((a, b) => a + b, 0)} diff lines, each page linked`, `drafts view: hash ${location.hash}, ${cards.length} cards for ${D.draft.pages.length}, rows ${rows} vs ${expect}`);
+      Nav.home(); await frames();
+    }
+    ok(rank("pending") < rank("caution") && rank("pending") > rank("unexamined") && rank("pending") > rank("dark"),
+      "pending approval ranks below an overdue or held question and above never examined, overridden and settled", `pending approval rank: ${LEVELS.join(" > ")}`);
+    const pill = pendingPill({ by: "@sam", date: "2026-10-18" }), lamp = lampEl("pending");
+    ok(/Pending approval/.test(pill.textContent) && /@sam/.test(pill.title) && lamp.classList.contains("pending") && /Pending approval/.test(lamp.title),
+      "pending approval: a ring lamp and a pill with the words, never colour alone", `pending approval: pill "${pill.textContent}", lamp ${lamp.className}`);
+    for (const m of D.pending.slice(0, 3)) {
+      const light = lightOf(m.key);
+      go(m.key, { reset: true }); await frames();
+      ok(!!E[m.key] && !!E[m.key].pending && !!light && rank(light.level) >= rank("pending") && !!$("#panel .pill.pending") && /Pending approval/.test($("#panel .pill.pending").textContent),
+        `pending approval: ${m.subject} (${m.by}, ${m.date}) is lit "${light && light.level}" with a pending-approval pill in its panel`, `pending approval: ${m.subject} light ${light && light.level}, pill ${!!$("#panel .pill.pending")}`);
+    }
+    if (D.pending.length) {
+      go("lights", { reset: true }); await frames();
+      ok(!!$("#pending-chip") && ($$("#panel .light-row .lamp.pending").length >= 1 || D.pending.every((m) => lightOf(m.key) && lightOf(m.key).level !== "pending")),
+        `pending approval: the header chip counts ${D.pending.length} and What needs you lists them`, "pending approval: no chip or no pending row in What needs you");
+    } else ok(!$("#pending-chip"), "pending approval: no chip when nothing is pending", "pending approval: a chip with nothing pending");
+    // freshness: the banner follows the stamped report, shown only when something changed
+    const newer = { role: "reader", state: "newer", latest: { date: "2026-10-20", commit: "4d1e8a0" }, have: {}, checked_at: "2026-10-18T09:12:00" };
+    const owner = { role: "owner", state: "newer", behind: 2, ahead: 0, uncommitted: 1, checked_at: "2026-10-18T09:12:00" };
+    ok(/^A newer copy was published on 2026-10-20; reopen it to update/.test(Freshness.words(newer)) && /your drafts carry over/.test(Freshness.words(newer))
+      && Freshness.words({ ...newer, state: "current" }) === "" && Freshness.words({ ...newer, state: "unreachable" }) === "" && Freshness.words(null) === ""
+      && Freshness.words(owner) === "2 commits behind upstream; 1 file uncommitted." && Freshness.words({ ...owner, behind: 0, uncommitted: 0, state: "current" }) === "",
+      "freshness: the banner words say a newer copy was published, or commits behind and files uncommitted, and nothing otherwise", "freshness: Freshness.words gave " + JSON.stringify([Freshness.words(newer), Freshness.words(owner)]));
+    const kept = { report: Freshness.st.report, live: Freshness.st.live };
+    ok($("#fresh").hidden === !Freshness.words(Freshness.st.report), `freshness: this page's banner is ${$("#fresh").hidden ? "hidden" : "shown"} to match its stamp`, "freshness: the banner does not match the stamped report");
+    Freshness.st.report = newer; Freshness.st.live = false; Freshness.render();
+    const shown = !$("#fresh").hidden && /as of 2026-10-18 09:12, when this page was built/.test($("#fresh").textContent);
+    Freshness.st.report = { ...newer, state: "current" }; Freshness.render();
+    const hidden = $("#fresh").hidden;
+    Freshness.st.report = kept.report; Freshness.st.live = kept.live; Freshness.render();
+    ok(shown && hidden, "freshness: a stamped newer copy shows the banner with its build time; a current stamp hides it", `freshness: shown ${shown}, hidden ${hidden}`);
+    // a file asks nothing; a served page asks /freshness once and shows what it hears
+    const calls = [], fake = async (url) => { calls.push(String(url)); return new Response(JSON.stringify(newer), { status: 200 }); };
+    if (location.protocol === "file:") {
+      const was = Freshness.st.fetches, restore = Freshness.use(fake, () => location.protocol === "http:" || location.protocol === "https:");
+      const asked = await Freshness.poll("selftest");
+      restore();
+      ok(was === 0 && !asked && !calls.length && Freshness.st.fetches === was, "freshness on a file: no request at load, none when asked to poll", `freshness on a file: ${was} fetches at load, poll asked ${asked}, ${calls.length} requests`);
+    } else {
+      ok(Freshness.st.fetches <= 1, "freshness when served: at most one /freshness request at load", `freshness when served: ${Freshness.st.fetches} requests at load`);
+    }
+    const restore = Freshness.use(fake, () => true), count = Freshness.st.fetches;
+    const live = { report: Freshness.st.report, live: Freshness.st.live };
+    await Freshness.poll("selftest");
+    const polled = calls.length === 1 && calls[0] === "/freshness" && Freshness.st.fetches === count + 1 && !$("#fresh").hidden && Freshness.st.live;
+    Freshness.st.report = live.report; Freshness.st.live = live.live; Freshness.st.fetches = count; restore(); Freshness.render();
+    ok(polled, "freshness when served: a poll asks /freshness once and shows the banner from the answer", `freshness when served: calls ${calls}, banner hidden ${$("#fresh").hidden}`);
+  }
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length;
     const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
     try { await checks(ok, lines); } catch (e) { lines.push("FAIL the Inside checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    try { await draftChecks(ok); } catch (e) { lines.push("FAIL the draft, pending and freshness checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the Inside checks: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;

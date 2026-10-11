@@ -20,12 +20,14 @@
     <div id="results" role="listbox" hidden></div>
   </div>
   <div class="masters" id="masters" aria-live="polite"></div>
+  <div class="flags" id="flags" hidden></div>
   <div class="fx" id="fx" role="group" aria-label="Effects" aria-pressed="true"><span class="fx-label">Effects</span><button data-fx="on">On</button><button data-fx="plain">Plain</button></div>
   <label class="theme-pick" title="Theme: the room's colours; every lamp keeps its meaning"><span class="fx-label">Theme</span><select id="theme" aria-label="Theme"></select></label>
   <button class="sound-btn" id="sound" aria-pressed="false" title="Sound: each app has its own note (S)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path id="sound-waves" d="M17 9l4 6M21 9l-4 6"/></svg><span>Sound off</span>
   </button>
 </header>
+<div class="fresh" id="fresh" role="status" hidden></div>
 <nav id="side" aria-label="Sections"></nav>
 <main id="main"></main>
 <aside id="panel" aria-label="Details">

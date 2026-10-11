@@ -98,7 +98,7 @@ const Nav = (() => {
   }
   /* A view shown from anywhere (a search result, a link) brings its section with it. */
   function adopt(view) {
-    if (view === "inside" || view === "ask") return;  // Inside.open and Ask.open set the section themselves
+    if (view === "inside" || view === "ask" || view === "drafts") return;  // Inside.open and Ask.open set the section themselves
     if (App.section === "home" && view === "map") return;
     if (App.section.startsWith("role:") && view === "role") return;
     const s = sec();
@@ -123,7 +123,7 @@ const Nav = (() => {
     return s ? (w.child && E[w.child] ? E[w.child].title : s.label) : "the explorer";
   };
   function back(w) {
-    if (!w || w.section === "ask") return home();
+    if (!w || w.section === "ask" || w.section === "drafts") return home();
     if (w.section === "home") home();
     else if (w.section.startsWith("role:")) role(w.section.slice(5));
     else if (w.view === "doc") { open(w.section, w.child); readWide(w.doc || sectionPage()); }
@@ -147,6 +147,11 @@ const Nav = (() => {
       history.replaceState(null, "", "#" + [Ask.hash(), ...p].join("&"));
       return;
     }
+    if (App.view === "drafts") {
+      for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
+      history.replaceState(null, "", "#" + ["drafts", ...p].join("&"));
+      return;
+    }
     if (App.view === "inside" && typeof Inside !== "undefined") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
       history.replaceState(null, "", "#" + [Inside.hash(), ...p].join("&"));
@@ -168,6 +173,7 @@ const Nav = (() => {
     if (HASH.get("group")) MapView.st.group = HASH.get("group");
     if (HASH.has("role")) { role(HASH.get("role")); return true; }
     if (HASH.has("inside") && typeof Inside !== "undefined" && Inside.boot()) return true;
+    if (HASH.has("drafts")) return Drafts.boot();
     if (hs && SECTIONS[hs]) {
       open(hs, HASH.get("open") || "");
       if (HASH.has("v") && viewDef(HASH.get("v"))) showView(HASH.get("v"), { keepHash: true });

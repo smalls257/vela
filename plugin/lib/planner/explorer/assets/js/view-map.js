@@ -181,6 +181,7 @@ const MapView = (() => {
     const held = light.reasons.filter((r) => r.kind === "held");
     if (light.level === "override") return "overridden";
     if (light.level === "unexamined") return "never examined";
+    if (light.level === "pending") return "◷ pending approval";
     const qs = [...new Set(held.map((r) => r.unknown))];
     if (qs.length) {
       const dates = qs.map((id) => ASK[id] && ASK[id].askBy).filter(isDate).sort();
@@ -193,16 +194,18 @@ const MapView = (() => {
   function lamp(g, o) {
     // o.level draws a lamp for something attention.py does not light itself, a cluster or a shared duct: its worst light
     const light = o.level ? { level: o.level, urgency: 0.3, reasons: [] } : lightOf(o.key), level = light ? light.level : "dark", isLit = level !== "dark", colour = LIGHT[level].colour;
+    // Pending approval is a ring, not a lit face: a reader's decision is not an alarm, and it must not read as one.
+    const ringed = level === "pending", glows = isLit && glowOn() && !ringed;
     const grp = s("g", { class: `hit ${isLit ? "lit " + level : "dark"}`, tabindex: 0, role: "button", "data-key": o.key, "data-agg": o.level ? "1" : null,
       "aria-label": o.aria || `${o.title || o.label}: ${light ? LIGHT[level].word : "no light of its own"}. ${o.sub || ""}` }, g);
     const shape = (attrs) => o.clip ? s("path", { d: clipped(o.x, o.y, o.w, o.h, 12), ...attrs }, grp) : s("rect", { x: o.x, y: o.y, width: o.w, height: o.h, rx: o.rx, ...attrs }, grp);
-    if (isLit && glowOn()) {
+    if (glows) {
       const halo = shape({ fill: colour, filter: "url(#ck-glow)", opacity: 0.32, class: "halo" });
       pulses.push({ el: halo, level, urgency: light.urgency, period: pulsePeriod(light.urgency), phase: (hash(o.key) % 1000) * 5, lastPeak: null, key: o.key });
     }
     shape({ fill: Theme.c("face-drop"), transform: "translate(0,2)" });
-    const face = shape({ fill: isLit ? colour : "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" });
-    if (isLit && glowOn()) pulses[pulses.length - 1].shade = shape({ fill: "url(#ck-lens)", opacity: 0, class: "shade", "pointer-events": "none" });
+    const face = shape({ fill: isLit && !ringed ? colour : "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" });
+    if (glows) pulses[pulses.length - 1].shade = shape({ fill: "url(#ck-lens)", opacity: 0, class: "shade", "pointer-events": "none" });
     const cx = o.x + o.w / 2;
     if (o.kind === "contract") s("text", { x: cx, y: o.y + o.h / 2 + 4, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = o.label;
     else {

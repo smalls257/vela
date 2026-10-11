@@ -9,6 +9,8 @@
   --ink: #e8eef0; --ink-2: #b7c4c9; --ink-3: #82939a; --ink-4: #5d6e75;
   --warning: #ff5a48; --caution: #ffb21e; --unexamined: #52c8ff; --override: #f2f1e8; --unlit: #2a3236;
   --warning-ink: #2a0703; --caution-ink: #2b1a00; --unexamined-ink: #04202e; --override-ink: #1d1d18; --unlit-ink: #9aa7ad;
+  --pending: #b79cff; --pending-ink: #150c33; --pending-text: #cdbcff;
+  --diff-add: #7fd8a0; --diff-del: #ff9c8f;
   --override-edge: transparent; --lamp-edge: transparent;
   --warning-text: #ff9c8f; --caution-text: #ffcf73; --unexamined-text: #93dcff; --override-text: #f2f1e8; --note-text: #d9b26a;
   --focus: #ffffff; --link: #9ec3ff; --heuristic-ink: #c8b6ff; --rule-note: #b9abe8;
@@ -37,8 +39,8 @@
 html, body { margin: 0; height: 100%; }
 body {
   font: 14px/1.5 var(--ui); color: var(--ink); background: var(--room); overflow: hidden;
-  display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--panel-w); grid-template-rows: 58px minmax(0, 1fr);
-  grid-template-areas: "top top top" "side main panel"; -webkit-font-smoothing: antialiased;
+  display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--panel-w); grid-template-rows: 58px auto minmax(0, 1fr);
+  grid-template-areas: "top top top" "note note note" "side main panel"; -webkit-font-smoothing: antialiased;
 }
 button, input, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }

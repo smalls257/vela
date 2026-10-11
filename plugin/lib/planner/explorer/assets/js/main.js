@@ -18,6 +18,8 @@ function renderMasters() {
   }
 }
 renderMasters();
+Drafts.badges();
+Freshness.start();
 
 const open = HASH.get("open");
 // #home, #role=qa and #s=<section> are the sidebar's (nav.js); the old view links (#map, #flows&open=...) still work.

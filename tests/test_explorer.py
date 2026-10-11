@@ -302,12 +302,13 @@ def test_every_theme_sets_the_whole_palette():
         assert set(props) == want, f"{name}: missing {sorted(want - set(props))}, extra {sorted(set(props) - want)}"
 
 
-LAMPS = ("warning", "caution", "unexamined", "override")
+LAMPS = ("warning", "caution", "pending", "unexamined", "override")
 
 
 def test_lamps_keep_their_meaning_in_every_theme():
     """Each lamp stands out from the board (3:1, WCAG's non-text contrast) on its own colour or through its edge, its
-    words on it read (4.5:1), and its text form reads on the room. The five stay five: no two lamps are one colour."""
+    words on it read (4.5:1), and its text form reads on the room. The lamps stay distinct: no two share a colour.
+    Pending approval is a ring, so its words must also read on the unlit face a master lamp or matrix cell gives it."""
     for name, p in themes().items():
         for lamp in LAMPS + ("unlit",):
             assert p[lamp].startswith("#") and len(p[lamp]) == 7, f"{name} --{lamp}: the canvas needs #rrggbb"
@@ -319,7 +320,10 @@ def test_lamps_keep_their_meaning_in_every_theme():
             assert ink >= 4.5, f"{name}: --{lamp}-ink on --{lamp} is {ink:.2f}:1"
             text = contrast(p[f"{lamp}-text"], p["room"])
             assert text >= 4.5, f"{name}: --{lamp}-text on the room is {text:.2f}:1"
-        assert len({p[k] for k in LAMPS + ("unlit",)}) == 5, f"{name}: two lamps share a colour"
+        assert len({p[k] for k in LAMPS + ("unlit",)}) == 6, f"{name}: two lamps share a colour"
+        assert contrast(p["pending"], p["unlit"]) >= 3, f"{name}: the pending ring is {contrast(p['pending'], p['unlit']):.2f}:1 against the unlit face"
+        assert contrast(p["pending-text"], p["unlit"]) >= 4.5, f"{name}: --pending-text on the unlit face"
+        assert contrast(p["pending-text"], p["deck"]) >= 4.5, f"{name}: --pending-text on a deck"
         assert contrast(p["ink"], p["room"]) >= 7 and contrast(p["unlit-ink"], p["unlit"]) >= 4.5, name
 
 
@@ -620,3 +624,13 @@ def test_empty_state_blocks_appear_in_data(tmp_path):
     assert "entities" in data
     assert "sections" in data
     assert data["sections"]  # all 13 sections exist even in an empty vault
+
+
+def test_added_and_removed_diff_lines_read_on_the_room_in_every_theme():
+    """The Drafts view's + and - lines carry a symbol as well as a colour; the colour still has to read (4.5:1) on the room and on the page's own tint."""
+    for name, p in themes().items():
+        for token in ("diff-add", "diff-del"):
+            assert p[token].startswith("#") and len(p[token]) == 7, f"{name} --{token}"
+            assert contrast(p[token], p["room"]) >= 4.5, f"{name}: --{token} on the room is {contrast(p[token], p['room']):.2f}:1"
+            tint = "#%02x%02x%02x" % tuple(round(int(p[token][i:i + 2], 16) * 0.13 + int(p["room"][i:i + 2], 16) * 0.87) for i in (1, 3, 5))
+            assert contrast(p[token], tint) >= 4.5, f"{name}: --{token} on its own 13% tint is {contrast(p[token], tint):.2f}:1"

@@ -96,7 +96,7 @@ const Sound = {
   /* The cockpit's breath: a soft tone per light, low for overdue, high for never examined. */
   breath(level, urgency, key) {
     if (!this.enabled || !this.ensure()) return;
-    const P = { warning: 293.66, caution: 440, unexamined: 659.25, override: 880 }[level];
+    const P = { warning: 293.66, caution: 440, pending: 554.37, unexamined: 659.25, override: 880 }[level];
     if (!P) return;
     this.tone(P * (1 + ((hash(key) % 5) - 2) * 0.0125), undefined, { gain: (level === "override" ? 0.02 : 0.03) + 0.06 * urgency, dur: 1.4, type: level === "warning" ? "triangle" : "sine" });
   },

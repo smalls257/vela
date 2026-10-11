@@ -10,6 +10,8 @@
   --ink: #ffffff; --ink-2: #dedede; --ink-3: #b0b0b0; --ink-4: #858585;
   --warning: #ff5a48; --caution: #ffb21e; --unexamined: #52c8ff; --override: #f2f1e8; --unlit: #383838;
   --warning-ink: #2a0703; --caution-ink: #2b1a00; --unexamined-ink: #04202e; --override-ink: #1d1d18; --unlit-ink: #c4c4c4;
+  --pending: #b79cff; --pending-ink: #150c33; --pending-text: #cdbcff;
+  --diff-add: #86e0a8; --diff-del: #ffa093;
   --override-edge: transparent; --lamp-edge: transparent;
   --warning-text: #ffa093; --caution-text: #ffd27a; --unexamined-text: #9adfff; --override-text: #f2f1e8; --note-text: #e6c27a;
   --focus: #ffffff; --link: #a8c8ff; --heuristic-ink: #d0c2ff; --rule-note: #c9bdf0;
@@ -35,6 +37,8 @@
   --ink: #141c20; --ink-2: #34434a; --ink-3: #56666d; --ink-4: #75848a;
   --warning: #d1301f; --caution: #f2a20c; --unexamined: #0f74b8; --override: #ffffff; --unlit: #dde2e4;
   --warning-ink: #ffffff; --caution-ink: #2b1a00; --unexamined-ink: #ffffff; --override-ink: #1d1d18; --unlit-ink: #46545a;
+  --pending: #6d3fd1; --pending-ink: #ffffff; --pending-text: #5b2fb8;
+  --diff-add: #14683a; --diff-del: #a8281c;
   --override-edge: #3d3d33; --lamp-edge: #4b585e;
   --warning-text: #b42318; --caution-text: #8a5300; --unexamined-text: #0b5f99; --override-text: #3d3d33; --note-text: #8a5300;
   --focus: #0d1317; --link: #1f56c4; --heuristic-ink: #5b3fb0; --rule-note: #5b3fb0;
@@ -64,6 +68,8 @@
   --ink: #fdf0ff; --ink-2: #e6c9f5; --ink-3: #b892d6; --ink-4: #8c6aae;
   --warning: #ff4f3f; --caution: #ffc21f; --unexamined: #36cfff; --override: #ffffff; --unlit: #3a2558;
   --warning-ink: #2a0703; --caution-ink: #2b1a00; --unexamined-ink: #04202e; --override-ink: #1d1d18; --unlit-ink: #c7acdf;
+  --pending: #6bffd0; --pending-ink: #06241b; --pending-text: #9affdf;
+  --diff-add: #8affc4; --diff-del: #ff9fbd;
   --override-edge: transparent; --lamp-edge: transparent;
   --warning-text: #ff9c8f; --caution-text: #ffd77a; --unexamined-text: #9be3ff; --override-text: #ffffff; --note-text: #ffb3e6;
   --focus: #ffffff; --link: #ff9de6; --heuristic-ink: #c9b8ff; --rule-note: #f5b8ff;

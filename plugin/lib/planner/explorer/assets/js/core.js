@@ -81,6 +81,7 @@ const relDue = (iso) => { if (!isDate(iso)) return "no date"; const d = dayNum(i
 const LIGHT = {
   warning: { colour: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "an open question holding it is past its ask-by date" },
   caution: { colour: "#ffb21e", ink: "#2b1a00", word: "Needs you", say: "not decided yet, or held by an open question" },
+  pending: { colour: "#b79cff", ink: "#150c33", word: "Pending approval", say: "a reader decided this and the owner has not reviewed it: it looks settled and is not" },
   unexamined: { colour: "#52c8ff", ink: "#04202e", word: "Never examined", say: "no state recorded, or a concern nobody has looked at: dark has to be earned" },
   override: { colour: "#f2f1e8", ink: "#1d1d18", word: "Overridden", say: "a rule was set aside by the lead: visible, not an alarm" },
   dark: { colour: "#2a3236", ink: "#9aa7ad", word: "Settled", say: "settled, and nothing holds it" },
@@ -93,6 +94,8 @@ const levelOf = (key) => (lightOf(key) || { level: "dark" }).level;
 const pulsePeriod = (urgency) => Math.round(5200 - 3400 * clamp(urgency || 0, 0, 1));
 const ASK = Object.fromEntries(D.asks.map((u) => [u.id, u]));
 const unknownLevel = (id) => { const u = ASK[id]; if (!u) return "dark"; return u.state === "open" ? u.light.level : "resolved"; };
+/* The pending-approval mark in words: a clock glyph and the text, with who and when on hover, so colour is never alone. */
+const pendingPill = (p) => h("span", { class: "pill pending", title: p ? `Decided by ${p.by} on ${p.date}; the owner has not reviewed it` : LIGHT.pending.say }, "◷ Pending approval");
 function lampEl(level, title) { return h("span", { class: "lamp " + level, title: title || (LIGHT[level] ? LIGHT[level].word : level) }); }
 /* A light's reasons in one line: each holding question once, soonest first, then the rest. */
 function reasonSummary(light, max = 2) {
@@ -173,7 +176,7 @@ function linkChips(key, opts = {}) {
     title: `${l.label}: ${l.url}`, onmousedown: (ev) => ev.stopPropagation(), onclick: (ev) => ev.stopPropagation() }, Icons.el(l.kind || "link"), l.label)));
 }
 function statePill(state) { return state ? h("span", { class: "pill" }, state) : null; }
-function levelPill(level, text) { return h("span", { class: "pill " + level }, text || LIGHT[level].word); }
+function levelPill(level, text) { return level === "pending" && !text ? pendingPill(null) : h("span", { class: "pill " + level }, text || LIGHT[level].word); }
 
 /* ------------------------------------------------------------------ flows that cross each thing */
 // A flow crosses a thing when the flow page links it, a step sends over a contract it provides or consumes, or a

@@ -1,0 +1,26 @@
+/* ------------------------------------------------ pending approval: a reader's decision the owner has not reviewed
+   The one lamp that is a ring, not a fill: a hollow circle with clock hands, always with the words "pending
+   approval" beside it, so colour is never the only signal. It is drawn from a border, not a box-shadow, because
+   Plain and Daylight rewrite every lamp's box-shadow. --pending is the ring and --pending-text the words on the room
+   (test_explorer.py checks both in every theme). */
+.lamp.pending { width: 12px; height: 12px; border-radius: 50%; border: 1.6px solid var(--pending);
+  background: linear-gradient(var(--pending) 0 0) 4.6px 1.6px / 1.6px 4px no-repeat, linear-gradient(var(--pending) 0 0) 4.6px 4.2px / 3.2px 1.6px no-repeat; }
+.lamp.pending:not(.dark):not(.resolved), html.plain .lamp.pending:not(.dark):not(.resolved) { box-shadow: none !important; }
+.pill.pending { background: transparent; color: var(--pending-text); box-shadow: inset 0 0 0 1px var(--pending); }
+.side-n.lit.pending { background: transparent; color: var(--pending-text); box-shadow: inset 0 0 0 1.5px var(--pending); }
+html.plain .side-n.lit.pending { box-shadow: inset 0 0 0 1.5px var(--pending); }
+button.cell.pending { background: var(--unlit); color: var(--pending-text); border: 2px solid var(--pending); box-shadow: none; }
+html.plain button.cell.pending { box-shadow: none !important; }
+.cell-sw.pending { background: transparent; border: 2px solid var(--pending); box-shadow: none; }
+.cmx-cell.pending { background: transparent; color: var(--pending-text); border: 2px solid var(--pending); }
+.transit .station-sub.pending { fill: var(--pending-text); }
+/* a box on the cockpit: its face stays dark and takes a violet ring, and its words take the ring's text form */
+.cockpit g.hit.lit.pending .face { stroke: var(--pending); stroke-width: 3; }
+.cockpit g.hit.lit.pending:focus-visible .face, .cockpit g.hit.lit.pending.picked .face { stroke: var(--focus); }
+.cockpit .lit.pending .node-name, .cockpit .lit.pending .node-sub, .cockpit .lit.pending .lamp-text { fill: var(--pending-text); }
+.cockpit g.hit.lit.pending .node-glyph { color: var(--pending-text); }
+.grouped .count-badge.lit.pending .lamp-text { fill: var(--pending-ink); }
+.in-edge.lit.pending { stroke: var(--pending); } .in-label.lit.pending rect { stroke: var(--pending); }
+/* the decision garden's bed: its plots are paper in every theme, so the ring is the dark violet that reads on paper */
+.pend-ring circle { fill: #ffffff; stroke: #5b2fb8; stroke-width: 2; }
+.pend-ring path { fill: none; stroke: #5b2fb8; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

@@ -111,7 +111,7 @@ const Panel = (() => {
     return h("div", { class: "p-head" },
       h("div", { class: "kind" }, KIND_WORD[e.kind] || e.kind, e.id && e.id !== e.title ? h("span", { class: "p-id" }, e.id) : null),
       h("h2", {}, NODE[e.key] ? Icons.forKey(e.key, "p-glyph") : null, e.title),
-      h("div", { class: "p-meta" }, light ? levelPill(light.level) : null,
+      h("div", { class: "p-meta" }, light && light.level !== "pending" ? levelPill(light.level) : null, e.pending ? pendingPill(e.pending) : null,
         u && isOpen(u) ? levelPill(ASK[e.key].light.level, dueText(u.askBy)) : null,
         e.kind === "app" && e.change ? h("span", { class: "pill" }, e.change) : null, e.stage ? h("span", { class: "pill" }, "stage " + e.stage) : null,
         e.state && e.kind !== "unknown" ? statePill(e.state) : u ? statePill(u.state) : null),
@@ -139,7 +139,7 @@ const Panel = (() => {
     const light = lightOf(key);
     if (!light || light.level === "dark") return null;
     return section("Why it is lit", null, h("ul", { class: "reasons" }, light.reasons.map((r) => h("li", { class: "r-" + r.kind },
-      lampEl(r.kind === "held" && r.unknown ? unknownLevel(r.unknown) : r.kind === "override" ? "override" : r.kind === "unexamined" ? "unexamined" : "caution"),
+      lampEl(r.kind === "held" && r.unknown ? unknownLevel(r.unknown) : r.kind === "override" ? "override" : r.kind === "unexamined" ? "unexamined" : r.kind === "pending" ? "pending" : "caution"),
       h("span", {}, r.unknown ? h("a", { "data-ref": r.unknown }, r.unknown) : null, " ", r.unknown ? reasonText(r).replace(r.unknown, "").trim() : r.text)))),
       h("div", { class: "p-note" }, `${LIGHT[light.level].word}: ${LIGHT[light.level].say}. The rule is attention.py's, the same on every view.`));
   }

@@ -23,6 +23,12 @@ const Garden = (() => {
     }
     return { by: [...by], conf: [...conf], sessions: [...sessions], overrides, owner: t.carriedBy.map((w) => w.owner).find(Boolean) || "" };
   }
+  /* A reader's decision the owner has not reviewed: on the decision record, or on any page or item that carries it. */
+  function pendingOf(t) {
+    const keys = [t.adr && t.adr.key, ...t.carriedBy.flatMap((w) => [w.key, w.page])].filter(Boolean);
+    const hit = keys.find((k) => E[k] && E[k].pending);
+    return hit ? E[hit].pending : null;
+  }
   const staked = (t) => { const d = deciders(t); return d.overrides > 0 && !d.conf.length; };
   function wrapWords(text, n) { const words = String(text).split(/\s+/), out = []; let cur = ""; for (const w of words) { if ((cur + " " + w).trim().length > n && cur) { out.push(cur); cur = w; } else cur = (cur + " " + w).trim(); } if (cur) out.push(cur); return out; }
   const clip = (lines, max) => { if (lines.length <= max) return lines; const l = lines.slice(0, max); l[max - 1] = l[max - 1].replace(/[,;.]?$/, "…"); return l; };
@@ -229,6 +235,7 @@ const Garden = (() => {
         t.picked.condition ? [h("dt", {}, "On condition"), h("dd", {}, t.picked.condition.replace(/^on condition that\s*/i, ""))] : null,
         h("dt", {}, "Pruned"), h("dd", {}, t.rejected.length ? t.rejected.map((o) => o.label + (o.forNow ? " (kept as a fallback)" : "")).join("; ") : "nothing recorded"),
         h("dt", {}, "Decided by"), h("dd", {}, d.by.length ? d.by.join("; ") : d.owner ? d.owner + ", the owner" : "not recorded"),
+        pendingOf(t) ? [h("dt", {}, "Review"), h("dd", {}, pendingPill(pendingOf(t)), ` ${pendingOf(t).by}, ${pendingOf(t).date}: the owner has not reviewed it`)] : null,
         h("dt", {}, "Confirmed"), h("dd", {}, d.conf.length ? d.conf.join("; ") : h("span", { class: "warn" }, `not yet${d.overrides ? `, and it stands on ${plural(d.overrides, "override")}` : ""}`)),
         h("dt", {}, "Where"), h("dd", {}, d.sessions.map(sessionTitle).join("; ") || (w.status || "no session linked")),
         h("dt", {}, "Recorded on"), h("dd", {}, [...new Set((t.adr ? [t.adr.key] : []).concat(on.map((o) => o.w.key)))].map((k) => refChip(k))),
@@ -251,7 +258,12 @@ const Garden = (() => {
       const g = s("g", { class: "plot", tabindex: 0, role: "listitem", "aria-label": `${t.id}: ${treeTitle(t)}` }, bed);
       s("rect", { x, y: 0, width: W - 10, height: 122, rx: 4, class: "hit" }, g);
       drawPlant(g, t, x + (W - 10) / 2, 100, 0.18, false, defs);
-      s("text", { x: x + (W - 10) / 2, y: 117, "text-anchor": "middle", class: "pid" }, g).textContent = `${t.adr ? t.adr.id : t.id}${t.buds.length ? `, ${t.buds.length} open` : ""}`;
+      s("text", { x: x + (W - 10) / 2, y: 117, "text-anchor": "middle", class: "pid" }, g).textContent = `${t.adr ? t.adr.id : t.id}${t.buds.length ? `, ${t.buds.length} open` : ""}${pendingOf(t) ? ", pending" : ""}`;
+      if (pendingOf(t)) {  // a ring with clock hands, and the word above: never colour alone
+        const ring = s("g", { class: "pend-ring", transform: `translate(${x + W - 24} 14)` }, g);
+        s("circle", { r: 8 }, ring); s("path", { d: "M0 -4.5V0H3.5" }, ring);
+        s("title", {}, ring).textContent = "Pending approval: a reader decided this and the owner has not reviewed it";
+      }
       g.addEventListener("click", () => show(i));
       g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(i); } });
       g.addEventListener("pointerenter", (e) => showTip(e, `<b>${esc(treeTitle(t))}</b>${plural(t.rejected.length, "option")} pruned, ${plural(t.buds.length, "open question")}`));
