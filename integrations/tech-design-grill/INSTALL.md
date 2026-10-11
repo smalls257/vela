@@ -55,3 +55,16 @@ Or reverse the patch:
 ```
 cd ~/.claude/skills && patch -p1 -R < <toolkit>/integrations/tech-design-grill/vault-mode.patch
 ```
+
+## Inside this app (optional, after vault mode)
+
+`inside-view.patch` goes on top of vault mode. It records which vault IDs each component owns and which container
+each component sits in, so the explorer's Inside this app reads ownership instead of inferring it. Back up first,
+then from `~/.claude/skills`:
+
+```
+patch -p1 --dry-run < <toolkit>/integrations/tech-design-grill/inside-view.patch
+patch -p1 < <toolkit>/integrations/tech-design-grill/inside-view.patch
+```
+
+`skill/` here stays vault mode only, so `vault-mode.patch` still reverses to the upstream skill.

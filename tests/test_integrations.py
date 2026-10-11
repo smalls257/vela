@@ -74,6 +74,14 @@ def test_reversing_the_patch_gives_the_upstream_skill(folder, tmp_path):
     upstream = UPSTREAM / folder.name
     if not upstream.is_dir():
         pytest.skip(f"{upstream} is not on this machine, so only the reverse apply was checked")
+    if (folder / "inside-view.patch").is_file():
+        # The install may carry inside-view.patch on top of vault mode; take it back off a copy before comparing.
+        bare = tmp_path / "installed" / folder.name
+        shutil.copytree(upstream, bare)
+        undo = subprocess.run(["patch", "-p1", "-R", "-E", "-s", "-f", "-i", str(folder / "inside-view.patch")], cwd=bare.parent,
+                              capture_output=True, text=True, timeout=60)
+        if undo.returncode == 0:
+            upstream = bare
     if same_tree(upstream, folder / "skill"):
         # Installed: the user's skill is the patched copy, so the original is the backup taken before installing.
         backups = sorted((REPO / "tests" / "sim" / "results").glob(f"skill-backups-*/{folder.name}"))
