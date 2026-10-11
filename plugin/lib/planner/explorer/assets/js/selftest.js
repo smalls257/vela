@@ -599,16 +599,27 @@ const SelfTest = (() => {
       const comps = $$("#inside-stage .in-box.component").length, stubs = $$("#inside-stage .in-stub").length, o = overlaps();
       ok(comps === d.components.length && stubs === d.stubs.length && !o.bad.length, `inside ${name}, components: ${comps} components and ${stubs} integration stubs, ${o.n} boxes and labels, no two overlap`,
         `inside ${name}, components: ${comps} of ${d.components.length}, ${stubs} of ${d.stubs.length} stubs; overlaps ${o.bad.slice(0, 3).join("; ")}`);
-      {  // opens fitted: the whole drawing sits inside its holder, nothing cut off at the right or the bottom
-        const holder = $("#inside-draw"), box = holder.getBoundingClientRect(), svg = $("svg", holder).getBoundingClientRect();
-        ok(svg.right <= box.right + 1 && svg.bottom <= box.bottom + 1 && holder.scrollWidth <= holder.clientWidth + 1 && holder.scrollHeight <= holder.clientHeight + 1,
-          `inside ${name}, components: opens fitted, the whole drawing in view (${Math.round(svg.width)} x ${Math.round(svg.height)} px in ${Math.round(box.width)} x ${Math.round(box.height)})`,
-          `inside ${name}, components: the drawing is cut off: ${Math.round(svg.width)} x ${Math.round(svg.height)} px in ${Math.round(box.width)} x ${Math.round(box.height)}, scrolls ${holder.scrollWidth - holder.clientWidth} across and ${holder.scrollHeight - holder.clientHeight} down`);
+      {  // opens at a size a reader can read, with the whole in a minimap; "Whole" fits all of it, and the tabs fold away
+        const holder = $("#inside-draw"), box = holder.getBoundingClientRect(), svg = $("svg", holder).getBoundingClientRect(), scale = +holder.dataset.scale;
+        const spills = svg.width > box.width + 1 || svg.height > box.height + 1;  // the minimap's own test: the drawing is bigger than its room
+        const mini = $("#inside-stage .in-mini"), view = mini && $(".in-mini-view", mini), shown = $$("#inside-stage .in-box.component").filter((g) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; });
+        ok(scale >= 0.85 && shown.length > 0 && (!spills || (mini && !mini.hidden && view && +view.getAttribute("width") > 0)),
+          `inside ${name}, components: opens at reading size (${scale.toFixed(2)}), ${shown.length} of ${comps} components in view${spills ? ", the whole in the minimap" : ", all of it in view"}`,
+          `inside ${name}, components: opens at ${scale.toFixed(2)} with ${shown.length} components in view; the drawing ${spills ? "spills" : "fits"} and the minimap is ${mini ? (mini.hidden ? "hidden" : "shown") : "missing"}`);
+        const zoom = $$("#inside-stage .inside-frame .in-zoom button");
+        zoom[1].click();
+        const whole = $("svg", holder).getBoundingClientRect(), now = holder.getBoundingClientRect();
+        ok(whole.right <= now.right + 1 && whole.bottom <= now.bottom + 1 && holder.scrollWidth <= holder.clientWidth + 1 && holder.scrollHeight <= holder.clientHeight + 1 && (!mini || mini.hidden),
+          `inside ${name}, components: "Whole" puts the whole drawing in view (${Math.round(whole.width)} x ${Math.round(whole.height)} px in ${Math.round(now.width)} x ${Math.round(now.height)})`,
+          `inside ${name}, components: "Whole" leaves the drawing cut off: ${Math.round(whole.width)} x ${Math.round(whole.height)} px in ${Math.round(now.width)} x ${Math.round(now.height)}`);
+        zoom[2].click();
+        ok(+holder.dataset.scale >= 0.85, `inside ${name}, components: "Read" returns to reading size`, `inside ${name}, components: "Read" left the scale at ${holder.dataset.scale}`);
+        delete Inside.st.zoom.components;
         const toggle = $("#inside-stage .in-tabs-toggle"), beside = getComputedStyle($(".inside-l3")).gridTemplateColumns.split(" ").length > 1, area = (r) => r.width * r.height, wide = area($("#inside-draw").getBoundingClientRect());
         toggle.click();
-        const hidden = $(".inside-l3").classList.contains("tabs-hidden") && !$(".inside-side").offsetParent, shown = $("#inside-draw").getBoundingClientRect(), wider = area(shown), refit = $("#inside-draw svg").getBoundingClientRect();
+        const hidden = $(".inside-l3").classList.contains("tabs-hidden") && !$(".inside-side").offsetParent, wider = area($("#inside-draw").getBoundingClientRect());
         toggle.click();
-        ok(hidden && (wider > wide || !beside) && refit.right <= shown.right + 1, `inside ${name}: the tabs fold away (drawing ${Math.round(wide / 1000)} to ${Math.round(wider / 1000)} k px squared, refitted) and come back`, `inside ${name}: tabs toggle: hidden ${hidden}, area ${Math.round(wide)} to ${Math.round(wider)}, refit right edge ${Math.round(refit.right)}`);
+        ok(hidden && (wider > wide || !beside), `inside ${name}: the tabs fold away (drawing ${Math.round(wide / 1000)} to ${Math.round(wider / 1000)} k px squared) and come back`, `inside ${name}: tabs toggle: hidden ${hidden}, area ${Math.round(wide)} to ${Math.round(wider)}`);
       }
       const chip = $("#main .d-problems");
       ok(!!chip && +chip.dataset.problems === d.problems.length, `inside ${name}: the problems chip says ${d.problems.length}, the reader's count, never hidden`, `inside ${name}: problems chip ${chip ? chip.dataset.problems : "missing"}, wanted ${d.problems.length}`);
@@ -620,11 +631,15 @@ const SelfTest = (() => {
       ok(!empty.length, `inside ${name}: every section beside the drawing renders (${Inside.TABS.length} tabs)`, `inside ${name}: empty or "null" in ${empty.join(", ")}`);
       Inside.st.tab = "data"; rerender();
       if (d.data_model.parsed_from === "erDiagram") ok($$("#inside-stage .in-entity-box").length === d.data_model.entities.length, `inside ${name}: the data model drawn from its erDiagram, ${d.data_model.entities.length} entities and ${d.data_model.relationships.length} relationships`, "the data model's entities are not all drawn");
-      if (d.data_model.parsed_from === "erDiagram") {  // all entities in view when the tab opens; "+" zooms to read
-        const er = $("#inside-stage .in-er"), box = er.getBoundingClientRect(), out = $$("#inside-stage .in-entity-box").filter((g) => { const r = g.getBoundingClientRect(); return r.left < box.left - 1 || r.right > box.right + 1 || r.top < box.top - 1 || r.bottom > box.bottom + 1; });
-        ok(!out.length && er.dataset.zoom === "1.00", `inside ${name}: the data model opens fitted, all ${d.data_model.entities.length} entities in view`, `inside ${name}: ${out.length} entities outside the data model's frame: ${out.map((g) => g.dataset.entity).join(", ")}`);
-        $$("#inside-stage .in-er-wrap .in-zoom button")[2].click();
-        ok(+$("#inside-stage .in-er").dataset.zoom > 1, `inside ${name}: the data model zooms in to read`, `inside ${name}: the data model did not zoom`);
+      if (d.data_model.parsed_from === "erDiagram") {  // opens at reading size on the main entity; "Whole" puts every entity in view
+        const er = $("#inside-stage .in-er"), buttons = $$("#inside-stage .in-er-wrap .in-zoom button"), within = (g, box) => { const r = g.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1; };
+        const here = $$("#inside-stage .in-entity-box").filter((g) => within(g, er.getBoundingClientRect())), mini = $("#inside-stage .in-er-wrap .in-mini");
+        const drawn = $("svg", er).getBoundingClientRect(), room = er.getBoundingClientRect(), spills = drawn.width > room.width + 1 || drawn.height > room.height + 1;
+        ok(+er.dataset.scale >= 0.85 && here.length > 0 && (!spills || (mini && !mini.hidden)), `inside ${name}: the data model opens at reading size (${er.dataset.scale}), ${here.length} of ${d.data_model.entities.length} entities in view${spills ? ", the whole in the minimap" : ""}`,
+          `inside ${name}: the data model opens at ${er.dataset.scale} with ${here.length} entities in view, minimap ${mini ? (mini.hidden ? "hidden" : "shown") : "missing"}`);
+        buttons[1].click();
+        const out = $$("#inside-stage .in-entity-box").filter((g) => !within(g, er.getBoundingClientRect()));
+        ok(!out.length, `inside ${name}: "Whole" puts all ${d.data_model.entities.length} entities in view`, `inside ${name}: ${out.length} entities outside the data model's frame after "Whole": ${out.map((g) => g.dataset.entity).join(", ")}`);
         delete Inside.st.zoom.er;
       }
       Inside.st.tab = "trace"; rerender();

@@ -327,26 +327,97 @@ const Inside = (() => {
     return { obs, hidden };
   }
   const MIN_SCALE = 0.72;  // below this a box's name is under 10px; the drawing scrolls instead, unless the reader zooms out
-  function sized(svg, holder, bounds, pad) {
+  const READ_SCALE = 1, READ_FITS = 0.85;  // a drawing that fits whole at READ_FITS or more opens whole; a bigger one opens at READ_SCALE
+  /* Sizes a drawing to its holder and gives it the reader's zoom controls.
+     Containers open as before: fitted, but never under MIN_SCALE. The components and the data model open at a size
+     a reader can read (names at 14px), scrolled to `focus`, the box the page is about, with a minimap of the whole
+     drawing beside the controls; they only open whole when the whole is already readable. "Whole" always fits it.
+     opts: key (where the zoom is remembered), open ("read" for the two above), focus (a rect in drawing
+     coordinates), frame (the element that carries the controls and the minimap; the holder's parent by default). */
+  const unplaced = [];  // drawings built before their holder was in the page, sized by placeDrawings() once it is
+  function placeDrawings() {
+    for (const d of unplaced.splice(0)) if (d.svg.isConnected) d.place();
+  }
+  function sized(svg, holder, bounds, pad, opts = {}) {
     const x0 = bounds.x0 - pad, y0 = bounds.y0 - pad, w = bounds.x1 - bounds.x0 + pad * 2, ht = bounds.y1 - bounds.y0 + pad * 2;
+    const zkey = opts.key || st.level, frame = opts.frame || holder.parentElement;
     svg.setAttribute("viewBox", `${x0.toFixed(1)} ${y0.toFixed(1)} ${w.toFixed(1)} ${ht.toFixed(1)}`);
-    const whole = () => { const r = holder.getBoundingClientRect(); return Math.min(1.15, (r.width - 28) / w, (r.height - 16) / ht); };
-    const fitIt = () => {
-      if (!svg.isConnected) { removeEventListener("resize", fitIt); return; }
-      // the components open fitted whole, so nothing is cut off at the right or the bottom; "Read" asks for reading size
-      const z = st.zoom[st.level] === undefined && st.level === "components" ? "whole" : st.zoom[st.level], k = z === "whole" ? whole() : typeof z === "number" ? z : Math.max(MIN_SCALE, whole());
+    const whole = () => { const r = holder.getBoundingClientRect(); return r.width ? Math.min(1.15, (r.width - 28) / w, (r.height - 16) / ht) : READ_SCALE; };
+    const opening = () => { const k = whole(); return opts.open === "read" ? (k >= READ_FITS ? k : READ_SCALE) : Math.max(MIN_SCALE, k); };
+    const scaleOf = () => { const z = st.zoom[zkey]; return z === "whole" ? whole() : typeof z === "number" ? z : opening(); };
+    // where a point of the drawing sits, in the holder's scrolled content; the holder centres a drawing that fits
+    const at = (x, y) => { const r = svg.getBoundingClientRect(), b = holder.getBoundingClientRect(), k = +holder.dataset.scale;
+      return { x: r.left - b.left + holder.scrollLeft + (x - x0) * k, y: r.top - b.top + holder.scrollTop + (y - y0) * k }; };
+    const centreOn = (x, y) => { const p = at(x, y); holder.scrollLeft = p.x - holder.clientWidth / 2; holder.scrollTop = p.y - holder.clientHeight / 2; };
+    const centreNow = () => { const k = +holder.dataset.scale; return { x: x0 + (holder.scrollLeft + holder.clientWidth / 2 - at(x0, y0).x) / k, y: y0 + (holder.scrollTop + holder.clientHeight / 2 - at(x0, y0).y) / k }; };
+    const mini = opts.open === "read" ? minimap(svg, holder, { x0, y0, w, ht }) : null;
+    const apply = () => {
+      const k = scaleOf();
       svg.setAttribute("width", Math.round(w * k)); svg.setAttribute("height", Math.round(ht * k));
       holder.dataset.scale = k.toFixed(2);
+      if (mini) mini.update();
     };
-    fitIt(); addEventListener("resize", fitIt);
-    const set = (z) => { st.zoom[st.level] = z; fitIt(); };
+    const showFocus = () => { if (opts.focus) centreOn(opts.focus.x + opts.focus.w / 2, opts.focus.y + opts.focus.h / 2); };
+    let placed = false;  // the first time the drawing is in the page: size it, then show the box the page is about
+    const place = () => { placed = true; apply(); showFocus(); };
+    const fitIt = (ev) => {
+      if (!svg.isConnected) { if (placed || ev instanceof Event) { observer.disconnect(); removeEventListener("resize", fitIt); } return; }
+      if (!placed) { place(); return; }
+      const keep = centreNow();
+      apply(); centreOn(keep.x, keep.y);
+    };
+    const observer = new ResizeObserver(fitIt);
+    observer.observe(holder);
+    addEventListener("resize", fitIt);  // the tabs fold away and say so with a resize
+    apply();
+    if (svg.isConnected) place(); else unplaced.push({ svg, place });
+    const set = (z) => {
+      const keep = centreNow();
+      st.zoom[zkey] = z; apply();
+      if (z === null && opts.focus) showFocus(); else if (z !== "whole") centreOn(keep.x, keep.y);
+    };
     const now = () => +holder.dataset.scale;
     // the controls sit on the frame around the holder, not in it: inside a scrolling holder they took a column of room
-    holder.parentElement.append(h("div", { class: "in-zoom", role: "group", "aria-label": "Zoom" },
+    frame.append(h("div", { class: "in-zoom", role: "group", "aria-label": "Zoom" },
       h("button", { title: "Zoom out", onclick: () => set(Math.max(0.3, now() / 1.25)) }, "−"),
       h("button", { title: "The whole drawing in view", onclick: () => set("whole") }, "Whole"),
-      h("button", { title: "Reading size: names at 10px or more, scrolling if it must", onclick: () => set(null) }, "Read"),
+      h("button", { title: opts.open === "read" ? "Reading size, centred on the main box" : "Reading size: names at 10px or more, scrolling if it must", onclick: () => set(null) }, "Read"),
       h("button", { title: "Zoom in", onclick: () => set(Math.min(2, now() * 1.25)) }, "+")));
+    if (mini) frame.append(mini.el);
+  }
+  /* The whole drawing, small, with the part in view lit; click or drag to move there. It shows only while the
+     drawing is bigger than its holder, so a drawing that fits has nothing to navigate. */
+  function minimap(svg, holder, v) {
+    const MAX = 150, k = Math.min(MAX / v.w, MAX / v.ht);
+    // only the shapes, under classes of their own, so nothing in the minimap answers to the drawing's selectors
+    const copy = s("svg", { viewBox: svg.getAttribute("viewBox"), class: "in-mini-svg", width: Math.round(v.w * k), height: Math.round(v.ht * k), "aria-hidden": "true" });
+    for (const [selector, cls] of [[".in-frame", "mini-frame"], [".in-edge", "mini-wire"], [".in-box-face, .in-stub-face", "mini-box"]]) {
+      for (const shape of svg.querySelectorAll(selector)) {
+        const flat = shape.cloneNode(false);
+        flat.removeAttribute("marker-end"); flat.removeAttribute("data-from"); flat.removeAttribute("data-to");
+        flat.setAttribute("class", cls); copy.append(flat);
+      }
+    }
+    const view = s("rect", { class: "in-mini-view", rx: 2 }, copy);
+    const el = h("div", { class: "in-mini", role: "group", "aria-label": "Where you are in the drawing. Click or drag to move." }, copy);
+    function update() {
+      const r = svg.getBoundingClientRect(), b = holder.getBoundingClientRect(), sc = +holder.dataset.scale || 1;
+      const over = r.width > b.width + 1 || r.height > b.height + 1;
+      el.hidden = !over;
+      if (!over) return;
+      const l = Math.max(b.left, r.left), t = Math.max(b.top, r.top), rt = Math.min(b.right, r.right), bt = Math.min(b.bottom, r.bottom);
+      view.setAttribute("x", (v.x0 + (l - r.left) / sc).toFixed(1)); view.setAttribute("y", (v.y0 + (t - r.top) / sc).toFixed(1));
+      view.setAttribute("width", ((rt - l) / sc).toFixed(1)); view.setAttribute("height", ((bt - t) / sc).toFixed(1));
+    }
+    const jump = (ev) => {
+      const m = copy.getBoundingClientRect(), r = svg.getBoundingClientRect(), b = holder.getBoundingClientRect(), sc = +holder.dataset.scale || 1;
+      const px = r.left + ((ev.clientX - m.left) / k) * sc, py = r.top + ((ev.clientY - m.top) / k) * sc;
+      holder.scrollLeft += px - (b.left + b.width / 2); holder.scrollTop += py - (b.top + b.height / 2);
+    };
+    el.addEventListener("pointerdown", (ev) => { el.setPointerCapture(ev.pointerId); jump(ev); });
+    el.addEventListener("pointermove", (ev) => { if (el.hasPointerCapture(ev.pointerId)) jump(ev); });
+    holder.addEventListener("scroll", update, { passive: true });
+    return { el, update };
   }
   const boundsOf = (rects) => ({ x0: Math.min(...rects.map((r) => r.x)), y0: Math.min(...rects.map((r) => r.y)), x1: Math.max(...rects.map((r) => r.x + r.w)), y1: Math.max(...rects.map((r) => r.y + r.h)) });
 
@@ -457,6 +528,7 @@ const Inside = (() => {
     stage.append(wrap);
     drawComponents(holder, app, d);
     side.append(tabs(app, d));
+    placeDrawings();
   }
   function componentsNote(app, d) {
     const missing = d.problems.some((p) => p.section === "Integration points" && /missing section/.test(p.message));
@@ -535,14 +607,18 @@ const Inside = (() => {
     }, [fr.name, ...heads]);
     holder.dataset.hiddenLabels = drawn.hidden;
     if (drawn.hidden) console.warn(`[inside] ${drawn.hidden} arrow labels found no free room and show on hover only`);
-    sized(svg, holder, boundsOf([...Object.values(lay.box), fr, ...heads]), 24);
+    // the box the page is about is the component most things meet: the most Depends on and integration points, the first listed on a tie
+    const meets = {};
+    for (const e of edges) for (const id of [e.from, e.to]) meets[id] = (meets[id] || 0) + 1;
+    const main = comps.map((c) => lay.box["c:" + c.name]).filter(Boolean).sort((a, b) => (meets[b.node.id] || 0) - (meets[a.node.id] || 0))[0];
+    sized(svg, holder, boundsOf([...Object.values(lay.box), fr, ...heads]), 24, { open: "read", key: "components", focus: main });
   }
 
   /* ------------------------------------------------------------ beside level 3: the design's sections */
   function tabs(app, d) {
     const box = h("div", { class: "inside-tabs" });
     const bar = h("div", { class: "seg small wrap", role: "tablist", "aria-label": "The design's sections" }, TABS.map(([id, word]) =>
-      h("button", { role: "tab", "aria-pressed": String(st.tab === id), "data-tab": id, onclick: () => { st.tab = id; Nav.syncHash(); const fresh = tabs(app, d); box.replaceWith(fresh); } }, word, count(d, id))));
+      h("button", { role: "tab", "aria-pressed": String(st.tab === id), "data-tab": id, onclick: () => { st.tab = id; Nav.syncHash(); const fresh = tabs(app, d); box.replaceWith(fresh); placeDrawings(); } }, word, count(d, id))));
     const body = h("div", { class: "inside-tab-body", "data-tab": st.tab });
     body.append(...[].concat(({ trace: traceTab, data: dataTab, api: apiTab, flows: flowsTab, stack: tableTab("tech_stack", ["layer", "choice", "rationale"]), nfrs: tableTab("nfrs", ["concern", "target", "how_enforced"]),
       constraints: tableTab("constraints", ["id", "constraint", "source", "impact"]), risks: tableTab("risks", ["id", "risk", "severity", "mitigation"]), adrs: adrTab, ops: opsTab, glossary: glossaryTab })[st.tab](app, d)).filter(Boolean));
@@ -611,11 +687,10 @@ const Inside = (() => {
   }
   const CARD = { "||": "1", "|o": "0..1", "o|": "0..1", "}o": "0..n", "o{": "0..n", "}|": "1..n", "|{": "1..n" };
   const cardinality = (c) => `${CARD[c.slice(0, 2)] || "?"} to ${CARD[c.slice(-2)] || "?"}`;
-  /* The data model's entities, all in view when the tab opens: the drawing is fitted to the tab's width and height,
-     and +/- zoom it to reading size, scrolling when it must. */
-  const ER_STEP = 1.25, ER_MAX = 4;
+  /* The data model's entities, drawn at a size the fields can be read at, scrolled to the entity most things relate to,
+     with a minimap; "Whole" puts every entity in view. */
   function erDiagram(m) {
-    const holder = h("div", { class: "in-er" });
+    const holder = h("div", { class: "in-er" }), wrap = h("div", { class: "in-er-wrap" }, holder);
     const nodes = m.entities.map((x) => ({ id: "e:" + x.name, kind: "entity", w: 190, h: 30 + Math.max(1, x.fields.length) * 17, x }));
     const edges = m.relationships.map((r) => ({ from: "e:" + r.from, to: "e:" + r.to, label: `${r.label} · ${cardinality(r.cardinality)}`, title: `${r.from} ${r.label} ${r.to}: ${cardinality(r.cardinality)} (${r.cardinality})` }));
     const lay = layered(nodes, edges, { gapX: 150, gapY: 18, minColW: 150, gapTB: 60, gapYTB: 18, dir: "auto", fit: { w: 320, h: 420 } });
@@ -633,16 +708,11 @@ const Inside = (() => {
         });
       },
     });
-    const b = boundsOf(Object.values(lay.box)), w = b.x1 - b.x0 + 28;
-    svg.setAttribute("viewBox", `${b.x0 - 14} ${b.y0 - 14} ${w} ${b.y1 - b.y0 + 28}`);
-    const zoom = () => { const k = st.zoom.er || 1; svg.style.width = `${Math.round(k * 100)}%`; holder.dataset.zoom = k.toFixed(2); holder.classList.toggle("fitted", k === 1); };
-    const set = (k) => { st.zoom.er = Math.min(ER_MAX, Math.max(1, k)); zoom(); };
-    zoom();
-    return h("div", { class: "in-er-wrap" },
-      h("div", { class: "in-zoom", role: "group", "aria-label": "Zoom the data model" },
-        h("button", { title: "Zoom out", onclick: () => set((st.zoom.er || 1) / ER_STEP) }, "−"),
-        h("button", { title: "Every entity in view", onclick: () => set(1) }, "Fit"),
-        h("button", { title: "Zoom in to read the fields", onclick: () => set((st.zoom.er || 1) * ER_STEP) }, "+")), holder);
+    const related = {};
+    for (const e of edges) for (const id of [e.from, e.to]) related[id] = (related[id] || 0) + 1;
+    const main = Object.values(lay.box).sort((a, b) => (related[b.node.id] || 0) - (related[a.node.id] || 0))[0];
+    sized(svg, holder, boundsOf(Object.values(lay.box)), 14, { open: "read", key: "er", focus: main, frame: wrap });
+    return wrap;
   }
   function apiTab(app, d) {
     if (!d.api.length) return [card(null, h("div", { class: "p-empty-line" }, "The design has no ### <Component> public surface under API contracts."))];

@@ -304,3 +304,21 @@ def test_gallery_pages_load_the_plugins_art(chrome_path, page, said):
     console = [line for line in result.stderr.splitlines() if "CONSOLE" in line]
     assert any(said in line for line in console), "\n".join(console) or result.stderr[-500:]
     assert not [line for line in console if "fell back" in line or "[assets]" in line], "\n".join(console)
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("viewport", ["1600,1000", "1280,720"])
+def test_explorer_selftest_with_three_designs_loaded(tmp_path, chrome_path, viewport):
+    """The demo vault with its three team designs: Inside this app draws components and the data model, which the
+    snapshot vaults above have no design for. Run at a wide and at a laptop window."""
+    demo = tmp_path / "booking-demo"
+    made = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True)
+    assert made.returncode == 0, made.stderr
+    designs = REPO / "prototypes/explorer/demo_designs"
+    page = tmp_path / "booking-demo.html"
+    built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(page), "--today", "2026-11-20",
+                            "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
+                            *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in ("booking", "pricing", "notifications")]],
+                           timeout=120, capture_output=True, text=True)
+    assert built.returncode == 0, built.stderr
+    _check_selftest_in_chrome(chrome_path, page, "booking-demo with designs", viewport=viewport)

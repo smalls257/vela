@@ -158,11 +158,22 @@ ol.in-problems b { color: var(--ink); font-weight: 600; }
 .in-zoom button:hover { background: var(--deck-3); color: var(--ink); }
 
 /* the data model: fitted to the tab on open, zoomed by the reader; the controls sit above it, not over it */
-.in-er-wrap .in-zoom { position: static; margin: 0 0 6px auto; width: max-content; }
-.in-er svg { flex: none; height: auto; }
-.in-er.fitted svg { max-height: 460px; }
+.in-er-wrap { position: relative; display: flex; flex-direction: column; }
+.in-er-wrap .in-zoom { position: static; order: -1; margin: 0 0 6px auto; width: max-content; }
+.in-er svg { flex: none; }
+/* the data model scrolls inside a frame of its own height, so its zoom never moves the page */
+.in-er { height: clamp(260px, 50vh, 520px); max-height: none; }
+/* the minimap: the whole drawing, small, with the part in view lit; it shows only while the drawing is bigger than its frame */
+.in-mini { position: absolute; left: 12px; bottom: 8px; z-index: 2; padding: 4px; background: var(--glass); border: 1px solid var(--rule-3); border-radius: 8px; cursor: crosshair; touch-action: none; line-height: 0; }
+.in-mini[hidden] { display: none; }
+.in-er-wrap .in-mini { left: 8px; bottom: 8px; }
+.in-mini-svg { display: block; overflow: hidden; pointer-events: none; }
+.mini-frame { fill: none; stroke: var(--rule-3); stroke-width: 3; }
+.mini-box { fill: var(--deck-3); stroke: var(--rule-3); stroke-width: 2; }
+.mini-wire { fill: none; stroke: var(--ink-4); stroke-width: 3; }
+.in-mini-view { fill: color-mix(in srgb, var(--focus) 18%, transparent); stroke: var(--focus); stroke-width: 4; vector-effect: non-scaling-stroke; }
 /* the tabs fold away to give the drawing the whole width */
-.in-tabs-toggle { position: absolute; top: 12px; right: 14px; z-index: 3; }
+.btn.in-tabs-toggle { position: absolute; top: 12px; right: 14px; z-index: 3; background: var(--glass); border: 1px solid var(--rule-3); }
 .inside-l3.tabs-hidden { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .inside-l3.tabs-hidden .inside-side { display: none; }
 /* a short window: the hint keeps two lines (the page says the rest in the panel) and the head drops its kicker, so the drawing keeps room */
