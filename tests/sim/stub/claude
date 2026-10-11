@@ -72,7 +72,10 @@ def assistant(argv):
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         with open(path, "a", encoding="utf-8") as out:
             out.write(written + "\n")
-    commands = ["planner:dump", "planner:close", "planner:discover", "planner:shape", "planner:boundary", "planner:grill", "planner:epics"] if "--plugin-dir" in argv else []
+    # The plugin's own skills, read from the --plugin-dir it was given, as the CLI lists them: a hand-kept list fell
+    # behind when requirements, allocate and releases were added, and a stub run then failed on them.
+    plugin = pathlib.Path(argv[argv.index("--plugin-dir") + 1]) if "--plugin-dir" in argv else None
+    commands = sorted(f"planner:{d.name}" for d in (plugin / "skills").iterdir() if (d / "SKILL.md").is_file()) if plugin else []
     skills = pathlib.Path.cwd() / ".claude" / "skills"
     commands += sorted(d.name for d in skills.iterdir() if (d / "SKILL.md").is_file()) if skills.is_dir() else []  # project skills, as the CLI lists them
     events = [{"type": "system", "subtype": "init", "session_id": session_id, "slash_commands": commands},
