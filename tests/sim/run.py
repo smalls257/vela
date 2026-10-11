@@ -433,6 +433,16 @@ def parse_single(stdout, raw_path):
     return require_result(data, raw_path)
 
 
+def error_in_words(result):
+    """What an is_error result says went wrong. Claude Code can put subtype "success" on a failed call, so the
+    subtype alone read as "reported an error (success)"; terminal_reason says what actually happened."""
+    reason = result.get("terminal_reason")
+    if reason == "prompt_too_long":
+        return ("failed because the prompt was too long for the model: "
+                + short(result.get("result") or "no detail given", 240))
+    return f"reported an error ({reason or result.get('subtype')})"
+
+
 def budget_stop(result):
     """True when claude stopped a call on --max-budget-usd. Any other error is a tool failure."""
     return result["is_error"] and result.get("subtype") == "error_max_budget_usd"
@@ -838,6 +848,7 @@ class Arm:
         self.capture_expect = {}  # the script's `capture:` block: release_date and ask, what the persona planted
         self.prior_spent = 0.0  # what an earlier run spent, when this arm is only being judged again
         self.judge_calls = []
+        self.judge_cuts = {}
         write_gh_stub(self.dir / "bin")
         self.env = arm_env(self.dir, args.stub)
         (self.dir / "persona-cwd").mkdir()
@@ -859,6 +870,7 @@ class Arm:
         arm.calls = len(list((arm.dir / "raw").glob("*.txt")))
         arm.endings = record.get("endings") or []
         arm.notes, arm.failure, arm.scorecard, arm.judge_calls = [], None, None, []
+        arm.judge_cuts = {}
         arm.capture_expect = {}
         arm.prior_spent = float(record.get("spent_usd") or 0)
         arm.env = arm_env(arm.dir, args.stub)
@@ -904,7 +916,7 @@ class Arm:
         self.session_costs[result["session_id"]] = total
         self.ledger.add(total - before)
         if result["is_error"] and not budget_stop(result):
-            raise ToolFailure(f"claude reported an error ({result.get('subtype')}): {short(result.get('result') or result.get('errors'))}. Read {raw}")
+            raise ToolFailure(f"the assistant call {error_in_words(result)}: {short(result.get('result') or result.get('errors'))}. Read {raw}")
         self.check_plugin(parsed["init"], message, raw)
         return parsed, result
 
@@ -930,7 +942,7 @@ class Arm:
         result = parse_single(done.stdout, raw)
         self.ledger.add(float(result["total_cost_usd"]))
         if result["is_error"] and not budget_stop(result):
-            raise ToolFailure(f"the persona call reported an error ({result.get('subtype')}). Read {raw}")
+            raise ToolFailure(f"the persona call {error_in_words(result)}. Read {raw}")
         return result
 
     def run_session(self, index, session):
@@ -1262,27 +1274,154 @@ def compact_chat(entries, limit=800):
                     for e in entries])
 
 
-def judge_input(persona, transcript, vault, category, hits, compact=False):
-    """One call's input: its own brief items and their hints, the transcript, and only what the category needs.
-    `compact` cuts each turn short: the retry after the judge model's safeguards refused the full input."""
+# A judge call must fit the model's window with room for its thinking and its reply. The trading-coach vault was
+# 990k characters (about 340k tokens) and both vault-reading calls came back prompt_too_long, so no call sends
+# more than this, and whatever is left out is named on the scorecard instead of dropped quietly.
+JUDGE_INPUT_CHARS = 300_000
+EVIDENCE_FLOOR_PER_ITEM = 12_000  # the transcript gives way before an item's vault evidence drops below this
+TURN_LIMITS = (2000, 800, 300)  # the characters a turn keeps, tried in order, when the whole transcript does not fit
+INDEX_HEADINGS_CHARS = 300  # the headings listed per page in the page index
+
+
+PASSAGE_CHARS = 2500  # a section longer than this is cut at paragraph breaks, so one huge section cannot be the evidence
+
+
+def sections(text):
+    """A page cut at its headings, so a passage keeps the heading that says what it is about. A long section is cut
+    again at blank lines, each piece keeping the section's heading line."""
+    parts = []
+    for part in re.split(r"(?m)^(?=#{1,6} )", text):
+        if not part.strip():
+            continue
+        if len(part) <= PASSAGE_CHARS:
+            parts.append(part)
+            continue
+        heading = part.splitlines()[0] + "\n" if part.startswith("#") else ""
+        piece = ""
+        for block in re.split(r"\n\s*\n", part):
+            if piece and len(piece) + len(block) > PASSAGE_CHARS:
+                parts.append(piece)
+                piece = ""
+            piece += (heading if heading and not piece and not block.startswith(heading.strip()) else "") + block + "\n\n"
+        if piece.strip():
+            parts.append(piece)
+    return parts
+
+
+def page_index(pages):
+    """Every page of the final vault with its headings: enough to name a file as `where`, and to spot a capture in
+    other words, for a few hundred characters a page instead of the page."""
+    lines = []
+    for name, text in pages:
+        headings = [s.splitlines()[0].lstrip("# ").strip() for s in sections(text) if s.startswith("#")]
+        listed, used = [], 0
+        for heading in headings:
+            if used + len(heading) > INDEX_HEADINGS_CHARS:
+                break
+            listed.append(heading)
+            used += len(heading) + 2
+        more = f" (+{len(headings) - len(listed)} more)" if len(headings) > len(listed) else ""
+        lines.append(f"FILE {name} ({len(text)} chars): " + "; ".join(listed) + more)
+    return "\n".join(lines)
+
+
+def item_evidence(item, hit, pages, room):
+    """The passages of the final vault that hold this item's keywords, most keywords first, up to `room` characters.
+    Returns (text, cuts); `cuts` says in plain words what the judge was not shown."""
+    wanted = {r["file"] for r in hit["vault_files"]}
+    found = []  # (keywords held, page order, file, section)
+    for order, (name, text) in enumerate(pages):
+        for part in sections(text) if name in wanted else []:
+            held = mentions(part, hit["keywords"])
+            if held:
+                found.append((len(held), order, name, part))
+    if not found:
+        return ("no page of the final vault holds one of its keywords, so the page index is all there is to read; "
+                "the fact may still be there in other words",
+                [f"{item['id']}: no page holds a keyword, so the judge saw only the page index"])
+    chosen, used, dropped, trimmed = [], 0, 0, 0
+    for _, order, name, part in sorted(found, key=lambda f: (-f[0], len(f[3]), f[1])):
+        left = room - used - len(name) - 40  # the passage's label and join
+        if left < 200:
+            dropped += 1
+            continue
+        if len(part) > left and chosen:
+            dropped += 1
+            continue
+        if len(part) > left:
+            part, trimmed = part[:left] + " [... passage cut]", trimmed + 1
+        chosen.append((order, name, part))
+        used += len(part) + len(name) + 40
+    text = "\n\n".join(f"----- FILE {name} -----\n{part}" for _, name, part in sorted(chosen, key=lambda c: c[0]))
+    cuts = [f"{item['id']}: {len(found)} passages hold its keywords; {dropped} left out and {trimmed} cut short "
+            f"to fit {room} characters"] if dropped or trimmed else []
+    return text, cuts
+
+
+def vault_evidence(persona, category, hits, pages, room):
+    """The vault as one call needs it: the page index, then per item only its own passages. The room is shared
+    evenly, so one item with a huge page cannot starve the others of their evidence."""
+    items = persona.get(category) or []
+    index = page_index(pages)
+    per_item = max(room - len(index) - 300, 0) // max(len(items), 1) - 200  # 200 for an item's own label
+    blocks, cuts = [], []
+    for item in items:
+        text, item_cuts = item_evidence(item, hits[item["id"]], pages, per_item)
+        blocks.append(f"=== EVIDENCE FOR {item['id']} ===\n{text}")
+        cuts += item_cuts
+    return f"PAGE INDEX of the final vault:\n{index}\n\n" + "\n\n".join(blocks), cuts
+
+
+def fit_transcript(transcript, room, shortest_first=False):
+    """(chat, cuts): the whole transcript if it fits `room`, else each turn cut to the longest limit that does.
+    `shortest_first` skips the whole transcript and the 2000-character cut: the retry after a refusal."""
+    spoken = transcript.spoken()
+    full = as_chat(spoken)
+    if not shortest_first and len(full) <= room:
+        return full, []
+    for limit in TURN_LIMITS[1:] if shortest_first else TURN_LIMITS:
+        chat = compact_chat(spoken, limit)
+        if len(chat) <= room:
+            return chat, [f"transcript: every turn cut to {limit} characters ({len(full)} in full, {room} fit)"]
+    raise ToolFailure(f"the transcript is {len(full)} characters, and cut to {TURN_LIMITS[-1]} characters a turn it still "
+                      f"does not fit the {room} left in a {JUDGE_INPUT_CHARS}-character judge call")
+
+
+def build_judge_input(persona, transcript, vault, category, hits, compact=False):
+    """(input, cuts) for one call: its own brief items and their hints, the transcript, and only what the category
+    needs, never more than JUDGE_INPUT_CHARS. `cuts` is what was left out. `compact` cuts each turn short: the retry
+    after the judge model's safeguards refused the full input."""
     reads = JUDGE_READS[category]
     strip = lambda items: [{k: v for k, v in i.items() if k != "keywords"} for i in items or []]
     kinds = list(ID_KINDS) if "whole brief" in reads else [category]
     brief = {kind: strip(persona.get(kind)) for kind in kinds}
     sessions = sorted({e["session"] for e in transcript.spoken()})
-    parts = [f"THE HIDDEN BRIEF (YAML):\n{yaml.safe_dump(brief, sort_keys=False, allow_unicode=True)}"]
+    head = [f"THE HIDDEN BRIEF (YAML):\n{yaml.safe_dump(brief, sort_keys=False, allow_unicode=True)}"]
     if category in ID_KINDS:
-        parts.append(f"IDS {category}: {', '.join(i['id'] for i in persona.get(category) or [])}")
-        parts.append(f"HINTS, which turns and files hold each item's keywords:\n{hint_lines(persona, category, hits)}")
-    parts.append(f"SESSIONS THAT RAN: {', '.join(map(str, sessions))}")
+        head.append(f"IDS {category}: {', '.join(i['id'] for i in persona.get(category) or [])}")
+        head.append(f"HINTS, which turns and files hold each item's keywords:\n{hint_lines(persona, category, hits)}")
+    head.append(f"SESSIONS THAT RAN: {', '.join(map(str, sessions))}")
     if "inbox" in reads:
         docs = "\n\n".join(f"----- INBOX {d['name']} -----\n{d['text']}" for d in persona.get("docs") or [])
-        parts.append(f"INBOX DOCUMENTS:\n{docs or 'none'}")
-    parts.append(f"THE TRANSCRIPT:\n{compact_chat(transcript.spoken()) if compact else as_chat(transcript.spoken())}")
-    if "vault" in reads:
-        pages = "\n\n".join(f"----- FILE {name} -----\n{text}" for name, text in vault_pages(vault))
-        parts.append(f"THE FINAL VAULT:\n{pages}")
-    return "\n\n".join(parts) + "\n"
+        head.append(f"INBOX DOCUMENTS:\n{docs or 'none'}")
+    pages = vault_pages(vault) if "vault" in reads else []
+    fixed = sum(len(p) + 2 for p in head) + 200  # the joins and the section labels
+    floor = EVIDENCE_FLOOR_PER_ITEM * len(persona.get(category) or []) + len(page_index(pages)) if pages else 0
+    chat, cuts = fit_transcript(transcript, JUDGE_INPUT_CHARS - fixed - floor, shortest_first=compact)
+    parts = head + [f"THE TRANSCRIPT:\n{chat}"]
+    if pages:
+        evidence, evidence_cuts = vault_evidence(persona, category, hits, pages, JUDGE_INPUT_CHARS - fixed - len(chat))
+        parts.append(f"THE FINAL VAULT, as the passages that hold each item's keywords:\n{evidence}")
+        cuts += evidence_cuts
+    text = "\n\n".join(parts) + "\n"
+    if len(text) > JUDGE_INPUT_CHARS:
+        raise ToolFailure(f"the {category} judge input is {len(text)} characters, over its {JUDGE_INPUT_CHARS} budget, "
+                          f"and nothing more can be cut without losing an item's evidence")
+    return text, cuts
+
+
+def judge_input(persona, transcript, vault, category, hits, compact=False):
+    return build_judge_input(persona, transcript, vault, category, hits, compact)[0]
 
 
 def strip_fences(text):
@@ -1415,7 +1554,7 @@ def judge_category(arm, category, hits):
     """One judge call for one category. Re-ask once on bad JSON with the problems named, then give up with exit 2.
     A refusal by the judge model's safeguards is retried once with each turn cut short; a second refusal returns
     None and the reason, so the category reads "not scored" on the scorecard and the other categories still count."""
-    stdin = judge_input(arm.persona, arm.transcript, arm.vault, category, hits)
+    stdin, arm.judge_cuts[category] = build_judge_input(arm.persona, arm.transcript, arm.vault, category, hits)
     problems, refused, bad = [], False, 0
     for attempt in (1, 2, 3):
         room = arm.ledger.judge_room()
@@ -1434,10 +1573,11 @@ def judge_category(arm, category, hits):
             if refused:
                 return None, f"the judge model refused twice, the second time with each turn cut to 800 characters. Read {raw}"
             refused, problems = True, []
-            stdin = judge_input(arm.persona, arm.transcript, arm.vault, category, hits, compact=True)
+            stdin, arm.judge_cuts[category] = build_judge_input(arm.persona, arm.transcript, arm.vault, category, hits,
+                                                                compact=True)
             continue
         if result["is_error"]:
-            raise ToolFailure(f"the {category} judge call reported an error ({result.get('subtype')}). Read {raw}")
+            raise ToolFailure(f"the {category} judge call {error_in_words(result)}. Read {raw}")
         try:
             data = json.loads(strip_fences(result["result"]))
         except json.JSONDecodeError as exc:
@@ -1454,7 +1594,7 @@ def judge_category(arm, category, hits):
 
 def judge(arm, hits):
     """One call per category, so each call is small enough for the judge to look at every item in it."""
-    arm.judge_calls = []
+    arm.judge_calls, arm.judge_cuts = [], {}
     data = {"not_scored": {}}
     for category in JUDGE_CATEGORIES:
         reply, why = judge_category(arm, category, hits)
@@ -1542,6 +1682,9 @@ def build_scorecard(arm, data, hits):
     card["check_these"] = ([f"judge: {category} not scored: {why}" for category, why in card["not_scored"].items()]
                            + judge_alerts(arm.judge_calls) + disagreements(card, hits))
     card["judge_calls"] = arm.judge_calls
+    card["judge_cuts"] = {category: cuts for category, cuts in arm.judge_cuts.items() if cuts}
+    card["check_these"] += [f"judge input ({category}) was cut to fit {JUDGE_INPUT_CHARS} characters: " + "; ".join(cuts)
+                            for category, cuts in card["judge_cuts"].items()]
     card["max_questions_in_one_turn"] = max_questions(arm.transcript)
     card["drafted_messages"] = drafted_messages(arm.transcript)
     card["capture"] = capture_of(arm)
@@ -1769,14 +1912,21 @@ def parse_args(argv):
     parser.add_argument("--arms", help=f"comma-separated, from {', '.join(ARMS)}; default {DEFAULT_ARMS}")
     parser.add_argument("--model", help="assistant model, pinned for every arm; required unless --rejudge")
     parser.add_argument("--persona-model", help="persona model, pinned; required unless --rejudge")
-    parser.add_argument("--judge-model", required=True, help="judge model, pinned")
-    parser.add_argument("--budget", required=True, type=float, help="USD ceiling for the whole run; no default")
+    parser.add_argument("--judge-model", help="judge model, pinned; required unless --dry-judge")
+    parser.add_argument("--budget", type=float, help="USD ceiling for the whole run; required unless --dry-judge")
     parser.add_argument("--script", help="script name in tests/sim/scripts/, or a .yaml path; default 'default'")
     parser.add_argument("--stub", action="store_true", help="use the scripted fake claude in tests/sim/stub/; costs nothing")
     parser.add_argument("--out", default=str(RESULTS), help="results folder; the run gets its own folder inside")
     parser.add_argument("--rejudge", metavar="RUN_DIR",
                         help="score a finished run again from its transcript.jsonl and vault/, without replaying it")
+    parser.add_argument("--dry-judge", metavar="RUN_DIR",
+                        help="print the size of every judge input of a finished run and what was cut; calls nothing, costs nothing")
     args = parser.parse_args(argv)
+    if args.dry_judge:
+        return args
+    missing = [name for name, value in (("--judge-model", args.judge_model), ("--budget", args.budget)) if value is None]
+    if missing:
+        parser.error(f"the following arguments are required: {', '.join(missing)}")
     if args.budget <= 0:
         parser.error("--budget must be more than 0")
     if args.rejudge:
@@ -1865,8 +2015,33 @@ def rejudge(args):
     return record["exit"]
 
 
+def dry_judge(args):
+    """Build every judge input of a finished run without calling claude, and print each one's size and its cuts.
+    This is how to see, before paying, whether a vault fits."""
+    run_dir = pathlib.Path(args.dry_judge).resolve()
+    try:
+        summary = load_run(run_dir)
+        persona = load_yaml(resolve(summary["persona"], "personas"))
+        for name in [n for n in summary.get("arms") or summary["per_arm"] if n in summary["per_arm"]]:
+            arm_dir = run_dir / name
+            transcript = Transcript.load(arm_dir / "transcript.jsonl")
+            vault = arm_dir / "vault"
+            hits = vault_hits(persona, transcript, vault)
+            for category in JUDGE_CATEGORIES:
+                text, cuts = build_judge_input(persona, transcript, vault, category, hits)
+                print(f"[{name}] {category}: {len(text)} characters (about {len(text) // 3} tokens) of {JUDGE_INPUT_CHARS}")
+                for cut in cuts:
+                    print(f"    cut: {cut}")
+    except ToolFailure as exc:
+        print(f"sim: {exc}", file=sys.stderr)
+        return 2
+    return 0
+
+
 def main(argv=None):
     args = parse_args(argv)
+    if args.dry_judge:
+        return dry_judge(args)
     if args.rejudge:
         return rejudge(args)
     try:
