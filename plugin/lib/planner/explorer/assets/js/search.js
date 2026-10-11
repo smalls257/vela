@@ -95,9 +95,15 @@ const Search = (() => {
     return "";
   }
 
-  let at = 0, results = [];
+  let at = 0, results = [], moved = false;  // moved: the reader arrowed into the results, so Enter opens one rather than asks
   const input = $("#q"), box = $("#results");
+  /* The results, with the Ask Claude row (or, on a file, the Copy as a prompt row) above them. */
   function show() {
+    renderResults();
+    const row = Ask.row(input.value);
+    if (row) { box.prepend(row); box.hidden = false; }
+  }
+  function renderResults() {
     const q = input.value;
     box.innerHTML = ""; results = [];
     if (!q.trim()) { box.hidden = true; return; }
@@ -150,13 +156,18 @@ const Search = (() => {
     box.hidden = true; input.blur();
     go(r.key, { reset: true, reveal: true });
   }
-  input.addEventListener("input", () => { at = 0; show(); });
+  input.addEventListener("input", () => { at = 0; moved = false; show(); });
   input.addEventListener("focus", show);
   input.addEventListener("blur", () => setTimeout(() => { box.hidden = true; }, 140));
   input.addEventListener("keydown", (ev) => {
-    if (ev.key === "ArrowDown") { at = Math.min(at + 1, results.length - 1); show(); ev.preventDefault(); }
-    else if (ev.key === "ArrowUp") { at = Math.max(at - 1, 0); show(); ev.preventDefault(); }
-    else if (ev.key === "Enter") { pick(at); ev.preventDefault(); }
+    if (ev.key === "ArrowDown") { at = Math.min(at + 1, results.length - 1); moved = true; show(); ev.preventDefault(); }
+    else if (ev.key === "ArrowUp") { at = Math.max(at - 1, 0); moved = true; show(); ev.preventDefault(); }
+    else if (ev.key === "Enter") {
+      ev.preventDefault();
+      // an exact ID or "@owner" is a jump, not a question
+      if (!moved && Ask.enterAsks(input.value) && !exactMatches(input.value).length) { Ask.ask(input.value); input.value = ""; show(); input.blur(); }
+      else pick(at);
+    }
     else if (ev.key === "Escape") { input.value = ""; show(); input.blur(); }
   });
   document.addEventListener("keydown", (ev) => {

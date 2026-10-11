@@ -32,7 +32,7 @@ from planner import search as planner_search
 from planner.parse import WIKILINK, parse_link
 
 from . import (asks_data, assets_inline, design_data, flows_data, icons_data, inside_data, pages_data,
-               roles_data)
+               roles_data, serve)
 from . import pins as pinning
 from .record import (BLOCK_REF, HANDLE, LABELLED_LINE, MD_LINK, PROSE_LIMIT, STEP, Keys, inline_html, link_label,
                      plain, refs_in, state_badge, title_of)
@@ -47,9 +47,9 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "geometry", "search", "minimap", "reader", "panel", "panelsize", "motion", "view-map",
               "mapgroups", "releases", "flowkit", "view-flows", "rehearse", "view-asks", "view-garden", "view-progress",
-              "view-trace", "sections", "roles", "nav", "inside", "selftest", "main")
+              "view-trace", "sections", "roles", "nav", "ask", "inside", "selftest", "main")
 CSS_MODULES = ("base", "nav", "panel", "map", "flows", "rehearse", "asks", "garden", "pages", "reader", "roles",
-               "releases", "inside", "themes", "plain")
+               "releases", "ask", "inside", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -505,7 +505,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None):
         "unknowns": unknowns(vault, keys), "risks": [r.id for r in vault.risks],
         "blockedBy": {k: [u.id for u in v] for k, v in blocked.items()},
         "progress": progress_data(vault, root, keys, today), "trace": trace_data(vault, keys),
-        "backlinks": backlinks(vault, keys), "search": search_index(vault, keys),
+        "backlinks": backlinks(vault, keys), "search": search_index(vault, keys), "ask": {"rules": list(serve.RULES)},
     }
     data["owners"] = owners(entities)
     data["nodes"], data["pins"] = map_nodes(vault, keys, data["map"], pins_path, seed)

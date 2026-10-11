@@ -38,6 +38,7 @@ Assets.load().then(() => {
   const v = viewDef(App.view);
   if (App.focus && v.highlight) v.highlight(App.focus);
 });
+Ask.ready = Ask.detect();  // a file asks nothing of the network; a page served from this machine asks /health once
 if (HASH.get("q")) { $("#q").value = HASH.get("q"); $("#q").focus(); $("#q").dispatchEvent(new Event("input")); }
 if (HASH.get("present") && FLOW[HASH.get("present")]) Flows.present(HASH.get("present"), (+HASH.get("step") || 1) - 1);
 if (HASH.has("rehearse") && FLOW[HASH.get("rehearse")]) Rehearse.open(HASH.get("rehearse"));

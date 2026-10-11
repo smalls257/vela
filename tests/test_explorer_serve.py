@@ -228,3 +228,16 @@ def test_a_port_out_of_range_is_a_tool_error(tmp_path):
     out = io.StringIO()
     assert cli.main(["explore", str(vault), "--serve", "--port", "70000"], out=out) == 2
     assert "not a port number" in out.getvalue()
+
+
+def test_only_ask_js_can_reach_the_network_and_it_checks_for_a_file_first():
+    """The page's offline promise: no module but ask.js names a network call, and ask.js decides on file: before it looks for the helper."""
+    scripts = REPO / "plugin/lib/planner/explorer/assets/js"
+    network = ("fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "sendBeacon")
+    for script in scripts.glob("*.js"):
+        text = script.read_text(encoding="utf-8")
+        if script.name == "ask.js":
+            assert text.index('loc.protocol === "file:"') < text.index('fetchFn("/health")')
+            assert 'fetchFn("/ask"' in text and "XMLHttpRequest" not in text
+        elif script.name != "selftest.js":  # the self-test wraps fetch to prove none is made
+            assert not [word for word in network if word in text], script.name

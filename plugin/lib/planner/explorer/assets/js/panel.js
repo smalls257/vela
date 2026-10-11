@@ -38,6 +38,7 @@ const Panel = (() => {
   function render() {
     const root = body();
     root.innerHTML = "";
+    if (Ask.showing()) { root.append(Ask.panel()); return; }  // the conversation, until the reader goes back or opens something
     const key = App.trail[App.trail.length - 1] || (App.root !== "lights" ? App.root : null);
     const tabs = homes();
     if (tabs) root.append(tabs);

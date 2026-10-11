@@ -379,11 +379,93 @@ const SelfTest = (() => {
     } else out.push("skip not-asked racks: every question has an Ask line");
     Nav.home(); go("lights", { reset: true });
   }
+  /* Ask Claude. On a file the page asks nothing of the network and offers a prompt to copy; served, it streams an answer
+     into the panel. The served half plays a fake helper through Ask's injectable fetch, so no server or model is needed. */
+  const sseResponse = (events) => {
+    const bytes = new TextEncoder().encode(events.map((e) => "data: " + JSON.stringify(e) + "\n\n").join("")), cut = Math.floor(bytes.length / 3);
+    return new Response(new ReadableStream({ start(c) { c.enqueue(bytes.slice(0, cut)); c.enqueue(bytes.slice(cut, cut * 2)); c.enqueue(bytes.slice(cut * 2)); c.close(); } }), { status: 200 });
+  };
+  async function askChecks() {
+    await Ask.ready;
+    const real = Ask.snapshot(), realFetch = window.fetch, seen = [];
+    const onFile = location.protocol === "file:";
+    if (onFile) {
+      window.fetch = (...a) => { seen.push(String(a[0])); return realFetch(...a); };
+      Search.type("how does a reader place a paper trade");
+      $("#q").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      const rowText = ($("#results .r-ask") || { textContent: "" }).textContent;
+      window.fetch = realFetch;
+      ok(Ask.st.mode === "file" && real.fetches === 0 && !seen.length && !Ask.served() && document.documentElement.dataset.ask === "file",
+        "ask on a file: the helper is not looked for, no request is made, Enter asks nothing", `ask on a file: mode ${Ask.st.mode}, ${real.fetches} fetches at boot, ${seen.length} during, served ${Ask.served()}`);
+      ok(/Copy as a Claude Code prompt/.test(rowText) && /\/planner:explore/.test(rowText) && !$("#results .ask-btn b").textContent.includes("Ask Claude"),
+        "ask on a file: the box offers Copy as a Claude Code prompt and says to run /planner:explore, with no Ask button", `ask on a file: row says "${rowText}"`);
+      const prompt = Ask.promptFor("What does the demo deliver?");
+      ok(prompt.startsWith("What does the demo deliver?") && prompt.includes("[[ID]]") && prompt.includes("Never create, edit or delete"),
+        "ask on a file: the copied prompt is the question plus the citation rules", `ask on a file: prompt "${prompt.slice(0, 80)}"`);
+    } else {
+      ok(real.mode === "served" && real.fetches === 1 && document.documentElement.dataset.ask === "served",
+        "ask when served: the page found its helper with one /health request", `ask when served: mode ${real.mode}, ${real.fetches} fetches, flag ${document.documentElement.dataset.ask}`);
+    }
+    // served, against a fake helper
+    const known = Object.keys(E).find((k) => idOf(k)), id = idOf(known), calls = [];
+    if (!known) { out.push("skip ask, fake helper: this vault holds no ID for an answer to cite"); return; }
+    const fake = async (url, init) => {
+      calls.push({ url: String(url), body: init && init.body ? JSON.parse(init.body) : null });
+      if (url === "/health") return new Response(JSON.stringify({ ok: true, vault: "fake", model: "haiku", models: {}, claude: true, maxQuestion: 2000 }), { status: 200 });
+      const turn = calls.filter((c) => c.url === "/ask").length;
+      return sseResponse([{ type: "start", model: "claude-haiku-4-5-20251001" }, { type: "tool", name: "Grep", target: "demo" },
+        { type: "delta", text: `It delivers [[${id}]] and <img src=x onerror=alert(1)> but also [[ZZZ-999]]` }, { type: "delta", text: ` (turn ${turn}).` },
+        { type: "done", cost: 0.0123, session_id: "sess-" + turn + "-abcdef", model: "claude-haiku-4-5-20251001" }]);
+    };
+    await Ask.detect(fake, { protocol: "http:", hostname: "127.0.0.1" });
+    ok(Ask.served() && calls.length === 1 && calls[0].url === "/health", "ask, fake helper: /health found it, once", `ask, fake helper: mode ${Ask.st.mode}, calls ${calls.map((c) => c.url)}`);
+    go(known, { reset: true }); await frames();
+    Search.type("What does it deliver?");
+    ok(/Ask Claude/.test(($("#results .ask-btn") || { textContent: "" }).textContent), "ask, fake helper: the box offers Ask Claude", "ask, fake helper: no Ask Claude row");
+    $("#q").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await Ask.st.last;
+    const turn1 = calls.find((c) => c.url === "/ask");
+    ok(turn1 && turn1.body.question === "What does it deliver?" && turn1.body.context.item === id, `ask, fake helper: Enter sent the question with its context (${turn1 && turn1.body.context.item})`, `ask, fake helper: sent ${JSON.stringify(turn1)}`);
+    const a1 = $("#panel .ask-a"), chip = a1 && $(`.ref-chip[data-ref="${CSS.escape(known)}"]`, a1), dead = a1 && $(".ask-unknown", a1);
+    ok(Ask.showing() && !!chip && !!dead && /not in this vault/.test(dead.textContent) && a1.textContent.includes("(turn 1)") && !$("img", a1) && a1.getAttribute("aria-live") === "polite" && a1.getAttribute("aria-busy") === "false",
+      `ask, fake helper: the panel shows the streamed answer, ${id} as a chip, ZZZ-999 flagged, the markup as text, aria-live polite`, `ask, fake helper: panel "${a1 && a1.textContent}"`);
+    ok(/Haiku/.test($("#panel .ask-meta").textContent) && $("#panel .ask-meta").textContent.includes("$0.0123"), "ask, fake helper: the answer names its model and cost", `ask, fake helper: meta "${$("#panel .ask-meta").textContent}"`);
+    ok(/Asking about:/.test($("#panel .ask-about").textContent) && /\S/.test($("#panel .ask-about b").textContent), `ask, fake helper: the panel says what it asked about (${$("#panel .ask-about b").textContent})`, "ask: no Asking about line");
+    $("#panel .ask-clear").click(); await frames();
+    ok(/No context/.test($("#panel .ask-about").textContent), "ask, fake helper: the reader can clear the context", "ask: clearing did not clear");
+    // a follow-up resumes the session; Shift+Enter is a newline, Enter sends; Think harder sends sonnet
+    const box = $("#panel .ask-input");
+    box.value = "And then?"; box.dispatchEvent(new Event("input"));
+    box.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", shiftKey: true, bubbles: true, cancelable: true }));
+    ok(calls.filter((c) => c.url === "/ask").length === 1, "ask, fake helper: Shift+Enter in the follow-up sends nothing", "ask: Shift+Enter sent");
+    $("#panel .think").click();
+    box.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+    await Ask.st.last;
+    const turn2 = calls.filter((c) => c.url === "/ask")[1];
+    ok(turn2 && turn2.body.conversation_id === "sess-1-abcdef" && turn2.body.model === "sonnet" && !turn2.body.context.item, "ask, fake helper: the follow-up resumed the first session, on Sonnet, with the cleared context left out", `ask, fake helper: follow-up ${JSON.stringify(turn2 && turn2.body)}`);
+    // every theme and Plain: the answer, a chip and a flag stay legible
+    const was = Theme.id, fx = FX.on, bad = [];
+    for (const [t, plain] of [...Theme.LIST.map((x) => [x.id, false]), [was, true]]) {
+      Theme.set(t); FX.set(!plain); Panel.render();
+      const a = $("#panel .ask-a"), cs = a && getComputedStyle(a), bg = getComputedStyle($("#panel")).backgroundColor;
+      if (!a || cs.color === bg || !$(".ask-unknown", a) || getComputedStyle($(".ask-unknown", a)).color === bg) bad.push(plain ? "plain" : t);
+    }
+    Theme.set(was); FX.set(fx);
+    ok(!bad.length, "ask: the conversation draws in every theme and Plain", `ask: unreadable or missing in ${bad.join(", ")}`);
+    // Esc closes the conversation; a citation opens its item and the panel button brings the conversation back
+    $("#panel .ask-panel").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    ok(!Ask.showing() && !$("#panel .ask-panel"), "ask: Esc closes the conversation", "ask: Esc left it open");
+    $("#panel-ask").click(); await frames();
+    $(`#panel .ask-a .ref-chip[data-ref="${CSS.escape(known)}"]`).click(); await frames();
+    ok(!Ask.showing() && App.focus === known && !$("#panel .ask-panel"), `ask: a citation opens ${id} in the explorer`, `ask: citation left focus ${App.focus}, conversation ${Ask.showing()}`);
+    Ask.restore(real);
+    Nav.home(); go("lights", { reset: true });
+  }
   async function run() {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await effects(); await panelRoom(); await releases(); await emptyStates(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await effects(); await panelRoom(); await releases(); await emptyStates(); await askChecks(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");

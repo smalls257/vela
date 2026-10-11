@@ -10,8 +10,10 @@ import os
 import pathlib
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import threading
 
 import pytest
 
@@ -164,3 +166,40 @@ def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600
     assert selftest_text.startswith(
         "SELFTEST OK"
     ), f"{vault_name} selftest failed:\n" + "\n".join(fail_lines)
+
+
+@pytest.mark.browser
+def test_a_served_page_finds_its_helper(tmp_path, chrome_path):
+    """`planner explore --serve` with a fake claude on PATH: the page loaded over loopback fetches /health, flags itself
+    served, and its own #selftest (which then plays the Ask checks against a fake fetch) passes."""
+    vault = tmp_path / "vault"
+    shutil.copytree(SNAPSHOT_BASE / "trading-coach" / "after-capture-boundary", vault)
+    env = {**os.environ, "PATH": f"{REPO / 'tests' / 'explorer_stub'}:{os.environ['PATH']}"}
+    server = subprocess.Popen([sys.executable, str(REPO / "plugin" / "bin" / "planner"), "explore", str(vault), "--today", "2026-10-10",
+                               "--serve", "--no-open", "--port", "0"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+    watchdog = threading.Timer(120, server.kill)  # a server that never says where it is must not hang the suite
+    watchdog.start()
+    try:
+        url = None
+        for line in server.stdout:
+            found = re.search(r"serving (http://\S+?/) ", line)
+            if found:
+                url = found.group(1)
+                break
+        assert url, "planner explore --serve never printed its address"
+        assert url.startswith("http://127.0.0.1:")
+        cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
+               "--dump-dom", f"{url}#home&selftest"]
+        dom = subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout
+        assert 'data-ask="served"' in dom, "the page did not detect the helper"
+        selftest = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1))
+        assert selftest.startswith("SELFTEST OK"), [line for line in selftest.split(" || ") if line.startswith("FAIL")]
+        assert "ask when served: the page found its helper with one /health request" in selftest
+    finally:
+        watchdog.cancel()
+        server.send_signal(signal.SIGINT)
+        try:
+            server.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            server.kill()
+            server.wait()
