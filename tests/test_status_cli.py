@@ -31,10 +31,11 @@ def test_status_with_a_bad_date_is_a_tool_failure(mini):
     assert run("next", "--vault", str(mini), "--today", "2026-13-01")[0] == 2
 
 
-def test_the_fixture_has_nothing_left_to_do():
+def test_the_fixture_has_nothing_left_to_do_per_app_only_its_requirements_were_never_written():
+    # The fixture predates /planner:requirements: every app is settled, but no capability has a requirement.
     code, out = run("next", "--vault", str(FIXTURE), "--today", "2026-11-20")
     assert code == 0
-    assert out == "planner next: nothing to do. Every app's items are settled and its epics decided. Today is 2026-11-20 (--today).\n"
+    assert out.startswith("planner next: initiative, requirements CAP-"), out
     code, out = run("status", "--vault", str(FIXTURE), "--today", "2026-11-20")
     assert out.splitlines()[0] == "planner status: 9 apps. Today is 2026-11-20 (--today)."
 

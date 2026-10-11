@@ -1097,8 +1097,13 @@ def cmd_status(args, out):
 def initiative_step(vault, row):
     """A step for the whole initiative that comes before the per-app frontier, or None. Requirements cut across
     apps, so their gaps are not any one app's: an unallocated requirement is allocate's work before the Grill that
-    decides the apps, a changing capability with no requirements, before the first epic, is requirements' work, and dated releases come after allocation and before epics.
-    An overdue unknown (rule 1) still comes first."""
+    decides the apps, a changing capability with no requirements is requirements' work, and dated releases come after allocation and before epics.
+    An overdue unknown (rule 1) still comes first: it blocks a contract a team is waiting on, and asking costs one message.
+    Every other probe (rule 6) ranks below these: an app exists, so Boundary has run, and a capability nobody wrote
+    requirements for leaves allocate, releases and every epic's criteria with nothing to stand on. Once epics exist the
+    step still fires when the vault holds no requirement at all, because a lead who cut epics without running the skill
+    would otherwise never be told; one capability short in a vault that has some is W356's to name, not next's, so a
+    partly filled vault is not nagged again and again."""
     if row is not None and row.rule <= 1:
         return None
     loose = allocation.unallocated(vault)
@@ -1112,7 +1117,7 @@ def initiative_step(vault, row):
     bare = [c for c in sorted(vault.of_type("capability"), key=lambda p: p.id)
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
             and c.id not in have]
-    if bare and not vault.of_type("epic"):
+    if bare and (not vault.of_type("epic") or not have):
         return (f"initiative, requirements {bare[0].id}. {bare[0].id} is {bare[0].meta['change']} and has no functional "
                 "requirements, so allocate has nothing to divide among the apps for it.")
     return None
@@ -1143,6 +1148,8 @@ def cmd_capture(args, out):
           f"{found['flow_steps_with_sender']} of {found['flow_steps_crossing']} flow steps that cross a contract name a sender; "
           f"{found['releases']} releases; {found['requirements']} requirements; {found['allocation_rows']} allocation rows; "
           f"{found['unknowns_with_ask']} of {found['unknowns']} unknowns name who to ask.", file=out)
+    print(f"  info  {found['apps_with_link']} of {found['apps']} apps have a code or wiki link; "
+          f"{found['epics_with_link']} of {found['epics']} epics have a tracker link.", file=out)
     for name, ok, detail in checks:
         print(f"  {'pass' if ok else 'gap '}  {name}: {detail}", file=out)
     return 0
