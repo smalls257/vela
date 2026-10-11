@@ -25,7 +25,9 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 
 Run `git status --short --branch` and show the output. If any file is changed or untracked, stop and ask: commit it, stash it, or carry it into this session. Do nothing else until the user answers.
 
-If the user names a challenge to answer, by its PR number or the challenged ID, run `git fetch origin` and take the path "Answer a challenge" below instead of the rest of this step. Otherwise run `git fetch origin` and `git switch main` and `git pull --ff-only`. If any of them fails, show the error and say the session would start from an old `main`. Ask whether to go on. Never start from an old `main` without saying so.
+Then run `python3 .claude/skills/planner/scripts/planner freshness` and tell the user what it prints, in its own plain words: how far behind or ahead the clone is, how many files are uncommitted, or that origin could not be reached and this is the local state. It fetches with a short timeout and never pulls or changes anything; if it says origin is unreachable, say so and do not describe the clone as up to date. If it fails, show its message.
+
+If the user names a challenge to answer, by its PR number or the challenged ID, take the path "Answer a challenge" below instead of the rest of this step. Otherwise run `git switch main` and `git pull --ff-only`. If any of them fails, show the error and say the session would start from an old `main`. Ask whether to go on. Never start from an old `main` without saying so.
 
 ## 2. Find open sessions
 
