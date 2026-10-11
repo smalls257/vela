@@ -1,0 +1,91 @@
+{
+ "provider": "builtin",
+ "about": "Hand-authored, needs nothing: SVG emblems in one flat navy-and-amber family, SVG-filter textures, SMIL-animated SVG loops, Web Audio recipes played by resolve.js.",
+ "slots": {
+  "emblem.coach": {
+   "form": "svg",
+   "file": "emblems/coach.svg"
+  },
+  "emblem.tickertalk": {
+   "form": "svg",
+   "file": "emblems/tickertalk.svg"
+  },
+  "emblem.brightwater": {
+   "form": "svg",
+   "file": "emblems/brightwater.svg"
+  },
+  "emblem.quoteline": {
+   "form": "svg",
+   "file": "emblems/quoteline.svg"
+  },
+  "texture.transit-paper": {
+   "form": "svg",
+   "file": "textures/transit-paper.svg"
+  },
+  "texture.garden": {
+   "form": "svg",
+   "file": "textures/garden.svg"
+  },
+  "texture.cockpit": {
+   "form": "svg",
+   "file": "textures/cockpit.svg"
+  },
+  "texture.strip-board": {
+   "form": "svg",
+   "file": "textures/strip-board.svg"
+  },
+  "loop.title-card": {
+   "form": "svg",
+   "file": "loops/title-card.svg"
+  },
+  "loop.timelapse": {
+   "form": "svg",
+   "file": "loops/timelapse.svg"
+  },
+  "loop.cockpit": {
+   "form": "svg",
+   "file": "loops/cockpit.svg"
+  },
+  "theme.coach": {
+   "form": "recipe",
+   "file": "audio/theme-coach.json"
+  },
+  "theme.tickertalk": {
+   "form": "recipe",
+   "file": "audio/theme-tickertalk.json"
+  },
+  "theme.brightwater": {
+   "form": "recipe",
+   "file": "audio/theme-brightwater.json"
+  },
+  "theme.quoteline": {
+   "form": "recipe",
+   "file": "audio/theme-quoteline.json"
+  },
+  "chime.decided": {
+   "form": "recipe",
+   "file": "audio/chime-decided.json"
+  },
+  "bed.timelapse": {
+   "form": "recipe",
+   "file": "audio/bed-timelapse.json",
+   "loop": true
+  },
+  "emblem-on-dark.coach": {
+   "form": "svg",
+   "file": "emblems/coach.svg"
+  },
+  "emblem-on-dark.tickertalk": {
+   "form": "svg",
+   "file": "emblems/tickertalk.svg"
+  },
+  "emblem-on-dark.brightwater": {
+   "form": "svg",
+   "file": "emblems/brightwater.svg"
+  },
+  "emblem-on-dark.quoteline": {
+   "form": "svg",
+   "file": "emblems/quoteline.svg"
+  }
+ }
+}

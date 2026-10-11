@@ -24,6 +24,8 @@ SNAPSHOTS = {
     "coastal-merger/after-boundary-s2": SNAPSHOT_BASE / "coastal-merger" / "after-boundary-s2",
     "trading-coach/after-handoff-2": SNAPSHOT_BASE / "trading-coach" / "after-handoff-2",
     "trading-coach/after-80b": SNAPSHOT_BASE / "trading-coach" / "after-80b",
+    # Written by real sessions (requirements, allocate, releases, boundary): domains, senders, a release, allocation.
+    "trading-coach/after-capture-boundary": SNAPSHOT_BASE / "trading-coach" / "after-capture-boundary",
     "holdout-hospitals/after-discover": SNAPSHOT_BASE / "holdout-hospitals" / "after-discover",
 }
 

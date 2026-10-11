@@ -1,0 +1,9 @@
+/* ------------------------------------------------ Plain: no motion, glow or pulsing, every colour kept */
+html.plain *, html.plain *::before, html.plain *::after { animation: none !important; transition: none !important; }
+/* glow goes; a lamp's edge (Daylight's ring on amber and white) stays */
+html.plain .lamp:not(.dark):not(.resolved), html.plain .cap.lit, html.plain button.cell, html.plain .master.on { box-shadow: inset 0 0 0 1px var(--lamp-edge) !important; }
+html.plain .lamp.override, html.plain button.cell.override { box-shadow: inset 0 0 0 1.5px var(--override-edge) !important; }
+html.plain .master.on { box-shadow: inset 0 0 0 1px var(--lamp-edge), inset 0 0 0 1px rgba(0,0,0,.25) !important; }
+html.plain .halo, html.plain .shade { display: none; }
+html.plain .rel-stop.on i { box-shadow: 0 0 0 2px var(--ink); }
+html.plain .tab .tab-lamp { box-shadow: none !important; }

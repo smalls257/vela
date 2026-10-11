@@ -151,7 +151,7 @@ const Flows = (() => {
     const ends = stepEnds(stp), named = stp.named.filter((k) => !ends.has(k));
     if (named.length) facts.append(h("li", {}, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "Also named in the text, not linked: ", named.map((k) => refChip(k)))));
     box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${stp.n}`), ` of ${f.steps.length}`), h("span", { class: "muted" }, `${E[st.key].id} ${E[st.key].title}`)),
-      h("div", { class: "cap-text", html: stp.html }), facts, inferredLine());
+      h("div", { class: "cap-text", html: stp.html }), facts, ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
   }
   function buildTransport() {
     const tr = $("#transport"); if (!tr) return;
