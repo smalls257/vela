@@ -5,7 +5,7 @@ and the reviewers find only what is written. Each share says what it counts, so 
 """
 from dataclasses import dataclass
 
-from planner import model, progress, questions, reading, schema
+from planner import progress, questions, reading, schema
 
 SETTLED = ("decided", "fact")
 

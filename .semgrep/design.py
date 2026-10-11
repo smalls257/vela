@@ -12,4 +12,4 @@ def parse_today(value):
 
 def cmd_health(args):
     # ruleid: cli-reads-clock-once
-    today = datetime.date.today().isoformat()
+    today = datetime.date.today().isoformat()  # noqa: F841 - semgrep rule example

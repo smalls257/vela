@@ -1,11 +1,11 @@
 import pathlib, shutil, sys
 
 # ruleid: plugin-imports-only-plugin
-from tests.conftest import REPO
+from tests.conftest import REPO  # noqa: F401 - semgrep rule example
 # ruleid: plugin-imports-only-plugin
-import prototypes.explorer.build
+import prototypes.explorer.build  # noqa: F401 - semgrep rule example
 # ok: plugin-imports-only-plugin
-from planner import schema
+from planner import schema  # noqa: F401 - semgrep rule example
 
 # ok: plugin-imports-only-plugin
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))

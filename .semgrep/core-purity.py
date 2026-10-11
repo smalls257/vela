@@ -1,9 +1,9 @@
 # ruleid: planner-core-no-io-imports
-import subprocess
+import subprocess  # noqa: F401 - semgrep rule example
 # ruleid: planner-core-no-io-imports
-from pathlib import Path
+from pathlib import Path  # noqa: F401 - semgrep rule example
 # ok: planner-core-no-io-imports
-import urllib.parse
+import urllib.parse  # noqa: F401 - semgrep rule example
 # ok: planner-core-no-io-imports
 import datetime
 

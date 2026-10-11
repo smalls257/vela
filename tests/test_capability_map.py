@@ -1,6 +1,6 @@
 """The capability-map block: capabilities grouped by `domain`, coloured by `change`,
 split into one diagram per domain when the whole map is over budget."""
-from conftest import check, edit, findings, run
+from conftest import check, findings, run
 from planner import render, schema
 from planner.model import build
 from planner.parse import parse_page

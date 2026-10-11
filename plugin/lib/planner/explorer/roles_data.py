@@ -17,7 +17,7 @@ import re
 from planner import allocation, handoff, ladder, progress, releases, schema, trace
 from planner.parse import FENCE
 
-from .record import inline_html, plain, title_of
+from .record import inline_html, plain
 
 NUMBERED = re.compile(r"^\s*(\d+)\.\s+(.*)$")
 APP_STATUS_END = {"new": "new", "changed": "changes", "retired": "absent", "retire": "absent"}

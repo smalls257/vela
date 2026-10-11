@@ -9,7 +9,7 @@ import textwrap
 import pytest
 import yaml
 
-from conftest import REPO, run
+from conftest import REPO
 from planner import schema
 
 PLUGIN = REPO / "plugin"
@@ -97,7 +97,7 @@ GIT_IDENTITY = {"GIT_AUTHOR_NAME": "T", "GIT_AUTHOR_EMAIL": "t@example.invalid",
 
 def git_in(repo, *args):
     cmd = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid", *args]
-    return subprocess.run(cmd, cwd=repo, check=True, capture_output=True, text=True).stdout
+    return subprocess.run(cmd, cwd=repo, check=True, capture_output=True, text=True, timeout=60).stdout
 
 
 def close_voicecheck(repo, page):
@@ -107,7 +107,7 @@ def close_voicecheck(repo, page):
     # macOS mktemp ignores TMPDIR, so mktemp itself is pointed at the scratch folder
     script = f'mktemp() {{ command mktemp "{scratch}/t.XXXXXX"; }}\n' + recipe_commands().replace("<page>", page)
     env = {**os.environ, "TMPDIR": str(scratch)}
-    code = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True, env=env).returncode
+    code = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True, env=env, timeout=60).returncode
     assert list(scratch.iterdir()) == [], "the recipe left its temp file behind"
     if code == 0:
         git_in(repo, "add", page)
@@ -146,7 +146,7 @@ def test_a_step_three_edit_on_a_rewritten_page_survives_the_restore(tmp_path):
     (tmp_path / "record.md").write_text("Changes\n| staged by step 2 |\n", encoding="utf-8")
     git_in(tmp_path, "add", "record.md")
     guard = guard_command().replace("<page>", "page.md").replace("<id>", "s")
-    subprocess.run(["bash", "-c", guard], cwd=tmp_path, check=True, env={**os.environ, **GIT_IDENTITY})
+    subprocess.run(["bash", "-c", guard], cwd=tmp_path, check=True, env={**os.environ, **GIT_IDENTITY}, timeout=60)
     assert git_in(tmp_path, "log", "-1", "--format=%s").strip() == "Checkpoint s"
     assert git_in(tmp_path, "show", "--name-only", "--format=", "HEAD").split() == ["page.md"]
     assert git_in(tmp_path, "status", "--porcelain", "record.md").startswith("M")
@@ -340,7 +340,7 @@ def test_harvest_says_when_the_pr_limit_hid_older_prs():
 # Fix round 2.
 
 def run_git(repo, *args, stdin=None):
-    return subprocess.run(["git", *args], cwd=repo, input=stdin, capture_output=True, text=True, check=True).stdout
+    return subprocess.run(["git", *args], cwd=repo, input=stdin, capture_output=True, text=True, check=True, timeout=60).stdout
 
 
 def commit_page(repo, text, message):
@@ -415,7 +415,7 @@ def test_the_decline_hash_command_is_reproducible(tmp_path):
     assert "rm -f .planner/harvest/<pr>-<n>.txt" in harvest
     (tmp_path / "p.txt").write_text(paragraph, encoding="utf-8")
     out = subprocess.run(["bash", "-c", "shasum < p.txt | cut -c1-12"], cwd=tmp_path, capture_output=True, text=True,
-                         check=True).stdout.strip()
+                         check=True, timeout=60).stdout.strip()
     assert out == hashlib.sha1(paragraph.encode()).hexdigest()[:12]
 
 
@@ -466,7 +466,7 @@ def harvest_block(first_line):
 def fresh_shell(repo, block, **slots):
     for slot, value in slots.items():
         block = block.replace(f"<{slot}>", value)
-    return subprocess.run(["bash", "-c", block], cwd=repo, capture_output=True, text=True)
+    return subprocess.run(["bash", "-c", block], cwd=repo, capture_output=True, text=True, timeout=60)
 
 
 def test_harvest_names_its_temp_file_and_keeps_no_shell_variable():

@@ -2,14 +2,12 @@
 
 A catalogue that cannot be read must stop the tool (exit 2), never load as empty, because an
 empty catalogue makes every vault look as if it owed nothing. A trigger is read, never run."""
-import copy
-import pathlib
 import re
 
 import pytest
 import yaml
 
-from conftest import REPO, check, run
+from conftest import REPO, check
 from planner import catalog, cli
 
 SEED = REPO / "plugin" / "catalog" / "questions.yaml"
@@ -284,5 +282,5 @@ def test_the_installed_plugin_finds_its_catalogue(tmp_path):
     shutil.copytree(REPO / "plugin", vault / ".claude" / "skills" / "planner")
     assert (vault / ".claude" / "skills" / "planner" / "catalog" / "questions.yaml").is_file()
     result = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "check"], cwd=vault,
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr

@@ -69,7 +69,7 @@ def test_reversing_the_patch_gives_the_upstream_skill(folder, tmp_path):
     shutil.copytree(folder / "skill", work)
     # -E removes a file the patch created, so the reverse leaves no empty file behind.
     result = subprocess.run(["patch", "-p1", "-R", "-E", "-s", "-i", str(folder / "vault-mode.patch")], cwd=tmp_path,
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
     upstream = UPSTREAM / folder.name
     if not upstream.is_dir():

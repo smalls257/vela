@@ -40,7 +40,7 @@ def snapshot(vault):
 def test_fixture_is_clean_and_fast():
     started = time.perf_counter()
     result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "check",
-                             "--vault", str(FIXTURE), "--today", TODAY], capture_output=True, text=True)
+                             "--vault", str(FIXTURE), "--today", TODAY], capture_output=True, text=True, timeout=120)
     elapsed = time.perf_counter() - started
     assert result.returncode == 0, result.stdout
     assert result.stdout.startswith("planner check: 0 errors, 0 warnings in ")

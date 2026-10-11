@@ -8,7 +8,6 @@ problem it carries is listed in NOTIFICATIONS_PROBLEMS. Every vault ID the fixtu
 vault, built here by make_demo_vault.py, except the one deliberate bad trace.
 """
 import json
-import pathlib
 import shutil
 import sys
 
