@@ -420,7 +420,7 @@ const SelfTest = (() => {
     // the answer is streamed in pieces that cut through the Markdown: a table, a nested list, a code block, chips, and a payload
     const answer = (turn) => [
       "## What it delivers\n\n", `- It delivers [[${id}]]\n  - nested, from [[${id}]]\n    - deeper still\n- Bare ID ${otherId} in a bullet\n\n`,
-      "| Thing | Where |\n|---|---|\n", `| Alpha | [[${id}]] |\n\n`, "```js\nconst x = 1 < 2;\n```\n\n",
+      "| Thing | Where |\n|---|---|\n", `| Alpha | [[${id}]] |\n| Beta | [[${id}|a labelled link]] in a cell |\n\n`, "```js\nconst x = 1 < 2;\n```\n\n",
       withToc ? `See [[${E[withToc].path}#${heading}]]. ` : "",
       // the forms Claude copies from the vault's own pages: a path without .md, a bare file name, a heading, a |label
       withToc ? `Also [[${E[withToc].path.replace(/\.md$/, "")}|the stem link]] and [[${E[withToc].path.replace(/\.md$/, "").split("/").pop()}#${heading}|the base link]]. ` : "",
@@ -453,6 +453,9 @@ const SelfTest = (() => {
     ok(a1 && $$(`.ref-chip[data-ref="${CSS.escape(known)}"]`, a1).length >= 3 && !!$("table .ref-chip", a1) && !!$("ul ul .ref-chip", a1),
       `ask, fake helper: ${id} cited with [[ ]] is a chip in a bullet, a nested bullet and a table cell`, "ask, fake helper: [[ID]] chips are missing from the list or the table");
     ok(!!bullet && !!$(`.ref-chip[data-ref="${CSS.escape(other)}"]`, bullet) && !$("code", bullet), `ask, fake helper: ${otherId}, written bare, is a chip too`, `ask, fake helper: bare ID in "${bullet && bullet.textContent}"`);
+    const rows = a1 ? $$("table tr", a1) : [];
+    ok(rows.length >= 3 && rows.every((r) => r.children.length === 2) && /a labelled link/.test(rows[2].textContent),
+      "ask, fake helper: a table row's [[ID|label]] keeps its pipe: the row has 2 cells, not 3", `ask, fake helper: table cells per row ${rows.map((r) => r.children.length)}`);
     const dead = a1 && $(".ask-unknown", a1);
     ok(!!dead && /ZZZ-999/.test(dead.textContent) && /not in this vault/.test(dead.textContent), "ask, fake helper: [[ZZZ-999]] is flagged as not in this vault", "ask, fake helper: the unknown ID is not flagged");
     if (withToc) {

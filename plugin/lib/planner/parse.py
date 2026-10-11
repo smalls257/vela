@@ -131,13 +131,22 @@ def links_in(text, line):
     return tuple(parse_link(m.group(1), line) for m in WIKILINK.finditer(text))
 
 
+LINK_IN_ROW = re.compile(r"\[\[[^\[\]\n]*\]\]")
+
+
+def protect_link_pipes(body):
+    """A table row with every pipe inside a [[link]] hidden as NUL. A link's label pipe should be written \\| in a table;
+    one written bare is still part of its link, as Obsidian reads it, not a column break (W329 names it)."""
+    return LINK_IN_ROW.sub(lambda m: m.group(0).replace("\\|", "\x00").replace("|", "\x00"), body)
+
+
 def split_row(line):
     body = line.strip()
     if body.startswith("|"):
         body = body[1:]
     if body.endswith("|") and not body.endswith("\\|"):
         body = body[:-1]
-    cells = body.replace("\\|", "\x00").split("|")
+    cells = protect_link_pipes(body.replace("\\|", "\x00")).split("|")
     return tuple(c.strip().replace("\x00", "|") for c in cells)
 
 

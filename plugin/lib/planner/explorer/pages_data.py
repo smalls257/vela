@@ -10,6 +10,7 @@ import html
 import re
 
 from planner import reading
+from planner.parse import protect_link_pipes
 from planner.viewer import body_of
 
 from .record import inline_html, title_of
@@ -34,7 +35,8 @@ def cells(line):
     if inner.endswith("|") and not inner.endswith("\\|"):
         inner = inner[:-1]
     # reading.tidy relabels [[page#X Name\\|X]] as Name, keeping the table's escaping backslash in the label: drop it
-    return [re.sub(r"\\(?=\]\])", "", c.replace("\\|", "|")).strip() for c in re.split(r"(?<!\\)\|", inner)]
+    inner = protect_link_pipes(inner)  # a bare | inside [[link|label]] is the link's, not a column break
+    return [re.sub(r"\\(?=\]\])", "", c.replace("\x00", "|").replace("\\|", "|")).strip() for c in re.split(r"(?<!\\)\|", inner)]
 
 
 class Renderer:

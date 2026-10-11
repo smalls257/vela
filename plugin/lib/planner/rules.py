@@ -982,6 +982,24 @@ def link_field_rules(vault, today):
                      "Write - **Links:** [API spec](https://...), [Docs](https://...).")
 
 
+BARE_LINK_PIPE = re.compile(r"\[\[[^\[\]\n|]*(?<!\\)\|[^\[\]\n]*\]\]")
+
+
+def link_pipe_rules(vault, today):
+    """W329: a [[link|label]] in a table row written with a bare |. Obsidian, GitHub and other Markdown readers take it
+    as a column break and the row falls apart; the planner reads it as the link's, so nothing is lost here."""
+    for page in vault.pages:
+        lines = page.text.splitlines()
+        for table in page.tables:
+            if table.generated:
+                continue
+            for line in table.row_lines:
+                row = lines[line - 1] if 0 < line <= len(lines) else ""
+                for link in BARE_LINK_PIPE.findall(row):
+                    yield _f(page, line, "W329", f"The link {link} in a table row has a bare |, which splits the row in other readers.",
+                             "Write its label pipe as \\| inside a table, as in [[page#Heading\\|label]].")
+
+
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules)
+         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules)

@@ -21,6 +21,12 @@ const Markdown = (() => {
     return m && /^(https?|mailto)$/i.test(m[1]) ? t : null;
   }
 
+  /* A table row's [[link|label]] keeps its pipe: GFM would read a bare one as a column break, as the vault's own
+     pages sometimes write it (W329). Escaped here, marked turns it back into | inside the cell. */
+  function tablePipes(md) {
+    return md.replace(/^([ \t]*\|.*)$/gm, (row) => row.replace(/\[\[[^\[\]\n]*\]\]/g, (link) => link.replace(/(?<!\\)\|/g, "\\|")));
+  }
+
   function parser() {
     if (engine) return engine;
     if (typeof marked === "undefined" || !marked.Marked) return null;
@@ -88,7 +94,7 @@ const Markdown = (() => {
       return frag;
     }
     const holder = document.createElement("template");
-    holder.innerHTML = p.parse(growing ? stable(md) : md);
+    holder.innerHTML = p.parse(tablePipes(growing ? stable(md) : md));
     rebuild(holder.content, frag);
     return frag;
   }

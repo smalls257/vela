@@ -7,6 +7,7 @@ added or moved, the rewrite fails, and close keeps the earlier draft.
 import re
 from collections import Counter
 from dataclasses import dataclass
+from planner.parse import protect_link_pipes
 
 CODE_SPAN = re.compile(r"``[^\n]+?``|`[^`\n]+`")
 WIKILINK = re.compile(r"!?\[\[[^\]\n]+?\]\]")
@@ -51,7 +52,7 @@ class Result:
 
 def cells(line):
     body = line.strip().strip("|")
-    return [c.strip() for c in body.replace("\\|", "\x00").split("|")]
+    return [c.strip().replace("\x00", "|") for c in protect_link_pipes(body.replace("\\|", "\x00")).split("|")]
 
 
 def normalised_lines(text):

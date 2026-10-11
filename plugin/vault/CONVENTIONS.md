@@ -506,6 +506,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
 | W318 | decided contract has no Tested by, by override | W323 | override not needed |
 | W324 | decided on the owner's behalf, not yet confirmed | W327 | reader's decisions pending approval |
+| W329 | a table row's link label pipe is not escaped as `\|` | | |
 | E801 | question ledger row is malformed | E802 | ledger state lacks the evidence it needs |
 | E803 | ledger row names nothing the catalogue owes | W804 | ledger row is orphaned or no longer owed |
 | E805 | high-severity question not disposed at the epics gate | W805 | high-severity question not disposed, by override |
