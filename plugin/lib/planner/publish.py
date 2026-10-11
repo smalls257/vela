@@ -18,6 +18,9 @@ STAMP_PATH = ".planner/published.json"
 STAMP_FORMAT = 1
 # Generated output, a person's private voice material, and the vendored plugin (the reader's own plugin runs).
 EXCLUDED = (".git/", ".planner/", "voice/local/", ".claude/skills/planner/")
+# The one .planner/ file a team commits (the vault .gitignore un-ignores it), so a reader's map is laid out like the owner's.
+# Still "excluded" as far as a reader's drafts go: a layout is not a page, so comparing a workspace with its baseline skips it.
+KEPT = (".planner/explorer-pins.json",)
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 
 
@@ -40,7 +43,7 @@ def check_name(path):
 
 def selected(files):
     """The committed files that belong in a read copy, by path."""
-    return {check_name(path): data for path, data in files.items() if not is_excluded(path)}
+    return {check_name(path): data for path, data in files.items() if path in KEPT or not is_excluded(path)}
 
 
 def tree_hash(files):

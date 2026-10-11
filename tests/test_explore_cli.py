@@ -102,7 +102,7 @@ def test_the_report_warns_when_the_vault_would_commit_the_page(vault):
     (vault / ".gitignore").write_text("voice/local/\n", encoding="utf-8")
     code, said = explore(vault)
     assert code == 0 and "does not list .planner/" in said
-    (vault / ".gitignore").write_text("voice/local/\n.planner/\n", encoding="utf-8")
+    (vault / ".gitignore").write_text("voice/local/\n.planner/*\n!.planner/explorer-pins.json\n", encoding="utf-8")
     code, said = explore(vault)
     assert "does not list .planner/" not in said
 

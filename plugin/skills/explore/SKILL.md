@@ -38,13 +38,13 @@ $ARGUMENTS
 - `<APP> design <path>: <status>, N components, M things it could not read`. The lines under it give the line number and what was skipped. Tell the user which designs are incomplete; the page shows the same count on the design's chip. Never describe a design as complete when its status says otherwise.
 - `<key> asks for icon: <name>, which is not in the built-in set`. The page drew that app by keyword instead. Harmless. Mention it only if the user cares about the picture.
 - `no Open the file links, the vault and the page sit apart under the home folder`. The page was written somewhere its relative links to the vault cannot reach without naming the home folder, so it leaves them out rather than writing an absolute path. Build again without `-o` to get them.
-- `this vault's .gitignore does not list .planner/`. The page and the pinned layout would be committed. Offer to add the line `.planner/` to `.gitignore`, and do it only if the user says yes.
+- `this vault's .gitignore does not list .planner/`. The page would be committed. Offer to add the lines `.planner/*` and `!.planner/explorer-pins.json` to `.gitignore` (the pins are the one file a team commits), and do it only if the user says yes.
 - `assets from ..., N fell back to builtin`. Each fallback is listed with its reason. Say which slots fell back.
 
 ## Where the files go
 
-- The page goes to `.planner/explorer.html` in the vault. `.planner/` is the vault's folder for the tool's own files and the template gitignores it, so the page, 3 MB and rebuilt on demand, is never committed by accident. It sits inside the vault so the page's "Open the file" links, which are relative, still reach the Markdown. A page in the system temp folder would lose those links and be cleaned away.
-- The pinned layout goes to `.planner/explorer-pins.json` in the vault. It is a small JSON map of ID to column and row, listed in `CONVENTIONS.md`.
+- The page goes to `.planner/explorer.html` in the vault. `.planner/` is the vault's folder for the tool's own files and the template gitignores it (except the pins file), so the page, 3 MB and rebuilt on demand, is never committed by accident. It sits inside the vault so the page's "Open the file" links, which are relative, still reach the Markdown. A page in the system temp folder would lose those links and be cleaned away.
+- The pinned layout goes to `.planner/explorer-pins.json` in the vault. It is a small JSON map of ID to column and row, listed in `CONVENTIONS.md`. The template's `.gitignore` tracks it, so commit it and the team shares one map layout; `planner publish` carries it into read copies.
 - Nothing is written into the plugin folder. A plugin update replaces that folder, and the layout would go with it.
 
 ## Ask Claude

@@ -17,7 +17,7 @@ TODAY = "2026-10-11"
 def vault(tmp_path):
     root = make_vault(tmp_path)
     # Things a read copy must not carry, committed on purpose (force-added past the ignore rules).
-    for name in (".claude/skills/planner/scripts/planner", "voice/local/mine.md", ".planner/explorer.html"):
+    for name in (".claude/skills/planner/scripts/planner", "voice/local/mine.md", ".planner/explorer.html", ".planner/explorer-pins.json"):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("owner only\n", encoding="utf-8")
@@ -47,7 +47,7 @@ def test_a_folder_copy_has_no_git_no_vendored_plugin_and_no_local_voice(vault, t
     assert ".planner.yaml" in names and "01-goals.md" in names
     assert not [n for n in names if n.startswith((".git/", ".claude/skills/planner/", "voice/local/"))]
     assert not (out / ".git").exists()
-    assert [n for n in names if n.startswith(".planner/")] == [".planner/published.json"]
+    assert [n for n in names if n.startswith(".planner/")] == [".planner/explorer-pins.json", ".planner/published.json"]
 
 
 def test_the_stamp_is_complete_and_names_the_head_commit(vault, tmp_path):
@@ -192,3 +192,11 @@ def test_the_same_content_hashes_the_same_whatever_the_order():
     one = {"a": b"1", "b": b"2"}
     assert publish.tree_hash(one) == publish.tree_hash({"b": b"2", "a": b"1"})
     assert publish.tree_hash(one) != publish.tree_hash({"a": b"1", "b": b"3"})
+
+
+def test_the_pins_travel_in_a_copy_but_are_not_a_page_a_reader_changed():
+    """A reader's explore adds pins; comparing the workspace with its baseline must not count that as a draft."""
+    pins = ".planner/explorer-pins.json"
+    assert pins in publish.selected({pins: b"{}", ".planner/explorer.html": b"x", "01-goals.md": b"g"})
+    assert ".planner/explorer.html" not in publish.selected({".planner/explorer.html": b"x"})
+    assert publish.is_excluded(pins)

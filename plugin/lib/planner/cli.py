@@ -937,7 +937,8 @@ def cmd_view(args, out):
 
 
 # What a vault's .gitignore says when it keeps the tool's own files out of commits (the template's does).
-IGNORES_PLANNER_DIR = (".planner", ".planner/", "/.planner", "/.planner/", "**/.planner/")
+# `.planner/*` is the template's form: it lets `!.planner/explorer-pins.json` keep the shared layout in git.
+IGNORES_PLANNER_DIR = (".planner", ".planner/", "/.planner", "/.planner/", "**/.planner/", ".planner/*", "/.planner/*")
 
 
 def ignores_planner_dir(root):
@@ -972,8 +973,9 @@ def cmd_explore(args, out):
     for line in lines:
         print(f"planner explore: {line}", file=out)
     if not ignores_planner_dir(root):
-        print("planner explore: this vault's .gitignore does not list .planner/, so the page and the pinned layout "
-              "would be committed. Add the line `.planner/` to .gitignore, or build with --out somewhere outside the vault.",
+        print("planner explore: this vault's .gitignore does not list .planner/, so the 3 MB page would be committed. "
+              "Add the lines `.planner/*` and `!.planner/explorer-pins.json` to .gitignore (the pinned layout is the one file a team shares), "
+              "or build with --out somewhere outside the vault.",
               file=out)
     if args.serve:
         if not 0 <= args.port <= 65535:

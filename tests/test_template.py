@@ -34,7 +34,7 @@ def test_config_files():
     assert set(config) == {"initiative", "title", "stale_after_days"}
     assert config["stale_after_days"] == 60
     ignored = (TEMPLATE / ".gitignore").read_text(encoding="utf-8").split()
-    assert ignored == [".inbox/", "voice/corpus/", "voice/local/", ".obsidian/workspace*.json", ".obsidian/cache", "__pycache__/", "*.pyc", ".planner/"]
+    assert ignored == [".inbox/", "voice/corpus/", "voice/local/", ".obsidian/workspace*.json", ".obsidian/cache", "__pycache__/", "*.pyc", ".planner/*", "!.planner/explorer-pins.json"]
     assert json.loads((TEMPLATE / ".obsidian" / "app.json").read_text(encoding="utf-8")) == {"alwaysUpdateLinks": False}
     assert json.loads((TEMPLATE / ".claude" / "settings.json").read_text(encoding="utf-8")) == {"autoMemoryEnabled": False}
 
@@ -106,3 +106,19 @@ def test_wrapper_loads_the_copied_plugin():
     assert wrapper.exists() and os.access(wrapper, os.X_OK)
     assert "--plugin-dir" in wrapper.read_text(encoding="utf-8")
     assert "bin/claude-planner" in (TEMPLATE / "README.md").read_text(encoding="utf-8")
+
+
+def test_a_fresh_vault_tracks_the_map_pins_and_ignores_the_rest_of_the_tool_folder(tmp_path):
+    """The pins are the one .planner/ file a team shares; a reader's workspace and the built page stay out of commits."""
+    vault = tmp_path / "vault"
+    shutil.copytree(TEMPLATE, vault)
+    subprocess.run(["git", "init", "-q", str(vault)], check=True, timeout=60)
+
+    def ignored(path):
+        done = subprocess.run(["git", "-C", str(vault), "check-ignore", "-q", path], timeout=60)
+        return done.returncode == 0
+
+    assert not ignored(".planner/explorer-pins.json")
+    for path in (".planner/explorer.html", ".planner/workspace.json", ".planner/baseline/01-goals.md",
+                 ".planner/replay-backup/x.md", ".planner/findings/a.md"):
+        assert ignored(path), path
