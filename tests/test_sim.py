@@ -405,6 +405,12 @@ def test_the_full_run_scorecard_sets_hits_beside_the_verdicts(full_run):
     assert "keyword hits" in (full_run["run"] / "compare.html").read_text(encoding="utf-8")
 
 
+def test_the_scorecard_reports_what_the_vault_records_for_the_explorer(full_run):
+    card = json.loads((full_run["run"] / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert card["capture"]["counts"]["apps"] == 0 and card["capture"]["checks"][0]["check"] == "every app has a domain"
+    assert "## Recorded for the explorer" in (full_run["run"] / "planner" / "scorecard.md").read_text(encoding="utf-8")
+
+
 def test_the_judge_is_called_once_per_category_and_asked_to_think(full_run):
     for arm in ("planner", "planner-seuss", "baseline"):
         calls = [c for c in full_run["calls"] if c["role"] == "judge" and f"{os.sep}{arm}{os.sep}" in c["cwd"] + os.sep]

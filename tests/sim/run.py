@@ -835,6 +835,7 @@ class Arm:
         self.notes = []
         self.failure = None
         self.scorecard = None
+        self.capture_expect = {}  # the script's `capture:` block: release_date and ask, what the persona planted
         self.prior_spent = 0.0  # what an earlier run spent, when this arm is only being judged again
         self.judge_calls = []
         write_gh_stub(self.dir / "bin")
@@ -858,6 +859,7 @@ class Arm:
         arm.calls = len(list((arm.dir / "raw").glob("*.txt")))
         arm.endings = record.get("endings") or []
         arm.notes, arm.failure, arm.scorecard, arm.judge_calls = [], None, None, []
+        arm.capture_expect = {}
         arm.prior_spent = float(record.get("spent_usd") or 0)
         arm.env = arm_env(arm.dir, args.stub)
         (arm.dir / "persona-cwd").mkdir(exist_ok=True)
@@ -1518,6 +1520,21 @@ def drafted_messages(transcript):
     return [e["turn"] for e in transcript.spoken() if e["speaker"] == "assistant" and DRAFTED_MESSAGE.search(e["text"])]
 
 
+def capture_of(arm):
+    """What the final vault records for the explorer's domains, flow senders, releases, requirements and asks, read by
+    `planner capture`. A tool failure is written into the scorecard, since the counts are a sensor, not a verdict."""
+    expect = getattr(arm, "capture_expect", None) or {}
+    argv = [sys.executable, str(PLANNER), "capture", "--vault", str(arm.vault), "--json"]
+    if expect.get("release_date"):
+        argv += ["--expect-release", str(expect["release_date"])]
+    if expect.get("ask"):
+        argv += ["--expect-ask", str(expect["ask"])]
+    done = subprocess.run(argv, capture_output=True, text=True)
+    if done.returncode != 0:
+        return {"error": (done.stdout + done.stderr).strip()[:300]}
+    return json.loads(done.stdout)
+
+
 def build_scorecard(arm, data, hits):
     card = enforce_citations(data, arm.transcript, arm.vault)
     card["hits"] = hits
@@ -1527,6 +1544,7 @@ def build_scorecard(arm, data, hits):
     card["judge_calls"] = arm.judge_calls
     card["max_questions_in_one_turn"] = max_questions(arm.transcript)
     card["drafted_messages"] = drafted_messages(arm.transcript)
+    card["capture"] = capture_of(arm)
     claimed = claimed_actions(arm.transcript)
     if claimed:
         card["check_these"].append(f"persona: claimed an action outside the chat in {len(claimed)} turns "
@@ -1601,6 +1619,22 @@ def evidence(row):
     return row.get("where") or ""
 
 
+def render_capture(capture):
+    """What the vault records for the explorer's inputs, and which of the capture checks held."""
+    if not capture:
+        return []
+    if capture.get("error"):
+        return ["## Recorded for the explorer", "", f"- planner capture failed: {capture['error']}", ""]
+    counts = capture["counts"]
+    lines = ["## Recorded for the explorer", "",
+             f"- Apps with a domain: {counts['apps_with_domain']} of {counts['apps']}",
+             f"- Flow steps that cross a contract and name a sender: {counts['flow_steps_with_sender']} of {counts['flow_steps_crossing']}",
+             f"- Releases: {counts['releases']}. Requirements: {counts['requirements']}. Allocation rows: {counts['allocation_rows']}",
+             f"- Unknowns that name who to ask: {counts['unknowns_with_ask']} of {counts['unknowns']}", ""]
+    lines += [f"- {'pass' if c['passed'] else 'gap'}: {c['check']} ({c['detail']})" for c in capture["checks"]]
+    return lines + [""]
+
+
 def render_scorecard_md(card, persona):
     text = {kind: {i["id"]: i.get("gap") or i.get("belief") or i.get("fact") or i.get("question")
                    or f"{i.get('who')}: {i.get('position')}" for i in persona.get(kind) or []} for kind in ID_KINDS}
@@ -1619,6 +1653,7 @@ def render_scorecard_md(card, persona):
              "## Check these", ""]
     lines += [f"- {c}" for c in card.get("check_these") or []] or ["- none: the judge and the keyword hits agree"]
     lines.append("")
+    lines += render_capture(card.get("capture"))
     titles = {"unaware": "Gaps surfaced (U)", "wrong": "Wrong beliefs challenged (W)", "knows": "Facts captured (K)",
               "decisions": "Decisions (D)", "conflicts": "Stakeholder conflicts surfaced (C)"}
     hits = card.get("hits") or {}
@@ -1847,6 +1882,7 @@ def main(argv=None):
     for name in args.arm_list:
         arm = Arm(name, run_dir, args, persona, share)
         arms.append(arm)
+        arm.capture_expect = script.get("capture") or {}
         try:
             arm.run(script)
             arm.scorecard = score_arm(arm)

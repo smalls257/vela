@@ -671,10 +671,11 @@ def ask_rules(vault, today):
 
 
 def requirement_coverage_rules(vault, today):
-    """W356 and W357. A changing capability with no requirements leaves the explorer's requirement door looking
-    finished; a requirement with no acceptance criteria gives a release no AC to cite."""
-    if vault.apps:
-        have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
+    """W356 and W357. Once a vault has written any requirement, a changing capability left with none leaves the
+    explorer's requirement door looking finished; a requirement with no acceptance criteria gives a release no AC to cite."""
+    written = allocation.requirements(vault)
+    if vault.apps and written:  # a vault that never ran Requirements is reported by planner next and planner capture
+        have = {r.id.split(".")[0] for r in written}
         for cap in sorted(vault.of_type("capability"), key=lambda p: p.id):
             change = cap.meta.get("change")
             if change in schema.ENUMS["change@capability"] and change != "unchanged" and cap.id not in have:

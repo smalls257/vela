@@ -116,15 +116,20 @@ def test_an_ask_that_names_the_owner_warns(tmp_path):
     assert "W355" in check(vault)
 
 
-def test_a_changing_capability_with_no_requirements_warns_and_a_requirement_with_no_criteria_warns(tmp_path):
+def test_a_vault_that_never_ran_requirements_is_left_to_next_and_capture_not_w356(tmp_path):
+    assert "W356" not in check(copy(tmp_path))
+
+
+def test_once_a_requirement_exists_a_changing_capability_without_one_warns_and_one_with_no_criteria_warns(tmp_path):
     vault = copy(tmp_path)
-    assert "W356" in check(vault)
     cap = vault / "capabilities/CAP-014-hold-a-seat.md"
     cap.write_text(cap.read_text(encoding="utf-8").rstrip("\n") +
                    "\n\n## Functional requirements\n\n### CAP-014.FR1 Hold a seat\n\nA seat is held while paying.\n\n"
                    "- **State:** assumption\n- **Source:** SRC-04\n", encoding="utf-8")
     out = check(vault)
-    assert "W357" in out and "CAP-014 is new but has no functional requirements" not in out
+    assert "W357" in out
+    assert "CAP-012 is narrow but has no functional requirements" in out
+    assert "CAP-014 is new but has no functional requirements" not in out
 
 
 def test_the_explorer_draws_a_recorded_sender_as_stated_even_against_the_provider(tmp_path):
