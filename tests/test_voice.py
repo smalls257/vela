@@ -228,7 +228,7 @@ def test_voice_seed_quotes_from_and_runs_a_final_check(tmp_path):
         for i in range(n):
             (vault / folder / "decision" / f"VX-decision-{folder[-1]}{i}.md").write_text(
                 "---\nvoice_type: decision\nstate: active\nfrom: 'it''s'\n---\n\nbody\n", encoding="utf-8")
-    run = lambda: subprocess.run([sys.executable, "-c", script], cwd=vault, capture_output=True, text=True)
+    run = lambda: subprocess.run([sys.executable, "-c", script], cwd=vault, capture_output=True, text=True, timeout=60)
     assert run().returncode == 1  # six active in one type
     next((vault / "voice" / "local" / "decision").glob("*.md")).write_text(
         "---\nvoice_type: decision\nstate: retired\n---\n", encoding="utf-8")
@@ -266,7 +266,7 @@ def test_the_verbatim_check_compares_with_cmp(tmp_path):
     def run(body):
         stored.write_bytes((head + body).encode("utf-8"))
         script = _verbatim_script(seed, stored, passage)
-        return subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+        return subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=60)
 
     assert run(passage).returncode == 0
     assert run(passage.replace("   \n", "\n")).returncode != 0   # trailing whitespace lost
@@ -284,6 +284,6 @@ def test_the_verbatim_check_block_cleans_up_its_own_temp_file(tmp_path):
     scratch.mkdir()
     # macOS mktemp ignores TMPDIR, so the test points mktemp itself at the scratch folder
     script = f'mktemp() {{ command mktemp "{scratch}/t.XXXXXX"; }}\n' + _verbatim_script(seed, stored, "A passage.\n")
-    result = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    result = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=60)
     assert result.returncode == 0
     assert list(scratch.iterdir()) == []

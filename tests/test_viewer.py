@@ -59,7 +59,7 @@ def test_viewer_builds_offline_from_the_fixture(tmp_path):
 
 def git_in(vault, *args):
     subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
-                   check=True, capture_output=True)
+                   check=True, capture_output=True, timeout=60)
 
 
 def test_stamp_says_when_the_vault_has_uncommitted_changes(tmp_path):

@@ -228,7 +228,7 @@ ASK_INJECT = re.compile(r"^!`(.+)`$", re.M)
 def run_injected(cwd, env):
     out = []
     for command in ASK_INJECT.findall(text("skills/ask/SKILL.md")):
-        result = subprocess.run(["bash", "-c", command], cwd=cwd, env=env, capture_output=True, text=True)
+        result = subprocess.run(["bash", "-c", command], cwd=cwd, env=env, capture_output=True, text=True, timeout=60)
         assert result.returncode == 0, (command, result.stderr)
         out.append(result.stdout)
     return out
@@ -248,10 +248,10 @@ def test_ask_header_works_with_no_origin_and_no_claude_md(tmp_path):
     import os
     env = {**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)}
     git = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid"]
-    subprocess.run(git + ["init", "-q", "-b", "main"], cwd=tmp_path, check=True)
+    subprocess.run(git + ["init", "-q", "-b", "main"], cwd=tmp_path, check=True, timeout=60)
     (tmp_path / "x.md").write_text("x\n", encoding="utf-8")
-    subprocess.run(git + ["add", "x.md"], cwd=tmp_path, check=True)
-    subprocess.run(git + ["commit", "-q", "-m", "x"], cwd=tmp_path, check=True)
+    subprocess.run(git + ["add", "x.md"], cwd=tmp_path, check=True, timeout=60)
+    subprocess.run(git + ["commit", "-q", "-m", "x"], cwd=tmp_path, check=True, timeout=60)
     rules, fresh = run_injected(tmp_path, env)
     assert rules.startswith("NO CLAUDE.md")
     assert re.match(r"HEAD is [0-9a-f]+, committed \d{4}-\d{2}-\d{2}\.\n", fresh)

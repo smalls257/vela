@@ -161,11 +161,11 @@ GIT = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid"]
 def repo(tmp_path):
     if shutil.which("git") is None:
         pytest.skip("git is not installed")
-    subprocess.run(GIT + ["init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(GIT + ["init", "-q"], cwd=tmp_path, check=True, timeout=60)
     (tmp_path / "page.md").write_text(DRAFT, encoding="utf-8")
     (tmp_path / "other.md").write_text("Nothing protected here.\n", encoding="utf-8")
-    subprocess.run(GIT + ["add", "-A"], cwd=tmp_path, check=True)
-    subprocess.run(GIT + ["commit", "-qm", "draft: prose for s"], cwd=tmp_path, check=True)
+    subprocess.run(GIT + ["add", "-A"], cwd=tmp_path, check=True, timeout=60)
+    subprocess.run(GIT + ["commit", "-qm", "draft: prose for s"], cwd=tmp_path, check=True, timeout=60)
     return tmp_path
 
 
@@ -181,15 +181,15 @@ def test_range_against_the_working_tree(repo):
 
 def test_range_between_two_commits(repo):
     (repo / "page.md").write_text(DRAFT.replace("CON-003 on", "CON-004 on"), encoding="utf-8")
-    subprocess.run(GIT + ["commit", "-qam", "draft: voice rewrite for s"], cwd=repo, check=True)
+    subprocess.run(GIT + ["commit", "-qam", "draft: voice rewrite for s"], cwd=repo, check=True, timeout=60)
     code, out = run("voicecheck", "--range", "HEAD~1..HEAD", "--vault", str(repo))
     assert code == 1
     assert "page.md: missing: CON-003 (id), before line 1" in out and "page.md: added: CON-004 (id), after line 1" in out
 
 
 def commit_all(repo, message):
-    subprocess.run(GIT + ["add", "-A"], cwd=repo, check=True)
-    subprocess.run(GIT + ["commit", "-qm", message], cwd=repo, check=True)
+    subprocess.run(GIT + ["add", "-A"], cwd=repo, check=True, timeout=60)
+    subprocess.run(GIT + ["commit", "-qm", message], cwd=repo, check=True, timeout=60)
 
 
 def test_range_reads_non_ascii_and_spaced_names(repo):
@@ -209,7 +209,7 @@ def test_range_compares_a_renamed_file_with_its_old_self(repo):
     filler = "".join(f"Filler line {word} that keeps the two versions alike.\n" for word in "abcdefghij")
     (repo / "page.md").write_text(DRAFT + filler, encoding="utf-8")
     commit_all(repo, "longer page")
-    subprocess.run(GIT + ["mv", "page.md", "renamed.md"], cwd=repo, check=True)
+    subprocess.run(GIT + ["mv", "page.md", "renamed.md"], cwd=repo, check=True, timeout=60)
     (repo / "renamed.md").write_text(DRAFT.replace("10 minutes", "ten minutes") + filler, encoding="utf-8")
     commit_all(repo, "rename and rewrite")
     code, out = run("voicecheck", "--range", "HEAD~1..HEAD", "--vault", str(repo))

@@ -55,7 +55,7 @@ def test_readme_checklist_count_matches_the_template_checklist():
 
 def test_readme_plugin_row_lists_every_cli_command():
     row = next(line for line in read("README.md").splitlines() if line.startswith("| `plugin/` |"))
-    help_text = subprocess.run(["python3", str(PLUGIN / "scripts" / "planner"), "--help"], capture_output=True, text=True).stdout
+    help_text = subprocess.run(["python3", str(PLUGIN / "scripts" / "planner"), "--help"], capture_output=True, text=True, timeout=120).stdout
     commands = re.search(r"\{([a-z,]+)\}", help_text).group(1).split(",")
     for command in commands:
         assert f"`{command}`" in row, command
@@ -81,7 +81,7 @@ def test_close_merges_a_moved_main_before_render():
 def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
     """main rewrote a generated block; the session edited G3 on the same page. -X ours keeps G3."""
     def git(*args, ok=True):
-        done = subprocess.run(["git", *args], cwd=tmp_path, capture_output=True, text=True)
+        done = subprocess.run(["git", *args], cwd=tmp_path, capture_output=True, text=True, timeout=60)
         assert not ok or done.returncode == 0, done.stderr
         return done
     page = tmp_path / "01-goals.md"

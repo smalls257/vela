@@ -2,7 +2,6 @@
 owner's own range. Free: a fake embedder stands in for StyleDistance, so no test needs torch,
 a model download or the network."""
 import json
-import pathlib
 import subprocess
 import sys
 import textwrap
@@ -361,7 +360,7 @@ def test_the_cache_key_is_the_text_and_the_exact_model():
 
 
 def git_init(path):
-    subprocess.run(["git", "init", "-q", str(path)], check=True)
+    subprocess.run(["git", "init", "-q", str(path)], check=True, timeout=60)
 
 
 def test_vectors_are_cached_under_dot_git_and_reused(vault, scorer, tmp_path):
@@ -375,7 +374,7 @@ def test_vectors_are_cached_under_dot_git_and_reused(vault, scorer, tmp_path):
     code, out = run("voicescore", path, "--vault", str(vault))
     assert code == 0 and len(scorer.calls) == first  # every vector came from the cache
     assert f"cache: {folder.resolve()}" in out
-    status = subprocess.run(["git", "-C", str(vault), "status", "--porcelain", "--ignored"], capture_output=True, text=True).stdout
+    status = subprocess.run(["git", "-C", str(vault), "status", "--porcelain", "--ignored"], capture_output=True, text=True, timeout=60).stdout
     assert "planner-voicescore" not in status
 
 
@@ -427,7 +426,7 @@ def test_check_works_when_the_optional_dependency_cannot_be_imported(monkeypatch
 def test_importing_the_cli_never_imports_the_optional_dependency():
     script = ("import sys; sys.path.insert(0, sys.argv[1]); import planner.cli; "
               "print(sorted(m for m in ('sentence_transformers', 'torch', 'huggingface_hub', 'numpy') if m in sys.modules))")
-    out = subprocess.run([sys.executable, "-c", script, str(PLUGIN / "lib")], capture_output=True, text=True, check=True).stdout
+    out = subprocess.run([sys.executable, "-c", script, str(PLUGIN / "lib")], capture_output=True, text=True, check=True, timeout=60).stdout
     assert out.strip() == "[]"
 
 

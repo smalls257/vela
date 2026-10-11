@@ -42,7 +42,7 @@ def entries(arm_dir):
 
 
 def repo_state():
-    status = subprocess.run(["git", "status", "--porcelain"], cwd=REPO, capture_output=True, text=True).stdout
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=REPO, capture_output=True, text=True, timeout=60).stdout
     results = sorted(p.name for p in (SIM / "results").iterdir()) if (SIM / "results").is_dir() else []
     return status, results
 
@@ -130,9 +130,9 @@ def test_seuss_examples_reach_voice_local_only_in_the_seuss_arm(full_run):
     for vault, state in ((seuss, "retired"), (plain, "active")):
         for seed in (vault / "voice" / "examples").glob("*/*.md"):
             committed = subprocess.run(["git", "show", f"HEAD:{seed.relative_to(vault).as_posix()}"], cwd=vault,
-                                       capture_output=True, text=True).stdout
+                                       capture_output=True, text=True, timeout=60).stdout
             assert f"\nstate: {state}\n" in committed, seed
-    status = subprocess.run(["git", "status", "--porcelain"], cwd=seuss, capture_output=True, text=True).stdout
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=seuss, capture_output=True, text=True, timeout=60).stdout
     assert "voice/" not in status, "voice/local must stay gitignored and the retirement committed"
 
 

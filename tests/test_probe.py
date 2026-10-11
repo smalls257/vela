@@ -109,14 +109,14 @@ def test_every_snapshot_is_a_clean_vault_with_its_personas_inbox(snapshot):
     stale = probe.inbox_problems(snapshot, persona(snapshot.parent.name))
     assert len(stale) == 0
     check = subprocess.run([sys.executable, str(sim.PLANNER), "check", "--vault", str(snapshot)],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, timeout=120)
     assert check.returncode == 0
     assert re.search(r"planner check: 0 errors,", check.stdout) is not None
 
 
 def test_the_snapshot_inboxes_are_in_git_although_a_vault_ignores_them():
     """A vault's .gitignore holds .inbox/, and git reads it inside the snapshot too, so they are added with -f."""
-    tracked = subprocess.run(["git", "ls-files", "tests/sim/snapshots"], cwd=REPO, capture_output=True, text=True).stdout
+    tracked = subprocess.run(["git", "ls-files", "tests/sim/snapshots"], cwd=REPO, capture_output=True, text=True, timeout=60).stdout
     if not tracked.strip():
         pytest.skip("the snapshots are not committed yet")
     for snapshot in SNAPSHOT_DIRS:

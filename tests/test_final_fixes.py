@@ -41,7 +41,7 @@ def add_cap(vault, text=CAP_PAGE):
 
 def run_bin(vault, *args, env=None):
     return subprocess.run([sys.executable, str(BIN), *args], cwd=vault, capture_output=True, text=True,
-                          env={**os.environ, **(env or {})})
+                          env={**os.environ, **(env or {})}, timeout=120)
 
 
 # 2. a missing PyYAML is a tool failure with the fix in the message, not "vault has errors"
@@ -64,7 +64,7 @@ def test_running_the_bin_writes_no_pycache(tmp_path):
     vault = tmp_path / "vault"
     shutil.copytree(REPO / "tests" / "fixtures" / "mini", vault)
     result = subprocess.run([sys.executable, str(plugin / "scripts" / "planner"), "check"], cwd=vault,
-                            capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "PYTHONDONTWRITEBYTECODE"})
+                            capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "PYTHONDONTWRITEBYTECODE"}, timeout=120)
     assert result.returncode in (0, 1), result.stderr
     assert not list(plugin.rglob("*.pyc"))
 
