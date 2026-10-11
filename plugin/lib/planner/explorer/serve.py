@@ -39,9 +39,10 @@ SESSION_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 # The rules every answer follows. The page embeds the same text in "Copy as a Claude Code prompt", so a question
 # pasted into a terminal is held to what a question asked from the page is.
 RULES = ("Answer only from the vault's pages.",
-         "Cite every claim with the vault ID or the page path, written [[ID]] or [[path#heading]], for example [[FLO-002]] or [[releases/01-january.md#Scope]].",
+         "Cite every claim: every bullet, every table row and every sentence that states a fact ends with the vault ID or the page path it comes from, written [[ID]] or [[path#heading]], for example [[FLO-002]] or [[releases/01-january.md#Scope]]. "
+         "Write an ID only inside [[ ]], never bare, and cite requirement IDs such as [[CAP-001.FR1]] the same way. A claim you cannot cite from the vault is a claim you do not make.",
          "When the vault does not answer, say so plainly in the first sentence. Do not guess and do not use outside knowledge.",
-         "Be brief: a few sentences or a short list. The reader is mid-conversation.",
+         "Be brief: a few sentences or a short list. The reader is mid-conversation. Write Markdown (bullets, a table when comparing), never raw HTML.",
          "Never create, edit or delete a file.")
 SYSTEM_PROMPT = ("You are answering a question on a live call about one planning vault: Markdown pages in the current folder.\n"
                  "Search with Grep and Glob, read with Read. Ignore the .planner/ folder. You have read-only tools and no others.\n"

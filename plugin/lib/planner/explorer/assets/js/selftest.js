@@ -380,7 +380,7 @@ const SelfTest = (() => {
     Nav.home(); go("lights", { reset: true });
   }
   /* Ask Claude. On a file the page asks nothing of the network and offers a prompt to copy; served, it streams an answer
-     into the panel. The served half plays a fake helper through Ask's injectable fetch, so no server or model is needed. */
+     into the Ask view. The served half plays a fake helper through Ask's injectable fetch, so no server or model is needed. */
   const sseResponse = (events) => {
     const bytes = new TextEncoder().encode(events.map((e) => "data: " + JSON.stringify(e) + "\n\n").join("")), cut = Math.floor(bytes.length / 3);
     return new Response(new ReadableStream({ start(c) { c.enqueue(bytes.slice(0, cut)); c.enqueue(bytes.slice(cut, cut * 2)); c.enqueue(bytes.slice(cut * 2)); c.close(); } }), { status: 200 });
@@ -402,6 +402,10 @@ const SelfTest = (() => {
       const prompt = Ask.promptFor("What does the demo deliver?");
       ok(prompt.startsWith("What does the demo deliver?") && prompt.includes("[[ID]]") && prompt.includes("Never create, edit or delete"),
         "ask on a file: the copied prompt is the question plus the citation rules", `ask on a file: prompt "${prompt.slice(0, 80)}"`);
+      Ask.open(); await frames();
+      ok(App.view === "ask" && !!$("#main .ask-empty") && /Copy as a prompt/.test($("#main .ask-actions").textContent) && !$("#main .think") && !seen.length,
+        "ask on a file: #ask says Claude is not reachable and offers only Copy as a prompt, with no request", `ask on a file: view ${App.view}, actions "${($("#main .ask-actions") || { textContent: "" }).textContent}", ${seen.length} requests`);
+      Ask.back(); await frames();
     } else {
       ok(real.mode === "served" && real.fetches === 1 && document.documentElement.dataset.ask === "served",
         "ask when served: the page found its helper with one /health request", `ask when served: mode ${real.mode}, ${real.fetches} fetches, flag ${document.documentElement.dataset.ask}`);
@@ -409,55 +413,111 @@ const SelfTest = (() => {
     // served, against a fake helper
     const known = Object.keys(E).find((k) => idOf(k)), id = idOf(known), calls = [];
     if (!known) { out.push("skip ask, fake helper: this vault holds no ID for an answer to cite"); return; }
+    const other = Object.keys(E).find((k) => idOf(k) && k !== known) || known, otherId = idOf(other);
+    const withToc = Object.keys(D.reader).find((k) => E[k] && E[k].path && D.reader[k].toc.some((t) => t.level === 2));
+    const heading = withToc ? D.reader[withToc].toc.find((t) => t.level === 2).text : "";
+    const SCRIPT_OPEN = "<scr" + "ipt>", SCRIPT_CLOSE = "<" + "/scr" + "ipt>";  // spelled apart: the page's own script must not contain a tag a test counts
+    // the answer is streamed in pieces that cut through the Markdown: a table, a nested list, a code block, chips, and a payload
+    const answer = (turn) => [
+      "## What it delivers\n\n", `- It delivers [[${id}]]\n  - nested, from [[${id}]]\n    - deeper still\n- Bare ID ${otherId} in a bullet\n\n`,
+      "| Thing | Where |\n|---|---|\n", `| Alpha | [[${id}]] |\n\n`, "```js\nconst x = 1 < 2;\n```\n\n",
+      withToc ? `See [[${E[withToc].path}#${heading}]]. ` : "", "But [[ZZZ-999]] is unknown, `inline` code, **bold**, *italic*, [a link](https://example.com) and [bad](javascript:alert(1)).\n\n",
+      SCRIPT_OPEN + "window.__askpayload = 1" + SCRIPT_CLOSE + " <img src=x onerror=\"window.__askpayload = 2\"> ![pic](https://example.com/p.png)", ` (turn ${turn}).`];
     const fake = async (url, init) => {
       calls.push({ url: String(url), body: init && init.body ? JSON.parse(init.body) : null });
       if (url === "/health") return new Response(JSON.stringify({ ok: true, vault: "fake", model: "haiku", models: {}, claude: true, maxQuestion: 2000 }), { status: 200 });
-      const turn = calls.filter((c) => c.url === "/ask").length;
-      return sseResponse([{ type: "start", model: "claude-haiku-4-5-20251001" }, { type: "tool", name: "Grep", target: "demo" },
-        { type: "delta", text: `It delivers [[${id}]] and <img src=x onerror=alert(1)> but also [[ZZZ-999]]` }, { type: "delta", text: ` (turn ${turn}).` },
-        { type: "done", cost: 0.0123, session_id: "sess-" + turn + "-abcdef", model: "claude-haiku-4-5-20251001" }]);
+      const turn = calls.filter((c) => c.url === "/ask").length, model = calls[calls.length - 1].body.model === "sonnet" ? "claude-sonnet-5-5" : "claude-haiku-4-5-20251001";
+      return sseResponse([{ type: "start", model }, { type: "tool", name: "Grep", target: "demo" },
+        ...answer(turn).map((text) => ({ type: "delta", text })), { type: "done", cost: 0.0123, session_id: "sess-" + turn + "-abcdef", model }]);
     };
     await Ask.detect(fake, { protocol: "http:", hostname: "127.0.0.1" });
     ok(Ask.served() && calls.length === 1 && calls[0].url === "/health", "ask, fake helper: /health found it, once", `ask, fake helper: mode ${Ask.st.mode}, calls ${calls.map((c) => c.url)}`);
+    Ask.st.cur = null;  // the reader's kept conversations are not touched: this one is new, and restore() puts theirs back
     go(known, { reset: true }); await frames();
+    const from = Nav.where();
     Search.type("What does it deliver?");
     ok(/Ask Claude/.test(($("#results .ask-btn") || { textContent: "" }).textContent), "ask, fake helper: the box offers Ask Claude", "ask, fake helper: no Ask Claude row");
     $("#q").dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     await Ask.st.last;
     const turn1 = calls.find((c) => c.url === "/ask");
     ok(turn1 && turn1.body.question === "What does it deliver?" && turn1.body.context.item === id, `ask, fake helper: Enter sent the question with its context (${turn1 && turn1.body.context.item})`, `ask, fake helper: sent ${JSON.stringify(turn1)}`);
-    const a1 = $("#panel .ask-a"), chip = a1 && $(`.ref-chip[data-ref="${CSS.escape(known)}"]`, a1), dead = a1 && $(".ask-unknown", a1);
-    ok(Ask.showing() && !!chip && !!dead && /not in this vault/.test(dead.textContent) && a1.textContent.includes("(turn 1)") && !$("img", a1) && a1.getAttribute("aria-live") === "polite" && a1.getAttribute("aria-busy") === "false",
-      `ask, fake helper: the panel shows the streamed answer, ${id} as a chip, ZZZ-999 flagged, the markup as text, aria-live polite`, `ask, fake helper: panel "${a1 && a1.textContent}"`);
-    ok(/Haiku/.test($("#panel .ask-meta").textContent) && $("#panel .ask-meta").textContent.includes("$0.0123"), "ask, fake helper: the answer names its model and cost", `ask, fake helper: meta "${$("#panel .ask-meta").textContent}"`);
-    ok(/Asking about:/.test($("#panel .ask-about").textContent) && /\S/.test($("#panel .ask-about b").textContent), `ask, fake helper: the panel says what it asked about (${$("#panel .ask-about b").textContent})`, "ask: no Asking about line");
-    $("#panel .ask-clear").click(); await frames();
-    ok(/No context/.test($("#panel .ask-about").textContent), "ask, fake helper: the reader can clear the context", "ask: clearing did not clear");
+    ok(App.view === "ask" && !!$("#main .ask-view") && /^#ask&c=/.test(location.hash) && !$("#panel .ask-a"), "ask, fake helper: asking from the box opens the Ask view in the main area (#ask&c=...), not the panel", `ask, fake helper: view ${App.view}, hash ${location.hash}`);
+    const a1 = $("#main .ask-a");
+    const bullet = a1 && $$("li", a1).find((li) => li.textContent.includes("Bare ID"));
+    ok(!!a1 && !!$("h2", a1) && !!$("table th", a1) && !!$("ul ul ul", a1) && !!$("pre code", a1) && $("pre code", a1).textContent.includes("1 < 2") && !!$("strong", a1) && !!$("em", a1),
+      "ask, fake helper: the answer is Markdown: a heading, a table, a list nested three deep, a code block, bold and italic", `ask, fake helper: answer html "${a1 && a1.innerHTML.slice(0, 300)}"`);
+    ok(a1 && $$(`.ref-chip[data-ref="${CSS.escape(known)}"]`, a1).length >= 3 && !!$("table .ref-chip", a1) && !!$("ul ul .ref-chip", a1),
+      `ask, fake helper: ${id} cited with [[ ]] is a chip in a bullet, a nested bullet and a table cell`, "ask, fake helper: [[ID]] chips are missing from the list or the table");
+    ok(!!bullet && !!$(`.ref-chip[data-ref="${CSS.escape(other)}"]`, bullet) && !$("code", bullet), `ask, fake helper: ${otherId}, written bare, is a chip too`, `ask, fake helper: bare ID in "${bullet && bullet.textContent}"`);
+    const dead = a1 && $(".ask-unknown", a1);
+    ok(!!dead && /ZZZ-999/.test(dead.textContent) && /not in this vault/.test(dead.textContent), "ask, fake helper: [[ZZZ-999]] is flagged as not in this vault", "ask, fake helper: the unknown ID is not flagged");
+    const links = a1 ? $$("a[href]", a1) : [];
+    ok(a1 && !$("script", a1) && !$("img", a1) && window.__askpayload === undefined && a1.textContent.includes(SCRIPT_OPEN + "window.__askpayload = 1" + SCRIPT_CLOSE) && a1.textContent.includes("<img src=x")
+      && links.length === 1 && links[0].getAttribute("href") === "https://example.com" && links[0].target === "_blank" && /noopener/.test(links[0].rel) && a1.textContent.includes("bad") && a1.textContent.includes("pic")
+      && a1.getAttribute("aria-live") === "polite" && a1.getAttribute("aria-busy") === "false",
+      "ask, fake helper: a script tag, an img with onerror, an image and a javascript: link are inert (shown as text, or only their text kept); a web link opens in a new tab", `ask, fake helper: payload became "${a1 && a1.innerHTML.slice(-400)}"`);
+    const meta = $("#main .ask-meta");
+    ok(/Haiku/.test(meta.textContent) && meta.textContent.includes("$0.0123"), "ask, fake helper: the answer names its model and cost", `ask, fake helper: meta "${meta.textContent}"`);
+    ok(/Asking about:/.test($("#main .ask-about").textContent) && /\S/.test($("#main .ask-about b").textContent), `ask, fake helper: the view says what it asked about (${$("#main .ask-about b").textContent})`, "ask: no Asking about line");
+    // a citation opens in the right panel and the conversation stays where it is
+    PanelSize.hide(true);
+    $(`#main .ask-a .ref-chip[data-ref="${CSS.escape(known)}"]`).click(); await frames();
+    ok(App.view === "ask" && !!$("#main .ask-a") && App.focus === known && !PanelSize.hidden && /\S/.test($("#panel .p-head h2").textContent) && $("#panel .p-head h2").textContent.includes(E[known].title),
+      `ask, fake helper: clicking the ${id} chip opens it in the panel (a hidden panel comes back) while the conversation stays in the main area`, `ask: after the click view ${App.view}, focus ${App.focus}, panel hidden ${PanelSize.hidden}`);
+    if (withToc) {
+      $$(".ask-a .ref-chip", $("#main")).find((c) => (c.getAttribute("data-ref") || "").startsWith("read:" + withToc)).click(); await frames();
+      ok(App.view === "ask" && !!$("#panel .reader") && $("#panel .p-head h2").textContent === E[withToc].title, `ask, fake helper: a [[path#heading]] citation opens that page in the panel's reader (${E[withToc].path})`, `ask: page citation left the panel at "${$("#panel .p-head h2") && $("#panel .p-head h2").textContent}"`);
+    }
+    ok(/Asking about:/.test($("#main .ask-about").textContent) && $("#main .ask-about b").textContent.includes(id), "ask, fake helper: after a citation is opened the next question is about it", `ask: about line "${$("#main .ask-about").textContent}"`);
+    $("#main .ask-clear").click(); await frames();
+    ok(/No context/.test($("#main .ask-about").textContent), "ask, fake helper: the reader can clear the context", "ask: clearing did not clear");
     // a follow-up resumes the session; Shift+Enter is a newline, Enter sends; Think harder sends sonnet
-    const box = $("#panel .ask-input");
+    const box = $("#main .ask-input");
     box.value = "And then?"; box.dispatchEvent(new Event("input"));
     box.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", shiftKey: true, bubbles: true, cancelable: true }));
     ok(calls.filter((c) => c.url === "/ask").length === 1, "ask, fake helper: Shift+Enter in the follow-up sends nothing", "ask: Shift+Enter sent");
-    $("#panel .think").click();
+    $("#main .think").click();
     box.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
     await Ask.st.last;
     const turn2 = calls.filter((c) => c.url === "/ask")[1];
-    ok(turn2 && turn2.body.conversation_id === "sess-1-abcdef" && turn2.body.model === "sonnet" && !turn2.body.context.item, "ask, fake helper: the follow-up resumed the first session, on Sonnet, with the cleared context left out", `ask, fake helper: follow-up ${JSON.stringify(turn2 && turn2.body)}`);
-    // every theme and Plain: the answer, a chip and a flag stay legible
-    const was = Theme.id, fx = FX.on, bad = [];
+    ok(turn2 && turn2.body.conversation_id === "sess-1-abcdef" && turn2.body.model === "sonnet" && !turn2.body.context.item && $$("#main .ask-turn").length === 2,
+      "ask, fake helper: the follow-up resumed the first session, on Sonnet, with the cleared context left out, in the same conversation", `ask, fake helper: follow-up ${JSON.stringify(turn2 && turn2.body)}`);
+    ok(/Sonnet/.test($$("#main .ask-meta")[1].textContent), "ask, fake helper: the second answer says Sonnet", "ask: the second answer does not name Sonnet");
+    const kept = Settings.read(`explorer.ask.${D.vaultId}`) || "";
+    ok(kept.includes("What does it deliver?") && kept.includes("And then?") && Ask.hash() === "ask&c=" + Ask.st.cur.id, "ask, fake helper: the conversation is kept in this browser for this vault, and its deep link names it", `ask: kept "${kept.slice(0, 120)}", hash ${Ask.hash()}`);
+    // the composer stays on screen, at 800 x 600 as at any size
+    const composer = $("#main .ask-compose").getBoundingClientRect();
+    ok(composer.top >= 0 && composer.bottom <= innerHeight + 1 && $("#main .ask-log").getBoundingClientRect().height > 60, `ask: the composer is on screen with the conversation above it (${innerWidth}x${innerHeight})`, `ask: composer ${Math.round(composer.top)}..${Math.round(composer.bottom)} in a ${innerHeight} px window`);
+    // every theme and Plain: the answer, a chip, a flag, a table head and a link stay legible; Plain stops the waiting dots
+    const was = Theme.id, fx = FX.on, bad = [], dots = [];
     for (const [t, plain] of [...Theme.LIST.map((x) => [x.id, false]), [was, true]]) {
-      Theme.set(t); FX.set(!plain); Panel.render();
-      const a = $("#panel .ask-a"), cs = a && getComputedStyle(a), bg = getComputedStyle($("#panel")).backgroundColor;
-      if (!a || cs.color === bg || !$(".ask-unknown", a) || getComputedStyle($(".ask-unknown", a)).color === bg) bad.push(plain ? "plain" : t);
+      Theme.set(t); FX.set(!plain);
+      const a = $("#main .ask-a"), bg = getComputedStyle($("#main")).backgroundColor, colour = (el) => getComputedStyle(el).color;
+      if (!a || colour(a) === bg || !$(".ask-unknown", a) || colour($(".ask-unknown", a)) === bg || colour($("th", a)) === getComputedStyle($("th", a)).backgroundColor || colour($("a[href]", a)) === bg) bad.push(plain ? "plain" : t);
+      const wait = h("span", { class: "ask-wait" }, "x"); a.append(wait); dots.push(getComputedStyle(wait, "::after").animationName); wait.remove();
     }
     Theme.set(was); FX.set(fx);
     ok(!bad.length, "ask: the conversation draws in every theme and Plain", `ask: unreadable or missing in ${bad.join(", ")}`);
-    // Esc closes the conversation; a citation opens its item and the panel button brings the conversation back
-    $("#panel .ask-panel").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    ok(!Ask.showing() && !$("#panel .ask-panel"), "ask: Esc closes the conversation", "ask: Esc left it open");
-    $("#panel-ask").click(); await frames();
-    $(`#panel .ask-a .ref-chip[data-ref="${CSS.escape(known)}"]`).click(); await frames();
-    ok(!Ask.showing() && App.focus === known && !$("#panel .ask-panel"), `ask: a citation opens ${id} in the explorer`, `ask: citation left focus ${App.focus}, conversation ${Ask.showing()}`);
+    ok(dots[dots.length - 1] === "none" && dots.slice(0, -1).every((d) => d !== "none"), "ask: the waiting dots move with effects on and stand still in Plain", `ask: dot animations ${dots}`);
+    // Esc leaves, back to where the reader was; the conversation is waiting when they return
+    $("#main .ask-input").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); await frames();
+    ok(App.view !== "ask" && !$("#main .ask-view") && !/^#ask/.test(location.hash) && App.section === from.section && App.view === from.view, "ask: Esc leaves the Ask view and lands where the reader was", `ask: after Esc view ${App.view}, section ${App.section}, hash ${location.hash}`);
+    Nav.refresh();
+    $(".side-ask").click(); await frames();
+    ok(App.view === "ask" && $$("#main .ask-turn").length === 2 && /Ask Claude/.test($(".side-ask").textContent), "ask: the sidebar's Ask Claude door brings the conversation back", `ask: sidebar door left view ${App.view}, ${$$("#main .ask-turn").length} turns`);
+    $(".ask-back").click(); await frames();
+    ok(App.view === from.view, "ask: the breadcrumb goes back too", `ask: breadcrumb left view ${App.view}`);
+    Ask.open(); await frames();
+    const before = Ask.count();
+    $$("#main .page-actions .btn").find((b) => b.textContent === "New conversation").click(); await frames();
+    ok(!$("#main .ask-turn") && /New conversation/.test($("#main h1").textContent) && Ask.hash() === "ask" && Ask.count() === before, "ask: New conversation starts empty and keeps the old one", `ask: new conversation left ${$$("#main .ask-turn").length} turns, hash ${Ask.hash()}`);
+    // Markdown on its own: partial input holds back what would flicker, and nothing unsafe survives
+    const textOf = (md, growing) => { const box = h("div", {}); box.append(Markdown.render(md, growing)); return box; };
+    ok(!$("table", textOf("| a | b |", true)) && !$("table", textOf("Intro\n\n| a | b |\n", true)) && !!$("table", textOf("| a | b |\n|---|---|\n| 1 | 2 |", true)) && textOf("Some prose that is still arri", true).textContent.trim() === "Some prose that is still arri",
+      "markdown: a growing answer holds back a table header until its rule arrives, a lone marker, and nothing else", "markdown: partial table or prose was not handled");
+    const evil = textOf("[x](javascript:alert(1)) [y](java&#x73;cript:alert(2)) [z](data:text/html,hi) ![i](http://x.test/a.png) <b onclick=1>raw</b> <iframe src=//x></iframe> [q](//evil.test)");
+    ok(!$("a[href]", evil) && !$("img,iframe,b", evil) && evil.textContent.includes("<b onclick=1>raw</b>") && ["x", "y", "z", "q"].every((t) => evil.textContent.includes(t)),
+      "markdown: javascript:, entity-hidden, data: and protocol-relative links lose the link, images are text, raw HTML is escaped", `markdown: unsafe html survived: ${evil.innerHTML}`);
     Ask.restore(real);
     Nav.home(); go("lights", { reset: true });
   }

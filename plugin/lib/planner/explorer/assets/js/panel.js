@@ -38,11 +38,11 @@ const Panel = (() => {
   function render() {
     const root = body();
     root.innerHTML = "";
-    if (Ask.showing()) { root.append(Ask.panel()); return; }  // the conversation, until the reader goes back or opens something
     const key = App.trail[App.trail.length - 1] || (App.root !== "lights" ? App.root : null);
     const tabs = homes();
     if (tabs) root.append(tabs);
     root.append(crumbs());
+    if (App.view === "ask" && !key) root.append(h("p", { class: "p-note ask-hint" }, "A citation in the conversation opens here, so you can read the source beside it."));
     if (!key) { root.append(...home()); root.scrollTop = 0; return; }
     if (key.startsWith("read:")) { root.append(...reading(key)); return; }
     if (key.startsWith("bundle:")) { root.append(...bundle(key)); return; }

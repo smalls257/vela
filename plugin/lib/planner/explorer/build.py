@@ -38,6 +38,9 @@ from .record import (BLOCK_REF, HANDLE, LABELLED_LINE, MD_LINK, PROSE_LIMIT, STE
                      plain, refs_in, state_badge, title_of)
 
 HERE = pathlib.Path(__file__).resolve().parent
+# marked, the Markdown parser the offline viewer already vendors (its licence and checksum are in that folder's NOTICE.md).
+# The page inlines it whole, with its copyright header, so Ask Claude can show an answer as Markdown with no network.
+MARKED = HERE.parent / "assets" / "marked.min.js"
 
 
 class ExplorerError(Exception):
@@ -47,7 +50,7 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "geometry", "search", "minimap", "reader", "panel", "panelsize", "motion", "view-map",
               "mapgroups", "releases", "flowkit", "view-flows", "rehearse", "view-asks", "view-garden", "view-progress",
-              "view-trace", "sections", "roles", "nav", "ask", "inside", "selftest", "main")
+              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "selftest", "main")
 CSS_MODULES = ("base", "nav", "panel", "map", "flows", "rehearse", "asks", "garden", "pages", "reader", "roles",
                "releases", "ask", "inside", "themes", "plain")
 
@@ -562,12 +565,16 @@ def render(data, assets=None):
                   f"<script>(function (document) {{\n{resolver}\n}})(Object.create(document, {{ currentScript: {{ value: null }} }}));</script>")
     else:
         inline = "<script>window.ASSET_REPORT = null;</script>"
+    try:
+        marked = MARKED.read_text(encoding="utf-8").replace("</script", "<\\/script")
+    except OSError as exc:
+        raise ExplorerError(f"cannot read {MARKED}, which Ask Claude needs to show an answer as Markdown: {exc}") from exc
     title = html.escape(f"{data['title']} ({data['initiative']}): vault explorer")
     theme = data.get("theme") or THEME_IDS[0]
     if theme not in THEME_IDS:
         raise ValueError(f"theme {theme!r} is not one of {', '.join(THEME_IDS)}")
     return (shell.replace("{{TITLE}}", title).replace("{{THEME}}", theme).replace("/*{{CSS}}*/", css).replace("{{DATA}}", safe_json(data))
-            .replace("<!--{{ASSETS}}-->", inline).replace("/*{{JS}}*/", js))
+            .replace("<!--{{ASSETS}}-->", inline).replace("<!--{{MARKED}}-->", f"<script>{marked}</script>").replace("/*{{JS}}*/", js))
 
 
 def relative_href(target, page_dir):

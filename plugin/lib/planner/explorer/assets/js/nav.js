@@ -98,7 +98,7 @@ const Nav = (() => {
   }
   /* A view shown from anywhere (a search result, a link) brings its section with it. */
   function adopt(view) {
-    if (view === "inside") return;  // Inside.open sets the section itself: Apps, with the app as its entry
+    if (view === "inside" || view === "ask") return;  // Inside.open and Ask.open set the section themselves
     if (App.section === "home" && view === "map") return;
     if (App.section.startsWith("role:") && view === "role") return;
     const s = sec();
@@ -112,6 +112,25 @@ const Nav = (() => {
     setRoot();
     App.trail = keep;
   }
+  /* Where the reader is, so a view that takes them elsewhere (Ask) can bring them back to it. */
+  function where() {
+    return { section: App.section, child: st.child, view: App.view, trail: App.trail.slice(), focus: App.focus, root: App.root, doc: Sections.doc.page };
+  }
+  const whereLabel = (w) => {
+    if (!w || w.section === "home") return "What needs you";
+    if (w.section.startsWith("role:")) return (Roles.ROLES.find(([id]) => id === w.section.slice(5)) || [0, "the front door"])[1];
+    const s = SECTIONS[w.section];
+    return s ? (w.child && E[w.child] ? E[w.child].title : s.label) : "the explorer";
+  };
+  function back(w) {
+    if (!w || w.section === "ask") return home();
+    if (w.section === "home") home();
+    else if (w.section.startsWith("role:")) role(w.section.slice(5));
+    else if (w.view === "doc") { open(w.section, w.child); readWide(w.doc || sectionPage()); }
+    else { open(w.section, w.child); if (w.view !== App.view && viewDef(w.view) && w.view !== "inside") showView(w.view); }
+    App.trail = w.trail; App.focus = w.focus; App.root = w.root;
+    Panel.render();
+  }
   function focusApp(key) { open("apps", key); }
   function trace(key) { if (!(App.view === "map" && ["home", "apps"].includes(App.section) && MapView.lens() === "cockpit")) { App.section = "home"; MapView.st.lens = "cockpit"; App.view = "map"; App.root = "lights"; rerender(); }
     FX.setMotion("trace"); go(key, { reset: true }); Motion.trace(key); }
@@ -123,6 +142,11 @@ const Nav = (() => {
   /* ------------------------------------------------------------ the hash */
   function syncHash() {
     const p = [];
+    if (App.view === "ask" && typeof Ask !== "undefined") {
+      for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
+      history.replaceState(null, "", "#" + [Ask.hash(), ...p].join("&"));
+      return;
+    }
     if (App.view === "inside" && typeof Inside !== "undefined") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
       history.replaceState(null, "", "#" + [Inside.hash(), ...p].join("&"));
@@ -151,6 +175,7 @@ const Nav = (() => {
       if (HASH.get("focus") && NODE[HASH.get("focus")]) { MapView.st.focus = HASH.get("focus"); rerender(); }
       return true;
     }
+    if (HASH.has("ask") && typeof Ask !== "undefined") { Ask.boot(HASH.get("c")); return true; }
     if (legacy) { App.view = legacy.id; adopt(legacy.id); return false; }  // main.js carries on as before
     App.section = "home"; App.view = "map";
     if (HASH.get("focus") && NODE[HASH.get("focus")]) MapView.st.focus = HASH.get("focus");
@@ -197,6 +222,8 @@ const Nav = (() => {
     side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Front doors"),
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, onclick: home },
         h("span", { class: "side-label" }, "What needs you"), lit ? h("span", { class: "side-n lit " + (litSubjects()[0] ? litSubjects()[0].light.level : "caution") }, lit) : null),
+      typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the vault", onclick: () => Ask.open() },
+        h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null,
       h("div", { class: "side-roles", role: "tablist", "aria-label": "Front doors by audience" }, Roles.ROLES.slice(1).map(([id, label, say]) =>
         h("button", { role: "tab", "aria-selected": String(App.section === "role:" + id), title: say, onclick: () => role(id) }, label)))));
     const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "The vault"));
@@ -205,5 +232,5 @@ const Nav = (() => {
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted" }, `${D.initiative} · ${Object.keys(D.reader).length} pages`)));
   }
   $("#side-toggle").addEventListener("click", () => { st.hidden = !st.hidden; write(SIDE_KEY, st.hidden); refresh(); rerender(); });
-  return { title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, boot, refresh, st, VISUALS, SECTIONS };
+  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, boot, refresh, st, VISUALS, SECTIONS };
 })();

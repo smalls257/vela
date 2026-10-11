@@ -3,13 +3,23 @@
    Opened as a file, the page makes no network request at all: it never fetches, and offers the question as a prompt
    to copy into Claude Code instead. Served, it asks /health on its own origin once to learn the helper is there.
    The answer arrives as Server-Sent Events from /ask: start, delta (text), tool (what Claude is reading), then done
-   (cost, session) or error (the reason). Its text is rendered as text, never as HTML; a [[ID]] or [[path#heading]]
-   in it becomes a chip when the vault holds it and a flagged plain mark when it does not. */
+   (cost, session) or error (the reason).
+   The conversation is a view of its own (#ask, #ask&c=<conversation>) in the main area, where there is room to read;
+   a citation opens its item in the right panel, so the sources are read beside the chat. The answer is Markdown,
+   rendered by markdown.js with raw HTML shown as text; a [[ID]] or [[path#heading]] in it, or an ID the vault holds
+   written bare, becomes a chip on the rendered text, and a [[...]] the vault does not hold is flagged. Conversations
+   are kept for the page session and, per vault, in this browser. */
 const Ask = (() => {
   const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
+  const STORE = `explorer.ask.${D.vaultId}`, KEEP_CONVERSATIONS = 12, THROTTLE_MS = 90, NEAR_BOTTOM = 48;
   const CITE = /\[\[([^\[\]\n]{1,200})\]\]/g;
-  const st = { draft: "", mode: "pending", health: null, fetches: 0, session: null, msgs: [], showing: false, harder: false, cleared: "", ctrl: null, busy: false };
-  const note = (text) => h("div", { class: "r-more ask-note" }, text);
+  // a vault ID written bare: APP-booking, CAP-001.FR1. Whether the vault holds it is decided by lookup, never by shape;
+  // the shape only says where to look. IDs of another shape (a session's 2026-10-06-kickoff) are found by name.
+  const ID_SHAPE = /^[A-Z][A-Z0-9]{1,6}-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*$/;
+  const BARE_ID = /(?<![\w./-])([A-Z][A-Z0-9]{1,6}-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)(?![\w-])/g;
+  const NOTHING = /(?!)/g;
+  const literal = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const st = { draft: "", mode: "pending", health: null, fetches: 0, convs: [], cur: null, from: null, harder: false, cleared: "", ctrl: null, busy: false, last: null };
   let fetchFn = (...a) => window.fetch(...a);
 
   /* ---------------------------------------------------------------- is the helper here? */
@@ -36,18 +46,51 @@ const Ask = (() => {
   }
   const served = () => st.mode === "served";
   /* For #selftest, which plays a served page against a fake fetch and then puts the real state back. */
-  const snapshot = () => ({ mode: st.mode, health: st.health, fetches: st.fetches });
+  const snapshot = () => ({ mode: st.mode, health: st.health, fetches: st.fetches, convs: st.convs.slice(), cur: st.cur, from: st.from });
   function restore(saved) {
-    Object.assign(st, saved, { session: null, msgs: [], showing: false, busy: false, draft: "", harder: false, cleared: "" });
-    fetchFn = (...a) => window.fetch(...a); syncButton(); flag();
+    Object.assign(st, saved, { busy: false, draft: "", harder: false, cleared: "", ctrl: null });
+    fetchFn = (...a) => window.fetch(...a); flag(); persist();
   }
-  const flag = () => { document.documentElement.dataset.ask = st.mode; };  // for checks that watch the page from outside
+  /* The sidebar's door and an open Ask view follow what detection found (it finishes after the first draw). */
+  function flag() {
+    document.documentElement.dataset.ask = st.mode;  // for checks that watch the page from outside
+    if (typeof Nav !== "undefined") Nav.refresh();
+    if (App.view === "ask" && $("#main")) rerender();
+  }
+
+  /* ---------------------------------------------------------------- conversations, kept in this browser per vault */
+  const turnOf = (m) => ({ q: m.q, about: m.about, a: m.a, state: m.state, cost: m.cost, model: m.model, modelId: m.modelId, error: m.error, ask: m.ask });
+  function persist() {
+    const kept = st.convs.filter((c) => c.msgs.length).slice(-KEEP_CONVERSATIONS);
+    Settings.write(STORE, JSON.stringify({ cur: st.cur ? st.cur.id : "", convs: kept.map((c) => ({ id: c.id, title: c.title, session: c.session, at: c.at, msgs: c.msgs.map(turnOf) })) }));
+  }
+  /* What an earlier visit kept. A turn that was still arriving when the page closed says so; it never looks answered. */
+  function load() {
+    const raw = Settings.read(STORE);
+    if (!raw) return;
+    try {
+      const saved = JSON.parse(raw);
+      st.convs = saved.convs.map((c) => ({ id: String(c.id), title: String(c.title || ""), session: c.session || null, at: c.at || 0,
+        msgs: c.msgs.map((m) => (m.state === "running" ? { ...m, state: "error", error: "The page was closed before this answer finished." } : m)) }));
+      st.cur = st.convs.find((c) => c.id === saved.cur) || null;
+    } catch (e) {
+      console.warn("[ask] the kept conversations could not be read and are left out:", e.message);
+      st.convs = []; st.cur = null;
+    }
+  }
+  const newId = () => "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  function startConversation() { const c = { id: newId(), title: "", session: null, at: Date.now(), msgs: [] }; st.convs.push(c); return c; }
+  const conversation = () => st.cur || (st.cur = startConversation());
+  const titleOfConversation = (c) => c.title || "New conversation";
 
   /* ---------------------------------------------------------------- what the reader is looking at */
+  /* The view the question is about: while the Ask view is up, the one the reader came from. */
+  const aboutView = () => (App.view === "ask" ? (st.from && st.from.view) || "map" : App.view);
   function context() {
-    const c = { view: (viewDef(App.view) || {}).label || App.view };
+    const view = aboutView();
+    const c = { view: (viewDef(view) || {}).label || view };
     const pres = typeof Flows !== "undefined" && Flows.presenter() ? Flows.presenter() : null;
-    const flowKey = pres ? pres.key : App.view === "flows" && typeof Flows !== "undefined" ? Flows.st.key : null;
+    const flowKey = pres ? pres.key : view === "flows" && typeof Flows !== "undefined" ? Flows.st.key : null;
     const cur = pres ? pres.cur : flowKey ? Flows.st.cur : -1;
     const key = App.focus && ent(App.focus) ? App.focus : null;
     if (key) { const e = ent(key); c.item = idOf(key) || e.title; c.item_title = e.title; c.kind = KIND_WORD[e.kind] || e.kind; }
@@ -91,7 +134,7 @@ const Ask = (() => {
     if (served()) {
       return h("div", { class: "r-ask" }, h("button", { class: "ask-btn", type: "button", onmousedown: (ev) => { ev.preventDefault(); send(q); closeSearch(); } },
         h("b", {}, "Ask Claude"), h("span", { class: "ask-q" }, shorten(q, 70)), h("kbd", {}, "Enter"),
-        h("span", { class: "ask-m" }, st.harder ? "Sonnet" : st.health.model === "sonnet" ? "Sonnet" : "Haiku")));
+        h("span", { class: "ask-m" }, nextModel())));
     }
     return h("div", { class: "r-ask" }, h("button", { class: "ask-btn", type: "button", onmousedown: (ev) => { ev.preventDefault(); copyPrompt(q); } },
       h("b", {}, "Copy as a Claude Code prompt"), h("span", { class: "ask-q" }, shorten(q, 60))),
@@ -99,27 +142,88 @@ const Ask = (() => {
   }
   function closeSearch() { const q = $("#q"); q.value = ""; q.dispatchEvent(new Event("input")); q.blur(); }
   const enterAsks = (q) => served() && !!q.trim();
+  const nextModel = () => (st.harder || (st.health && st.health.model === "sonnet") ? "Sonnet" : "Haiku");
 
   /* ---------------------------------------------------------------- citations */
-  /* [[FLO-002]] or [[releases/01.md#Scope]] to a chip that opens it here; anything the vault does not hold stays plain and flagged. */
-  function cite(ref) {
-    const [target, heading] = ref.split("#").map((x) => x.trim());
-    let key = keyForId(target);
-    if (!ent(key)) { const p = target.replace(/^\.\//, ""); key = (Object.values(E).find((x) => x.path === p) || {}).key; }
-    if (!key || !ent(key)) {
-      return h("span", { class: "ref-chip ask-unknown", title: "Claude cited this, but the vault holds no such ID or page" }, ref, h("span", { class: "ask-flag" }, "not in this vault"));
-    }
+  /* What the vault holds, by ID and by path, built once. Lookups are by own key: a name like "constructor" in an
+     answer must not find something on Object.prototype. */
+  let index = null;
+  function held() {
+    if (index) return index;
+    index = { keys: new Set(Object.keys(E)), ids: new Map(), paths: new Map() };
+    for (const e of Object.values(E)) if (e.path) { index.paths.set(e.path, e.key); if (e.id) index.ids.set(e.id, e.key); }
+    const odd = [...new Set(Object.values(E).map((e) => e.id).filter((id) => id && id.length >= 5 && /-\d/.test(id) && !ID_SHAPE.test(id) && (index.keys.has(id) || index.ids.has(id))))].sort((a, b) => b.length - a.length);
+    index.odd = odd.length ? new RegExp(`(?<![\\w./-])(${odd.map(literal).join("|")})(?![\\w-])`, "g") : NOTHING;
+    return index;
+  }
+  function keyFor(target) {
+    const ix = held();
+    if (ix.keys.has(target)) return target;
+    return ix.ids.get(target) || ix.paths.get(target.replace(/^\.\//, "")) || null;
+  }
+  /* "Scope" or "scope" or a heading slug, to the id the reader scrolls to on that page. */
+  function anchorFor(pageKey, heading) {
+    const r = D.reader[pageKey];
+    if (!r || !heading) return "";
+    const want = heading.toLowerCase();
+    const t = r.toc.find((x) => x.id === heading || x.text.toLowerCase() === want || x.id === want);
+    return t ? t.id : r.html.includes(`id="${heading}"`) ? heading : "";
+  }
+  /* [[FLO-002]] or [[releases/01.md#Scope]] to a chip that opens it in the panel; null when the vault holds nothing by that name. */
+  function chipFor(target, heading) {
+    const key = keyFor(target);
+    if (!key || !ent(key)) return null;
     const chip = refChip(key, heading ? h("span", { class: "rid" }, "#" + heading) : null);
-    chip.setAttribute("data-reveal", ""); chip.setAttribute("tabindex", "0"); chip.setAttribute("role", "link");
+    if (heading && D.reader[key]) chip.setAttribute("data-ref", "read:" + key + (anchorFor(key, heading) ? "#" + anchorFor(key, heading) : ""));
+    chip.setAttribute("tabindex", "0"); chip.setAttribute("role", "link");
     return chip;
   }
-  function cited(text) {
-    const frag = document.createDocumentFragment();
-    let last = 0;
-    for (const m of text.matchAll(CITE)) { frag.append(text.slice(last, m.index), cite(m[1])); last = m.index + m[0].length; }
-    frag.append(text.slice(last));
-    return frag;
+  function cite(ref) {
+    const [target, heading] = ref.split("#").map((x) => x.trim());
+    return chipFor(target, heading) || h("span", { class: "ref-chip ask-unknown", title: "Claude cited this, but the vault holds no such ID or page" }, ref, h("span", { class: "ask-flag" }, "not in this vault"));
   }
+  /* A bare ID: the longest leading part the vault holds ("CAP-001.FR1.Note" finds CAP-001.FR1). Unknown ones stay text:
+     a bare "UTF-8" is not a broken citation. */
+  function bare(id) {
+    for (let at = id; at; at = at.includes(".") ? at.slice(0, at.lastIndexOf(".")) : "") {
+      const chip = chipFor(at);
+      if (chip) return { chip, length: at.length };
+    }
+    return null;
+  }
+  /* Split a text node into text and chips. Only text is read: nothing in an answer is ever parsed as markup here. */
+  function chipsIn(text) {
+    const pieces = [];
+    const found = [...text.matchAll(CITE)].map((m) => ({ at: m.index, length: m[0].length, chip: cite(m[1]) }));
+    for (const m of [...text.matchAll(BARE_ID), ...text.matchAll(held().odd)]) {
+      if (found.some((f) => m.index < f.at + f.length && m.index + m[1].length > f.at)) continue;  // inside a [[...]] already
+      const hit = bare(m[1]);
+      if (hit) found.push({ at: m.index, length: hit.length, chip: hit.chip });
+    }
+    found.sort((x, y) => x.at - y.at);
+    let last = 0;
+    for (const f of found) { pieces.push(text.slice(last, f.at), f.chip); last = f.at + f.length; }
+    pieces.push(text.slice(last));
+    return found.length ? pieces : null;
+  }
+  /* Citation linking on the rendered answer: its text nodes, outside links and code blocks. An inline `code` that is
+     only a reference (`CAP-001.FR1`, `[[FLO-002]]`) becomes the chip, since models quote IDs that way. */
+  function linkCitations(root) {
+    for (const code of [...root.querySelectorAll("code")]) {
+      if (code.closest("pre")) continue;
+      const pieces = chipsIn(code.textContent.trim());
+      if (pieces && pieces.every((p, i) => (i % 2 ? true : p === ""))) code.replaceWith(pieces[1]);
+    }
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.parentElement && n.parentElement.closest("a,pre,code,.ref-chip") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    for (const node of nodes) {
+      const pieces = chipsIn(node.nodeValue);
+      if (pieces) node.replaceWith(...pieces.filter((p) => p !== ""));
+    }
+    return root;
+  }
+  const rendered = (md, growing) => linkCitations(Markdown.render(md, growing));
 
   /* ---------------------------------------------------------------- asking */
   function modelKey() { return st.harder ? "sonnet" : null; }
@@ -132,24 +236,26 @@ const Ask = (() => {
     const max = st.health.maxQuestion || 2000;
     const model = opts.model !== undefined ? opts.model : modelKey();
     const ctx = opts.noContext ? null : liveContext();
+    const conv = conversation();
     const msg = { q: question, about: ctx ? aboutLabel(ctx) : "", a: "", state: "running", tool: "", cost: null, model: model || st.health.model, modelId: "", error: "", ask: model };
-    if (opts.fresh) st.session = null;
-    st.msgs.push(msg); st.busy = true; st.ctrl = new AbortController();
-    show();
+    if (opts.fresh) conv.session = null;
+    if (!conv.title) conv.title = shorten(question, 60);
+    conv.msgs.push(msg); st.busy = true; st.ctrl = new AbortController();
+    show(msg);
     if (question.length > max) { fail(msg, `The question is ${question.length} characters; the limit is ${max}.`); return; }
     try {
       st.fetches++;
       const res = await fetchFn("/ask", { method: "POST", headers: { "Content-Type": "application/json" }, signal: st.ctrl.signal,
-        body: JSON.stringify({ question, context: ctx || {}, conversation_id: st.session || undefined, model: model || undefined }) });
+        body: JSON.stringify({ question, context: ctx || {}, conversation_id: conv.session || undefined, model: model || undefined }) });
       if (!res.ok) { const body = await res.json().catch(() => ({})); fail(msg, `The helper refused the question (${res.status}): ${body.error || res.statusText}`); return; }
-      await readEvents(res, msg);
+      await readEvents(res, msg, conv);
       if (msg.state === "running") fail(msg, "The answer stream ended without a result. The helper may have stopped; check the terminal running planner explore.");
     } catch (e) {
       if (e.name === "AbortError") { msg.state = "stopped"; done(msg); }
       else fail(msg, `The question did not complete: ${e.message}`);
     }
   }
-  async function readEvents(res, msg) {
+  async function readEvents(res, msg, conv) {
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = "";
     for (;;) {
@@ -158,104 +264,171 @@ const Ask = (() => {
       let at;
       while ((at = buf.indexOf("\n\n")) >= 0) {
         const chunk = buf.slice(0, at); buf = buf.slice(at + 2);
-        if (chunk.startsWith("data: ")) apply(msg, JSON.parse(chunk.slice(6)));
+        if (chunk.startsWith("data: ")) apply(msg, conv, JSON.parse(chunk.slice(6)));
       }
       if (end) return;
     }
   }
-  function apply(msg, ev) {
+  function apply(msg, conv, ev) {
     if (ev.type === "start") msg.modelId = ev.model;
     else if (ev.type === "delta") { msg.a += ev.text; msg.tool = ""; }
     else if (ev.type === "tool") msg.tool = `${ev.name} ${ev.target}`.trim();
     else if (ev.type === "error") { fail(msg, ev.message); return; }
     else if (ev.type === "done") {
       msg.cost = ev.cost; msg.modelId = ev.model || msg.modelId; msg.state = "done"; msg.tool = "";
-      if (ev.session_id) st.session = ev.session_id;
+      if (ev.session_id) conv.session = ev.session_id;
       done(msg); return;
     }
     paint(msg);
   }
   function fail(msg, reason) { msg.state = "error"; msg.error = reason; msg.tool = ""; done(msg); }
-  function done(msg) { st.busy = false; st.ctrl = null; paint(msg); syncButton(); }
+  function done(msg) { st.busy = false; st.ctrl = null; paint(msg, true); persist(); }
   function stop() { if (st.ctrl) st.ctrl.abort(); }
-  function newConversation() { stop(); st.msgs = []; st.session = null; st.busy = false; syncButton(); Panel.render(); }
 
-  /* ---------------------------------------------------------------- the conversation in the panel */
+  /* ---------------------------------------------------------------- the conversation, in the main area */
   const modelWord = (msg) => (/sonnet/.test(msg.modelId || msg.model) ? "Sonnet" : "Haiku");
-  function answerEl(msg) {
-    const live = msg.state === "running";
-    const box = h("div", { class: "ask-a" + (msg.state === "error" ? " bad" : ""), "aria-live": "polite", "aria-busy": String(live) });
-    if (msg.a) box.append(cited(msg.a));
-    else if (live) box.append(h("span", { class: "ask-wait" }, "Reading the vault"));
-    if (live && msg.tool) box.append(h("div", { class: "ask-tool" }, shorten(msg.tool, 80)));
-    if (msg.state === "error") box.append(h("div", { class: "ask-error", role: "alert" }, h("b", {}, "No answer. "), msg.error));
-    if (msg.state === "stopped") box.append(h("div", { class: "ask-tool" }, "Stopped."));
-    return box;
+  function fillAnswer(msg) {
+    const live = msg.state === "running", box = msg.answerEl;
+    box.className = "ask-a md" + (msg.state === "error" ? " bad" : "");
+    box.setAttribute("aria-busy", String(live));
+    const kids = [];
+    if (msg.a) kids.push(rendered(msg.a, live));
+    else if (live) kids.push(h("span", { class: "ask-wait" }, "Reading the vault"));
+    if (live && msg.tool) kids.push(h("div", { class: "ask-tool" }, shorten(msg.tool, 80)));
+    if (msg.state === "error") kids.push(h("div", { class: "ask-error", role: "alert" }, h("b", {}, "No answer. "), msg.error));
+    if (msg.state === "stopped") kids.push(h("div", { class: "ask-tool" }, "Stopped."));
+    box.replaceChildren(...kids);
   }
-  function metaEl(msg) {
-    if (msg.state === "running") return h("div", { class: "ask-meta" }, h("button", { class: "btn tiny", type: "button", onclick: stop }, "Stop"));
+  function fillMeta(msg) {
+    msg.metaState = msg.state;
+    if (msg.state === "running") { msg.metaEl.replaceChildren(h("button", { class: "btn tiny", type: "button", onclick: stop }, "Stop")); return; }
     const bits = [modelWord(msg)];
     if (typeof msg.cost === "number") bits.push(`$${msg.cost.toFixed(4)}`);
     const harder = msg.state !== "error" && modelWord(msg) !== "Sonnet" && served()
       ? h("button", { class: "btn tiny", type: "button", title: "Ask this question again on Sonnet, in a fresh session", onclick: () => send(msg.q, { model: "sonnet", fresh: true }) }, "Think harder") : null;
-    const again = msg.state === "error" ? h("button", { class: "btn tiny", type: "button", onclick: () => send(msg.q, { fresh: !st.session }) }, "Try again") : null;
-    return h("div", { class: "ask-meta" }, h("span", {}, bits.join(" · ")), harder, again);
+    const again = msg.state === "error" ? h("button", { class: "btn tiny", type: "button", onclick: () => send(msg.q, { fresh: !conversation().session }) }, "Try again") : null;
+    msg.metaEl.replaceChildren(...[h("span", {}, bits.join(" · ")), harder, again].filter(Boolean));  // replaceChildren would write a null as the word "null"
   }
-  function paint(msg) {
-    if (!msg.el) return;
-    msg.el.replaceChildren(...entry(msg).children);
-    const log = $(".ask-log");
-    if (log) log.scrollTop = log.scrollHeight;
+  /* The turn's three parts are made once and then filled, so the Stop button under a streaming answer is the same
+     element from the first word to the last and a click on it lands. */
+  function turn(msg) {
+    msg.answerEl = h("div", { "aria-live": "polite" }); msg.metaEl = h("div", { class: "ask-meta" });
+    msg.el = h("div", { class: "ask-turn" }, h("div", { class: "ask-you" }, msg.q, msg.about ? h("span", { class: "ask-about-tag" }, msg.about) : null), msg.answerEl, msg.metaEl);
+    fillAnswer(msg); fillMeta(msg);
+    return msg.el;
   }
-  function entry(msg) {
-    return h("div", {}, h("div", { class: "ask-you" }, msg.q, msg.about ? h("span", { class: "ask-about-tag" }, msg.about) : null), answerEl(msg), metaEl(msg));
+  /* Update a turn. While it streams the redraw is throttled: the whole Markdown is parsed again each time, so a table or
+     list that is half there settles into shape instead of flickering on every token. */
+  function paint(msg, now) {
+    if (!msg.el || !msg.el.isConnected) return;  // the reader is elsewhere; the turn is drawn afresh when they return
+    if (!now && msg.state === "running") { if (!msg.timer) msg.timer = setTimeout(() => { msg.timer = 0; paint(msg, true); }, THROTTLE_MS); return; }
+    clearTimeout(msg.timer); msg.timer = 0;
+    const log = msg.el.closest(".ask-log");
+    const follow = !log || log.scrollHeight - log.scrollTop - log.clientHeight < NEAR_BOTTOM;
+    fillAnswer(msg);
+    if (msg.metaState !== msg.state) fillMeta(msg);
+    if (log && follow) log.scrollTop = log.scrollHeight;
   }
+
+  const crumbLabel = () => Nav.whereLabel(st.from);
   function aboutLine() {
     const c = liveContext();
     if (!c) return h("div", { class: "ask-about off" }, "No context is sent with the next question.");
     return h("div", { class: "ask-about" }, "Asking about: ", h("b", {}, aboutLabel(c)),
-      h("button", { class: "ask-clear", type: "button", "aria-label": "Do not send what I am looking at", title: "Do not send what I am looking at", onclick: () => { st.cleared = signature(c); Panel.render(); } }, "×"));
+      h("button", { class: "ask-clear", type: "button", "aria-label": "Do not send what I am looking at", title: "Do not send what I am looking at", onclick: () => { st.cleared = signature(c); refreshAbout(); } }, "×"));
   }
+  function refreshAbout() { const old = $(".ask-about"); if (old) old.replaceWith(aboutLine()); }
   function composer() {
-    const box = h("textarea", { class: "ask-input", rows: "2", "aria-label": "Follow-up question", placeholder: st.msgs.length ? "Ask a follow-up. Enter sends, Shift+Enter adds a line." : "Ask the vault. Enter sends, Shift+Enter adds a line." });
+    const conv = st.cur;
+    const live = served();
+    const box = h("textarea", { class: "ask-input", rows: "1", "aria-label": live ? "Question" : "Question, to copy as a prompt",
+      placeholder: live ? (conv && conv.msgs.length ? "Ask a follow-up" : "Ask the vault in plain words") : "Write the question, then Enter copies it as a prompt" });
     box.value = st.draft;
-    box.addEventListener("input", () => { st.draft = box.value; });
-    const submit = () => { const q = box.value; box.value = st.draft = ""; send(q); };
+    const grow = () => { box.style.height = "auto"; box.style.height = Math.min(box.scrollHeight + 2, Math.round(innerHeight * 0.24)) + "px"; };  // the box follows what is typed, up to a quarter of the window
+    box.addEventListener("input", () => { st.draft = box.value; grow(); });
+    const submit = () => { const q = box.value; if (!q.trim()) return; box.value = st.draft = ""; grow(); if (live) send(q); else copyPrompt(q); };
     box.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); submit(); }
     });
-    const harder = h("button", { class: "btn tiny think", type: "button", "aria-pressed": String(st.harder), title: "Send the next questions to Sonnet: slower, dearer, more careful",
-      onclick: (ev) => { st.harder = !st.harder; ev.currentTarget.setAttribute("aria-pressed", String(st.harder)); } }, "Think harder");
-    const go_ = h("button", { class: "btn tiny primary", type: "button", onclick: submit }, "Ask");
-    return h("div", { class: "ask-compose" }, aboutLine(), box, h("div", { class: "ask-actions" }, harder, h("span", { class: "spacer" }), go_));
+    const harder = live ? h("button", { class: "btn tiny think", type: "button", "aria-pressed": String(st.harder), title: "Send the next questions to Sonnet: slower, dearer, more careful",
+      onclick: (ev) => { st.harder = !st.harder; ev.currentTarget.setAttribute("aria-pressed", String(st.harder)); $(".ask-next").textContent = nextModel(); } }, "Think harder") : null;
+    const go_ = h("button", { class: "btn tiny primary", type: "button", onclick: submit }, live ? "Ask" : "Copy as a prompt");
+    return h("div", { class: "ask-compose" }, h("div", { class: "ask-col" }, aboutLine(), box,
+      h("div", { class: "ask-actions" }, harder, live ? h("span", { class: "ask-next muted", title: "The model for the next question" }, nextModel()) : null,
+      h("span", { class: "spacer" }), h("span", { class: "ask-keys" }, live ? "Enter sends \u00b7 Shift+Enter adds a line \u00b7 Esc leaves" : "Enter copies \u00b7 Shift+Enter adds a line \u00b7 Esc leaves"), go_)));
   }
-  /* The panel's content while the conversation is showing. */
-  function panel() {
+  function picker() {
+    const kept = st.convs.filter((c) => c.msgs.length);
+    if (kept.length < 2) return null;
+    const sel = h("select", { class: "ask-pick", "aria-label": "Switch conversation" }, kept.map((c) => h("option", { value: c.id }, shorten(titleOfConversation(c), 48))));
+    sel.value = st.cur ? st.cur.id : "";
+    sel.addEventListener("change", () => select(sel.value));
+    return sel;
+  }
+  function emptyLog() {
+    if (served()) return h("div", { class: "ask-empty" }, h("b", {}, "Ask the vault in plain words."), " Claude reads its pages and answers with citations. Click a citation to read the source in the panel beside this conversation.");
+    return emptyState("Claude is not reachable from this page.", st.mode === "file" ? "A page opened as a file asks nothing of the network." : st.mode === "pending" ? "Looking for the helper." : "The helper did not answer.",
+      "/planner:explore", "ask-empty");
+  }
+  function renderView(main) {
+    const conv = st.cur;
+    const crumbs = h("nav", { class: "ask-crumbs", "aria-label": "Where you came from" },
+      h("button", { class: "ask-back", type: "button", title: "Back to where you were (Esc)", onclick: back }, "‹ " + crumbLabel()), h("span", { class: "sep" }, "›"), h("span", {}, "Ask Claude"));
+    main.append(h("div", { class: "view-head ask-head" }, h("div", {}, crumbs, h("h1", {}, conv ? titleOfConversation(conv) : "New conversation")), h("div", { class: "spacer" }),
+      h("div", { class: "page-actions" }, picker(),
+        h("button", { class: "btn", type: "button", disabled: conv && conv.msgs.length ? null : true, onclick: newConversation, title: "New conversation" }, h("span", {}, "New", h("span", { class: "ask-more" }, " conversation"))))));
     const log = h("div", { class: "ask-log", tabindex: "-1" });
-    for (const msg of st.msgs) { msg.el = h("div", { class: "ask-turn" }); msg.el.append(...entry(msg).children); log.append(msg.el); }
-    const head = h("div", { class: "p-head" }, h("div", { class: "kind" }, "Ask Claude"), h("h2", {}, "Conversation"),
-      h("div", { class: "p-actions" }, h("button", { class: "btn tiny", type: "button", onclick: close }, "Back to details"),
-        h("button", { class: "btn tiny quiet", type: "button", onclick: newConversation }, "New conversation")));
-    const body = h("div", { class: "ask-panel" }, head, st.msgs.length ? log : note("Type a question in the search box and press Enter, or ask here."), composer());
-    body.addEventListener("keydown", (ev) => {
-      if (ev.key === "Escape") { ev.preventDefault(); close(); }
+    const col = h("div", { class: "ask-col" });
+    if (conv && conv.msgs.length) for (const msg of conv.msgs) col.append(turn(msg));
+    else col.append(emptyLog());
+    log.append(col);
+    const view = h("div", { class: "ask-view" }, log, composer());
+    view.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && !ev.defaultPrevented) { ev.preventDefault(); back(); }
       else if (ev.key === "Enter" && ev.target.closest("[data-ref]")) ev.target.closest("[data-ref]").click();
     });
-    // a citation opens in the explorer, and the panel then shows that item; the conversation waits behind the panel's button
-    body.addEventListener("click", (ev) => { if (ev.target.closest("[data-ref]")) leave(); });
-    queueMicrotask(() => { const l = $(".ask-log"); if (l) l.scrollTop = l.scrollHeight; });
-    return body;
+    // a citation opens in the panel (the page's own handler); what the reader is now looking at is what the next question is about
+    log.addEventListener("click", (ev) => { if (ev.target.closest("[data-ref]")) setTimeout(refreshAbout, 0); });
+    main.append(view);
+    queueMicrotask(() => { log.scrollTop = log.scrollHeight; });
   }
-  function show() { st.showing = true; PanelSize.reveal(); syncButton(); Panel.render(); const i = $(".ask-input"); if (i) i.focus(); }
-  function leave() { st.showing = false; syncButton(); }
-  function close() { leave(); Panel.render(); }
-  function syncButton() {
-    const b = $("#panel-ask");
-    b.hidden = !st.msgs.length;
-    b.setAttribute("aria-pressed", String(st.showing));
-    b.querySelector("span").textContent = st.busy ? "Answering…" : "Conversation";
-  }
-  $("#panel-ask").addEventListener("click", () => (st.showing ? close() : show()));
 
-  return { detect, snapshot, restore, served, row, enterAsks, ask: send, copyPrompt, promptFor, panel, showing: () => st.showing, close, leave, cited, cite, context, aboutLabel, st };
+  /* ---------------------------------------------------------------- going in and out */
+  function enter(focusBox) {
+    App.section = "ask"; App.root = "lights";
+    showView("ask");
+    Panel.render();
+    if (focusBox !== false) { const box = $(".ask-input"); if (box) box.focus(); }
+  }
+  /* Show the conversation, from the search box, the sidebar or a button. Where the reader was is kept for the way back. */
+  function open() { if (App.view !== "ask") st.from = Nav.where(); enter(); }
+  /* A deep link: #ask opens the last conversation, #ask&c=<id> that one. */
+  function boot(id) {
+    if (id && !st.convs.some((c) => c.id === id)) console.warn(`[ask] #ask&c=${id}: this browser keeps no such conversation; showing a new one`);
+    if (id) st.cur = st.convs.find((c) => c.id === id) || null;
+    st.from = null;
+    enter();
+  }
+  function show(msg) {
+    if (App.view !== "ask") { open(); return; }
+    const col = $(".ask-col"), log = $(".ask-log");
+    Nav.syncHash();
+    if (!col || !log || st.cur.msgs.length === 1) { rerender(); const box = $(".ask-input"); if (box) box.focus(); return; }  // a first question names the conversation and may add the switcher
+    col.append(turn(msg));
+    log.scrollTop = log.scrollHeight;
+  }
+  function back() { const where = st.from; st.from = null; Nav.back(where); }
+  function select(id) { st.cur = st.convs.find((c) => c.id === id) || null; Nav.syncHash(); rerender(); persist(); }
+  function newConversation() {
+    if (st.busy) { stop(); toast("Stopped the answer in progress."); }
+    st.cur = null; Nav.syncHash(); rerender(); persist();
+    const box = $(".ask-input"); if (box) box.focus();
+  }
+  const hash = () => "ask" + (st.cur && st.cur.msgs.length ? "&c=" + encodeURIComponent(st.cur.id) : "");
+
+  View("ask", { label: "Ask Claude", render: renderView });
+  load();
+
+  return { detect, snapshot, restore, served, row, enterAsks, ask: send, copyPrompt, promptFor, open, boot, back, hash, count: () => st.convs.filter((c) => c.msgs.length).length,
+    linkCitations, rendered, cite, context, aboutLabel, st };
 })();

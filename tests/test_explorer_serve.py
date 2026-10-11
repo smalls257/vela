@@ -126,6 +126,8 @@ def test_claude_gets_read_only_tools_the_vault_as_cwd_and_the_citation_rule(help
     assert value_after(argv, "--model") == serve.MODELS["haiku"] and "--disable-slash-commands" in argv
     system = value_after(argv, "--append-system-prompt")
     assert "[[ID]]" in system and "Never create, edit or delete" in system and "does not answer" in system
+    # the smoke test returned requirement IDs as bare text: the rule asks for a citation on every bullet, row and claim
+    assert "every bullet, every table row" in system and "never bare" in system and "[[CAP-001.FR1]]" in system and "never raw HTML" in system
     prompt = argv[argv.index("--") + 1]
     assert "flow FLO-002 step 2" in prompt and prompt.endswith("What does the demo deliver?") and "stray" not in prompt
 
