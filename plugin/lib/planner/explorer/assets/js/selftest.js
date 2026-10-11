@@ -421,7 +421,10 @@ const SelfTest = (() => {
     const answer = (turn) => [
       "## What it delivers\n\n", `- It delivers [[${id}]]\n  - nested, from [[${id}]]\n    - deeper still\n- Bare ID ${otherId} in a bullet\n\n`,
       "| Thing | Where |\n|---|---|\n", `| Alpha | [[${id}]] |\n\n`, "```js\nconst x = 1 < 2;\n```\n\n",
-      withToc ? `See [[${E[withToc].path}#${heading}]]. ` : "", "But [[ZZZ-999]] is unknown, `inline` code, **bold**, *italic*, [a link](https://example.com) and [bad](javascript:alert(1)).\n\n",
+      withToc ? `See [[${E[withToc].path}#${heading}]]. ` : "",
+      // the forms Claude copies from the vault's own pages: a path without .md, a bare file name, a heading, a |label
+      withToc ? `Also [[${E[withToc].path.replace(/\.md$/, "")}|the stem link]] and [[${E[withToc].path.replace(/\.md$/, "").split("/").pop()}#${heading}|the base link]]. ` : "",
+      "But [[ZZZ-999]] is unknown, `inline` code, **bold**, *italic*, [a link](https://example.com) and [bad](javascript:alert(1)).\n\n",
       SCRIPT_OPEN + "window.__askpayload = 1" + SCRIPT_CLOSE + " <img src=x onerror=\"window.__askpayload = 2\"> ![pic](https://example.com/p.png)", ` (turn ${turn}).`];
     const fake = async (url, init) => {
       calls.push({ url: String(url), body: init && init.body ? JSON.parse(init.body) : null });
@@ -451,6 +454,12 @@ const SelfTest = (() => {
     ok(!!bullet && !!$(`.ref-chip[data-ref="${CSS.escape(other)}"]`, bullet) && !$("code", bullet), `ask, fake helper: ${otherId}, written bare, is a chip too`, `ask, fake helper: bare ID in "${bullet && bullet.textContent}"`);
     const dead = a1 && $(".ask-unknown", a1);
     ok(!!dead && /ZZZ-999/.test(dead.textContent) && /not in this vault/.test(dead.textContent), "ask, fake helper: [[ZZZ-999]] is flagged as not in this vault", "ask, fake helper: the unknown ID is not flagged");
+    if (withToc) {
+      const unknown = $$(".ask-unknown", a1).map((c) => c.textContent);
+      const labelled = ["the stem link", "the base link"].every((l) => $$(`.ref-chip[data-ref^="${CSS.escape(withToc)}"], .ref-chip[data-ref^="read:${CSS.escape(withToc)}"]`, a1).some((c) => c.textContent.includes(l)));
+      ok(unknown.length === 1 && labelled, "ask, fake helper: Obsidian links ([[path|label]], [[file#heading|label]]) are chips showing their label, and only ZZZ-999 is flagged",
+        `ask, fake helper: flagged ${JSON.stringify(unknown)}, labelled chips ${labelled}`);
+    }
     const links = a1 ? $$("a[href]", a1) : [];
     ok(a1 && !$("script", a1) && !$("img", a1) && window.__askpayload === undefined && a1.textContent.includes(SCRIPT_OPEN + "window.__askpayload = 1" + SCRIPT_CLOSE) && a1.textContent.includes("<img src=x")
       && links.length === 1 && links[0].getAttribute("href") === "https://example.com" && links[0].target === "_blank" && /noopener/.test(links[0].rel) && a1.textContent.includes("bad") && a1.textContent.includes("pic")

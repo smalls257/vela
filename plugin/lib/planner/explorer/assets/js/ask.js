@@ -151,7 +151,14 @@ const Ask = (() => {
   function held() {
     if (index) return index;
     index = { keys: new Set(Object.keys(E)), ids: new Map(), paths: new Map() };
-    for (const e of Object.values(E)) if (e.path) { index.paths.set(e.path, e.key); if (e.id) index.ids.set(e.id, e.key); }
+    for (const e of Object.values(E)) {
+      if (!e.path) continue;
+      // Claude writes links the way the vault does (Obsidian): "13-epics/EPC-001-x.md", "13-epics/EPC-001-x" or just
+      // "EPC-001-x". Each spelling finds the page; a page's own key wins over a file name that two folders share.
+      const stem = e.path.replace(/\.md$/, ""), base = stem.split("/").pop();
+      for (const name of [e.path, stem, base]) if (!index.paths.has(name)) index.paths.set(name, e.key);
+      if (e.id) index.ids.set(e.id, e.key);
+    }
     const odd = [...new Set(Object.values(E).map((e) => e.id).filter((id) => id && id.length >= 5 && /-\d/.test(id) && !ID_SHAPE.test(id) && (index.keys.has(id) || index.ids.has(id))))].sort((a, b) => b.length - a.length);
     index.odd = odd.length ? new RegExp(`(?<![\\w./-])(${odd.map(literal).join("|")})(?![\\w-])`, "g") : NOTHING;
     return index;
@@ -170,17 +177,20 @@ const Ask = (() => {
     return t ? t.id : r.html.includes(`id="${heading}"`) ? heading : "";
   }
   /* [[FLO-002]] or [[releases/01.md#Scope]] to a chip that opens it in the panel; null when the vault holds nothing by that name. */
-  function chipFor(target, heading) {
+  function chipFor(target, heading, label) {
     const key = keyFor(target);
     if (!key || !ent(key)) return null;
-    const chip = refChip(key, heading ? h("span", { class: "rid" }, "#" + heading) : null);
+    const chip = refChip(key, label ? h("span", { class: "rid" }, label) : heading ? h("span", { class: "rid" }, "#" + heading) : null);
     if (heading && D.reader[key]) chip.setAttribute("data-ref", "read:" + key + (anchorFor(key, heading) ? "#" + anchorFor(key, heading) : ""));
     chip.setAttribute("tabindex", "0"); chip.setAttribute("role", "link");
     return chip;
   }
+  /* [[target#heading|label]], every part but the target optional, as Obsidian and the vault's own pages write it. */
   function cite(ref) {
-    const [target, heading] = ref.split("#").map((x) => x.trim());
-    return chipFor(target, heading) || h("span", { class: "ref-chip ask-unknown", title: "Claude cited this, but the vault holds no such ID or page" }, ref, h("span", { class: "ask-flag" }, "not in this vault"));
+    const [link, ...rest] = ref.split("|");
+    const label = rest.join("|").trim();
+    const [target, heading] = link.split("#").map((x) => x.trim());
+    return chipFor(target, heading, label) || h("span", { class: "ref-chip ask-unknown", title: "Claude cited this, but the vault holds no such ID or page" }, ref, h("span", { class: "ask-flag" }, "not in this vault"));
   }
   /* A bare ID: the longest leading part the vault holds ("CAP-001.FR1.Note" finds CAP-001.FR1). Unknown ones stay text:
      a bare "UTF-8" is not a broken citation. */
