@@ -7,9 +7,14 @@ the rest is. Levels, most urgent first:
 
   warning     an open question holding it is past its ask-by date
   caution     not decided yet, or held by an open question
+  pending     decided by a reader and not yet reviewed by the owner: an unsettled claim that looks settled
   unexamined  no state recorded, or a concern cell nobody has looked at: dark has to be earned
   override    a rule was set aside by the lead, which is visible but not an alarm
   dark        settled, and nothing holds it
+
+Pending ranks below the two that stop work (an overdue or open blocking question) and above the rest: those
+block, this awaits review. A reader's `decided` must not read as the owner's, so it outranks `unexamined`,
+`override` and a plain `decided` that is dark.
 
 `urgency` (0 to 1) says how hard a lit subject should glow: 1 is overdue, falling as the ask-by date moves away.
 Every light carries its reasons, in words, so a page can say why something is lit.
@@ -17,9 +22,9 @@ Every light carries its reasons, in words, so a page can say why something is li
 import datetime
 from dataclasses import dataclass, field
 
-from planner import model, override, progress, trace
+from planner import model, override, pending, progress, trace
 
-LEVELS = ("warning", "caution", "unexamined", "override", "dark")
+LEVELS = ("warning", "caution", "pending", "unexamined", "override", "dark")
 SETTLED = ("decided", "fact")
 DUE_SOON_DAYS = 7
 
@@ -68,7 +73,16 @@ def question_light(unknown, as_of):
     return light
 
 
-def settle(light, state, unexamined=(), overrides=()):
+def await_review(light, marker):
+    """Light a subject whose decision a reader made and no owner has reviewed. `marker` is a pending.Pending or None."""
+    if marker is None:
+        return
+    light.reasons.append({"kind": "pending", "by": marker.by, "date": marker.date,
+                          "text": f"pending approval: decided by {marker.by} on {marker.date}, not yet reviewed by the owner"})
+    light.raise_to("pending", 0.4)
+
+
+def settle(light, state, unexamined=(), overrides=(), marker=None):
     if not state:
         light.reasons.append({"kind": "unexamined", "text": "no state recorded"})
         light.raise_to("unexamined", 0.5)
@@ -81,6 +95,7 @@ def settle(light, state, unexamined=(), overrides=()):
     for o in overrides:
         light.reasons.append({"kind": "override", "text": f"override of {', '.join(o.rules)} by {o.by}"})
         light.raise_to("override", 0.15)
+    await_review(light, marker)
 
 
 def lights(vault, as_of):
@@ -102,7 +117,8 @@ def lights(vault, as_of):
                 for unknown in blockers.get(epic.id, []):
                     hold(light, unknown, as_of, via=epic.id)
         cells = [c for c in vault.cells if c.app.lower() == app.name.lower() and c.state == "unexamined"]
-        settle(light, str(app.meta.get("state") or ""), [c.concern.id for c in cells], override.valid_overrides(app))
+        settle(light, str(app.meta.get("state") or ""), [c.concern.id for c in cells], override.valid_overrides(app),
+               pending.pending_for(app))
     for contract in vault.contracts:
         light = out.setdefault(contract.id, Light())
         for unknown in blockers.get(contract.id, []):
@@ -111,7 +127,8 @@ def lights(vault, as_of):
             if contract.id in trace.listed(epic, "delivers") + trace.listed(epic, "consumes"):
                 for unknown in blockers.get(epic.id, []):
                     hold(light, unknown, as_of, via=epic.id)
-        settle(light, contract.fact("State"), (), override.valid_overrides(contract.page, contract.id))
+        settle(light, contract.fact("State"), (), override.valid_overrides(contract.page, contract.id),
+               pending.pending_for(contract.page, contract.id))
     stale = stale_by_page(vault)
     for flow in vault.of_type("flow"):
         light = out.setdefault(flow.id, Light())
@@ -121,7 +138,11 @@ def lights(vault, as_of):
             light.reasons.append({"kind": "stale", "unknown": unknown_id,
                                   "text": f"line {line} reads {unknown_id} as open; the record says resolved"})
             light.raise_to("caution", 0.35)
-        settle(light, str(flow.meta.get("state") or ""))
+        settle(light, str(flow.meta.get("state") or ""), marker=pending.pending_for(flow))
+    for marker in pending.items(vault):  # a reader's decision on any other page or item is lit too
+        subject = marker.item or next((p.id for p in vault.pages if p.path == marker.path), "")
+        if subject and subject not in out:
+            await_review(out.setdefault(subject, Light()), marker)
     shown = {r["unknown"] for light in out.values() for r in light.reasons if r.get("unknown")}
     above = []
     for unit_id, unknowns in blockers.items():
