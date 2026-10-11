@@ -18,7 +18,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, catalog, completeness, search, export, handoff, health, ladder, model, reading, parse, progress, query, questions, render, reviews, rules, schema, viewer, voicecheck, voicescore
+from planner import allocation, capture, catalog, completeness, search, export, handoff, health, ladder, model, reading, parse, progress, query, questions, releases, render, reviews, rules, schema, viewer, voicecheck, voicescore
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -1090,7 +1090,7 @@ def cmd_status(args, out):
 def initiative_step(vault, row):
     """A step for the whole initiative that comes before the per-app frontier, or None. Requirements cut across
     apps, so their gaps are not any one app's: an unallocated requirement is allocate's work before the Grill that
-    decides the apps, and a changing capability with no requirements, before the first epic, is requirements' work.
+    decides the apps, a changing capability with no requirements, before the first epic, is requirements' work, and dated releases come after allocation and before epics.
     An overdue unknown (rule 1) still comes first."""
     if row is not None and row.rule <= 1:
         return None
@@ -1098,6 +1098,9 @@ def initiative_step(vault, row):
     if loose:
         return (f"initiative, allocate {loose[0].id.split('.')[0]}. {loose[0].id} is at {loose[0].fact('State')} and no "
                 f"app's Requirements allocated table carries it, so no team owns it yet.")
+    if allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic"):
+        return ("initiative, releases. Every requirement is carried by an app and no release says when anyone gets any of "
+                "it, so date the releases before epics are cut.")
     have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
     bare = [c for c in sorted(vault.of_type("capability"), key=lambda p: p.id)
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
@@ -1119,6 +1122,23 @@ def first_step(vault):
         return ("initiative, boundary. The solution strategy is decided and no app page exists yet, so run a Boundary "
                 "session to turn it into apps.")
     return "initiative, dump. No app page exists yet, so start with a Dump & Diverge or a Discover."
+
+
+def cmd_capture(args, out):
+    """Counts of what the vault records for the explorer's domains, flow senders, releases, requirements and asks."""
+    found = capture.counts(load_vault(pathlib.Path(args.vault).resolve()))
+    checks = capture.verdict(found, args.expect_release or "", args.expect_ask or "")
+    if args.json:
+        print(json.dumps({"counts": found, "checks": [{"check": n, "passed": ok, "detail": d} for n, ok, d in checks]},
+                         indent=2), file=out)
+        return 0
+    print(f"planner capture: {found['apps_with_domain']} of {found['apps']} apps have a domain; "
+          f"{found['flow_steps_with_sender']} of {found['flow_steps_crossing']} flow steps that cross a contract name a sender; "
+          f"{found['releases']} releases; {found['requirements']} requirements; {found['allocation_rows']} allocation rows; "
+          f"{found['unknowns_with_ask']} of {found['unknowns']} unknowns name who to ask.", file=out)
+    for name, ok, detail in checks:
+        print(f"  {'pass' if ok else 'gap '}  {name}: {detail}", file=out)
+    return 0
 
 
 def cmd_next(args, out):
@@ -1180,6 +1200,12 @@ def build_parser():
     nxt.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nxt.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
     nxt.set_defaults(func=cmd_next)
+    cap = sub.add_parser("capture", help="counts of what the vault records for domains, flow senders, releases, requirements and asks")
+    cap.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    cap.add_argument("--json", action="store_true", help="print the counts and checks as JSON")
+    cap.add_argument("--expect-release", help="a YYYY-MM-DD target a release should carry")
+    cap.add_argument("--expect-ask", help="words an Ask line should contain, such as 'outside counsel'")
+    cap.set_defaults(func=cmd_capture)
     sty = sub.add_parser("style", help="where pages read as a log rather than a document; close runs it on changed pages")
     sty.add_argument("pages", nargs="*", help="pages to read, by path or name (default: every page)")
     sty.add_argument("--vault", default=".", help="vault root (default: current directory)")

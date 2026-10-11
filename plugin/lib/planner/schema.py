@@ -93,7 +93,8 @@ ENUMS = {
     "status": ("open", "closed"),
 }
 LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes")
-SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "grill", "requirements", "epics", "challenge", "answer")
+DOMAIN_MIN_APPS = 6  # W352 applies from this many apps
+SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "releases", "grill", "requirements", "epics", "challenge", "answer")
 LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
 
 HANDLE = r"@[A-Za-z0-9][A-Za-z0-9-]*(?:/[A-Za-z0-9._-]+)?"
@@ -249,7 +250,7 @@ SESSION_GAP_DAYS = 30  # W711 when no session has closed for longer than this
 # ------------------------------------------------------------ progress
 
 # What `planner status`, `planner next` and the progress-map block may suggest.
-NEXT_MODES = ("probe", "discover", "shape", "requirements", "boundary", "allocate", "grill", "epics", "dump", "none")
+NEXT_MODES = ("probe", "discover", "shape", "requirements", "boundary", "allocate", "releases", "grill", "epics", "dump", "none")
 
 # ------------------------------------------------------------- finding codes
 
@@ -286,6 +287,14 @@ CODES = {
     "E341": "release row names a criterion the requirement does not have",
     "E342": "release has no valid state",
     "W343": "no release delivers a functional requirement",
+    "E344": "release target is not a YYYY-MM-DD date",
+    "E350": "flow step names a sender or receiver its contract does not join",
+    "W351": "flow step links a contract but names no sender and receiver",
+    "W352": "app has no domain though other apps in a large initiative do",
+    "W353": "two domains differ only by case or a trailing s",
+    "W355": "unknown asks the person who owns it",
+    "W356": "changing capability has no functional requirements",
+    "W357": "functional requirement lists no acceptance criteria",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",

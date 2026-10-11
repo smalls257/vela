@@ -3,7 +3,8 @@
 Ported from prototypes/gallery/flows/extract.py and widened to the explorer's vaults. Everything is read with the
 planner's own parser and model. Two things the record does not say directly, each labelled on the page:
 
-- Direction. A step names a contract, not who sends to whom. A sentence such as "TickerTalk sends Coach the ID"
+- Direction. A step that starts "Sender -> Receiver:" records it, and is "stated". Otherwise a step names a
+  contract, not who sends to whom. A sentence such as "TickerTalk sends Coach the ID"
   names both ends, so the direction is "stated". Otherwise the sender is the contract's provider and the receivers
   its consumers, marked "inferred". When a contract has several consumers and the step names some of them, only
   those receive; when it names none, every consumer is drawn, because the record does not say which.
@@ -15,7 +16,7 @@ calls an answered question open is flagged (textSaysOpen) and the marker shows t
 """
 import re
 
-from planner import model
+from planner import flows as flow_steps, model
 from .record import STEP, inline_html, link_label, plain, refs_in
 
 SEND_VERB = re.compile(r"\b(sends|asks|calls|reports|writes|publishes|tells)\b")
@@ -77,9 +78,28 @@ def sentences(text):
     return [s for s in re.split(r"(?<=[.!?])\s+(?=[A-Z«\[])", text.strip()) if s]
 
 
-def message(sentence, c, words):
-    """One or more messages for contract c cited in a sentence."""
+def lane_of(vault, keys, flow, end, words):
+    """The lane a step's recorded sender or receiver names: an app link by its key, anything else by the lane name."""
+    from planner.parse import WIKILINK, parse_link
+    found = WIKILINK.search(end)
+    if found:
+        link = parse_link(found.group(1), 0)
+        target = vault.resolve(link, flow)
+        if target is not None and target.type == "app-building-blocks":
+            return keys.page(target)
+        end = link_label(vault, link, flow)
+    named = mentions(plain(end), words)
+    return named[0][1] if named else None
+
+
+def message(sentence, c, words, pair=()):
+    """One or more messages for contract c cited in a sentence. A recorded sender and receiver (`pair`) wins over
+    the verb, so a step that writes its arrow is always "stated"."""
     parties = [c["provider"]] + c["consumers"]
+    if pair and pair[0] != pair[1] and pair[0] in parties and pair[1] in parties:
+        verb = SEND_VERB.search(sentence)
+        kind = "request" if verb and verb.group(1) in REQUEST_VERBS else "send"
+        return [{"from": pair[0], "to": pair[1], "contract": c["id"], "direction": "stated", "kind": kind}]
     named = mentions(sentence, words)
     verb = SEND_VERB.search(sentence)
     if verb:
@@ -149,6 +169,8 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
                 continue
             number, raw = int(match.group(1)), match.group(2)
             text, tokens = masked(raw, keys, flow, vault)
+            ends = flow_steps.split_pair(raw)
+            pair = tuple(lane_of(vault, keys, flow, e, words) for e in ends) if ends else ()
             messages, pins, cited = [], [], []
             for sentence in sentences(text):
                 for tok in re.findall(r"«(\d+)»", sentence):
@@ -156,7 +178,7 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
                     item = vault.item(key) if key else None
                     if key in contracts_by_id:
                         cited.append(key)
-                        messages += message(sentence, contracts_by_id[key], words)
+                        messages += message(sentence, contracts_by_id[key], words, pair)
                     elif item is not None and item.kind == "unknown" and key not in [p["id"] for p in pins]:
                         pins.append({"id": key, "why": "cited", "textSaysOpen": bool(OPEN_WORDS.search(sentence))})
             named_here = [lane for _, lane in mentions(text, words)]

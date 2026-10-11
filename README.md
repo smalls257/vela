@@ -15,6 +15,7 @@ A Claude Code toolkit for planning at the initiative level. It covers everything
    - `/planner:requirements` writes each capability's functional requirements, naming no app, once the strategy is decided.
    - `/planner:boundary` turns a decided direction into apps: 2–3 ways to cut it, then one sheet per app (what it does and does not do, containers, contracts, failure, concerns), written at `assumption` line by line.
    - `/planner:allocate` divides each requirement among the apps and contracts that carry it, so every requirement has an owner before epics.
+   - `/planner:releases` asks when anyone outside the team first gets the result, then which requirements (or which of their checks) each dated release delivers, and writes `04b-releases.md` the explorer's Releases lens reads.
    - `/planner:grill` is the only thing that can mark an item `decided`, and only after your explicit yes.
    - `/planner:ask` answers questions from the vault. It is read-only, and anything the vault doesn't hold comes back as `Not recorded:`.
    - `/planner:find` finds where something is, in seconds, mid-conversation: "how does coach talk to brightwater" gives the best place to look and the flows that cross it.
@@ -103,7 +104,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `explore`, `status`, `next`, `health`, `query`, `questions`, `findings`, `handoff`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, shape, requirements, boundary, allocate, grill, epics, explore, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
+| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `explore`, `status`, `next`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |

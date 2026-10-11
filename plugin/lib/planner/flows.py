@@ -1,0 +1,95 @@
+"""Flow steps and who sends each message. Pure.
+
+A step that crosses between two lanes begins with a sender-to-receiver pair, then a colon and the sentence:
+`3. [[tickertalk-building-blocks|TickerTalk]] -> [[coach-building-blocks|Coach]]: sends the reader ID over [[...#CON-005 Reader identity|Reader identity]].`
+The pair is the recorded direction. Without it a reader (the explorer) can only guess the direction from the
+contract's provider and consumers. E350 and W351 read the same steps through `steps()`.
+"""
+import re
+from dataclasses import dataclass
+
+from planner import diagrams, parse
+
+STEP = re.compile(r"^(\d+)\.\s+(.*)$")
+_END = r"\[\[[^\]]+\]\]|[^\[\]:→>\n]{1,60}?"
+PAIR = re.compile(rf"^\s*({_END})\s*(?:→|->)\s*({_END})\s*:\s")
+PARENTHETICAL = re.compile(r"\s*\([^)]*\)\s*$")
+
+
+@dataclass(frozen=True)
+class Step:
+    page: object  # the flow page
+    number: int
+    line: int
+    raw: str
+    pair: tuple  # (sender text, receiver text) as written, or () when the step names none
+    contracts: tuple  # contract items the step links
+
+
+def split_pair(raw):
+    """(sender, receiver) as written at the start of a step, or () when the step has no arrow pair."""
+    found = PAIR.match(raw)
+    return (found.group(1).strip(), found.group(2).strip()) if found else ()
+
+
+def _contracts_linked(vault, page, raw, line):
+    out = []
+    for link in parse.links_in(raw, line):
+        first = link.anchor.split()[0].upper() if link.anchor.split() else ""
+        item = vault.item(first) if first else None
+        if item is not None and item.kind == "contract" and item.page is vault.resolve(link, page) and item not in out:
+            out.append(item)
+    return tuple(out)
+
+
+def steps(vault):
+    """Every numbered line under `## Steps` of every flow page, in page and line order."""
+    out = []
+    for page in sorted(vault.of_type("flow"), key=lambda p: p.path):
+        heading = next((h for h in page.headings if h.level == 2 and h.text.strip().lower() == "steps"), None)
+        if heading is None:
+            continue
+        end = next((h.line for h in page.headings if h.line > heading.line and h.level <= 2), None)
+        lines = page.text.split("\n")
+        for n in range(heading.line + 1, (end or len(lines) + 1)):
+            match = STEP.match(lines[n - 1].strip())
+            if match:
+                raw = match.group(2)
+                out.append(Step(page, int(match.group(1)), n, raw, split_pair(raw), _contracts_linked(vault, page, raw, n)))
+    return out
+
+
+def _name(text):
+    return " ".join(PARENTHETICAL.sub("", text).split()).lower()
+
+
+def endpoint(vault, page, text):
+    """A stable key for one end of a pair: an app's ID, or an outside party's lower-cased name."""
+    found = parse.WIKILINK.search(text)
+    if found:
+        link = parse.parse_link(found.group(1), 0)
+        target = vault.resolve(link, page)
+        if target is not None and target.type == "app-building-blocks":
+            return target.id
+        label = link.label or re.sub(r"^[A-Z]+-\d+\s+", "", link.anchor) or link.target
+        return _name(label)
+    plain = _name(text)
+    for app in vault.apps:
+        title = app.meta.get("title")
+        if plain in (_name(str(title)) if title else "", app.name.lower(), app.id.lower()):
+            return app.id
+    return plain
+
+
+def contract_parties(vault, contract):
+    """Keys of everyone a contract joins: its provider (the page it is kept on, or its outside **Provider:**) and
+    each consumer."""
+    external = contract.fact("Provider")
+    parties = {_name(diagrams.external_name(external)) if external else contract.page.id}
+    parties |= {app.id for app in vault.consumers(contract)}
+    bullet = contract.facts.get("Consumers")
+    for link in (bullet.links if bullet else ()):
+        target = vault.resolve(link, contract.page)
+        if target is None or target.type != "app-building-blocks":
+            parties.add(_name(link.label or re.sub(r"^[A-Z]+-\d+\s+", "", link.anchor) or link.target))
+    return parties
