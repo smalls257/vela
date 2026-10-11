@@ -31,14 +31,16 @@
 .r-here { background: color-mix(in srgb, var(--ink) 6%, transparent); border-radius: 4px; transition: background 1.2s; }
 #panel .reader { font-size: 14.5px; }
 #panel .reader h1 { display: none; }
-/* full width: contents on the left, a measure of about 72 characters */
-.doc-scroll { padding: 4px 24px 40px; display: grid; grid-template-columns: minmax(0, 72ch) minmax(220px, 1fr); gap: 28px; align-items: start; }
+/* full width: the text takes the room and the aside keeps a fixed column; 120ch stops lines running unreadably long
+   on a very wide screen. A 66ch measure left about half the main area empty, which read as a page that did not fit. */
+.doc-scroll { padding: 4px 24px 40px; display: grid; grid-template-columns: minmax(0, 120ch) minmax(240px, 320px); gap: 28px; align-items: start; }
+/* a page with no aside gives its column to the text */
+.doc-scroll:not(:has(> .doc-aside)) { grid-template-columns: minmax(0, 120ch); }
 .reader.wide { display: grid; grid-template-columns: 1fr; }
 .reader.wide .r-toc { position: sticky; top: 0; z-index: 1; }
 .doc-aside { background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; font-size: 13px; position: sticky; top: 0; }
 .doc-aside h3 { margin: 0 0 8px; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
 .reader.wide h1:first-child, .reader.wide .r-text > h1:first-child { display: none; }
-.doc-scroll { grid-template-columns: minmax(0, 66ch) minmax(250px, 1fr); }
 .doc-aside .rc-row { grid-template-columns: 1fr; gap: 2px; margin-top: 8px; }
 .doc-aside .rc-l { text-transform: capitalize; }
 .doc-aside .ref-chip { font-size: 12px; }
