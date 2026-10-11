@@ -18,18 +18,20 @@ A Claude Code toolkit for planning at the initiative level. It covers everything
    - `/planner:grill` is the only thing that can mark an item `decided`, and only after your explicit yes.
    - `/planner:ask` answers questions from the vault. It is read-only, and anything the vault doesn't hold comes back as `Not recorded:`.
    - `/planner:find` finds where something is, in seconds, mid-conversation: "how does coach talk to brightwater" gives the best place to look and the flows that cross it.
+   - `/planner:explore` builds the explorer, one offline page of the whole initiative (map, flows played, who holds each answer), and opens it in your browser.
    - Discover, Shape and Grill each run a review checkpoint too. Between sessions, `python3 .claude/skills/planner/bin/planner questions --digest` shows what is still owed. See "What v3 adds" below.
 5. **Before each PR,** run `python3 .claude/skills/planner/bin/planner check`. CI runs it too. If you make it a required check, a broken vault can't merge.
-6. **For the CIO,** run `python3 .claude/skills/planner/bin/planner view --out ~/Desktop/<name>.html` and email the file. It works offline and can't run page script or make network calls.
+6. **For the CIO,** run `python3 .claude/skills/planner/bin/planner view --out ~/Desktop/<name>.html` and email the file. It works offline and can't run page script or make network calls. The viewer is the reading copy: every page rendered, stamped with the commit and the check counts. For a live conversation use the explorer instead, `/planner:explore`: the map, the flows played step by step, and what needs the lead. The two are kept apart on purpose, one a document you send and the other a surface you present from.
 
 The kill rule you set: if it isn't faster than plain Markdown after five sessions, cut back to the conventions, `check` and the viewer.
 
 ## The planner CLI
 
-Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the vault root. Only `render`, `view`, `handoff` and `export` write files.
+Run each one as `python3 .claude/skills/planner/bin/planner <command>` from the vault root. Only `render`, `view`, `explore`, `handoff` and `export` write files.
 
 | Command | What it tells you |
 |---|---|
+| `planner explore [<vault>]` | Builds the vault explorer, one offline page: the map, each flow played, who holds each open answer, why things were decided, where each app stands. Writes `.planner/explorer.html` and the fixed layout `.planner/explorer-pins.json` in the vault. `-o`, `--today`, `--theme`, `--design APP-x=<path>`, `--assets`. `/planner:explore` runs it and opens the page |
 | `planner status` | Every app's stage, certainty mix and oldest open unknown |
 | `planner style <page>...` | Where a page still reads as a log: history above `## History`, IDs or bare source IDs in prose, no opening prose |
 | `planner ladder` | Each app's typed stage, the stage its pages already reach, and what the next stage needs |
@@ -101,7 +103,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `status`, `next`, `health`, `query`, `questions`, `findings`, `handoff`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, shape, requirements, boundary, allocate, grill, epics, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
+| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `explore`, `status`, `next`, `health`, `query`, `questions`, `findings`, `handoff`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, shape, requirements, boundary, allocate, grill, epics, explore, close, ask, challenge, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |

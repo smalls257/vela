@@ -375,3 +375,21 @@ def test_a_review_is_about_what_this_session_changed_and_a_group_can_wait_on_one
     assert "it quotes a `Changed:` page" in agent
     assert "waits on UNK-050: Q-DAT-02@APP-account-link-service, R-OPS-12, F2.4" in review
     assert "A capture `waits on UNK-nnn: <IDs>` makes each ID's row `unknown`" in close and "changed in place" in close
+
+
+def test_explore_opens_a_page_only_after_a_build_that_succeeded_and_writes_nothing_but_the_page_and_pins():
+    explore = text("skills/explore/SKILL.md")
+    assert "If the command exits 2, show its message in full, say no page was built, and stop." in explore
+    assert "Never say the page is open unless the command succeeded." in explore
+    assert "Nothing is written into the plugin folder." in explore
+    meta = frontmatter(PLUGIN / "skills/explore/SKILL.md")
+    assert "Write" not in meta["allowed-tools"].split() and "Edit" not in meta["allowed-tools"].split()
+
+
+def test_every_flag_the_explore_skill_names_is_one_the_command_accepts():
+    from planner import cli
+    parser = cli.build_parser()
+    sub = next(a for a in parser._actions if a.dest == "command").choices["explore"]
+    accepted = {flag for action in sub._actions for flag in action.option_strings}
+    named = set(re.findall(r"`(--[a-z]+)[ `]", text("skills/explore/SKILL.md"))) | {"-o"}
+    assert named and named <= accepted, named - accepted
