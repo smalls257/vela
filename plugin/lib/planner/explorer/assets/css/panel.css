@@ -1,6 +1,25 @@
 /* ------------------------------------------------ the one right-hand panel */
 #panel { grid-area: panel; background: var(--room-2); border-left: 1px solid var(--rule); display: flex; flex-direction: column; min-height: 0; position: relative; z-index: 5; }
-#panel-body { flex: 1; overflow: auto; padding: 12px 22px 24px; min-height: 0; }
+body.panel-hidden #panel { display: none; }
+body.panel-hidden { --panel-w: 0px; }
+.panel-bar { flex: none; display: flex; justify-content: flex-end; padding: 6px 10px 0; }
+.panel-hide, .panel-tab { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: var(--ink-3); font-size: 12px; border-radius: 7px; }
+.panel-hide { padding: 3px 8px 3px 6px; }
+.panel-hide:hover, .panel-tab:hover { background: var(--deck); color: var(--ink); }
+.panel-hide:focus-visible, .panel-tab:focus-visible { outline: 2px solid var(--focus); }
+.panel-hide svg, .panel-tab svg { width: 14px; height: 14px; }
+/* the way back: a slim tab on the window's right edge, under the top bar */
+.panel-tab { position: fixed; right: 0; top: 74px; z-index: 40; flex-direction: column; padding: 10px 3px; gap: 8px; background: var(--room-2);
+  border: 1px solid var(--rule); border-right: 0; border-radius: 8px 0 0 8px; }
+.panel-tab[hidden] { display: none; }
+.panel-tab span { writing-mode: vertical-rl; letter-spacing: .06em; }
+/* the drag handle straddles the panel's left rule; a wide hit area keeps it easy to grab by finger */
+#panel-grip { position: absolute; left: -5px; top: 0; bottom: 0; width: 11px; cursor: col-resize; z-index: 6; touch-action: none; }
+#panel-grip::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 3px; background: transparent; }
+#panel-grip:hover::after, body.panel-dragging #panel-grip::after { background: var(--ink-3); }
+#panel-grip:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+body.panel-dragging { user-select: none; cursor: col-resize; }
+#panel-body { flex: 1; overflow: auto; padding: 4px 22px 24px; min-height: 0; }
 .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12.5px; margin-bottom: 12px; color: var(--ink-3); }
 .crumbs a { color: var(--ink-2); padding: 2px 7px; border-radius: 5px; background: var(--deck); }
 .crumbs a:hover { background: var(--deck-3); text-decoration: none; color: var(--ink); }

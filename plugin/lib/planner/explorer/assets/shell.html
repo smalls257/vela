@@ -29,9 +29,18 @@
 <nav id="side" aria-label="Sections"></nav>
 <main id="main"></main>
 <aside id="panel" aria-label="Details">
+  <div id="panel-grip" role="separator" aria-orientation="vertical" aria-label="Resize the panel" aria-controls="panel" tabindex="0" title="Drag to resize; double-click for the default width"></div>
+  <div class="panel-bar">
+    <button class="panel-hide" id="panel-hide" aria-controls="panel" aria-expanded="true" title="Hide the panel (])">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span>
+    </button>
+  </div>
   <div id="panel-body"></div>
   <div id="panel-mini" class="panel-mini" aria-label="Minimap"></div>
 </aside>
+<button id="panel-tab" class="panel-tab" aria-controls="panel" title="Show the panel (])" hidden>
+  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Details</span>
+</button>
 <div id="overlay" hidden></div>
 <div id="toast" role="status"></div>
 <div id="tip" role="tooltip"></div>

@@ -259,6 +259,62 @@ const SelfTest = (() => {
     FX.set(was);
     Motion.clear();
   }
+  /* The panel's room: hide it and the main area widens, a pick brings it back, a drag stays between the minimum and
+     60% of the window, the choice is in storage as a reload would read it, and the views that fit the main area
+     (the map, the matrix's frozen edges) still hold after every change. */
+  async function panelRoom() {
+    const hidden0 = PanelSize.hidden, want0 = PanelSize.wanted;
+    const mainW = () => $("#main").getBoundingClientRect().width, panelW = () => $("#panel").getBoundingClientRect().width;
+    const stored = () => ({ hidden: Settings.read("explorer.panel.hidden"), width: Number(Settings.read("explorer.panel.width")) || null });
+    // fit() draws at 0.15 of the drawing at the smallest, so a board narrower than that overflows by design
+    const fitted = () => {
+      const b = $("#board"), svg = b && $("svg.cockpit", b);
+      if (!svg) return true;  // an empty vault draws no map
+      const r = b.getBoundingClientRect(), v = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      return (v.right <= r.right + 1 && v.bottom <= r.bottom + 1) || v.width / vb.width <= 0.151;
+    };
+    PanelSize.hide(false); PanelSize.setWidth(null, { now: true });
+    Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; rerender(); await frames();
+    const open = mainW(), openPanel = panelW();
+    PanelSize.hide(true); await frames();
+    ok($("#panel").offsetParent === null && mainW() > open + openPanel * 0.9 && !$("#panel-tab").hidden && stored().hidden === "1",
+      `panel: hidden, the main area widens ${Math.round(open)} to ${Math.round(mainW())} px, the tab is on the edge, and the choice is stored`, `panel hide: main ${Math.round(open)} to ${Math.round(mainW())}, panel shown ${$("#panel").offsetParent !== null}, tab hidden ${$("#panel-tab").hidden}`);
+    ok(fitted(), "panel: the map still fits its board with the panel hidden", "panel hidden: the map overflows its board");
+    const pick = D.nodes[0] ? D.nodes[0].key : null;
+    if (pick) { go(pick, { reset: true }); await frames(); ok($("#panel").offsetParent !== null && !PanelSize.hidden && stored().hidden === "0", `panel: picking ${titleOf(pick)} while hidden opens it again`, "panel: a pick did not reopen the hidden panel"); }
+    else PanelSize.hide(false);
+    const grip = $("#panel-grip");
+    PanelSize.setWidth(10, { now: true });
+    const low = Math.round(panelW());
+    PanelSize.setWidth(100000, { now: true });
+    const high = Math.round(panelW()), cap = PanelSize.max();
+    ok(low === PanelSize.MIN && high === cap && +grip.getAttribute("aria-valuenow") === high && +grip.getAttribute("aria-valuemin") === PanelSize.MIN && +grip.getAttribute("aria-valuemax") === cap && grip.getAttribute("role") === "separator" && grip.getAttribute("aria-orientation") === "vertical",
+      `panel: resize clamps to ${low} px at the least and ${high} px (60% of ${innerWidth}) at the most, and the handle reports both`, `panel resize: least ${low} (want ${PanelSize.MIN}), most ${high} (want ${cap}), aria-valuenow ${grip.getAttribute("aria-valuenow")}`);
+    PanelSize.setWidth(PanelSize.MIN + 100, { now: true });
+    grip.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }));
+    const grown = Math.round(panelW());
+    grip.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    const back = Math.round(panelW());
+    ok(grown === PanelSize.MIN + 100 + PanelSize.STEP && back === PanelSize.MIN + 100, `panel: the handle's arrow keys move it ${PanelSize.STEP} px each way`, `panel arrows: ${PanelSize.MIN + 100} to ${grown} to ${back}`);
+    const wide = Math.round(panelW());
+    ok(stored().width === wide, `panel: width ${wide} px is in storage, so a reload reads it back`, `panel width in storage ${stored().width}, on screen ${wide}`);
+    await frames();
+    ok(fitted(), `panel: the map still fits its board at ${wide} px of panel`, "panel resized: the map overflows its board");
+    MapView.st.lens = "matrix"; rerender(); await frames();
+    const board = $("#board"), col = $("table.dsm th.col"), rowName = $("table.dsm tbody th.row"), corner = $("table.dsm th.corner");
+    if (col && rowName && corner) {
+      const at = () => [col.getBoundingClientRect().top, rowName.getBoundingClientRect().left, corner.getBoundingClientRect().top, corner.getBoundingClientRect().left];
+      const before = at();
+      board.scrollTop = board.scrollHeight; board.scrollLeft = board.scrollWidth;
+      const after = at();
+      ok(before.every((v, i) => Math.abs(v - after[i]) < 1.5), "panel: the matrix's frozen head, row names and corner still hold after the resize", `matrix frozen edges moved after a panel resize: ${before.map(Math.round)} to ${after.map(Math.round)}`);
+      board.scrollTop = 0; board.scrollLeft = 0;
+    }
+    PanelSize.setWidth(null, { now: true });
+    ok(stored().width === null && PanelSize.wanted === null, "panel: the default width comes back, and storage forgets the width", "panel default: width still stored");
+    PanelSize.setWidth(want0, { now: true }); PanelSize.hide(hidden0);
+    MapView.st.lens = null; MapView.st.group = null; Nav.home(); await frames();
+  }
   async function releases() {
     const S = Releases.STATES;
     ok(D.releases.count ? S.length === D.releases.count + 1 : S.length === 2 && S[1].fromChange, D.releases.count ? `releases: Today and ${plural(D.releases.count, "release")}, from planner.releases` : "releases: none planned, so Today against the end state from each app's change, and the page says so", "release states wrong");
@@ -327,7 +383,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await effects(); await releases(); await emptyStates(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await effects(); await panelRoom(); await releases(); await emptyStates(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");

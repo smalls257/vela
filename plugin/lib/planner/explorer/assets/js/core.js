@@ -271,6 +271,7 @@ function rerender() {
 /* Open something: the panel shows it, the trail keeps the thread, and with reveal the right view comes forward. */
 function go(key, opts = {}) {
   if (!key) return;
+  PanelSize.reveal();  // whatever is picked shows in the panel, so a hidden panel opens for it
   if (key === "lights") App.root = "lights";
   if (opts.reset) App.trail = key === "lights" || key === App.root ? [] : [key];
   else {
