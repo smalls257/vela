@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, links, override, parse, questions, releases, render, schema, trace
+from planner import allocation, flows, links, override, parse, questions, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -585,6 +585,9 @@ def release_rules(vault, today):
     page = releases.page(vault)
     reqs = {r.id: r for r in allocation.requirements(vault)}
     for release in found:
+        if not is_date(release.target):
+            yield _f(page, release.line, "E344", f"Release '{release.name}' has Target '{release.target or 'none'}', not a YYYY-MM-DD date.",
+                     "Add '- **Target:** 2027-01-15' under its heading; a bad date drops it from the timeline.")
         if release.state not in releases.STATES:
             yield _f(page, release.line, "E342", f"Release '{release.name}' has State '{release.state or 'none'}'.",
                      "Add '- **State:** inkling', assumption or decided under its heading.")
@@ -605,6 +608,82 @@ def release_rules(vault, today):
         if req.id not in delivered:
             yield _f(req.page, req.line, "W343", f"{req.id} is at {req.fact('State')}, but no release on 04b-releases.md "
                      "delivers it, so nothing says when it ships.", "Add it to the release that delivers it.")
+
+
+def flow_sender_rules(vault, today):
+    """E350 and W351. A step that names a sender and receiver must name two parties its linked contract joins; a
+    step that links a contract and names none leaves the explorer guessing the direction. W351 only warns: a
+    step can honestly be one actor's act, and every flow written before the pair existed has it."""
+    for step in flows.steps(vault):
+        if not step.contracts:
+            continue
+        if not step.pair:
+            yield _f(step.page, step.line, "W351", f"Step {step.number} links {step.contracts[0].id} but names no sender and receiver, "
+                     "so a reader can only guess the direction.",
+                     "Start the step with 'Sender -> Receiver:', or leave it if one actor does it alone.")
+            continue
+        ends = [flows.endpoint(vault, step.page, text) for text in step.pair]
+        for contract in step.contracts:
+            joined = flows.contract_parties(vault, contract)
+            stray = [text for text, key in zip(step.pair, ends) if key not in joined]
+            if stray or ends[0] == ends[1]:
+                yield _f(step.page, step.line, "E350", f"Step {step.number} says {step.pair[0]} sends to {step.pair[1]} over "
+                         f"{contract.id}, which joins {', '.join(sorted(joined))}.",
+                         "Name the two ends of the contract, or link the contract the step really uses.")
+                break
+
+
+def domain_rules(vault, today):
+    """W352 and W353. Once any app names a domain, a large initiative's other apps should; two spellings of one
+    domain split the Group: Domain view in two."""
+    named = [p for p in vault.apps + vault.of_type("capability") if isinstance(p.meta.get("domain"), str) and p.meta["domain"].strip()]
+    if not named:
+        return
+    if len(vault.apps) >= schema.DOMAIN_MIN_APPS and any(p in named for p in vault.apps):
+        for app in vault.apps:
+            if app not in named:
+                yield _f(app, 1, "W352", f"{app.id} has no domain, but other apps in this {len(vault.apps)}-app initiative do.",
+                         "Add 'domain: <name>' to its frontmatter, using the area your people already call it.")
+    spellings = {}
+    for page in named:
+        spellings.setdefault(" ".join(page.meta["domain"].split()), []).append(page)
+    groups = {}
+    for spelling in spellings:
+        groups.setdefault(re.sub(r"s$", "", spelling.lower()), []).append(spelling)
+    for same in groups.values():
+        if len(same) < 2:
+            continue
+        common = max(same, key=lambda s: (len(spellings[s]), s))
+        for spelling in same:
+            if spelling != common:
+                for page in spellings[spelling]:
+                    yield _f(page, meta_line(page, "domain"), "W353", f"Domain '{spelling}' and '{common}' differ only by case or a trailing s.",
+                             f"Use one spelling, probably '{common}', so the apps group together.")
+
+
+def ask_rules(vault, today):
+    """W355. An **Ask:** that names the owner says nothing the Owner line does not."""
+    for unknown in vault.unknowns:
+        ask, owner = unknown.fact("Ask"), unknown.fact("Owner")
+        if ask.startswith("@") and owner and ask.split()[0] == owner.split()[0]:
+            yield _f(unknown.page, unknown.facts["Ask"].line, "W355", f"{unknown.id} asks the person who owns it.",
+                     "Delete the Ask line, or name the person or role who actually holds the answer.")
+
+
+def requirement_coverage_rules(vault, today):
+    """W356 and W357. A changing capability with no requirements leaves the explorer's requirement door looking
+    finished; a requirement with no acceptance criteria gives a release no AC to cite."""
+    if vault.apps:
+        have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
+        for cap in sorted(vault.of_type("capability"), key=lambda p: p.id):
+            change = cap.meta.get("change")
+            if change in schema.ENUMS["change@capability"] and change != "unchanged" and cap.id not in have:
+                yield _f(cap, meta_line(cap, "change"), "W356", f"{cap.id} is {change} but has no functional requirements.",
+                         "Run /planner:requirements on it, or set change: unchanged if nothing changes.")
+    for req in allocation.requirements(vault):
+        if releases.criteria_count(req) == 0:
+            yield _f(req.page, req.line, "W357", f"{req.id} lists no acceptance criteria, so a release cannot say which it delivers.",
+                     "Add the checks that must hold as plain bullets under the requirement.")
 
 
 def certainty_rules(vault, today):
@@ -903,5 +982,5 @@ def link_field_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules)

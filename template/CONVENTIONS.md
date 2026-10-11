@@ -472,6 +472,10 @@ Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It r
 | E330 | allocation row names no functional requirement | E331 | allocation row goes through no such contract |
 | E332 | allocation row has no valid state | E333 | allocation row is a fact on a page with no sources |
 | W334 | prose calls an answered question open | | |
+| E344 | release target is not a YYYY-MM-DD date | E350 | flow step names a sender or receiver its contract does not join |
+| W351 | flow step links a contract but names no sender and receiver | W352 | app has no domain though other apps in a large initiative do |
+| W353 | two domains differ only by case or a trailing s | W355 | unknown asks the person who owns it |
+| W356 | changing capability has no functional requirements | W357 | functional requirement lists no acceptance criteria |
 | E340 | release row names no functional requirement | E341 | release row names a criterion the requirement does not have |
 | E342 | release has no valid state | W343 | no release delivers a functional requirement |
 | E321 | override is malformed | W303 | decided without a Grill, by override |
@@ -520,11 +524,23 @@ An app's allocated rows are its team's input. Epics take their acceptance criter
 
 Nothing else records a release. What the system looks like after each one is worked out from the requirements it delivers: each app that carries a share of one changes, or arrives if it is new, and each contract its share goes through exists. Today is every app whose `change` is not `new`, and every contract whose `**Change:**` is not `new`.
 
-`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, and E342 for a release with no valid State. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. A Grill decides a release, as it decides any other item.
+`/planner:releases` writes this page, after allocate and before epics, in a session with mode `releases`. A requirement the user places on no release ("later, no date") stays out of the file; W343 lists it.
+
+`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. A Grill decides a release, as it decides any other item.
+
+## Flow steps
+
+A flow page lists its journey under `## Steps`, one numbered line per step. A step that crosses between two lanes starts with the sender, an arrow and the receiver, then a colon and the sentence:
+
+```
+3. [[tickertalk-building-blocks|TickerTalk]] → [[coach-building-blocks|Coach]]: sends the opaque reader ID, and nothing else, over [[tickertalk-building-blocks#CON-005 Reader identity|Reader identity]].
+```
+
+`->` reads the same as `→`. An outside party is named by its name or by a link to its party page. The pair is the recorded direction: the explorer draws it as stated, and guesses a direction only for a step without one. A step with no hand-over, such as a reader opting in, needs no pair. `planner check` reports E350 when the sender or receiver is not a party the linked contract joins (its provider, an outside **Provider:**, or a consumer), or when both ends are the same, and W351 when a step links a contract and names no pair.
 
 ## Domains
 
-An app page may say which domain it belongs to, as `domain: <name>` in its frontmatter, such as `domain: Channels`. Views of the system group apps by it, so a map of twenty apps opens as a handful of domains. Boundary asks for it when it cuts the apps. An app with no domain is shown under "No domain".
+An app page may say which domain it belongs to, as `domain: <name>` in its frontmatter, such as `domain: Channels`. Views of the system group apps by it, so a map of twenty apps opens as a handful of domains. Boundary asks for it once, for all the apps of the cut together, offering the domains already in the vault first so spellings converge. An app with no domain is shown under "No domain". `planner check` warns (W352) when some app has a domain and, in an initiative of 6 or more apps, another has none, and (W353) when two domains differ only by case or a trailing s.
 
 An app page may also name the picture views draw for it, as `icon: <word>`, one short lower-case word such as `icon: payments`. Without it a view picks one from the app's title, domain and opening words. Anything else is E105.
 
