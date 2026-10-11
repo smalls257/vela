@@ -1,8 +1,0 @@
-{
-  "name": "planner",
-  "version": "0.2.0",
-  "description": "Initiative planning vault: one conventions file, a read-only check, generated blocks and diagrams, an offline viewer, an offline explorer for live conversations, session skills from dump to epics with drafts in the owner's house voice, handoff manifests, a senior's challenge and the lead's answer, and a weekly health report.",
-  "author": {
-    "name": "Jason Smith"
-  }
-}
