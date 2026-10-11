@@ -8,6 +8,7 @@ import codecs
 import datetime
 import difflib
 import importlib.util
+import io
 import json
 import os
 import pathlib
@@ -20,8 +21,9 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, search, export, freshness, handoff, health, ladder, model, opening, pluginroot, reading, parse, progress, publish, query, questions, releases, render, reviews, roles, rules, schema, viewer, voicecheck, voicescore
-from planner.edge import copies, vaultgit
+from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, review, reviews, roles, rules, schema, viewer, voicecheck, voicescore
+from planner.edge import copies, reviewgit, vaultgit
+from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -387,6 +389,352 @@ def explore_workspace(folder, today, out):
         raise ToolError(f"the workspace was written at {folder}, but the explorer page could not be built: {exc}") from exc
     for line in lines:
         print(f"planner explore: {line}", file=out)
+
+
+# ------------------------------------------------------------------ propose (a reader) and proposals (an owner)
+
+def vault_findings(root, today):
+    """Every finding `planner check` would print for the vault at `root`."""
+    return rules.check(load_vault(root), today) + conventions_findings(root)
+
+
+def check_summary(root, baseline_dir, today):
+    """What the proposal says about its own copy: counts, the errors in full (they print first), and what is new."""
+    found = vault_findings(root, today)
+    before = {(f.code, f.path, f.message) for f in vault_findings(baseline_dir, today)}
+    errors = [f for f in found if f.is_error]
+    fresh = [f for f in found if (f.code, f.path, f.message) not in before and f.code != pending.WARNING]
+    shown = [f"{f.code} in {f.path}" for f in fresh[:5]] + ([f"and {len(fresh) - 5} more"] if len(fresh) > 5 else [])
+    return {"errors": len(errors), "warnings": len(found) - len(errors), "new": shown,
+            "error_lines": [f.format() for f in errors[:10]] + ([f"and {len(errors) - 10} more errors; run planner check"] if len(errors) > 10 else [])}
+
+
+def heading_for(page, item_id):
+    """The text of the heading that names an item ("CON-004 Refund contract"), else the ID alone."""
+    for heading in page.headings:
+        if heading.text.split()[:1] == [item_id]:
+            return heading.text.strip()
+    return item_id
+
+
+def new_pending(root, baseline_dir, changed):
+    """{item ID: {heading, by, date, session}} for the pending-approval markers the reader added since the baseline."""
+    now, was = load_vault(root), load_vault(baseline_dir)
+    had = {(p.path, p.item, p.by, p.date) for p in pending.items(was)}
+    pages = {p.path: p for p in now.pages}
+    found = {}
+    for entry in pending.items(now):
+        if (entry.path, entry.item, entry.by, entry.date) in had:
+            continue
+        key = entry.item or entry.subject
+        session = next((pathlib.PurePosixPath(path).stem for path in sorted(changed) if path.startswith("sessions/")
+                        and key in changed[path]), "")
+        found[key] = {"heading": heading_for(pages[entry.path], key) if entry.item else key, "by": entry.by,
+                      "date": entry.date, "session": session}
+    return found
+
+
+def read_whys(path, keys):
+    """{group key: the reader's reason} from a JSON file; a key that names no group is an error, not a lost reason."""
+    if not path:
+        return {}
+    try:
+        data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ToolError(f"--whys {path} cannot be read as JSON: {exc}") from exc
+    if not isinstance(data, dict) or not all(isinstance(v, str) for v in data.values()):
+        raise ToolError("--whys must be a JSON object of group -> reason text.")
+    unknown = sorted(set(data) - set(keys))
+    if unknown:
+        raise ToolError(f"--whys names {', '.join(unknown)}, which is not a group of this proposal. The groups are: {', '.join(keys)}.")
+    return {k: v.strip() for k, v in data.items() if v.strip()}
+
+
+def private_strings(root, workspace):
+    """Exact strings no proposal may carry: where this person's files live and where the copy came from."""
+    home = str(pathlib.Path.home())
+    return [home, os.path.expanduser("~"), str(root), os.path.abspath(str(root)), str(workspace.get("source_path") or ""),
+            str(workspace.get("planner_path") or ""), str(PLANNER_PROGRAM)]
+
+
+def text_with_home_hidden(files, home):
+    """The text files with this person's home folder written as <home>; binary files are left as they are."""
+    return {path: (proposal.hide_home(data.decode("utf-8"), home).encode("utf-8") if not drafts.is_binary(data) else data)
+            for path, data in files.items()}
+
+
+def print_groups(groups, as_json, out):
+    if as_json:
+        print(json.dumps([{"group": g.key, "pending": g.pending, "changes": [{"path": p, "hunk": h, "also": list(a)} for p, h, a in g.hunks]}
+                          for g in groups], indent=2), file=out)
+        return
+    for g in groups:
+        files = sorted({p for p, _, _ in g.hunks})
+        print(f"  {g.key}{' (pending decision)' if g.pending else ''}: {len(g.hunks)} change(s) in {', '.join(files)}", file=out)
+
+
+def cmd_propose(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    found = detect_role(root)
+    if found.role == roles.OWNER:
+        raise ToolError("You work in this vault's git repo, so you are an owner and decide directly: change it on a session branch and open a PR. "
+                        "A proposal is how a reader, who has no git, sends changes to an owner. Nothing was written.")
+    if found.role != roles.READER:
+        raise ToolError(f"cannot propose: {found.reason}.")
+    today, _ = parse_today(args.today)
+    baseline_dir = root / copies.BASELINE
+    if not baseline_dir.is_dir():
+        raise ToolError(f"{baseline_dir} is missing, so I have nothing to compare your pages with. Open the published copy again into a new folder.")
+    try:
+        workspace = copies.read_workspace(root)
+        stamp = copies.read_own_stamp(root) or {}
+        baseline, working = copies.read_tree(baseline_dir, skip_published=True), copies.read_tree(root, skip_published=True)
+        if args.rewrite_home:
+            working = text_with_home_hidden(working, str(pathlib.Path.home()))
+        built = proposal.build(baseline, working, workspace.get("base_commit", ""), workspace.get("initiative") or stamp.get("initiative", ""))
+    except (copies.SourceUnreadable, opening.OpenError, proposal.ProposalError) as exc:
+        raise ToolError(str(exc)) from exc
+    if not built.files and not built.binaries:
+        raise ToolError("You have not changed anything since you opened this copy, so there is nothing to propose.")
+    changed = {path: working[path].decode("utf-8") for path, *_ in drafts.changed_files(baseline, working) if path in working and not drafts.is_binary(working[path])}
+    waiting = new_pending(root, baseline_dir, changed)
+    groups = proposal.groups(built.files, set(waiting))
+    if args.groups:
+        if not args.json:
+            print(f"planner propose: {len(groups)} group(s) of change; each needs a reason from you.", file=out)
+        print_groups(groups, args.json, out)
+        return 0
+    if not args.title:
+        raise ToolError("--title is needed: a few words naming what this proposal changes. Run with --groups first to see what it holds.")
+    whys = read_whys(args.whys, [g.key for g in groups])
+    note = {"title": args.title, "author": workspace.get("author") or "", "written": today, "groups": groups, "whys": whys, "pending": waiting,
+            "files": built.files, "binaries": built.binaries, "check": check_summary(root, baseline_dir, today),
+            "base": {"initiative": workspace.get("initiative") or stamp.get("initiative", ""), "short": workspace.get("base_commit", "")[:7],
+                     "date": workspace.get("base_date", ""), "owner": (stamp.get("owner") or {}).get("name") or "the owner"}}
+    if not note["author"]:
+        raise ToolError("this workspace records no author name; re-open the copy with --author \"Your Name\".")
+    forbidden = private_strings(root, workspace)
+    parent = pathlib.Path(args.out_dir).expanduser().resolve() if args.out_dir else root.parent / "proposals"
+    name = proposal_files.folder_name(today, args.title, parent)
+    try:
+        target = proposal_files.write(parent, name, {proposal_files.NOTE: proposal.render_markdown(note), proposal_files.PATCH: built.patch},
+                                      args.zip, lambda texts: proposal.privacy_hits(texts, forbidden))
+    except proposal_files.ProposalIOError as exc:
+        raise ToolError(str(exc)) from exc
+    contact = (stamp.get("owner") or {}).get("contact") or "the owner"
+    print(f"planner propose: wrote {target} ({len(built.files)} text files patched, {len(built.binaries)} binary listed, {len(waiting)} pending decision(s) first).", file=out)
+    print(f"  Check on this copy: {proposal.check_phrase(note['check'])}." + (" The errors are listed first in the proposal; they did not stop it." if note["check"]["errors"] else ""), file=out)
+    print(f"  Send {'that file' if args.zip else 'that folder'} to {note['base']['owner']} ({contact}). Nothing was sent from here.", file=out)
+    return 0
+
+
+def worktree_vault(args):
+    """(worktree top, vault folder in it, branch) for a command that works inside a proposal's worktree."""
+    vault = pathlib.Path(args.vault).resolve()
+    try:
+        top, branch = reviewgit.toplevel(vault), reviewgit.branch_name(vault)
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"{vault} is not a git work tree ({exc}). Run this inside the proposal's worktree, the folder `planner proposals review` printed.") from exc
+    if not branch.startswith("proposal/"):
+        raise ToolError(f"{vault} is on branch '{branch}', not a proposal/ branch. This changes files and commits, so it only runs in the worktree `planner proposals review` made.")
+    return top, vault, branch
+
+
+def load_proposal(source):
+    try:
+        loaded = proposal_files.read(source)
+        parsed = review.parse_patch(loaded.patch)
+    except (proposal_files.ProposalIOError, review.ReviewError) as exc:
+        raise ToolError(str(exc)) from exc
+    note = review.parse_note(loaded.note) if loaded.note else None
+    refs, problems = review.groups_for(parsed, note)
+    return loaded, parsed, note, refs, problems
+
+
+def review_refusals(root, parsed, slug, branch, folder):
+    """Why a review cannot start, in plain words, or nothing."""
+    if not reviewgit.commit_exists(root, parsed.base):
+        raise ToolError(f"This proposal was written against commit {parsed.base[:7]}, which is not in this clone. It is the commit the reader's copy was "
+                        "published from: fetch the clone it came from (git fetch origin) and review again.")
+    dirty = vaultgit.uncommitted(root)
+    if dirty:
+        raise ToolError(f"Your checkout has {len(dirty)} uncommitted file(s) ({dirty[0].strip()}...), so I did not start. Commit or stash them: "
+                        "a review starts from a known state, and its branch is made from committed work.")
+    if reviewgit.branch_exists(root, branch):
+        raise ToolError(f"Branch {branch} already exists. Finish or delete it, or pass --slug with another name.")
+    if folder.exists():
+        raise ToolError(f"{folder} already exists. Remove it (git worktree remove) or pass --worktree with another folder.")
+
+
+def review_state(parsed, note, refs, problems, facts):
+    return {"title": note.title if note else "", "author": note.author if note else "", "base": parsed.base, "behind": facts["behind"],
+            "branch": facts["branch"], "worktree": str(facts["worktree"]), "applied": facts["applied"], "commit": facts["commit"],
+            "conflicts": facts["conflicts"], "check": facts["check"], "claim": list(note.claim) if note and note.claim else None,
+            "pending": facts["pending"], "problems": problems,
+            "groups": [{"group": g.key, "pending": g.pending, "changes": [{"path": p, "hunk": h} for p, h in g.hunks]} for g in refs]}
+
+
+def run_render_and_check(vault_dir, worktree, today):
+    """(note on render, check counts) after a clean apply. Render churn is committed on its own."""
+    buffer = io.StringIO()
+    render_code = cmd_render(argparse.Namespace(vault=str(vault_dir), discard_edits=False), buffer)
+    rendered = ""
+    if render_code != 0:
+        rendered = "render refused: " + (buffer.getvalue().strip().splitlines() or ["no reason given"])[0]
+    elif reviewgit.has_changes(worktree):
+        rendered = f"render changed generated blocks; committed {reviewgit.commit_all(worktree, 'Render generated blocks after the proposal')}"
+    found = vault_findings(vault_dir, today)
+    errors = [f for f in found if f.is_error]
+    return rendered, {"errors": len(errors), "warnings": len(found) - len(errors), "error_lines": [f.format() for f in errors[:10]]}
+
+
+def print_review(state, out):
+    who = f" from {state['author']}" if state["author"] else ""
+    print(f"planner proposals review: \"{state['title'] or 'changes.patch'}\"{who}", file=out)
+    moved = f"; the vault has moved {state['behind']} commit(s) since" if state["behind"] else ""
+    print(f"  Base {state['base'][:7]}{moved}. Branch {state['branch']} in {state['worktree']}.", file=out)
+    if state["applied"]:
+        print(f"  Applied cleanly and committed {state['commit']}.", file=out)
+    else:
+        print(f"  CONFLICTS in {', '.join(state['conflicts'])}. The files hold conflict markers; resolve them in the worktree, then commit.", file=out)
+    if state["check"]:
+        claim = state["claim"]
+        said = f"the proposal said {claim[0]} errors, {claim[1]} warnings" if claim else "the proposal made no claim"
+        print(f"  Check: {state['check']['errors']} errors, {state['check']['warnings']} warnings ({said}).", file=out)
+        for line in state["check"]["error_lines"]:
+            print(f"    {line}", file=out)
+    for line in state.get("notes", []):
+        print(f"  {line}", file=out)
+    for problem in state["problems"]:
+        print(f"  Note: {problem}", file=out)
+    print("  Groups, pending decisions first:", file=out)
+    for g in state["groups"]:
+        print(f"    {g['group']}{' (pending decision)' if g['pending'] else ''}: {len(g['changes'])} change(s)", file=out)
+
+
+def cmd_proposals_review(args, out):
+    root = pathlib.Path(args.vault).resolve()
+    found = detect_role(root)
+    if found.role != roles.OWNER:
+        raise ToolError("Reviewing a proposal is the owner's job and needs the vault's git repo; "
+                        + ("this is a published copy." if found.role == roles.READER else f"{found.reason}."))
+    today, _ = parse_today(args.today)
+    loaded, parsed, note, refs, problems = load_proposal(args.source)
+    slug = args.slug or publish.slug(note.title if note and note.title else "proposal")
+    branch = f"proposal/{slug}"
+    try:
+        top = reviewgit.toplevel(root)
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"git stopped the review: {exc}") from exc
+    folder = pathlib.Path(args.worktree).expanduser().resolve() if args.worktree else top.parent / f"{top.name}-proposal-{slug}"
+    try:
+        review_refusals(root, parsed, slug, branch, folder)
+        start = reviewgit.start_ref(root)
+        behind = reviewgit.commits_between(root, parsed.base, start)
+        prefix = reviewgit.prefix(root)
+        reviewgit.add_worktree(root, folder, branch, start)
+        clean, conflicts, words = reviewgit.apply_three_way(folder, loaded.patch.decode("utf-8"), prefix)
+        if not clean and not conflicts:
+            reviewgit.discard_worktree(root, folder, branch)
+            raise ToolError(f"git could not apply this proposal, and nothing was changed: {words}")
+        title = note.title if note and note.title else "changes.patch"
+        author = note.author if note and note.author else "a reader"
+        commit, check, notes = "", None, []
+        vault_dir = folder / prefix if prefix else folder
+        if clean:
+            commit = reviewgit.commit_all(folder, f"Proposal: {title} (from {author})")
+            rendered, check = run_render_and_check(vault_dir, folder, today)
+            if rendered:
+                notes.append(rendered)
+            pending_now = [{"item": p.item or p.subject, "by": p.by, "date": p.date, "path": p.path} for p in pending.items(load_vault(vault_dir))]
+        else:
+            pending_now = []
+            notes.append("check and render wait until the conflicts are resolved.")
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"git stopped the review: {exc}") from exc
+    state = review_state(parsed, note, refs, problems, {"behind": behind, "branch": branch, "worktree": folder, "applied": clean, "commit": commit,
+                                                       "conflicts": conflicts, "check": check, "pending": pending_now})
+    state["notes"] = notes
+    if args.json:
+        print(json.dumps(state, indent=2), file=out)
+    else:
+        print_review(state, out)
+    return 0 if clean else 1
+
+
+def cmd_proposals_accept(args, out):
+    top, vault_dir, branch = worktree_vault(args)
+    item = args.item
+    try:
+        vault = load_vault(vault_dir)
+        entry = next((p for p in pending.items(vault) if item in (p.item, p.subject)), None)
+        if entry is None:
+            raise ToolError(f"{item} carries no well-formed **Pending approval:** marker in this worktree, so there is nothing to accept.")
+        target = vault_dir / entry.path
+        text, by, date = review.accept_pending(entry.path, target.read_text(encoding="utf-8"), entry.item, args.by)
+        target.write_bytes(text.encode("utf-8"))
+        commit = reviewgit.commit_all(top, f"Accept {item} proposed by {by} on {date}: decided by {args.by}")
+    except (review.ReviewError, OSError, UnicodeDecodeError) as exc:
+        raise ToolError(str(exc)) from exc
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"git stopped the accept: {exc}") from exc
+    print(f"planner proposals accept: {item} is now {args.by}'s decision, crediting {by} ({date}); committed {commit} on {branch}.", file=out)
+    return 0
+
+
+def cmd_proposals_reject(args, out):
+    top, vault_dir, branch = worktree_vault(args)
+    loaded, parsed, note, refs, problems = load_proposal(args.proposal)
+    group = next((g for g in refs if g.key == args.group), None)
+    if group is None:
+        raise ToolError(f"'{args.group}' is not a group of this proposal. The groups are: {', '.join(g.key for g in refs)}.")
+    if not args.reason.strip():
+        raise ToolError("--reason is needed: the reader will read why their change was turned down.")
+    try:
+        if reviewgit.unmerged(top) or reviewgit.has_changes(top):
+            raise ToolError("This worktree has uncommitted or conflicted files. Resolve and commit them first, so the rejection is a clean step of its own.")
+        ok, words = reviewgit.revert(top, review.subpatch(parsed, group), reviewgit.prefix(vault_dir))
+        if not ok:
+            raise ToolError(f"I could not take '{group.key}' back out automatically (the pages have changed since): {words} Edit the files yourself, then record it as edited.")
+        commit = reviewgit.commit_all(top, f"Reject {group.key} from the proposal: {' '.join(args.reason.split())}")
+    except review.ReviewError as exc:
+        raise ToolError(str(exc)) from exc
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"git stopped the reject: {exc}") from exc
+    print(f"planner proposals reject: took {group.key} back out ({len(group.hunks)} change(s)); committed {commit} on {branch}.", file=out)
+    return 0
+
+
+def cmd_proposals_answer(args, out):
+    top, vault_dir, branch = worktree_vault(args)
+    loaded, parsed, note, refs, problems = load_proposal(args.proposal)
+    try:
+        decisions = json.loads(pathlib.Path(args.decisions).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ToolError(f"--decisions {args.decisions} cannot be read as JSON: {exc}") from exc
+    if not isinstance(decisions, list) or not all(isinstance(d, dict) for d in decisions):
+        raise ToolError("--decisions must be a JSON list of {group, outcome, reason} objects.")
+    today, _ = parse_today(args.today)
+    try:
+        reviewer = vaultgit.user_identity(vault_dir)[0]
+        if not reviewer:
+            raise ToolError("git user.name is not set, so the answer cannot say who reviewed it.")
+        text = review.answer_markdown(note or review.Note("changes.patch", "", None, ()), refs, decisions, reviewer, today, branch,
+                                      reviewgit.head_short(top), parsed.base[:7])
+    except review.ReviewError as exc:
+        raise ToolError(str(exc)) from exc
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"git stopped the answer: {exc}") from exc
+    forbidden = [str(top), str(vault_dir), str(pathlib.Path.home()), os.path.expanduser("~"), str(pathlib.Path(args.proposal).expanduser().resolve())]
+    hits = proposal.privacy_hits({"answer.md": text}, forbidden)
+    if hits:
+        raise ToolError(f"answer.md line {hits[0][1]} holds a private path or name: '{hits[0][2]}'. Reword that reason and answer again. Nothing was written.")
+    try:
+        target = proposal_files.write_answer(loaded.answer_to, text)
+    except proposal_files.ProposalIOError as exc:
+        raise ToolError(str(exc)) from exc
+    print(f"planner proposals answer: wrote {target} ({len(refs)} group(s) answered). Send it to {note.author if note and note.author else 'the reader'}. Merging {branch} is your normal git step; nothing was pushed.", file=out)
+    return 0
 
 
 def cmd_where(args, out):
@@ -1517,6 +1865,44 @@ def build_parser():
     opn.add_argument("--author", help="your name for the drafts (default: git user.name)")
     opn.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
     opn.set_defaults(func=cmd_open)
+    prop = sub.add_parser("propose", help="a reader's changes as a proposal folder (proposal.md and changes.patch) beside the workspace; sends nothing")
+    prop.add_argument("--vault", default=".", help="the reader workspace (default: current directory)")
+    prop.add_argument("--groups", action="store_true", help="list the groups of change that need a reason, and write nothing")
+    prop.add_argument("--json", action="store_true", help="with --groups, print them as JSON")
+    prop.add_argument("--title", help="a few words naming what the proposal changes")
+    prop.add_argument("--whys", help="a JSON file of group -> the reader's reason; a group without one reads 'no reason given'")
+    prop.add_argument("--zip", action="store_true", help="write one .zip instead of a folder")
+    prop.add_argument("--out-dir", help="where proposals go (default: a proposals/ folder beside the workspace)")
+    prop.add_argument("--rewrite-home", action="store_true", help="write this machine's home folder as <home> in the proposal (your own files are not changed)")
+    prop.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
+    prop.set_defaults(func=cmd_propose)
+    props = sub.add_parser("proposals", help="the owner's side: review a reader's proposal in a git worktree, accept or reject its parts, answer it")
+    pshared = props.add_subparsers(dest="what", required=True)
+    rev = pshared.add_parser("review", help="apply a proposal (folder, .zip or .patch) with git apply --3way on branch proposal/<slug> in a new worktree")
+    rev.add_argument("source", help="the proposal folder, .zip or changes.patch")
+    rev.add_argument("--vault", default=".", help="the vault's git checkout (default: current directory)")
+    rev.add_argument("--slug", help="branch name after proposal/ (default: from the proposal's title)")
+    rev.add_argument("--worktree", help="where to put the worktree (default: beside the vault)")
+    rev.add_argument("--json", action="store_true", help="print the review state as JSON")
+    rev.add_argument("--today", help="the date for planner check, YYYY-MM-DD (default: system date)")
+    rev.set_defaults(func=cmd_proposals_review)
+    acc = pshared.add_parser("accept", help="clear a pending decision in the proposal's worktree: the owner decides it, the reader is credited")
+    acc.add_argument("--vault", default=".", help="the proposal's worktree (default: current directory)")
+    acc.add_argument("--item", required=True, help="the item ID that carries the marker (the page ID for a page-level marker)")
+    acc.add_argument("--by", required=True, help="the owner's handle, @name")
+    acc.set_defaults(func=cmd_proposals_accept)
+    rej = pshared.add_parser("reject", help="take one group of a proposal back out of the worktree and commit that")
+    rej.add_argument("proposal", help="the proposal folder, .zip or changes.patch")
+    rej.add_argument("--vault", default=".", help="the proposal's worktree (default: current directory)")
+    rej.add_argument("--group", required=True, help="the group key, as `planner proposals review` listed it")
+    rej.add_argument("--reason", required=True, help="why, in the owner's words; the reader reads it")
+    rej.set_defaults(func=cmd_proposals_reject)
+    ans = pshared.add_parser("answer", help="write answer.md for the reader from the owner's decision on each group")
+    ans.add_argument("proposal", help="the proposal folder, .zip or changes.patch")
+    ans.add_argument("--vault", default=".", help="the proposal's worktree (default: current directory)")
+    ans.add_argument("--decisions", required=True, help="a JSON list of {group, outcome: accepted|rejected|edited, reason, commit}")
+    ans.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
+    ans.set_defaults(func=cmd_proposals_answer)
     where = sub.add_parser("where", help="which planner program a skill would run, and why other places were passed over")
     where.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
     where.add_argument("--plugin-root", default="", help="the value ${CLAUDE_PLUGIN_ROOT} had when the skill loaded")

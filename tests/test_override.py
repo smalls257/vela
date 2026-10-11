@@ -331,3 +331,14 @@ def test_an_owner_confirming_after_handoff_changes_nothing_the_senior_accepted(u
     edit(ub / PRICING, "- **Decided by:** @hl-solution-lead", "- **Decided by:** @hl-booking-senior")
     code, out = run("handoff", "verify", "APP-booking", "--vault", str(ub))
     assert code == 1 and "changed: CON-003" in out
+
+
+def test_a_bare_decided_by_is_the_owners_own_decision_and_needs_no_confirmation(ub):
+    """What accepting a reader's proposal writes: well formed (no E322), and not 'on behalf', so no W324."""
+    text = (ub / PRICING).read_text(encoding="utf-8")
+    heading = re.search(r"^### CON-\d+ .*$", text, re.M).group(0)
+    (ub / PRICING).write_text(text.replace(heading, heading + "\n\n- **Decided by:** @hl-pricing-senior", 1), encoding="utf-8")
+    _, out = check(ub, TODAY)
+    assert ("E322", PRICING) not in findings(out) and ("W324", PRICING) not in findings(out)
+    (ub / PRICING).write_text((ub / PRICING).read_text(encoding="utf-8").replace("Decided by:** @hl-pricing-senior", "Decided by:** pricing senior", 1), encoding="utf-8")
+    assert ("E322", PRICING) in findings(check(ub, TODAY)[1])

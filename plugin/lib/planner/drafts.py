@@ -74,20 +74,37 @@ def binary_change(path, status):
     return {"path": path, "status": status, "binary": True, "lines": [], "truncated": False, "added": 0, "removed": 0}
 
 
-def compare(baseline, working):
-    """The changes from {path: bytes} baseline to {path: bytes} working, by path: added, removed, changed."""
+def changed_files(baseline, working):
+    """[(path, status, old, new, binary)] for each file a reader changed, from {path: bytes} baseline and working.
+
+    One decision of what counts as the reader's edit, shared by the Drafts view and `propose`, so the chip and the
+    proposal always agree: a file where only a generated block's body moved is render churn and is left out.
+    """
     out = []
     for path in sorted(set(baseline) | set(working)):
         old, new = baseline.get(path), working.get(path)
         if old == new:
             continue
         status = ADDED if old is None else REMOVED if new is None else CHANGED
-        if any(side is not None and is_binary(side) for side in (old, new)):
+        binary = any(side is not None and is_binary(side) for side in (old, new))
+        if not binary and status == CHANGED and _only_generated_moved(old.decode("utf-8"), new.decode("utf-8")):
+            continue
+        out.append((path, status, old, new, binary))
+    return out
+
+
+def _only_generated_moved(old, new):
+    return collapse_generated(old) == collapse_generated(new) and old.splitlines() != new.splitlines()
+
+
+def compare(baseline, working):
+    """The changes from {path: bytes} baseline to {path: bytes} working, by path: added, removed, changed."""
+    out = []
+    for path, status, old, new, binary in changed_files(baseline, working):
+        if binary:
             out.append(binary_change(path, status))
             continue
         before = collapse_generated(old.decode("utf-8")) if old is not None else []
         after = collapse_generated(new.decode("utf-8")) if new is not None else []
-        if status == CHANGED and before == after and old.decode("utf-8").splitlines() != new.decode("utf-8").splitlines():
-            continue  # only a generated block's body moved: render churn, not the reader's edit
         out.append(text_change(path, status, before, after))
     return out

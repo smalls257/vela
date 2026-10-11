@@ -28,12 +28,13 @@ QUOTED_RULE = r'"[^"\n]+"'
 RULE_TOKEN = rf'{QUOTED_RULE}|[A-Za-z0-9-]+'
 OVERRIDE_RE = re.compile(
     rf'^(?P<rules>(?:{RULE_TOKEN})(?:, (?:{RULE_TOKEN}))*) by (?P<by>{schema.HANDLE}) on (?P<date>\d{{4}}-\d{{2}}-\d{{2}}): (?P<reason>\S.*)$')
-DECIDED_BY_RE = re.compile(rf'^(?P<by>{schema.HANDLE}), on behalf of (?P<owners>{schema.HANDLE}(?: {schema.HANDLE})*)$')
+# A bare handle is the owner's own decision (what a proposal's review writes); "on behalf of" is someone else deciding for them.
+DECIDED_BY_RE = re.compile(rf'^(?P<by>{schema.HANDLE})(?:, on behalf of (?P<owners>{schema.HANDLE}(?: {schema.HANDLE})*))?$')
 CONFIRMED_BY_RE = re.compile(rf'^(?P<by>{schema.HANDLE}) on (?P<date>\d{{4}}-\d{{2}}-\d{{2}})$')
 RULE_SPLIT = re.compile(rf'{QUOTED_RULE}|[^,]+')
 
 GRAMMAR = "<rule>, <rule> by @handle on YYYY-MM-DD: <reason>"
-DECIDED_BY_GRAMMAR = "@handle, on behalf of @owner"
+DECIDED_BY_GRAMMAR = "@handle, on behalf of @owner (or just @owner for the owner's own decision)"
 CONFIRMED_BY_GRAMMAR = "@owner on YYYY-MM-DD"
 NEAR_MISS = 0.75  # a label this close to one of ours is a typo, never prose
 
@@ -148,7 +149,7 @@ def on_behalf(page, item_id=""):
     confirmations = [CONFIRMED_BY_RE.match(b.value.strip()) for b in scope_bullets(page, item_id, schema.CONFIRMED_BY_LABEL)]
     for bullet in scope_bullets(page, item_id, schema.DECIDED_BY_LABEL):
         match = DECIDED_BY_RE.match(bullet.value.strip())
-        if not match:
+        if not match or not match["owners"]:
             continue
         # The person who decided cannot confirm for the owner, or the warning clears itself.
         ok = [c for c in confirmations if c and _is_date(c["date"]) and c["by"] != match["by"]]
