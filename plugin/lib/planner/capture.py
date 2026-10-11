@@ -5,7 +5,12 @@ until the skills learned to ask for them. These counts are the sensor for that: 
 the session simulator reads them from the final vault, so a skill that stops asking shows up as a number, not as an
 empty box someone finds on a live call.
 """
-from planner import allocation, flows, releases
+from planner import allocation, flows, links, releases
+
+
+def linked(vault, pages):
+    """How many of the pages carry at least one readable link. A link that failed to read counts for nothing."""
+    return sum(1 for p in pages if links.of_page(p, vault.config)[0])
 
 
 def counts(vault):
@@ -23,6 +28,9 @@ def counts(vault):
         "release_targets": [r.target for r in found if r.target],
         "requirements": len(allocation.requirements(vault)),
         "allocation_rows": len(allocation.rows(vault)),
+        "apps_with_link": linked(vault, apps),
+        "epics": len(vault.of_type("epic")),
+        "epics_with_link": linked(vault, vault.of_type("epic")),
         "unknowns": len(unknowns),
         "unknowns_with_ask": sum(1 for u in unknowns if u.fact("Ask")),
         "asks": [u.fact("Ask") for u in unknowns if u.fact("Ask")],

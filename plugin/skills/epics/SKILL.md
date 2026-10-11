@@ -29,6 +29,7 @@ Write `13-epics/EPC-nnn-<slug>.md` with the next free number, at `state: draft`.
 
 - Frontmatter: `id`, `type: epic`, `title`, `state: draft`, `owner` (the owning team's handle), `authored: mixed`, `apps`, `delivers`, `consumes`, `flows` and `depends_on`, per `CONVENTIONS.md`. Lists hold IDs. `delivers` is never empty: an epic that delivers nothing fails T6.
 - `**Owning team:**` in the description, written now, in this session. Close does not write it.
+- Where the work is tracked: ask "Is there a tracker item for this epic? Give me its key or link, or say skip." If `.planner.yaml` has a `link_templates` entry for `Tracker`, write the key, `links: {Tracker: BOOK-12}`; otherwise write the URL the user gave. Never make up a key or an address, and write no `links:` line when they skip.
 - `## Epic acceptance criteria`: 4 to 7 numbered criteria. Each describes behaviour a tester can see at a contract or a flow boundary. Name the contract or flow by ID. Never name a component, a table, a technology or a container's internals. Every criterion sits at the boundary.
 - End each criterion that does a concern cell's work with the concern's marker, such as `[testing]` or `[security] [data]`. Every `addressed` cell for the epic's apps needs one marked criterion on an epic whose `apps` lists the app, or a waiver in the cell. Markers go on numbered criteria. A bulleted criterion carries none.
 - `## Traces to` holding an empty `traces-to` block, `## Depends on` with one reason per dependency, `## Rollout notes` and `## Out of scope`.
