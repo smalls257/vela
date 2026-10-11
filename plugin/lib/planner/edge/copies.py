@@ -5,10 +5,12 @@ SourceUnreachable, which freshness reports as a state; one that is there but is 
 SourceUnreadable, which freshness reports as `unknown` with the reason.
 """
 import json
+import os
 import pathlib
+import shutil
 import zipfile
 
-from planner import publish
+from planner import opening, publish
 
 WORKSPACE = pathlib.Path(".planner") / "workspace.json"
 STAMP = pathlib.PurePosixPath(publish.STAMP_PATH)
@@ -111,3 +113,88 @@ def read_own_stamp(root):
         return _stamp_from_text(path.read_text(encoding="utf-8"), str(path))
     except (OSError, UnicodeDecodeError, SourceUnreadable) as exc:
         raise SourceUnreadable(f"{path} cannot be read: {exc}") from exc
+
+
+def _read_zip_files(source):
+    """{name: bytes} of a published zip with its one top folder removed. Names are validated before any byte is read."""
+    try:
+        with zipfile.ZipFile(source) as archive:
+            names = [n for n in archive.namelist() if not n.endswith("/")]
+            opening.check_names(names)
+            tops = {n.split("/", 1)[0] for n in names}
+            nested = len(tops) == 1 and all("/" in n for n in names) and f"{next(iter(tops))}/{publish.STAMP_PATH}" in names
+            strip = len(next(iter(tops))) + 1 if nested else 0
+            return {n[strip:]: archive.read(n) for n in names}
+    except zipfile.BadZipFile as exc:
+        raise opening.OpenError(f"{source} is not a readable zip: {exc}") from exc
+    except OSError as exc:
+        raise opening.OpenError(f"{source} cannot be read: {exc}") from exc
+
+
+def _published_root(source):
+    for base in [source, *sorted(p for p in source.iterdir() if p.is_dir())]:
+        if (base / STAMP).is_file():
+            return base
+    raise opening.OpenError(f"{source} holds no {publish.STAMP_PATH}, so it is not a published copy.")
+
+
+def _read_folder_files(source):
+    base = _published_root(source)
+    files = {}
+    try:
+        for path in sorted(base.rglob("*")):
+            if path.is_file() and not path.is_symlink():
+                files[path.relative_to(base).as_posix()] = path.read_bytes()
+    except OSError as exc:
+        raise opening.OpenError(f"{source} cannot be read: {exc}") from exc
+    return files
+
+
+def read_published(source_path):
+    """(files, stamp) of a published folder or zip. Reads only; the source is never written, renamed or locked."""
+    source = pathlib.Path(source_path).expanduser()
+    if not source.exists():
+        raise opening.OpenError(f"{source} does not exist.")
+    files = _read_folder_files(source) if source.is_dir() else _read_zip_files(source)
+    if publish.STAMP_PATH not in files:
+        raise opening.OpenError(f"{source} holds no {publish.STAMP_PATH}, so it is not a published copy.")
+    stamp = _stamp_from_text(files[publish.STAMP_PATH].decode("utf-8", "replace"), f"{source}")
+    for key in ("initiative", "title", "short", "date"):
+        if not stamp.get(key):
+            raise opening.OpenError(f"the stamp in {source} has no {key}.")
+    return files, stamp
+
+
+def read_existing_workspace(folder):
+    """The workspace.json already in `folder`, or None when there is none. Unreadable is an error, not 'none'."""
+    path = pathlib.Path(folder) / WORKSPACE
+    if not path.exists():
+        return None
+    try:
+        return read_workspace(folder)
+    except SourceUnreadable as exc:
+        raise opening.OpenError(f"{folder} holds a workspace whose record cannot be read, so I stopped: {exc}") from exc
+
+
+def write_workspace(folder, files, record):
+    """Write the copy, the pristine baseline (a full copy: propose needs the old text) and workspace.json into `folder`.
+
+    Built beside the target and moved into place, so a failure halfway leaves no half-made workspace.
+    """
+    folder = pathlib.Path(folder)
+    if folder.exists() and (not folder.is_dir() or any(folder.iterdir())):
+        raise opening.OpenError(f"{folder} already exists and is not empty.")
+    folder.parent.mkdir(parents=True, exist_ok=True)
+    staging = folder.parent / f".{folder.name}.opening"
+    if staging.exists():
+        shutil.rmtree(staging)
+    try:
+        write_folder(files, staging)
+        write_folder(files, staging / ".planner" / "baseline")
+        (staging / WORKSPACE).write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        if folder.exists():
+            folder.rmdir()
+        os.replace(staging, folder)
+    except OSError as exc:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise opening.OpenError(f"cannot write the workspace at {folder}: {exc.strerror or exc}") from exc

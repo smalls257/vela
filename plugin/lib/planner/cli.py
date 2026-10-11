@@ -11,6 +11,7 @@ import importlib.util
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,7 +20,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, search, export, freshness, handoff, health, ladder, model, reading, parse, progress, publish, query, questions, releases, render, reviews, roles, rules, schema, viewer, voicecheck, voicescore
+from planner import allocation, capture, catalog, completeness, search, export, freshness, handoff, health, ladder, model, opening, pluginroot, reading, parse, progress, publish, query, questions, releases, render, reviews, roles, rules, schema, viewer, voicecheck, voicescore
 from planner.edge import copies, vaultgit
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
@@ -288,6 +289,102 @@ def cmd_freshness(args, out):
         print(json.dumps(report.as_dict(), indent=2), file=out)
     else:
         print(f"planner freshness: {report.message}", file=out)
+    return 0
+
+
+PLANNER_PROGRAM = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts" / "planner"
+
+
+def reader_author(flag, root):
+    """Who the drafts are by: --author, else git's user.name. Never the OS username (it would leak into proposals)."""
+    if flag:
+        return flag
+    try:
+        name = vaultgit.user_identity(root)[0]
+    except vaultgit.GitUnavailable:
+        name = ""
+    if not name:
+        raise ToolError("I do not know your name for the drafts. Pass --author \"Your Name\".")
+    return name
+
+
+def environment_notes(env):
+    """What this machine lacks for the optional parts, said once at open (never a failure)."""
+    notes = []
+    if not shutil.which("claude"):
+        notes.append("`claude` is not on PATH, so --serve and the Ask Claude helper will not work here; the page still opens as a file.")
+    if not env.get("PLANNER_WORKSPACES") and not pathlib.Path.home().exists():
+        notes.append("there is no home folder to keep the workspace in; pass --into.")
+    return notes
+
+
+def workspace_folder(slug, into, env, in_cowork):
+    """The absolute workspace folder by the rule opening.location_rule picks; a synced location is refused."""
+    rule = opening.location_rule(into, env.get("PLANNER_WORKSPACES"), in_cowork)
+    base = {"into": lambda: pathlib.Path(into or ""), "env": lambda: pathlib.Path(env.get("PLANNER_WORKSPACES", "")) / slug,
+            "cowork": lambda: pathlib.Path.cwd() / opening.COWORK_FOLDER / slug,
+            "home": lambda: pathlib.Path.home() / opening.DEFAULT_FOLDER / slug}[rule]()
+    folder = pathlib.Path(os.path.abspath(base.expanduser()))
+    opening.refuse_synced(folder.parts, folder)
+    return folder
+
+
+def cmd_open(args, out):
+    env = os.environ
+    try:
+        files, stamp = copies.read_published(args.source)
+        opening.verify_tree(files, stamp)
+        in_cowork = bool(env.get("PLANNER_COWORK") or env.get("CLAUDE_COWORK"))
+        folder = workspace_folder(publish.slug(stamp["title"]), args.into, env, in_cowork)
+        existing = copies.read_existing_workspace(folder)
+        if existing is not None:
+            raise opening.OpenError(opening.reopen_message(existing, stamp))
+        today, _ = parse_today(args.today)
+        record = opening.workspace_record(stamp, pathlib.Path(args.source).name, os.path.abspath(os.path.expanduser(args.source)),
+                                          today, reader_author(args.author, pathlib.Path.cwd()),
+                                          str(PLANNER_PROGRAM))
+        copies.write_workspace(folder, opening.content_files(files) | {publish.STAMP_PATH: files[publish.STAMP_PATH]}, record)
+    except opening.OpenError as exc:
+        raise ToolError(str(exc)) from exc
+    for line in opening.opened_message(stamp, folder):
+        print(line, file=out)
+    explore_workspace(folder, today, out)
+    checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
+    print(f"planner open: {reader_freshness(folder, checked_at).message}", file=out)
+    for note in environment_notes(env):
+        print(f"  Note: {note}", file=out)
+    print(f"  Work from that folder: cd {folder}", file=out)
+    return 0
+
+
+def explore_workspace(folder, today, out):
+    """Build the explorer page into the workspace's .planner/ so a reader has something to open."""
+    from planner.explorer import build as explorer, pins as explorer_pins  # lazy: the explorer imports this module
+    try:
+        lines = explorer.generate(folder, folder / ".planner" / "explorer.html", today, pins_path=folder / explorer_pins.PINS_FILE,
+                                  assets_config=None, design_args=[], theme="console")
+    except explorer.ExplorerError as exc:
+        raise ToolError(f"the workspace was written at {folder}, but the explorer page could not be built: {exc}") from exc
+    for line in lines:
+        print(f"planner explore: {line}", file=out)
+
+
+def cmd_where(args, out):
+    """Which program a skill would run, and why each earlier rule was passed over. For /planner:where and for bug reports."""
+    vault = pathlib.Path(args.vault)
+    recorded = ""
+    if (vault / copies.WORKSPACE).is_file():  # an owner's vault has none, and the rule is simply not applicable
+        try:
+            recorded = copies.read_workspace(vault).get("planner_path") or ""
+        except copies.SourceUnreadable as exc:
+            raise ToolError(str(exc)) from exc
+    chosen, tried = pluginroot.resolve(args.plugin_root, args.skill_dir, str(vault), recorded, lambda path: pathlib.Path(path).is_file())
+    for found in tried:
+        print(f"{found.source}: {found.path or '(none)'}{' -> ' + found.skipped if found.skipped else ' -> found'}", file=out)
+    if chosen is None:
+        print(pluginroot.NOT_FOUND, file=out)
+        return 1
+    print(f"planner where: run python3 {chosen.path}", file=out)
     return 0
 
 
@@ -1382,6 +1479,17 @@ def build_parser():
     fresh.add_argument("--today", help="the date to stamp the check with, YYYY-MM-DD (default: system date)")
     fresh.add_argument("--timeout", type=int, default=vaultgit.FETCH_TIMEOUT, help="seconds an owner's git fetch may take (default 8)")
     fresh.set_defaults(func=cmd_freshness)
+    opn = sub.add_parser("open", help="make a private reader workspace from a published folder or zip; the source is never written")
+    opn.add_argument("source", help="the published folder or .zip")
+    opn.add_argument("--into", help="the workspace folder (default: $PLANNER_WORKSPACES/<slug>, else ~/PlannerWorkspaces/<slug>); OneDrive and SharePoint paths are refused")
+    opn.add_argument("--author", help="your name for the drafts (default: git user.name)")
+    opn.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
+    opn.set_defaults(func=cmd_open)
+    where = sub.add_parser("where", help="which planner program a skill would run, and why other places were passed over")
+    where.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
+    where.add_argument("--plugin-root", default="", help="the value ${CLAUDE_PLUGIN_ROOT} had when the skill loaded")
+    where.add_argument("--skill-dir", default="", help="the value ${CLAUDE_SKILL_DIR} had when the skill loaded")
+    where.set_defaults(func=cmd_where)
     status = sub.add_parser("status", help="each app's stage, certainty mix, oldest open unknown and next mode")
     status.add_argument("--vault", default=".", help="vault root (default: current directory)")
     status.add_argument("--today", help="date to judge overdue unknowns and ages by, YYYY-MM-DD (default: system date)")
