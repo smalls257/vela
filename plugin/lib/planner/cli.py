@@ -125,6 +125,7 @@ def conventions_findings(root):
 
 def cmd_upgrade(args, out):
     root = pathlib.Path(args.vault).resolve()
+    refuse_if_reader(root, "Upgrading CONVENTIONS.md")
     if not PLUGIN_CONVENTIONS.is_file():
         raise ToolError(f"the plugin's CONVENTIONS.md is missing at {PLUGIN_CONVENTIONS}; reinstall the plugin.")
     mine = root / "CONVENTIONS.md"
@@ -174,6 +175,12 @@ def refuse_reader(root, action):
     return ToolError(f"{action} is the owner's job, and this is a published copy. "
                      + (f"That is {contact}'s call. Send a proposal and they decide." if contact
                         else "Send the owner a proposal and they decide."))
+
+
+def refuse_if_reader(root, action):
+    """Owner-only commands stop in a published copy. A folder that decides no role is left alone: tests and fresh vaults have no git."""
+    if detect_role(root).role == roles.READER:
+        raise refuse_reader(root, action)
 
 
 def check_counts(files, today):
@@ -889,6 +896,7 @@ def cmd_handoff(args, out):
         return handoff_verify(root, args.words[1], out)
     if len(args.words) != 1 or args.words[0] == "verify":
         raise ToolError("Write planner handoff <APP-id>, or planner handoff verify <APP-id>.")
+    refuse_if_reader(root, "Handing off an app")
     app_id = args.words[0]
     today, _ = parse_today(args.today)
     vault = load_vault(root)
