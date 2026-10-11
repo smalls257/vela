@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, flows, links, override, parse, questions, releases, render, schema, trace
+from planner import allocation, flows, links, override, parse, pending, questions, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -32,7 +32,7 @@ def check(vault, today, gate=None, items=()):
         findings.extend(questions.shape_gate(vault))
     elif gate == "grill":
         findings.extend(questions.grill_gate(vault, items))
-    return sorted(set(override.apply(vault, findings, gate)))
+    return sorted(set(override.apply(vault, findings, gate) + pending.findings(vault)))
 
 
 # ------------------------------------------------------------------ helpers

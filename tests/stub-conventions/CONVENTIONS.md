@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.planner.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault) |
+| `.planner.yaml` | `initiative` (`INI-nnn`), `title`, `stale_after_days` (default 60), and optionally `link_templates` (see Links out of the vault), `owner_contact` (who a published copy's readers write to) and `role: reader` (see Roles and published copies) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -121,7 +121,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 
 A fact bullet is a list line `- **Label:** value`, one label per line. Unknown labels are prose. Bullets under a `### <ID> <name>` heading belong to that item. Bullets elsewhere belong to the page.
 
-Page level: `**Decision:**` (a link to the deciding Grill), `**Dissent:**` (`<name>, <date>: <reason>`) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`). `**Override:**`, `**Decided by:**` and `**Confirmed by:**` may go on any page or under any item heading; see Overrides.
+Page level: `**Decision:**` (a link to the deciding Grill), `**Dissent:**` (`<name>, <date>: <reason>`) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`). `**Override:**`, `**Decided by:**` and `**Confirmed by:**` may go on any page or under any item heading; see Overrides. So may `**Pending approval:**`; see Pending approval.
 
 Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 
@@ -140,6 +140,7 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
 | `**Links:**` | Optional. Where the contract is written down outside the vault, such as its API spec. See Links out of the vault. |
 | `**Override:**`, `**Decided by:**`, `**Confirmed by:**` | Optional. See Overrides. |
+| `**Pending approval:**` | Optional. A reader's decision awaiting the owner. See Pending approval. |
 
 Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking a Grill session, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
 
@@ -206,6 +207,28 @@ The person using the skills may override any rule in them: a grill gate, "only a
 - A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
 - W323: an override names a rule the check can test, and the item does not break it, so the override sets nothing aside. A rule only a gate tests, such as `E805`, is judged only when that gate runs, so a plain check never calls its override idle.
 - W324: an item carries `**Decided by:** ... on behalf of @owner` and no `**Confirmed by:**`, until the owner confirms.
+
+## Pending approval
+
+A reader is someone working from a published copy with no git access (see Roles and published copies). They may record a decision or an override, but it is not settled until an owner has seen it, so every item they decide or override carries a marker. An owner's decision never does.
+
+```
+- **Pending approval:** @handle, YYYY-MM-DD
+```
+
+The bullet goes where `**Override:**` goes: under the item's heading, or under `#### <ID>` in `## History`; at page level it covers the page. The item keeps its state, `decided`. A bullet, not frontmatter, because decisions sit on contracts and functional requirements, many to a page, and frontmatter holds one value per page.
+
+- W327: one warning for the whole vault, `N items pending approval`, then each item with the handle and date. It is never an error, so a reader's copy stays green. On an owner's `main` it means a review skipped one.
+- A malformed `**Pending approval:**` (no handle, or a date that is not real) is E322, as is a label one typo away from it. The marker is the only thing telling an owner a decision is a reader's, so a typo must not hide it.
+- The owner clears it in review. Accept: remove the marker, record `**Decided by:** @owner`, and add a credit line to History. Reject: revert the change. Edit: commit the owner's version, remove the marker, same credit.
+
+## Roles and published copies
+
+Authority comes from access, not title and not config. An **owner** works inside the vault's git work tree and can commit. A **reader** has a published copy: no `.git`, a `.planner/workspace.json`. `planner role` prints which you are. `.planner.yaml` may say `role: reader` to downgrade an owner who wants to browse safely; `role: owner` is ignored with a warning, because the file ships in published copies and honouring it would let a reader promote themselves.
+
+`planner publish --out <folder|.zip>` writes a read copy of the committed files at HEAD, never the working tree. It leaves out `.git`, generated `.planner/` output, `voice/local/` and the vendored plugin copy, and adds `.planner/published.json`: the initiative, title, full and short commit, date, whether the vault had uncommitted changes (`dirty`), the owner's contact (`owner_contact` in `.planner.yaml`, else `git config`), the `planner check` counts, and a `tree_hash` of the contents. A dirty vault is never refused; the stamp says so. A zip has one top folder, forward-slash names and fixed timestamps, so the same input gives the same zip. A reader cannot publish.
+
+`planner freshness [--json]` says whether anything has changed, and never updates anything. An owner's clone runs `git fetch` (8 seconds, `--timeout` to change) and reports commits behind and ahead of upstream and uncommitted files; offline is said plainly and local state is shown. A reader's workspace compares its baseline stamp with the stamp at the folder or zip it was opened from; an unreachable source is said plainly, and is not a failure.
 
 ## Fact tables
 
@@ -293,7 +316,7 @@ A page reads as what is true now. Its history sits at the end, folded in the vie
 - **Prose, not lists.** Bullets are for the fact bullets `planner check` reads (the labels in the tables of this file) and for lists a reader scans, such as an epic's criteria. Everything else is a paragraph. A bold label nothing reads, such as `- **Brightwater, what it does:**`, is prose dressed up as data: write the sentence. Say who says a thing in the sentence ("the product lead says"), never in a bracket.
 - **Every item opens with a sentence.** Under each `### <ID> <name>` heading, before its fact bullets, a sentence or two say what the item is now: what a contract carries and for whom, what an unknown asks and why it matters. The viewer folds the fact bullets under it.
 - **Links on the words.** A source is cited as a link on the words that rely on it, `[[sources#SRC-04|the latency measurement]]`, never a bare "(SRC-04)". A link to an item reads as the item's name, `[[11-unknowns-and-risks#UNK-006 Finance on Booking events|whether Finance reads Booking's events]]`, never its number. Prose names things; IDs stay in headings, fact bullets and tables.
-- **History at the end.** Every `**Decision:**`, `**Override:**`, `**Decided by:**`, `**Confirmed by:**`, `**Options considered:**` and `**Dissent:**` bullet goes under `## History`, the page's last `##` section. Page-level ones sit directly under it; an item's sit under `#### <ID>` inside it, which gives them to that item exactly as if they were under its own heading. Wherever a skill or this file says "at page level" or "under the item's heading" for one of these bullets, it means there. A bullet anywhere else still counts, so older pages stay valid.
+- **History at the end.** Every `**Decision:**`, `**Override:**`, `**Decided by:**`, `**Confirmed by:**`, `**Pending approval:**`, `**Options considered:**` and `**Dissent:**` bullet goes under `## History`, the page's last `##` section. Page-level ones sit directly under it; an item's sit under `#### <ID>` inside it, which gives them to that item exactly as if they were under its own heading. Wherever a skill or this file says "at page level" or "under the item's heading" for one of these bullets, it means there. A bullet anywhere else still counts, so older pages stay valid.
 - `planner style <page>...` lists where a page still reads as a log: a history bullet above `## History`, an ID or a bare source ID in prose, or no opening prose. Close runs it on the pages a session changed.
 - **App pages go one level in.** A new or changed app gets a building-blocks page (what it does, what it does not do, the `app-context` block, containers, contracts it provides, the `contracts-consumed` block) and a runtime page (its part in each flow, and how it behaves when something fails, under `## On failure`).
 - **Slim pages for unchanged apps.** An `integrated` or `unchanged` app gets one page with its job, why it is a black box, the `app-context` block, and the contracts it provides at `fact`. It has no runtime page; the consumer's runtime page says what happens when it fails.
@@ -482,7 +505,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | E322 | decided-by or confirmed-by is malformed | W304 | fact without a source, by override |
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
 | W318 | decided contract has no Tested by, by override | W323 | override not needed |
-| W324 | decided on the owner's behalf, not yet confirmed | | |
+| W324 | decided on the owner's behalf, not yet confirmed | W327 | reader's decisions pending approval |
 | E801 | question ledger row is malformed | E802 | ledger state lacks the evidence it needs |
 | E803 | ledger row names nothing the catalogue owes | W804 | ledger row is orphaned or no longer owed |
 | E805 | high-severity question not disposed at the epics gate | W805 | high-severity question not disposed, by override |

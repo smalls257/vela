@@ -148,7 +148,9 @@ OPTIONS_LABEL = "Options considered"  # what Shape recorded: the picked option, 
 # The user's word over a rule, and a decision made on an absent owner's behalf. Allowed on any item or page.
 OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL = "Override", "Decided by", "Confirmed by"
 OVERRIDE_LABELS = (OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL)
-CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent", OPTIONS_LABEL, LINKS_LABEL) + OVERRIDE_LABELS
+# A reader's decision or override, awaiting the owner's review. Not an override: it sets no rule aside.
+PENDING_LABEL = "Pending approval"
+CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent", OPTIONS_LABEL, LINKS_LABEL, PENDING_LABEL) + OVERRIDE_LABELS
 CONTRACT_STATES = ("inkling", "assumption", "fact", "decided")
 CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 
@@ -162,7 +164,7 @@ RISK_REQUIRED = ("Owner", "State")
 RISK_OPTIONAL = ("Mitigation",)
 RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
-PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL) + OVERRIDE_LABELS
+PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL) + OVERRIDE_LABELS
 
 # Subjects the question catalogue fires on that are not pages: an outside party, and value held for customers.
 PARTY_REQUIRED = ("Relationship", "Agreements")
