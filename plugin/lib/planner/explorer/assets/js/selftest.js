@@ -693,6 +693,9 @@ const SelfTest = (() => {
       const cards = $$("#main .dpage"), rows = cards.map((c) => $$(".dl", c).length), expect = D.draft.pages.map((p) => p.lines.length);
       ok(location.hash.startsWith("#drafts") && cards.length === D.draft.pages.length && rows.every((n, i) => n === expect[i]) && /changed/.test($("#main h1").textContent),
         `drafts view: #drafts lists ${plural(cards.length, "changed page")} with ${rows.reduce((a, b) => a + b, 0)} diff lines, each page linked`, `drafts view: hash ${location.hash}, ${cards.length} cards for ${D.draft.pages.length}, rows ${rows} vs ${expect}`);
+      const hint = $("#propose-hint");
+      ok(!!hint && /\/planner:propose/.test(hint.textContent) && !!hint.querySelector("code") && /Nothing is sent from this page/.test(hint.textContent),
+        "drafts view: a hint names /planner:propose as the way to send the changes, and says the page sends nothing", `drafts view: hint ${hint ? hint.textContent : "missing"}`);
       Nav.home(); await frames();
     }
     ok(rank("pending") < rank("caution") && rank("pending") > rank("unexamined") && rank("pending") > rank("dark"),

@@ -225,6 +225,7 @@ def test_a_reader_workspace_shows_its_draft_and_its_pending_decision(tmp_path, c
     assert lines[0].startswith("SELFTEST OK"), [line for line in lines if line.startswith("FAIL")]
     assert 'ok draft badge: "Draft: 2 pages changed" in the top bar of this reader\'s page' in lines
     assert any(line.startswith("ok drafts view: #drafts lists 2 changed pages") for line in lines)
+    assert any(line.startswith("ok drafts view: a hint names /planner:propose") for line in lines)
     assert any(line.startswith('ok pending approval: CON-001 (@sam, 2026-10-12) is lit "pending"') for line in lines)
     assert "ok freshness on a file: no request at load, none when asked to poll" in lines
     assert str(pathlib.Path.home()) not in page.read_text(encoding="utf-8")

@@ -37,6 +37,12 @@ const Drafts = (() => {
       h("p", { class: "p-note" }, reader() ? "Decisions you recorded. They look settled and are not until the owner reviews them." : "Decisions a reader recorded. Each stays marked until you accept, reject or edit it."),
       h("ul", { class: "mini-list d-pending" }, D.pending.map((p) => h("li", {}, E[p.key] ? refChip(p.key) : p.subject, " ", h("span", { class: "muted" }, `${p.by}, ${p.date}`)))));
   }
+  /* How a draft reaches the owner. The page only names the command: it has no network and sends nothing. */
+  function proposeHint() {
+    if (!reader()) return null;
+    return h("p", { class: "p-note propose-hint", id: "propose-hint" }, "To send these to the owner, run ", h("code", {}, "/planner:propose"),
+      " in Claude Code from this folder. It asks you why for each change and writes a proposal folder you send yourself. Nothing is sent from this page.");
+  }
   function changes() {
     const d = D.draft;
     if (!d) return null;
@@ -44,6 +50,7 @@ const Drafts = (() => {
     if (!d.count) return h("section", { class: "d-sec" }, emptyState("No changes yet.", "You have not edited a page since you opened this copy."));
     return h("section", { class: "d-sec" }, h("h2", {}, "Changed pages", h("span", { class: "sub" }, String(d.count))),
       h("p", { class: "p-note" }, "Against the copy you opened. + is an added line, - a removed one; a generated table is collapsed to one line."),
+      proposeHint(),
       d.pages.map((p, i) => pageCard(p, d.pages.length <= 3 || i === 0)));
   }
   function heading() {

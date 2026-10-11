@@ -597,3 +597,11 @@ def test_review_leaves_every_decision_to_the_owner_and_never_pushes():
     for rule in ("pending decisions first", "The owner always decides", "Never write the owner's reason for them", "**Never push, and never open a PR yourself.**",
                  "Never block it, never hide it", "E316", "git worktree remove", "planner proposals accept", "planner proposals reject", "planner proposals answer"):
         assert rule in text, rule
+
+
+def test_the_readers_drafts_view_names_the_propose_command_and_the_page_stays_offline(world):
+    _, workspace = world
+    assert run("explore", str(workspace), "--today", "2026-10-12")[0] == 0
+    page = read(workspace / ".planner" / "explorer.html")
+    assert "/planner:propose" in page and "Nothing is sent from this page." in page
+    assert str(pathlib.Path.home()) not in page
