@@ -4,9 +4,10 @@ The explorer draws everything itself: lamps, lines, strips, plants, tones. Asset
 and only through the slot contract (art/slots.json): the page asks resolve.js for a slot id such as emblem.coach
 or texture.cockpit and never names a file or a provider.
 
-The builtin hand-drawn art and the resolver ship in art/ beside this file. Provider art (ComfyUI renders) does not
-ship: `planner explore --assets <assets.config.json>` reads a config and its provider's manifest from a folder
-laid out like art/ (the gallery's prototypes/gallery/assets is one). Each slot's file is picked the way resolve.js
+The slot contract, the builtin hand-drawn art and the resolver ship in art/ beside this file, and this is the only
+copy: the gallery reads it from here. Provider art (ComfyUI renders) does not ship: `planner explore --assets
+<assets.config.json>` reads the config and the provider's folder (<provider>/manifest.json and its files) from the
+config's own folder (the gallery's prototypes/gallery/assets is one). Each slot's file is picked the way resolve.js
 does (the provider's when it has one and the file exists, otherwise builtin, with the reason logged, never
 silently), and the chosen files are inlined as data URIs beside resolve.js and a bundle it can read from file://.
 With no --assets, the builtin provider alone is used.
@@ -35,16 +36,17 @@ def read_json(path):
 
 def bundle(today, config_path=None):
     """{"bundle", "files", "resolver", "report"}. `today` stamps the bundle, so the date is the caller's, once."""
+    root = DEFAULT_ROOT
+    if not (root / "slots.json").exists() or not (root / "resolve.js").exists():
+        raise AssetError(f"{root} is missing slots.json or resolve.js, so the builtin art cannot load. "
+                         "Reinstall the planner plugin.")
     if config_path is None:
-        root = DEFAULT_ROOT
-        if not (root / "slots.json").exists() or not (root / "resolve.js").exists():
-            raise AssetError(f"{root} is missing slots.json or resolve.js, so the builtin art cannot load. "
-                             "Reinstall the planner plugin.")
+        provider_root = root
         config = {"provider": "builtin"}
         source = "builtin only (no --assets given)"
     else:
         config_path = pathlib.Path(config_path).resolve()
-        root = config_path.parent
+        provider_root = config_path.parent
         config = read_json(config_path)
         source = str(config_path)
     slots = read_json(root / "slots.json")
@@ -52,7 +54,7 @@ def bundle(today, config_path=None):
     provider = config.get("provider", "builtin")
     chosen_manifest, provider_error = None, ""
     if provider != "builtin":
-        path = root / provider / "manifest.json"
+        path = provider_root / provider / "manifest.json"
         if path.exists():
             chosen_manifest = read_json(path)
         else:
@@ -71,7 +73,7 @@ def bundle(today, config_path=None):
                 why = provider_error
             elif not p:
                 why = f"{provider} has no file for this slot"
-            elif not (root / provider / p["file"]).exists():
+            elif not (provider_root / provider / p["file"]).exists():
                 why = f"{provider}/{p['file']} is missing"
                 p = None
         use, name = (p, provider) if (p and not why) else (b, "builtin")
@@ -80,7 +82,7 @@ def bundle(today, config_path=None):
         if use is p:
             kept[sid] = p
         rel = f"{name}/{use['file']}"
-        path = root / name / use["file"]
+        path = (root if name == "builtin" else provider_root) / name / use["file"]
         if use["form"] == "recipe":
             recipes[rel] = read_json(path)
         elif used:  # resolve.js resolves every slot, so every recipe goes in; only the files the page shows are inlined

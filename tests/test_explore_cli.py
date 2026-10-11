@@ -9,6 +9,7 @@ import filecmp
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -183,14 +184,21 @@ def test_the_plugin_imports_nothing_from_the_prototypes_and_never_edits_the_path
             assert not (isinstance(node, ast.Attribute) and node.attr == "path" and getattr(node.value, "id", "") == "sys"), path
 
 
-def test_the_builtin_art_the_plugin_ships_is_the_gallerys():
-    # The plugin carries its own copy of the slot contract and the hand-drawn art so a vault needs no repo. The
-    # gallery's folder is still where the contract is edited and ComfyUI art is generated, so the copy is kept
-    # honest here until the gallery reads from the plugin.
-    ours, theirs = PLUGIN / "lib/planner/explorer/art", REPO / "prototypes/gallery/assets"
-    for name in ("resolve.js", "slots.json"):
-        assert filecmp.cmp(ours / name, theirs / name, shallow=False), f"{name} differs from the gallery's"
-    same = filecmp.dircmp(ours / "builtin", theirs / "builtin")
-    assert not same.left_only and not same.right_only and not same.diff_files, (same.left_only, same.diff_files)
-    for sub in same.subdirs.values():
-        assert not sub.left_only and not sub.right_only and not sub.diff_files
+def test_the_gallery_reads_the_plugins_art_and_keeps_no_copy():
+    # The plugin holds the one copy of the slot contract, the resolver and the hand-drawn art. The gallery's pages
+    # point at it and keep only the ComfyUI provider beside them, so there is nothing to drift (Distributed Monolith).
+    art, assets = PLUGIN / "lib/planner/explorer/art", REPO / "prototypes/gallery/assets"
+    for name in ("resolve.js", "slots.json", "builtin"):
+        assert not (assets / name).exists(), f"prototypes/gallery/assets/{name} is a second copy of the plugin's art"
+    gallery = REPO / "prototypes/gallery"
+    pages = [p for p in gallery.rglob("*") if p.suffix in (".html", ".js") and p.name != "assets.bundle.js"]
+    referenced = {}
+    for page in pages:
+        for ref in re.findall(r"""["']([^"']*?/resolve\.js)["']""", page.read_text(encoding="utf-8")):
+            referenced[page] = (page.parent / ref).resolve()
+    assert {p.relative_to(gallery).as_posix() for p in referenced} >= {
+        "asks/garden.html", "asks/strips.html", "asks/timelapse.html", "maps/cockpit.html", "maps/transit.html",
+        "flows/common.js", "assets/index.html"}, sorted(referenced)
+    assert {target for target in referenced.values()} == {(art / "resolve.js").resolve()}, referenced
+    for page in pages:
+        assert "../assets/resolve.js" not in page.read_text(encoding="utf-8"), page

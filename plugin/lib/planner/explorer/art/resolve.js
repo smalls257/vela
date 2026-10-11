@@ -1,6 +1,7 @@
 /* Asset resolver. A page loads this file, then:
  *
- *   const assets = await AssetResolver.load();          // reads assets.config.json next to this file
+ *   const assets = await AssetResolver.load();          // slot contract and builtin art beside this file; assets.config.json
+ *                                                       // and the provider's folder from data-providers (default: beside this file)
  *   img.src = assets.url('emblem.coach');               // any image or loop slot
  *   const h = assets.play('chime.decided');             // audio slot: file or Web Audio recipe, same call
  *   h.stop();
@@ -14,6 +15,10 @@
 (function (global) {
   "use strict";
   const HERE = (document.currentScript && new URL(".", document.currentScript.src).href) || "./";
+  // The slot contract and builtin art live with this file, the one canonical copy. A page whose provider art
+  // (ComfyUI renders, assets.config.json) sits elsewhere says where, with a data-providers attribute on the script tag that loads this file (e.g. data-providers="../assets/").
+  const PROVIDERS = (document.currentScript && document.currentScript.dataset.providers &&
+    new URL(document.currentScript.dataset.providers, document.baseURI).href) || HERE;
 
   async function fetchJson(url) {
     const r = await fetch(url);
@@ -25,7 +30,7 @@
     try { return (await fetch(url, { method: "HEAD" })).ok; } catch (e) { return false; }
   }
 
-  async function readSources(base, configOverride) {
+  async function readSources(base, providers, configOverride) {
     // When inlining assets into a page, the base is "inline:/" which cannot be fetched from. Skip to the bundle immediately.
     if (base && base.startsWith("inline:")) {
       const b = global.ASSET_BUNDLE;
@@ -36,12 +41,12 @@
       return { config, slots: b.slots, builtin: b.providers.builtin, provider, providerError, recipes: b.recipes, checkFiles: false };
     }
     try {
-      const config = configOverride || await fetchJson(base + "assets.config.json");
+      const config = configOverride || await fetchJson(providers + "assets.config.json");
       const slots = await fetchJson(base + "slots.json");
       const builtin = await fetchJson(base + "builtin/manifest.json");
       let provider = null, providerError = null;
       if (config.provider !== "builtin") {
-        try { provider = await fetchJson(`${base}${config.provider}/manifest.json`); }
+        try { provider = await fetchJson(`${providers}${config.provider}/manifest.json`); }
         catch (e) { providerError = `could not read ${config.provider}/manifest.json (${e.message})`; }
       }
       return { config, slots, builtin, provider, providerError, recipes: null, checkFiles: true };
@@ -58,7 +63,8 @@
 
   async function load(opts = {}) {
     const base = opts.base || HERE;
-    const src = await readSources(base, opts.config);
+    const providers = opts.providers || (opts.base ? base : PROVIDERS);
+    const src = await readSources(base, providers, opts.config);
     const table = {}, fallbacks = [];
     const recipeCache = src.recipes || {};
 
@@ -70,12 +76,12 @@
       if (src.config.provider === "builtin") chosen = null;
       else if (src.providerError) why = src.providerError;
       else if (!p) why = `${src.config.provider} has no file for this slot`;
-      else if (src.checkFiles && !(await fileExists(`${base}${src.config.provider}/${p.file}`))) why = `${src.config.provider}/${p.file} is missing`;
+      else if (src.checkFiles && !(await fileExists(`${providers}${src.config.provider}/${p.file}`))) why = `${src.config.provider}/${p.file} is missing`;
       else chosen = p;
 
       const entry = chosen || b;
       const provider = chosen ? src.config.provider : "builtin";
-      const resolved = { slot: slot.id, kind: slot.kind, provider, form: entry.form, url: `${base}${provider}/${entry.file}`, meta: entry };
+      const resolved = { slot: slot.id, kind: slot.kind, provider, form: entry.form, url: `${provider === "builtin" ? base : providers}${provider}/${entry.file}`, meta: entry };
       if (entry.form === "recipe") {
         const key = `${provider}/${entry.file}`;
         resolved.recipe = recipeCache[key] || (recipeCache[key] = await fetchJson(resolved.url));

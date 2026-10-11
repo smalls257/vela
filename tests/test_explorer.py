@@ -159,9 +159,7 @@ def test_no_unescaped_vault_text(tmp_path):
 
 
 def test_assets_only_through_the_slot_contract(tmp_path):
-    root = REPO / "prototypes/gallery/assets"
-    if not (root / "slots.json").exists():
-        pytest.skip("the gallery assets folder is not there yet")
+    root = REPO / "prototypes/gallery/assets"  # the provider folder: the slot contract and builtin art are the plugin's
     config = tmp_path / "assets"
     skip = {"comfyui", "emblems", "test", "__pycache__", ".staging"}  # generated folders at the top only
     shutil.copytree(root, config, ignore=lambda d, names: [n for n in names if pathlib.Path(d) == root and n in skip])
@@ -554,7 +552,7 @@ def test_inline_assets_fetch_no_error():
     """Bug #5: Asset loader should not try to fetch from inline:// base."""
     # This is tested indirectly by the asset tests, but we can verify resolve.js logic
     # by checking that the inline:// base is handled correctly in the code
-    resolve_js = REPO / "prototypes" / "gallery" / "assets" / "resolve.js"
+    resolve_js = REPO / "plugin" / "lib" / "planner" / "explorer" / "art" / "resolve.js"
     assert "inline:" in resolve_js.read_text(encoding="utf-8"), "resolve.js should have inline:// handling"
 
 
