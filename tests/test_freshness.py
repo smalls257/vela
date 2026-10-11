@@ -2,7 +2,7 @@
 None of them is ever an error, so a stale vault never blocks a PR."""
 import shutil
 
-from conftest import REPO, check, edit, findings, run
+from conftest import REPO, check, edit, findings
 
 GOALS = "01-goals.md"
 FIXTURE = REPO / "examples" / "unified-booking"

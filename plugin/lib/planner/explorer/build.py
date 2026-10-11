@@ -29,13 +29,12 @@ import re
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, progress,
                      reading, schema, trace)
 from planner import search as planner_search
-from planner.parse import WIKILINK, parse_link
 
 from . import (asks_data, assets_inline, design_data, flows_data, icons_data, inside_data, pages_data,
                roles_data, serve)
 from . import pins as pinning
-from .record import (BLOCK_REF, HANDLE, LABELLED_LINE, MD_LINK, PROSE_LIMIT, STEP, Keys, inline_html, link_label,
-                     plain, refs_in, state_badge, title_of)
+from .record import (HANDLE, LABELLED_LINE, PROSE_LIMIT, Keys, inline_html,
+                     plain, refs_in, title_of)
 
 HERE = pathlib.Path(__file__).resolve().parent
 # marked, the Markdown parser the offline viewer already vendors (its licence and checksum are in that folder's NOTICE.md).

@@ -64,7 +64,6 @@ def releases(vault):
         return []
     out, current, in_history = [], None, False
     lines = p.text.split("\n")
-    tables = {t.row_lines[0] if t.row_lines else -1: t for t in p.tables if not t.generated}
     for n, line in enumerate(lines, 1):
         if line.startswith("## "):
             heading = line[3:].strip()

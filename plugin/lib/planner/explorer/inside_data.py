@@ -16,7 +16,6 @@ worked out here and labelled where they show:
 A design is checked against the vault with design_data.resolve, so the page can show who owns a vault item, what
 no component owns (acknowledged by a gap or missed), and what the design cites that the vault does not hold.
 """
-import pathlib
 import re
 
 from planner import schema

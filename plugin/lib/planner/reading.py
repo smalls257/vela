@@ -123,7 +123,6 @@ def fold_item_details(lines):
         heading = HEADING.match(line)
         if heading:
             flush()
-            words = heading.group(2).split()
             level = len(heading.group(1))
             if level <= 3:
                 in_item, said = level == 3, False
