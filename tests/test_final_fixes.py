@@ -5,7 +5,7 @@ import sys
 
 from conftest import REPO, check, edit, findings
 
-BIN = REPO / "plugin" / "bin" / "planner"
+BIN = REPO / "plugin" / "scripts" / "planner"
 CAP = "capabilities/CAP-001-sell.md"
 GOALS = "01-goals.md"
 SESSION = "sessions/2026-01-10-shop-api.md"
@@ -63,7 +63,7 @@ def test_running_the_bin_writes_no_pycache(tmp_path):
     shutil.copytree(REPO / "plugin", plugin, ignore=shutil.ignore_patterns("__pycache__"))
     vault = tmp_path / "vault"
     shutil.copytree(REPO / "tests" / "fixtures" / "mini", vault)
-    result = subprocess.run([sys.executable, str(plugin / "bin" / "planner"), "check"], cwd=vault,
+    result = subprocess.run([sys.executable, str(plugin / "scripts" / "planner"), "check"], cwd=vault,
                             capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "PYTHONDONTWRITEBYTECODE"})
     assert result.returncode in (0, 1), result.stderr
     assert not list(plugin.rglob("*.pyc"))
@@ -227,8 +227,8 @@ def test_pr_workflow_fails_a_stale_generated_block():
     import yaml
     workflow = yaml.safe_load(read("template/.github/workflows/planner-check.yml"))
     commands = [s.get("run", "") for s in workflow["jobs"]["planner-check"]["steps"]]
-    assert "python .claude/skills/planner/bin/planner render && git diff --exit-code" in commands
-    assert commands.index("python .claude/skills/planner/bin/planner check") < commands.index(commands[-1])
+    assert "python .claude/skills/planner/scripts/planner render && git diff --exit-code" in commands
+    assert commands.index("python .claude/skills/planner/scripts/planner check") < commands.index(commands[-1])
 
 
 def test_epics_writes_owning_team_and_close_leaves_it():
@@ -262,4 +262,4 @@ def test_template_wrapper_readme_and_claude_md():
     assert "`/ask`" not in read("template/CLAUDE.md") and "`/planner:ask`" in read("template/CLAUDE.md")
     readme = read("template/README.md")
     assert "Python 3.11" in readme and "PyYAML" in readme
-    assert "python3 .claude/skills/planner/bin/planner view --out ~/Desktop/<name>.html" in readme
+    assert "python3 .claude/skills/planner/scripts/planner view --out ~/Desktop/<name>.html" in readme

@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Say when people get each part of what the initiative builds. Requirements say what the business needs and allocation says who carries it; neither says by when. A release is a date somebody outside the team will see, and the requirements, or only some of a requirement's checks, that must hold on that day. A releases session never decides: what it writes is an `assumption` until a Grill.
 
-The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONVENTIONS.md` under "Releases".
+The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md` under "Releases".
 
 ## 1. Start
 

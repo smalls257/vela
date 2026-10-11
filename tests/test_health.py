@@ -112,7 +112,7 @@ def test_workflow_runs_weekly_with_issue_permission_only():
     assert triggers["schedule"] == [{"cron": "0 7 * * 1"}] and "workflow_dispatch" in triggers
     assert data["permissions"] == {"contents": "read", "issues": "write"}
     steps = data["jobs"]["vault-health"]["steps"]
-    assert "python .claude/skills/planner/bin/planner health > vault-health.md" in [s.get("run") for s in steps]
+    assert "python .claude/skills/planner/scripts/planner health > vault-health.md" in [s.get("run") for s in steps]
     assert steps[-1]["env"] == {"GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
 
 

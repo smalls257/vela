@@ -82,8 +82,8 @@ def recipe_commands():
     """The fenced voicecheck block in close's text, with the planner path pointed at this repo."""
     found = re.search(r"^ *```\n( *tmp=\$\(mktemp\)\n.*?)^ *```", close_text(), re.S | re.M)
     block = textwrap.dedent(found.group(1))
-    assert ".claude/skills/planner/bin/planner" in block
-    return block.replace(".claude/skills/planner/bin/planner", str(PLUGIN / "bin" / "planner"))
+    assert ".claude/skills/planner/scripts/planner" in block
+    return block.replace(".claude/skills/planner/scripts/planner", str(PLUGIN / "scripts" / "planner"))
 
 
 def guard_command():

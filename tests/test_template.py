@@ -62,7 +62,7 @@ def test_pr_check_workflow_runs_planner_check():
     assert "pull_request" in triggers
     steps = workflow["jobs"]["planner-check"]["steps"]
     commands = [s.get("run", "") for s in steps]
-    assert "python .claude/skills/planner/bin/planner check" in commands
+    assert "python .claude/skills/planner/scripts/planner check" in commands
     assert any("pyyaml" in c for c in commands)
 
 
@@ -79,7 +79,7 @@ def test_installed_plugin_checks_the_vault(tmp_path):
     vault = tmp_path / "vault"
     shutil.copytree(TEMPLATE, vault)
     shutil.copytree(REPO / "plugin", vault / ".claude" / "skills" / "planner")
-    result = subprocess.run([sys.executable, ".claude/skills/planner/bin/planner", "check"],
+    result = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "check"],
                             cwd=vault, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.startswith("planner check: 0 errors, 0 warnings in 23 pages.")
@@ -95,7 +95,7 @@ def test_readme_install_step_works_on_a_fresh_copy(tmp_path):
     install = subprocess.run(command.replace("<toolkit>", str(REPO)), shell=True, cwd=vault,
                              capture_output=True, text=True)
     assert install.returncode == 0, install.stderr
-    result = subprocess.run([sys.executable, ".claude/skills/planner/bin/planner", "check"],
+    result = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "check"],
                             cwd=vault, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
 

@@ -177,7 +177,7 @@ def test_the_checks_every_area_makes_live_in_the_agent_and_not_in_the_skills():
 def test_round_two_fixes_in_dump_discover_and_the_reviewer():
     dump, disc = text("skills/dump/SKILL.md"), text("skills/discover/SKILL.md")
     agent = text("agents/area-reviewer.md")
-    assert "python3 .claude/skills/planner/bin/planner questions --subject <ID>" in disc
+    assert "python3 .claude/skills/planner/scripts/planner questions --subject <ID>" in disc
     assert "It is not a verdict on any idea." in dump
     assert "Never present the checkpoint's digest as a verdict" in dump
     assert "say aloud any pair of lines" in disc and "never two facts" in disc
@@ -209,14 +209,14 @@ def test_epics_reads_the_question_gate():
 def test_shape_shows_the_top_conditions_and_sends_the_rest_through_the_digest():
     shape = text("skills/shape/SKILL.md")
     assert "only the top few conditions" in shape and "coverage line" in shape
-    assert "python3 .claude/skills/planner/bin/planner questions --open --digest" in shape
+    assert "python3 .claude/skills/planner/scripts/planner questions --open --digest" in shape
     assert "quotes the option's capture" in shape and "counterparties" in shape
     assert "the shape gate will warn until" in shape
 
 
 def test_grill_records_a_decision_over_an_open_blocking_question():
     grill = text("skills/grill/SKILL.md")
-    assert "python3 .claude/skills/planner/bin/planner check --gate grill --item <ID>" in grill
+    assert "python3 .claude/skills/planner/scripts/planner check --gate grill --item <ID>" in grill
     assert "Repeat `--item`" in grill and "exits 2" in grill and "can be stale" in grill
     assert "Which do you want to take now?" in grill and "REVIEW section 5" in grill
     assert "decided with <copy IDs> open (W807)" in grill and "`## Changes` row" in grill
@@ -226,7 +226,7 @@ def test_epics_offers_the_e805_override_with_its_exact_bullet():
     epics = text("skills/epics/SKILL.md")
     assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
     assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
-    assert "python3 .claude/skills/planner/bin/planner questions --open --digest" in epics
+    assert "python3 .claude/skills/planner/scripts/planner questions --open --digest" in epics
     assert "Leave the gate failing." in epics and "the whole vault, not one team" in epics
     assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
     assert "the override is the only way to a clean `--gate epics`" in epics

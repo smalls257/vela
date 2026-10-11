@@ -152,7 +152,7 @@ def test_it_runs_from_a_copy_of_the_plugin_alone(vault, tmp_path):
     before = tree(alone)
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     out = tmp_path / "page.html"
-    done = subprocess.run([sys.executable, str(alone / "bin/planner"), "explore", str(vault), "-o", str(out),
+    done = subprocess.run([sys.executable, str(alone / "scripts/planner"), "explore", str(vault), "-o", str(out),
                            "--today", "2026-10-10"], capture_output=True, text=True, cwd=tmp_path, env=env, timeout=120)
     assert done.returncode == 0, done.stdout + done.stderr
     assert tree(alone) == before  # nothing is written into the plugin, not even a compiled cache
@@ -169,7 +169,7 @@ def test_a_copy_of_the_plugin_alone_pins_a_first_build_in_the_vault(vault, tmp_p
     alone = tmp_path / "installed" / "planner"
     shutil.copytree(PLUGIN, alone, ignore=shutil.ignore_patterns("__pycache__"))
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
-    done = subprocess.run([sys.executable, str(alone / "bin/planner"), "explore", str(vault), "--today", "2026-10-10"],
+    done = subprocess.run([sys.executable, str(alone / "scripts/planner"), "explore", str(vault), "--today", "2026-10-10"],
                           capture_output=True, text=True, cwd=tmp_path, env=env, timeout=120)
     assert done.returncode == 0, done.stdout + done.stderr
     assert "first build" in done.stdout and (vault / PINS).is_file() and (vault / PAGE).is_file()

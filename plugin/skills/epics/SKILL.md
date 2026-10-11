@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Turn a handed-off slice into epics a team can build from. The check finds the gaps, so the frontier is never guessed. Only the Grill part of this session sets an epic to `decided`.
 
-The planner is `python3 .claude/skills/planner/bin/planner`. The format, including the epic page and the trace rules, is in `CONVENTIONS.md` under "Epics and traceability".
+The planner is `python3 .claude/skills/planner/scripts/planner`. The format, including the epic page and the trace rules, is in `CONVENTIONS.md` under "Epics and traceability".
 
 ## 1. Start
 
@@ -17,7 +17,7 @@ Run the steps in `.claude/skills/planner/references/START.md` with modes `epics`
 
 ## 2. Read the frontier
 
-Run `python3 .claude/skills/planner/bin/planner render`, then read the `traceability` block on `13-epics/13-epics.md`. Its rows are the work: capabilities nobody delivers (T1), new or changed contracts with no provider epic (T2), concern cells with work and no marked criterion (T4), and epics that deliver nothing (T6). Work one team at a time. A team is an `owner:` handle on app pages.
+Run `python3 .claude/skills/planner/scripts/planner render`, then read the `traceability` block on `13-epics/13-epics.md`. Its rows are the work: capabilities nobody delivers (T1), new or changed contracts with no provider epic (T2), concern cells with work and no marked criterion (T4), and epics that deliver nothing (T6). Work one team at a time. A team is an `owner:` handle on app pages.
 
 ## 3. Shape the cuts
 
@@ -76,9 +76,9 @@ If the user tells you to decide an epic without a yes per criterion, or without 
 
 ## 7. Check the gate
 
-Run `python3 .claude/skills/planner/bin/planner render` and stage every file it reports, by exact path. Then run `python3 .claude/skills/planner/bin/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, or that was asked and still waits for its answer, such as the lawful basis for data, a partner's clauses or a stored-value liability. E805 covers the whole vault, not one team. Offer the user three choices for each:
+Run `python3 .claude/skills/planner/scripts/planner render` and stage every file it reports, by exact path. Then run `python3 .claude/skills/planner/scripts/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, or that was asked and still waits for its answer, such as the lawful basis for data, a partner's clauses or a stored-value liability. E805 covers the whole vault, not one team. Offer the user three choices for each:
 
-- Answer it now. Run `python3 .claude/skills/planner/bin/planner questions --open --digest`, take the line, and capture the answer. The gate clears once close writes its row. Before close, the override is the only way to a clean `--gate epics`.
+- Answer it now. Run `python3 .claude/skills/planner/scripts/planner questions --open --digest`, take the line, and capture the answer. The gate clears once close writes its row. Before close, the override is the only way to a clean `--gate epics`.
 - Override it. Write `- **Override:** E805 by @<handle> on <today>: <reason>` under the `## History` section at the end of `11-unknowns-and-risks.md`, at page level, as `CONVENTIONS.md` says under "Pages". It turns E805 into W805, which still prints.
 - Leave the gate failing.
 

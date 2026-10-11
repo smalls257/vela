@@ -13,8 +13,15 @@ def test_manifest_names_the_plugin():
     assert data["author"]["name"]
 
 
-def test_bin_planner_is_executable():
-    assert os.access(REPO / "plugin" / "bin" / "planner", os.X_OK)
+def test_scripts_planner_is_executable():
+    assert os.access(REPO / "plugin" / "scripts" / "planner", os.X_OK)
+
+
+def test_bin_planner_is_only_a_shim_onto_scripts():
+    shim = REPO / "plugin" / "bin" / "planner"
+    assert os.access(shim, os.X_OK)
+    code = [ln for ln in shim.read_text(encoding="utf-8").splitlines() if ln.strip() and not ln.startswith("#")]
+    assert code == ['exec python3 "$(dirname "$0")/../scripts/planner" "$@"']
 
 
 def test_stub_plugin_holds_only_the_conventions():

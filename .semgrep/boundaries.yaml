@@ -18,7 +18,7 @@ rules:
               metavariable: $MOD
               regex: ^(tests|conftest|prototypes|sim|evals|probe|record|pins|build|comfy|jobs)(\.|$)
       - patterns:
-          # plugin/bin/planner puts its own lib/ on the path; nothing else in plugin/ may extend sys.path.
+          # plugin/scripts/planner puts its own lib/ on the path; nothing else in plugin/ may extend sys.path.
           - pattern-either:
               - pattern: sys.path.insert(..., $P)
               - pattern: sys.path.append($P)

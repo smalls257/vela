@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Make every requirement somebody's. A capability's requirements say what the business needs; the apps and contracts are now drawn. Allocation says, for each requirement, which app carries which part, and which contract carries the part that crosses between them, so every requirement has an owner before anyone cuts epics. Allocation never decides: each row is an `assumption` until a Grill.
 
-The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONVENTIONS.md` under "Requirements and allocation".
+The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md` under "Requirements and allocation".
 
 ## 1. Start
 

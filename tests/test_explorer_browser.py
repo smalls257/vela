@@ -83,7 +83,7 @@ def test_explorer_selftest(tmp_path, chrome_path, vault_name, vault_path):
     # Run planner explore
     cmd = [
         sys.executable,
-        str(REPO / "plugin" / "bin" / "planner"),
+        str(REPO / "plugin" / "scripts" / "planner"),
         "explore",
         str(vault_copy),
         "--today",
@@ -124,7 +124,7 @@ def test_explorer_selftest_800x600(tmp_path, chrome_path):
     # Run planner explore
     cmd = [
         sys.executable,
-        str(REPO / "plugin" / "bin" / "planner"),
+        str(REPO / "plugin" / "scripts" / "planner"),
         "explore",
         str(vault_copy),
         "--today",
@@ -175,7 +175,7 @@ def test_a_served_page_finds_its_helper(tmp_path, chrome_path):
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOT_BASE / "trading-coach" / "after-capture-boundary", vault)
     env = {**os.environ, "PATH": f"{REPO / 'tests' / 'explorer_stub'}:{os.environ['PATH']}"}
-    server = subprocess.Popen([sys.executable, str(REPO / "plugin" / "bin" / "planner"), "explore", str(vault), "--today", "2026-10-10",
+    server = subprocess.Popen([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10",
                                "--serve", "--no-open", "--port", "0"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
     watchdog = threading.Timer(120, server.kill)  # a server that never says where it is must not hang the suite
     watchdog.start()

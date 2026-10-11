@@ -188,7 +188,7 @@ def demo(tmp_path_factory):
 
 def test_demo_vault_passes_planner_check(demo):
     vault, _ = demo
-    done = subprocess.run([sys.executable, str(REPO / "plugin/bin/planner"), "check", "--vault", str(vault), "--today", "2026-11-20"],
+    done = subprocess.run([sys.executable, str(REPO / "plugin/scripts/planner"), "check", "--vault", str(vault), "--today", "2026-11-20"],
                           capture_output=True, text=True)
     assert done.returncode == 0 and " 0 errors" in done.stdout, done.stdout + done.stderr
     loaded = cli.load_vault(vault)

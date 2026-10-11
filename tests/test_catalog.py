@@ -283,6 +283,6 @@ def test_the_installed_plugin_finds_its_catalogue(tmp_path):
     shutil.copytree(REPO / "template", vault)
     shutil.copytree(REPO / "plugin", vault / ".claude" / "skills" / "planner")
     assert (vault / ".claude" / "skills" / "planner" / "catalog" / "questions.yaml").is_file()
-    result = subprocess.run([sys.executable, ".claude/skills/planner/bin/planner", "check"], cwd=vault,
+    result = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "check"], cwd=vault,
                             capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr

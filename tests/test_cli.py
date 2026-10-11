@@ -51,7 +51,7 @@ def test_check_writes_nothing(mini):
 
 
 def test_bin_planner_runs_without_install():
-    result = subprocess.run([sys.executable, str(REPO / "plugin" / "bin" / "planner"), "check",
+    result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "check",
                              "--vault", str(MINI), "--today", "2026-01-15"], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.startswith("planner check: 0 errors")

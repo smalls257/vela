@@ -146,7 +146,7 @@ def test_house_voice_reads_local_owner_examples_first():
 def test_baseline_vault_has_no_skills_and_no_plugin(full_run):
     vault = full_run["run"] / "baseline" / "vault"
     assert not (vault / ".claude" / "skills").exists()
-    assert (full_run["run"] / "planner" / "vault" / ".claude" / "skills" / "planner" / "bin" / "planner").is_file()
+    assert (full_run["run"] / "planner" / "vault" / ".claude" / "skills" / "planner" / "scripts" / "planner").is_file()
     for call in full_run["calls"]:
         if call["role"] != "assistant":
             continue

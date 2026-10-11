@@ -140,10 +140,10 @@ def main():
     if arm == "plugin":
         copy_tree(REPO / "plugin", target)
     else:
-        copy_tree(REPO / "plugin" / "bin", target / "bin")
+        copy_tree(REPO / "plugin" / "scripts", target / "scripts")
         copy_tree(REPO / "plugin" / "lib", target / "lib")
         copy_tree(REPO / "plugin" / "catalog", target / "catalog")
-    planner = [sys.executable, str(target / "bin" / "planner")]
+    planner = [sys.executable, str(target / "scripts" / "planner")]
     # epics-empty rewrote links inside generated blocks too; render puts those blocks back.
     extra = ["--discard-edits"] if vault == "epics-empty" else []
     render = subprocess.run(planner + ["render"] + extra, capture_output=True, text=True)

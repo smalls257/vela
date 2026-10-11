@@ -2,7 +2,7 @@
 
 A review checkpoint finds the questions the plan owes and nobody has asked. Code works out what the catalogue owes (`planner questions`). One focused reviewer per focus area, each in a fresh context, reads only the written pages and finds what code cannot. `planner findings merge` combines what they return. The lead never sees the reviewers, only one ranked digest.
 
-The planner is `python3 .claude/skills/planner/bin/planner`. The skill that sends you here names the checkpoint and its focus.
+The planner is `python3 .claude/skills/planner/scripts/planner`. The skill that sends you here names the checkpoint and its focus.
 
 ## Numbering
 

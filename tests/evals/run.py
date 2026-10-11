@@ -28,7 +28,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parent.parent
-PLANNER = REPO / "plugin" / "bin" / "planner"
+PLANNER = REPO / "plugin" / "scripts" / "planner"
 RESULTS = HERE / ".results"
 ARMS = ("plugin", "stub")
 sys.path.insert(0, str(REPO / "plugin" / "lib"))

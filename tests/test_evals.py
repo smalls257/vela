@@ -61,9 +61,9 @@ def test_scaffold_builds_a_clean_vault(tmp_path, vault, arm):
     result = subprocess.run([sys.executable, str(EVALS / "scaffold.py"), vault, arm], cwd=tmp_path, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     installed = tmp_path / ".claude" / "skills" / "planner"
-    assert (installed / "bin" / "planner").is_file()
+    assert (installed / "scripts" / "planner").is_file()
     assert (installed / "skills").is_dir() == (arm == "plugin"), "the stub arm must see no skill text"
-    check = subprocess.run([sys.executable, str(installed / "bin" / "planner"), "check", "--today", "2026-11-20"],
+    check = subprocess.run([sys.executable, str(installed / "scripts" / "planner"), "check", "--today", "2026-11-20"],
                            cwd=tmp_path, capture_output=True, text=True)
     assert check.returncode == 0, check.stdout
     status = subprocess.run(["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True)

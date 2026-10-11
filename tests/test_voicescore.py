@@ -455,7 +455,7 @@ def test_close_scores_drafts_only_when_available_and_never_gates_on_it():
 
 def test_close_still_runs_the_voicecheck_fact_guard_unchanged():
     part = voice_review()
-    assert 'python3 .claude/skills/planner/bin/planner voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)' in part
+    assert 'python3 .claude/skills/planner/scripts/planner voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)' in part
     assert "Never commit a rewrite voicecheck could not check." in part
 
 

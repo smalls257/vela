@@ -6,7 +6,7 @@ rules:
     message: >-
       Write TODO(owner): what and why, or open an issue and link it. A bare TODO becomes a Fossil Comment.
     paths:
-      include: ["*.py", "*.js", "*.sh", "/plugin/bin/planner", "/.githooks/*"]
+      include: ["*.py", "*.js", "*.sh", "/plugin/scripts/planner", "/.githooks/*"]
     pattern-regex: \b(TODO|FIXME|HACK)\b(?!\([\w.@-]+\):)
   # Black Box. A git or tool call with no timeout hangs the CLI or the simulator with no signal.
   # cli.git() and cli.git_strict() set timeouts; new calls must too.

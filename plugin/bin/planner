@@ -1,24 +1,3 @@
-#!/usr/bin/env python3
-"""planner: check and render an initiative vault. The format is in CONVENTIONS.md."""
-import pathlib
-import sys
-
-if sys.version_info < (3, 11):
-    print("planner: needs Python 3.11 or later.", file=sys.stderr)
-    sys.exit(2)
-
-# A vault is a git repo. Compiled caches written next to a copied plugin would end up committed.
-sys.dont_write_bytecode = True
-
-try:
-    import yaml  # noqa: F401
-except ImportError:
-    print("planner needs PyYAML: python3 -m pip install pyyaml", file=sys.stderr)
-    sys.exit(2)
-
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
-
-from planner.cli import main  # noqa: E402
-
-if __name__ == "__main__":
-    sys.exit(main())
+#!/bin/sh
+# CLI-only convenience (Claude Code puts bin/ on PATH). Not shipped to claude.ai: see tools/package_plugin.py.
+exec python3 "$(dirname "$0")/../scripts/planner" "$@"

@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Say what the business needs, once, before anyone decides which app does it. A requirement here names no app: boundary cuts the work into apps afterwards, and `/planner:allocate` divides each requirement among them. A requirements session never decides: what it writes is an `assumption` until a Grill.
 
-The planner is `python3 .claude/skills/planner/bin/planner`. The format is `CONVENTIONS.md` under "Requirements and allocation" and "Fact bullets" (the functional requirement row).
+The planner is `python3 .claude/skills/planner/scripts/planner`. The format is `CONVENTIONS.md` under "Requirements and allocation" and "Fact bullets" (the functional requirement row).
 
 ## 1. Start
 

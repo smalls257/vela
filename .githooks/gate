@@ -37,7 +37,7 @@ conventions_in_sync() {
 }
 
 planner_check() {  # warnings are fine (the example is dated ahead); errors and tool failures are not
-  python3 plugin/bin/planner check --vault "$1"
+  python3 plugin/scripts/planner check --vault "$1"
 }
 
 FAST_IGNORES=(--ignore=tests/test_viewer.py --ignore=tests/test_sim.py --ignore=tests/test_probe.py --ignore=tests/test_evals.py)

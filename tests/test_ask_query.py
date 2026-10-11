@@ -10,7 +10,7 @@ from conftest import REPO
 
 PLUGIN = REPO / "plugin"
 ASK = PLUGIN / "skills" / "ask" / "SKILL.md"
-QUERY_TOOL = "Bash(python3 .claude/skills/planner/bin/planner query *)"
+QUERY_TOOL = "Bash(python3 .claude/skills/planner/scripts/planner query *)"
 
 
 def ask_meta():
@@ -20,13 +20,13 @@ def ask_meta():
 def test_ask_may_run_planner_query_and_nothing_else_of_planner():
     allowed = ask_meta()["allowed-tools"]
     assert QUERY_TOOL in allowed
-    assert allowed.count("planner/bin/planner") == 1  # query only: never render, check or handoff
+    assert allowed.count("planner/scripts/planner") == 1  # query only: never render, check or handoff
     assert ask_meta()["disallowed-tools"] == "Write Edit NotebookEdit"
 
 
 def test_ask_resolves_every_id_before_citing_it():
     ask = ASK.read_text(encoding="utf-8")
-    assert "Before you cite any ID, run `python3 .claude/skills/planner/bin/planner query get <ID> --json`." in ask
+    assert "Before you cite any ID, run `python3 .claude/skills/planner/scripts/planner query get <ID> --json`." in ask
     assert "Cite the ID by the `link` it returns" in ask
     assert "If the answer is `not_found`, never cite that ID" in ask
     assert "`Not recorded: <ID> is not in this vault.`" in ask
@@ -47,10 +47,10 @@ def test_the_command_ask_allows_runs_from_an_installed_vault(tmp_path):
     vault = tmp_path / "vault"
     shutil.copytree(REPO / "examples" / "unified-booking", vault)
     shutil.copytree(PLUGIN, vault / ".claude" / "skills" / "planner")
-    found = subprocess.run([sys.executable, ".claude/skills/planner/bin/planner", "query", "get", "CON-001", "--json"],
+    found = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "query", "get", "CON-001", "--json"],
                            cwd=vault, capture_output=True, text=True)
     assert found.returncode == 0, found.stdout + found.stderr
     assert json.loads(found.stdout)["link"] == "[[booking-building-blocks#CON-001 Booking API|CON-001]]"
-    missing = subprocess.run([sys.executable, ".claude/skills/planner/bin/planner", "query", "get", "CON-404", "--json"],
+    missing = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "query", "get", "CON-404", "--json"],
                              cwd=vault, capture_output=True, text=True)
     assert missing.returncode == 1 and json.loads(missing.stdout) == {"id": "CON-404", "not_found": True}

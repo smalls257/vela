@@ -45,7 +45,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 SNAPSHOTS = HERE / "snapshots"
 REPO = HERE.parent.parent
 PLUGIN = REPO / "plugin"
-PLANNER = PLUGIN / "bin" / "planner"
+PLANNER = PLUGIN / "scripts" / "planner"
 SCAFFOLD = REPO / "tests" / "evals" / "scaffold.py"
 RESULTS = HERE / "results"
 STUB_DIR = HERE / "stub"
@@ -751,7 +751,7 @@ def union_hunk(match, lost):
 
 def check_errors(clone):
     """(error count, first line) of planner check in the clone; the count is None when check itself failed."""
-    planner = clone / ".claude" / "skills" / "planner" / "bin" / "planner"
+    planner = clone / ".claude" / "skills" / "planner" / "scripts" / "planner"
     done = subprocess.run([sys.executable, str(planner), "check"], cwd=clone, capture_output=True, text=True)
     first = (done.stdout.splitlines() or [done.stderr.strip() or "no output"])[0]
     found = re.search(r"(\d+) errors", first) if done.returncode in (0, 1) else None
@@ -769,7 +769,7 @@ def resolve_conflicts(clone, files, errors_before, lost):
         if any(mark in text for mark in ("<<<<<<<", ">>>>>>>", "|||||||")):
             return f"{rel} still holds conflict markers after the union"
         path.write_text(text, encoding="utf-8")
-    planner = [sys.executable, str(clone / ".claude" / "skills" / "planner" / "bin" / "planner")]
+    planner = [sys.executable, str(clone / ".claude" / "skills" / "planner" / "scripts" / "planner")]
     render = subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True)
     if render.returncode != 0:
         return f"planner render failed after the union: {(render.stdout + render.stderr).strip()[:200]}"

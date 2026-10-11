@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-PLANNER = HERE.parent / "plugin" / "bin" / "planner"
+PLANNER = HERE.parent / "plugin" / "scripts" / "planner"
 
 sys.exit(subprocess.call([sys.executable, str(PLANNER), "view", "--vault", str(HERE / "unified-booking"),
                           "--out", str(HERE / "unified-booking-viewer.html")]))

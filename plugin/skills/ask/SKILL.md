@@ -2,7 +2,7 @@
 name: ask
 description: Answer a question about this initiative from the vault alone, citing item IDs and the sections they come from, flagging anything not yet decided, and saying "Not recorded" or "Not decided" with who to ask when the vault is silent. Use for questions about goals, apps, containers, contracts, decisions, unknowns, risks, concerns, flows or epics.
 argument-hint: "<question>"
-allowed-tools: Read Grep Glob Bash(git log *) Bash(git rev-list *) Bash(date *) Bash(cat *) Bash(python3 .claude/skills/planner/bin/planner query *)
+allowed-tools: Read Grep Glob Bash(git log *) Bash(git rev-list *) Bash(date *) Bash(cat *) Bash(python3 .claude/skills/planner/scripts/planner query *)
 disallowed-tools: Write Edit NotebookEdit
 ---
 
@@ -23,10 +23,10 @@ $ARGUMENTS
 ## Steps
 
 1. Start the answer with the two lines under "How fresh this clone is", word for word.
-2. Find the pages. Start with `python3 .claude/skills/planner/bin/planner query search <the asker's words> --json`, which ranks pages and sections by the words and lists the flows that cross each, then `planner query find <words> --json` for exact titles and headings, then use Grep and Glob over the vault's `.md` files. Never search `voice/`. Search `sessions/` only if the question asks about a session or what was said.
+2. Find the pages. Start with `python3 .claude/skills/planner/scripts/planner query search <the asker's words> --json`, which ranks pages and sections by the words and lists the flows that cross each, then `planner query find <words> --json` for exact titles and headings, then use Grep and Glob over the vault's `.md` files. Never search `voice/`. Search `sessions/` only if the question asks about a session or what was said.
    Never Read a file under `voice/` or `.inbox/`. Read `sessions/` only if the user asks. Try at least two sets of words before you decide no page covers it: the asker's words, and the vault's own words from `12-glossary.md`.
 3. Open every section you will cite with Read, and read it. Cite nothing you did not open in this answer. Assert nothing you did not open and read. A Grep snippet alone does not count.
-4. Before you cite any ID, run `python3 .claude/skills/planner/bin/planner query get <ID> --json`. Cite the ID by the `link` it returns, and take its state, `dissent`, `blocked_by`, `override` and `decided_by` for the flags below. If the answer is `not_found`, never cite that ID, and never write it as if it existed: say `Not recorded: <ID> is not in this vault.` To find every page that mentions an item, run `python3 .claude/skills/planner/bin/planner query refs <ID> --json`. If `planner query` exits 2, it could not read the vault: show its message, say the IDs in this answer were not checked, and never treat that as `not_found` or "Not recorded".
+4. Before you cite any ID, run `python3 .claude/skills/planner/scripts/planner query get <ID> --json`. Cite the ID by the `link` it returns, and take its state, `dissent`, `blocked_by`, `override` and `decided_by` for the flags below. If the answer is `not_found`, never cite that ID, and never write it as if it existed: say `Not recorded: <ID> is not in this vault.` To find every page that mentions an item, run `python3 .claude/skills/planner/scripts/planner query refs <ID> --json`. If `planner query` exits 2, it could not read the vault: show its message, say the IDs in this answer were not checked, and never treat that as `not_found` or "Not recorded".
 5. Split the question into its parts. Each part is answered, in conflict, or unanswered.
 6. Write the answer in the shape below. Never create, edit or delete a file.
 7. Every claim is followed by its ID or labelled `Not from the vault:`. There is no third choice.

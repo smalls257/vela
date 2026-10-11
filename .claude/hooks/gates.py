@@ -151,7 +151,7 @@ def lint(root, files):
         if not shutil.which(tool):
             raise RuntimeError(f"{tool} is not installed, so the gate cannot run")
     problems = []
-    py = [f for f in files if f.endswith(".py") or f == "plugin/bin/planner"]
+    py = [f for f in files if f.endswith(".py") or f == "plugin/scripts/planner"]
     if py:
         code, out = run(["ruff", "check", "--no-cache", "--quiet", "--output-format", "concise",
                          "--select", "E9,F63,F7,F82,E722,S506", "--extend-exclude", ".semgrep", *py], root, 30)
@@ -168,7 +168,7 @@ def scannable(root, paths):
     """The paths the gates lint: code files, minus what .semgrepignore names (generated pages, vendored and
     minified code, the rules' own fixtures)."""
     ignore = (root / ".semgrepignore").read_text().splitlines()
-    return [p for p in paths if (p.endswith(SCANNED) or p == "plugin/bin/planner")
+    return [p for p in paths if (p.endswith(SCANNED) or p == "plugin/scripts/planner")
             and not semgrep_ignores(p, ignore) and (root / p).is_file()]
 
 

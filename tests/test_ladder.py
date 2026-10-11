@@ -37,7 +37,7 @@ def test_status_says_nothing_when_the_pages_reach_no_further_than_the_stage(tmp_
 
 def test_close_reports_the_stage_as_a_line_and_never_asks():
     close = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
-    assert "**Stage:** run `python3 .claude/skills/planner/bin/planner ladder`" in close
+    assert "**Stage:** run `python3 .claude/skills/planner/scripts/planner ladder`" in close
     assert "never a question" in close
 
 
