@@ -30,6 +30,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `voice/local/` | The owner's passages that stay on one machine, same format as `voice/examples/`. Gitignored, never committed. `voice/corpus/` is gitignored too. |
 | `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `planner handoff` writes. Never edited by hand. |
 | `.inbox/` | Documents dropped for Discover. Gitignored, never parsed. |
+| `.planner/` | The tool's own local files. Gitignored, never parsed. `explorer.html` is the page `planner explore` builds. `explorer-pins.json` is the explorer's fixed layout, `{node ID: [column, row]}`, written on the first build and added to when an app or party appears; delete it to lay the map out afresh. `findings/` is review scratch. |
 
 `planner check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, anything under `voice/` or `handoffs/`, and anything under a folder whose name starts with a dot.
 

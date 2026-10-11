@@ -265,6 +265,38 @@ def cmd_view(args, out):
     return 0
 
 
+# What a vault's .gitignore says when it keeps the tool's own files out of commits (the template's does).
+IGNORES_PLANNER_DIR = (".planner", ".planner/", "/.planner", "/.planner/", "**/.planner/")
+
+
+def ignores_planner_dir(root):
+    gitignore = root / ".gitignore"
+    if not gitignore.is_file():
+        return False
+    return any(line.strip() in IGNORES_PLANNER_DIR for line in gitignore.read_text(encoding="utf-8").splitlines())
+
+
+def cmd_explore(args, out):
+    """Build the explorer page. The page and the pinned layout both go in the vault's .planner/ folder unless
+    --out says otherwise; nothing is written beside the plugin."""
+    from planner.explorer import build as explorer, pins as explorer_pins  # lazy: the explorer imports this module
+    root = pathlib.Path(args.vault).resolve()
+    today, _ = parse_today(args.today)
+    target = pathlib.Path(args.out) if args.out else root / ".planner" / "explorer.html"
+    try:
+        lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
+                                  assets_config=args.assets, design_args=args.design, theme=args.theme)
+    except explorer.ExplorerError as exc:
+        raise ToolError(str(exc)) from exc
+    for line in lines:
+        print(f"planner explore: {line}", file=out)
+    if not ignores_planner_dir(root):
+        print("planner explore: this vault's .gitignore does not list .planner/, so the page and the pinned layout "
+              "would be committed. Add the line `.planner/` to .gitignore, or build with --out somewhere outside the vault.",
+              file=out)
+    return 0
+
+
 def cmd_health(args, out):
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
@@ -1131,6 +1163,15 @@ def build_parser():
     view.add_argument("--repo-url", help="where newer versions live (default: git remote get-url origin)")
     view.add_argument("--date", help="build date to stamp, YYYY-MM-DD (default: system date)")
     view.set_defaults(func=cmd_view)
+    explore = sub.add_parser("explore", help="build the vault explorer, one offline HTML page of the whole initiative")
+    explore.add_argument("vault", nargs="?", default=".", help="vault root (default: current directory)")
+    explore.add_argument("-o", "--out", help="HTML file to write (default: <vault>/.planner/explorer.html)")
+    explore.add_argument("--today", help="the date due windows count from, YYYY-MM-DD (default: system date)")
+    explore.add_argument("--theme", default="console", help="the theme the page opens in: console, graphite, daylight or vaporwave")
+    explore.add_argument("--design", action="append", default=[], metavar="APP-x=PATH",
+                         help="a team's tech design doc for an app, for Inside this app; repeat for each app")
+    explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
+    explore.set_defaults(func=cmd_explore)
     status = sub.add_parser("status", help="each app's stage, certainty mix, oldest open unknown and next mode")
     status.add_argument("--vault", default=".", help="vault root (default: current directory)")
     status.add_argument("--today", help="date to judge overdue unknowns and ages by, YYYY-MM-DD (default: system date)")
