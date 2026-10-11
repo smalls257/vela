@@ -12,7 +12,7 @@
 const Ask = (() => {
   const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
   const STORE = `explorer.ask.${D.vaultId}`, KEEP_CONVERSATIONS = 12, THROTTLE_MS = 90, NEAR_BOTTOM = 48;
-  const CITE = /\[\[([^\[\]\n]{1,200})\]\]/g;
+  const CITE = /\[\[([^\[\]\n]{1,600})\]\]/g;  // room for a sentence-long |label: a shorter cap left such a link as raw text
   // a vault ID written bare: APP-booking, CAP-001.FR1. Whether the vault holds it is decided by lookup, never by shape;
   // the shape only says where to look. IDs of another shape (a session's 2026-10-06-kickoff) are found by name.
   const ID_SHAPE = /^[A-Z][A-Z0-9]{1,6}-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*$/;
@@ -190,6 +190,12 @@ const Ask = (() => {
     const [link, ...rest] = ref.split("|");
     const label = rest.join("|").trim();
     const [target, heading] = link.split("#").map((x) => x.trim());
+    // A label longer than a name ("It stays the news app, and gains…") reads as prose, so it is a link in the sentence
+    // that opens like a chip; a short one stays a chip.
+    if (label.length > 40) {
+      const chip = chipFor(target, heading);
+      if (chip) return h("a", { class: "ask-prose-link", "data-ref": chip.getAttribute("data-ref"), tabindex: "0", role: "link", title: chip.textContent }, label);
+    }
     return chipFor(target, heading, label) || h("span", { class: "ref-chip ask-unknown", title: "Claude cited this, but the vault holds no such ID or page" }, ref, h("span", { class: "ask-flag" }, "not in this vault"));
   }
   /* A bare ID: the longest leading part the vault holds ("CAP-001.FR1.Note" finds CAP-001.FR1). Unknown ones stay text:

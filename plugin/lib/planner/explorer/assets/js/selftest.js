@@ -424,6 +424,7 @@ const SelfTest = (() => {
       withToc ? `See [[${E[withToc].path}#${heading}]]. ` : "",
       // the forms Claude copies from the vault's own pages: a path without .md, a bare file name, a heading, a |label
       withToc ? `Also [[${E[withToc].path.replace(/\.md$/, "")}|the stem link]] and [[${E[withToc].path.replace(/\.md$/, "").split("/").pop()}#${heading}|the base link]]. ` : "",
+      withToc ? `Then [[${E[withToc].path}|It stays the news app, and for the first release gains coach screens: lessons, the stock list, progress, paper trades and delayed prices, all drawn from what Coach sends]]. ` : "",
       "But [[ZZZ-999]] is unknown, `inline` code, **bold**, *italic*, [a link](https://example.com) and [bad](javascript:alert(1)).\n\n",
       SCRIPT_OPEN + "window.__askpayload = 1" + SCRIPT_CLOSE + " <img src=x onerror=\"window.__askpayload = 2\"> ![pic](https://example.com/p.png)", ` (turn ${turn}).`];
     const fake = async (url, init) => {
@@ -459,6 +460,11 @@ const SelfTest = (() => {
       const labelled = ["the stem link", "the base link"].every((l) => $$(`.ref-chip[data-ref^="${CSS.escape(withToc)}"], .ref-chip[data-ref^="read:${CSS.escape(withToc)}"]`, a1).some((c) => c.textContent.includes(l)));
       ok(unknown.length === 1 && labelled, "ask, fake helper: Obsidian links ([[path|label]], [[file#heading|label]]) are chips showing their label, and only ZZZ-999 is flagged",
         `ask, fake helper: flagged ${JSON.stringify(unknown)}, labelled chips ${labelled}`);
+    }
+    if (withToc) {
+      const prose = $$(".ask-prose-link", a1).find((l) => l.textContent.startsWith("It stays the news app"));
+      ok(!!prose && (prose.getAttribute("data-ref") || "").includes(withToc) && !a1.textContent.includes("[["),
+        "ask, fake helper: a citation whose |label is a sentence is a link in the prose, and no raw [[ ]] is left", `ask, fake helper: long label link ${!!prose}, raw brackets ${a1.textContent.includes("[[")}`);
     }
     const links = a1 ? $$("a[href]", a1) : [];
     ok(a1 && !$("script", a1) && !$("img", a1) && window.__askpayload === undefined && a1.textContent.includes(SCRIPT_OPEN + "window.__askpayload = 1" + SCRIPT_CLOSE) && a1.textContent.includes("<img src=x")

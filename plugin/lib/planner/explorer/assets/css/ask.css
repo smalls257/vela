@@ -87,3 +87,6 @@
 .ask-back { flex: 0 1 auto; min-width: 3ch; }
 @media (max-width: 1280px) { .ask-keys { display: none; } }
 @media (max-width: 900px) { .ask-more { display: none; } .ask-pick { max-width: 14ch; } }
+
+/* a citation whose label is a sentence: a link in the prose, opened like a chip */
+.ask-prose-link { color: var(--link, var(--ink)); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; cursor: pointer; }
