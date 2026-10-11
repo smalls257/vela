@@ -262,3 +262,18 @@ def test_a_served_reader_page_asks_freshness_once_on_load(tmp_path, chrome_path)
         except subprocess.TimeoutExpired:
             server.kill()
             server.wait()
+
+
+@pytest.mark.browser
+def test_a_replayed_workspace_lists_its_conflicts_first_and_the_badge_counts_them(tmp_path, chrome_path):
+    """re-open a newer copy onto drafts that clash: the page's own #selftest passes with the Conflict badge drawn in every
+    theme, the conflicts listed before the changed pages, and the draft badge counting them."""
+    from test_replay import conflicted_workspace
+    workspace = conflicted_workspace(tmp_path)
+    page = workspace / ".planner" / "explorer.html"
+    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
+                          "--dump-dom", f"file://{page}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
+    lines = _selftest_lines(dom)
+    assert lines[0].startswith("SELFTEST OK"), [line for line in lines if line.startswith("FAIL")]
+    assert any(line.startswith("ok drafts view: the Conflict badge shows its word, ink and ring in every theme") for line in lines)
+    assert any(line.startswith("ok drafts view: 4 conflicts listed before every other change, and the draft badge counts them") for line in lines)

@@ -683,7 +683,7 @@ const SelfTest = (() => {
      touching nothing. Synthetic rows stand in where this vault has no draft, so every build checks the drawing. */
   async function draftChecks(ok) {
     const frames = () => Promise.resolve();
-    const want = D.role === "reader" && D.draft && (D.draft.count > 0 || D.draft.problem), badge = $("#draft-badge");
+    const want = D.role === "reader" && D.draft && (D.draft.count > 0 || (D.draft.conflicts || []).length > 0 || D.draft.problem), badge = $("#draft-badge");
     ok(!!badge === !!want && (!want || badge.textContent === Drafts.heading()),
       want ? `draft badge: "${Drafts.heading()}" in the top bar of this reader's page` : `draft badge: none for role ${D.role} with no changes`,
       `draft badge: role ${D.role}, draft ${D.draft ? D.draft.count : "none"}, badge "${badge ? badge.textContent : "none"}"`);
@@ -691,9 +691,33 @@ const SelfTest = (() => {
     const block = Drafts.diffBlock([["hunk", "@@ -1 +1 @@"], ["del", "old line"], ["add", evil], ["ctx", "same"]]);
     ok(!block.querySelector("img, b, script") && $$(".tx", block)[2].textContent === evil && $$(".sym", block).map((x) => x.textContent).join("") === "-+ " && !window.__draftpayload,
       "drafts view: a diff line is escaped text, and additions and removals carry a + and - symbol as well as a colour", `drafts view: markup in a line became elements (${block.innerHTML.slice(0, 120)})`);
+    const sample = { path: "p.md", mine: "p.mine.md", kind: "both-edited", why: "You and the owner changed the same lines.", ranges: [[2, 3]], binary: false,
+      lines: [["del", "the owner's line"], ["add", evil]], added: 1, removed: 1, title: "P", key: "" };
+    const cc = Drafts.conflictCard(sample);
+    ok($(".dstate.conflict", cc) && $(".dstate.conflict", cc).textContent === "Conflict" && cc.open && !cc.querySelector("img, script, .tx b") && $("code", cc).textContent === "p.mine.md" && /lines 2-3/.test(cc.textContent) && !window.__draftpayload,
+      "drafts view: a conflict card says Conflict in words, names the saved file and the lines, and draws the lines as text", `drafts view: conflict card ${cc.outerHTML.slice(0, 160)}`);
+    const wasTheme = Theme.id, unseen = [];
+    for (const t of Theme.LIST) {
+      Theme.set(t.id);
+      const holder = h("div", { class: "d-view" }, Drafts.conflictCard(sample));
+      $("#main").append(holder);
+      const pill = $(".dstate.conflict", holder), look = getComputedStyle(pill);
+      if (!pill.textContent || look.color === getComputedStyle($("#main")).backgroundColor || look.boxShadow === "none") unseen.push(t.id);
+      holder.remove();
+    }
+    Theme.set(wasTheme);
+    ok(!unseen.length, `drafts view: the Conflict badge shows its word, ink and ring in every theme (${Theme.LIST.map((t) => t.label).join(", ")})`, `drafts view: the Conflict badge is not drawn in ${unseen.join(", ")}`);
+    const waiting = (D.draft && D.draft.conflicts) || [];
+    if (want && waiting.length) {
+      Drafts.open(); await frames();
+      const first = $("#main .d-sec"), cards = $$("#main .dpage.conflict"), badgeNow = $("#draft-badge");
+      ok(!!first && first.id === "conflicts" && cards.length === waiting.length && cards.every((c) => /Conflict/.test($(".dstate", c).textContent)) && !!badgeNow && /conflict/.test(badgeNow.textContent) && badgeNow.textContent === Drafts.heading(),
+        `drafts view: ${plural(cards.length, "conflict")} listed before every other change, and the draft badge counts them`, `drafts view: first section ${first ? first.id : "none"}, ${cards.length} conflict cards for ${waiting.length}, badge "${badgeNow ? badgeNow.textContent : "none"}"`);
+      Nav.home(); await frames();
+    }
     if (want && D.draft.count) {
       Drafts.open(); await frames();
-      const cards = $$("#main .dpage"), rows = cards.map((c) => $$(".dl", c).length), expect = D.draft.pages.map((p) => p.lines.length);
+      const cards = $$("#main .dpage:not(.conflict)"), rows = cards.map((c) => $$(".dl", c).length), expect = D.draft.pages.map((p) => p.lines.length);
       ok(location.hash.startsWith("#drafts") && cards.length === D.draft.pages.length && rows.every((n, i) => n === expect[i]) && /changed/.test($("#main h1").textContent),
         `drafts view: #drafts lists ${plural(cards.length, "changed page")} with ${rows.reduce((a, b) => a + b, 0)} diff lines, each page linked`, `drafts view: hash ${location.hash}, ${cards.length} cards for ${D.draft.pages.length}, rows ${rows} vs ${expect}`);
       const hint = $("#propose-hint");
