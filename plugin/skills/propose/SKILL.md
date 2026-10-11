@@ -41,6 +41,8 @@ JSON
 
 ## Never
 
+These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
+
 - Never send, email, upload or share the proposal. Say where it is and stop.
 - Never edit the pages in the workspace, and never run `git` or `gh`.
 - Never invent a reason, a title the user did not accept, or an owner's name; use what the tool printed.

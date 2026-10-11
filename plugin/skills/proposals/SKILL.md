@@ -20,10 +20,10 @@ $ARGUMENTS
 
 Run `planner role`. Only an owner reviews: in a reader copy, say "Reviewing is the owner's job and needs the vault's git repo" and stop. Ask for the proposal if none was given. Do not search the disk for one.
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner proposals review "<proposal>"` from the vault. Add `--slug <name>` or `--worktree <folder>` only if the user asks. It checks that the commit the reader worked from exists in this clone, refuses a checkout with uncommitted files and says which, makes the worktree and branch, applies the changes with `git apply --3way`, and commits them as `Proposal: <title> (from <author>)`.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner proposals review "<proposal>"` from the vault. Add `--slug <name>` or `--worktree <folder>` only if the user asks. It checks that the commit the reader worked from exists in this clone, stops on a checkout with uncommitted files and says which, makes the worktree and branch, applies the changes with `git apply --3way`, and commits them as `Proposal: <title> (from <author>)`.
 
 Tell the user in plain words what it printed:
-- If it stopped (a base commit this clone lacks, a dirty checkout, a branch that exists, a damaged patch), say why in one sentence and what to do. Never work around a refusal by hand.
+- If it stopped (a base commit this clone lacks, a dirty checkout, a branch that exists, a damaged patch), say why in one sentence and what to do. Do not work around a stop by hand; fix its cause or ask the owner.
 - If the vault moved since the reader's copy, say by how many commits. It is a warning, not a stop.
 - **Conflicts:** the files hold conflict markers in the worktree. Walk the user through each conflicted file: show both sides, ask which text wins or what the merged text says, edit the worktree file, then stage and commit with `git -C <worktree> add -A` and `git -C <worktree> commit -m "Resolve proposal conflicts"`. Do this before anything else.
 - **Check:** compare its counts with the proposal's claim. If the reader's copy had errors, show them first. They do not decide the review; the owner does.
@@ -57,7 +57,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner proposals answer "<proposal>" --va
 JSON
 ```
 
-It writes `answer.md` into the proposal folder (beside a zip, or beside a bare patch). It refuses a group with no decision, a rejection with no reason, and any line that holds a private path. Tell the owner where it is. They send it to the reader; the tool sends nothing.
+It writes `answer.md` into the proposal folder (beside a zip, or beside a bare patch). It stops on a group with no decision, a rejection with no reason, and any line that holds a private path. Tell the owner where it is. They send it to the reader; the tool sends nothing.
 
 ## 4. The branch
 
@@ -65,7 +65,7 @@ The work is on `proposal/<slug>`. Offer the owner their normal git steps and pri
 
 ## Never
 
-These are the defaults. The owner may override any of them, as `START.md` says, and the override is recorded.
+These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Never accept, reject or edit a change the owner did not decide in this session.
 - Never write the owner's reason for them.
