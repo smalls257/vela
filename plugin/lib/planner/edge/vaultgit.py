@@ -79,11 +79,12 @@ def user_identity(root):
 def committed_files(root):
     """({vault-relative path: bytes}, [skipped names], {path: executable}) from HEAD's blobs, never the work tree.
 
-    The vault may be a folder inside a bigger repo, so the archive is of HEAD:<prefix>. Symlinks and
+    The vault may be a folder inside a bigger repo. `git archive HEAD` run from that folder archives just it, with
+    names relative to it. (Naming the folder again as `HEAD:<prefix>` looks safer and returns nothing at all: git
+    applies the working directory's prefix a second time, inside the already-narrowed tree.) Symlinks and
     submodule stubs are not files a read copy can carry; their names are returned so the caller says so.
     """
-    prefix = git_out(root, "rev-parse", "--show-prefix")
-    code, data, err = run_git(root, "archive", "--format=tar", f"HEAD:{prefix}", timeout=120, binary=True)
+    code, data, err = run_git(root, "archive", "--format=tar", "HEAD", timeout=120, binary=True)
     if code != 0:
         raise GitUnavailable(f"git archive HEAD failed: {err}")
     files, skipped, executable = {}, [], {}
