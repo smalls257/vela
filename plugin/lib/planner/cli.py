@@ -279,7 +279,7 @@ def ignores_planner_dir(root):
 def cmd_explore(args, out):
     """Build the explorer page. The page and the pinned layout both go in the vault's .planner/ folder unless
     --out says otherwise; nothing is written beside the plugin."""
-    from planner.explorer import build as explorer, pins as explorer_pins  # lazy: the explorer imports this module
+    from planner.explorer import build as explorer, pins as explorer_pins, serve as explorer_serve  # lazy: the explorer imports this module
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
     target = pathlib.Path(args.out) if args.out else root / ".planner" / "explorer.html"
@@ -294,6 +294,13 @@ def cmd_explore(args, out):
         print("planner explore: this vault's .gitignore does not list .planner/, so the page and the pinned layout "
               "would be committed. Add the line `.planner/` to .gitignore, or build with --out somewhere outside the vault.",
               file=out)
+    if args.serve:
+        if not 0 <= args.port <= 65535:
+            raise ToolError(f"--port {args.port} is not a port number (0 to 65535)")
+        try:
+            explorer_serve.serve(root, target, args.port, args.model, not args.no_open, lambda line: print(f"planner explore: {line}", file=out, flush=True))
+        except OSError as exc:
+            raise ToolError(f"cannot serve the page on port {args.port}: {exc}") from exc
     return 0
 
 
@@ -1191,6 +1198,12 @@ def build_parser():
     explore.add_argument("--design", action="append", default=[], metavar="APP-x=PATH",
                          help="a team's tech design doc for an app, for Inside this app; repeat for each app")
     explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
+    explore.add_argument("--serve", action="store_true",
+                         help="then serve the page on this machine only, with Ask Claude on; opens the browser, Ctrl-C stops")
+    explore.add_argument("--port", type=int, default=0, help="with --serve, the port (default: any free one)")
+    explore.add_argument("--model", choices=["haiku", "sonnet"], default="haiku",
+                         help="with --serve, the model that answers questions (default: haiku; the page's Think harder asks sonnet)")
+    explore.add_argument("--no-open", action="store_true", help="with --serve, do not open the browser")
     explore.set_defaults(func=cmd_explore)
     status = sub.add_parser("status", help="each app's stage, certainty mix, oldest open unknown and next mode")
     status.add_argument("--vault", default=".", help="vault root (default: current directory)")
