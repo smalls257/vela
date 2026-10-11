@@ -21,7 +21,7 @@ Run `planner role`. Access decides, never a title. An **owner** works in the vau
 - **No git or `gh`, anywhere.** Never run `git switch`, `git pull`, `git fetch`, `git commit`, `git push`, `git status` or `gh`, and skip every step in any skill that stages, commits, checkpoints, pushes or opens a PR. Say so once, plainly: "This is a read copy, so I will not use git: your work stays in this folder and nothing is committed or sent."
 - **Session records are still written**, in place, to `sessions/<id>.md`, and kept up to date by hand as captures arrive.
 - **Decisions and overrides are pending.** A reader may record `decided`, but beside every item they decide or override, write `- **Pending approval:** @<their handle>, <today>` (where `CONVENTIONS.md` says under "Pending approval"). The handle is a short lower-case name, asked once and reused; their full name is `author` in `.planner/workspace.json`. Owner decisions never carry the marker. Tell the reader why: the owner sees it before it counts.
-- **Owner-only, so not open to a reader:** handoff, publish, `planner upgrade` and `/planner:challenge`. Name the owner as the CLI does (`published.json` has `owner`): "That is <name>'s call. Send a proposal and they decide."
+- **Owner-only, so not open to a reader:** handoff, publish, `planner upgrade` and `/planner:challenge`. Name the owner as the CLI does (`published.json` has `owner`): "That is <name>'s call. Send a proposal (`/planner:propose`) and they decide."
 - If `planner role` says `none`, stop and show its message.
 
 ## The user may override any rule

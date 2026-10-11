@@ -20,7 +20,7 @@ Run `planner role` first. If it says `reader` (a published copy: `.planner/works
 - **Section 4:** the changed pages are the ones the session's `## Changes` table and captures name, not `git diff`. Skip the examples harvest (it needs `gh` and `git`). Skip the `git restore` and checkpoint-commit lines of the voice review: write the rewrite to the page only after `planner voicecheck` passes, and keep the earlier draft in a copy beside it until then.
 - **Section 6:** run only the render and the check. Skip the fetch and the merge of `main`.
 - **Section 7:** write `summary:` and set `status: closed`, render and check; stage nothing. Never write a handoff manifest: handoff is the owner's.
-- **Section 8:** skip it. Say: "Nothing was committed, pushed or sent. Your changes are in this folder; sending them to the owner as a proposal (`/planner:propose`) is not built yet." Never say a PR exists.
+- **Section 8:** skip it. Say: "Nothing was committed, pushed or sent. Your changes are in this folder; to send them to the owner as a proposal, run `/planner:propose`." Never say a PR exists.
 
 Write the session record as usual: it is the one record of what you did.
 

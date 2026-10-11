@@ -1,5 +1,6 @@
 """planner propose and planner proposals: a reader's changes become a patch an owner can apply, and the owner's answer
 comes back. Run end to end against a real git repo: publish, open, edit as a reader, propose, review as the owner."""
+import io
 import json
 import pathlib
 import re
@@ -546,3 +547,53 @@ def test_accept_pending_refuses_a_malformed_marker_and_a_bad_handle():
         review.accept_pending("p.md", PAGE_TEXT, "CON-001", "priya")
     with pytest.raises(review.ReviewError, match="no @handle"):
         review.accept_pending("p.md", PAGE_TEXT.replace("@sam, 2026-10-18", "sam"), "CON-001", "@priya")
+
+
+def test_reasons_and_decisions_can_arrive_on_standard_input(world, tmp_path, monkeypatch):
+    src, workspace = world
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps({"CON-002": "Said with \"quotes\" and $dollars and `ticks`."})))
+    assert propose(workspace, "--whys", "-")[0] == 0
+    folder = tmp_path / "proposals" / "2026-10-18-clearer-cap-rule"
+    assert 'Said with "quotes" and $dollars and `ticks`.' in read(folder / "proposal.md")
+    review_it(src, folder)
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps([{"group": g, "outcome": "accepted"} for g in GROUPS])))
+    code, text = run("proposals", "answer", str(folder), "--vault", str(wt_of(src)), "--decisions", "-")
+    assert code == 0, text
+    assert read(folder / "answer.md").count("Accepted.") == len(GROUPS)
+
+
+# ------------------------------------------------------------------ the two skills
+
+def skill(name):
+    return (pathlib.Path(__file__).resolve().parent.parent / "plugin" / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
+
+
+def option_strings():
+    from planner import cli
+    parser = cli.build_parser()
+    commands = parser._subparsers._group_actions[0].choices
+    found = set()
+    for sub in [commands["propose"], *commands["proposals"]._subparsers._group_actions[0].choices.values()]:
+        found |= {o for action in sub._actions for o in action.option_strings}
+    return found
+
+
+@pytest.mark.parametrize("name", ["propose", "proposals"])
+def test_every_flag_a_skill_tells_claude_to_run_exists(name):
+    flags = {flag for line in skill(name).splitlines() if "planner" in line and ("propos" in line) for flag in re.findall(r"--[a-z][a-z-]*", line)}
+    assert flags and flags <= option_strings(), flags - option_strings()
+
+
+def test_propose_never_invents_a_reason_or_sends_anything():
+    text = skill("propose")
+    for rule in ("no reason given", "Never invent a reason", "Never send, email, upload or share the proposal", "never run `git` or `gh`",
+                 "Never add that flag without their yes", "A skipped question, \"not sure\", or silence is fine"):
+        assert rule in text, rule
+    assert "planner role" in text and "you decide directly" in text and "--whys -" in text
+
+
+def test_review_leaves_every_decision_to_the_owner_and_never_pushes():
+    text = skill("proposals")
+    for rule in ("pending decisions first", "The owner always decides", "Never write the owner's reason for them", "**Never push, and never open a PR yourself.**",
+                 "Never block it, never hide it", "E316", "git worktree remove", "planner proposals accept", "planner proposals reject", "planner proposals answer"):
+        assert rule in text, rule

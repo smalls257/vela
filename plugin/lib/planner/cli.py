@@ -434,14 +434,20 @@ def new_pending(root, baseline_dir, changed):
     return found
 
 
+def read_json_argument(flag, path):
+    """JSON from a file, or from standard input when the path is '-' (so a skill can pass free text without quoting it)."""
+    try:
+        text = sys.stdin.read() if path == "-" else pathlib.Path(path).read_text(encoding="utf-8")
+        return json.loads(text)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ToolError(f"{flag} {path} cannot be read as JSON: {exc}") from exc
+
+
 def read_whys(path, keys):
-    """{group key: the reader's reason} from a JSON file; a key that names no group is an error, not a lost reason."""
+    """{group key: the reader's reason} from JSON; a key that names no group is an error, not a lost reason."""
     if not path:
         return {}
-    try:
-        data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ToolError(f"--whys {path} cannot be read as JSON: {exc}") from exc
+    data = read_json_argument("--whys", path)
     if not isinstance(data, dict) or not all(isinstance(v, str) for v in data.values()):
         raise ToolError("--whys must be a JSON object of group -> reason text.")
     unknown = sorted(set(data) - set(keys))
@@ -708,10 +714,7 @@ def cmd_proposals_reject(args, out):
 def cmd_proposals_answer(args, out):
     top, vault_dir, branch = worktree_vault(args)
     loaded, parsed, note, refs, problems = load_proposal(args.proposal)
-    try:
-        decisions = json.loads(pathlib.Path(args.decisions).read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ToolError(f"--decisions {args.decisions} cannot be read as JSON: {exc}") from exc
+    decisions = read_json_argument("--decisions", args.decisions)
     if not isinstance(decisions, list) or not all(isinstance(d, dict) for d in decisions):
         raise ToolError("--decisions must be a JSON list of {group, outcome, reason} objects.")
     today, _ = parse_today(args.today)
@@ -1870,7 +1873,7 @@ def build_parser():
     prop.add_argument("--groups", action="store_true", help="list the groups of change that need a reason, and write nothing")
     prop.add_argument("--json", action="store_true", help="with --groups, print them as JSON")
     prop.add_argument("--title", help="a few words naming what the proposal changes")
-    prop.add_argument("--whys", help="a JSON file of group -> the reader's reason; a group without one reads 'no reason given'")
+    prop.add_argument("--whys", help="JSON of group -> the reader's reason, from a file or - for standard input; a group without one reads 'no reason given'")
     prop.add_argument("--zip", action="store_true", help="write one .zip instead of a folder")
     prop.add_argument("--out-dir", help="where proposals go (default: a proposals/ folder beside the workspace)")
     prop.add_argument("--rewrite-home", action="store_true", help="write this machine's home folder as <home> in the proposal (your own files are not changed)")
@@ -1900,7 +1903,7 @@ def build_parser():
     ans = pshared.add_parser("answer", help="write answer.md for the reader from the owner's decision on each group")
     ans.add_argument("proposal", help="the proposal folder, .zip or changes.patch")
     ans.add_argument("--vault", default=".", help="the proposal's worktree (default: current directory)")
-    ans.add_argument("--decisions", required=True, help="a JSON list of {group, outcome: accepted|rejected|edited, reason, commit}")
+    ans.add_argument("--decisions", required=True, help="JSON list of {group, outcome: accepted|rejected|edited, reason, commit}, from a file or - for standard input")
     ans.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
     ans.set_defaults(func=cmd_proposals_answer)
     where = sub.add_parser("where", help="which planner program a skill would run, and why other places were passed over")
