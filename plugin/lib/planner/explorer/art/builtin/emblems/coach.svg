@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs><clipPath id="disc"><circle cx="128" cy="128" r="120"/></clipPath></defs>
+  <circle cx="128" cy="128" r="120" fill="#1d2a4f"/>
+  <circle cx="128" cy="128" r="109" fill="none" stroke="#e0a43c" stroke-width="3" opacity=".55"/>
+  <title>Coach</title>
+  <g clip-path="url(#disc)">
+    <path d="M72 66 L102 88 Q128 79 154 88 L184 66 L178 124 Q182 198 128 210 Q74 198 78 124 Z" fill="#e0a43c"/>
+    <path d="M78 150 Q70 190 104 206 Q90 176 96 146 Z M178 150 Q186 190 152 206 Q166 176 160 146 Z" fill="#b97f22"/>
+    <circle cx="104" cy="120" r="25" fill="#f6efe0"/><circle cx="152" cy="120" r="25" fill="#f6efe0"/>
+    <circle cx="107" cy="122" r="11" fill="#1d2a4f"/><circle cx="149" cy="122" r="11" fill="#1d2a4f"/>
+    <circle cx="110" cy="118" r="3.2" fill="#f6efe0"/><circle cx="152" cy="118" r="3.2" fill="#f6efe0"/>
+    <path d="M119 140 L137 140 L128 157 Z" fill="#1d2a4f"/>
+    <g fill="none" stroke="#1d2a4f" stroke-width="5" stroke-linecap="round" opacity=".8">
+      <path d="M112 172 Q120 180 128 172 Q136 180 144 172"/><path d="M118 188 Q123 194 128 188 Q133 194 138 188"/>
+    </g>
+  </g>
+</svg>

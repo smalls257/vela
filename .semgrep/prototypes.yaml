@@ -19,5 +19,5 @@ rules:
       This names a provider's asset file. Ask the resolver for a slot id instead (`assets.url('emblem.coach')`)
       so the builtin fallback and the per-slot report keep working; see prototypes/gallery/assets/slots.json.
     paths:
-      include: ["/prototypes/explorer/**", "/prototypes/gallery/maps/**", "/prototypes/gallery/flows/**", "/prototypes/gallery/asks/**"]
+      include: ["/prototypes/explorer/**", "/plugin/lib/planner/explorer/**", "/prototypes/gallery/maps/**", "/prototypes/gallery/flows/**", "/prototypes/gallery/asks/**"]
     pattern-regex: \b(builtin|comfyui)/(emblems|textures|audio|video|loops)/[\w.-]+\.(png|svg|jpg|webp|mp4|webm|wav|mp3|ogg)

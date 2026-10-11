@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 864" width="1536" height="864" preserveAspectRatio="xMidYMid slice">
+  <title>Flight-strip bay (procedural)</title>
+  <defs>
+    <linearGradient id="rail" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9aa89c"/><stop offset=".08" stop-color="#7d8c80"/><stop offset=".8" stop-color="#6c7a6f"/><stop offset=".92" stop-color="#4d5850"/><stop offset="1" stop-color="#2f3631"/>
+    </linearGradient>
+    <pattern id="bay" width="1536" height="96" patternUnits="userSpaceOnUse">
+      <rect width="1536" height="96" fill="#39423c"/>
+      <rect y="0" width="1536" height="18" fill="url(#rail)"/>
+      <rect y="18" width="1536" height="4" fill="#1f2521" opacity=".7"/>
+      <rect y="90" width="1536" height="6" fill="#2a312c"/>
+    </pattern>
+    <filter id="anod" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".002 .9" numOctaves="2" seed="5"/>
+      <feColorMatrix values="0 0 0 0 .85  0 0 0 0 .9  0 0 0 0 .85  0 0 0 .08 0"/></filter>
+    <filter id="wear" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".02" numOctaves="3" seed="12"/>
+      <feColorMatrix values="0 0 0 0 .1  0 0 0 0 .12  0 0 0 0 .1  1.2 0 0 0 -.55"/></filter>
+    <radialGradient id="lamp" cx="50%" cy="-10%" r="95%"><stop offset="0" stop-color="#fff6dc" stop-opacity=".22"/><stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></radialGradient>
+    <linearGradient id="edge" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".45"/><stop offset=".06" stop-color="#000" stop-opacity="0"/><stop offset=".94" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>
+  </defs>
+  <rect width="1536" height="864" fill="url(#bay)"/>
+  <rect width="1536" height="864" filter="url(#anod)"/>
+  <rect width="1536" height="864" filter="url(#wear)" opacity=".5"/>
+  <rect width="1536" height="864" fill="url(#lamp)"/>
+  <rect width="1536" height="864" fill="url(#edge)"/>
+</svg>

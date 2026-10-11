@@ -1,7 +1,9 @@
 """The gate hooks' decisions: what counts as bypassing the hooks, which tests a change needs, and when Stop blocks."""
 import importlib.util
+import pathlib
 
 import pytest
+import yaml
 
 from conftest import REPO
 
@@ -67,7 +69,35 @@ def test_files_semgrepignore_names_are_not_scanned_even_when_named(path):
     assert gates.semgrep_ignores(path, IGNORE)
 
 
-@pytest.mark.parametrize("path", ["prototypes/explorer/build.py", "prototypes/explorer/assets/js/core.js",
+@pytest.mark.parametrize("path", ["prototypes/explorer/build.py", "plugin/lib/planner/explorer/assets/js/core.js",
                                   "tests/sim/test_x.py", "plugin/lib/planner/assets/app.js"])
 def test_hand_written_files_are_scanned(path):
     assert not gates.semgrep_ignores(path, IGNORE)
+
+
+def rule_paths():
+    """(rule file, rule id, glob) for every path a semgrep rule includes or excludes."""
+    for rules_file in sorted((REPO / ".semgrep").glob("*.yaml")):
+        for rule in yaml.safe_load(rules_file.read_text(encoding="utf-8"))["rules"]:
+            for glob in sum((rule.get("paths") or {}).values(), []):
+                yield rules_file.name, rule["id"], glob
+
+
+@pytest.mark.parametrize("file,rule,glob", list(rule_paths()))
+def test_every_path_a_semgrep_rule_names_still_exists(file, rule, glob):
+    # A rule whose path matches nothing passes every scan, so a move that leaves it watching an empty place is
+    # invisible unless something checks. The part of the glob before its first wildcard must exist.
+    fixed = []
+    for part in pathlib.PurePosixPath(glob.lstrip("/")).parts:
+        if any(c in part for c in "*?["):
+            break
+        fixed.append(part)
+    assert REPO.joinpath(*fixed).exists(), f"{file}: {rule} names {glob}, which is not in the repo"
+
+
+def test_the_asset_slot_rule_watches_the_explorer_where_it_lives_now():
+    # The explorer's page code moved from prototypes/explorer into the plugin; the rule that keeps its JS to slot ids
+    # has to follow it, or it passes by scanning nothing.
+    globs = [g for _, rule, g in rule_paths() if rule == "prototype-asset-by-slot-id"]
+    assert "/plugin/lib/planner/explorer/**" in globs
+    assert (REPO / "plugin/lib/planner/explorer/assets/js/assets.js").is_file()
