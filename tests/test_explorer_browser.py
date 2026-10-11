@@ -35,7 +35,8 @@ def find_chrome():
         path = pathlib.Path(os.environ["CHROME"])
         if path.exists():
             return path
-        return None
+        # A CHROME that names nothing is a broken setup, not a missing browser: skipping would pass CI silently.
+        raise RuntimeError(f"CHROME is set to {path}, which does not exist")
 
     # Try default macOS path
     mac_default = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
