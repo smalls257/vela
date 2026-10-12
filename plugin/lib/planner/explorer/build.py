@@ -51,7 +51,8 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "layout", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
               "wires", "mapgroups", "releases", "flowkit", "flowpicker", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
-              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "selftest", "main")
+              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
+SELFTEST_MODULE = "selftest"  # 120 KB of checks: bundled only when asked (`planner explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
                "releases", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
@@ -611,11 +612,11 @@ def safe_json(value):
     return json.dumps(value, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
 
 
-def render(data, assets=None):
+def render(data, assets=None, selftest=False):
     shell = (HERE / "assets" / "shell.html").read_text(encoding="utf-8")
     css = "\n".join((HERE / "assets" / "css" / f"{m}.css").read_text(encoding="utf-8") for m in CSS_MODULES)
     js = "\n".join(f"/* ---- {m}.js ---- */\n" + (HERE / "assets" / "js" / f"{m}.js").read_text(encoding="utf-8")
-                   for m in JS_MODULES)
+                   for m in (*JS_MODULES[:-1], *((SELFTEST_MODULE,) if selftest else ()), JS_MODULES[-1]))
     if assets:
         resolver = assets["resolver"]
         if "</script" in resolver.lower():
@@ -790,7 +791,7 @@ def plural_pages(n):
 
 
 def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None,
-             breakdown_args=(), built=None):
+             breakdown_args=(), built=None, selftest=False):
     """Build the page for the vault at `root` and write it to `out`. Returns the report lines: what the build
     chose, what it left out and why, and the one-line summary last. Raises ExplorerError, writing nothing, when
     the vault, the assets, the pins, a design or a named breakdown cannot be read.
@@ -832,7 +833,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     said = link_sources(data, root, design_args, out.parent, plan_args)
     # Which apps this build newly pinned is a fact about the pins file, not the vault: the page does not read it, and
     # carrying it would make the first build and every later build of one vault differ. The report lines still say it.
-    page = render({**data, "pins": {**data["pins"], "added": []}}, assets)
+    page = render({**data, "pins": {**data["pins"], "added": []}}, assets, selftest)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
     said += pin_lines(data, pins_path, was_there, root)

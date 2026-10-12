@@ -1041,7 +1041,7 @@ def cmd_explore(args, out):
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
                                   assets_config=args.assets, design_args=args.design, theme=args.theme,
                                   freshness=page_freshness(root, found, today), breakdown_args=args.breakdown,
-                                  built=page_built(root, found, today))
+                                  built=page_built(root, found, today), selftest=args.selftest)
     except explorer.ExplorerError as exc:
         raise ToolError(str(exc)) from exc
     for line in lines:
@@ -1980,6 +1980,8 @@ def build_parser():
     explore.add_argument("--breakdown", action="append", default=[], metavar="APP-x=PATH",
                          help="a team's work breakdown (docs/plan/<slug>-breakdown.md) for an app, for its Build plan; repeat for each app")
     explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
+    explore.add_argument("--selftest", action="store_true",
+                         help="bundle the page's own checks, so opening it with #selftest runs them (about 120 KB; the browser tests use it)")
     explore.add_argument("--serve", action="store_true",
                          help="then serve the page on this machine only, with Ask Claude on; opens the browser, Ctrl-C stops")
     explore.add_argument("--port", type=int, default=0, help="with --serve, the port (default: any free one)")

@@ -588,7 +588,7 @@ def test_empty_vault_builds_without_errors(tmp_path):
     assert data["map"]["contracts"] == []
     assert data["flows"] == []
     assert data["asks"] == []
-    assert "SELFTEST OK" in page or "selftest" not in page.lower()  # page loads cleanly
+    assert page.startswith("<!doctype html>") and page.rstrip().endswith("</html>")  # the browser test runs the page's own checks on this vault
 
 
 COASTAL_S2 = REPO / "tests/sim/snapshots/coastal-merger/after-boundary-s2"

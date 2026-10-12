@@ -211,3 +211,17 @@ def test_e37_the_stylesheet_has_a_print_block_that_drops_the_chrome_and_prints_l
     for hidden in ("#side", "#panel", "header.top"):
         assert hidden in text.split("{")[2] and "display: none" in text
     assert "attr(href)" in text and "overflow: visible" in text
+
+
+# ------------------------------------------------------------ E32: the page's own checks are not shipped to every reader
+
+def test_e32_a_default_build_leaves_out_the_selftest_and_a_flagged_build_has_it(tmp_path):
+    from conftest import run
+    root = tmp_path / "v"
+    shutil.copytree(HERON, root)
+    assert run("explore", str(root), "--today", "2026-10-12")[0] == 0
+    plain = (root / "dashboard.html").read_text(encoding="utf-8")
+    assert run("explore", "--selftest", str(root), "--today", "2026-10-12")[0] == 0
+    checked = (root / "dashboard.html").read_text(encoding="utf-8")
+    assert "const SelfTest" not in plain and "const SelfTest" in checked
+    assert len(checked) - len(plain) > 100_000, "the checks are about 120 KB"
