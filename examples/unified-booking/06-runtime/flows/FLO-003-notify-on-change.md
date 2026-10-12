@@ -8,6 +8,7 @@ state: decided
 owner: "@hl-solution-lead"
 authored: authored
 sources: ["session 2026-11-03 Grill", SRC-10]
+capabilities: [CAP-022]
 ---
 
 # FLO-003 Notify on change

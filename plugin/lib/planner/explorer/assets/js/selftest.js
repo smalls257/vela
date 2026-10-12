@@ -113,6 +113,7 @@ const SelfTest = (() => {
       const r = Rehearse.selfCheck(f.key);
       ok(r.got === r.of, `rehearse, ${f.key}: a perfect attempt scores ${r.got} of ${r.of}`, `rehearse, ${f.key}: a perfect attempt scored ${r.got} of ${r.of}`);
     }
+    await flowPicker(ok);
     out.push(`clip export: ${FlowKit.clipFormat() ? FlowKit.clipFormat().mime : "not available in this browser"}`);
     // Who to ask: every open question is in a rack, or counted as folded; strip edges are attention.hold's.
     showView("asks"); await frames();
@@ -186,6 +187,53 @@ const SelfTest = (() => {
     ok(!lines.some((l) => l.includes("overflows")), `front doors: ${lines.join(", ")}, each on one screen`, `front doors: ${lines.join(", ")}`);
     Nav.role("eng"); await frames();
     ok(!!$(".door-pick .chip.on") || !D.map.apps.length, `engineering door: an app picked, its slice of ${(D.slices[Roles.st.app] || []).length} items from handoff.slice_of`, "engineering door has no app picked");
+  }
+  /* The flow picker: it lists every flow once, groups only above ten, filters by name, and takes the keyboard. The
+     grouping is also checked on made-up flows, so a vault with three flows still proves the rule at twelve. */
+  async function flowPicker(ok) {
+    const fake = (n, over) => ({ key: "F" + n, id: "FLO-" + n, title: "Flow " + String(n).padStart(2, "0"), level: "dark", steps: 3, open: 0, caps: [], guessed: false, domain: "", ...over });
+    const ten = Array.from({ length: 10 }, (_, i) => fake(i, { caps: ["Cap A"] })), twelve = [...ten, fake(10, { caps: ["Cap B", "Cap A"] }), fake(11, { domain: "Pay" })];
+    const flat = FlowPicker.arrange(ten, ""), grouped = FlowPicker.arrange(twelve, "");
+    ok(!flat.grouped && flat.groups.length === 1 && grouped.grouped, `flow picker: ten flows are one flat list, twelve are grouped (${grouped.groups.map((g) => g.heading.name + " " + g.items.length).join(", ")})`, "flow picker: the ten-flow boundary is wrong");
+    ok(grouped.groups.flatMap((g) => g.items).length === 12 && new Set(grouped.groups.flatMap((g) => g.items.map((e) => e.key))).size === 12, "flow picker: twelve flows, each under exactly one heading", "flow picker: a flow is missing or listed twice");
+    const first = grouped.groups.find((g) => g.heading.name === "Cap A"), second = FlowPicker.arrange(twelve, "flow 10").groups;
+    ok(first && first.items.length === 10 && grouped.groups[grouped.groups.length - 1].heading.kind === "domain", "flow picker: a flow serving two capabilities sits under its first, and a flow with only a domain follows the capabilities", "flow picker: grouping order is wrong");
+    const mixed = FlowPicker.arrange([...twelve.slice(0, 11), fake(11, { caps: ["Cap B"], guessed: true })], "");
+    ok(mixed.groups.some((g) => g.heading.kind === "guessed" && g.heading.name === "Cap B"), "flow picker: a capability guessed from the steps is its own group, marked as a guess", "flow picker: a guessed capability is grouped with the recorded ones");
+    const urgentFirst = FlowPicker.arrange([...ten.slice(0, 10), fake(10, { caps: ["Cap A"], level: "warning" })], "").groups[0].items[0];
+    ok(urgentFirst.key === "F10" && second.length === 1 && second[0].items.length === 1, "flow picker: inside a group the most urgent lamp is first, and typing narrows the list", "flow picker: urgency order or filtering is wrong");
+    if (!D.flows.length) return;
+    Flows.select(D.flows[0].key, -1); await frames(2);
+    const wrap = $(".flow-picker"), trigger = $(".fp-trigger", wrap), input = $(".fp-input", wrap);
+    ok(!!wrap && !$("nav.tracks") && trigger.getAttribute("aria-haspopup") === "listbox" && trigger.textContent.includes(E[D.flows[0].key].title) && $("#present-btn") && $("#clip-btn"),
+      `flow picker: the Flows view shows one button naming "${E[D.flows[0].key].title}", with Rehearse, Save clip and Present beside it`, `flow picker: the flow strip is still there, or the button does not name the flow (picker ${!!wrap}, tracks ${!!$("nav.tracks")}, text "${wrap && wrap.textContent}", present ${!!$("#present-btn")}, clip ${!!$("#clip-btn")})`);
+    trigger.click(); await frames();
+    const optsOf = () => $$(".fp-opt", wrap), keysOf = () => optsOf().map((o) => o.dataset.flow);
+    const listed = keysOf(), groups = $$(".fp-group", wrap);
+    ok(listed.length === D.flows.length && new Set(listed).size === D.flows.length && D.flows.every((f) => listed.includes(f.key)) && !wrap.querySelector(".fp-pop").hidden,
+      `flow picker: opens with all ${D.flows.length} flows, each once`, `flow picker: lists ${listed.length} of ${D.flows.length} flows`);
+    ok((D.flows.length > FlowPicker.TEN_FLOWS) === (groups.length > 0), `flow picker: ${groups.length ? `${groups.length} headings, ${$$(".fp-head", wrap).map((x) => x.textContent).join("; ")}` : "no headings at ten or fewer"}`, "flow picker: headings do not match the ten-flow rule");
+    ok(input.getAttribute("role") === "combobox" && $("#" + input.getAttribute("aria-activedescendant")) && $("#" + input.getAttribute("aria-activedescendant")).getAttribute("role") === "option" && $(".fp-list", wrap).getAttribute("role") === "listbox",
+      "flow picker: a combobox over a listbox, aria-activedescendant names a real option", "flow picker: the ARIA wiring is missing");
+    const word = E[D.flows[0].key].title.split(/\s+/).pop();
+    input.value = word; input.dispatchEvent(new Event("input")); await frames();
+    const kept = keysOf();
+    ok(kept.includes(D.flows[0].key) && kept.every((k) => E[k].title.toLowerCase().includes(word.toLowerCase()) || E[k].id.toLowerCase().includes(word.toLowerCase()) || (FLOW[k].capabilities || []).some((c) => E[c] && E[c].title.toLowerCase().includes(word.toLowerCase())) || (FLOW[k].domain || "").toLowerCase().includes(word.toLowerCase())),
+      `flow picker: typing "${word}" keeps ${kept.length} of ${D.flows.length}`, `flow picker: typing "${word}" kept ${kept.join(", ")}`);
+    input.value = "zzqx no such flow"; input.dispatchEvent(new Event("input")); await frames();
+    ok(!optsOf().length && !!$(".fp-empty", wrap), "flow picker: a query nothing matches says so", "flow picker: no empty message");
+    input.value = ""; input.dispatchEvent(new Event("input")); await frames();
+    const key = (k) => input.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));
+    const at = optsOf().findIndex((o) => o.id === input.getAttribute("aria-activedescendant")), want = optsOf()[(at + 1) % optsOf().length].dataset.flow;
+    key("ArrowDown"); await frames();
+    ok(optsOf().findIndex((o) => o.id === input.getAttribute("aria-activedescendant")) === (at + 1) % optsOf().length, "flow picker: the down arrow moves to the next option", "flow picker: the down arrow did not move");
+    key("Enter"); await frames(2); await new Promise((r) => setTimeout(r, 0));
+    const trigger2 = $(".flow-picker .fp-trigger"), wrap2 = $(".flow-picker");
+    ok(Flows.st.key === want && location.hash.startsWith(`#flows&open=${encodeURIComponent(want)}`) && wrap2.querySelector(".fp-pop").hidden && document.activeElement === trigger2 && trigger2.textContent.includes(E[want].title),
+      `flow picker: Enter chose ${want}, the hash follows (${location.hash.split("&selftest")[0]}), the list closed and focus came back to the button`, `flow picker: Enter left ${Flows.st.key} (wanted ${want}), hash ${location.hash}`);
+    trigger2.click(); await frames(); wrap2.querySelector(".fp-input").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); await frames();
+    ok(wrap2.querySelector(".fp-pop").hidden && document.activeElement === trigger2, "flow picker: Escape closes the list and keeps your place", "flow picker: Escape left the list open");
+    Flows.select(D.flows[0].key, -1); await frames(2);
   }
   async function scale() {
     Nav.home(); MapView.st.lens = "cockpit"; MapView.st.focus = null;

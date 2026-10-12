@@ -642,6 +642,26 @@ def flow_sender_rules(vault, today):
                 break
 
 
+def flow_capability_rules(vault, today):
+    """W358 and E359. A flow's `capabilities:` is what groups it in the explorer's flow picker, first one primary. A
+    vault that has capability pages should say which one each journey serves (a warning: the picker guesses from the
+    steps until it is written); an ID that is not a capability page would group the flow under nothing (an error)."""
+    known = {c.id for c in vault.of_type("capability")}
+    for flow in vault.of_type("flow"):
+        named = flow.meta.get("capabilities")
+        if not named:
+            if known:
+                yield _f(flow, 1, "W358", f"{flow.id} names no capability, so the flow picker can only guess where it belongs.",
+                         "Add capabilities: [CAP-nnn] to its frontmatter, the capability the journey serves.")
+            continue
+        if not isinstance(named, list):
+            continue  # E105 already says it must be a list
+        for value in named:
+            if isinstance(value, str) and value not in known:
+                yield _f(flow, meta_line(flow, "capabilities"), "E359", f"{flow.id} names '{value}', which is not a capability page.",
+                         "Use the ID of a capability page, such as CAP-013, or take it out.")
+
+
 def domain_rules(vault, today):
     """W352 and W353. Once any app names a domain, a large initiative's other apps should; two spellings of one
     domain split the Group: Domain view in two."""
@@ -1014,5 +1034,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)

@@ -10,6 +10,7 @@
 const MapView = (() => {
   const SCALE_NODES = 20, SCALE_LINES = 30, CLUSTER_PAST = 12;
   const st = { lens: null, group: null, focus: null, open: new Set(), shut: new Set(), line: null, running: true };
+  let linePicker = null;  // the Lines key's flow picker, redrawn when a line is picked on the map
   const lines = () => D.map.contracts.reduce((n, c) => n + c.consumers.filter((k) => k !== c.provider).length, 0);
   const big = () => D.nodes.length > SCALE_NODES || lines() > SCALE_LINES;
   const hasDomains = () => D.grouping.domain;
@@ -120,6 +121,7 @@ const MapView = (() => {
     if (board.__fit) removeEventListener("resize", board.__fit);
     board.__fit = fit; addEventListener("resize", fit);
   }
+  const FLOW_CARD_MIN = 240;
   const COCKPIT = { cw: 380, rh: 128, bandGap: 104 }, BOX_W = 176, BOX_H = 66;
   let seenView = null;  // the cockpit's frame before a drag: a drag keeps it, so the board does not rescale under the pointer
   /* Nothing sits on anything: the boxes are laid out from their cells (pins keep them a column apart), and each
@@ -131,7 +133,9 @@ const MapView = (() => {
     let left = b.x0 - 150, right = b.x1 + W / 2 + 140, top = b.y0 - 56, flowsY = b.y1 + 92;
     if (dragging && seenView) { left = Math.min(left, seenView.left); right = Math.max(right, seenView.right); top = Math.min(top, seenView.top); flowsY = Math.max(flowsY, seenView.flowsY); }
     if (!dragging) seenView = { left, right, top, flowsY };
-    const bottom = flowsY + (D.flows.length ? 70 : 0);
+    const flowCols = Math.max(1, Math.min(D.flows.length, Math.floor((right - left - 80 + 16) / (FLOW_CARD_MIN + 16))));  // a long list wraps into rows rather than shrinking past reading
+    const flowRows = Math.ceil(D.flows.length / flowCols);
+    const bottom = flowsY + (D.flows.length ? 70 + (flowRows - 1) * 66 : 0);
     const root = s("svg", { viewBox: `${left} ${top} ${right - left} ${bottom - top}`, class: "cockpit", role: "img", "aria-label": "System panel" }, board);
     fitSvg(root, board, right - left, bottom - top, 1.12);
     const defs = s("defs", {}, root);
@@ -184,12 +188,12 @@ const MapView = (() => {
       if (dragging && Layout.live.key === n.key) el.classList.add("dragging");
     }
     if (D.flows.length) {
-      const fw = Math.min(260, (right - left - 80) / D.flows.length - 16), fh = 50, gx = 16;
-      const totalW = D.flows.length * fw + (D.flows.length - 1) * gx, x0 = (b.x0 + b.x1) / 2 - totalW / 2;
+      const gx = 16, fh = 50, fw = Math.min(260, (right - left - 80 - (flowCols - 1) * gx) / flowCols);
+      const x0 = (b.x0 + b.x1) / 2 - (flowCols * fw + (flowCols - 1) * gx) / 2;
       s("text", { x: x0, y: flowsY - 14, class: "engrave" }, gNodes).textContent = "Flow pages";
       D.flows.forEach((f, i) => {
         const light = lightOf(f.key);
-        lamp(gNodes, { key: f.key, x: x0 + i * (fw + gx), y: flowsY, w: fw, h: fh, rx: 6, label: E[f.key].title, kind: "flow", small: true,
+        lamp(gNodes, { key: f.key, x: x0 + (i % flowCols) * (fw + gx), y: flowsY + Math.floor(i / flowCols) * (fh + 16), w: fw, h: fh, rx: 6, label: E[f.key].title, kind: "flow", small: true,
           sub: `${E[f.key].id}, ${!light || light.level === "dark" ? "settled" : light.reasons.some((r) => r.kind === "stale") ? "page out of date" : shortWhy(light)}` });
       });
     }
@@ -490,12 +494,11 @@ const MapView = (() => {
   }
   function legend(board) {
     const box = h("div", { class: "line-legend" }, h("h3", {}, "Lines"));
-    D.flows.forEach((f, i) => {
-      const hollow = ["assumption", "inkling", ""].includes(E[f.key].state || "");
-      box.append(h("button", { class: "line-btn", "aria-pressed": String(st.line === f.key), "data-flow": f.key, onclick: () => selectLine(st.line === f.key ? null : f.key) },
-        h("span", { class: "swatch" + (hollow ? " hollow" : ""), style: `--c:${Geo.flowColour(i)}` }),
-        h("span", {}, E[f.key].title, h("small", {}, `${E[f.key].id}, ${E[f.key].state || "no state"}`))));
-    });
+    if (D.flows.length) {
+      linePicker = FlowPicker.make({ current: () => st.line, onPick: (key) => selectLine(key), none: "Every line", label: "Line",
+        swatch: (key) => Geo.flowColour(Geo.FLOW_ORDER[key]) });
+      box.append(linePicker);
+    }
     if (!D.flows.length) box.append(h("p", { class: "muted" }, "No flow pages, so no lines."));
     box.append(h("div", { class: "line-keys" },
       h("span", {}, h("i", { class: "k-hollow" }), "hollow: not decided yet"), h("span", {}, h("i", { class: "k-works" }), "works: open questions hold it"),
@@ -505,7 +508,7 @@ const MapView = (() => {
   function selectLine(fid) {
     st.line = fid;
     const board = $("#board"); if (!board) return;
-    $$(".line-btn", board).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.flow === fid)));
+    if (linePicker) linePicker.refresh();
     const uses = new Set(), usesCor = new Set();
     if (fid && LAY) for (const cor of Object.values(LAY.corridors)) if (cor.flows.includes(fid)) { usesCor.add(cor.key); uses.add(cor.a); uses.add(cor.b); }
     $$("g.lane", board).forEach((g) => g.setAttribute("class", "lane " + (!fid || g.dataset.flow === fid ? "on" : "dim")));

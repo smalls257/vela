@@ -8,6 +8,7 @@ state: decided
 owner: "@hl-solution-lead"
 authored: authored
 sources: ["session 2026-09-02 Grill", "UNK-001 ledger latency measurement", SRC-04]
+capabilities: [CAP-013, CAP-014, CAP-015]
 ---
 
 # FLO-001 Hold, pay, confirm

@@ -56,6 +56,18 @@ def test_plain_names_and_trace_rows_pass_the_selftest(tmp_path, chrome_path):
     assert "ok trace rows:" in selftest and "ok plain names:" in selftest, selftest
 
 
+@pytest.mark.browser
+def test_fourteen_flows_are_grouped_in_the_picker_and_pass_the_selftest(tmp_path, chrome_path):
+    """The synthetic stress vault has 14 flows, past the ten the picker lists flat: grouped, filtered and driven by key."""
+    sys.path.insert(0, str(REPO / "prototypes" / "explorer"))
+    import make_stress_vault
+    vault = tmp_path / "stress"
+    make_stress_vault.main(vault)
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10"]
+    assert subprocess.run(cmd, timeout=180, capture_output=True, text=True).returncode == 0
+    _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", "stress/14 flows")
+
+
 def find_chrome():
     """Find Chrome binary. Returns path or None. Raises RuntimeError if CI and not found."""
     # Try env var CHROME first
