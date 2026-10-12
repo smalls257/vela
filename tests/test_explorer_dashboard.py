@@ -1,8 +1,11 @@
 """Fixes to the explorer dashboard found in the 2026-10-12 platform review (docs/research/2026-10-12-platform-review.md).
 Each test names the ledger ID it guards."""
+import pathlib
 import re
+import shutil
 
 from planner import cli
+from planner.explorer import asks_data
 from planner.explorer.pages_data import HEADING as PAGE_HEADING
 from planner.explorer.record import Keys, inline_html
 from planner.search import HEADING as SEARCH_HEADING
@@ -43,3 +46,26 @@ def test_e41_a_heading_that_ends_in_a_hash_keeps_it_in_the_reader_and_in_search(
         assert pattern.match("### CON-004 Wallet#").group(2) == "CON-004 Wallet#"
         assert pattern.match("## Title ##").group(2) == "Title"
         assert pattern.match("## Title #").group(2) == "Title"
+
+
+def test_e20_an_ask_by_that_is_not_a_whole_date_is_not_sent_as_a_date(tmp_path):
+    vault_dir = tmp_path / "vault"
+    shutil.copytree(HERON, vault_dir)
+    page = vault_dir / "11-unknowns-and-risks.md"
+    lines = page.read_text(encoding="utf-8").split("\n")
+    targets = [i for i, line in enumerate(lines) if line.startswith("- **Ask by:** 2026-10-18")][:2]
+    lines[targets[0]] = '- **Ask by:** "><b>x</b>'
+    lines[targets[1]] = "- **Ask by:** 2026-10-18 (maybe)"
+    page.write_text("\n".join(lines), encoding="utf-8")
+    vault = cli.load_vault(vault_dir)
+    asks = asks_data.asks(vault, Keys(vault), "2026-10-12")
+    odd = [a for a in asks if a["askByRaw"]]
+    assert {a["askByRaw"] for a in odd} == {'"><b>x</b>', "2026-10-18 (maybe)"}
+    assert all(a["askBy"] == "" for a in odd), "a value that is not a whole date must not be sent as one"
+    assert any(re.fullmatch(r"\d{4}-\d{2}-\d{2}", a["askBy"]) for a in asks), "a whole date still goes through"
+
+
+def test_e20_every_date_the_board_draws_goes_through_esc():
+    source = (pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/planner/explorer/assets/js/view-asks.js").read_text(encoding="utf-8")
+    bare = [m.group(0) for m in re.finditer(r"\$\{day\([^}]*\)\}", source)]
+    assert not bare, f"day() output goes into a template without esc(): {bare}"
