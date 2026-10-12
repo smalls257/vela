@@ -225,3 +225,19 @@ def test_e32_a_default_build_leaves_out_the_selftest_and_a_flagged_build_has_it(
     checked = (root / "dashboard.html").read_text(encoding="utf-8")
     assert "const SelfTest" not in plain and "const SelfTest" in checked
     assert len(checked) - len(plain) > 100_000, "the checks are about 120 KB"
+
+
+# ------------------------------------------------------------ E3: the stress vault maker is deterministic
+
+def test_e3_the_stress_vault_is_the_same_every_time_it_is_made_in_one_process(tmp_path):
+    import filecmp
+    import sys
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "prototypes" / "explorer"))
+    import make_stress_vault
+    make_stress_vault.main(tmp_path / "one")
+    make_stress_vault.main(tmp_path / "two")
+    compared = filecmp.dircmp(tmp_path / "one", tmp_path / "two")
+
+    def differing(cmp):
+        return cmp.diff_files + [f"{sub}/{name}" for sub, c in cmp.subdirs.items() for name in differing(c)]
+    assert not differing(compared) and not compared.left_only and not compared.right_only
