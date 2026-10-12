@@ -146,17 +146,17 @@ def main():
     planner = [sys.executable, str(target / "scripts" / "planner")]
     # epics-empty rewrote links inside generated blocks too; render puts those blocks back.
     extra = ["--discard-edits"] if vault == "epics-empty" else []
-    render = subprocess.run(planner + ["render"] + extra, capture_output=True, text=True)
+    render = subprocess.run(planner + ["render"] + extra, capture_output=True, text=True, timeout=120)
     if render.returncode != 0:
         fail("planner render failed:\n" + render.stdout + render.stderr)
     git = ["git", "-c", "user.name=Eval", "-c", "user.email=eval@example.invalid"]
     for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "Vault before the eval run"]):
-        result = subprocess.run(git + args, capture_output=True, text=True)
+        result = subprocess.run(git + args, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
             fail(f"git {args[0]} failed: {result.stderr}")
     if vault == "close-dump":
         result = subprocess.run(git + ["switch", "-q", "-c", "session/2026-10-05-mainframe-breaks-booking"],
-                                capture_output=True, text=True)
+                                capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
             fail(f"git switch failed: {result.stderr}")
 

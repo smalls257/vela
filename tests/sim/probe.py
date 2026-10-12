@@ -186,7 +186,7 @@ def build_probe_vault(run_dir, snapshot, persona):
     sim.git("remote", "add", "origin", str(origin), cwd=vault)
     sim.git("push", "-q", "-u", "origin", "main", cwd=vault)
     check = subprocess.run([sys.executable, str(sim.PLANNER), "check", "--vault", str(vault)],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, timeout=120)
     (run_dir / "start-check.txt").write_text(f"exit {check.returncode}\n{check.stdout}{check.stderr}", encoding="utf-8")
     notes.append(f"planner check on the starting vault: exit {check.returncode}")
     return vault, notes
@@ -695,7 +695,7 @@ LEDGER_FLAGS = re.compile(r": (E801|E802|E803) ")
 
 def planner_output(vault, *argv):
     """The output of the current plugin's planner on the final vault. A tool failure (exit 2) stops the probe."""
-    done = subprocess.run([sys.executable, str(sim.PLANNER), *argv, "--vault", str(vault)], capture_output=True, text=True)
+    done = subprocess.run([sys.executable, str(sim.PLANNER), *argv, "--vault", str(vault)], capture_output=True, text=True, timeout=120)
     if done.returncode == 2:
         raise ToolFailure(f"planner {argv[0]} failed on the final vault: {done.stdout.strip().splitlines()[:1]}")
     return done.stdout
