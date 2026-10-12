@@ -3,6 +3,7 @@
    The cockpit, the line map and the minimap all draw from this one function, so an app is in the same place on all
    three, and its lane in a played flow follows the same left-to-right order. A position never comes from a force
    layout or the screen size: cells are pinned and only scaled here. Track is octilinear (horizontal, vertical, 45°).
+   A box dragged by a reader stands at a fractional cell (layout.js) and is drawn there like any other.
    A station with several corridors on one side becomes an interchange bar with one port per corridor, so lines fan
    out instead of piling onto one point. Ported from prototypes/gallery/maps/shared/geometry.js. */
 const Geo = (() => {
@@ -12,8 +13,18 @@ const Geo = (() => {
   const flowColour = (i) => Theme.list("lines")[i] || Theme.c("line-grey");
   const FLOW_ORDER = Object.fromEntries(D.flows.map((f, i) => [f.key, i]));
 
+  const DEFAULTS = { cw: 290, rh: 150, padX: 120, padY: 120, bandGap: 70 };
+  /* Where a (possibly fractional) cell is drawn, and the cell under a point: how a dragged box is placed and dropped. */
+  function pointOf(opts, col, row, outside) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    return { x: o.padX + col * o.cw, y: o.padY + row * o.rh + (outside ? o.bandGap : 0) };
+  }
+  function cellAt(opts, x, y, outside) {
+    const o = Object.assign({}, DEFAULTS, opts || {});
+    return { col: (x - o.padX) / o.cw, row: (y - o.padY - (outside ? o.bandGap : 0)) / o.rh };
+  }
   function layout(opts) {
-    const o = Object.assign({ cw: 290, rh: 150, padX: 120, padY: 120, bandGap: 70 }, opts || {});
+    const o = Object.assign({}, DEFAULTS, opts || {});
     const apps = D.nodes.filter((n) => n.kind === "app");
     const maxAppRow = Math.max(0, ...apps.map((n) => n.row));
     const stations = {};
@@ -136,5 +147,5 @@ const Geo = (() => {
     }
     return { x: pts[0].x, y: pts[0].y, angle: 0 };
   }
-  return { layout, route, roundedPath, offsetPolyline, length, pointAt, LINE_W, flowColour, FLOW_ORDER };
+  return { layout, pointOf, cellAt, route, roundedPath, offsetPolyline, length, pointAt, LINE_W, flowColour, FLOW_ORDER };
 })();

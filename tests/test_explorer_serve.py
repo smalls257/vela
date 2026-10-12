@@ -267,9 +267,10 @@ def test_a_port_out_of_range_is_a_tool_error(tmp_path):
     assert "not a port number" in out.getvalue()
 
 
-def test_only_ask_js_and_freshness_js_can_reach_the_network_and_each_checks_for_a_file_first():
-    """The page's offline promise: no module but ask.js and freshness.js names a network call, ask.js decides on file:
-    before it looks for the helper, and freshness.js asks only its own origin's /freshness, and only when served."""
+def test_only_ask_js_freshness_js_and_layout_js_can_reach_the_network_and_each_checks_for_a_file_first():
+    """The page's offline promise: no module but ask.js, freshness.js and layout.js names a network call, ask.js decides on
+    file: before it looks for the helper, freshness.js asks only its own origin's /freshness, and only when served, and
+    layout.js asks /pins only when the page was served and its reader is not a reader (a file saves to the browser)."""
     scripts = REPO / "plugin/lib/planner/explorer/assets/js"
     network = ("fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "sendBeacon")
     for script in scripts.glob("*.js"):
@@ -281,5 +282,10 @@ def test_only_ask_js_and_freshness_js_can_reach_the_network_and_each_checks_for_
             assert text.index("if (!served() ||") < text.index('fetchFn("/freshness")')
             assert 'location.protocol === "http:" || location.protocol === "https:"' in text
             assert text.count("fetchFn(") == 1 and "XMLHttpRequest" not in text and "://" not in text.replace('"http:"', "").replace('"https:"', "")
+        elif script.name == "layout.js":
+            assert 'const canSave = () => typeof Ask !== "undefined" && Ask.served() && D.role !== "reader";' in text
+            assert text.index("if (!canSave()) return;") < text.index('net.fetch("/pins")')
+            assert "if (canSave()) { await saveToVault(said);" in text and "    if (canSave()) {\n      base = clone(built);" in text
+            assert text.count("net.fetch(") == 2 and "XMLHttpRequest" not in text and "://" not in text.replace('"http:"', "").replace('"https:"', "")
         elif script.name != "selftest.js":  # the self-test wraps fetch to prove none is made
             assert not [word for word in network if word in text], script.name

@@ -32,6 +32,9 @@ SNAPSHOTS = {
     # Written by real sessions (requirements, allocate, releases, boundary): domains, senders, a release, allocation.
     "trading-coach/after-capture-boundary": SNAPSHOT_BASE / "trading-coach" / "after-capture-boundary",
     "holdout-hospitals/after-discover": SNAPSHOT_BASE / "holdout-hospitals" / "after-discover",
+    # Contracts whose providers are written as prose, not linked: three outside boxes on one row under one app, and
+    # three lamps meeting at it. The ungrouped map, the line map and the minimap once drew these on top of each other.
+    "heron-desk/after-full-1": SNAPSHOT_BASE / "heron-desk" / "after-full-1",
 }
 
 

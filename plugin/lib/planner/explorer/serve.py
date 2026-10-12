@@ -2,7 +2,8 @@
 
 The page stays an offline file by default. Served, it can also ask a question of the vault: POST /ask runs Claude Code
 headless (`claude -p`) in the vault with the read-only tools Read, Grep and Glob, and streams the answer back as
-Server-Sent Events. Nothing here writes to the vault.
+Server-Sent Events. Asking writes nothing to the vault. The one thing the helper writes is the layout: POST /pins
+saves boxes the reader dragged to <vault>/.planner/explorer-pins.json (pins.py), and nothing else.
 
 Three things this module exists to prevent:
 - Silent Fallback: a missing `claude`, a non-zero exit, a timeout or an error result each reach the page as an
@@ -22,6 +23,8 @@ import subprocess
 import tempfile
 import threading
 import webbrowser
+
+from . import pins as pinning
 
 # nosemgrep: prototype-no-hardcoded-server -- the policy itself: the helper listens on loopback and nowhere else, under these two names
 LOOPBACK, LOCAL_NAME = "127.0.0.1", "localhost"
@@ -76,6 +79,37 @@ class FreshnessUnavailable(Exception):
 
 class BadRequest(Exception):
     """A request the page should not have sent; the message says what to change."""
+
+
+def apply_pins(path, body):
+    """Save a dragged layout to the pins file and return the saved pins, or raise BadRequest. The body is
+    {"pins": {key: [col, row]}, "kinds": {key: "app" | "partner"}}. A page may move boxes the file already pins and
+    order clusters ("grp:" keys); a key the file does not hold is refused, so the endpoint cannot grow the file.
+    Boxes that would overlap, or a party above the apps, are refused with the reason, as the page's drop refuses them.
+    Pure of sockets: the handler only carries the body in and the answer out."""
+    try:
+        req = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise BadRequest(f"the body is not JSON: {exc}") from exc
+    if not isinstance(req, dict) or not isinstance(req.get("pins"), dict):
+        raise BadRequest('the body must be {"pins": {key: [column, row]}, "kinds": {key: "app" | "partner"}}')
+    path = pathlib.Path(path)
+    if not path.exists():
+        raise BadRequest("this vault has no pins file to save into; run planner explore once without --out outside the vault")
+    try:
+        current = pinning.read_pins(path)
+        pins = pinning.validate(req["pins"], set(current))
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+    kinds = req.get("kinds") if isinstance(req.get("kinds"), dict) else {}
+    if not all(v in ("app", "partner") for v in kinds.values()):
+        raise BadRequest('kinds must say "app" or "partner" for each key')
+    merged = {**current, **pins}
+    problem = pinning.check_move(merged, {k: v for k, v in kinds.items() if k in merged and pinning.is_node(k)})
+    if problem:
+        raise BadRequest(problem)
+    pinning.write_pins(path, merged)
+    return merged
 
 
 def clean_context(raw):
@@ -235,7 +269,8 @@ def stream_answer(vault, model_key, prompt, session_id, timeout=ASK_TIMEOUT, hom
 
 class Handler(http.server.BaseHTTPRequestHandler):
     """GET / is the page, GET /health says the helper is here, GET /freshness is `planner freshness --json` asked again
-    now (the page polls it on load and on window focus), POST /ask streams an answer."""
+    now (the page polls it on load and on window focus), GET /pins is the saved layout, POST /ask streams an answer and
+    POST /pins saves a dragged layout."""
 
     def log_message(self, fmt, *args):
         self.server.log(f"{self.address_string()} {fmt % args}")
@@ -264,6 +299,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                  "models": MODELS, "claude": shutil.which("claude") is not None, "maxQuestion": MAX_QUESTION})
         elif self.path == "/freshness":
             self.send_freshness()
+        elif self.path == "/pins":
+            self.send_pins()
         elif self.path in ("/", "/index.html"):
             data = self.server.page.read_bytes()
             self.send_response(200)
@@ -274,6 +311,34 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(data)
         else:
             self.send_json(404, {"error": f"nothing at {self.path}"})
+
+    def send_pins(self):
+        """The layout as saved now, so a reload after a save shows it though the page file still carries the old one."""
+        if self.server.pins is None or not self.server.pins.exists():
+            self.send_json(404, {"error": "this helper has no pins file"})
+            return
+        try:
+            self.send_json(200, {"pins": pinning.read_pins(self.server.pins)})
+        except ValueError as exc:
+            self.server.log(f"pins: {exc}")
+            self.send_json(500, {"error": str(exc)})
+
+    def save_pins(self, body):
+        if self.server.pins is None:
+            self.send_json(404, {"error": "this helper was started without a pins file"})
+            return
+        try:
+            with self.server.pins_lock:
+                saved = apply_pins(self.server.pins, body)
+        except BadRequest as exc:
+            self.send_json(400, {"error": str(exc)})
+            return
+        except OSError as exc:
+            self.server.log(f"pins: cannot write {self.server.pins}: {exc}")
+            self.send_json(500, {"error": f"cannot write the pins file: {exc}"})
+            return
+        self.server.log(f"layout saved to {pinning.PINS_FILE} ({len(saved)} keys)")
+        self.send_json(200, {"saved": len(saved), "file": pinning.PINS_FILE, "pins": saved})
 
     def send_freshness(self):
         if self.server.freshness is None:
@@ -289,7 +354,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         # A browser always names the origin of a POST; a missing one is a script, not the page.
-        if self.path != "/ask":
+        if self.path not in ("/ask", "/pins"):
             self.send_json(404, {"error": f"nothing at {self.path}"})
             return
         if not self.guarded():
@@ -300,6 +365,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
             self.send_json(413, {"error": f"the request is over {MAX_BODY} bytes"})
+            return
+        if self.path == "/pins":
+            self.save_pins(self.rfile.read(length))
             return
         try:
             question, context, session, model = parse_ask(self.rfile.read(length))
@@ -332,19 +400,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
 class Server(http.server.ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, vault, page, port, default_model, ask_timeout, log, freshness=None):
+    def __init__(self, vault, page, port, default_model, ask_timeout, log, freshness=None, pins=None):
         super().__init__((LOOPBACK, port), Handler)
         self.vault, self.page, self.default_model, self.ask_timeout, self.log = pathlib.Path(vault), pathlib.Path(page), default_model, ask_timeout, log
         self.freshness = freshness  # a callable returning the report dict, or None
+        self.pins = pathlib.Path(pins) if pins else None  # the file POST /pins saves to
+        self.pins_lock = threading.Lock()  # two saves at once must not interleave their writes
 
     @property
     def url(self):
         return f"http://{LOOPBACK}:{self.server_port}/"
 
 
-def serve(vault, page, port, model, open_browser, log, ask_timeout=ASK_TIMEOUT, freshness=None):
+def serve(vault, page, port, model, open_browser, log, ask_timeout=ASK_TIMEOUT, freshness=None, pins=None):
     """Serve until Ctrl-C. `open_browser` is the caller's choice: tests and remote shells say no."""
-    server = Server(vault, page, port, model, ask_timeout, log, freshness)
+    server = Server(vault, page, port, model, ask_timeout, log, freshness, pins)
     if shutil.which("claude") is None:
         log("claude is not on PATH: the page will load, and Ask Claude will say so when asked")
     log(f"serving {server.url} (Ctrl-C stops it); questions run on {MODELS[model]} unless the page asks for sonnet")
