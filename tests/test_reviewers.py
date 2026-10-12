@@ -227,7 +227,7 @@ def test_epics_offers_the_e805_override_with_its_exact_bullet():
     assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
     assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
     assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --open --digest" in epics
-    assert "Leave the gate failing." in epics and "the whole vault, not one team" in epics
+    assert "Defer it to whoever can answer" in epics and "the whole vault, not one team" in epics
     assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
     assert "the override is the only way to a clean `--gate epics`" in epics
 

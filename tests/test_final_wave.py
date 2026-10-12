@@ -56,7 +56,7 @@ def test_readme_checklist_count_matches_the_template_checklist():
 def test_readme_plugin_row_lists_every_cli_command():
     row = next(line for line in read("README.md").splitlines() if line.startswith("| `plugin/` |"))
     help_text = subprocess.run(["python3", str(PLUGIN / "scripts" / "planner"), "--help"], capture_output=True, text=True, timeout=120).stdout
-    commands = re.search(r"\{([a-z,]+)\}", help_text).group(1).split(",")
+    commands = re.search(r"\{([a-z,-]+)\}", help_text).group(1).split(",")
     for command in commands:
         assert f"`{command}`" in row, command
     assert "voice-reviewer" in row
