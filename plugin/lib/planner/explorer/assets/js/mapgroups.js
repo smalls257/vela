@@ -16,7 +16,12 @@
    Nothing sits on anything else. Regions are sized to what they hold and packed on shelves with gutters; then every
    box, name, tab and toggle is an obstacle, and each duct's lamp takes the first point along its duct, outward from
    the middle, that touches none of them (place). A lamp that fits nowhere becomes a round count, placed the same
-   way. #selftest checks that no two drawn boxes or labels intersect. */
+   way. #selftest checks that no two drawn boxes or labels intersect.
+
+   Wires are orthogonal and routed around every box and region they do not join, through the gaps between regions
+   (wires.js), so a long link never runs across another region. Showing cross-region links only for the picked app was
+   the other way to cut the clutter; it hides how the apps connect until someone asks, and the routed map stays
+   readable on the 24-app stress vault. #selftest checks that no wire runs through a box it does not join. */
 const MapGroups = (() => {
   const W = 176, H = 66, GX = 206, GY = 92, PAD = 22, HEAD = 50, CW = 236, CH = 118, GAP = 70, CAP_GAP = 96, CHIP_H = 20, CHIP_GAP = 6;
   const st = MapView.st;
@@ -162,6 +167,16 @@ const MapGroups = (() => {
       });
     }
   }
+  /* Each wire goes around everything drawn (wires.js). One with no way through keeps its straight route, and says so. */
+  function routeAround(edges, boxes, list, world, obs) {
+    const regionOf = {};
+    for (const g of list) { regionOf[g.key] = g.key; for (const k of g.members) regionOf[k] = g.key; }
+    const routes = Wires.route(edges, world, obs, list.map((g) => ({ key: g.key, x: g.x, y: g.y, w: g.w, h: g.h })), boxes, regionOf);
+    edges.forEach((e, n) => {
+      if (!routes[n]) { console.warn(`[map] no way around the boxes for the wire ${label(e.a)} to ${label(e.b)}; drawn straight`); return; }
+      e.pts = routes[n].pts; e.sa = routes[n].sa; e.sb = routes[n].sb;
+    });
+  }
   /* ------------------------------------------------------------ placing a lamp where nothing else is */
   // outward from the middle in steps of 1/24 of the duct, so the lamp stays as central as the drawing allows
   const FRACTIONS = [0.5, ...Array.from({ length: 11 }, (_, i) => [(11 - i) / 24, (13 + i) / 24]).flat()];
@@ -190,9 +205,9 @@ const MapGroups = (() => {
   function drawEdges(edges, gDucts, gLamps, obs) {
     obs = obs || [];
     for (const e of edges) {
-      const pts = Geo.route(e.pa, e.pb, e.sa), d = Geo.roundedPath(pts, 30);
+      const pts = e.pts || Geo.route(e.pa, e.pb, e.sa), d = Geo.roundedPath(pts, 30);
       const lv = worst(e.contracts.map(levelOf));
-      const duct = s("path", { d, class: "duct" }, gDucts);
+      const duct = s("path", { d, class: "duct", "data-a": e.a, "data-b": e.b }, gDucts);
       s("path", { d, class: "duct-hi", transform: "translate(0,2.5)" }, gDucts);
       if (lv !== "dark") s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts);
       Scene.edge(e.a, e.b, { pts, el: duct, contracts: e.contracts });
@@ -255,6 +270,7 @@ const MapGroups = (() => {
     }
     const edges = edgesBetween(vis);
     ports(edges, boxes);
+    routeAround(edges, boxes, list, { x0, y0, x1, y1 }, obs);
     drawEdges(edges, gDucts, gLamps, obs);
     MapView.startBreathing();
     board.dataset.groups = list.length;

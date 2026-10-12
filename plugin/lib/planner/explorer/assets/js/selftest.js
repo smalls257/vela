@@ -206,21 +206,46 @@ const SelfTest = (() => {
         const bad = overlaps();
         ok(!bad.length, `group by domain, every cluster ${open ? "open" : "closed"}: ${$$(OVERLAP_PARTS).length} boxes and labels, no two overlap`, `group by domain (${open ? "open" : "closed"}): ${bad.length} overlaps, such as ${bad.slice(0, 3).join("; ")}`);
       }
-      MapView.st.open.clear(); MapView.st.shut.clear();
+      MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
+      const through = wiresThroughBoxes();
+      ok(!through.length, `group by domain, as it opens: ${$$("#board svg.grouped path.duct[data-a]").length} wires, none through a box it does not join`, `group by domain: ${through.length} wires through a box, such as ${through.slice(0, 3).join("; ")}`);
     } else out.push("skip group by domain: no app page has a domain");
     MapView.st.group = "capability"; rerender(); await frames();
     const regions = MapGroups.groups("capability"), apps = D.nodes.filter((n) => n.kind === "app").map((n) => n.key);
     const once = apps.every((k) => regions.filter((r) => r.members.includes(k)).length === 1), ghosts = regions.reduce((n, r) => n + r.ghosts.length, 0);
     ok(once, `group by capability: ${regions.length} regions, every app in exactly one, ${plural(ghosts, "chip")} where it also belongs`, "an app is drawn in more than one region");
     // nothing sits on anything: every box, lamp, count, name, chip, tab and toggle, measured as drawn, closed and open
+    // and no wire runs through a box it does not join, as the map opens and with every region closed or open
+    MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
+    {
+      const through = wiresThroughBoxes();
+      ok(!through.length, `group by capability, as it opens: ${$$("#board svg.grouped path.duct[data-a]").length} wires, none through a box it does not join`,
+        `group by capability, as it opens: ${through.length} wires through a box, such as ${through.slice(0, 3).join("; ")}`);
+    }
     for (const open of [false, true]) {
       MapGroups.all(open); rerender(); await frames();
-      const bad = overlaps();
-      ok(!bad.length, `group by capability, every region ${open ? "open" : "as it opens"}: ${$$(OVERLAP_PARTS).length} boxes and labels, no two overlap`,
-        `group by capability (${open ? "open" : "as it opens"}): ${bad.length} overlaps, such as ${bad.slice(0, 3).join("; ")}`);
+      const bad = overlaps(), through = wiresThroughBoxes();
+      ok(!bad.length, `group by capability, every region ${open ? "open" : "closed"}: ${$$(OVERLAP_PARTS).length} boxes and labels, no two overlap`,
+        `group by capability (${open ? "open" : "closed"}): ${bad.length} overlaps, such as ${bad.slice(0, 3).join("; ")}`);
+      ok(!through.length, `group by capability, every region ${open ? "open" : "closed"}: ${$$("#board svg.grouped path.duct[data-a]").length} wires, none through a box it does not join`,
+        `group by capability (${open ? "open" : "closed"}): ${through.length} wires through a box, such as ${through.slice(0, 3).join("; ")}`);
     }
     MapView.st.open.clear(); MapView.st.shut.clear();
     MapView.st.group = null; MapView.st.open.clear(); MapView.st.shut.clear(); rerender();
+  }
+  /* The wires of the grouped map that run through (or within 6 px of) a box they do not join, as "<a> to <b> through <box>",
+     sampled every 4 px along the path as drawn. The boxes are the ones the scene holds: apps in open regions, closed regions. */
+  function wiresThroughBoxes() {
+    const out = [], boxes = Scene.st ? Object.entries(Scene.st.nodes) : [];  // an empty vault has no board
+    for (const wire of $$("#board svg.grouped path.duct[data-a]")) {
+      const len = wire.getTotalLength(), hit = new Set();
+      for (let at = 0; at <= len; at += 4) {
+        const p = wire.getPointAtLength(at);
+        for (const [key, b] of boxes) if (key !== wire.dataset.a && key !== wire.dataset.b && p.x > b.x - 6 && p.x < b.x + b.w + 6 && p.y > b.y - 6 && p.y < b.y + b.h + 6) hit.add(key);
+      }
+      for (const key of hit) out.push(`${wire.dataset.a} to ${wire.dataset.b} through ${key}`);
+    }
+    return out;
   }
   const OVERLAP_PARTS = "#board svg.grouped g.hit, #board svg.grouped .cluster-names text, #board svg.grouped .also-chip, #board svg.grouped .also-tab, #board svg.grouped .cluster-toggle";
   /* Pairs of drawn parts whose boxes intersect by more than a pixel, as "<a> on <b>". A part's own children are not parts. */

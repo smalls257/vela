@@ -48,7 +48,7 @@ class ExplorerError(Exception):
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "geometry", "search", "minimap", "reader", "panel", "panelsize", "motion", "view-map",
-              "mapgroups", "releases", "flowkit", "view-flows", "rehearse", "view-asks", "view-garden", "view-progress",
+              "wires", "mapgroups", "releases", "flowkit", "view-flows", "rehearse", "view-asks", "view-garden", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "drafts", "freshness", "selftest", "main")
 CSS_MODULES = ("base", "nav", "panel", "map", "flows", "rehearse", "asks", "garden", "pages", "reader", "roles",
                "releases", "ask", "inside", "pending", "drafts", "themes", "plain")
