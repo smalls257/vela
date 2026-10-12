@@ -204,87 +204,87 @@ team_repos:
     - work-breakdown
 sessions:
 - mode: dump
-  cap: 8
+  cap: 16
   planner: '/planner:dump {opening}'
   baseline: 'I have a new initiative and nothing written down yet. Let us dump everything we know about it into this vault, following CONVENTIONS.md. {opening}'
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: discover
-  cap: 8
+  cap: 16
   planner: '/planner:discover {topics[discover_1]}'
   baseline: 'Find out {topics[discover_1]} from the documents in .inbox/ and record what is really there. Follow CONVENTIONS.md.'
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: shape
-  cap: 8
+  cap: 18
   planner: '/planner:shape {topics[shape_1]}'
   baseline: 'Shape {topics[shape_1]}. Give me options to react to, following CONVENTIONS.md.'
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: boundary
-  cap: 10
+  cap: 20
   planner: '/planner:boundary {topics[boundary]}: the domains, who sends each step of the flows, and the links between the apps'
   baseline: 'Draw the boundary for {topics[boundary]}: the apps, their domains, who sends each flow step and the contracts between them. Follow CONVENTIONS.md.'
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
-  cap: 12
+  cap: 22
   planner: '/planner:grill {topics[grill]}'
   baseline: 'Take me through {topics[grill]} and record what I decide. Follow CONVENTIONS.md.'
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: requirements
-  cap: 10
+  cap: 20
   planner: '/planner:requirements {topics[requirements]}'
   baseline: 'Write the functional requirements for {topics[requirements]}. Follow CONVENTIONS.md.'
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: allocate
-  cap: 8
+  cap: 16
   planner: /planner:allocate every requirement
   baseline: Divide every requirement among the apps and contracts that carry it. Follow CONVENTIONS.md.
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: releases
-  cap: 6
+  cap: 14
   planner: /planner:releases
   baseline: Write the releases, each with its date and the requirements it delivers. Follow CONVENTIONS.md.
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: epics
-  cap: 8
+  cap: 18
   planner: /planner:epics the Desk Agent team
   baseline: Draft and decide the epics for the Desk Agent team. Follow CONVENTIONS.md.
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
-  cap: 6
+  cap: 22
   planner: '/planner:grill handing {topics[handoff]} to @agent-lead'
   baseline: 'Take me through handing {topics[handoff]} to @agent-lead and record it. Follow CONVENTIONS.md.'
 - mode: close
-  cap: 5
+  cap: 12
   planner: /planner:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: tech-design-grill
-  cap: 20
+  cap: 22
   repo: agent
   persona: heron-agent-lead
   planner: '/tech-design-grill desktop-agent. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
@@ -292,7 +292,7 @@ sessions:
   baseline: '/tech-design-grill desktop-agent. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
     first, with --vault ../vault --app the desktop agent''s APP id (find it in ../vault/05-building-blocks).'
 - mode: breakdown
-  cap: 16
+  cap: 18
   repo: agent
   persona: heron-agent-lead
   planner: '/work-breakdown desktop-agent. Use the design in docs/tech-design and the initiative vault at ../vault with --vault ../vault

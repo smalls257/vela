@@ -406,6 +406,8 @@ const Inside = (() => {
       const r = svg.getBoundingClientRect(), b = holder.getBoundingClientRect(), sc = +holder.dataset.scale || 1;
       const over = r.width > b.width + 1 || r.height > b.height + 1;
       el.hidden = !over;
+      // the minimap sits over the drawing's corner: leave room under the drawing so any box can scroll out from under it
+      holder.style.paddingBottom = over ? `${(el.offsetHeight || Math.round(v.ht * k) + 10) + 16}px` : "";
       if (!over) return;
       const l = Math.max(b.left, r.left), t = Math.max(b.top, r.top), rt = Math.min(b.right, r.right), bt = Math.min(b.bottom, r.bottom);
       view.setAttribute("x", (v.x0 + (l - r.left) / sc).toFixed(1)); view.setAttribute("y", (v.y0 + (t - r.top) / sc).toFixed(1));
