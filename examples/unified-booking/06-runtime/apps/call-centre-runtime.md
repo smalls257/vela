@@ -21,7 +21,7 @@ sources: ["Contact Centre Systems senior container review"]
 | [[FLO-001-hold-pay-confirm\|FLO-001]] | The agent finds a crossing, the desktop asks Booking for a hold, the agent takes payment through Tidepay, and the desktop asks Booking to confirm. |
 | [[FLO-002-amend-or-cancel\|FLO-002]] | The agent finds the booking by reference. Booking says whether the change is allowed and re-quotes an amendment. The desktop shows the result. |
 
-The desktop has no part in [[FLO-003-notify-on-change|FLO-003]]. Customers get the same email or SMS whichever channel made the change.
+The desktop has no part in [[FLO-003-notify-on-change|Notify on change]]. Customers get the same email or SMS whichever channel made the change.
 
 ```mermaid
 sequenceDiagram
@@ -41,7 +41,7 @@ sequenceDiagram
   API-->>D: amended
 ```
 
-The diagram shows FLO-002 because the amend and cancel screens are the new part. FLO-001 follows the same calls as the website, with Tidepay taking payment as it does today.
+The diagram shows the amend or cancel flow because the amend and cancel screens are the new part. The hold, pay, confirm flow follows the same calls as the website, with Tidepay taking payment as it does today.
 
 ## When a dependency is slow or down
 

@@ -21,7 +21,7 @@ sources: ["UNK-001 ledger latency measurement 2026-09-02", "Digital senior conta
 | [[FLO-001-hold-pay-confirm\|FLO-001]] | Finds the crossing, asks Booking for a hold, sends the customer to Tidepay's hosted page, then asks Booking to confirm and shows the state it returns. |
 | [[FLO-002-amend-or-cancel\|FLO-002]] | New. The customer finds their booking and amends or cancels it online. Booking says whether the change is allowed and what it costs. |
 
-The website has no part in [[FLO-003-notify-on-change|FLO-003]]. It stops sending its own booking emails, because Notifications sends them from Booking events.
+The website has no part in [[FLO-003-notify-on-change|Notify on change]]. It stops sending its own booking emails, because Notifications sends them from Booking events.
 
 ```mermaid
 sequenceDiagram

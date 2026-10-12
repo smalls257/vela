@@ -18,7 +18,7 @@ The old adapters failed with no signal. A customer paid, the confirm scrape fail
 
 One trace ID runs from the channel to the Ledger adapter. Each channel creates it and passes it on every Booking API call, and Booking carries it into the MQ write. When a booking is stuck, on-call can see whether the delay was in the channel, Booking, Pricing or the ledger without reading four sets of logs.
 
-The dashboards track per-channel request and error rate, booking state transitions, ledger write latency at p95 and the hold expiry rate. Ledger latency was measured at 2.1 s p95 before design started ([[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]]), so a rise has a baseline to compare against. A rising hold expiry rate usually means payments are failing at Tidepay, which no other metric would show.
+The dashboards track per-channel request and error rate, booking state transitions, ledger write latency at p95 and the hold expiry rate. Ledger latency was measured at 2.1 s p95 before design started ([[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]]), so a rise has a baseline to compare against. A rising hold expiry rate usually means payments are failing at Tidepay, which no other metric would show.
 
 ## Per app
 
@@ -36,6 +36,6 @@ The dashboards track per-channel request and error rate, booking state transitio
 
 ## Related
 
-- Unknowns: [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]]
-- Decisions: [[ADR-0004-mq-not-screen-scraping|ADR-0004]]
-- Epics: [[EPC-039-run-booking|EPC-039]], [[EPC-031-holds-and-confirms|EPC-031]]
+- Unknowns: [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]]
+- Decisions: [[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]]
+- Epics: [[EPC-039-run-booking|Run Booking: on-call, runbooks, dashboards]], [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]

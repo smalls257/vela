@@ -21,7 +21,7 @@ FERRYMASTER does what it did before. It now receives its booking writes from one
 | [[FLO-001-hold-pay-confirm\|FLO-001]] | Records BKHOLD when Booking holds a seat, BKCONF when payment succeeds, BKCANC when a hold expires unpaid. |
 | [[FLO-002-amend-or-cancel\|FLO-002]] | Records BKAMND or BKCANC. |
 
-FERRYMASTER has no part in [[FLO-003-notify-on-change|FLO-003]].
+FERRYMASTER has no part in [[FLO-003-notify-on-change|Notify on change]].
 
 ```mermaid
 sequenceDiagram
@@ -31,7 +31,7 @@ sequenceDiagram
   FM-->>Led: ledger reference or return code
 ```
 
-Ledger write latency p95 is 2.1 s, measured ([[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]]).
+Ledger write latency p95 is 2.1 s, measured ([[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]]).
 
 ## When it is slow or down
 

@@ -11,6 +11,8 @@ sources: ["session 2026-07-14 Discover"]
 
 # Unknowns and risks
 
+This page keeps every question nobody could answer when it was asked, and every risk the team watches. The table says which are still open and who must answer; each unknown and risk then has its own section.
+
 <!-- generated:unknowns-index sha=dca6f859: do not edit, run planner render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|

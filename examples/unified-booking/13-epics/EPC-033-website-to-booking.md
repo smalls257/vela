@@ -18,7 +18,7 @@ sources: ["session 2026-10-07 Grill", "session 2026-11-18 Grill"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-The website's booking pages call the Booking API (CON-001) and the FM screen adapter is retired. The website goes first because it has the worst failure today: if the second scrape, the confirm, fails after payment, the customer has paid for nothing and the call centre fixes it by hand the next morning. With Booking, Tidepay's payment outcome goes to Booking, which keeps the hold and retries the ledger write.
+The website's booking pages call the Booking API and the FM screen adapter is retired. The website goes first because it has the worst failure today: if the second scrape, the confirm, fails after payment, the customer has paid for nothing and the call centre fixes it by hand the next morning. With Booking, Tidepay's payment outcome goes to Booking, which keeps the hold and retries the ledger write.
 
 Cutover is February 2027. The old adapter stays behind a switch for 4 weeks so the Digital team can send bookings back to it without a release. After 4 weeks it is removed and the website no longer depends on any FERRYMASTER screen.
 
@@ -26,9 +26,11 @@ Cutover is February 2027. The old adapter stays behind a switch for 4 weeks so t
 
 ## Epic acceptance criteria
 
-1. Every booking the website makes after cutover goes through CON-001 hold, confirm and get, with the website's service token and a trace ID the website created on every call. [security] [observability]
+1. Every booking the website makes after cutover goes through the Booking API hold, confirm and get, with the website's service token and a trace ID the website created on every call. [security] [observability]
+   - Trace: CON-001
 2. A customer whose payment succeeds sees "confirming" until Booking returns `confirmed`, and then sees the confirmed booking. No customer is left with a payment and no booking.
-3. The website's consumer-driven contract tests for CON-001 pass in Booking's provider verification. [testing]
+3. The website's consumer-driven contract tests for the Booking API pass in Booking's provider verification. [testing]
+   - Trace: CON-001
 4. Flipping the website's switch back sends new bookings through the FM screen adapter without a release. [rollout]
 5. Four weeks after cutover the FM screen adapter is removed, and FERRYMASTER sees no screen sessions from the website. [data]
 
@@ -47,9 +49,9 @@ Cutover is February 2027. The old adapter stays behind a switch for 4 weeks so t
 
 ## Depends on
 
-- [[EPC-031-holds-and-confirms|EPC-031]]: hold, confirm and get on CON-001.
-- [[EPC-032-ledger-adapter|EPC-032]]: ledger writes in production.
-- [[EPC-039-run-booking|EPC-039]]: on-call, runbooks and dashboards live before real traffic.
+- [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]: hold, confirm and get on the Booking API.
+- [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]: ledger writes in production.
+- [[EPC-039-run-booking|Run Booking: on-call, runbooks, dashboards]]: on-call, runbooks and dashboards live before real traffic.
 
 ## Rollout notes
 
@@ -57,7 +59,7 @@ First channel to cut over, February 2027. Rollback is flipping the website's swi
 
 ## Out of scope
 
-- Amend and cancel pages ([[EPC-036-amend-cancel-online|EPC-036]]).
-- Booking emails, which move to Notifications in [[EPC-037-events-and-notifications|EPC-037]].
+- Amend and cancel pages ([[EPC-036-amend-cancel-online|Amend and cancel online]]).
+- Booking emails, which move to Notifications in [[EPC-037-events-and-notifications|Booking events and customer notifications]].
 
 The Digital team breaks this epic into stories after their tech design session.

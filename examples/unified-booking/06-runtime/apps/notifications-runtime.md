@@ -36,10 +36,10 @@ sequenceDiagram
   Send->>C: email or SMS
 ```
 
-The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005 Event bus readiness|UNK-005]]).
+The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005 Event bus readiness|Event bus readiness]]).
 
 ## When a dependency is slow or down
 
 - **Event bus down.** Booking's Event publisher keeps the events and publishes them when the bus returns. Messages arrive late and none are lost.
 - **Message sender down.** The consumer does not acknowledge the event, so the bus delivers it again. A booking reference and new state that have already been sent are skipped, so the customer gets one message.
-- **Event the consumer cannot read.** CON-002 only changes additively, so a new field is ignored. An event that fails the schema is parked on a dead-letter queue with its booking reference and trace ID, and on-call is alerted.
+- **Event the consumer cannot read.** The Booking state changed event only changes additively, so a new field is ignored. An event that fails the schema is parked on a dead-letter queue with its booking reference and trace ID, and on-call is alerted.

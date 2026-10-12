@@ -23,7 +23,7 @@ Pricing answers the same question it always has. The difference is that only Boo
 | [[FLO-001-hold-pay-confirm\|FLO-001]] | Quotes the fare before Booking places a hold. |
 | [[FLO-002-amend-or-cancel\|FLO-002]] | Re-quotes the fare when a customer amends. Cancellations do not call Pricing. |
 
-Pricing has no part in [[FLO-003-notify-on-change|FLO-003]].
+Pricing has no part in [[FLO-003-notify-on-change|Notify on change]].
 
 ```mermaid
 sequenceDiagram

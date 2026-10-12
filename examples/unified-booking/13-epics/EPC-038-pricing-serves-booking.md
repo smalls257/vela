@@ -26,7 +26,8 @@ One caller means the Revenue team changes fare rules against one consumer and on
 
 ## Epic acceptance criteria
 
-1. Booking's contract test for CON-003 passes against Pricing's provider verification, in both teams' pipelines. [testing]
+1. Booking's contract test for the fare quote passes against Pricing's provider verification, in both teams' pipelines. [testing]
+   - Trace: CON-003
 2. For the same crossing and fare rules, Booking gets the same quote the front ends get today.
 3. Once the restriction is on, a quote request from any caller other than Booking is refused at the Platform gateway. [security]
 4. Before the restriction goes on, the gateway shows no direct quote requests from the website, the call centre or the kiosks. [rollout]
@@ -44,12 +45,12 @@ One caller means the Revenue team changes fare rules against one consumer and on
 | Concerns | [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
-Also related: [[ADR-0001-one-booking-context|ADR-0001]].
+Also related: [[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]].
 
 ## Depends on
 
-- [[EPC-031-holds-and-confirms|EPC-031]]: Booking asks for quotes.
-- [[EPC-033-website-to-booking|EPC-033]], [[EPC-034-call-centre-to-booking|EPC-034]], [[EPC-035-kiosks-to-booking|EPC-035]]: each front end stops calling Pricing directly.
+- [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]: Booking asks for quotes.
+- [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]]: each front end stops calling Pricing directly.
 
 ## Rollout notes
 

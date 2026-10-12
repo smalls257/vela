@@ -16,9 +16,9 @@ sources: ["session 2026-08-14 Grill", "mainframe team lead MIPS check"]
 
 Booking runs on the standard Harbourline service footprint and needs no new licences. Its stores and API are the same size as other Platform-hosted services. Pricing, Vessel schedule and Customer identity see the same or fewer calls, because Booking makes the calls three front ends used to make.
 
-The cost that mattered was mainframe processing, because MIPS is capped (CST-5). Screen scraping drives whole terminal sessions for one booking. BKHOLD, BKCONF, BKAMND and BKCANC are single MQ transactions that the finance job already uses. The mainframe team lead checked the expected volume against the existing budget and confirmed it fits.
+The cost that mattered was mainframe processing, because MIPS is capped. Screen scraping drives whole terminal sessions for one booking. BKHOLD, BKCONF, BKAMND and BKCANC are single MQ transactions that the finance job already uses. The mainframe team lead checked the expected volume against the existing budget and confirmed it fits.
 
-Retiring three adapters removes upkeep that used to cost each front-end team a fix every time FERRYMASTER changed a screen. That was 11 incidents last year. INI-002 does not count that saving in money.
+Retiring three adapters removes upkeep that used to cost each front-end team a fix every time FERRYMASTER changed a screen. That was 11 incidents last year. This initiative does not count that saving in money.
 
 ## Per app
 
@@ -36,6 +36,6 @@ Retiring three adapters removes upkeep that used to cost each front-end team a f
 
 ## Related
 
-- Unknowns: [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]]
-- Decisions: [[ADR-0004-mq-not-screen-scraping|ADR-0004]]
-- Epics: [[EPC-031-holds-and-confirms|EPC-031]], [[EPC-032-ledger-adapter|EPC-032]]
+- Unknowns: [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]
+- Decisions: [[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]]
+- Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]

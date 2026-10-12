@@ -24,7 +24,7 @@ Booking takes part in all three flows.
 | [[FLO-002-amend-or-cancel\|FLO-002]] | Finds the booking, checks the change is allowed, re-quotes an amendment through Pricing, writes BKAMND or BKCANC. |
 | [[FLO-003-notify-on-change\|FLO-003]] | Publishes Booking state changed after every transition. Booking's part ends at the event bus. |
 
-The diagram shows FLO-001. Pricing, Vessel schedule and Customer identity share one lane to stay within eight participants; Booking calls them one after another.
+The diagram shows the hold, pay, confirm flow. Pricing, Vessel schedule and Customer identity share one lane to stay within eight participants; Booking calls them one after another.
 
 ```mermaid
 sequenceDiagram
@@ -65,7 +65,7 @@ sequenceDiagram
 
 ## When a dependency is slow or down
 
-- **FERRYMASTER slow or down after payment.** The Ledger adapter keeps the hold and retries BKCONF. The hold does not expire once payment has succeeded. The customer sees "confirming". If retries keep failing, on-call follows the ledger-write runbook. Nobody fixes it by hand the next morning, which is why CAP-023 retires.
+- **FERRYMASTER slow or down after payment.** The Ledger adapter keeps the hold and retries BKCONF. The hold does not expire once payment has succeeded. The customer sees "confirming". If retries keep failing, on-call follows the ledger-write runbook. Nobody fixes it by hand the next morning, which is why the fix-failed-bookings capability retires.
 - **FERRYMASTER down before payment.** If BKHOLD fails, Booking refuses the hold with an explicit "unavailable" error. The channel never sends the customer to payment for a seat the ledger has not seen.
 - **Pricing, Vessel schedule or Customer identity down.** Booking refuses the hold and says which dependency failed. It does not guess a fare or assume capacity.
 - **Hold store down.** Booking refuses new holds. On-call follows the hold-store outage runbook.

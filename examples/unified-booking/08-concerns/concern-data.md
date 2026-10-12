@@ -14,7 +14,7 @@ sources: ["session 2026-08-12 Grill", "ADR-0002"]
 
 ## Strategy
 
-FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]]). The data warehouse feed, the finance reconciliation job and the loyalty scheme all read it directly, and INI-002 does not move them. If Booking became the record, those three would read a ledger that no longer matched the bookings customers see.
+FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|FERRYMASTER stays the ledger of record]]). The data warehouse feed, the finance reconciliation job and the loyalty scheme all read it directly, and this initiative does not move them. If Booking became the record, those three would read a ledger that no longer matched the bookings customers see.
 
 Booking stores two things. The Hold store keeps unpaid holds for 10 minutes. The booking-state cache, keyed by booking reference, holds the last state FERRYMASTER accepted, so channels can read state without a mainframe call. Booking changes that state only after a ledger write succeeds. When the cache and FERRYMASTER disagree, FERRYMASTER wins and the cache is refreshed.
 
@@ -36,6 +36,6 @@ Booking holds no card data and no contact details. The only personal data is the
 
 ## Related
 
-- Unknowns: [[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]] (Finance reading Booking events, open, deferred to INI-005)
-- Decisions: [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]], [[ADR-0001-one-booking-context|ADR-0001]]
-- Epics: [[EPC-031-holds-and-confirms|EPC-031]], [[EPC-032-ledger-adapter|EPC-032]], [[EPC-037-events-and-notifications|EPC-037]]
+- Unknowns: [[11-unknowns-and-risks#UNK-006 Finance on Booking events|Finance on Booking events]] (Finance reading Booking events, open, deferred to the Mainframe Exit initiative)
+- Decisions: [[ADR-0002-ferrymaster-ledger-of-record|FERRYMASTER stays the ledger of record]], [[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]]
+- Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-037-events-and-notifications|Booking events and customer notifications]]

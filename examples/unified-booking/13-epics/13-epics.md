@@ -14,15 +14,15 @@ Nine epics deliver Unified Booking. Each one names its owning team. The solution
 
 Booking's own epics come first because every channel cutover needs a working Booking API and ledger writes. The channels then move in the order the rollout concern sets: website in February 2027, call centre in March 2027, kiosks with the March 2027 image. Pricing closes the gateway to other callers last, once no front end calls it directly.
 
-- [[EPC-031-holds-and-confirms|EPC-031]] Booking holds and confirms crossings
-- [[EPC-032-ledger-adapter|EPC-032]] Ledger adapter on FERRYMASTER's MQ transactions
-- [[EPC-033-website-to-booking|EPC-033]] Website moves to Booking
-- [[EPC-034-call-centre-to-booking|EPC-034]] Call centre moves to Booking
-- [[EPC-035-kiosks-to-booking|EPC-035]] Kiosks move to Booking in the March image
-- [[EPC-036-amend-cancel-online|EPC-036]] Amend and cancel online
-- [[EPC-037-events-and-notifications|EPC-037]] Booking events and customer notifications
-- [[EPC-038-pricing-serves-booking|EPC-038]] Pricing serves Booking only
-- [[EPC-039-run-booking|EPC-039]] Run Booking: on-call, runbooks, dashboards
+- [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]] Booking holds and confirms crossings
+- [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]] Ledger adapter on FERRYMASTER's MQ transactions
+- [[EPC-033-website-to-booking|Website moves to Booking]] Website moves to Booking
+- [[EPC-034-call-centre-to-booking|Call centre moves to Booking]] Call centre moves to Booking
+- [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]] Kiosks move to Booking in the March image
+- [[EPC-036-amend-cancel-online|Amend and cancel online]] Amend and cancel online
+- [[EPC-037-events-and-notifications|Booking events and customer notifications]] Booking events and customer notifications
+- [[EPC-038-pricing-serves-booking|Pricing serves Booking only]] Pricing serves Booking only
+- [[EPC-039-run-booking|Run Booking: on-call, runbooks, dashboards]] Run Booking: on-call, runbooks, dashboards
 
 ## Traceability
 
