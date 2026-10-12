@@ -1034,6 +1034,9 @@ def cmd_explore(args, out):
     today, _ = parse_today(args.today)
     target = pathlib.Path(args.out) if args.out else root / publish.DASHBOARD_PATH
     found = detect_role(root)
+    advice = explorer.vault_id_advice(root, found.role)
+    if advice:
+        print(f"planner explore: {advice}.", file=out)
     try:
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
                                   assets_config=args.assets, design_args=args.design, theme=args.theme,

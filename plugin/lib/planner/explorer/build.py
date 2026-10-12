@@ -25,6 +25,7 @@ import json
 import os
 import pathlib
 import re
+import uuid
 
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
                      reading, roles, schema, trace)
@@ -63,11 +64,43 @@ THEME_IDS = tuple(t[0] for t in THEMES)
 
 # --------------------------------------------------------------------------- vault identity
 
-def vault_id(initiative, title):
-    """A short, stable identifier for this vault, keyed by its initiative ID and title, never by where the folder sits.
-    Used to scope localStorage keys so moves between vaults don't mix their state. A path in the key would give every
-    clone and every workspace a different page, so a committed dashboard.html would change on each machine's build."""
+VAULT_ID_KEY = "vault_id"
+VAULT_ID_OK = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+
+
+def legacy_vault_id(initiative, title):
+    """The id every vault had before .planner.yaml could name one: a hash of its initiative ID and title, never of where
+    the folder sits (a path in the key would give every clone a different page, so a committed dashboard.html would
+    change on each machine's build). Two vaults left at the template's INI-001 / New initiative share it, and retitling
+    changes it, which is why a vault_id is better."""
     return hashlib.sha256(f"{initiative}|{title}".encode()).hexdigest()[:12]
+
+
+def vault_id(initiative, title, configured=None):
+    """The short, stable identifier that scopes this vault's localStorage keys (board marks, layout, Ask conversations,
+    rehearsals), so vaults and copies do not mix their state. The `vault_id:` line in .planner.yaml when there is one:
+    it survives a retitle and tells two vaults apart. Else the legacy hash. A value that cannot scope a key is refused."""
+    if configured is None:
+        return legacy_vault_id(initiative, title)
+    if not isinstance(configured, str) or not VAULT_ID_OK.match(configured):
+        raise ExplorerError(f".planner.yaml's {VAULT_ID_KEY} is {configured!r}; write 8 to 64 letters, digits or dashes, such as {mint_vault_id()}")
+    return configured
+
+
+def mint_vault_id():
+    """Starts with a letter so YAML reads it as text: a bare 1234567890123456 or 12e45678 would load as a number."""
+    return "v-" + uuid.uuid4().hex[:14]
+
+
+def vault_id_advice(root, role):
+    """What to tell an owner whose .planner.yaml has no vault_id, or None. The build never edits .planner.yaml: two
+    folders of one vault must build the same page, and a build must not leave the vault with an uncommitted change.
+    So the owner adds the line; the page then moves what the browser saved under the old id to the new one."""
+    if role != roles.OWNER or VAULT_ID_KEY in cli.load_config(pathlib.Path(root)):
+        return None
+    return (f"this vault has no {VAULT_ID_KEY} in .planner.yaml, so the browser keeps its saved marks, layout and Ask conversations under a name made "
+            f"from the initiative and title: another vault with the same two shares them, and a new title loses them. Add the line "
+            f"`{VAULT_ID_KEY}: {mint_vault_id()}` and commit it; what was saved before moves over once")
 
 
 # --------------------------------------------------------------------------- opening prose
@@ -521,7 +554,8 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     initiative = str(vault.config.get("initiative", ""))
     data = {
         "initiative": initiative, "title": str(vault.config.get("title", "")),
-        "vaultId": vault_id(initiative, str(vault.config.get("title", ""))),
+        "vaultId": vault_id(initiative, str(vault.config.get("title", "")), vault.config.get(VAULT_ID_KEY)),
+        "legacyVaultId": legacy_vault_id(initiative, str(vault.config.get("title", ""))) if VAULT_ID_KEY in vault.config else "",
         "today": today,
         "vault": "", "entities": entities, "role": roles.NONE, "draft": None, "freshness": None, "built": None,
         "map": system_map(vault, keys), "apps": app_details(vault, keys, blocked),

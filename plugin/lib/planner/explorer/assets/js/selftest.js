@@ -594,6 +594,15 @@ const SelfTest = (() => {
   }
   /* What a real vault lacks (no domains, releases, requirement rows, flows, Ask lines) is said where the reader looks,
      with the planner step that writes it; and a flow of inferred arrows says so once. */
+  /* A vault that gains a vault_id keeps what the browser saved under its old id (E18), against a fake store. */
+  function savedState() {
+    const data = { "asks:old1": "board", "explorer.layout.old1": "layout", "explorer.ask.old1": "chats", "rehearse:old1:FLO-001": "tries", "asks:other": "x", "asks:new1": "kept" };
+    const fake = { get length() { return Object.keys(data).length; }, key: (i) => Object.keys(data)[i], getItem: (k) => (k in data ? data[k] : null), setItem: (k, v) => { data[k] = v; } };
+    const copied = migrateSaved("old1", "new1", fake);
+    ok(data["explorer.layout.new1"] === "layout" && data["explorer.ask.new1"] === "chats" && data["rehearse:new1:FLO-001"] === "tries" && data["asks:new1"] === "kept" && data["asks:other"] === "x" && data["asks:old1"] === "board",
+      "saved state: marks, layout, conversations and rehearsals move to a new vault id once; what is already there is kept; the old copy stays", `saved state: ${JSON.stringify(data)}`);
+    ok(copied.length === 3 && !migrateSaved("old1", "old1", fake).length, "saved state: only the keys that were missing are copied, and the same id moves nothing", `saved state: copied ${copied.length}`);
+  }
   async function emptyStates() {
     const has = (root, text) => $$(".empty-state", root).some((e) => e.dataset.empty === text);
     const doorHas = async (role, text) => { Nav.role(role); await frames(); return has($(".door"), text); };
@@ -919,7 +928,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");

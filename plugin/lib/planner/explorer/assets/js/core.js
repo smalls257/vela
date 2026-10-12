@@ -88,6 +88,23 @@ const Settings = {
   read(k) { try { return localStorage.getItem(k); } catch (e) { console.warn("[settings] this browser keeps no settings:", e.message); return null; } },
   write(k, v) { try { localStorage.setItem(k, v); } catch (e) { console.warn("[settings] this browser keeps no settings:", e.message); } },
 };
+/* A vault that gains a vault_id in .planner.yaml (E18) keeps what this browser saved under the id it had before: the
+   asks board, the layout, the Ask conversations and the rehearsals are copied to the new id once, never moved or
+   overwritten, so going back to an older page still finds them. Returns the keys it copied. */
+function migrateSaved(legacy, current, store = localStorage) {
+  if (!legacy || legacy === current) return [];
+  const moves = [];
+  try {
+    for (let i = 0; i < store.length; i++) {
+      const key = store.key(i);
+      const to = [["asks:", ""], ["explorer.layout.", ""], ["explorer.ask.", ""], ["rehearse:", ":"]].map(([p, tail]) => (key === p + legacy || (tail && key.startsWith(p + legacy + tail))) ? p + current + key.slice((p + legacy).length) : null).find(Boolean);
+      if (to && store.getItem(to) === null) moves.push([key, to]);
+    }
+    for (const [from, to] of moves) store.setItem(to, store.getItem(from));
+  } catch (e) { console.warn("[settings] could not move what this browser saved under the vault's old id:", e.message); }
+  return moves.map(([, to]) => to);
+}
+migrateSaved(D.legacyVaultId, D.vaultId);
 const relDue = (iso) => { if (!isDate(iso)) return "no date"; const d = dayNum(iso) - TODAY; return d < 0 ? `${-d} d late` : d === 0 ? "today" : `in ${d} d`; };
 
 /* ------------------------------------------------------------------ the lamp vocabulary: attention.py's levels */
