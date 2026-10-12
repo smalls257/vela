@@ -20,21 +20,57 @@ sources: ["session 2026-10-07 Grill", "session 2026-11-18 Grill"]
 
 The call centre desktop client becomes a Booking API client, gets new amend and cancel screens, and loses its terminal adapter. Agents then see the same booking state as the website and the kiosks, because all three ask Booking instead of reading FERRYMASTER through their own cache.
 
-The manual fix queue goes too. It exists because the website's confirm can fail after payment, leaving agents to repair bookings the next day. Booking now retries the ledger write and keeps the hold, so nothing is left to repair. The Head of Contact Centre agreed the queue closes when the old adapter is removed.
+Still open: nothing.
 
 **Owning team:** Contact Centre Systems team.
 
-## Epic acceptance criteria
+## Who this is for and what changes
 
-1. Agents hold, confirm, amend, cancel and look up bookings through the Booking API only. Every call carries the desktop's service token and a trace ID the desktop created. [security] [observability]
-   - Trace: CON-001
-2. For any booking reference, the desktop shows the same state as the website and the kiosks.
-3. An amendment shows the agent the re-quoted fare from Booking before the agent commits it.
-4. A booking still waiting for the ledger shows as `confirming` on the desktop. Agents get no fix task for it. [operations]
-5. The desktop's consumer-driven contract tests for the Booking API pass in Booking's provider verification. [testing]
-   - Trace: CON-001
-6. Flipping the call centre's switch back sends bookings through the terminal adapter without a release, for 4 weeks after cutover. [rollout]
-7. After those 4 weeks the terminal adapter and the manual fix screens are removed from the desktop. [data]
+The manual fix queue goes too. It exists because the website's confirm can fail after payment, leaving agents to repair bookings the next day. Booking now retries the ledger write and keeps the hold, so nothing is left to repair. The Head of Contact Centre agreed the queue closes when the old adapter is removed.
+
+## Done when
+
+### Agents work through Booking only
+
+Agents hold, confirm, amend, cancel and look up bookings through the Booking API only. Every call carries the desktop's service token and a trace ID the desktop created.
+
+- Trace: CON-001  ·  AC1  ·  [security] [observability]
+
+### The same state as the website and the kiosks
+
+For any booking reference, the desktop shows the same state as the website and the kiosks.
+
+- Trace: AC2
+
+### An amendment shows the new fare first
+
+An amendment shows the agent the re-quoted fare from Booking before the agent commits it.
+
+- Trace: AC3
+
+### A waiting booking shows as confirming
+
+A booking still waiting for the ledger shows as `confirming` on the desktop. Agents get no fix task for it.
+
+- Trace: AC4  ·  [operations]
+
+### The desktop's contract tests pass
+
+The desktop's consumer-driven contract tests for the Booking API pass in Booking's provider verification.
+
+- Trace: CON-001  ·  AC5  ·  [testing]
+
+### The old path can be switched back
+
+Flipping the call centre's switch back sends bookings through the terminal adapter without a release, for 4 weeks after cutover.
+
+- Trace: AC6  ·  [rollout]
+
+### The old screens are removed after four weeks
+
+After those 4 weeks the terminal adapter and the manual fix screens are removed from the desktop.
+
+- Trace: AC7  ·  [data]
 
 ## Traces to
 

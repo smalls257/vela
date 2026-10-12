@@ -37,7 +37,7 @@ const Inside = (() => {
      epic has that many), the initiative at the home; null when the vault holds no such thing. */
   function vaultKey(id) {
     const ac = id.match(/^(EPC-\d{3})\.AC(\d+)$/);
-    if (ac) { const k = keyForId(ac[1]); return ent(k) && +ac[2] <= (D.epicCriteria[k] || []).length ? k : null; }
+    if (ac) { const k = keyForId(ac[1]); return ent(k) && (D.epicCriteria[k] || []).some((c) => c.n === +ac[2]) ? k : null; }
     if (id === D.initiative) return "lights";
     const k = keyForId(base(id));
     return ent(k) ? k : null;

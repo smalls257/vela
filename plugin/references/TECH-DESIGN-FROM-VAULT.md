@@ -30,7 +30,7 @@ The app's allocated rows are its requirements: they take the place of `FR-XXX` i
 - each row of the app's `## Requirements allocated` table, as `CAP-nnn.FRn@APP-<slug>`;
 - each contract the app provides (`CON-nnn` on its page);
 - each contract it consumes;
-- each acceptance criterion of its epics, as `EPC-nnn.ACn`.
+- each acceptance criterion of its epics, as `EPC-nnn.ACn`. In an epic written to the template, `n` is the `AC<n>` on the criterion's Trace line (the numbers may have gaps); in an older epic it is the criterion's number.
 
 An app handed off before allocation existed has no `## Requirements allocated` table. Its requirement targets are then each `CAP-nnn.FRn` of the capabilities its epics deliver, as before; tell the senior the app has no allocation, so the split of each requirement between apps is the design's reading, not the vault's.
 

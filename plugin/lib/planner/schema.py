@@ -317,6 +317,7 @@ CODES = {
     "W367": "a phrase of three or more words repeated across pages",
     "W368": "the opening is a line the template wrote",
     "W369": "an abbreviation not spelled out on the page",
+    "W370": "an epic criterion has no AC id on its Trace line, or two share one",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",

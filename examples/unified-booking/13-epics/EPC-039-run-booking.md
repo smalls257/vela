@@ -20,18 +20,45 @@ sources: ["session 2026-10-07 Grill", "concern-operations", "concern-observabili
 
 Booking becomes the one thing every channel depends on for bookings, so it has to be run like it from the first real customer. The Booking team joins the Platform on-call rota from go-live ([[11-unknowns-and-risks#UNK-007 Booking on-call|Booking on-call]]) and writes runbooks for the two failures that hurt customers most: ledger writes failing and Booking losing its holds.
 
-Today a stuck booking shows up as a call centre fix the next morning. After go-live the same problem has to show up on a dashboard within minutes. Per-channel request and error rates, booking state transitions, ledger write latency, hold expiry rate and one trace ID from channel to ledger write give the on-call engineer what they need without a debugger or a release.
+Still open: nothing.
 
 **Owning team:** Booking team.
 
-## Epic acceptance criteria
+## Who this is for and what changes
 
-1. From the day the website cuts over, a Booking alert pages a Booking engineer through the Platform on-call rota. [operations]
-2. The on-call engineer can see per-channel request and error rate, booking state transitions, p95 ledger write latency and hold expiry rate without a release. [observability]
-3. One trace ID follows a request from the channel's call on the Booking API to the write on the ledger. [observability]
-   - Trace: CON-001, CON-006
-4. An alert fires when ledger writes keep failing and bookings stay in `confirming`.
-5. Both runbooks have been walked through in a rehearsal with the on-call rota before the website cutover. [operations]
+Today a stuck booking shows up as a call centre fix the next morning. After go-live the same problem has to show up on a dashboard within minutes. Per-channel request and error rates, booking state transitions, ledger write latency, hold expiry rate and one trace ID from channel to ledger write give the on-call engineer what they need without a debugger or a release.
+
+## Done when
+
+### An alert pages the on-call engineer
+
+From the day the website cuts over, a Booking alert pages a Booking engineer through the Platform on-call rota.
+
+- Trace: AC1  ·  [operations]
+
+### The dashboards show what the engineer needs
+
+The on-call engineer can see per-channel request and error rate, booking state transitions, p95 ledger write latency and hold expiry rate without a release.
+
+- Trace: AC2  ·  [observability]
+
+### One trace ID follows a request
+
+One trace ID follows a request from the channel's call on the Booking API to the write on the ledger.
+
+- Trace: CON-001, CON-006  ·  AC3  ·  [observability]
+
+### Stuck bookings raise an alert
+
+An alert fires when ledger writes keep failing and bookings stay in `confirming`.
+
+- Trace: AC4
+
+### The runbooks are rehearsed
+
+Both runbooks have been walked through in a rehearsal with the on-call rota before the website cutover.
+
+- Trace: AC5  ·  [operations]
 
 ## Traces to
 

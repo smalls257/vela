@@ -308,7 +308,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     epics = text("skills/epics/SKILL.md")
     assert "`traceability` block" in epics
     assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
-    assert "4 to 7 numbered criteria" in epics
+    assert "4 to 7 criteria" in epics and "## Done when" in epics
     assert "`[testing]`" in epics
     assert "offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
@@ -316,7 +316,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "It does not mean they are decided." in epics and "Report those separately" in epics
     assert "list each epic still at `draft`" in epics
     assert "Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID" in epics and "Redis or Kafka" in epics
-    assert "   - Trace: CAP-001.FR1, CON-001, FLO-001" in epics and "more than about seven" in epics
+    assert "- Trace: CAP-001.FR1, CON-001, FLO-001  ·  AC3  ·  [testing]" in epics and "More than 7 means the epic should be split" in epics
     assert "`modes: [epics, shape, grill]` and the title `Epics: <team>`" in epics
     assert "check --gate epics" in epics
     assert "Never say an app's epics are complete while one remains." in epics
@@ -324,7 +324,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
 
 def test_modes_and_close_know_epics():
     assert "| Epics (`epics`)" in text("references/MODES.md") and "| `epics` | `draft` epic pages" in text("references/MODES.md")
-    assert "owes a description paragraph" in text("skills/close/SKILL.md")
+    assert "owes its summary" in text("skills/close/SKILL.md")
 
 
 def test_epics_skill_frontmatter_instruction_names_the_epics_mode():

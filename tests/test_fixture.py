@@ -213,7 +213,7 @@ def test_t2_changed_contract_with_no_epic(ub):
 
 
 def test_t4_concern_cell_with_work_and_no_epic(ub):
-    edit(ub / "13-epics" / "EPC-033-website-to-booking.md", "call. [security] [observability]", "call. [security]")
+    edit(ub / "13-epics" / "EPC-033-website-to-booking.md", "AC1  ·  [security] [observability]", "AC1  ·  [security]")
     assert broken(ub) == [("W503", "08-concerns/concern-observability.md")]
     assert findings(gated(ub)[1]) == [("E503", "08-concerns/concern-observability.md")]
 

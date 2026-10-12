@@ -252,8 +252,8 @@ const Panel = (() => {
       out.push(section("Consumes", x.consumes.length, x.consumes.map((id) => refChip(keyForId(id)))));
       out.push(section("Depends on", x.dependsOn.length, x.dependsOn.map((id) => refChip(keyForId(id)))));
       const ac = D.epicCriteria[k] || [];
-      out.push(section("Acceptance criteria", ac.length, ac.length ? h("ol", { class: "ac-list" }, ac.map((c) => h("li", { class: c.struck ? "struck" : "", value: c.n }, h("span", { html: c.html }), c.markers.map((m) => h("span", { class: "marker" }, m)), c.trace ? h("div", { class: "ac-trace", html: c.trace }) : null,
-        typeof Inside !== "undefined" ? Inside.ownedBy(`${e.id}.AC${c.n}`, { inline: true }) : null))) : h("div", { class: "gap" }, "No numbered acceptance criteria under an \"acceptance criteria\" heading.")));
+      out.push(section("Acceptance criteria", ac.length, ac.length ? h("ol", { class: "ac-list" }, ac.map((c) => h("li", { class: c.struck ? "struck" : "", value: c.n }, c.heading ? h("b", { class: "ac-head" }, c.heading) : null, h("span", { html: c.html }), c.markers.map((m) => h("span", { class: "marker" }, m)), c.trace ? h("div", { class: "ac-trace", html: c.trace }) : null,
+        typeof Inside !== "undefined" ? Inside.ownedBy(`${e.id}.AC${c.n}`, { inline: true }) : null))) : h("div", { class: "gap" }, "No acceptance criteria under a \"Done when\" or \"acceptance criteria\" heading.")));
       out.push(flowsSection(k), heldBy(k));
     } else if (e.kind === "capability") {
       const epics = D.trace.epics.filter((x) => x.delivers.includes(e.id));

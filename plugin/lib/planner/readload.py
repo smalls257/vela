@@ -24,6 +24,7 @@ from planner.readability import (HEADING, LIST_ITEM, NO_PROSE_TYPES, SUMMARY_MIN
 from planner.parse import split_frontmatter
 from planner.reading import BREADCRUMB, is_folded, not_started, visible
 
+STILL_OPEN = re.compile(r"^\s*Still open:\s*")  # the epic template's label; what follows it is counted, the label is not
 BOLD_LABEL = re.compile(r"^\s*\*\*[^*]+:\*\*")  # "**Domain:** Sell": a label the page carries, not a sentence
 MD_LINK = re.compile(r"\[[^\]]*\]\([^)]*\)")
 WORD = re.compile(r"[A-Za-z0-9][A-Za-z0-9'’@-]*")
@@ -294,7 +295,7 @@ def repeated_phrases(vault):
         if not _readable(page):
             continue
         for n, text, _ in paragraphs(page):
-            for words in clauses(text):
+            for words in clauses(STILL_OPEN.sub("", text)):
                 for phrase in phrases(words):
                     counts[phrase] += 1
                     where[phrase].setdefault(page.path, n)
