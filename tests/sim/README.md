@@ -143,12 +143,27 @@ appear in that turn, give or take whitespace, quote marks and emphasis. A K clai
 not the inbox, the conventions or the voice examples. A claim that fails is turned to "no" and listed under "Dropped claims". This is mechanical,
 not taste. Read the quoted turns in `transcript.html` before you believe a score.
 
+## Long runs: launch them detached
+
+A shell command started in the background by a tool (Claude Code's included) is killed after 2 hours, and a full run
+takes longer. Launch it detached, and keep the Mac awake:
+
+```
+nohup caffeinate -dimsu python3 tests/sim/run.py <persona> --script <script> ... > results/<name>.log 2>&1 &
+```
+
+Then follow the log with `tail -f`. A run killed part-way keeps its transcript so far; `--rejudge` scores it again.
+
 ## What the driver does that a person would do
 
-- **It merges each closed session.** After every close session, the driver merges each `session/*` branch
-  whose records are all closed into `main` on the bare origin, as a reviewer merging the PR would. Without
-  this, the next session's START would pull a `main` without the last session's work. A branch with an open
-  record, or one that conflicts, is not merged, and the transcript says so.
+- **It merges each closed session's PR.** The arm's `gh` is a stub: `gh pr create` records the PR (number, head,
+  base) in `origin.git/sim-prs.jsonl` and prints a URL, and every other `gh` command fails. After every close
+  session, the driver merges each `session/*` branch whose records are all closed into `main` on the bare origin,
+  as an approving reviewer would, and logs `merged PR <n> as the reviewer` in the run log and the transcript. Without
+  this, the next session's START would pull a `main` without the last session's work, and a team session
+  (tech-design-grill in vault mode) would not find `handed_off` on `origin/main`. A branch with an open record, or
+  one that conflicts, is not merged, and the transcript says so. Set `merge_prs: false` at the top of a script to
+  turn this off; it defaults to `true`.
 - **It retires the seed for the Seuss arm.** CONVENTIONS says a local example never retires a committed seed,
   so house-voice would read the public seed after the local examples. The scratch vault for `planner-seuss`
   starts as if the owner had seeded their voice. The six public-seed examples are set to `retired` in the
