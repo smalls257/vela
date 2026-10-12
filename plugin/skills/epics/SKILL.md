@@ -21,7 +21,7 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render`, then read the `trace
 
 ## 3. Shape the cuts
 
-For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exactly one owning team. Say what each cut makes easy and what it makes hard, such as which cutover it unblocks first. Say which one you prefer. Capture the user's choice, and each rejected cut with its reason. Shape never decides, so the chosen cut stays `draft`.
+For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exactly one owning team. Say what each cut makes easy and what it makes hard, such as which cutover it unblocks first. Say which one you prefer. Capture the user's choice, and each rejected cut with its reason. Shape never decides, so the chosen cut stays `draft`. People hold about four to seven things at once, so a cut that would give an epic more than about seven acceptance criteria is a cut to split: propose the split as one of the options, with what each half delivers. The user may keep it whole; record that as an override, as `START.md` says.
 
 ## 4. Draft each epic
 
@@ -30,23 +30,23 @@ Write `13-epics/EPC-nnn-<slug>.md` with the number `planner next-id EPC` prints,
 - Frontmatter: `id`, `type: epic`, `title`, `state: draft`, `owner` (the owning team's handle), `authored: mixed`, `apps`, `delivers`, `consumes`, `flows` and `depends_on`, per `CONVENTIONS.md`. Lists hold IDs. `delivers` is never empty: an epic that delivers nothing fails T6.
 - `**Owning team:**` in the description, written now, in this session. Close does not write it.
 - Where the work is tracked: ask "Is there a tracker item for this epic? Give me its key or link, or say skip." If `.planner.yaml` has a `link_templates` entry for `Tracker`, write the key, `links: {Tracker: BOOK-12}`; otherwise write the URL the user gave. Never make up a key or an address, and write no `links:` line when they skip.
-- `## Epic acceptance criteria`: 4 to 7 numbered criteria. Each describes behaviour a tester can see at a contract or a flow boundary. Name the contract or flow by ID. Never name a component, a table, a technology or a container's internals. Every criterion sits at the boundary.
+- `## Epic acceptance criteria`: 4 to 7 numbered criteria, in plain words. Each describes behaviour a tester can see at a contract or a flow boundary. Name the contract or flow by its name ("the calendar entries", "the prep-note flow"), never by its ID, and write no "From CAP-001.FR1" in the sentence. Under each criterion put one indented line with what it traces to, requirement first: `   - Trace: CAP-001.FR1, CON-001, FLO-001`. Never name a component, a table, a technology or a container's internals. Every criterion sits at the boundary. More than 7 means the epic should be split (section 3); if an epic holds more than 5 and the user keeps it whole, group the criteria under `###` subheadings of about five, which do not end the acceptance-criteria section.
 - End each criterion that does a concern cell's work with the concern's marker, such as `[testing]` or `[security] [data]`. Every `addressed` cell for the epic's apps needs one marked criterion on an epic whose `apps` lists the app, or a waiver in the cell. Markers go on numbered criteria. A bulleted criterion carries none.
 - `## Traces to` holding an empty `traces-to` block, `## Depends on` with one reason per dependency, `## Rollout notes` and `## Out of scope`.
 
 Before you propose a criterion, run the boundary test on it:
 
-1. It cites at least one contract (`CON-`) or flow (`FLO-`) ID.
+1. Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID, and its sentence names that contract or flow in plain words.
 2. It names none of the app's containers, components or data stores from its building-blocks page.
 3. It names no technology or product from the tech or ADR pages, and none of the generic words database, table, queue, Redis or Kafka.
 
 If it fails, rewrite it at the boundary and show the rewrite beside the original. Do not offer the failing version.
 
-Write no description paragraph yet. Prose is drafted at close, through `house-voice`. Until then the page holds the bullets, the criteria and the sections above.
+Write no description paragraph yet. Prose is drafted at close, through `house-voice`, and opens with two or three plain sentences: what the epic does and what is still open. Until then the page holds the bullets, the criteria and the sections above.
 
 ## 5. Behaviour the vault does not hold
 
-Start each team's criteria from its apps' `## Requirements allocated` rows: each row is a share of a requirement the team owns, and its criteria are the acceptance criteria of that requirement as far as that share carries them. Name the requirement's ID beside the criterion it comes from. If a criterion needs behaviour no requirement holds, stop on that criterion. Say which capability it belongs to, and offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`. The requirement is written once, on the capability, at most `assumption`, and the criterion cites it. Never write the requirement into the epic. If the user declines, leave the criterion out and list it under the epic's `## Out of scope` as waiting on that `CAP-nnn`.
+Start each team's criteria from its apps' `## Requirements allocated` rows: each row is a share of a requirement the team owns, and its criteria are the acceptance criteria of that requirement as far as that share carries them. Put the requirement's ID on the criterion's `- Trace:` line. If a criterion needs behaviour no requirement holds, stop on that criterion. Say which capability it belongs to, and offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`. The requirement is written once, on the capability, at most `assumption`, and the criterion cites it. Never write the requirement into the epic. If the user declines, leave the criterion out and list it under the epic's `## Out of scope` as waiting on that `CAP-nnn`.
 
 A question nobody present can answer becomes an unknown, as `MODES.md` says under "Unknowns". When the owner is not the person who would actually know, ask once: "Who would actually know this? If that is not the owner, give me a name or a role, like outside counsel." Write the answer as `**Ask:** @handle` or `**Ask:** outside counsel`, and leave the line out when the owner holds the answer.
 
@@ -99,5 +99,5 @@ These are the defaults. The user may override any of them, as `START.md` says, a
 - Never set `decided` without the lead's confirmation in this session, or while any criterion lacks its own explicit yes, unless the user overrides `GATE-3` and the bullet is written.
 - Never read exit 0 from the gate as `decided`.
 - Never put one epic under two owning teams.
-- Never name a component, table or technology in a criterion.
+- Never name a component, table or technology in a criterion, and never write an ID in its sentence: the name goes in the sentence and the ID on the `- Trace:` line.
 - Never edit a generated block. Render fills `traces-to`, `epics-for-app`, `delivered-by` and `traceability`.

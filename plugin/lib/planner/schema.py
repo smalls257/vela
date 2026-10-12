@@ -171,6 +171,11 @@ RISK_STATES = ("open", "mitigated", "accepted", "closed")
 # call them prose.
 PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team") + OVERRIDE_LABELS
 
+# `- Trace: CAP-001.FR1, CON-001` under a criterion or bullet holds the IDs its sentence no longer shows. The planner
+# reads it, so `planner style` must never call it prose, and close must never delete it.
+TRACE_LABEL = "Trace"
+READING_LABELS = (TRACE_LABEL,)
+
 # Subjects the question catalogue fires on that are not pages: an outside party, and value held for customers.
 PARTY_REQUIRED = ("Relationship", "Agreements")
 PARTY_OPTIONAL = (LINKS_LABEL,)
@@ -302,6 +307,11 @@ CODES = {
     "W355": "unknown asks the person who owns it",
     "W356": "changing capability has no functional requirements",
     "W357": "functional requirement lists no acceptance criteria",
+    "W360": "one sentence holds three or more IDs",
+    "W361": "an ID in prose, outside a link and not followed by its name",
+    "W362": "a list of more than nine items with no subheadings",
+    "W363": "a long page with no opening summary",
+    "W364": "an epic lists more than nine acceptance criteria",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",
@@ -359,6 +369,15 @@ GATES = ("epics", "shape", "grill")
 TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
 OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker
 WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{2}}-\d{{2}}\): \S")
+
+# ------------------------------------------------------------ reading load
+
+# People hold about four to seven things at once (Cowan 2001; Miller 1956). Pages are written to that size; the
+# warnings fire a little past it, so a page at the edge of the convention is never nagged.
+SENTENCE_ID_LIMIT = 3  # W360 from this many IDs in one sentence
+LIST_LIMIT = 9  # W362: more list items than this under one heading, with no subheadings
+LONG_PAGE_WORDS = 900  # W363: a page this long opens with a summary
+EPIC_CRITERIA_LIMIT = 9  # W364: more acceptance criteria than this on one epic
 
 # ------------------------------------------------------------ voice examples
 

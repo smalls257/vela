@@ -24,7 +24,7 @@ def test_an_items_decision_under_history_still_counts(tmp_path):
     vault = moved(tmp_path)
     code, out = run("check", "--vault", str(vault), "--today", "2026-11-20")
     assert code == 0, out
-    assert "CON-001" not in out or "W415" in out
+    assert "E303" not in out, out  # the Decision under History still decides CON-001
 
 
 def test_without_the_history_decision_check_fails(tmp_path):

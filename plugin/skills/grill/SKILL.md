@@ -55,6 +55,7 @@ GATE-4 is also a check rule: `planner check` fails an item that is `decided` whi
 ## 3. The questions
 
 - Ask one question at a time. Wait for the answer.
+- Name each item by its plain name when you ask; the ID goes in the file, not the sentence. An agenda of more than about seven items is shown in groups, and the user may take it in two sessions.
 - Give your recommended answer with each question, in the form: question, then *Recommended: <answer>. <one-line reason>.*
 - Prefer looking things up in the vault over asking.
 - Use a concrete scenario at the edge of the item to force a precise answer. Pick an edge case, not the happy path.
@@ -92,7 +93,7 @@ When an item's branch closes, write it at once, before the next question:
 
 A functional requirement is a `### CAP-nnn.FRn <what the capability does>` heading on the capability page, and it is decided the same way. Its `**State:**` bullet moves to `decided`, `- **Decision:** [[<session id>]]` goes under `#### <its ID>` in the capability page's `## History`, and the `## Changes` row cites its ID. A `fact` FR needs a `**Source:**` bullet. An open unknown that blocks the FR fails GATE-4 for it. A requirements session may write an FR at `assumption` only. Only a Grill makes it `decided`.
 
-Write fact bullets and table cells only. Prose waits for close.
+Write fact bullets and table cells only. Prose waits for close. Any `- Trace:` line on an item or a criterion is the planner's: leave it exactly as it is.
 
 ## 5. A new unknown mid-grill
 

@@ -62,7 +62,7 @@ flowchart TB
 
 **Fix failed bookings by hand.** Retiring a capability is a promise that nobody will need it. Booking makes that promise by retrying the ledger write and keeping the hold, so the failure the call centre used to clean up can no longer reach a customer. If it does, it shows up in the hold expiry rate on [[concern-observability|Observability]] long before anyone phones.
 
-**Reserve a crossing.** INI-004 Loyalty Revamp also touches this capability, because points are earned at reservation. INI-004 will consume Booking's state-changed event rather than adding a fourth caller.
+**Reserve a crossing.** INI-004 Loyalty Revamp also touches this capability, because points are earned at reservation. Loyalty Revamp will consume Booking's state-changed event rather than adding a fourth caller.
 
 ## Capabilities checked and left alone
 

@@ -11,9 +11,9 @@ sources: ["session 2026-07-14 Discover", "session 2026-07-28 Grill", "session 20
 
 # Architecture decisions
 
-Four decisions shape INI-002. Each one records the options turned down and the unknowns it rests on, so that if an assumption fails, the decision to revisit is easy to find.
+Four decisions shape this initiative. Each one records the options turned down and the unknowns it rests on, so that if an assumption fails, the decision to revisit is easy to find.
 
-- [[ADR-0001-one-booking-context|ADR-0001]] One Booking application rather than a shared adapter library
-- [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]] FERRYMASTER stays the ledger of record
-- [[ADR-0003-versioned-booking-api|ADR-0003]] Version the Booking API and keep each version at least 6 months
-- [[ADR-0004-mq-not-screen-scraping|ADR-0004]] Use FERRYMASTER's existing MQ transactions instead of screen scraping
+- [[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]] One Booking application rather than a shared adapter library
+- [[ADR-0002-ferrymaster-ledger-of-record|FERRYMASTER stays the ledger of record]] FERRYMASTER stays the ledger of record
+- [[ADR-0003-versioned-booking-api|Version the Booking API and keep each version at least 6 months]] Version the Booking API and keep each version at least 6 months
+- [[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]] Use FERRYMASTER's existing MQ transactions instead of screen scraping

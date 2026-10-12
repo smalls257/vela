@@ -22,7 +22,7 @@ sources: ["Booking senior container review", "UNK-001 ledger latency measurement
 
 Booking decides whether a booking is held, confirmed, amended or cancelled. Every channel asks Booking, so the website, the call centre and the kiosks give the same answer about a booking's state. Booking is the only application that talks to FERRYMASTER about bookings, and it does so through FERRYMASTER's existing MQ transactions. It keeps a seat held while the customer pays and publishes every state change to the event bus.
 
-Booking does not own fares, capacity, customer records, card payments or the ledger. Pricing, Vessel schedule, Customer identity, Tidepay and FERRYMASTER keep those jobs ([[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]]).
+Booking does not own fares, capacity, customer records, card payments or the ledger. Pricing, Vessel schedule, Customer identity, Tidepay and FERRYMASTER keep those jobs ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]).
 
 | Change in INI-002 | Owner team |
 |---|---|

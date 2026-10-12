@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, flows, links, override, parse, pending, questions, releases, render, schema, trace
+from planner import allocation, flows, links, override, parse, pending, questions, readability, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -575,6 +575,15 @@ def stale_mention_rules(vault, today):
                          f"Rewrite the sentence to say what was answered, or run planner query refs {m.group(1)} to find every mention.")
 
 
+def reading_load_rules(vault, today):
+    """W360-W364. A page a person cannot hold in mind: codes in sentences, a long flat list, a wall with no summary,
+    an epic too big to carry as one piece of work. Warnings only; each fix says how to write it in plain words."""
+    names = readability.NameIndex(vault)
+    for page in vault.pages:
+        for line, code, message, fix in readability.findings(page, names):
+            yield _f(page, line, code, message, fix)
+
+
 def release_rules(vault, today):
     """E340-E342 and W343. A release row must name a requirement of this vault and criteria it has; each release a
     state. Once any release exists, a requirement at assumption or later that no release delivers is a warning:
@@ -1006,4 +1015,4 @@ def link_pipe_rules(vault, today):
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
          history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules)
+         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)

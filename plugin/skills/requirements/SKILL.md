@@ -36,8 +36,11 @@ On the capability page, under `## Functional requirements`:
 - **Source:** [[<session id>#^cNN]]
 
 - <acceptance criterion>
+  - Trace: <ID, ID>
 - <acceptance criterion>
 ```
+
+A criterion is a sentence in plain words. When it rests on another item, an unknown or a contract, say that item by its name in the sentence and put its ID on the indented `- Trace:` line beneath it; leave the line out when it cites nothing. The Trace line is not a criterion, so release criteria (AC1, AC2) skip it. A requirement with more than about seven criteria is two requirements: propose the split before writing it.
 
 Number new requirements after the highest on the page; numbers are never reused, and a removed requirement stays, struck through, with the reason. Each written requirement gets a capture marked at once, `→ keep: [[<page>#<heading>|<ID>]] (assumption)`, and a `## Changes` row, as Boundary does for its pages. Then run `planner render` and `planner check`, fix every error, and commit a checkpoint.
 
@@ -51,6 +54,7 @@ When every capability is done, or the user stops, run `git status` and confirm n
 
 These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
+- Write an ID in a requirement's sentence or a criterion's: name the thing, and put the ID on a `- Trace:` line.
 - Name an app, a container, a technology or a team in a requirement or its criteria. That is boundary's and allocate's work, then the team's design.
 - Write `decided` or `fact`. Requirements state intent, and only a Grill decides, unless the user overrides it as `START.md` says.
 - Write a non-functional requirement as a functional one. A speed, an availability or a security rule is a concern: write it as a capture for the concern page it belongs to.

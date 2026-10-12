@@ -18,15 +18,16 @@ sources: ["session 2026-08-26 Grill", "session 2026-09-23 Grill", "ADR-0003"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only in March and September (CST-3), so whatever they call has to stay the same for at least six months. That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|ADR-0003]]).
+The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only in March and September, so whatever they call has to stay the same for at least six months. That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|the versioning decision]]).
 
-Kiosks have no user to log in, so each kiosk authenticates with a device certificate from Platform's existing PKI ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]]). The old FM adapter ships in the March image behind a switch and leaves with the September 2027 image. If the March image slips, kiosks keep their old adapter until September and Booking API v1 is still there when they arrive (R-02).
+Kiosks have no user to log in, so each kiosk authenticates with a device certificate from Platform's existing PKI ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]]). The old FM adapter ships in the March image behind a switch and leaves with the September 2027 image. If the March image slips, kiosks keep their old adapter until September and Booking API v1 is still there when they arrive (the kiosk image slip risk).
 
 **Owning team:** Port Systems team.
 
 ## Epic acceptance criteria
 
-1. A kiosk on the March 2027 image holds, confirms and looks up bookings through CON-001 v1 with a trace ID it created on every call, and shows the same booking state as every other channel. [observability]
+1. A kiosk on the March 2027 image holds, confirms and looks up bookings through version 1 of the Booking API with a trace ID it created on every call, and shows the same booking state as every other channel. [observability]
+   - Trace: CON-001
 2. A request from a kiosk without a valid device certificate is refused at the Platform gateway. [security]
 3. Booking API v1 answers kiosk requests unchanged for at least 6 months after the March 2027 image ships, whatever later versions add.
 4. Flipping the kiosk switch back sends kiosk bookings through the old FM adapter without a new image. [rollout]
@@ -46,11 +47,11 @@ Kiosks have no user to log in, so each kiosk authenticates with a device certifi
 | Concerns | [[concern-data\|Data]], [[concern-observability\|Observability]], [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
-Also related: [[ADR-0003-versioned-booking-api|ADR-0003]], [[11-unknowns-and-risks#UNK-004 Kiosk authentication|UNK-004]].
+Also related: [[ADR-0003-versioned-booking-api|the versioning decision]], [[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]].
 
 ## Depends on
 
-- [[EPC-031-holds-and-confirms|EPC-031]]: CON-001 v1 must be frozen before the March image is built.
+- [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]: version 1 of the Booking API must be frozen before the March image is built.
 
 ## Rollout notes
 

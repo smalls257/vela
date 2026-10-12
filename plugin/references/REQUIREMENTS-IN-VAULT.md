@@ -28,7 +28,7 @@ Capture every answer in the session record. The user's own words take their name
 | Problem, Users | Nothing new. Link the goal the capability serves. If no goal fits, a `[worry]` capture: "CAP-NNN serves no goal". | session record |
 | Scope In and Out | `- **In:** ...` and `- **Out:** ...` lines | the capability page, under `## Scope` |
 | Functional requirements | `### CAP-NNN.FRn <short name>` (at most six words), one paragraph of what it does, `- **State:** assumption`, `- **Source:** [[<session id>#^cNN]]` | the capability page, under `## Functional requirements` |
-| Acceptance criteria | Plain bullets under each FR, stated at a boundary the vault knows: a flow, a contract or an actor in the glossary | under the FR |
+| Acceptance criteria | Plain bullets under each FR, stated at a boundary the vault knows: a flow, a contract or an actor in the glossary | under the FR; an indented `- Trace:` line under a bullet holds the IDs it rests on, and is not a criterion |
 | Constraints | A link to an existing `CST-n`. A new constraint becomes a capture for `02-constraints.md`. | session record |
 | Open questions | An unknown with `**Question:**`, `**Owner:**`, `**State:** open`, `**Ask by:**` and a `**Blocks:**` link to the FR, as shown below | `11-unknowns-and-risks.md` |
 | Deferred items | A capture with the reason. Close parks it. | session record |

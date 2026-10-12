@@ -751,11 +751,31 @@ const SelfTest = (() => {
     Ask.restore(real);
     Nav.home(); go("lights", { reset: true });
   }
+  /* Plain names in prose: a bare ID the vault holds reads as its name with the ID in the tooltip, and a Trace line is
+     one folded row of name chips. Both are read from the pages this vault ships; a vault with neither says so. */
+  async function plainNames() {
+    const boxes = Object.keys(D.reader).map((k) => h("div", { html: D.reader[k].html }));
+    const named = boxes.flatMap((b) => $$("a.idname", b)), rows = boxes.flatMap((b) => $$("details.r-trace", b));
+    if (!named.length) out.push("skip plain names: no page here writes a bare ID the vault holds");
+    else {
+      const bad = named.filter((a) => { const id = a.getAttribute("title"), label = [...a.childNodes].filter((n) => !(n.classList && n.classList.contains("idsuf"))).map((n) => n.textContent).join("").trim(); return !id || !label || label === id || !ent(a.dataset.ref); });
+      ok(!bad.length, `plain names: ${named.length} bare IDs in prose read as their names, the ID in the tooltip`, `plain names: ${bad.length} of ${named.length} bare IDs lost their name or tooltip, first ${bad[0] && bad[0].outerHTML}`);
+      const host = h("div", {}, named.slice(0, 1).map((a) => a.cloneNode(true))); document.body.append(host);
+      const suffix = $(".idsuf", host), shown = suffix && getComputedStyle(suffix).display !== "none";
+      host.remove();
+      ok(!!suffix && !shown, "plain names: the muted ID suffix stays hidden until hover", "plain names: the ID suffix shows without hover");
+    }
+    if (!rows.length) out.push("skip trace rows: no page here carries a Trace line");
+    else {
+      const bad = rows.filter((r) => !$("summary", r) || !$$("a.chip", r).length || $$("a.chip", r).some((a) => !ent(a.dataset.ref) || /^[A-Z]+-\d+/.test(a.textContent.trim())));
+      ok(!bad.length && rows.every((r) => !r.open), `trace rows: ${rows.length} Trace lines are folded rows of name chips`, `trace rows: ${bad.length} rows lack a summary, a chip, or show an ID as a chip name`);
+    }
+  }
   async function run() {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); await emptyStates(); await askChecks(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");

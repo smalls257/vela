@@ -6,7 +6,7 @@ change of case.
 """
 import re
 
-from planner import model, override, progress, schema
+from planner import model, override, progress, readability, schema
 
 LIST_FIELDS = ("apps", "delivers", "consumes", "flows", "depends_on", "sources")
 ROW_KINDS = ((schema.GOAL_ID_RE, "goal"), (schema.CONSTRAINT_ID_RE, "constraint"), (schema.SOURCE_ID_RE, "source"))
@@ -170,9 +170,10 @@ def refs(vault, item_id):
     seen = {(r["page"], r["line"]) for r in found}
     skip = definition_lines(vault, item_id)
     for page in vault.pages:
+        text = page.text.split("\n")
         for line in mention_lines(page, item_id):
             if (page.path, line) not in seen and (page.path, line) not in skip:
-                found.append({"page": page.path, "line": line, "via": "mention"})
+                found.append({"page": page.path, "line": line, "via": "trace" if readability.is_trace(text[line - 1]) else "mention"})
     unique = {(r["page"], r["line"], r["via"]): r for r in found}
     return {"id": item_id, "refs": [unique[k] for k in sorted(unique)]}
 

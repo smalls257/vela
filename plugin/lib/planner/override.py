@@ -221,7 +221,8 @@ def label_findings(vault):
     ours = {label.lower(): label for label in schema.OVERRIDE_LABELS + (schema.PENDING_LABEL,)}
     known = {label.lower() for label in schema.CONTRACT_REQUIRED + schema.CONTRACT_OPTIONAL + schema.UNKNOWN_REQUIRED
              + schema.UNKNOWN_OPEN_REQUIRED + schema.UNKNOWN_RESOLVED_REQUIRED + schema.UNKNOWN_OPTIONAL
-             + schema.RISK_REQUIRED + schema.RISK_OPTIONAL + schema.PAGE_LABELS + schema.SUBJECT_LABELS}
+             + schema.RISK_REQUIRED + schema.RISK_OPTIONAL + schema.PAGE_LABELS + schema.SUBJECT_LABELS
+             + schema.READING_LABELS}
     for page in vault.pages:
         for bullet in page.bullets:
             label = bullet.label.lower()

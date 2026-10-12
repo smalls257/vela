@@ -11,11 +11,11 @@ sources: ["session 2026-09-16 Grill", "session 2026-10-07 Grill"]
 
 # Cross-cutting concerns
 
-A concern is something every app has to answer for, such as testing or rollback. Each concern has one owner and one page with the strategy. The matrix shows where INI-002 had to decide something.
+A concern is something every app has to answer for, such as testing or rollback. Each concern has one owner and one page with the strategy. The matrix shows where this initiative had to decide something.
 
-- **addressed**: INI-002 decided something for this app under this concern. The concern page says what.
-- **unchanged**: the app's existing practice still holds. INI-002 checked and changed nothing.
-- **n/a**: the concern does not touch this app in INI-002. The cell says why.
+- **addressed**: this initiative decided something for this app under this concern. The concern page says what.
+- **unchanged**: the app's existing practice still holds. this initiative checked and changed nothing.
+- **n/a**: the concern does not touch this app in this initiative. The cell says why.
 - **unknown**: an open unknown has to be answered first. The cell links it.
 - **unexamined**: nobody has looked yet. An app with no cell on a concern page shows as `unexamined (no row)`.
 

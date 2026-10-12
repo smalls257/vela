@@ -106,5 +106,5 @@ External: Tidepay (payment provider) and the Harbourline event bus (Platform).
 ## Out of scope
 
 - **Retiring FERRYMASTER.** That is INI-005 Mainframe Exit. This initiative makes it easier by putting a single door in front of the ledger.
-- **The data warehouse feed, the finance reconciliation job and the loyalty scheme.** They keep reading FERRYMASTER directly. Whether finance should read Booking's events instead is [[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]], deferred to INI-005.
+- **The data warehouse feed, the finance reconciliation job and the loyalty scheme.** They keep reading FERRYMASTER directly. Whether finance should read Booking's events instead is [[11-unknowns-and-risks#UNK-006 Finance on Booking events|Finance on Booking events]], deferred to the Mainframe Exit initiative.
 - **Changing how customers search for crossings.** Find a crossing stays as it is.

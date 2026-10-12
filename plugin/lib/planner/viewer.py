@@ -11,7 +11,7 @@ import html as html_lib
 import json
 import re
 
-from planner import override, reading
+from planner import override, readability, reading
 
 EXCLUDED_FOLDERS = ("sessions/",)
 DRAFT_STATES = ("inkling", "assumption", "fact", "proposed", "draft", "reopened")
@@ -136,14 +136,57 @@ def override_lines(page):
     return lines
 
 
-def page_data(page):
+def wiki_to(entry):
+    """A wikilink to the thing an ID names, labelled with its name. The pipe, brackets and hash are the link's own."""
+    label = re.sub(r"[\[\]|#]", " ", entry.name).strip() or entry.id
+    anchor = "#" + entry.anchor if entry.anchor else ""
+    return f"[[{entry.page.name}{anchor}|{label}]]"
+
+
+def trace_row(line, names):
+    """A `- Trace:` line as one folded row of name links; an ID the vault does not hold is left out of the row.
+    A line with nothing the vault knows is dropped, since a row that opens onto nothing is noise."""
+    entries = readability.chip_entries(readability.trace_ids(line), names)
+    if not entries:
+        return None
+    indent = re.match(r"\s*", line).group(0)
+    return f"{indent}- <details><summary>Traces to ({len(entries)})</summary>{' · '.join(wiki_to(e) for e in entries)}</details>"
+
+
+def name_the_ids(markdown, names):
+    """The arranged page with each bare ID the vault holds shown as its name (the ID in a tooltip), and each Trace
+    line as a folded row of links. Code, tables, headings and the folded History keep their IDs: a table is the
+    machine's, a heading is an anchor."""
+    out, fence = [], None
+    for line in markdown.split("\n"):
+        opening = reading.FENCE.match(line)
+        if fence:
+            fence = None if opening and opening.group(1) == fence else fence
+            out.append(line)
+            continue
+        if opening:
+            fence = opening.group(1)
+            out.append(line)
+        elif readability.is_trace(line):
+            row = trace_row(line, names)
+            if row is not None:
+                out.append(row)
+        elif line.lstrip().startswith(("|", "#")):
+            out.append(line)
+        else:
+            out.append(readability.name_ids(line, names, lambda e: f'<span title="{e.id}">{wiki_to(e)}</span>'))
+    return "\n".join(out)
+
+
+def page_data(page, names=None):
     state = str(page.meta.get("state", ""))
+    body = reading.arrange(neutralise(body_of(page)))
     return {
         "path": page.path,
         "name": page.name,
         "title": str(page.meta.get("title") or page.name),
         "meta": {k: (v if isinstance(v, (str, list)) else str(v)) for k, v in page.meta.items()},
-        "body": reading.arrange(neutralise(body_of(page))),
+        "body": name_the_ids(body, names) if names is not None else body,
         "not_started": reading.not_started(body_of(page), page.type, state),
         "headings": [h.text for h in page.headings],
         "draft": state in DRAFT_STATES,
@@ -188,13 +231,14 @@ def script_safe(source):
 def build(vault, marked_js, mermaid_js, stamp):
     """(html text, problems). `stamp` is {"commit", "date", "repo", "errors", "warnings"}."""
     problems = link_problems(vault)
+    names = readability.NameIndex(vault)
     data = {
         "title": str(vault.config.get("title", "")),
         "initiative": str(vault.config.get("initiative", "")),
         "start": START_PAGE,
         "excluded": sorted(excluded_names(vault)),
         "stamp": stamp,
-        "pages": [page_data(p) for p in sorted(bundled(vault), key=lambda p: p.path)],
+        "pages": [page_data(p, names) for p in sorted(bundled(vault), key=lambda p: p.path)],
     }
     payload = script_json(data)
     scripts = {"MARKED": script_safe(marked_js), "MERMAID": script_safe(mermaid_js), "APP": APP_JS}
@@ -276,6 +320,9 @@ article pre code { background: none; padding: 0; }
 .rail dd { margin: 0; overflow-wrap: anywhere; }
 .rail ul { margin: 0; padding-left: 16px; }
 .rail a { color: var(--accent); }
+article span[title]:hover::after { content: " " attr(title); font-family: var(--mono); font-size: 0.7em; color: var(--muted); }
+article li > details { border-top: 0; margin-top: 0; padding-top: 0; font-size: 0.82rem; }
+article li > details summary { font-weight: 400; opacity: 0.8; }
 </style>
 <script>__MARKED__</script>
 <script>__MERMAID__</script>

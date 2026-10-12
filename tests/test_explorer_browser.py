@@ -38,6 +38,24 @@ SNAPSHOTS = {
 }
 
 
+@pytest.mark.browser
+def test_plain_names_and_trace_rows_pass_the_selftest(tmp_path, chrome_path):
+    """The heron vault with its calendar epic rewritten in plain words: Trace lines under each criterion, subheadings
+    over them. The page's own selftest finds the folded chip rows and the bare IDs that now read as names."""
+    vault = tmp_path / "vault"
+    shutil.copytree(SNAPSHOTS["heron-desk/after-full-1"], vault)
+    shutil.copy(REPO / "tests" / "fixtures" / "readable" / "EPC-001-calendar.md", vault / "13-epics" / "EPC-001-calendar.md")
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10"]
+    assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
+    html_path = vault / "dashboard.html"
+    _check_selftest_in_chrome(chrome_path, html_path, "heron-desk/readable")
+    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000",
+                          "--virtual-time-budget=60000", "--dump-dom", f"file://{html_path}#map&selftest&trace"],
+                         timeout=180, capture_output=True, text=True).stdout
+    selftest = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1))
+    assert "ok trace rows:" in selftest and "ok plain names:" in selftest, selftest
+
+
 def find_chrome():
     """Find Chrome binary. Returns path or None. Raises RuntimeError if CI and not found."""
     # Try env var CHROME first

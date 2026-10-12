@@ -29,9 +29,10 @@ def test_one_row_per_epic_with_the_five_columns(tmp_path):
     assert (summary, name, owner) == ("Booking holds and confirms crossings", "EPC-031", "harbourline/booking-team")
     assert link == "https://github.com/harbourline/unified-booking/blob/3f9c2a1/13-epics/EPC-031-holds-and-confirms.md"
     assert description.startswith("Booking becomes the one place that decides whether a crossing is held")
-    assert "FERRYMASTER stays the ledger of record (ADR-0002), so Booking" in description
-    assert "\n\nAcceptance criteria:\n1. A channel that asks to hold a seat through CON-001" in description
-    assert description.endswith("7. No request or response on CON-001 or CON-007 carries card data. [security] [data]")
+    assert "FERRYMASTER stays the ledger of record (the ledger-of-record decision), so Booking" in description
+    assert "\n\nAcceptance criteria:\n1. A channel that asks to hold a seat through the Booking API" in description
+    assert description.endswith("7. No request or response on the Booking API or on Tidepay's payment outcome carries card data. [security] [data]")
+    assert "Trace:" not in description  # the IDs stay in the vault; a tracker reader gets the plain sentence
     assert "[[" not in description and "**Owning team:**" not in description and "**Decision:**" not in description
 
 

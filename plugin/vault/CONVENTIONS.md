@@ -121,7 +121,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 
 ## Fact bullets
 
-A fact bullet is a list line `- **Label:** value`, one label per line. Unknown labels are prose. Bullets under a `### <ID> <name>` heading belong to that item. Bullets elsewhere belong to the page.
+A fact bullet is a list line `- **Label:** value`, one label per line. Unknown labels are prose. A `- Trace:` line under a criterion is not a fact bullet; see Pages. Bullets under a `### <ID> <name>` heading belong to that item. Bullets elsewhere belong to the page.
 
 Page level: `**Decision:**` (a link to the deciding Grill), `**Dissent:**` (`<name>, <date>: <reason>`) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`). `**Override:**`, `**Decided by:**` and `**Confirmed by:**` may go on any page or under any item heading; see Overrides. So may `**Pending approval:**`; see Pending approval.
 
@@ -318,8 +318,11 @@ A page reads as what is true now. Its history sits at the end, folded in the vie
 - **Prose, not lists.** Bullets are for the fact bullets `planner check` reads (the labels in the tables of this file) and for lists a reader scans, such as an epic's criteria. Everything else is a paragraph. A bold label nothing reads, such as `- **Brightwater, what it does:**`, is prose dressed up as data: write the sentence. Say who says a thing in the sentence ("the product lead says"), never in a bracket.
 - **Every item opens with a sentence.** Under each `### <ID> <name>` heading, before its fact bullets, a sentence or two say what the item is now: what a contract carries and for whom, what an unknown asks and why it matters. The viewer folds the fact bullets under it.
 - **Links on the words.** A source is cited as a link on the words that rely on it, `[[sources#SRC-04|the latency measurement]]`, never a bare "(SRC-04)". A link to an item reads as the item's name, `[[11-unknowns-and-risks#UNK-006 Finance on Booking events|whether Finance reads Booking's events]]`, never its number. Prose names things; IDs stay in headings, fact bullets and tables.
+- **Plain names.** In prose, headings and acceptance criteria, refer to a thing by its plain name ("the calendar entries", "the prep-note flow"), never by a bare ID. A wikilink's visible label is the name, not the ID. An abbreviation is spelled out at its first use on a page ("the data protection officer (DPO)"), or not used at all. IDs stay where the machine reads them: frontmatter, generated blocks, tables, wikilink targets and headings, and the Trace line below.
+- **The Trace line.** What a criterion or bullet traces to goes on its own line under it, not in brackets inside the sentence: `- Trace: CAP-001.FR1, CON-001, FLO-001`. Indent it under its item (three spaces under a numbered criterion, two under a bullet), write the IDs separated by commas, and put the requirement first. It is a plain line, not a fact bullet, and `**Trace:**` is read the same. The planner reads it where it used to read the IDs in the sentence: `planner query refs` finds an ID there, the explorer and the viewer show the line as one folded row of name chips, and `planner style` and close leave it alone. A page written before this keeps its inline "From CAP-001.FR1" and checks as before; rewrite it the next time a session touches it.
+- **A page fits in a head.** People hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so a page is sized to that. It opens with a two or three sentence summary: what it says, and what is still open. A list of more than about seven items is grouped under subheadings of about five. An epic with more than about seven acceptance criteria is a signal to split it: the epics session proposes the cut, and the user may keep it whole, which is recorded. A list of unknowns or concerns shows the few that matter first and folds the rest under `## Also open (n)`, which the viewer and the explorer fold.
 - **History at the end.** Every `**Decision:**`, `**Override:**`, `**Decided by:**`, `**Confirmed by:**`, `**Pending approval:**`, `**Options considered:**` and `**Dissent:**` bullet goes under `## History`, the page's last `##` section. Page-level ones sit directly under it; an item's sit under `#### <ID>` inside it, which gives them to that item exactly as if they were under its own heading. Wherever a skill or this file says "at page level" or "under the item's heading" for one of these bullets, it means there. A bullet anywhere else still counts, so older pages stay valid.
-- `planner style <page>...` lists where a page still reads as a log: a history bullet above `## History`, an ID or a bare source ID in prose, or no opening prose. Close runs it on the pages a session changed.
+- `planner style <page>...` lists where a page still reads as a log: a history bullet above `## History`, an ID or a bare source ID in prose or in a list item, or no opening prose. It never calls a `- Trace:` line prose. Close runs it on the pages a session changed.
 - **App pages go one level in.** A new or changed app gets a building-blocks page (what it does, what it does not do, the `app-context` block, containers, contracts it provides, the `contracts-consumed` block) and a runtime page (its part in each flow, and how it behaves when something fails, under `## On failure`).
 - **Slim pages for unchanged apps.** An `integrated` or `unchanged` app gets one page with its job, why it is a black box, the `app-context` block, and the contracts it provides at `fact`. It has no runtime page; the consumer's runtime page says what happens when it fails.
 - **Contracts live on the provider's page.** A contract with an external provider lives on its consumer's page with a `**Provider:**` bullet.
@@ -329,7 +332,7 @@ A page reads as what is true now. Its history sits at the end, folded in the vie
 ## Links and headings
 
 - Links are Obsidian wikilinks to a basename: `[[booking-building-blocks|Booking]]`. No paths, no Markdown links between pages.
-- An anchor equals the full heading text: `[[booking-building-blocks#CON-001 Booking API|CON-001]]`. A same-page anchor is `[[#UNK-006 Finance on Booking events|UNK-006]]`.
+- An anchor equals the full heading text: `[[booking-building-blocks#CON-001 Booking API|the booking API]]`. A same-page anchor is `[[#UNK-006 Finance on Booking events|whether Finance reads Booking's events]]`. The label is the name; in a table the planner reads, such as an allocation row, the ID stays as the label.
 - Item headings are `### <ID> <short name>`, at most six words, with none of `# | ^ : % [ ]`.
 - Inside a table, escape the pipe: `[[booking-building-blocks\|Booking]]`.
 - A link to a capture line uses its block ID: `[[2026-08-12-goals-and-data#^c01]]`.
@@ -517,12 +520,17 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | E810 | heading looks like a party or stored value but is not one | | |
 | W811 | subject defined off its page | | |
 | W812 | ledger row is dated in the future | W813 | ledger page has no question ledger heading |
+| W360 | one sentence holds three or more IDs | W361 | an ID in prose, outside a link and not followed by its name |
+| W362 | a list of more than nine items with no subheadings | W363 | a long page with no opening summary |
+| W364 | an epic lists more than nine acceptance criteria | | |
+
+W360 to W364 are the reading-load warnings. They are warnings only, and each fix line says how to write it in plain words. W360 fires on a sentence with three or more IDs, W361 on an ID written in prose that is neither inside a link nor followed by its name (tables, headings, code, History and `- Trace:` lines are the machine's and are left alone), W362 on more than nine list items under one heading, W363 on a page of more than about 900 words with no paragraph between its title and its first `##` heading, and W364 on an epic with more than nine numbered acceptance criteria. The conventions above aim lower (about seven) so a page at the edge is not nagged.
 
 Codes are stable. A retired code is never reused.
 
 ## Requirements and allocation
 
-Requirements come in two levels, both in the vault. A capability's functional requirements say what the business needs and name no app: `### CAP-nnn.FRn <short name>` under `## Functional requirements` on its capability page, with a paragraph of what it does, `**State:**`, and its acceptance criteria as bullets. `/planner:requirements` writes them at `assumption`, after the strategy is decided and before boundary, so boundary can test each cut against them, and a Grill decides them.
+Requirements come in two levels, both in the vault. A capability's functional requirements say what the business needs and name no app: `### CAP-nnn.FRn <short name>` under `## Functional requirements` on its capability page, with a paragraph of what it does, `**State:**`, and its acceptance criteria as bullets, each followed by an indented `- Trace:` line when it cites another item (the line is not a criterion, and AC numbers skip it). `/planner:requirements` writes them at `assumption`, after the strategy is decided and before boundary, so boundary can test each cut against them, and a Grill decides them.
 
 Allocation divides each requirement among the apps and contracts that deliver it. `/planner:allocate`, after boundary and before epics, writes each app page's share in one table under `## Requirements allocated`:
 
@@ -546,7 +554,7 @@ An app's allocated rows are its team's input. Epics take their acceptance criter
 |---|---|---|
 | `[[CAP-002-paper-trade-a-stock#CAP-002.FR2 Place a paper order\|CAP-002.FR2]]` | AC1, AC2 | AC3 in release two |
 
-**Criteria** is `all`, or the acceptance criteria this release delivers, numbered in the order they appear under the requirement: AC1 is the first bullet. A requirement may be split across releases this way, so an epic never needs a release of its own.
+**Criteria** is `all`, or the acceptance criteria this release delivers, numbered in the order they appear under the requirement: AC1 is the first bullet (an indented `- Trace:` line under a bullet is not a bullet of its own). A requirement may be split across releases this way, so an epic never needs a release of its own.
 
 Nothing else records a release. What the system looks like after each one is worked out from the requirements it delivers: each app that carries a share of one changes, or arrives if it is new, and each contract its share goes through exists. Today is every app whose `change` is not `new`, and every contract whose `**Change:**` is not `new`.
 
@@ -590,6 +598,8 @@ When many pages link one tool, `.planner.yaml` may say once where it lives, as `
 ## Epics and traceability
 
 An epic page holds a description, the owning team (written as `**Owning team:**` and a handle in the description, a label the planner knows), 4 to 7 numbered acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behaviour a tester can see at a contract or flow boundary, never inside a container.
+
+A criterion is written in plain words: it names the contract or flow by its name ("the calendar entries", "the prep-note flow"), and the requirement it comes from, the contract and the flow go on a `- Trace:` line under it (`- Trace: CAP-001.FR1, CON-001, FLO-001`). The boundary test reads that line: a criterion needs at least one contract or flow on it. More than about seven criteria is a signal to split the epic (W364 warns past nine); criteria may sit under `###` subheadings of about five, which do not end the acceptance-criteria section. The page opens with a two or three sentence summary of what the epic does and what is still open.
 
 A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
 

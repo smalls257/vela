@@ -164,6 +164,16 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .ref-chip .rid { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
 .ref-chip .lamp { width: 7px; height: 7px; align-self: center; }
 .ref-dead { color: var(--ink-4); text-decoration: line-through; }
+/* A bare ID in prose reads as the thing's name; the ID shows only on hover, small and muted. */
+a.idname .idsuf { display: none; }
+a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: var(--ink-4); font-size: .78em; font-family: var(--mono); }
+/* A Trace line: one quiet row of name chips, folded until asked for. */
+.r-trace, .ac-trace { margin: 1px 0 6px; font-size: 12px; color: var(--ink-3); }
+.r-trace summary { cursor: pointer; opacity: .75; }
+.r-trace[open] summary { opacity: 1; }
+.r-trace .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.r-trace a.chip { border: 1px solid var(--rule-3); border-radius: 999px; padding: 0 8px; color: var(--ink-2); cursor: pointer; text-decoration: none; }
+.r-trace a.chip:hover { border-color: var(--ink-3); }
 
 #toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--room); padding: 9px 16px;
   border-radius: 999px; font-size: 13.5px; z-index: 90; transition: all .3s var(--ease); pointer-events: none; }

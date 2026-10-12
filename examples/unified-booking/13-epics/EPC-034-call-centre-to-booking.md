@@ -26,11 +26,13 @@ The manual fix queue goes too. It exists because the website's confirm can fail 
 
 ## Epic acceptance criteria
 
-1. Agents hold, confirm, amend, cancel and look up bookings through CON-001 only. Every call carries the desktop's service token and a trace ID the desktop created. [security] [observability]
+1. Agents hold, confirm, amend, cancel and look up bookings through the Booking API only. Every call carries the desktop's service token and a trace ID the desktop created. [security] [observability]
+   - Trace: CON-001
 2. For any booking reference, the desktop shows the same state as the website and the kiosks.
 3. An amendment shows the agent the re-quoted fare from Booking before the agent commits it.
 4. A booking still waiting for the ledger shows as `confirming` on the desktop. Agents get no fix task for it. [operations]
-5. The desktop's consumer-driven contract tests for CON-001 pass in Booking's provider verification. [testing]
+5. The desktop's consumer-driven contract tests for the Booking API pass in Booking's provider verification. [testing]
+   - Trace: CON-001
 6. Flipping the call centre's switch back sends bookings through the terminal adapter without a release, for 4 weeks after cutover. [rollout]
 7. After those 4 weeks the terminal adapter and the manual fix screens are removed from the desktop. [data]
 
@@ -49,8 +51,8 @@ The manual fix queue goes too. It exists because the website's confirm can fail 
 
 ## Depends on
 
-- [[EPC-031-holds-and-confirms|EPC-031]]: hold, confirm and get.
-- [[EPC-036-amend-cancel-online|EPC-036]]: amend and cancel on CON-001.
+- [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]: hold, confirm and get.
+- [[EPC-036-amend-cancel-online|Amend and cancel online]]: amend and cancel on the Booking API.
 
 ## Rollout notes
 
@@ -58,7 +60,7 @@ Second channel, March 2027, after the website. Rollback is flipping the call cen
 
 ## Out of scope
 
-- Changes to how agents find crossings ([[CAP-011-find-a-crossing|CAP-011]] is unchanged).
-- Customer messages after an agent's change ([[EPC-037-events-and-notifications|EPC-037]]).
+- Changes to how agents find crossings ([[CAP-011-find-a-crossing|Find a crossing]] is unchanged).
+- Customer messages after an agent's change ([[EPC-037-events-and-notifications|Booking events and customer notifications]]).
 
 The Contact Centre Systems team breaks this epic into stories after their tech design session.
