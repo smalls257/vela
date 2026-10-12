@@ -323,3 +323,35 @@ def test_e17_a_vault_file_request_still_has_to_come_from_this_helper(helper):
     (vault / "a.md").write_text("x", encoding="utf-8")
     response = request(server, "GET", "/vault-file/a.md", host="evil.example:80", origin=None)
     assert response.status == 403
+
+
+# ------------------------------------------------------------ E28: a malformed Content-Length; E40: a cap on running answers
+
+def raw_post(server, path, length_header, body=b""):
+    conn = http.client.HTTPConnection(serve.LOOPBACK, server.server_port, timeout=5)
+    conn.putrequest("POST", path, skip_accept_encoding=True)
+    conn.putheader("Host", f"{serve.LOOPBACK}:{server.server_port}")
+    conn.putheader("Origin", f"http://{serve.LOOPBACK}:{server.server_port}")
+    if length_header is not None:
+        conn.putheader("Content-Length", length_header)
+    conn.endheaders(body)
+    return conn.getresponse()
+
+
+def test_e28_a_negative_or_non_numeric_content_length_gets_a_400_and_a_missing_one_a_411(helper):
+    server, _, _ = helper
+    for bad in ("-1", "abc", "1.5"):
+        response = raw_post(server, "/pins", bad)
+        assert response.status == 400 and "Content-Length" in json.loads(response.read())["error"], bad
+    assert raw_post(server, "/ask", None).status == 411
+
+
+def test_e40_a_new_answer_while_the_limit_is_reached_is_refused_with_429(helper, stub_log):
+    server, _, _ = helper
+    for _ in range(serve.MAX_ANSWERS):
+        assert server.answers.acquire(blocking=False)
+    response = request(server, "POST", "/ask", {"question": "who holds this?"})
+    assert response.status == 429 and "already running" in json.loads(response.read())["error"]
+    for _ in range(serve.MAX_ANSWERS):
+        server.answers.release()
+    assert request(server, "POST", "/ask", {"question": "who holds this?"}).status == 200

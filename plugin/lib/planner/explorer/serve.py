@@ -34,6 +34,7 @@ DEFAULT_MODEL = "haiku"
 MAX_QUESTION = 2000
 MAX_BODY = 32 * 1024
 MAX_CONTEXT_VALUE = 200
+MAX_ANSWERS = 2  # claude processes running at once: two tabs or a held Enter must not spend in parallel
 ASK_TIMEOUT = 180  # seconds a single question may run before claude is stopped
 BUDGET_USD = 0.50  # one question's ceiling, so a runaway search cannot spend more
 TOOLS = "Read,Grep,Glob"
@@ -375,6 +376,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         self.send_json(200, report)
 
+    def body_length(self):
+        """The request body's length, or None after answering 411 (no length) or 400 (not a whole number of bytes). A
+        negative length would make read() wait for the client to hang up."""
+        raw = self.headers.get("Content-Length")
+        if raw is None:
+            self.send_json(411, {"error": "a POST must say its Content-Length"})
+            return None
+        if not raw.strip().isdigit():
+            self.send_json(400, {"error": f"Content-Length must be a whole number of bytes, not {raw[:20]!r}"})
+            return None
+        return int(raw)
+
     def do_POST(self):
         # A browser always names the origin of a POST; a missing one is a script, not the page.
         if self.path not in ("/ask", "/pins"):
@@ -385,7 +398,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.headers.get("Origin") is None:
             self.send_json(403, {"error": "a POST must name its Origin"})
             return
-        length = int(self.headers.get("Content-Length") or 0)
+        length = self.body_length()
+        if length is None:
+            return
         if length > MAX_BODY:
             self.send_json(413, {"error": f"the request is over {MAX_BODY} bytes"})
             return
@@ -397,7 +412,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except BadRequest as exc:
             self.send_json(400, {"error": str(exc)})
             return
-        self.stream(question, context, session, model or self.server.default_model)
+        if not self.server.answers.acquire(blocking=False):
+            self.send_json(429, {"error": "an answer is already running; wait for it, or stop it, then ask again"})
+            return
+        try:
+            self.stream(question, context, session, model or self.server.default_model)
+        finally:
+            self.server.answers.release()
 
     def stream(self, question, context, session, model):
         self.send_response(200)
@@ -428,6 +449,7 @@ class Server(http.server.ThreadingHTTPServer):
         self.vault, self.page, self.default_model, self.ask_timeout, self.log = pathlib.Path(vault), pathlib.Path(page), default_model, ask_timeout, log
         self.freshness = freshness  # a callable returning the report dict, or None
         self.pins = pathlib.Path(pins) if pins else None  # the file POST /pins saves to
+        self.answers = threading.BoundedSemaphore(MAX_ANSWERS)  # one slot per running claude process
         self.pins_lock = threading.Lock()  # two saves at once must not interleave their writes
 
     @property
