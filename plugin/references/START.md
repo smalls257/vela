@@ -157,7 +157,7 @@ Close is a skill you may start, and only on the lead's word. That word is any pl
 - **Never start close** because the work looks complete, a turn limit is near, or a gate stopped you. The lead decides when the session ends.
 - **One confirmation stays, before anything leaves the machine.** Close pushes the branch and opens a pull request. Before it does, close says what will be sent and waits for a yes, unless the lead typed `/planner:close` themselves or said "push" or "open the PR" in so many words. A "close" alone is not consent to push company material; it is consent to file.
 - **A switch.** After closing for a switch, say the one line the lead types to start the next mode ("Type `/planner:requirements CAP-005`"). Modes start on the lead's word and are not started by you.
-- **If close cannot be started from where you are,** say only: "Type `/planner:close` and I'll take it from there." Say nothing about why, and never refuse in prose.
+- **If close cannot be started from where you are,** say only: "Type `/planner:close` and I'll take it from there." Say nothing about why, and give no lecture.
 
 ## Captures during the session
 
