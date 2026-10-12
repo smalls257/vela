@@ -140,6 +140,10 @@ class Look:
         if not path.is_file():
             self.warn(f"{where} is {value}, which is not a file ({path})")
             return None
+        why = not_a_doc(path, "tech-design")
+        if why:
+            self.warn(f"{where} is {value}, which {why}, so it is not read")
+            return None
         return path
 
     def vault_docs(self, docs):
@@ -205,6 +209,18 @@ class Look:
             return False
         vault = meta.get("vault")
         return isinstance(vault, dict) and vault.get("app") == self.app.id
+
+
+def not_a_doc(path, folder):
+    """Why a path named by a page is not read, or "" when it is. A page can come from outside (a pulled branch, a proposal), and
+    what this module reads is copied into dashboard.html and published; so only a Markdown file under docs/<folder>/ is read,
+    never `~/Documents/salary-notes.md` or an `id_rsa`."""
+    parts = path.resolve().parts
+    if path.suffix.lower() != ".md":
+        return "is not a Markdown file"
+    if not any(parts[i:i + 2] == ("docs", folder) for i in range(len(parts) - 1)):
+        return f"is not under a docs/{folder} folder"
+    return ""
 
 
 def local_path(value, root):

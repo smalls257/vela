@@ -218,7 +218,7 @@ def test_a_served_page_finds_its_helper(tmp_path, chrome_path):
     try:
         url = None
         for line in server.stdout:
-            found = re.search(r"serving (http://\S+?/) ", line)
+            found = re.search(r"serving (http://\S+?/\?k=\S+) ", line)  # the printed link carries the helper's key
             if found:
                 url = found.group(1)
                 break
@@ -278,7 +278,7 @@ def test_a_served_reader_page_asks_freshness_once_on_load(tmp_path, chrome_path)
     try:
         url = None
         for line in server.stdout:
-            found = re.search(r"serving (http://\S+?/) ", line)
+            found = re.search(r"serving (http://\S+?/\?k=\S+) ", line)
             if found:
                 url = found.group(1)
                 break

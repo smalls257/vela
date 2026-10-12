@@ -2,7 +2,7 @@
 name: ask
 description: Answer a question about this initiative from the vault alone, citing item IDs and the sections they come from, flagging anything not yet decided, and saying "Not recorded" or "Not decided" with who to ask when the vault is silent. Use for questions about goals, apps, containers, contracts, decisions, unknowns, risks, concerns, flows or epics.
 argument-hint: "<question>"
-allowed-tools: Read Grep Glob Bash(git log *) Bash(git rev-list *) Bash(date *) Bash(cat *) Bash(python3 *scripts/planner *)
+allowed-tools: Read Grep Glob Bash(git log *) Bash(git rev-list *) Bash(date *) Bash(python3 *scripts/planner *)
 disallowed-tools: Write Edit NotebookEdit
 ---
 

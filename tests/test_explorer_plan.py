@@ -95,9 +95,9 @@ def test_two_plans_naming_one_design_is_a_warning_and_the_first_is_used(world):
 
 def test_breakdown_on_the_app_page_wins_over_beside_the_design(world):
     vault, team = world
-    other = team / "elsewhere-breakdown.md"
+    other = team / "docs/plan/elsewhere-breakdown.md"
     shutil.copy(team / PRICING_PLAN, other)
-    edit(vault / PRICING_PAGE, "id: APP-pricing\n", "id: APP-pricing\nbreakdown: ../team/elsewhere-breakdown.md\n")
+    edit(vault / PRICING_PAGE, "id: APP-pricing\n", "id: APP-pricing\nbreakdown: ../team/docs/plan/elsewhere-breakdown.md\n")
     code, said = explore(vault)
     assert code == 0, said
     assert "breakdown: on its page" in said, said
@@ -305,3 +305,15 @@ def test_a_summary_size_written_as_counts_is_held_against_the_tasks_and_a_wrong_
     text = HERON.read_text(encoding="utf-8").replace("| 2S 4M | G-001, UNK-013 |", "| 3S 4M | G-001, UNK-013 |", 1)
     plan = heron_entry(tmp_path, text)
     assert any("S-01: the summary table says its size is '3S 4M'" in p for p in plan["problems"]), plan["problems"]
+
+
+def test_a_breakdown_path_outside_docs_plan_or_not_markdown_is_not_read(world, tmp_path):
+    """E23. A page from outside can name any file; what is read ends up in dashboard.html and in every published copy."""
+    vault, team = world
+    private = tmp_path / "salary-notes.txt"
+    shutil.copy(team / PRICING_PLAN, private)
+    edit(vault / PRICING_PAGE, "id: APP-pricing\n", f"id: APP-pricing\nbreakdown: {private}\n")
+    code, said = explore(vault)
+    assert code == 0, said
+    assert "is not a Markdown file, so it is not read" in said, said
+    assert data_of(vault)["plans"]["APP-pricing"]["file"] != "salary-notes.txt"

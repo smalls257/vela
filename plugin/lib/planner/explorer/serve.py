@@ -5,23 +5,36 @@ headless (`claude -p`) in the vault with the read-only tools Read, Grep and Glob
 Server-Sent Events. Asking writes nothing to the vault. The one thing the helper writes is the layout: POST /pins
 saves boxes the reader dragged to <vault>/.planner/explorer-pins.json (pins.py), and nothing else.
 
-Three things this module exists to prevent:
+A vault is input from outside (a zip, a pulled branch, a proposal), so nothing in it is trusted to configure the child:
+the vault's own settings and hooks are not loaded, file tools cannot leave the vault, and a vault holding a symbolic link
+is not served. Vault text is still read by the model, so a page can try to steer an answer; it can only steer it toward
+what the vault already contains.
+
+Four things this module exists to prevent:
 - Silent Fallback: a missing `claude`, a non-zero exit, a timeout or an error result each reach the page as an
   `error` event that says why. No path ends in an empty answer that looks like a real one.
 - Distributed Monolith across the network edge: the server binds the loopback address only, and a request whose Host or Origin
-  is not the served origin is refused (DNS rebinding, cross-site POST). Anything else on the machine's network, or any
-  other web page the reader has open, cannot spend their Claude quota or read their vault.
+  is not the served origin is refused (DNS rebinding, cross-site POST). Any other web page the reader has open cannot
+  spend their Claude quota or read their vault.
+- A forgeable header standing in for a secret: Host and Origin can be set by any program on the machine, so every request
+  also needs the key planner printed in the link it opened (a cookie the browser then sends). Another user on a shared
+  machine who finds the port gets a 403, not the reader's quota.
 - Infected Core: the argv, the prompt, the stream parser and the origin rule are pure functions, tested without a
   socket or a process. Only `stream_answer` and `Handler` touch the OS.
 """
+import functools
+import hmac
+import http.cookies
 import http.server
 import json
 import pathlib
 import re
+import secrets
 import shutil
 import subprocess
 import tempfile
 import threading
+import urllib.parse
 import webbrowser
 
 from . import pins as pinning
@@ -32,6 +45,7 @@ MODELS = {"haiku": "claude-haiku-4-5-20251001", "sonnet": "claude-sonnet-5-5"}
 DEFAULT_MODEL = "haiku"
 MAX_QUESTION = 2000
 MAX_BODY = 32 * 1024
+MAX_CONCURRENT_ASKS = 2  # each question is a claude process with its own budget; a third is told to wait
 MAX_CONTEXT_VALUE = 200
 ASK_TIMEOUT = 180  # seconds a single question may run before claude is stopped
 BUDGET_USD = 0.50  # one question's ceiling, so a runaway search cannot spend more
@@ -54,20 +68,39 @@ SYSTEM_PROMPT = ("You are answering a question on a live call about one planning
 
 
 def claude_settings(home):
-    """What a vault question loads: the vault's own settings, never the reader's global CLAUDE.md (it would steer
-    every answer and cost tokens), and no read of the explorer page itself, a 3 MB single line that would drown a search."""
+    """What a vault question loads: no hooks at all, never the reader's global CLAUDE.md (it would steer every answer and
+    cost tokens), and no read of the planner's private folder or the explorer page (dashboard.html, here or in any folder:
+    a 3 MB single line that would drown a search). The vault's own .claude/settings.json is not a source (see claude_argv)."""
     claude_dir = pathlib.Path(home) / ".claude"
     return {"claudeMdExcludes": [str(claude_dir / "CLAUDE.md"), str(claude_dir / "**" / "*.md")],
-            "permissions": {"deny": ["Read(./.planner/**)"]}}
+            "disableAllHooks": True,
+            "permissions": {"deny": ["Read(./.planner/**)", "Read(./dashboard.html)", "Read(./**/dashboard.html)"]}}
 
 
-def claude_argv(model_id, prompt, home, session_id=None):
-    """The one `claude -p` call that answers a question. Read-only tools only, offered and allowed; no skills or MCP;
-    a follow-up resumes the first answer's session so Claude keeps what it already read."""
+@functools.cache
+def confines_files(claude_path):
+    """True when this `claude` has --restricted, which keeps its file tools inside the working folder. Asked of the program
+    itself, once: an older one lacks the flag and still gets every other layer (no vault settings, no hooks, no bare
+    tool rules), and /health says it is not confined."""
+    try:
+        done = subprocess.run([claude_path, "--help"], capture_output=True, text=True, timeout=20, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return False  # cannot ask, so assume the older program: fewer layers, never a missing one claimed
+    return "--restricted" in done.stdout
+
+
+def claude_argv(model_id, prompt, home, session_id=None, confined=False):
+    """The one `claude -p` call that answers a question. Read-only tools, no skills or MCP, and nothing from the vault's own
+    configuration: `--setting-sources user` leaves out <vault>/.claude/settings.json and settings.local.json (a received
+    vault could declare a hook that runs as the reader). No tool is pre-approved by bare name, so a read outside the vault
+    is refused rather than allowed; `confined` adds claude's own --restricted, which also keeps the file tools in the
+    folder. A follow-up resumes the first answer's session so Claude keeps what it already read."""
     argv = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-            "--model", model_id, "--allowedTools", TOOLS, "--tools", TOOLS, "--append-system-prompt", SYSTEM_PROMPT,
-            "--disable-slash-commands", "--setting-sources", "project,local", "--strict-mcp-config",
+            "--model", model_id, "--tools", TOOLS, "--append-system-prompt", SYSTEM_PROMPT,
+            "--disable-slash-commands", "--setting-sources", "user", "--strict-mcp-config",
             "--settings", json.dumps(claude_settings(home)), "--max-budget-usd", f"{BUDGET_USD:.2f}"]
+    if confined:
+        argv.append("--restricted")
     if session_id:
         argv += ["--resume", session_id]
     return argv + ["--", prompt]  # "--" so a question that starts with "-" is still the prompt
@@ -158,6 +191,52 @@ def parse_ask(body):
     return question.strip(), clean_context(req.get("context")), session, model
 
 
+class RequestRefused(Exception):
+    """A request refused before its body is read: `status` is the HTTP status and the message says what to change."""
+
+    def __init__(self, status, message):
+        super().__init__(message)
+        self.status = status
+
+
+def body_length(header):
+    """The request body's length from its Content-Length header. A missing header is 411, one that is not a whole number
+    or is negative is 400 (read(-1) would block until the client closed), and one over MAX_BODY is 413."""
+    if header is None:
+        raise RequestRefused(411, "a POST must say how long its body is (Content-Length)")
+    try:
+        length = int(header)
+    except ValueError:
+        raise RequestRefused(400, f"Content-Length '{header[:20]}' is not a number") from None
+    if length < 0:
+        raise RequestRefused(400, "Content-Length cannot be negative")
+    if length > MAX_BODY:
+        raise RequestRefused(413, f"the request is over {MAX_BODY} bytes")
+    return length
+
+
+def cookie_name(port):
+    """Cookies are shared across ports on one host, so the port is in the name: two helpers do not overwrite each other's key."""
+    return f"planner_key_{port}"
+
+
+def key_allowed(cookie_header, port, key):
+    """True when the request carries this server's key (compared in constant time)."""
+    jar = http.cookies.SimpleCookie()
+    try:
+        jar.load(cookie_header or "")
+    except http.cookies.CookieError:
+        return False
+    morsel = jar.get(cookie_name(port))
+    return morsel is not None and hmac.compare_digest(morsel.value.encode("utf-8"), key.encode("utf-8"))
+
+
+def key_in_path(path):
+    """The k= value of a request path like /?k=abc, or None."""
+    values = urllib.parse.parse_qs(urllib.parse.urlsplit(path).query).get("k")
+    return values[0] if values else None
+
+
 def origin_allowed(host, origin, port):
     """True when the request is addressed to this server by a loopback name and, if the browser says where the
     request came from, it came from this same origin. A page on another site posting here sends its own Origin."""
@@ -227,10 +306,11 @@ def finish(state, model_key):
 def stream_answer(vault, model_key, prompt, session_id, timeout=ASK_TIMEOUT, home=None):
     """Run claude and yield the page-facing events as they arrive, ending in `done` or `error`. The child gets a
     deadline: a timer kills it, and the reason reaches the page."""
-    argv = claude_argv(MODELS[model_key], prompt, home or pathlib.Path.home(), session_id)
-    if shutil.which(argv[0]) is None:
+    claude = shutil.which("claude")
+    if claude is None:
         yield {"type": "error", "message": "claude is not on PATH, so nothing can answer. Install Claude Code, or open the page as a file and use the copied prompt."}
         return
+    argv = claude_argv(MODELS[model_key], prompt, home or pathlib.Path.home(), session_id, confined=confines_files(claude))
     with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as errors:
         proc = subprocess.Popen(argv, cwd=vault, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=errors, text=True, encoding="utf-8")
         timed_out = threading.Event()
@@ -284,19 +364,46 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def guarded(self):
+    def own_origin(self):
         """False after answering 403, when the Host or Origin is not this server's own."""
         if origin_allowed(self.headers.get("Host"), self.headers.get("Origin"), self.server.server_port):
             return True
         self.send_json(403, {"error": "this helper answers only requests from its own page on this machine"})
         return False
 
+    def guarded(self):
+        """False after answering 403, when the Host or Origin is not this server's own or the request lacks its key."""
+        if not self.own_origin():
+            return False
+        if key_allowed(self.headers.get("Cookie"), self.server.server_port, self.server.key):
+            return True
+        self.send_json(403, {"error": "this helper wants the link planner printed when it started; it carries a key. Open that link."})
+        return False
+
+    def hand_over_key(self):
+        """GET /?k=<key>, the printed link: the key moves into a cookie only this browser sends, and the page is served at /."""
+        asked = key_in_path(self.path)
+        if asked is None or not hmac.compare_digest(asked.encode("utf-8"), self.server.key.encode("utf-8")):
+            return False
+        self.send_response(302)
+        self.send_header("Set-Cookie", f"{cookie_name(self.server.server_port)}={self.server.key}; HttpOnly; SameSite=Strict; Path=/")
+        self.send_header("Location", "/")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return True
+
     def do_GET(self):
+        if not self.own_origin():
+            return
+        if self.path.startswith("/?") and self.hand_over_key():
+            return
         if not self.guarded():
             return
         if self.path == "/health":
+            claude = shutil.which("claude")
             self.send_json(200, {"ok": True, "vault": self.server.vault.name, "model": self.server.default_model,
-                                 "models": MODELS, "claude": shutil.which("claude") is not None, "maxQuestion": MAX_QUESTION})
+                                 "models": MODELS, "claude": claude is not None, "maxQuestion": MAX_QUESTION,
+                                 "confined": bool(claude) and confines_files(claude)})
         elif self.path == "/freshness":
             self.send_freshness()
         elif self.path == "/pins":
@@ -362,9 +469,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.headers.get("Origin") is None:
             self.send_json(403, {"error": "a POST must name its Origin"})
             return
-        length = int(self.headers.get("Content-Length") or 0)
-        if length > MAX_BODY:
-            self.send_json(413, {"error": f"the request is over {MAX_BODY} bytes"})
+        try:
+            length = body_length(self.headers.get("Content-Length"))
+        except RequestRefused as exc:
+            self.send_json(exc.status, {"error": str(exc)})
             return
         if self.path == "/pins":
             self.save_pins(self.rfile.read(length))
@@ -374,7 +482,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except BadRequest as exc:
             self.send_json(400, {"error": str(exc)})
             return
-        self.stream(question, context, session, model or self.server.default_model)
+        if not self.server.asks.acquire(blocking=False):
+            self.send_json(429, {"error": f"{MAX_CONCURRENT_ASKS} questions are already being answered; wait for one to finish and ask again"})
+            return
+        try:
+            self.stream(question, context, session, model or self.server.default_model)
+        finally:
+            self.server.asks.release()
 
     def stream(self, question, context, session, model):
         self.send_response(200)
@@ -406,10 +520,13 @@ class Server(http.server.ThreadingHTTPServer):
         self.freshness = freshness  # a callable returning the report dict, or None
         self.pins = pathlib.Path(pins) if pins else None  # the file POST /pins saves to
         self.pins_lock = threading.Lock()  # two saves at once must not interleave their writes
+        self.asks = threading.BoundedSemaphore(MAX_CONCURRENT_ASKS)  # claude processes running at once
+        self.key = secrets.token_urlsafe(24)  # in the link planner prints; the browser keeps it as a cookie
 
     @property
     def url(self):
-        return f"http://{LOOPBACK}:{self.server_port}/"
+        """The link to open: it carries the key once, and the helper moves it into a cookie and redirects to /."""
+        return f"http://{LOOPBACK}:{self.server_port}/?k={self.key}"
 
 
 def serve(vault, page, port, model, open_browser, log, ask_timeout=ASK_TIMEOUT, freshness=None, pins=None):

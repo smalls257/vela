@@ -19,7 +19,7 @@ reader who sees "No build plan yet" can find out why.
 import pathlib
 
 from . import design_data
-from .design_find import FRONTMATTER_LIMIT, frontmatter, local_path, shown
+from .design_find import FRONTMATTER_LIMIT, frontmatter, local_path, not_a_doc, shown
 
 PLAN_GLOB = "*-breakdown.md"
 
@@ -89,6 +89,8 @@ class Look:
             self.warn(f"{where} is {value}, a web address; it is never fetched, so use the path of a local clone")
         elif not path.is_file():
             self.warn(f"{where} is {value}, which is not a file ({path})")
+        elif not_a_doc(path, "plan"):
+            self.warn(f"{where} is {value}, which {not_a_doc(path, 'plan')}, so it is not read")
         else:
             self.plan, self.how = path, where
 
