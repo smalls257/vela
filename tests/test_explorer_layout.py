@@ -245,7 +245,7 @@ def heron(tmp_path_factory):
     shutil.copytree(HERON, root)
     code, said = run("explore", str(root), "--today", "2026-10-11")
     assert code == 0, said
-    page = (root / ".planner/explorer.html").read_text(encoding="utf-8")
+    page = (root / "dashboard.html").read_text(encoding="utf-8")
     data = json.loads(DATA.search(page).group(1))
     return root, said, data["map"]["externals"]
 

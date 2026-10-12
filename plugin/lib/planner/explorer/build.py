@@ -488,7 +488,7 @@ def map_nodes(vault, keys, m, pins_path, seed=None):
     for n in nodes:
         n["col"], n["row"] = found[n["key"]]
     return nodes, {"added": added, "stale": stale, "seededFrom": seeded, "moved": moved,
-                   "all": {k: v for k, v in found.items()},
+                   "all": dict(sorted(found.items())),  # sorted: a first build and a rebuild must write the same bytes
                    "file": pathlib.Path(pins_path).name if pins_path else ""}
 
 
