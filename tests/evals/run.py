@@ -147,15 +147,15 @@ def changes_ids(pages):
 
 def scaffold_state(workspace):
     """(root commit, its .md pages) of the kept workspace's git history, or None when git cannot say."""
-    root = subprocess.run(["git", "-C", str(workspace), "rev-list", "--max-parents=0", "HEAD"], capture_output=True, text=True)
+    root = subprocess.run(["git", "-C", str(workspace), "rev-list", "--max-parents=0", "HEAD"], capture_output=True, text=True, timeout=60)
     if root.returncode != 0 or not root.stdout.split():
         return None
     commit = root.stdout.split()[0]
-    names = subprocess.run(["git", "-C", str(workspace), "ls-tree", "-r", "--name-only", commit], capture_output=True, text=True)
+    names = subprocess.run(["git", "-C", str(workspace), "ls-tree", "-r", "--name-only", commit], capture_output=True, text=True, timeout=60)
     if names.returncode != 0:
         return None
     def read(name):
-        shown = subprocess.run(["git", "-C", str(workspace), "show", f"{commit}:{name}"], capture_output=True, text=True)
+        shown = subprocess.run(["git", "-C", str(workspace), "show", f"{commit}:{name}"], capture_output=True, text=True, timeout=60)
         return shown.stdout
     return vault_pages(read, names.stdout.splitlines())
 
@@ -213,9 +213,9 @@ def grade(workspace, spec):
     argv = [sys.executable, str(PLANNER), "check", "--vault", str(workspace), "--today", spec["today"]]
     if spec["gate"]:
         argv += ["--gate", "epics"]
-    check = subprocess.run(argv, capture_output=True, text=True)
-    status = subprocess.run(["git", "-C", str(workspace), "status", "--porcelain"], capture_output=True, text=True)
-    inbox = subprocess.run(["git", "-C", str(workspace), "ls-files", ".inbox"], capture_output=True, text=True)
+    check = subprocess.run(argv, capture_output=True, text=True, timeout=120)
+    status = subprocess.run(["git", "-C", str(workspace), "status", "--porcelain"], capture_output=True, text=True, timeout=60)
+    inbox = subprocess.run(["git", "-C", str(workspace), "ls-files", ".inbox"], capture_output=True, text=True, timeout=60)
     summary = check.stdout.splitlines()[0] if check.stdout else check.stderr.strip()
     lines = [f"- workspace: `{workspace}`",
              f"- {'pass' if check.returncode == 0 else 'FAIL'}: check exit {check.returncode}: {summary}"]
@@ -247,7 +247,10 @@ def run_arm(case, arm, args, out_dir):
             "--model", args.model, "--judge-model", args.judge_model,
             "--output-dir", str(out_dir / f"{case}-{arm}"), "--report", str(out_dir / f"{case}-{arm}.html"),
             "--allow-tools", "Write", "Edit", "Bash"]
-    result = subprocess.run(argv, capture_output=True, text=True)
+    try:
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=600)
+    except subprocess.TimeoutExpired as exc:
+        raise EvalError(f"plugin eval timed out after 600s on {case}-{arm}") from exc
     log = result.stdout + "\n" + result.stderr
     log_path.write_text(log, encoding="utf-8")
     if result.returncode not in (0, 1):

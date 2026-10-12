@@ -607,7 +607,7 @@ def persona_input(transcript, session_index, mode, speaker=""):
 # ------------------------------------------------------------------ scratch vault
 
 def git(*args, cwd, check=True):
-    done = subprocess.run(["git", *GIT_USER, *args], cwd=cwd, capture_output=True, text=True)
+    done = subprocess.run(["git", *GIT_USER, *args], cwd=cwd, capture_output=True, text=True, timeout=60)
     if check and done.returncode != 0:
         raise ToolFailure(f"git {' '.join(args)} failed in {cwd}: {done.stderr.strip()}")
     return done
@@ -640,7 +640,7 @@ def build_vault(arm_dir, arm, persona):
     vault, origin = arm_dir / "vault", arm_dir / "origin.git"
     vault.mkdir()
     done = subprocess.run([sys.executable, str(SCAFFOLD), "template", "stub" if arm == "baseline" else "plugin"],
-                          cwd=vault, capture_output=True, text=True)
+                          cwd=vault, capture_output=True, text=True, timeout=120)
     if done.returncode != 0:
         raise ToolFailure(f"scaffold.py failed for {arm}: {done.stderr.strip()}")
     notes = []
@@ -782,7 +782,7 @@ def union_hunk(match, lost):
 def check_errors(clone):
     """(error count, first line) of planner check in the clone; the count is None when check itself failed."""
     planner = clone / ".claude" / "skills" / "planner" / "scripts" / "planner"
-    done = subprocess.run([sys.executable, str(planner), "check"], cwd=clone, capture_output=True, text=True)
+    done = subprocess.run([sys.executable, str(planner), "check"], cwd=clone, capture_output=True, text=True, timeout=120)
     first = (done.stdout.splitlines() or [done.stderr.strip() or "no output"])[0]
     found = re.search(r"(\d+) errors", first) if done.returncode in (0, 1) else None
     return (int(found.group(1)) if found else None), first
@@ -800,7 +800,7 @@ def resolve_conflicts(clone, files, errors_before, lost):
             return f"{rel} still holds conflict markers after the union"
         path.write_text(text, encoding="utf-8")
     planner = [sys.executable, str(clone / ".claude" / "skills" / "planner" / "scripts" / "planner")]
-    render = subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True)
+    render = subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True, timeout=120)
     if render.returncode != 0:
         return f"planner render failed after the union: {(render.stdout + render.stderr).strip()[:200]}"
     errors, first = check_errors(clone)
@@ -1806,7 +1806,10 @@ def capture_of(arm):
         argv += ["--expect-release", str(expect["release_date"])]
     if expect.get("ask"):
         argv += ["--expect-ask", str(expect["ask"])]
-    done = subprocess.run(argv, capture_output=True, text=True)
+    try:
+        done = subprocess.run(argv, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired as exc:
+        return {"error": f"planner capture timed out after 120s"}
     if done.returncode != 0:
         return {"error": (done.stdout + done.stderr).strip()[:300]}
     return json.loads(done.stdout)
@@ -2031,12 +2034,12 @@ def finish_arm(arm):
     vault = getattr(arm, "vault", None)
     if vault is None or not (vault / ".git").exists():
         return
-    log = subprocess.run(["git", "log", "--oneline", "--all", "--decorate"], cwd=vault, capture_output=True, text=True)
+    log = subprocess.run(["git", "log", "--oneline", "--all", "--decorate"], cwd=vault, capture_output=True, text=True, timeout=60)
     (arm.dir / "vault-git-log.txt").write_text(log.stdout + log.stderr, encoding="utf-8")
-    check = subprocess.run([sys.executable, str(PLANNER), "check", "--vault", str(vault)], capture_output=True, text=True)
+    check = subprocess.run([sys.executable, str(PLANNER), "check", "--vault", str(vault)], capture_output=True, text=True, timeout=120)
     (arm.dir / "vault-check.txt").write_text(f"exit {check.returncode}\n{check.stdout}{check.stderr}", encoding="utf-8")
     view = subprocess.run([sys.executable, str(PLANNER), "view", "--vault", str(vault), "--out", str(arm.dir / "viewer.html")],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, timeout=120)
     if view.returncode != 0:
         (arm.dir / "viewer-error.txt").write_text(f"exit {view.returncode}\n{view.stdout}{view.stderr}", encoding="utf-8")
 
