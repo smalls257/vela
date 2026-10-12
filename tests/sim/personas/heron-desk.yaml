@@ -63,6 +63,11 @@ knows:
     keywords: ["1.4 million", "model costs"]
     fact: The budget for Heron this financial year is 1.4 million pounds, including the cost of the language model.
     owner: CIO
+  - id: K16
+    category: finance-liability
+    keywords: ["budget holder", "holds the budget"]
+    fact: The CIO, @cio, is Heron's budget holder and signs off its spend; the lead confirmed it with the CIO on 8 October.
+    owner: CIO
   - id: K7
     category: timeline
     keywords: ["exec committee", "first quarter"]
