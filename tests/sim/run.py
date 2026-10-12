@@ -70,7 +70,10 @@ TICKETS_TIMEOUT = 60
 TEAM_MODES = ("tech-design-grill", "breakdown")  # the team's sessions in a vault script: run from the vault root with the user's own skills (vault_skills)
 EXPLORER_DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
 BREAKDOWN_TO_TICKETS = REPO / "tools" / "breakdown_to_tickets.py"
-TIMEOUTS = {"assistant": 1800, "persona": 300, "judge": 900}
+TIMEOUTS = {"assistant": 1800, "persona": 600, "judge": 900}
+# Persona and judge calls are text in, text out, with no tools, so a slow one is safe to send again. One slow
+# reply once ended a $100 run at its third session. An assistant call may have edited files, so it is never retried.
+RETRIED = {"persona", "judge"}
 GIT_USER = ["-c", "user.name=Sim Lead", "-c", "user.email=sim-lead@example.invalid"]
 
 
@@ -358,13 +361,21 @@ def text_call_argv(model, system_prompt, budget, thinking=False):
 
 def call(argv, *, env, cwd, raw_path, kind, stdin=None):
     """Run one claude call and keep its raw output beside the transcript, so any failure can be read afterwards."""
-    try:
-        done = subprocess.run(argv, input=stdin, stdin=None if stdin is not None else subprocess.DEVNULL,
-                              capture_output=True, text=True, env=env, cwd=cwd, timeout=TIMEOUTS[kind])
-    except FileNotFoundError as exc:
-        raise ToolFailure(f"claude is not on PATH: {exc}") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise ToolFailure(f"a {kind} call ran past {TIMEOUTS[kind]}s; partial output in {raw_path}") from exc
+    for attempt in (1, 2):
+        try:
+            done = subprocess.run(argv, input=stdin, stdin=None if stdin is not None else subprocess.DEVNULL,
+                                  capture_output=True, text=True, env=env, cwd=cwd, timeout=TIMEOUTS[kind])
+            break
+        except FileNotFoundError as exc:
+            raise ToolFailure(f"claude is not on PATH: {exc}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raw_path.parent.mkdir(parents=True, exist_ok=True)
+            partial = (exc.stdout or b"").decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+            raw_path.write_text(f"--- timed out after {TIMEOUTS[kind]}s, attempt {attempt} ---\n" + partial, encoding="utf-8")
+            if kind not in RETRIED or attempt == 2:
+                raise ToolFailure(f"a {kind} call ran past {TIMEOUTS[kind]}s"
+                                  f"{' twice' if attempt == 2 else ''}; partial output in {raw_path}") from exc
+            print(f"[sim] a {kind} call ran past {TIMEOUTS[kind]}s; sending it once more", flush=True)
     raw_path.parent.mkdir(parents=True, exist_ok=True)
     raw_path.write_text(done.stdout + ("\n--- stderr ---\n" + done.stderr if done.stderr else ""), encoding="utf-8")
     return done
