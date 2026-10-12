@@ -1038,7 +1038,7 @@ def cmd_view(args, out):
     stamp = {
         "commit": commit,
         "date": today,
-        "repo": args.repo_url or remote_url(root) or "no repository URL recorded",
+        "repo": export.redact_remote(args.repo_url or remote_url(root)) or "no repository URL recorded",
         "errors": errors,
         "warnings": len(findings) - errors,
     }

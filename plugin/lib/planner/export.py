@@ -150,6 +150,12 @@ def to_csv(table):
     return buffer.getvalue()
 
 
+def redact_remote(remote):
+    """The remote with any user:token@ in front of the host removed, for anything that is written into a file others
+    read. An scp-style git@host:path has no secret in it and is kept."""
+    return re.sub(r"^((?:https?|ssh|git)://)[^@/\s]+@", r"\1", remote.strip())
+
+
 def web_url(remote):
     """A browsable https URL for a git remote, or "" when it cannot be made one."""
     remote = remote.strip().split("#", 1)[0].split("?", 1)[0]

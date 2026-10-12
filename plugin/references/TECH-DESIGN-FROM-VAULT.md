@@ -5,7 +5,7 @@ The user's `tech-design-grill` skill reads this file when it is given `--vault <
 ## Before the first question
 
 1. The prereq is already checked: the app's building-blocks page in the vault carries `handed_off:`. Record it in the design doc's `prereqs[]` as `path: <vault>/05-building-blocks/<app>-building-blocks.md`, `expected_status: handed_off`.
-2. Record the vault commit: run `git -C <vault> rev-parse --short HEAD` and `git -C <vault> remote get-url origin`. Every link back names this commit.
+2. Record the vault commit: run `git -C <vault> rev-parse --short HEAD` and `git -C <vault> remote get-url origin`. Record the URL without any `user:token@` in front of the host, since the design doc is committed and shared. Every link back names this commit.
 3. Run `git -C <vault> status --short`. If the vault clone has changes to planner pages, say so: the design would start from pages nobody reviewed. Changes under `docs/` and `CONTEXT.md` are the design's own files and do not count.
 4. Run `python3 <vault>/.claude/skills/planner/scripts/planner handoff verify <APP-id> --vault <vault>`. Exit 0 means nothing the senior accepted has changed. Exit 1 lists each changed or removed item: tell the senior, and read those items again before the design rests on them. Exit 2 means the vault holds no manifest for the app; say so and go on.
 5. If `slug` is not given, propose the app's name without `APP-`, for example `booking`.

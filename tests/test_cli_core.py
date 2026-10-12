@@ -42,3 +42,12 @@ def test_c35_a_folder_given_without_vault_says_to_use_vault(mini):
     code, out = run("check", str(mini))
     assert code == 2
     assert f"planner check --vault {mini}" in out
+
+
+def test_c13_view_does_not_stamp_a_token_from_the_remote_url(mini, tmp_path):
+    out_file = tmp_path / "v.html"
+    code, out = run("view", "--vault", str(mini), "--out", str(out_file), "--date", "2026-01-15",
+                    "--repo-url", "https://bob:ghp_SECRET123@github.com/acme/plan.git")
+    assert code == 0, out
+    html = out_file.read_text(encoding="utf-8")
+    assert "ghp_SECRET123" not in html and "https://github.com/acme/plan.git" in html
