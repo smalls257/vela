@@ -17,7 +17,16 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `boundary
 
 Read the direction: `04-solution-strategy.md` and every page it links for the picked option, `03-context-and-scope.md` for the systems today and the apps in and out of scope, the existing building-blocks pages, `06-runtime/06-flows.md`, the concern pages, and the open unknowns and risks that block any of them. If the direction is not `decided`, say so and name what is still open: an app cut on an undecided direction may be cut again. Go on only if the user says to, and record that as an override as `START.md` says.
 
-## 2. Offer the cuts
+## 2. Find the seams, then offer the cuts
+
+Before any cut, ask how the product comes apart, in the user's own words, a question or two at a time. This is the question a business analyst asks before drawing a context diagram: what are the separate things someone will stand up, own, release or switch off? Do not let the shape's wording (a note, a digest, "one helper") answer it for them. Ask:
+
+- "Which parts run on a person's own device, which run somewhere shared that your people operate, and which does an administrator or support person open?"
+- "Would different teams build or run any of these, or would any ship on its own schedule?"
+- "Could any part be thrown away and rebuilt without losing something people rely on, such as who agreed to what, or what each person may see?"
+- "Who keeps the record of who consented, who signed in, and what access was granted? Is that a part of one of the above, or a thing of its own?"
+
+Capture each answer as the user's words. Every part they name ends up in the cuts: as an app, or as an explicit "not an app" with its reason (inside another app, an outside party, later). A part the user did not name but the sources do (a service in the one-pager, an admin step in the tenant note, a consent or identity owner) is offered by you as `(claude)`, with the source, and the user keeps or drops it. Consent and identity are offered as a separate app whenever a source shows a different owner, a different lifecycle, or an approval outside the product team, not hidden as a concern or a "leave it without an app" line. The cuts then differ in where the seams go, not only in whether a cloud exists. A user who says it is one thing gets the single-app cut first, with their reason recorded; never force a split the user rejects.
 
 Offer 2 or 3 ways to cut the direction into apps, never one and never more than three. A cut names every app it touches, each with its `change` (`new`, `changed`, `integrated`, `unchanged` or `retired`), and says in a line or two:
 
