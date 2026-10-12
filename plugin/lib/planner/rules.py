@@ -182,13 +182,16 @@ def duplicate_rules(vault, today):
                  "Give each goal, constraint and source its own ID.")
 
 
-FACTS_MAY_REPEAT = set(schema.HISTORY_LABELS) | {schema.PENDING_LABEL}  # a History keeps every decision and override
+# A History keeps every decision and override; Notes is free text sessions add to; Trace lines are the planner's.
+FACTS_MAY_REPEAT = set(schema.HISTORY_LABELS) | {schema.PENDING_LABEL, "Notes", schema.TRACE_LABEL}
 
 
 def repeated_fact_rules(vault):
     """E209: a label written twice under one heading. The first bullet is the one every rule reads, so a later
     '- **State:** decided' appended by hand would change nothing and say nothing."""
     for found in vault.items.values():
+        if len(found) > 1:
+            continue  # two headings share the ID (E208), so each sees the other's bullets
         for item in found:
             for kept, ignored in item.repeats:
                 if ignored.label not in FACTS_MAY_REPEAT:
