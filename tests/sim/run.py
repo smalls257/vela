@@ -195,6 +195,10 @@ def with_news(persona, news):
         return persona
     out = dict(persona)
     out["knows"] = list(persona["knows"]) + list(news.get("knows") or [])
+    clash = sorted({k["id"] for k in persona["knows"]} & {k["id"] for k in news.get("knows") or []})
+    if clash:
+        # caught here, before any paid call, not by the judge after the whole run: a repeated ID makes its JSON invalid
+        raise ToolFailure(f"the script's news repeats the persona's knows IDs {', '.join(clash)}; give the news items new IDs")
     out["docs"] = list(persona.get("docs") or []) + list(news.get("docs") or [])
     changes = {d["id"]: d for d in news.get("decisions") or []}
     out["decisions"] = [{**d, **changes.get(d["id"], {})} for d in persona.get("decisions") or []]

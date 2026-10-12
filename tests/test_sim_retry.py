@@ -45,3 +45,9 @@ def test_a_persona_call_slow_twice_fails_and_says_twice(tmp_path, monkeypatch):
     monkeypatch.setattr(sim.subprocess, "run", always_slow)
     with pytest.raises(sim.ToolFailure, match="twice"):
         sim.call(["claude"], env={}, cwd=tmp_path, raw_path=tmp_path / "raw" / "002-persona.txt", kind="persona", stdin="hi")
+
+
+def test_news_that_repeats_a_persona_knows_id_is_refused_before_any_call():
+    persona = {"knows": [{"id": "K1", "fact": "a"}, {"id": "K16", "fact": "b"}]}
+    with pytest.raises(sim.ToolFailure, match="K16"):
+        sim.with_news(persona, {"knows": [{"id": "K16", "fact": "c"}]})
