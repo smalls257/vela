@@ -844,6 +844,17 @@ const SelfTest = (() => {
       host.remove();
       ok(!!suffix && !shown, "plain names: the muted ID suffix stays hidden until hover", "plain names: the ID suffix shows without hover");
     }
+    // A question's state pill beside its link: a real space between them, so copied text reads "made (resolved)" and
+    // never "madeopen"; and no "open" pill in running prose, where open is the default and only noise.
+    const pills = boxes.flatMap((b) => $$(".ustate", b));
+    if (!pills.length) out.push("skip state pills: no page here links a question with a state worth flagging");
+    else {
+      const glued = pills.filter((p) => { const prev = p.previousSibling; return !(prev && prev.nodeType === 3 && /\s$/.test(prev.nodeValue)); });
+      const labelled = pills.filter((p) => !p.getAttribute("aria-label") || !/^\(.*\)$/.test(p.textContent));
+      ok(!glued.length && !labelled.length, `state pills: ${pills.length} pills, each set off from its link by a space, with an accessible label and parentheses that copy`, `state pills: ${glued.length} glued to the link (first ${glued[0] && glued[0].parentNode.textContent.slice(0, 60)}), ${labelled.length} unlabelled`);
+    }
+    const proseOpen = boxes.flatMap((b) => $$("p .ustate.us-open, blockquote .ustate.us-open, h1 .ustate.us-open, h2 .ustate.us-open, h3 .ustate.us-open", b)).filter((p) => !p.closest("li, td, th"));
+    ok(!proseOpen.length, "state pills: no 'open' pill in running prose", `state pills: ${proseOpen.length} 'open' pills in prose, first after ${proseOpen[0] && proseOpen[0].previousElementSibling && proseOpen[0].previousElementSibling.textContent}`);
     if (!rows.length) out.push("skip trace rows: no page here carries a Trace line");
     else {
       const bad = rows.filter((r) => !$("summary", r) || !$$("a.chip", r).length || $$("a.chip", r).some((a) => !ent(a.dataset.ref) || /^[A-Z]+-\d+/.test(a.textContent.trim())));

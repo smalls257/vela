@@ -63,8 +63,13 @@ def title_of(page):
     return title.strip() if isinstance(title, str) and title.strip() else page.name
 
 
-def inline_html(text, keys, page):
-    """Markdown inline text to safe HTML: wikilinks become clickable references, the rest is escaped."""
+PROSE, LISTED = "prose", "listed"
+
+
+def inline_html(text, keys, page, where=LISTED):
+    """Markdown inline text to safe HTML: wikilinks become clickable references, the rest is escaped. `where` says what
+    surrounds the text: running PROSE shows a question's state only when it is worth flagging (an "open" pill mid-sentence
+    is noise, since open is what a linked question is by default); a LISTED item or table cell shows every state."""
     text = BLOCK_REF.sub("", text)
     text = MD_LINK.sub(r"\1", text)
     parts, refs = [], []
@@ -88,7 +93,7 @@ def inline_html(text, keys, page):
         if named:
             anchor = name_anchor(key, label_html, named)
         else:
-            anchor = (f'<a class="ref" data-ref="{html.escape(key)}">{label_html}</a>{state_badge(keys.vault, key)}' if key
+            anchor = (f'<a class="ref" data-ref="{html.escape(key)}">{label_html}</a>{state_badge(keys.vault, key, where)}' if key
                   else f'<span class="ref-dead" title="This link points at nothing in the vault">{label_html}</span>')
         out = out.replace(f"\x00{i}\x00", anchor)
     parts.append(out)
@@ -113,14 +118,20 @@ def chips_html(ids, keys):
     return f'<details class="r-trace"><summary>Traces to ({len(entries)})</summary><span class="chips">{chips}</span></details>'
 
 
-def state_badge(vault, key):
-    """An unknown's state as the unknowns page records it now, beside every link to it. Prose that calls a
-    question open goes stale the day it is answered; the badge never does."""
+def state_badge(vault, key, where=LISTED):
+    """An unknown's state as the unknowns page records it now, beside a link to it. Prose that calls a question open
+    goes stale the day it is answered; the badge never does. A real space stands between link and pill, and the pill
+    carries its own parentheses (hidden on screen, kept when copied), so the text reads "made (resolved)" and never
+    "madeopen"."""
     item = vault.item(key)
     if item is None or item.kind != "unknown":
         return ""
     state = item.fact("State") or "no state"
-    return f'<span class="ustate us-{html.escape(state)}" title="{html.escape(key)} is {html.escape(state)} on the unknowns page">{html.escape(state)}</span>'
+    if where == PROSE and state == "open":
+        return ""
+    s = html.escape(state)
+    return (f' <span class="ustate us-{s}" role="note" aria-label="{html.escape(key)} is {s}" '
+            f'title="{html.escape(key)} is {s} on the unknowns page"><span class="sr-only">(</span>{s}<span class="sr-only">)</span></span>')
 
 
 def plain(text):

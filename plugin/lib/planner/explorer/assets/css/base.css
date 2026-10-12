@@ -155,7 +155,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .pill.caution { background: color-mix(in srgb, var(--caution) 16%, transparent); color: var(--caution-text); }
 .pill.unexamined { background: color-mix(in srgb, var(--unexamined) 15%, transparent); color: var(--unexamined-text); }
 .pill.override { background: color-mix(in srgb, var(--override) 12%, transparent); color: var(--override-text); box-shadow: inset 0 0 0 1px var(--override-edge); }
-.ustate { font-size: 10.5px; padding: 0 5px; border-radius: 999px; margin-left: 3px; vertical-align: 1px; }
+.ustate { font-size: 10.5px; padding: 0 5px; border-radius: 999px; vertical-align: 1px; }
 .us-open { background: color-mix(in srgb, var(--caution) 18%, transparent); color: var(--caution-text); }
 .us-resolved { background: var(--deck-3); color: var(--ink-3); }
 .ref-chip { display: inline-flex; align-items: baseline; gap: 5px; border: 1px solid var(--rule-3); border-radius: 6px; padding: 1px 7px; margin: 0 4px 4px 0;
