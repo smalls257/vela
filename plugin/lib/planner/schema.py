@@ -366,6 +366,7 @@ VOICE_STATES = ("active", "retired")
 VOICE_ACTIVE_MAX = 5
 
 # Files the check never parses as pages (paths relative to the vault root).
-SKIP_FILES = ("CLAUDE.md", "CONVENTIONS.md")
-SKIP_DIRS = ("voice", "handoffs")
+SKIP_FILES = ("CLAUDE.md", "CONVENTIONS.md", "CONTEXT.md")
+# docs/ holds the team's tech designs, build plans and ADRs (tech-design-grill and work-breakdown write there when run from the vault root).
+SKIP_DIRS = ("voice", "handoffs", "docs")
 HANDOFF_DIR = "handoffs"  # planner handoff writes <APP-id>.md here; it is a record, not a page

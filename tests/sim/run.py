@@ -65,6 +65,8 @@ MIN_CALL_USD = 0.01  # below this a call cannot do useful work, so the session s
 GH_MESSAGE = "gh: not available in the simulator"
 END = "[END]"
 TICKETS_TIMEOUT = 60
+TEAM_MODES = ("tech-design-grill", "breakdown")  # the team's sessions in a vault script: run from the vault root with the user's own skills (vault_skills)
+EXPLORER_DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
 BREAKDOWN_TO_TICKETS = REPO / "tools" / "breakdown_to_tickets.py"
 TIMEOUTS = {"assistant": 1800, "persona": 300, "judge": 900}
 GIT_USER = ["-c", "user.name=Sim Lead", "-c", "user.email=sim-lead@example.invalid"]
@@ -242,8 +244,8 @@ def script_problems(data, persona):
             continue
         if session.get("repo") and session["repo"] not in (data.get("team_repos") or {}):
             problems.append(f"session {n}: repo {session['repo']!r} is not one of the script's team_repos")
-        if session.get("mode") not in MODES and not session.get("repo"):
-            problems.append(f"session {n}: mode {session.get('mode')!r} is not one of {', '.join(MODES)}")
+        if session.get("mode") not in MODES + TEAM_MODES and not session.get("repo"):
+            problems.append(f"session {n}: mode {session.get('mode')!r} is not one of {', '.join(MODES + TEAM_MODES)}")
         if not isinstance(session.get("cap"), int) or session["cap"] < 1:
             problems.append(f"session {n}: 'cap' must be a whole number of assistant turns, at least 1")
         for arm_key in ("planner", "baseline"):
@@ -257,7 +259,7 @@ def script_problems(data, persona):
             except (KeyError, IndexError, ValueError) as exc:
                 problems.append(f"session {n}: the {arm} opening names {exc}, which the persona does not hold")
                 continue
-            if session.get("repo"):
+            if session.get("repo") or session.get("mode") in TEAM_MODES:
                 continue  # a team session runs the team's own skills, or plain words, in the team's repo
             if arm == "planner" and not text.startswith(f"/planner:{session['mode']}"):
                 problems.append(f"session {n}: the planner opening must start with /planner:{session['mode']}")
@@ -717,6 +719,22 @@ def build_team_repo(arm_dir, name, spec):
     return repo
 
 
+def install_vault_skills(vault, skills):
+    """The user's own skills (tech-design-grill, work-breakdown) copied into the vault's .claude/skills from the user's
+    ~/.claude/skills, read and never changed, then committed and pushed so the vault stays clean for the closes. The
+    team runs them from the vault root, so the design, the ADRs and the plan land under docs/ in the vault, where the
+    explorer finds them with no flag."""
+    for skill in skills:
+        source = USER_SKILLS / skill
+        if not (source / "SKILL.md").is_file():
+            raise ToolFailure(f"vault skill {skill}: no skill at {source}")
+        shutil.copytree(source, vault / ".claude" / "skills" / skill)
+        git("add", f".claude/skills/{skill}", cwd=vault)
+    if skills:
+        git("commit", "-q", "-m", f"Sim: the team's skills ({', '.join(skills)})", cwd=vault)
+        git("push", "-q", "origin", "main", cwd=vault)
+
+
 def write_gh_stub(bin_dir):
     bin_dir.mkdir(parents=True, exist_ok=True)
     gh = bin_dir / "gh"
@@ -992,8 +1010,8 @@ class Arm:
         if mode == "close":
             for report in merge_closed(self.vault, self.dir):
                 self.transcript.add(speaker="driver", session=index, mode=mode, event="merge", text=report)
-        if mode == "breakdown" and session.get("repo"):
-            self.make_tickets(index, mode, self.repos[session["repo"]])
+        if mode == "breakdown":
+            self.make_tickets(index, mode, self.repos[session["repo"]] if session.get("repo") else self.vault)
         return reason
 
     def make_tickets(self, index, mode, repo):
@@ -1028,6 +1046,10 @@ class Arm:
             self.repos[name] = build_team_repo(self.dir, name, spec)
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup",
                                 text=f"team repo {name} at team-{name}, with skills {', '.join(spec.get('skills') or [])}")
+        install_vault_skills(self.vault, script.get("vault_skills") or [])
+        if script.get("vault_skills"):
+            self.transcript.add(speaker="driver", session=0, mode="setup", event="setup",
+                                text=f"the team's skills in the vault: {', '.join(script['vault_skills'])}; their sessions run from the vault root")
         events = {e["after"]: e for e in script.get("events") or []}
         inbox = self.dir / "news-inbox"
         (inbox / "applied").mkdir(parents=True, exist_ok=True)
@@ -1041,6 +1063,21 @@ class Arm:
                                     text=f"Session {index} ({session['mode']}) not run: the session budget is spent")
                 continue
             self.run_session(index, session)
+        self.report_explorer()
+
+    def report_explorer(self):
+        """Say whether the tool left an explorer page in the vault, and what design and plan it holds. The page is the
+        tool's own (the closing session's last step builds it); this only reads it, so a missing page is a finding."""
+        page = self.vault / ".planner" / "explorer.html"
+        if not page.is_file():
+            line = "no .planner/explorer.html in the final vault: no close step built the explorer"
+        else:
+            found = EXPLORER_DATA.search(page.read_text(encoding="utf-8"))
+            data = json.loads(found.group(1)) if found else {}
+            line = (f".planner/explorer.html in the final vault, built by the tool: {len(data.get('designs') or {})} tech design(s), "
+                    f"{len(data.get('plans') or {})} build plan(s) loaded")
+        self.notes.append(line)
+        self.transcript.add(speaker="driver", session=0, mode="end", event="explorer", text=line)
 
     def arrive(self, index, mode, event):
         """News that reaches the lead between sessions: facts they now know, documents now in the inbox, and how

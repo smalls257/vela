@@ -200,3 +200,11 @@ def test_the_pins_travel_in_a_copy_but_are_not_a_page_a_reader_changed():
     assert pins in publish.selected({pins: b"{}", ".planner/explorer.html": b"x", "01-goals.md": b"g"})
     assert ".planner/explorer.html" not in publish.selected({".planner/explorer.html": b"x"})
     assert publish.is_excluded(pins)
+
+
+def test_a_read_copy_carries_the_teams_docs_folder_and_context_like_any_other_file():
+    from planner import opening, publish
+    files = {"docs/tech-design/x.md": b"d", "docs/plan/x-breakdown.md": b"p", "CONTEXT.md": b"c", ".planner/explorer.html": b"h", "01-goals.md": b"g"}
+    kept = publish.selected(files)
+    assert sorted(kept) == ["01-goals.md", "CONTEXT.md", "docs/plan/x-breakdown.md", "docs/tech-design/x.md"]
+    assert sorted(opening.content_files(kept)) == sorted(kept)

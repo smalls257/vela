@@ -957,3 +957,69 @@ def test_a_run_whose_breakdown_is_missing_says_so_in_tickets_and_the_transcript_
     assert done.returncode == 0, done.stderr
     assert "found 0" in (arm / "tickets" / "README.md").read_text(encoding="utf-8")
     assert any(e.get("event") == "tickets" and "no tickets" in e["text"] for e in entries(arm))
+
+
+# ---------------------------------------------------------------- the explorer the tool builds at the end of a run
+
+DEMO = REPO / "prototypes" / "explorer" / "demo_designs"
+EXPLORER_DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
+
+
+def team_in_vault_run(tmp_path, write):
+    """A stub run from the trading snapshot (APP-coach is in it): the team's two sessions and a closing close, all from the vault
+    root. The stub's close runs the plugin's `planner explore`, as the close skill's last step does; `write` is what the stub's
+    first turns create under docs/ (a JSON object of path to text), or None."""
+    for skill in ("tech-design-grill", "work-breakdown"):
+        if not (sim.USER_SKILLS / skill / "SKILL.md").is_file():
+            pytest.skip(f"the user's {skill} skill is not installed on this machine")
+    script = {"name": "team", "persona": "trading-coach", "start": "trading-coach/after-final",
+              "vault_skills": ["tech-design-grill", "work-breakdown"],
+              "sessions": [{"mode": "tech-design-grill", "cap": 2, "persona": "coach-lead", "planner": "/tech-design-grill coach", "baseline": "design it"},
+                           {"mode": "breakdown", "cap": 2, "persona": "coach-lead", "planner": "/work-breakdown coach", "baseline": "plan it"},
+                           {"mode": "close", "cap": 2, "planner": "/planner:close", "baseline": "Close out."}]}
+    path = tmp_path / "team.yaml"
+    path.write_text(yaml.safe_dump(script), encoding="utf-8")
+    env = {**os.environ}
+    if write is not None:
+        env["SIM_STUB_WRITE"] = json.dumps(write)
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "trading-coach", "--stub", "--script", str(path), "--arms", "planner",
+                           "--out", str(tmp_path / "results"), *MODELS, "--budget", "2"],
+                          capture_output=True, text=True, env=env, timeout=600)
+    return done, sorted((tmp_path / "results").iterdir())[0] / "planner"
+
+
+def page_data(arm):
+    page = (arm / "vault" / ".planner" / "explorer.html").read_text(encoding="utf-8")
+    return json.loads(EXPLORER_DATA.search(page).group(1))
+
+
+def test_the_final_close_leaves_an_explorer_with_the_design_and_plan_found_in_the_vaults_docs(tmp_path):
+    design = (DEMO / "pricing" / "docs/tech-design/pricing.md").read_text(encoding="utf-8").replace("prereqs:\n", "vault:\n  app: APP-coach\nprereqs:\n", 1)
+    plan = (DEMO / "booking" / "docs/plan/booking-breakdown.md").read_text(encoding="utf-8").replace("docs/tech-design/booking.md", "docs/tech-design/coach.md")
+    done, arm = team_in_vault_run(tmp_path, {"docs/tech-design/coach.md": design, "docs/plan/coach-breakdown.md": plan})
+    assert done.returncode == 0, done.stderr
+    data = page_data(arm)
+    assert [d["appId"] for d in data["designs"].values()] == ["APP-coach"] and [p["appId"] for p in data["plans"].values()] == ["APP-coach"]
+    assert any(e.get("event") == "explorer" and "1 tech design(s), 1 build plan(s)" in e["text"] for e in entries(arm))
+
+
+def test_a_run_whose_team_wrote_no_design_still_ends_with_the_page_and_says_none_was_loaded(tmp_path):
+    done, arm = team_in_vault_run(tmp_path, None)
+    assert done.returncode == 0, done.stderr
+    data = page_data(arm)
+    assert data["designs"] == {} and data["plans"] == {}
+    assert any(e.get("event") == "explorer" and "0 tech design(s), 0 build plan(s)" in e["text"] for e in entries(arm))
+
+
+def test_the_full_heron_script_ends_with_the_explorer_the_tool_built_in_its_vault(tmp_path):
+    for skill in ("tech-design-grill", "work-breakdown"):
+        if not (sim.USER_SKILLS / skill / "SKILL.md").is_file():
+            pytest.skip(f"the user's {skill} skill is not installed on this machine")
+    script = SIM / "scripts" / "heron-desk-full.yaml"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(script), "--arms", "planner",
+                           "--out", str(tmp_path / "results"), *MODELS, "--budget", "5"], capture_output=True, text=True, timeout=900)
+    assert done.returncode == 0, done.stderr
+    arm = sorted((tmp_path / "results").iterdir())[0] / "planner"
+    assert (arm / "vault" / ".planner" / "explorer.html").is_file()
+    assert (arm / "vault" / ".claude" / "skills" / "tech-design-grill" / "SKILL.md").is_file() and not (arm / "team-agent").exists()
+    assert any(e.get("event") == "explorer" for e in entries(arm))

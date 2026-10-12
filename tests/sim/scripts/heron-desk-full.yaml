@@ -1,15 +1,19 @@
 # Heron from an empty vault to "ready to start working": dump, discover, shape, boundary, grill, requirements, allocate,
-# releases, epics and a handoff of the desktop agent, each with its close, then three sessions in the Desk Agent team's
-# own repository beside the vault: a technical design in vault mode and a work breakdown. The tickets are not a
-# session: after the breakdown session the harness runs tools/breakdown_to_tickets.py on the breakdown the work-breakdown
-# skill wrote, so every ticket traces to the grilling and none is invented (see tests/sim/README.md).
+# releases, epics and a handoff of the desktop agent, each with its close, then two sessions of the Desk Agent team,
+# run from the vault root with the user's own skills: a technical design in vault mode and a work breakdown, both written under docs/ in the vault. The tickets are not a
+# session: after the breakdown session the harness runs tools/breakdown_to_tickets.py on the docs/plan breakdown the work-breakdown
+# skill wrote in the vault, so every ticket traces to the grilling and none is invented (see tests/sim/README.md).
 # The news holds what only this lead knows and no skill may invent: the dates of the pilot and general availability,
 # the names the business uses for its areas, the DPO's answer on who a digest may name, and the question only Legal can
 # answer. The scorecard's "Recorded for the explorer" section reads the final vault (planner capture): every app has a
 # domain, at least 80% of the flow steps that cross a contract name a sender, the 2027-02-02 pilot release is present,
 # and an Ask names the DPO. The team sessions use the user's copies of tech-design-grill and work-breakdown, so they
-# are not scored by the brief; their files are in team-agent/ for reading. This costs money to run; tests/test_sim.py
+# are not scored by the brief; their files are in vault/docs/ for reading. This costs money to run; tests/test_sim.py
 # checks the file shapes with --stub.
+#
+# The explorer that ships in the results is the tool's, not the harness's. The last session is a close with nothing open:
+# its last step rebuilds vault/.planner/explorer.html, which finds the design and the plan under docs/ with no flag or
+# config, so the page holds the team's design and build plan.
 #
 # Cost, for a Sonnet assistant at about $0.30 an assistant turn and a Haiku lead at about $0.02: the caps allow 178
 # assistant turns; sessions usually end by themselves at about 60% of the cap, so about 107 turns, $32 plus $2 of lead
@@ -196,12 +200,9 @@ news:
       The council will take Heron at its December meeting. We will not agree before we have read the full list of data
       Heron reads. Frankfurt stays out of the pilot.'
 start: heron-desk/empty
-team_repos:
-  agent:
-    title: Desk Agent
-    skills:
-    - tech-design-grill
-    - work-breakdown
+vault_skills:
+- tech-design-grill
+- work-breakdown
 sessions:
 - mode: dump
   cap: 16
@@ -285,19 +286,22 @@ sessions:
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: tech-design-grill
   cap: 22
-  repo: agent
   persona: heron-agent-lead
-  planner: '/tech-design-grill desktop-agent. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
-    first, with --vault ../vault --app the desktop agent''s APP id (find it in ../vault/05-building-blocks).'
-  baseline: '/tech-design-grill desktop-agent. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
-    first, with --vault ../vault --app the desktop agent''s APP id (find it in ../vault/05-building-blocks).'
+  planner: '/tech-design-grill desktop-agent. The app was handed off in this vault: read .claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
+    first, with --vault . --app the desktop agent''s APP id (find it in 05-building-blocks). Write the design to docs/tech-design/ in this vault,
+    with its frontmatter vault.app set to that APP id.'
+  baseline: '/tech-design-grill desktop-agent. The app was handed off in this initiative vault (the current folder): read its pages, with --vault . --app
+    the desktop agent''s APP id (find it in 05-building-blocks). Write the design to docs/tech-design/.'
 - mode: breakdown
   cap: 18
-  repo: agent
   persona: heron-agent-lead
-  planner: '/work-breakdown desktop-agent. Use the design in docs/tech-design and the initiative vault at ../vault with --vault ../vault
-    --app the desktop agent''s APP id: stories traced to the allocated requirement rows and epic criteria, tasks sized S, M or L, and the
-    order to build in with what blocks what. Write it to docs/plan/desktop-agent-breakdown.md.'
+  planner: '/work-breakdown desktop-agent. Use the design in docs/tech-design and this initiative vault with --vault . --app the desktop agent''s
+    APP id: stories traced to the allocated requirement rows and epic criteria, tasks sized S, M or L, and the order to build in with what blocks
+    what. Write it to docs/plan/desktop-agent-breakdown.md.'
   baseline: 'Break the desktop agent design into a work plan in docs/plan/desktop-agent-breakdown.md: stories traced to the allocated
-    requirement rows and epic criteria in ../vault and to the design components, tasks sized S, M or L, and the order to build in
+    requirement rows and epic criteria in this vault and to the design components, tasks sized S, M or L, and the order to build in
     with what blocks what.'
+- mode: close
+  cap: 4
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.

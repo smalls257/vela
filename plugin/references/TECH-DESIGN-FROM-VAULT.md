@@ -1,12 +1,12 @@
 # tech-design-grill from an initiative vault
 
-The user's `tech-design-grill` skill reads this file when it is given `--vault <path> --app <APP-id>`. The vault's pages for that app take the place of `docs/requirements/<slug>.md`. The skill keeps its own interview and its own output: `docs/tech-design/<slug>.md`, ADRs and `CONTEXT.md`, all in the team's repository.
+The user's `tech-design-grill` skill reads this file when it is given `--vault <path> --app <APP-id>`. The vault's pages for that app take the place of `docs/requirements/<slug>.md`. The skill keeps its own interview and its own output: `docs/tech-design/<slug>.md`, ADRs and `CONTEXT.md`, all in the vault, because the senior runs the skill from the vault root: `docs/tech-design/<slug>.md`, `docs/adr/` and `CONTEXT.md` there, and `work-breakdown` writes `docs/plan/<slug>-breakdown.md` beside them. `planner explore` finds them with no flag, and `planner check` does not read `docs/`. Use `--vault .`. Write `vault: {app: <APP-id>}` in the design's frontmatter so the explorer matches it to the app.
 
 ## Before the first question
 
 1. The prereq is already checked: the app's building-blocks page in the vault carries `handed_off:`. Record it in the design doc's `prereqs[]` as `path: <vault>/05-building-blocks/<app>-building-blocks.md`, `expected_status: handed_off`.
 2. Record the vault commit: run `git -C <vault> rev-parse --short HEAD` and `git -C <vault> remote get-url origin`. Every link back names this commit.
-3. Run `git -C <vault> status --short`. If the vault clone has changes, say so: the design would start from pages nobody reviewed.
+3. Run `git -C <vault> status --short`. If the vault clone has changes to planner pages, say so: the design would start from pages nobody reviewed. Changes under `docs/` and `CONTEXT.md` are the design's own files and do not count.
 4. Run `python3 <vault>/.claude/skills/planner/scripts/planner handoff verify <APP-id> --vault <vault>`. Exit 0 means nothing the senior accepted has changed. Exit 1 lists each changed or removed item: tell the senior, and read those items again before the design rests on them. Exit 2 means the vault holds no manifest for the app; say so and go on.
 5. If `slug` is not given, propose the app's name without `APP-`, for example `booking`.
 
@@ -42,4 +42,4 @@ Cite vault items by ID and commit, for example `INI-002 CON-001 @ 3f9c2a1`, or a
 
 ## When the vault is wrong or silent
 
-The design never edits the vault. A functional gap, or a vault answer the senior disputes, becomes an `OQ-XXX` in the design doc with `challenges: <vault ID>` and the scenario that shows the problem. Tell the senior to raise it in the vault with `/planner:challenge <vault ID>`. That records it as an open unknown the senior owns, and asks the solution lead in a PR. Carry on with the branches it does not touch. Never log a challenge as `D-XXX`: that type means the answer is known.
+The design never edits the vault. That means the planner pages; its own files under `docs/` and `CONTEXT.md` are the design's to write. A functional gap, or a vault answer the senior disputes, becomes an `OQ-XXX` in the design doc with `challenges: <vault ID>` and the scenario that shows the problem. Tell the senior to raise it in the vault with `/planner:challenge <vault ID>`. That records it as an open unknown the senior owns, and asks the solution lead in a PR. Carry on with the branches it does not touch. Never log a challenge as `D-XXX`: that type means the answer is known.

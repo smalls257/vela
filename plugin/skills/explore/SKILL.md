@@ -24,7 +24,7 @@ $ARGUMENTS
    - `--port <n>` only if the user names one.
    - a theme word becomes `--theme <word>`. `console` is dark and the default; `graphite` is grey, for projectors that wash out blue; `daylight` is light, for screen-sharing and print; `vaporwave` is a 1990s sunset.
    - a date becomes `--today YYYY-MM-DD`. The lights count from the system date, so a vault dated ahead of it, such as the example, wants this.
-   - a team's tech design becomes `--design APP-x=<path>`, once per app. Inside this app then goes down to that team's components. Without one it stops at the app page's containers, unless the build finds the design itself: with no `--design`, it looks for each app's doc from `design:` on the app page, `designs:` in `.planner.yaml`, then a `file://` GitHub or Code link to a local clone whose `docs/tech-design/*.md` names the app in its `vault.app` (CONVENTIONS.md, Team design docs). It reads local files only. If the user says where a team's repo is cloned, offer to write `design:` on the app page; do not ask them to retype `--design` every build.
+   - a team's tech design becomes `--design APP-x=<path>`, once per app. Inside this app then goes down to that team's components. Without one it stops at the app page's containers, unless the build finds the design itself: with no `--design`, it looks for each app's doc from `design:` on the app page, `designs:` in `.planner.yaml`, then the vault's own `docs/tech-design/*.md` (matched to an app by `vault.app`, then by the prereq naming its page, then by file name), then a `file://` GitHub or Code link to a local clone whose `docs/tech-design/*.md` names the app in its `vault.app` (CONVENTIONS.md, Team design docs). It reads local files only. If the user says where a team's repo is cloned, offer to write `design:` on the app page; do not ask them to retype `--design` every build.
    - `--assets <assets.config.json>` only if the user hands you one. It inlines generated art and sound. Without it the page uses its own drawing, which is complete.
    - `-o <file>` only if the user names a place for the page.
 2. Read what it printed, line by line, before you open anything. Step 4 says what each kind of line means. If the command exits 2, show its message in full, say no page was built, and stop. Never open an old page as if it were new.
@@ -43,6 +43,10 @@ $ARGUMENTS
 - `no Open the file links, the vault and the page sit apart under the home folder`. The page was written somewhere its relative links to the vault cannot reach without naming the home folder, so it leaves them out rather than writing an absolute path. Build again without `-o` to get them.
 - `this vault's .gitignore does not list .planner/`. The page would be committed. Offer to add the lines `.planner/*` and `!.planner/explorer-pins.json` to `.gitignore` (the pins are the one file a team commits), and do it only if the user says yes.
 - `assets from ..., N fell back to builtin`. Each fallback is listed with its reason. Say which slots fell back.
+
+## Where designs and plans live
+
+Both live in the vault: `docs/tech-design/<slug>.md` (with `docs/adr/` and `CONTEXT.md`) from tech-design-grill and `docs/plan/<slug>-breakdown.md` from work-breakdown, when the team runs them from the vault root. The build finds them with no flag. tech-design-grill's vault mode says "never edit the vault"; that means never edit planner pages. Writing its own `docs/` files in the vault is allowed, so say so if a senior asks. `planner check` does not read `docs/`.
 
 ## Where the files go
 
