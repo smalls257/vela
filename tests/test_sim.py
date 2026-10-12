@@ -813,7 +813,7 @@ def test_an_item_no_page_mentions_says_so_and_a_long_transcript_is_cut_in_the_op
     text, cuts = sim.build_judge_input(persona, transcript, vault, "knows", hits)
     assert len(text) <= sim.JUDGE_INPUT_CHARS
     assert any(c.startswith("K1: no page holds a keyword") for c in cuts)
-    assert any(c.startswith("transcript: every turn cut to") for c in cuts)
+    assert any(c.startswith("transcript: ") and "cut to" in c for c in cuts)
     assert "no page of the final vault holds one of its keywords" in text
 
 
@@ -857,3 +857,103 @@ def test_dry_judge_reports_every_input_size_without_calling_claude(full_run):
     assert done.returncode == 0, done.stderr
     assert "[planner] knows: " in done.stdout and f"of {sim.JUDGE_INPUT_CHARS}" in done.stdout
     assert done.stdout.count("[planner] ") == len(sim.JUDGE_CATEGORIES)
+
+
+def long_run_transcript(tmp_path, persona, sessions=23, per_session=30, size=2_000):
+    """A run far over the judge's cap: every turn is padding, and one lead turn per session holds a keyword."""
+    rows, turn = [], 0
+    keyword = persona["knows"][0]["keywords"][0]
+    for session in range(1, sessions + 1):
+        for n in range(per_session):
+            turn += 1
+            text = ("padding " * (size // 8)) + (f" {keyword}" if n == 7 else "")
+            rows.append({"turn": turn, "session": session, "mode": "grill", "speaker": "lead" if turn % 2 else "assistant",
+                         "text": text})
+    path = tmp_path / "transcript.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    return sim.Transcript.load(path)
+
+
+def test_a_transcript_far_over_the_cap_still_fits_every_call_and_names_what_it_left_out(tmp_path):
+    persona = coastal()
+    vault = padded_vault(tmp_path, persona, pages=3, chars=6_000)
+    transcript = long_run_transcript(tmp_path, persona)
+    assert len(sim.as_chat(transcript.spoken())) > 3 * sim.JUDGE_INPUT_CHARS
+    hits = sim.vault_hits(persona, transcript, vault)
+    keyword = persona["knows"][0]["keywords"][0]
+    for category in sim.JUDGE_CATEGORIES:
+        for compact in (False, True):
+            text, cuts = sim.build_judge_input(persona, transcript, vault, category, hits, compact)
+            assert len(text) <= sim.JUDGE_INPUT_CHARS, category
+            assert any(c.startswith("transcript:") and "left out: T" in c for c in cuts), category
+            assert text.count("=== Session ") == 23, "every session keeps its header"
+            assert "[... left out: T" in text
+    knows, _ = sim.build_judge_input(persona, transcript, vault, "knows", hits)
+    assert keyword in knows.split("THE TRANSCRIPT:", 1)[1].split("THE FINAL VAULT", 1)[0]
+
+
+def test_the_turns_beside_a_keyword_outrank_the_rest_when_the_transcript_is_cut(tmp_path):
+    persona = coastal()
+    transcript = long_run_transcript(tmp_path, persona, sessions=2, per_session=40, size=1_000)
+    spoken = transcript.spoken()
+    chat, cut = sim.relevant_chat(spoken, [persona["knows"][0]["keywords"][0]], 9_000)
+    hit = next(e["turn"] for e in spoken if persona["knows"][0]["keywords"][0] in e["text"])
+    assert f"[T{hit}]" in chat and f"[T{hit + 1}]" in chat and f"[T{hit - 1}]" in chat
+    assert len(chat) <= 9_000 and "left out:" in cut
+
+
+def test_rejudge_scores_a_synthetic_run_far_over_the_cap_with_the_stub(full_run, tmp_path):
+    import shutil
+    run_dir = tmp_path / full_run["run"].name
+    shutil.copytree(full_run["run"], run_dir, symlinks=True)
+    for arm in ("planner-seuss", "baseline"):
+        shutil.rmtree(run_dir / arm)
+    summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    summary["per_arm"] = {"planner": summary["per_arm"]["planner"]}
+    summary["arms"] = ["planner"]
+    (run_dir / "run.json").write_text(json.dumps(summary), encoding="utf-8")
+    big = long_run_transcript(tmp_path, coastal())
+    (run_dir / "planner" / "transcript.jsonl").write_text(big.path.read_text(encoding="utf-8"), encoding="utf-8")
+    log = tmp_path / "long-log.jsonl"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "--rejudge", str(run_dir), "--stub", "--judge-model", "j",
+                           "--budget", "1"], capture_output=True, text=True,
+                          env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
+    assert done.returncode == 0, done.stderr
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert any("left out: T" in c for c in card["check_these"] + sum(card["judge_cuts"].values(), []))
+    sizes = [json.loads(line)["stdin_chars"] for line in log.read_text(encoding="utf-8").splitlines()]
+    assert max(sizes) <= sim.JUDGE_INPUT_CHARS
+
+
+def breakdown_run(tmp_path, written):
+    """A stub run whose breakdown session writes `written` to docs/plan/x-breakdown.md in the team repo."""
+    if not (sim.USER_SKILLS / "work-breakdown" / "SKILL.md").is_file():
+        pytest.skip("the user's work-breakdown skill is not installed on this machine")
+    script = {"name": "team", "persona": "coastal-merger", "team_repos": {"x": {"title": "X", "skills": ["work-breakdown"]}},
+              "sessions": [{"mode": "breakdown", "cap": 3, "repo": "x", "persona": "coach-lead",
+                            "planner": "/work-breakdown x", "baseline": "break it down"}]}
+    path = tmp_path / "team.yaml"
+    path.write_text(yaml.safe_dump(script), encoding="utf-8")
+    env = {**os.environ}
+    if written is not None:
+        env["SIM_STUB_WRITE"] = f"docs/plan/x-breakdown.md::{written}"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(path),
+                           "--arms", "planner", "--out", str(tmp_path / "results"), *MODELS, "--budget", "2"],
+                          capture_output=True, text=True, env=env, timeout=600)
+    return done, sorted((tmp_path / "results").iterdir())[0] / "planner"
+
+
+def test_the_breakdown_session_is_followed_by_tickets_from_the_breakdown_not_a_model(tmp_path):
+    fixture = (REPO / "tests" / "fixtures" / "breakdown" / "desk-agent-breakdown.md").read_text(encoding="utf-8")
+    done, arm = breakdown_run(tmp_path, fixture)
+    assert done.returncode == 0, done.stderr
+    assert (arm / "tickets" / "tickets.csv").read_text(encoding="utf-8").count("\n") > 8
+    assert "Import into Jira" in (arm / "tickets" / "README.md").read_text(encoding="utf-8")
+    assert any(e.get("event") == "tickets" and "every line mapped" in e["text"] for e in entries(arm))
+
+
+def test_a_run_whose_breakdown_is_missing_says_so_in_tickets_and_the_transcript_and_still_exits_0(tmp_path):
+    done, arm = breakdown_run(tmp_path, None)
+    assert done.returncode == 0, done.stderr
+    assert "found 0" in (arm / "tickets" / "README.md").read_text(encoding="utf-8")
+    assert any(e.get("event") == "tickets" and "no tickets" in e["text"] for e in entries(arm))

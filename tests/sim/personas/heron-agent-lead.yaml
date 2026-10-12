@@ -19,7 +19,6 @@ opening: >-
 topics:
   design: the desktop agent
   breakdown: the desktop agent
-  tickets: the desktop agent
 
 knows:
   - id: K1

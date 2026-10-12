@@ -1,17 +1,19 @@
 # Heron from an empty vault to "ready to start working": dump, discover, shape, boundary, grill, requirements, allocate,
 # releases, epics and a handoff of the desktop agent, each with its close, then three sessions in the Desk Agent team's
-# own repository beside the vault: a technical design in vault mode, a work breakdown, and Jira-ready tickets.
+# own repository beside the vault: a technical design in vault mode and a work breakdown. The tickets are not a
+# session: after the breakdown session the harness runs tools/breakdown_to_tickets.py on the breakdown the work-breakdown
+# skill wrote, so every ticket traces to the grilling and none is invented (see tests/sim/README.md).
 # The news holds what only this lead knows and no skill may invent: the dates of the pilot and general availability,
 # the names the business uses for its areas, the DPO's answer on who a digest may name, and the question only Legal can
 # answer. The scorecard's "Recorded for the explorer" section reads the final vault (planner capture): every app has a
 # domain, at least 80% of the flow steps that cross a contract name a sender, the 2027-02-02 pilot release is present,
 # and an Ask names the DPO. The team sessions use the user's copies of tech-design-grill and work-breakdown, so they
-# are not scored by the brief; their files are in team-agent/ for reading. The tickets session uses the free mode name
-# "tickets", which any team session may. This costs money to run; tests/test_sim.py checks the file shapes with --stub.
+# are not scored by the brief; their files are in team-agent/ for reading. This costs money to run; tests/test_sim.py
+# checks the file shapes with --stub.
 #
 # Cost, for a Sonnet assistant at about $0.30 an assistant turn and a Haiku lead at about $0.02: the caps allow 178
 # assistant turns; sessions usually end by themselves at about 60% of the cap, so about 107 turns, $32 plus $2 of lead
-# turns, against $34 of session spend (a $40 budget less 15% for the judge). The tickets session is last, so a run that
+# turns, against $34 of session spend (a $40 budget less 15% for the judge). The breakdown session is last, so a run that
 # overspends loses its tail rather than its middle; raise --budget to about $60 for every cap to be reached.
 name: heron-desk-full
 persona: heron-desk
@@ -299,15 +301,3 @@ sessions:
   baseline: 'Break the desktop agent design into a work plan in docs/plan/desktop-agent-breakdown.md: stories traced to the allocated
     requirement rows and epic criteria in ../vault and to the design components, tasks sized S, M or L, and the order to build in
     with what blocks what.'
-- mode: tickets
-  cap: 8
-  repo: agent
-  persona: heron-agent-lead
-  planner: 'Turn docs/plan/desktop-agent-breakdown.md into Jira-ready tickets. Write docs/work/tickets.csv in Jira''s CSV import shape: Summary,
-    Description, Issue Type (Epic, Story or Task), Epic Link for stories and Parent for tasks, Story Points from the size (S is 1, M is 3,
-    L is 8, and say so), Labels carrying the requirement and vault IDs, and a Blocked by column. Write docs/work/README.md saying how to
-    import it and the size mapping. Change nothing else.'
-  baseline: 'Turn docs/plan/desktop-agent-breakdown.md into Jira-ready tickets. Write docs/work/tickets.csv in Jira''s CSV import shape: Summary,
-    Description, Issue Type (Epic, Story or Task), Epic Link for stories and Parent for tasks, Story Points from the size (S is 1, M is 3,
-    L is 8, and say so), Labels carrying the requirement and vault IDs, and a Blocked by column. Write docs/work/README.md saying how to
-    import it and the size mapping. Change nothing else.'

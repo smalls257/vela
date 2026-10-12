@@ -64,6 +64,8 @@ JUDGE_RESERVE = 0.15  # share of an arm's budget kept for the judge, so a spent 
 MIN_CALL_USD = 0.01  # below this a call cannot do useful work, so the session stops on budget instead
 GH_MESSAGE = "gh: not available in the simulator"
 END = "[END]"
+TICKETS_TIMEOUT = 60
+BREAKDOWN_TO_TICKETS = REPO / "tools" / "breakdown_to_tickets.py"
 TIMEOUTS = {"assistant": 1800, "persona": 300, "judge": 900}
 GIT_USER = ["-c", "user.name=Sim Lead", "-c", "user.email=sim-lead@example.invalid"]
 
@@ -990,7 +992,29 @@ class Arm:
         if mode == "close":
             for report in merge_closed(self.vault, self.dir):
                 self.transcript.add(speaker="driver", session=index, mode=mode, event="merge", text=report)
+        if mode == "breakdown" and session.get("repo"):
+            self.make_tickets(index, mode, self.repos[session["repo"]])
         return reason
+
+    def make_tickets(self, index, mode, repo):
+        """The tickets come from the breakdown the session wrote, by tools/breakdown_to_tickets.py and no model, so
+        they cannot be invented. They land in <arm>/tickets/ with a README on importing them. A breakdown that is
+        missing or does not map is a finding about the arm, so it is written down there and in the transcript, and it
+        does not fail the run."""
+        out = self.dir / "tickets"
+        try:
+            done = subprocess.run([sys.executable, str(BREAKDOWN_TO_TICKETS), "--repo", str(repo), "--out", str(out)],
+                                  capture_output=True, text=True, timeout=TICKETS_TIMEOUT)
+        except subprocess.TimeoutExpired as exc:
+            raise ToolFailure(f"breakdown_to_tickets took more than {TICKETS_TIMEOUT} seconds on {repo}") from exc
+        said = {0: "every line mapped", 1: "some lines did not map, see the README in that folder",
+                2: "no tickets: " + done.stderr.strip()}.get(done.returncode, f"exit {done.returncode}: {done.stderr.strip()}")
+        if done.returncode not in (0, 1):
+            out.mkdir(exist_ok=True)
+            (out / "README.md").write_text(f"# No tickets\n\nbreakdown_to_tickets exited {done.returncode}.\n\n"
+                                           f"{done.stderr.strip()}\n", encoding="utf-8")
+        self.transcript.add(speaker="driver", session=index, mode=mode, event="tickets",
+                            text=f"Tickets from the breakdown, written to tickets/: {said}")
 
     def run(self, script):
         self.persona = with_news(self.persona, script.get("news"))
@@ -1279,7 +1303,11 @@ def compact_chat(entries, limit=800):
 # more than this, and whatever is left out is named on the scorecard instead of dropped quietly.
 JUDGE_INPUT_CHARS = 300_000
 EVIDENCE_FLOOR_PER_ITEM = 12_000  # the transcript gives way before an item's vault evidence drops below this
-TURN_LIMITS = (2000, 800, 300)  # the characters a turn keeps, tried in order, when the whole transcript does not fit
+EVIDENCE_FLOOR_MAX = JUDGE_INPUT_CHARS // 2  # but a brief of 34 items cannot reserve more than half the call for it
+TURN_LIMITS = (2000, 800)  # the characters a turn keeps, tried in order, when the whole transcript does not fit
+RELEVANT_TURN_CHARS = 800  # when even that does not fit, the turns that hold a keyword keep this much each
+MARKER_CHARS = 60  # what a "[... T3 to T9 left out]" line and a turn's label can cost
+MAX_NAMED_GAPS = 30  # the left-out runs a cut names one by one; the rest are counted
 INDEX_HEADINGS_CHARS = 300  # the headings listed per page in the page index
 
 
@@ -1372,9 +1400,79 @@ def vault_evidence(persona, category, hits, pages, room):
     return f"PAGE INDEX of the final vault:\n{index}\n\n" + "\n\n".join(blocks), cuts
 
 
-def fit_transcript(transcript, room, shortest_first=False):
-    """(chat, cuts): the whole transcript if it fits `room`, else each turn cut to the longest limit that does.
-    `shortest_first` skips the whole transcript and the 2000-character cut: the retry after a refusal."""
+def turn_relevance(spoken, keywords):
+    """Per turn, how much it matters to a call: the keywords it holds, and half the best neighbour's, since the
+    answer to a question about a fact is the next turn. A turn with neither scores 0 and is cut first."""
+    own = [len(mentions(e["text"], keywords)) for e in spoken]
+    near = [max(own[i - 1] if i else 0, own[i + 1] if i + 1 < len(own) else 0) / 2 for i in range(len(own))]
+    return [own[i] + near[i] for i in range(len(spoken))]
+
+
+def turn_runs(turns):
+    """'T3 to T9, T14' for the turn numbers left out, naming at most MAX_NAMED_GAPS runs."""
+    runs = []
+    for turn in turns:
+        if runs and turn == runs[-1][1] + 1:
+            runs[-1][1] = turn
+        else:
+            runs.append([turn, turn])
+    named = ", ".join(f"T{a}" if a == b else f"T{a} to T{b}" for a, b in runs[:MAX_NAMED_GAPS])
+    return named + (f" and {len(runs) - MAX_NAMED_GAPS} more runs" if len(runs) > MAX_NAMED_GAPS else "")
+
+
+def excerpt(text, keywords, limit):
+    """`text` if it fits `limit`, else the `limit` characters around its first keyword, so the cut keeps the reason
+    the turn was kept, with [...] where it was cut."""
+    if len(text) <= limit:
+        return text
+    flat = text.lower()
+    spots = [flat.find(k.lower()) for k in keywords]
+    spot = min([x for x in spots if x >= 0], default=0)
+    start = max(0, min(spot - limit // 2, len(text) - limit))
+    return ("[...] " if start else "") + text[start:start + limit] + (" [...]" if start + limit < len(text) else "")
+
+
+def relevant_chat(spoken, keywords, room):
+    """(chat, cuts): every session header, then the turns that hold a keyword or sit beside one, most relevant first,
+    each cut to RELEVANT_TURN_CHARS, until `room` is used. What is left out is a marker in the chat and a line in
+    the cuts, so no turn disappears unnamed. Always fits, however long the run: the headers are all it needs."""
+    score = turn_relevance(spoken, keywords)
+    cost = lambda i: min(len(spoken[i]["text"]), RELEVANT_TURN_CHARS) + MARKER_CHARS
+    left = room - MARKER_CHARS * (len({e.get("session") for e in spoken}) + 1)
+    kept = set()
+    for i in sorted(range(len(spoken)), key=lambda i: (-score[i], i)):
+        if cost(i) <= left:
+            kept.add(i)
+            left -= cost(i)
+    lines, gap, session = [], [], None
+
+    def flush():
+        if gap:
+            lines.append(f"[... left out: {turn_runs(gap)}]")
+            gap.clear()
+
+    for i, e in enumerate(spoken):
+        if e.get("session") != session:
+            flush()
+            session = e.get("session")
+            lines.append(f"\n=== Session {session}: {e.get('mode')} ===")
+        if i not in kept:
+            gap.append(e["turn"])
+            continue
+        flush()
+        who = "LEAD" if e["speaker"] == "lead" else "ASSISTANT"
+        lines.append(f"[T{e['turn']}] {who}:\n{excerpt(e['text'], keywords, RELEVANT_TURN_CHARS)}\n")
+    flush()
+    left_out = [spoken[i]["turn"] for i in range(len(spoken)) if i not in kept]
+    cut = (f"transcript: {len(kept)} of {len(spoken)} turns shown, each cut to {RELEVANT_TURN_CHARS} characters around its keyword, the turns "
+           f"that hold one of the category's keywords and their neighbours first; left out: {turn_runs(left_out) or 'none'}")
+    return "\n".join(lines).strip(), cut
+
+
+def fit_transcript(transcript, room, keywords=(), shortest_first=False):
+    """(chat, cuts): the whole transcript if it fits `room`, else each turn cut to the longest limit that does, else
+    the session headers and the turns that matter to `keywords`. `shortest_first` skips the whole transcript and the
+    2000-character cut: the retry after a refusal. It never fails for size."""
     spoken = transcript.spoken()
     full = as_chat(spoken)
     if not shortest_first and len(full) <= room:
@@ -1383,8 +1481,8 @@ def fit_transcript(transcript, room, shortest_first=False):
         chat = compact_chat(spoken, limit)
         if len(chat) <= room:
             return chat, [f"transcript: every turn cut to {limit} characters ({len(full)} in full, {room} fit)"]
-    raise ToolFailure(f"the transcript is {len(full)} characters, and cut to {TURN_LIMITS[-1]} characters a turn it still "
-                      f"does not fit the {room} left in a {JUDGE_INPUT_CHARS}-character judge call")
+    chat, cut = relevant_chat(spoken, keywords, max(room, 0))
+    return chat, [f"{cut} ({len(full)} characters in full, {room} fit)"]
 
 
 def build_judge_input(persona, transcript, vault, category, hits, compact=False):
@@ -1406,8 +1504,10 @@ def build_judge_input(persona, transcript, vault, category, hits, compact=False)
         head.append(f"INBOX DOCUMENTS:\n{docs or 'none'}")
     pages = vault_pages(vault) if "vault" in reads else []
     fixed = sum(len(p) + 2 for p in head) + 200  # the joins and the section labels
-    floor = EVIDENCE_FLOOR_PER_ITEM * len(persona.get(category) or []) + len(page_index(pages)) if pages else 0
-    chat, cuts = fit_transcript(transcript, JUDGE_INPUT_CHARS - fixed - floor, shortest_first=compact)
+    floor = (min(EVIDENCE_FLOOR_PER_ITEM * len(persona.get(category) or []), EVIDENCE_FLOOR_MAX)
+             + len(page_index(pages))) if pages else 0
+    keywords = sorted({k for kind in kinds for i in persona.get(kind) or [] for k in i.get("keywords") or []})
+    chat, cuts = fit_transcript(transcript, JUDGE_INPUT_CHARS - fixed - floor, keywords, shortest_first=compact)
     parts = head + [f"THE TRANSCRIPT:\n{chat}"]
     if pages:
         evidence, evidence_cuts = vault_evidence(persona, category, hits, pages, JUDGE_INPUT_CHARS - fixed - len(chat))
