@@ -77,4 +77,12 @@ Today a customer who wants to change a crossing phones the call centre, and an a
 
 Yes. The QA lead owns the suite. It covers amend with a higher fare, amend with a lower fare, and cancel, from the website and the call centre desktop. It runs on every Booking release candidate in staging against the ledger simulator and the Tidepay sandbox, and once a week against the FERRYMASTER test region. See [[concern-testing|Testing]].
 
-Delivered by [[EPC-036-amend-cancel-online|Amend and cancel online]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-037-events-and-notifications|Booking events and customer notifications]] and [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]. This flow carries goal G3 in [[01-goals|Goals]].
+Delivered by:
+
+- [[EPC-036-amend-cancel-online|Amend and cancel online]]
+- [[EPC-034-call-centre-to-booking|Call centre moves to Booking]]
+- [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]
+- [[EPC-037-events-and-notifications|Booking events and customer notifications]]
+- [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]
+
+This flow carries goal G3 in [[01-goals|Goals]].

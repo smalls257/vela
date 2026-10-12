@@ -28,6 +28,7 @@ import re
 import yaml
 
 from planner import allocation, trace
+from planner import criteria as criteria_reader
 from planner.parse import FENCE, TABLE_SEPARATOR, split_row
 
 
@@ -180,7 +181,7 @@ def vault_ids(vault):
     ids = set(vault.known_ids())
     ids.update(p.meta["initiative"] for p in vault.pages if isinstance(p.meta.get("initiative"), str))
     for epic in trace.epics(vault):
-        ids.update(f"{epic.id}.AC{n}" for n in range(1, epic_criteria_count(epic) + 1))
+        ids.update(f"{epic.id}.AC{n}" for n in epic_criteria_numbers(epic))
     ids.update(f"{row.requirement}@{row.app.id}" for row in allocation.rows(vault) if row.requirement)
     return ids
 
@@ -196,26 +197,14 @@ def trace_targets(vault, app_id):
             targets.add(contract.id)
     for epic in trace.epics(vault):
         if app_id in trace.listed(epic, "apps"):
-            targets.update(f"{epic.id}.AC{n}" for n in range(1, epic_criteria_count(epic) + 1))
+            targets.update(f"{epic.id}.AC{n}" for n in epic_criteria_numbers(epic))
     return targets
 
 
-def epic_criteria_count(epic):
-    """Numbered lines under the epic's acceptance criteria heading, outside code fences."""
-    count, in_criteria, fence = 0, False, None
-    for raw in epic.text.split("\n"):
-        opening = FENCE.match(raw)
-        if fence:
-            fence = None if raw.strip().startswith(fence) else fence
-            continue
-        if opening:
-            fence = opening.group(1)
-            continue
-        if raw.startswith("## "):
-            in_criteria = raw[3:].strip().lower().endswith("acceptance criteria")
-        elif in_criteria and re.match(r"^\d+\.\s", raw):
-            count += 1
-    return count
+def epic_criteria_numbers(epic):
+    """The AC numbers an `EPC-nnn.ACn` reference may name on this epic: the numbers as written on numbered lines, and the
+    ids on the Trace lines of headed criteria. Struck ones stay, so a reference to one does not read as invented."""
+    return criteria_reader.numbers(epic)
 
 
 def resolve(design, known, targets=None):

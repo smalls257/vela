@@ -18,7 +18,7 @@ The whole vault is one initiative. Pages and folders are numbered by arc42 secti
 - Root pages: Goals (§1), Constraints (§2), Context & scope (§3), Solution strategy and Capability delta (§4), Unknowns & risks (§11), Glossary (§12), and the source register `sources.md`.
 - `05-building-blocks/`: the overview, context map and contract list, then one page per application in scope with its containers and contracts.
 - `06-runtime/`: the cross-app flows, then one runtime page per application in `apps/`.
-- `08-concerns/`, `09-decisions/`, `13-epics/`: an index page plus one page per concern, ADR or epic.
+- `08-concerns/`, `09-decisions/`, `13-epics/`: an index page plus one page per concern, architecture decision record (ADR) or epic.
 - `capabilities/`: one page per capability this initiative touches.
 - `sessions/`: one record per Grill session that decided something. They are working notes, not the plan.
 

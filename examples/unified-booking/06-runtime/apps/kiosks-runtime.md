@@ -50,5 +50,5 @@ The customer has 10 minutes to pay before the hold expires. The ledger write beh
 ## When a dependency is slow or down
 
 - **Ledger write slow.** The kiosk shows "confirming" and keeps polling get. The customer has paid and Booking keeps the hold.
-- **Booking down.** The kiosk says booking is unavailable and takes no payment. It does not switch to the FM adapter on its own.
+- **Booking down.** The kiosk says booking is unavailable and takes no payment. It does not switch to the FERRYMASTER adapter on its own.
 - **Device certificate rejected.** The gateway refuses every call from that kiosk. The kiosk shows it is out of service, and the rejection appears in the per-channel error rate.

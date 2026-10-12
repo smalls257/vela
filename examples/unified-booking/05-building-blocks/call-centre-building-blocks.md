@@ -68,7 +68,6 @@ flowchart LR
   term -.-> fm
 ```
 
-Components inside these containers belong to the Contact Centre Systems team's tech design.
 
 ## Contracts this app provides
 
@@ -81,10 +80,6 @@ None. The desktop only consumes.
 |---|---|---|---|
 | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
 <!-- /generated:contracts-consumed -->
-
-## Concerns
-
-This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 

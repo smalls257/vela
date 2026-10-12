@@ -18,21 +18,55 @@ sources: ["session 2026-08-26 Grill", "session 2026-09-23 Grill", "ADR-0003"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only in March and September, so whatever they call has to stay the same for at least six months. That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|the versioning decision]]).
+The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only twice a year, so whatever they call has to stay the same for at least six months.
 
-Kiosks have no user to log in, so each kiosk authenticates with a device certificate from Platform's existing PKI ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]]). The old FM adapter ships in the March image behind a switch and leaves with the September 2027 image. If the March image slips, kiosks keep their old adapter until September and Booking API v1 is still there when they arrive (the kiosk image slip risk).
+Still open: nothing.
 
 **Owning team:** Port Systems team.
 
-## Epic acceptance criteria
+## Who this is for and what changes
 
-1. A kiosk on the March 2027 image holds, confirms and looks up bookings through version 1 of the Booking API with a trace ID it created on every call, and shows the same booking state as every other channel. [observability]
-   - Trace: CON-001
-2. A request from a kiosk without a valid device certificate is refused at the Platform gateway. [security]
-3. Booking API v1 answers kiosk requests unchanged for at least 6 months after the March 2027 image ships, whatever later versions add.
-4. Flipping the kiosk switch back sends kiosk bookings through the old FM adapter without a new image. [rollout]
-5. The kiosks' consumer-driven contract tests are pinned to v1 and pass in Booking's provider verification. [testing]
-6. Once the September 2027 image is rolled out, FERRYMASTER sees no direct sessions from any kiosk. [data]
+That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|the versioning decision]]).
+
+Kiosks have no user to log in, so each kiosk authenticates with a device certificate from Platform's existing public key infrastructure (PKI) ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]]). The old FERRYMASTER adapter ships in the March image behind a switch and leaves with the September 2027 image. If the March image slips, kiosks keep their old adapter until September and Booking API v1 is still there when they arrive (the kiosk image slip risk).
+
+## Done when
+
+### Kiosks book through version 1
+
+A kiosk on the March 2027 image holds, confirms and looks up bookings through version 1 of the Booking API with a trace ID it created on every call, and shows the same booking state as every other channel.
+
+- Trace: CON-001  ·  AC1  ·  [observability]
+
+### A kiosk needs a valid certificate
+
+A request from a kiosk without a valid device certificate is refused at the Platform gateway.
+
+- Trace: AC2  ·  [security]
+
+### Version 1 stays for six months
+
+Booking API v1 answers kiosk requests unchanged for at least 6 months after the March 2027 image ships, whatever later versions add.
+
+- Trace: AC3
+
+### The old path can be switched back
+
+Flipping the kiosk switch back sends kiosk bookings through the old FERRYMASTER adapter without a new image.
+
+- Trace: AC4  ·  [rollout]
+
+### Kiosk contract tests are pinned to v1
+
+The kiosks' consumer-driven contract tests are pinned to v1 and pass in Booking's provider verification.
+
+- Trace: AC5  ·  [testing]
+
+### No direct kiosk sessions after September
+
+Once the September 2027 image is rolled out, FERRYMASTER sees no direct sessions from any kiosk.
+
+- Trace: AC6  ·  [data]
 
 ## Traces to
 
@@ -62,4 +96,3 @@ Kiosks cut over with the March 2027 image. The switch stays usable until the Sep
 - Amend and cancel at the kiosk. In the March 2027 image kiosks show booking state only; customers amend or cancel on the website or through the call centre.
 - Any change to the kiosk image cycle.
 
-The Port Systems team breaks this epic into stories after their tech design session.

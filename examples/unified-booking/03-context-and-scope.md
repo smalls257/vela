@@ -31,7 +31,7 @@ flowchart LR
   K -- pay --> T
 ```
 
-Three channels, three adapters, three opinions about what a booking's state is. Each channel also calls Pricing on its own.
+Three channels, three adapters, three opinions about what state a booking is in. Each channel also calls Pricing on its own.
 
 ## After
 

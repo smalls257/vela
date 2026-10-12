@@ -59,6 +59,7 @@ class Vault:
     cells: list = field(default_factory=list)
     catalogue: object = catalog.EMPTY  # the question catalogue; the CLI loads plugin/catalog/questions.yaml
     cache: dict = field(default_factory=dict)  # results computed once per vault, such as the owed questions
+    template_lines: frozenset = frozenset()  # prose lines the template pages write, for W368; the CLI loads them
 
     def page(self, name):
         found = self.by_name.get(name.lower())
@@ -126,9 +127,9 @@ class Vault:
 ITEM_KINDS = {"CON": "contract", "UNK": "unknown", "R": "risk", "CAP": "requirement", "PTY": "party", "SV": "stored-value"}
 
 
-def build(pages, config, other_names=(), catalogue=None):
+def build(pages, config, other_names=(), catalogue=None, template_lines=()):
     vault = Vault(config=config, pages=list(pages), other_names={n.lower() for n in other_names},
-                  catalogue=catalogue if catalogue is not None else catalog.EMPTY)
+                  catalogue=catalogue if catalogue is not None else catalog.EMPTY, template_lines=frozenset(template_lines))
     for page in vault.pages:
         vault.by_name.setdefault(page.name.lower(), []).append(page)
         if page.id:

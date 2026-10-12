@@ -40,7 +40,7 @@ sequenceDiagram
 
 ## What the customer sees
 
-One message for each change, in the channel they chose, whichever front end made the change. Today only the website sends emails, so a booking made at a kiosk or by phone gets nothing. After this initiative every confirmed, amended, cancelled or expired booking produces a message.
+One message for each change, in the channel they chose, whichever front end made the change. Today only the website sends emails, so a booking made at a kiosk or by phone gets nothing. With Booking, every confirmed, amended, cancelled or expired booking produces a message.
 
 ## Failure behaviour
 

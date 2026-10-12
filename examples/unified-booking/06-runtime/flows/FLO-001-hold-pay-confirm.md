@@ -79,4 +79,12 @@ The customer picks a sailing and sees the fare with a 10-minute timer. They pay 
 
 Yes. The QA lead owns the suite. It runs the website and call centre desktop paths on every Booking release candidate in staging, against the ledger simulator and the Tidepay sandbox. It runs once a week against the FERRYMASTER test region. The Port Systems senior runs the kiosk path on a test kiosk before the March 2027 image is signed off. See [[concern-testing|Testing]].
 
-Delivered by [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]], [[EPC-037-events-and-notifications|Booking events and customer notifications]] and [[EPC-038-pricing-serves-booking|Pricing serves Booking only]].
+Delivered by:
+
+- [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]
+- [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]
+- [[EPC-033-website-to-booking|Website moves to Booking]]
+- [[EPC-034-call-centre-to-booking|Call centre moves to Booking]]
+- [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]]
+- [[EPC-037-events-and-notifications|Booking events and customer notifications]]
+- [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]

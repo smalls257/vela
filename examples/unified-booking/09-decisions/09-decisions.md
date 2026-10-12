@@ -16,4 +16,4 @@ Four decisions shape this initiative. Each one records the options turned down a
 - [[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]] One Booking application rather than a shared adapter library
 - [[ADR-0002-ferrymaster-ledger-of-record|FERRYMASTER stays the ledger of record]] FERRYMASTER stays the ledger of record
 - [[ADR-0003-versioned-booking-api|Version the Booking API and keep each version at least 6 months]] Version the Booking API and keep each version at least 6 months
-- [[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]] Use FERRYMASTER's existing MQ transactions instead of screen scraping
+- [[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]] Booking writes to the ledger through the existing message queue (MQ), not by scraping screens.

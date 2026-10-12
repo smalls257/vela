@@ -7,19 +7,18 @@
 - Capabilities per app: the requirements an app's allocation rows carry (`allocation.rows`), else the epics that list
   the app and deliver the capability (`trace.epics`). The page labels which.
 - Goals and constraints: the rows the model registers from the Goals and Constraints tables.
-- Acceptance criteria: an epic's numbered lines under its "acceptance criteria" section, as `trace.ac_markers` reads
-  them; a requirement's plain bullets under its heading, as `releases.criteria_count` counts them.
+- Acceptance criteria: an epic's criteria in either shape, numbered lines under "acceptance criteria" or headed ones
+  under "Done when", as `criteria.read` reads them (and so `trace.ac_markers`); a requirement's plain bullets under its heading, as `releases.criteria_count` counts them.
 - Failure behaviour: the runtime page's sections whose heading `ladder.FAILURE` accepts.
 - An engineer's slice: `handoff.slice_of`, the same list a handoff manifest records.
 """
 import re
 
 from planner import allocation, handoff, ladder, progress, readability, releases, schema, trace
-from planner.parse import FENCE
+from planner import criteria as criteria_reader
 
 from .record import chips_html, inline_html, plain
 
-NUMBERED = re.compile(r"^\s*(\d+)\.\s+(.*)$")
 APP_STATUS_END = {"new": "new", "changed": "changes", "retired": "absent", "retire": "absent"}
 
 
@@ -136,36 +135,15 @@ def risks(vault, keys):
 
 
 def epic_criteria(vault, keys):
-    """{epic key: [{"n", "html", "markers", "struck"}]}: the numbered lines under the epic's acceptance criteria."""
+    """{epic key: [{"n", "heading", "html", "markers", "struck", "trace", "group"}]}: the epic's acceptance criteria in
+    either shape, from `criteria.read`. A numbered criterion has no heading; `n` is its AC number in both."""
     out = {}
     for epic in trace.epics(vault):
-        skip = set()
-        for block in epic.blocks:
-            skip.update(range(block.start, block.end + 1))
-        rows, fence, inside = [], None, False
-        for n, raw in enumerate(epic.text.split("\n"), start=1):
-            opening = FENCE.match(raw)
-            if fence:
-                if raw.strip().startswith(fence):
-                    fence = None
-                continue
-            if opening:
-                fence = opening.group(1)
-                continue
-            if n in skip:
-                continue
-            section = trace.SECTION_HEADING.match(raw)
-            if section:
-                inside = section["text"].strip().lower().endswith("acceptance criteria")
-                continue
-            m = NUMBERED.match(raw) if inside else None
-            if inside and rows and readability.is_trace(raw):
-                rows[-1]["trace"] = chips_html(readability.trace_ids(raw), keys)
-            if m:
-                body = m.group(2)
-                rows.append({"n": int(m.group(1)), "html": inline_html(trace.MARKER.sub("", body).strip(), keys, epic),
-                             "markers": [x.lower() for x in trace.MARKER.findall(body)],
-                             "struck": body.lstrip().startswith("~~"), "trace": ""})
+        rows = []
+        for c in criteria_reader.read(epic):
+            rows.append({"n": c.n, "heading": c.heading, "html": inline_html(c.text, keys, epic), "markers": list(c.markers),
+                         "struck": c.struck, "group": c.group,
+                         "trace": chips_html(list(c.trace), keys) if c.trace else ""})
         out[keys.page(epic)] = rows
     return out
 

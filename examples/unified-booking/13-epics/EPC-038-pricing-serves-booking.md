@@ -18,19 +18,43 @@ sources: ["session 2026-07-28 Shape", "session 2026-11-18 Grill"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-Pricing keeps the same job and the same containers. What changes is who calls it: today the website, the call centre and the kiosks each ask the Quote service for fares, and after this epic only Booking does. The Platform gateway enforces that.
+Pricing keeps the same job and the same containers. What changes is who calls it: today the website, the call centre and the kiosks each ask the Quote service for fares, and after this epic only Booking does.
 
-One caller means the Revenue team changes fare rules against one consumer and one contract test. Today a change to a quote has to be checked against three front ends that each call Pricing their own way. The restriction goes on last, after the September 2027 kiosk image removes the final direct caller.
+Still open: nothing.
 
 **Owning team:** Revenue team.
 
-## Epic acceptance criteria
+## Who this is for and what changes
 
-1. Booking's contract test for the fare quote passes against Pricing's provider verification, in both teams' pipelines. [testing]
-   - Trace: CON-003
-2. For the same crossing and fare rules, Booking gets the same quote the front ends get today.
-3. Once the restriction is on, a quote request from any caller other than Booking is refused at the Platform gateway. [security]
-4. Before the restriction goes on, the gateway shows no direct quote requests from the website, the call centre or the kiosks. [rollout]
+The Platform gateway enforces that.
+
+One caller means the Revenue team changes fare rules against one consumer and one contract test. Today a change to a quote has to be checked against three front ends that each call Pricing their own way. The restriction goes on last, after the September 2027 kiosk image removes the final direct caller.
+
+## Done when
+
+### Both teams' contract tests pass
+
+Booking's contract test for the fare quote passes against Pricing's provider verification, in both teams' pipelines.
+
+- Trace: CON-003  ·  AC1  ·  [testing]
+
+### The quote is the same as today
+
+For the same crossing and fare rules, Booking gets the same quote the front ends get today.
+
+- Trace: AC2
+
+### Only Booking may ask for a quote
+
+Once the restriction is on, a quote request from any caller other than Booking is refused at the Platform gateway.
+
+- Trace: AC3  ·  [security]
+
+### No direct callers before the restriction
+
+Before the restriction goes on, the gateway shows no direct quote requests from the website, the call centre or the kiosks.
+
+- Trace: AC4  ·  [rollout]
 
 ## Traces to
 
@@ -61,4 +85,3 @@ The contract test runs from the start. The gateway restriction is switched on af
 - Fare rules and the Fare rules store.
 - Any change inside Pricing.
 
-The Revenue team breaks this epic into stories after their tech design session.

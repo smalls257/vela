@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, flows, links, override, parse, pending, questions, readability, releases, render, schema, trace
+from planner import allocation, flows, links, override, parse, pending, questions, readability, readload, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -576,12 +576,17 @@ def stale_mention_rules(vault, today):
 
 
 def reading_load_rules(vault, today):
-    """W360-W364. A page a person cannot hold in mind: codes in sentences, a long flat list, a wall with no summary,
-    an epic too big to carry as one piece of work. Warnings only; each fix says how to write it in plain words."""
+    """W360-W369. A page a person cannot hold in mind: codes in sentences, a long flat list, a wall with no summary,
+    an epic too big to carry as one piece of work, then a paragraph, cell, stock phrase, template opening or abbreviation
+    that costs the reader more than a careful writer would. Warnings only; each fix says how to write it in plain words."""
     names = readability.NameIndex(vault)
     for page in vault.pages:
         for line, code, message, fix in readability.findings(page, names):
             yield _f(page, line, code, message, fix)
+        for line, code, message, fix in readload.page_findings(page, vault.template_lines):
+            yield _f(page, line, code, message, fix)
+    for page, line, code, message, fix in readload.phrase_findings(vault):
+        yield _f(page, line, code, message, fix)
 
 
 def release_rules(vault, today):

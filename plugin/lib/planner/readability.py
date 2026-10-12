@@ -9,6 +9,7 @@ a page that has drifted back to codes, long lists or a wall of text says so, wit
 import re
 from dataclasses import dataclass
 
+from planner import criteria as criteria_reader
 from planner import schema
 from planner.parse import FENCE, split_frontmatter
 from planner.reading import BREADCRUMB, TRACE_LINE, VAULT_ID, visible
@@ -19,7 +20,6 @@ CODE_SPAN = re.compile(r"`[^`]*`")
 URL = re.compile(r"https?://\S+")
 HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 LIST_ITEM = re.compile(r"^( {0,1})(?:[-*]|\d+\.)\s+(.*)$")
-NUMBERED = re.compile(r"^\s*\d+\.\s+(.*)$")
 FACT_BULLET = re.compile(r"^\s*[-*]\s+\*\*[^*]+:\*\*")
 SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 GEN_OPEN = re.compile(r"^\s*<!--\s*generated:")
@@ -64,11 +64,12 @@ def _title(page):
 
 def trace_ids(line):
     """The IDs on a `- Trace:` line, in the order written; [] when the line is not one. A comma or a space divides
-    them, so `CAP-001.FR1, CON-001` and `CAP-001.FR1 CON-001` read the same."""
+    them, so `CAP-001.FR1, CON-001` and `CAP-001.FR1 CON-001` read the same. The AC id and the concern markers that
+    the epic template puts after a middle dot are not IDs of the vault and are left out (`criteria.parse_trace`)."""
     found = TRACE_LINE.match(line)
     if not found:
         return []
-    return [token for token in re.split(r"[,;\s]+", found["ids"]) if token]
+    return list(criteria_reader.parse_trace(found["ids"]).ids)
 
 
 def is_trace(line):
@@ -207,7 +208,7 @@ def _list_findings(page):
     out, section, items, first = [], "", 0, 0
 
     def close():
-        if items > schema.LIST_LIMIT and not section.lower().endswith("acceptance criteria"):
+        if items > schema.LIST_LIMIT and not criteria_reader.is_criteria_heading(section):
             out.append((first, "W362", f"{items} list items sit under one heading, more than a reader can hold at once.",
                         "Group them under short subheadings of about five each, or fold the least important into an 'Also open (n)' section."))
 
@@ -251,28 +252,20 @@ def _has_opening_summary(page):
 
 
 def criteria(page):
-    """(line, text) for each numbered acceptance criterion that is not struck through."""
-    found, inside = [], False
-    for n, raw, heading, history in _regions(page):
-        section = HEADING.match(raw)
-        if section:
-            if len(section.group(1)) <= 2:  # a ### subheading groups criteria, it does not end the section
-                inside = section.group(2).strip().lower().endswith("acceptance criteria")
-            continue
-        number = NUMBERED.match(raw) if inside else None
-        if number and not number.group(1).lstrip().startswith("~~"):
-            found.append((n, number.group(1)))
-    return found
+    """(line, text) for each acceptance criterion that is not struck through, in either shape."""
+    return [(c.line, c.raw) for c in criteria_reader.read(page) if not c.struck]
 
 
 def _epic_findings(page):
     if page.type != "epic":
         return []
+    out = [(line, "W370", message, "Add 'AC<n>' to the criterion's '- Trace:' line, after the IDs and a middle dot, with a number no "
+            "other criterion uses.") for line, message in criteria_reader.problems(page)]
     listed = criteria(page)
     if len(listed) <= schema.EPIC_CRITERIA_LIMIT:
-        return []
-    return [(listed[0][0], "W364", f"The epic lists {len(listed)} acceptance criteria, more than a team can hold as one piece of work.",
-             "Split it into two epics of about five criteria each. The epics session proposes the cut.")]
+        return out
+    return out + [(listed[0][0], "W364", f"The epic lists {len(listed)} acceptance criteria, more than a team can hold as one piece of work.",
+                   "Split it into two epics of about five criteria each. The epics session proposes the cut.")]
 
 
 # --------------------------------------------------------- IDs shown as names

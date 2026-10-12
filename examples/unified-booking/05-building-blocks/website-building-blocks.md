@@ -19,7 +19,7 @@ sources: ["Digital senior container review", "rollout plan with solution lead"]
 
 - **Decision:** [[2026-07-28-solution-strategy]]
 
-The public website is where most customers find a crossing, book it and pay for it. After this initiative it also lets them amend and cancel without phoning, which is goal G3. It asks Booking for every booking action and shows whatever state Booking returns.
+The public website is where most customers find a crossing, book it and pay for it. Once this lands it also lets them amend and cancel without phoning, which is goal G3. It asks Booking for every booking action and shows whatever state Booking returns.
 
 The website no longer decides whether a booking is confirmed and no longer talks to FERRYMASTER.
 
@@ -66,7 +66,6 @@ flowchart LR
   fma -.-> fm
 ```
 
-Components inside these containers belong to the Digital team's tech design.
 
 ## Contracts this app provides
 
@@ -79,10 +78,6 @@ None. The website only consumes.
 |---|---|---|---|
 | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
 <!-- /generated:contracts-consumed -->
-
-## Concerns
-
-This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 

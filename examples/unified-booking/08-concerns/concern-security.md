@@ -14,9 +14,9 @@ sources: ["session 2026-09-23 Grill", SRC-08]
 
 ## Strategy
 
-PCI scope must not grow. Card details go from the customer's browser or the agent's screen straight to Tidepay's hosted payment page. Booking only receives the payment outcome through [[booking-building-blocks#CON-007 Tidepay payment outcome|Tidepay payment outcome]], and that carries a payment ID and a result. Card data never reaches Booking, so Booking stays out of PCI scope.
+Payment Card Industry (PCI) scope must not grow. Card details go from the customer's browser or the agent's screen straight to Tidepay's hosted payment page. Booking only receives the payment outcome through [[booking-building-blocks#CON-007 Tidepay payment outcome|Tidepay payment outcome]], and that carries a payment ID and a result. Card data never reaches Booking, so Booking stays out of PCI scope.
 
-The Booking API sits behind the Platform gateway. The website and call centre desktop call it with Platform service tokens, as other Harbourline services already do. Kiosks have no logged-in user and no safe place for a shared secret on a locked image ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]]). Each kiosk gets a device certificate from Platform's existing PKI, installed with the March 2027 image. A stolen kiosk is revoked by certificate without touching the others.
+The Booking API sits behind the Platform gateway. The website and call centre desktop call it with Platform service tokens, as other Harbourline services already do. Kiosks have no logged-in user and no safe place for a shared secret on a locked image ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]]). Each kiosk gets a device certificate from Platform's existing public key infrastructure (PKI), installed with the March 2027 image. A stolen kiosk is revoked by certificate without touching the others.
 
 The gateway also restricts Pricing's Quote service to Booking. Before this initiative, three front ends could quote fares directly. Narrowing that to one caller removes two paths nobody needed to keep open.
 
