@@ -102,7 +102,7 @@ def test_capability_map_renders_on_the_delta_page(mini):
     assert code == 0 and "04a-capability-delta.md: capability-map" in out, out
     assert 'c_CAP_007["CAP-007 Thing 7 (new)"]' in (mini / "04a-capability-delta.md").read_text(encoding="utf-8")
     _, out = check(mini)
-    assert [f for f in findings(out) if f[0] != "W501"] == [], out
+    assert [f for f in findings(out) if f[0] not in ("W501", "W358")] == []  # W358: the mini flow names no capability; not this test's subject, out
 
 
 def test_capabilities_whose_ids_share_a_key_stay_two_nodes():
