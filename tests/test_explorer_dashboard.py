@@ -199,3 +199,15 @@ def test_e38_the_page_allows_only_its_own_inline_scripts_and_no_network_but_its_
     for body in scripts:
         digest = base64.b64encode(hashlib.sha256(body.encode("utf-8")).digest()).decode()
         assert f"'sha256-{digest}'" in directives["script-src"]
+
+
+# ------------------------------------------------------------ E37: print and PDF
+
+def test_e37_the_stylesheet_has_a_print_block_that_drops_the_chrome_and_prints_link_addresses():
+    css = (pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/planner/explorer/assets/css/base.css").read_text(encoding="utf-8")
+    block = re.search(r"@media print \{(.*?)\n\}\n", css, re.S)
+    assert block, "no @media print rule"
+    text = block.group(1)
+    for hidden in ("#side", "#panel", "header.top"):
+        assert hidden in text.split("{")[2] and "display: none" in text
+    assert "attr(href)" in text and "overflow: visible" in text
