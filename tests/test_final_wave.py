@@ -175,3 +175,23 @@ def test_grill_sets_a_challenged_item_back_by_its_kind():
 def test_start_does_not_offer_to_resume_a_waiting_challenge():
     start = read("plugin", "references", "START.md")
     assert "challenge waiting for an answer" in start and "offer the \"Answer a challenge\" path" in start
+
+
+def test_guide_html_is_rendered_from_guide_md():
+    """GUIDE.html must be kept current with GUIDE.md by running render_doc.py."""
+    import sys
+    # Import render_doc to use its page() function
+    guide_md = REPO / "docs" / "GUIDE.md"
+    guide_html = REPO / "docs" / "GUIDE.html"
+
+    # Render GUIDE.md
+    sys.path.insert(0, str(REPO / "docs"))
+    from render_doc import page
+
+    markdown_text = guide_md.read_text(encoding="utf-8")
+    title = next((line[2:] for line in markdown_text.splitlines() if line.startswith("# ")), "guide")
+    rendered_html = page(markdown_text, title)
+
+    # Compare with committed GUIDE.html
+    committed_html = guide_html.read_text(encoding="utf-8")
+    assert rendered_html == committed_html, "GUIDE.html is stale; run: python3 docs/render_doc.py docs/GUIDE.md"
