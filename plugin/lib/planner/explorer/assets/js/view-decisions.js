@@ -17,7 +17,7 @@ const Decisions = (() => {
   const sessionDate = (id) => (D.sessions[id] && D.sessions[id].date) || (ISO.exec(id) || [""])[0];
   /* A handle as a person reads it: the name the vault gives the role, else the handle without its @ and team prefix. */
   const person = (text) => String(text || "").replace(/@[\w/-]+/g, (m) => {
-    const named = D.owners[m] && D.owners[m].names[0], w = named || m.replace(/^@/, "").replace(/^[^/]*\//, "").replace(/-/g, " ");
+    const said = D.owners[m] && D.owners[m].names[0], named = said && said.split(/\s+/).length <= 3 && !/^asking\b/i.test(said) ? said : "", w = named || m.replace(/^@/, "").replace(/^[^/]*\//, "").replace(/-/g, " ");
     return w.charAt(0).toUpperCase() + w.slice(1);
   });
   const longDate = (iso) => (isDate(iso) ? `${day(iso)} ${iso.slice(0, 4)}` : "");
@@ -76,9 +76,11 @@ const Decisions = (() => {
   const entries = trees.map((t) => {
     const d = deciders(t), c = chosenOf(t), on = affects(t);
     return { t, id: t.adr ? t.adr.id : t.id, key: t.adr ? t.adr.key : t.carriedBy[0].key, name: titleOfTree(t), chosen: c, state: stateOf(t), pending: pendingOf(t),
-      rejected: t.rejected, decider: d, by: d.by.length ? d.by.join("; ") : d.owner ? `${d.owner}, the owner` : "", date: dateOf(t), affects: on, waits: t.buds, answered: t.leaves,
+      rejected: t.rejected, decider: d, by: d.by.join("; "), owner: d.owner, date: dateOf(t), affects: on, waits: t.buds, answered: t.leaves,
       bare: !!t.bare, recordedIn: recordedOn(t)[0] ? recordedOn(t)[0].label : "" };
   });
+  /* Who decided, when the page says; when it does not, the owner, said as the owner and not as the decider. */
+  const whoSaid = (e) => (e.by ? e.by : e.owner ? `Owner ${e.owner}` : "Nobody recorded");
   const withOptions = entries.filter((e) => !e.bare), bareOnes = entries.filter((e) => e.bare);
   const haystack = (e) => [e.name, e.chosen.label, e.chosen.said, e.by, e.recordedIn, ...e.rejected.flatMap((o) => [o.label, o.reason]), ...e.affects.map((a) => a.label), ...e.waits.map(titleOf)].join(" ").toLowerCase();
   const worstWait = (e) => e.waits.map(unknownLevel).sort((a, b) => rank(b) - rank(a))[0] || "dark";
@@ -122,7 +124,7 @@ const Decisions = (() => {
       h("div", { class: "dl-c dl-what", role: "cell", "data-label": "Decision" }, h("b", { class: "dl-name" }, e.name),
         e.chosen.said ? h("span", { class: "dl-chosen" }, e.chosen.said) : null, e.recordedIn && e.recordedIn !== e.name ? h("span", { class: "dl-in" }, `Recorded in ${e.recordedIn}`) : null),
       h("div", { class: "dl-c dl-not", role: "cell", "data-label": "Turned down" }, rejectedList(e, 2)),
-      h("div", { class: "dl-c dl-when", role: "cell", "data-label": "Decided" }, h("span", {}, e.date ? longDate(e.date) : "No date recorded"), h("span", { class: "muted" }, e.by || "Nobody recorded")),
+      h("div", { class: "dl-c dl-when", role: "cell", "data-label": "Decided" }, h("span", {}, e.date ? longDate(e.date) : "No date recorded"), h("span", { class: "muted" }, whoSaid(e))),
       h("div", { class: "dl-c dl-fx", role: "cell", "data-label": "Affects and waits" }, h("span", {}, e.affects.length ? `Affects ${e.affects.slice(0, 2).map((a) => a.label).join(", ")}${e.affects.length > 2 ? ` and ${e.affects.length - 2} more` : ""}` : "Affects nothing recorded"), waitsLine(e)));
   }
   function head() {
@@ -186,7 +188,7 @@ const Decisions = (() => {
     return h("article", { class: "dl-detail", "aria-label": `Decision: ${e.name}` }, nav,
       h("p", { class: "dl-kicker" }, t.adr ? "Decision record" : e.bare ? "Decided, no options recorded" : `Decision recorded in ${e.recordedIn}`),
       h("h2", {}, e.name),
-      h("div", { class: "dl-meta" }, stateMark(e), h("span", {}, e.date ? `Decided ${longDate(e.date)}` : "No decision date recorded"), h("span", {}, e.by ? `by ${e.by}` : "")),
+      h("div", { class: "dl-meta" }, stateMark(e), h("span", {}, e.date ? `Decided ${longDate(e.date)}` : "No decision date recorded"), h("span", {}, e.by ? `by ${e.by}` : e.owner ? `owned by ${e.owner}` : "")),
       sec("Context", context), sec("Options considered", e.bare ? null : options(e)), sec("Decision", decision),
       sec("Consequences", consequences, e.affects.length ? h("div", { class: "dl-fx-row" }, h("span", { class: "dl-l" }, "What it affects"), chips(e.affects.map((a) => a.key))) : null,
         e.waits.length ? h("div", { class: "dl-fx-row" }, h("span", { class: "dl-l" }, "Still waits on"), chips(e.waits)) : null,
