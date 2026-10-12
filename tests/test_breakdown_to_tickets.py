@@ -193,3 +193,50 @@ def test_a_range_of_stories_is_every_story_between_and_sizes_read_as_counts_or_l
     from planner import breakdown
     assert breakdown.story_refs("S-03 to S-05, G-012, S-09") == ["S-03", "S-04", "S-05", "S-09"]
     assert breakdown.size_counts("2S 4M 1L") == breakdown.size_counts("M+M+M+M+S+S+L") == {"S": 2, "M": 4, "L": 1}
+
+
+def test_a_lettered_story_and_a_retired_one(tmp_path):
+    # From the heron run: S-07a/S-07b were dropped silently, and S-04 "(merged into S-05)" became an empty ticket.
+    plan = tmp_path / "docs" / "plan"
+    plan.mkdir(parents=True)
+    (plan / "x-breakdown.md").write_text("""---
+status: complete
+prereqs: []
+---
+| Story | Traces to | Size | Blocked by |
+|---|---|---|---|
+| S-04 | | | |
+| S-07a | CON-001 | S | none |
+| S-07b | CON-001 | S | S-07a |
+
+### S-04 (merged into S-05)
+Merged into S-05 on 2026-10-12. The ID is retired.
+
+### S-07a Gate
+Traces to: CON-001
+Acceptance criteria:
+- the gate holds
+| Task | Size | Component |
+|---|---|---|
+| Add the gate | S | Agent |
+Blocked by: none
+
+### S-07b Transport
+Traces to: CON-001
+Acceptance criteria:
+- it sends
+| Task | Size | Component |
+|---|---|---|
+| Send it | S | Agent |
+Blocked by: S-07a
+
+## Build order
+1. S-07a
+2. S-07b
+""", encoding="utf-8")
+    out = tmp_path / "out"
+    subprocess.run([sys.executable, str(TOOL), "--repo", str(tmp_path), "--out", str(out)], capture_output=True, text=True, timeout=120)
+    csv = (out / "tickets.csv").read_text(encoding="utf-8")
+    assert "S-07a," in csv and "S-07b," in csv and "S-07b-T1" in csv
+    assert "\nS-04," not in csv
+    assert "S-04: merged into S-05, so not exported" in (out / "README.md").read_text(encoding="utf-8")

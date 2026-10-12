@@ -15,6 +15,7 @@ stderr, never dropped; the CSV is still written with everything that did map.
 
 Exit 0: every line mapped. 1: the CSV is written but the README lists problems. 2: nothing could be read or written.
 """
+import re
 import argparse
 import pathlib
 import sys
@@ -90,6 +91,12 @@ def convert(breakdown, out):
     except OSError as exc:
         raise BreakdownError(f"cannot read {breakdown} or create {out}: {exc}") from exc
     stories, not_planned, problems = parse(text)
+    # A story the plan retired into another ("Merged into S-05 …"), with no tasks of its own, is a pointer, not work:
+    # it is named in the README instead of becoming an empty ticket a team would have to close.
+    retired = [s for s in stories if not s.tasks and re.search(r"\bmerged into (S-\d+[a-z]?)", " ".join([s.name, *s.extra]), re.I)]
+    stories = [s for s in stories if s not in retired]
+    problems = [p for p in problems if not any(p.startswith(f"{s.id}:") for s in retired)]
+    problems += [f"{s.id}: merged into {re.search(r'merged into (S-[0-9]+[a-z]?)', ' '.join([s.name, *s.extra]), re.I).group(1)}, so not exported" for s in retired]
     rows = build_rows(stories)
     try:
         write_csv(rows, out / "tickets.csv")

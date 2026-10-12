@@ -24,7 +24,7 @@ import yaml
 SIZE_POINTS = {"S": 2, "M": 5, "L": 8}  # work-breakdown defines S, M, L (about 2 days, 3 to 5 days, 1 to 2 weeks) and no points
 STATUSES = ("complete", "complete-with-gaps")
 COLUMNS = ["Issue Id", "Summary", "Description", "Issue Type", "Parent", "Story Points"]
-STORY_HEADING = re.compile(r"^###\s+(S-\d+)\b[\s:\-\u2013\u2014]*(.*?)\s*$")
+STORY_HEADING = re.compile(r"^###\s+(S-\d+[a-z]?)\b[\s:\-\u2013\u2014]*(.*?)\s*$")
 TRACES = re.compile(r"^\W*Traces to\W*:\W*(.*)$", re.I)
 BLOCKED = re.compile(r"^\W*Blocked by\W*:\W*(.*)$", re.I)
 BULLET = re.compile(r"^\s*[-*+]\s+(.*)$")
@@ -39,7 +39,7 @@ OPEN_NOTE = re.compile(r"^\W*Open for\b", re.I)
 CONFLICT_NOTE = re.compile(r"^\W*Conflicts? with\b", re.I)
 # A story the plan says traces to nothing ("Traces to: no requirement row or epic criterion; ...") is stated, not unreadable.
 NO_TRACE = re.compile(r"^\W*(none|no |nothing|design only)", re.I)
-STORY_RANGE = re.compile(r"\b(S-\d+)\s+(?:to|through|until|\u2013|\u2014|-)\s+(S-\d+)\b")
+STORY_RANGE = re.compile(r"\b(S-\d+[a-z]?)\s+(?:to|through|until|\u2013|\u2014|-)\s+(S-\d+[a-z]?)\b")
 LABEL_NEEDS_DESIGN, LABEL_CONFLICT = "needs-design", "conflict"
 
 
@@ -136,6 +136,11 @@ def parse_story_sections(body):
     stories, current, state = [], None, {}
     for line in body.splitlines():
         heading = STORY_HEADING.match(line)
+        if not heading and re.match(r"^###\s+S-", line):
+            stories.append(Story("?", line.lstrip("# ").strip()))  # kept, so the caller reports it instead of dropping it
+            stories[-1].extra.append("unreadable story heading: " + line.strip())
+            current, state = stories[-1], {"last": None, "gap": False, "table": False}
+            continue
         if heading:
             current = Story(heading.group(1), heading.group(2))
             stories.append(current)
@@ -212,13 +217,15 @@ def story_problems(story, story_ids):
 def story_refs(text):
     """The story IDs a line names, in order, with a range such as "S-03 to S-13" meaning every story between."""
     ranged, out = STORY_RANGE.sub(lambda m: " ".join(range_ids(m.group(1), m.group(2))), text or ""), []
-    for sid in re.findall(r"\bS-\d+\b", ranged):
+    for sid in re.findall(r"\bS-\d+[a-z]?\b", ranged):
         if sid not in out:
             out.append(sid)
     return out
 
 
 def range_ids(first, last):
+    if not (first[2:].isdigit() and last[2:].isdigit()):
+        return [first, last]  # "S-07a to S-09" names its ends; a lettered story has no place in a numeric run
     low, high = int(first[2:]), int(last[2:])
     width = len(first) - 2
     return [f"S-{n:0{width}d}" for n in range(low, high + 1)] if low <= high else [first, last]
@@ -310,7 +317,7 @@ def summary_table(lines):
         if row[0].lower() == "story":
             inside = True
         elif inside and not is_separator(line):
-            found = re.match(r"^\W*(S-\d+)\b", row[0])
+            found = re.match(r"^\W*(S-\d+[a-z]?)\b", row[0])
             if found:
                 row += [""] * (4 - len(row))
                 out[found.group(1)] = {"traces": row[1], "size": row[2], "blocked": row[3]}
@@ -322,7 +329,7 @@ def build_order(sections):
     lines = next((ls for name, ls in sections.items() if name.lower().startswith("build order")), [])
     out = []
     for line in lines:
-        found = re.match(r"^\s*(?:\d+[.)]|[-*+])\s*(S-\d+)\b[\s:\-\u2013\u2014]*(.*?)\s*$", line)
+        found = re.match(r"^\s*(?:\d+[.)]|[-*+])\s*(S-\d+[a-z]?)\b[\s:\-\u2013\u2014]*(.*?)\s*$", line)
         if found:
             out.append({"id": found.group(1), "why": found.group(2)})
     return out
