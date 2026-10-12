@@ -6,6 +6,8 @@
    - Components: the team's tech design, given to build.py with --design. Each component is a box, Depends on is a
      labelled arrow, Exposes sits on the box's lower edge, and each Integration point is a stub out to the level 1
      neighbour it reaches. Beside it, the design's own sections, in tabs.
+   - Build plan: the team's work breakdown beside the design (plan.js draws it; build.py --breakdown, or found beside the
+     design). A requirement row or epic criterion says which story builds it, next to which component owns it.
 
    The vault and the design meet in both directions. A component's panel lists the vault IDs it owns, each with
    where it was found and, while the format records no trace, marked inferred. A requirement row, contract or epic
@@ -18,10 +20,10 @@
    design's chip, never hidden, opening the list with line numbers. With no design loaded, level 3 says how to load
    it, and levels 1 and 2 still draw from the vault.
 
-   Deep link: #inside=APP-booking&level=components&tab=flows. Double-click an app on the map to go inside it. */
+   Deep link: #inside=APP-booking&level=components&tab=flows, or &level=plan. Double-click an app on the map to go inside it. */
 const Inside = (() => {
   const DES = D.designs || {}, CONT = D.containers || {};
-  const LEVELS = [["context", "Context"], ["containers", "Containers"], ["components", "Components"]];
+  const LEVELS = [["context", "Context"], ["containers", "Containers"], ["components", "Components"], ["plan", "Build plan"]];
   const TABS = [["trace", "Trace"], ["data", "Data model"], ["api", "API contracts"], ["flows", "Key flows"], ["stack", "Tech stack"], ["nfrs", "NFRs"],
     ["constraints", "Constraints"], ["risks", "Risks"], ["adrs", "ADRs"], ["ops", "Operations"], ["glossary", "Glossary"]];
   const st = { app: "", level: "context", tab: "trace", step: {}, playing: null, zoom: {} };
@@ -106,12 +108,12 @@ const Inside = (() => {
       h("div", {}, h("div", { class: "kicker" }, "Inside this app"),
         h("h1", {}, Icons.forKey(app, "p-glyph"), appTitle(app)), crumbs()),
       h("div", { class: "spacer" }),
-      h("div", { class: "page-actions" }, d ? statusPill(app) : null, d ? problemsChip(app) : null,
-        designLink(d, Icons.el("docs")),
+      h("div", { class: "page-actions" }, d && st.level !== "plan" ? statusPill(app) : null, d && st.level !== "plan" ? problemsChip(app) : null,  // the plan level has its own bar of status and problems
+        st.level === "plan" ? null : designLink(d, Icons.el("docs")),
         h("button", { class: "btn", onclick: () => Nav.open("apps", app) }, "Back to the map"))));
     const stage = h("div", { class: "inside-stage inside-" + st.level, id: "inside-stage", "data-level": st.level, "data-app": app });
     main.append(stage);
-    ({ context, containers, components })[st.level](stage, app, d);
+    ({ context, containers, components, plan: (box, a) => Plan.render(box, a) })[st.level](stage, app, d);
   }
   function crumbs() {
     const at = LEVELS.findIndex(([l]) => l === st.level);
@@ -922,14 +924,20 @@ const Inside = (() => {
   /* ------------------------------------------------------------ what the rest of the page asks of it */
   /* A vault item's owners in each design, or that none owns it: for a requirement, contract or epic criterion. */
   function ownedBy(id, opts = {}) {
-    const owners = OWNERS[id] || [], untraced = UNTRACED[id] || [];
-    if (!owners.length && !untraced.length) return opts.inline ? null : (Object.keys(DES).length ? sec("Inside the teams' designs", null, h("div", { class: "p-empty-line" }, "No loaded design traces it.")) : null);
+    const owners = OWNERS[id] || [], untraced = UNTRACED[id] || [], built = builtBy(id, opts);
+    if (!owners.length && !untraced.length && !built.length) return opts.inline ? null : (Object.keys(DES).length ? sec("Inside the teams' designs", null, h("div", { class: "p-empty-line" }, "No loaded design traces it.")) : null);
     const rows = [
       ...owners.map((o) => h("div", { class: "in-owner" }, "Owned by ", h("a", { onclick: () => go(key(o.app, "c", o.component), {}) }, o.component), ` (${designWord(o.app)})`,
         opts.inline ? null : h("span", { class: "ml-sub" }, ` found in ${o.via.join(", ")}${DES[o.app].trace_source === "inferred" ? ", inferred" : ""}`))),
       ...untraced.filter((u) => !owners.some((o) => o.app === u.app)).map((u) => h("div", { class: "in-owner untraced " + (u.gap ? "ack" : "missed"), title: u.gap ? `${u.gap} in the ${designWord(u.app)} acknowledges it` : `No component of the ${designWord(u.app)} owns it, and no gap says so` },
-        lampEl(u.gap ? "dark" : "caution"), ` Untraced in the ${designWord(u.app)}`, u.gap ? `, acknowledged by ${u.gap}` : ", and no gap says so"))];
-    return opts.inline ? h("div", { class: "in-owners inline" }, rows) : sec("Inside the teams' designs", null, rows, h("div", { class: "p-note heuristic" }, "Owners are inferred where a design records no Trace table."));
+        lampEl(u.gap ? "dark" : "caution"), ` Untraced in the ${designWord(u.app)}`, u.gap ? `, acknowledged by ${u.gap}` : ", and no gap says so")),
+      ...built];
+    return opts.inline ? h("div", { class: "in-owners inline" }, rows) : sec("Inside the teams' designs", null, rows, owners.length || untraced.length ? h("div", { class: "p-note heuristic" }, "Owners are inferred where a design records no Trace table.") : null);
+  }
+  /* The other half of the trace: which story of a team's build plan builds the item ("Built by S-03 (Booking plan)"). */
+  function builtBy(id, opts) {
+    return Plan.built(id).map((b) => h("div", { class: "in-owner built", "data-built": b.story }, "Built by ", h("a", { onclick: () => Plan.reveal(b.app, b.story) }, b.story),
+      ` (${Plan.planWord(b.app)})`, opts.inline ? null : h("span", { class: "ml-sub" }, ` ${b.name}`)));
   }
   function challengeSection(k) {
     const list = challenge(k);
@@ -955,10 +963,11 @@ const Inside = (() => {
   function doorEntry(app) {
     const d = design(app);
     return h("div", { class: "in-door" }, h("h3", {}, "Inside"), h("div", { class: "in-door-row" }, d ? statusPill(app) : h("span", { class: "muted small" }, "the team's design is not loaded"), d ? problemsChip(app) : null),
+      h("div", { class: "in-door-row", "data-readiness": Plan.readiness(app).id }, Plan.readinessPill(app), h("span", { class: "muted small" }, Plan.readiness(app).counts)),
       h("div", { class: "in-door-row" }, LEVELS.map(([l, word]) => h("button", { class: "chip", "data-inside": l, onclick: () => open(app, l) }, word))));
   }
   function sideEntry(app) {
-    return h("button", { class: "side-kid side-inside", "data-inside": app, onclick: () => open(app, design(app) ? "components" : "containers"), title: "Inside this app: context, containers and components" }, h("span", { class: "side-label" }, "Inside this app ›"));
+    return h("button", { class: "side-kid side-inside", "data-inside": app, onclick: () => open(app, design(app) ? "components" : "containers"), title: "Inside this app: context, containers, components and build plan" }, h("span", { class: "side-label" }, "Inside this app ›"));
   }
   function highlight(k) {
     $$("#inside-stage [data-key]").forEach((g) => g.classList.toggle("picked", g.dataset.key === k));
@@ -974,7 +983,9 @@ const Inside = (() => {
   });
 
   const designKey = () => (st.app && design(st.app) ? key(st.app) : "");
-  return { open, boot, hash, render, designKey, highlight, panel, ent: entOf, ownedBy, challenge, challengeSection, homeSection, statusCell, doorEntry, sideEntry, statusPill, problemsChip,
+  /* What plan.js draws with: the layout and drawing helpers above, and the chips that link into the vault. */
+  const kit = { layered, drawLayout, defsFor, sized, placeDrawings, boundsOf, fit, idChip, prose, chipCard, open, key };
+  return { open, boot, hash, render, kit, designKey, highlight, panel, ent: entOf, ownedBy, challenge, challengeSection, homeSection, statusCell, doorEntry, sideEntry, statusPill, problemsChip,
     layered, parseSequence, st, LEVELS, TABS, OWNERS, UNTRACED, CHALLENGED };
 })();
-View("inside", { label: "Inside", title: "Inside this app: context, containers and components", render: Inside.render, highlight: Inside.highlight });
+View("inside", { label: "Inside", title: "Inside this app: context, containers, components and build plan", render: Inside.render, highlight: Inside.highlight });

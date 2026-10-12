@@ -30,8 +30,8 @@ from planner import (allocation, attention, cli, completeness, handoff, ladder, 
                      reading, roles, schema, trace)
 from planner import search as planner_search
 
-from . import (asks_data, assets_inline, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
-               roles_data, serve)
+from . import (asks_data, assets_inline, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
+               plan_data, roles_data, serve)
 from . import pins as pinning
 from .record import (HANDLE, LABELLED_LINE, PROSE_LIMIT, Keys, inline_html,
                      plain, refs_in, title_of)
@@ -49,9 +49,9 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "geometry", "search", "minimap", "reader", "panel", "panelsize", "motion", "view-map",
               "wires", "mapgroups", "releases", "flowkit", "view-flows", "rehearse", "view-asks", "view-garden", "view-progress",
-              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "drafts", "freshness", "selftest", "main")
+              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "selftest", "main")
 CSS_MODULES = ("base", "nav", "panel", "map", "flows", "rehearse", "asks", "garden", "pages", "reader", "roles",
-               "releases", "ask", "inside", "pending", "drafts", "themes", "plain")
+               "releases", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -491,7 +491,7 @@ def lights_data(vault, keys, today):
     return {"lights": lights, "ranked": ranked, "above": above, "levels": list(attention.LEVELS)}
 
 
-def extract(vault, root, today, pins_path=None, designs=None, seed=None):
+def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=None):
     keys = Keys(vault)
     entities = {}
     for page in vault.pages:
@@ -536,6 +536,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None):
     data.update(roles_data.extract(vault, keys))
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
+    data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
     data["theme"] = THEME_IDS[0]
     return data
@@ -600,10 +601,10 @@ def relative_href(target, page_dir):
     return rel.as_posix()
 
 
-def link_sources(data, root, design_args, out_dir):
-    """Set the page's relative hrefs to the vault and to each team design, and return what the build should say
-    about links it left out. A link that cannot be relative without naming the home folder is left out; it is
-    never made absolute."""
+def link_sources(data, root, design_args, out_dir, plan_args=()):
+    """Set the page's relative hrefs to the vault, to each team design and to each build plan (and the tickets
+    beside it), and return what the build should say about links it left out. A link that cannot be relative
+    without naming the home folder is left out; it is never made absolute."""
     said = []
     data["vault"] = relative_href(root, out_dir) or ""
     if not data["vault"]:
@@ -614,6 +615,14 @@ def link_sources(data, root, design_args, out_dir):
         design["href"] = relative_href(paths[design["appId"]], out_dir) or ""
         if not design["href"]:
             said.append(f"no Open the design doc link for {design['appId']}, the doc and the page sit apart under the home folder")
+    plan_paths = {m.group(1): pathlib.Path(m.group(2)) for m in (design_data.SPEC.match(a.strip()) for a in plan_args)}
+    for plan in data["plans"].values():
+        path = plan_paths[plan["appId"]]
+        plan["href"] = relative_href(path, out_dir) or ""
+        tickets = plan_data.tickets_path(path)
+        plan["ticketsHref"] = (relative_href(tickets, out_dir) or "") if tickets else ""
+        if not plan["href"] or (tickets and not plan["ticketsHref"]):
+            said.append(f"no Open the plan or Tickets link for {plan['appId']}, the file and the page sit apart under the home folder")
     return said
 
 
@@ -631,6 +640,16 @@ def design_lines(designs):
         lines.append(f"{design['appId']} design {design['path']}: {design['frontmatter']['status']}, "
                      f"{len(design['components'])} components, {len(problems)} things it could not read"
                      + "".join(f"\n  line {p['line'] or '-'}, {p['section']}: {p['message']}" for p in problems))
+    return lines
+
+
+def plan_lines(plans):
+    lines = []
+    for plan in plans.values():
+        t = plan["totals"]
+        lines.append(f"{plan['appId']} build plan {plan['file']}: {plan['status'] or 'no status'}, {t['stories']} stories, {t['tasks']} tasks, "
+                     f"{t['points']} points, {len(plan['problems'])} things it could not read"
+                     + "".join(f"\n  {p}" for p in plan["problems"]))
     return lines
 
 
@@ -679,10 +698,11 @@ def plural_pages(n):
     return f"{n} page" if n == 1 else f"{n} pages"
 
 
-def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None):
+def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None,
+             breakdown_args=()):
     """Build the page for the vault at `root` and write it to `out`. Returns the report lines: what the build
     chose, what it left out and why, and the one-line summary last. Raises ExplorerError, writing nothing, when
-    the vault, the assets, the pins or a design cannot be read.
+    the vault, the assets, the pins, a design or a named breakdown cannot be read.
 
     `pins_path` is the file that keeps every app's cell (None computes the layout and keeps nothing); `seed` is a
     pins file to start from when that one does not exist yet. `freshness` is the report (a dict) `planner freshness`
@@ -704,13 +724,17 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     was_there = bool(pins_path) and pathlib.Path(pins_path).exists()
     found, find_lines = design_find.discover(vault, root, design_args)  # local files only; an app named by --design is not looked up
     design_args = [*design_args, *found]
+    plans_found, plan_find_lines = breakdown_find.discover(vault, root, breakdown_args, design_args)
+    plan_args = [*breakdown_args, *plans_found]
     try:
-        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed)
+        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed, plan_data.plans_for(plan_args))
     except design_data.DesignError as exc:
         raise ExplorerError(f"--design: {exc}") from exc
+    except plan_data.PlanError as exc:
+        raise ExplorerError(f"--breakdown: {exc}") from exc
     data["theme"] = theme
     data.update(access_data(root, vault, freshness))
-    said = link_sources(data, root, design_args, out.parent)
+    said = link_sources(data, root, design_args, out.parent, plan_args)
     page = render(data, assets)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
@@ -721,6 +745,8 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     said += [f"a link was left out, {problem} (planner check reports it as E105)" for problem in data["linkProblems"]]
     said += find_lines
     said += design_lines(data["designs"])
+    said += plan_find_lines
+    said += plan_lines(data["plans"])
     said += draft_lines(data)
     m = data["map"]
     said.append(f"wrote {out} for {data['initiative']} {data['title']}: {len(m['apps'])} apps, "

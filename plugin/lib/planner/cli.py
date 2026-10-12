@@ -967,7 +967,7 @@ def cmd_explore(args, out):
     try:
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
                                   assets_config=args.assets, design_args=args.design, theme=args.theme,
-                                  freshness=page_freshness(root, found, today))
+                                  freshness=page_freshness(root, found, today), breakdown_args=args.breakdown)
     except explorer.ExplorerError as exc:
         raise ToolError(str(exc)) from exc
     for line in lines:
@@ -1889,6 +1889,8 @@ def build_parser():
     explore.add_argument("--theme", default="console", help="the theme the page opens in: console, graphite, daylight or vaporwave")
     explore.add_argument("--design", action="append", default=[], metavar="APP-x=PATH",
                          help="a team's tech design doc for an app, for Inside this app; repeat for each app")
+    explore.add_argument("--breakdown", action="append", default=[], metavar="APP-x=PATH",
+                         help="a team's work breakdown (docs/plan/<slug>-breakdown.md) for an app, for its Build plan; repeat for each app")
     explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
     explore.add_argument("--serve", action="store_true",
                          help="then serve the page on this machine only, with Ask Claude on; opens the browser, Ctrl-C stops")

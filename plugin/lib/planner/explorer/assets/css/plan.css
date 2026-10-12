@@ -1,0 +1,95 @@
+/* ------------------------------------------------ Inside this app, level 4: the build plan (plan.js)
+   In the room's own palette, so it repaints with every theme. A lit card is the vault's lamp for the open question that
+   blocks it, never a colour of the plan's own; the plan's status is shape and ink, as the design's is. */
+.plan-page { flex: 1; min-height: 0; overflow: auto; padding: 14px 24px 44px; display: flex; flex-direction: column; gap: 16px; }
+.plan-bar { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+.plan-kpis { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }
+.plan-kpi { display: flex; align-items: baseline; gap: 6px; }
+.plan-kpi b { font-size: 24px; font-weight: 600; color: var(--ink); }
+.plan-kpi span { font-size: 12px; color: var(--ink-3); }
+.plan-by-size { display: flex; gap: 10px; font-size: 12px; color: var(--ink-3); font-family: var(--mono); }
+.plan-by { display: inline-flex; align-items: center; gap: 4px; }
+.plan-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.plan-gaps { background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 4px 12px; }
+.plan-problems { background: var(--room-2); border: 1px solid var(--note-text); border-radius: 10px; padding: 10px 14px; }
+.plan-problems[hidden] { display: none; }
+.plan-sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.plan-sec > h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+.plan-hint { margin: 0; font-size: 12.5px; color: var(--ink-3); }
+
+/* sizes: a letter in a square whose edge thickens with the size, so the size reads without colour */
+.plan-size { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 3px; border-radius: 5px; font: 600 11.5px var(--mono); color: var(--ink); background: var(--deck-2); border: 1px solid var(--ink-3); }
+.plan-size.sM { border-width: 1.5px; background: var(--deck-3); }
+.plan-size.sL { border-width: 2.5px; background: var(--deck-3); }
+.plan-total { display: inline-flex; align-items: center; gap: 2px; }
+.plan-total i { font-style: normal; color: var(--ink-4); font-size: 11px; }
+
+/* the lane of cards */
+.plan-lane { display: flex; align-items: flex-start; gap: 8px; overflow-x: auto; padding: 4px 2px 12px; }
+.plan-then { flex: none; align-self: center; color: var(--ink-4); font-size: 22px; }
+.plan-card { flex: none; width: 292px; background: var(--room-2); border: 1px solid var(--rule-3); border-radius: 12px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+.plan-card.open { width: 380px; }
+.plan-card.lit { border-width: 1.5px; box-shadow: inset 5px 0 0 var(--ink-3); }
+.plan-card.lit.caution { border-color: var(--caution); box-shadow: inset 5px 0 0 var(--caution); }
+.plan-card.lit.warning { border-color: var(--warning); box-shadow: inset 5px 0 0 var(--warning); }
+.plan-card.lit.unexamined { border-color: var(--unexamined); box-shadow: inset 5px 0 0 var(--unexamined); }
+.plan-card.lit.override { border-color: var(--override); box-shadow: inset 5px 0 0 var(--override); }
+.plan-card.flash { outline: 2px solid var(--focus); }
+.plan-card header { display: flex; align-items: center; gap: 8px; }
+.plan-card header .spacer { flex: 1; }
+.plan-n { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--deck-3); color: var(--ink-2); font: 600 12px var(--mono); }
+.plan-id { font: 600 13px var(--mono); color: var(--ink-2); }
+.plan-card h4 { margin: 0; font-size: 14.5px; line-height: 1.3; font-weight: 600; color: var(--ink); }
+.plan-meta { font-size: 12px; }
+.plan-block { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12.5px; color: var(--ink-2); }
+.plan-block.ready { color: var(--ink-3); }
+.plan-block .fl, .plan-card .fl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); }
+.plan-after { cursor: pointer; }
+.plan-who { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 6px; border: 1px dashed var(--ink-3); color: var(--ink-2); }
+.plan-who.outside { border-style: solid; border-color: var(--ink-2); }
+.plan-who.other { border-style: dotted; color: var(--ink-3); }
+.plan-glance { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.plan-card.open .plan-glance { display: none; }
+.plan-toggle { align-self: flex-start; margin-left: 0; }
+.plan-card:not(.open) .plan-card-body { display: none; }
+.plan-card-body { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--rule); padding-top: 8px; font-size: 13px; color: var(--ink-2); }
+.plan-ac { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.plan-traces { display: flex; flex-wrap: wrap; gap: 4px; }
+.plan-tasks { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.plan-tasks td { padding: 4px 6px 4px 0; vertical-align: top; border-top: 1px solid var(--rule); }
+.plan-tasks tr:first-child td { border-top: 0; }
+.plan-task-size { width: 28px; }
+.plan-comp { cursor: pointer; }
+.plan-comp.dead { cursor: default; color: var(--ink-3); border-style: dashed; }
+
+/* the dependency view */
+.plan-dag-frame { flex: none; }
+.plan-dag { display: flex; justify-content: safe center; align-items: safe center; overflow: auto; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 40%, var(--board-light), transparent 70%), var(--board); }
+.plan-node .plan-id { font: 600 13px var(--mono); }
+.in-box-face.lit.caution { stroke: var(--caution); stroke-width: 2.4; } .in-box-face.lit.warning { stroke: var(--warning); stroke-width: 2.4; }
+.in-box-face.lit.unexamined { stroke: var(--unexamined); stroke-width: 2.4; } .in-box-face.lit.override { stroke: var(--override-text); stroke-width: 2.4; }
+.plan-dot.caution { fill: var(--caution); } .plan-dot.warning { fill: var(--warning); } .plan-dot.unexamined { fill: var(--unexamined); } .plan-dot.override { fill: var(--override); } .plan-dot.pending { fill: var(--ink-3); }
+.plan-outer.outside .in-stub-face { stroke: var(--ink-2); stroke-dasharray: none; }
+
+/* coverage and what is not planned */
+.plan-sum { margin: 0; font-size: 13px; color: var(--ink-2); }
+.plan-sum.bad { color: var(--caution-text); }
+.plan-cov-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 1100px) { .plan-cov-grid { grid-template-columns: minmax(0, 1fr); } }
+.plan-cov-box { max-height: 340px; overflow: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--room-2); }
+.plan-cov th { position: sticky; top: 0; background: var(--deck); z-index: 1; }
+.plan-cov td { font-size: 12.5px; padding: 5px 8px; vertical-align: middle; }
+.plan-cov td .ref-chip { margin: 1px 3px 1px 0; }
+.plan-cov tr.empty td { background: color-mix(in srgb, var(--caution) 16%, transparent); }
+.plan-empty { color: var(--caution-text); font-weight: 600; }
+.plan-np { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+
+/* readiness, on the doors and the app's panel */
+.plan-ready.complete { background: var(--ink-2); color: var(--room); border-color: var(--ink-2); }
+.plan-ready.gaps { background: transparent; }
+.plan-ready.progress, .plan-ready.design { border-style: dashed; color: var(--ink-3); }
+.plan-ready.none { border-style: dotted; color: var(--ink-4); border-color: var(--ink-4); }
+.plan-ready-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.in-owner.built { color: var(--ink-2); }
+.in-owner.built a { cursor: pointer; }
