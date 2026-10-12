@@ -1,6 +1,6 @@
 ---
 name: epics
-description: Epics session for an initiative vault at stage 6. Works team by team from the traceability gaps, shapes 2 or 3 epic cuts, drafts boundary acceptance criteria with concern markers, grills the solution lead one criterion at a time, and runs check --gate epics before calling an app's epics complete.
+description: Epics session for an initiative vault at stage 6. Works team by team from the traceability gaps, shapes 2 or 3 epic cuts, drafts boundary acceptance criteria with concern markers, grills the solution lead one criterion at a time, and runs check --gate epics --app before calling an app's epics complete.
 argument-hint: "<team handle or APP-id, or 'every team'>"
 disable-model-invocation: true
 ---
@@ -20,6 +20,8 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`,
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render`, then read the `traceability` block on `13-epics/13-epics.md`. Its rows are the work: capabilities nobody delivers (T1), new or changed contracts with no provider epic (T2), concern cells with work and no marked criterion (T4), and epics that deliver nothing (T6). Work one team at a time. A team is an `owner:` handle on app pages.
 
 ## 3. Shape the cuts
+
+Read `04b-releases.md` first, if the vault has one. The team's epics are cut against the releases: say which release each proposed epic serves, and when a requirement is dated in part ("AC1 and AC2 in January, AC3 later"), say whether the epic carries all of its criteria or only those on the first date. A requirement on no release is cut as usual and flagged as undated.
 
 For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exactly one owning team. Say what each cut makes easy and what it makes hard, such as which cutover it unblocks first. Say which one you prefer. Capture the user's choice, and each rejected cut with its reason. Shape never decides, so the chosen cut stays `draft`. People hold about four to seven things at once, so a cut that would give an epic more than about seven acceptance criteria is a cut to split: propose the split as one of the options, with what each half delivers. The user may keep it whole; record that as an override, as `START.md` says.
 
@@ -53,7 +55,7 @@ A question nobody present can answer becomes an unknown, as `MODES.md` says unde
 
 ## 6. Grill the criteria
 
-For each epic the user wants decided, run the gate in `${CLAUDE_PLUGIN_ROOT}/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` or `reopened` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Show the table, and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it. A failed gate gets grill's choice too: "decide anyway (override GATE-n)", with the `**Override:**` and `**Decided by:**` bullets grill writes.
+For each epic the user wants decided, run the gate in `${CLAUDE_PLUGIN_ROOT}/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` or `reopened` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Say in plain words which epics are ready to decide and which are not (never a gate table), and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it. A failed gate gets grill's choice too: "decide anyway (override GATE-n)", with the `**Override:**` and `**Decided by:**` bullets grill writes.
 
 Then take each criterion in turn. Every criterion needs its own explicit yes before the epic can be confirmed:
 
@@ -77,7 +79,7 @@ If the user tells you to decide an epic without a yes per criterion, or without 
 
 ## 7. Check the gate
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render` and stage every file it reports, by exact path. Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, or that was asked and still waits for its answer, such as the lawful basis for data, a partner's clauses or a stored-value liability. E805 covers the whole vault, not one team. Dispose of each one in this session, while the lead is here, with one of three routes (answer it, defer it to an owner, or override to accept the risk) as `CONVENTIONS.md` says under "The ledger". Offer them once, with your recommendation, and do not loop: once the lead picks one, record it and move on.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render` and stage every file it reports, by exact path. Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate epics --app <APP-id>` for each of the team's apps. The `--app` run leaves out other teams' gaps, so its exit code is this app's alone. Read every `E50x` line it prints. Never say an app's epics are complete while one remains. Say what each needs in plain words ("nobody is planned to build the sale API yet"), never its code. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, or that was asked and still waits for its answer, such as the lawful basis for data, a partner's clauses or a stored-value liability. Put each to the lead as one plain sentence. Dispose of each one in this session, while the lead is here, with one of three routes (answer it, defer it to an owner, or override to accept the risk) as `CONVENTIONS.md` says under "The ledger". Offer them once, with your recommendation, and do not loop: once the lead picks one, record it and move on.
 
 - Answer it now. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --open --digest`, take the line, and capture the answer. The gate clears once close writes its row. Before close, the override is the only way to a clean `--gate epics`.
 - Override it. Write `- **Override:** E805 by @<handle> on <today>: <reason>` under the `## History` section at the end of `11-unknowns-and-risks.md`, at page level, as `CONVENTIONS.md` says under "Pages". It turns E805 into W805, which still prints.
@@ -87,11 +89,11 @@ A gate that still shows E805 after you record a deferral is expected until close
 
 Never call the epics complete past an E805 the user has neither taken nor overridden.
 
-Exit 0 means the epics are structurally complete. It does not mean they are decided. Handoff needs every epic `decided` and a clean gate, so list each epic still at `draft` before you finish. The gate checks the whole vault, so `E50x` lines on other teams' apps also fail the exit code. Report those separately as other teams' work, and do not treat them as this team's gap.
+Exit 0 means the app's epics are structurally complete. It does not mean they are decided, so list each epic still at `draft` before you finish. Handoff does not wait for this: epics follow it. To see every team at once, run the gate without `--app`; its failures on other teams' apps are those teams' work, not this team's gap.
 
 ## Ends when
 
-Every chosen team's gaps are closed or listed, or the user stops. Epics left at `draft` are listed. Tell the user: "Run `/planner:close` to finish the session and open the PR."
+Every chosen team's gaps are closed or listed, or the user stops. Epics left at `draft` are listed. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session".
 
 ## Never
 

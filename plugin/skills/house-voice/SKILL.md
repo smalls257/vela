@@ -58,7 +58,7 @@ These keep the exact words they were written in. Do not restyle them:
 
 ## Prose that is already merged
 
-Merged prose belongs to the vault and the people who edited it. When a session changes a fact in a merged paragraph, change only that fact and the fewest words grammar needs. If the change makes the paragraph wrong as a whole, leave it alone and add a new paragraph under it that starts `> Replaces the paragraph above after <session id>; delete one.` A person picks.
+Merged prose belongs to the vault and the people who edited it. When a session changes a fact in a merged paragraph, change only that fact and the fewest words grammar needs. If the change makes the paragraph wrong as a whole, rewrite it, and keep the old paragraph word for word in the session record under `## Replaced prose`, with the page and the date, so whoever wrote it can find it. Say so under **Prose drafted** in the pull request body. A page never carries two openings, and never a note to a reader about which paragraph to delete: those are editing notes, and a page with one ships as a draft.
 
 ## The ten rules
 
