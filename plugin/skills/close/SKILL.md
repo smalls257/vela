@@ -20,13 +20,14 @@ Run `planner role` first. If it says `reader` (a published copy: `.planner/works
 - **Section 4:** the changed pages are the ones the session's `## Changes` table and captures name, not `git diff`. Skip the examples harvest (it needs `gh` and `git`). Skip the `git restore` and checkpoint-commit lines of the voice review: write the rewrite to the page only after `planner voicecheck` passes, and keep the earlier draft in a copy beside it until then.
 - **Section 6:** run only the render and the check. Skip the fetch and the merge of `main`.
 - **Section 7:** write `summary:` and set `status: closed`, render and check; stage nothing. Never write a handoff manifest: handoff is the owner's.
+- **Section 9:** runs as written; it needs neither git nor `gh`.
 - **Section 8:** skip it. Say: "Nothing was committed, pushed or sent. Your changes are in this folder; to send them to the owner as a proposal, run `/planner:propose`." Never say a PR exists.
 
 Write the session record as usual: it is the one record of what you did.
 
 ## 1. Find the session
 
-Open records live on `session/<id>` branches, so first run `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'`, and read each record with `git show <branch>:sessions/<id>.md`. Find the one with `status: open`. If there is more than one, ask which. A branch can hold more than one record, because an answer session shares its challenge's branch, so also run `git grep -l '^status: open' <branch> -- sessions/` for each branch. Find that record's branch and switch to it with `git switch <branch>` before anything else. For most sessions it is `session/<id>`. For a session whose `modes` include `answer`, it is the challenge's branch.
+Open records live on `session/<id>` branches, so first run `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'`, and read each record with `git show <branch>:sessions/<id>.md`. Find the one with `status: open`. If none is open, say so plainly, change nothing, and go straight to section 9. If there is more than one, ask which. A branch can hold more than one record, because an answer session shares its challenge's branch, so also run `git grep -l '^status: open' <branch> -- sessions/` for each branch. Find that record's branch and switch to it with `git switch <branch>` before anything else. For most sessions it is `session/<id>`. For a session whose `modes` include `answer`, it is the challenge's branch.
 
 ## 2. Mark every capture
 
@@ -284,3 +285,10 @@ gh pr create --base main --head session/<id> --title "<date> <Mode name>: <topic
 ```
 
 If `gh` fails, say so, print the branch name and the exact command, and stop. Never say a PR exists unless `gh` printed its URL. Show the URL. If this session wrote `handed_off: "<senior>, <date>, PR pending"`, replace `pending` with `#<the PR's number>`, commit it as `Handoff PR number for <APP-id>`, and push. If `gh` failed, leave `pending`: W325 says so until someone writes the number.
+
+## 9. Rebuild the explorer
+
+This is the last step of every close. Run it even when section 8 stopped because `gh` or the push failed, since the explorer needs neither. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner explore` from the vault root, without `--serve`: it rewrites `.planner/explorer.html`, the page the vault's `.gitignore` keeps out of commits, and takes about a second. Nothing here is staged, committed or pushed.
+
+- If it exits 0, say one plain line: "The explorer is up to date: .planner/explorer.html — open it, or run /planner:explore to ask Claude from it". Then add one line for each `warning:` and each `no design doc found` it printed, in its own words, such as a `team_repos:` folder that does not exist. Do not read the rest of its output back.
+- If it fails, say so plainly with its message: "The explorer could not be built: <message>. The close itself is done." A failed build never undoes or blocks the close, and you never say the explorer is up to date unless the command exited 0.

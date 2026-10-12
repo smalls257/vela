@@ -7,7 +7,7 @@ import subprocess
 import pytest
 import yaml
 
-from conftest import REPO
+from conftest import REPO, run
 
 PLUGIN = REPO / "plugin"
 SKILLS = sorted(p.parent for p in (PLUGIN / "skills").glob("*/SKILL.md"))
@@ -393,3 +393,46 @@ def test_every_flag_the_explore_skill_names_is_one_the_command_accepts():
     accepted = {flag for action in sub._actions for flag in action.option_strings}
     named = set(re.findall(r"`(--[a-z]+)[ `]", text("skills/explore/SKILL.md"))) | {"-o"}
     assert named and named <= accepted, named - accepted
+
+
+EXPLORER_LINE = "The explorer is up to date: .planner/explorer.html — open it, or run /planner:explore to ask Claude from it"
+
+
+def test_close_ends_by_rebuilding_the_static_explorer_and_a_failed_build_never_blocks_it():
+    close = text("skills/close/SKILL.md")
+    last = close.split("\n## ")[-1]
+    assert last.startswith("9. Rebuild the explorer")
+    assert "scripts/planner explore` from the vault root, without `--serve`" in last
+    assert EXPLORER_LINE in last
+    assert "A failed build never undoes or blocks the close" in last
+    assert "never say the explorer is up to date unless the command exited 0" in last
+    assert "Run it even when section 8 stopped" in last
+    assert "If none is open, say so plainly, change nothing, and go straight to section 9." in close
+
+
+def test_open_and_import_also_say_where_the_explorer_is_and_never_stop_on_a_failed_build():
+    assert EXPLORER_LINE in text("skills/open/SKILL.md")
+    imported = text("skills/import/SKILL.md")
+    assert EXPLORER_LINE in imported and "a failed build never ends the import" in imported
+
+
+def test_explore_and_the_vault_reference_say_designs_and_plans_live_in_the_vault_docs_folder():
+    explore, ref = text("skills/explore/SKILL.md"), text("references/TECH-DESIGN-FROM-VAULT.md")
+    assert "`docs/tech-design/<slug>.md` (with `docs/adr/`" in explore and "team_repos" not in explore
+    assert "Writing its own `docs/` files in the vault is allowed" in explore
+    assert "in the vault" in ref and "team_repos" not in ref
+
+
+def test_the_static_build_close_runs_writes_the_page_and_names_it_on_its_last_line(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(REPO / "tests/sim/snapshots/trading-coach/after-80b", vault)
+    code, said = run("explore", str(vault), "--today", "2026-10-10")
+    assert code == 0, said
+    assert (vault / ".planner" / "explorer.html").is_file()
+    assert said.strip().splitlines()[-1].startswith("planner explore: wrote ") and "serving" not in said
+
+
+def test_a_build_that_fails_exits_2_says_why_and_leaves_no_new_page(tmp_path):
+    code, said = run("explore", str(tmp_path / "not-a-vault"))
+    assert code == 2 and said.strip(), said
+    assert not (tmp_path / "not-a-vault" / ".planner" / "explorer.html").exists()
