@@ -83,7 +83,7 @@ Number the kept findings `F<n>.1`, `F<n>.2` and so on, in the merge's order. The
 
 Once the table is written, run `rm -rf .planner/findings/<session id>/<n>` again, with the real values written in, so no stale file is left to be read as fresh.
 
-Give the coverage in one sentence ("All five angles found something", or "Four angles ran; the regulation angle did not run, because its reviewer failed"). An area that did not run is still named in that sentence and never reported as clean. A skipped area is never reported as checked. The per-area detail goes in the record and the pull request body, not the conversation. Offer to run an area that did not.
+Give the coverage in one sentence ("All five angles found something", or "Four angles ran; the regulation angle did not run, because its reviewer failed"). An area that did not run is never reported as clean. It is named in that sentence. A skipped area is never reported as checked. The per-area detail goes in the record and the pull request body, not the conversation. Offer to run an area that did not.
 
 ## Re-running areas
 
