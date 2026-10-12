@@ -23,7 +23,7 @@ Each area's reviewer also gets the page of each subject its pending copies name:
 
 ## 2. The owed questions
 
-Read the area codes from the `areas:` block of `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`. Today they are `FIN`, `DAT`, `PTN`, `REG` and `OPS`, but use what the block says. For each area run `planner questions --area <AREA> --json` and keep its output for that area's reviewer. A copy in that output is pending when its `pending` field is `true`: that covers `no row`, `open`, `asked` and an invalid row.
+Read the area codes from the `areas:` block of `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`. Today they are `FIN`, `DAT`, `PTN`, `REG` and `OPS`, but use what the block says. For each area run `planner questions --area <AREA> --json`. Section 3 saves each area's output to a file for that area's reviewer. A copy in that output is pending when its `pending` field is `true`: that covers `no row`, `open`, `asked` and an invalid row.
 
 Then decide which areas this checkpoint reviews. An area is skipped only when both hold: nothing is owed in it, because no copy and no reviewer question in its output has `pending` set to `true`; and nothing in this checkpoint's material touches what it covers, by the table "What each focus area covers" in `${CLAUDE_PLUGIN_ROOT}/agents/area-reviewer.md`. The material is this session's captures and the pages it changed. When in doubt, review the area. A skipped area is never silently absent: the merge reports it as `skipped (nothing in scope)` (section 4), and you tell the lead which areas were skipped and offer to run them.
 
@@ -34,9 +34,11 @@ Run `git status --porcelain` and keep its output as the baseline.
 Clear the folder, then make it. Each command is one Bash call, with the real session id and number written in and no variables. The folder sits in `.planner/` is gitignored, so nothing in it is ever staged. It is not under `.git/`, because Claude Code will not write there without asking.
 
 ```
-rm -rf .planner/findings/<session id>/<n>
-mkdir -p .planner/findings/<session id>/<n>
+rm -rf .planner/findings/<session id>/<n> .planner/findings/<session id>/<n>-questions
+mkdir -p .planner/findings/<session id>/<n> .planner/findings/<session id>/<n>-questions
 ```
+
+Then save each reviewed area's owed questions, one Bash call per area, with the real session id, number and area code written in: `planner questions --area <AREA> --json > .planner/findings/<session id>/<n>-questions/<AREA>.json`. They sit beside the findings folder, not in it, so the merge does not list them as ignored files.
 
 Dispatch the `planner:area-reviewer` subagent with the Agent tool, once per area this checkpoint reviews, in one message so they run side by side: all five in one message when no area is skipped. Set the Agent tool's `model` to `sonnet` on every dispatch, as the agent's own `model: sonnet` says. A focused read-only check against a short list of pages does not need the session's model, and five of them at once cost five times as much. Give each one only:
 
@@ -44,7 +46,7 @@ Dispatch the `planner:area-reviewer` subagent with the Agent tool, once per area
 - `Checkpoint: <the checkpoint and its focus>`;
 - the list of page paths from section 1, with that area's subject pages added, and `11-unknowns-and-risks.md` with its line range;
 - `Changed: <paths>`: this session's record and every page this session has changed, from section 1, comma-separated. A page most sessions touch only in part, `11-unknowns-and-risks.md` above all, goes in with the lines this session changed, `11-unknowns-and-risks.md:40-52+88-90`: the `+<start>,<count>` of each hunk header in `git diff -U0 main...HEAD -- <page>`. A new question is about these; an owed copy may be about any page;
-- that area's `planner questions --area <AREA> --json` output.
+- `Questions file: .planner/findings/<session id>/<n>-questions/<AREA>.json`, written out in full with the real session id, number and area code. It is the file you just saved for that area, so check that it exists before you dispatch. Never send a placeholder, a `<...>` template or the output pasted in place of the path.
 
 Give no conversation, no summary of what the lead said, and no other area's questions. If the Agent tool lists no `planner:area-reviewer`, dispatch a general-purpose subagent instead, with `model` set to `sonnet` as well, and give it everything in `${CLAUDE_PLUGIN_ROOT}/agents/area-reviewer.md` after the frontmatter as its instructions, then the same inputs, then this: you must not change any file. If you changed a file, return `{"area": "<your area code>", "error": "changed <path>"}` instead. Never review the pages yourself in this conversation.
 

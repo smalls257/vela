@@ -83,7 +83,7 @@ def test_review_clears_stale_findings_and_numbers_from_the_record():
     review = text("references/REVIEW.md")
     assert "1 plus the number of `### ` headings under `## Reviews`" in review
     assert review.count("rm -rf .planner/findings/<session id>/<n>") == 2
-    assert review.index("rm -rf .planner/findings/<session id>/<n>\nmkdir") < review.index("Save each reply")
+    assert review.index("rm -rf .planner/findings/<session id>/<n> .planner/findings/<session id>/<n>-questions\nmkdir") < review.index("Save each reply")
     assert "no variables" in review
 
 
@@ -741,3 +741,12 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
         "[[11-unknowns-and-risks#UNK-010 How we deal with a travel insurer|UNK-010]] (open)",
         "[[03-context-and-scope#PTY-03 Travel insurer|PTY-03]] (subject)"), encoding="utf-8")
     assert ("E202", "sessions/2026-11-20-credit-dump.md") in findings(check(vault, TODAY)[1])
+
+
+def test_review_hands_each_reviewer_a_real_questions_file_and_the_reviewer_refuses_a_placeholder():
+    review, agent = text("references/REVIEW.md"), text("agents/area-reviewer.md")
+    assert "--json > .planner/findings/<session id>/<n>-questions/<AREA>.json" in review
+    assert "`Questions file: .planner/findings/<session id>/<n>-questions/<AREA>.json`" in review
+    assert "Never send a placeholder" in review
+    assert review.index("-questions/<AREA>.json`. They sit") < review.index("Dispatch the `planner:area-reviewer`")
+    assert "a placeholder" in agent and "no questions file" in agent
