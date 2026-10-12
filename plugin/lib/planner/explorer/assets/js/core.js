@@ -8,6 +8,11 @@ window.addEventListener("unhandledrejection", (ev) => window.__errors.push("prom
 const D = JSON.parse(document.getElementById("data").textContent);
 const E = D.entities;
 const HASH = new URLSearchParams((location.hash || "").slice(1));
+/* The address bar's hash again, in the same object, when a pasted link or Back changes it. */
+function reloadHash() {
+  for (const k of [...HASH.keys()]) HASH.delete(k);
+  new URLSearchParams((location.hash || "").slice(1)).forEach((v, k) => HASH.append(k, v));
+}
 const STILL = HASH.has("still") || HASH.has("selftest");  // screenshots and checks: no transitions to wait out
 
 /* ------------------------------------------------------------------ small helpers */

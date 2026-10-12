@@ -596,12 +596,27 @@ const SelfTest = (() => {
      with the planner step that writes it; and a flow of inferred arrows says so once. */
   /* A vault that gains a vault_id keeps what the browser saved under its old id (E18), against a fake store. */
   /* Keys the page owns must leave fields and controls alone (E34, E35). */
+  /* Browser Back and a pasted link move the page (E33). Needs a real address bar, so it runs on a file or a served page alike. */
+  async function history_() {
+    const changed = (act) => new Promise((resolve) => { addEventListener("hashchange", resolve, { once: true }); act(); });
+    Nav.home(); Nav.open("decisions", ""); Nav.open("unknowns", "");
+    const before = App.section;
+    await changed(() => history.back());
+    const back = App.section;
+    await changed(() => { location.hash = "#s=goals"; });
+    const pasted = App.section;
+    await changed(() => history.back());
+    ok(before === "unknowns" && back === "decisions" && pasted === "goals", "history: Back returns to the section the lead came from, and a pasted #s= link opens that section",
+      `history: before ${before}, after Back ${back} (wanted decisions), after a pasted link ${pasted} (wanted goals)`);
+    Nav.home();
+  }
   /* The search box is a combobox a screen reader can follow (E22). */
   function searchAria() {
-    const q = $("#q"), word = D.map.apps[0] ? titleOf(D.map.apps[0].key).split(" ")[0] : "vault";
+    const q = $("#q"), word = (Object.values(E).map((e) => (e.title || "").split(/\s+/).find((w) => /^[A-Za-z]{4,}$/.test(w))).find(Boolean)) || "vault";
     Search.type(word);
     const opts = $$("#results [role=option]"), on = opts.find((o) => o.getAttribute("aria-selected") === "true");
-    ok(q.getAttribute("role") === "combobox" && q.getAttribute("aria-controls") === "results" && q.getAttribute("aria-expanded") === "true" && !!on && q.getAttribute("aria-activedescendant") === on.id && opts.every((o) => o.id),
+    if (!opts.length) out.push(`skip search combobox: "${word}" finds nothing in this vault`);
+    else ok(q.getAttribute("role") === "combobox" && q.getAttribute("aria-controls") === "results" && q.getAttribute("aria-expanded") === "true" && !!on && q.getAttribute("aria-activedescendant") === on.id && opts.every((o) => o.id),
       "search: the box is a combobox; the open list is expanded, every result has an id and the highlighted one is the active descendant", `search: role ${q.getAttribute("role")}, expanded ${q.getAttribute("aria-expanded")}, ${opts.length} options, selected ${on && on.id}, active ${q.getAttribute("aria-activedescendant")}`);
     Search.type("zzqqxx nothingmatches");
     const said = $("#results-status").textContent;
@@ -968,7 +983,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");

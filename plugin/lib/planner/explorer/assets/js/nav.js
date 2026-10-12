@@ -140,21 +140,49 @@ const Nav = (() => {
   function openRelease(i) { open("releases", "", { state: i }); }
 
   /* ------------------------------------------------------------ the hash */
+  /* A move between views is a history entry, so Back returns to the view the lead came from (E33); the same address twice
+     replaces, and so does a refinement inside a view (a flow's next step: view-flows.js). `written` is what this page last
+     put in the address bar, so a hashchange the page did not make is a pasted link or a Back, and is followed. */
+  let written = location.hash, following = false;
+  function setHash(hash) {
+    if (hash === location.hash) return;
+    if (following) history.replaceState(null, "", hash); else history.pushState(null, "", hash);  // following a Back must not add an entry to go back to
+    written = location.hash;
+  }
+  function followHash() {
+    if (location.hash === written) return;
+    written = location.hash;
+    reloadHash();
+    Flows.closePresent();
+    following = true;
+    try { followBoot(); } finally { following = false; }
+    refresh();
+  }
+  function followBoot() {
+    if (!boot()) {
+      const open = HASH.get("open");
+      if (open && ent(open)) { App.trail = [open]; App.focus = open; }
+      if (App.view === "flows" && open && FLOW[open]) { Flows.st.key = open; Flows.st.cur = HASH.has("step") ? +HASH.get("step") - 1 : -1; }
+      Panel.render(); rerender();
+    }
+    if (HASH.get("present") && FLOW[HASH.get("present")]) Flows.present(HASH.get("present"), (+HASH.get("step") || 1) - 1);
+  }
+  window.addEventListener("hashchange", followHash);
   function syncHash() {
     const p = [];
     if (App.view === "ask" && typeof Ask !== "undefined") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-      history.replaceState(null, "", "#" + [Ask.hash(), ...p].join("&"));
+      setHash("#" + [Ask.hash(), ...p].join("&"));
       return;
     }
     if (App.view === "drafts") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-      history.replaceState(null, "", "#" + ["drafts", ...p].join("&"));
+      setHash("#" + ["drafts", ...p].join("&"));
       return;
     }
     if (App.view === "inside" && typeof Inside !== "undefined") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-      history.replaceState(null, "", "#" + [Inside.hash(), ...p].join("&"));
+      setHash("#" + [Inside.hash(), ...p].join("&"));
       return;
     }
     if (App.section === "home") p.push("home");
@@ -165,7 +193,7 @@ const Nav = (() => {
     if (App.view === "map") { if (MapView.st.lens) p.push("lens=" + MapView.st.lens); if (MapView.st.group) p.push("group=" + MapView.st.group); }
     if (App.view === "releases" || (App.view === "map" && MapView.lens() === "releases")) p.push("state=" + Releases.st.at);
     for (const keep of ["still", "fx", "selftest", "trace"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-    history.replaceState(null, "", "#" + p.join("&"));
+    setHash("#" + p.join("&"));
   }
   function boot() {
     const hs = HASH.get("s"), legacy = VIEWS.find((v) => (HASH.has(v.id) || (v.alias && HASH.has(v.alias))) && !["role", "doc"].includes(v.id));
@@ -238,5 +266,5 @@ const Nav = (() => {
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted" }, `${D.initiative} · ${Object.keys(D.reader).length} pages`)));
   }
   $("#side-toggle").addEventListener("click", () => { st.hidden = !st.hidden; write(SIDE_KEY, st.hidden); refresh(); rerender(); });
-  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, boot, refresh, st, VISUALS, SECTIONS };
+  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();
