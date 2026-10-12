@@ -7,7 +7,9 @@ inventing a word.
 
 The work-breakdown skill writes the file: frontmatter (status, prereqs, gaps), a summary table, one `### S-NN <name>`
 section per story (a "Traces to:" line, acceptance criteria as bullets, a `| Task | Size | Component |` table, a
-"Blocked by:" line), then Build order, Coverage and Not planned. This is the one reader of that format.
+"Blocked by:" line), then Build order, Coverage and Not planned. A story may also carry an "Acceptance criteria:" label
+(with a lead-in on the same line), "Open for tech-design-grill: ..." notes and "Conflict with an epic criterion: ..."
+notes; they are read into `open_notes` and `conflicts`, not flagged. This is the one reader of that format.
 tools/breakdown_to_tickets.py turns it into tickets; the explorer's Build plan level (explorer/plan_data.py) draws
 it. They share this module so the ticket a story becomes and the card it is drawn as can never read the file two ways.
 
@@ -29,13 +31,23 @@ BULLET = re.compile(r"^\s*[-*+]\s+(.*)$")
 VAULT_ID = re.compile(r"CAP-\d+(?:\.FR\d+)?(?:@APP-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)?|CON-\d+|EPC-\d+(?:\.AC\d+)?|FR-\d+"
                       r"|APP-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*")
 NOTHING = re.compile(r"^(none|nothing|n/a|-+|\u2014|\u2013)\.?$", re.I)
-
+# The label above a story's bullets. The skill writes "Acceptance criteria:"; the real files also write a lead-in on the
+# same line ("Acceptance criteria. Design behaviour, except where marked:"), which is kept as the label.
+CRITERIA_LABEL = re.compile(r"^\W*Acceptance criteria\b.*:\s*$", re.I)
+# Notes the skill writes under a story: a question only the design can answer, and a clash with an epic criterion.
+OPEN_NOTE = re.compile(r"^\W*Open for\b", re.I)
+CONFLICT_NOTE = re.compile(r"^\W*Conflicts? with\b", re.I)
+# A story the plan says traces to nothing ("Traces to: no requirement row or epic criterion; ...") is stated, not unreadable.
+NO_TRACE = re.compile(r"^\W*(none|no |nothing|design only)", re.I)
+STORY_RANGE = re.compile(r"\b(S-\d+)\s+(?:to|through|until|\u2013|\u2014|-)\s+(S-\d+)\b")
+LABEL_NEEDS_DESIGN, LABEL_CONFLICT = "needs-design", "conflict"
 
 
 class Story:
     def __init__(self, sid, name):
         self.id, self.name = sid, name
         self.traces, self.criteria, self.tasks, self.blocked, self.extra = None, [], [], None, []
+        self.criteria_label, self.open_notes, self.conflicts = "", [], []
 
 
 def cells(line):
@@ -73,18 +85,39 @@ def take_story_line(story, line, state):
     elif BULLET.match(line):
         story.criteria.append(BULLET.match(line).group(1).strip())
         state["last"] = "criteria"
+    elif CRITERIA_LABEL.match(line):
+        story.criteria_label, state["last"] = line.strip(), "label"
+    elif OPEN_NOTE.match(line):
+        story.open_notes.append(line.strip())
+        state["last"] = "open"
+    elif CONFLICT_NOTE.match(line):
+        story.conflicts.append(line.strip())
+        state["last"] = "conflict"
     elif line.lstrip().startswith("|"):
         take_table_line(story, line, state)
-    elif state["last"] in ("traces", "blocked", "criteria") and not state["gap"]:
-        if state["last"] == "traces":
-            story.traces += " " + line.strip()
-        elif state["last"] == "blocked":
-            story.blocked += " " + line.strip()
-        else:
-            story.criteria[-1] += " " + line.strip()
+    elif state["last"] in CONTINUES and not state["gap"]:
+        continue_line(story, line, state["last"])
     else:
         return False
     return True
+
+
+CONTINUES = ("traces", "blocked", "criteria", "open", "conflict")
+
+
+def continue_line(story, line, field):
+    """A wrapped line belongs to the field above it."""
+    text = " " + line.strip()
+    if field == "traces":
+        story.traces += text
+    elif field == "blocked":
+        story.blocked += text
+    elif field == "criteria":
+        story.criteria[-1] += text
+    elif field == "open":
+        story.open_notes[-1] += text
+    else:
+        story.conflicts[-1] += text
 
 
 def take_table_line(story, line, state):
@@ -154,7 +187,7 @@ def story_problems(story, story_ids):
     problems = []
     if not story.traces:
         problems.append(f"{story.id}: no 'Traces to:' line")
-    elif not VAULT_ID.findall(story.traces):
+    elif not VAULT_ID.findall(story.traces) and not NO_TRACE.match(story.traces):
         problems.append(f"{story.id}: 'Traces to' names no requirement ID, so the ticket has no labels")
     if not story.criteria:
         problems.append(f"{story.id}: no acceptance criteria bullets")
@@ -176,8 +209,23 @@ def story_problems(story, story_ids):
     return problems
 
 
+def story_refs(text):
+    """The story IDs a line names, in order, with a range such as "S-03 to S-13" meaning every story between."""
+    ranged, out = STORY_RANGE.sub(lambda m: " ".join(range_ids(m.group(1), m.group(2))), text or ""), []
+    for sid in re.findall(r"\bS-\d+\b", ranged):
+        if sid not in out:
+            out.append(sid)
+    return out
+
+
+def range_ids(first, last):
+    low, high = int(first[2:]), int(last[2:])
+    width = len(first) - 2
+    return [f"S-{n:0{width}d}" for n in range(low, high + 1)] if low <= high else [first, last]
+
+
 def blockers(story):
-    return re.findall(r"\bS-\d+\b", story.blocked or "")
+    return story_refs(story.blocked)
 
 
 def labels_of(story):
@@ -189,10 +237,20 @@ def labels_of(story):
     return seen
 
 
+def story_labels(story):
+    """The labels of the story's own ticket: its trace IDs, then what the plan flags for the design or the epics."""
+    return labels_of(story) + ([LABEL_NEEDS_DESIGN] if story.open_notes else []) + ([LABEL_CONFLICT] if story.conflicts else [])
+
+
 def story_description(story):
     parts = [f"Traces to: {story.traces}" if story.traces is not None else "Traces to: (none stated)"]
-    parts += ["Acceptance criteria:"] + [f"- {c}" for c in story.criteria] if story.criteria else []
+    if story.criteria:
+        parts += [story.criteria_label or "Acceptance criteria:"] + [f"- {c}" for c in story.criteria]
     parts.append(f"Blocked by: {story.blocked}" if story.blocked is not None else "Blocked by: (none stated)")
+    if story.open_notes:
+        parts += ["Open for the design:"] + [f"- {n}" for n in story.open_notes]
+    if story.conflicts:
+        parts += ["Conflicts:"] + [f"- {c}" for c in story.conflicts]
     parts += story.extra
     return "\n".join(parts)
 
@@ -208,7 +266,7 @@ def build_rows(stories):
     rows = []
     for story in stories:
         rows.append({"Issue Id": story.id, "Summary": f"{story.id} {story.name}".strip(), "Description": story_description(story),
-                     "Issue Type": "Story", "Parent": "", "Story Points": "", "labels": labels_of(story),
+                     "Issue Type": "Story", "Parent": "", "Story Points": "", "labels": story_labels(story),
                      "Blocked by": ", ".join(dict.fromkeys(blockers(story)))})
         for number, row in enumerate(story.tasks, 1):
             size = row[1].strip().upper() if len(row) > 1 else ""
@@ -223,6 +281,18 @@ def size_total(story):
     """The story's task sizes as the summary table writes them: largest first, joined by +, e.g. 'M+S'."""
     sizes = [r[1].strip().upper() for r in story.tasks if len(r) > 1 and r[1].strip().upper() in SIZE_POINTS]
     return "+".join(sorted(sizes, key=lambda s: -SIZE_POINTS[s])) or "none"
+
+
+def size_counts(text):
+    """{size: how many} from a size total written either way: the skill's counts ("2S 4M 1L") or letters ("M+M+S", "L")."""
+    counted = re.findall(r"(\d+)\s*([SML])\b", (text or "").upper())
+    if counted:
+        out = {}
+        for n, size in counted:
+            out[size] = out.get(size, 0) + int(n)
+        return out
+    letters = re.findall(r"\b([SML])\b", (text or "").upper())
+    return {size: letters.count(size) for size in dict.fromkeys(letters)}
 
 
 def points(story):
@@ -269,7 +339,8 @@ def coverage_table(sections):
         row = cells(line)
         if len(row) < 2 or row[0].lower() in ("target", "component", "trace target"):
             continue
-        out.append({"target": row[0], "stories": re.findall(r"\bS-\d+\b", row[1])})
+        ids = VAULT_ID.findall(row[0])
+        out.append({"target": row[0], "id": ids[0] if ids else None, "stories": story_refs(row[1])})
     return out
 
 

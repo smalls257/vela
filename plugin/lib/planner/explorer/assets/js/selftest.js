@@ -946,6 +946,11 @@ const SelfTest = (() => {
       ok(cards.length === p.stories.length && cards.every((c, i) => c.dataset.story === p.stories[i].id) && crumb && crumb.textContent === "Build plan",
         `inside ${name}, build plan: ${cards.length} story cards in build order, crumbs end at Build plan`, `inside ${name}, build plan: ${cards.length} cards of ${p.stories.length}`);
       ok(location.hash.includes(`level=plan`), `deep link: ${location.hash.split("&selftest")[0]}`, `deep link: ${location.hash}`);
+      planProblemsChecks(ok, k, p, name);
+      const flagged = p.stories.filter((x) => x.openNotes.length || x.conflicts.length);
+      ok(flagged.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return $$(".plan-badge[data-flag=open]", c).length === (x.openNotes.length ? 1 : 0) && $$(".plan-badge[data-flag=conflict]", c).length === x.conflicts.length; })
+        && $$("#inside-stage .plan-badge").length === flagged.reduce((n, x) => n + (x.openNotes.length ? 1 : 0) + x.conflicts.length, 0),
+        `inside ${name}, build plan: ${plural(flagged.length, "card")} wear a labelled badge for each open note and conflict`, `inside ${name}, build plan: badges do not match the notes of ${flagged.map((x) => x.id).join(", ")}`);
       const o = overlaps(), nodes = $$("#plan-dag .plan-node").length;
       ok(nodes === p.stories.length && !o.bad.length, `inside ${name}, dependency view: ${nodes} stories, ${o.n} boxes and labels, no two overlap`, `inside ${name}, dependency view: ${nodes} of ${p.stories.length}; overlaps ${o.bad.slice(0, 3).join("; ")}`);
       const arrows = $$("#plan-dag path.in-edge").length, want = p.stories.reduce((n, x) => n + x.blockers.length, 0);
@@ -980,6 +985,20 @@ const SelfTest = (() => {
       const say = ($("#inside-stage .inside-chip-card") || { textContent: "" }).textContent;
       ok(/No build plan yet\./.test(say) && say.includes("docs/plan/<slug>-breakdown.md"), `inside ${titleOf(bare)}, build plan: none, so the chip says what writes one`, `inside ${titleOf(bare)}, build plan: no empty-state chip`);
     }
+  }
+  /* What the page could not read of the plan is a count that opens a list, and the list starts closed and is never the
+     first thing on the page. With none to show, a line is added for the check and taken away again. */
+  function planProblemsChecks(ok, k, p, name) {
+    const added = !p.problems.length;
+    if (added) { p.problems.push("selftest: a line this page could not read"); Inside.open(k, "plan"); }
+    const list = $("#inside-stage #plan-problems"), chip = $("#inside-stage .d-problems"), first = $("#plan-page").firstElementChild;
+    ok(!!list && list.hidden && !!chip && +chip.dataset.problems === p.problems.length && chip.getAttribute("aria-expanded") === "false" && /could not read — show$/.test(chip.textContent) && first !== list,
+      `inside ${name}, build plan: ${plural(p.problems.length, "unreadable line")} counted on the chip, the list collapsed and not the first thing on the page`, `inside ${name}, build plan: list ${list ? (list.hidden ? "hidden" : "OPEN") : "missing"}, chip "${chip ? chip.textContent : "missing"}"`);
+    if (chip) {
+      chip.click();
+      ok(!list.hidden && list.querySelectorAll("li").length === p.problems.length + p.unresolved.length && /— hide$/.test(chip.textContent), `inside ${name}, build plan: the chip opens the list`, `inside ${name}, build plan: the chip did not open the list`);
+    }
+    if (added) { p.problems.pop(); Inside.open(k, "plan"); }
   }
   const Plan_BUILT_KEYS = (app) => Object.fromEntries(D.plans[app].stories.flatMap((x) => x.traces.map((t) => [t.split("@")[0], 1])));
   /* Reader drafts, pending approval and freshness: the build's data drawn as the spec says, and the file:// page

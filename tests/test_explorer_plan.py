@@ -255,3 +255,53 @@ def test_the_demo_build_gives_the_booking_plan_its_tickets_and_the_reverse_trace
     assert any("APP-booking build plan found" in line for line in said)
     assert any(t == "CAP-014.FR1@APP-booking" for s in plan["stories"] for t in s["traces"])
     assert plan["ticketsHref"].endswith("docs/work/tickets.csv")
+
+
+# ---------------------------------------------------------------- a real plan from the work-breakdown skill
+
+HERON = REPO / "tests" / "fixtures" / "breakdown" / "heron-desktop-agent-breakdown.md"
+HERON_COMPONENTS = ["CalendarSource", "SignIn / TokenStore", "FolderSource", "CallClassifier and ClientMatcher", "ManagedSettings", "RecordSource", "NoteAssembler",
+                    "ContentCheck", "Rewriter", "PopulationFilter", "NoteScheduler", "NoteStore", "NoteWindow", "Diagnostics"]
+
+
+def heron_entry(tmp_path, text=None):
+    path = tmp_path / "desktop-agent-breakdown.md"
+    path.write_text(HERON.read_text(encoding="utf-8") if text is None else text, encoding="utf-8")
+    wrapped = plan_data.plans_for([f"APP-heron={path}"])["APP-heron"]
+    design = {"path": "desktop-agent.md", "components": [{"name": n} for n in HERON_COMPONENTS], "trace": {}}
+    return plan_data.plan_entry("APP-heron", wrapped, {"UNK-018"}, design)
+
+
+def test_the_real_plan_reads_with_nothing_the_page_could_not_read(tmp_path):
+    plan = heron_entry(tmp_path)
+    assert plan["problems"] == [], plan["problems"]
+    assert plan["totals"]["stories"] == 15 and plan["totals"]["tasks"] == 112
+
+
+def test_a_story_carries_its_open_notes_and_the_criterion_it_conflicts_with(tmp_path):
+    stories = {s["id"]: s for s in heron_entry(tmp_path)["stories"]}
+    assert len(stories["S-06"]["openNotes"]) == 1 and stories["S-06"]["conflicts"] == []
+    assert [c["ref"] for c in stories["S-11"]["conflicts"]] == ["EPC-001.AC5"]
+    assert stories["S-11"]["conflicts"][0]["text"].startswith("Conflict with an epic criterion: EPC-001.AC5 says")
+    assert stories["S-01"]["openNotes"] == [] and stories["S-01"]["conflicts"] == []
+
+
+def test_a_note_that_names_its_own_story_does_not_make_it_wait_for_itself(tmp_path):
+    stories = {s["id"]: s for s in heron_entry(tmp_path)["stories"]}
+    assert "S-06" not in [b["ref"] for b in stories["S-06"]["blockers"]]
+    assert [b["ref"] for b in stories["S-14"]["blockers"] if b["kind"] == "story"][:3] == ["S-03", "S-04", "S-05"]
+
+
+def test_a_coverage_target_with_several_rows_is_all_of_them_and_a_component_may_be_named_in_parts(tmp_path):
+    plan = heron_entry(tmp_path)
+    by_target = {r["target"]: r for r in plan["coverage"]["targets"]}
+    assert set(by_target["CAP-001.FR3@APP-heron"]["stated"]) == {"S-06", "S-07", "S-09", "S-10", "S-11", "S-12"}
+    comp = next(c for c in plan["coverage"]["components"] if c["name"] == "CallClassifier and ClientMatcher")
+    assert comp["stories"] == ["S-02", "S-08"]
+    assert not any(c["name"].startswith("CAP-") for c in plan["coverage"]["components"]), "a requirement row is not a component"
+
+
+def test_a_summary_size_written_as_counts_is_held_against_the_tasks_and_a_wrong_one_is_still_a_problem(tmp_path):
+    text = HERON.read_text(encoding="utf-8").replace("| 2S 4M | G-001, UNK-013 |", "| 3S 4M | G-001, UNK-013 |", 1)
+    plan = heron_entry(tmp_path, text)
+    assert any("S-01: the summary table says its size is '3S 4M'" in p for p in plan["problems"]), plan["problems"]
