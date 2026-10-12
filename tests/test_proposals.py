@@ -602,6 +602,6 @@ def test_review_leaves_every_decision_to_the_owner_and_never_pushes():
 def test_the_readers_drafts_view_names_the_propose_command_and_the_page_stays_offline(world):
     _, workspace = world
     assert run("explore", str(workspace), "--today", "2026-10-12")[0] == 0
-    page = read(workspace / ".planner" / "explorer.html")
+    page = read(workspace / "dashboard.html")
     assert "/planner:propose" in page and "Nothing is sent from this page." in page
     assert str(pathlib.Path.home()) not in page

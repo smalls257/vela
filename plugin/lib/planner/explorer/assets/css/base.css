@@ -39,8 +39,8 @@
 html, body { margin: 0; height: 100%; }
 body {
   font: 14px/1.5 var(--ui); color: var(--ink); background: var(--room); overflow: hidden;
-  display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--panel-w); grid-template-rows: 58px auto minmax(0, 1fr);
-  grid-template-areas: "top top top" "note note note" "side main panel"; -webkit-font-smoothing: antialiased;
+  display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--panel-w); grid-template-rows: 58px auto auto minmax(0, 1fr);
+  grid-template-areas: "top top top" "built built built" "note note note" "side main panel"; -webkit-font-smoothing: antialiased;
 }
 button, input, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }

@@ -12,7 +12,7 @@
 # checks the file shapes with --stub.
 #
 # The explorer that ships in the results is the tool's, not the harness's. The last session is a close with nothing open:
-# its last step rebuilds vault/.planner/explorer.html, which finds the design and the plan under docs/ with no flag or
+# its last step rebuilds vault/dashboard.html, which finds the design and the plan under docs/ with no flag or
 # config, so the page holds the team's design and build plan.
 #
 # Cost, for a Sonnet assistant at about $0.30 an assistant turn and a Haiku lead at about $0.02: the caps allow 178

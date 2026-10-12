@@ -183,7 +183,7 @@ def test_nothing_the_reader_wrote_is_lost(replayed):
 def test_the_baseline_becomes_the_new_copy_and_the_record_moves(replayed):
     _, v2, workspace, _, _ = replayed
     stamp = json.loads(read(v2 / ".planner" / "published.json"))
-    published = {p.relative_to(v2).as_posix(): p.read_bytes() for p in v2.rglob("*") if p.is_file()}
+    published = {p.relative_to(v2).as_posix(): p.read_bytes() for p in v2.rglob("*") if p.is_file() and p.name != "dashboard.html"}
     assert {p.relative_to(workspace / ".planner" / "baseline").as_posix(): p.read_bytes() for p in (workspace / ".planner" / "baseline").rglob("*") if p.is_file()} == published
     record = json.loads(read(workspace / ".planner" / "workspace.json"))
     assert record["base_commit"] == stamp["commit"] and record["base_date"] == V2_DAY and record["base_tree_hash"] == stamp["tree_hash"]

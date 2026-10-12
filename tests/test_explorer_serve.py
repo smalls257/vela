@@ -254,7 +254,7 @@ def test_the_cli_serves_a_built_vault_and_stops_on_ctrl_c(tmp_path, monkeypatch)
     assert cli.main(["explore", str(vault), "--today", "2026-10-10", "--serve", "--no-open", "--model", "sonnet"], out=out) == 0
     text = out.getvalue()
     assert seen and f"serving http://{serve.LOOPBACK}:" in text and "claude-sonnet-5-5" in text and text.rstrip().endswith("stopped")
-    assert (vault / ".planner" / "explorer.html").is_file()
+    assert (vault / "dashboard.html").is_file()
 
 
 def test_a_port_out_of_range_is_a_tool_error(tmp_path):

@@ -50,7 +50,7 @@ def explore(vault, *extra):
 
 
 def data_of(vault):
-    page = (vault / ".planner" / "explorer.html").read_text(encoding="utf-8")
+    page = (vault / "dashboard.html").read_text(encoding="utf-8")
     return json.loads(DATA.search(page).group(1))
 
 

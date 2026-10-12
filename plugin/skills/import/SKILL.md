@@ -42,7 +42,7 @@ Do not say the import is done until each of these holds:
 
 ## Ends when
 
-The checklist holds, or the user stops. If they stop early, write the ledger and the report for what was done. Run `git status` and confirm nothing under `.inbox/` is staged. Rebuild the explorer with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner explore` (no `--serve`). If it exits 0, say: "The explorer is up to date: .planner/explorer.html — open it, or run /planner:explore to ask Claude from it". If it fails, say "The explorer could not be built: <message>." and go on; a failed build never ends the import. Then tell the user: "Run `/planner:close` to finish the session and open the PR."
+The checklist holds, or the user stops. If they stop early, write the ledger and the report for what was done. Run `git status` and confirm nothing under `.inbox/` is staged. Rebuild the explorer with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner explore` (no `--serve`). If it exits 0, say: "The dashboard is up to date: dashboard.html — open it, or run /planner:explore to ask Claude from it". If it fails, say "The explorer could not be built: <message>." and go on; a failed build never ends the import. Then tell the user: "Run `/planner:close` to finish the session and open the PR."
 
 ## Never
 

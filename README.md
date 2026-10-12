@@ -33,7 +33,7 @@ Run each one as `python3 .claude/skills/planner/scripts/planner <command>` from 
 
 | Command | What it tells you |
 |---|---|
-| `planner explore [<vault>]` | Builds the vault explorer, one offline page: the map, each flow played, who holds each open answer, why things were decided, where each app stands. Writes `.planner/explorer.html` and the fixed layout `.planner/explorer-pins.json` in the vault. `-o`, `--today`, `--theme`, `--design APP-x=<path>`, `--assets`. `/planner:explore` runs it and opens the page |
+| `planner explore [<vault>]` | Builds the vault explorer, one offline page: the map, each flow played, who holds each open answer, why things were decided, where each app stands. Writes `dashboard.html` at the vault root (committed, so colleagues open it from git or OneDrive without building) and the fixed layout `.planner/explorer-pins.json`. The page says at the top when it was built and from which commit; an unchanged vault rebuilds to the same bytes. `planner publish` rebuilds it into the read copy. `-o`, `--today`, `--theme`, `--design APP-x=<path>`, `--assets`. `/planner:explore` runs it and opens the page |
 | `planner status` | Every app's stage, certainty mix and oldest open unknown |
 | `planner style <page>...` | Where a page still reads as a log: history above `## History`, IDs or bare source IDs in prose, no opening prose |
 | `planner ladder` | Each app's typed stage, the stage its pages already reach, and what the next stage needs |

@@ -119,6 +119,7 @@ def test_a_fresh_vault_tracks_the_map_pins_and_ignores_the_rest_of_the_tool_fold
         return done.returncode == 0
 
     assert not ignored(".planner/explorer-pins.json")
-    for path in (".planner/explorer.html", ".planner/workspace.json", ".planner/baseline/01-goals.md",
+    assert not ignored("dashboard.html"), "colleagues must get the built page from git"
+    for path in (".planner/workspace.json", ".planner/baseline/01-goals.md",
                  ".planner/replay-backup/x.md", ".planner/findings/a.md"):
         assert ignored(path), path

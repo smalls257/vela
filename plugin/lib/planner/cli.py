@@ -196,6 +196,22 @@ def check_counts(files, today):
     return errors, len(found) - errors
 
 
+def publish_dashboard(files, built, today):
+    """dashboard.html bytes built from exactly the files a read copy will hold, so the page and the pages never disagree.
+    Built in a scratch folder with no git and no stamp, so it carries no freshness line: a reader's own build adds that."""
+    from planner.explorer import build as explorer, pins as explorer_pins  # lazy: the explorer imports this module
+    with tempfile.TemporaryDirectory() as scratch:
+        folder = pathlib.Path(scratch)
+        copies.write_folder(files, folder)
+        page = folder / publish.DASHBOARD_PATH
+        try:
+            explorer.generate(folder, page, today, pins_path=folder / explorer_pins.PINS_FILE, assets_config=None,
+                              design_args=[], theme="console", freshness=None, built=built)
+        except explorer.ExplorerError as exc:
+            raise ToolError(f"cannot publish: the dashboard could not be built from the committed pages: {exc}") from exc
+        return page.read_bytes()
+
+
 def cmd_publish(args, out):
     root = pathlib.Path(args.vault).resolve()
     found = detect_role(root)
@@ -215,6 +231,7 @@ def cmd_publish(args, out):
         files = publish.selected(files)
         if ".planner.yaml" not in files:
             raise ToolError("HEAD has no .planner.yaml, so there is no initiative to publish. Commit it first.")
+        files[publish.DASHBOARD_PATH] = publish_dashboard(files, {"date": vaultgit.commit_date(root, "HEAD") or today, "commit": short}, today)
         config = load_config_text(files[".planner.yaml"])
         owner = publish.owner_contact(config, git_name, git_email, args.owner_name or "", args.owner_contact or "")
         counts = check_counts(files, today)
@@ -283,10 +300,10 @@ def reader_freshness(root, checked_at):
     return freshness.reader_report(workspace, stamp, unreachable, unreadable, checked_at)
 
 
-def freshness_report(root, found, timeout, today):
+def freshness_report(root, found, timeout, today, checked_at=None):
     """The freshness.Report for a folder whose role is `found`. `planner freshness`, `explore` and the helper's
     /freshness all ask here, so the three can never disagree."""
-    checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
+    checked_at = checked_at or f"{today}T{time.strftime('%H:%M:%S')}"
     if found.role == roles.OWNER:
         return owner_freshness(root, timeout, checked_at)
     if found.role == roles.READER:
@@ -295,10 +312,29 @@ def freshness_report(root, found, timeout, today):
 
 
 def page_freshness(root, found, today):
-    """What the explorer page is stamped with at build time: the report as a dict, or None when no role decides one."""
+    """What the explorer page is stamped with at build time: the report as a dict, or None when no role decides one.
+    It is checked "at" the day, not the second, so building twice from one state writes the same page."""
     if found.role == roles.NONE:
         return None
-    return freshness_report(root, found, vaultgit.FETCH_TIMEOUT, today).as_dict()
+    return freshness_report(root, found, vaultgit.FETCH_TIMEOUT, today, checked_at=today).as_dict()
+
+
+def page_built(root, found, today):
+    """{"date", "commit"} the dashboard says it was built from, so someone opening an old copy knows how old it is.
+    The date is the commit's own (never the clock), so an unchanged vault rebuilds to the same file; with no commit to
+    name, the build day and no commit. An owner's is HEAD; a reader's is the publish their workspace was opened from."""
+    if found.role == roles.OWNER:
+        try:
+            return {"date": vaultgit.commit_date(root, "HEAD") or today, "commit": vaultgit.head(root)[1]}
+        except vaultgit.GitUnavailable:
+            return {"date": today, "commit": ""}  # a clone with no commit yet; the page then names no commit
+    if found.role == roles.READER:
+        try:
+            workspace = copies.read_workspace(root)
+        except copies.SourceUnreadable:
+            return {"date": today, "commit": ""}  # page_freshness reports the unreadable record on the same build
+        return {"date": workspace.get("base_date") or today, "commit": (workspace.get("base_commit") or "")[:7]}
+    return {"date": today, "commit": ""}
 
 
 def cmd_freshness(args, out):
@@ -415,12 +451,13 @@ def reopen_workspace(folder, existing, published, source, author_flag, today, ou
 
 
 def explore_workspace(folder, today, out):
-    """Build the explorer page into the workspace's .planner/ so a reader has something to open."""
+    """Build dashboard.html in the workspace root so a reader has something to open."""
     from planner.explorer import build as explorer, pins as explorer_pins  # lazy: the explorer imports this module
+    found = detect_role(folder)
     try:
-        lines = explorer.generate(folder, folder / ".planner" / "explorer.html", today, pins_path=folder / explorer_pins.PINS_FILE,
+        lines = explorer.generate(folder, folder / publish.DASHBOARD_PATH, today, pins_path=folder / explorer_pins.PINS_FILE,
                                   assets_config=None, design_args=[], theme="console",
-                                  freshness=page_freshness(folder, detect_role(folder), today))
+                                  freshness=page_freshness(folder, found, today), built=page_built(folder, found, today))
     except explorer.ExplorerError as exc:
         raise ToolError(f"the workspace was written at {folder}, but the explorer page could not be built: {exc}") from exc
     for line in lines:
@@ -957,14 +994,15 @@ def cmd_view(args, out):
 
 # What a vault's .gitignore says when it keeps the tool's own files out of commits (the template's does).
 # `.planner/*` is the template's form: it lets `!.planner/explorer-pins.json` keep the shared layout in git.
-IGNORES_PLANNER_DIR = (".planner", ".planner/", "/.planner", "/.planner/", "**/.planner/", ".planner/*", "/.planner/*")
+IGNORES_DASHBOARD = (publish.DASHBOARD_PATH, f"/{publish.DASHBOARD_PATH}", "*.html", "/*.html", "**/*.html")
 
 
-def ignores_planner_dir(root):
+def ignores_dashboard(root):
+    """True when the vault's .gitignore keeps dashboard.html out of git, so the page would not travel with the vault."""
     gitignore = root / ".gitignore"
     if not gitignore.is_file():
         return False
-    return any(line.strip() in IGNORES_PLANNER_DIR for line in gitignore.read_text(encoding="utf-8").splitlines())
+    return any(line.strip() in IGNORES_DASHBOARD for line in gitignore.read_text(encoding="utf-8").splitlines())
 
 
 def live_freshness(root, found, today, unavailable):
@@ -976,26 +1014,25 @@ def live_freshness(root, found, today, unavailable):
 
 
 def cmd_explore(args, out):
-    """Build the explorer page. The page and the pinned layout both go in the vault's .planner/ folder unless
-    --out says otherwise; nothing is written beside the plugin."""
+    """Build the explorer page: dashboard.html at the vault root unless --out says otherwise, so it travels with the vault
+    in git or OneDrive. The pinned layout goes in .planner/; nothing is written beside the plugin."""
     from planner.explorer import build as explorer, pins as explorer_pins, serve as explorer_serve  # lazy: the explorer imports this module
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
-    target = pathlib.Path(args.out) if args.out else root / ".planner" / "explorer.html"
+    target = pathlib.Path(args.out) if args.out else root / publish.DASHBOARD_PATH
     found = detect_role(root)
     try:
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
                                   assets_config=args.assets, design_args=args.design, theme=args.theme,
-                                  freshness=page_freshness(root, found, today), breakdown_args=args.breakdown)
+                                  freshness=page_freshness(root, found, today), breakdown_args=args.breakdown,
+                                  built=page_built(root, found, today))
     except explorer.ExplorerError as exc:
         raise ToolError(str(exc)) from exc
     for line in lines:
         print(f"planner explore: {line}", file=out)
-    if not ignores_planner_dir(root):
-        print("planner explore: this vault's .gitignore does not list .planner/, so the 3 MB page would be committed. "
-              "Add the lines `.planner/*` and `!.planner/explorer-pins.json` to .gitignore (the pinned layout is the one file a team shares), "
-              "or build with --out somewhere outside the vault.",
-              file=out)
+    if ignores_dashboard(root):
+        print(f"planner explore: this vault's .gitignore lists {publish.DASHBOARD_PATH}, so colleagues who pull the repo will not get the page. "
+              f"Remove that line from .gitignore, or build with --out somewhere else.", file=out)
     if args.serve:
         if not 0 <= args.port <= 65535:
             raise ToolError(f"--port {args.port} is not a port number (0 to 65535)")
@@ -1903,7 +1940,7 @@ def build_parser():
     view.set_defaults(func=cmd_view)
     explore = sub.add_parser("explore", help="build the vault explorer, one offline HTML page of the whole initiative")
     explore.add_argument("vault", nargs="?", default=".", help="vault root (default: current directory)")
-    explore.add_argument("-o", "--out", help="HTML file to write (default: <vault>/.planner/explorer.html)")
+    explore.add_argument("-o", "--out", help="HTML file to write (default: <vault>/dashboard.html)")
     explore.add_argument("--today", help="the date due windows count from, YYYY-MM-DD (default: system date)")
     explore.add_argument("--theme", default="console", help="the theme the page opens in: console, graphite, daylight or vaporwave")
     explore.add_argument("--design", action="append", default=[], metavar="APP-x=PATH",

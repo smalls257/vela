@@ -3,6 +3,12 @@
    #garden&open=ADR-0002, #map&lens=transit; add &still for screenshots (no transitions), &selftest to run the checks. */
 $("#brand-title").textContent = D.title || "Vault";
 $("#brand-sub").textContent = `${D.initiative} · as of ${day(D.today)}`;
+/* A copy opened long after it was built says so, quietly, above everything: when it was built and from which commit. */
+if (D.built) {
+  const built = $("#built");
+  built.textContent = `Built ${D.built.date}${D.built.commit ? ` from commit ${D.built.commit}` : ""}. An older copy may be behind the vault.`;
+  built.hidden = false;
+}
 $("#brand").addEventListener("click", () => Nav.home());
 if (STILL) document.documentElement.classList.add("still");
 

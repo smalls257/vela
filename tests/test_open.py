@@ -52,12 +52,13 @@ def test_open_writes_baseline_workspace_json_and_the_explorer(tmp_path, publishe
     code, text = open_copy(folder, tmp_path / "ws")
     assert code == 0, text
     ws = tmp_path / "ws"
-    assert tree(ws / ".planner" / "baseline") == tree(ws) != {}
+    without_dashboard = lambda files: {name: data for name, data in files.items() if name != "dashboard.html"}  # rebuilt here, so it differs from the published one
+    assert without_dashboard(tree(ws / ".planner" / "baseline")) == without_dashboard(tree(ws)) != {}
     record = json.loads((ws / ".planner" / "workspace.json").read_text(encoding="utf-8"))
     assert record["role"] == "reader" and record["base_commit"] == stamp["commit"] and record["base_date"] == "2026-10-11"
     assert record["source_path"] == str(folder) and record["author"] == "Sam Okoye" and record["opened"] == "2026-10-12"
     assert record["base_tree_hash"] == stamp["tree_hash"] and record["planner_path"].endswith("scripts/planner")
-    assert not (ws / ".git").exists() and (ws / ".planner" / "explorer.html").is_file()
+    assert not (ws / ".git").exists() and (ws / "dashboard.html").is_file()
     assert f"Opened {stamp['title']} at {stamp['short']}, published 2026-10-11 by Priya Nair" in text
     assert "Your copy is the latest published" in text
 
