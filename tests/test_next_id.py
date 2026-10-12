@@ -35,7 +35,8 @@ def test_the_command_refuses_a_bad_prefix_with_exit_2(mini):
 
 
 def _git(repo, *args):
-    subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
+    subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com",
+                    "-c", "commit.gpgsign=false", *args],
                    check=True, capture_output=True, timeout=60)
 
 

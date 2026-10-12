@@ -182,7 +182,8 @@ def test_uncommitted_vault_warns_that_links_point_at_head(tmp_path):
     import subprocess
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    git = lambda *a: subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@t", *a], check=True, capture_output=True)
+    git = lambda *a: subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@t",
+                                      "-c", "commit.gpgsign=false", *a], check=True, capture_output=True)
     git("init", "-q"); git("add", "-A"); git("commit", "-qm", "x")
     _, clean, _ = exported(tmp_path, "--repo-url", "https://github.com/o/r", vault=vault)
     assert "uncommitted changes" not in clean

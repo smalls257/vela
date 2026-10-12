@@ -96,7 +96,7 @@ GIT_IDENTITY = {"GIT_AUTHOR_NAME": "T", "GIT_AUTHOR_EMAIL": "t@example.invalid",
 
 
 def git_in(repo, *args):
-    cmd = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid", *args]
+    cmd = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false", *args]
     return subprocess.run(cmd, cwd=repo, check=True, capture_output=True, text=True, timeout=60).stdout
 
 
@@ -346,7 +346,7 @@ def run_git(repo, *args, stdin=None):
 def commit_page(repo, text, message):
     (repo / "page.md").write_text(text, encoding="utf-8")
     run_git(repo, "add", "page.md")
-    run_git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", message)
+    run_git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "commit", "-qm", message)
     return run_git(repo, "rev-parse", "HEAD").strip()
 
 
@@ -482,10 +482,10 @@ def test_harvest_step_four_and_step_eight_each_run_in_a_fresh_shell(pr_repo):
     (repo / ".gitignore").write_text(".planner/\n", encoding="utf-8")  # as template/.gitignore does
     run_git(repo, "add", ".gitignore")
     page = "04-solution-strategy.md"
-    (repo / page).write_text("# Strategy\n\nFirst line of the owner's paragraph.\nIt’s kept   word for word.\n\nTail.\n",
+    (repo / page).write_text("# Strategy\n\nFirst line of the owner’s paragraph.\nIt’s kept   word for word.\n\nTail.\n",
                              encoding="utf-8")
     run_git(repo, "add", page)
-    run_git(repo, "-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "merged")
+    run_git(repo, "-c", "user.name=T", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false", "commit", "-qm", "merged")
     run_git(repo, "fetch", "-q", ".", "HEAD")
     slots = {"page": page, "first": "3", "last": "4", "pr": "42", "n": "1"}
     extracted = fresh_shell(repo, harvest_block("mkdir -p .planner/harvest"), **slots)

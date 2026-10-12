@@ -90,6 +90,7 @@ def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
         "<!-- /generated:progress-map -->", ""]
     page.write_text("\n".join(lines), encoding="utf-8")
     git("init", "-q", "-b", "main"); git("config", "user.email", "t@t"); git("config", "user.name", "t")
+    git("config", "commit.gpgsign", "false")
     git("add", "."); git("commit", "-qm", "base")
     git("switch", "-qc", "session/s1")
     page.write_text(page.read_text().replace("60%", "65%").replace("old block", "session block"), encoding="utf-8")
