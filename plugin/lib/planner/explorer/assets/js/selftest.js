@@ -16,7 +16,8 @@ const SelfTest = (() => {
     for (const f of D.flows) for (const stp of f.steps) for (const m of stp.messages) {
       const c = CONTRACT[m.contract]; if (!c) continue;
       const a = titleOf(c.provider), b = titleOf(c.consumers[0]);
-      if (a && b && a !== b) return { q: `how does ${b} talk to ${a}`.toLowerCase(), contract: c.id };
+      // Two contracts can join the same pair (consent: one to check, one to record); the words cannot tell them apart, so either is right.
+      if (a && b && a !== b) return { q: `how does ${b} talk to ${a}`.toLowerCase(), contracts: Object.values(CONTRACT).filter((o) => o.provider === c.provider && o.consumers[0] === c.consumers[0]).map((o) => o.id) };
     }
     return null;
   }
@@ -37,7 +38,7 @@ const SelfTest = (() => {
       Flows.closePresent();
     } else out.push("skip path 1: this vault has no flow pages");
     // Path 2: "how does Coach talk to Brightwater?" gets to the contract, and presenting from that step.
-    const pq = APPS["APP-coach"] && D.map.parties.some((p) => p.title === "Brightwater") && D.flows.length ? { q: "how does coach talk to brightwater", contract: "CON-003" } : pairQuery();
+    const pq = APPS["APP-coach"] && D.map.parties.some((p) => p.title === "Brightwater") && D.flows.length ? { q: "how does coach talk to brightwater", contracts: ["CON-003"] } : pairQuery();
     if (pq) {
       go("lights", { reset: true }); showView("map"); await frames();
       const keys = Search.type(pq.q);
@@ -45,8 +46,8 @@ const SelfTest = (() => {
       Search.pick(0); await frames(3);
       const key = keys[0];
       const btn = $$("#panel .present-btn")[0];
-      ok(key === pq.contract && App.view === "map" && !!btn, `path 2 "${pq.q}": search, Enter → ${key} ${titleOf(key)} (group "${(group || "").split("·")[0].trim()}"), on the map, panel offers "${buttonText(btn)}"`,
-        `path 2 "${pq.q}": first result ${key}, wanted ${pq.contract}; view ${App.view}; present button ${buttonText(btn)}`);
+      ok(pq.contracts.includes(key) && App.view === "map" && !!btn, `path 2 "${pq.q}": search, Enter → ${key} ${titleOf(key)} (group "${(group || "").split("·")[0].trim()}"), on the map, panel offers "${buttonText(btn)}"`,
+        `path 2 "${pq.q}": first result ${key}, wanted ${pq.contracts.join(" or ")}; view ${App.view}; present button ${buttonText(btn)}`);
       if (btn) { btn.click(); await frames(3); }
       const wantStep = btn ? (buttonText(btn).match(/step (\d+)/) || [0, "1"])[1] : "?";
       ok(presentStep() === String(wantStep), `path 2: 1 click → presenting from step ${presentStep()}, the first step that uses ${key}; clicks after the search: 1`, `path 2: presenting at "${presentStep()}", wanted step ${wantStep}`);
@@ -1032,8 +1033,11 @@ const SelfTest = (() => {
       ok(!!row && !!row.querySelector(kind === "ack" ? ".lamp.dark" : ".lamp.caution"), `reverse trace: ${id} untraced, ${kind === "ack" ? "grey, acknowledged by " + Inside.UNTRACED[id].find((u) => u.gap).gap : "amber, and no gap says so"}`, `reverse trace: ${id} shows no ${kind} row`);
     }
     // a design question's challenge lights the vault item it challenges, with its scenario
-    for (const [id, list] of Object.entries(Inside.CHALLENGED)) {
-      const k = keyForId(id), chipLamp = refChip(k).querySelector(".lamp");
+    for (const id of Object.keys(Inside.CHALLENGED)) {
+      const k = keyForId(Inside.challengeHome(id)), list = Inside.challenge(k);
+      // a constraint row (CST-010) is a line in a page, not a page: the home list names it, no item page can light
+      if (!ent(k)) { out.push(`skip challenge: ${id} has no page or item of its own to light`); continue; }
+      const chipLamp = refChip(k).querySelector(".lamp");
       go(k, { reset: true });
       const sec = $$("#panel .in-challenge");
       ok(!!chipLamp && chipLamp.classList.contains("caution") && sec.length === list.length && (!list[0].scenario || sec[0].textContent.includes(list[0].scenario.slice(0, 30))),

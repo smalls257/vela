@@ -51,7 +51,13 @@ const Inside = (() => {
     for (const c of d.challenges) if (!c.recorded) (CHALLENGED[c.id] = CHALLENGED[c.id] || []).push(Object.assign({ app }, c));
   }
   /* The vault item a design question challenges, lit "needs you" until the vault records it. */
-  const challenge = (key) => { const e = ent(key); return (e && e.id && CHALLENGED[e.id]) || CHALLENGED[key] || null; };
+  /* An acceptance criterion (EPC-034.AC4) has no page of its own, so its challenge lights the epic's page. */
+  const challengeHome = (id) => id.replace(/^(EPC-\d+)\.AC\d+$/, "$1");
+  const challenge = (key) => {
+    const e = ent(key), id = (e && e.id) || key;
+    const hits = Object.entries(CHALLENGED).filter(([target]) => challengeHome(target) === id).flatMap(([, list]) => list);
+    return hits.length ? hits : null;
+  };
   const designWord = (app) => `${appTitle(app)} design`;
   const sourceWord = (d) => (d.trace_source === "recorded" ? "recorded in the design's Trace table" : "inferred from where the ID appears in the design");
 
@@ -953,7 +959,7 @@ const Inside = (() => {
     const all = Object.values(CHALLENGED).flat();
     if (!all.length) return null;
     return sec("Challenged by a team's design", all.length, h("p", { class: "p-note" }, "A senior's design question that challenges the vault. Lit by the design, not by attention.lights, until the vault records the challenge."),
-      h("ul", { class: "lights" }, all.map((c) => h("li", {}, h("button", { class: "challenge-row", "data-ref": keyForId(c.id) }, lampEl("caution"),
+      h("ul", { class: "lights" }, all.map((c) => h("li", {}, h("button", { class: "challenge-row", "data-ref": keyForId(challengeHome(c.id)) }, lampEl("caution"),
         h("span", {}, h("span", { class: "what" }, `${c.id} challenged by ${c.oq}`), h("span", { class: "why" }, `${appTitle(c.app)} design: ${c.title}${c.scenario ? " " + shorten(c.scenario, 110) : ""}`)))))));
   }
   /* The design's state, for the stage ladder and the Engineering door. */
@@ -987,7 +993,7 @@ const Inside = (() => {
   const designKey = () => (st.app && design(st.app) ? key(st.app) : "");
   /* What plan.js draws with: the layout and drawing helpers above, and the chips that link into the vault. */
   const kit = { layered, drawLayout, defsFor, sized, placeDrawings, boundsOf, fit, idChip, prose, chipCard, open, key };
-  return { open, boot, hash, render, kit, designKey, highlight, panel, ent: entOf, ownedBy, challenge, challengeSection, homeSection, statusCell, doorEntry, sideEntry, statusPill, problemsChip,
+  return { open, boot, hash, render, kit, designKey, highlight, panel, ent: entOf, ownedBy, challenge, challengeHome, challengeSection, homeSection, statusCell, doorEntry, sideEntry, statusPill, problemsChip,
     layered, parseSequence, st, LEVELS, TABS, OWNERS, UNTRACED, CHALLENGED };
 })();
 View("inside", { label: "Inside", title: "Inside this app: context, containers, components and build plan", render: Inside.render, highlight: Inside.highlight });

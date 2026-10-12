@@ -35,6 +35,9 @@ SNAPSHOTS = {
     # Contracts whose providers are written as prose, not linked: three outside boxes on one row under one app, and
     # three lamps meeting at it. The ungrouped map, the line map and the minimap once drew these on top of each other.
     "heron-desk/after-full-1": SNAPSHOT_BASE / "heron-desk" / "after-full-1",
+    # Two contracts join one pair of apps (consent: check and record), a design challenges an acceptance criterion and a
+    # constraint that have no page of their own, and the line map has an outside party under the zone label (E14).
+    "heron-desk/after-design-2": SNAPSHOT_BASE / "heron-desk" / "after-design-2",
 }
 
 
@@ -173,6 +176,15 @@ def test_explorer_selftest_800x600(tmp_path, chrome_path):
     html_path = vault_copy / "dashboard.html"
     assert html_path.exists()
     _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="800,600")
+
+
+@pytest.mark.browser
+def test_the_heron_design_vault_passes_the_selftest_at_800x600(tmp_path, chrome_path):
+    vault = tmp_path / "vault"
+    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], vault)
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10"]
+    assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
+    _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", "heron-desk/after-design-2", viewport="800,600")
 
 
 def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600,1000"):
