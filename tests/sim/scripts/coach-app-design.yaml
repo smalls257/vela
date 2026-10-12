@@ -1,0 +1,717 @@
+# The Coach team's own sessions after handoff: requirements, then technical design, then a work breakdown, in the
+# team's repository beside the vault, with copies of the user's requirements-grill and tech-design-grill skills.
+# The Coach lead answers. The start is re-pointed at the vault the trading-80 pass leaves.
+name: coach-app-design
+persona: trading-coach
+start: trading-coach/after-80b
+news:
+  knows:
+  - id: K15
+    category: legal-regulatory
+    keywords:
+    - outside counsel
+    - counsel's reply
+    fact: 'Outside counsel replied on 8 October: lessons and paper trading may launch once marketing is reviewed. Any trade
+      idea for a particular customer is a recommendation, allowed only under Brightwater''s supervision. No trading on a customer''s
+      behalf in release one.'
+    owner: Outside counsel
+  - id: K19
+    category: fact
+    keywords:
+    - CEO's note
+    - paper-only first release
+    fact: 'The CEO wrote on 6 October: release one is lessons and paper trading on a fixed list of US stocks, and is accepted
+      as a first release if the January board demo shows where it goes next. Trading for customers waits for a later release,
+      after counsel and Brightwater sign off. The CEO settles disagreements with compliance once counsel has ruled.'
+    owner: CEO
+  - id: K20
+    category: legal-regulatory
+    keywords:
+    - fixed list
+    - same list for every reader
+    fact: Counsel's reply also clears a fixed list of about 50 US stocks, shown to every reader alike as teaching material,
+      as education rather than advice. The ruling is in writing, dated 8 October.
+    owner: Outside counsel
+  - id: K21
+    category: finance-liability
+    keywords:
+    - CFO holds
+    - content writer
+    fact: The CFO holds the 2.5 million dollar budget for the coach's first year, licences included. The product lead owns
+      the stock list and the lessons, written by a contracted content writer and paid from that budget.
+    owner: CFO
+  - id: K22
+    category: fact
+    keywords:
+    - '@mobile-lead'
+    - two engineers
+    fact: The mobile lead, @mobile-lead, confirmed on 7 October that two mobile engineers can build the coach entry by March.
+      The compliance consultant reviews each lesson before it ships.
+    owner: Mobile lead
+  - id: K23
+    category: third-party-contract
+    keywords:
+    - Quoteline replied
+    - display use
+    fact: 'Quoteline replied on 7 October: showing delayed quotes inside lessons is display use and the licence allows it.
+      Using its prices to train or run Signal is non-display use and needs an addendum with its own fees; clause 9 says the
+      same.'
+    owner: Data engineer
+  - id: K24
+    category: third-party-contract
+    keywords:
+    - all US-listed equities
+    - sandbox covers
+    fact: Partnerships confirmed that Brightwater's sandbox covers all US-listed equities, and Quoteline's delayed feed covers
+      every stock on the list.
+    owner: Partnerships manager
+  - id: K25
+    category: fact
+    keywords:
+    - not forward-tested
+    - Signal stays out
+    fact: The ML lead accepts that Signal's backtest was never tested forward, agrees Signal stays out of release one, and
+      will own and retrain it afterwards.
+    owner: ML lead
+  - id: K26
+    category: legal-regulatory
+    keywords:
+    - year one starts
+    - any real order
+    fact: Year one starts at the March launch. Compliance's 'no live trading' covers any real order, including one placed
+      through Brightwater.
+    owner: Compliance consultant
+  - id: K27
+    category: third-party-contract
+    keywords:
+    - Partnerships read
+    - 90 days
+    fact: 'Partnerships read the signed Brightwater agreement on 8 October: equities only; Kestrel never holds money; Brightwater
+      holds customers'' balances as its own customers'' money; options need a separate agreement; either side may exit with
+      90 days'' notice.'
+    owner: Partnerships manager
+  - id: K16
+    category: third-party-contract
+    keywords:
+    - Brightwater replied
+    - Brightwater's reply
+    - content review
+    fact: 'Brightwater replied in writing on 3 November: the Coach service may send paper orders to the sandbox and show Brightwater''s
+      quotes in its trade screens; every lesson goes through Brightwater''s content review, ten business days; live options
+      need its options agreement.'
+    owner: Partnerships manager
+  - id: K17
+    category: fact
+    keywords:
+    - Coach team
+    - four engineers
+    fact: 'The Coach team is formed: four engineers from the ML and mobile teams. Its lead will take the Coach service at
+      handoff and own its epics.'
+    owner: CTO
+  - id: K29
+    category: fact
+    keywords:
+    - '@coach-lead'
+    - CTO named
+    fact: 'The CTO named the Coach team lead on 9 October: GitHub handle @coach-lead. They have read the Coach pages, will
+      take the Coach service at handoff, and own its runtime, its support and its epics.'
+    owner: CTO
+  - id: K30
+    category: fact
+    keywords:
+    - ready track
+    - three graded
+    fact: '''Ready'' for the paper track means a reader has passed three graded paper trades on different stocks from the
+      list and finished every lesson for them. The contracted lesson writer is Fieldnote Learning, starting 12 October.'
+    owner: Product lead
+  - id: K31
+    category: fact
+    keywords:
+    - target readers
+    - opt in to the coach
+    fact: The coach is offered to every TickerTalk reader, but only readers who opt in to the coach see lessons; release one
+      targets the roughly 40,000 readers who use watchlists.
+    owner: CEO
+  - id: K32
+    category: legal-regulatory
+    keywords:
+    - compliance consultant wrote
+    - no real order in year one
+    fact: 'The compliance consultant''s ruling is in writing, dated 2 October: no real order of any kind, including through
+      Brightwater, until year one ends in March 2028; lessons and paper trading are allowed.'
+    owner: Compliance consultant
+  - id: K33
+    category: finance-liability
+    keywords:
+    - Brightwater carries
+    - customers' balances
+    fact: Brightwater carries every customer balance as money it owes its own customers; Kestrel carries none, and paper balances
+      are not money.
+    owner: Partnerships manager
+  - id: K34
+    category: fact
+    keywords:
+    - Signal's baseline
+    - S&P 500 total return
+    fact: 'The ML lead re-ran Signal against the S&P 500 total return with the stock list as it stood each year: the edge
+      falls from 31% to about 2% a year before costs. Signal stays out of release one and the ML lead owns it.'
+    owner: ML lead
+  - id: K35
+    category: data-identity
+    keywords:
+    - privacy review
+    - fresh consent
+    fact: The privacy review of 7 October says training Signal on readers' watchlists or practice trades is a new purpose
+      and needs fresh, opt-in consent; release one trains nothing on reader data.
+    owner: Privacy lead
+  - id: K36
+    category: third-party-contract
+    keywords:
+    - section 7.2 says
+    - clause 9 says
+    fact: 'Read in full: Brightwater''s section 7.2 makes every customer-facing lesson and screen subject to its content review,
+      including demo builds shown outside Kestrel; Quoteline''s clause 9 allows display inside lessons and valuing paper positions
+      on delayed quotes, and forbids training models without an addendum.'
+    owner: Partnerships manager
+  - id: K37
+    category: fact
+    keywords:
+    - coach copy
+    - explains, never tells
+    fact: In release one the coach never suggests a trade. Lesson copy explains how a trade works, using the fixed list; the
+      compliance consultant signs off each lesson before Brightwater's review.
+    owner: Product lead
+  - id: K38
+    category: fact
+    keywords:
+    - options lessons
+    - taught, not traded
+    fact: Options are taught in release one as reading, never paper-traded, and come with no trade screen.
+    owner: Product lead
+  - id: K39
+    category: legal-regulatory
+    keywords:
+    - counsel's review covers
+    - lessons are not marketing
+    fact: Counsel confirmed on 8 October that lessons are education, not marketing; only promotions and any shown results
+      need marketing review.
+    owner: Outside counsel
+  - id: K40
+    category: fact
+    keywords:
+    - Kestrel's AWS account
+    - Coach runs
+    fact: TickerTalk has a backend on Kestrel's AWS account, and the Coach service runs there; the Coach team runs it, with
+      the platform engineer's help for the first month.
+    owner: CTO
+  - id: K41
+    category: fact
+    keywords:
+    - paper record lives
+    - Coach keeps the record
+    fact: Coach keeps the record of each reader's paper balance and trades; the Brightwater sandbox only fills the paper orders.
+      If a reader later opens a real account, the paper record stays in Coach.
+    owner: Coach lead
+  - id: K42
+    category: data-identity
+    keywords:
+    - reader ID
+    - opaque reader ID
+    fact: TickerTalk identifies a signed-in reader by an opaque reader ID, not the email, and may send that ID to Coach.
+    owner: Mobile lead
+  - id: K43
+    category: unnamed-stakeholder
+    keywords:
+    - Brightwater content team
+    - review lead
+    fact: Brightwater's content review is run by its marketing compliance team; the contact is the review lead, reached through
+      the partnerships manager's shared channel.
+    owner: Partnerships manager
+  - id: K44
+    category: fact
+    keywords:
+    - review cannot be shortened
+    - rejection restarts
+    fact: Brightwater will not shorten the ten-business-day review. A rejected item restarts the clock, with two rounds allowed
+      before escalation. An internal demo shown only inside Kestrel is exempt; the board counts as inside Kestrel.
+    owner: Partnerships manager
+  - id: K45
+    category: fact
+    keywords:
+    - board demo audience
+    - five board members
+    fact: The January demo is shown to the five board members and the CEO, inside Kestrel.
+    owner: CEO
+  - id: K46
+    category: fact
+    keywords:
+    - rendering tests fit
+    - mobile sign-off
+    fact: The mobile lead confirmed the rendering tests fit before mobile sign-off without pushing other work.
+    owner: Mobile lead
+  - id: K47
+    category: fact
+    keywords:
+    - sandbox test accounts
+    - Brightwater's QA
+    fact: Brightwater gives ten sandbox test accounts, run by its integration QA engineer.
+    owner: Partnerships manager
+  - id: K48
+    category: fact
+    keywords:
+    - Coach lead wrote
+    - containers as written
+    fact: 'The Coach lead, @coach-lead, wrote in the Coach channel on 9 October: ''The four containers are right as written:
+      Lessons, Paper practice, Quote display, Board demo. I''ll run Coach in business hours with an on-call rota from March,
+      and I own its epics.'''
+    owner: Coach lead
+  - id: K49
+    category: fact
+    keywords:
+    - security review
+    - no money and no real orders
+    fact: The security review found no payment data and no real orders in Coach; reader IDs are opaque, and Coach stores practice
+      records encrypted at rest.
+    owner: Platform engineer
+  - id: K50
+    category: fact
+    keywords:
+    - observability
+    - dashboards and alerts
+    fact: Coach ships with request dashboards and alerts on errors and Brightwater sandbox failures, owned by the Coach team.
+    owner: Coach lead
+  - id: K51
+    category: fact
+    keywords:
+    - testing plan
+    - contract tests
+    fact: Coach and TickerTalk run contract tests on both sides of the Coach entry and reader-identity contracts in each pipeline;
+      Brightwater sandbox tests run nightly.
+    owner: Coach lead
+  - id: K52
+    category: fact
+    keywords:
+    - rollout
+    - opt-in beta
+    fact: Rollout is an opt-in beta for 2,000 watchlist readers in March, then everyone who opts in from April.
+    owner: Product lead
+  - id: K53
+    category: finance-liability
+    keywords:
+    - running cost
+    - inside the 2.5 million
+    fact: Coach's running cost in year one, about 180,000 dollars including Quoteline display fees, sits inside the 2.5 million.
+    owner: CFO
+  - id: K54
+    category: fact
+    keywords:
+    - rota goes live
+    - 1 March
+    fact: 'The Coach lead wrote in the Coach channel on 9 October: the on-call rota goes live on 1 March, before the first
+      beta reader. Calls to Coach time out after 3 seconds and calls to Quoteline after 2; a paper order may stay pending
+      in the sandbox for 15 minutes, after which Coach marks it failed and asks the sandbox for its status once.'
+    owner: Coach lead
+  - id: K55
+    category: fact
+    keywords:
+    - container names match
+    - same four names
+    fact: 'The Coach lead confirmed on 9 October that the page''s four container names are the names the team uses: Lessons,
+      Paper practice, Quote display, Board demo.'
+    owner: Coach lead
+  - id: K56
+    category: data-identity
+    keywords:
+    - opt-in wording
+    - privacy lead approved
+    fact: 'The privacy lead approved the opt-in wording on 8 October: ''Coach keeps your lessons, practice trades and progress,
+      under your reader ID, so you can pick up where you left off. Nothing is used to train any model.'''
+    owner: Privacy lead
+  - id: K57
+    category: finance-liability
+    keywords:
+    - CFO holds the 2.5 million
+    - named budget holder
+    fact: The CFO is the named holder of the 2.5 million dollar budget and signs off spend over 50,000 dollars.
+    owner: CFO
+  - id: K58
+    category: fact
+    keywords:
+    - two lessons a week
+    - 24 lessons by 15 February
+    fact: The compliance consultant signs off two lessons a week and Brightwater reviews in ten business days, so the 24 beta
+      lessons are cleared by 15 February, in time for the March beta.
+    owner: Compliance consultant
+  - id: K59
+    category: third-party-contract
+    keywords:
+    - Fieldnote contract
+    - Kestrel owns the lessons
+    fact: The Fieldnote Learning contract, held by the product lead, says Kestrel owns the lessons, either side may end it
+      on 30 days' notice, and the compliance consultant checks each lesson before it is paid for.
+    owner: Product lead
+  - id: K60
+    category: data-identity
+    keywords:
+    - reader ID is stable
+    - never reused
+    fact: A reader's ID stays the same for the life of their account, across a change of email or a new device, and is never
+      reused for another reader.
+    owner: Mobile lead
+  - id: K61
+    category: data-identity
+    keywords:
+    - checks the opt-in
+    - non-opted readers
+    fact: Mobile's plan has TickerTalk check each reader's opt-in before it sends the reader ID to Coach, and hide the coach
+      screens for readers who have not opted in.
+    owner: Mobile lead
+  - id: K62
+    category: fact
+    keywords:
+    - platform on-call
+    - 24/7
+    fact: The platform engineer's on-call rota covers TickerTalk's backend, including the reader lookup, 24/7, and now lists
+      Coach's dependence on it.
+    owner: Platform engineer
+  - id: K63
+    category: fact
+    keywords:
+    - first practice trade
+    - practice is unavailable
+    fact: Coach opens a reader's sandbox paper account at their first practice trade. If opening it fails, the reader sees
+      'practice is unavailable, try again later' and the lessons carry on.
+    owner: Coach lead
+  - id: K64
+    category: fact
+    keywords:
+    - graded trade passes
+    - sets a stop
+    fact: A paper trade is graded as passed when the reader states why they entered it, sets a stop, and closes it within
+      the lesson's rules. Three graded passes on different stocks pass the ready track.
+    owner: Product lead
+  - id: K65
+    category: fact
+    keywords:
+    - Coach lead reviews failure cases
+    - during the build
+    fact: The Coach lead owns the review of Coach's failure cases during the build.
+    owner: Coach lead
+  - id: K66
+    category: data-identity
+    keywords:
+    - '@privacy-lead'
+    - privacy lead's handle
+    fact: The privacy lead who approved the opt-in wording is @privacy-lead.
+    owner: Privacy lead
+  - id: K67
+    category: data-identity
+    keywords:
+    - deleted within 30 days
+    - withdrawn reader
+    fact: When a reader withdraws from the coach, Coach keeps their record for 30 days so they can undo it, then deletes it.
+    owner: Privacy lead
+  - id: K68
+    category: third-party-contract
+    keywords:
+    - will not recommend in year one
+    - trade ideas stay out
+    fact: Brightwater replied that it will not act as recommender or supervisor for trade ideas in year one; trade ideas stay
+      out of release one.
+    owner: Partnerships manager
+  - id: K69
+    category: fact
+    keywords:
+    - TickerTalk practice holds
+    - unchanged practice
+    fact: For TickerTalk, its existing security, cost, testing and observability practice holds unchanged except for the new
+      contract tests on the coach entry; its rollout is the coach's opt-in beta, and the mobile team owns it.
+    owner: Mobile lead
+  - id: K70
+    category: third-party-contract
+    keywords:
+    - valuing paper positions
+    - Quoteline confirmed
+    fact: Quoteline confirmed in writing on 9 October that valuing paper balances and positions on its delayed quotes is display
+      use, inside the licence, with no addendum or fee.
+    owner: Data engineer
+  docs:
+  - name: counsel-reply.md
+    text: '# From outside counsel, 8 October
+
+
+      Lessons and paper trading may launch once the marketing and any shown results are reviewed. A trade idea for a particular
+      customer, this stock or this option now, is a recommendation: it is allowed only as Brightwater''s recommendation, under
+      its Regulation Best Interest duty and its supervision. Kestrel must not trade on a customer''s behalf in the first release.
+      Options lessons are education; a live options trade needs Brightwater''s options approval for that customer.'
+  - name: ceo-note.md
+    text: '# From the CEO, 6 October
+
+
+      Release one is lessons and paper trading on a fixed list of US stocks. I accept that as the first release if the January
+      board demo shows where it goes next. Trading for customers waits for a later release, after counsel and Brightwater
+      sign off. Where compliance and I disagree, I decide once counsel has ruled.'
+  - name: quoteline-reply.md
+    text: '# From Quoteline, 7 October
+
+
+      Showing delayed quotes inside lessons is display use, which your licence allows. Using our prices to train or run a
+      model is non-display use and needs an addendum with its own fees, as clause 9 says.'
+  - name: agreement-read.md
+    text: '# Partnerships: the signed Brightwater agreement, read in full, 8 October
+
+
+      Equities only. Kestrel never holds customer money; Brightwater holds customers'' balances as its own customers'' money.
+      Options need a separate options agreement. The sandbox covers all US-listed equities. Either side may exit with 90 days''
+      notice.'
+  - name: brightwater-reply.md
+    text: '# From Brightwater Securities, 3 November
+
+
+      The Coach service may send paper orders to the sandbox through the existing API, and may show Brightwater''s quotes
+      inside its trade screens. Every lesson and screen shown to Brightwater customers goes through our content review first,
+      which takes ten business days. Live options trading needs our options agreement and each customer''s options approval.'
+  - name: answers-9-october.md
+    text: '# Answers gathered by 9 October
+
+
+      - ''Ready'' for the paper track means a reader has passed three graded paper trades on different stocks from the list
+      and finished every lesson for them. The contracted lesson writer is Fieldnote Learning, starting 12 October. (Product
+      lead)
+
+
+      - The coach is offered to every TickerTalk reader, but only readers who opt in to the coach see lessons; release one
+      targets the roughly 40,000 readers who use watchlists. (CEO)
+
+
+      - The compliance consultant''s ruling is in writing, dated 2 October: no real order of any kind, including through Brightwater,
+      until year one ends in March 2028; lessons and paper trading are allowed. (Compliance consultant)
+
+
+      - Brightwater carries every customer balance as money it owes its own customers; Kestrel carries none, and paper balances
+      are not money. (Partnerships manager)
+
+
+      - The ML lead re-ran Signal against the S&P 500 total return with the stock list as it stood each year: the edge falls
+      from 31% to about 2% a year before costs. Signal stays out of release one and the ML lead owns it. (ML lead)
+
+
+      - The privacy review of 7 October says training Signal on readers'' watchlists or practice trades is a new purpose and
+      needs fresh, opt-in consent; release one trains nothing on reader data. (Privacy lead)
+
+
+      - Read in full: Brightwater''s section 7.2 makes every customer-facing lesson and screen subject to its content review,
+      including demo builds shown outside Kestrel; Quoteline''s clause 9 allows display inside lessons and valuing paper positions
+      on delayed quotes, and forbids training models without an addendum. (Partnerships manager)
+
+
+      - In release one the coach never suggests a trade. Lesson copy explains how a trade works, using the fixed list; the
+      compliance consultant signs off each lesson before Brightwater''s review. (Product lead)
+
+
+      - Options are taught in release one as reading, never paper-traded, and come with no trade screen. (Product lead)
+
+
+      - Counsel confirmed on 8 October that lessons are education, not marketing; only promotions and any shown results need
+      marketing review. (Outside counsel)
+
+
+      - TickerTalk has a backend on Kestrel''s AWS account, and the Coach service runs there; the Coach team runs it, with
+      the platform engineer''s help for the first month. (CTO)
+
+
+      - Coach keeps the record of each reader''s paper balance and trades; the Brightwater sandbox only fills the paper orders.
+      If a reader later opens a real account, the paper record stays in Coach. (Coach lead)
+
+
+      - TickerTalk identifies a signed-in reader by an opaque reader ID, not the email, and may send that ID to Coach. (Mobile
+      lead)
+
+
+      - Brightwater''s content review is run by its marketing compliance team; the contact is the review lead, reached through
+      the partnerships manager''s shared channel. (Partnerships manager)
+
+
+      - Brightwater will not shorten the ten-business-day review. A rejected item restarts the clock, with two rounds allowed
+      before escalation. An internal demo shown only inside Kestrel is exempt; the board counts as inside Kestrel. (Partnerships
+      manager)
+
+
+      - The January demo is shown to the five board members and the CEO, inside Kestrel. (CEO)
+
+
+      - The mobile lead confirmed the rendering tests fit before mobile sign-off without pushing other work. (Mobile lead)
+
+
+      - Brightwater gives ten sandbox test accounts, run by its integration QA engineer. (Partnerships manager)
+
+
+      - The Coach lead, @coach-lead, wrote in the Coach channel on 9 October: ''The four containers are right as written:
+      Lessons, Paper practice, Quote display, Board demo. I''ll run Coach in business hours with an on-call rota from March,
+      and I own its epics.'' (Coach lead)
+
+
+      - The security review found no payment data and no real orders in Coach; reader IDs are opaque, and Coach stores practice
+      records encrypted at rest. (Platform engineer)
+
+
+      - Coach ships with request dashboards and alerts on errors and Brightwater sandbox failures, owned by the Coach team.
+      (Coach lead)
+
+
+      - Coach and TickerTalk run contract tests on both sides of the Coach entry and reader-identity contracts in each pipeline;
+      Brightwater sandbox tests run nightly. (Coach lead)
+
+
+      - Rollout is an opt-in beta for 2,000 watchlist readers in March, then everyone who opts in from April. (Product lead)
+
+
+      - Coach''s running cost in year one, about 180,000 dollars including Quoteline display fees, sits inside the 2.5 million.
+      (CFO)'
+  - name: coach-lead-details.md
+    text: '# From the Coach lead, in the Coach channel, 9 October
+
+
+      The on-call rota goes live on 1 March, before the first beta reader. Calls to Coach time out after 3 seconds, calls
+      to Quoteline after 2. A paper order may stay pending in the sandbox for 15 minutes; then Coach marks it failed and asks
+      the sandbox for its status once. The four container names on the page are the names we use.
+
+      '
+  - name: privacy-opt-in.md
+    text: '# From the privacy lead, 8 October
+
+
+      Approved opt-in wording: "Coach keeps your lessons, practice trades and progress, under your reader ID, so you can pick
+      up where you left off. Nothing is used to train any model."
+
+      '
+  - name: answers-later-9-october.md
+    text: '# More answers, 9 October
+
+
+      - The Coach lead wrote in the Coach channel on 9 October: the on-call rota goes live on 1 March, before the first beta
+      reader. Calls to Coach time out after 3 seconds and calls to Quoteline after 2; a paper order may stay pending in the
+      sandbox for 15 minutes, after which Coach marks it failed and asks the sandbox for its status once. (Coach lead)
+
+
+      - The Coach lead confirmed on 9 October that the page''s four container names are the names the team uses: Lessons,
+      Paper practice, Quote display, Board demo. (Coach lead)
+
+
+      - The privacy lead approved the opt-in wording on 8 October: ''Coach keeps your lessons, practice trades and progress,
+      under your reader ID, so you can pick up where you left off. Nothing is used to train any model.'' (Privacy lead)
+
+
+      - The CFO is the named holder of the 2.5 million dollar budget and signs off spend over 50,000 dollars. (CFO)
+
+
+      - The compliance consultant signs off two lessons a week and Brightwater reviews in ten business days, so the 24 beta
+      lessons are cleared by 15 February, in time for the March beta. (Compliance consultant)
+
+
+      - The Fieldnote Learning contract, held by the product lead, says Kestrel owns the lessons, either side may end it on
+      30 days'' notice, and the compliance consultant checks each lesson before it is paid for. (Product lead)
+
+
+      - A reader''s ID stays the same for the life of their account, across a change of email or a new device, and is never
+      reused for another reader. (Mobile lead)
+
+
+      - Mobile''s plan has TickerTalk check each reader''s opt-in before it sends the reader ID to Coach, and hide the coach
+      screens for readers who have not opted in. (Mobile lead)
+
+
+      - The platform engineer''s on-call rota covers TickerTalk''s backend, including the reader lookup, 24/7, and now lists
+      Coach''s dependence on it. (Platform engineer)
+
+
+      - Coach opens a reader''s sandbox paper account at their first practice trade. If opening it fails, the reader sees
+      ''practice is unavailable, try again later'' and the lessons carry on. (Coach lead)
+
+
+      - A paper trade is graded as passed when the reader states why they entered it, sets a stop, and closes it within the
+      lesson''s rules. Three graded passes on different stocks pass the ready track. (Product lead)
+
+
+      - The Coach lead owns the review of Coach''s failure cases during the build. (Coach lead)
+
+
+      - The privacy lead who approved the opt-in wording is @privacy-lead. (Privacy lead)
+
+
+      - When a reader withdraws from the coach, Coach keeps their record for 30 days so they can undo it, then deletes it.
+      (Privacy lead)
+
+
+      - Brightwater replied that it will not act as recommender or supervisor for trade ideas in year one; trade ideas stay
+      out of release one. (Partnerships manager)
+
+
+      - For TickerTalk, its existing security, cost, testing and observability practice holds unchanged except for the new
+      contract tests on the coach entry; its rollout is the coach''s opt-in beta, and the mobile team owns it. (Mobile lead)'
+  - name: quoteline-valuation.md
+    text: '# From Quoteline, 9 October
+
+
+      Valuing paper balances and positions on our delayed quotes is display use. It is inside your licence and needs no addendum
+      or fee.'
+  decisions:
+  - id: D1
+    override_if_blocked: the January demo date holds, and the answers we have are enough to decide; what is still open goes
+      to the build team as named risks with owners
+  - id: D2
+    override_if_blocked: the January demo date holds, and the answers we have are enough to decide; what is still open goes
+      to the build team as named risks with owners
+  - id: D3
+    override_if_blocked: the January demo date holds, and the answers we have are enough to decide; what is still open goes
+      to the build team as named risks with owners
+  - id: D4
+    override_if_blocked: the January demo date holds, and the answers we have are enough to decide; what is still open goes
+      to the build team as named risks with owners
+  - id: D5
+    override_if_blocked: the January demo date holds, and the answers we have are enough to decide; what is still open goes
+      to the build team as named risks with owners
+  - id: D6
+    override_if_blocked: the January demo date holds, and the answers we have are enough to decide; what is still open goes
+      to the build team as named risks with owners
+  - id: D7
+    override_if_blocked: the January demo date holds, and the answers we have are enough to decide; what is still open goes
+      to the build team as named risks with owners
+  - id: D8
+    override_if_blocked: the January demo date holds, and the answers we have are enough to decide; what is still open goes
+      to the build team as named risks with owners
+team_repos:
+  coach:
+    title: Coach service
+    skills:
+    - requirements-grill
+    - tech-design-grill
+sessions:
+- mode: requirements-grill
+  cap: 18
+  repo: coach
+  persona: coach-lead
+  planner: '/requirements-grill coach. The requirements come from the initiative vault at ../vault, not from a docs/requirements
+    file: read ../vault/.claude/skills/planner/references/REQUIREMENTS-IN-VAULT.md first, then the pages it names for APP-coach.'
+  baseline: '/requirements-grill coach. The requirements come from the initiative vault at ../vault, not from a docs/requirements
+    file: read ../vault/.claude/skills/planner/references/REQUIREMENTS-IN-VAULT.md first, then the pages it names for APP-coach.'
+- mode: tech-design-grill
+  cap: 26
+  repo: coach
+  persona: coach-lead
+  planner: '/tech-design-grill coach. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
+    first, with --vault ../vault --app APP-coach, and read docs/requirements/coach.md.'
+  baseline: '/tech-design-grill coach. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
+    first, with --vault ../vault --app APP-coach, and read docs/requirements/coach.md.'
+- mode: breakdown
+  cap: 12
+  repo: coach
+  persona: coach-lead
+  planner: 'Break the Coach design into a work plan in docs/plan/coach-breakdown.md. For each epic in ../vault/13-epics that
+    lists APP-coach: the stories it needs, each with acceptance criteria traced to the epic''s criteria (EPC-nnn.ACn) and
+    to the design''s components in docs/tech-design/coach.md, and the tasks under each story with a size of S, M or L. End
+    with the order to build in and what blocks what. Write it as a document a team lead can plan from.'
+  baseline: 'Break the Coach design into a work plan in docs/plan/coach-breakdown.md. For each epic in ../vault/13-epics that
+    lists APP-coach: the stories it needs, each with acceptance criteria traced to the epic''s criteria (EPC-nnn.ACn) and
+    to the design''s components in docs/tech-design/coach.md, and the tasks under each story with a size of S, M or L. End
+    with the order to build in and what blocks what. Write it as a document a team lead can plan from.'

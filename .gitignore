@@ -3,4 +3,13 @@
 examples/unified-booking-viewer.html
 # voice corpora stay local (licensing, company material)
 **/voice/corpus/
+**/voice/local/
 __pycache__/
+.superpowers/
+.pytest_cache/
+tests/evals/.results/
+tests/sim/results/
+**/.planner/
+
+# The explorer with generated art inlined: about 13 MB, rebuilt on demand (see prototypes/explorer/README.md)
+prototypes/explorer/out/*-art.html

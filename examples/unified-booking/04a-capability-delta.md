@@ -6,26 +6,55 @@ initiative: INI-002
 arc42: "§4"
 c4: landscape
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "session 2026-08-12 Grill", "session 2026-11-18 Grill"]
 ---
 
 # Capability delta
 
+- **Decision:** [[2026-08-12-goals-and-data]]
+
 Every capability this initiative changes, which software provides it before and after, and where the work lands. Anything not listed is unchanged.
 
-<!-- generated: do not edit -->
-| Capability | Change | Provided by today | Provided by after | Flows | Epics | State |
-|---|---|---|---|---|---|---|
-| [[CAP-013-reserve-a-crossing\|Reserve a crossing]] | replace | Website, call centre and kiosks, each through its own FERRYMASTER adapter | [[booking-building-blocks\|Booking]] | [[FLO-001-hold-pay-confirm\|FLO-001]] | [[EPC-031-holds-and-confirms\|031]], [[EPC-033-website-to-booking\|033]], [[EPC-034-call-centre-to-booking\|034]], [[EPC-035-kiosks-to-booking\|035]] | decided |
-| [[CAP-014-hold-a-seat\|Hold a seat during payment]] | new | Nothing; overbooking fixed by hand | Booking, 10-minute hold | [[FLO-001-hold-pay-confirm\|FLO-001]] | [[EPC-031-holds-and-confirms\|031]] | decided |
-| [[CAP-021-amend-or-cancel\|Amend or cancel a booking]] | extend | Call centre only, through a mainframe screen | Booking, used by the website and call centre (kiosks show booking state only) | [[FLO-002-amend-or-cancel\|FLO-002]] | [[EPC-034-call-centre-to-booking\|034]], [[EPC-036-amend-cancel-online\|036]] | decided |
-| [[CAP-022-notify-customer\|Notify customer of changes]] | new | Website emails only | [[notifications-building-blocks\|Notifications]], triggered by Booking events | [[FLO-003-notify-on-change\|FLO-003]] | [[EPC-037-events-and-notifications\|037]] | decided |
-| [[CAP-012-quote-a-fare\|Quote a fare]] | narrow | [[pricing-building-blocks\|Pricing]], called by three front ends | Pricing, called by Booking only | [[FLO-001-hold-pay-confirm\|FLO-001]], [[FLO-002-amend-or-cancel\|FLO-002]] | [[EPC-038-pricing-serves-booking\|038]] | decided |
-| [[CAP-023-fix-failed-bookings\|Fix failed bookings by hand]] | retire | Call centre, next-morning fixes | Nobody: Booking retries and keeps the hold | [[FLO-001-hold-pay-confirm\|FLO-001]] | [[EPC-031-holds-and-confirms\|031]], [[EPC-034-call-centre-to-booking\|034]] | decided |
-<!-- /generated -->
+Each capability page holds the change, what provides it today and after, its flows and its epics.
+
+<!-- generated:capability-map sha=86713d8f: do not edit, run planner render -->
+```mermaid
+flowchart TB
+  subgraph d_booking["Booking"]
+    c_CAP_013["CAP-013 Reserve a crossing (replace)"]
+    c_CAP_014["CAP-014 Hold a seat during payment (new)"]
+    c_CAP_021["CAP-021 Amend or cancel a booking (extend)"]
+    c_CAP_023["CAP-023 Fix failed bookings by hand (retire)"]
+  end
+  subgraph d_customer_contact["Customer contact"]
+    c_CAP_022["CAP-022 Notify customer of changes (new)"]
+  end
+  subgraph d_payments["Payments"]
+    c_CAP_015["CAP-015 Take payment (unchanged)"]
+  end
+  subgraph d_sales["Sales"]
+    c_CAP_011["CAP-011 Find a crossing (unchanged)"]
+    c_CAP_012["CAP-012 Quote a fare (narrow)"]
+  end
+  classDef changed fill:#fdf0d5,stroke:#a06400,color:#3a2600
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  classDef retired fill:#f6e0de,stroke:#b3261e,color:#3a0d0a,stroke-dasharray:4 3
+  classDef unchanged fill:#eef1f5,stroke:#7a8494,color:#19212d
+  class c_CAP_012,c_CAP_013,c_CAP_021 changed
+  class c_CAP_014,c_CAP_022 new
+  class c_CAP_023 retired
+  class c_CAP_011,c_CAP_015 unchanged
+```
+<!-- /generated:capability-map -->
+
+- [[CAP-013-reserve-a-crossing|Reserve a crossing]]
+- [[CAP-014-hold-a-seat|Hold a seat during payment]]
+- [[CAP-021-amend-or-cancel|Amend or cancel a booking]]
+- [[CAP-022-notify-customer|Notify customer of changes]]
+- [[CAP-012-quote-a-fare|Quote a fare]]
+- [[CAP-023-fix-failed-bookings|Fix failed bookings by hand]]
 
 ## Notes on the trickier rows
 
@@ -38,3 +67,11 @@ Every capability this initiative changes, which software provides it before and 
 ## Capabilities checked and left alone
 
 [[CAP-011-find-a-crossing|Find a crossing]] and [[CAP-015-take-payment|Take payment]] are in the flows but don't change. Take payment now reports its outcome to Booking instead of to each channel; Tidepay itself is untouched.
+
+## Allocation
+
+What each app carries of each functional requirement.
+
+<!-- generated:allocation sha=7a7b4fb4: do not edit, run planner render -->
+**Allocation:** no functional requirements at assumption or later yet.
+<!-- /generated:allocation -->

@@ -1,0 +1,23 @@
+rules:
+  # Forensic Coding / Shield. The asset slot contract (plugin/lib/planner/explorer/art/slots.json) says pages name
+  # slot ids through resolve.js and never a file or a provider; the ComfyUI server lives in
+  # assets.config.json only. A hard-coded address or file path re-couples a page to one provider's output.
+  - id: prototype-no-hardcoded-server
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      A network address is hard-coded here. The ComfyUI server belongs in
+      prototypes/gallery/assets/assets.config.json and is read by comfy.py; pages never call it at runtime.
+    paths:
+      include: ["/prototypes/**/*.py", "/prototypes/**/*.js", "/prototypes/**/*.html", "/plugin/**/*.py", "/tests/sim/**/*.py"]
+      exclude: ["/prototypes/gallery/assets/index.html"]
+    pattern-regex: (https?://)?(\b(?:\d{1,3}\.){3}\d{1,3}\b|\blocalhost\b)(:\d{2,5})?|:8188\b
+  - id: prototype-asset-by-slot-id
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      This names a provider's asset file. Ask the resolver for a slot id instead (`assets.url('emblem.coach')`)
+      so the builtin fallback and the per-slot report keep working; see plugin/lib/planner/explorer/art/slots.json.
+    paths:
+      include: ["/prototypes/explorer/**", "/plugin/lib/planner/explorer/**", "/prototypes/gallery/maps/**", "/prototypes/gallery/flows/**", "/prototypes/gallery/asks/**"]
+    pattern-regex: \b(builtin|comfyui)/(emblems|textures|audio|video|loops)/[\w.-]+\.(png|svg|jpg|webp|mp4|webm|wav|mp3|ogg)

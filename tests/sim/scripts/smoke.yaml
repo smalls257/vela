@@ -1,0 +1,12 @@
+# A cheap first run: one dump and its close, with low caps. It checks the claude CLI assumptions the free tests
+# cannot (plugin load, slash commands as a prompt, the result JSON, the gh stub) before a full run spends money.
+name: smoke
+sessions:
+  - mode: dump
+    cap: 14
+    planner: "/planner:dump {opening}"
+    baseline: "I have a new initiative and nothing written down yet. Let's dump everything we know about it into this vault, following CONVENTIONS.md. {opening}"
+  - mode: close
+    cap: 8
+    planner: "/planner:close"
+    baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."

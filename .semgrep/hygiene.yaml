@@ -1,0 +1,48 @@
+rules:
+  # Forensic Coding. An ownerless TODO is a note nobody will act on; in two months it is a Fossil Comment.
+  - id: todo-needs-owner-and-reason
+    languages: [generic]
+    severity: WARNING
+    message: >-
+      Write TODO(owner): what and why, or open an issue and link it. A bare TODO becomes a Fossil Comment.
+    paths:
+      include: ["*.py", "*.js", "*.sh", "/plugin/scripts/planner", "/.githooks/*"]
+    pattern-regex: \b(TODO|FIXME|HACK)\b(?!\([\w.@-]+\):)
+  # Black Box. A git or tool call with no timeout hangs the CLI or the simulator with no signal.
+  # cli.git() and cli.git_strict() set timeouts; new calls must too.
+  - id: subprocess-needs-timeout
+    languages: [python]
+    severity: ERROR
+    message: >-
+      subprocess call without timeout=. A hung child makes this command hang silently (Black Box).
+      Pass timeout= and turn subprocess.TimeoutExpired into the module's error.
+    paths:
+      include: ["/plugin/"]  # tests/sim and tests/evals have 20 untimed local calls; widen once fixed
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.run(...)
+          - pattern: subprocess.check_output(...)
+          - pattern: subprocess.check_call(...)
+          - pattern: subprocess.call(...)
+      - pattern-not: subprocess.$F(..., timeout=$T, ...)
+  # Vault pages are UTF-8 Markdown. Without encoding= Python uses the locale codec (cp1252 on Windows),
+  # and a vault that checks clean on a Mac fails or mangles text elsewhere.
+  - id: text-io-needs-encoding
+    languages: [python]
+    severity: WARNING
+    message: >-
+      Text IO without encoding= uses the platform codec. Pass encoding="utf-8".
+    paths:
+      include: ["/plugin/", "/tests/sim/", "/tests/evals/"]
+    pattern-either:
+      - patterns:
+          - pattern: $P.read_text()
+      - patterns:
+          - pattern: $P.write_text($S)
+      - patterns:
+          - pattern: open($F)
+      - patterns:
+          - pattern: open($F, $M)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^['"][rwax]\+?t?['"]$

@@ -6,16 +6,18 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: changed
 stage: epics
-owner: Revenue team
+owner: "@harbourline/revenue-team"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["Pricing senior review of CON-003", "Platform gateway access rules"]
+sources: ["Pricing senior review of CON-003", SRC-09]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Pricing
 
 # Pricing
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 Pricing quotes a fare for a crossing, given the date, the passengers and the vehicle. It holds the fare rules the Revenue team sets. Its job does not change in this initiative.
 
@@ -25,21 +27,18 @@ Pricing does not hold seats or know whether a booking is confirmed. Booking does
 |---|---|
 | Changed: callers narrowed from the three front ends to Booking only | Revenue team |
 
+<!-- generated:app-context sha=4800e492: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  bk["Booking<br/>new"]
-  pr["<b>Pricing</b><br/>changed"]
-  gw["Platform gateway"]
-  web["Public website<br/>no longer calls Pricing"]
-  cc["Call centre desktop<br/>no longer calls Pricing"]
-  kio["Port kiosks<br/>no longer calls Pricing"]
-  bk -->|"CON-003"| gw --> pr
-  web -.->|"retired with old adapter"| gw
-  cc -.->|"retired with old adapter"| gw
-  kio -.->|"retired with old adapter"| gw
-  classDef focus fill:#1f4e79,color:#fff
-  class pr focus
+  n_APP_booking["Booking (new)"]
+  n_APP_pricing["Pricing (changed)"]
+  n_APP_pricing -->|"CON-003"| n_APP_booking
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_pricing focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 ## Inside Pricing: main containers
 
@@ -69,28 +68,32 @@ Components inside these containers belong to the Revenue team's tech design.
 ### CON-003 Quote a fare
 
 - **Crosses the boundary:** crossing, date, passengers and vehicle in; a fare out. Booking asks for a new quote when a customer amends.
-- **Consumers:** Booking only. Each front end loses access at the gateway when its old adapter is removed, 4 weeks after its cutover. Until then the rollback switch still needs the direct call. Kiosks lose access with the September 2027 image.
+- **Consumers:** [[booking-building-blocks|Booking]] only. Each front end loses access at the gateway when its old adapter is removed, 4 weeks after its cutover. Until then the rollback switch still needs the direct call. Kiosks lose access with the September 2027 image.
 - **Change policy:** the existing API, unchanged. Only the list of callers narrows.
-- **Tested by:** Booking runs a contract test on its side. Pricing runs provider verification in its pipeline.
+- **Change:** changed
+- **Tested by:** Booking runs a contract test on its side. Pricing runs provider verification in its pipeline. Both run on every build, and a failure blocks the Pricing release.
 - **State:** decided
+- **Decision:** [[2026-07-28-solution-strategy]]
+- **Override:** GATE-5 by @hl-solution-lead on 2026-07-28: the Revenue team was in its fare review that week, and the strategy could not wait for it. The contract's API does not change, only its list of callers.
+- **Decided by:** @hl-solution-lead, on behalf of @harbourline/revenue-team
+- **Confirmed by:** @hl-pricing-senior on 2026-08-12
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
-| Contract | Provider | Change policy | State |
-|---|---|---|---|
-| none | | | |
-<!-- /generated -->
+<!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->
+none
+<!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-testing|Testing]]: provider verification for CON-003 in Pricing's pipeline.
-- [[concern-security|Security]]: the gateway rule that limits the Quote service to Booking, set up with the Platform lead.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-038-pricing-serves-booking|EPC-038 Pricing serves Booking only]] (HB-108)
-<!-- /generated -->
+<!-- generated:epics-for-app sha=1390bbd7: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harbourline/revenue-team | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[pricing-runtime|Pricing runtime]]

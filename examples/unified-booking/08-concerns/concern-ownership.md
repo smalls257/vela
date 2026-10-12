@@ -4,16 +4,13 @@ type: concern
 title: Ownership
 initiative: INI-002
 arc42: "§8"
-state: addressed
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-28 Grill", "session 2026-10-07 Grill"]
 ---
 
 # Ownership
 
-**State:** addressed. **Owner:** solution lead.
 
 ## Strategy
 
@@ -25,7 +22,6 @@ The mainframe team owns FERRYMASTER and the MQ transactions, and gives 8 weeks' 
 
 ## Per app
 
-<!-- generated: do not edit -->
 | App | State | Owner team | Owns in INI-002 |
 |---|---|---|---|
 | [[booking-building-blocks\|Booking]] | addressed | Booking team (new) | Booking API, Hold store, Ledger adapter, Event publisher |
@@ -37,10 +33,9 @@ The mainframe team owns FERRYMASTER and the MQ transactions, and gives 8 weeks' 
 | [[notifications-building-blocks\|Notifications]] | addressed | Platform team | Booking event consumer |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | Marine Ops Systems team | Capacity read API |
 | [[customer-identity-building-blocks\|Customer identity]] | unchanged | Platform team | Customer read API |
-<!-- /generated -->
 
 ## Related
 
-- Unknowns: [[11-unknowns-and-risks#UNK-007|UNK-007]], [[11-unknowns-and-risks#UNK-003|UNK-003]]
+- Unknowns: [[11-unknowns-and-risks#UNK-007 Booking on-call|UNK-007]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]]
 - Decisions: [[ADR-0001-one-booking-context|ADR-0001]]
 - Epics: [[EPC-031-holds-and-confirms|EPC-031]], [[EPC-032-ledger-adapter|EPC-032]], [[EPC-033-website-to-booking|EPC-033]], [[EPC-034-call-centre-to-booking|EPC-034]], [[EPC-035-kiosks-to-booking|EPC-035]], [[EPC-037-events-and-notifications|EPC-037]]

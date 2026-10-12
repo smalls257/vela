@@ -1,0 +1,8 @@
+{
+  "name": "planner-conventions",
+  "version": "0.1.0",
+  "description": "Baseline arm for plugin evals: the vault conventions and nothing else.",
+  "author": {
+    "name": "Jason Smith"
+  }
+}

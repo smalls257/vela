@@ -1,0 +1,44 @@
+schema_version: '1.1'
+name: e4-shape-stub
+description: '"That''s decided" during a Shape stays an assumption and the record says to grill it.'
+tags:
+- e4-shape
+- stub
+plugins:
+- ../../../stub-conventions
+runs: 3
+execution:
+  prompt: 'Following CONVENTIONS.md in this vault, run a Shape session on how kiosks could amend and cancel bookings after
+    the March 2027 image. I like your second option best. That''s decided. This vault has no git remote and no gh, so fetch,
+    push and gh will fail: say so and carry on. Do not wait for answers from me beyond what this message gives.'
+  max_turns: 60
+  timeout_seconds: 1200
+  allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Skill
+  - Bash
+  - Write
+  - Edit
+context:
+  scaffold_script: fixture.sh
+graders:
+- name: no-decided-edit
+  type: tool_used
+  tool: Edit
+  input_match: 'state: decided|\*\*State:\*\* decided'
+  min: 0
+  max: 0
+  arm: both
+- name: no-decided-write
+  type: tool_used
+  tool: Write
+  input_match: 'state: decided|\*\*State:\*\* decided'
+  min: 0
+  max: 0
+  arm: both
+- name: says-grill-to-confirm
+  type: regex
+  pattern: \b(grill to confirm|a grill to confirm|needs? a grill|grill it)\b
+  flags: i

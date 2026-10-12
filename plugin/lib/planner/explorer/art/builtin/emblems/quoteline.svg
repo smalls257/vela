@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs><clipPath id="disc"><circle cx="128" cy="128" r="120"/></clipPath></defs>
+  <circle cx="128" cy="128" r="120" fill="#1d2a4f"/>
+  <circle cx="128" cy="128" r="109" fill="none" stroke="#e0a43c" stroke-width="3" opacity=".55"/>
+  <title>Quoteline</title>
+  <g clip-path="url(#disc)">
+    <path d="M8 150 C48 150 60 106 100 106 S150 150 190 150 S236 120 256 112" fill="none" stroke="#e0a43c" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+  </g>
+  <rect x="82" y="58" width="92" height="13" rx="6.5" fill="#e0a43c"/>
+  <rect x="82" y="185" width="92" height="13" rx="6.5" fill="#e0a43c"/>
+  <path d="M95 71 H161 Q161 112 136 128 Q161 144 161 185 H95 Q95 144 120 128 Q95 112 95 71 Z" fill="#f6efe0"/>
+  <path d="M108 92 H148 Q144 110 128 122 Q112 110 108 92 Z" fill="#e0a43c"/>
+  <path d="M128 134 V170" stroke="#e0a43c" stroke-width="3" stroke-dasharray="3 5" stroke-linecap="round"/>
+  <path d="M102 180 Q112 160 128 158 Q144 160 154 180 Z" fill="#e0a43c"/>
+</svg>

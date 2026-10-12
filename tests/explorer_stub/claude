@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""A fake `claude -p` for the explorer's Ask tests. It never calls a model.
+
+It prints what the real CLI prints in stream-json mode with --include-partial-messages: partial text deltas, the
+whole assistant message with a tool call, and a result event. Knobs, environment variables:
+  EXPLORE_STUB_LOG   a file to append one JSON line per call to: argv and cwd
+  EXPLORE_STUB_MODE  "fail" exits 3 with a message on stderr; "hang" sleeps past any timeout; "error" returns an
+                     error result; "silent" exits 0 with no result event
+"""
+import json
+import os
+import sys
+import time
+import uuid
+
+argv = sys.argv[1:]
+log = os.environ.get("EXPLORE_STUB_LOG")
+if log:
+    with open(log, "a", encoding="utf-8") as out:
+        out.write(json.dumps({"argv": argv, "cwd": os.getcwd()}) + "\n")
+mode = os.environ.get("EXPLORE_STUB_MODE", "")
+if mode == "fail":
+    print("stub: authentication failed", file=sys.stderr)
+    sys.exit(3)
+if mode == "hang":
+    time.sleep(60)
+resumed = argv[argv.index("--resume") + 1] if "--resume" in argv else None
+session = resumed or f"stub-{uuid.uuid4().hex[:8]}"
+
+
+def emit(event):
+    print(json.dumps(event), flush=True)
+
+
+def delta(text):
+    emit({"type": "stream_event", "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": text}}})
+
+
+emit({"type": "system", "subtype": "init", "session_id": session})
+if mode == "silent":
+    sys.exit(0)
+if mode == "error":
+    emit({"type": "result", "subtype": "error_max_budget_usd", "is_error": True, "session_id": session, "total_cost_usd": 0.5, "errors": ["Reached maximum budget"]})
+    sys.exit(0)
+emit({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Grep", "input": {"pattern": "demo"}}]}})
+text = ("A follow-up: " if resumed else "") + "The demo delivers [[REQ-001]] and the page [[releases/01-january.md#Scope]], not [[ZZZ-999]]."
+for piece in (text[:12], text[12:]):
+    delta(piece)
+emit({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}})
+emit({"type": "result", "subtype": "success", "is_error": False, "result": text, "session_id": session, "total_cost_usd": 0.0123, "num_turns": 2})

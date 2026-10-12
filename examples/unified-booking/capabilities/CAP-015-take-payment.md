@@ -2,14 +2,18 @@
 id: CAP-015
 type: capability
 title: Take payment
-state: proposed
-owner: solution lead
+origin: proposed
+change: unchanged
+domain: Payments
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-015 Take payment
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets a customer pay for a crossing by card without Harbourline ever handling the card.
 
@@ -19,17 +23,13 @@ Lets a customer pay for a crossing by card without Harbourline ever handling the
 
 ## Provided by
 
-<!-- generated: do not edit -->
 | Application | Today | After |
 |---|---|---|
 | Tidepay (external) | hosted payment page, called by each front end | same page; outcome reported to [[booking-building-blocks\|Booking]] |
-<!-- /generated -->
 
 ## Initiatives that touch this
 
-<!-- generated: do not edit -->
 - [[04a-capability-delta|INI-002 Unified Booking]] (unchanged)
-<!-- /generated -->
 
 ## Flows
 
@@ -37,4 +37,8 @@ Lets a customer pay for a crossing by card without Harbourline ever handling the
 
 ## Delivered by
 
-No epic changes this capability. [[EPC-031-holds-and-confirms|EPC-031]] receives the payment outcome on [[booking-building-blocks#CON-007|CON-007]].
+<!-- generated:delivered-by sha=140bedbf: do not edit, run planner render -->
+none
+<!-- /generated:delivered-by -->
+
+No epic changes this capability. [[EPC-031-holds-and-confirms|EPC-031]] receives the payment outcome on [[booking-building-blocks#CON-007 Tidepay payment outcome|CON-007]].

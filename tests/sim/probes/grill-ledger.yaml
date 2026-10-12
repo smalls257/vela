@@ -1,0 +1,15 @@
+# Grill with the question ledger in play, from the v3 full run's vault after session 8. Does the grill's checkpoint
+# run on the agenda items, does it raise the owed questions blocking the decision, and does close record what the
+# lead took? Nothing may be decided without an explicit yes.
+snapshot:
+  coastal-merger: after-v3-s8
+  holdout-hospitals: after-discover
+opening: "/planner:grill {topics[grill]}"
+cap: 16
+close: 10
+criteria:
+  - check: area-coverage
+    require: ran
+  - check: taken-copies-recorded
+  - check: decided-without-yes
+    at_most: 0

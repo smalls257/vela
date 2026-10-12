@@ -1,0 +1,264 @@
+{
+ "slot": "theme.coach",
+ "about": "Coach: felt piano with celesta answer. F major, 84 bpm. A rising, patient question that resolves home: the mentor.",
+ "bpm": 84,
+ "length_beats": 12,
+ "fx": {
+  "reverb": {
+   "seconds": 2.6,
+   "decay": 2.8,
+   "mix": 0.3
+  }
+ },
+ "voices": {
+  "piano": {
+   "wave": "sine",
+   "partials": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0.42
+    ],
+    [
+     3,
+     0.16
+    ],
+    [
+     4,
+     0.07
+    ],
+    [
+     5,
+     0.03
+    ]
+   ],
+   "tilt": 1.4,
+   "env": {
+    "a": 0.006,
+    "d": 1.6,
+    "s": 0.0,
+    "r": 0.5
+   },
+   "filter": {
+    "type": "lowpass",
+    "hz": 2200,
+    "q": 0.6
+   },
+   "gain": 0.3,
+   "send": {
+    "reverb": 0.7
+   }
+  },
+  "celesta": {
+   "wave": "sine",
+   "partials": [
+    [
+     1,
+     1
+    ],
+    [
+     4,
+     0.25
+    ],
+    [
+     10.2,
+     0.06
+    ]
+   ],
+   "tilt": 2.2,
+   "env": {
+    "a": 0.002,
+    "d": 1.1,
+    "s": 0.0,
+    "r": 0.4
+   },
+   "gain": 0.16,
+   "send": {
+    "reverb": 1.0
+   }
+  },
+  "bass": {
+   "wave": "triangle",
+   "partials": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     0.2
+    ]
+   ],
+   "env": {
+    "a": 0.02,
+    "d": 2.5,
+    "s": 0.25,
+    "r": 0.8
+   },
+   "filter": {
+    "type": "lowpass",
+    "hz": 700,
+    "q": 0.5
+   },
+   "gain": 0.22,
+   "send": {
+    "reverb": 0.3
+   }
+  }
+ },
+ "notes": [
+  [
+   0,
+   [
+    "F2",
+    "C3"
+   ],
+   4,
+   0.7,
+   "bass"
+  ],
+  [
+   0,
+   "C4",
+   1,
+   0.7,
+   "piano"
+  ],
+  [
+   1,
+   "F4",
+   1,
+   0.8,
+   "piano"
+  ],
+  [
+   2,
+   "A4",
+   1,
+   0.85,
+   "piano"
+  ],
+  [
+   3,
+   "G4",
+   0.5,
+   0.7,
+   "piano"
+  ],
+  [
+   3.5,
+   "A4",
+   0.5,
+   0.7,
+   "piano"
+  ],
+  [
+   4,
+   [
+    "Bb2",
+    "F3"
+   ],
+   4,
+   0.65,
+   "bass"
+  ],
+  [
+   4,
+   "Bb4",
+   1.5,
+   0.85,
+   "piano"
+  ],
+  [
+   5.5,
+   "A4",
+   0.5,
+   0.7,
+   "piano"
+  ],
+  [
+   6,
+   "G4",
+   2,
+   0.75,
+   "piano"
+  ],
+  [
+   6.5,
+   "D6",
+   1,
+   0.5,
+   "celesta"
+  ],
+  [
+   7,
+   "C6",
+   1,
+   0.45,
+   "celesta"
+  ],
+  [
+   8,
+   [
+    "C3",
+    "G3"
+   ],
+   2,
+   0.6,
+   "bass"
+  ],
+  [
+   8,
+   "E4",
+   1,
+   0.7,
+   "piano"
+  ],
+  [
+   9,
+   "G4",
+   1,
+   0.7,
+   "piano"
+  ],
+  [
+   10,
+   [
+    "F2",
+    "C3"
+   ],
+   2,
+   0.7,
+   "bass"
+  ],
+  [
+   10,
+   [
+    "A3",
+    "C4",
+    "F4"
+   ],
+   2,
+   0.8,
+   "piano"
+  ],
+  [
+   10,
+   "F6",
+   2,
+   0.5,
+   "celesta"
+  ],
+  [
+   10.5,
+   "A5",
+   1.5,
+   0.35,
+   "celesta"
+  ]
+ ],
+ "format": "web-audio-recipe/1"
+}

@@ -6,16 +6,18 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: changed
 stage: epics
-owner: Digital team
+owner: "@harbourline/digital-team"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["Digital senior container review", "rollout plan with solution lead"]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Public website
 
 # Public website
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 The public website is where most customers find a crossing, book it and pay for it. After this initiative it also lets them amend and cancel without phoning, which is goal G3. It asks Booking for every booking action and shows whatever state Booking returns.
 
@@ -25,30 +27,24 @@ The website no longer decides whether a booking is confirmed and no longer talks
 |---|---|
 | Changed: calls the Booking API. The FM screen adapter is retired. | Digital team |
 
+<!-- generated:app-context sha=af4040bb: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  cust["Customer"]
-  web["<b>Public website</b><br/>changed"]
-  bk["Booking"]
-  vs["Vessel schedule"]
-  tp["Tidepay<br/>hosted payment page"]
-  fm["FERRYMASTER"]
-  pr["Pricing"]
-  cust --> web
-  web -->|"CON-001"| bk
-  web -->|"find a crossing"| vs
-  web -->|"redirect to pay"| tp
-  web -.->|"screen scraping, retired"| fm
-  web -.->|"direct quote, retired"| pr
-  classDef focus fill:#1f4e79,color:#fff
-  class web focus
+  n_APP_booking["Booking (new)"]
+  n_APP_website["Public website (changed)"]
+  n_APP_booking -->|"CON-001"| n_APP_website
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_website focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 ## Inside Public website: main containers
 
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
-| Booking pages | Search, hold, pay, confirm, and the new amend and cancel pages. Calls the Booking API for every booking action. | Uses CON-001 | Digital senior | decided |
+| Booking pages | Search, hold, pay, confirm, and the new amend and cancel pages. Calls the Booking API for every booking action. | Uses CON-001 | Digital senior | confirmed |
 | FM screen adapter | Scraped FERRYMASTER screens to book. Kept behind a switch for 4 weeks after the February 2027 cutover, then removed. | none | existing | retired |
 
 ```mermaid
@@ -78,22 +74,23 @@ None. The website only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
+<!-- generated:contracts-consumed sha=730b0a4e: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-001\|CON-001 Booking API]] | Booking | Versioned; each version kept at least 6 months | decided |
-<!-- /generated -->
+| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
+<!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-testing|Testing]]: the website's consumer-driven contract tests for CON-001 run in its own pipeline.
-- [[concern-rollout|Rollout]]: the website cuts over first, in February 2027. Rollback is flipping its switch back to the FM screen adapter during the 4 weeks before removal.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-033-website-to-booking|EPC-033 Website moves to Booking]] (HB-103)
-- [[EPC-036-amend-cancel-online|EPC-036 Amend and cancel online]] (HB-106)
-<!-- /generated -->
+<!-- generated:epics-for-app sha=dc376978: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harbourline/digital-team | decided |
+| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harbourline/booking-team @harbourline/digital-team | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[website-runtime|Public website runtime]]

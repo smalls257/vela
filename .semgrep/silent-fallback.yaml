@@ -1,0 +1,78 @@
+rules:
+  # Silent Fallback. A swallowed error turns a failure into a fake success. The repo's rule (docs and cli.py)
+  # is that a tool failure is exit 2, never a quiet "nothing found". Where swallowing is the design, say why
+  # on the line with `# nosemgrep: <id> -- <reason>` so the reason is in the code (Anchor).
+  - id: except-pass
+    languages: [python]
+    severity: ERROR
+    message: >-
+      This except block discards the error. Raise, convert to the module's error type, or return an explicit
+      'unavailable' value the caller must handle (Silent Fallback). If discarding is the design, mark it
+      `# nosemgrep: except-pass -- <why>`.
+    # `except ...` matches named, tuple, aliased and bare handlers; `except $E` misses tuples.
+    pattern-either:
+      - pattern: |
+          try:
+              ...
+          except ...:
+              pass
+      - pattern: |
+          try:
+              ...
+          except ...:
+              continue
+  - id: broad-except-not-reraised
+    languages: [python]
+    severity: WARNING
+    message: >-
+      `except Exception` that neither re-raises nor exits non-zero hides every bug behind one branch. Catch
+      the specific errors, or re-raise as the module's error type (Silent Fallback). Top-level tool boundaries
+      that report and exit 2 are the exception: mark them with `# nosemgrep: broad-except-not-reraised -- <why>`.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              try:
+                  ...
+              except Exception:
+                  ...
+          - pattern: |
+              try:
+                  ...
+              except Exception as $V:
+                  ...
+      - pattern-not: |
+          try:
+              ...
+          except Exception:
+              ...
+              raise ...
+      - pattern-not: |
+          try:
+              ...
+          except Exception as $V:
+              ...
+              raise ...
+      - pattern-not: |
+          try:
+              ...
+          except Exception as $V:
+              ...
+              raise
+      - pattern-not: |
+          try:
+              ...
+          except Exception as $V:
+              ...
+              return 2
+      - pattern-not: |
+          try:
+              ...
+          except Exception as $V:
+              ...
+              raise $X from $Y
+      - pattern-not: |
+          try:
+              ...
+          except Exception:
+              ...
+              raise $X from $Y

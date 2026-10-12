@@ -5,13 +5,14 @@ title: FERRYMASTER stays the ledger of record
 initiative: INI-002
 arc42: "§9"
 state: decided
-owner: solution lead
+owner: "@hl-solution-lead"
 authored: authored
-last_verified: 2026-11-20
 sources: ["session 2026-08-12 Grill"]
 ---
 
 # ADR-0002 FERRYMASTER stays the ledger of record
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 ## Status
 
@@ -19,7 +20,7 @@ Accepted, 2026-08-12, in a Grill session with the Booking senior and the mainfra
 
 ## Context
 
-FERRYMASTER cannot change before its vendor contract ends in 2028 (C1). The data warehouse feed, the finance reconciliation job and the loyalty scheme read it directly, and they stay out of scope until INI-004 and INI-005. Booking needs some state of its own to hold seats for 10 minutes and to answer channels quickly.
+FERRYMASTER cannot change before its vendor contract ends in 2028 (CST-1). The data warehouse feed, the finance reconciliation job and the loyalty scheme read it directly, and they stay out of scope until INI-004 and INI-005. Booking needs some state of its own to hold seats for 10 minutes and to answer channels quickly.
 
 ## Decision
 
@@ -31,7 +32,7 @@ FERRYMASTER remains the ledger of record for every booking. Booking keeps holds 
 |---|---|
 | Booking becomes the record and syncs to FERRYMASTER | The three direct readers would see a copy that lags the record. Moving them is INI-005's job. |
 | Write to both and reconcile nightly | Two records that can disagree is the problem INI-002 exists to remove (G2). |
-| Booking reads FERRYMASTER on every request, no cache | Every channel read becomes an MQ call, which costs MIPS (C5) and adds 2 s to screens that only display state. |
+| Booking reads FERRYMASTER on every request, no cache | Every channel read becomes an MQ call, which costs MIPS (CST-5) and adds 2 s to screens that only display state. |
 
 ## Consequences
 
@@ -41,7 +42,7 @@ FERRYMASTER remains the ledger of record for every booking. Booking keeps holds 
 
 ## Assumptions it depends on
 
-- Ledger write latency is low enough for customers to wait on: [[11-unknowns-and-risks#UNK-001|UNK-001]], resolved at 2.1 s p95.
-- Finance keeps reading FERRYMASTER for now: [[11-unknowns-and-risks#UNK-006|UNK-006]], open, deferred to INI-005.
+- Ledger write latency is low enough for customers to wait on: [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]], resolved at 2.1 s p95.
+- Finance keeps reading FERRYMASTER for now: [[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]], open, deferred to INI-005.
 
 Delivered by [[EPC-031-holds-and-confirms|EPC-031]] and [[EPC-032-ledger-adapter|EPC-032]]. See [[concern-data|Data]].

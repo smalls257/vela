@@ -1,0 +1,51 @@
+rules:
+  # Infected Core. Every planner module except cli.py is pure today: no files, no clock, no network,
+  # no process. cli.py is the one shell. Keep it that way so the core passes the Airplane Test.
+  - id: planner-core-no-io-imports
+    languages: [python]
+    severity: ERROR
+    message: >-
+      planner's core modules take text and dates as arguments; only cli.py touches the OS.
+      Import '$MOD' in cli.py and pass the result in (Infected Core).
+    paths:
+      include: ["/plugin/lib/planner/*.py"]
+      exclude: ["/plugin/lib/planner/cli.py"]
+    patterns:
+      - pattern-either:
+          - pattern: import $MOD
+          - pattern: from $MOD import $NAME
+      - metavariable-regex:
+          metavariable: $MOD
+          regex: ^(os|sys|subprocess|pathlib|shutil|tempfile|socket|time|glob|http|requests|urllib\.request)(\.|$)
+  - id: planner-core-no-clock
+    languages: [python]
+    severity: ERROR
+    message: >-
+      The core never reads the clock. Take `today` as an argument; cli.py resolves it from --today
+      or the system date once (Infected Core).
+    paths:
+      include: ["/plugin/lib/planner/*.py"]
+      exclude: ["/plugin/lib/planner/cli.py"]
+    pattern-either:
+      - pattern: datetime.date.today()
+      - pattern: datetime.datetime.now(...)
+      - pattern: datetime.datetime.utcnow()
+      - pattern: datetime.datetime.today()
+      - pattern: time.time()
+      - pattern: date.today()
+  - id: planner-core-no-file-or-stdout
+    languages: [python]
+    severity: ERROR
+    message: >-
+      The core returns values; cli.py reads files and writes output. Move this to cli.py (Infected Core).
+    paths:
+      include: ["/plugin/lib/planner/*.py"]
+      exclude: ["/plugin/lib/planner/cli.py"]
+    pattern-either:
+      - pattern: open(...)
+      - pattern: print(...)
+      - pattern: input(...)
+      - pattern: $P.read_text(...)
+      - pattern: $P.write_text(...)
+      - pattern: $P.read_bytes(...)
+      - pattern: $P.write_bytes(...)

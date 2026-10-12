@@ -1,19 +1,20 @@
 ---
-id: APP-kiosks-runtime
+id: RUN-kiosks
 type: app-runtime
 title: Port kiosks runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: Port Systems team
+owner: "@harbourline/port-systems"
 authored: authored
-last_verified: 2026-11-20
 sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 2026-09-23"]
 ---
 
 [[README|Harbourline]] / [[06-flows|06 Flows]] / [[kiosks-building-blocks|Port kiosks]] / Runtime
 
 # Port kiosks runtime
+
+- **Decision:** [[2026-08-26-kiosks-and-rollout]]
 
 | Flow | Kiosk's part |
 |---|---|

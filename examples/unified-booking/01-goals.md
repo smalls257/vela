@@ -4,16 +4,65 @@ type: initiative-section
 title: Unified Booking
 initiative: INI-002
 arc42: "§1"
-state: handed-off
-owner: solution lead
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", "incident log 2025-10 to 2026-09"]
+sources: ["session 2026-07-06 Dump & Diverge", "session 2026-08-12 Grill", SRC-01]
+last_verified: 2026-11-18
+verified_by: "@hl-solution-lead"
 ---
 
 # Unified Booking
 
-INI-002 · 9 apps in scope · every area at stage 6 · 9 epics in Jira (HB-101 to HB-109) · 1 open unknown, not blocking
+- **Decision:** [[2026-08-12-goals-and-data]]
+
+## Where it stands
+
+<!-- generated:where-it-stands sha=20288d91: do not edit, run planner render -->
+**Apps on the ladder**
+
+| App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
+|---|---|---|---|---|
+| [[booking-building-blocks\|Booking]] | epics | 0 | 0 | 7 of 7 |
+| [[call-centre-building-blocks\|Call centre desktop]] | epics | 0 | 0 | 1 of 1 |
+| [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 1 of 1 |
+| [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 1 of 1 |
+| [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 1 of 1 |
+| [[website-building-blocks\|Public website]] | epics | 0 | 0 | 1 of 1 |
+
+**Handed off:** [[booking-building-blocks|Booking]] (Booking senior, 2026-11-10, PR #23)
+
+**Open unknowns**
+
+| Unknown | Owner | Ask by | Blocks |
+|---|---|---|---|
+| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|UNK-006]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing |
+| [[11-unknowns-and-risks#UNK-008 Review of the customer data Booking holds\|UNK-008]] | @hl-solution-lead (solution lead) | 2026-12-15 | nothing |
+
+**Last session:** 2026-11-19
+
+**Coverage gaps:** 0, listed on [[13-epics|Epics]]
+
+**Delivery status:** not tracked in this vault
+<!-- /generated:where-it-stands -->
+
+## Progress by app
+
+<!-- generated:progress-map sha=1d9383d3: do not edit, run planner render -->
+**As of:** 2026-11-19, the last session
+
+| App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
+|---|---|---|---|---|---|---|---|
+| [[booking-building-blocks\|Booking]] | epics | 0 | 0 | 1 | 4 | none | none |
+| [[call-centre-building-blocks\|Call centre desktop]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 0 | 3 (1 by override) | none | none |
+| [[website-building-blocks\|Public website]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[customer-identity-building-blocks\|Customer identity]] | - | 0 | 0 | 2 | 0 | none | none |
+| [[ferrymaster-building-blocks\|FERRYMASTER]] | - | 0 | 0 | 3 | 0 | none | none |
+| [[vessel-schedule-building-blocks\|Vessel schedule]] | - | 0 | 0 | 2 | 0 | none | none |
+<!-- /generated:progress-map -->
 
 ## Why now
 
@@ -33,16 +82,14 @@ This initiative puts one application, Booking, between the front ends and the le
 
 ## Capabilities this introduces
 
-<!-- generated: do not edit -->
-| Capability | Change | Serves |
-|---|---|---|
-| [[CAP-014-hold-a-seat\|Hold a seat during payment]] | new | G1, G2 |
-| [[CAP-022-notify-customer\|Notify customer of changes]] | new | G3 |
-| [[CAP-021-amend-or-cancel\|Amend or cancel a booking]] | extended to the website and call centre | G3 |
-| [[CAP-013-reserve-a-crossing\|Reserve a crossing]] | replaced by one implementation | G1, G2 |
-| [[CAP-012-quote-a-fare\|Quote a fare]] | narrowed to one caller | G1 |
-| [[CAP-023-fix-failed-bookings\|Fix failed bookings by hand]] | retired | G1 |
-<!-- /generated -->
+Each capability page says what changes and which software provides it before and after.
+
+- [[CAP-014-hold-a-seat|Hold a seat during payment]], serving G1 and G2
+- [[CAP-022-notify-customer|Notify customer of changes]], serving G3
+- [[CAP-021-amend-or-cancel|Amend or cancel a booking]], serving G3
+- [[CAP-013-reserve-a-crossing|Reserve a crossing]], serving G1 and G2
+- [[CAP-012-quote-a-fare|Quote a fare]], serving G1
+- [[CAP-023-fix-failed-bookings|Fix failed bookings by hand]], serving G1
 
 Full detail, including which software provides each capability before and after: [[04a-capability-delta|Capability delta]].
 

@@ -1,0 +1,48 @@
+rules:
+  # God Method / Leaky Narrative. Two boolean switches on one function is a four-way branch the caller has to
+  # read the source to fill. Name the variants, or take one enum-like string the module validates.
+  - id: no-second-boolean-parameter
+    languages: [python]
+    severity: WARNING
+    message: >-
+      $F takes two or more boolean switches ($A, $B). Split it into named functions, or take one mode value
+      (God Method in larval form; Leaky Narrative at each call site).
+    paths:
+      include: ["/plugin/lib/planner/"]
+    patterns:
+      - pattern: |
+          def $F(..., $A=$X, ..., $B=$Y, ...):
+              ...
+      - metavariable-regex:
+          metavariable: $X
+          regex: ^(True|False)$
+      - metavariable-regex:
+          metavariable: $Y
+          regex: ^(True|False)$
+  # Infected Core, the shell side. cli.py reads the system date in exactly one place, parse_today, so every
+  # command honours --today and the tests can pin the date.
+  - id: cli-reads-clock-once
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Read today's date through parse_today(args.today) so --today works for this command and the tests can
+      pin the date.
+    paths:
+      include: ["/plugin/lib/planner/cli.py"]
+    patterns:
+      - pattern-either:
+          - pattern: datetime.date.today()
+          - pattern: datetime.datetime.now(...)
+          - pattern: time.time()
+      - pattern-not-inside: |
+          def parse_today(...):
+              ...
+  # Silent Fallback in the browser prototypes. An empty catch makes a broken page look like an empty one.
+  - id: js-empty-catch
+    languages: [javascript]
+    severity: WARNING
+    message: >-
+      Empty catch. Log the error with console.warn and the reason, as resolve.js does for slot fallbacks.
+    pattern-either:
+      - pattern: try { ... } catch ($E) {}
+      - pattern: try { ... } catch {}

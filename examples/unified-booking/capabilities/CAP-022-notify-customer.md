@@ -2,14 +2,18 @@
 id: CAP-022
 type: capability
 title: Notify customer of changes
-state: proposed
-owner: solution lead
+origin: proposed
+change: new
+domain: Customer contact
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-022 Notify customer of changes
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets a customer hear about a change to their booking, wherever the change was made.
 
@@ -19,18 +23,14 @@ Lets a customer hear about a change to their booking, wherever the change was ma
 
 ## Provided by
 
-<!-- generated: do not edit -->
 | Application | Today | After |
 |---|---|---|
 | [[website-building-blocks\|Public website]] | sends emails for its own bookings | stops sending booking emails |
 | [[notifications-building-blocks\|Notifications]] | not used for bookings | sends email or SMS on Booking state changed events |
-<!-- /generated -->
 
 ## Initiatives that touch this
 
-<!-- generated: do not edit -->
 - [[04a-capability-delta|INI-002 Unified Booking]] (new)
-<!-- /generated -->
 
 ## Flows
 
@@ -40,4 +40,8 @@ Lets a customer hear about a change to their booking, wherever the change was ma
 
 ## Delivered by
 
-- [[EPC-037-events-and-notifications|EPC-037 Booking events and customer notifications]]
+<!-- generated:delivered-by sha=135a68d0: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harbourline/booking-team @harbourline/platform-team | decided |
+<!-- /generated:delivered-by -->

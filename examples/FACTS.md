@@ -7,8 +7,8 @@ Everything here is made up. Harbourline is a fictional regional ferry operator.
 
 ## Status of the mock
 
-- Initiative: **INI-002 Unified Booking**, status `handed-off`. Every area has reached stage 6 (Epics). The epics are exported to Jira.
-- Mock dates: started 2026-07-06, finished 2026-11-20. `last_verified` on pages: 2026-11-20.
+- Initiative: **INI-002 Unified Booking**. Every app on the ladder has reached stage 6 (Epics) and its epics are written. Delivery is not tracked in the vault.
+- Mock dates: started 2026-07-06, finished 2026-11-20. The fixture is checked with `--today 2026-11-20`.
 - People are named by role only: solution lead, Booking senior, Pricing senior, QA lead, Head of Contact Centre, Platform lead, mainframe team lead, Port Systems senior, Digital senior, Contact Centre Systems senior.
 
 ## Why the initiative exists
@@ -28,11 +28,11 @@ Everything here is made up. Harbourline is a fictional regional ferry operator.
 
 ## Constraints (not chosen by us)
 
-- C1 FERRYMASTER cannot be changed. The vendor contract ends in 2028. Two people understand its COBOL.
-- C2 Payment stays with the existing provider, Tidepay. PCI scope must not grow. Card data never enters Booking.
-- C3 Kiosks run a locked-down image updated twice a year (March and September). Whatever they call must stay stable for at least six months.
-- C4 The transformation programme requires every new application to publish events to the Harbourline event bus.
-- C5 Mainframe processing must stay within the existing MIPS budget.
+- CST-1 FERRYMASTER cannot be changed. The vendor contract ends in 2028. Two people understand its COBOL.
+- CST-2 Payment stays with the existing provider, Tidepay. PCI scope must not grow. Card data never enters Booking.
+- CST-3 Kiosks run a locked-down image updated twice a year (March and September). Whatever they call must stay stable for at least six months.
+- CST-4 The transformation programme requires every new application to publish events to the Harbourline event bus.
+- CST-5 Mainframe processing must stay within the existing MIPS budget.
 
 ## Applications in scope (9)
 
@@ -50,6 +50,8 @@ Everything here is made up. Harbourline is a fictional regional ferry operator.
 
 External, not in scope: **Tidepay** (payment provider), **Harbourline event bus** (Platform; production-ready since 2026-11-01).
 Out of scope, still reading FERRYMASTER directly: data warehouse feed, finance reconciliation job, loyalty scheme (INI-004 and INI-005 deal with those).
+
+Outside parties, on `03-context-and-scope.md`: PTY-01 Tidepay and PTY-02 the FERRYMASTER vendor, both suppliers. Value held for customers: SV-01 loyalty points, earned at reservation and held by the loyalty scheme, which Finance carries and INI-004 owns.
 
 ## Containers (one level in, co-designed)
 
@@ -101,7 +103,7 @@ Overlap: INI-004 Loyalty Revamp also touches CAP-013. INI-005 Mainframe Exit tou
 - `ADR-0001-one-booking-context.md`: One Booking application rather than a shared adapter library. The library was quicker but would have left three teams each deciding what "confirmed" means.
 - `ADR-0002-ferrymaster-ledger-of-record.md`: FERRYMASTER stays the ledger of record. Booking holds state, not truth.
 - `ADR-0003-versioned-booking-api.md`: Version the Booking API; keep each version at least 6 months because of the kiosk image cycle.
-- `ADR-0004-mq-not-screen-scraping.md`: Use FERRYMASTER's existing MQ transactions, not screen scraping. Found in Discover: the mainframe team already exposes them for the finance job.
+- `ADR-0004-mq-not-screen-scraping.md`: Use FERRYMASTER's existing MQ transactions, not screen scraping. Found in Discover on 2026-07-14: the mainframe team already exposes them for the finance job. Decided in the Grill on 2026-07-28.
 
 ## Unknowns and risks
 
@@ -112,10 +114,14 @@ Overlap: INI-004 Loyalty Revamp also touches CAP-013. INI-005 Mainframe Exit tou
 | UNK-003 | Does the mainframe team have capacity in Q1? | Yes: 2 days a week, January to March 2027. | resolved 2026-08-14 |
 | UNK-004 | How do kiosks authenticate? They have no user. | Device certificates from Platform's existing PKI. | resolved 2026-09-23 |
 | UNK-005 | Is the event bus production-ready? | Yes, since 2026-11-01. | resolved 2026-11-03 |
-| UNK-006 | Should Finance reconciliation read Booking events instead of FERRYMASTER? | Deferred to INI-005. Not blocking. | open, owner: Platform lead, review 2027-03-01 |
+| UNK-006 | Should Finance reconciliation read Booking events instead of FERRYMASTER? | Deferred to INI-005. Not blocking. | open, owner: Platform lead, ask by 2027-03-01 |
 | UNK-007 | Who is on call for Booking? | Booking team joins the Platform on-call rota from go-live. | resolved 2026-10-07 |
 
 Risks: R-01 mainframe knowledge sits with two people (mitigation: MQ mapping documented in CON-006, pairing in Q1). R-02 if the March kiosk image slips, kiosks wait six months for the next one (mitigation: kiosks keep their old adapter until their cutover; API v1 kept 6+ months).
+
+## Question ledger (catalogue v1)
+
+The ledger on `11-unknowns-and-risks.md` disposes every one of the 57 copies catalogue v1 owes, so `planner check --gate epics` passes. Its rows show every state. Who pays Booking's running cost (Q-FIN-02) was asked of the finance business partner on 2026-11-19 and has no answer yet. That customers amend online once they can (Q-OPS-07) is a load-bearing assumption, with the online share of amendments as its signpost. Pricing is an exception to the data question, because it holds fare rules only. Where the vault does not say (lawful basis for customer data, who owns each capability, who runs unchanged apps out of hours) the row is an assumption with a signpost, never an answer. One reviewer question, R-FIN-01, on points and cancelled bookings, is open.
 
 ## Concerns (all eight addressed or N/A)
 
@@ -128,19 +134,19 @@ Risks: R-01 mainframe knowledge sits with two people (mitigation: MQ mapping doc
 - Ownership: each app keeps its owner; Booking team owns Booking and the ledger adapter; front-end teams own their Booking API clients. Owner: solution lead.
 - Cost: addressed. Standard service footprint, no new licences, MQ use within the existing MIPS budget (checked with the mainframe team lead). Owner: solution lead.
 
-## Epics (`epics/`), Jira keys HB-101 to HB-109
+## Epics (`13-epics/`)
 
-| ID | File | Epic | Owning app/team | Jira | Delivers |
-|---|---|---|---|---|---|
-| EPC-031 | `EPC-031-holds-and-confirms.md` | Booking holds and confirms crossings | Booking | HB-101 | CAP-013, CAP-014; CON-001, CON-007 |
-| EPC-032 | `EPC-032-ledger-adapter.md` | Ledger adapter on FERRYMASTER's MQ transactions | Booking (+ mainframe team support) | HB-102 | CON-006; ADR-0004 |
-| EPC-033 | `EPC-033-website-to-booking.md` | Website moves to Booking | Digital | HB-103 | CAP-013 (website); retires FM screen adapter |
-| EPC-034 | `EPC-034-call-centre-to-booking.md` | Call centre moves to Booking | Contact Centre Systems | HB-104 | CAP-013, CAP-021 (call centre); retires CAP-023 |
-| EPC-035 | `EPC-035-kiosks-to-booking.md` | Kiosks move to Booking in the March image | Port Systems | HB-105 | CAP-013 (kiosks); ADR-0003; device certs |
-| EPC-036 | `EPC-036-amend-cancel-online.md` | Amend and cancel online | Booking + Digital | HB-106 | CAP-021; G3 |
-| EPC-037 | `EPC-037-events-and-notifications.md` | Booking events and customer notifications | Booking + Platform | HB-107 | CAP-022; CON-002 |
-| EPC-038 | `EPC-038-pricing-serves-booking.md` | Pricing serves Booking only | Revenue | HB-108 | CAP-012; CON-003 |
-| EPC-039 | `EPC-039-run-booking.md` | Run Booking: on-call, runbooks, dashboards | Booking | HB-109 | Operations and observability concerns |
+| ID | File | Epic | Owning app/team | Delivers |
+|---|---|---|---|---|
+| EPC-031 | `EPC-031-holds-and-confirms.md` | Booking holds and confirms crossings | Booking | CAP-013, CAP-014; CON-001, CON-007 |
+| EPC-032 | `EPC-032-ledger-adapter.md` | Ledger adapter on FERRYMASTER's MQ transactions | Booking (+ mainframe team support) | CON-006; ADR-0004 |
+| EPC-033 | `EPC-033-website-to-booking.md` | Website moves to Booking | Digital | CAP-013 (website); retires FM screen adapter |
+| EPC-034 | `EPC-034-call-centre-to-booking.md` | Call centre moves to Booking | Contact Centre Systems | CAP-013, CAP-021 (call centre); retires CAP-023 |
+| EPC-035 | `EPC-035-kiosks-to-booking.md` | Kiosks move to Booking in the March image | Port Systems | CAP-013 (kiosks); ADR-0003; device certs |
+| EPC-036 | `EPC-036-amend-cancel-online.md` | Amend and cancel online | Booking + Digital | CAP-021; G3 |
+| EPC-037 | `EPC-037-events-and-notifications.md` | Booking events and customer notifications | Booking + Platform | CAP-022; CON-002 |
+| EPC-038 | `EPC-038-pricing-serves-booking.md` | Pricing serves Booking only | Revenue | CAP-012; CON-003 |
+| EPC-039 | `EPC-039-run-booking.md` | Run Booking: on-call, runbooks, dashboards | Booking | Operations and observability concerns |
 
 ## Full file list (links must resolve to these basenames)
 
@@ -150,44 +156,18 @@ The vault root is the initiative: `examples/unified-booking/`.
 README.md
 01-goals.md  02-constraints.md  03-context-and-scope.md  04-solution-strategy.md  04a-capability-delta.md
 05-building-blocks/05-building-blocks.md  +  <app>-building-blocks.md for each of the 9 apps
-06-runtime/06-flows.md  +  flows/FLO-001..003  +  apps/<app>-runtime.md for each of the 9 apps
+06-runtime/06-flows.md  +  flows/FLO-001..003  +  apps/<app>-runtime.md for the 7 apps that are not unchanged
 08-concerns/08-concerns.md  +  concern-*.md (8)
 09-decisions/09-decisions.md  +  ADR-0001..0004
-11-unknowns-and-risks.md  12-glossary.md  session-history.md
+11-unknowns-and-risks.md  12-glossary.md
 13-epics/13-epics.md  +  EPC-031..039
+sources.md  +  sessions/ (one record per deciding Grill)
 capabilities/CAP-011..023 (8)
 ```
 
 ## Page conventions
 
-**Frontmatter** (YAML, every page):
-
-```yaml
----
-id: <ID or slug>             # e.g. APP-booking, CON-001, EPC-031, CAP-013, concern-testing, goals
-type: <initiative-section | app-building-blocks | app-runtime | flow | concern | decision | epic | capability | index>
-title: <Title>
-initiative: INI-002          # omit on capabilities
-arc42: "§5"                  # where it applies; omit if none
-c4: <landscape | context | container>   # where a diagram applies; omit if none
-state: <decided | assumption | inkling | addressed | handed-off | resolved | ...>
-owner: <role or team>
-authored: <authored | generated | mixed>
-last_verified: 2026-11-20
-sources: [<short list, e.g. "session 2026-08-12 Grill", "CON-006 MQ spec from mainframe team">]
----
-```
-
-**Links**: Obsidian wikilinks to the file basename without `.md`, with an alias when the ID reads better:
-`[[CON-001|CON-001 Booking API]]`, `[[booking-building-blocks|Booking]]`, `[[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]]`, `[[UNK-002]]` is NOT valid (unknowns live in `11-unknowns-and-risks`; link as `[[11-unknowns-and-risks#UNK-002|UNK-002]]`).
-Contracts live on provider pages: link as `[[booking-building-blocks#CON-001|CON-001 Booking API]]`, `[[pricing-building-blocks#CON-003|CON-003]]`, `[[ferrymaster-building-blocks#CON-006|CON-006]]`, `[[customer-identity-building-blocks#CON-005|CON-005]]`, `[[vessel-schedule-building-blocks#CON-004|CON-004]]`. CON-007 (Tidepay, external) lives on `booking-building-blocks#CON-007`.
-On the provider page, each contract is a heading `### CON-001 Booking API` so the anchor works.
-
-**Diagrams**: Mermaid fenced blocks only. At most 20 nodes per diagram. Only draw the level the page owns: initiative pages draw systems; app pages may draw that app's containers plus its direct neighbours; never components.
-
-**Size**: about one screen of prose plus at most one diagram and a table or two. Split rather than grow.
-
-**Generated parts**: tables that a generator would build from other entities sit under a line `<!-- generated: do not edit -->` and end with `<!-- /generated -->`.
+The vault format lives in `template/CONVENTIONS.md`, and the fixture carries a byte-identical copy. This file keeps the facts and the house voice.
 
 ## Voice (house voice)
 

@@ -5,13 +5,14 @@ title: Notify on change
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: solution lead
-authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-11-03 Grill", "CON-002 event schema"]
+owner: "@hl-solution-lead"
+authored: authored
+sources: ["session 2026-11-03 Grill", SRC-10]
 ---
 
 # FLO-003 Notify on change
+
+- **Decision:** [[2026-11-03-events]]
 
 ## Steps
 
@@ -53,17 +54,15 @@ One message for each change, in the channel they chose, whichever front end made
 
 ## Contracts used
 
-<!-- generated: do not edit -->
 | Step | Contracts |
 |---|---|
-| 1 Booking state changes | [[booking-building-blocks#CON-001\|CON-001 Booking API]], [[ferrymaster-building-blocks#CON-006\|CON-006]] |
-| 2 Event published | [[booking-building-blocks#CON-002\|CON-002 Booking state changed]] |
+| 1 Booking state changes | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]], [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] |
+| 2 Event published | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] |
 | 3 Notifications decides channel | Existing Customer identity read by Notifications. No INI-002 contract. |
 | 4 Message sent | Internal to Notifications |
-<!-- /generated -->
 
 ## Tested by contract tests only
 
 No end-to-end test. Booking's pipeline checks every CON-002 change against the schema and the additive-only rule. The Platform team's consumer test in Notifications runs against the published schema. The FLO-001 and FLO-002 suites check that the event is published; they stop there. A real end-to-end run would need live email and SMS delivery and would fail for reasons that have nothing to do with Booking. See [[concern-testing|Testing]].
 
-Delivered by [[EPC-037-events-and-notifications|EPC-037]]. Depends on the event bus being production-ready ([[11-unknowns-and-risks#UNK-005|UNK-005]], resolved).
+Delivered by [[EPC-037-events-and-notifications|EPC-037]]. Depends on the event bus being production-ready ([[11-unknowns-and-risks#UNK-005 Event bus readiness|UNK-005]], resolved).

@@ -1,0 +1,3 @@
+#!/bin/sh
+# CLI-only convenience (Claude Code puts bin/ on PATH). Not shipped to claude.ai: see tools/package_plugin.py.
+exec python3 "$(dirname "$0")/../scripts/planner" "$@"

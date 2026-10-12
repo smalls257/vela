@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""A scripted fake of `claude -p` for the simulator's free tests and `run.py --stub`. It never calls a model.
+
+It answers as one of three roles, told apart by the system prompt run.py passes:
+- assistant (no --system-prompt): stream-json events. The first turn of a session asks a question; a resumed
+  turn says the session is over. It runs `gh pr create` so tests can see which gh is on PATH.
+- persona ("SIMULATOR PERSONA"): JSON result. It replies "[END]" when the latest assistant message says the
+  session is over, and otherwise a reply with a <script> tag in it, to test escaping.
+- judge ("SIMULATOR JUDGE: <category>"): that category's verdicts, each with a search note. Across the categories
+  there is one valid citation (U1) and two the driver must drop (W1's turn, K2's page). The probe's "options"
+  judge gets one row per "LABEL: <label>" line in its input, with every part answered "not present".
+
+Knobs, all environment variables:
+  SIM_STUB_COST   total_cost_usd of every assistant and persona call (default 0.01); the judge costs 0.01
+  SIM_STUB_DROP   a field to leave out of the assistant's result event, such as total_cost_usd
+  SIM_STUB_JUDGE  "bad" makes the judge reply with text that is not JSON; "nosearch" leaves out every search note;
+                  "refuse:<category>" makes that category's judge call stop with stop_reason refusal, every time
+                  "toolong:<category>" makes that category's judge call fail as the real CLI does when the prompt is over
+                  the window: is_error true, subtype "success", terminal_reason "prompt_too_long"
+  SIM_STUB_LOG    a file to append one JSON line per call to: role, judge category, argv, cwd, the gh on PATH, the characters on stdin
+  SIM_STUB_REPLY  a file whose text is the assistant's first turn of a session, instead of the default
+  SIM_STUB_WRITE  "<path>::<text>": the assistant's first turn of a session appends <text> to <path> in its cwd
+"""
+import json
+import pathlib
+import os
+import re
+import shutil
+import subprocess
+import sys
+import uuid
+
+
+def value_after(argv, flag):
+    return argv[argv.index(flag) + 1] if flag in argv else None
+
+
+def log(argv, role, category=None, stdin_chars=None):
+    path = os.environ.get("SIM_STUB_LOG")
+    if path:
+        with open(path, "a", encoding="utf-8") as out:
+            out.write(json.dumps({"role": role, "category": category, "argv": argv, "cwd": os.getcwd(),
+                                  "gh": shutil.which("gh"), "tmpdir": os.environ.get("TMPDIR"),
+                                  "stdin_chars": stdin_chars}) + "\n")
+
+
+def result(text, session_id, argv, cost=None):
+    """A result event. Like the real CLI, a call whose cost would pass --max-budget-usd stops at the cap and
+    reports error_max_budget_usd."""
+    cost = float(os.environ.get("SIM_STUB_COST", "0.01")) if cost is None else cost
+    cap = float(value_after(argv, "--max-budget-usd") or "inf")
+    if cost > cap:
+        return {"type": "result", "subtype": "error_max_budget_usd", "is_error": True, "session_id": session_id,
+                "total_cost_usd": cap, "num_turns": 1, "errors": ["Reached maximum budget"]}
+    return {"type": "result", "subtype": "success", "is_error": False, "result": text, "session_id": session_id,
+            "total_cost_usd": cost, "num_turns": 1}
+
+
+def assistant(argv):
+    prompt = argv[argv.index("--") + 1] if "--" in argv else ""
+    resumed = value_after(argv, "--resume")
+    session_id = resumed or f"stub-{uuid.uuid4().hex[:8]}"
+    gh = subprocess.run(["gh", "pr", "create"], capture_output=True, text=True)
+    with open("stub-note.txt", "a", encoding="utf-8") as out:
+        out.write(prompt[:60] + "\n")
+    if resumed:
+        text = "Noted. That is all for now: the session is over."
+    elif os.environ.get("SIM_STUB_REPLY"):
+        with open(os.environ["SIM_STUB_REPLY"], encoding="utf-8") as reply:
+            text = reply.read()
+    else:
+        text = f"Stub assistant heard: {prompt[:120]}\n\ngh said: {gh.stderr.strip()}\n\nWhat else is on your mind?"
+    if not resumed and os.environ.get("SIM_STUB_WRITE"):
+        path, written = os.environ["SIM_STUB_WRITE"].split("::", 1)
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(path, "a", encoding="utf-8") as out:
+            out.write(written + "\n")
+    # The plugin's own skills, read from the --plugin-dir it was given, as the CLI lists them: a hand-kept list fell
+    # behind when requirements, allocate and releases were added, and a stub run then failed on them.
+    plugin = pathlib.Path(argv[argv.index("--plugin-dir") + 1]) if "--plugin-dir" in argv else None
+    commands = sorted(f"planner:{d.name}" for d in (plugin / "skills").iterdir() if (d / "SKILL.md").is_file()) if plugin else []
+    skills = pathlib.Path.cwd() / ".claude" / "skills"
+    commands += sorted(d.name for d in skills.iterdir() if (d / "SKILL.md").is_file()) if skills.is_dir() else []  # project skills, as the CLI lists them
+    events = [{"type": "system", "subtype": "init", "session_id": session_id, "slash_commands": commands},
+              {"type": "assistant", "message": {"content": [
+                  {"type": "text", "text": text},
+                  {"type": "tool_use", "id": "tu1", "name": "Bash", "input": {"command": "gh pr create"}}]}},
+              result(text, session_id, argv)]
+    drop = os.environ.get("SIM_STUB_DROP")
+    if drop:
+        events[-1].pop(drop, None)
+    print("not json: a stray line the driver must skip")
+    for event in events:
+        print(json.dumps(event))
+
+
+def persona(stdin, argv):
+    latest = stdin.split("LATEST ASSISTANT MESSAGE:", 1)[-1]
+    text = "[END]" if "session is over" in latest else "Yes. <script>alert('x')</script> Honestly not sure about the rest."
+    print(json.dumps(result(text, "persona", argv)))
+
+
+def judge(stdin, argv, category):
+    """One category's verdicts, each with its search note first, as run.py demands."""
+    mode = os.environ.get("SIM_STUB_JUDGE")
+    if mode == f"refuse:{category}":
+        refusal = result("API Error: the safeguards flagged this message.", "judge", argv, cost=0.01)
+        print(json.dumps({**refusal, "stop_reason": "refusal"}))
+        return
+    if mode == f"toolong:{category}":
+        print(json.dumps({"type": "result", "subtype": "success", "is_error": True, "terminal_reason": "prompt_too_long",
+                          "api_error_status": 400, "session_id": "judge", "total_cost_usd": 0, "num_turns": 1,
+                          "result": "Prompt is too long: the request is ~341431 tokens (limit 200000)."}))
+        return
+    if mode == "bad":
+        print(json.dumps(result("I think the planner arm did well.", "judge", argv, cost=0.01)))
+        return
+    note = {} if mode == "nosearch" else {"search": f"stub: read the {category} hints and the turns they name"}
+    if category == "options":
+        absent = {"present": False, "quote": None}
+        rows = [{"label": label.strip(), "search": "stub: read the option", "label_quote": None, "costs": absent,
+                 "rules_out": absent, "stakeholder_or_unknown": absent}
+                for label in re.findall(r"^LABEL: (.+)$", stdin, re.M)]
+        print(json.dumps(result(json.dumps({**note, "options": rows}), "judge", argv, cost=0.01)))
+        return
+    if category == "shape":
+        sessions = [int(s) for s in re.search(r"^SESSIONS THAT RAN: (.*)$", stdin, re.M).group(1).split(",") if s.strip()]
+        card = {**note, "decided_without_yes": [], "told_not_asked": [], "invented_facts": [],
+                "session_endings": [{"session": s, "clear_next_step": False, "turn": None, "quote": None} for s in sessions]}
+        print(json.dumps(result(json.dumps(card), "judge", argv, cost=0.01)))
+        return
+    ids = [i.strip() for i in re.search(rf"^IDS {category}: ?(.*)$", stdin, re.M).group(1).split(",") if i.strip()]
+    flag = {"unaware": "surfaced", "wrong": "challenged", "knows": "captured", "decisions": "decided",
+            "conflicts": "surfaced"}[category]
+    if category == "knows":
+        rows = [{"id": i, **note, flag: False, "where": None} for i in ids]
+    else:
+        rows = [{"id": i, **note, flag: False, "turn": None, "quote": None} for i in ids]
+        if category == "decisions":
+            for row in rows:
+                row["yes_asked"] = False
+    first = re.search(r"^\[T(\d+)\] ASSISTANT:\n(.+)$", stdin, re.M)
+    if category == "unaware" and first and rows:
+        rows[0].update(surfaced=True, turn=int(first.group(1)), quote=" ".join(first.group(2).split()[:4]))
+    if category == "wrong" and rows:
+        rows[0].update(challenged=True, turn=999, quote="a quote no turn holds")
+    if category == "knows" and len(rows) >= 2:
+        rows[0].update(captured=True, where="01-goals.md")
+        rows[1].update(captured=True, where="no-such-page.md")
+    print(json.dumps(result(json.dumps({category: rows}), "judge", argv, cost=0.01)))
+
+
+def main():
+    argv = sys.argv[1:]
+    system = value_after(argv, "--system-prompt") or ""
+    role = "judge" if system.startswith("SIMULATOR JUDGE") else "persona" if system.startswith("SIMULATOR PERSONA") else "assistant"
+    category = re.match(r"SIMULATOR JUDGE: (\w+)", system).group(1) if role == "judge" else None
+    stdin = sys.stdin.read() if role != "assistant" else None
+    log(argv, role, category, None if stdin is None else len(stdin))
+    if role == "assistant":
+        assistant(argv)
+    else:
+        persona(stdin, argv) if role == "persona" else judge(stdin, argv, category)
+
+
+if __name__ == "__main__":
+    main()

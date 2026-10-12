@@ -3,21 +3,26 @@ id: EPC-037
 type: epic
 title: Booking events and customer notifications
 initiative: INI-002
-state: handed-off
-owner: Booking team and Platform team
-authored: authored
-jira: HB-107
-last_verified: 2026-11-20
+state: decided
+owner: "@harbourline/booking-team @harbourline/platform-team"
+authored: mixed
+apps: [APP-booking, APP-notifications]
+delivers: [CAP-022, CON-002, G2, G3]
+consumes: []
+flows: [FLO-003, FLO-001, FLO-002]
+depends_on: [EPC-031]
 sources: ["session 2026-11-03 Grill"]
 ---
 
 # EPC-037 Booking events and customer notifications
 
-Booking publishes Booking state changed (CON-002) to the Harbourline event bus on every change of state, as the transformation programme requires of new applications (C4). Notifications adds a consumer for that event and sends email or SMS through its existing message sender. Today only the website sends emails, so a customer who books at a kiosk or by phone hears nothing, and once customers can amend online they need to hear about it wherever the change came from.
+- **Decision:** [[2026-11-18-epics]]
 
-The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005|UNK-005]]). Finance reconciliation may read these events later ([[11-unknowns-and-risks#UNK-006|UNK-006]], deferred to INI-005), so the event only ever grows by adding fields.
+Booking publishes Booking state changed (CON-002) to the Harbourline event bus on every change of state, as the transformation programme requires of new applications (CST-4). Notifications adds a consumer for that event and sends email or SMS through its existing message sender. Today only the website sends emails, so a customer who books at a kiosk or by phone hears nothing, and once customers can amend online they need to hear about it wherever the change came from.
 
-**Owning teams:** Booking team (events) and Platform team (Notifications consumer). **Jira:** HB-107.
+The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005 Event bus readiness|UNK-005]]). Finance reconciliation may read these events later ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]], deferred to INI-005), so the event only ever grows by adding fields.
+
+**Owning teams:** Booking team (events) and Platform team (Notifications consumer).
 
 ## Epic acceptance criteria
 
@@ -25,17 +30,22 @@ The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risk
 2. A hold that isn't confirmed within 10 minutes is released, and Booking publishes a state-changed event.
 3. A confirmed, amended or cancelled booking produces one message to the customer, by email or SMS as Notifications decides, whichever channel made the change.
 4. An event carries the customer ID and no card data or other personal data.
-5. A change to the event schema that removes or renames a field fails Booking's pipeline.
-6. Once Notifications sends booking messages, the website stops sending its own, so a customer gets one message per change.
+5. A change to the event schema that removes or renames a field fails Booking's pipeline, and the Notifications consumer test for CON-002 runs in Notifications' pipeline. [testing]
+6. Once Notifications sends booking messages, the website stops sending its own, so a customer gets one message per change. [data]
+7. Pausing the Notifications consumer leaves events waiting on the bus, and each one is sent once the consumer starts again. [rollout]
 
 ## Traces to
 
-- Capabilities: [[CAP-022-notify-customer|CAP-022 Notify customer of changes]]
-- Contracts: [[booking-building-blocks#CON-002|CON-002 Booking state changed]]
-- Concerns: [[concern-data|Data]], [[concern-testing|Testing]] (schema check, Notifications consumer test)
-- Goals: [[01-goals|G2]], [[01-goals|G3]]
-- Flows: [[FLO-003-notify-on-change|FLO-003]], [[FLO-001-hold-pay-confirm|FLO-001]], [[FLO-002-amend-or-cancel|FLO-002]]
-- Apps: [[booking-building-blocks|Booking]], [[notifications-building-blocks|Notifications]]
+<!-- generated:traces-to sha=d54b1193: do not edit, run planner render -->
+| Traces to | Items |
+|---|---|
+| Apps | [[booking-building-blocks\|Booking]], [[notifications-building-blocks\|Notifications]] |
+| Delivers | [[CAP-022-notify-customer\|CAP-022 Notify customer of changes]], [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]], [[01-goals\|G2]], [[01-goals\|G3]] |
+| Consumes | none |
+| Flows | [[FLO-003-notify-on-change\|FLO-003 Notify on change]], [[FLO-001-hold-pay-confirm\|FLO-001 Hold, pay, confirm]], [[FLO-002-amend-or-cancel\|FLO-002 Amend or cancel]] |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] |
+| Concerns | [[concern-data\|Data]], [[concern-rollout\|Rollout]], [[concern-testing\|Testing]] |
+<!-- /generated:traces-to -->
 
 ## Depends on
 
@@ -47,7 +57,7 @@ Events flow from the first production booking. Notifications takes over a channe
 
 ## Out of scope
 
-- Finance reconciliation reading events ([[11-unknowns-and-risks#UNK-006|UNK-006]]).
+- Finance reconciliation reading events ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]]).
 - Changes to how messages are sent.
 
 The Booking and Platform teams break this epic into stories after their tech design session.

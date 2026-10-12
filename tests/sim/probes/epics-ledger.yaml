@@ -1,0 +1,12 @@
+# Epics on a vault that has no app at handoff, from the v3 full run after session 8. The honest outcome is that epics
+# says no app is ready and names what stands in the way, including the high-severity owed questions the epics gate
+# would fail on. It must invent no epic and decide nothing.
+snapshot:
+  coastal-merger: after-v3-s8
+  holdout-hospitals: after-discover
+opening: "/planner:epics {topics[epics]}"
+cap: 10
+close: 8
+criteria:
+  - check: decided-without-yes
+    at_most: 0

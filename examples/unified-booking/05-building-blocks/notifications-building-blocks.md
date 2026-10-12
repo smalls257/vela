@@ -6,16 +6,18 @@ initiative: INI-002
 arc42: "§5"
 c4: container
 state: decided
+change: changed
 stage: epics
-owner: Platform team
+owner: "@harbourline/platform-team"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["Platform lead review of CON-002", "UNK-005 event bus readiness 2026-11-03"]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Notifications
 
 # Notifications
+
+- **Decision:** [[2026-07-28-solution-strategy]]
 
 Notifications tells customers when their booking changes, by email or SMS. Today only the website sends booking emails. After this initiative Notifications reads every Booking state change from the event bus, so a booking made or changed in any channel produces the same message.
 
@@ -25,24 +27,24 @@ Notifications does not decide a booking's state. It reports what Booking publish
 |---|---|
 | Changed: a new Booking event consumer. The existing email and SMS sender is reused. | Platform team |
 
+<!-- generated:app-context sha=eeecc3bd: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  bk["Booking"]
-  bus["Harbourline event bus"]
-  nt["<b>Notifications</b><br/>changed"]
-  cust["Customer<br/>email or SMS"]
-  bk -->|"CON-002"| bus
-  bus -->|"CON-002"| nt
-  nt --> cust
-  classDef focus fill:#1f4e79,color:#fff
-  class nt focus
+  n_APP_booking["Booking (new)"]
+  n_APP_notifications["Notifications (changed)"]
+  n_APP_booking -->|"CON-002"| n_APP_notifications
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_notifications focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 ## Inside Notifications: main containers
 
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
-| Booking event consumer | Reads Booking state changed, picks email or SMS, and hands the message to the sender. | Uses CON-002 | Platform lead | decided |
+| Booking event consumer | Reads Booking state changed, picks email or SMS, and hands the message to the sender. | Uses CON-002 | Platform lead | confirmed |
 | Message sender | Sends email and SMS. Looks up the customer's address and mobile number from the customer ID, as it does for website emails today. | none | existing | unchanged |
 
 ```mermaid
@@ -66,21 +68,22 @@ None. Notifications only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated: do not edit -->
+<!-- generated:contracts-consumed sha=7099072d: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[booking-building-blocks#CON-002\|CON-002 Booking state changed]] | Booking | Additive changes only | decided |
-<!-- /generated -->
+| [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] | [[booking-building-blocks\|Booking]] | additive changes only. | decided |
+<!-- /generated:contracts-consumed -->
 
-## Concerns this team carries
+## Concerns
 
-- [[concern-testing|Testing]]: the consumer test for CON-002 runs in Notifications' pipeline.
-- [[concern-operations|Operations]]: Booking joins the Platform team's on-call rota, so the same people answer for Booking and Notifications.
+This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 
-<!-- generated: do not edit -->
-- [[EPC-037-events-and-notifications|EPC-037 Booking events and customer notifications]] (HB-107)
-<!-- /generated -->
+<!-- generated:epics-for-app sha=135a68d0: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harbourline/booking-team @harbourline/platform-team | decided |
+<!-- /generated:epics-for-app -->
 
 Next: [[notifications-runtime|Notifications runtime]]

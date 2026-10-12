@@ -5,12 +5,11 @@ title: Vessel schedule
 initiative: INI-002
 arc42: "§5"
 c4: context
-state: decided
-stage: epics
-owner: Marine Ops Systems team
+state: fact
+change: unchanged
+owner: "@harbourline/marine-ops-systems"
 authored: mixed
-last_verified: 2026-11-20
-sources: ["Vessel schedule read API documentation"]
+sources: [SRC-06]
 ---
 
 [[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Vessel schedule
@@ -25,20 +24,18 @@ Vessel schedule does not hold seats. Booking holds them and FERRYMASTER records 
 |---|---|
 | Unchanged. Booking becomes a new caller of the existing read API. | Marine Ops Systems team |
 
+<!-- generated:app-context sha=5830f5bc: do not edit, run planner render -->
 ```mermaid
 flowchart LR
-  bk["Booking"]
-  web["Public website"]
-  cc["Call centre desktop"]
-  kio["Port kiosks"]
-  vs["<b>Vessel schedule</b><br/>unchanged"]
-  bk -->|"CON-004 capacity"| vs
-  web -->|"find a crossing"| vs
-  cc -->|"find a crossing"| vs
-  kio -->|"find a crossing"| vs
-  classDef focus fill:#1f4e79,color:#fff
-  class vs focus
+  n_APP_booking["Booking (new)"]
+  n_APP_vessel_schedule["Vessel schedule (unchanged)"]
+  n_APP_vessel_schedule -->|"CON-004"| n_APP_booking
+  classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
+  classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
+  class n_APP_vessel_schedule focus
+  class n_APP_booking new
 ```
+<!-- /generated:app-context -->
 
 Vessel schedule is a black box on this page. Nothing inside it changes, so its containers belong to the Marine Ops Systems team's own documentation.
 
@@ -47,27 +44,9 @@ Vessel schedule is a black box on this page. Nothing inside it changes, so its c
 ### CON-004 Capacity check
 
 - **Crosses the boundary:** a sailing in; remaining passenger and vehicle capacity out.
-- **Consumers:** Booking.
+- **Consumers:** [[booking-building-blocks|Booking]]
 - **Change policy:** the existing read API, no change.
-- **Tested by:** Booking runs a contract test on its side. Marine Ops Systems adds no test, because the API does not change and Booking's test fails first if it does.
-- **State:** decided
-
-## Contracts this app consumes
-
-<!-- generated: do not edit -->
-| Contract | Provider | Change policy | State |
-|---|---|---|---|
-| none | | | |
-<!-- /generated -->
-
-## Concerns this team carries
-
-None. [[concern-testing|Testing]] covers CON-004 from Booking's side.
-
-## Epics
-
-<!-- generated: do not edit -->
-- none
-<!-- /generated -->
-
-Next: [[vessel-schedule-runtime|Vessel schedule runtime]]
+- **Change:** new consumers
+- **Tested by:** Booking runs a contract test on its side. Marine Ops Systems adds no test, because the API does not change and Booking's test fails first if it does. Booking's test runs on every Booking build, and a failure blocks the Booking release.
+- **State:** fact
+- **Source:** SRC-06

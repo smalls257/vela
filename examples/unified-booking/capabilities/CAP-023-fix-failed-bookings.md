@@ -2,14 +2,18 @@
 id: CAP-023
 type: capability
 title: Fix failed bookings by hand
-state: proposed
-owner: solution lead
+origin: proposed
+change: retire
+domain: Booking
+state: decided
+owner: "@hl-solution-lead"
 authored: mixed
-last_verified: 2026-11-20
 sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 ---
 
 # CAP-023 Fix failed bookings by hand
+
+- **Decision:** [[2026-08-12-goals-and-data]]
 
 Lets an agent repair a booking that was paid for but never confirmed.
 
@@ -19,17 +23,13 @@ Lets an agent repair a booking that was paid for but never confirmed.
 
 ## Provided by
 
-<!-- generated: do not edit -->
 | Application | Today | After |
 |---|---|---|
 | [[call-centre-building-blocks\|Call centre desktop]] | manual fix queue, worked the next morning | retired: nobody, [[booking-building-blocks\|Booking]] retries the ledger write and keeps the hold |
-<!-- /generated -->
 
 ## Initiatives that touch this
 
-<!-- generated: do not edit -->
 - [[04a-capability-delta|INI-002 Unified Booking]] (retire)
-<!-- /generated -->
 
 ## Flows
 
@@ -37,4 +37,10 @@ None after INI-002. The retry path in [[FLO-001-hold-pay-confirm|FLO-001 Hold, p
 
 ## Delivered by
 
-- [[EPC-034-call-centre-to-booking|EPC-034 Call centre moves to Booking]] retires the manual fix queue.
+<!-- generated:delivered-by sha=21f098f6: do not edit, run planner render -->
+| Epic | Owner | State |
+|---|---|---|
+| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
+<!-- /generated:delivered-by -->
+
+[[EPC-034-call-centre-to-booking|EPC-034]] retires the manual fix queue.

@@ -1,0 +1,184 @@
+/* ------------------------------------------------ Inside this app: context, containers, components (inside.js)
+   Drawn in the room's own palette, so it repaints with every theme. The design's state is shape and ink, never a
+   lamp colour; amber here means what it means everywhere, "needs you": a missed trace, or a challenged vault item. */
+.inside-head h1 { display: flex; align-items: center; }
+.inside-crumbs { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 4px; color: var(--ink-3); }
+.inside-crumbs a { color: var(--ink-2); padding: 2px 9px; border-radius: 6px; background: var(--deck); border: 1px solid var(--rule); }
+.inside-crumbs a:hover { background: var(--deck-3); color: var(--ink); text-decoration: none; }
+.inside-crumbs .cur { color: var(--ink); font-weight: 600; padding: 2px 9px; border-radius: 6px; background: var(--deck-3); border: 1px solid var(--rule-3); }
+.inside-crumbs .sep { color: var(--ink-4); }
+.inside-stage { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; will-change: transform; }
+.inside-stage .board { flex: 1; }
+.inside-draw { flex: 1; min-height: 0; display: flex; justify-content: safe center; align-items: safe center; overflow: auto; padding: 6px 12px; background:
+  radial-gradient(ellipse at 50% 40%, var(--board-light), transparent 70%), var(--board); border-top: 1px solid var(--rule); }
+.inside-hint { font-size: 12.5px; color: var(--ink-3); padding: 7px 24px 10px; border-top: 1px solid var(--rule); background: var(--room); }
+.inside-chip-card { margin: 30px 28px; display: flex; gap: 16px; max-width: 70ch; background: var(--room-2); border: 1px dashed var(--rule-3); border-radius: 12px; padding: 18px 20px; }
+.inside-chip-card b { display: block; font-size: 15px; margin-bottom: 4px; color: var(--ink); }
+.inside-chip-card .muted { font-size: 13.5px; line-height: 1.5; }
+.icc-ico { color: var(--ink-3); font-size: 26px; }
+.board g.hit.inside-door { cursor: zoom-in; }
+
+/* the design's state and its problems: shape and ink */
+.d-status { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 1px 10px; border-radius: 999px; white-space: nowrap; color: var(--ink); border: 1.5px solid var(--ink-2); }
+.d-status.complete { background: var(--ink-2); color: var(--room); border-color: var(--ink-2); }
+.d-status.complete-with-gaps { border-style: solid; background: transparent; }
+.d-status.in-progress, .d-status.unknown { border-style: dashed; color: var(--ink-3); }
+.d-status b { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--ink-3); }
+.d-status.complete b { color: var(--room); }
+.d-problems { white-space: nowrap; }
+.d-problems.some { border-color: var(--note-text); color: var(--note-text); }
+.d-problems .ico { width: 13px; height: 13px; }
+
+/* the drawings */
+.inside-svg { display: block; overflow: visible; }
+.inside-svg text { font-family: var(--ui); }
+.in-edge { fill: none; stroke: var(--ink-4); stroke-width: 1.6; }
+.in-edge.soft, .in-edge.loose { stroke-dasharray: 5 5; stroke: var(--ink-4); }
+.in-edge.lit.warning { stroke: var(--warning); } .in-edge.lit.caution { stroke: var(--caution); } .in-edge.lit.unexamined { stroke: var(--unexamined); } .in-edge.lit.override { stroke: var(--override); }
+.in-arrowhead { fill: var(--ink-3); }
+.in-head { fill: var(--ink-3); }
+.in-arrowhead.soft { fill: var(--ink-4); }
+.in-label rect { fill: var(--room-2); stroke: var(--rule-3); stroke-width: 1; }
+.in-label text { font-size: 11.5px; font-weight: 500; fill: var(--ink-2); font-family: var(--mono); }
+.in-label.pick { cursor: pointer; }
+.in-label.pick:hover rect { stroke: var(--ink-2); }
+.in-label.lit rect { stroke-width: 1.6; }
+.in-label.lit.warning rect { stroke: var(--warning); } .in-label.lit.caution rect { stroke: var(--caution); } .in-label.lit.unexamined rect { stroke: var(--unexamined); } .in-label.lit.override rect { stroke: var(--override-text); }
+.in-frame { fill: color-mix(in srgb, var(--deck) 45%, transparent); stroke: var(--rule-3); stroke-width: 1.5; stroke-dasharray: 2 0; }
+.in-frame-name { font-size: 13.5px; font-weight: 600; fill: var(--ink-2); }
+.in-box { cursor: pointer; }
+.in-box-face { fill: var(--deck-2); stroke: var(--rule-3); stroke-width: 1.5; }
+.in-box:hover .in-box-face, .in-box:focus-visible .in-box-face { stroke: var(--ink-2); }
+.in-box.picked .in-box-face, .in-stub.picked .in-stub-face { stroke: var(--focus); stroke-width: 2.4; }
+.in-box-name { font-size: 14px; font-weight: 600; fill: var(--ink); }
+.in-box-name.small { font-size: 12.5px; }
+.in-box-sub { font-size: 11.5px; fill: var(--ink-3); }
+.in-box-meta { font-size: 10.5px; fill: var(--ink-4); }
+.in-node .node-glyph { color: var(--ink-2); }
+.in-lip { fill: var(--room-2); stroke: var(--rule-3); stroke-width: 1; }
+.in-lip.missing { stroke-dasharray: 3 3; stroke: var(--note-text); }
+.in-lip-text { font: 500 10.5px var(--mono); fill: var(--ink-3); }
+.in-lip-text.missing { fill: var(--note-text); font-family: var(--ui); }
+.in-owns { fill: var(--deck-3); }
+.in-owns-text { font-size: 10.5px; font-weight: 600; fill: var(--ink-2); }
+.in-oq { fill: var(--caution); }
+.in-stub { cursor: pointer; }
+.in-stub-face { fill: var(--room-2); stroke: var(--ink-4); stroke-width: 1.4; stroke-dasharray: 4 3; }
+.in-stub-face.loose { stroke: var(--note-text); }
+.in-stub:hover .in-stub-face { stroke: var(--ink-2); }
+
+/* level 3: the drawing, and the design's sections beside it */
+.inside-l3 { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); }
+.inside-left { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.inside-side { min-height: 0; overflow: auto; border-left: 1px solid var(--rule); border-top: 1px solid var(--rule); background: var(--room); padding: 10px 16px 30px; }
+@media (max-width: 1280px) { .inside-l3 { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(300px, 1.1fr) minmax(240px, 1fr); } .inside-side { border-left: 0; } .inside-l3 { overflow: auto; } .inside-l3.tabs-hidden { overflow: hidden; } }
+.seg.wrap { flex-wrap: wrap; }
+.inside-tabs .seg { margin-bottom: 10px; }
+.inside-tab-body { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
+.in-card { min-width: 0; background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--ink-2); }
+.in-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--ink); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.in-card h3 a { color: var(--ink); }
+.in-sub { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); margin: 6px 0 4px; }
+.in-own { padding: 6px 0; border-top: 1px solid var(--rule); }
+.in-own:first-of-type { border-top: 0; }
+.in-own-name { font-weight: 600; color: var(--ink); margin-right: 4px; }
+.in-id { font-size: 11.5px; }
+.in-id .in-via { color: var(--ink-4); font-size: 10.5px; }
+.in-untraced.missed .ref-chip { border-color: var(--caution); }
+.in-untraced.ack .ref-chip { color: var(--ink-3); }
+.in-raw summary { margin-top: 4px; }
+.in-raw pre, pre.in-src { white-space: pre-wrap; font: 11.5px/1.5 var(--mono); color: var(--ink-2); background: var(--room); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; margin: 6px 0 0; max-height: 280px; overflow: auto; }
+.in-entity { padding: 4px 0; }
+.in-er { display: flex; justify-content: safe center; align-items: safe center; overflow: auto; max-height: 520px; background: var(--board); border: 1px solid var(--rule); border-radius: 10px; padding: 8px; }
+.in-er svg { height: auto; max-width: none; flex: none; }
+.in-entity-head { fill: var(--deck-3); }
+.in-field { font: 11px var(--mono); fill: var(--ink-2); }
+.in-field-key { font: 600 10px var(--mono); fill: var(--ink-4); }
+.in-ops { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.in-table td, .in-table th { font-size: 12.5px; padding: 6px 8px; }
+.in-term { padding: 5px 0; border-top: 1px solid var(--rule); }
+.in-term:first-child { border-top: 0; }
+a.vid { font-family: var(--mono); font-size: .92em; }
+.vid.dead { font-family: var(--mono); font-size: .92em; color: var(--ink-4); text-decoration: line-through; }
+.in-adr b { font-family: var(--mono); font-size: 12px; color: var(--ink-3); font-weight: 500; }
+
+/* key flows, drawn from their mermaid source */
+.in-scroll { overflow-x: auto; }
+.in-seq svg { height: auto; max-width: none; background: var(--board); border: 1px solid var(--rule); border-radius: 8px; }
+.seq-lane { stroke: var(--rule-3); stroke-width: 1; stroke-dasharray: 2 4; }
+.seq-head rect { fill: var(--deck-2); stroke: var(--rule-3); }
+.seq-head text { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+.seq-head.pick { cursor: pointer; }
+.seq-head.pick:hover rect { stroke: var(--ink-2); }
+.seq-msg { stroke: var(--ink-3); stroke-width: 1.4; fill: none; }
+.seq-msg.reply { stroke-dasharray: 4 3; }
+.seq-text { font-size: 11px; fill: var(--ink-2); }
+.seq-note { fill: color-mix(in srgb, var(--note-text) 14%, transparent); stroke: var(--note-text); stroke-width: .8; }
+.seq-block { fill: none; stroke: var(--rule-3); stroke-dasharray: 3 3; }
+.seq-step { cursor: pointer; transition: opacity .25s var(--ease); }
+.seq-step.later { opacity: .42; }
+.seq-step.on .seq-msg { stroke: var(--ink); stroke-width: 2.4; }
+.seq-step.on .seq-text { fill: var(--ink); font-weight: 600; }
+.seq-ctl { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.seq-ctl .btn.tiny { margin-left: 0; }
+.seq-now { margin-top: 6px; font: 14px/1.45 var(--serif); color: var(--ink); }
+
+/* in the panel, and elsewhere on the page */
+.in-prose { max-height: none; font-size: 14px; }
+.in-gap { padding: 5px 0; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-2); }
+.in-gap:first-of-type { border-top: 0; }
+.in-gap .lamp, .in-challenge .lamp, .in-owner .lamp { vertical-align: 0; }
+ol.in-problems { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 7px; font-size: 13px; color: var(--ink-2); }
+ol.in-problems b { color: var(--ink); font-weight: 600; }
+.in-line { display: inline-block; min-width: 66px; font: 11.5px var(--mono); color: var(--note-text); }
+.in-owner { font-size: 13px; color: var(--ink-2); padding: 2px 0; }
+.in-owner a { font-weight: 600; }
+.in-owner.untraced.ack { color: var(--ink-3); }
+.in-owner.untraced.missed { color: var(--caution-text); }
+.in-owners.inline { margin-top: 2px; }
+.in-owners.inline .in-owner { font-size: 12px; padding: 0; }
+.in-challenge { font-size: 13px; color: var(--ink-2); padding: 4px 0; }
+.in-status-cell { display: grid; gap: 4px; justify-items: start; }
+.in-status-cell .d-status, .in-status-cell .d-problems { white-space: normal; flex-wrap: wrap; text-align: left; }
+.in-door { border-top: 1px solid var(--rule); padding-top: 6px; margin-top: 4px; }
+.in-door-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
+.side-kid.side-inside { padding-left: 34px; color: var(--link); font-size: 12.5px; }
+/* a challenge on the panel's home: a row like a light's, kept apart from attention's own list of lights */
+.challenge-row { all: unset; display: grid; grid-template-columns: 12px 1fr; gap: 10px; padding: 7px 8px; border-radius: 7px; cursor: pointer; width: calc(100% - 16px); }
+.challenge-row .lamp { margin-top: 5px; }
+.challenge-row:hover { background: var(--deck); }
+.challenge-row:focus-visible { outline: 2px solid var(--focus); }
+.challenge-row .what { display: block; font-size: 14px; font-weight: 600; color: var(--caution-text); }
+.challenge-row .why { display: block; font-size: 12.5px; color: var(--ink-3); line-height: 1.4; margin-top: 1px; }
+/* the drawing's zoom: fitted, reading size, or the reader's own */
+.inside-frame { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.inside-frame > .in-zoom { position: absolute; bottom: 8px; right: 8px; }
+.in-zoom { display: inline-flex; gap: 2px; background: var(--glass); border: 1px solid var(--rule-3); border-radius: 8px; padding: 2px; z-index: 2; flex: none; }
+.in-zoom button { border: 0; background: transparent; color: var(--ink-2); padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+.in-zoom button:hover { background: var(--deck-3); color: var(--ink); }
+
+/* the data model: fitted to the tab on open, zoomed by the reader; the controls sit above it, not over it */
+.in-er-wrap { position: relative; display: flex; flex-direction: column; }
+.in-er-wrap .in-zoom { position: static; order: -1; margin: 0 0 6px auto; width: max-content; }
+.in-er svg { flex: none; }
+/* the data model scrolls inside a frame of its own height, so its zoom never moves the page */
+.in-er { height: clamp(260px, 50vh, 520px); max-height: none; }
+/* the minimap: the whole drawing, small, with the part in view lit; it shows only while the drawing is bigger than its frame */
+.in-mini { position: absolute; left: 12px; bottom: 8px; z-index: 2; padding: 4px; background: var(--glass); border: 1px solid var(--rule-3); border-radius: 8px; cursor: crosshair; touch-action: none; line-height: 0; }
+.in-mini[hidden] { display: none; }
+.in-er-wrap .in-mini { left: 8px; bottom: 8px; }
+.in-mini-svg { display: block; overflow: hidden; pointer-events: none; }
+.mini-frame { fill: none; stroke: var(--rule-3); stroke-width: 3; }
+.mini-box { fill: var(--deck-3); stroke: var(--rule-3); stroke-width: 2; }
+.mini-wire { fill: none; stroke: var(--ink-4); stroke-width: 3; }
+.in-mini-view { fill: color-mix(in srgb, var(--focus) 18%, transparent); stroke: var(--focus); stroke-width: 4; vector-effect: non-scaling-stroke; }
+/* the tabs fold away to give the drawing the whole width */
+.inside-tools { display: flex; justify-content: flex-end; margin: 0 0 6px; }
+.btn.in-tabs-toggle { background: var(--glass); border: 1px solid var(--rule-3); }
+.inside-l3.tabs-hidden { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.inside-l3.tabs-hidden .inside-side { display: none; }
+/* a short window: the hint keeps two lines (the page says the rest in the panel) and the head drops its kicker, so the drawing keeps room */
+@media (max-height: 720px) {
+  .inside-hint { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; padding-top: 4px; padding-bottom: 6px; }
+  .inside-head .kicker { display: none; }
+}

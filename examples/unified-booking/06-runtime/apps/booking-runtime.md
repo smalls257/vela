@@ -1,19 +1,20 @@
 ---
-id: APP-booking-runtime
+id: RUN-booking
 type: app-runtime
 title: Booking runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: Booking team
+owner: "@harbourline/booking-team"
 authored: authored
-last_verified: 2026-11-20
 sources: ["UNK-001 ledger latency measurement 2026-09-02", "UNK-002 test data decision 2026-09-16", "Booking senior container review"]
 ---
 
 [[README|Harbourline]] / [[06-flows|06 Flows]] / [[booking-building-blocks|Booking]] / Runtime
 
 # Booking runtime
+
+- **Decision:** [[2026-09-02-hold-pay-confirm]]
 
 Booking takes part in all three flows.
 
@@ -58,7 +59,7 @@ sequenceDiagram
 | What | Value |
 |---|---|
 | Hold lifetime | 10 minutes |
-| Ledger write latency p95 | 2.1 s, measured ([[11-unknowns-and-risks#UNK-001\|UNK-001]]) |
+| Ledger write latency p95 | 2.1 s, measured ([[11-unknowns-and-risks#UNK-001 Ledger write latency\|UNK-001]]) |
 | Booking API version lifetime | at least 6 months per version |
 | Notice of an MQ change | 8 weeks, from the mainframe team |
 

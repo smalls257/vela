@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="{{THEME}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<!-- Everything is drawn here, with SVG, canvas and Web Audio: the page needs no network. The one library is marked, inlined below so Ask Claude can show Markdown. -->
+<style>/*{{CSS}}*/</style>
+</head>
+<body>
+<header class="top">
+  <button class="side-toggle" id="side-toggle" aria-controls="side" aria-expanded="true" title="Show or hide the sections">
+    <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+  <button class="brand" id="brand" title="What needs you"><span class="brand-title" id="brand-title"></span><span class="brand-sub" id="brand-sub"></span></button>
+  <div class="search">
+    <svg class="search-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Ask in plain words: how does a reader place a paper trade?" aria-label="Search the vault">
+    <kbd class="search-key">/</kbd>
+    <div id="results" role="listbox" hidden></div>
+  </div>
+  <div class="masters" id="masters" aria-live="polite"></div>
+  <div class="flags" id="flags" hidden></div>
+  <div class="fx" id="fx" role="group" aria-label="Effects" aria-pressed="true"><span class="fx-label">Effects</span><button data-fx="on">On</button><button data-fx="plain">Plain</button></div>
+  <label class="theme-pick" title="Theme: the room's colours; every lamp keeps its meaning"><span class="fx-label">Theme</span><select id="theme" aria-label="Theme"></select></label>
+  <button class="sound-btn" id="sound" aria-pressed="false" title="Sound: each app has its own note (S)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path id="sound-waves" d="M17 9l4 6M21 9l-4 6"/></svg><span>Sound off</span>
+  </button>
+</header>
+<div class="fresh" id="fresh" role="status" hidden></div>
+<nav id="side" aria-label="Sections"></nav>
+<main id="main"></main>
+<aside id="panel" aria-label="Details">
+  <div id="panel-grip" role="separator" aria-orientation="vertical" aria-label="Resize the panel" aria-controls="panel" tabindex="0" title="Drag to resize; double-click for the default width"></div>
+  <div class="panel-bar">
+    <button class="panel-hide" id="panel-hide" aria-controls="panel" aria-expanded="true" title="Hide the panel (])">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span>
+    </button>
+  </div>
+  <div id="panel-body"></div>
+  <div id="panel-mini" class="panel-mini" aria-label="Minimap"></div>
+</aside>
+<button id="panel-tab" class="panel-tab" aria-controls="panel" title="Show the panel (])" hidden>
+  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Details</span>
+</button>
+<div id="overlay" hidden></div>
+<div id="toast" role="status"></div>
+<div id="tip" role="tooltip"></div>
+<script type="application/json" id="data">{{DATA}}</script>
+<!--{{ASSETS}}-->
+<!--{{MARKED}}-->
+<script>/*{{JS}}*/</script>
+</body>
+</html>

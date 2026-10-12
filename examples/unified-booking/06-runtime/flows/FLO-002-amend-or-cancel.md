@@ -5,13 +5,14 @@ title: Amend or cancel
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: solution lead
-authored: mixed
-last_verified: 2026-11-20
-sources: ["session 2026-09-16 Grill", "CON-006 MQ spec from mainframe team"]
+owner: "@hl-solution-lead"
+authored: authored
+sources: ["session 2026-09-16 Grill", SRC-04]
 ---
 
 # FLO-002 Amend or cancel
+
+- **Decision:** [[2026-09-16-testing-and-amend]]
 
 ## Steps
 
@@ -64,15 +65,13 @@ Today a customer who wants to change a crossing phones the call centre, and an a
 
 ## Contracts used
 
-<!-- generated: do not edit -->
 | Step | Contracts |
 |---|---|
-| 1 Find booking | [[booking-building-blocks#CON-001\|CON-001 Booking API]] (get), [[customer-identity-building-blocks#CON-005\|CON-005]] |
-| 2 Check change allowed | [[booking-building-blocks#CON-001\|CON-001 Booking API]] (amend, cancel), [[vessel-schedule-building-blocks#CON-004\|CON-004]] |
-| 3 Re-quote | [[pricing-building-blocks#CON-003\|CON-003]], [[booking-building-blocks#CON-007\|CON-007 Payment outcome]] |
-| 4 Write to ledger | [[ferrymaster-building-blocks#CON-006\|CON-006]] (BKAMND, BKCANC) |
-| 5 Notify customer | [[booking-building-blocks#CON-002\|CON-002 Booking state changed]] |
-<!-- /generated -->
+| 1 Find booking | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (get), [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005]] |
+| 2 Check change allowed | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] (amend, cancel), [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004]] |
+| 3 Re-quote | [[pricing-building-blocks#CON-003 Quote a fare\|CON-003]], [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Payment outcome]] |
+| 4 Write to ledger | [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006]] (BKAMND, BKCANC) |
+| 5 Notify customer | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] |
 
 ## Tested end to end
 

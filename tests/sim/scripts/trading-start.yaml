@@ -1,0 +1,21 @@
+# The trading run's first four sessions, dump and discover each with its close: a preview of how the pages read.
+name: trading-start
+persona: trading-coach
+sessions:
+- mode: dump
+  cap: 14
+  planner: /planner:dump {opening}
+  baseline: I have a new initiative and nothing written down yet. Let's dump everything we know about it into this vault,
+    following CONVENTIONS.md. {opening}
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
+- mode: discover
+  cap: 14
+  planner: /planner:discover {topics[discover_1]}
+  baseline: Read what exists today and record it. Follow CONVENTIONS.md.
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
