@@ -152,7 +152,7 @@ takes longer. Launch it detached, and keep the Mac awake:
 nohup caffeinate -dimsu python3 tests/sim/run.py <persona> --script <script> ... > results/<name>.log 2>&1 &
 ```
 
-Then follow the log with `tail -f`. A run killed part-way keeps its transcript so far; `--rejudge` scores it again.
+Then follow the log with `tail -f`.
 
 ## What the driver does that a person would do
 
