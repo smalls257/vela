@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 FENCE = re.compile(r"```.*?```", re.S)
 GENERATED = re.compile(r"<!-- generated:.*?<!-- /generated:[^>]*-->", re.S)
 WIKILINK = re.compile(r"\[\[([^\]|#]*)(?:#([^\]|]*))?(?:\\?\|([^\]]*))?\]\]")
-HEADING = re.compile(r"^(#{1,4})\s+(.*?)\s*#*\s*$")
+HEADING = re.compile(r"^(#{1,4})\s+(.*?)(?:\s+#+)?\s*$")
 WORD = re.compile(r"[a-z0-9]+")  # "brightwater's" gives "brightwater" and "s", and "s" is a stop word
 SKIP_TOP = ("sessions/", "voice/", ".inbox/", "handoffs/", ".claude/", "docs/")
 SKIP_FILES = ("CONVENTIONS.md", "CLAUDE.md", "README.md")
