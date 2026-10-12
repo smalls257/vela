@@ -89,6 +89,12 @@ def vault_id(initiative, title, configured=None):
     return configured
 
 
+def vault_id_for(root):
+    """The id the page for the vault at `root` will carry (the same one generate puts in the page)."""
+    config = cli.load_config(pathlib.Path(root))
+    return vault_id(str(config.get("initiative", "")), str(config.get("title", "")), config.get(VAULT_ID_KEY))
+
+
 def mint_vault_id():
     """Starts with a letter so YAML reads it as text: a bare 1234567890123456 or 12e45678 would load as a number."""
     return "v-" + uuid.uuid4().hex[:14]

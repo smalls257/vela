@@ -14,6 +14,7 @@ Three things this module exists to prevent:
 - Infected Core: the argv, the prompt, the stream parser and the origin rule are pure functions, tested without a
   socket or a process. Only `stream_answer` and `Handler` touch the OS.
 """
+import hashlib
 import http.server
 import json
 import pathlib
@@ -455,6 +456,13 @@ class Server(http.server.ThreadingHTTPServer):
     @property
     def url(self):
         return f"http://{LOOPBACK}:{self.server_port}/"
+
+
+def preferred_port(vault_id):
+    """The port this vault is served on unless the caller names one. The browser keeps a page's saved marks, layout and Ask
+    conversations per origin, and a random port makes every run a new origin that finds none of them; the same vault
+    on the same port is the same origin. In the private range 49152-65151, derived from the vault's id."""
+    return 49152 + int(hashlib.sha256(vault_id.encode("utf-8")).hexdigest()[:8], 16) % 16000
 
 
 def serve(vault, page, port, model, open_browser, log, ask_timeout=ASK_TIMEOUT, freshness=None, pins=None):
