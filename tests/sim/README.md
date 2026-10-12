@@ -103,6 +103,7 @@ Each run gets `results/<date-time>-<persona>/`:
 | `<arm>/vault-check.txt` | `planner check` on the final vault, with its exit code. |
 | `<arm>/viewer.html` | `planner view` of the final vault. If the vault does not parse, `viewer-error.txt` says why instead. |
 | `<arm>/scorecard.json`, `scorecard.md` | The judge's scorecard after the driver checked every citation. |
+| `<arm>/tickets/` | Only for a script with a team `breakdown` session. `tickets.csv` in Jira's CSV import shape and a `README.md` on importing it, made by `tools/breakdown_to_tickets.py` from the breakdown the arm wrote, with no model, so each ticket is one story or task of the breakdown. Lines it could not map are listed as problems in that README. |
 | `<arm>/raw/` | The raw stdout and stderr of every `claude` call, numbered in order. Read these when a run exits 2. |
 
 ## How to read a scorecard

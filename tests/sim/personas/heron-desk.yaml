@@ -1,0 +1,344 @@
+# The simulated lead for a greenfield desk helper with no definition yet. Everything here is made up: Marlowe & Finch,
+# Heron, Voxwell, Corvid Models and every named person are fictional. Microsoft 365, Graph, Teams, Intune and Jamf are
+# real products, and the rules the gaps rest on are real, simplified: GDPR lawful basis and the data protection impact
+# assessment, German works-council co-determination, recording-consent law, the EU AI Act's employment category, and
+# macOS and Windows endpoint packaging. The persona prompt gets knows, wrong, conflicts and decisions. It never sees
+# unaware: a gap it was never told cannot leak. The judge sees all of it. Keywords follow the rules at the top of
+# coastal-merger.yaml, and no unaware keyword appears in a knows fact, so the lead cannot hand a gap over by accident.
+# The Desk Agent team lead, who designs the agent after handoff, is the team persona heron-agent-lead.
+name: Priya Menon
+role: solution lead for Heron, a desk helper that surfaces what matters from a person's working day
+org: Marlowe & Finch, a 4,200-person professional-services firm with offices in the UK, Germany and the US
+handle: "@sim-lead"
+style: >-
+  Brisk and practical, typing between workshops. Answers in short bursts of one to three sentences. Sometimes
+  answers a different question from the one asked, usually the one that worries them most right now. Says
+  "honestly not sure" often. Changes their mind once when given a good reason, and says so plainly. Never
+  writes lists unless asked to confirm one.
+opening: >-
+  The CIO wants "a desk helper for Mac and Windows that sets up in two minutes, quietly watches your meetings, email
+  and documents, and tells you what matters each morning". I've been made solution lead and it's a blank page. I
+  don't know where to start.
+
+topics:
+  discover_1: what Marlowe runs on desks today, and what Microsoft 365 already gives us
+  shape_1: what Heron surfaces in the first release and where the work is done
+  boundary: the shaped first release
+  grill: privacy and consent, access to Microsoft 365, and on-device against cloud
+  requirements: the capabilities Heron changes
+  handoff: the desktop agent
+  discover_2: how Microsoft Graph, Teams transcripts and the language model provider would be reached
+  shape_2: how people switch Heron on and what they can see
+  grill_2: which service owns consent and the Graph grants
+  epics: the Desk Agent team
+
+knows:
+  - id: K1
+    category: fact
+    keywords: ["sets up in two minutes", "tells you what matters"]
+    fact: The CIO's mandate is one line, "a desk helper for Mac and Windows that sets up in two minutes, quietly watches your meetings, email and documents, and tells you what matters each morning". Nobody has said what any of it means.
+    owner: CIO
+  - id: K2
+    category: fact
+    keywords: ["4,200", "Microsoft 365"]
+    fact: Marlowe has about 4,200 staff in the UK, Germany and the US, all on one Microsoft 365 tenant.
+    owner: IT endpoint lead
+  - id: K3
+    category: fact
+    keywords: ["Zoom", "client meetings"]
+    fact: Internal meetings run on Teams. Many client meetings run on the client's own Zoom, which Marlowe staff join as guests.
+    owner: Pilot team lead
+  - id: K4
+    category: fact
+    keywords: ["Intune", "Jamf"]
+    fact: About 3,100 laptops are Windows, managed by Intune, and about 1,100 are Macs, managed by Jamf. Staff cannot install software themselves.
+    owner: IT endpoint lead
+  - id: K5
+    category: fact
+    keywords: ["Client Delivery", "60 people"]
+    fact: The pilot group is the Client Delivery team in the London office, 60 people, led by Sam Hadley.
+    owner: Pilot team lead
+  - id: K6
+    category: finance-liability
+    keywords: ["1.4 million", "model costs"]
+    fact: The budget for Heron this financial year is 1.4 million pounds, including the cost of the language model.
+    owner: CIO
+  - id: K7
+    category: timeline
+    keywords: ["exec committee", "first quarter"]
+    fact: The CIO told the executive committee Heron would be in a pilot in the first quarter of 2027.
+    owner: CIO
+  - id: K8
+    category: legal-regulatory
+    keywords: ["security review", "six weeks"]
+    fact: Nothing may read Microsoft 365 data until the CISO's security review passes. A review takes about six weeks from the day the pack is submitted.
+    owner: CISO
+  - id: K9
+    category: fact
+    keywords: ["Global Admin", "identity team"]
+    fact: Only the identity team holds Global Admin on the tenant, and any new app registration goes through them.
+    owner: IT endpoint lead
+  - id: K10
+    category: fact
+    keywords: ["service desk", "eight to six"]
+    fact: Staff support is the IT service desk, by Teams or email, eight to six UK time. There is no out-of-hours cover.
+    owner: IT endpoint lead
+  - id: K11
+    category: legal-regulatory
+    keywords: ["Frankfurt", "works council"]
+    fact: About 600 of the staff are in Frankfurt, and they have a works council.
+    owner: HR lead
+  - id: K12
+    category: fact
+    keywords: ["Teams transcripts", "OneDrive"]
+    fact: Teams can already write a transcript when the organiser turns it on, and the transcript lands in the organiser's OneDrive. Few organisers turn it on today.
+    owner: IT endpoint lead
+  - id: K13
+    category: fact
+    keywords: ["screen reader", "WCAG"]
+    fact: About 90 staff use a screen reader, and the firm's standard for internal tools is WCAG 2.2 AA.
+    owner: Accessibility lead
+  - id: K14
+    category: fact
+    keywords: ["Copilot", "300 licences"]
+    fact: Microsoft Copilot is licensed to about 300 executives only. The CFO would not fund it for everyone.
+    owner: CIO
+  - id: K15
+    category: fact
+    keywords: ["staff survey", "missed follow-up"]
+    fact: In the last staff survey 71 percent said they had missed a follow-up they owed after a meeting in the past month.
+    owner: HR lead
+
+wrong:
+  - id: W1
+    category: legal-regulatory
+    keywords: ["freely given", "power imbalance", "lawful basis"]
+    belief: If each employee installs Heron and clicks agree, their consent covers it and nothing more is needed.
+    truth: Consent from an employee is rarely freely given, because of the power imbalance, so regulators expect another lawful basis. The firm also needs a works agreement in Germany, and the people on the other end of a meeting never clicked anything.
+  - id: W2
+    category: cross-source-mismatch
+    keywords: ["application access policy", "OnlineMeetingTranscript", "tenant-wide consent"]
+    belief: Heron can read each person's calendar, mail and transcripts using only that person's own sign-in, with no admin step.
+    truth: Some of the Graph permissions it needs, transcripts above all, need tenant admin approval, and reading transcripts in the background needs an application access policy set by the tenant admin.
+  - id: W3
+    category: legal-regulatory
+    keywords: ["all-party consent", "recording banner", "two-party"]
+    belief: Everyone on a call has already agreed to being recorded, because Teams shows a recording banner.
+    truth: The banner covers a Teams recording and nothing else. Audio captured on someone's own PC, or a note-taker joining a client's Zoom, is a different act, and some states and Germany require every party's consent.
+  - id: W4
+    category: third-party-contract
+    keywords: ["sub-processor", "no-training clause", "data processing agreement"]
+    belief: Sending a transcript to the language model provider is covered by our Microsoft contract.
+    truth: The provider is a separate processor with its own terms. It needs its own data processing agreement, a region, and a clause that it never trains on Marlowe's data, and it joins the firm's list of sub-processors.
+  - id: W5
+    category: fact
+    keywords: ["alert fatigue", "false positive", "stop reading"]
+    belief: Over-flagging is harmless, so it is better to surface too much than miss something.
+    truth: Wrong items teach people to ignore the digest within days. A false action item pinned on a named person can also end up in a performance conversation.
+
+unaware:
+  - id: U1
+    category: legal-regulatory
+    keywords: ["co-determination", "works agreement", "Betriebsrat"]
+    gap: In Germany a technical system that could monitor employees needs the works council's agreement before it goes live, and the council can refuse.
+    why: Frankfurt staff cannot be in the pilot, or even in a test, until the works agreement is signed, however the product is described.
+  - id: U2
+    category: legal-regulatory
+    keywords: ["Article 35", "impact assessment", "systematic monitoring"]
+    gap: Systematic monitoring of employees needs a data protection impact assessment before it starts, with the DPO consulted.
+    why: It is a gate on the pilot date, not paperwork for later, and it decides whether cloud processing is allowed at all.
+  - id: U3
+    category: data-identity
+    keywords: ["subject access", "erasure", "retention period"]
+    gap: Anyone can ask what Heron holds about them, including people only mentioned in someone's transcript, and can ask for it to be erased.
+    why: Every derived item needs a findable owner, a retention period and a way to delete it, or the firm cannot answer a request within a month.
+  - id: U4
+    category: third-party-contract
+    keywords: ["client confidentiality", "engagement terms", "privilege"]
+    gap: Client contracts may bar third-party AI processing of meeting content, and calls with the firm's lawyers may be privileged.
+    why: The calls where most actions arise are the ones most likely to be excluded.
+  - id: U5
+    category: fact
+    keywords: ["prompt injection", "untrusted", "exfiltrat"]
+    gap: Emails and transcripts are text from outsiders that a language model will read, and can carry instructions that steer it.
+    why: A helper that can read mail and act can be turned into a leak by one crafted email.
+  - id: U6
+    category: legal-regulatory
+    keywords: ["AI Act", "high-risk", "Annex III"]
+    gap: Under the EU AI Act, systems used to monitor or evaluate workers fall in the high-risk employment category, and inferring emotion at work is banned.
+    why: Anything that ranks people or reads tone changes the legal class of the product.
+  - id: U7
+    category: legal-regulatory
+    keywords: ["legal hold", "eDiscovery", "business record"]
+    gap: A summary of a meeting can be a business record, and a legal hold can reach it.
+    why: Retention that deletes after 30 days may break a hold, and keeping it longer may breach the privacy limit.
+  - id: U8
+    category: fact
+    keywords: ["PPPC", "notarised", "code signing"]
+    gap: On a Mac, reading screens, audio or other apps needs privacy permissions granted by an MDM profile, and the installer must be signed and notarised. On Windows it needs a signed package that Intune can deploy.
+    why: Two minutes of setup is limited by what the MDM can pre-approve, and the first packaging slot decides the date.
+
+conflicts:
+  - id: C1
+    category: stakeholder-conflict
+    keywords: ["on-device only", "nothing leaves the laptop"]
+    who: CISO
+    position: Wants everything done on the laptop, so no meeting or mail text goes to any cloud service at all.
+  - id: C2
+    category: stakeholder-conflict
+    keywords: ["cloud summarisation", "across devices"]
+    who: Product owner
+    position: Wants the summaries written in the cloud, because the on-device model is weak and the digest should follow the person across devices.
+  - id: C3
+    category: stakeholder-conflict
+    keywords: ["manager dashboard", "no analytics on individuals"]
+    who: HR and works council rep
+    position: Wants no manager view of any kind and no per-person usage figures, since they would show who is idle.
+  - id: C4
+    category: stakeholder-conflict
+    keywords: ["adoption by team", "usage figures"]
+    who: CIO
+    position: Wants adoption by team on a dashboard to prove value to the executive committee.
+  - id: C5
+    category: stakeholder-conflict
+    keywords: ["no client transcripts", "external calls"]
+    who: Legal counsel
+    position: Wants no transcripts or summaries of external client calls in the pilot, until the client terms are read.
+
+decisions:
+  - id: D1
+    category: fact
+    keywords: ["assigned to me", "follow-ups I owe"]
+    question: What does the first release surface?
+    options:
+      - only the actions assigned to the user, deadlines and follow-ups they owe
+      - also decisions made, blockers and a meeting-prep digest
+      - everything, ranked for importance
+    choice: actions assigned to me, deadlines and follow-ups I owe; decisions and blockers in the second release
+    reason: that is the pain the survey found, and it is the part least likely to read as monitoring
+  - id: D2
+    category: legal-regulatory
+    keywords: ["on-device first", "redacted text"]
+    question: Where is the text read and summarised?
+    options:
+      - on the laptop only
+      - read on the laptop, summarised in the cloud on redacted text
+      - everything in the cloud
+    choice: read and ranked on the laptop, with cloud summarisation of redacted text only if the DPO clears it
+    reason: it keeps the CISO's red line for release one and leaves the product owner a route
+    refuse_until: the DPO confirms in writing that cloud summarisation is lawful under the impact assessment
+  - id: D3
+    category: legal-regulatory
+    keywords: ["opt in per source", "off by default"]
+    question: How do people switch it on?
+    options:
+      - opt in per source, off by default
+      - on for the pilot group, with an opt-out
+      - an admin switches it on for a team
+    choice: opt in per source, off by default, and each person can switch a source off and see what was read
+    reason: the HR and legal conditions both depend on it
+  - id: D4
+    category: legal-regulatory
+    keywords: ["existing transcripts", "no local audio"]
+    question: Which meetings does it read?
+    options:
+      - only Teams transcripts that already exist, plus calendar details
+      - also audio captured on the laptop
+      - also a note-taker that joins Zoom
+    choice: only Teams transcripts that already exist and calendar details; no local audio and no note-taker in release one
+    reason: it avoids new recording consent questions
+  - id: D5
+    category: data-identity
+    keywords: ["only the user", "no manager view"]
+    question: Who sees what Heron surfaces?
+    options:
+      - only the user
+      - the user and a weekly summary to their manager
+      - the team lead sees a team view
+    choice: only the user, and nothing goes to managers
+    reason: it is the condition the works council rep set, and it is what makes the helper feel safe
+  - id: D6
+    category: legal-regulatory
+    keywords: ["30 days", "raw text never stored"]
+    question: How long does Heron keep what it surfaces?
+    options:
+      - 30 days, with raw text never stored
+      - 90 days
+      - until the user deletes it
+    choice: surfaced items for 30 days, digests for 14, and raw text never stored
+    reason: less to hold, less to hand over
+    refuse_until: Legal confirms in writing how that fits the firm's records policy and any legal hold
+  - id: D7
+    category: fact
+    keywords: ["consent service", "consent record"]
+    question: Which app owns the consent record and the Graph grants?
+    options:
+      - a new consent and identity service that holds both, with the laptop holding only short-lived tokens
+      - the desktop agent keeps its own
+      - the digest service keeps them
+    choice: a consent and identity service owns the consent record and the Graph grants
+    reason: the agent can be thrown away and reinstalled without losing who agreed to what
+  - id: D8
+    category: fact
+    keywords: ["London only", "Client Delivery pilot"]
+    question: Who is in the pilot?
+    options:
+      - Client Delivery in London only, 60 people
+      - Client Delivery including Frankfurt
+      - three teams across the firm
+    choice: Client Delivery in London only
+    reason: Frankfurt needs a works agreement that will not exist in time
+  - id: D9
+    category: fact
+    keywords: ["hand off", "handoff", "handed off"]
+    question: When is the desktop agent handed to the team that builds it?
+    options:
+      - once its boundary and contracts are decided, to the Desk Agent team
+      - now, and let the team define the contracts
+      - after the pilot
+    choice: once its boundary and contracts are decided, to the Desk Agent team
+    reason: the team builds against agreed contracts
+
+docs:
+  - name: cio-brief.md
+    text: |
+      # From the CIO: Heron
+
+      Written 2026-09-30, to the leadership team.
+
+      A desk helper for every Mac and Windows PC. Staff install it themselves in two minutes and it quietly watches
+      their meetings, email and documents. It runs on the PC, so the data never leaves the machine and there is
+      nothing for privacy or the works councils to worry about. Staff choose to install it, so consent is covered. It
+      needs only each person's own Microsoft 365 sign-in. Pilot in January, firm-wide by the summer. Everyone is on
+      Windows, so we start there.
+  - name: tenant-note.md
+    text: |
+      # Microsoft 365 tenant note
+
+      Prepared by the IT endpoint lead, 2026-10-02.
+
+      - One tenant, about 4,200 users. Devices: 3,100 Windows managed by Intune, 1,100 Macs managed by Jamf.
+      - Staff cannot install software. Everything is pushed from Intune or Jamf.
+      - Teams transcripts exist only where the organiser turned them on, in the organiser's OneDrive.
+      - A Graph app registration is raised through the identity team. Calendar and mail can be read with each user's own
+        consent. Reading transcripts needs tenant admin approval.
+      - Frankfurt (about 600 staff) has a works council.
+  - name: product-one-pager.md
+    text: |
+      # Heron: product one-pager
+
+      From the product owner, 2026-10-05.
+
+      Heron reads Teams, Zoom, Outlook and documents, and writes a 7:30 digest each morning and a prep note ten minutes
+      before each meeting. The agent on the laptop collects, and a cloud service writes the summaries with a hosted
+      language model, because the on-device model is poor and the digest should follow the person across devices. A
+      team dashboard shows adoption by team. Pilot starts 2 February 2027 with Client Delivery.
+  - name: ciso-position.md
+    text: |
+      # CISO position on Heron
+
+      2026-10-06.
+
+      Nothing leaves the laptop. No meeting, mail or document text goes to a cloud service, a vendor or a language model
+      API, with or without redaction. Any new app registration on the tenant needs my security review first, which takes
+      about six weeks. I will not review a pack that sends text off the device.
