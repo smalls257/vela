@@ -522,9 +522,13 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W812 | ledger row is dated in the future | W813 | ledger page has no question ledger heading |
 | W360 | one sentence holds three or more IDs | W361 | an ID in prose, outside a link and not followed by its name |
 | W362 | a list of more than nine items with no subheadings | W363 | a long page with no opening summary |
-| W364 | an epic lists more than nine acceptance criteria | | |
+| W364 | an epic lists more than nine acceptance criteria | W365 | a paragraph over 150 words or 3 links, or an opening over 90 words or 3 links |
+| W366 | a table cell over 40 words | W367 | a phrase of three or more words repeated across pages |
+| W368 | the opening is a line the template wrote | W369 | an abbreviation not spelled out on the page |
 
 W360 to W364 are the reading-load warnings. They are warnings only, and each fix line says how to write it in plain words. W360 fires on a sentence with three or more IDs, W361 on an ID written in prose that is neither inside a link nor followed by its name (tables, headings, code, History and `- Trace:` lines are the machine's and are left alone), W362 on more than nine list items under one heading, W363 on a page of more than about 900 words with no paragraph between its title and its first `##` heading, and W364 on an epic with more than nine numbered acceptance criteria. The conventions above aim lower (about seven) so a page at the edge is not nagged.
+
+W365 to W369 are the second five, for what a reader meets word by word. All are warnings, with a fix line, and every limit is in `schema.py`. W365 fires on a prose paragraph of more than 150 words or more than 3 links, and on a page's opening (its first paragraph before the first `##`) of more than 90 words or 3 links, because the opening is the part most readers read; lists, tables, quotes, fact bullets, Trace lines and History are not paragraphs. W366 fires on a table cell of more than 40 words (two sentences), outside generated blocks, History and the question ledger. W367 is vault-level and reported once, with the pages: a phrase of three or more words that sits in prose on more than 5 pages, or more than 10 times in the vault. It skips History, tables, fact bullets, `**Label:**` lines, generated blocks, and phrases that are only the name of a page or a heading. Phrases built from a state word ("is still open") are counted: they are the finding, and the fix is where the state sits, never a synonym. W368 fires when a page someone has written in still opens with a line the template wrote (`plugin/catalog/template-lines.txt` lists them; an untouched page and an index are left alone). W369 fires once per page on a capitalised abbreviation of two to five letters that is not spelled out on that page; a short list of abbreviations everyone reads (IT, API, QA, SMS) is exempt.
 
 Codes are stable. A retired code is never reused.
 

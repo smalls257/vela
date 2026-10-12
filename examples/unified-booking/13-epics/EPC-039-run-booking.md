@@ -60,4 +60,3 @@ Must be done before [[EPC-033-website-to-booking|Website moves to Booking]] cuts
 
 - Dashboards for Pricing, Notifications or the channels. Their owners keep their own.
 
-The Booking team breaks this epic into stories after their tech design session.

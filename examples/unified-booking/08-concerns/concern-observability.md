@@ -16,7 +16,7 @@ sources: ["session 2026-09-02 Grill", "session 2026-10-07 Grill"]
 
 The old adapters failed with no signal. A customer paid, the confirm scrape failed, and the first anyone knew was a complaint the next morning. Booking measures each hand-off so a failure shows up at the stage where it happens.
 
-One trace ID runs from the channel to the Ledger adapter. Each channel creates it and passes it on every Booking API call, and Booking carries it into the MQ write. When a booking is stuck, on-call can see whether the delay was in the channel, Booking, Pricing or the ledger without reading four sets of logs.
+One trace ID runs from the channel to the Ledger adapter. Each channel creates it and passes it on every Booking API call, and Booking carries it into the message queue (MQ) write. When a booking is stuck, on-call can see whether the delay was in the channel, Booking, Pricing or the ledger without reading four sets of logs.
 
 The dashboards track per-channel request and error rate, booking state transitions, ledger write latency at p95 and the hold expiry rate. Ledger latency was measured at 2.1 s p95 before design started ([[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]]), so a rise has a baseline to compare against. A rising hold expiry rate usually means payments are failing at Tidepay, which no other metric would show.
 

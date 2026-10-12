@@ -24,7 +24,7 @@ We looked at a shared adapter library first. It would have been quicker, but it 
 
 FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]). Booking keeps short-lived state, such as a ten-minute hold while the customer pays, but the ledger always has the final word.
 
-Booking talks to the ledger through FERRYMASTER's existing MQ transactions, not by scraping screens ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]). We found those transactions during Discover: the mainframe team already exposes them for the finance job. That one finding removed the main reason the old adapters kept breaking.
+Booking talks to the ledger through FERRYMASTER's existing message queue (MQ) transactions, not by scraping screens ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]). We found those transactions during Discover: the mainframe team already exposes them for the finance job. That one finding removed the main reason the old adapters kept breaking.
 
 When a ledger write is slow or fails, Booking keeps the hold and retries. The customer sees "confirming" rather than an error, and the call centre sees exactly what the customer sees. That replaces the next-morning manual fixes.
 
@@ -42,4 +42,4 @@ Each channel keeps its old adapter behind a switch for four weeks after it moves
 
 - Rebuild the ledger. That is the Mainframe Exit initiative, and this initiative gives it a single door to replace.
 - Let channels keep a direct line to Pricing "just in case". One caller is the point.
-- Build our own payment page. Tidepay's hosted page keeps us out of PCI scope.
+- Build our own payment page. Tidepay's hosted page keeps us out of Payment Card Industry (PCI) scope.

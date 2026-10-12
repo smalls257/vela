@@ -14,7 +14,7 @@ sources: ["sessions 2026-07-06 to 2026-11-18"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-**Booking.** The new application that decides a booking's state. Not to be confused with a booking, the thing a customer has.
+**Booking.** The new application that decides what state a booking is in. Not to be confused with a booking, the thing a customer has.
 
 **Booking reference.** The six-character code a customer sees. FERRYMASTER issues it; Booking never makes one up.
 
@@ -26,7 +26,7 @@ sources: ["sessions 2026-07-06 to 2026-11-18"]
 
 **Ledger.** FERRYMASTER, for as long as the Mainframe Exit initiative hasn't replaced it. The record of what has been sold.
 
-**Ledger transactions.** FERRYMASTER's existing MQ transactions: BKHOLD, BKCONF, BKAMND and BKCANC. See [[ferrymaster-building-blocks#CON-006 Ledger transactions|Ledger transactions]].
+**Ledger transactions.** FERRYMASTER's existing message queue (MQ) transactions: BKHOLD, BKCONF, BKAMND and BKCANC. See [[ferrymaster-building-blocks#CON-006 Ledger transactions|Ledger transactions]].
 
 **Channel.** A front end customers or agents use to book: the public website, the call centre desktop, or a port kiosk.
 

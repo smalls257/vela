@@ -18,7 +18,7 @@ Every app keeps its current owner. This initiative adds one team and moves one r
 
 Each front-end team owns its Booking API client and its consumer contract tests. The Booking team does not write channel code. When a channel needs something new from the API, the front-end team changes its contract test and the Booking team sees it fail in Booking's pipeline.
 
-The mainframe team owns FERRYMASTER and the MQ transactions, and gives 8 weeks' notice of changes. The Ledger adapter belongs to the Booking team, so the mainframe team never has to support a client it did not write.
+The mainframe team owns FERRYMASTER and the message queue (MQ) transactions, and gives 8 weeks' notice of changes. The Ledger adapter belongs to the Booking team, so the mainframe team never has to support a client it did not write.
 
 ## Per app
 

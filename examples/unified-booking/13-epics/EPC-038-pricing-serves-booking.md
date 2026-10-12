@@ -61,4 +61,3 @@ The contract test runs from the start. The gateway restriction is switched on af
 - Fare rules and the Fare rules store.
 - Any change inside Pricing.
 
-The Revenue team breaks this epic into stories after their tech design session.

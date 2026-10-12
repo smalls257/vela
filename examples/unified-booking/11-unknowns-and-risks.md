@@ -37,7 +37,7 @@ This page keeps every question nobody could answer when it was asked, and every 
 - **Opened:** 2026-07-28 Grill
 - **State:** resolved
 - **Blocks:** [[FLO-001-hold-pay-confirm|FLO-001]] design, [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]], [[EPC-031-holds-and-confirms|EPC-031]]
-- **Outcome:** Measured p95 of 2.1 s over MQ. The customer sees "confirming" while Booking retries. Fine.
+- **Outcome:** Measured p95 of 2.1 s over message queue (message queue (MQ)). The customer sees "confirming" while Booking retries. Fine.
 - **Resolved in:** [[2026-09-02-hold-pay-confirm]]
 
 ### UNK-002 Repeatable test data
@@ -114,7 +114,7 @@ This page keeps every question nobody could answer when it was asked, and every 
 
 ### R-01 Mainframe knowledge sits with two people
 
-Two people understand FERRYMASTER's COBOL and MQ transactions. If both are away, nobody can diagnose a ledger write problem.
+Two people understand FERRYMASTER's mainframe programming and message queue (MQ) transactions. If both are away, nobody can diagnose a ledger write problem.
 
 - **Owner:** @hl-solution-lead (solution lead)
 - **State:** mitigated

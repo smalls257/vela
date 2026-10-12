@@ -51,5 +51,5 @@ The customer has 10 minutes to pay before the hold expires. The ledger write beh
 ## When a dependency is slow or down
 
 - **Ledger write slow.** The page shows "confirming" and keeps polling get. The customer has already paid and Booking keeps the hold, so the page does not report a failure while Booking is still retrying. The confirmation email arrives when the ledger write completes.
-- **Booking down.** The website says booking is unavailable and takes no payment. It does not fall back to the FM screen adapter on its own. Only a person flipping the switch moves traffic back, and only during the 4 weeks before the adapter is removed.
+- **Booking down.** The website says booking is unavailable and takes no payment. It does not fall back to the FERRYMASTER screen adapter on its own. Only a person flipping the switch moves traffic back, and only during the 4 weeks before the adapter is removed.
 - **Tidepay down.** The customer cannot pay, and the hold expires after 10 minutes.

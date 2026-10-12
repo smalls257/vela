@@ -19,9 +19,9 @@ sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 
 
 - **Decision:** [[2026-07-28-solution-strategy]]
 
-Port kiosks let customers at the terminal buy a crossing and check a booking without queueing. They run a locked-down image that changes twice a year, in March and September. After this initiative the kiosk app asks Booking for every booking action.
+Port kiosks let customers at the terminal buy a crossing and check a booking without queueing. They run a locked-down image that changes twice a year, in March and September. From the March 2027 image the kiosk app asks Booking for every booking action.
 
-Kiosks no longer decide whether a booking is confirmed and no longer cache FERRYMASTER replies.
+Kiosks no longer decide if a booking is confirmed and no longer cache FERRYMASTER replies.
 
 | Change in INI-002 | Owner team |
 |---|---|
@@ -68,7 +68,6 @@ flowchart LR
   fma -.-> fm
 ```
 
-Components inside these containers belong to the Port Systems team's tech design.
 
 ## Contracts this app provides
 
@@ -83,10 +82,6 @@ None. The kiosks only consume.
 <!-- /generated:contracts-consumed -->
 
 Version 1 must stay available until at least the September 2027 image, and longer if that image slips (the kiosk image slip risk, [[ADR-0003-versioned-booking-api|the versioning decision]]).
-
-## Concerns
-
-This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 

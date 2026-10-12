@@ -68,7 +68,7 @@ verified_by: "@hl-solution-lead"
 
 Harbourline sells crossings through three front ends: the public website, the call centre desktop and the port kiosks. Each one talks to FERRYMASTER through its own screen-scraping adapter, so when the mainframe changes a screen, all three break. That happened eleven times in the last twelve months, usually just before a bank holiday weekend.
 
-It also means nobody agrees on what "confirmed" means. The kiosks and the call centre cache FERRYMASTER's replies differently, and customers notice. Worst of all, if the website's confirm step fails after payment, the customer has paid for nothing until someone in the call centre fixes it by hand the next morning.
+It also means nobody agrees on what "confirmed" means. The kiosks and the call centre cache FERRYMASTER's replies differently, and customers notice. Worst of all, if the website's confirm step fails after payment, the customer has paid for nothing until someone in the call centre fixes it by hand the following day.
 
 This initiative puts one application, Booking, between the front ends and the ledger. Only Booking talks to FERRYMASTER about bookings, and only Booking decides what state a booking is in.
 

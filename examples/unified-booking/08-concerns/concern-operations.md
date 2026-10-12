@@ -18,7 +18,7 @@ Booking is a new team running a new service, so it joins the Platform on-call ro
 
 Two runbooks exist before go-live. The ledger-write failure runbook covers a booking that is paid and stuck in "confirming" after the Ledger adapter has run out of retries. This is the case the call centre used to fix by hand the next morning ([[CAP-023-fix-failed-bookings|Fix failed bookings by hand]]), and now on-call handles it the same night. The hold-store outage runbook covers Booking refusing new holds while the store is down; existing confirmed bookings are unaffected.
 
-Mainframe knowledge sits with two people ([[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|Mainframe knowledge sits with two people]]). The MQ mapping is written down in [[ferrymaster-building-blocks#CON-006 Ledger transactions|Ledger transactions]], and Booking engineers pair with the mainframe team from January to March 2027, so on-call does not depend on reaching one of them at night.
+Mainframe knowledge sits with two people ([[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|Mainframe knowledge sits with two people]]). The message queue (MQ) mapping is written down in [[ferrymaster-building-blocks#CON-006 Ledger transactions|Ledger transactions]], and Booking engineers pair with the mainframe team from January to March 2027, so on-call does not depend on reaching one of them at night.
 
 ## Per app
 

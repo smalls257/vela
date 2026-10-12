@@ -27,6 +27,7 @@ from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
+TEMPLATE_LINES = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "template-lines.txt"
 
 
 class ToolError(Exception):
@@ -68,6 +69,17 @@ def load_catalogue(path=None):
         raise ToolError(f"{path} is not a valid question catalogue: {exc}") from exc
 
 
+def load_template_lines(path=None):
+    """The prose lines the template pages write, one per line, for W368. Missing is a tool failure: an empty list
+    would make every page look as if it had replaced its template opening."""
+    path = pathlib.Path(path or TEMPLATE_LINES)
+    try:
+        return [line for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ToolError(f"{path} cannot be read ({exc}), so planner cannot tell a template opening from a written one. "
+                        "Restore it from the toolkit repo.") from exc
+
+
 def vault_files(root):
     """(pages to parse, basenames of other Markdown files) under the vault root."""
     pages, others = [], []
@@ -93,7 +105,7 @@ def load_vault(root):
         except (OSError, UnicodeDecodeError) as exc:
             raise ToolError(f"Cannot read {path}: {exc}") from exc
         pages.append(parse.parse_page(path.relative_to(root).as_posix(), text))
-    return model.build(pages, config, others, load_catalogue())
+    return model.build(pages, config, others, load_catalogue(), load_template_lines())
 
 
 def parse_today(value):

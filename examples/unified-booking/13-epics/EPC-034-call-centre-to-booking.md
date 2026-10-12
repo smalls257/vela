@@ -20,7 +20,7 @@ sources: ["session 2026-10-07 Grill", "session 2026-11-18 Grill"]
 
 The call centre desktop client becomes a Booking API client, gets new amend and cancel screens, and loses its terminal adapter. Agents then see the same booking state as the website and the kiosks, because all three ask Booking instead of reading FERRYMASTER through their own cache.
 
-The manual fix queue goes too. It exists because the website's confirm can fail after payment, leaving agents to repair bookings the next morning. Booking now retries the ledger write and keeps the hold, so nothing is left to repair. The Head of Contact Centre agreed the queue closes when the old adapter is removed.
+The manual fix queue goes too. It exists because the website's confirm can fail after payment, leaving agents to repair bookings the next day. Booking now retries the ledger write and keeps the hold, so nothing is left to repair. The Head of Contact Centre agreed the queue closes when the old adapter is removed.
 
 **Owning team:** Contact Centre Systems team.
 
@@ -63,4 +63,3 @@ Second channel, March 2027, after the website. Rollback is flipping the call cen
 - Changes to how agents find crossings ([[CAP-011-find-a-crossing|Find a crossing]] is unchanged).
 - Customer messages after an agent's change ([[EPC-037-events-and-notifications|Booking events and customer notifications]]).
 
-The Contact Centre Systems team breaks this epic into stories after their tech design session.

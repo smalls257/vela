@@ -66,4 +66,3 @@ No channel traffic reaches Booking until that channel's own epic cuts over. Book
 - How writes reach FERRYMASTER ([[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]).
 - Any channel's Booking API client.
 
-The Booking team breaks this epic into stories after their tech design session.

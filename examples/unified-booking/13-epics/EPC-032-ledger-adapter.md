@@ -18,9 +18,9 @@ sources: ["session 2026-07-14 Discover", "session 2026-08-19 Probe", "session 20
 
 - **Decision:** [[2026-11-18-epics]]
 
-Booking writes to FERRYMASTER through the four MQ transactions the mainframe team already exposes for the finance reconciliation job: BKHOLD, BKCONF, BKAMND and BKCANC ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]). Screen scraping is what broke 11 times last year. The MQ transactions stay the same when a screen changes, and FERRYMASTER itself cannot change before 2028 (its vendor contract runs that long), so Booking adapts to what is already there.
+Booking writes to FERRYMASTER through the four message queue (MQ) transactions the mainframe team already exposes for the finance reconciliation job: BKHOLD, BKCONF, BKAMND and BKCANC ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]). Screen scraping is what broke 11 times last year. The MQ transactions stay the same when a screen changes, and FERRYMASTER itself cannot change before 2028 (its vendor contract runs that long), so Booking adapts to what is already there.
 
-Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]). A Booking engineer pairs with them and the MQ mapping goes into the Ledger transactions contract, so the knowledge no longer sits with two people (the mainframe knowledge risk). The ledger simulator built here is what Booking's contract tests run against ([[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]]).
+Two people understand FERRYMASTER's mainframe programming. The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]). A Booking engineer pairs with them and the MQ mapping goes into the Ledger transactions contract, so the knowledge no longer sits with two people (the mainframe knowledge risk). The ledger simulator built here is what Booking's contract tests run against ([[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]]).
 
 **Owning team:** Booking team, with mainframe team support.
 
@@ -31,7 +31,7 @@ Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a wee
 2. When FERRYMASTER rejects a write or does not answer, Booking retries and the booking keeps its hold. No channel sees `confirmed` until FERRYMASTER has accepted. [data]
 3. The same write sent twice is applied once in FERRYMASTER.
 4. p95 ledger write latency in the weekly end-to-end run is no worse than the 2.1 s measured for [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]].
-5. Booking's MQ volume stays within the existing MIPS budget agreed with the mainframe team lead. [cost]
+5. Booking's MQ volume stays within the existing millions of instructions per second (MIPS) budget agreed with the mainframe team lead. [cost]
    - Trace: CST-5
 6. Booking's contract tests run against the ledger simulator with no connection to FERRYMASTER, and the simulator gives the replies the Ledger transactions contract documents for every transaction. [testing]
    - Trace: CON-006
@@ -49,7 +49,12 @@ Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a wee
 | Concerns | [[concern-cost\|Cost]], [[concern-data\|Data]], [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
-Also related: [[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]], [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]], [[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]].
+Also related:
+
+- [[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]
+- [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]]
+- [[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]]
+- [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]
 
 ## Depends on
 
@@ -64,4 +69,3 @@ The adapter is proven against the FERRYMASTER test region during the January to 
 - Any change to FERRYMASTER or its MQ transactions.
 - The data warehouse feed, the finance reconciliation job and the loyalty scheme, which keep reading FERRYMASTER directly (the Loyalty Revamp and Mainframe Exit initiatives).
 
-The Booking team breaks this epic into stories after their tech design session.

@@ -16,7 +16,7 @@ sources: [SRC-04, "UNK-003 mainframe capacity 2026-08-14", "UNK-002 test data de
 
 # FERRYMASTER
 
-FERRYMASTER is the 1990s mainframe that holds Harbourline's booking ledger. It stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]). Booking writes to it through four MQ transactions the mainframe team already exposes for the finance job ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]).
+FERRYMASTER is the 1990s mainframe that holds Harbourline's booking ledger. It stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]). Booking writes to it through four message queue (MQ) transactions the mainframe team already exposes for the finance job ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]).
 
 FERRYMASTER is not responsible for holds during payment or for telling channels a booking's state. Booking does both.
 
@@ -37,7 +37,7 @@ flowchart LR
 ```
 <!-- /generated:app-context -->
 
-FERRYMASTER is a black box on this page. Nobody in this initiative changes it, and only two people understand its COBOL, so we describe the transactions it exposes and stop there.
+FERRYMASTER is a black box on this page. Nobody in this initiative changes it, and only two people understand its mainframe programming, so we describe the transactions it exposes and stop there.
 
 ## Contracts this app provides
 
@@ -56,10 +56,6 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 <!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->
 none
 <!-- /generated:contracts-consumed -->
-
-## Concerns
-
-This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]) and pairs with the Booking team in that time.
 

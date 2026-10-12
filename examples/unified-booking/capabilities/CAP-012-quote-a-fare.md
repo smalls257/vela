@@ -15,7 +15,7 @@ sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 
 - **Decision:** [[2026-08-12-goals-and-data]]
 
-Lets a customer or an agent know the price of a crossing before they commit to it.
+Gives a customer or an agent the price of a crossing before they commit to it.
 
 **Domain:** Sell
 

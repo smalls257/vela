@@ -21,7 +21,7 @@ sources: ["Pricing senior review of CON-003", SRC-09]
 
 Pricing quotes a fare for a crossing, given the date, the passengers and the vehicle. It holds the fare rules the Revenue team sets. Its job does not change in this initiative.
 
-Pricing does not hold seats or know whether a booking is confirmed. Booking does that.
+Pricing does not hold seats or know if a booking is confirmed. Booking does that.
 
 | Change in INI-002 | Owner team |
 |---|---|
@@ -61,7 +61,6 @@ flowchart LR
   qs --> fr
 ```
 
-Components inside these containers belong to the Revenue team's tech design.
 
 ## Contracts this app provides
 
@@ -83,10 +82,6 @@ Components inside these containers belong to the Revenue team's tech design.
 <!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->
 none
 <!-- /generated:contracts-consumed -->
-
-## Concerns
-
-This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 

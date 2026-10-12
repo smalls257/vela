@@ -312,6 +312,11 @@ CODES = {
     "W362": "a list of more than nine items with no subheadings",
     "W363": "a long page with no opening summary",
     "W364": "an epic lists more than nine acceptance criteria",
+    "W365": "a paragraph over 150 words or 3 links, or an opening over 90 words or 3 links",
+    "W366": "a table cell over 40 words",
+    "W367": "a phrase of three or more words repeated across pages",
+    "W368": "the opening is a line the template wrote",
+    "W369": "an abbreviation not spelled out on the page",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",
@@ -378,6 +383,22 @@ SENTENCE_ID_LIMIT = 3  # W360 from this many IDs in one sentence
 LIST_LIMIT = 9  # W362: more list items than this under one heading, with no subheadings
 LONG_PAGE_WORDS = 900  # W363: a page this long opens with a summary
 EPIC_CRITERIA_LIMIT = 9  # W364: more acceptance criteria than this on one epic
+# W365 to W369 (design session 16). Pages are written to 80 words in an opening and 120 in a paragraph; the warnings fire
+# a little past that, so a page at the edge is not nagged. digital.gov's ceiling for a paragraph is 150.
+PARAGRAPH_WORD_LIMIT = 150  # W365: more words than this in one paragraph
+OPENING_WORD_LIMIT = 90  # W365: more words than this in a page's opening paragraph, the part most readers read
+PARAGRAPH_LINK_LIMIT = 3  # W365: more links than this in one paragraph or opening; each link is a decision for the reader
+CELL_WORD_LIMIT = 40  # W366: two sentences; a cell is read as one chunk
+PHRASE_WORDS = 3  # W367: words in a phrase. A four-word phrase over the limit makes its three-word parts over it, so three finds both.
+PHRASE_PAGE_LIMIT = 5  # W367: a phrase on more pages than this
+PHRASE_TIME_LIMIT = 10  # W367: or used more times than this across the vault
+# Words that cannot make a phrase on their own: "of the first" is a phrase only because of "first".
+PHRASE_FILLER = frozenset("a an the of to in on at by for and or but is are was were be been it its that this these those as "
+                          "with from has have had will would can could should may might which who there their they we you "
+                          "i he she his her our your".split())
+# W369: capitalised words of two to five letters that need no spelling out, and shouted ordinary words.
+ABBREVIATIONS_UNDERSTOOD = frozenset("IT PC ID IDS OK AM PM US UK EU UTC URL PDF FAQ CEO API QA SMS HTML SQL JSON CSV UI UX "
+                                     "NOT AND OR MUST ONLY NEVER ALL NO YES TBC TBD".split())
 
 # ------------------------------------------------------------ voice examples
 
