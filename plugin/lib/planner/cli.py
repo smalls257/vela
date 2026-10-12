@@ -924,13 +924,50 @@ def cmd_render(args, out):
     return 0
 
 
+# What git says when it ran fine and the answer is "no": not a repository, no commit yet, no such remote.
+GIT_SAYS_NO = ("not a git repository", "unknown revision", "ambiguous argument", "bad revision", "no such remote",
+               "does not have any commits", "needed a single revision")
+
+
 def git(root, *args):
-    """Output of a git command in the vault, or "" when git cannot answer."""
-    try:
-        result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=10)
-    except (OSError, subprocess.SubprocessError):
+    """Output of a git command in the vault. "" means git ran and answered no (no repository, no commit, no remote).
+    A git that is missing, times out or fails for any other reason raises GitUnavailable: it must never read as that
+    answer, or a stamp would claim a clean copy it never checked."""
+    code, out, err = vaultgit.run_git(root, *args, timeout=10)
+    if code == 0:
+        return out
+    if any(phrase in err.lower() for phrase in GIT_SAYS_NO):
         return ""
-    return result.stdout.strip() if result.returncode == 0 else ""
+    raise vaultgit.GitUnavailable(f"git {' '.join(args)} failed: {err or out or 'no message'}")
+
+
+def remote_url(root):
+    """The origin URL, "" when there is none, or words saying git did not answer."""
+    try:
+        return git(root, "remote", "get-url", "origin")
+    except vaultgit.GitUnavailable as exc:
+        return f"unknown, git did not answer ({exc})"
+
+
+def changes_note(root):
+    """" with uncommitted changes", "", or words saying git could not tell."""
+    try:
+        return " with uncommitted changes" if git(root, "status", "--porcelain", "--", ".") else ""
+    except vaultgit.GitUnavailable as exc:
+        return f" (could not tell whether it has uncommitted changes: {exc})"
+
+
+def commit_stamp(root, override=""):
+    """The commit a generated file is stamped with: the override, the short HEAD, or words that say what could not be
+    learned. Never a clean-looking stamp from a git that did not answer."""
+    if override:
+        return override
+    try:
+        commit = git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
+        dirty = bool(git(root, "status", "--porcelain", "--", "."))
+    except vaultgit.GitUnavailable as exc:
+        return f"unknown, git did not answer ({exc})"
+    return commit + (" with uncommitted changes" if dirty else "")
 
 
 def cmd_next_id(args, out):
@@ -979,15 +1016,15 @@ def cmd_view(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
     today, _ = parse_today(args.date)
-    commit = args.commit or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
-    if git(root, "status", "--porcelain", "--", "."):
-        commit += " with uncommitted changes"
+    commit = commit_stamp(root, args.commit)
+    if args.commit:
+        commit += changes_note(root)  # a named commit still says when the files differ from it
     findings = rules.check(vault, today)
     errors = sum(1 for f in findings if f.is_error)
     stamp = {
         "commit": commit,
         "date": today,
-        "repo": args.repo_url or git(root, "remote", "get-url", "origin") or "no repository URL recorded",
+        "repo": args.repo_url or remote_url(root) or "no repository URL recorded",
         "errors": errors,
         "warnings": len(findings) - errors,
     }
@@ -1062,7 +1099,7 @@ def cmd_health(args, out):
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
     vault = load_vault(root)
-    commit = git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
+    commit = commit_stamp(root)
     findings = rules.check(vault, today)
     print(health.report(vault, findings, today, commit), end="", file=out)
     return 0
@@ -1381,9 +1418,11 @@ def handoff_app(vault, app_id):
 
 
 def stamp_commit(root, override):
-    commit = override or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
-    if not override and git(root, "status", "--porcelain", "--", "."):
-        commit += " with uncommitted changes"
+    """The commit a handoff manifest records. A manifest is provenance, so a git that did not answer stops the
+    handoff instead of writing a stamp nobody can trust."""
+    commit = commit_stamp(root, override)
+    if commit.startswith("unknown"):
+        raise ToolError(f"cannot record the commit: {commit[len('unknown, '):]}. Pass --commit <sha> to state it yourself.")
     return commit
 
 
@@ -1450,10 +1489,15 @@ def handoff_verify(root, app_id, out):
 def cmd_export(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
-    remote = args.repo_url or git(root, "remote", "get-url", "origin")
+    git_trouble, dirty = "", False
+    try:
+        dirty = not args.commit and bool(git(root, "status", "--porcelain", "--", "."))
+        remote = args.repo_url or git(root, "remote", "get-url", "origin")
+        commit = args.commit or git(root, "rev-parse", "HEAD")
+        prefix = git(root, "rev-parse", "--show-prefix")
+    except vaultgit.GitUnavailable as exc:
+        remote, commit, prefix, git_trouble = args.repo_url or "", args.commit or "", "", str(exc)
     base = export.web_url(remote)
-    commit = args.commit or git(root, "rev-parse", "HEAD")
-    prefix = git(root, "rev-parse", "--show-prefix")
     if base and commit:
         def link_for(path):
             return f"{base}/blob/{commit}/{export.link_path(prefix + path)}"
@@ -1472,8 +1516,10 @@ def cmd_export(args, out):
     if not (base and commit):
         print("  No repository URL or commit was found, so Vault link holds each epic's path in the vault. "
               "Pass --repo-url and --commit to link to the repository.", file=out)
-    elif not args.commit and git(root, "status", "--porcelain", "--", "."):
+    elif dirty:
         print("  The vault has uncommitted changes, so Vault links point at HEAD and may not show them.", file=out)
+    if git_trouble:
+        print(f"  Git did not answer ({git_trouble}), so Vault links hold paths, not repository links.", file=out)
     open_epics = [e for e in vault.of_type("epic") if e.meta.get("state") != "decided"]
     if open_epics:
         print("  Not decided yet: " + ", ".join(f"{e.id or e.path} ({e.meta.get('state', 'no state')})"
@@ -1645,7 +1691,10 @@ def cached(embed, folder):
 
 def cache_folder(root):
     """.git/planner-voicescore/ of the vault's repo, so the cache is never staged, or None outside git."""
-    git_dir = git(root, "rev-parse", "--absolute-git-dir")
+    try:
+        git_dir = git(root, "rev-parse", "--absolute-git-dir")
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"cannot place the voice-score cache inside the repository: {exc}") from exc
     return pathlib.Path(git_dir) / "planner-voicescore" if git_dir else None
 
 
