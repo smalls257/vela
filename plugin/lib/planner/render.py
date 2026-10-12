@@ -4,6 +4,7 @@ Each block is computed from the model only, never from another block. Output
 holds links and numbers, dates and never ages, so two runs give equal bytes.
 """
 import hashlib
+import re
 
 from planner import allocation, diagrams, progress, questions, schema, trace
 from planner.model import Finding, blocking_unknowns
@@ -34,9 +35,12 @@ def block_allowed(page, name):
     return page.id == where
 
 
+UNESCAPED_PIPE = re.compile(r"(?<!\\)\|")
+
+
 def cell(text):
-    """Make text safe inside a Markdown table cell."""
-    return text.replace("|", "\\|")
+    """Make text safe inside a Markdown table cell. A pipe already written as \\| is left alone, so escaping twice is harmless."""
+    return UNESCAPED_PIPE.sub("\\\\|", text)
 
 
 def row(*cells):
@@ -45,7 +49,7 @@ def row(*cells):
 
 def link(target, label, anchor=""):
     inner = f"{target}#{anchor}" if anchor else target
-    return f"[[{inner}\\|{label}]]"
+    return f"[[{inner}\\|{cell(label)}]]"
 
 
 def title(page):

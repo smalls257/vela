@@ -10,7 +10,7 @@ import urllib.parse
 
 from planner import criteria as criteria_reader
 from planner import override, trace
-from planner.parse import FENCE
+from planner.parse import FENCE, closes_fence
 
 EPICS_FOLDER = "13-epics/"
 COLUMNS = ("Summary", "Description", "Epic Name", "Owner team", "Vault link")
@@ -39,7 +39,7 @@ def body_lines(epic):
     fence, section = None, ""
     for n, raw in enumerate(lines[start:], start=start + 1):
         if fence:
-            if raw.strip().startswith(fence):
+            if closes_fence(raw, fence):
                 fence = None
             continue
         opening = FENCE.match(raw)

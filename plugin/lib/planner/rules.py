@@ -103,7 +103,7 @@ def _enum_findings(vault, page, page_type, spec):
         if key in meta and not (isinstance(meta[key], list) and all(isinstance(v, str) for v in meta[key])):
             yield _f(page, meta_line(page, key), "E105", f"'{key}' must be a list of text values.",
                      f"Write it as {key}: [A, B].")
-    if "owner" in meta and not (isinstance(meta["owner"], str) and schema.OWNER_RE.match(meta["owner"])):
+    if meta.get("owner") is not None and not (isinstance(meta["owner"], str) and schema.OWNER_RE.match(meta["owner"])):
         yield _f(page, meta_line(page, "owner"), "E105", f"Owner '{meta['owner']}' is not a GitHub handle or team.",
                  "Write owner: \"@handle\" or \"@org/team\", several separated by spaces.")
     if "domain" in meta and not (isinstance(meta["domain"], str) and meta["domain"].strip()):
@@ -176,6 +176,24 @@ def duplicate_rules(vault, today):
             where = ", ".join(f"{i.page.path}:{i.line}" for i in items[1:])
             yield _f(items[0].page, items[0].line, "E208", f"{item_id} is also a heading at {where}.",
                      "Keep one heading per ID and link to it from elsewhere.")
+    yield from repeated_fact_rules(vault)
+    for row_id, (kept_page, kept_line), (page, line) in vault.row_repeats:
+        yield _f(page, line, "E210", f"{row_id} is also a row at {kept_page.path}:{kept_line}, and only that first row counts.",
+                 "Give each goal, constraint and source its own ID.")
+
+
+FACTS_MAY_REPEAT = set(schema.HISTORY_LABELS) | {schema.PENDING_LABEL}  # a History keeps every decision and override
+
+
+def repeated_fact_rules(vault):
+    """E209: a label written twice under one heading. The first bullet is the one every rule reads, so a later
+    '- **State:** decided' appended by hand would change nothing and say nothing."""
+    for found in vault.items.values():
+        for item in found:
+            for kept, ignored in item.repeats:
+                if ignored.label not in FACTS_MAY_REPEAT:
+                    yield _f(item.page, ignored.line, "E209", f"{item.id} has '**{ignored.label}:**' twice; line {kept.line} counts and this one is ignored.",
+                             f"Keep one '**{ignored.label}:**' bullet under {item.id}, with the value you mean.")
 
 
 # --------------------------------------------------------------------- links
@@ -415,6 +433,14 @@ def subject_rules(vault, today):
                 form = "### PTY-nn <name>" if first.upper().startswith("PTY") else "### SV-nn <name>"
                 yield _f(page, heading.line, "E810", f"'{heading.text}' looks like a subject heading but does not read as one.",
                          f"Write it as '{form}': level 3, a two-digit ID in capitals, then a space and the name.")
+    for page in vault.pages:
+        for heading in page.headings:
+            first = heading.text.split()[0] if heading.text.split() else ""
+            if heading.level == 3 and schema.ITEM_LOOKALIKE_RE.match(first) and not schema.ITEM_ID_RE.match(first):
+                form = schema.ITEM_FORMS[first.split("-")[0].upper()]
+                yield _f(page, heading.line, "E810", f"'{heading.text}' looks like an item heading but does not read as one, "
+                         "so no index or gate sees it.",
+                         f"Write it as '### {form} <name>': the ID in capitals with its digits, then a space and the name, no colon after the ID.")
     for item in vault.parties + vault.stored_values:
         if item.page.path != schema.SUBJECT_PAGE:
             yield _f(item.page, item.line, "W811", f"{item.id} is defined on {item.page.path}, not on {schema.SUBJECT_PAGE}.",
@@ -456,6 +482,11 @@ def decided_units(vault):
     # An allocation row has no heading of its own, so its Decision is the app page's, as for a goal row.
     for subject, row in allocation.decided_rows(vault):
         yield subject, row.app, row.line, row.app.page_bullets("Decision")
+    # A release has no heading ID, so its unit is named by its heading and its Decision is the releases page's.
+    for release in releases.releases(vault):
+        if release.state == "decided":
+            page = releases.page(vault)
+            yield f"release '{release.name}'", page, release.line, page.page_bullets("Decision")
 
 
 def _modes(session):
@@ -786,6 +817,10 @@ def concern_rules(vault, today):
     for concern in sorted(vault.of_type("concern"), key=lambda p: p.id):
         seen = set()
         for cell in (c for c in vault.cells if c.concern is concern):
+            if cell.app and cell.app.lower() in seen:
+                yield _f(concern, cell.line, "E210", f"{cell.app} already has a cell on this page, so this row is ignored.",
+                         "Keep one row per app on a concern page.")
+                continue
             seen.add(cell.app.lower())
             label = cell.app or "a row"
             if not cell.app:
@@ -1027,7 +1062,7 @@ def link_pipe_rules(vault, today):
     """W329: a [[link|label]] in a table row written with a bare |. Obsidian, GitHub and other Markdown readers take it
     as a column break and the row falls apart; the planner reads it as the link's, so nothing is lost here."""
     for page in vault.pages:
-        lines = page.text.splitlines()
+        lines = parse.lines_of(page.text)
         for table in page.tables:
             if table.generated:
                 continue

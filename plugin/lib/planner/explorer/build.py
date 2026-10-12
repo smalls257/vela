@@ -29,6 +29,7 @@ import re
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
                      reading, roles, schema, trace)
 from planner import search as planner_search
+from planner.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
                plan_data, roles_data, serve)
@@ -81,11 +82,12 @@ def skipped_lines(page):
         stripped = raw.strip()
         if fence:
             skip.add(n)
-            if stripped.startswith(fence):
+            if closes_fence(raw, fence):
                 fence = None
             continue
-        if stripped.startswith("```") or stripped.startswith("~~~"):
-            fence = stripped[:3]
+        opening = FENCE.match(raw)
+        if opening:
+            fence = opening.group(1)
             skip.add(n)
     return skip
 

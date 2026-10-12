@@ -12,6 +12,7 @@ import json
 import re
 
 from planner import override, readability, reading
+from planner.parse import closes_fence
 
 EXCLUDED_FOLDERS = ("sessions/",)
 DRAFT_STATES = ("inkling", "assumption", "fact", "proposed", "draft", "reopened")
@@ -31,7 +32,8 @@ def excluded_names(vault):
 # comment markers that `planner render` writes are left alone.
 GENERATED_MARKER = re.compile(
     r"<!--\s*/?generated:[a-z0-9-]+(?: sha=[0-9a-f]{8}: do not edit, run planner render)?\s*-->")
-FENCE = re.compile(r"^\s{0,3}(```|~~~)")
+# Indented four or more is an indented code block, not a fence, as marked reads it; closing is parse.closes_fence.
+FENCE = re.compile(r"^\s{0,3}(`{3,}(?=[^`]*$)|~{3,})")
 CODE_SPAN = re.compile(r"(`+)(?:(?!\1).)+?\1")
 MD_LINK = re.compile(r"(!?)\[([^\]\n]*)\]\(((?:[^()\n]|\([^()\n]*\))*)\)")
 SAFE_LINK_SCHEMES = ("http:", "https:", "mailto:")
@@ -78,7 +80,7 @@ def neutralise(markdown):
         fence = FENCE.match(line)
         if in_fence:
             out.append(line)
-            if fence and fence.group(1) == fence_mark:
+            if closes_fence(line, fence_mark):
                 in_fence = False
             continue
         if fence:
@@ -161,7 +163,7 @@ def name_the_ids(markdown, names):
     for line in markdown.split("\n"):
         opening = reading.FENCE.match(line)
         if fence:
-            fence = None if opening and opening.group(1) == fence else fence
+            fence = None if closes_fence(line, fence) else fence
             out.append(line)
             continue
         if opening:

@@ -6,7 +6,7 @@ change of case.
 """
 import re
 
-from planner import model, override, progress, readability, schema
+from planner import model, override, parse, progress, readability, schema
 
 LIST_FIELDS = ("apps", "delivers", "consumes", "flows", "depends_on", "sources")
 ROW_KINDS = ((schema.GOAL_ID_RE, "goal"), (schema.CONSTRAINT_ID_RE, "constraint"), (schema.SOURCE_ID_RE, "source"))
@@ -144,9 +144,9 @@ def mention_lines(page, item_id):
     pattern = re.compile(rf"(?<![\w.-]){re.escape(item_id)}(?![\w-]|\.\w)")
     fence, hits = None, []
     for number, raw in enumerate(page.text.split("\n"), 1):
-        opener = re.match(r"^\s*(```+|~~~+)", raw)
+        opener = parse.FENCE.match(raw)
         if fence:
-            if raw.strip().startswith(fence):
+            if parse.closes_fence(raw, fence):
                 fence = None
         elif opener:
             fence = opener.group(1)

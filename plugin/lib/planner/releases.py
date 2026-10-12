@@ -15,7 +15,6 @@ PAGE_ID = "releases"
 HEADER = ("Delivers", "Criteria", "Note")
 STATES = ("inkling", "assumption", "decided")
 CRITERION = re.compile(r"^AC(\d+)$", re.I)
-EXISTS_TODAY = ("changed", "integrated", "unchanged", "retire")  # an app with one of these is there before the initiative
 
 
 @dataclass
@@ -34,6 +33,7 @@ class Release:
     target: str
     state: str
     rows: list = field(default_factory=list)
+    declared: bool = False  # it carries a Target or State bullet, which is what makes a ## section a release
 
 
 def page(vault):
@@ -58,7 +58,8 @@ def criteria_of(raw):
 
 
 def releases(vault):
-    """Every release on the releases page, in page order, outside History."""
+    """Every release on the releases page, in page order, outside History. A ## section is a release when it has a
+    Target or State bullet or a Delivers table; any other section (Notes, Open questions) is prose and is left out."""
     p = page(vault)
     if p is None:
         return []
@@ -75,6 +76,7 @@ def releases(vault):
             m = re.match(r"^- \*\*(Target|State):\*\*\s*(.*)$", line)
             if m:
                 setattr(current, m.group(1).lower(), m.group(2).strip())
+                current.declared = True
     for table in p.tables:
         if table.generated or tuple(table.header)[:3] != HEADER or not table.row_lines:
             continue
@@ -86,7 +88,7 @@ def releases(vault):
             found = allocation.REQUIREMENT_ID.search(padded[0])
             numbers, _ = criteria_of(padded[1])
             owner.rows.append(Row(found.group(0) if found else "", numbers, padded[1].strip(), padded[2].strip(), line))
-    return out
+    return [r for r in out if r.declared or r.rows]
 
 
 def criteria_count(requirement):
@@ -107,7 +109,7 @@ def snapshots(vault):
     a contract's is "exists", "new" or "absent"."""
     reqs = {r.id: r for r in allocation.requirements(vault)}
     carried = allocation.carried(vault)
-    today_apps = {a.id: ("exists" if a.meta.get("change") in EXISTS_TODAY else "absent") for a in vault.apps}
+    today_apps = {a.id: ("absent" if a.meta.get("change") == "new" else "exists") for a in vault.apps}
     today_contracts = {c.id: ("absent" if c.fact("Change") == "new" else "exists") for c in vault.contracts}
     out = [{"name": "Today", "target": "", "state": "fact", "apps": dict(today_apps), "contracts": dict(today_contracts),
             "delivers": []}]

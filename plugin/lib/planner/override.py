@@ -21,7 +21,7 @@ import difflib
 import re
 from dataclasses import dataclass
 
-from planner import ledger, schema
+from planner import allocation, ledger, releases, schema
 from planner.model import Finding, meta_line
 
 QUOTED_RULE = r'"[^"\n]+"'
@@ -194,8 +194,8 @@ def _scopes(vault):
 
 
 def unit_lines(vault, page, item_id):
-    """The lines where check reports on the units a scope covers: an item's heading, or a
-    page's state line and its goal rows. Contracts under the page's headings are their own scope."""
+    """The lines where check reports on the units a scope covers: an item's heading, or a page's state line, its goal
+    rows, its allocation rows and its releases. Contracts under the page's headings are their own scope."""
     if item_id:
         item = vault.item(item_id)
         return {item.line} if item is not None and item.page is page else set()
@@ -203,6 +203,9 @@ def unit_lines(vault, page, item_id):
     for table in page.tables:
         if not table.generated and tuple(table.header)[:4] == schema.GOALS_HEADER:
             lines.update(table.row_lines)
+    lines.update(row.line for row in allocation.rows(vault) if row.app is page)
+    if page.id == releases.PAGE_ID:
+        lines.update(release.line for release in releases.releases(vault))
     if page.id == ledger.PAGE_ID:
         lines.update(ledger.lines(page))  # a page-level override here may name a ledger code such as E805
         if not ledger.heading_line(page):

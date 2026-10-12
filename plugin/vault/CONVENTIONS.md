@@ -519,7 +519,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | E805 | high-severity question not disposed at the epics gate | W805 | high-severity question not disposed, by override |
 | W806 | assumed question not resolved at the end of shape | W807 | open question blocks the grilled item |
 | E808 | party or stored value is missing a required fact | W809 | possibly an untyped subject |
-| E810 | heading looks like a party or stored value but is not one | | |
+| E810 | heading looks like an item or subject ID but is not one | | |
 | W811 | subject defined off its page | | |
 | W812 | ledger row is dated in the future | W813 | ledger page has no question ledger heading |
 | W360 | one sentence holds three or more IDs | W361 | an ID in prose, outside a link and not followed by its name |
@@ -528,10 +528,15 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W366 | a table cell over 40 words | W367 | a phrase of three or more words repeated across pages |
 | W368 | the opening is a line the template wrote | W369 | an abbreviation not spelled out on the page |
 | W370 | an epic criterion has no AC id on its Trace line, or two share one | | |
+| E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
+| E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
+| W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
 
 W360 to W364 are the reading-load warnings. They are warnings only, and each fix line says how to write it in plain words. W360 fires on a sentence with three or more IDs, W361 on an ID written in prose that is neither inside a link nor followed by its name (tables, headings, code, History and `- Trace:` lines are the machine's and are left alone), W362 on more than nine list items under one heading, W363 on a page of more than about 900 words with no paragraph between its title and its first `##` heading, and W364 on an epic with more than nine numbered acceptance criteria. The conventions above aim lower (about seven) so a page at the edge is not nagged.
 
 W370 belongs with the epic template: it fires on a headed criterion whose Trace line carries no `AC<n>` and on two criteria that share one. W365 to W369 are the second five, for what a reader meets word by word. All are warnings, with a fix line, and every limit is in `schema.py`. W365 fires on a prose paragraph of more than 150 words or more than 3 links, and on a page's opening (its first paragraph before the first `##`) of more than 90 words or 3 links, because the opening is the part most readers read; lists, tables, quotes, fact bullets, Trace lines and History are not paragraphs. W366 fires on a table cell of more than 40 words (two sentences), outside generated blocks, History and the question ledger. W367 is vault-level and reported once, with the pages: a phrase of three or more words that sits in prose on more than 5 pages, or more than 10 times in the vault. It skips History, tables, fact bullets, `**Label:**` lines, the `Still open:` label (what follows it counts), generated blocks, and phrases that are only the name of a page or a heading. Phrases built from a state word ("is still open") are counted: they are the finding, and the fix is where the state sits, never a synonym. W368 fires when a page someone has written in still opens with a line the template wrote (`plugin/catalog/template-lines.txt` lists them; an untouched page and an index are left alone). W369 fires once per page on a capitalised abbreviation of two to five letters that is not spelled out on that page; a short list of abbreviations everyone reads (IT, API, QA, SMS) is exempt.
+
+Where two lines say the same thing, check refuses to pick one quietly. A frontmatter key written twice is E102, and names the second line. A `**Label:**` written twice under one item heading is E209: the first bullet is the one every rule reads, so the later one would change nothing. Two rows with one goal, constraint or source ID, or two rows for one app on a concern page, are E210: only the first row counts. An empty `---` block is E101, the same as no block. A level-3 heading that starts like an item ID but does not match it (`UNK-12`, `CON-001:` with a colon, `r-1`) is E810, so it cannot drop out of the indexes and gates unseen.
 
 Codes are stable. A retired code is never reused.
 
@@ -567,7 +572,7 @@ Nothing else records a release. What the system looks like after each one is wor
 
 `/planner:releases` writes this page, after allocate and before epics, in a session with mode `releases`. A requirement the user places on no release ("later, no date") stays out of the file; W343 lists it.
 
-`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. A Grill decides a release, as it decides any other item.
+`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
 
 ## Flow steps
 

@@ -19,7 +19,7 @@ import csv
 import io
 import re
 
-import yaml
+from planner import parse as vault_parse
 
 SIZE_POINTS = {"S": 2, "M": 5, "L": 8}  # work-breakdown defines S, M, L (about 2 days, 3 to 5 days, 1 to 2 weeks) and no points
 STATUSES = ("complete", "complete-with-gaps")
@@ -51,7 +51,8 @@ class Story:
 
 
 def cells(line):
-    return [c.strip() for c in line.strip().strip("|").split("|")]
+    """A table row's cells, read as the vault's own tables are: an escaped pipe stays inside its cell."""
+    return list(vault_parse.split_row(line))
 
 
 def is_separator(line):
@@ -59,14 +60,18 @@ def is_separator(line):
 
 
 def split_frontmatter(text):
-    match = re.match(r"\A---\n(.*?)\n---\n", text, re.S)
-    return (yaml.safe_load(match.group(1)) or {}, text[match.end():]) if match else ({}, text)
+    """(meta, body, problem). The vault's own reader finds the block, so a BOM or CRLF file reads as an LF one does;
+    `problem` says why no frontmatter was read, and is "" when it was."""
+    text = vault_parse.normalise_text(text)
+    meta, body_start, error = vault_parse.split_frontmatter(text)
+    body = "\n".join(text.split("\n")[body_start - 1:]) if not error else text
+    return meta, body, (error.message if error else "")
 
 
 def sections_of(body):
     """(heading text, lines) for each `## ` section, plus the lines before the first one under the key ''."""
     out, name = {"": []}, ""
-    for line in body.splitlines():
+    for line in body.split("\n"):
         match = re.match(r"^##\s+(.*?)\s*$", line)
         if match:
             name = match.group(1)
@@ -134,7 +139,7 @@ def take_table_line(story, line, state):
 def parse_story_sections(body):
     """The stories in file order, from the `### S-NN` headings anywhere after the frontmatter."""
     stories, current, state = [], None, {}
-    for line in body.splitlines():
+    for line in body.split("\n"):
         heading = STORY_HEADING.match(line)
         if not heading and re.match(r"^###\s+S-", line):
             stories.append(Story("?", line.lstrip("# ").strip()))  # kept, so the caller reports it instead of dropping it
@@ -353,15 +358,17 @@ def coverage_table(sections):
 
 def read(text):
     """The whole plan as plain data. `stories` are Story objects; `problems` is everything that did not map."""
-    meta, body = split_frontmatter(text)
+    meta, body, why = split_frontmatter(text)
     problems = []
-    if meta.get("status") not in STATUSES:
+    if why:
+        problems.append(f"no frontmatter was read ({why[0].lower()}{why[1:]}) so the plan has no status")
+    elif meta.get("status") not in STATUSES:
         problems.append(f"frontmatter status is {meta.get('status')!r}; the plan should be {' or '.join(STATUSES)}")
     stories = parse_story_sections(body)
     if not stories:
         problems.append("no `### S-NN <name>` story section found")
     sections = sections_of(body)
-    summary = summary_table(body.splitlines())
+    summary = summary_table(body.split("\n"))
     problems += cross_check(stories, list(summary), sections)
     for story in stories:
         problems += story_problems(story, {s.id for s in stories})
@@ -375,6 +382,18 @@ def parse(text):
     return plan["stories"], plan["not_planned"], plan["problems"]
 
 
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def safe_cell(value):
+    """A cell a spreadsheet will not run: text that starts like a formula gets a leading apostrophe, which Excel and
+    Sheets show as plain text. A negative story-point number is a number, not a formula, so it is left alone."""
+    text = str(value)
+    if text.startswith(FORMULA_START) and not re.fullmatch(r"-\d+(\.\d+)?", text):
+        return "'" + text
+    return text
+
+
 def csv_text(rows):
     """The Jira import for `rows` (build_rows) as text: what breakdown_to_tickets.py writes to tickets.csv, byte for byte."""
     width = max([len(r["labels"]) for r in rows] or [1]) or 1
@@ -383,5 +402,6 @@ def csv_text(rows):
     writer = csv.writer(out)
     writer.writerow(header)
     for r in rows:
-        writer.writerow([r[c] for c in COLUMNS] + r["labels"] + [""] * (width - len(r["labels"])) + [r["Blocked by"]])
+        cells_out = [r[c] for c in COLUMNS] + r["labels"] + [""] * (width - len(r["labels"])) + [r["Blocked by"]]
+        writer.writerow([safe_cell(c) for c in cells_out])
     return out.getvalue()

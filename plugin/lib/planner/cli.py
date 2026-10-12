@@ -1989,7 +1989,7 @@ def build_parser():
     role.add_argument("--json", action="store_true", help="the answer as JSON")
     role.set_defaults(func=cmd_role)
     nid = sub.add_parser("next-id", help="the next free ID for a prefix, such as UNK, counting main and every session branch; never fills a gap")
-    nid.add_argument("prefix", help="2 to 4 capital letters, for example UNK, CON or EPC")
+    nid.add_argument("prefix", help="1 to 4 capital letters, for example UNK, CON, R or ADR")
     nid.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nid.set_defaults(func=cmd_next_id)
     pub = sub.add_parser("publish", help="write a read copy of the committed vault, as a folder or a .zip, for people without git")

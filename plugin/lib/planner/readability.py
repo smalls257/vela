@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from planner import criteria as criteria_reader
 from planner import schema
-from planner.parse import FENCE, split_frontmatter
+from planner.parse import FENCE, closes_fence, split_frontmatter
 from planner.reading import BREADCRUMB, TRACE_LINE, VAULT_ID, visible
 
 BARE_VAULT_ID = re.compile(rf"(?<![\w-]){VAULT_ID}(?![\w-])")
@@ -81,7 +81,7 @@ def trace_by_line(page):
     found, fence = {}, None
     for n, raw in enumerate(page.text.split("\n"), 1):
         if fence:
-            fence = None if raw.strip().startswith(fence) else fence
+            fence = None if closes_fence(raw, fence) else fence
             continue
         opening = FENCE.match(raw)
         if opening:
@@ -105,7 +105,7 @@ def _regions(page):
         if n < body_start:
             continue
         if fence:
-            fence = None if raw.strip().startswith(fence) else fence
+            fence = None if closes_fence(raw, fence) else fence
             continue
         opening = FENCE.match(raw)
         if opening:
