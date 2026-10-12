@@ -14,7 +14,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 
-from planner import drafts, parse, publish, schema
+from planner import drafts, parse, publish, schema, untrusted
 
 CONTEXT = 3
 NO_ID = "Not tied to an ID"
@@ -24,8 +24,12 @@ FILE_MODE = "100644"
 MAGIC = "# planner proposal"
 NO_NEWLINE = "\\ No newline at end of file\n"
 UNUSUAL_PATH = re.compile(r'[\x00-\x1f"\\`]')  # git would quote these, and the reviewer reads them inside Markdown
-# A home folder on any system, whoever's it is. Exact strings (this user's home, the workspace) are checked as well.
-HOME_PATH = re.compile(r"(?:/Users/|/home/|[A-Za-z]:\\Users\\)[^\s/\\`'\"<>)]+")
+# A home folder on any system, whoever's it is: Unix and macOS homes, /root, macOS temp folders (they carry a per-login id),
+# Windows drives with either slash in any case, WSL mounts, and UNC shares. Unix names stay case-sensitive so "/users/42" in
+# API prose is not a hit. Exact strings (this user's home, the workspace) are checked as well.
+_NAME = r"[^\s/\\`'\"<>)]"
+HOME_PATH = re.compile(rf"(?:/Users/|/home/|/private/var/folders/|/var/folders/|(?i:[A-Za-z]:[\\/]+users[\\/]+|/mnt/[a-z]/users/)){_NAME}+"
+                       rf"|/root(?=[/\s]|$)|\\\\{_NAME}+\\{_NAME}+")
 _PAGE_ID_FORMS = re.compile(r"^(EPC-\d{3}|CAP-\d{3}|FLO-\d{3}|ADR-\d{4})$")
 _ID_FORMS = (schema.ITEM_ID_RE, schema.GOAL_ID_RE, schema.CONSTRAINT_ID_RE, schema.SOURCE_ID_RE, _PAGE_ID_FORMS)
 
@@ -35,13 +39,12 @@ class ProposalError(Exception):
 
 
 def check_path(path):
-    """A path a proposal may carry: vault-relative, forward slashes, nothing git or the planner keeps for itself."""
+    """A path a proposal may carry: pages and sources only (untrusted.py). Hooks, workflows, Claude settings, programs, links
+    and git's own folder are never a reader's to send, and the owner's review would apply them as the owner."""
     try:
-        publish.check_name(path)
-    except publish.PublishError as exc:
-        raise ProposalError(f"refusing {exc}") from exc
-    if ".git" in path.split("/") or publish.is_excluded(path):
-        raise ProposalError(f"'{path}' is under .git or a folder the planner keeps private, so a proposal cannot carry it.")
+        untrusted.check_proposal_path(path)
+    except untrusted.Refused as exc:
+        raise ProposalError(str(exc)) from exc
     if UNUSUAL_PATH.search(path):
         raise ProposalError(f"'{path}' has a quote, backslash, backtick or control character in its name. Rename it and propose again.")
     return path

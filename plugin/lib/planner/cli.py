@@ -21,7 +21,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, viewer, voicecheck, voicescore
+from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, untrusted, viewer, voicecheck, voicescore
 from planner.edge import copies, replays, reviewgit, vaultgit
 from planner.edge import proposals as proposal_files
 
@@ -89,6 +89,8 @@ def vault_files(root):
         parts = rel.parts
         if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel.as_posix()):
             continue
+        if path.is_symlink():
+            raise ToolError(str(untrusted.link_refusal(rel.as_posix())))
         if (len(parts) == 1 and parts[0] in schema.SKIP_FILES) or parts[0] in schema.SKIP_DIRS:
             others.append(path.stem)
             continue
@@ -242,6 +244,7 @@ def cmd_publish(args, out):
         dirty_files = vaultgit.uncommitted(root)
         git_name, git_email = vaultgit.user_identity(root)
         files = publish.selected(files)
+        secret_notes = check_secrets(files, args.allow_secrets)
         if ".planner.yaml" not in files:
             raise ToolError("HEAD has no .planner.yaml, so there is no initiative to publish. Commit it first.")
         files[publish.DASHBOARD_PATH] = publish_dashboard(files, {"date": vaultgit.commit_date(root, "HEAD") or today, "commit": short}, today)
@@ -263,12 +266,25 @@ def cmd_publish(args, out):
         raise ToolError(f"cannot write {target}: {exc.strerror or exc}") from exc
     print(f"planner publish: wrote {target.name} ({len(stamped)} files) at {short}, {counts[0]} errors and {counts[1]} warnings "
           f"at publish. Contact: {owner['name']} <{owner['contact']}>.", file=out)
+    for line in secret_notes:
+        print(f"  {line}", file=out)
     note = publish.dirty_message(short, len(dirty_files))
     if note:
         print(f"  {note[0].upper()}{note[1:]} The stamp says dirty: true.", file=out)
     if skipped:
         print(f"  Not copied (links or submodules a read copy cannot carry): {', '.join(skipped[:5])}.", file=out)
     return 0
+
+
+def check_secrets(files, allowed):
+    """Refuse a publish whose pages look like they hold a credential; with --allow-secrets, go on and say what was let through."""
+    texts = {path: data.decode("utf-8", "replace") for path, data in files.items() if path != publish.DASHBOARD_PATH and not drafts.is_binary(data)}
+    hits = secretscan.find_secrets(texts)
+    if not hits:
+        return []
+    if not allowed:
+        raise ToolError(secretscan.refusal(hits))
+    return [f"--allow-secrets: published with {len(hits)} possible secret(s) in it ({hits[0].path} line {hits[0].line} and others); the copy carries them to every reader."]
 
 
 def load_config_text(data):
@@ -404,21 +420,24 @@ def cmd_open(args, out):
     try:
         files, stamp = copies.read_published(args.source)
         opening.verify_tree(files, stamp)
+        admitted, left_out = opening.admit(files)
         in_cowork = bool(env.get("PLANNER_COWORK") or env.get("CLAUDE_COWORK"))
         folder = workspace_folder(publish.slug(stamp["title"]), args.into, env, in_cowork)
         existing = copies.read_existing_workspace(folder)
         today, _ = parse_today(args.today)
         source_path = os.path.abspath(os.path.expanduser(args.source))
         if existing is not None:
-            return reopen_workspace(folder, existing, (files, stamp), (pathlib.Path(args.source).name, source_path), args.author, today, out)
+            return reopen_workspace(folder, existing, (admitted, stamp), (pathlib.Path(args.source).name, source_path), (args.author, args.newer), today, out)
         record = opening.workspace_record(stamp, pathlib.Path(args.source).name, source_path,
                                           today, reader_author(args.author, pathlib.Path.cwd()),
                                           str(PLANNER_PROGRAM))
-        copies.write_workspace(folder, opening.content_files(files) | {publish.STAMP_PATH: files[publish.STAMP_PATH]}, record)
+        copies.write_workspace(folder, admitted, record)
     except opening.OpenError as exc:
         raise ToolError(str(exc)) from exc
     for line in opening.opened_message(stamp, folder):
         print(line, file=out)
+    if left_out:
+        print(f"  {untrusted.left_out_line(left_out)}", file=out)
     explore_workspace(folder, today, out)
     checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
     print(f"planner open: {reader_freshness(folder, checked_at).message}", file=out)
@@ -428,11 +447,12 @@ def cmd_open(args, out):
     return 0
 
 
-def reopen_workspace(folder, existing, published, source, author_flag, today, out):
+def reopen_workspace(folder, existing, published, source, flags, today, out):
     """`planner open <newer copy> --into <workspace>`: the reader's drafts replayed onto the newer copy (design session 15
     section 8). Pure planning in replay.py; edge/replays.py writes it in an order that leaves the old baseline until the end."""
     files, stamp = published
-    verdict = opening.reopen_verdict(existing, stamp)
+    author_flag, confirmed_newer = flags
+    verdict = opening.reopen_verdict(existing, stamp, confirmed_newer)
     refusal = opening.reopen_refusal(existing, stamp, verdict)
     if refusal:
         raise opening.OpenError(refusal)
@@ -443,7 +463,7 @@ def reopen_workspace(folder, existing, published, source, author_flag, today, ou
     if not baseline_dir.is_dir():
         raise opening.OpenError(f"{baseline_dir} is missing, so I cannot tell what you changed and would risk overwriting it. "
                                 "Open the newer copy into a new folder with --into instead.")
-    new_files = {path: data for path, data in opening.content_files(files).items() if not publish.is_excluded(path)}
+    new_files = {path: data for path, data in files.items() if path != publish.STAMP_PATH and not publish.is_excluded(path)}
     carried = replays.open_conflicts(folder)
     result = replay.plan(copies.read_tree(baseline_dir, skip_published=True), copies.read_tree(folder, skip_published=True), new_files,
                          replays.existing_mine(folder))
@@ -743,6 +763,11 @@ def cmd_proposals_review(args, out):
         if not clean and not conflicts:
             reviewgit.discard_worktree(root, folder, branch)
             raise ToolError(f"git could not apply this proposal, and nothing was changed: {words}")
+        try:
+            untrusted.check_applied(reviewgit.changed_entries(folder), prefix)
+        except untrusted.Refused as exc:
+            reviewgit.discard_worktree(root, folder, branch)
+            raise ToolError(f"I stopped before committing anything: {exc} Nothing was changed.") from exc
         title = note.title if note and note.title else "changes.patch"
         author = note.author if note and note.author else "a reader"
         commit, check, notes = "", None, []
@@ -987,7 +1012,7 @@ def cmd_view(args, out):
     stamp = {
         "commit": commit,
         "date": today,
-        "repo": args.repo_url or git(root, "remote", "get-url", "origin") or "no repository URL recorded",
+        "repo": export.redact_remote(args.repo_url or git(root, "remote", "get-url", "origin")) or "no repository URL recorded",
         "errors": errors,
         "warnings": len(findings) - errors,
     }
@@ -1049,6 +1074,9 @@ def cmd_explore(args, out):
     if args.serve:
         if not 0 <= args.port <= 65535:
             raise ToolError(f"--port {args.port} is not a port number (0 to 65535)")
+        link = copies.first_symlink(root)
+        if link:
+            raise ToolError(f"I will not serve Ask Claude for this vault: {untrusted.link_refusal(link)}")
         try:
             explorer_serve.serve(root, target, args.port, args.model, not args.no_open, lambda line: print(f"planner explore: {line}", file=out, flush=True),
                                  freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable),
@@ -1998,6 +2026,7 @@ def build_parser():
     pub.add_argument("--today", help="the date to stamp, YYYY-MM-DD (default: system date)")
     pub.add_argument("--owner-name", help="who readers write to (default: git user.name)")
     pub.add_argument("--owner-contact", help="how readers reach the owner (default: owner_contact in .planner.yaml, else git user.email)")
+    pub.add_argument("--allow-secrets", action="store_true", help="publish although the scan found text that looks like a password, token or key (it is named, never printed)")
     pub.set_defaults(func=cmd_publish)
     fresh = sub.add_parser("freshness", help="whether anything changed since this clone or copy was made; reports, never updates")
     fresh.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
@@ -2007,9 +2036,10 @@ def build_parser():
     fresh.set_defaults(func=cmd_freshness)
     opn = sub.add_parser("open", help="make a private reader workspace from a published folder or zip; the source is never written")
     opn.add_argument("source", help="the published folder or .zip")
-    opn.add_argument("--into", help="the workspace folder (default: $PLANNER_WORKSPACES/<slug>, else ~/PlannerWorkspaces/<slug>); OneDrive and SharePoint paths are refused")
+    opn.add_argument("--into", help="the workspace folder (default: $PLANNER_WORKSPACES/<slug>, else ~/PlannerWorkspaces/<slug>); folders OneDrive, SharePoint, Dropbox, iCloud Drive, Google Drive or Box sync are refused")
     opn.add_argument("--author", help="your name for the drafts (default: git user.name)")
     opn.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
+    opn.add_argument("--newer", action="store_true", help="re-opening: say that this copy is the later of two published on the same day (a stamp holds a date, not a time)")
     opn.set_defaults(func=cmd_open)
     prop = sub.add_parser("propose", help="a reader's changes as a proposal folder (proposal.md and changes.patch) beside the workspace; sends nothing")
     prop.add_argument("--vault", default=".", help="the reader workspace (default: current directory)")

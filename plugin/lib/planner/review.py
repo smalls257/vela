@@ -11,7 +11,7 @@ proposal.py writes what this module parses. edge/proposals.py reads the files; e
 import re
 from dataclasses import dataclass
 
-from planner import drafts, parse, pending, proposal, schema
+from planner import drafts, parse, pending, proposal, schema, untrusted
 
 HASH = re.compile(r"^[0-9a-f]{40}$")
 HUNK_HEADER = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@$")
@@ -99,7 +99,10 @@ def _split_hunks(path, lines):
 
 
 def parse_patch(data):
-    """The ParsedPatch of a changes.patch, or ReviewError naming what is wrong. Nothing is trusted: UTF-8, base, paths, counts."""
+    """The ParsedPatch of a changes.patch, or ReviewError naming what is wrong. Nothing is trusted: size, UTF-8, base, paths,
+    every header line (git obeys rename, copy and mode headers the path check never sees), counts."""
+    if len(data) > untrusted.MAX_PATCH_BYTES:
+        raise ReviewError(f"changes.patch is {len(data) // (1024 * 1024)} MB; the most I will read is {untrusted.MAX_PATCH_BYTES // (1024 * 1024)} MB.")
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -120,6 +123,10 @@ def parse_patch(data):
         section = lines[start:(starts[n + 1] if n + 1 < len(starts) else len(lines))]
         path = _file_path(section[0])
         head, hunks = _split_hunks(path, section)
+        try:
+            untrusted.check_patch_head(path, head)
+        except untrusted.Refused as exc:
+            raise ReviewError(str(exc)) from exc
         head_text = "".join(head)
         files.append(PatchFile(path, _status(head_text), head_text,
                                tuple(PatchHunk(h[0].rstrip("\n"), "".join(h)) for h in hunks)))

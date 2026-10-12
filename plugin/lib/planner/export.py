@@ -150,6 +150,13 @@ def to_csv(table):
     return buffer.getvalue()
 
 
+def redact_remote(remote):
+    """A git remote with any `user:token@` removed, for every place a remote URL is written down (the view footer, a design
+    doc's origin). A token in a clone URL is a credential; once it is in HTML or a committed page it is public.
+    `git@host:path` keeps its `git@`: that is the ssh account name, not a secret."""
+    return re.sub(r"^([A-Za-z][A-Za-z0-9+.-]*://)[^@/\s]+@", r"\1", remote.strip())
+
+
 def web_url(remote):
     """A browsable https URL for a git remote, or "" when it cannot be made one."""
     remote = remote.strip().split("#", 1)[0].split("?", 1)[0]

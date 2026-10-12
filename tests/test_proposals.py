@@ -473,7 +473,7 @@ def test_a_branch_that_already_exists_is_not_reused(proposed):
     (lambda t: t.split("diff --git", 1)[0], "no 'diff --git' section"),
     (lambda t: t.replace("# base: ", "# basis: "), "no '# base:"),
     (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/../evil.md b/../evil.md"), "climbs out"),
-    (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/.git/hooks/pre-commit b/.git/hooks/pre-commit"), "under .git"),
+    (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/.git/hooks/pre-commit b/.git/hooks/pre-commit"), "git's own folder"),
     (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/old.md b/new.md"), "plain a/<path> b/<path>"),
 ])
 def test_a_malformed_or_hostile_patch_is_refused_before_git_sees_it(proposed, damage, message):

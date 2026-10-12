@@ -10,7 +10,10 @@ their work is where. So the order is fixed, and the one record that says a repla
   5. the working pages are changed;
   6. the baseline is swapped, then the stamp and `workspace.json`, which is what freshness reads.
 
-Until step 6 the old baseline stands and the same `planner open` can be run again. Every failure names the path.
+Until step 6 the old baseline stands and the same `planner open` can be run again. If the swap itself stops half-way,
+the old baseline is moved back at once, and a run that starts to find it still parked as `baseline.previous` (the move
+back failed too) restores it before it cleans anything: the only copy of the old baseline is never what a retry deletes.
+Every failure names the path.
 """
 import json
 import os
@@ -81,6 +84,29 @@ def record_json(old, new, result, carried, today):
             "merged": [o.path for o in result.outcomes if o.action == "merged"]}
 
 
+def restore_parked_baseline(baseline, previous):
+    """A swap that stopped after parking the old baseline leaves it at `previous` with no baseline. Put it back before anything
+    is cleaned up: until the swap succeeds it is the reader's only record of what they opened."""
+    if previous.exists() and not baseline.exists():
+        os.replace(previous, baseline)
+
+
+def swap_baseline(baseline, staging, previous):
+    """The new baseline in, the old one parked at `previous`. If the second move fails (a sync client or antivirus holding the
+    folder) the old one goes straight back; if that fails too, the error says where it is."""
+    if baseline.exists():
+        os.replace(baseline, previous)
+    try:
+        os.replace(staging, baseline)
+    except OSError as exc:
+        try:
+            restore_parked_baseline(baseline, previous)
+        except OSError as back:
+            raise OSError(exc.errno, f"{exc.strerror or exc}; your old baseline is at {previous} and could not be moved back ({back.strerror or back}). "
+                                     "Move it back to baseline yourself, then run planner open again", exc.filename) from exc
+        raise
+
+
 def apply(root, result, files, replay_record, workspace_record, backup_name):
     """Make `root` hold the replay `result` and the new copy `files` ({path: bytes}, with its stamp) as the baseline.
 
@@ -89,6 +115,7 @@ def apply(root, result, files, replay_record, workspace_record, backup_name):
     baseline, staging, previous = root / copies.BASELINE, root / copies.BASELINE.with_name("baseline.next"), root / copies.BASELINE.with_name("baseline.previous")
     step = "the new baseline"
     try:
+        restore_parked_baseline(baseline, previous)
         for leftover in (staging, previous):
             if leftover.exists():
                 shutil.rmtree(leftover)
@@ -107,9 +134,7 @@ def apply(root, result, files, replay_record, workspace_record, backup_name):
         for rel in result.delete:
             _remove(root, rel)
         step = "the baseline swap"
-        if baseline.exists():
-            os.replace(baseline, previous)
-        os.replace(staging, baseline)
+        swap_baseline(baseline, staging, previous)
         if previous.exists():
             shutil.rmtree(previous)
         step = "the stamp and workspace record"

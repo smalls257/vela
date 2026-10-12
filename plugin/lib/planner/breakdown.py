@@ -21,6 +21,8 @@ import re
 
 import yaml
 
+from planner import export
+
 SIZE_POINTS = {"S": 2, "M": 5, "L": 8}  # work-breakdown defines S, M, L (about 2 days, 3 to 5 days, 1 to 2 weeks) and no points
 STATUSES = ("complete", "complete-with-gaps")
 COLUMNS = ["Issue Id", "Summary", "Description", "Issue Type", "Parent", "Story Points"]
@@ -383,5 +385,6 @@ def csv_text(rows):
     writer = csv.writer(out)
     writer.writerow(header)
     for r in rows:
-        writer.writerow([r[c] for c in COLUMNS] + r["labels"] + [""] * (width - len(r["labels"])) + [r["Blocked by"]])
+        cells = [r[c] for c in COLUMNS] + r["labels"] + [""] * (width - len(r["labels"])) + [r["Blocked by"]]
+        writer.writerow([export.defuse(cell) if isinstance(cell, str) else cell for cell in cells])
     return out.getvalue()

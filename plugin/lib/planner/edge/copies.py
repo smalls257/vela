@@ -10,7 +10,7 @@ import pathlib
 import shutil
 import zipfile
 
-from planner import opening, publish, replay
+from planner import opening, publish, replay, untrusted
 
 WORKSPACE = pathlib.Path(".planner") / "workspace.json"
 STAMP = pathlib.PurePosixPath(publish.STAMP_PATH)
@@ -115,18 +115,26 @@ def read_own_stamp(root):
         raise SourceUnreadable(f"{path} cannot be read: {exc}") from exc
 
 
+def _refuse(exc):
+    return opening.OpenError(str(exc))
+
+
 def _read_zip_files(source):
-    """{name: bytes} of a published zip with its one top folder removed. Names are validated before any byte is read."""
+    """{name: bytes} of a published zip with its one top folder removed. The table of contents is checked (links, sizes,
+    entry count, duplicate names) and every name passes untrusted.py before any byte is read."""
     try:
         with zipfile.ZipFile(source) as archive:
-            names = [n for n in archive.namelist() if not n.endswith("/")]
-            opening.check_names(names)
+            untrusted.check_entries(archive.infolist())
+            names = [i.filename for i in archive.infolist() if not i.filename.endswith("/")]
             tops = {n.split("/", 1)[0] for n in names}
             nested = len(tops) == 1 and all("/" in n for n in names) and f"{next(iter(tops))}/{publish.STAMP_PATH}" in names
             strip = len(next(iter(tops))) + 1 if nested else 0
+            opening.check_names([n[strip:] for n in names])
             return {n[strip:]: archive.read(n) for n in names}
     except zipfile.BadZipFile as exc:
         raise opening.OpenError(f"{source} is not a readable zip: {exc}") from exc
+    except untrusted.Refused as exc:
+        raise _refuse(exc) from exc
     except OSError as exc:
         raise opening.OpenError(f"{source} cannot be read: {exc}") from exc
 
@@ -138,13 +146,33 @@ def _published_root(source):
     raise opening.OpenError(f"{source} holds no {publish.STAMP_PATH}, so it is not a published copy.")
 
 
+class _Entry:
+    """A file on disk, shaped like a ZipInfo so a folder and a zip meet the same limits."""
+    flag_bits, external_attr, create_system = 0, 0, 0
+
+    def __init__(self, name, size):
+        self.filename, self.file_size = name, size
+
+
 def _read_folder_files(source):
+    """Every file of a published folder. A symbolic link anywhere refuses the folder (links were once skipped in silence, so
+    a folder got fewer checks than a zip); names and sizes meet the same rules a zip does."""
     base = _published_root(source)
-    files = {}
+    files, entries = {}, []
     try:
-        for path in sorted(base.rglob("*")):
-            if path.is_file() and not path.is_symlink():
-                files[path.relative_to(base).as_posix()] = path.read_bytes()
+        paths = sorted(base.rglob("*"))
+        for path in paths:
+            if path.is_symlink():
+                raise untrusted.link_refusal(path.relative_to(base).as_posix())
+        for path in paths:
+            if path.is_file():
+                entries.append(_Entry(path.relative_to(base).as_posix(), path.stat().st_size))
+        untrusted.check_entries(entries)
+        opening.check_names([e.filename for e in entries])
+        for entry in entries:
+            files[entry.filename] = (base / entry.filename).read_bytes()
+    except untrusted.Refused as exc:
+        raise _refuse(exc) from exc
     except OSError as exc:
         raise opening.OpenError(f"{source} cannot be read: {exc}") from exc
     return files
@@ -186,6 +214,18 @@ def read_tree(folder, skip_published=False):
     except OSError as exc:
         raise opening.OpenError(f"cannot read {folder}: {exc}") from exc
     return files
+
+
+def first_symlink(root):
+    """The vault-relative path of the first symbolic link under `root` (files and folders, outside .git), or None. A received
+    vault with one can make a page, the explorer build or the Ask helper read a file anywhere on this machine."""
+    root = pathlib.Path(root)
+    for folder, subfolders, names in os.walk(root, followlinks=False):
+        subfolders[:] = sorted(d for d in subfolders if d != ".git")
+        for name in sorted(subfolders + names):
+            if (pathlib.Path(folder) / name).is_symlink():
+                return (pathlib.Path(folder) / name).relative_to(root).as_posix()
+    return None
 
 
 def read_existing_workspace(folder):

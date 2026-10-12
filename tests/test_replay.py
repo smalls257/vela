@@ -9,7 +9,7 @@ import pytest
 from conftest import run
 from sharing import commit_snapshot, git
 
-from planner import replay
+from planner import replay, untrusted
 
 V2_DAY = "2026-10-20"
 READER_ONLY = "02-constraints.md"
@@ -184,6 +184,7 @@ def test_the_baseline_becomes_the_new_copy_and_the_record_moves(replayed):
     _, v2, workspace, _, _ = replayed
     stamp = json.loads(read(v2 / ".planner" / "published.json"))
     published = {p.relative_to(v2).as_posix(): p.read_bytes() for p in v2.rglob("*") if p.is_file() and p.name != "dashboard.html"}
+    published = {path: data for path, data in published.items() if untrusted.verdict(path)[0] == untrusted.OK}  # tool settings and hooks are left out of a reader copy
     assert {p.relative_to(workspace / ".planner" / "baseline").as_posix(): p.read_bytes() for p in (workspace / ".planner" / "baseline").rglob("*") if p.is_file()} == published
     record = json.loads(read(workspace / ".planner" / "workspace.json"))
     assert record["base_commit"] == stamp["commit"] and record["base_date"] == V2_DAY and record["base_tree_hash"] == stamp["tree_hash"]
