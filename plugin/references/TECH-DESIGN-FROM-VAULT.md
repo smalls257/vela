@@ -5,10 +5,15 @@ The user's `tech-design-grill` skill reads this file when it is given `--vault <
 ## Before the first question
 
 1. The prereq is already checked: the app's building-blocks page in the vault carries `handed_off:`. Record it in the design doc's `prereqs[]` as `path: <vault>/05-building-blocks/<app>-building-blocks.md`, `expected_status: handed_off`.
-2. Record the vault commit: run `git -C <vault> rev-parse --short HEAD` and `git -C <vault> remote get-url origin`. Every link back names this commit.
-3. Run `git -C <vault> status --short`. If the vault clone has changes to planner pages, say so: the design would start from pages nobody reviewed. Changes under `docs/` and `CONTEXT.md` are the design's own files and do not count.
-4. Run `python3 <vault>/.claude/skills/planner/scripts/planner handoff verify <APP-id> --vault <vault>`. Exit 0 means nothing the senior accepted has changed. Exit 1 lists each changed or removed item: tell the senior, and read those items again before the design rests on them. Exit 2 means the vault holds no manifest for the app; say so and go on.
-5. If `slug` is not given, propose the app's name without `APP-`, for example `booking`.
+2. Record the vault commit: run `git -C <vault> fetch origin`, then `git -C <vault> rev-parse --short origin/main` (the commit the team can fetch, not a local one), and `git -C <vault> remote get-url origin`. Every link back names this commit.
+3. Run `git -C <vault> status --short`. If the vault clone has changes to planner pages, say so: the design would start from pages nobody reviewed. Changes under `docs/` and `CONTEXT.md` are the design's own files and do not count, here and at the start of any later `/planner:*` session in this vault.
+4. Find the planner program the way `START.md` says under "Where the planner runs from": the installed plugin first, then `<vault>/.claude/skills/planner/scripts/planner`. A marketplace install leaves no copy in the vault, so do not assume one. Check that the file exists before you run it. If no planner can be found, stop and say: "I cannot check whether the pages changed since the senior accepted them. Run `/planner:where` and send me what it prints." A missing program is never "no manifest".
+5. Run `python3 <planner> handoff verify <APP-id> --vault <vault>`. Exit 0 means nothing the senior accepted has changed. Exit 1 lists each changed or removed item: tell the senior, and read those items again before the design rests on them. Exit 2 with the message "does not exist" means the vault holds no manifest for the app; say so and go on. Any other exit 2 is a damaged manifest or a failed run: say that the check could not be made, and do not claim the pages are unchanged.
+6. If `slug` is not given, propose the app's name without `APP-`, for example `booking`.
+
+## Where the work lands
+
+The design, its ADRs, `CONTEXT.md` and the build plan are the team's files, and they go through the team's review like any other change. Do not commit them to `main` or push to it. Work on a branch named `design/<slug>`, commit after each section, and open a pull request when the design is complete. Step 2 records the vault commit from `origin/main`, so every link back names a commit anyone can fetch. If the team has no review rule, say that you are committing to a branch, and let the senior decide.
 
 ## What to read, in this order
 
@@ -34,7 +39,13 @@ The app's allocated rows are its requirements: they take the place of `FR-XXX` i
 
 An app handed off before allocation existed has no `## Requirements allocated` table. Its requirement targets are then each `CAP-nnn.FRn` of the capabilities its epics deliver, as before; tell the senior the app has no allocation, so the split of each requirement between apps is the design's reading, not the vault's.
 
+Epics come after handoff. If the `epics-for-app` block is empty, or its epics are still `draft`, say so before the design leans on them: the acceptance-criteria targets wait for the solution lead's epics, and the design can start from the allocated rows and the contracts.
+
 Every trace target maps to at least one component. Reject the design if one has no owner, as the skill does for an FR.
+
+## Running out of room
+
+If the session is cut off or the senior stops before the design is complete, leave it at `status: in-progress` and say in one line what is written, which sections remain and roughly how many questions are left ("Components and data model are written; interfaces and the failure cases remain, about six questions"). Say that `work-breakdown` will not start until the design is `complete` or `complete-with-gaps`. On resume, say in one line where you stopped and carry on from the first unfinished section.
 
 ## Linking back
 

@@ -46,7 +46,8 @@ Frontmatter as `FRONTMATTER-FORMAT.md` in `tech-design-grill`, with `prereqs[]` 
 
 - An opening paragraph: what the plan covers, its inputs with their status, and what the sizes mean.
 - A summary table: story, what it traces to, size total, blocked by.
-- One section per story: `### S-NN <name>`, the line "Traces to: ...", its acceptance criteria as bullets, a task table (`| Task | Size | Component |`), and "Blocked by: ...".
+- One section per story: `### S-NN <name>`, the line "Traces to: ..." (IDs only, comma-separated, each one of the trace targets above, nothing in prose), one plain sentence a developer can test ("Done when a person who refuses transcripts never has one read."), its acceptance criteria as bullets, a task table (`| Task | Size | Component |`), and "Blocked by: ...". Never copy vault text: link the requirement and write the sentence yourself.
+- A story the plan holds back, defers or splits keeps the same fields. A lettered split (`S-07a`, `S-07b`) has its own traces, sentence, criteria, tasks and blockers, and is in the summary table and the build order like any story. A story the plan will not build is not in the table: it is under `## Not planned` with its ID and why.
 - `## Build order`: the stories in order, with one line on why each sits where it does.
 - `## Coverage`: every trace target and every component with the stories that cover it. An empty cell fails the plan.
 - `## Not planned`: each gap, deferral or open question the plan does not cover, with its ID and why.
@@ -57,6 +58,10 @@ Frontmatter as `FRONTMATTER-FORMAT.md` in `tech-design-grill`, with `prereqs[]` 
 - Every `gaps[]` and `deferred[]` entry of the design is a story or is under "Not planned".
 - Run `NEG-AUDIT.md` from `tech-design-grill` against the plan itself. In particular **Paper Tiger** (do the stories add up to what the requirements need, not just to the components?) and **Distributed Monolith** (can each story ship without waiting on all the others?).
 
+- Every story in the summary table is in the build order, and the reverse.
+
+Record the audit's result in the session notes, not in the plan: the plan says "Audited on <date> against `NEG-AUDIT.md`; the result is in the session notes." The audit's own vocabulary (the violation names) is the author's checklist, not something a developer reads.
+
 Set `status: complete` only if all of that holds. If the user goes ahead with an uncovered target or an acknowledged violation, set `complete-with-gaps` with a `gaps[]` entry for each.
 
 ## Hard rules
@@ -64,5 +69,6 @@ Set `status: complete` only if all of that holds. If the user goes ahead with an
 - Never invent acceptance criteria. A criterion comes from a requirement, an epic, a contract or the design.
 - Never edit the design, the requirements or the vault. Gaps go back upstream as open questions.
 - Never estimate in dates or people. Sizes only; the team plans the calendar.
+- Never split, merge, drop or reorder stories without reading the change back and getting the user's yes. Being allowed to edit the plan is not leave to change what was agreed.
 
 </supporting-info>

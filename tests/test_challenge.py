@@ -60,7 +60,7 @@ def test_challenge_asks_the_solution_lead_in_a_pr():
 def test_tech_design_points_the_senior_at_challenge():
     ref = (PLUGIN / "references" / "TECH-DESIGN-FROM-VAULT.md").read_text(encoding="utf-8")
     assert "`/planner:challenge <vault ID>`" in ref
-    assert "planner handoff verify <APP-id> --vault <vault>" in ref
+    assert "handoff verify <APP-id> --vault <vault>" in ref
 
 
 # What the skill writes, applied to a copy of the fixture: the check turns red with E316 and
