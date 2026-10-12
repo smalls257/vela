@@ -241,3 +241,19 @@ def test_e3_the_stress_vault_is_the_same_every_time_it_is_made_in_one_process(tm
     def differing(cmp):
         return cmp.diff_files + [f"{sub}/{name}" for sub, c in cmp.subdirs.items() for name in differing(c)]
     assert not differing(compared) and not compared.left_only and not compared.right_only
+
+
+# ------------------------------------------------------------ E2: nothing is Chrome-only by API
+
+CHROME_ONLY = ("showSaveFilePicker", "showOpenFilePicker", "showDirectoryPicker", "userAgentData", "webkitRequestFileSystem", "scrollend",
+               "field-sizing", "interpolate-size", "anchor-name", "position-anchor", "view-transition", "@scope", "scroll-timeline", "::scroll-marker")
+
+
+def test_e2_no_page_asset_uses_an_api_only_chrome_has():
+    """Only Chrome is run here (Safari, Firefox and a screen reader are unchecked), so the one guard that can be automatic is
+    that the assets use no API that Chrome ships alone. Recording a clip, the clipboard and Web Audio are feature-checked in
+    the code (flowkit.js, plan.js, sound.js) and say so when the browser lacks them."""
+    assets = pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/planner/explorer/assets"
+    found = [f"{path.name}: {word}" for path in assets.rglob("*") if path.suffix in (".js", ".css", ".html") and path.name != "selftest.js"
+             for word in CHROME_ONLY if word in path.read_text(encoding="utf-8")]
+    assert not found, found
