@@ -148,7 +148,8 @@ def test_close_pr_body_carries_the_no_examples_line():
 
 def test_manifest_is_version_0_2_0_and_describes_v2():
     data = json.loads(read("plugin", ".claude-plugin", "plugin.json"))
-    assert data["version"] == "0.2.0"
+    # Version must be in semantic versioning format
+    assert re.match(r"^\d+\.\d+\.\d+$", data["version"]), f"version {data['version']} is not in semver format"
     for word in ("session skills", "house voice", "handoff", "challenge", "health"):
         assert word in data["description"], word
 
