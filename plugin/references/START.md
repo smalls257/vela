@@ -24,6 +24,10 @@ Run `planner role`. Access decides, never a title. An **owner** works in the vau
 - **Owner-only, so not open to a reader:** handoff, publish, `planner upgrade` and `/planner:challenge`. Name the owner as the CLI does (`published.json` has `owner`): "That is <name>'s call. Send a proposal (`/planner:propose`) and they decide."
 - If `planner role` says `none`, stop and show its message.
 
+## Shell that runs on a Mac and on Linux
+
+Owners work on macOS (BSD tools) as often as on Linux (GNU tools). Edit a file with the Edit tool, or with a `planner` command when one exists. Never edit in place from the shell: no `sed -i`, which takes a different argument on each, and no `\n`, `\+` or `\|` in a `sed` replacement. To read a line range, `sed -n '<first>,<last>p' <file>` works on both. Anything longer is `python3 -c` or a script, not a `sed` chain. If a shell edit fails, check the file before you retry, because part of it may have been written.
+
 ## The user may override any rule
 
 The user may override any rule in these skills. Say once, in one sentence, what the rule protects. Then do what they asked, and record an `**Override:**` bullet (or the session's Changes row note) naming the rule and their reason. Never refuse, and never ask twice.
