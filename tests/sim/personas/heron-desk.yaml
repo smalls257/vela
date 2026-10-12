@@ -309,6 +309,16 @@ decisions:
     choice: once its boundary and contracts are decided, to the Desk Agent team
     reason: the team builds against agreed contracts
 
+  - id: D10
+    category: timeline
+    keywords: ["hand off now", "hand it to the team"]
+    question: Is Heron handed to @agent-lead's team now, or only once every handoff item is met?
+    options:
+      - hand off now, with each unmet item recorded as an override
+      - wait until every handoff item is met
+    choice: hand off now, with each unmet item recorded as an override
+    reason: the pilot needs the team designing now, and every open item stays visible on the record for them
+    override_if_blocked: the CISO pack is due on 10 November and the team cannot design while the handoff waits; every unmet item is recorded as an override, decided by the lead on @agent-lead's behalf, for @agent-lead to confirm
 docs:
   - name: cio-brief.md
     text: |
