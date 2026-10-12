@@ -27,7 +27,7 @@
   }
 
   async function fileExists(url) {
-    try { return (await fetch(url, { method: "HEAD" })).ok; } catch (e) { return false; }
+    try { return (await fetch(url, { method: "HEAD" })).ok; } catch (e) { console.warn(`[assets] could not check whether ${url} exists: ${e.message}`); return false; }
   }
 
   async function readSources(base, providers, configOverride) {
