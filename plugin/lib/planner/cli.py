@@ -977,13 +977,20 @@ def commit_stamp(root, override=""):
     return commit + (" with uncommitted changes" if dirty else "")
 
 
+# Where a number can live besides a session branch: the default branch, here and on origin. A session branch that merged
+# and was deleted leaves its numbers only here.
+MAIN_REFS = ("refs/heads/main", "refs/heads/master", "refs/remotes/origin/main", "refs/remotes/origin/master")
+
+
 def cmd_next_id(args, out):
-    """The next free ID for a prefix, counting this working tree and every session branch, local and remote."""
+    """The next free ID for a prefix, counting this working tree, the default branch and every session branch, local and
+    remote. It reads the remote refs this clone last fetched, so run `git fetch` first to see numbers pushed since."""
     root = pathlib.Path(args.vault).resolve()
     load_config(root)  # a folder that is not a vault has no IDs to count
     texts = [path.read_text(encoding="utf-8") for path in vault_files(root)[0]]
     if (root / ".git").exists() and ids.PREFIX_RE.match(args.prefix):
-        refs = git_strict(root, "for-each-ref", "--format=%(refname)", "refs/heads/session/", "refs/remotes/origin/session/")
+        refs = git_strict(root, "for-each-ref", "--format=%(refname)", "refs/heads/session/", "refs/remotes/origin/session/",
+                          *MAIN_REFS)
         for ref in refs.split():
             texts.append(git_strict(root, "grep", "-h", "-E", "-o", rf"{args.prefix}-[0-9]+", ref, "--", "*.md",
                                     allow_no_match=True))
@@ -2006,6 +2013,8 @@ def cmd_next(args, out):
 
 def build_parser():
     parser = argparse.ArgumentParser(prog="planner", description="Check and render an initiative vault.")
+    parser.add_argument("--version", action="version", version="planner (run `planner --version` on its own)",
+                        help="print the plugin version and exit")
     sub = parser.add_subparsers(dest="command", required=True)
     check = sub.add_parser("check", help="read-only check of the vault")
     check.add_argument("--vault", default=".", help="vault root (default: current directory)")
@@ -2047,7 +2056,7 @@ def build_parser():
     role.add_argument("--vault", default=".", help="vault root (default: current directory)")
     role.add_argument("--json", action="store_true", help="the answer as JSON")
     role.set_defaults(func=cmd_role)
-    nid = sub.add_parser("next-id", help="the next free ID for a prefix, such as UNK, counting main and every session branch; never fills a gap")
+    nid = sub.add_parser("next-id", help="the next free ID for a prefix, such as UNK, counting main and every session branch as last fetched (git fetch first); never fills a gap")
     nid.add_argument("prefix", help="1 to 4 capital letters, for example UNK, CON, R or ADR")
     nid.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nid.set_defaults(func=cmd_next_id)
@@ -2220,12 +2229,41 @@ def build_parser():
     return parser
 
 
+def unrecognized_message(args, extras):
+    """Why an extra argument was refused. A folder is almost always a vault passed the way `explore` takes it, so say
+    how check, render, view and the rest take it: with --vault."""
+    command = getattr(args, "command", "")
+    first = extras[0]
+    if "vault" in args and pathlib.Path(first).is_dir():
+        return (f"planner: {first} is not an argument of '{command}'. It takes the vault as an option: "
+                f"planner {command} --vault {first}")
+    return f"planner: unrecognized arguments: {' '.join(extras)}"
+
+
+PLUGIN_JSON =pathlib.Path(__file__).resolve().parent.parent.parent / ".claude-plugin" / "plugin.json"
+
+
+def plugin_version(path=PLUGIN_JSON):
+    """The version plugin.json declares, or words saying why it cannot be read: an owner and a reader on different
+    builds can only tell each other so if the tool can say which build it is (Sensor)."""
+    try:
+        return str(json.loads(pathlib.Path(path).read_text(encoding="utf-8"))["version"])
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return f"unknown ({path.name if hasattr(path, 'name') else path} could not be read: {exc})"
+
+
 def main(argv=None, out=None):
     out = out or sys.stdout
+    if list(argv if argv is not None else sys.argv[1:]) == ["--version"]:
+        print(f"planner {plugin_version()}", file=out)
+        return 0
     try:
-        args = build_parser().parse_args(argv)
+        args, extras = build_parser().parse_known_args(argv)
     except SystemExit as exc:
         return 0 if exc.code == 0 else 2
+    if extras:
+        print(unrecognized_message(args, extras), file=out)
+        return 2
     try:
         return args.func(args, out)
     except ToolError as exc:
