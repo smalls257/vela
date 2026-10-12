@@ -137,7 +137,7 @@ def test_the_explorer_draws_a_recorded_sender_as_stated_even_against_the_provide
     vault = with_step(tmp_path, f"{WEBSITE} → {BOOKING}: waits on {CON1}.")
     code, said = run("explore", str(vault), "--today", TODAY)
     assert code == 0, said
-    page = (vault / ".planner" / "explorer.html").read_text(encoding="utf-8")
+    page = (vault / "dashboard.html").read_text(encoding="utf-8")
     data = json.loads(re.search(r'<script type="application/json" id="data">(.*?)</script>', page, re.S).group(1))
     flow = next(f for f in data["flows"] if f["key"] == "FLO-001")
     step = next(s for s in flow["steps"] if s["n"] == 6)

@@ -34,7 +34,7 @@ def explore(vault, *extra):
 
 
 def designs_on_the_page(vault):
-    page = (vault / ".planner" / "explorer.html").read_text(encoding="utf-8")
+    page = (vault / "dashboard.html").read_text(encoding="utf-8")
     return sorted(d["appId"] for d in json.loads(DATA.search(page).group(1))["designs"].values())
 
 
@@ -117,7 +117,7 @@ def test_a_bad_path_is_a_visible_warning_and_the_page_still_builds(world, where)
     code, said = explore(vault)
     assert code == 0, said
     assert re.search(r"warning: APP-pricing: .*(is not a file|is not a folder)", said), said
-    assert (vault / ".planner" / "explorer.html").is_file() and designs_on_the_page(vault) == []
+    assert (vault / "dashboard.html").is_file() and designs_on_the_page(vault) == []
 
 
 def test_a_design_flag_wins_and_the_app_is_not_looked_up(world):
@@ -199,7 +199,7 @@ def test_a_design_and_plan_in_the_vault_docs_are_found_together_and_check_ignore
     (vault / "CONTEXT.md").write_text("# Context\n\nTerms the design uses.\n", encoding="utf-8")
     code, said = explore(vault)
     assert code == 0 and "APP-pricing build plan found at docs/plan/pricing-breakdown.md" in said, said
-    page = (vault / ".planner" / "explorer.html").read_text(encoding="utf-8")
+    page = (vault / "dashboard.html").read_text(encoding="utf-8")
     assert len(json.loads(DATA.search(page).group(1))["plans"]) == 1
     checked, out = run("check", "--vault", str(vault), "--today", "2026-11-20")
     assert checked == 0 and "docs/" not in out, out

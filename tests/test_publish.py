@@ -20,7 +20,7 @@ def vault(tmp_path):
     for name in (".claude/skills/planner/scripts/planner", "voice/local/mine.md", ".planner/explorer.html", ".planner/explorer-pins.json"):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("owner only\n", encoding="utf-8")
+        path.write_text("{}\n" if name.endswith("-pins.json") else "owner only\n", encoding="utf-8")  # the pins are read when the dashboard is rebuilt
         git(root, "add", "-f", name)
     git(root, "commit", "-q", "-m", "owner-only files")
     return root

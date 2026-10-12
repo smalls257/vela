@@ -18,7 +18,7 @@ import sys
 import threading
 
 import pytest
-from sharing import draft_workspace
+from sharing import draft_workspace, git, make_vault
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
@@ -96,8 +96,8 @@ def test_explorer_selftest(tmp_path, chrome_path, vault_name, vault_path):
     assert result.returncode == 0, f"planner explore failed: {result.stderr}"
 
     # Run Chrome to extract selftest
-    html_path = vault_copy / ".planner" / "explorer.html"
-    assert html_path.exists(), f"explorer.html not found at {html_path}"
+    html_path = vault_copy / "dashboard.html"
+    assert html_path.exists(), f"dashboard.html not found at {html_path}"
 
     # Extract and check selftest
     _check_selftest_in_chrome(chrome_path, html_path, vault_name)
@@ -137,7 +137,7 @@ def test_explorer_selftest_800x600(tmp_path, chrome_path):
     assert result.returncode == 0, f"planner explore failed: {result.stderr}"
 
     # Run Chrome at small viewport
-    html_path = vault_copy / ".planner" / "explorer.html"
+    html_path = vault_copy / "dashboard.html"
     assert html_path.exists()
     _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="800,600")
 
@@ -220,7 +220,7 @@ def test_a_reader_workspace_shows_its_draft_and_its_pending_decision(tmp_path, c
     result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(workspace), "--today", "2026-10-12"],
                             timeout=120, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    page = workspace / ".planner" / "explorer.html"
+    page = workspace / "dashboard.html"
     dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
                           "--dump-dom", f"file://{page}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
     lines = _selftest_lines(dom)
@@ -272,7 +272,7 @@ def test_a_replayed_workspace_lists_its_conflicts_first_and_the_badge_counts_the
     theme, the conflicts listed before the changed pages, and the draft badge counting them."""
     from test_replay import conflicted_workspace
     workspace = conflicted_workspace(tmp_path)
-    page = workspace / ".planner" / "explorer.html"
+    page = workspace / "dashboard.html"
     dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
                           "--dump-dom", f"file://{page}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
     lines = _selftest_lines(dom)
@@ -322,3 +322,16 @@ def test_explorer_selftest_with_three_designs_loaded(tmp_path, chrome_path, view
                            timeout=120, capture_output=True, text=True)
     assert built.returncode == 0, built.stderr
     _check_selftest_in_chrome(chrome_path, page, "booking-demo with designs", viewport=viewport)
+
+
+@pytest.mark.browser
+def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
+    if chrome_path is None:
+        pytest.skip("Chrome not available")
+    vault = make_vault(tmp_path, "shown")
+    subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10"], timeout=120, check=True, capture_output=True)
+    short = git(vault, "rev-parse", "--short", "HEAD")
+    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=20000", "--dump-dom",
+                          f"file://{vault / 'dashboard.html'}#home"], timeout=180, capture_output=True, text=True).stdout
+    line = html.unescape(re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S).group(1))
+    assert f"from commit {short}" in line and "hidden" not in re.search(r'<div class="built" id="built"[^>]*>', dom).group(0)

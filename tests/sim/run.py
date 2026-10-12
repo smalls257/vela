@@ -1119,13 +1119,13 @@ class Arm:
     def report_explorer(self):
         """Say whether the tool left an explorer page in the vault, and what design and plan it holds. The page is the
         tool's own (the closing session's last step builds it); this only reads it, so a missing page is a finding."""
-        page = self.vault / ".planner" / "explorer.html"
+        page = self.vault / "dashboard.html"
         if not page.is_file():
-            line = "no .planner/explorer.html in the final vault: no close step built the explorer"
+            line = "no dashboard.html in the final vault: no close step built the explorer"
         else:
             found = EXPLORER_DATA.search(page.read_text(encoding="utf-8"))
             data = json.loads(found.group(1)) if found else {}
-            line = (f".planner/explorer.html in the final vault, built by the tool: {len(data.get('designs') or {})} tech design(s), "
+            line = (f"dashboard.html in the final vault, built by the tool: {len(data.get('designs') or {})} tech design(s), "
                     f"{len(data.get('plans') or {})} build plan(s) loaded")
         self.notes.append(line)
         self.transcript.add(speaker="driver", session=0, mode="end", event="explorer", text=line)

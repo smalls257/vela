@@ -12,7 +12,7 @@ from sharing import HOSTILE, SNAPSHOT, advance_remote, draft_workspace, git, mak
 from planner import attention, cli, drafts
 
 DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
-PAGE = ".planner/explorer.html"
+PAGE = "dashboard.html"
 
 
 def page_data(root):

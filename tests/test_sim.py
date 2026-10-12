@@ -992,7 +992,7 @@ def team_in_vault_run(tmp_path, write):
 
 
 def page_data(arm):
-    page = (arm / "vault" / ".planner" / "explorer.html").read_text(encoding="utf-8")
+    page = (arm / "vault" / "dashboard.html").read_text(encoding="utf-8")
     return json.loads(EXPLORER_DATA.search(page).group(1))
 
 
@@ -1023,7 +1023,7 @@ def test_the_full_heron_script_ends_with_the_explorer_the_tool_built_in_its_vaul
                            "--out", str(tmp_path / "results"), *MODELS, "--budget", "5"], capture_output=True, text=True, timeout=900)
     assert done.returncode == 0, done.stderr
     arm = sorted((tmp_path / "results").iterdir())[0] / "planner"
-    assert (arm / "vault" / ".planner" / "explorer.html").is_file()
+    assert (arm / "vault" / "dashboard.html").is_file()
     assert (arm / "vault" / ".claude" / "skills" / "tech-design-grill" / "SKILL.md").is_file() and not (arm / "team-agent").exists()
     assert any(e.get("event") == "explorer" for e in entries(arm))
 

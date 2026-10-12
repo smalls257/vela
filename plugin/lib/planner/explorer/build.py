@@ -63,12 +63,11 @@ THEME_IDS = tuple(t[0] for t in THEMES)
 
 # --------------------------------------------------------------------------- vault identity
 
-def vault_id(root, initiative):
-    """A short, stable identifier for this vault, keyed by its resolved path and initiative ID.
-    Used to scope localStorage keys so moves between vaults don't mix their state."""
-    source = f"{root.resolve().as_posix()}|{initiative}"
-    h = hashlib.sha256(source.encode()).hexdigest()[:12]
-    return h
+def vault_id(initiative, title):
+    """A short, stable identifier for this vault, keyed by its initiative ID and title, never by where the folder sits.
+    Used to scope localStorage keys so moves between vaults don't mix their state. A path in the key would give every
+    clone and every workspace a different page, so a committed dashboard.html would change on each machine's build."""
+    return hashlib.sha256(f"{initiative}|{title}".encode()).hexdigest()[:12]
 
 
 # --------------------------------------------------------------------------- opening prose
@@ -506,9 +505,9 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     initiative = str(vault.config.get("initiative", ""))
     data = {
         "initiative": initiative, "title": str(vault.config.get("title", "")),
-        "vaultId": vault_id(root, initiative),
+        "vaultId": vault_id(initiative, str(vault.config.get("title", ""))),
         "today": today,
-        "vault": "", "entities": entities, "role": roles.NONE, "draft": None, "freshness": None,
+        "vault": "", "entities": entities, "role": roles.NONE, "draft": None, "freshness": None, "built": None,
         "map": system_map(vault, keys), "apps": app_details(vault, keys, blocked),
         "unknowns": unknowns(vault, keys), "risks": [r.id for r in vault.risks],
         "blockedBy": {k: [u.id for u in v] for k, v in blocked.items()},
@@ -699,10 +698,13 @@ def plural_pages(n):
 
 
 def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None,
-             breakdown_args=()):
+             breakdown_args=(), built=None):
     """Build the page for the vault at `root` and write it to `out`. Returns the report lines: what the build
     chose, what it left out and why, and the one-line summary last. Raises ExplorerError, writing nothing, when
     the vault, the assets, the pins, a design or a named breakdown cannot be read.
+
+    `built` is {"date", "commit"}, the line the page shows at the top about what it was built from (commit "" when
+    there is none). Nothing in the page comes from the clock, so the same vault, `today` and `built` write the same bytes.
 
     `pins_path` is the file that keeps every app's cell (None computes the layout and keeps nothing); `seed` is a
     pins file to start from when that one does not exist yet. `freshness` is the report (a dict) `planner freshness`
@@ -733,9 +735,12 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     except plan_data.PlanError as exc:
         raise ExplorerError(f"--breakdown: {exc}") from exc
     data["theme"] = theme
+    data["built"] = built
     data.update(access_data(root, vault, freshness))
     said = link_sources(data, root, design_args, out.parent, plan_args)
-    page = render(data, assets)
+    # Which apps this build newly pinned is a fact about the pins file, not the vault: the page does not read it, and
+    # carrying it would make the first build and every later build of one vault differ. The report lines still say it.
+    page = render({**data, "pins": {**data["pins"], "added": []}}, assets)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
     said += pin_lines(data, pins_path, was_there, root)

@@ -122,10 +122,10 @@ Handoff is part of a grill on an app that is ready: it records the senior's name
 
 ### Close every session
 
-`/planner:close` marks each capture keep, park or drop, writes the kept ones into the pages, renders, checks, commits, pushes `session/<id>` and opens a PR. Its last step rebuilds the explorer without `--serve` and tells you:
+`/planner:close` marks each capture keep, park or drop, writes the kept ones into the pages, renders, checks, commits, pushes `session/<id>` and opens a PR. Its last step rebuilds the dashboard without `--serve`, commits it if it changed, and tells you:
 
 ```
-The explorer is up to date: .planner/explorer.html
+The dashboard is up to date: dashboard.html
 ```
 
 A failed explorer build never undoes the close. `/planner:import` and `/planner:open` end the same way.
@@ -140,7 +140,7 @@ A failed explorer build never undoes the close. `/planner:import` and `/planner:
 /planner:explore            # serves it on this machine, opens the browser, search box can ask Claude
 ```
 
-or `planner explore` for a static `.planner/explorer.html` you can email. Useful flags, all checked against `planner explore --help`: `--theme console|graphite|daylight|vaporwave`, `--today YYYY-MM-DD` (a vault dated ahead of your clock), `--port`, `--no-open`, `--model haiku|sonnet`.
+or `planner explore` for a static `dashboard.html` at the vault root. Nobody else has to build it: it is committed with the vault, so a teammate who pulls the repo opens `dashboard.html`, and a reader on OneDrive opens `dashboard.html` in the published folder (`planner publish` rebuilds it from the published pages). A quiet line at the top says when it was built and from which commit, so an old copy shows its age. Useful flags, all checked against `planner explore --help`: `--theme console|graphite|daylight|vaporwave`, `--today YYYY-MM-DD` (a vault dated ahead of your clock), `--port`, `--no-open`, `--model haiku|sonnet`.
 
 What you get:
 - **What needs you** is the home screen: lit lamps for overdue questions, unreviewed decisions and unsettled items.
@@ -215,7 +215,7 @@ It copies into `~/PlannerWorkspaces/<initiative>/` (or `$PLANNER_WORKSPACES`, or
 
 ### Explore and ask
 
-Open `.planner/explorer.html` in the workspace, or run `/planner:explore`. Two quick questions in Claude:
+Open `dashboard.html` in the workspace, or run `/planner:explore`. Your own closes rebuild it, so it shows your drafts. Two quick questions in Claude:
 
 - `/planner:find how does coach talk to brightwater` gives the best places, in seconds.
 - `/planner:ask <question>` gives a cited answer, flags what is not decided yet, and says "Not recorded" and who to ask when the vault is silent.

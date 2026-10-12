@@ -72,7 +72,7 @@ def close_rebuilds_the_explorer(argv):
     done = subprocess.run([sys.executable, str(plugin / "scripts" / "planner"), "explore"], capture_output=True, text=True, timeout=120)
     if done.returncode != 0:
         return f"The explorer could not be built: {(done.stdout + done.stderr).strip()}"
-    return "The explorer is up to date: .planner/explorer.html"
+    return "The dashboard is up to date: dashboard.html"
 
 
 def assistant(argv):
