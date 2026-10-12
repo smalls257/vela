@@ -315,11 +315,27 @@ ASIDE = re.compile(r"\(([^()]*\b(?:no source|fact|assumption|inkling|decided|SRC
 ID_LABEL = re.compile(rf"\[\[[^\]|]*\|\s*{VAULT_ID}\s*\]\]")
 
 
-def style_problems(markdown, page_type, known_labels=()):
+def lint_words(text):
+    """The entries of plugin/references/lint-words.txt: one word or phrase a line, # starts a comment."""
+    return [line.strip() for line in text.split("\n") if line.strip() and not line.lstrip().startswith("#")]
+
+
+def lint_pattern(entry):
+    """A whole word with its endings (s, es, d, ed, ing), or a phrase as written; case does not matter."""
+    words = entry.lower().replace("\u2019", "'").split()
+    if len(words) > 1:
+        return re.compile(r"(?<![\w'])" + r"\s+".join(re.escape(w) for w in words) + r"(?![\w'])", re.I)
+    stem = re.escape(words[0])
+    clipped = re.escape(words[0][:-1]) if words[0].endswith("e") else stem
+    return re.compile(rf"(?<![\w'])(?:{stem}(?:s|es|d|ed|ing)?|{clipped}ing)(?![\w'])", re.I)
+
+
+def style_problems(markdown, page_type, known_labels=(), lint=()):
     """(line, problem) for each place a page reads as a list or a log rather than a document. Read by `planner
     style`. `known_labels` are the fact-bullet labels `planner check` reads; any other bold label is prose dressed up
-    as data."""
+    as data. `lint` is the word list, as lint_words reads it: each word on the page is one problem, with the count."""
     known = {label.lower() for label in known_labels}
+    patterns, hits = {entry: lint_pattern(entry) for entry in lint}, {}
     problems, in_fence, in_gen, in_history, seen_h2, opening = [], None, False, False, False, 0
     item_line, item_said = 0, True
     for n, line in enumerate(markdown.split("\n"), 1):
@@ -375,6 +391,9 @@ def style_problems(markdown, page_type, known_labels=()):
             and not BREADCRUMB.match(stripped)
         if prose and not seen_h2:
             opening += 1
+        if prose and not in_history:
+            for entry, pattern in patterns.items():
+                hits.setdefault(entry, []).extend([n] * len(pattern.findall(visible(stripped))))
         if prose and not in_history and ASIDE.search(stripped):
             problems.append((n, f"a bracketed aside, ({ASIDE.search(stripped).group(1)[:40]}); say it in the sentence, "
                                 "as \"the product lead says\" or a link on the words"))
@@ -386,6 +405,11 @@ def style_problems(markdown, page_type, known_labels=()):
                                     "link the name, and put the ID on a '- Trace:' line"))
     if item_line and not item_said:
         problems.append((item_line, "this item has only bullets; open it with a sentence or two that say what it is now"))
+    for entry, lines in hits.items():
+        if lines:
+            times = f"{len(lines)} times" if len(lines) > 1 else "once"
+            problems.append((lines[0], f"'{entry}' is on the lint list and appears {times} on this page; say what the thing "
+                                       "does in plain words"))
     if page_type in PROSE_PAGE_TYPES and opening == 0:
         problems.append((1, "no opening prose: the page should say in a paragraph or two what is true now"))
     return problems

@@ -248,3 +248,60 @@ def test_an_opening_that_counts_and_points_passes(mini):
                "due 23 October. The table below lists the rest, each with who is asked and when.\n")
     write_page(mini, 1, "## Notes\n\nThe till reads one thing.\n", summary=summary)
     assert codes(mini) == []
+
+
+# ------------------------------------------------------------------------------------------------ the lint word list (16-D2)
+
+LINT = REPO / "plugin" / "references" / "lint-words.txt"
+PROSE_WITH_WORDS = ("# Till\n\nThe till is robust and it leverages the shop. It is a robust design.\n")
+
+
+def test_style_lists_each_lint_word_once_with_its_count():
+    from planner import reading
+    words = reading.lint_words(LINT.read_text(encoding="utf-8"))
+    problems = [why for _, why in reading.style_problems(PROSE_WITH_WORDS, "epic", (), words)]
+    assert [p for p in problems if "'robust'" in p] == ["'robust' is on the lint list and appears 2 times on this page; say what the thing does in plain words"]
+    assert any("'leverage'" in p and "once" in p for p in problems)
+
+
+def test_lint_words_match_endings_and_phrases_and_nothing_inside_a_longer_word():
+    from planner import reading
+    assert reading.lint_pattern("leverage").search("It is leveraging the shop")
+    assert reading.lint_pattern("ensure").search("Ensures a receipt")
+    assert reading.lint_pattern("going forward").search("Going  forward we")
+    assert not reading.lint_pattern("ensure").search("insurer")
+    assert not reading.lint_pattern("robust").search("robustness")
+
+
+def test_the_cli_reads_the_one_word_list(tmp_path, mini):
+    page = mini / "01-goals.md"
+    text = page.read_text(encoding="utf-8")
+    title = next(line for line in text.split("\n") if line.startswith("# "))
+    page.write_text(text.replace(title, f"{title}\n\nThe till is a seamless way to pay for things at the shop.", 1), encoding="utf-8")
+    from conftest import run
+    code, out = run("style", "--vault", str(mini), "01-goals")
+    assert code == 1 and "'seamless' is on the lint list" in out
+
+
+def test_a_missing_word_list_is_a_tool_failure_not_an_empty_list(tmp_path):
+    with pytest.raises(cli.ToolError):
+        cli.load_lint_words(tmp_path / "nope.txt")
+
+
+def test_the_drafting_instructions_never_name_a_listed_word():
+    """Naming a word in a prompt raises its odds, so the list lives in the lint and the reviewer, and the drafter never
+    sees it: not in house-voice, not in close, not in epics."""
+    from planner import reading
+    words = reading.lint_words(LINT.read_text(encoding="utf-8"))
+    for relative in ("skills/house-voice/SKILL.md", "skills/close/SKILL.md", "skills/epics/SKILL.md", "skills/allocate/SKILL.md"):
+        text = (REPO / "plugin" / relative).read_text(encoding="utf-8")
+        for word in words:
+            assert not reading.lint_pattern(word).search(text.replace("lint-words.txt", "")), f"{relative} names '{word}'"
+
+
+def test_the_reviewer_reads_the_list_from_the_same_file():
+    text = (REPO / "plugin" / "agents" / "voice-reviewer.md").read_text(encoding="utf-8")
+    assert "references/lint-words.txt" in text
+    from planner import reading
+    for word in reading.lint_words(LINT.read_text(encoding="utf-8")):
+        assert f'"{word}"' not in text

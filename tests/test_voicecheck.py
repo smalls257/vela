@@ -133,6 +133,50 @@ def test_a_dropped_negation_is_flagged_per_file():
     assert not flagged("Run `no` now.", "Run `no` today.")
 
 
+# A negation the reviewer named as redundant (design session 16, 16-D5, route C).
+
+HERON_BEFORE = ("Heron does not read a mailbox, and it writes no morning digest. Nobody keeps the digest in the first release.\n\n"
+                "Whether it needs only each person's sign-in is open.\n")
+HERON_AFTER = ("Heron does not read a mailbox, and it writes no morning digest.\n\n"
+               "Whether it needs only each person's sign-in is open.\n")
+NAMED = "Nobody keeps the digest in the first release."
+
+
+def test_a_removed_negation_fails_until_the_reviewer_names_the_sentence():
+    assert voicecheck.describe(voicecheck.compare(HERON_BEFORE, HERON_AFTER)) == [
+        "negation: 3 negation words before, 2 after (negation)"]
+    assert voicecheck.compare(HERON_BEFORE, HERON_AFTER, [NAMED]).same
+
+
+def test_naming_a_sentence_excuses_only_its_own_negation():
+    worse = HERON_AFTER.replace("does not read", "reads")
+    assert voicecheck.describe(voicecheck.compare(HERON_BEFORE, worse, [NAMED])) == [
+        "negation: 2 negation words before, 1 after (negation)"]
+
+
+def test_a_named_sentence_that_carried_a_fact_still_fails():
+    before = "It sends nothing. Nobody keeps 12 digests.\n"
+    result = voicecheck.compare(before, "It sends nothing.\n", ["Nobody keeps 12 digests."])
+    assert voicecheck.describe(result) == ["missing: 12 (number), before line 1"]
+
+
+def test_a_name_that_is_not_in_the_text_or_was_not_removed_is_an_error():
+    with pytest.raises(voicecheck.NotRedundant, match="not in the text before"):
+        voicecheck.compare(HERON_BEFORE, HERON_AFTER, ["Nobody keeps the dashboard."])
+    with pytest.raises(voicecheck.NotRedundant, match="still in the text after"):
+        voicecheck.compare(HERON_BEFORE, HERON_BEFORE, [NAMED])
+
+
+def test_the_cli_takes_redundant_and_prints_who_asked(tmp_path):
+    before, after = tmp_path / "before.md", tmp_path / "after.md"
+    before.write_text(HERON_BEFORE, encoding="utf-8")
+    after.write_text(HERON_AFTER, encoding="utf-8")
+    assert run("voicecheck", str(before), str(after))[0] == 1
+    code, out = run("voicecheck", str(before), str(after), "--redundant", NAMED)
+    assert code == 0 and f"removed as redundant, named by the reviewer: {NAMED}" in out
+    assert run("voicecheck", str(before), str(after), "--redundant", "Nobody keeps the dashboard.")[0] == 2
+
+
 # Through the CLI.
 
 def test_non_utf8_input_exits_2(tmp_path):
@@ -265,3 +309,11 @@ def test_tool_failures_exit_2(repo, tmp_path):
     code, out = run("voicecheck", "--range", "no-such-ref", "--vault", str(repo))
     assert code == 2 and "no-such-ref" in out
     assert run("voicecheck", "--range", "..HEAD", "--vault", str(repo))[0] == 2
+
+
+def test_close_and_the_reviewer_carry_the_redundant_route():
+    root = pathlib.Path(__file__).resolve().parent.parent / "plugin"
+    close = (root / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
+    reviewer = (root / "agents" / "voice-reviewer.md").read_text(encoding="utf-8")
+    assert '--redundant "<sentence>"' in close and "named by the reviewer" in close or "the reviewer named as redundant" in close
+    assert "Redundant sentences" in reviewer and "Redundant sentence (exact)" in reviewer

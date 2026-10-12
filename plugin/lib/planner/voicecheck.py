@@ -116,8 +116,30 @@ def negations(text):
     return total
 
 
-def negation_changes(before, after):
-    a, b = negations(before), negations(after)
+class NotRedundant(ValueError):
+    """A sentence named as redundant is not in the text before the rewrite, or is still in the text after it."""
+
+
+def removed_sentences(before, after, named):
+    """The sentences the reviewer named as redundant, each checked: it must stand in the text before (spaces and line
+    breaks do not count) and be gone from the text after. A name that fails either would excuse a negation nobody
+    removed, so it is an error and never a quiet pass."""
+    flat = lambda text: re.sub(r"\s+", " ", text)
+    for sentence in named:
+        wanted = flat(sentence).strip()
+        if not wanted or wanted not in flat(before):
+            raise NotRedundant(f"'{sentence}' is not in the text before the rewrite, so it cannot have been removed.")
+        if wanted in flat(after):
+            raise NotRedundant(f"'{sentence}' is still in the text after the rewrite, so nothing was removed.")
+    return [re.sub(r"\s+", " ", s).strip() for s in named]
+
+
+def negation_changes(before, after, named=()):
+    """The negation counts before and after, when they differ. A sentence the reviewer named as redundant takes its
+    own negation words out of the count before: the claim it made stands elsewhere, which the reviewer said. Its IDs,
+    numbers and links still have to survive in the after text, so a sentence that carried a fact cannot be excused."""
+    gone = sum(negations(sentence) for sentence in removed_sentences(before, after, named))
+    a, b = negations(before) - gone, negations(after)
     return ((a, b),) if a != b else ()
 
 
@@ -142,12 +164,13 @@ def leftover(sequence, other):
     return tuple(reversed(out))
 
 
-def compare(before, after):
+def compare(before, after, redundant=()):
+    """`redundant` is the sentences a reviewer named as already said elsewhere; a rewrite may drop their negations."""
     a, b = tokens(before), tokens(after)
     keep = Counter((t.kind, t.text) for t in a) & Counter((t.kind, t.text) for t in b)
     common_a, common_b = shared(a, keep), shared(b, keep)
     moved = next(((x, y) for x, y in zip(common_a, common_b) if (x.kind, x.text) != (y.kind, y.text)), None)
-    return Result(leftover(a, b), leftover(b, a), (moved,) if moved else (), negation_changes(before, after))
+    return Result(leftover(a, b), leftover(b, a), (moved,) if moved else (), negation_changes(before, after, redundant))
 
 
 def describe(result):

@@ -27,6 +27,7 @@ from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
+LINT_WORDS = pathlib.Path(__file__).resolve().parent.parent.parent / "references" / "lint-words.txt"
 TEMPLATE_LINES = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "template-lines.txt"
 
 
@@ -1548,10 +1549,15 @@ def cmd_voicecheck(args, out):
         pairs = range_pairs(pathlib.Path(args.vault).resolve(), args.range)
     failed = []
     for path, before, after in pairs:
-        result = voicecheck.compare(before, after)
+        try:
+            result = voicecheck.compare(before, after, args.redundant or ())
+        except voicecheck.NotRedundant as exc:
+            raise ToolError(f"{path}: {exc}") from exc
         if not result.same:
             failed.append((path, result))
     print(f"planner voicecheck: {len(pairs)} files compared, {len(failed)} with protected tokens changed.", file=out)
+    for sentence in args.redundant or ():
+        print(f"removed as redundant, named by the reviewer: {sentence}", file=out)
     for path, result in failed:
         for line in voicecheck.describe(result):
             print(f"{path}: {line}", file=out)
@@ -1796,6 +1802,16 @@ def status_line(row, today, vault=None):
             f"decided {progress.decided_text(row)} | oldest open unknown: {oldest_text(row, today)} | next: {next_text}. {row.reason}")
 
 
+def load_lint_words(path=None):
+    """The word list `planner style` and the voice reviewer share. Missing is a tool failure: an empty list would make
+    every page look as if it passed the lint."""
+    path = pathlib.Path(path or LINT_WORDS)
+    try:
+        return reading.lint_words(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ToolError(f"{path} cannot be read ({exc}), so planner style cannot lint words. Restore it from the toolkit repo.") from exc
+
+
 def cmd_style(args, out):
     """Where the named pages read as a log rather than a document: history above ## History, IDs and bare source
     IDs in prose, no opening prose. Close runs it on the pages a session changed."""
@@ -1805,14 +1821,14 @@ def cmd_style(args, out):
     missing = [ref for ref, page in zip(args.pages or [], pages) if page is None]
     if missing:
         raise ToolError(f"{', '.join(missing)} {'is' if len(missing) == 1 else 'are'} not a page in this vault.")
-    found, offset = [], {}
+    found, offset, lint = [], {}, load_lint_words()
     for page in pages:
         if page.type == "session":
             continue
         _, body_start, _ = parse.split_frontmatter(page.text)
         body = "\n".join(page.text.replace("\r\n", "\n").split("\n")[body_start - 1:])
         offset[page.path] = body_start - 1
-        found += [(page, n, why) for n, why in reading.style_problems(body, page.type, parse.KNOWN_LABELS.values())]
+        found += [(page, n, why) for n, why in reading.style_problems(body, page.type, parse.KNOWN_LABELS.values(), lint)]
     print(f"planner style: {len(found)} to fix in {len(pages)} pages.", file=out)
     for page, n, why in found:
         print(f"{page.path}:{n + offset[page.path]}: {why}", file=out)
@@ -2128,6 +2144,9 @@ def build_parser():
     voice = sub.add_parser("voicecheck", help="fail when a rewrite changed an ID, number, date, link, code span or table cell")
     voice.add_argument("files", nargs="*", metavar="before after", help="the text before the rewrite and after it")
     voice.add_argument("--range", help="a ref range instead of files: A (A against the working tree) or A..B")
+    voice.add_argument("--redundant", action="append", metavar="SENTENCE",
+                       help="a sentence the reviewer named as already said elsewhere; the rewrite may drop it and its negation. "
+                            "Repeat for each. It must be in the text before and gone from the text after")
     voice.add_argument("--vault", default=".", help="vault root for --range (default: current directory)")
     voice.set_defaults(func=cmd_voicecheck)
     score = sub.add_parser("voicescore", help="optional: where each prose paragraph sits against your own voice's range")

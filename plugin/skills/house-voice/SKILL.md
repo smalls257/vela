@@ -60,21 +60,34 @@ These keep the exact words they were written in. Do not restyle them:
 
 Merged prose belongs to the vault and the people who edited it. When a session changes a fact in a merged paragraph, change only that fact and the fewest words grammar needs. If the change makes the paragraph wrong as a whole, leave it alone and add a new paragraph under it that starts `> Replaces the paragraph above after <session id>; delete one.` A person picks.
 
-## Numbers and IDs
+## The ten rules
 
-- Cite a generated block rather than restating its numbers. Write "the open unknowns are listed in Where it stands", not "there are 3 open unknowns".
-- Write paragraphs, not lists. A run of bullets that are not fact bullets is a paragraph waiting to be written. Say who says a thing in the sentence, never in a bracket: "the product lead says", not "(the product lead, no source)".
-- Name things, never number them: no `UNK-027`, `CON-001` or `SRC-06` in a paragraph, and spell an abbreviation out at its first use on the page. A paragraph that must cite an ID puts it on a `- Trace:` line under it. Put a link on the words that rely on a source or point at an item, as `CONVENTIONS.md` says under "Pages".
-- Say what is true now. A paragraph never tells how a decision was reached; that is the page's `## History`.
-- Every number, date and ID in a draft must come from a capture, a source or a page. If you cannot point to where it came from, leave it out.
-- Link every ID the way `CONVENTIONS.md` says.
+The examples are what to match. These ten rules are what to do where they are thin, and they are repeated nowhere else: close and epics point here.
+
+1. **Open with the answer.** The first paragraph says what is true now and the one thing that most holds it up, in two or three sentences, at most about 80 words and three links. It names threads, not items. The blocks and tables below list items.
+2. **Every sentence has a character.** The subject is a person, a team, an app, a document or a date: "Sam Hadley has not confirmed the 70% figure". Where a subject is "it", "this" or "there", find who acts, and make that the subject. The subject may be the app: "Booking holds the seat for ten minutes".
+3. **Say a state once.** A paragraph names what is open or assumed once, in one sentence, and links it there. When three things are open, one sentence lists the three.
+4. **One topic, under 120 words.** A second topic starts a second paragraph. Four links make a table or a list under a heading.
+5. **Old before new, point at the end.** Start the sentence with what the last sentence left, and end it on the new thing.
+6. **Hedge by saying who and what would settle it.** "The lead believes most of the team's work comes from client calls, and the pilot lead has not confirmed it" is a hedge a reader can use.
+7. **Point at a block or a table; leave its numbers there.** Write "the open unknowns are listed below", and let the generated block carry the count.
+8. **A criterion reads aloud.** It names things by their names and could be read to a tester over the phone. Its IDs sit on the `- Trace:` line under it, and a bracketed aside becomes a clause that says who says it.
+9. **End on the last fact.** The last paragraph is the last thing worth knowing. The page type's own closing section, such as `## Out of scope`, is the only ending.
+10. **Keep the owner's words.** A merged paragraph changes only the fact that changed. A rewrite keeps every negation, number and state word of the paragraph it replaces; voicecheck says so when one is gone.
+
+Write paragraphs where the page asks for prose: a run of bullets that are not fact bullets is a paragraph waiting to be written. Name things in the sentence and keep their IDs on a `- Trace:` line. Facts come from somewhere. Every number, date and ID in a draft comes from a capture, a source or a page; where you cannot point to it, leave it out. Spell an abbreviation out at its first use on the page, put a link on the words that rely on a source or point at an item, and link every ID as `CONVENTIONS.md` says under "Pages". A paragraph says what is true now; how a decision was reached is the page's `## History`.
+
+## Pages that are mostly a list
+
+Unknowns and risks, concerns, decisions, sources and any page that is mostly a list have two parts, and the opening never does the second part's job.
+
+1. **An opening that counts and points.** Two or three plain sentences: how many are open, which few hold the rest up, and the most urgent with its date. "28 questions are open. Five hold up the first release; the most urgent is who owns Heron, due 23 October." It names about three items at most and sends the reader to the list below.
+2. **The items as a grouped list.** Group by what they hold up (the first release, the prep-note requirements, the security review), about seven to a group. Each line reads: the plain name, who to ask and by when, what it holds up. Anything past seven in a group goes under `## Also open (n)`, which the viewer folds.
 
 ## Size
-
-A page opens with a summary of two or three sentences: what it says, and what is still open. People hold about four to seven things in mind at once, so a paragraph that lists more than that is two paragraphs, or a list under subheadings.
 
 If a PR would change more than about 20 prose paragraphs, ask: "<n> paragraphs changed. Split into PRs by page group, or open one PR?"
 
 ## Defaults when examples are thin
 
-Write the way a senior engineer explains something to a peer they respect. Plain words, short sentences, active voice. Name the system, the number and the date. Say what happens and why. Use tables for facts and prose for reasons. If a sentence explains nothing, cut it. No dashes for asides, no rhetorical questions, no closing summary that repeats the page.
+Write the way a senior engineer explains something to a peer they respect: plain words, short sentences, active voice. Name the system, the number and the date. Say what happens and why. Use tables for facts and prose for reasons. The ten rules above carry the rest.
