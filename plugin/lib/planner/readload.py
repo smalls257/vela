@@ -22,7 +22,7 @@ from planner import schema
 from planner.readability import (HEADING, LIST_ITEM, NO_PROSE_TYPES, SUMMARY_MIN_WORDS, _is_prose, _regions,
                                  BARE_VAULT_ID, CODE_SPAN, URL, WIKILINK)
 from planner.parse import split_frontmatter
-from planner.reading import BREADCRUMB, is_folded, visible
+from planner.reading import BREADCRUMB, is_folded, not_started, visible
 
 BOLD_LABEL = re.compile(r"^\s*\*\*[^*]+:\*\*")  # "**Domain:** Sell": a label the page carries, not a sentence
 MD_LINK = re.compile(r"\[[^\]]*\]\([^)]*\)")
@@ -180,7 +180,8 @@ def template_opening_findings(page, known):
     describes its folder, and a page nobody has written in yet is untouched, not one whose summary is a template line."""
     _, body_start, _ = split_frontmatter(page.text)
     body = "\n".join(page.text.split("\n")[body_start - 1:])
-    if page.type == "index" or _untouched(body, known):
+    state = str(page.meta.get("state") or "")
+    if page.type == "index" or not_started(body, page.type, state) or _untouched(body, known):
         return []
     for n, raw, _, history in _regions(page):
         heading = HEADING.match(raw)
@@ -347,6 +348,22 @@ def phrase_findings(vault):
                     f"'{phrase}' appears {times} times on {len(spots)} page{'s' if len(spots) != 1 else ''} ({listed}); a clause repeated across pages reads as stamped.",
                     "Say the state once in the paragraph; put the rest on a Trace line or in the table."))
     return out
+
+
+def counts(vault, criteria_of):
+    """The five numbers design session 16 (16-D10) compares before and after the voice change, as a dict. `criteria_of`
+    is readability.criteria, passed in so this module does not import the page reader twice."""
+    cells = sum(1 for page in vault.pages if _readable(page) for table in page.tables if not table.generated
+                for row in table.rows for cell in row if _word_count(cell) > schema.CELL_WORD_LIMIT)
+    paragraphs_over = sum(1 for page in vault.pages if _readable(page) for _ in paragraph_findings(page))
+    with_id = sum(1 for page in vault.pages if page.type == "epic"
+                  for _, text in criteria_of(page) if BARE_VAULT_ID.search(visible(text)))
+    templated = sum(1 for page in vault.pages if _readable(page) for _ in template_opening_findings(page, vault.template_lines))
+    return {"stock phrases over the limit": len(repeated_phrases(vault)),
+            "paragraphs over 150 words or 3 links (openings at 90)": paragraphs_over,
+            "table cells over 40 words": cells,
+            "acceptance criteria with an ID in the sentence": with_id,
+            "template lines standing as openings": templated}
 
 
 def page_findings(page, template_known):
