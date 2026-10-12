@@ -758,3 +758,9 @@ def test_a_review_digest_puts_at_most_five_questions_to_the_lead_in_a_turn_and_n
     assert "No turn puts more than five questions to the lead" in review
     assert "Never paste a reviewer's reply, or the findings JSON, into the conversation" in review
     assert "There is no cap." in review and "Never drop a line to keep it short." in review
+
+
+def test_modes_asks_once_what_the_lead_might_not_know_they_need():
+    modes = text("references/MODES.md")
+    assert "**Ask what they might not know they need.**" in modes
+    assert "In Discover, Shape and Grill" in modes and "Who has to agree, or be consulted" in modes
