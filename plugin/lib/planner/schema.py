@@ -35,7 +35,7 @@ PAGE_TYPES = {
     },
     "flow": {
         "required": ("id", "type", "title", "state", "owner", "authored"),
-        "optional": ("initiative", "arc42", "sources"),
+        "optional": ("initiative", "arc42", "sources", "capabilities"),
         "states": STATE_ITEM,
     },
     "concern": {
@@ -93,7 +93,7 @@ ENUMS = {
     "stage": ("baseline", "target", "boundaries", "contracts", "handoff", "epics"),
     "status": ("open", "closed"),
 }
-LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes")
+LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes", "capabilities")
 DOMAIN_MIN_APPS = 6  # W352 applies from this many apps
 SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "releases", "grill", "requirements", "epics", "challenge", "answer")
 LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
@@ -307,6 +307,8 @@ CODES = {
     "W355": "unknown asks the person who owns it",
     "W356": "changing capability has no functional requirements",
     "W357": "functional requirement lists no acceptance criteria",
+    "W358": "flow names no capability though the initiative has capability pages",
+    "E359": "flow names a capability that is not a capability page",
     "W360": "one sentence holds three or more IDs",
     "W361": "an ID in prose, outside a link and not followed by its name",
     "W362": "a list of more than nine items with no subheadings",

@@ -261,6 +261,28 @@ def test_stress_vault_is_synthetic_and_at_scale(tmp_path):
     assert "synthetic" in str(loaded.config.get("title", "")).lower()
 
 
+def test_a_flow_carries_the_capability_it_serves_and_where_that_came_from(booking, trading):
+    """Recorded in frontmatter, it wins and keeps its order; otherwise the "Uses [[CAP-...]]" lines are a guess."""
+    recorded = {f["key"]: f for f in booking[1]["flows"]}["FLO-001"]
+    assert (recorded["capabilities"], recorded["capabilitiesFrom"]) == (["CAP-013", "CAP-014", "CAP-015"], "frontmatter")
+    guessed = {f["key"]: f for f in trading[1]["flows"]}["FLO-002"]
+    assert (guessed["capabilities"], guessed["capabilitiesFrom"]) == (["CAP-002"], "steps")
+
+
+def test_a_stress_vault_has_more_flows_than_the_picker_lists_flat(tmp_path):
+    """14 flows: eight record one capability, one two, two only cite one, three name none (so they go by domain)."""
+    make_stress_vault.main(tmp_path / "stress")
+    _, data = built(tmp_path, tmp_path / "stress", "2026-10-10", "stress")
+    flows = {f["key"]: f for f in data["flows"]}
+    assert len(flows) == 14
+    assert all(flows[f"FLO-{n:03d}"]["capabilitiesFrom"] == "frontmatter" and len(flows[f"FLO-{n:03d}"]["capabilities"]) == 1 for n in range(1, 9))
+    assert len(flows["FLO-012"]["capabilities"]) == 2
+    assert [flows[f"FLO-{n:03d}"]["capabilitiesFrom"] for n in (9, 10)] == ["steps", "steps"]
+    bare = [flows[f"FLO-{n:03d}"] for n in (11, 13, 14)]
+    assert all(f["capabilities"] == [] and f["capabilitiesFrom"] == "" and f["domain"] for f in bare), [(f["key"], f["domain"]) for f in bare]
+    assert data["flows"] == built(tmp_path, tmp_path / "stress", "2026-10-10", "stress-again")[1]["flows"]  # deterministic
+
+
 # --------------------------------------------------------------------------- themes
 
 CSS = PACKAGE / "assets" / "css"

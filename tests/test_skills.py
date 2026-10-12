@@ -457,3 +457,9 @@ def test_epics_skill_disposes_of_e805_by_answer_defer_or_override_and_never_leav
     assert "Defer it to whoever can answer" in epics and "planner next-id UNK" in epics
     assert "- Leave the gate failing." not in epics
     assert "is not a route" in epics and "do not loop" in epics
+
+
+def test_boundary_asks_which_capability_each_flow_serves_and_leaves_it_out_without_capabilities():
+    boundary = text("skills/boundary/SKILL.md")
+    assert "`capabilities`" in boundary and "which capability the journey serves" in boundary
+    assert "leave the field out and do not invent one" in boundary

@@ -13,6 +13,15 @@ planner's own parser and model. Two things the record does not say directly, eac
 
 An open question's state always comes from the unknown itself, never from the flow's prose: a sentence that still
 calls an answered question open is flagged (textSaysOpen) and the marker shows the record's state.
+
+Two more fields group a long list of flows in the picker (assets/js/flowpicker.js), both computed here so the page
+only reads them:
+
+- capabilities. The capabilities the flow serves: its `capabilities:` frontmatter (first is primary), else, as a
+  guess, every capability its text links ("Uses [[CAP-002-...]]") in text order. capabilitiesFrom says which:
+  "frontmatter", "steps" or "" (none), so the picker can mark a guessed group.
+- domain. The domain most of the apps the flow crosses carry (a tie goes to the name that sorts first, so a rebuild
+  never reshuffles the groups). "" when none of its apps names a domain.
 """
 import re
 
@@ -155,6 +164,29 @@ def next_heading(page, after):
     return next((h.line for h in page.headings if h.line > after and h.level <= 2), len(page.text.split("\n")) + 1)
 
 
+def capabilities_of(vault, keys, flow):
+    """(capability keys, where they came from) for a flow. The `capabilities:` frontmatter is the record and wins,
+    first one primary; with none, the capabilities its text links ("Uses [[CAP-...]]") are a guess, in text order."""
+    known = {keys.page(p) for p in vault.of_type("capability")}
+    value = flow.meta.get("capabilities")
+    declared = [v for v in (value if isinstance(value, list) else [value]) if isinstance(v, str) and v in known]
+    if declared:
+        return list(dict.fromkeys(declared)), "frontmatter"
+    cited = [k for k in dict.fromkeys(refs_in(flow.text, keys, flow)) if k in known]
+    return cited, "steps" if cited else ""
+
+
+def domain_of(steps, app_domains):
+    """The most common domain among the apps a flow's messages cross (or sit inside); "" when none names one."""
+    counts = {}
+    for step in steps:
+        ends = [m[end] for m in step["messages"] for end in ("from", "to")] + ([step["self"]] if step["self"] else [])
+        for end in ends:
+            if app_domains.get(end):
+                counts[app_domains[end]] = counts.get(app_domains[end], 0) + 1
+    return min(counts, key=lambda d: (-counts[d], d)) if counts else ""
+
+
 def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, names):
     steps_heading = next((h for h in flow.headings if h.level == 2 and h.text.strip().lower() == "steps"), None)
     lines = flow.text.split("\n")
@@ -212,8 +244,9 @@ def flow_record(vault, keys, flow, contracts_by_id, lanes, words, blockers, name
     for u in blockers.get(flow.id, []):
         if u.id not in intro_pins:
             intro_pins.append(u.id)
+    caps, caps_from = capabilities_of(vault, keys, flow)
     return {"key": keys.page(flow), "steps": steps, "unknowns": intro_pins,
-            "refs": list(dict.fromkeys(refs_in(flow.text, keys, flow)))}
+            "refs": list(dict.fromkeys(refs_in(flow.text, keys, flow))), "capabilities": caps, "capabilitiesFrom": caps_from}
 
 
 def journey(steps, contracts_by_id):
@@ -267,9 +300,11 @@ def flows(vault, keys, contracts, pins, names):
     lanes = lanes_of(vault, keys, contracts, pins, names)
     words = aliases(lanes, contracts)
     blockers = model.blockers(vault)
+    app_domains = {keys.page(a): str(a.meta.get("domain") or "").strip() for a in vault.apps}
     out = []
     for page in sorted(vault.of_type("flow"), key=lambda p: p.id):
         record = flow_record(vault, keys, page, by_id, lanes, words, blockers, names)
+        record["domain"] = domain_of(record["steps"], app_domains)
         record["hops"], record["segments"] = journey(record["steps"], by_id)
         out.append(record)
     return {"lanes": lanes, "flows": out}

@@ -77,17 +77,13 @@ const Flows = (() => {
   function render(main) {
     if (!D.flows.length) { main.append(emptyState("No flows yet.", "A flow page (FLO-nnn) with numbered Steps plays here, step by step across the apps.", "/planner:boundary")); return; }
     const f = FlowKit.flowOf(st.key);
-    const tracks = h("nav", { class: "tracks", "aria-label": "Flows" }, D.flows.map((fl) => {
-      const open = FlowKit.flowQuestions(FlowKit.flowOf(fl.key)).filter((id) => ASK[id].state === "open"), lv = levelOf(fl.key);
-      return h("button", { class: "track", "aria-pressed": String(fl.key === st.key), onclick: () => select(fl.key, -1) },
-        h("span", { class: "track-t" }, lv !== "dark" ? lampEl(lv) : null, E[fl.key].title),
-        h("small", {}, `${E[fl.key].id} · ${plural(fl.steps.length, "step")}${open.length ? ` · ${plural(open.length, "open question")}` : ""}`));
-    }));
+    const picker = FlowPicker.make({ current: () => st.key, onPick: (key) => select(key, -1) });
     const actions = h("div", { class: "flow-actions" },
       h("button", { class: "btn", onclick: () => Rehearse.open(st.key), title: "Rebuild the flow from memory, then reveal it" }, svgIcon("rehearse"), "Rehearse this flow"),
       h("button", { class: "btn", id: "clip-btn", onclick: saveClip, title: clipNote() }, svgIcon("download"), "Save clip"),
       h("button", { class: "btn primary", id: "present-btn", onclick: () => present(st.key, Math.max(0, st.cur)), title: "Present full screen (P)" }, svgIcon("present"), "Present"));
-    main.append(h("div", { class: "flows-head" }, tracks, actions));
+    main.append(h("div", { class: "flows-head" }, picker, actions));
+    if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
     const stage = h("div", { class: "stage" });
     const canvas = h("canvas", { class: "stage-canvas", role: "img", "aria-label": `Sequence of ${f.title}` });
     stage.append(canvas, legendRow());
@@ -120,7 +116,7 @@ const Flows = (() => {
       const e = E[st.key];
       box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.id}, ${e.state || "no state"} · ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
         h("div", { class: "cap-title" }, e.title), e.text ? h("p", { class: "cap-intro" }, shorten(e.text, 360)) : "",
-        h("ol", { class: "cap-steps" }, f.steps.map((stp, i) => h("li", {}, h("button", { onclick: () => { player.pause(); player.go(i); } }, stp.short)))), inferredLine());
+        h("ol", { class: "cap-steps" }, f.steps.map((stp, i) => h("li", {}, h("button", { onclick: () => { player.pause(); player.go(i); } }, stp.short)))), ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
       return;
     }
     const stp = f.steps[st.cur];

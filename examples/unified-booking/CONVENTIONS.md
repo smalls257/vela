@@ -63,7 +63,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `initiative-section` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `c4`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-building-blocks` | as above, plus `change` | `stage`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `domain`, `icon`, `design` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-runtime` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
-| `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
+| `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources`, `capabilities` | `inkling`, `assumption`, `fact`, `decided` |
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
 | `decision` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `proposed`, `decided`, `superseded`, `rejected` |
 | `epic` | as above, plus `apps`, `delivers` | `consumes`, `flows`, `depends_on`, `initiative`, `sources` | `draft`, `decided`, `reopened` |
@@ -86,6 +86,7 @@ Field values:
 - `handed_off`: set once a senior takes the app. Form: `"<name>, <date>, PR #N"`, or `"<name>, <date>, PR pending"` until the PR exists; W325 warns until the number is written.
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
+- `capabilities` on a flow page: a list of `CAP-` IDs, the capability or capabilities the journey serves, the first one primary. The explorer's flow picker groups a long list of flows by the primary one; without the field it guesses from the capabilities the steps link and says so. Leave it out while the initiative has no capability pages. W358 warns when a flow has none and capability pages exist; E359 fails an ID that is not a capability page.
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
 - `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `allocate`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
 
@@ -504,6 +505,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W351 | flow step links a contract but names no sender and receiver | W352 | app has no domain though other apps in a large initiative do |
 | W353 | two domains differ only by case or a trailing s | W355 | unknown asks the person who owns it |
 | W356 | changing capability has no functional requirements | W357 | functional requirement lists no acceptance criteria |
+| W358 | flow names no capability though the initiative has capability pages | E359 | flow names a capability that is not a capability page |
 | E340 | release row names no functional requirement | E341 | release row names a criterion the requirement does not have |
 | E342 | release has no valid state | W343 | no release delivers a functional requirement |
 | E321 | override is malformed | W303 | decided without a Grill, by override |

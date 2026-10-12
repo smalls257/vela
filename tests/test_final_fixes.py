@@ -31,7 +31,8 @@ authored: authored
 def codes(out):
     # W505: these vaults hold an FR and an app but no allocation, which T7 rightly reports; the tests are about FR states.
     # W357: the FR here lists no acceptance criteria, which is a different test's subject.
-    return sorted(f for f in findings(out) if f[0] not in ("W402", "W505", "W357"))
+    # W358: the mini flow names no capability, which the flow rules' tests cover.
+    return sorted(f for f in findings(out) if f[0] not in ("W402", "W505", "W357", "W358"))
 
 
 def add_cap(vault, text=CAP_PAGE):

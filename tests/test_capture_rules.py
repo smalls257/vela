@@ -143,3 +143,30 @@ def test_the_explorer_draws_a_recorded_sender_as_stated_even_against_the_provide
     step = next(s for s in flow["steps"] if s["n"] == 6)
     assert step["messages"] == [{"from": "APP-website", "to": "APP-booking", "contract": "CON-001",
                                  "direction": "stated", "kind": "send"}]
+
+
+def test_a_flow_that_names_its_capabilities_is_clean(tmp_path):
+    out = check(copy(tmp_path))
+    assert "W358" not in out and "E359" not in out, out
+
+
+def test_a_flow_without_capabilities_warns_once_the_vault_has_capability_pages(tmp_path):
+    vault = copy(tmp_path)
+    edit(vault / FLOW, "capabilities: [CAP-013, CAP-014, CAP-015]\n", "")
+    out = check(vault)
+    assert out.count("W358") == 1 and "FLO-001" in out and "E359" not in out, out
+
+
+def test_a_flow_is_not_asked_for_capabilities_when_there_are_no_capability_pages(tmp_path):
+    vault = copy(tmp_path)
+    edit(vault / FLOW, "capabilities: [CAP-013, CAP-014, CAP-015]\n", "")
+    for page in (vault / "capabilities").glob("CAP-*.md"):
+        page.unlink()
+    assert "W358" not in check(vault)
+
+
+def test_a_flow_naming_something_that_is_not_a_capability_page_is_an_error(tmp_path):
+    vault = copy(tmp_path)
+    edit(vault / FLOW, "capabilities: [CAP-013, CAP-014, CAP-015]", "capabilities: [CAP-013, CAP-999, CON-001]")
+    out = check(vault)
+    assert out.count("E359") == 2 and "CAP-999" in out and "CON-001" in out, out
