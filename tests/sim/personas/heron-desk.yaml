@@ -26,7 +26,7 @@ topics:
   boundary: the shaped first release
   grill: privacy and consent, access to Microsoft 365, and on-device against cloud
   requirements: the capabilities Heron changes
-  handoff: the desktop agent
+  handoff: the app that runs on the laptop (Heron, or the desk agent if boundary split it out)
   discover_2: how Microsoft Graph, Teams transcripts and the language model provider would be reached
   shape_2: how people switch Heron on and what they can see
   grill_2: which service owns consent and the Graph grants
@@ -62,6 +62,11 @@ knows:
     category: finance-liability
     keywords: ["1.4 million", "model costs"]
     fact: The budget for Heron this financial year is 1.4 million pounds, including the cost of the language model.
+    owner: CIO
+  - id: K17
+    category: unnamed-stakeholder
+    keywords: ["owns Heron", "accountable for Heron", "product owner"]
+    fact: The product owner, @product-owner, owns Heron and is accountable for what it does; the CIO confirmed it to the lead on 7 October. @agent-lead's team builds and runs the desk agent for them.
     owner: CIO
   - id: K16
     category: finance-liability
