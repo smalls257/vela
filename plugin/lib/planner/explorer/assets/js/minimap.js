@@ -3,7 +3,7 @@
    map's orientation and is never rotated to the current page (Levine's you-are-here maps). "Here" is what the
    panel shows, or what the current view is about (the step being played, the strip being read). */
 const Minimap = (() => {
-  let L = null;
+  const MINI = { cw: 300, rh: 150 };
   const pulses = [];
   function here() {
     const v = viewDef(App.view);
@@ -15,7 +15,7 @@ const Minimap = (() => {
     const box = $("#panel-mini");
     if (!box) return;
     if (!D.nodes.length) { box.innerHTML = ""; return; }
-    if (!L) L = Geo.layout({ cw: 300, rh: 150 });
+    const L = Geo.layout(MINI);  // drawn afresh each time: a box held by the pointer, or moved, is where it now stands
     const at = new Set(here());
     const pad = 70, padTop = 40, b = L.bounds;
     const vb = [b.x0 - pad, b.y0 - padTop, b.x1 - b.x0 + pad * 2, b.y1 - b.y0 + pad + padTop];

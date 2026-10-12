@@ -1038,7 +1038,8 @@ def cmd_explore(args, out):
             raise ToolError(f"--port {args.port} is not a port number (0 to 65535)")
         try:
             explorer_serve.serve(root, target, args.port, args.model, not args.no_open, lambda line: print(f"planner explore: {line}", file=out, flush=True),
-                                 freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable))
+                                 freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable),
+                                 pins=root / explorer_pins.PINS_FILE)
         except OSError as exc:
             raise ToolError(f"cannot serve the page on port {args.port}: {exc}") from exc
     return 0

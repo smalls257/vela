@@ -47,7 +47,7 @@ class ExplorerError(Exception):
     says which and why; nothing is written."""
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
-JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "geometry", "search", "minimap", "reader", "panel", "panelsize", "motion", "view-map",
+JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "layout", "geometry", "search", "minimap", "reader", "panel", "panelsize", "motion", "view-map",
               "wires", "mapgroups", "releases", "flowkit", "view-flows", "rehearse", "view-asks", "view-garden", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "selftest", "main")
 CSS_MODULES = ("base", "nav", "panel", "map", "flows", "rehearse", "asks", "garden", "pages", "reader", "roles",
@@ -242,6 +242,20 @@ def provider_key(vault, keys, contract, parties_by_name):
     return "ext:" + name, "external"
 
 
+PROSE_BREAK = re.compile(r"\s*(?:[,;:\u2014]|\s-\s|\()")
+NAME_CAP = 32
+
+
+def external_title(said):
+    """The name to draw for a provider a contract names in running text: the words before the first comma, colon or
+    bracket, cut at a word under NAME_CAP characters. "the pilot user, on their own laptop" is drawn "the pilot user".
+    A short plain name ("Stripe") is returned unchanged. The full text stays on the node as `said`."""
+    head = PROSE_BREAK.split(said, 1)[0].strip() or said
+    if len(head) <= NAME_CAP:
+        return head
+    return head[:NAME_CAP].rsplit(" ", 1)[0].rstrip(" ,;:") + "\u2026"
+
+
 def system_map(vault, keys):
     parties_by_name = {p.name.lower(): p for p in vault.parties}
     contracts, externals = [], {}
@@ -261,7 +275,8 @@ def system_map(vault, keys):
     with_contract = {c["provider"] for c in contracts}
     parties = [{"key": p.id, "title": p.name, "hasContract": p.id in with_contract} for p in vault.parties]
     return {"apps": apps, "contracts": contracts, "parties": parties,
-            "externals": [{"key": k, "title": v} for k, v in sorted(externals.items())]}
+            "externals": [{"key": k, "title": external_title(v), "said": v,
+                           "contracts": [c["id"] for c in contracts if c["provider"] == k]} for k, v in sorted(externals.items())]}
 
 
 def app_details(vault, keys, blocked):
@@ -467,12 +482,13 @@ def map_nodes(vault, keys, m, pins_path, seed=None):
     nodes += [{"key": p["key"], "kind": "partner", "title": p["title"]} for p in m["parties"] if p["key"] in joined]
     nodes += [{"key": x["key"], "kind": "partner", "title": x["title"], "external": True} for x in m["externals"]]
     try:
-        found, added, stale, seeded = pinning.pinned(pins_path, nodes, m["contracts"], seed)
+        found, added, stale, seeded, moved = pinning.pinned(pins_path, nodes, m["contracts"], seed)
     except ValueError as exc:
         raise ExplorerError(str(exc)) from exc
     for n in nodes:
         n["col"], n["row"] = found[n["key"]]
-    return nodes, {"added": added, "stale": stale, "seededFrom": seeded,
+    return nodes, {"added": added, "stale": stale, "seededFrom": seeded, "moved": moved,
+                   "all": {k: v for k, v in found.items()},
                    "file": pathlib.Path(pins_path).name if pins_path else ""}
 
 
@@ -665,12 +681,24 @@ def pin_lines(data, pins_path, was_there, root):
     if pins_path and not was_there:
         return [f"first build: wrote the pinned positions of {len(data['nodes'])} apps and parties to {shown(pins_path, root)}. "
                 "They keep every app in the same place on every later build; delete the file to lay the map out afresh."]
+    said = []
+    if pins["moved"]:
+        said.append(f"moved {', '.join(pins['moved'])} to the nearest free cell in {shown(pins_path, root) if pins_path else 'the layout'}: "
+                    "each stood on another box or above the apps, and the map would have drawn them over one another")
     if not pins["added"]:
-        return []
+        return said
     names = ", ".join(pins["added"])
     if not pins_path:
-        return [f"computed positions for {names}; nothing keeps them, so the next build may place them differently"]
-    return [f"pinned new positions in {shown(pins_path, root)}: {names}"]
+        return said + [f"computed positions for {names}; nothing keeps them, so the next build may place them differently"]
+    return said + [f"pinned new positions in {shown(pins_path, root)}: {names}"]
+
+
+def party_lines(data):
+    """One line per outside provider a contract names in running text instead of linking an outside party, so the
+    lead can name it in 03-context-and-scope.md. The map draws its first words and shows the full text on hover."""
+    return [f"{'/'.join(x['contracts'])} names its provider in running text, \"{x['said']}\", so the map draws \"{x['title']}\". "
+            "Add the party under Outside parties in 03-context-and-scope.md and link it as the contract's Provider."
+            for x in data["map"]["externals"] if x["title"] != x["said"]]
 
 
 def access_data(root, vault, freshness):
@@ -744,6 +772,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
     said += pin_lines(data, pins_path, was_there, root)
+    said += party_lines(data)
     said += asset_lines(assets)
     said += [f"{key} asks for icon: {asked}, which is not in the built-in set; it is drawn by keyword instead"
              for key, asked in data["iconsUnknown"]]

@@ -85,6 +85,7 @@ const MapView = (() => {
         h("span", { class: "tool-hint" }, FX.on ? say : say.replace(/ hop by hop| ring by ring/, "") + "; Plain shows it at once")));
       if (lens() === "transit" && FX.motion === "trains" && FX.on) bar.append(h("button", { class: "chip", onclick: (ev) => { st.running = !st.running; ev.currentTarget.textContent = st.running ? "Pause trains" : "Run trains"; } }, st.running ? "Pause trains" : "Run trains"));
     }
+    if (lens() === "cockpit" && !st.focus) bar.append(Layout.tools(group() === "none" ? "box" : "cluster"));
     return bar.childNodes.length ? bar : null;
   }
 
@@ -121,12 +122,23 @@ const MapView = (() => {
       const r = board.getBoundingClientRect(), k = Math.max(0.15, Math.min(maxScale, (r.width - 24) / w, (r.height - 12) / ht));
       root.setAttribute("width", Math.round(w * k)); root.setAttribute("height", Math.round(ht * k));
     };
-    fit(); addEventListener("resize", fit);
+    fit();
+    // one listener per board: a drag redraws the cockpit every frame and must not leave a listener behind each time
+    if (board.__fit) removeEventListener("resize", board.__fit);
+    board.__fit = fit; addEventListener("resize", fit);
   }
+  const COCKPIT = { cw: 380, rh: 128, bandGap: 104 }, BOX_W = 176, BOX_H = 66;
+  let seenView = null;  // the cockpit's frame before a drag: a drag keeps it, so the board does not rescale under the pointer
+  /* Nothing sits on anything: the boxes are laid out from their cells (pins keep them a column apart), and each
+     duct's lamps stand together as one bank at the first point along the duct, from its quieter end outward, that
+     touches no box, caption or earlier bank (MapGroups.place). #selftest checks that no two parts intersect. */
   function cockpit(board) {
-    const L = LAY = Geo.layout({ cw: 380, rh: 128, bandGap: 104 });
-    const W = 176, H = 66, b = L.bounds;
-    const left = b.x0 - 150, right = b.x1 + 150, top = b.y0 - 56, flowsY = b.y1 + 92, bottom = flowsY + (D.flows.length ? 70 : 0);
+    const L = LAY = Geo.layout(COCKPIT);
+    const W = BOX_W, H = BOX_H, b = L.bounds, dragging = !!Layout.live;
+    let left = b.x0 - 150, right = b.x1 + W / 2 + 140, top = b.y0 - 56, flowsY = b.y1 + 92;
+    if (dragging && seenView) { left = Math.min(left, seenView.left); right = Math.max(right, seenView.right); top = Math.min(top, seenView.top); flowsY = Math.max(flowsY, seenView.flowsY); }
+    if (!dragging) seenView = { left, right, top, flowsY };
+    const bottom = flowsY + (D.flows.length ? 70 : 0);
     const root = s("svg", { viewBox: `${left} ${top} ${right - left} ${bottom - top}`, class: "cockpit", role: "img", "aria-label": "System panel" }, board);
     fitSvg(root, board, right - left, bottom - top, 1.12);
     const defs = s("defs", {}, root);
@@ -135,10 +147,18 @@ const MapView = (() => {
     s("stop", { offset: "0", "stop-color": Theme.c("face-hi") }, lens); s("stop", { offset: "1", "stop-color": Theme.c("face-lo") }, lens);
     const gDucts = s("g", {}, root), gMotion = s("g", { class: "m-layer" }, root), gLamps = s("g", {}, root), gNodes = s("g", {}, root), gTop = s("g", { class: "m-top" }, root);
     Scene.reset(root, gMotion, (k) => k, gTop);
+    const taken = Object.values(L.stations).map((stn) => ({ x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H }));  // what a lamp bank must stay clear of
     if (L.zoneY !== null) {
       s("line", { x1: left, x2: right, y1: L.zoneY, y2: L.zoneY, class: "zone" }, gDucts);
-      s("text", { x: right - 20, y: L.zoneY - 12, "text-anchor": "end", class: "zone-text" }, gDucts).textContent = "Our apps";
-      s("text", { x: right - 20, y: L.zoneY + 24, "text-anchor": "end", class: "zone-text" }, gDucts).textContent = "Outside parties";
+      for (const [text, y] of [["Our apps", L.zoneY - 12], ["Outside parties", L.zoneY + 24]]) {
+        const caption = s("text", { x: right - 20, y, "text-anchor": "end", class: "zone-text" }, gDucts);
+        caption.textContent = text;
+        taken.push(MapGroups.drawnBox(caption, { x: right - 130, y: y - 14, w: 110, h: 18 }));
+      }
+    }
+    if (dragging && Layout.live.spot) {
+      const at = Geo.pointOf(COCKPIT, Layout.live.spot[0], Layout.live.spot[1], NODE[Layout.live.key].kind !== "app");
+      s("rect", { x: at.x - W / 2, y: at.y - H / 2, width: W, height: H, rx: 10, class: "drag-ghost" }, gDucts);
     }
     for (const cor of Object.values(L.corridors)) {
       const A = L.stations[cor.a], B = L.stations[cor.b];
@@ -148,22 +168,27 @@ const MapView = (() => {
       Scene.edge(cor.a, cor.b, { pts, el: duct, contracts: cor.contracts });
       s("path", { d, class: "duct-hi", transform: "translate(0,2.5)" }, gDucts);
       if (lv !== "dark") s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour, "data-corridor": cor.key }, gDucts);
-      // The contract lamps sit as a small bank on the duct, nearer the quieter end, clear of the buttons.
+      // The contract lamps sit as one bank on the duct, nearer the quieter end, clear of the boxes and of every other bank.
       const busy = (x) => Object.values(x.ports).reduce((n, l) => n + l.length, 0);
-      const path = busy(A) >= busy(B) ? pts : pts.slice().reverse(), total = Geo.length(path);
-      const sideways = cor.sideA === "L" || cor.sideA === "R";
-      const at = sideways ? Geo.pointAt(path, Math.min(total - W / 2 - 60, Math.max(W / 2 + 60, total * 0.58))) : Geo.pointAt(path, total * 0.5);
-      const lw = 84, lh = 22, gap = 5;
+      const path = busy(A) >= busy(B) ? pts : pts.slice().reverse();
+      const lw = 84, lh = 22, gap = 5, bankH = cor.contracts.length * lh + (cor.contracts.length - 1) * gap;
+      const spot = MapGroups.place(path, lw, bankH, taken, 0.58) || MapGroups.beside(path, lw, bankH, taken);
+      if (spot.leader) s("path", { d: `M${spot.leader.x},${spot.leader.y}L${spot.at.x},${spot.at.y}`, class: "leader" }, gDucts);
+      if (spot.crowded) console.warn(`[map] no free place for the lamps of ${cor.contracts.join(", ")}; drawn where they overlap`);
+      taken.push(spot.r);
       cor.contracts.forEach((cid, i) => {
-        const y = at.y + (i - (cor.contracts.length - 1) / 2) * (lh + gap);
-        lamp(gLamps, { key: cid, x: at.x - lw / 2, y: y - lh / 2, w: lw, h: lh, rx: 3, label: cid, kind: "contract", title: `${cid} ${CONTRACT[cid].title}` });
+        const y = spot.at.y + (i - (cor.contracts.length - 1) / 2) * (lh + gap);
+        lamp(gLamps, { key: cid, x: spot.at.x - lw / 2, y: y - lh / 2, w: lw, h: lh, rx: 3, label: cid, kind: "contract", title: `${cid} ${CONTRACT[cid].title}` });
       });
     }
     for (const stn of Object.values(L.stations)) {
       const n = stn.node, light = lightOf(n.key);
       const sub = n.kind !== "app" ? (n.external ? "outside provider" : "outside party") : !light || light.level === "dark" ? "settled" : shortWhy(light);
-      const el = lamp(gNodes, { key: n.key, x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(n.key) });
+      const said = n.external && EXTERNAL[n.key] ? EXTERNAL[n.key].said : n.title;  // the contract's own words, on hover
+      const el = lamp(gNodes, { key: n.key, x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, title: said, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(n.key) });
       Scene.node(n.key, { x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H, el });
+      movable(el, n.key, board);
+      if (dragging && Layout.live.key === n.key) el.classList.add("dragging");
     }
     if (D.flows.length) {
       const fw = Math.min(260, (right - left - 80) / D.flows.length - 16), fh = 50, gx = 16;
@@ -176,6 +201,81 @@ const MapView = (() => {
       });
     }
     breathe.start();
+  }
+  /* ------------------------------------------------------------ moving a box */
+  /* Drag a box to another cell, or focus it and press an arrow key. While it is held the cockpit, the minimap and the
+     ducts are drawn with it where the pointer is, and a dashed outline shows the free cell it will settle in; on
+     release it takes that cell, or stays where it was when no free cell is near. Escape lets go without moving it. */
+  // the release of a drag is followed by a click on whatever is under the pointer; a pick within this long of a drop is that click
+  let droppedAt = -1e9;
+  const markDrop = () => { droppedAt = Date.now(); };
+  const justDropped = () => Date.now() - droppedAt < 350;
+  const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  function movable(el, key, board) {
+    el.setAttribute("data-movable", "1");
+    el.setAttribute("aria-keyshortcuts", "ArrowLeft ArrowRight ArrowUp ArrowDown");
+    el.addEventListener("pointerdown", (e) => startMove(e, key, board));
+    el.addEventListener("keydown", (e) => {
+      const d = ARROWS[e.key];
+      if (!d || e.altKey || e.ctrlKey || e.metaKey) return;
+      e.preventDefault();
+      Layout.step(key, d[0], d[1]);
+      rerender();
+      refocus(key);
+    });
+  }
+  const refocus = (key) => { const again = $(`#board g.hit[data-key="${CSS.escape(key)}"]`); if (again) again.focus(); };
+  function redrawCockpit(board) {
+    pulses = [];
+    if (typeof Motion !== "undefined") Motion.clear();
+    board.replaceChildren();
+    cockpit(board);
+    Minimap.refresh();
+  }
+  function startMove(ev, key, board) {
+    if (ev.button !== 0 || ev.isPrimary === false) return;
+    const outside = NODE[key].kind !== "app", origin = { x: ev.clientX, y: ev.clientY };
+    const cellOf = (e) => {
+      const root = $("svg.cockpit", board), pt = root.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      const p = pt.matrixTransform(root.getScreenCTM().inverse());
+      return Geo.cellAt(COCKPIT, p.x, p.y, outside);
+    };
+    const from = cellOf(ev), grab = { col: NODE[key].col - from.col, row: NODE[key].row - from.row };
+    let started = false, frame = 0, latest = ev;
+    const paint = () => {
+      frame = 0;
+      const c = cellOf(latest);
+      Layout.drag(key, Math.max(0, c.col + grab.col), Math.max(0, c.row + grab.row));
+      redrawCockpit(board);
+    };
+    const onMove = (e) => {
+      latest = e;
+      if (!started) {
+        if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) < 5) return;
+        started = true; hideTip(); board.classList.add("moving");
+      }
+      if (!frame) frame = requestAnimationFrame(paint);
+    };
+    const finish = () => {
+      removeEventListener("pointermove", onMove); removeEventListener("pointerup", onUp); removeEventListener("keydown", onKey, true);
+      if (frame) cancelAnimationFrame(frame);
+      board.classList.remove("moving");
+    };
+    const onUp = (e) => {
+      finish();
+      if (!started) return;
+      latest = e; paint();
+      markDrop();
+      Layout.drop(key);
+      rerender();
+      refocus(key);
+    };
+    const onKey = (e) => {
+      if (e.key !== "Escape" || !started) return;
+      e.stopPropagation(); finish(); Layout.endDrag(); rerender(); refocus(key);
+    };
+    addEventListener("pointermove", onMove); addEventListener("pointerup", onUp); addEventListener("keydown", onKey, true);
   }
   function shortWhy(light) {
     const held = light.reasons.filter((r) => r.kind === "held");
@@ -222,7 +322,7 @@ const MapView = (() => {
     }
     s("title", {}, grp).textContent = `${o.title || o.label}: ${light ? LIGHT[level].word : "outside party, no light of its own"}`;
     const pick = o.onpick || (() => { go(o.key, { reset: true }); if (o.kind === "app" || o.kind === "partner") Assets.theme(o.label); });
-    grp.addEventListener("click", pick);
+    grp.addEventListener("click", () => { if (!justDropped()) pick(); });
     grp.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
     grp.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(o.title || o.label)}</b>${light ? esc(LIGHT[level].word) + (light.reasons[0] ? ": " + esc(reasonText(light.reasons[0])) : "") : "No light of its own"}`));
     grp.addEventListener("mouseleave", hideTip);
@@ -282,9 +382,12 @@ const MapView = (() => {
         hit.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(E[fid].title)}</b>${esc(E[fid].id)}, ${esc(E[fid].state || "no state")}. Click to follow it.`));
         hit.addEventListener("mouseleave", hideTip);
       }
-      trackLabel(cor, L, gLabels);
     }
     for (const stn of Object.values(L.stations)) station(stn, L, gStations);
+    // Nothing sits on anything: each track label takes the first spot along its corridor, either side, that touches no
+    // station, name, caption or label before it; the works markers then do the same around all of them.
+    const taken = $$("g.station, .zone-text", map).map((el) => { const b = el.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
+    for (const cor of Object.values(L.corridors)) trackLabel(cor, L, gLabels, taken);
     works(L, gWorks);
     if (FX.motion === "trains" && FX.on) buildTrains(L, gTrains);
     stripEl = h("div", { class: "line-strip" });
@@ -292,23 +395,37 @@ const MapView = (() => {
     if (st.line) selectLine(st.line);
     trainLoop.start();
   }
-  function trackLabel(cor, L, g) {
+  // where along a track a label or marker may stand, from near its quieter end outward in steps of a twentieth
+  const SWEEP = [0.66, 0.5, 0.8, 0.34, ...Array.from({ length: 19 }, (_, i) => (i + 1) / 20)];
+  const bumps = (r, list) => list.some((o) => o.x < r.x + r.w && r.x < o.x + o.w && o.y < r.y + r.h && r.y < o.y + o.h);
+  function trackLabel(cor, L, g, taken) {
     const ids = cor.contracts, short = ids.map((id, i) => (i === 0 ? id : id.replace(/^CON-/, ""))).join(", ");
     const A = L.stations[cor.a], B = L.stations[cor.b];
     const busy = (x) => Object.values(x.ports).reduce((n, l) => n + l.length, 0);
     const pts = busy(A) >= busy(B) ? cor.centre : cor.centre.slice().reverse();
-    const at = Geo.pointAt(pts, Geo.length(pts) * 0.66);
-    let nx = -Math.sin(at.angle), ny = Math.cos(at.angle);
-    if (ny > 0 || (Math.abs(ny) < 0.01 && nx < 0)) { nx = -nx; ny = -ny; }
-    const off = cor.width / 2 + 10, vertical = Math.abs(Math.cos(at.angle)) < 0.01;
-    let x = at.x + nx * off, y = at.y + ny * off, anchor = "middle";
-    if (vertical) { x = at.x + off; y = at.y + 4; anchor = "start"; } else if (Math.abs(ny) < 0.99) anchor = nx < 0 ? "end" : "start";
     const lit = ids.some((id) => levelOf(id) !== "dark");
-    const t = s("text", { x, y, "text-anchor": anchor, class: "track-label" + (lit ? " lit" : ""), "data-corridor": cor.key }, g);
+    const t = s("text", { class: "track-label" + (lit ? " lit" : ""), "data-corridor": cor.key }, g);
     t.textContent = short;
     t.addEventListener("click", () => go(ids[0], { reset: true }));
     t.addEventListener("mousemove", (e) => showTip(e, ids.map((id) => `<b>${esc(id)} ${esc(CONTRACT[id].title)}</b>${esc(CONTRACT[id].state || "no state")}, ${esc(LIGHT[levelOf(id)].word.toLowerCase())}`).join("")));
     t.addEventListener("mouseleave", hideTip);
+    const total = Geo.length(pts), off = cor.width / 2 + 10;
+    const spot = (f, flip) => {
+      const at = Geo.pointAt(pts, total * f);
+      let nx = -Math.sin(at.angle), ny = Math.cos(at.angle);
+      if (ny > 0 || (Math.abs(ny) < 0.01 && nx < 0)) { nx = -nx; ny = -ny; }
+      if (flip) { nx = -nx; ny = -ny; }
+      const vertical = Math.abs(Math.cos(at.angle)) < 0.01;
+      let x = at.x + nx * off, y = at.y + ny * off, anchor = "middle";
+      if (vertical) { x = at.x + (flip ? -off : off); y = at.y + 4; anchor = flip ? "end" : "start"; } else if (Math.abs(ny) < 0.99) anchor = nx < 0 ? "end" : "start";
+      return { x, y, anchor };
+    };
+    const tries = SWEEP.flatMap((f) => [spot(f, false), spot(f, true)]);
+    const place = (sp) => { t.setAttribute("x", sp.x); t.setAttribute("y", sp.y); t.setAttribute("text-anchor", sp.anchor); const b = t.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; };
+    let box = null;
+    for (const sp of tries) { box = place(sp); if (!bumps(box, taken)) break; box = null; }
+    if (!box) { box = place(tries[0]); console.warn(`[map] no free place for the label of ${ids.join(", ")}; drawn where it overlaps`); }
+    taken.push(box);
   }
   function station(stn, L, g) {
     const n = stn.node, w = stn.w, ht = stn.h;
@@ -329,7 +446,9 @@ const MapView = (() => {
     if (sideFree === "R") { x = stn.x + w / 2 + 14; anchor = "start"; y = stn.y + 2; }
     if (sideFree === "U") y = stn.y - ht / 2 - 30;
     if (sideFree === "D") y = stn.y + ht / 2 + 24;
-    s("text", { x, y, "text-anchor": anchor, class: "station-name" }, grp).textContent = n.title;
+    const name = s("text", { x, y, "text-anchor": anchor, class: "station-name" }, grp);
+    name.textContent = shorten(n.title, 26);  // a longer name would run into the next station's; the full one is the hover title
+    s("title", {}, grp).textContent = n.external && EXTERNAL[n.key] ? EXTERNAL[n.key].said : n.title;
     const lv = levelOf(n.key);
     s("text", { x, y: y + 18, "text-anchor": anchor, class: "station-sub" + (lv !== "dark" ? " " + lv : "") }, grp).textContent =
       n.kind !== "app" ? "outside party" : lv !== "dark" ? LIGHT[lv].word.toLowerCase() : (APPS[n.key].change || "change not recorded");
@@ -337,17 +456,30 @@ const MapView = (() => {
     grp.addEventListener("click", open);
     grp.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
   }
-  /* Engineering works: open questions on the track or station they hold up, from each question's Blocks line. */
+  /* Engineering works: open questions on the track or station they hold up, from each question's Blocks line. Each
+     marker takes the first of its candidate spots that touches no station, name or track label, or marker before it. */
   function works(L, g) {
     const markers = [];
+    const taken = $$("g.station, .track-label", g.ownerSVGElement).map((el) => { const b = el.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
+    const area = (m) => ({ x: m.at.x - 15, y: m.at.y + m.off - 18, w: 46, h: 44 });  // the marker as drawn: board, legs, count
+    const clear = (r) => !taken.some((o) => o.x < r.x + r.w && r.x < o.x + o.w && o.y < r.y + r.h && r.y < o.y + o.h);
+    const choose = (key, held, spots) => {
+      const m = spots.find((sp) => clear(area(sp))) || spots[0];
+      if (!clear(area(m))) console.warn(`[map] no free place for the works marker on ${key}; drawn where it overlaps`);
+      taken.push(area(m));
+      markers.push({ held, key, at: m.at, off: m.off });
+    };
     for (const cor of Object.values(L.corridors)) {
       const held = [...new Set(cor.contracts.flatMap((cid) => D.blockedBy[cid] || []))];
-      if (held.length) markers.push({ held, key: cor.contracts[0], at: Geo.pointAt(cor.centre, Geo.length(cor.centre) * 0.5), off: cor.width / 2 + 22 });
+      const len = Geo.length(cor.centre);
+      if (held.length) choose(cor.contracts[0], held, [0.34, 0.5, ...SWEEP].flatMap((f) => [1, -2.2].map((side) => ({ at: Geo.pointAt(cor.centre, len * f), off: side * (cor.width / 2 + 22) }))));
     }
     for (const stn of Object.values(L.stations)) {
       const held = (D.apps[stn.key] || { questions: [] }).questions.map((q) => q.id);
-      const up = stn.labelSide !== "U" && !stn.ports.U.length;
-      if (held.length) markers.push({ held, key: stn.key, at: { x: stn.x - 4, y: up ? stn.y - stn.h / 2 - 26 : stn.y + stn.h / 2 + 46 }, off: 0 });
+      if (!held.length) continue;
+      const up = { x: stn.x - 4, y: stn.y - stn.h / 2 - 26 }, down = { x: stn.x - 4, y: stn.y + stn.h / 2 + 46 };
+      const spots = (stn.labelSide !== "U" && !stn.ports.U.length ? [up, down] : [down, up]).concat([{ x: stn.x - 70, y: stn.y }, { x: stn.x + 70, y: stn.y }, { x: stn.x - 70, y: stn.y - 40 }, { x: stn.x + 70, y: stn.y - 40 }, { x: stn.x - 70, y: stn.y + 40 }, { x: stn.x + 70, y: stn.y + 40 }]);
+      choose(stn.key, held, spots.map((at) => ({ at, off: 0 })));
     }
     for (const m of markers) {
       const x = m.at.x - 15, y = m.at.y + m.off - 9;
@@ -536,7 +668,7 @@ const MapView = (() => {
     if (bar && fresh) bar.replaceWith(fresh);  // "Focus on <the app you picked>"
   }
   function here() { return App.focus ? mapAnchors(App.focus) : []; }
-  return { render, highlight, here, lens, group, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), resetPulses: () => { pulses = []; }, CLUSTER_PAST };
+  return { render, highlight, here, lens, group, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
 })();
 View("map", { label: "Map", title: "The system: apps, contracts, and what needs you", render: MapView.render, highlight: MapView.highlight,
   count: () => `${D.map.apps.length}·${D.map.contracts.length}`, lamp: () => { const top = litSubjects()[0]; return top ? top.light.level : null; } });

@@ -53,6 +53,7 @@ const MapGroups = (() => {
         return Object.assign(g, { label: g.cap ? `${g.cap} ${e ? e.title : ""}`.trim() : `No capability yet (${plural(g.members.length, "app")})`, page: e ? e.key : "", members: g.members.sort(byPin), ghosts: g.ghosts.sort(byPin) });
       }).sort((a, b) => (a.cap === "") - (b.cap === "") || cmp(a.cap, b.cap));
     }
+    out = Layout.ordered(out, (g) => g.key);  // a cluster a reader moved keeps its place (layout.js)
     if (partners.length) out.push({ key: PARTIES, label: "Outside parties", members: partners.sort(byPin), ghosts: [], sub: "outside", outside: true });
     return out;
   }
@@ -181,26 +182,26 @@ const MapGroups = (() => {
   // outward from the middle in steps of 1/24 of the duct, so the lamp stays as central as the drawing allows
   const FRACTIONS = [0.5, ...Array.from({ length: 11 }, (_, i) => [(11 - i) / 24, (13 + i) / 24]).flat()];
   const hits = (a, b, m = 4) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
-  function place(pts, w, ht, obs) {
+  function place(pts, w, ht, obs, prefer) {
     const total = Geo.length(pts);
     if (total < w + 24) return null;
-    for (const f of FRACTIONS) {
+    for (const f of prefer ? [prefer, ...FRACTIONS] : FRACTIONS) {
       const at = Geo.pointAt(pts, total * f), r = { x: at.x - w / 2, y: at.y - ht / 2, w, h: ht };
       if (!obs.some((o) => hits(o, r))) return { at, r };
     }
     return null;
   }
   /* The nearest free spot to a duct's middle, ring by ring out to 240: deterministic, and never on anything. */
-  function beside(pts, size, obs) {
+  function beside(pts, w, ht, obs) {
     const mid = Geo.pointAt(pts, Geo.length(pts) / 2);
     for (let radius = 24; radius <= 240; radius += 12) {
       for (let k = 0; k < 24; k++) {
         const a = (k / 24) * 2 * Math.PI - Math.PI / 2, at = { x: mid.x + radius * Math.cos(a), y: mid.y + radius * Math.sin(a) };
-        const r = { x: at.x - size / 2, y: at.y - size / 2, w: size, h: size };
+        const r = { x: at.x - w / 2, y: at.y - ht / 2, w, h: ht };
         if (!obs.some((o) => hits(o, r))) return { at, r, leader: mid };
       }
     }
-    return { at: mid, r: { x: mid.x - size / 2, y: mid.y - size / 2, w: size, h: size }, crowded: true };
+    return { at: mid, r: { x: mid.x - w / 2, y: mid.y - ht / 2, w, h: ht }, crowded: true };
   }
   function drawEdges(edges, gDucts, gLamps, obs) {
     obs = obs || [];
@@ -217,7 +218,7 @@ const MapGroups = (() => {
       const spot = place(pts, lw, 22, obs);
       if (!spot) {
         // no room for a lamp: a round count on the duct; failing that, the nearest free spot beside it, tied by a leader
-        const round = place(pts, 30, 30, obs) || beside(pts, 30, obs);
+        const round = place(pts, 30, 30, obs) || beside(pts, 30, 30, obs);
         if (round.leader) s("path", { d: `M${round.leader.x},${round.leader.y}L${round.at.x},${round.at.y}`, class: "leader" }, gDucts);
         if (round.crowded) console.warn(`[map] no free place for the lamp of ${ids.join(", ")}; drawn where it overlaps`);
         obs.push(round.r);
@@ -242,6 +243,80 @@ const MapGroups = (() => {
     grp.addEventListener("click", () => go(ids.length === 1 ? ids[0] : bundle, { reset: true }));
   }
 
+  /* ------------------------------------------------------------ moving a cluster */
+  /* A cluster has no cell: the clusters sit on shelves, in an order. Drag one onto another to put it before or after
+     that one, or focus it and press an arrow key to move it one place earlier (left, up) or later (right, down). The
+     order is kept as `grp:` pins (layout.js). Wires and lamps are routed again when it lands, not while it is held:
+     routing around every box is too much work for each frame of a drag. */
+  const inOrder = (list) => list.filter((g) => !g.outside);
+  function movable(el, g, list, root) {
+    if (g.outside) return;
+    el.setAttribute("data-movable", "1");
+    el.addEventListener("pointerdown", (e) => startMove(e, g, list, root));
+  }
+  function arrowMove(e, g, list) {
+    const dir = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+    if (!dir || g.outside || e.altKey || e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
+    const keys = inOrder(list).map((x) => x.key), at = keys.indexOf(g.key), to = at + dir;
+    if (to < 0 || to >= keys.length) { Layout.say(`${g.label} is already ${dir < 0 ? "first" : "last"}.`); return; }
+    keys.splice(at, 1); keys.splice(to, 0, g.key);
+    Layout.reorder(keys);
+    const again = $(`#board [data-group="${CSS.escape(g.key)}"] .cluster-toggle, #board g.cluster-lamp[data-group="${CSS.escape(g.key)}"]`);
+    if (again) again.focus();
+  }
+  /* Where `g` would go if dropped at (x, y): the key order with it removed and put before or after the nearest cluster. */
+  function dropOrder(g, list, x, y) {
+    const others = inOrder(list).filter((o) => o.key !== g.key);
+    if (!others.length) return { keys: [g.key] };
+    const mid = (o) => ({ x: o.x + o.w / 2, y: o.y + o.h / 2 });
+    const near = others.slice().sort((a, b) => Math.hypot(mid(a).x - x, mid(a).y - y) - Math.hypot(mid(b).x - x, mid(b).y - y))[0];
+    const sameShelf = Math.abs(y - mid(near).y) < near.h / 2, before = sameShelf ? x < mid(near).x : y < mid(near).y;
+    const keys = others.map((o) => o.key);
+    keys.splice(keys.indexOf(near.key) + (before ? 0 : 1), 0, g.key);
+    return { keys, near, before };
+  }
+  function startMove(ev, g, list, root) {
+    if (ev.button !== 0 || ev.isPrimary === false) return;
+    const origin = { x: ev.clientX, y: ev.clientY };
+    const toSvg = (e) => { const pt = root.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(root.getScreenCTM().inverse()); };
+    const from = toSvg(ev);
+    let started = false, ghost = null, mark = null, latest = ev;
+    const paint = () => {
+      const p = toSvg(latest);
+      ghost.setAttribute("x", g.x + p.x - from.x); ghost.setAttribute("y", g.y + p.y - from.y);
+      const to = dropOrder(g, list, p.x, p.y);
+      if (!to.near) return;
+      const x = to.before ? to.near.x - 14 : to.near.x + to.near.w + 14;
+      mark.setAttribute("x1", x); mark.setAttribute("x2", x); mark.setAttribute("y1", to.near.y); mark.setAttribute("y2", to.near.y + to.near.h);
+    };
+    const finish = () => {
+      removeEventListener("pointermove", onMove); removeEventListener("pointerup", onUp); removeEventListener("keydown", onKey, true);
+      if (ghost) ghost.remove();
+      if (mark) mark.remove();
+      $("#board").classList.remove("moving");
+    };
+    const onMove = (e) => {
+      latest = e;
+      if (!started) {
+        if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) < 5) return;
+        started = true; hideTip(); $("#board").classList.add("moving");
+        ghost = s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, class: "drag-ghost" }, root);
+        mark = s("line", { class: "drop-mark" }, root);
+      }
+      paint();
+    };
+    const onUp = (e) => {
+      finish();
+      if (!started) return;
+      const p = toSvg(e), to = dropOrder(g, list, p.x, p.y);
+      MapView.markDrop();
+      if (to.keys) Layout.reorder(to.keys);
+    };
+    const onKey = (e) => { if (e.key === "Escape" && started) { e.stopPropagation(); finish(); } };
+    addEventListener("pointermove", onMove); addEventListener("pointerup", onUp); addEventListener("keydown", onKey, true);
+  }
+
   /* ------------------------------------------------------------ the grouped cockpit */
   function grouped(board, mode) {
     const r = board.getBoundingClientRect(), list = groups(mode), boxes = layout(list, r.height ? r.width / r.height : 1.4, mode);
@@ -258,7 +333,7 @@ const MapGroups = (() => {
     Scene.reset(root, gMotion, vis, gTop);
     const gNames = s("g", { class: "cluster-names" }, root);  // above the ducts, so a duct never crosses a cluster's name
     const obs = [];  // everything drawn so far that a lamp must not sit on
-    for (const g of list) frame(g, gFrames, gNodes, mode, gNames, obs);
+    for (const g of list) frame(g, gFrames, gNodes, mode, gNames, obs, list, root);
     for (const [k, b] of Object.entries(boxes)) {
       if (b.group && !b.group.isOpen) continue;
       obs.push(b);
@@ -283,7 +358,7 @@ const MapGroups = (() => {
     s("stop", { offset: "0", "stop-color": Theme.c("face-hi") }, lens); s("stop", { offset: "1", "stop-color": Theme.c("face-lo") }, lens);
   }
   /* A cluster: open, a frame with its apps inside; closed, one lamp with its counts and a small lamp per app. */
-  function frame(g, gFrames, gNodes, mode, gNames, obs) {
+  function frame(g, gFrames, gNodes, mode, gNames, obs, list, root) {
     const levels = g.members.map(levelOf), lv = worst(levels.slice()), lit = levels.filter((l) => l !== "dark").length;
     const counts = LEVELS.filter((l) => l !== "dark").map((l) => [l, levels.filter((x) => x === l).length]).filter(([, n]) => n);
     const what = g.outside ? plural(g.members.length, "party", "parties") : plural(g.members.length, "app");
@@ -310,9 +385,10 @@ const MapGroups = (() => {
       s("rect", { x: g.x + g.w / 2 - 34, y: g.y + g.h - 11, width: 68, height: 20, rx: 10 }, close);
       obs.push({ x: g.x + g.w / 2 - 34, y: g.y + g.h - 11, w: 68, h: 20 });
       s("text", { x: g.x + g.w / 2, y: g.y + g.h + 3, "text-anchor": "middle" }, close).textContent = "Close ▴";
-      close.addEventListener("click", () => toggle(g));
-      close.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(g); } });
-      t.addEventListener("click", () => { if (g.page) go(g.page, { reset: true }); });
+      close.addEventListener("click", () => { if (!MapView.justDropped()) toggle(g); });
+      close.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(g); } else arrowMove(e, g, list); });
+      t.addEventListener("click", () => { if (g.page && !MapView.justDropped()) go(g.page, { reset: true }); });
+      for (const handle of [grp, t]) movable(handle, g, list, root);
       return;
     }
     // Closed, a cluster stays a dark panel: its worst light is the band on its edge and the lamp by its name, and
@@ -335,8 +411,9 @@ const MapGroups = (() => {
     while (line.length > 4 && measure(line, 11.5) > g.w - 36) line = line.slice(0, -2).trimEnd() + "…";
     s("text", { x: g.x + 20, y: g.y + 60, class: "node-sub" }, el).textContent = line.length < say.length ? line.replace(/…?$/, "…") : line;
     s("title", {}, el).textContent = `${g.label}: ${say}`;
-    el.addEventListener("click", () => toggle(g));
-    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(g); } });
+    el.addEventListener("click", () => { if (!MapView.justDropped()) toggle(g); });
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(g); } else arrowMove(e, g, list); });
+    movable(el, g, list, root);
     // one small lamp per app, so a closed cluster still shows which of its apps is lit
     const per = Math.min(g.members.length, 12), mw = Math.min(16, (g.w - 40) / per - 4);
     g.members.slice(0, per).forEach((k, i) => {
@@ -457,5 +534,5 @@ const MapGroups = (() => {
     $$("g.hit", board).forEach((g) => g.classList.toggle("picked", anchors.has(g.dataset.key) || g.dataset.key === key));
     lightAlso(key && APPS[key] ? key : null);
   }
-  return { grouped, focus, groups, highlight, all, neighbours, isOpen };
+  return { grouped, focus, groups, highlight, all, neighbours, isOpen, place, beside, drawnBox };
 })();

@@ -225,6 +225,9 @@ const Panel = (() => {
       if (c.providerKind !== "app") out.push(h("div", { class: "note" }, "The provider is outside the vault, so the contract is kept on ", refChip(c.keptOn), "'s page."));
     } else if (e.kind === "party" || e.kind === "external") {
       const provided = D.map.contracts.filter((c) => c.provider === k);
+      const said = EXTERNAL[k] && EXTERNAL[k].said !== EXTERNAL[k].title ? EXTERNAL[k].said : "";
+      if (said) out.push(section("As the contract words it", null, h("div", { class: "prose-text" }, said),
+        h("div", { class: "p-note" }, "No outside party is recorded for this provider, so the map draws the first words. Add it under Outside parties in the context page and link it as the contract's Provider.")));
       out.push(prose(e), flowsSection(k));
       out.push(section("Contracts it provides", provided.length, provided.length ? h("ul", { class: "mini-list" }, provided.map((c) => contractRow(c.id, "out"))) : empty("No contract names it as provider.")));
       out.push(section("Facts", null, factsGrid(e.facts, [])));

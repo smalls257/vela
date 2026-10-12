@@ -248,11 +248,16 @@ const SelfTest = (() => {
     return out;
   }
   const OVERLAP_PARTS = "#board svg.grouped g.hit, #board svg.grouped .cluster-names text, #board svg.grouped .also-chip, #board svg.grouped .also-tab, #board svg.grouped .cluster-toggle";
+  // the ungrouped cockpit, the line map and the minimap: every box, lamp bank, caption, name, works marker and station
+  const COCKPIT = "#board svg.cockpit:not(.grouped):not(.focus)", TRANSIT = "#board svg.transit", MINI = "#panel-mini svg";
+  const COCKPIT_PARTS = `${COCKPIT} g.hit, ${COCKPIT} .zone-text, ${COCKPIT} .engrave`;
+  const TRANSIT_PARTS = `${TRANSIT} g.station, ${TRANSIT} .track-label, ${TRANSIT} g.works, ${TRANSIT} .zone-text`;
+  const MINI_PARTS = `${MINI} g.mini-node`;
   /* Pairs of drawn parts whose boxes intersect by more than a pixel, as "<a> on <b>". A part's own children are not parts. */
-  function overlaps() {
-    const parts = $$(OVERLAP_PARTS).filter((el) => !el.parentElement.closest(".also-chip, .also-tab, .cluster-toggle, g.hit")).map((el) => {
+  function overlaps(selector = OVERLAP_PARTS) {
+    const parts = $$(selector).filter((el) => !el.parentElement.closest(".also-chip, .also-tab, .cluster-toggle, g.hit, g.station, g.mini-node, g.works")).map((el) => {
       const b = el.getBBox();
-      return { el, b, name: el.dataset.key || el.textContent.trim().slice(0, 24) };
+      return { el, b, name: el.dataset.key || el.getAttribute("aria-label") || el.textContent.trim().slice(0, 24) };
     });
     const out = [];
     for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) {
@@ -260,6 +265,188 @@ const SelfTest = (() => {
       if (a.x < c.x + c.width - 1 && c.x < a.x + a.width - 1 && a.y < c.y + c.height - 1 && c.y < a.y + a.height - 1) out.push(`${parts[i].name} on ${parts[j].name}`);
     }
     return out;
+  }
+  /* The ungrouped cockpit, the line map and the minimap, in every theme, in Plain, with nothing on anything. */
+  async function ungrouped() {
+    if (!D.nodes.length) { out.push("skip ungrouped map: this vault has no apps"); return; }
+    const was = { theme: Theme.id, fx: FX.on, lens: MapView.st.lens, group: MapView.st.group };
+    const measure = async (name, lens, parts) => {
+      Nav.home(); MapView.st.lens = lens; MapView.st.group = "none"; MapView.st.focus = null; rerender(); await frames();
+      const bad = overlaps(parts), n = $$(parts).length;
+      ok(!bad.length, `${name}: ${n} boxes, lamps and captions, no two overlap`, `${name}: ${bad.length} overlaps, such as ${bad.slice(0, 4).join("; ")}`);
+    };
+    await measure("ungrouped cockpit", "cockpit", COCKPIT_PARTS);
+    // Past what one drawing carries (MapView.big) the line map is not the lens that opens, and its works markers and
+    // track labels have no free spot on a 60-contract map; the cockpit and the minimap are checked at every size.
+    const lineMapFits = !MapView.big();
+    if (lineMapFits) await measure("line map", "transit", TRANSIT_PARTS);
+    else out.push(`skip line map overlaps: ${plural(D.nodes.length, "box", "boxes")} is past what a node-link drawing carries, so the matrix opens first`);
+    await measure("minimap", "cockpit", MINI_PARTS);
+    MapView.st.lens = "cockpit"; rerender(); await frames();
+    const spilled = $$(`${COCKPIT} g.hit`).filter((g) => { const face = g.querySelector(".face").getBBox(); return $$("text", g).some((x) => { const b = x.getBBox(); return b.x < face.x - 1 || b.x + b.width > face.x + face.width + 1; }); }).map((g) => g.dataset.key);
+    ok(!spilled.length, "ungrouped cockpit: every name and lamp label stays inside its own box", `ungrouped cockpit: text runs past its box in ${spilled.slice(0, 4).join(", ")}`);
+    const problems = [];
+    for (const th of Theme.LIST) {
+      Theme.set(th.id);
+      for (const [lens, parts] of [["cockpit", COCKPIT_PARTS], ["transit", TRANSIT_PARTS], ["cockpit", MINI_PARTS]].filter(([lens]) => lens !== "transit" || lineMapFits)) {
+        MapView.st.lens = lens; MapView.st.group = "none"; rerender(); await frames();
+        const bad = overlaps(parts);
+        if (bad.length) problems.push(`${th.id} ${lens}: ${bad.slice(0, 2).join("; ")}`);
+      }
+    }
+    FX.set(false);
+    for (const [lens, parts] of [["cockpit", COCKPIT_PARTS], ["transit", TRANSIT_PARTS], ["cockpit", MINI_PARTS]].filter(([lens]) => lens !== "transit" || lineMapFits)) {
+      MapView.st.lens = lens; rerender(); await frames();
+      const bad = overlaps(parts);
+      if (bad.length) problems.push(`Plain ${lens}: ${bad.slice(0, 2).join("; ")}`);
+    }
+    FX.set(was.fx); Theme.set(was.theme);
+    ok(!problems.length, `ungrouped cockpit, line map and minimap: no two parts overlap in any of ${plural(Theme.LIST.length, "theme")} or in Plain`, `overlaps in ${problems.slice(0, 3).join(" | ")}`);
+    MapView.st.lens = was.lens; MapView.st.group = was.group; rerender(); await frames();
+  }
+  const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };  // a saved move is a chain of awaited fetches
+  const pointer = (type, x, y) => new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: type === "pointerup" ? 0 : 1, isPrimary: true, pointerId: 7 });
+  /* Moving boxes: the rule, a drag, a drop on an occupied cell, the arrow keys, saving, resetting, Plain, clusters. */
+  async function moves() {
+    const nodes = D.nodes.slice();
+    if (nodes.length < 2) { out.push("skip moving boxes: fewer than two boxes on the map"); return; }
+    const layoutWas = Layout.snapshot(), askWas = Ask.snapshot(), fxWas = FX.on, posts = [];
+    const fake = async (url, init) => {
+      if (url === "/health") return { ok: true, status: 200, json: async () => ({ ok: true, vault: "selftest", model: "haiku", models: {}, claude: false, maxQuestion: 2000 }) };
+      if (url === "/pins" && init) { const sent = JSON.parse(init.body); posts.push(sent); return { ok: true, status: 200, json: async () => ({ saved: Object.keys(sent.pins).length, pins: sent.pins }) }; }
+      return { ok: false, status: 404, json: async () => ({ error: `nothing at ${url}` }) };
+    };
+    Layout.net.fetch = fake;
+    Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; rerender(); await frames();
+    const original = Object.fromEntries(nodes.map((n) => [n.key, [n.col, n.row]]));
+    const mover = nodes.find((n) => n.kind === "app") || nodes[0], other = nodes.find((n) => n.key !== mover.key);
+    const farCol = Math.max(...nodes.map((n) => n.col)) + 2, outside = mover.kind !== "app";
+
+    // the rule: a cell taken, a free cell, the nearest free cell to a taken one, a party above the apps, an app below the parties
+    const taken = Layout.blocker(mover.key, other.col, other.row), free = Layout.blocker(mover.key, farCol, mover.row), near = Layout.nearestFree(mover.key, other.col, other.row);
+    const party = nodes.find((n) => n.kind !== "app"), app = nodes.find((n) => n.kind === "app");
+    const parties = nodes.filter((n) => n.kind !== "app"), appRows = nodes.filter((n) => n.kind === "app").map((n) => n.row);
+    const below = parties.length && app ? Layout.blocker(app.key, farCol, Math.min(...parties.map((n) => n.row)) + 1) : "skip";
+    const above = party && Math.max(...appRows) > 0 ? Layout.blocker(party.key, farCol, 0) : "skip";
+    ok(!!taken && !free && !!near && !Layout.blocker(mover.key, near[0], near[1]) && !!below && !!above && Layout.check(Layout.cells()) === "",
+      `moving a box: a taken cell is refused ("${taken}"), a free one is not, the nearest free cell to a taken one is ${near ? near.join(",") : "none"}, an app below the parties and a party above the apps are refused`,
+      `moving a box: taken "${taken}", free "${free}", near ${near}, app below parties "${below}", party above apps "${above}", layout "${Layout.check(Layout.cells())}"`);
+
+    // a drag, as a pointer would do it, to a free cell beyond the last column
+    const cockpitRoot = () => $("#board svg.cockpit");
+    const clientOf = (col, row, isOutside) => { const svg = cockpitRoot(), pt = svg.createSVGPoint(), at = Geo.pointOf(MapView.COCKPIT, col, row, isOutside); pt.x = at.x; pt.y = at.y; const c = pt.matrixTransform(svg.getScreenCTM()); return { x: c.x, y: c.y }; };
+    const boxOf = (key) => $(`#board g.hit[data-key="${CSS.escape(key)}"]`);
+    const dragTo = (key, col, row) => {
+      const r = boxOf(key).getBoundingClientRect(), goal = clientOf(col, row, NODE[key].kind !== "app");
+      boxOf(key).dispatchEvent(pointer("pointerdown", r.x + r.width / 2, r.y + r.height / 2));
+      window.dispatchEvent(pointer("pointermove", r.x + r.width / 2 + 12, r.y + r.height / 2 + 12));
+      window.dispatchEvent(pointer("pointermove", goal.x, goal.y));
+      window.dispatchEvent(pointer("pointerup", goal.x, goal.y));
+    };
+    const focusBefore = App.focus;
+    dragTo(mover.key, farCol, mover.row);
+    boxOf(mover.key).dispatchEvent(new MouseEvent("click", { bubbles: true }));  // the click that follows a release must not open the page
+    await flush();
+    const now = [NODE[mover.key].col, NODE[mover.key].row];
+    const mini = $$(`${MINI} g.mini-node`).map((g) => ({ label: g.getAttribute("aria-label"), x: g.getBBox().x }));
+    const rightmost = mini.sort((a, b) => b.x - a.x)[0];
+    ok(now[0] === farCol && now[1] === mover.row && Layout.moved() && App.focus === focusBefore && !!rightmost && rightmost.label.startsWith(titleOf(mover.key)),
+      `dragging ${titleOf(mover.key)} to column ${farCol + 1}: it stands there on the cockpit and the minimap, and the release opened nothing`,
+      `dragging ${titleOf(mover.key)}: at ${now}, wanted ${[farCol, mover.row]}; moved ${Layout.moved()}; focus ${App.focus}; minimap rightmost ${rightmost && rightmost.label}`);
+    const bad = [...overlaps(COCKPIT_PARTS), ...overlaps(MINI_PARTS)];
+    ok(!bad.length && Layout.check(Layout.cells()) === "", "after the drag: nothing overlaps on the cockpit or the minimap", `after the drag: ${bad.slice(0, 3).join("; ") || Layout.check(Layout.cells())}`);
+
+    // where the move went: this browser, or the vault by POST /pins
+    const served = Layout.canSave();
+    if (served) {
+      ok(posts.length >= 1 && JSON.stringify(posts[posts.length - 1].pins[mover.key]) === JSON.stringify(now) && /Layout saved to the vault/.test(Layout.note), "served: the drop is POSTed to /pins and the page says Layout saved to the vault", `served: ${posts.length} POSTs, note "${Layout.note}"`);
+    } else {
+      const kept = JSON.parse(Settings.read(`explorer.layout.${D.vaultId}`) || "{}").pins || {};
+      ok(JSON.stringify(kept[mover.key]) === JSON.stringify(now) && !posts.length && !!$('[data-layout="copy"]') && !!$('[data-layout="download"]'), "on a file: the move is kept in this browser under the vault's id, nothing is posted, and Copy layout and Download pins are offered", `on a file: kept ${JSON.stringify(kept)}, ${posts.length} POSTs`);
+      let copied = "";
+      Layout.setCopy(async (text) => { copied = text; });
+      await Layout.copy(); Layout.setCopy(null);
+      let json = null; try { json = JSON.parse(copied); } catch (e) { console.warn("[selftest] copied layout is not JSON:", e.message); }
+      ok(!!json && JSON.stringify(json[mover.key]) === JSON.stringify(now) && copied.endsWith("\n"), "Copy layout gives the pins file's JSON, with the move in it", `Copy layout gave "${copied.slice(0, 60)}"`);
+    }
+
+    // a drop on another box's cell settles in the nearest free cell, never on it
+    dragTo(mover.key, other.col, other.row);
+    await flush();
+    const settled = [NODE[mover.key].col, NODE[mover.key].row], bad2 = [...overlaps(COCKPIT_PARTS), ...overlaps(MINI_PARTS)];
+    ok(!(settled[0] === other.col && settled[1] === other.row) && Layout.check(Layout.cells()) === "" && !bad2.length,
+      `dropping ${titleOf(mover.key)} on ${titleOf(other.key)}: it settles in the nearest free cell (${settled.join(",")}), no overlap`, `drop on a taken cell: at ${settled}, ${Layout.check(Layout.cells())} ${bad2.slice(0, 3).join("; ")}`);
+
+    // the keyboard: an arrow key moves the focused box one cell; a move off the board is refused and said
+    dragTo(mover.key, farCol, mover.row); await flush();
+    const before = Layout.cell(mover.key).slice();
+    boxOf(mover.key).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    await flush();
+    const arrived = Layout.cell(mover.key), focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.key : "";
+    ok(arrived[0] === before[0] + 1 && arrived[1] === before[1] && focused === mover.key && /moved to column/.test(($("#layout-say") || { textContent: "" }).textContent),
+      `arrow key: ${titleOf(mover.key)} moves one cell right and keeps the focus, and the page says where`, `arrow key: ${before} to ${arrived}, focus on ${focused}, said "${($("#layout-say") || { textContent: "" }).textContent}"`);
+    boxOf(mover.key).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+    const up = Layout.cell(mover.key), atTop = arrived[1] === 0;
+    const refused = atTop ? JSON.stringify(up) === JSON.stringify(arrived) && /stays where it is/.test(Layout.note) : up[1] === arrived[1] - 1 || /stays where it is/.test(Layout.note);
+    ok(refused, atTop ? "arrow key: a move off the board is refused and the page says why" : "arrow key: up moves one row, or is refused with the reason", `arrow key up from row ${arrived[1]}: now ${up}, said "${Layout.note}"`);
+
+    const off = Layout.step(mover.key, 0, -(Layout.cell(mover.key)[1] + 1));
+    ok(!off.ok && /off the board/.test(Layout.note), "a step off the top of the board is refused, and the page says why", `a step off the board gave ${JSON.stringify(off)}, said "${Layout.note}"`);
+    // Plain: the same drag, with no animation running
+    FX.set(false); await frames();
+    dragTo(mover.key, farCol + 1, mover.row); await flush();
+    const anim = document.getAnimations ? document.getAnimations().filter((a) => a.playState === "running").length : 0;
+    ok(NODE[mover.key].col === farCol + 1 && !$$("#board .halo").length && !anim, `Plain: dragging works with no glow and ${anim} running animations`, `Plain: at ${NODE[mover.key].col}, ${$$("#board .halo").length} halos, ${anim} animations`);
+    FX.set(fxWas);
+
+    // a cluster of the grouped map moves earlier or later, and the order is kept
+    const ways = [];
+    if (D.map.apps.some((a) => a.domain)) ways.push("domain");
+    ways.push("capability");
+    for (const way of ways) {
+      MapView.st.group = way; MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
+      const keys = () => MapGroups.groups(way).filter((g) => !g.outside).map((g) => g.key);
+      const first = keys();
+      if (first.length < 2) { out.push(`skip moving a ${way} cluster: fewer than two clusters`); continue; }
+      const handle = $(`#board [data-group="${CSS.escape(first[0])}"] .cluster-toggle, #board g.cluster-lamp[data-group="${CSS.escape(first[0])}"]`);
+      handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+      await flush();
+      const second = keys(), swapped = second[0] === first[1] && second[1] === first[0] && second.length === first.length;
+      const clash = overlaps();
+      ok(swapped && !clash.length, `a ${way} cluster moves one place later with the arrow key, and nothing overlaps`, `${way} cluster: order ${first} became ${second}; ${clash.slice(0, 3).join("; ")}`);
+    }
+    MapView.st.group = "none"; MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
+
+    // Reset layout: every box back where the vault's pins have it, and the browser's memory emptied
+    posts.length = 0;
+    const reset = $('[data-layout="reset"]');
+    ok(!!reset && !reset.disabled, "Reset layout is offered once a box has moved", "Reset layout is missing or disabled after moves");
+    reset.click(); await flush();
+    const back = nodes.every((n) => NODE[n.key].col === original[n.key][0] && NODE[n.key].row === original[n.key][1]);
+    const left = served ? "{}" : JSON.stringify((JSON.parse(Settings.read(`explorer.layout.${D.vaultId}`) || "{}").pins) || {});
+    ok(back && (served || left === "{}") && !Layout.moved(), "Reset layout puts every box back where the vault's pins have it, and forgets the moves", `Reset: boxes back ${back}, kept moves ${left}, still moved ${Layout.moved()}`);
+
+    // a reader's page, served: moves stay in this browser unless sent on
+    if (!served) {
+      await Ask.detect(fake, { protocol: "http:", hostname: "127.0.0.1" });
+      Layout.net.fetch = fake; posts.length = 0;
+      Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; rerender(); await frames();
+      const role = D.role, key = mover.key, spot = Layout.nearestFree(key, farCol, mover.row);
+      D.role = "owner";  // a reader's page is the other case, below
+      Layout.move(key, spot); await flush();
+      ok(posts.length === 1 && JSON.stringify(posts[0].pins[key]) === JSON.stringify(spot) && posts[0].kinds[key] === Layout.KIND(key) && /Layout saved to the vault/.test(Layout.note),
+        "served, as the owner: a move is POSTed to /pins with the boxes' kinds, and the page says Layout saved to the vault", `served move: ${posts.length} POSTs, note "${Layout.note}"`);
+      D.role = "reader"; posts.length = 0;
+      const was = Layout.cell(key).slice(), reading = !Layout.canSave();
+      Layout.move(key, [was[0] + 1, was[1]]); await flush();
+      D.role = role;
+      ok(reading && !posts.length, "served, as a reader: a move is not POSTed; it stays in this browser", `reader move posted ${posts.length}, canSave ${!reading}`);
+    }
+    Ask.restore(askWas);
+    Layout.restore(layoutWas);
+    Layout.net.fetch = (...a) => fetch(...a);
+    FX.set(fxWas);
+    MapView.st.group = null; rerender(); await frames();
   }
   async function effects() {
     const was = FX.on;
@@ -568,7 +755,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await effects(); await panelRoom(); await releases(); await emptyStates(); await askChecks(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); await emptyStates(); await askChecks(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
