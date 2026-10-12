@@ -5,8 +5,9 @@
    - Product: capabilities and requirements, what each release delivers, the business questions, the user flows.
    - QA: acceptance criteria by epic, contracts and who tests each side, failure behaviour per app, and unsettled
      questions that would change a test.
-   - Engineering: pick an app for its slice: boundary, contracts in and out, flows, open questions, handoff state.
-   - Managers: progress, completeness, the timeline, and what is blocked on whom. */
+   - Engineering: pick an app for its slice: boundary, contracts in and out, flows, open questions, handoff state, and
+     how far every app is from a build plan (no design, design only, plan with gaps, plan complete).
+   - Managers: progress, completeness, the timeline, what is blocked on whom, and the build plans' stories and points. */
 const Roles = (() => {
   const ROLES = [["lead", "Lead", "What needs you"], ["exec", "Exec", "Goals, decisions, risks and the timeline"], ["product", "Product", "Capabilities, requirements, releases and flows"],
     ["qa", "QA", "Criteria, contracts, failure and what would change a test"], ["eng", "Engineering", "One app's slice"], ["mgr", "Managers", "Progress, timeline and who is blocking what"]];
@@ -126,6 +127,11 @@ const Roles = (() => {
     grid.append(card("Boundary", ["Open the page", () => go(Reader.keyFor(k), {})], h("div", { class: "prose-text door-prose", html: e.prose || "<p>The page has no opening prose.</p>" }),
       h("div", { class: "chips" }, h("span", { class: "pill" }, e.change || "no change"), e.stage ? h("span", { class: "pill" }, "stage " + e.stage) : null, h("span", { class: "pill" }, D.domains[k])),
       linkChips(k), Inside.doorEntry(k)));
+    grid.append(card("Build plan, every app", ["This app's plan", () => Inside.open(k, "plan")], list(apps, 12, (x) => {
+      const r = Plan.readiness(x.key);
+      return h("li", { "data-app": x.key, "data-ready": r.id }, h("a", { "data-ref": x.key }, h("b", {}, x.title)), " ", Plan.readinessPill(x.key), r.counts ? h("span", { class: "muted small" }, " " + r.counts) : null,
+        h("button", { class: "btn tiny", onclick: () => Inside.open(x.key, "plan") }, "Build plan"));
+    }), rule("Readiness: no design (no tech design doc loaded), design only (a design, no work breakdown), plan complete or plan with gaps (the plan's own status). Counts are the plan's stories, tasks and points.")));
     // a contract from an outside party carries the party's own links too: its API spec is where the engineer starts
     const con = (id, dir) => h("li", {}, lamp(levelOf(id)), h("a", { "data-ref": id }, h("b", {}, id), " ", CONTRACT[id].title), " ", statePill(CONTRACT[id].state),
       h("span", { class: "muted small" }, dir === "out" ? ` to ${CONTRACT[id].consumers.map(titleOf).join(", ")}` : ` from ${titleOf(CONTRACT[id].provider)}`),
@@ -154,6 +160,7 @@ const Roles = (() => {
     grid.append(card("Where each app stands", ["Apps", () => Nav.open("apps")], list(P.rows.filter((r) => r.stage), 7, (r) => h("li", {}, lamp(levelOf(r.app)), h("a", { "data-ref": r.app }, E[r.app].title),
       h("span", { class: "ladder inline" }, stages.map((x, i) => h("span", { class: i < stages.indexOf(r.stage) ? "done" : i === stages.indexOf(r.stage) ? "cur" : "", title: x }))), h("span", { class: "muted small" }, ` ${r.stage}`)))));
     grid.append(card("Release timeline", ["Releases", () => Nav.open("releases")], timeline()));
+    buildPlans(grid);
     const who = {};
     for (const u of openQs()) {
       const k = u.ask.key || u.ask.name, w = who[k] || (who[k] = { key: k, name: u.ask.name, n: 0, late: 0, holds: new Set(), guessed: 0 });
@@ -164,6 +171,21 @@ const Roles = (() => {
     grid.append(card("What is blocked on whom", ["Who to ask", () => Nav.open("unknowns")], ranked.length ? list(ranked, 6, (w) => h("li", {}, lamp(w.late ? "warning" : "caution"),
       h("button", { class: "linkish strong", onclick: () => { Nav.open("unknowns"); Asks.meet(w.key); } }, w.name), h("span", { class: "muted small" }, ` ${plural(w.n, "open question")}${w.late ? `, ${w.late} overdue` : ""}, holding ${plural(w.holds.size, "thing")}${w.guessed ? `; ${w.guessed} guessed from the Owner line` : ""}`)))
       : empty("No open questions.")));
+  }
+
+  /* The teams' build plans: what each app has to build, in stories and points, and what its stories are waiting on. */
+  function buildPlans(grid) {
+    const apps = D.map.apps.filter((a) => Plan.plan(a.key)), whom = Plan.blockedOn();
+    grid.append(card("Build plans", null, apps.length ? list(apps, 6, (a) => {
+      const p = Plan.plan(a.key), t = p.totals, held = p.stories.filter((x) => x.blockers.some((b) => b.kind !== "story")).length;
+      return h("li", { "data-app": a.key }, h("a", { "data-ref": a.key }, h("b", {}, a.title)), " ", Plan.readinessPill(a.key),
+        h("span", { class: "muted small" }, ` ${plural(t.stories, "story", "stories")}, ${plural(t.points, "point")}${held ? `; ${held} waiting on someone outside the plan` : ""}`),
+        h("button", { class: "btn tiny", onclick: () => Inside.open(a.key, "plan") }, "Build plan"));
+    }) : empty("No build plan is loaded. The team's work-breakdown skill writes docs/plan/<slug>-breakdown.md."),
+    whom.length ? h("h3", {}, "Stories waiting on") : null,
+    whom.length ? list(whom, 5, (w) => h("li", { "data-waiting": w.kind }, w.kind === "question" ? refChip(keyForId(w.ref)) : h("b", {}, w.text), h("span", { class: "muted small" },
+      ` holds ${w.stories.map((x) => x.id).join(", ")} (${w.stories.map((x) => titleOf(x.app)).filter((x, i, all) => all.indexOf(x) === i).join(", ")})${w.kind === "outside" ? ", an outside party" : w.kind === "question" && ASK[w.ref] ? `, ask ${ASK[w.ref].ask.name}` : ""}`))) : null,
+    rule("Points are the tool's mapping, S=2, M=5, L=8; the plan's sizes are for ordering, not commitments. Waiting on: an open vault question, an outside party, or anything else a Blocked by line names that is not another story.")));
   }
 
   function render(main) {

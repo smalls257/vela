@@ -51,7 +51,7 @@ const Nav = (() => {
     if (vis.length > 1 || (opts.reading && vis.length)) box.append(h("div", { class: "seg", role: "group", "aria-label": "Visual" }, vis.map(([v, label]) =>
       h("button", { "aria-pressed": String(App.view === v), onclick: () => { Sections.doc.page = ""; showView(v); } }, label))));
     const pk = sectionPage();
-    if (s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside") box.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers and the team's components", onclick: () => Inside.open(st.child, "containers") }, "Inside this app"));
+    if (s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside") box.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers, the team's components and its build plan", onclick: () => Inside.open(st.child, "containers") }, "Inside this app"));
     if (pk && App.view !== "doc") box.append(h("button", { class: "btn", title: "Read the section's page full width", onclick: () => readWide(pk) }, "Read the page"));
     if (pk && D.vault) box.append(h("a", { class: "btn quiet", href: encodeURI(D.vault + "/" + E[pk].path), target: "_blank", title: E[pk].path }, "Open the file"));
     return box;

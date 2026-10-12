@@ -104,7 +104,7 @@ const Panel = (() => {
     const readKey = Reader.keyFor(e.key);
     if (readKey) actions.append(h("button", { class: "btn open-page", title: "Read it here, in the vault's own words", onclick: () => go(readKey, {}) }, "Open the page"));
     if (e.kind === "app" && typeof MapView !== "undefined") actions.append(h("button", { class: "btn", onclick: () => Nav.focusApp(e.key) }, "Focus on the map"));
-    if (e.kind === "app" && typeof Inside !== "undefined") actions.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers and the team's components", onclick: () => Inside.open(e.key, "containers") }, "Inside this app"));
+    if (e.kind === "app" && typeof Inside !== "undefined") actions.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers, the team's components and its build plan", onclick: () => Inside.open(e.key, "containers") }, "Inside this app"));
     if ((e.kind === "app" || e.kind === "decision") && typeof Motion !== "undefined") actions.append(h("button", { class: "btn", title: "What depends on it, ring by ring", onclick: () => Nav.ripple(e.key) }, "Ripple: what depends on it"));
     if ((e.kind === "flow" || e.kind === "contract") && typeof Motion !== "undefined") actions.append(h("button", { class: "btn", title: "Light its path on the map, hop by hop", onclick: () => Nav.trace(e.key) }, "Trace on the map"));
     const light = lightOf(e.key), u = UNKNOWN[e.key];
@@ -207,6 +207,8 @@ const Panel = (() => {
         : h("div", { class: "gap" }, fail.runtime ? "Its runtime page has no section on failure (ladder.FAILURE finds none)." : "It has no runtime page, so nothing says how it behaves on failure.")));
       if (a.reached || a.needs.length) out.push(section("Stage ladder", null, h("div", { class: "p-note" }, `The pages reach ${a.reached || "no stage"}.`, a.needs.length ? h("ul", {}, a.needs.map((n) => h("li", {}, n))) : " Nothing more is needed for the next stage.")));
       if (a.runtime) out.push(section("Runtime", null, refChip(a.runtime)));
+      if (typeof Plan !== "undefined") out.push(section("Build plan", null, h("div", { class: "plan-ready-row", "data-ready": Plan.readiness(k).id }, Plan.readinessPill(k), h("span", { class: "muted small" }, " " + Plan.readiness(k).counts),
+        h("button", { class: "btn tiny", onclick: () => Inside.open(k, "plan") }, "Build plan"))));
     } else if (e.kind === "contract") {
       const c = CONTRACT[k];
       out.push(section("Who talks to whom", null, h("div", { class: "ends" },

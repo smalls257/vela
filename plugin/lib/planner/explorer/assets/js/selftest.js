@@ -694,6 +694,7 @@ const SelfTest = (() => {
       ok(!!chipLamp && chipLamp.classList.contains("caution") && sec.length === list.length && (!list[0].scenario || sec[0].textContent.includes(list[0].scenario.slice(0, 30))),
         `challenge: ${id} lit "needs you" by ${list.map((c) => c.oq).join(", ")} in the ${titleOf(list[0].app)} design${list[0].scenario ? ", with its scenario" : ""}`, `challenge: ${id} lamp ${chipLamp ? chipLamp.className : "none"}, ${sec.length} sections`);
     }
+    await planChecks(ok, out, apps);
     // the deep link, the crumbs, the doors, the sidebar and the map
     const k0 = loaded[0] || apps[0];
     Inside.open(k0, "components", { tab: "flows" });
@@ -704,7 +705,7 @@ const SelfTest = (() => {
     ok($$(".pages table.t .d-status").length === loaded.length, `progress: the stage ladder carries ${plural(loaded.length, "design")}' state`, `progress: ${$$(".pages table.t .d-status").length} design states for ${loaded.length}`);
     Roles.st.app = k0; Nav.role("eng");
     const entry = $(".door-card .in-door");
-    ok(!!entry && $$("[data-inside]", entry).length === 3, `engineering door: an Inside entry for ${titleOf(k0)}, with its three levels`, "engineering door: no Inside entry");
+    ok(!!entry && $$("[data-inside]", entry).length === 4 && !!$("[data-readiness]", entry), `engineering door: an Inside entry for ${titleOf(k0)}, with its four levels and its plan readiness`, "engineering door: no Inside entry");
     Nav.open("apps", k0);
     const listed = Nav.st.expanded.has("apps");  // past 12 apps the sidebar starts with its app list folded
     ok((!listed || !!$(`#side .side-inside[data-inside="${CSS.escape(k0)}"]`)) && !!$("#main .inside-btn"), `${listed ? "sidebar and " : ""}section page: ${titleOf(k0)} offers Inside this app`, "the app's sidebar entry or page has no Inside");
@@ -712,13 +713,68 @@ const SelfTest = (() => {
     if (box) { box.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })); ok(App.view === "inside" && Inside.st.level === "containers", `the map: double-clicking ${titleOf(k0)} goes inside, to its containers`, `double-click: view ${App.view}, level ${Inside.st.level}`); }
     // every theme and Plain: the drawing still lays out with nothing on anything, and Plain runs no animation
     const was = Theme.id, fx = FX.on, themed = [];
-    for (const t of Theme.LIST) { Theme.set(t.id); Inside.open(k0, "components"); const o = overlaps(); if (o.bad.length || !$("#inside-stage")) themed.push(`${t.id}: ${o.bad.length} overlaps`); }
+    const planned0 = apps.find((k) => (D.plans || {})[k]);
+    for (const t of Theme.LIST) {
+      Theme.set(t.id); Inside.open(k0, "components");
+      let o = overlaps();
+      if (planned0) { Inside.open(planned0, "plan"); const q = overlaps(); o = { bad: [...o.bad, ...q.bad] }; }
+      if (o.bad.length || !$("#inside-stage")) themed.push(`${t.id}: ${o.bad.length} overlaps`);
+    }
     Theme.set(was);
     FX.set(false); Inside.open(k0, "containers"); Inside.open(k0, "components");
     const anim = document.getAnimations ? document.getAnimations().filter((a) => a.playState === "running").length : 0;
     ok(!themed.length && !anim, `inside in every theme (${Theme.LIST.map((t) => t.label).join(", ")}) lays out cleanly; in Plain a level change runs ${anim} animations`, `inside themes: ${themed.join("; ")}; Plain animations ${anim}`);
     FX.set(fx);
   }
+  /* The build plan (plan.js): level 4 draws from the plan, the dependency view has nothing on anything, every trace chip
+     resolves or is dead for the reason the build gave, a lit card wears its question's lamp, the copy is the CSV the
+     tool writes, and the vault item says which story builds it. */
+  async function planChecks(ok, out, apps) {
+    const planned = apps.filter((k) => (D.plans || {})[k]), bare = apps.find((k) => !(D.plans || {})[k]);
+    if (!planned.length) out.push("skip inside, build plan: no work breakdown was found for this build");
+    for (const k of planned) {
+      const p = D.plans[k], name = titleOf(k);
+      Inside.open(k, "plan");
+      const cards = $$("#inside-stage .plan-card"), crumb = $(".inside-crumbs .cur");
+      ok(cards.length === p.stories.length && cards.every((c, i) => c.dataset.story === p.stories[i].id) && crumb && crumb.textContent === "Build plan",
+        `inside ${name}, build plan: ${cards.length} story cards in build order, crumbs end at Build plan`, `inside ${name}, build plan: ${cards.length} cards of ${p.stories.length}`);
+      ok(location.hash.includes(`level=plan`), `deep link: ${location.hash.split("&selftest")[0]}`, `deep link: ${location.hash}`);
+      const o = overlaps(), nodes = $$("#plan-dag .plan-node").length;
+      ok(nodes === p.stories.length && !o.bad.length, `inside ${name}, dependency view: ${nodes} stories, ${o.n} boxes and labels, no two overlap`, `inside ${name}, dependency view: ${nodes} of ${p.stories.length}; overlaps ${o.bad.slice(0, 3).join("; ")}`);
+      const arrows = $$("#plan-dag path.in-edge").length, want = p.stories.reduce((n, x) => n + x.blockers.length, 0);
+      ok(arrows === want, `inside ${name}, dependency view: ${arrows} arrows, one for each Blocked by`, `inside ${name}, dependency view: ${arrows} arrows for ${want} blockers`);
+      const dead = $$("#inside-stage .plan-traces .ref-chip.ref-dead").length;
+      ok(dead === p.unresolved.length && $$("#inside-stage .plan-traces .ref-chip:not(.ref-dead)").every((c) => !!c.dataset.ref && !!ent(c.dataset.ref)),
+        `inside ${name}, build plan: every trace chip resolves into the vault (${dead} named by the build as not in it)`, `inside ${name}, build plan: ${dead} dead chips, the build names ${p.unresolved.length}`);
+      const lit = p.stories.filter((x) => x.blockers.some((b) => b.kind === "question" && isOpen(UNKNOWN[b.ref])));
+      ok(lit.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return c.className.includes("lit ") && !!$(".lamp", c); }),
+        `inside ${name}, build plan: ${plural(lit.length, "card")} blocked by an open vault question wear that question's lamp`, `inside ${name}, build plan: a card blocked by an open question is not lit`);
+      const empty = $$("#inside-stage .plan-cov tr.empty").length, want0 = p.coverage.targets.concat(p.coverage.components).filter((r) => !r.stories.length).length;
+      ok(empty === want0 && (!empty || !!$("#inside-stage .plan-sum.bad")), `inside ${name}, build plan: coverage lights its ${plural(empty, "empty row")}`, `inside ${name}, build plan: ${empty} empty rows lit, ${want0} computed`);
+      const comp = $("#inside-stage .plan-comp[data-component]");
+      if (comp) {
+        const want1 = comp.dataset.component; comp.click();
+        ok(Inside.st.level === "components" && !!$(`#panel h2`) && $("#panel h2").textContent.includes(want1), `inside ${name}, build plan: a component chip jumps to ${want1} in the components`, `inside ${name}, build plan: the chip left level ${Inside.st.level}`);
+        Inside.open(k, "plan");
+      }
+      let copied = null;
+      const was = Plan.sink.write;
+      Plan.sink.write = async (text) => { copied = text; };
+      $("#inside-stage .plan-copy").click();
+      await new Promise((r) => setTimeout(r, 30));
+      Plan.sink.write = was;
+      ok(copied === p.csv && copied.split("\r\n").length - 1 === p.stories.length + p.totals.tasks + 1,
+        `inside ${name}, build plan: "Copy as Jira CSV" hands over the build's CSV, ${p.stories.length + p.totals.tasks} rows and a header`, `inside ${name}, build plan: copied ${copied === null ? "nothing" : copied.length + " characters, not the CSV"}`);
+      const built = Object.keys(Plan_BUILT_KEYS(k)).find((id) => E[id]);
+      if (built) { go(built, { reset: true }); ok($$("#panel .in-owner.built").some((x) => /Built by S-\d+/.test(x.textContent)), `reverse trace: ${built}'s panel says "Built by ${Plan.built(built)[0].story} (${Plan.planWord(k)})"`, `reverse trace: ${built} shows no Built by`); }
+    }
+    if (bare) {
+      Inside.open(bare, "plan");
+      const say = ($("#inside-stage .inside-chip-card") || { textContent: "" }).textContent;
+      ok(/No build plan yet\./.test(say) && say.includes("docs/plan/<slug>-breakdown.md"), `inside ${titleOf(bare)}, build plan: none, so the chip says what writes one`, `inside ${titleOf(bare)}, build plan: no empty-state chip`);
+    }
+  }
+  const Plan_BUILT_KEYS = (app) => Object.fromEntries(D.plans[app].stories.flatMap((x) => x.traces.map((t) => [t.split("@")[0], 1])));
   /* Reader drafts, pending approval and freshness: the build's data drawn as the spec says, and the file:// page
      touching nothing. Synthetic rows stand in where this vault has no draft, so every build checks the drawing. */
   async function draftChecks(ok) {
