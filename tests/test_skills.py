@@ -247,7 +247,7 @@ def test_ask_answers_from_opened_sections_and_marks_what_is_missing():
 def test_ask_header_works_with_no_origin_and_no_claude_md(tmp_path):
     import os
     env = {**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)}
-    git = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid"]
+    git = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false"]
     subprocess.run(git + ["init", "-q", "-b", "main"], cwd=tmp_path, check=True, timeout=60)
     (tmp_path / "x.md").write_text("x\n", encoding="utf-8")
     subprocess.run(git + ["add", "x.md"], cwd=tmp_path, check=True, timeout=60)

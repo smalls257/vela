@@ -1063,3 +1063,35 @@ def test_the_persona_prompt_forbids_claiming_or_promising_any_action_outside_the
     source = (SIM / "run.py").read_text(encoding="utf-8")
     assert "Never claim to do, send, run, check or chase anything outside this conversation, in any tense" in source
     assert "You may say once what you will do later." not in source
+
+
+def test_parse_stream_ignores_text_blocks_with_parent_tool_use_id(tmp_path):
+    """Text blocks from subagents (with parent_tool_use_id) are excluded from main assistant text
+    and counted separately, preventing subagent output from inflating question counts."""
+    fake_stream = json.dumps({"type": "system", "subtype": "init"}) + "\n" + \
+                  json.dumps({"type": "assistant", "message": {"content": [
+                      {"type": "text", "text": "Main assistant response"},
+                      {"type": "text", "text": "Subagent review", "parent_tool_use_id": "tool-123"},
+                      {"type": "tool_use", "name": "Agent", "input": {}}
+                  ]}}) + "\n" + \
+                  json.dumps({"type": "result", "total_cost_usd": 0.01, "is_error": False, "session_id": "test",
+                              "result": ""})
+    raw_path = tmp_path / "test.jsonl"
+    raw_path.write_text(fake_stream, encoding="utf-8")
+    parsed = sim.parse_stream(fake_stream, raw_path)
+    assert "Main assistant response" in parsed["text"]
+    assert "Subagent review" not in parsed["text"]
+    assert "Subagent review" in parsed["subagent_text"]
+    assert len(parsed["tools"]) == 1
+
+
+def test_run_json_is_written_at_the_start(tmp_path):
+    """run.json is written when a run starts so a stopped run can be rescored with --rejudge."""
+    exit_code, stderr, run_folder, calls = simulate(tmp_path, "--budget", "0.5")
+    assert exit_code == 0, stderr
+    assert run_folder is not None
+    assert (run_folder / "run.json").is_file(), "run.json should exist for a completed run"
+    run_json = json.loads((run_folder / "run.json").read_text(encoding="utf-8"))
+    assert "run_id" in run_json
+    assert run_json["stub"] is True
+    assert "started" in run_json

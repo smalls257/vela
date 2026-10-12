@@ -58,7 +58,8 @@ def test_viewer_builds_offline_from_the_fixture(tmp_path):
 
 
 def git_in(vault, *args):
-    subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
+    subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@example.com",
+                    "-c", "commit.gpgsign=false", *args],
                    check=True, capture_output=True, timeout=60)
 
 

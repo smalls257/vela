@@ -408,8 +408,9 @@ def short(value, limit=200):
 
 
 def parse_stream(stdout, raw_path):
-    """Read a stream-json run: the init event, every text block and tool call, and the final result event."""
-    init, texts, tools, unparsed, result = None, [], [], 0, None
+    """Read a stream-json run: the init event, every text block and tool call, and the final result event.
+    Text blocks from subagents (with parent_tool_use_id) are separated from the main assistant text."""
+    init, texts, subagent_texts, tools, unparsed, result = None, [], [], [], 0, None
     for line in stdout.splitlines():
         if not line.strip():
             continue
@@ -430,7 +431,11 @@ def parse_stream(stdout, raw_path):
                 if not isinstance(block, dict):
                     continue
                 if block.get("type") == "text" and isinstance(block.get("text"), str):
-                    texts.append(block["text"])
+                    # Separate subagent output (blocks with parent_tool_use_id) from main assistant text
+                    if block.get("parent_tool_use_id"):
+                        subagent_texts.append(block["text"])
+                    else:
+                        texts.append(block["text"])
                 elif block.get("type") == "tool_use":
                     tools.append({"name": str(block.get("name", "?")), "input": short(block.get("input", ""))})
         elif kind == "result":
@@ -439,7 +444,8 @@ def parse_stream(stdout, raw_path):
         raise ToolFailure(f"claude printed no result event ({unparsed} unparsed lines). Read {raw_path}")
     require_result(result, raw_path)
     text = "\n\n".join(t.strip() for t in texts if t.strip()) or result.get("result") or ""
-    return {"init": init, "text": text, "tools": tools, "result": result, "unparsed": unparsed}
+    subagent_text = "\n\n".join(t.strip() for t in subagent_texts if t.strip()) or ""
+    return {"init": init, "text": text, "subagent_text": subagent_text, "tools": tools, "result": result, "unparsed": unparsed}
 
 
 def parse_single(stdout, raw_path):
@@ -1051,6 +1057,9 @@ class Arm:
                                 session_id=session_id, resumed=turns > 1,
                                 permission_denials=result.get("permission_denials", []),
                                 unparsed_lines=parsed["unparsed"])
+            if parsed["subagent_text"]:
+                self.transcript.add(speaker="subagent", session=index, mode=mode, text=parsed["subagent_text"],
+                                    cost_usd=0)
             self.log(f"S{index} {mode} assistant turn {turns}")
             if budget_stop(result) or self.ledger.session_room() < MIN_CALL_USD:
                 reason = "budget"
@@ -2258,6 +2267,11 @@ def main(argv=None):
     run_id = f"{datetime.datetime.now():%Y-%m-%d-%H%M%S}-{pathlib.Path(args.persona).stem}"
     run_dir = pathlib.Path(args.out).resolve() / run_id
     run_dir.mkdir(parents=True)
+    # Write run.json at the start with what's known, so a stopped run can be rescored with --rejudge
+    initial_summary = {"run_id": run_id, "persona": args.persona, "script": args.script, "arms": args.arm_list,
+                       "models": {"assistant": args.model, "persona": args.persona_model, "judge": args.judge_model},
+                       "budget_usd": args.budget, "stub": args.stub, "started": datetime.datetime.now().isoformat()}
+    (run_dir / "run.json").write_text(json.dumps(initial_summary, indent=2), encoding="utf-8")
     share = args.budget / len(args.arm_list)
     arms, failed = [], False
     for name in args.arm_list:
@@ -2278,9 +2292,9 @@ def main(argv=None):
             break
     (run_dir / "compare.html").write_text(render_compare(run_id, persona, arms), encoding="utf-8")
     early = any(a.early() for a in arms)
-    summary = {"run_id": run_id, "persona": args.persona, "script": args.script, "arms": args.arm_list,
-               "models": {"assistant": args.model, "persona": args.persona_model, "judge": args.judge_model},
-               "budget_usd": args.budget, "stub": args.stub,
+    # Load the initial run.json written at the start and update it with final results
+    initial_summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    summary = {**initial_summary,
                "spent_usd": round(sum(a.ledger.spent for a in arms), 4),
                "per_arm": {a.name: {"spent_usd": round(a.ledger.spent, 4), "endings": a.endings,
                                     "failure": a.failure, "notes": a.notes} for a in arms},

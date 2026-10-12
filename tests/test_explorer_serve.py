@@ -74,15 +74,13 @@ def value_after(argv, flag):
 
 
 def test_the_server_binds_loopback_only(helper):
+    """A socket bound to 127.0.0.1 accepts nothing from another machine, so the bind address is the guarantee.
+    No name lookups: resolving the host name made the old test error or pass vacuously on some machines."""
     server, _, _ = helper
-    assert server.server_address[0] == serve.LOOPBACK
-    assert server.url.startswith(f"http://{serve.LOOPBACK}:")
-    # a socket to the machine's own non-loopback address finds nothing listening
-    outward = socket.gethostbyname(socket.gethostname())
-    if outward != serve.LOOPBACK:
-        with pytest.raises(OSError), socket.create_connection((outward, server.server_port), timeout=2):
-            pass
-
+    assert server.server_address[0] == "127.0.0.1"
+    assert serve.LOOPBACK == "127.0.0.1"
+    assert server.url.startswith("http://127.0.0.1:")
+    assert request(server, "GET", "/health", origin=None).status == 200
 
 def test_health_names_the_vault_and_the_default_model(helper):
     server, vault, _ = helper
