@@ -366,6 +366,16 @@ def test_a_bad_content_length_gets_a_status_not_a_hung_thread(helper, length, st
     assert conn.getresponse().status == status
 
 
+HELD_TIMEOUTS = []  # the stub hangs on purpose, so the held requests end by timing out; kept so the test can see them
+
+
+def _drain(server):
+    try:
+        request(server, "POST", "/ask", {"question": "x"}).read()
+    except TimeoutError as exc:
+        HELD_TIMEOUTS.append(exc)
+
+
 def test_a_third_question_is_told_to_wait_rather_than_spawning_another_claude(helper, stub_log, monkeypatch):
     """E40. Each /ask is a claude process with its own budget."""
     server, _, _ = helper
@@ -373,7 +383,7 @@ def test_a_third_question_is_told_to_wait_rather_than_spawning_another_claude(he
     server.ask_timeout = 20
     held = []
     for _ in range(serve.MAX_CONCURRENT_ASKS):
-        thread = threading.Thread(target=lambda: request(server, "POST", "/ask", {"question": "x"}).read(), daemon=True)
+        thread = threading.Thread(target=lambda: _drain(server), daemon=True)
         thread.start()
         held.append(thread)
     for _ in range(400):

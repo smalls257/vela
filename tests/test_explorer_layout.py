@@ -152,7 +152,7 @@ def helper(tmp_path):
 
 def call(server, method, path, body=None, host=None, origin="same"):
     conn = http.client.HTTPConnection(serve.LOOPBACK, server.server_port, timeout=15)
-    headers = {"Host": host or f"{serve.LOOPBACK}:{server.server_port}"}
+    headers = {"Host": host or f"{serve.LOOPBACK}:{server.server_port}", "Cookie": f"{serve.cookie_name(server.server_port)}={server.key}"}
     if origin == "same":
         headers["Origin"] = f"http://{serve.LOOPBACK}:{server.server_port}"
     elif origin:
