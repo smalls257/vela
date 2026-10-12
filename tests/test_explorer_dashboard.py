@@ -69,3 +69,40 @@ def test_e20_every_date_the_board_draws_goes_through_esc():
     source = (pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/planner/explorer/assets/js/view-asks.js").read_text(encoding="utf-8")
     bare = [m.group(0) for m in re.finditer(r"\$\{day\([^}]*\)\}", source)]
     assert not bare, f"day() output goes into a template without esc(): {bare}"
+
+
+# ------------------------------------------------------------ E17 and E30: links the page offers to the files
+
+def test_e30_a_home_folder_name_in_the_path_does_not_drop_the_link(tmp_path, monkeypatch):
+    from planner.explorer import build
+    home = tmp_path / "home" / "work"
+    vault = home / "proj" / "work" / "vault"
+    vault.mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    site = home / "proj" / "site"
+    site.mkdir()
+    assert build.relative_href(vault / "x.md", vault) == "x.md"
+    assert build.relative_href(home / "proj" / "work" / "team" / "d.md", site) == "../work/team/d.md"
+
+
+def test_e30_a_path_that_would_name_the_home_folder_is_still_left_out(tmp_path, monkeypatch):
+    from planner.explorer import build
+    home = tmp_path / "home" / "work"
+    (home / "vault").mkdir(parents=True)
+    elsewhere = tmp_path / "site"
+    elsewhere.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    assert build.relative_href(home / "vault" / "x.md", elsewhere) is None
+
+
+def test_e17_a_design_inside_the_vault_is_openable_when_served_and_one_outside_is_not(tmp_path):
+    from planner.explorer import build
+    vault = tmp_path / "vault"
+    (vault / "docs" / "tech-design").mkdir(parents=True)
+    inside = vault / "docs" / "tech-design" / "a.md"
+    outside = tmp_path / "team" / "b.md"
+    inside.write_text("x", encoding="utf-8")
+    outside.parent.mkdir()
+    outside.write_text("x", encoding="utf-8")
+    assert build.vault_path(inside, vault) == "docs/tech-design/a.md"
+    assert build.vault_path(outside, vault) == ""

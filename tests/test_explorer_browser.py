@@ -243,6 +243,7 @@ def test_a_served_page_finds_its_helper(tmp_path, chrome_path):
         selftest = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1))
         assert selftest.startswith("SELFTEST OK"), [line for line in selftest.split(" || ") if line.startswith("FAIL")]
         assert "ask when served: the page found its helper with one /health request" in selftest
+        assert re.search(r"ok served: \d+ Open the file links? each reach their file through the helper", selftest), "E17: served file links were not followed"
     finally:
         watchdog.cancel()
         server.send_signal(signal.SIGINT)

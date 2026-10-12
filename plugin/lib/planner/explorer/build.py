@@ -608,12 +608,23 @@ def render(data, assets=None):
 
 def relative_href(target, page_dir):
     """The href a page in `page_dir` uses to reach `target`, relative so no absolute path is built in. A relative
-    href in a file:// page resolves beside it. None when the walk would name the builder's home folder (the
-    target and the page sit in different places under it), because the page must not carry that name."""
-    rel = pathlib.Path(os.path.relpath(pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve()))
-    if pathlib.Path.home().name in rel.parts:
+    href in a file:// page resolves beside it. None when the walk would descend through the builder's home folder (the
+    target is under it and the page is not), because the walk would then name it; a walk that only climbs out of home,
+    or stays inside it, names nothing, whatever the folders are called."""
+    target, page_dir, home = pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve(), pathlib.Path.home().resolve()
+    under_home = lambda p: p == home or home in p.parents  # noqa: E731
+    if under_home(target) and not under_home(page_dir):
         return None
-    return rel.as_posix()
+    return pathlib.Path(os.path.relpath(target, page_dir)).as_posix()
+
+
+def vault_path(target, root):
+    """`target` as a path inside the vault, or '' when it lies outside. The served page opens only what lies inside
+    (vault_files.py); a design or plan in a team repo beside the vault has no link there."""
+    try:
+        return pathlib.Path(target).resolve().relative_to(pathlib.Path(root).resolve()).as_posix()
+    except ValueError:
+        return ""
 
 
 def link_sources(data, root, design_args, out_dir, plan_args=()):
@@ -628,6 +639,7 @@ def link_sources(data, root, design_args, out_dir, plan_args=()):
     paths = {m.group(1): m.group(2) for m in (design_data.SPEC.match(a.strip()) for a in design_args)}
     for design in data["designs"].values():
         design["href"] = relative_href(paths[design["appId"]], out_dir) or ""
+        design["vaultPath"] = vault_path(paths[design["appId"]], root)
         if not design["href"]:
             said.append(f"no Open the design doc link for {design['appId']}, the doc and the page sit apart under the home folder")
     plan_paths = {m.group(1): pathlib.Path(m.group(2)) for m in (design_data.SPEC.match(a.strip()) for a in plan_args)}
@@ -636,6 +648,8 @@ def link_sources(data, root, design_args, out_dir, plan_args=()):
         plan["href"] = relative_href(path, out_dir) or ""
         tickets = plan_data.tickets_path(path)
         plan["ticketsHref"] = (relative_href(tickets, out_dir) or "") if tickets else ""
+        plan["hasTickets"] = bool(tickets)
+        plan["vaultPath"], plan["ticketsVaultPath"] = vault_path(path, root), vault_path(tickets, root) if tickets else ""
         if not plan["href"] or (tickets and not plan["ticketsHref"]):
             said.append(f"no Open the plan or Tickets link for {plan['appId']}, the file and the page sit apart under the home folder")
     return said

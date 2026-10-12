@@ -89,7 +89,7 @@ const Panel = (() => {
       h("h2", {}, e.title), linkChips(pk),
       h("div", { class: "p-actions" }, typeof Nav !== "undefined" ? h("button", { class: "btn", onclick: () => Nav.readWide(pk, anchor) }, "Read full width") : null,
         ent(pk) && e.kind !== "section" && e.kind !== "page" ? h("button", { class: "btn", onclick: () => go(pk, {}) }, "What it is and what holds it") : null,
-        D.vault ? h("a", { class: "btn quiet", href: encodeURI(D.vault + "/" + e.path), target: "_blank", title: "Open the Markdown file itself" }, "Open the file") : null))];
+        openLink(["Open the file"], D.vault ? D.vault + "/" + e.path : "", e.path, "Open the Markdown file itself")))];
     const body = Reader.body(pk, { toc: true });
     out.push(body);
     requestAnimationFrame(() => { if (!Reader.scrollTo(body, anchor)) $("#panel-body").scrollTop = 0; });

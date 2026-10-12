@@ -668,6 +668,11 @@ const SelfTest = (() => {
     } else {
       ok(real.mode === "served" && real.fetches === 1 && document.documentElement.dataset.ask === "served",
         "ask when served: the page found its helper with one /health request", `ask when served: mode ${real.mode}, ${real.fetches} fetches, flag ${document.documentElement.dataset.ask}`);
+      // every file link the served page offers reaches its file through the helper (a design outside the vault offers none)
+      const hrefs = [...Object.values(E).filter((e) => e.path).slice(0, 4).map((e) => openHref("", e.path)), ...Object.values(D.designs).map((d) => openHref(d.href, d.vaultPath)).filter(Boolean)];
+      const missed = [];
+      for (const href of hrefs) { const res = await realFetch(href); if (!res.ok) missed.push(`${href} ${res.status}`); }
+      ok(hrefs.length > 0 && !missed.length, `served: ${plural(hrefs.length, "Open the file link")} each reach their file through the helper`, `served: Open-the-file links that reach nothing: ${missed.join(", ") || "none offered"}`);
     }
     // served, against a fake helper
     const known = Object.keys(E).find((k) => idOf(k)), id = idOf(known), calls = [];

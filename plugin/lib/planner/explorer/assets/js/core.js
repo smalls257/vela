@@ -45,6 +45,21 @@ function s(tag, attrs, parent) {
   return node;
 }
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+/* The files the page links to: Open the file, the design doc, the plan, the tickets. Opened as a file, a path relative
+   to the page works. Served from this machine, the helper answers /vault-file/<path> for the vault's own files and
+   nothing else (vault_files.py), so a design or plan kept in a team repo has no link there and says why. */
+const SERVED_HERE = /^https?:$/.test(location.protocol) && ["127.0.0.1", "localhost", "[::1]"].includes(location.hostname);
+const urlPath = (path) => path.split("/").map(encodeURIComponent).join("/");  // per segment, so a # or ? in a file name stays in the name
+function openHref(relative, inVault) {
+  if (SERVED_HERE) return inVault ? "/vault-file/" + urlPath(inVault) : null;
+  return relative ? urlPath(relative) : null;
+}
+function openLink(kids, relative, inVault, title, cls = "btn quiet") {
+  const href = openHref(relative, inVault);
+  if (href) return h("a", { class: cls, href, target: "_blank", title }, ...kids);
+  if (!SERVED_HERE) return null;
+  return h("span", { class: cls + " off", "aria-disabled": "true", title: "This helper opens only files inside the vault, and this one is outside it. Open it from your editor, or open the page as a file." }, ...kids, " (outside the vault)");
+}
 const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
 const shorten = (t, n) => { t = t || ""; return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);

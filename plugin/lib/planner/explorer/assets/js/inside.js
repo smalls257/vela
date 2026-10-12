@@ -131,8 +131,8 @@ const Inside = (() => {
   /* The team's design doc, reached by the relative href the build computed from the page's own folder; none when
      the build could not make one without naming the builder's home folder. */
   function designLink(d, icon = null, where = "") {
-    if (!d || !d.href) return null;
-    return h("a", { class: "btn quiet", href: encodeURI(d.href), target: "_blank", title: d.file + where }, icon, "Open the design doc");
+    if (!d) return null;
+    return openLink([icon, "Open the design doc"], d.href, d.vaultPath, d.file + where);
   }
   function statusPill(app) {
     const d = design(app), fm = d.frontmatter, gaps = fm.gaps.map((g) => g.id).filter(Boolean);

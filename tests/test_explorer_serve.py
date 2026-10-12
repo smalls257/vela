@@ -289,3 +289,37 @@ def test_only_ask_js_freshness_js_and_layout_js_can_reach_the_network_and_each_c
             assert text.count("net.fetch(") == 2 and "XMLHttpRequest" not in text and "://" not in text.replace('"http:"', "").replace('"https:"', "")
         elif script.name != "selftest.js":  # the self-test wraps fetch to prove none is made
             assert not [word for word in network if word in text], script.name
+
+
+# ------------------------------------------------------------ E17: the served page's Open-the-file links
+
+def get(server, path):
+    response = request(server, "GET", path, origin=None)
+    return response.status, dict(response.getheaders()), response.read()
+
+
+def test_e17_the_helper_serves_a_vault_file_as_text_and_nothing_outside_the_vault(helper, tmp_path):
+    server, vault, _ = helper
+    (vault / "docs").mkdir()
+    (vault / "docs" / "Q&A #2.md").write_text("# hello\n", encoding="utf-8")
+    (vault / "page.html").write_text("<script>alert(1)</script>", encoding="utf-8")
+    (vault / ".planner").mkdir()
+    (vault / ".planner" / "explorer-pins.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "secret.txt").write_text("TOPSECRET-4471", encoding="utf-8")
+    (vault / "link.txt").symlink_to(tmp_path / "secret.txt")
+    status, headers, body = get(server, "/vault-file/docs/Q%26A%20%232.md")
+    assert (status, body) == (200, b"# hello\n") and headers["Content-Type"].startswith("text/plain")
+    status, headers, _ = get(server, "/vault-file/page.html")
+    assert status == 200 and headers["Content-Type"].startswith("text/plain") and headers["X-Content-Type-Options"] == "nosniff"
+    for refused in ("/vault-file/.planner/explorer-pins.json", "/vault-file/../secret.txt", "/vault-file/%2e%2e/secret.txt",
+                    "/vault-file/link.txt", "/vault-file/docs", "/vault-file/missing.md", "/vault-file/"):
+        status, _, body = get(server, refused)
+        assert status in (400, 403, 404), refused
+        assert b"TOPSECRET-4471" not in body and json.loads(body)["error"], refused
+
+
+def test_e17_a_vault_file_request_still_has_to_come_from_this_helper(helper):
+    server, vault, _ = helper
+    (vault / "a.md").write_text("x", encoding="utf-8")
+    response = request(server, "GET", "/vault-file/a.md", host="evil.example:80", origin=None)
+    assert response.status == 403

@@ -251,8 +251,8 @@ const Plan = (() => {
 
   function barOf(app, p, list) {
     const t = p.totals;
-    const tickets = p.ticketsHref ? h("a", { class: "btn quiet plan-tickets", href: encodeURI(p.ticketsHref), target: "_blank", title: "The tickets file tools/breakdown_to_tickets.py wrote beside the plan" }, Icons.el("docs"), "Tickets") : null;
-    const file = p.href ? h("a", { class: "btn quiet", href: encodeURI(p.href), target: "_blank", title: p.file }, Icons.el("docs"), "Open the plan") : null;
+    const tickets = p.hasTickets ? openLink([Icons.el("docs"), "Tickets"], p.ticketsHref, p.ticketsVaultPath, "The tickets file tools/breakdown_to_tickets.py wrote beside the plan", "btn quiet plan-tickets") : null;
+    const file = openLink([Icons.el("docs"), "Open the plan"], p.href, p.vaultPath, p.file);
     return h("div", { class: "plan-bar" },
       h("div", { class: "plan-kpis" }, ...[["stories", t.stories], ["tasks", t.tasks], ["points", t.points]].map(([w, n]) => h("div", { class: "plan-kpi", "data-kpi": w }, h("b", {}, n), h("span", {}, w))),
         h("div", { class: "plan-by-size", title: "Tasks by size; points are S=2, M=5, L=8, the tool's mapping, for ordering and not a commitment" }, SIZES.map((z) => h("span", { class: "plan-by", "data-size": z }, sizeChip(z), ` ${t.bySize[z].tasks} · ${t.bySize[z].points} pts`)))),
