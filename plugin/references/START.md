@@ -24,6 +24,15 @@ Run `planner role`. Access decides, never a title. An **owner** works in the vau
 - **Owner-only, so not open to a reader:** handoff, publish, `planner upgrade` and `/planner:challenge`. Name the owner as the CLI does (`published.json` has `owner`): "That is <name>'s call. Send a proposal (`/planner:propose`) and they decide."
 - If `planner role` says `none`, stop and show its message.
 
+## Plain names and a page a person can hold
+
+The people who read this vault hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so what you say and what you write are sized to that. `CONVENTIONS.md` says under "Pages" what the files follow; in a session:
+
+- Say each thing by its plain name: "the calendar entries", "the prep-note flow", not `CON-001` or `FLO-001`. Give an ID only where the user must find it, or where it goes into a file. Spell an abbreviation out the first time you use it.
+- In a page, the IDs a sentence would have carried go on a `- Trace: CAP-001.FR1, CON-001, FLO-001` line under it. Never delete a Trace line, and never turn one into prose.
+- Offer a few things at a time. A list of more than about seven items is shown in groups of about five, the ones that matter first and the rest counted. A page opens with two or three plain sentences: what it says and what is still open.
+- `planner check` warns with W360 to W364 when a page drifts back. Each warning's fix line says how to write it in plain words.
+
 ## Shell that runs on a Mac and on Linux
 
 Owners work on macOS (BSD tools) as often as on Linux (GNU tools). Edit a file with the Edit tool, or with a `planner` command when one exists. Never edit in place from the shell: no `sed -i`, which takes a different argument on each, and no `\n`, `\+` or `\|` in a `sed` replacement. To read a line range, `sed -n '<first>,<last>p' <file>` works on both. Anything longer is `python3 -c` or a script, not a `sed` chain. If a shell edit fails, check the file before you retry, because part of it may have been written.
