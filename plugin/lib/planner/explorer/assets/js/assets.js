@@ -20,7 +20,7 @@ const Assets = {
       return file;
     } catch (e) { console.warn(`[assets] ${id}: ${e.message}`); return null; }
   },
-  form(id) { try { return this.R ? this.R.get(id).form : null; } catch (e) { return null; } },
+  form(id) { try { return this.R ? this.R.get(id).form : null; } catch (e) { console.warn(`[assets] ${id} has no form: ${e.message}`); return null; } },
   /* The explorer is dark, so an emblem made for a dark ground comes first; a light one would sit as a pale square. */
   emblem(title) { return this.url(this.slotFor("emblem-on-dark", title)) || this.url(this.slotFor("emblem", title)); },
   texture(name) { return this.url(this.R && this.R.slots().includes("texture." + name) ? "texture." + name : null); },

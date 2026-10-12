@@ -12,7 +12,7 @@ const Rehearse = (() => {
   let root = null, drag = null, raf = 0;
   const flow = () => FlowKit.flowOf(st.key);
   const storeKey = (id) => `rehearse:${D.vaultId}:${id}`;
-  const tries = (id) => { try { return JSON.parse(localStorage.getItem(storeKey(id)) || "[]"); } catch (e) { return []; } };
+  const tries = (id) => Settings.readJson(storeKey(id), [], "your rehearsal tries");
   const q = (sel) => root.querySelector(sel);
 
   /* The contracts on the tray: the flow's own, and the others that join its apps, so the tray does not give the answer away. */

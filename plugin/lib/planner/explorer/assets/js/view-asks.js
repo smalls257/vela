@@ -9,7 +9,7 @@ const Asks = (() => {
   const store = `asks:${D.vaultId}`;
   const st = { days: null, widened: false, q: "", holdingOnly: false, meeting: "", expandedLater: new Set(), expandedDone: new Set(), flipped: new Set() };
   let marks = load();
-  function load() { try { return JSON.parse(localStorage.getItem(store)) || fresh(); } catch (e) { return fresh(); } }
+  function load() { return Settings.readJson(store, fresh(), "the Who-to-ask board's marks"); }
   function fresh() { return { moved: {}, critical: {}, cocked: {}, asked: {} }; }
   function save() { try { localStorage.setItem(store, JSON.stringify(marks)); } catch (e) { console.warn("[asks] this browser would not keep the board marks:", e.message); } }
   const U = (id) => ASK[id];

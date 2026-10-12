@@ -86,6 +86,18 @@ function dueText(iso) {
    page carries on with its defaults. */
 const Settings = {
   read(k) { try { return localStorage.getItem(k); } catch (e) { console.warn("[settings] this browser keeps no settings:", e.message); return null; } },
+  /* JSON saved by this page (the asks board, rehearsal tries). A value that will not parse is not silently replaced by an
+     empty one: it is kept under "<key>.unreadable" so the next save cannot overwrite it, the console says so, and a note shows once. */
+  readJson(k, fallback, what) {
+    const raw = this.read(k);
+    if (raw === null) return fallback;
+    try { return JSON.parse(raw) ?? fallback; } catch (e) {
+      console.warn(`[settings] ${what} saved in this browser cannot be read (${e.message}); the unreadable copy is kept under ${k}.unreadable`);
+      this.write(k + ".unreadable", raw);
+      toast(`Could not read ${what} saved in this browser, so it starts empty. The old copy is kept.`);
+      return fallback;
+    }
+  },
   write(k, v) { try { localStorage.setItem(k, v); } catch (e) { console.warn("[settings] this browser keeps no settings:", e.message); } },
 };
 /* A vault that gains a vault_id in .planner.yaml (E18) keeps what this browser saved under the id it had before: the

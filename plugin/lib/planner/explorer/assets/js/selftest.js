@@ -596,6 +596,19 @@ const SelfTest = (() => {
      with the planner step that writes it; and a flow of inferred arrows says so once. */
   /* A vault that gains a vault_id keeps what the browser saved under its old id (E18), against a fake store. */
   /* Keys the page owns must leave fields and controls alone (E34, E35). */
+  /* The search box is a combobox a screen reader can follow (E22). */
+  function searchAria() {
+    const q = $("#q"), word = D.map.apps[0] ? titleOf(D.map.apps[0].key).split(" ")[0] : "vault";
+    Search.type(word);
+    const opts = $$("#results [role=option]"), on = opts.find((o) => o.getAttribute("aria-selected") === "true");
+    ok(q.getAttribute("role") === "combobox" && q.getAttribute("aria-controls") === "results" && q.getAttribute("aria-expanded") === "true" && !!on && q.getAttribute("aria-activedescendant") === on.id && opts.every((o) => o.id),
+      "search: the box is a combobox; the open list is expanded, every result has an id and the highlighted one is the active descendant", `search: role ${q.getAttribute("role")}, expanded ${q.getAttribute("aria-expanded")}, ${opts.length} options, selected ${on && on.id}, active ${q.getAttribute("aria-activedescendant")}`);
+    Search.type("zzqqxx nothingmatches");
+    const said = $("#results-status").textContent;
+    ok(!!said && !$("#results [role=option]") && !q.getAttribute("aria-activedescendant"), "search: a search that finds nothing is said aloud, with no active descendant", `search: status "${said}"`);
+    q.value = ""; Search.type(""); 
+    ok(q.getAttribute("aria-expanded") === "false" && $("#results-status").textContent === "", "search: an emptied box collapses and goes quiet", `search: expanded ${q.getAttribute("aria-expanded")}`);
+  }
   function keyboard() {
     const press = (target, key) => { const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }); target.dispatchEvent(ev); return ev; };
     const box = h("textarea"), button = h("button", {}, "Next step");
@@ -610,6 +623,17 @@ const SelfTest = (() => {
     box.remove(); button.remove(); $("#q").blur();
     ok(stayed && toSearch, "keys: / types a slash in a text field and jumps to search from anywhere else", `keys: / stayed in the field ${stayed}, reached search from the page ${toSearch}`);
     ok(!space.defaultPrevented && !arrow.defaultPrevented, "keys: Space and the arrows are left to a focused button, so Next and Play can be pressed", `keys: Space prevented ${space.defaultPrevented}, arrow prevented ${arrow.defaultPrevented}`);
+  }
+  /* A saved value that will not parse is kept and reported, not replaced by an empty one (E31). */
+  function corruptState() {
+    const key = "explorer.selftest.corrupt", warn = console.warn; let said = "";
+    console.warn = (m) => { said = String(m); };
+    Settings.write(key, "{not json");
+    const got = Settings.readJson(key, { fresh: true }, "the selftest's marks");
+    console.warn = warn;
+    const kept = Settings.read(key + ".unreadable"), note = $("#toast").textContent;
+    localStorage.removeItem(key); localStorage.removeItem(key + ".unreadable");
+    ok(got.fresh === true && kept === "{not json" && /cannot be read/.test(said) && /Could not read/.test(note), "saved state: a value that will not parse is kept under .unreadable, logged, and the page says so", `saved state: got ${JSON.stringify(got)}, kept ${kept}, log "${said}", note "${note}"`);
   }
   function savedState() {
     const data = { "asks:old1": "board", "explorer.layout.old1": "layout", "explorer.ask.old1": "chats", "rehearse:old1:FLO-001": "tries", "asks:other": "x", "asks:new1": "kept" };
@@ -944,7 +968,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); keyboard(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
