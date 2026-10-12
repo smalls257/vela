@@ -436,3 +436,23 @@ def test_a_build_that_fails_exits_2_says_why_and_leaves_no_new_page(tmp_path):
     code, said = run("explore", str(tmp_path / "not-a-vault"))
     assert code == 2 and said.strip(), said
     assert not (tmp_path / "not-a-vault" / ".planner" / "explorer.html").exists()
+
+
+def test_no_skill_or_reference_tells_the_session_to_edit_in_place_with_sed():
+    """S10: a session ran GNU-only sed on macOS. The only `sed -i` allowed in the plugin's text is one that forbids it."""
+    texts = [*PLUGIN.glob("skills/*/SKILL.md"), *PLUGIN.glob("references/*.md"), *PLUGIN.glob("agents/*.md")]
+    assert texts
+    for path in texts:
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if "sed -i" in line:
+                assert "Never" in line or "no `sed -i`" in line, f"{path}:{number} suggests sed -i"
+    start = (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
+    assert "Edit tool" in start and "no `sed -i`" in start
+
+
+def test_epics_skill_disposes_of_e805_by_answer_defer_or_override_and_never_leaves_it_unplaced():
+    """S11: the heron run offered "leave the gate failing", the lead took it, and the question had no owner."""
+    epics = text("skills/epics/SKILL.md")
+    assert "Defer it to whoever can answer" in epics and "planner next-id UNK" in epics
+    assert "- Leave the gate failing." not in epics
+    assert "is not a route" in epics and "do not loop" in epics

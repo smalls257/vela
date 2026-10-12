@@ -63,6 +63,8 @@ ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash(git *)", "Bash(p
 JUDGE_RESERVE = 0.15  # share of an arm's budget kept for the judge, so a spent session budget still gets a scorecard
 MIN_CALL_USD = 0.01  # below this a call cannot do useful work, so the session stops on budget instead
 GH_MESSAGE = "gh: not available in the simulator"
+GIT_TIMEOUT = 120
+PR_LOG = "sim-prs.jsonl"  # in the arm's origin.git, the one place besides the vault a sandboxed gh may write
 END = "[END]"
 TICKETS_TIMEOUT = 60
 TEAM_MODES = ("tech-design-grill", "breakdown")  # the team's sessions in a vault script: run from the vault root with the user's own skills (vault_skills)
@@ -219,6 +221,8 @@ def script_problems(data, persona):
     if not isinstance(data, dict) or not isinstance(data.get("sessions"), list) or not data["sessions"]:
         return ["the script must be a mapping with a non-empty 'sessions' list"]
     problems = news_problems(data.get("news"))
+    if not isinstance(data.get("merge_prs", True), bool):
+        problems.append("'merge_prs' must be true or false")
     events = data.get("events")
     if events is not None:
         if not isinstance(events, list):
@@ -547,7 +551,10 @@ Rules, in order of priority:
 11. You can do nothing outside this chat. Never say you ran a command or a skill, sent or received a message, made
    a call or got a reply, unless one of your facts says it happened. Never report what someone said back, such as
    "Back from the CEO, they said...": if asked what someone thinks and no fact says, say you have not heard yet.
-   You may say once what you will do later.
+   Never claim to do, send, run, check or chase anything outside this conversation, in any tense: not "I'll get the
+   solution lead to run the log", not "I'm getting the drafts to them", not "I'll look into it". You cannot, and the
+   assistant would wait for it. Answer from what you know, or say "I don't know" or "I haven't heard". If a step
+   needs someone else, say who it needs and leave it there; do not say you will start it.
 12. The IDs in this brief (K1, W2, C3, D4 and the like) are your private notes. Never say them, and never call a
    belief or a decision by its ID: say it in your own words.
 
@@ -607,7 +614,10 @@ def persona_input(transcript, session_index, mode, speaker=""):
 # ------------------------------------------------------------------ scratch vault
 
 def git(*args, cwd, check=True):
-    done = subprocess.run(["git", *GIT_USER, *args], cwd=cwd, capture_output=True, text=True, timeout=60)
+    try:
+        done = subprocess.run(["git", *GIT_USER, *args], cwd=cwd, capture_output=True, text=True, timeout=GIT_TIMEOUT)
+    except subprocess.TimeoutExpired as exc:
+        raise ToolFailure(f"git {' '.join(args)} took more than {GIT_TIMEOUT} seconds in {cwd}") from exc
     if check and done.returncode != 0:
         raise ToolFailure(f"git {' '.join(args)} failed in {cwd}: {done.stderr.strip()}")
     return done
@@ -735,11 +745,42 @@ def install_vault_skills(vault, skills):
         git("push", "-q", "origin", "main", cwd=vault)
 
 
-def write_gh_stub(bin_dir):
+GH_STUB = """#!{python}
+import json, pathlib, subprocess, sys
+
+# Only `gh pr create` works: it records the PR where the driver's reviewer will find it, and prints its URL as gh does.
+# Every other gh command fails, as it would with no network or login.
+args = sys.argv[1:]
+if args[:2] != ["pr", "create"]:
+    print({message!r}, file=sys.stderr)
+    sys.exit(1)
+flags = {{args[i]: args[i + 1] for i in range(2, len(args) - 1) if args[i].startswith("--")}}
+head = flags.get("--head") or subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True,
+                                             timeout=30).stdout.strip()
+log = pathlib.Path({log!r})
+prs = [line for line in log.read_text(encoding="utf-8").splitlines() if line] if log.exists() else []
+number = len(prs) + 1
+with log.open("a", encoding="utf-8") as out:
+    out.write(json.dumps({{"number": number, "head": head, "base": flags.get("--base", "main"), "title": flags.get("--title", "")}}) + "\\n")
+print(f"https://github.invalid/sim/heron/pull/{{number}}")
+"""
+
+
+def write_gh_stub(bin_dir, origin):
     bin_dir.mkdir(parents=True, exist_ok=True)
     gh = bin_dir / "gh"
-    gh.write_text(f'#!/bin/sh\necho "{GH_MESSAGE}" >&2\nexit 1\n', encoding="utf-8")
+    gh.write_text(GH_STUB.format(python=sys.executable, message=GH_MESSAGE, log=str(pathlib.Path(origin) / PR_LOG)),
+                  encoding="utf-8")
     gh.chmod(0o755)
+
+
+def opened_prs(arm_dir):
+    """{head branch: PR number} for every PR the arm's gh stub recorded."""
+    log = arm_dir / "origin.git" / PR_LOG
+    if not log.exists():
+        return {}
+    rows = (json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line)
+    return {row["head"]: row["number"] for row in rows}
 
 
 def arm_env(arm_dir, stub):
@@ -811,9 +852,17 @@ def resolve_conflicts(clone, files, errors_before, lost):
     return ""
 
 
+def merged_as(branch, prs):
+    if branch in prs:
+        return f"merged PR {prs[branch]} as the reviewer: {branch} into main on origin"
+    return f"merged {branch} into main on origin"
+
+
 def merge_closed(vault, arm_dir):
-    """Stand in for the reviewer merging a closed session's PR, so the next session's START pulls its work.
-    Only a branch whose records are all closed is merged; every action is reported."""
+    """Stand in for the reviewer merging a closed session's PR, so the next session's START (and a team session's
+    handed_off check on origin/main) sees its work. Only a branch whose records are all closed is merged; every action
+    is reported, by PR number when the gh stub recorded one for the branch."""
+    prs = opened_prs(arm_dir)
     git("fetch", "-q", "origin", cwd=vault)  # so origin/main includes earlier simulated merges
     heads = git("for-each-ref", "--format=%(refname:short)", "refs/heads/session/", cwd=vault).stdout.split()
     reports = []
@@ -843,12 +892,12 @@ def merge_closed(vault, arm_dir):
                 reports.append(f"not merged: {branch} conflicts with main, and the union did not settle it: {problem}")
                 continue
             git("push", "-q", "origin", "main", cwd=clone)
-            reports.append(f"merged {branch} into main on origin after settling conflicts in {', '.join(files)} as a "
+            reports.append(f"{merged_as(branch, prs)} after settling conflicts in {', '.join(files)} as a "
                            "reviewer would: main's state lines, both sides' other lines, generated blocks rebuilt"
                            + (f"; the session's state lines not kept: {'; '.join(lost)}" if lost else ""))
             continue
         git("push", "-q", "origin", "main", cwd=clone)
-        reports.append(f"merged {branch} into main on origin, as a reviewer merging its PR would")
+        reports.append(merged_as(branch, prs) + ("" if branch in prs else ", as a reviewer merging its PR would"))
     return reports
 
 
@@ -866,10 +915,11 @@ class Arm:
         self.failure = None
         self.scorecard = None
         self.capture_expect = {}  # the script's `capture:` block: release_date and ask, what the persona planted
+        self.merge_prs = True  # the script's `merge_prs:`, read again in run()
         self.prior_spent = 0.0  # what an earlier run spent, when this arm is only being judged again
         self.judge_calls = []
         self.judge_cuts = {}
-        write_gh_stub(self.dir / "bin")
+        write_gh_stub(self.dir / "bin", self.dir / "origin.git")
         self.env = arm_env(self.dir, args.stub)
         (self.dir / "persona-cwd").mkdir()
         self.transcript = Transcript(self.dir / "transcript.jsonl")
@@ -1007,7 +1057,7 @@ class Arm:
         self.endings.append({"session": index, "mode": mode, "reason": reason, "turns": turns})
         self.transcript.add(speaker="driver", session=index, mode=mode, event="session-end", reason=reason,
                             text=f"Session {index} ended: {reason} after {turns} assistant turns")
-        if mode == "close":
+        if mode == "close" and self.merge_prs:
             for report in merge_closed(self.vault, self.dir):
                 self.transcript.add(speaker="driver", session=index, mode=mode, event="merge", text=report)
         if mode == "breakdown":
@@ -1036,6 +1086,7 @@ class Arm:
 
     def run(self, script):
         self.persona = with_news(self.persona, script.get("news"))
+        self.merge_prs = script.get("merge_prs", True)
         if script.get("start"):
             self.vault, self.notes = build_vault_from(self.dir, script["start"], self.persona)
         else:

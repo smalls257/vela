@@ -21,7 +21,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, viewer, voicecheck, voicescore
+from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, viewer, voicecheck, voicescore
 from planner.edge import copies, replays, reviewgit, vaultgit
 from planner.edge import proposals as proposal_files
 
@@ -883,13 +883,32 @@ def git(root, *args):
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
-def git_strict(root, *args):
+def cmd_next_id(args, out):
+    """The next free ID for a prefix, counting this working tree and every session branch, local and remote."""
+    root = pathlib.Path(args.vault).resolve()
+    load_config(root)  # a folder that is not a vault has no IDs to count
+    texts = [path.read_text(encoding="utf-8") for path in vault_files(root)[0]]
+    if (root / ".git").exists() and ids.PREFIX_RE.match(args.prefix):
+        refs = git_strict(root, "for-each-ref", "--format=%(refname)", "refs/heads/session/", "refs/remotes/origin/session/")
+        for ref in refs.split():
+            texts.append(git_strict(root, "grep", "-h", "-E", "-o", rf"{args.prefix}-[0-9]+", ref, "--", "*.md",
+                                    allow_no_match=True))
+    try:
+        print(ids.next_id(args.prefix, texts), file=out)
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+    return 0
+
+
+def git_strict(root, *args, allow_no_match=False):
     """Output of a git command, or ToolError with git's own message. For commands whose
     failure must never read as "nothing changed". Output that is not UTF-8 is a failure too."""
     try:
         result = subprocess.run(["git", "-C", str(root), "-c", "core.quotepath=false", *args], capture_output=True, timeout=30)
     except (OSError, subprocess.SubprocessError) as exc:
         raise ToolError(f"git {' '.join(args)} could not run: {exc}") from exc
+    if result.returncode == 1 and allow_no_match and not result.stderr:
+        return ""  # git grep exits 1 when nothing matched, which is an answer
     if result.returncode != 0:
         message = result.stderr.decode("utf-8", "replace").strip() or result.stdout.decode("utf-8", "replace").strip()
         raise ToolError(f"git {' '.join(args)} failed: {message}")
@@ -1903,6 +1922,10 @@ def build_parser():
     role.add_argument("--vault", default=".", help="vault root (default: current directory)")
     role.add_argument("--json", action="store_true", help="the answer as JSON")
     role.set_defaults(func=cmd_role)
+    nid = sub.add_parser("next-id", help="the next free ID for a prefix, such as UNK, counting main and every session branch; never fills a gap")
+    nid.add_argument("prefix", help="2 to 4 capital letters, for example UNK, CON or EPC")
+    nid.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    nid.set_defaults(func=cmd_next_id)
     pub = sub.add_parser("publish", help="write a read copy of the committed vault, as a folder or a .zip, for people without git")
     pub.add_argument("--vault", default=".", help="vault root (default: current directory)")
     pub.add_argument("--out", required=True, help="a new folder, or a path ending in .zip")

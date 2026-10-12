@@ -158,14 +158,18 @@ CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 UNKNOWN_REQUIRED = ("Question", "Owner", "State", "Blocks")
 UNKNOWN_OPEN_REQUIRED = ("Ask by",)
 UNKNOWN_RESOLVED_REQUIRED = ("Outcome", "Resolved in")
-UNKNOWN_OPTIONAL = ("Opened", "Notes")
+# Ask is who holds the answer when that is not the owner. It must be a known label: planner style tells a session to
+# turn every unknown label into prose, and close then deletes the Ask line the views that group by who to ask read.
+UNKNOWN_OPTIONAL = ("Opened", "Notes", "Ask")
 UNKNOWN_STATES = ("open", "resolved")
 
 RISK_REQUIRED = ("Owner", "State")
 RISK_OPTIONAL = ("Mitigation",)
 RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
-PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL) + OVERRIDE_LABELS
+# Target is a release's date and Owning team an epic's receiving team; both are read or required, so style must not
+# call them prose.
+PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team") + OVERRIDE_LABELS
 
 # Subjects the question catalogue fires on that are not pages: an outside party, and value held for customers.
 PARTY_REQUIRED = ("Relationship", "Agreements")

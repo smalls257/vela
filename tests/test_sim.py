@@ -112,12 +112,15 @@ def test_every_assistant_call_is_pinned_and_permissioned(full_run):
         assert call[call.index("--model") + 1] in ("test-persona", "test-judge")
 
 
-def test_the_gh_stub_is_first_on_path_and_says_why_it_failed(full_run):
+def test_the_gh_stub_is_first_on_path_records_a_pr_and_fails_everything_else(full_run, tmp_path):
     for call in full_run["calls"]:
         arm_dir = full_run["run"] / call["cwd"].split(str(full_run["run"]) + os.sep, 1)[1].split(os.sep)[0]
         assert call["gh"] == str(arm_dir / "bin" / "gh")
     assistant = [e for e in entries(full_run["run"] / "planner") if e["speaker"] == "assistant"]
-    assert sim.GH_MESSAGE in assistant[0]["text"]
+    assert "https://github.invalid/sim/heron/pull/1" in assistant[0]["text"]
+    gh = full_run["run"] / "planner" / "bin" / "gh"
+    other = subprocess.run([str(gh), "pr", "list"], capture_output=True, text=True, timeout=30)
+    assert other.returncode == 1 and sim.GH_MESSAGE in other.stderr
 
 
 def test_seuss_examples_reach_voice_local_only_in_the_seuss_arm(full_run):
@@ -1023,3 +1026,40 @@ def test_the_full_heron_script_ends_with_the_explorer_the_tool_built_in_its_vaul
     assert (arm / "vault" / ".planner" / "explorer.html").is_file()
     assert (arm / "vault" / ".claude" / "skills" / "tech-design-grill" / "SKILL.md").is_file() and not (arm / "team-agent").exists()
     assert any(e.get("event") == "explorer" for e in entries(arm))
+
+
+def test_a_pr_opened_through_the_gh_stub_is_merged_by_number_and_a_handoff_reaches_origin_main(tmp_path):
+    persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+    arm_dir = tmp_path / "planner"
+    arm_dir.mkdir()
+    vault, _ = sim.build_vault(arm_dir, "planner", persona)
+    sim.write_gh_stub(arm_dir / "bin", arm_dir / "origin.git")
+    branch = "session/2026-10-05-handoff"
+    sim.git("switch", "-q", "-c", branch, "main", cwd=vault)
+    (vault / "sessions").mkdir(exist_ok=True)
+    (vault / "sessions" / "2026-10-05-handoff.md").write_text("---\nid: 2026-10-05-handoff\nstatus: closed\n---\n", encoding="utf-8")
+    (vault / "handoff-page.md").write_text('---\nhanded_off: "Booking senior, 2026-10-05, PR #1"\n---\n', encoding="utf-8")
+    sim.git("add", "-A", cwd=vault)
+    sim.git("commit", "-q", "-m", "Close session", cwd=vault)
+    made = subprocess.run([str(arm_dir / "bin" / "gh"), "pr", "create", "--base", "main", "--head", branch, "--title", "t"],
+                          capture_output=True, text=True, timeout=30, cwd=vault)
+    assert made.returncode == 0 and made.stdout.strip().endswith("/pull/1")
+    assert sim.merge_closed(vault, arm_dir) == [f"merged PR 1 as the reviewer: {branch} into main on origin"]
+    sim.git("fetch", "-q", "origin", cwd=vault)
+    page = sim.git("show", "origin/main:handoff-page.md", cwd=vault).stdout
+    assert "handed_off:" in page, "the next session, team sessions included, finds the handoff on origin/main"
+
+
+def test_merge_prs_must_be_true_or_false_and_defaults_on():
+    persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+    script = yaml.safe_load((SIM / "scripts" / "smoke.yaml").read_text(encoding="utf-8"))
+    assert "merge_prs" not in script
+    assert not sim.script_problems(script, persona)
+    assert any("merge_prs" in p for p in sim.script_problems({**script, "merge_prs": "no"}, persona))
+    assert not sim.script_problems({**script, "merge_prs": False}, persona)
+
+
+def test_the_persona_prompt_forbids_claiming_or_promising_any_action_outside_the_chat():
+    source = (SIM / "run.py").read_text(encoding="utf-8")
+    assert "Never claim to do, send, run, check or chase anything outside this conversation, in any tense" in source
+    assert "You may say once what you will do later." not in source

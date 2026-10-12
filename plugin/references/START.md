@@ -24,6 +24,10 @@ Run `planner role`. Access decides, never a title. An **owner** works in the vau
 - **Owner-only, so not open to a reader:** handoff, publish, `planner upgrade` and `/planner:challenge`. Name the owner as the CLI does (`published.json` has `owner`): "That is <name>'s call. Send a proposal (`/planner:propose`) and they decide."
 - If `planner role` says `none`, stop and show its message.
 
+## Shell that runs on a Mac and on Linux
+
+Owners work on macOS (BSD tools) as often as on Linux (GNU tools). Edit a file with the Edit tool, or with a `planner` command when one exists. Never edit in place from the shell: no `sed -i`, which takes a different argument on each, and no `\n`, `\+` or `\|` in a `sed` replacement. To read a line range, `sed -n '<first>,<last>p' <file>` works on both. Anything longer is `python3 -c` or a script, not a `sed` chain. If a shell edit fails, check the file before you retry, because part of it may have been written.
+
 ## The user may override any rule
 
 The user may override any rule in these skills. Say once, in one sentence, what the rule protects. Then do what they asked, and record an `**Override:**` bullet (or the session's Changes row note) naming the rule and their reason. Never refuse, and never ask twice.
@@ -47,7 +51,7 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 
 **Reader copy:** skip every git command in steps 1 to 3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner freshness` and tell the user what it prints in its own words: whether a newer copy was published, or that the folder they opened this from is out of reach. It reports and never updates. There is nothing to pull. Then go to step 2.
 
-**Owner:** run `git status --short --branch` and show the output. If any file is changed or untracked, stop and ask: commit it, stash it, or carry it into this session. Do nothing else until the user answers.
+**Owner:** run `git status --short --branch` and show the output. If any file is changed or untracked, stop and ask: commit it, stash it, or carry it into this session. The one exception is untracked output the planner itself writes under `.planner/` (`explorer-pins.json`, `explorer.html`, `findings/`, `owed/`, `pr-body*.md`): say once that you are leaving it unstaged and go on, and never stage it. Do nothing else until the user answers.
 
 Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner freshness` and tell the user what it prints, in its own plain words: how far behind or ahead the clone is, how many files are uncommitted, or that origin could not be reached and this is the local state. It fetches with a short timeout and never pulls or changes anything; if it says origin is unreachable, say so and do not describe the clone as up to date. If it fails, show its message.
 

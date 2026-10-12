@@ -42,7 +42,7 @@ Capture each answer as said, with the senior's handle as origin. If you restate 
 
 Write only these, and change nothing else:
 
-- On `11-unknowns-and-risks.md`, add the unknown. Its number is the highest `UNK-nnn` in use plus one, the next free `UNK-nnn`. Never fill a gap. Count the numbers in use in three places: `main`; the `11-unknowns-and-risks.md` of each branch on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:11-unknowns-and-risks.md`); and the `## Changes` tables of those branches' records (`git show <branch>:sessions/<id>.md`), because an open session may already hold the next number. Add the entry at the end of `## Unknowns`, before `## Risks`. The short name has at most six words and none of `# | ^ : % [ ]`.
+- On `11-unknowns-and-risks.md`, add the unknown. Get its number from `planner next-id UNK` and use exactly what it prints; never work it out by eye. It is the highest `UNK-nnn` in use plus one, the next free `UNK-nnn`, and the command counts the places listed below. Never fill a gap. Count the numbers in use in three places: `main`; the `11-unknowns-and-risks.md` of each branch on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:11-unknowns-and-risks.md`); and the `## Changes` tables of those branches' records (`git show <branch>:sessions/<id>.md`), because an open session may already hold the next number. Add the entry at the end of `## Unknowns`, before `## Risks`. The short name has at most six words and none of `# | ^ : % [ ]`.
 
 ```
 ### UNK-nnn <short name>

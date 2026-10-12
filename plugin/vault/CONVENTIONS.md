@@ -588,7 +588,7 @@ When many pages link one tool, `.planner.yaml` may say once where it lives, as `
 
 ## Epics and traceability
 
-An epic page holds a description, the owning team, 4 to 7 numbered acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behaviour a tester can see at a contract or flow boundary, never inside a container.
+An epic page holds a description, the owning team (written as `**Owning team:**` and a handle in the description, a label the planner knows), 4 to 7 numbered acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behaviour a tester can see at a contract or flow boundary, never inside a container.
 
 A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
 

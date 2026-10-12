@@ -88,7 +88,7 @@ def assistant(argv):
         with open(os.environ["SIM_STUB_REPLY"], encoding="utf-8") as reply:
             text = reply.read()
     else:
-        text = f"Stub assistant heard: {prompt[:120]}\n\ngh said: {gh.stderr.strip()}\n\nWhat else is on your mind?"
+        text = f"Stub assistant heard: {prompt[:120]}\n\ngh said: {(gh.stdout + gh.stderr).strip()}\n\nWhat else is on your mind?"
     if not resumed and os.environ.get("SIM_STUB_WRITE"):
         once = os.environ["SIM_STUB_WRITE"].startswith("{")
         for path, written in stub_writes(os.environ["SIM_STUB_WRITE"]).items():

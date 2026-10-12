@@ -83,7 +83,7 @@ def test_review_clears_stale_findings_and_numbers_from_the_record():
     review = text("references/REVIEW.md")
     assert "1 plus the number of `### ` headings under `## Reviews`" in review
     assert review.count("rm -rf .planner/findings/<session id>/<n>") == 2
-    assert review.index("rm -rf .planner/findings/<session id>/<n>\nmkdir") < review.index("Save each reply")
+    assert review.index("rm -rf .planner/findings/<session id>/<n> .planner/findings/<session id>/<n>-questions\nmkdir") < review.index("Save each reply")
     assert "no variables" in review
 
 
@@ -227,7 +227,7 @@ def test_epics_offers_the_e805_override_with_its_exact_bullet():
     assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
     assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
     assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --open --digest" in epics
-    assert "Leave the gate failing." in epics and "the whole vault, not one team" in epics
+    assert "Defer it to whoever can answer" in epics and "the whole vault, not one team" in epics
     assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
     assert "the override is the only way to a clean `--gate epics`" in epics
 
@@ -741,3 +741,26 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
         "[[11-unknowns-and-risks#UNK-010 How we deal with a travel insurer|UNK-010]] (open)",
         "[[03-context-and-scope#PTY-03 Travel insurer|PTY-03]] (subject)"), encoding="utf-8")
     assert ("E202", "sessions/2026-11-20-credit-dump.md") in findings(check(vault, TODAY)[1])
+
+
+def test_review_hands_each_reviewer_a_real_questions_file_and_the_reviewer_refuses_a_placeholder():
+    review, agent = text("references/REVIEW.md"), text("agents/area-reviewer.md")
+    assert "--json > .planner/findings/<session id>/<n>-questions/<AREA>.json" in review
+    assert "`Questions file: .planner/findings/<session id>/<n>-questions/<AREA>.json`" in review
+    assert "Never send a placeholder" in review
+    assert review.index("-questions/<AREA>.json`. They sit") < review.index("Dispatch the `planner:area-reviewer`")
+    assert "a placeholder" in agent and "no questions file" in agent
+
+
+def test_a_review_digest_puts_at_most_five_questions_to_the_lead_in_a_turn_and_never_pastes_findings():
+    """S12: the heron run's turn 38 put 89 question marks to the lead, with the reviewers' raw JSON."""
+    review = text("references/REVIEW.md")
+    assert "No turn puts more than five questions to the lead" in review
+    assert "Never paste a reviewer's reply, or the findings JSON, into the conversation" in review
+    assert "There is no cap." in review and "Never drop a line to keep it short." in review
+
+
+def test_modes_asks_once_what_the_lead_might_not_know_they_need():
+    modes = text("references/MODES.md")
+    assert "**Ask what they might not know they need.**" in modes
+    assert "In Discover, Shape and Grill" in modes and "Who has to agree, or be consulted" in modes
