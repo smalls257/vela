@@ -19,6 +19,7 @@ design beside the vault (design_data.py reads it, inside_data.py checks it again
 `generate` is the one entry point. It takes the date and every path as arguments and returns the report lines;
 the caller (cli.cmd_explore, or prototypes/explorer/build.py) reads the clock and does the printing.
 """
+import base64
 import hashlib
 import html
 import json
@@ -636,8 +637,23 @@ def render(data, assets=None):
     theme = data.get("theme") or THEME_IDS[0]
     if theme not in THEME_IDS:
         raise ValueError(f"theme {theme!r} is not one of {', '.join(THEME_IDS)}")
-    return (shell.replace("{{TITLE}}", title).replace("{{THEME}}", theme).replace("/*{{CSS}}*/", css).replace("{{DATA}}", safe_json(data))
+    page = (shell.replace("{{TITLE}}", title).replace("{{THEME}}", theme).replace("/*{{CSS}}*/", css).replace("{{DATA}}", safe_json(data))
             .replace("<!--{{ASSETS}}-->", inline).replace("<!--{{MARKED}}-->", f"<script>{marked}</script>").replace("/*{{JS}}*/", js))
+    return page.replace("<style>", f'<meta http-equiv="Content-Security-Policy" content="{content_security_policy(page)}">\n<style>', 1)
+
+
+INLINE_SCRIPT = re.compile(r"<script(?![^>]*application/json)[^>]*>(.*?)</script>", re.S)
+
+
+def content_security_policy(page):
+    """What the page may do, so an escaping slip in vault text cannot become script or send the vault anywhere: only the
+    page's own inline scripts run (each by hash, no inline handlers, no eval), nothing loads from outside, and the one
+    connection allowed is to the helper that served it. Styles may be inline: the page sets them from script, and a style
+    cannot run code. (Defence in depth: viewer.py keeps the same rule for the offline viewer.)"""
+    hashes = " ".join(f"'sha256-{base64.b64encode(hashlib.sha256(m.group(1).encode('utf-8')).digest()).decode()}'"
+                      for m in INLINE_SCRIPT.finditer(page))
+    return (f"default-src 'none'; script-src {hashes}; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; "
+            "font-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'")
 
 
 def relative_href(target, page_dir):

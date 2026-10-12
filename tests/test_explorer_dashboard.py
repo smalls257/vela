@@ -177,3 +177,25 @@ def test_e18_a_readers_workspace_is_never_edited_by_explore(tmp_path):
     code, said = run("explore", str(workspace), "--today", "2026-10-12")
     assert code == 0, said
     assert (workspace / ".planner.yaml").read_text(encoding="utf-8") == before
+
+
+# ------------------------------------------------------------ E38: the page's own Content-Security-Policy
+
+def test_e38_the_page_allows_only_its_own_inline_scripts_and_no_network_but_its_helper(tmp_path):
+    import base64
+    import hashlib
+    root = tmp_path / "v"
+    shutil.copytree(HERON, root)
+    from conftest import run
+    code, said = run("explore", str(root), "--today", "2026-10-12")
+    assert code == 0, said
+    page = (root / "dashboard.html").read_text(encoding="utf-8")
+    policy = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"', page).group(1)
+    directives = dict(d.strip().split(" ", 1) for d in policy.split(";") if d.strip())
+    assert directives["default-src"] == "'none'" and directives["connect-src"] == "'self'" and directives["base-uri"] == "'none'"
+    assert "'unsafe-inline'" not in directives["script-src"] and "'unsafe-eval'" not in directives["script-src"]
+    scripts = re.findall(r'<script(?![^>]*application/json)[^>]*>(.*?)</script>', page, re.S)
+    assert scripts
+    for body in scripts:
+        digest = base64.b64encode(hashlib.sha256(body.encode("utf-8")).digest()).decode()
+        assert f"'sha256-{digest}'" in directives["script-src"]

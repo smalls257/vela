@@ -596,6 +596,17 @@ const SelfTest = (() => {
      with the planner step that writes it; and a flow of inferred arrows says so once. */
   /* A vault that gains a vault_id keeps what the browser saved under its old id (E18), against a fake store. */
   /* Keys the page owns must leave fields and controls alone (E34, E35). */
+  /* The page's Content-Security-Policy stops an inline handler from vault text (E38). */
+  async function policy() {
+    window.__cspRan = false;
+    const holder = h("div");
+    document.body.append(holder);
+    holder.innerHTML = '<img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAACAkQBADs=" onload="window.__cspRan = true">';
+    const probe = holder.firstChild;
+    await new Promise((resolve) => { if (probe.complete) resolve(); else { probe.addEventListener("load", resolve); probe.addEventListener("error", resolve); } });
+    holder.remove();
+    ok(!!document.querySelector('meta[http-equiv="Content-Security-Policy"]') && window.__cspRan === false, "policy: the page carries a Content-Security-Policy and an inline handler in vault text does not run", `policy: meta present ${!!document.querySelector('meta[http-equiv="Content-Security-Policy"]')}, injected onload ran ${window.__cspRan}`);
+  }
   /* Browser Back and a pasted link move the page (E33). Needs a real address bar, so it runs on a file or a served page alike. */
   async function history_() {
     const changed = (act) => new Promise((resolve) => { addEventListener("hashchange", resolve, { once: true }); act(); });
@@ -983,7 +994,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
