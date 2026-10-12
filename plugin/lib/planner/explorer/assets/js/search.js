@@ -171,7 +171,8 @@ const Search = (() => {
     else if (ev.key === "Escape") { input.value = ""; show(); input.blur(); }
   });
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "/" && document.activeElement !== input && $("#overlay").hidden) { ev.preventDefault(); input.focus(); input.select(); }
+    // '/' is a character in the Ask composer, the board filter and every other field: only outside them is it the search key
+    if (ev.key === "/" && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !(ev.target.closest && ev.target.closest("input,textarea,select,[contenteditable]")) && $("#overlay").hidden) { ev.preventDefault(); input.focus(); input.select(); }
   });
   /* For the self-test: type, as a person would, and return the keys of the results in order. */
   function type(q) { input.value = q; at = 0; show(); return results.map((r) => r.key); }

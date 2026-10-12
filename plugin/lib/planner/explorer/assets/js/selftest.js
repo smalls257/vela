@@ -595,6 +595,22 @@ const SelfTest = (() => {
   /* What a real vault lacks (no domains, releases, requirement rows, flows, Ask lines) is said where the reader looks,
      with the planner step that writes it; and a flow of inferred arrows says so once. */
   /* A vault that gains a vault_id keeps what the browser saved under its old id (E18), against a fake store. */
+  /* Keys the page owns must leave fields and controls alone (E34, E35). */
+  function keyboard() {
+    const press = (target, key) => { const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }); target.dispatchEvent(ev); return ev; };
+    const box = h("textarea"), button = h("button", {}, "Next step");
+    document.body.append(box, button);
+    box.focus(); press(box, "/");
+    const stayed = document.activeElement === box;
+    const view = App.view; if (D.flows.length) showView("flows");  // the player's keys only act in the flows view
+    button.focus(); const space = press(button, " "), arrow = press(button, "ArrowRight");
+    showView(view);
+    document.body.focus(); press(document.body, "/");
+    const toSearch = document.activeElement === $("#q");
+    box.remove(); button.remove(); $("#q").blur();
+    ok(stayed && toSearch, "keys: / types a slash in a text field and jumps to search from anywhere else", `keys: / stayed in the field ${stayed}, reached search from the page ${toSearch}`);
+    ok(!space.defaultPrevented && !arrow.defaultPrevented, "keys: Space and the arrows are left to a focused button, so Next and Play can be pressed", `keys: Space prevented ${space.defaultPrevented}, arrow prevented ${arrow.defaultPrevented}`);
+  }
   function savedState() {
     const data = { "asks:old1": "board", "explorer.layout.old1": "layout", "explorer.ask.old1": "chats", "rehearse:old1:FLO-001": "tries", "asks:other": "x", "asks:new1": "kept" };
     const fake = { get length() { return Object.keys(data).length; }, key: (i) => Object.keys(data)[i], getItem: (k) => (k in data ? data[k] : null), setItem: (k, v) => { data[k] = v; } };
@@ -928,7 +944,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); keyboard(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
@@ -1250,6 +1266,15 @@ const SelfTest = (() => {
     const polled = calls.length === 1 && calls[0] === "/freshness" && Freshness.st.fetches === count + 1 && !$("#fresh").hidden && Freshness.st.live;
     Freshness.st.report = live.report; Freshness.st.live = live.live; Freshness.st.fetches = count; restore(); Freshness.render();
     ok(polled, "freshness when served: a poll asks /freshness once and shows the banner from the answer", `freshness when served: calls ${calls}, banner hidden ${$("#fresh").hidden}`);
+    // E39: after a failed check the banner stops saying "checked just now" in its visible text
+    const broken = Freshness.use(async () => new Response("{}", { status: 503 }), () => true), saved = { report: Freshness.st.report, live: Freshness.st.live, error: Freshness.st.error };
+    Freshness.st.report = newer; Freshness.st.live = true; Freshness.st.last = 0;
+    const warn = console.warn; console.warn = () => {};
+    await Freshness.poll("selftest");
+    console.warn = warn;
+    const said = $("#fresh").textContent;
+    Object.assign(Freshness.st, saved); broken(); Freshness.render();
+    ok(/could not check just now; as of 2026-10-18 09:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
   }
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length;
