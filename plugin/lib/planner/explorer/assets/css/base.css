@@ -197,8 +197,8 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 @media (max-width: 1180px) { :root { --panel-w: 330px; --side-w: 210px; } .brand { max-width: 140px; } .fx-label { display: none; } }
 /* 800 px wide leaves the main pane about 260 px between a 210 px sidebar and a 330 px panel: narrower side columns keep the board usable */
 @media (max-width: 900px) { :root { --panel-w: 280px; --side-w: 176px; } }
-/* A short window (800 x 600) leaves the map's board under 100 px once the lede, the held-above strip and the count
-   line are drawn. Each keeps two lines or one row and says the rest in its tooltip or by scrolling (map.css). */
+/* A short window (800 x 600) leaves the map's board under 100 px once the lede, the work queue and the count
+   line are drawn. The lede keeps two lines, the queue folds to its heading and the count line keeps two (map.css, queue.css). */
 @media (max-height: 720px) {
   .view-head p.lede { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 }

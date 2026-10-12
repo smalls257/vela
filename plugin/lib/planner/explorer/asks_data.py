@@ -115,7 +115,7 @@ def asks(vault, keys, as_of):
     return out
 
 
-# ---------------------------------------------------------------- decisions, for the garden
+# ---------------------------------------------------------------- decisions, for the decision log
 
 def parse_options(text):
     """'A (picked); B: rejected, why' or 'B. Rejected: why' -> (picked, [rejected])."""

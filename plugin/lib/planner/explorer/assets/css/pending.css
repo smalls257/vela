@@ -21,6 +21,4 @@ html.plain button.cell.pending { box-shadow: none !important; }
 .cockpit g.hit.lit.pending .node-glyph { color: var(--pending-text); }
 .grouped .count-badge.lit.pending .lamp-text { fill: var(--pending-ink); }
 .in-edge.lit.pending { stroke: var(--pending); } .in-label.lit.pending rect { stroke: var(--pending); }
-/* the decision garden's bed: its plots are paper in every theme, so the ring is the dark violet that reads on paper */
-.pend-ring circle { fill: #ffffff; stroke: #5b2fb8; stroke-width: 2; }
-.pend-ring path { fill: none; stroke: #5b2fb8; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
