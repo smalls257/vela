@@ -71,24 +71,13 @@ def value_after(argv, flag):
 
 
 def test_the_server_binds_loopback_only(helper):
+    """A socket bound to 127.0.0.1 accepts nothing from another machine, so the bind address is the guarantee.
+    No name lookups: resolving the host name made the old test error or pass vacuously on some machines."""
     server, _, _ = helper
-    # The server must bind to 127.0.0.1 (loopback), not the machine's external address
-    assert server.server_address[0] == "127.0.0.1", f"Expected 127.0.0.1, got {server.server_address[0]}"
-    assert server.url.startswith(f"http://127.0.0.1:")
-    # Verify the server is not reachable on non-loopback addresses
-    # This test runs locally and should not attempt network connections to avoid intermittent failures
-    import socket as socket_module
-    try:
-        # Try to connect to localhost by name to ensure it's actually loopback
-        localhost_addr = socket_module.gethostbyname("localhost")
-        # If localhost resolves to 127.0.0.1, the server should be reachable there
-        if localhost_addr == "127.0.0.1":
-            response = request(server, "GET", "/health", origin=None)
-            assert response.status == 200, "Server should be reachable on loopback"
-    except (socket_module.gaierror, OSError):
-        # Skip this part of the test if hostname resolution or network is unavailable
-        pytest.skip("hostname resolution or network unavailable")
-
+    assert server.server_address[0] == "127.0.0.1"
+    assert serve.LOOPBACK == "127.0.0.1"
+    assert server.url.startswith("http://127.0.0.1:")
+    assert request(server, "GET", "/health", origin=None).status == 200
 
 def test_health_names_the_vault_and_the_default_model(helper):
     server, vault, _ = helper
