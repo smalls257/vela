@@ -43,7 +43,7 @@ def test_unreadable_links_and_icons_are_e105(mini, front):
 def test_an_item_links_bullet_needs_markdown_http_links(mini):
     edit(mini / STOCK, POLICY, POLICY + "- **Links:** see the spec on the wiki, [Old](ftp://files.example.com/x)\n")
     _, out = check(mini)
-    assert findings(out) == [("E105", STOCK)] and "CON-002's link 'Old' is not an http(s) URL" in out, out
+    assert findings(out) == [("E105", STOCK)] and "CON-002's link 'Old' is not an http(s) or file:// URL" in out, out
 
 
 def test_a_bad_template_is_reported_where_links_are_used(mini):

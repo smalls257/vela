@@ -167,7 +167,8 @@ function refChip(key, extra) {
     id ? h("span", { class: "rid" }, id) : null, e.title, extra || null);
 }
 /* Where a thing's work lives outside the vault (planner's links.py: a page's links:, an item's **Links:**). Each chip
-   is a plain link that opens in a new tab; the page never fetches it. Only http(s) reaches an href. */
+   is a plain link that opens in a new tab; the page never fetches it. Only http(s) reaches an href: a file:// link is a
+   local clone, read at build time for the team's design (design_find.py), and draws no chip. */
 const linksOf = (key) => ((E[key] || {}).links || []).filter((l) => /^https?:\/\//i.test(l.url));
 function linkChips(key, opts = {}) {
   const list = linksOf(key);

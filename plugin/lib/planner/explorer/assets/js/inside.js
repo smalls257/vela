@@ -510,7 +510,7 @@ const Inside = (() => {
   /* ------------------------------------------------------------ level 3: the team's design */
   function components(stage, app, d) {
     if (!d) {
-      stage.append(chipCard("docs", `The ${appTitle(app)} team's design is not loaded.`, h("span", {}, "Build with ", h("code", {}, `--design ${D.map.apps.find((a) => a.key === app).id}=<team repo>/docs/tech-design/<slug>.md`), ". The tech-design-grill skill writes it in the team's own repository. Context and Containers still draw from the vault."),
+      stage.append(chipCard("docs", `The ${appTitle(app)} team's design is not loaded.`, h("span", {}, "Build with ", h("code", {}, `--design ${D.map.apps.find((a) => a.key === app).id}=<team repo>/docs/tech-design/<slug>.md`), ", or set ", h("code", {}, "design:"), " on the app's page (or ", h("code", {}, "designs:"), " in .planner.yaml) to its path, and the build finds it. The tech-design-grill skill writes it in the team's own repository. Context and Containers still draw from the vault."),
         h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => open(app, "containers") }, "Containers, from the vault"), linkChips(app))));
       stage.dataset.design = "none";
       return;

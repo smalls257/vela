@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from planner import schema
 
-URL_RE = re.compile(r"^https?://[^\s<>\"']+$")
+URL_RE = re.compile(r"^(?:https?://|file:///)[^\s<>\"']+$")  # file:// is a local clone: `planner explore` reads a team design from one
 MD_LINK = re.compile(r"\[([^\]\n]+)\]\(([^)\s]+)\)")
 KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
 
@@ -61,7 +61,7 @@ def of_page(page, config):
         elif label in known:
             problems.append(f"link '{label}: {value}' is not a key the {label} template can take")
         else:
-            problems.append(f"link '{label}: {value}' is not an http(s) URL, and .planner.yaml has no "
+            problems.append(f"link '{label}: {value}' is not an http(s) or file:// URL, and .planner.yaml has no "
                             f"{schema.LINK_TEMPLATES_KEY} entry for {label}")
     return out, problems
 
@@ -79,5 +79,5 @@ def of_item(item):
         if URL_RE.match(url):
             out.append(Link(label.strip(), url))
         else:
-            problems.append(f"{item.id}'s link '{label}' is not an http(s) URL")
+            problems.append(f"{item.id}'s link '{label}' is not an http(s) or file:// URL")
     return out, problems

@@ -30,7 +30,7 @@ from planner import (allocation, attention, cli, completeness, handoff, ladder, 
                      reading, roles, schema, trace)
 from planner import search as planner_search
 
-from . import (asks_data, assets_inline, design_data, draft_data, flows_data, icons_data, inside_data, pages_data,
+from . import (asks_data, assets_inline, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
                roles_data, serve)
 from . import pins as pinning
 from .record import (HANDLE, LABELLED_LINE, PROSE_LIMIT, Keys, inline_html,
@@ -702,8 +702,10 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     except assets_inline.AssetError as exc:
         raise ExplorerError(f"--assets: {exc}") from exc
     was_there = bool(pins_path) and pathlib.Path(pins_path).exists()
+    found, find_lines = design_find.discover(vault, root, design_args)  # local files only; an app named by --design is not looked up
+    design_args = [*design_args, *found]
     try:
-        data = extract(vault, root, today, pins_path, design_data.designs_for(list(design_args)), seed)
+        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed)
     except design_data.DesignError as exc:
         raise ExplorerError(f"--design: {exc}") from exc
     data["theme"] = theme
@@ -717,6 +719,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     said += [f"{key} asks for icon: {asked}, which is not in the built-in set; it is drawn by keyword instead"
              for key, asked in data["iconsUnknown"]]
     said += [f"a link was left out, {problem} (planner check reports it as E105)" for problem in data["linkProblems"]]
+    said += find_lines
     said += design_lines(data["designs"])
     said += draft_lines(data)
     m = data["map"]

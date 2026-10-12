@@ -80,7 +80,8 @@ for _type, _spec in PAGE_TYPES.items():
 # An app page may name the picture views draw for it, as one short word, such as `icon: payments`.
 ICON_FIELD = "icon"
 ICON_RE = re.compile(r"^[a-z][a-z0-9-]{0,23}$")
-PAGE_TYPES["app-building-blocks"]["optional"] += (ICON_FIELD,)
+DESIGN_FIELD = "design"  # an app page's path to its team's tech design doc, for `planner explore` (explorer/design_find.py)
+PAGE_TYPES["app-building-blocks"]["optional"] += (ICON_FIELD, DESIGN_FIELD)
 
 # Field value rules shared by every type.
 ENUMS = {

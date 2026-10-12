@@ -975,6 +975,10 @@ def link_field_rules(vault, today):
         if icon is not None and not (isinstance(icon, str) and schema.ICON_RE.match(icon)):
             yield _f(page, meta_line(page, schema.ICON_FIELD), "E105", f"'icon: {icon}' is not one short lower-case word.",
                      "Write icon: payments, or remove the field; views pick an icon from the title without it.")
+        design = page.meta.get(schema.DESIGN_FIELD)
+        if design is not None and not (isinstance(design, str) and design.strip()):
+            yield _f(page, meta_line(page, schema.DESIGN_FIELD), "E105", f"'design: {design}' is not a path to a design doc.",
+                     "Write design: ../team-repo/docs/tech-design/booking.md, relative to the vault root, or remove the field.")
     for found in vault.items.values():
         item = found[0]
         for problem in links.of_item(item)[1]:
