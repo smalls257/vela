@@ -19,7 +19,8 @@ delivers: [CON-001, G1]
 
 ## Acceptance criteria
 
-1. A basket sent on CON-001 returns a receipt with the till's sale number. [testing]
+1. A basket sent to the sale API returns a receipt with the till's sale number. [testing]
+   - Trace: CON-001
 2. A sale that fails leaves the stock level as it was.
 """
 SHOP = "05-building-blocks/shop-building-blocks.md"

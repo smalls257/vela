@@ -9,11 +9,11 @@ so a link opens its target inside the explorer, not as a file.
 import html
 import re
 
-from planner import reading
+from planner import readability, reading
 from planner.parse import protect_link_pipes
 from planner.viewer import body_of
 
-from .record import inline_html, title_of
+from .record import chips_html, inline_html, title_of
 
 HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 FENCE = re.compile(r"^\s{0,3}(```|~~~)\s*([\w-]*)")
@@ -159,9 +159,20 @@ class Renderer:
         flush()
         return "\n".join(out)
 
+    def trace_row(self, lines, i, out):
+        """The run of Trace lines starting at `i` as one row of name chips; returns the line after the run."""
+        ids = []
+        while i < len(lines) and readability.is_trace(lines[i]):
+            ids += readability.trace_ids(lines[i])
+            i += 1
+        out.append(chips_html(ids, self.keys))
+        return i
+
     def list_block(self, lines, i, out):
         """A list, with one level of nesting by indentation."""
         first = LIST_ITEM.match(lines[i])
+        if readability.is_trace(lines[i]):
+            return self.trace_row(lines, i, out)
         ordered = first.group(2) is not None
         base = len(first.group(1))
         tag = "ol" if ordered else "ul"
@@ -170,6 +181,9 @@ class Renderer:
         open_li = False
         while i < len(lines):
             m = LIST_ITEM.match(lines[i])
+            if m and readability.is_trace(lines[i]) and open_li:
+                i = self.trace_row(lines, i, parts)  # a Trace line at this level belongs to the item above it
+                continue
             if m and len(m.group(1)) <= base:
                 if (m.group(2) is not None) != ordered:
                     break

@@ -27,6 +27,7 @@ LEADING_ID = re.compile(rf"^{ID}\s+")
 LINK = re.compile(r"\[\[([^\]|#]*)(#[^\]|]*)?\|([^\]]*)\]\]")
 WIKI = re.compile(r"\[\[[^\]]+\]\]")
 SOURCE = re.compile(r"\bSRC-\d+\b")
+TRACE_LINE = re.compile(r"^(?P<indent>\s*)[-*]\s+(?:\*\*Trace:\*\*|Trace:)\s*(?P<ids>.*?)\s*$")
 CITATION = re.compile(r"\s*\(([^()]*(?:\bSRC-\d+\b|\[\[)[^()]*)\)")
 BLOCK_TITLES = {
     "where-it-stands": "Where it stands", "progress-map": "Progress", "app-context": "Diagram",
@@ -84,7 +85,12 @@ def tidy_prose(text, whole):
 
 
 # Sections that are a record, not the current state: they fold like History, in place.
-FOLDED_SECTIONS = ("Question ledger",)
+FOLDED_SECTIONS = ("Question ledger", "Also open")  # "Also open (7)": the few that matter sit above it
+
+
+def is_folded(title):
+    title = title.strip()
+    return any(title == name or title.startswith(name + " (") for name in FOLDED_SECTIONS)
 
 
 def fold_records(lines):
@@ -95,7 +101,7 @@ def fold_records(lines):
             if inside:
                 out += ["", "</details>", ""]
                 inside = False
-            if heading.group(2).strip() in FOLDED_SECTIONS:
+            if is_folded(heading.group(2)):
                 out += ["", f"<details><summary>{heading.group(2).strip()}</summary>", ""]
                 inside = True
                 continue
@@ -129,6 +135,9 @@ def fold_item_details(lines):
             out.append(line)
             continue
         stripped = line.strip()
+        if TRACE_LINE.match(line) and not run:
+            out.append(line)  # a Trace line under a numbered criterion stays beside it, not in Details
+            continue
         if stripped.startswith(("- ", "* ")) or (run and stripped and line[:1] in " \t"):
             run.append(line)
             continue
@@ -358,6 +367,10 @@ def style_problems(markdown, page_type, known_labels=()):
         if HISTORY_BULLET.match(line) and not in_history:
             problems.append((n, f"{HISTORY_BULLET.match(line).group(1)} bullet sits above ## History; move it there"))
             continue
+        listed = (stripped.startswith(("-", "*")) or re.match(r"\d+\.", stripped)) and not labelled
+        if listed and not in_history and not TRACE_LINE.match(line) and BARE_ID.search(visible(stripped)):
+            problems.append((n, f"an ID ({BARE_ID.search(visible(stripped)).group(0)}) in a list item; name the thing, "
+                                "and put the ID on a '- Trace:' line under it"))
         prose = not stripped.startswith(("|", "-", "*", ">")) and not re.match(r"\d+\.", stripped) \
             and not BREADCRUMB.match(stripped)
         if prose and not seen_h2:
@@ -370,7 +383,7 @@ def style_problems(markdown, page_type, known_labels=()):
                 problems.append((n, "a bare source ID in prose; put the link on the words that rely on it"))
             elif BARE_ID.search(visible(stripped)):
                 problems.append((n, f"an ID ({BARE_ID.search(visible(stripped)).group(0)}) in prose; name the thing, "
-                                    "and link the name"))
+                                    "link the name, and put the ID on a '- Trace:' line"))
     if item_line and not item_said:
         problems.append((item_line, "this item has only bullets; open it with a sentence or two that say what it is now"))
     if page_type in PROSE_PAGE_TYPES and opening == 0:

@@ -5,7 +5,7 @@ Every value here comes from the planner's own parser (planner.parse, planner.rea
 import html
 import re
 
-from planner import reading
+from planner import readability, reading
 from planner.parse import WIKILINK, parse_link
 
 HANDLE = re.compile(r"@[A-Za-z0-9][\w./-]*")
@@ -21,6 +21,7 @@ class Keys:
 
     def __init__(self, vault):
         self.vault = vault
+        self.names = readability.NameIndex(vault)
         self.page_key = {}
         seen = {}
         for page in vault.pages:
@@ -41,6 +42,11 @@ class Keys:
         if item is not None and item.page is target:
             return item.id
         return self.page(target)
+
+
+    def key_of(self, entry):
+        """The key an ID's name points at: the item for an item ID, else the page that holds it."""
+        return entry.id if self.vault.item(entry.id) is not None else self.page(entry.page)
 
 
 def link_label(vault, link, from_page):
@@ -65,21 +71,46 @@ def inline_html(text, keys, page):
 
     def hold(match):
         link = parse_link(match.group(1), 0)
-        refs.append((link, keys.link(link, page), link_label(keys.vault, link, page)))
+        refs.append((link, keys.link(link, page), link_label(keys.vault, link, page), None))
         return f"\x00{len(refs) - 1}\x00"
 
-    held = WIKILINK.sub(hold, text)
+    def name_it(entry):
+        refs.append((None, keys.key_of(entry), entry.name, entry.id))
+        return f"\x00{len(refs) - 1}\x00"
+
+    held = readability.name_ids(WIKILINK.sub(hold, text), keys.names, name_it)
     out = html.escape(held, quote=False)
     out = re.sub(r"`([^`]+)`", r"<code>\1</code>", out)
     out = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", out)
     out = re.sub(r"(?<!\*)\*([^*\s][^*]*)\*(?!\*)", r"<em>\1</em>", out)
-    for i, (link, key, label) in enumerate(refs):
+    for i, (link, key, label, named) in enumerate(refs):
         label_html = html.escape(label, quote=False)
-        anchor = (f'<a class="ref" data-ref="{html.escape(key)}">{label_html}</a>{state_badge(keys.vault, key)}' if key
+        if named:
+            anchor = name_anchor(key, label_html, named)
+        else:
+            anchor = (f'<a class="ref" data-ref="{html.escape(key)}">{label_html}</a>{state_badge(keys.vault, key)}' if key
                   else f'<span class="ref-dead" title="This link points at nothing in the vault">{label_html}</span>')
         out = out.replace(f"\x00{i}\x00", anchor)
     parts.append(out)
     return "".join(parts)
+
+
+def name_anchor(key, label_html, item_id):
+    """A bare ID shown as the thing's name. The ID sits in the tooltip, and as a small muted suffix on hover only."""
+    ident = html.escape(item_id)
+    return (f'<a class="ref idname" data-ref="{html.escape(key)}" title="{ident}">{label_html}'
+            f'<span class="idsuf"> {ident}</span></a>')
+
+
+def chips_html(ids, keys):
+    """One quiet, collapsible row of name chips for a `- Trace:` line. An ID the vault does not hold is left out, since
+    a chip that opens nothing is noise; the line in the file still carries it."""
+    entries = readability.chip_entries(ids, keys.names)
+    if not entries:
+        return ""
+    chips = "".join(f'<a class="ref chip" data-ref="{html.escape(keys.key_of(e))}" title="{html.escape(e.id)}">'
+                    f'{html.escape(e.name)}</a>' for e in entries)
+    return f'<details class="r-trace"><summary>Traces to ({len(entries)})</summary><span class="chips">{chips}</span></details>'
 
 
 def state_badge(vault, key):

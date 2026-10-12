@@ -286,7 +286,7 @@ def test_house_voice_rules():
     assert "Never read `voice/corpus/`." in voice
     assert "> Replaces the paragraph above after <session id>; delete one." in voice
     assert "more than about 20 prose paragraphs" in voice
-    assert "acceptance criteria;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
+    assert "acceptance criteria, and the `- Trace:` line under each;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
 
 
 # requirements-grill vault mode (V1-12): the vault rules live in the planner, not in the user's skill.
@@ -315,7 +315,8 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "an explicit yes to each criterion on its own" in epics and "while any criterion lacks its own explicit yes" in epics
     assert "It does not mean they are decided." in epics and "Report those separately" in epics
     assert "list each epic still at `draft`" in epics
-    assert "It cites at least one contract (`CON-`) or flow (`FLO-`) ID." in epics and "Redis or Kafka" in epics
+    assert "Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID" in epics and "Redis or Kafka" in epics
+    assert "   - Trace: CAP-001.FR1, CON-001, FLO-001" in epics and "more than about seven" in epics
     assert "`modes: [epics, shape, grill]` and the title `Epics: <team>`" in epics
     assert "check --gate epics" in epics
     assert "Never say an app's epics are complete while one remains." in epics

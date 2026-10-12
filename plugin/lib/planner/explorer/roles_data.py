@@ -14,10 +14,10 @@
 """
 import re
 
-from planner import allocation, handoff, ladder, progress, releases, schema, trace
+from planner import allocation, handoff, ladder, progress, readability, releases, schema, trace
 from planner.parse import FENCE
 
-from .record import inline_html, plain
+from .record import chips_html, inline_html, plain
 
 NUMBERED = re.compile(r"^\s*(\d+)\.\s+(.*)$")
 APP_STATUS_END = {"new": "new", "changed": "changes", "retired": "absent", "retire": "absent"}
@@ -159,11 +159,13 @@ def epic_criteria(vault, keys):
                 inside = section["text"].strip().lower().endswith("acceptance criteria")
                 continue
             m = NUMBERED.match(raw) if inside else None
+            if inside and rows and readability.is_trace(raw):
+                rows[-1]["trace"] = chips_html(readability.trace_ids(raw), keys)
             if m:
                 body = m.group(2)
                 rows.append({"n": int(m.group(1)), "html": inline_html(trace.MARKER.sub("", body).strip(), keys, epic),
                              "markers": [x.lower() for x in trace.MARKER.findall(body)],
-                             "struck": body.lstrip().startswith("~~")})
+                             "struck": body.lstrip().startswith("~~"), "trace": ""})
         out[keys.page(epic)] = rows
     return out
 
@@ -179,6 +181,8 @@ def requirement_criteria(vault, keys):
                 break
             if re.match(r"^- (?!\*\*[^*]+:\*\*)", line):
                 found.append(inline_html(line[2:], keys, r.page))
+            elif found and readability.is_trace(line):
+                found[-1] += chips_html(readability.trace_ids(line), keys)
         out[r.id] = found
     return out
 
