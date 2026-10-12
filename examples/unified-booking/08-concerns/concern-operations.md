@@ -37,5 +37,5 @@ Mainframe knowledge sits with two people ([[11-unknowns-and-risks#R-01 Mainframe
 ## Related
 
 - Unknowns and risks: [[11-unknowns-and-risks#UNK-007 Booking on-call|Booking on-call]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]], [[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|Mainframe knowledge sits with two people]]
-- Decisions: [[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]]
+- Decisions: [[ADR-0004-mq-not-screen-scraping|the MQ decision]]
 - Epics: [[EPC-039-run-booking|Run Booking: on-call, runbooks, dashboards]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]]

@@ -16,7 +16,7 @@ sources: [SRC-04, "UNK-003 mainframe capacity 2026-08-14", "UNK-002 test data de
 
 # FERRYMASTER
 
-FERRYMASTER is the 1990s mainframe that holds Harbourline's booking ledger. It stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|FERRYMASTER stays the ledger of record]]). Booking writes to it through four MQ transactions the mainframe team already exposes for the finance job ([[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]]).
+FERRYMASTER is the 1990s mainframe that holds Harbourline's booking ledger. It stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]). Booking writes to it through four MQ transactions the mainframe team already exposes for the finance job ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]).
 
 FERRYMASTER is not responsible for holds during payment or for telling channels a booking's state. Booking does both.
 

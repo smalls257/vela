@@ -14,7 +14,7 @@ sources: ["session 2026-07-28 Grill", "session 2026-10-07 Grill"]
 
 ## Strategy
 
-Every app keeps its current owner. This initiative adds one team and moves one responsibility. The new Booking team owns Booking, including the Ledger adapter, so one team answers for what "confirmed" means ([[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]]). Before this, three teams each owned an adapter into FERRYMASTER and each answered the question differently.
+Every app keeps its current owner. This initiative adds one team and moves one responsibility. The new Booking team owns Booking, including the Ledger adapter, so one team answers for what "confirmed" means ([[ADR-0001-one-booking-context|the one-application decision]]). Before this, three teams each owned an adapter into FERRYMASTER and each answered the question differently.
 
 Each front-end team owns its Booking API client and its consumer contract tests. The Booking team does not write channel code. When a channel needs something new from the API, the front-end team changes its contract test and the Booking team sees it fail in Booking's pipeline.
 
@@ -37,5 +37,5 @@ The mainframe team owns FERRYMASTER and the MQ transactions, and gives 8 weeks' 
 ## Related
 
 - Unknowns: [[11-unknowns-and-risks#UNK-007 Booking on-call|Booking on-call]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]
-- Decisions: [[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]]
+- Decisions: [[ADR-0001-one-booking-context|the one-application decision]]
 - Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]], [[EPC-037-events-and-notifications|Booking events and customer notifications]]

@@ -20,7 +20,7 @@ sources: ["session 2026-07-28 Shape", "session 2026-11-18 Grill", "ADR-0001", "A
 
 Booking becomes the one place that decides whether a crossing is held, confirmed or released. Today each front end works that out from whatever its own adapter scraped, which is why the call centre and the kiosks can disagree about the same booking. This epic builds the hold, confirm and get operations of the Booking API, takes Tidepay's payment outcome, and keeps an unpaid seat for 10 minutes.
 
-The hold is new. Today nothing stops a second channel selling the last seat while a customer is on Tidepay's page, and the call centre sorts out the overbooking by hand. FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|FERRYMASTER stays the ledger of record]]), so Booking reports a booking as confirmed only after the ledger has accepted it. Customers pay on Tidepay's hosted page and card data never reaches Booking.
+The hold is new. Today nothing stops a second channel selling the last seat while a customer is on Tidepay's page, and the call centre sorts out the overbooking by hand. FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]), so Booking reports a booking as confirmed only after the ledger has accepted it. Customers pay on Tidepay's hosted page and card data never reaches Booking.
 
 **Owning team:** Booking team.
 

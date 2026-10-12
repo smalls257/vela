@@ -18,7 +18,7 @@ sources: ["session 2026-08-26 Grill", "session 2026-09-23 Grill", "ADR-0003"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only in March and September, so whatever they call has to stay the same for at least six months. That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|Version the Booking API and keep each version at least 6 months]]).
+The kiosk app becomes a Booking API v1 client and ships in the March 2027 image. Kiosks run a locked-down image that changes only in March and September, so whatever they call has to stay the same for at least six months. That is why the Booking API is versioned and each version is kept at least 6 months ([[ADR-0003-versioned-booking-api|the versioning decision]]).
 
 Kiosks have no user to log in, so each kiosk authenticates with a device certificate from Platform's existing PKI ([[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]]). The old FM adapter ships in the March image behind a switch and leaves with the September 2027 image. If the March image slips, kiosks keep their old adapter until September and Booking API v1 is still there when they arrive (the kiosk image slip risk).
 
@@ -47,7 +47,7 @@ Kiosks have no user to log in, so each kiosk authenticates with a device certifi
 | Concerns | [[concern-data\|Data]], [[concern-observability\|Observability]], [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
-Also related: [[ADR-0003-versioned-booking-api|Version the Booking API and keep each version at least 6 months]], [[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]].
+Also related: [[ADR-0003-versioned-booking-api|the versioning decision]], [[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]].
 
 ## Depends on
 

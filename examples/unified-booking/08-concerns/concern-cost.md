@@ -37,5 +37,5 @@ Retiring three adapters removes upkeep that used to cost each front-end team a f
 ## Related
 
 - Unknowns: [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]
-- Decisions: [[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]]
+- Decisions: [[ADR-0004-mq-not-screen-scraping|the MQ decision]]
 - Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]

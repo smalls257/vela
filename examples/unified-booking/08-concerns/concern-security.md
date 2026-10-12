@@ -37,5 +37,5 @@ The gateway also restricts Pricing's Quote service to Booking. Before this initi
 ## Related
 
 - Unknowns: [[11-unknowns-and-risks#UNK-004 Kiosk authentication|Kiosk authentication]]
-- Decisions: [[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]], [[ADR-0003-versioned-booking-api|Version the Booking API and keep each version at least 6 months]]
+- Decisions: [[ADR-0001-one-booking-context|the one-application decision]], [[ADR-0003-versioned-booking-api|the versioning decision]]
 - Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]], [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]

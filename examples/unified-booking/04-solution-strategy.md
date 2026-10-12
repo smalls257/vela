@@ -18,13 +18,13 @@ sources: ["session 2026-07-14 Shape", "session 2026-07-28 Shape", "session 2026-
 
 Put one application, Booking, in front of FERRYMASTER and make it the only thing that decides a booking's state. Every channel asks Booking. Booking asks the ledger. The details of what changes per capability are on the [[04a-capability-delta|Capability delta]] page.
 
-We looked at a shared adapter library first. It would have been quicker, but it would have left three teams each deciding what "confirmed" means, which is half the problem we are solving. See [[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]].
+We looked at a shared adapter library first. It would have been quicker, but it would have left three teams each deciding what "confirmed" means, which is half the problem we are solving. See [[ADR-0001-one-booking-context|the one-application decision]].
 
 ## How it works with a mainframe we can't touch
 
-FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|FERRYMASTER stays the ledger of record]]). Booking keeps short-lived state, such as a ten-minute hold while the customer pays, but the ledger always has the final word.
+FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]). Booking keeps short-lived state, such as a ten-minute hold while the customer pays, but the ledger always has the final word.
 
-Booking talks to the ledger through FERRYMASTER's existing MQ transactions, not by scraping screens ([[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]]). We found those transactions during Discover: the mainframe team already exposes them for the finance job. That one finding removed the main reason the old adapters kept breaking.
+Booking talks to the ledger through FERRYMASTER's existing MQ transactions, not by scraping screens ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]). We found those transactions during Discover: the mainframe team already exposes them for the finance job. That one finding removed the main reason the old adapters kept breaking.
 
 When a ledger write is slow or fails, Booking keeps the hold and retries. The customer sees "confirming" rather than an error, and the call centre sees exactly what the customer sees. That replaces the next-morning manual fixes.
 
@@ -36,7 +36,7 @@ Channels move one at a time, so a problem only ever affects one of them:
 2. **Call centre** second, in March 2027, with amend and cancel moving onto Booking at the same time.
 3. **Kiosks** last, with the March 2027 image, because they can only change twice a year.
 
-Each channel keeps its old adapter behind a switch for four weeks after it moves. Rollback is flipping the switch. Once the four weeks pass cleanly, the adapter is deleted. The Booking API is versioned, and each version lives at least six months so the kiosks never get stranded ([[ADR-0003-versioned-booking-api|Version the Booking API and keep each version at least 6 months]]). The full plan is on [[concern-rollout|Rollout]].
+Each channel keeps its old adapter behind a switch for four weeks after it moves. Rollback is flipping the switch. Once the four weeks pass cleanly, the adapter is deleted. The Booking API is versioned, and each version lives at least six months so the kiosks never get stranded ([[ADR-0003-versioned-booking-api|the versioning decision]]). The full plan is on [[concern-rollout|Rollout]].
 
 ## What we chose not to do
 

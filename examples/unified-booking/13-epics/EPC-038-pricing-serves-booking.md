@@ -45,7 +45,7 @@ One caller means the Revenue team changes fare rules against one consumer and on
 | Concerns | [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
-Also related: [[ADR-0001-one-booking-context|One Booking application rather than a shared adapter library]].
+Also related: [[ADR-0001-one-booking-context|the one-application decision]].
 
 ## Depends on
 

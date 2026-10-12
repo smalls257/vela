@@ -37,5 +37,5 @@ The dashboards track per-channel request and error rate, booking state transitio
 ## Related
 
 - Unknowns: [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]]
-- Decisions: [[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]]
+- Decisions: [[ADR-0004-mq-not-screen-scraping|the MQ decision]]
 - Epics: [[EPC-039-run-booking|Run Booking: on-call, runbooks, dashboards]], [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]

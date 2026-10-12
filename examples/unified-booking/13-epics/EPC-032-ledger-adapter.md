@@ -18,7 +18,7 @@ sources: ["session 2026-07-14 Discover", "session 2026-08-19 Probe", "session 20
 
 - **Decision:** [[2026-11-18-epics]]
 
-Booking writes to FERRYMASTER through the four MQ transactions the mainframe team already exposes for the finance reconciliation job: BKHOLD, BKCONF, BKAMND and BKCANC ([[ADR-0004-mq-not-screen-scraping|Use FERRYMASTER's existing MQ transactions instead of screen scraping]]). Screen scraping is what broke 11 times last year. The MQ transactions stay the same when a screen changes, and FERRYMASTER itself cannot change before 2028 (its vendor contract runs that long), so Booking adapts to what is already there.
+Booking writes to FERRYMASTER through the four MQ transactions the mainframe team already exposes for the finance reconciliation job: BKHOLD, BKCONF, BKAMND and BKCANC ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]). Screen scraping is what broke 11 times last year. The MQ transactions stay the same when a screen changes, and FERRYMASTER itself cannot change before 2028 (its vendor contract runs that long), so Booking adapts to what is already there.
 
 Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]). A Booking engineer pairs with them and the MQ mapping goes into the Ledger transactions contract, so the knowledge no longer sits with two people (the mainframe knowledge risk). The ledger simulator built here is what Booking's contract tests run against ([[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]]).
 
@@ -49,7 +49,7 @@ Two people understand FERRYMASTER's COBOL. The mainframe team gives 2 days a wee
 | Concerns | [[concern-cost\|Cost]], [[concern-data\|Data]], [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
-Also related: [[ADR-0002-ferrymaster-ledger-of-record|FERRYMASTER stays the ledger of record]], [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]], [[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]].
+Also related: [[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]], [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]], [[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]].
 
 ## Depends on
 

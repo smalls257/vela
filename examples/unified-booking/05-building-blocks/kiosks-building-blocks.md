@@ -82,7 +82,7 @@ None. The kiosks only consume.
 | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
 <!-- /generated:contracts-consumed -->
 
-Version 1 must stay available until at least the September 2027 image, and longer if that image slips (the kiosk image slip risk, [[ADR-0003-versioned-booking-api|Version the Booking API and keep each version at least 6 months]]).
+Version 1 must stay available until at least the September 2027 image, and longer if that image slips (the kiosk image slip risk, [[ADR-0003-versioned-booking-api|the versioning decision]]).
 
 ## Concerns
 
