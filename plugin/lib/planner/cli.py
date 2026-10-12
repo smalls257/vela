@@ -22,7 +22,7 @@ import traceback
 import yaml
 
 from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, viewer, voicecheck, voicescore
-from planner.edge import copies, replays, reviewgit, vaultgit
+from planner.edge import atomic, copies, replays, reviewgit, vaultgit
 from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
@@ -905,6 +905,7 @@ def cmd_render(args, out):
         for finding in refusals:
             print(finding.format(), file=out)
         return 1
+    pending_writes = {}
     for path, text in sorted(texts.items()):
         target = root / path
         original = target.read_bytes()
@@ -913,7 +914,13 @@ def cmd_render(args, out):
         data = text.encode("utf-8")
         if original.startswith(codecs.BOM_UTF8):
             data = codecs.BOM_UTF8 + data
-        target.write_bytes(data)
+        pending_writes[target] = data
+    try:
+        atomic.write_all_atomic(pending_writes)
+    except atomic.WriteFailed as exc:
+        names = lambda paths: ", ".join(p.relative_to(root).as_posix() for p in paths) or "none"
+        raise ToolError(f"render could not finish: {exc}. Written: {names(exc.written)}. Not written: {names(exc.unwritten)}. "
+                        "Fix the cause and run planner render again; it only rewrites blocks that are out of date.") from exc
     for path, name, old in discarded:
         print(f"{path}: discarded a hand edit in '{name}':", file=out)
         for line in old.split("\n"):
@@ -1035,7 +1042,10 @@ def cmd_view(args, out):
             print(f"  {problem}", file=out)
         return 1
     target = pathlib.Path(args.out)
-    target.write_text(html, encoding="utf-8")
+    try:
+        atomic.write_atomic(target, html)
+    except atomic.WriteFailed as exc:
+        raise ToolError(f"cannot write {target}: {exc}") from exc
     print(f"planner view: wrote {target} ({len(viewer.bundled(vault))} pages). "
           f"Built from {stamp['commit']} on {stamp['date']}. "
           f"Check at build time: {errors} errors, {stamp['warnings']} warnings.", file=out)
@@ -1452,7 +1462,7 @@ def cmd_handoff(args, out):
     commit = stamp_commit(root, args.commit)
     try:
         target.parent.mkdir(exist_ok=True)
-        target.write_text(handoff.write(app_id, entries, commit, today), encoding="utf-8")
+        atomic.write_atomic(target, handoff.write(app_id, entries, commit, today))
     except OSError as exc:
         raise ToolError(f"cannot write {target.relative_to(root).as_posix()}: {exc.strerror or exc}. "
                         f"{schema.HANDOFF_DIR}/ must be a folder and {app_id}.md a file.") from exc
@@ -1507,7 +1517,7 @@ def cmd_export(args, out):
     table = export.rows(vault, link_for)
     target = pathlib.Path(args.out)
     try:
-        target.write_text(export.to_csv(table), encoding="utf-8", newline="")
+        atomic.write_atomic(target, export.to_csv(table))
     except (OSError, ValueError) as exc:
         raise ToolError(f"Cannot write {target}: {exc}") from exc
     print(f"planner export: wrote {len(table)} epics to {target}.", file=out)
