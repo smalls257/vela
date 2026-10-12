@@ -116,7 +116,7 @@ const Flows = (() => {
       const e = E[st.key];
       box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.id}, ${e.state || "no state"} · ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
         h("div", { class: "cap-title" }, e.title), e.text ? h("p", { class: "cap-intro" }, shorten(e.text, 360)) : "",
-        h("ol", { class: "cap-steps" }, f.steps.map((stp, i) => h("li", {}, h("button", { onclick: () => { player.pause(); player.go(i); } }, stp.short)))), inferredLine());
+        h("ol", { class: "cap-steps" }, f.steps.map((stp, i) => h("li", {}, h("button", { onclick: () => { player.pause(); player.go(i); } }, stp.short)))), ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
       return;
     }
     const stp = f.steps[st.cur];
