@@ -45,11 +45,11 @@ added, merged or reworded. {counts}
 |---|---|
 | Issue Id | `S-NN` for a story, `S-NN-Tn` for its nth task. Used only to link rows during import. |
 | Summary | the story heading (`S-NN name`), or the task's name |
-| Description | story: its Traces to line, acceptance criteria and Blocked by line as written. Task: its component, size, and its story's Traces to line |
+| Description | story: its Traces to line, its acceptance criteria under an "Acceptance criteria" heading, its Blocked by line, then any "Open for the design" notes and "Conflicts" notes, each as written. Task: its component, size, and its story's Traces to line |
 | Issue Type | Story for a section, Task for a task row. The breakdown has no epic level, so there are no Epics |
 | Parent | a task's Issue Id of its story. Blank for stories |
 | Story Points | tasks only: S = {s}, M = {m}, L = {l}. The work-breakdown skill gives sizes in days, not points, so this mapping is ours, and sizes are for ordering, not commitments. Stories carry no points so the total is not counted twice |
-| Labels | the requirement, contract, criterion and app IDs in the story's Traces to line (`CAP-nnn.FRn@APP-slug`, `CON-nnn`, `EPC-nnn.ACn`, `FR-nnn`, `APP-slug`), one per Labels column; a task has its story's |
+| Labels | the requirement, contract, criterion and app IDs in the story's Traces to line (`CAP-nnn.FRn@APP-slug`, `CON-nnn`, `EPC-nnn.ACn`, `FR-nnn`, `APP-slug`), one per Labels column; a task has its story's. A story with an "Open for ..." note also gets `needs-design`, and one with a "Conflict with ..." note gets `conflict` |
 | Blocked by | the stories a story is blocked by, from its Blocked by line. Anything else it names (an open question, a gap, an outside party) is in the Description only |
 
 ## Import into Jira

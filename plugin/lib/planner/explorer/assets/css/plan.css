@@ -13,6 +13,10 @@
 .plan-gaps { background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 4px 12px; }
 .plan-problems { background: var(--room-2); border: 1px solid var(--note-text); border-radius: 10px; padding: 10px 14px; }
 .plan-problems[hidden] { display: none; }
+.plan-flags { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.plan-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--ink-3); color: var(--ink-2); background: var(--deck-3); }
+.plan-badge.conflict { border-width: 2px; border-style: double; color: var(--ink); }
+.plan-badge .ref-chip { font-size: 11.5px; }
 .plan-sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .plan-sec > h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
 .plan-hint { margin: 0; font-size: 12.5px; color: var(--ink-3); }

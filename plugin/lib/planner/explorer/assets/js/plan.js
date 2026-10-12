@@ -118,10 +118,24 @@ const Plan = (() => {
       h("td", {}, known ? h("a", { class: "ref-chip plan-comp", "data-component": name, title: `Show ${name} in the components`, onclick: () => toComponent(app, name) }, name)
         : h("span", { class: "ref-chip plan-comp dead", title: DES[app] ? "Not a component of the design" : "No design loaded to show it in" }, task.component || "no component")));
   }
+  /* What the plan flags on a story, as small labelled badges: a question only the design can answer, and a clash with an
+     epic criterion, named by the criterion's title and not just its ID. The full text is in the card's body. */
+  function flagBadges(story) {
+    const open = story.openNotes.length ? [h("span", { class: "plan-badge open", "data-flag": "open", title: story.openNotes.join("\n\n") },
+      story.openNotes.length > 1 ? `Open for design · ${story.openNotes.length}` : "Open for design")] : [];
+    const clash = story.conflicts.map((c) => h("span", { class: "plan-badge conflict", "data-flag": "conflict", title: c.text },
+      c.ref ? ["Conflicts with ", refChip(keyForId(c.ref))] : "Conflicts with an epic criterion"));
+    return open.length || clash.length ? h("div", { class: "plan-flags" }, open, clash) : null;
+  }
+  function flagNotes(story) {
+    const K = kit(), note = (title, items) => (items.length ? h("div", { class: "plan-notes" }, h("div", { class: "fl" }, title), h("ul", { class: "plan-ac" }, items.map((t) => h("li", {}, K.prose(t))))) : null);
+    return [note("Open for the design", story.openNotes), note("Conflicts with an epic criterion", story.conflicts.map((c) => c.text))];
+  }
   function storyCard(app, p, story) {
     const lit = unclosedLevel(story), open = st.open.has(story.id), K = kit();
     const body = h("div", { class: "plan-card-body" },
       story.criteria.length ? h("div", {}, h("div", { class: "fl" }, "Acceptance criteria"), h("ul", { class: "plan-ac" }, story.criteria.map((c) => h("li", {}, K.prose(c))))) : h("div", { class: "gap" }, "No acceptance criteria in the plan."),
+      flagNotes(story),
       h("div", { class: "fl" }, "Traces to"), h("div", { class: "plan-traces" }, story.traces.map((id) => K.idChip(id))),
       h("div", { class: "fl" }, "Tasks"),
       h("table", { class: "plan-tasks" }, story.tasks.map((t) => taskRow(app, t))));
@@ -136,6 +150,7 @@ const Plan = (() => {
       h("h4", {}, story.name),
       h("div", { class: "plan-meta muted small" }, `${plural(story.tasks.length, "task")} · ${plural(story.points, "point")} · ${plural(story.traces.length, "trace")}`),
       blockedLine(app, story),
+      flagBadges(story),
       h("div", { class: "plan-glance" }, story.traces.slice(0, 3).map((id) => K.idChip(id)), story.traces.length > 3 ? h("span", { class: "muted small" }, ` +${story.traces.length - 3}`) : null),
       toggle, body);
     return card;
@@ -212,16 +227,23 @@ const Plan = (() => {
       h("span", { class: "heuristic" }, "Computed from each story's own Traces to line and its tasks' components, then held against the plan's Coverage table.")),
     h("div", { class: "plan-cov-grid" }, h("div", { class: "plan-cov-box" }, targets), h("div", { class: "plan-cov-box" }, comps))];
   }
-  /* The count of what the reader could not make of the plan, always shown; the list below it opens with the page when there is any. */
+  /* The count of what the reader could not make of the plan, always shown. The list it opens is collapsed until asked for,
+     so a long list never fills the page before the plan does. */
   function problemsChip(p, list) {
-    const n = p.problems.length, un = p.unresolved.length;
-    return h("button", { class: "chip d-problems" + (n || un ? " some" : ""), "data-problems": n, title: "What this page could not read in the plan, or found that disagrees with itself",
-      onclick: () => { list.hidden = !list.hidden; } }, Icons.el(n || un ? "audit" : "consent"), n ? `${plural(n, "thing")} this page could not read` : "read with no problems",
+    const n = p.problems.length, un = p.unresolved.length, some = n || un;
+    const say = (shown) => (n ? `${plural(n, "line")} this page could not read — ${shown ? "hide" : "show"}` : "read with no problems");
+    const label = h("span", {}, say(false));
+    return h("button", { class: "chip d-problems" + (some ? " some" : ""), "data-problems": n, "aria-expanded": "false", title: "What this page could not read in the plan, or found that disagrees with itself",
+      onclick: (ev) => {
+        list.hidden = !list.hidden;
+        label.textContent = say(!list.hidden);
+        ev.currentTarget.setAttribute("aria-expanded", String(!list.hidden));
+      } }, Icons.el(some ? "audit" : "consent"), label,
     un ? h("span", { class: "ct" }, ` · ${un} not in the vault`) : null);
   }
   function problemsList(p) {
     const n = p.problems.length + p.unresolved.length;
-    return h("div", { class: "plan-problems", id: "plan-problems", hidden: !n },
+    return h("div", { class: "plan-problems", id: "plan-problems", hidden: true, "data-count": n },
       h("ol", { class: "in-problems" }, p.problems.map((t) => h("li", {}, h("span", { class: "in-line" }, "the plan"), t)),
         p.unresolved.map((u) => h("li", {}, h("span", { class: "in-line" }, u.story), h("b", {}, u.id), " is traced, but the vault holds no such thing"))));
   }

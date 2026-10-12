@@ -30,8 +30,10 @@ PLAN_QUESTION = re.compile(r"\bQ-\d+\b|\bopen question\b", re.I)
 GAP_OR_DEFERRAL = re.compile(r"\b(?:GAP|G|D|DEF)-?\d+\b|\bgap\b|\bdeferred\b", re.I)
 VAULT_QUESTION = re.compile(r"\bUNK-\d{3}\b")
 APP_ONLY = re.compile(r"^APP-[A-Za-z0-9-]+$")
-SIZE_LETTERS = re.compile(r"[SML]")
 SIZES = tuple(breakdown.SIZE_POINTS)
+# Words a release story's Component cell uses for work that is not one design component: "all" (every one), "packaging".
+PLAN_WIDE = ("all", "packaging")
+EPIC_CRITERION = re.compile(r"\bEPC-\d+\.AC\d+\b")
 
 
 class PlanError(Exception):
@@ -91,7 +93,7 @@ def blockers_of(text, known):
     for part in segments(text):
         if breakdown.NOTHING.match(part):
             continue
-        stories = re.findall(r"\bS-\d+\b", part)
+        stories = breakdown.story_refs(part)
         vault_q = [q for q in VAULT_QUESTION.findall(part) if q in known]
         if stories:
             out += [{"kind": "story", "ref": s, "text": s} for s in stories]
@@ -119,15 +121,29 @@ def traced_ids(text):
     return list(dict.fromkeys(i.rstrip("-") for i in breakdown.VAULT_ID.findall(text or "") if not APP_ONLY.match(i)))
 
 
+def aliases(name):
+    """A component's names: "CallClassifier and ClientMatcher" is one design component that tasks name together or apart."""
+    return [name] + [p.strip() for p in re.split(r",|\band\b", name) if p.strip()] if re.search(r",|\band\b", name) else [name]
+
+
 def names_component(cell, name):
-    return bool(re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", cell or "", re.I))
+    return any(re.search(rf"(?<![\w-]){re.escape(alias)}(?![\w-])", cell or "", re.I) for alias in aliases(name))
+
+
+def names_no_component(cell, known):
+    """True when a task's Component cell holds a part that is neither plan-wide nor any design component."""
+    parts = [p.strip() for p in re.split(r",|\band\b", cell or "") if p.strip()]
+    return any(p.lower() not in PLAN_WIDE and not any(names_component(p, n) for n in known) for p in parts)
 
 
 def coverage(stories, table, design, problems):
     """{targets, components}: [{target|name, stories, stated}] with `stories` the stories that cover it by their own lines."""
-    stated = {base(r["target"]): r for r in table}
+    stated = {}
+    for r in table:  # one target can have several rows ("(share)", "(obligation of CON-001)"): its stories are all of them
+        key = base(r["id"]) if r["id"] else r["target"]
+        stated[key] = {"stories": list(dict.fromkeys([*stated.get(key, {"stories": []})["stories"], *r["stories"]]))}
     owned = [] if design is None else [e["id"] for name, entries in design["trace"].items() if name != "Operations" for e in entries]
-    order = list(dict.fromkeys([*(r["target"] for r in table if breakdown.VAULT_ID.fullmatch(r["target"])), *owned,
+    order = list(dict.fromkeys([*(r["id"] for r in table if r["id"]), *owned,
                                 *(t for s in stories for t in s["traces"])]))
     targets = []
     for target in order:
@@ -136,11 +152,11 @@ def coverage(stories, table, design, problems):
         said = row["stories"] if row else None
         if row is None and by_lines:
             problems.append(f"{', '.join(by_lines)} traces to {target}, but the Coverage table has no row for it")
-        elif said is not None and set(said) != set(by_lines):
+        elif said is not None and not set(said) <= set(by_lines):  # a story may trace more than the table credits it with; the table must not credit one that does not trace it
             problems.append(f"the Coverage table gives {target} to {', '.join(said) or 'no story'}, but the stories that trace to it are {', '.join(by_lines) or 'none'}")
         targets.append({"target": target, "stories": by_lines, "stated": said})
     names = [c["name"] for c in design["components"]] if design else []
-    names += [r["target"] for r in table if not breakdown.VAULT_ID.fullmatch(r["target"]) and r["target"].lower() not in {n.lower() for n in names}]
+    names += [r["target"] for r in table if not r["id"] and r["target"].lower() not in {n.lower() for n in names}]
     components = []
     for name in names:
         by_tasks = [s["id"] for s in stories if any(names_component(t["component"], name) for t in s["tasks"])]
@@ -150,7 +166,7 @@ def coverage(stories, table, design, problems):
         known = {n.lower() for n in names}
         for s in stories:
             for t in s["tasks"]:
-                if t["component"] and not any(names_component(t["component"], n) for n in known):
+                if t["component"] and names_no_component(t["component"], known):
                     problems.append(f"{s['id']} task {t['name']!r} names component {t['component']!r}, which is not a component of the design")
     return {"targets": targets, "components": components}
 
@@ -162,15 +178,16 @@ def story_entry(story, summary, order_of, known, problems):
     tasks = [{"name": r[0], "size": (r[1] if len(r) > 1 else "").strip().upper(), "component": r[2] if len(r) > 2 else "",
               "points": breakdown.SIZE_POINTS.get((r[1] if len(r) > 1 else "").strip().upper(), 0)} for r in story.tasks]
     entry = {"id": story.id, "name": story.name, "order": order_of.get(story.id), "traces": traced_ids(story.traces), "tracesText": story.traces or "",
-             "size": breakdown.size_total(story), "points": breakdown.points(story), "criteria": story.criteria, "tasks": tasks,
-             "blockedText": story.blocked or "", "blockers": blockers_of(story.blocked, known)}
+             "size": breakdown.size_total(story), "points": breakdown.points(story), "criteria": story.criteria, "criteriaLabel": story.criteria_label, "openNotes": story.open_notes,
+             "conflicts": [{"text": c, "ref": (EPIC_CRITERION.findall(c) or [""])[0]} for c in story.conflicts], "tasks": tasks,
+             "blockedText": story.blocked or "", "blockers": [b for b in blockers_of(story.blocked, known) if b["ref"] != story.id]}  # a note that names its own story ("S-06 must not ship before S-11") does not make it wait for itself
     row = summary.get(story.id)
     if row:
-        if sorted(SIZE_LETTERS.findall(row["size"].upper())) != sorted(SIZE_LETTERS.findall(entry["size"])):
+        if breakdown.size_counts(row["size"]) != breakdown.size_counts(entry["size"]):
             problems.append(f"{story.id}: the summary table says its size is {row['size']!r}, but its tasks add up to {entry['size']}")
-        if set(traced_ids(row["traces"])) != set(entry["traces"]):
+        if not {base(t) for t in traced_ids(row["traces"])} <= {base(t) for t in entry["traces"]}:  # the table abbreviates ("FR1 and FR4 shares"); it must not name a target the section does not
             problems.append(f"{story.id}: the summary table's Traces to differs from the story section's")
-        if set(re.findall(r"\bS-\d+\b", row["blocked"])) != {b["ref"] for b in entry["blockers"] if b["kind"] == "story"}:
+        if not set(breakdown.story_refs(row["blocked"])) <= set(breakdown.story_refs(story.blocked)):
             problems.append(f"{story.id}: the summary table's Blocked by names different stories than the story section")
     return entry
 

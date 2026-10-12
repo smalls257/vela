@@ -125,3 +125,71 @@ def test_the_command_exits_1_with_problems_and_2_when_there_is_no_single_breakdo
     assert done.returncode == 1 and "is not S, M or L" in done.stderr
     (plan / "b-breakdown.md").write_text("x", encoding="utf-8")
     assert run_tool("--repo", str(tmp_path)).returncode == 2
+
+
+# ---- the work-breakdown skill's real output (a Heron plan from the sim): every construct it writes is read, not flagged
+
+HERON = REPO / "tests" / "fixtures" / "breakdown" / "heron-desktop-agent-breakdown.md"
+HERON_TICKETS = REPO / "tests" / "fixtures" / "breakdown" / "heron-desktop-agent-tickets.csv"
+
+
+def heron_stories():
+    from planner import breakdown
+    stories, _, problems = breakdown.parse(HERON.read_text(encoding="utf-8"))
+    return {s.id: s for s in stories}, problems
+
+
+def test_the_real_plan_has_no_unreadable_lines_for_the_constructs_the_skill_writes():
+    stories, problems = heron_stories()
+    assert problems == [] and len(stories) == 15
+    assert all(s.criteria for s in stories.values()), "every story's bullets sit under an Acceptance criteria label"
+    assert stories["S-11"].criteria_label.startswith("Acceptance criteria. No epic criterion covers this story")
+    assert [i for i, s in stories.items() if s.open_notes] == ["S-06", "S-08", "S-09"]
+    assert stories["S-06"].open_notes[0].startswith("Open for `tech-design-grill`: what `earlier_calls` returns")
+    assert [i for i, s in stories.items() if s.conflicts] == ["S-11"]
+    assert stories["S-11"].conflicts[0].startswith("Conflict with an epic criterion: EPC-001.AC5 says everyone invited appears")
+    assert all(s.extra == [] for s in stories.values())
+
+
+def test_a_story_that_says_it_traces_to_nothing_is_stated_not_unreadable():
+    stories, _ = heron_stories()
+    assert stories["S-14"].traces.startswith("no requirement row or epic criterion")
+
+
+def test_criteria_open_notes_and_conflicts_land_in_the_description_under_labels_and_the_story_is_labelled(tmp_path):
+    source = tmp_path / "heron-breakdown.md"
+    source.write_text(HERON.read_text(encoding="utf-8"), encoding="utf-8")
+    problems = b2t.convert(source, tmp_path / "work")
+    assert problems == []
+    with (tmp_path / "work" / "tickets.csv").open(encoding="utf-8", newline="") as f:
+        raw = list(csv.reader(f))
+    header, by_id = raw[0], {row[0]: row for row in raw[1:]}
+    assert len(raw) == 1 + 15 + 112
+
+    def labels(row):
+        return [c for c in row[6:len(header) - 1] if c]
+
+    desc = by_id["S-06"][2].splitlines()
+    assert "Acceptance criteria:" in desc and desc.index("Open for the design:") > desc.index("Acceptance criteria:")
+    assert any(line.startswith("- Open for `tech-design-grill`: what `earlier_calls` returns") for line in desc)
+    assert "needs-design" in labels(by_id["S-06"]) and "conflict" not in labels(by_id["S-06"])
+    clash = by_id["S-11"][2].splitlines()
+    assert clash[clash.index("Conflicts:") + 1].startswith("- Conflict with an epic criterion: EPC-001.AC5 says everyone invited")
+    assert "conflict" in labels(by_id["S-11"]) and "needs-design" not in labels(by_id["S-11"])
+    assert "needs-design" not in labels(by_id["S-06-T1"]), "tasks carry their story's trace labels, not its flags"
+    assert "Acceptance criteria. No epic criterion covers this story, so these are the design's behaviour:" in clash
+
+
+def test_the_tickets_for_the_real_plan_are_stable(tmp_path):
+    source = tmp_path / "heron-breakdown.md"
+    source.write_text(HERON.read_text(encoding="utf-8"), encoding="utf-8")
+    b2t.convert(source, tmp_path / "a")
+    b2t.convert(source, tmp_path / "b")
+    written = (tmp_path / "a" / "tickets.csv").read_bytes()
+    assert written == (tmp_path / "b" / "tickets.csv").read_bytes() == HERON_TICKETS.read_bytes()
+
+
+def test_a_range_of_stories_is_every_story_between_and_sizes_read_as_counts_or_letters():
+    from planner import breakdown
+    assert breakdown.story_refs("S-03 to S-05, G-012, S-09") == ["S-03", "S-04", "S-05", "S-09"]
+    assert breakdown.size_counts("2S 4M 1L") == breakdown.size_counts("M+M+M+M+S+S+L") == {"S": 2, "M": 4, "L": 1}
