@@ -1,5 +1,5 @@
-/* The one right-hand panel, on every view. Its home is the lights, most urgent first: what needs the lead, from
-   attention.lights. Anything picked anywhere opens here with a trail of breadcrumbs back, and every app, contract,
+/* The one right-hand panel, on every view. Its home is what needs the lead, from attention.lights: the lit apps,
+   contracts and flows, and, where the home page's queue is not on screen, the queue itself. Anything picked anywhere opens here with a trail of breadcrumbs back, and every app, contract,
    capability and question lists the flows that cross it, each with a Present button. */
 const Panel = (() => {
   const body = () => $("#panel-body");
@@ -27,7 +27,7 @@ const Panel = (() => {
     const box = h("nav", { class: "crumbs", "aria-label": "Trail" });
     const rootIsPage = App.root.startsWith("read:") || App.root.startsWith("inside:");
     box.append(h("a", { onclick: () => { App.trail = []; render(); }, class: App.trail.length ? "" : "cur", title: rootIsPage ? "Back to the page" : "What needs you, most urgent first" },
-      rootIsPage ? "◧ " + shorten(titleOf(App.root), 22) : "◉ Lights"));
+      rootIsPage ? "◧ " + shorten(titleOf(App.root), 22) : "◉ Needs you"));
     App.trail.forEach((k, i) => {
       box.append(h("span", { class: "sep" }, "›"));
       box.append(i === App.trail.length - 1 ? h("span", { class: "cur" }, idOf(k) || shorten(titleOf(k), 26)) : h("a", { "data-ref": k, title: titleOf(k) }, idOf(k) || shorten(titleOf(k), 20)));
@@ -38,6 +38,7 @@ const Panel = (() => {
   function render() {
     const root = body();
     root.innerHTML = "";
+    Queue.sync();
     const key = App.trail[App.trail.length - 1] || (App.root !== "lights" ? App.root : null);
     const tabs = homes();
     if (tabs) root.append(tabs);
@@ -53,26 +54,30 @@ const Panel = (() => {
     root.scrollTop = 0;
   }
 
-  /* ------------------------------------------------------------ home: the lights */
+  /* ------------------------------------------------------------ home: what needs you */
+  /* Why it is this way: on the home page the work queue sits beside the map, so the panel does not list the same
+     questions again. It shows the other half: the apps, contracts and flows that are lit, one line each, with how many
+     questions hold each. On any other page the queue is not on screen, so the panel carries it. */
+  function litWhy(light) {
+    const held = new Set(light.reasons.filter((r) => r.kind === "held").map((r) => r.unknown));
+    const other = [...new Set(light.reasons.filter((r) => r.kind !== "held").map((r) => r.text))];
+    return [held.size ? `held by ${plural(held.size, "question")}` : null, other[0] || null].filter(Boolean).join("; ");
+  }
   function home() {
-    const lit = litSubjects(), dark = darkSubjects();
+    const lit = litSubjects(), dark = darkSubjects(), queue = Queue.items(), late = queue.filter((x) => x.level === "warning").length;
+    const beside = App.section === "home" && App.view === "map";  // the queue is on the page, beside the map
+    const lede = !queue.length && !lit.length ? "Nothing is lit. Every app, contract and flow has a recorded state, is settled, and no open question holds it."
+      : `${queue.length ? `${plural(queue.length, "question")} ${queue.length === 1 ? "is" : "are"} holding things up${late ? `, ${late} overdue` : ""}. ` : ""}${beside ? "They are listed with the map. Pick one there, or a box on the map, to read it here." : queue.length ? "Pick one to read it here." : ""}`;
     const out = [h("div", { class: "p-head" }, h("div", { class: "kind" }, `Lit from the record as of ${day(D.today)}`), h("h2", {}, "What needs you"),
-      h("p", { class: "p-lede" }, lit.length ? `${plural(lit.length, "thing")} lit, most urgent first${D.above.length ? `, and ${plural(D.above.length, "question")} held above the map` : ""}. Everything else is dark: settled, with nothing holding it.`
-        : "Nothing is lit. Every app, contract and flow has a recorded state, is settled, and no open question holds it."))];
-    out.push(section("Lights, most urgent first", lit.length, lit.length ? h("ul", { class: "lights" }, lit.map(({ key, light }) => h("li", {},
-      h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key },
-        lampEl(light.level), h("span", {}, h("span", { class: "what", style: `color:${LIGHT[light.level].colour}` }, `${idOf(key) ? idOf(key) + " " : ""}${titleOf(key)}`),
-          h("span", { class: "why" }, `${LIGHT[light.level].word}: ${reasonSummary(light, 1)}`))))))
-      : empty("Nothing is lit.")));
-    if (D.above.length) out.push(section("Held above the map", D.above.length, h("p", { class: "p-note" }, "Open questions that hold something no map draws: the strategy, a goal, another question."),
-      h("ul", { class: "lights" }, D.above.map((a) => {
-        const u = ASK[a.unknown], lvl = u ? u.light.level : "caution";
-        return h("li", {}, h("button", { class: "light-row", "data-ref": a.unknown },
-          lampEl(lvl), h("span", {}, h("span", { class: "what" }, `${a.unknown} holds ${a.title}`), h("span", { class: "why" }, u ? `${u.question ? shorten(u.question, 110) + " " : ""}Ask ${u.ask.name}${u.ask.inferred ? " (a guess)" : ""} by ${day(a.ask_by)}` : ""))));
-      }))));
+      lede ? h("p", { class: "p-lede" }, lede) : null)];
+    if (!beside && queue.length) out.push(section("Waiting on an answer", queue.length, Queue.block()));
+    out.push(section("Lit on the map", lit.length, lit.length ? h("ul", { class: "lights" }, lit.map(({ key, light }) => h("li", {},
+      h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key, title: `${LIGHT[light.level].word}${idOf(key) ? ", " + idOf(key) : ""}` },
+        lampEl(light.level), h("span", {}, h("span", { class: "what" }, titleOf(key)), h("span", { class: "why" }, litWhy(light) || LIGHT[light.level].say))))))
+      : empty("Nothing on the map is lit.")));
     const challenged = typeof Inside !== "undefined" ? Inside.homeSection() : null;
     if (challenged) out.push(challenged);  // Element.append writes a null as the text "null"
-    out.push(section("Dark, settled", dark.length, h("p", { class: "p-note" }, dark.map((k) => idOf(k) || titleOf(k)).join(", ") || "None.")));
+    out.push(section("Dark, settled", dark.length, h("p", { class: "p-note" }, dark.map((k) => titleOf(k)).join(", ") || "None.")));
     out.push(h("div", { class: "p-key" }, LEVELS.map((l) => h("span", {}, lampEl(l), LIGHT[l].word))));
     return out;
   }
@@ -288,7 +293,7 @@ const Panel = (() => {
       out.push(section("Everything else they own", rest.length, rest.map((x) => refChip(x.key))));
     } else {
       if (e.kind === "runtime" && RUNTIME_TO_APP[k]) out.push(section("Runtime of", null, refChip(RUNTIME_TO_APP[k])));
-      if (e.kind === "decision") out.push(h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => { showView("garden"); Garden.showFor(k); } }, "See it grow in the garden")));
+      if (e.kind === "decision") out.push(h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => { showView("decisions"); Decisions.showFor(k); } }, "Open it in the decision log")));
       out.push(prose(e), heldBy(k));
       if (["concern", "decision", "section", "risk", "stored-value"].includes(e.kind)) out.push(flowsSection(k));
       out.push(section("Facts", null, factsGrid(e.facts, [])));

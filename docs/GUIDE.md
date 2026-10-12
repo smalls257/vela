@@ -145,7 +145,7 @@ or `planner explore` for a static `dashboard.html` at the vault root. Nobody els
 What you get:
 - **What needs you** is the home screen: lit lamps for overdue questions, unreviewed decisions and unsettled items.
 - **Five doors** for other readers: Exec, Product, QA, Engineering, Managers.
-- **Map, flows, releases, who to ask, why** (the decision garden). A flow plays step by step; press `P` to present it full screen.
+- **Map, flows, releases, who to ask, why** (the decision log). A flow plays step by step; press `P` to present it full screen.
 - **Ask Claude**: type a question and press Enter. Claude reads the vault only (it cannot edit), cites page IDs as links, and flags an ID the vault does not hold. Each answer shows its model and cost. "Think harder" uses Sonnet.
 - **Inside this app** (double-click an app) goes Context, Containers, Components, then **Build plan**: the team's stories in build order, what blocks what, and coverage of the requirements.
 

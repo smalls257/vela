@@ -2,11 +2,11 @@
    the router. Every section opens a section page: its visual in the main area, and its page, in the vault's own
    words, beside it in the panel. Constraints, Strategy and Glossary are mostly words, so their page fills the main
    area instead. The views the explorer already had are the visuals of their sections: the map is Apps (and
-   Capabilities, grouped by capability), the played flows are Flows, Who to ask is Unknowns and risks, the garden is
+   Capabilities, grouped by capability), the played flows are Flows, Who to ask is Unknowns and risks, the decision log is
    Decisions, the stage ladder is Apps' second visual and the trace is Capabilities' and Epics'.
 
    Hash: #home, #role=qa, #s=apps&open=APP-booking, #s=strategy&read, plus the map's &lens= &group= &focus= and the
-   releases' &state=. The old deep links (#map, #flows&open=FLO-002, #asks&open=UNK-065, #garden&open=ADR-0002)
+   releases' &state=. The old deep links (#map, #flows&open=FLO-002, #asks&open=UNK-065, #garden&open=ADR-0002, now the decision log)
    still land where they did. */
 const Nav = (() => {
   const SIDE_KEY = "explorer.side", OPEN_KEY = "explorer.side.open";
@@ -16,7 +16,7 @@ const Nav = (() => {
     goals: [["goals", "Goals"]], constraints: [], context: [["context", "Today and after"]], strategy: [],
     capabilities: [["map", "Capability map"], ["trace", "Trace"]], releases: [["releases", "Timeline"]],
     apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Played"]], concerns: [["concerns", "Concern cells"]],
-    decisions: [["garden", "Garden"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Trace"]],
+    decisions: [["decisions", "Log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Trace"]],
   };
   const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); } };
@@ -73,7 +73,7 @@ const Nav = (() => {
     if (id === "apps") { MapView.st.lens = MapView.st.lens === "releases" ? null : MapView.st.lens; if (st.child) { MapView.st.focus = st.child; MapView.st.lens = "cockpit"; } if (MapView.st.group === "capability") MapView.st.group = null; }
     if (id === "capabilities") { MapView.st.group = "capability"; MapView.st.lens = "cockpit"; }
     if (id === "flows" && st.child) { Flows.st.key = st.child; Flows.st.cur = -1; }
-    if (id === "decisions" && st.child) Garden.showFor(st.child);
+    if (id === "decisions" && st.child) Decisions.showFor(st.child);
     if (id === "releases" && opts.state !== undefined) Releases.open(opts.state);
     App.trail = []; App.focus = st.child || null;
     App.view = viewDef(view) ? view : "doc";
@@ -168,7 +168,7 @@ const Nav = (() => {
     history.replaceState(null, "", "#" + p.join("&"));
   }
   function boot() {
-    const hs = HASH.get("s"), legacy = VIEWS.find((v) => HASH.has(v.id) && !["role", "doc"].includes(v.id));
+    const hs = HASH.get("s"), legacy = VIEWS.find((v) => (HASH.has(v.id) || (v.alias && HASH.has(v.alias))) && !["role", "doc"].includes(v.id));
     if (HASH.get("lens")) MapView.st.lens = HASH.get("lens");
     if (HASH.get("group")) MapView.st.group = HASH.get("group");
     if (HASH.has("role")) { role(HASH.get("role")); return true; }
@@ -224,7 +224,7 @@ const Nav = (() => {
     document.body.classList.toggle("side-hidden", !!st.hidden);
     $("#side-toggle").setAttribute("aria-expanded", String(!st.hidden));
     side.innerHTML = "";
-    const lit = litSubjects().length + D.above.length;
+    const lit = Queue.total();
     side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Front doors"),
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, onclick: home },
         h("span", { class: "side-label" }, "What needs you"), lit ? h("span", { class: "side-n lit " + (litSubjects()[0] ? litSubjects()[0].light.level : "caution") }, lit) : null),

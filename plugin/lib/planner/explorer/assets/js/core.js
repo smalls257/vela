@@ -97,17 +97,6 @@ const unknownLevel = (id) => { const u = ASK[id]; if (!u) return "dark"; return 
 /* The pending-approval mark in words: a clock glyph and the text, with who and when on hover, so colour is never alone. */
 const pendingPill = (p) => h("span", { class: "pill pending", title: p ? `Decided by ${p.by} on ${p.date}; the owner has not reviewed it` : LIGHT.pending.say }, "◷ Pending approval");
 function lampEl(level, title) { return h("span", { class: "lamp " + level, title: title || (LIGHT[level] ? LIGHT[level].word : level) }); }
-/* A light's reasons in one line: each holding question once, soonest first, then the rest. */
-function reasonSummary(light, max = 2) {
-  const held = new Map();
-  for (const r of light.reasons) if (r.kind === "held" && r.unknown && !held.has(r.unknown)) held.set(r.unknown, r);
-  const qs = [...held.values()].sort((a, b) => cmp((ASK[a.unknown] || {}).askBy || "9999", (ASK[b.unknown] || {}).askBy || "9999"));
-  const other = light.reasons.filter((r) => r.kind !== "held").map((r) => r.text);
-  const parts = qs.slice(0, max).map((r) => { const u = ASK[r.unknown]; return `${r.unknown} ${E[r.unknown] ? shorten(E[r.unknown].title, 48) : ""}, ask ${r.ask || (u ? u.ask.name : "")} by ${day(u ? u.askBy : "")}`; });
-  const more = qs.length - max;
-  if (more > 0) parts.push(`${plural(more, "more question")}`);
-  return parts.concat([...new Set(other)].slice(0, 2)).join("; ");
-}
 function reasonText(r) {
   if (r.kind === "held" && r.unknown && ASK[r.unknown]) {
     const u = ASK[r.unknown], e = E[r.unknown];
@@ -299,7 +288,7 @@ function go(key, opts = {}) {
 function revealView(e) {
   if (e.kind === "flow") return "flows";
   if (e.kind === "unknown") return "asks";
-  if (e.kind === "decision") return "garden";
+  if (e.kind === "decision") return "decisions";
   if (mapAnchors(e.key).length) return "map";
   if (e.kind === "capability" || e.kind === "requirement" || e.kind === "epic") return "trace";
   return null;
@@ -341,7 +330,7 @@ function showTip(ev, html) {
 }
 function hideTip() { $("#tip").classList.remove("on"); }
 
-/* Every lit subject, most urgent first, as attention.ranked orders them: the cockpit memo and the panel's home. */
+/* Every lit subject, most urgent first, as attention.ranked orders them: the panel's home and the sidebar's count. */
 function litSubjects() {
   return D.ranked.map((key) => ({ key, light: D.lights[key] })).filter((x) => x.light && ent(x.key));
 }

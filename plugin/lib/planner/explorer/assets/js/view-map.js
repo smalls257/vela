@@ -23,6 +23,7 @@ const MapView = (() => {
   let pulses = [], trains = [], gPulses = null, LAY = null, stripEl = null;
   const LEDE = {
     cockpit: "Every app, outside party and contract, where they always sit. Grey is settled; a lamp is lit only where something needs you.",
+    home: "What is waiting on an answer, beside the system it holds up. Grey is settled; a lamp is lit only where something needs you.",
     domain: "Apps grouped by the domain on their page. A closed cluster shows its apps' worst light and its counts; open it in place.",
     capability: "Capabilities as regions, with the apps that carry their requirements inside. An app in several is drawn once, with a tab saying how many more; the others list it under \"Also carried by\".",
     focus: "One app and its direct neighbours only: who uses it on the left, what it uses on the right, outside parties below.",
@@ -36,21 +37,25 @@ const MapView = (() => {
     if (typeof Motion !== "undefined") Motion.clear();
     const mode = lens() === "cockpit" ? (st.focus ? "focus" : group() === "none" ? "cockpit" : group()) : lens();
     const title = typeof Nav !== "undefined" ? Nav.title("Map") : "Map";
+    // On the home page the work queue sits beside the map, so the map keeps its height; elsewhere the map has the column to itself.
+    const queued = App.section === "home" && typeof Queue !== "undefined";
+    const lede = LEDE[queued && mode === "cockpit" ? "home" : mode];
     const head = h("div", { class: "view-head" },
-      h("div", {}, h("h1", {}, st.focus && lens() === "cockpit" ? `Focus: ${titleOf(st.focus)}` : title), h("p", { class: "lede", title: LEDE[mode] }, LEDE[mode])),
+      h("div", {}, h("h1", {}, st.focus && lens() === "cockpit" ? `Focus: ${titleOf(st.focus)}` : title), h("p", { class: "lede", title: lede }, lede)),
       h("div", { class: "spacer" }),
       typeof Nav !== "undefined" ? Nav.pageActions() : null);
     main.append(head);
+    const col = queued ? h("div", { class: "home-map" }) : main;
     const tools = toolbar();
-    if (tools) main.append(tools);  // Element.append writes a null as the text "null"
-    if (D.above.length) main.append(above());
-    main.append(countLine());
-    if (App.section === "capabilities" && !hasCapabilities()) main.append(emptyState("No capability requirements recorded yet.", "No app carries one, and no epic lists an app against a capability, so there is nothing to group the apps by.", "/planner:requirements", "inline"));
+    if (tools) col.append(tools);  // Element.append writes a null as the text "null"
+    col.append(countLine());
+    if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No capability requirements recorded yet.", "No app carries one, and no epic lists an app against a capability, so there is nothing to group the apps by.", "/planner:requirements", "inline"));
     const board = h("div", { class: "board board-" + (lens() === "cockpit" && mode !== "cockpit" ? "cockpit board-" + mode : lens()), id: "board" });
     // The matrix's key sits beside (or, in a narrow window, under) the scrolling board and not inside it, so nothing
     // after the table adds scroll room and pushes the frozen head and row names out with the table's edge.
     const stage = lens() === "matrix" ? h("div", { class: "matrix-stage" }, board) : null;
-    main.append(stage || board);
+    col.append(stage || board);
+    if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
     if (!D.nodes.length) { board.append(emptyState("This vault has no apps yet.", "There is no map to draw.", "/planner:boundary")); return; }
     if (lens() === "matrix") { const m = matrix(); board.append(m.table); stage.append(m.key); }
     else if (lens() === "releases") Releases.mapLens(board);
@@ -89,18 +94,7 @@ const MapView = (() => {
     return bar.childNodes.length ? bar : null;
   }
 
-  /* ------------------------------------------------------------ held above the map, and the count line */
-  function above() {
-    const box = h("div", { class: "above" });
-    if (!D.above.length) { box.append(h("span", { class: "above-label" }, "Nothing is held above the map: no open question holds the strategy, a goal or another question.")); return box; }
-    box.append(h("span", { class: "above-label" }, "Held above the map"));
-    for (const a of D.above) {
-      const u = ASK[a.unknown], lvl = u ? u.light.level : "caution";
-      box.append(h("button", { class: "cap lit " + lvl, "data-ref": a.unknown, title: `${a.unknown} holds ${a.title}${u ? ": " + u.question : ""}` },
-        h("b", {}, a.unknown), h("span", {}, shorten(a.title, 22)), h("i", {}, day(a.ask_by))));
-    }
-    return box;
-  }
+  /* ------------------------------------------------------------ the count line */
   function countLine() {
     const apps = D.map.apps.length, litApps = D.map.apps.filter((a) => levelOf(a.key) !== "dark").length;
     const cons = D.map.contracts.length, litCons = D.map.contracts.filter((c) => levelOf(c.id) !== "dark").length;
@@ -110,7 +104,6 @@ const MapView = (() => {
     if (lens() === "cockpit" && !st.lens && big() && hasDomains() && group() === "domain") notes.push(`${plural(D.nodes.length, "box", "boxes")} is past what one drawing carries, so the apps open grouped by domain, ${manyApps() ? "each cluster closed" : "every cluster open"}; the matrix shows the full picture`);
     if (lens() === "matrix" && !st.lens) notes.push(`${plural(D.nodes.length, "box", "boxes")} and ${plural(lines(), "line")} is past what a drawing carries, so the matrix opens first; the cockpit and line map keep every app in the same place`);
     if (lens() === "transit") { const idle = D.map.contracts.filter((c) => !flowsFor(c.id).length).length; if (idle) notes.push(`${plural(idle, "contract")} no flow runs over ${idle === 1 ? "is" : "are"} drawn as dotted siding`); }
-    if (!D.above.length) notes.unshift("Nothing is held above the map");
     return h("div", { class: "countline", title: `${litApps} of ${plural(apps, "app")} and ${litCons} of ${plural(cons, "contract")} lit. ${notes.join(". ")}` }, h("b", {}, `${litApps} of ${plural(apps, "app")}`), " and ", h("b", {}, `${litCons} of ${plural(cons, "contract")}`), " lit. ",
       notes.length ? h("span", { class: "hidden-note" }, notes.join(". ") + ".") : "Nothing hidden.");
   }

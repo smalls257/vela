@@ -65,14 +65,15 @@ const Roles = (() => {
       return h("li", {}, h("a", { "data-ref": r.id }, h("b", {}, r.id), " ", r.title), sev ? h("span", { class: "pill" }, sev) : null,
         f.Mitigation ? h("div", { class: "muted small" }, shorten(f.Mitigation, 120)) : null);
     }) : empty("No risk (R-nn) is recorded."), risks.length ? rule("In the order the risks page lists them; the page records no ranking the explorer could use.") : null));
-    const above = D.above.map((a) => ({ u: UNKNOWN[a.unknown], holds: a.title })).filter((x) => x.u);
-    const owed = [...above.map((x) => ({ kind: "question", key: x.u.id, say: `holds ${x.holds}` })),
+    // one line per question, in plain words, not one per thing it holds
+    const asked = [...new Set(D.above.map((a) => a.unknown))].filter((u) => UNKNOWN[u]).map((u) => ({ kind: "question", key: u, say: `holds ${Queue.say(D.above.filter((a) => a.unknown === u).map((a) => a.key))}` }));
+    const owed = [...asked,
       ...proposed.map((e) => ({ kind: "decision", key: e.key, say: "proposed, not decided" })),
       ...D.progress.awaiting.map((a) => ({ kind: "override", key: a.key, say: `decided on behalf of ${a.owners.join(", ")}, not yet confirmed` })),
       ...Releases.STATES.slice(1).filter((x) => !x.fromChange && x.state !== "decided").map((x) => ({ kind: "release", key: null, name: x.heading || x.name, say: `release at ${x.state || "no state"}` }))];
     grid.append(card("What needs your decision", null, owed.length ? list(owed, 5, (x) => h("li", {}, x.key ? lampEl(levelForKey(x.key) || "caution") : lampEl("caution"),
-      x.key ? refChip(x.key) : h("b", {}, x.name), h("span", { class: "muted small" }, " " + x.say))) : empty("Nothing waits on an executive decision by this rule."),
-      rule("Rule: open questions that hold a goal, the strategy or another question (held above the map), decisions still proposed, overrides awaiting their owner, and releases not yet decided.")));
+      x.kind === "question" ? h("a", { "data-ref": x.key, title: x.key }, titleOf(x.key)) : x.key ? refChip(x.key) : h("b", {}, x.name), h("span", { class: "muted small" }, " " + x.say))) : empty("Nothing waits on an executive decision by this rule."),
+      rule("Rule: open questions that hold a goal, the strategy or another question (things no map draws), decisions still proposed, overrides awaiting their owner, and releases not yet decided.")));
     grid.append(card("Release timeline", ["Releases", () => Nav.open("releases")], timeline()));
   }
 
@@ -90,7 +91,7 @@ const Roles = (() => {
       : missing("No releases recorded yet.", "They go in 04b-releases.md, and each release lists the requirements it delivers.", ["/planner:requirements", "/planner:allocate"])));
     const biz = openQs().filter((u) => holdsKinds(UNKNOWN[u.id], ["goal", "capability", "requirement", "flow"]) || D.above.some((a) => a.unknown === u.id));
     grid.append(card("Business questions", ["Who to ask", () => Nav.open("unknowns")], biz.length ? list(biz.sort((a, b) => cmp(a.askBy || "9", b.askBy || "9")), 5, (u) => qRow(UNKNOWN[u.id])) : empty("No open question holds a goal, capability, requirement or flow."),
-      rule("Rule: open questions whose Blocks line reaches a goal, capability, requirement or flow, or that hold something above the map.")));
+      rule("Rule: open questions whose Blocks line reaches a goal, capability, requirement or flow, or that hold something no map draws.")));
     grid.append(card("User flows", ["Flows", () => Nav.open("flows")], D.flows.length ? list(D.flows, 5, (f) => h("li", {}, lamp(levelOf(f.key)), h("a", { "data-ref": f.key, "data-reveal": "" }, h("b", {}, E[f.key].id), " ", E[f.key].title),
       h("span", { class: "muted small" }, ` ${plural(f.steps.length, "step")}`), h("button", { class: "btn tiny", onclick: () => Flows.present(f.key, 0) }, "▶ Present"))) : missing("No flows yet.", "", "/planner:boundary")));
   }

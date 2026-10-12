@@ -74,8 +74,7 @@ const SelfTest = (() => {
     const want = D.nodes.length + D.map.contracts.filter((c) => c.consumers.some((k) => k !== c.provider && NODE[k]) && NODE[c.provider]).length + D.flows.length;
     const wrong = lamps.filter((g) => { const lv = D.lights[g.dataset.key] ? D.lights[g.dataset.key].level : "dark"; return !g.classList.contains(lv === "dark" ? "dark" : lv); });
     ok(lamps.length >= want - 1 && !wrong.length, `map, cockpit: ${lamps.length} lamps, each lit as attention.lights says; ${$$("#board g.lit").length} lit`, `map, cockpit: ${lamps.length} lamps (wanted ${want}); ${wrong.length} disagree with attention.lights: ${wrong.slice(0, 3).map((g) => g.dataset.key).join(", ")}`);
-    ok($$("#panel .light-row").length === litSubjects().length + D.above.length, `panel home: ${litSubjects().length} lights, most urgent first, and ${D.above.length} held above the map`, "panel home lights do not match attention.ranked");
-    ok(D.above.length === $$(".above .cap").length, `held above the map: ${D.above.length} shown of ${D.above.length}`, "the held-above strip drops some");
+    await queueChecks();
     if (D.nodes.length > 0) {
       go(D.nodes[0].key, { reset: true }); await frames();
       ok(!!$("#panel-mini .mini-ring"), `minimap: "you are here" ringed at ${titleOf(D.nodes[0].key)}`, "minimap: no you-are-here ring");
@@ -130,8 +129,7 @@ const SelfTest = (() => {
       const inferred = D.asks.filter((x) => x.ask.inferred).length;
       out.push(`who to ask: ${D.asks.filter((x) => x.ask.rule.startsWith("recorded")).length} racks from Ask lines, ${inferred} guessed from Owner lines and marked`);
     }
-    showView("garden"); await frames();
-    ok($$(".plot").length === Garden.trees.length, Garden.trees.length ? `why: ${Garden.trees.length} decisions in the bed, one on the sheet` : "why: no decision records its options, and the view says so", `why: ${$$(".plot").length} plots for ${Garden.trees.length} decisions`);
+    await decisionChecks();
     showView("progress"); await frames();
     ok($$(".pages table.t tr.click").length >= D.progress.rows.length, `progress: ${D.progress.rows.length} apps on the ladder, ${$$(".due-chart .bar-r").length} due bars`, "progress: rows missing");
     showView("trace"); await frames();
@@ -153,7 +151,7 @@ const SelfTest = (() => {
       const reader = $("#panel .reader") || $("#main .reader");
       const visual = App.view !== "doc" ? !!$("#main").children.length : !!$("#main .reader");
       const links = reader ? $$("a[data-ref]", reader) : [], dead = links.filter((a) => !ent(a.dataset.ref) && !a.classList.contains("ref-dead"));
-      const decision = id === "decisions" && $("#panel .open-page");  // the garden opens its first decision beside it
+      const decision = id === "decisions" && $("#panel .open-page");  // a decision picked in the log opens its page beside it
       if (s.page && ((!reader && !decision) || !visual || dead.length)) bad.push(`${id}: reader ${!!reader}, visual ${visual}, ${dead.length} dead links`);
       if (!s.page && !$("#main").textContent.trim()) bad.push(`${id}: no page and nothing says so`);
       const nulls = [$("#main"), $("#panel")].flatMap((root) => { const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), found = []; while (w.nextNode()) if (w.currentNode.nodeValue.trim() === "null") found.push(w.currentNode); return found; });
@@ -751,6 +749,87 @@ const SelfTest = (() => {
     Ask.restore(real);
     Nav.home(); go("lights", { reset: true });
   }
+  /* The work queue beside the map, and the panel that complements it. The queue is a short ranked list of the open
+     questions that hold something up, in plain words; the panel lists the lit things on the map, not the same
+     questions again, and carries the queue itself only where the queue is not on the page. */
+  async function queueChecks() {
+    const q = Queue.items(), top = Math.min(Queue.TOP, q.length), rows = () => $$(".home-stage .q-row");
+    const ranked = q.every((x, i) => !i || rank(q[i - 1].level) > rank(x.level) || (q[i - 1].level === x.level && q[i - 1].urgency >= x.urgency));
+    ok(ranked && q.every((x) => x.level === ASK[x.id].light.level), `queue: ${q.length} open questions that hold something, in attention's order (level, then urgency), each lamp the question's own light`, "queue: the order or a lamp is not attention's");
+    const held = new Set([...D.above.map((a) => a.unknown), ...Object.values(D.blockedBy).flat()].filter((u) => isOpen(ASK[u])));
+    ok(held.size === q.length && [...held].every((u) => q.some((x) => x.id === u)), `queue: every open question that holds something is listed once (${held.size}), not once per thing it holds (${D.above.length} held above the map)`, `queue: ${q.length} listed for ${held.size} holding questions`);
+    ok(rows().length === top && rows().every((r) => !/^[A-Z]+-\d+/.test($(".q-title", r).textContent) && !/\b(UNK|CAP|EPC|CON|APP)-\d/.test(r.textContent) && r.title.startsWith(r.dataset.ref)),
+      `queue: the top ${top} show in plain words, with what each holds up and who to ask; the ID is in the tooltip only`, "queue: a row shows an ID or lacks its tooltip");
+    ok(rows().every((r) => /Holds /.test($(".q-sub", r).textContent) && /Ask /.test($(".q-ask", r).textContent) && $(".q-when b", r).textContent.trim()), "queue: each row says what it holds up, who to ask and by when", "queue: a row lacks what it holds, who to ask or when");
+    ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$(".home-stage .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
+    const card = $(".q-card"), map = $(".home-map"), a = card.getBoundingClientRect(), b = map.getBoundingClientRect();
+    const apart = a.right <= b.left + 1 || a.bottom <= b.top + 1;  // beside the map, or folded above it
+    ok(apart && b.height > 150, `queue: the card and the map do not overlap, and the map keeps ${Math.round(b.height)} px of height (${innerWidth}x${innerHeight})`, `queue: card ${Math.round(a.left)}..${Math.round(a.right)} x ${Math.round(a.top)}..${Math.round(a.bottom)} meets the map ${Math.round(b.left)}..${Math.round(b.right)} x ${Math.round(b.top)}..${Math.round(b.bottom)}`);
+    if (q.length > Queue.TOP) {
+      $(".q-more").click(); await frames();
+      const groups = $$(".home-stage .q-group"), sum = groups.reduce((n, g) => n + (+$(".ct", g).textContent), 0);
+      ok(rows().length === q.length && sum === q.length && groups.every((g) => $$(".q-row", g).length === +$(".ct", g).textContent), `queue: Show all ${q.length} groups them by what they hold (${groups.map((g) => $("h4", g).firstChild.textContent).join(", ")}), counts adding up`, `queue: ${rows().length} rows in ${groups.length} groups, counts ${sum}, wanted ${q.length}`);
+      $(".q-more").click(); await frames();
+      ok(rows().length === top, `queue: Show the top ${Queue.TOP} folds it back to ${top}`, "queue: the list did not fold back");
+    }
+    if (q.length) {
+      rows()[0].click(); await frames();
+      ok(App.focus === q[0].id && $("#panel h2").textContent === q[0].title && rows()[0].classList.contains("on"), `queue: picking "${q[0].title}" opens it in the panel and marks the row`, `queue: focus ${App.focus}, panel "${$("#panel h2").textContent}"`);
+    }
+    go("lights", { reset: true }); await frames();
+    const lit = litSubjects();
+    ok($$("#panel .q-row").length === 0 && $$("#panel .light-row").length === lit.length, `panel home: ${lit.length} lit things on the map, and none of the ${q.length} queued questions repeated beside the queue`, `panel home: ${$$("#panel .q-row").length} queue rows and ${$$("#panel .light-row").length} lit rows beside the queue`);
+    Nav.open("goals"); go("lights", { reset: true }); await frames();
+    ok($$("#panel .q-row").length === top, `panel home, away from the home page: carries the queue (${top} of ${q.length}) because the page does not`, `panel home on Goals: ${$$("#panel .q-row").length} queue rows`);
+    const counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
+    ok(Object.entries(masters).every(([lv, n]) => n === counts[lv]), `top bar: ${Object.entries(masters).map(([lv, n]) => `${n} ${lv}`).join(", ")}, each question counted once`, `top bar ${JSON.stringify(masters)} against ${JSON.stringify(counts)}`);
+    Nav.home(); go("lights", { reset: true }); await frames();
+  }
+
+  /* The decision log: a table that sorts and filters, and a decision record per row. */
+  async function decisionChecks() {
+    showView("decisions"); await frames();
+    const all = Decisions.trees.length, base = Decisions.entries.filter((e) => !e.bare), rows = () => $$(".dl-row");
+    if (!all) { ok(!!$("#main .empty-state"), "decisions: no decision records its options, and the view says so", "decisions: nothing listed and no empty state"); return; }
+    ok(rows().length === base.length && $$(".dl-name").every((n) => n.textContent.trim()), `decisions: ${base.length} in the log, each with a plain name${Decisions.entries.length > base.length ? `; ${Decisions.entries.length - base.length} decided pages with no options are kept behind a filter` : ""}`, `decisions: ${rows().length} rows for ${base.length} decisions`);
+    ok(viewDef("decisions").alias === "garden", "decisions: the old #garden route still lands here", "decisions: the #garden alias is gone");
+    const cells = rows().slice(0, 3).every((r) => { const rs = $$(".dl-c", r).map((c) => c.getBoundingClientRect()); return rs.every((x, i) => rs.every((y, j) => i >= j || x.right <= y.left + 1 || y.right <= x.left + 1 || x.bottom <= y.top + 1 || y.bottom <= x.top + 1)); });
+    ok(cells, "decisions: the cells of a row do not overlap", "decisions: cells of a row overlap");
+    const states = Decisions.STATES.filter(([id]) => base.some((e) => e.state === id));
+    for (const [id, word] of states.slice(0, 2)) {
+      $(`[data-state="${id}"]`).click(); await frames();
+      const want = base.filter((e) => e.state === id).length;
+      ok(rows().length === want && rows().every((r) => $(".dl-state .pill", r).textContent.includes(word)), `decisions: filtering to ${word} shows ${want}`, `decisions: ${word} filter shows ${rows().length}, wanted ${want}`);
+      $(`[data-state="${id}"]`).click(); await frames();
+    }
+    $('[data-sort="name"]').click(); await frames();
+    const names = $$(".dl-name").map((n) => n.textContent.trim().toLowerCase()), sorted = names.slice().sort((x, y) => cmp(x, y));
+    ok(JSON.stringify(names) === JSON.stringify(sorted) && $('[data-sort="name"]').getAttribute("aria-sort") === "ascending", "decisions: sorting by Decision puts the names in order, and the header says so", `decisions: sort by name gave ${names.slice(0, 3).join(" | ")}`);
+    $('[data-sort="name"]').click(); await frames();
+    ok($('[data-sort="name"]').getAttribute("aria-sort") === "descending" && $$(".dl-name")[0].textContent.trim().toLowerCase() === sorted[sorted.length - 1], "decisions: the same header again reverses it", "decisions: the second click did not reverse the order");
+    $('[data-sort="state"]').click(); await frames();
+    const first = base[0], word = first.name.split(/\s+/).find((w) => w.length > 3) || first.name;
+    const find = $(".dl-find"); find.value = word; find.dispatchEvent(new Event("input")); await frames();
+    ok(rows().length >= 1 && rows().length <= base.length && document.activeElement !== null, `decisions: finding "${word}" leaves ${rows().length} of ${base.length}`, `decisions: search for "${word}" left ${rows().length}`);
+    find.value = "zzzz-no-such-decision"; find.dispatchEvent(new Event("input")); await frames();
+    ok(!rows().length && !!$(".dl-none"), "decisions: a search that matches nothing says so and offers to clear the filters", "decisions: an empty search shows nothing and says nothing");
+    find.value = ""; find.dispatchEvent(new Event("input")); await frames();
+    const pick = Decisions.visible()[0];
+    rows()[0].click(); await frames();
+    const rec = $(".dl-detail"), chosen = rec && $$(".dl-options .chosen", rec).length, turned = rec ? $$(".dl-options .rejected", rec).length : -1;
+    ok(!!rec && $("h2", rec).textContent === pick.name && chosen === 1 && turned === pick.rejected.length, `decisions: opening "${pick.name}" shows its record with the choice and ${turned} option${turned === 1 ? "" : "s"} turned down, each with its reason`, `decisions: record ${!!rec}, chosen ${chosen}, turned down ${turned} of ${pick.rejected.length}`);
+    ok(["Context", "Options considered", "Decision", "Consequences", "History"].every((s) => $$(".dl-sec h3", rec).some((x) => x.textContent === s) || (s === "Context" && !pick.t.carriedBy[0].text)), "decisions: the record has its context, options, decision, consequences and history", "decisions: a section of the record is missing");
+    const lr = $(".dl-listwrap"), dr = rec.getBoundingClientRect(), ls = lr.getBoundingClientRect(), hidden = getComputedStyle(lr).display === "none";
+    ok(hidden || ls.right <= dr.left + 1, "decisions: the list and the record sit side by side or the record takes the room, never over one another", `decisions: list ${Math.round(ls.left)}..${Math.round(ls.right)} meets the record from ${Math.round(dr.left)}`);
+    const adr = base.find((e) => e.t.adr);
+    if (adr) { Decisions.select(""); Decisions.showFor(adr.t.adr.key); await frames(); ok($(".dl-detail h2").textContent === adr.name, `decisions: a link to ${adr.t.adr.id} opens its record, ${adr.name}`, `decisions: ${adr.t.adr.id} opened "${($(".dl-detail h2") || { textContent: "nothing" }).textContent}"`); }
+    Decisions.select(""); await frames();
+    $('[data-mode="timeline"]').click(); await frames();
+    const tl = $$(".dl-tl");
+    ok(tl.length === Decisions.visible().length && !$$(".dl-row").length, `decisions: the timeline lists the same ${tl.length}, by month`, `decisions: timeline ${tl.length} of ${Decisions.visible().length}`);
+    $('[data-mode="log"]').click(); await frames();
+    ok(!$$("#main svg.sheet").length, "decisions: no drawing stands in for the data", "decisions: a sheet drawing is still there");
+  }
   /* Plain names in prose: a bare ID the vault holds reads as its name with the ID in the tooltip, and a Trace line is
      one folded row of name chips. Both are read from the pages this vault ships; a vault with neither says so. */
   async function plainNames() {
@@ -765,6 +844,17 @@ const SelfTest = (() => {
       host.remove();
       ok(!!suffix && !shown, "plain names: the muted ID suffix stays hidden until hover", "plain names: the ID suffix shows without hover");
     }
+    // A question's state pill beside its link: a real space between them, so copied text reads "made (resolved)" and
+    // never "madeopen"; and no "open" pill in running prose, where open is the default and only noise.
+    const pills = boxes.flatMap((b) => $$(".ustate", b));
+    if (!pills.length) out.push("skip state pills: no page here links a question with a state worth flagging");
+    else {
+      const glued = pills.filter((p) => { const prev = p.previousSibling; return !(prev && prev.nodeType === 3 && /\s$/.test(prev.nodeValue)); });
+      const labelled = pills.filter((p) => !p.getAttribute("aria-label") || !/^\(.*\)$/.test(p.textContent));
+      ok(!glued.length && !labelled.length, `state pills: ${pills.length} pills, each set off from its link by a space, with an accessible label and parentheses that copy`, `state pills: ${glued.length} glued to the link (first ${glued[0] && glued[0].parentNode.textContent.slice(0, 60)}), ${labelled.length} unlabelled`);
+    }
+    const proseOpen = boxes.flatMap((b) => $$("p .ustate.us-open, blockquote .ustate.us-open, h1 .ustate.us-open, h2 .ustate.us-open, h3 .ustate.us-open", b)).filter((p) => !p.closest("li, td, th"));
+    ok(!proseOpen.length, "state pills: no 'open' pill in running prose", `state pills: ${proseOpen.length} 'open' pills in prose, first after ${proseOpen[0] && proseOpen[0].previousElementSibling && proseOpen[0].previousElementSibling.textContent}`);
     if (!rows.length) out.push("skip trace rows: no page here carries a Trace line");
     else {
       const bad = rows.filter((r) => !$("summary", r) || !$$("a.chip", r).length || $$("a.chip", r).some((a) => !ent(a.dataset.ref) || /^[A-Z]+-\d+/.test(a.textContent.trim())));

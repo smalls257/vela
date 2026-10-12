@@ -91,7 +91,7 @@ const Search = (() => {
     if (e.kind === "flow") return "Enter plays it, ready to present";
     if (e.kind === "contract") { const f = flowsFor(key); return f.length ? `Enter shows it on the map, with ${plural(f.length, "flow")} to present from` : "Enter shows it on the map"; }
     if (e.kind === "unknown") return "Enter opens its strip in Who to ask";
-    if (e.kind === "decision") return "Enter opens it in the garden";
+    if (e.kind === "decision") return "Enter opens it in the decision log";
     return "";
   }
 

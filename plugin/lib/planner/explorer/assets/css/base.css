@@ -155,7 +155,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .pill.caution { background: color-mix(in srgb, var(--caution) 16%, transparent); color: var(--caution-text); }
 .pill.unexamined { background: color-mix(in srgb, var(--unexamined) 15%, transparent); color: var(--unexamined-text); }
 .pill.override { background: color-mix(in srgb, var(--override) 12%, transparent); color: var(--override-text); box-shadow: inset 0 0 0 1px var(--override-edge); }
-.ustate { font-size: 10.5px; padding: 0 5px; border-radius: 999px; margin-left: 3px; vertical-align: 1px; }
+.ustate { font-size: 10.5px; padding: 0 5px; border-radius: 999px; vertical-align: 1px; }
 .us-open { background: color-mix(in srgb, var(--caution) 18%, transparent); color: var(--caution-text); }
 .us-resolved { background: var(--deck-3); color: var(--ink-3); }
 .ref-chip { display: inline-flex; align-items: baseline; gap: 5px; border: 1px solid var(--rule-3); border-radius: 6px; padding: 1px 7px; margin: 0 4px 4px 0;
@@ -197,8 +197,8 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 @media (max-width: 1180px) { :root { --panel-w: 330px; --side-w: 210px; } .brand { max-width: 140px; } .fx-label { display: none; } }
 /* 800 px wide leaves the main pane about 260 px between a 210 px sidebar and a 330 px panel: narrower side columns keep the board usable */
 @media (max-width: 900px) { :root { --panel-w: 280px; --side-w: 176px; } }
-/* A short window (800 x 600) leaves the map's board under 100 px once the lede, the held-above strip and the count
-   line are drawn. Each keeps two lines or one row and says the rest in its tooltip or by scrolling (map.css). */
+/* A short window (800 x 600) leaves the map's board under 100 px once the lede, the work queue and the count
+   line are drawn. The lede keeps two lines, the queue folds to its heading and the count line keeps two (map.css, queue.css). */
 @media (max-height: 720px) {
   .view-head p.lede { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 }

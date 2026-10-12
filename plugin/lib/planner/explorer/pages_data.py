@@ -13,7 +13,7 @@ from planner import readability, reading
 from planner.parse import protect_link_pipes
 from planner.viewer import body_of
 
-from .record import chips_html, inline_html, title_of
+from .record import LISTED, PROSE, chips_html, inline_html, title_of
 
 HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 FENCE = re.compile(r"^\s{0,3}(```|~~~)\s*([\w-]*)")
@@ -48,8 +48,8 @@ class Renderer:
             self.item_by_name.setdefault(name, item_id)
         self.toc, self.used = [], set()
 
-    def inline(self, text):
-        out = inline_html(text, self.keys, self.page)
+    def inline(self, text, where=PROSE):
+        out = inline_html(text, self.keys, self.page, where)
         # reading.arrange writes its own <sup> around folded citations; those, and only those, become tags again
         return out.replace("&lt;sup&gt;", "<sup>").replace("&lt;/sup&gt;", "</sup>")
 
@@ -133,7 +133,7 @@ class Renderer:
                     rows.append(cells(lines[i]))
                     i += 1
                 th = "".join(f"<th>{self.inline(c)}</th>" for c in head)
-                tb = "".join("<tr>" + "".join(f"<td>{self.inline(c)}</td>" for c in r) + "</tr>" for r in rows)
+                tb = "".join("<tr>" + "".join(f"<td>{self.inline(c, LISTED)}</td>" for c in r) + "</tr>" for r in rows)
                 out.append(f'<div class="r-table"><table><thead><tr>{th}</tr></thead><tbody>{tb}</tbody></table></div>')
                 continue
             if stripped.startswith(">"):
@@ -189,7 +189,7 @@ class Renderer:
                     break
                 if open_li:
                     parts.append("</li>")
-                parts.append(f"<li>{self.inline(m.group(3))}")
+                parts.append(f"<li>{self.inline(m.group(3), LISTED)}")
                 open_li = True
                 i += 1
                 continue
@@ -199,7 +199,7 @@ class Renderer:
                 parts.extend(sub)
                 continue
             if lines[i].strip() and lines[i][:1] in " \t" and open_li:
-                parts.append(" " + self.inline(lines[i].strip()))
+                parts.append(" " + self.inline(lines[i].strip(), LISTED))
                 i += 1
                 continue
             break

@@ -356,3 +356,32 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
                           f"file://{vault / 'dashboard.html'}#home"], timeout=180, capture_output=True, text=True).stdout
     line = html.unescape(re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S).group(1))
     assert f"from commit {short}" in line and "hidden" not in re.search(r'<div class="built" id="built"[^>]*>', dom).group(0)
+
+
+def _explore_and_dump(chrome_path, source, tmp_path, today, route, viewport="1600,1000"):
+    """Build `source` as a vault copy and return the page's DOM after loading `route`."""
+    vault = tmp_path / "vault"
+    shutil.copytree(source, vault)
+    subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", today], timeout=120, check=True, capture_output=True)
+    return subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--window-size={viewport}", "--virtual-time-budget=20000", "--dump-dom",
+                           f"file://{vault / 'dashboard.html'}#{route}"], timeout=180, capture_output=True, text=True).stdout
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("viewport", ["1600,1000", "800,600"])
+def test_the_home_page_lists_a_short_queue_not_a_strip_of_chips(tmp_path, chrome_path, viewport):
+    """The heron vault holds 34 question-and-thing pairs above the map. Home shows at most five rows of the queue, in
+    plain words, with no strip of chips, at a wide and at a small window."""
+    dom = _explore_and_dump(chrome_path, SNAPSHOTS["heron-desk/after-full-1"], tmp_path, "2026-10-10", "home&still", viewport)
+    assert 'class="q-card' in dom and 'class="above"' not in dom and "Held above the map" not in dom
+    rows = re.findall(r'<button class="q-row[^"]*" data-ref="([^"]+)"', dom)
+    assert 1 <= len(rows) <= 5 and len(set(rows)) == len(rows), rows
+    assert not re.search(r'class="q-title">[A-Z]+-\d', dom), "a queue row leads with an ID"
+
+
+@pytest.mark.browser
+def test_the_old_garden_route_opens_the_decision_log_at_the_decision(tmp_path, chrome_path):
+    """#garden&open=ADR-0002 still lands on the decision, now drawn as a log row and a decision record."""
+    dom = _explore_and_dump(chrome_path, REPO / "examples" / "unified-booking", tmp_path, "2026-11-20", "garden&open=ADR-0002&still")
+    assert 'data-view="decisions"' in dom and "dl-detail" in dom and "FERRYMASTER stays the ledger of record" in dom
+    assert 'class="sheet' not in dom and "garden" not in re.sub(r"#garden", "", re.search(r"<main.*?</main>", dom, re.S).group(0))
