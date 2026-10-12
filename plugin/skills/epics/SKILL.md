@@ -76,11 +76,13 @@ If the user tells you to decide an epic without a yes per criterion, or without 
 
 ## 7. Check the gate
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render` and stage every file it reports, by exact path. Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, or that was asked and still waits for its answer, such as the lawful basis for data, a partner's clauses or a stored-value liability. E805 covers the whole vault, not one team. Offer the user three choices for each:
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render` and stage every file it reports, by exact path. Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate epics`. Read every `E50x` line for the team's apps. Never say an app's epics are complete while one remains. Show the remaining lines and say what each needs. Read every `E805` line too: each is a high-severity question the catalogue owes that nobody has disposed, or that was asked and still waits for its answer, such as the lawful basis for data, a partner's clauses or a stored-value liability. E805 covers the whole vault, not one team. Dispose of each one in this session, while the lead is here, with one of three routes (answer it, defer it to an owner, or override to accept the risk) as `CONVENTIONS.md` says under "The ledger". Offer them once, with your recommendation, and do not loop: once the lead picks one, record it and move on.
 
 - Answer it now. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --open --digest`, take the line, and capture the answer. The gate clears once close writes its row. Before close, the override is the only way to a clean `--gate epics`.
 - Override it. Write `- **Override:** E805 by @<handle> on <today>: <reason>` under the `## History` section at the end of `11-unknowns-and-risks.md`, at page level, as `CONVENTIONS.md` says under "Pages". It turns E805 into W805, which still prints.
-- Leave the gate failing.
+- Defer it to whoever can answer. Take the owner from what the lead has said, such as "the CFO's call", and propose the unknown yourself instead of asking again: a new `UNK-nnn` from `planner next-id UNK` on `11-unknowns-and-risks.md`, with `**Owner:**` that handle, `**Ask by:**` a date and `**Blocks:**` the question's ID, and capture it `→ keep` as an unknown. Close writes the ledger row `unknown`, which disposes of the question and gives it someone who chases it. Ask for one yes to the owner and the date.
+
+A gate that still shows E805 after you record a deferral is expected until close writes the row. Say so once and go on; do not re-run it, re-offer the routes, or hold the session open for it. "Leave it failing" with no unknown and no override is not a route: it leaves a high-severity question nobody is chasing, as the heron run showed.
 
 Never call the epics complete past an E805 the user has neither taken nor overridden.
 
