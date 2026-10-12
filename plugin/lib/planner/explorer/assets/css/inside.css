@@ -173,7 +173,8 @@ ol.in-problems b { color: var(--ink); font-weight: 600; }
 .mini-wire { fill: none; stroke: var(--ink-4); stroke-width: 3; }
 .in-mini-view { fill: color-mix(in srgb, var(--focus) 18%, transparent); stroke: var(--focus); stroke-width: 4; vector-effect: non-scaling-stroke; }
 /* the tabs fold away to give the drawing the whole width */
-.btn.in-tabs-toggle { position: absolute; top: 12px; right: 14px; z-index: 3; background: var(--glass); border: 1px solid var(--rule-3); }
+.inside-tools { display: flex; justify-content: flex-end; margin: 0 0 6px; }
+.btn.in-tabs-toggle { background: var(--glass); border: 1px solid var(--rule-3); }
 .inside-l3.tabs-hidden { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .inside-l3.tabs-hidden .inside-side { display: none; }
 /* a short window: the hint keeps two lines (the page says the rest in the panel) and the head drops its kicker, so the drawing keeps room */

@@ -524,7 +524,7 @@ const Inside = (() => {
       dispatchEvent(new Event("resize"));  // the drawing refits to the room it now has
     } }, st.tabsHidden ? "Show the tabs" : "Hide the tabs");
     wrap.classList.toggle("tabs-hidden", !!st.tabsHidden);
-    wrap.append(h("div", { class: "inside-left" }, h("div", { class: "inside-frame" }, holder, toggle), componentsNote(app, d)), side);
+    wrap.append(h("div", { class: "inside-left" }, h("div", { class: "inside-tools" }, toggle), h("div", { class: "inside-frame" }, holder), componentsNote(app, d)), side);  // the toggle sits above the drawing, never on a box
     stage.append(wrap);
     drawComponents(holder, app, d);
     side.append(tabs(app, d));
