@@ -750,3 +750,11 @@ def test_review_hands_each_reviewer_a_real_questions_file_and_the_reviewer_refus
     assert "Never send a placeholder" in review
     assert review.index("-questions/<AREA>.json`. They sit") < review.index("Dispatch the `planner:area-reviewer`")
     assert "a placeholder" in agent and "no questions file" in agent
+
+
+def test_a_review_digest_puts_at_most_five_questions_to_the_lead_in_a_turn_and_never_pastes_findings():
+    """S12: the heron run's turn 38 put 89 question marks to the lead, with the reviewers' raw JSON."""
+    review = text("references/REVIEW.md")
+    assert "No turn puts more than five questions to the lead" in review
+    assert "Never paste a reviewer's reply, or the findings JSON, into the conversation" in review
+    assert "There is no cap." in review and "Never drop a line to keep it short." in review

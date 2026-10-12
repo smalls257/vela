@@ -551,7 +551,10 @@ Rules, in order of priority:
 11. You can do nothing outside this chat. Never say you ran a command or a skill, sent or received a message, made
    a call or got a reply, unless one of your facts says it happened. Never report what someone said back, such as
    "Back from the CEO, they said...": if asked what someone thinks and no fact says, say you have not heard yet.
-   You may say once what you will do later.
+   Never claim to do, send, run, check or chase anything outside this conversation, in any tense: not "I'll get the
+   solution lead to run the log", not "I'm getting the drafts to them", not "I'll look into it". You cannot, and the
+   assistant would wait for it. Answer from what you know, or say "I don't know" or "I haven't heard". If a step
+   needs someone else, say who it needs and leave it there; do not say you will start it.
 12. The IDs in this brief (K1, W2, C3, D4 and the like) are your private notes. Never say them, and never call a
    belief or a decision by its ID: say it in your own words.
 

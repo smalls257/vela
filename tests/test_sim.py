@@ -1057,3 +1057,9 @@ def test_merge_prs_must_be_true_or_false_and_defaults_on():
     assert not sim.script_problems(script, persona)
     assert any("merge_prs" in p for p in sim.script_problems({**script, "merge_prs": "no"}, persona))
     assert not sim.script_problems({**script, "merge_prs": False}, persona)
+
+
+def test_the_persona_prompt_forbids_claiming_or_promising_any_action_outside_the_chat():
+    source = (SIM / "run.py").read_text(encoding="utf-8")
+    assert "Never claim to do, send, run, check or chase anything outside this conversation, in any tense" in source
+    assert "You may say once what you will do later." not in source
