@@ -67,7 +67,7 @@ const Inside = (() => {
   function entOf(k) {
     const p = parse(k), d = design(p.app);
     if (!APPS[p.app]) return null;
-    const title = !p.kind ? designWord(p.app) : p.kind === "problems" ? `What the ${designWord(p.app)} could not read` : p.kind === "adr" ? (d && (d.adrs.find((a) => a.id === p.name) || {}).adr_title ? `${p.name} ${(d.adrs.find((a) => a.id === p.name) || {}).adr_title}` : p.name) : p.name;
+    const title = !p.kind ? designWord(p.app) : p.kind === "problems" ? `What the ${designWord(p.app)} could not read` : (p.kind === "story" || p.kind === "blocker") && typeof Plan !== "undefined" ? Plan.panelTitle(p.app, p.kind, p.name) : p.kind === "adr" ? (d && (d.adrs.find((a) => a.id === p.name) || {}).adr_title ? `${p.name} ${(d.adrs.find((a) => a.id === p.name) || {}).adr_title}` : p.name) : p.name;
     return { key: k, kind: "inside", title, id: "" };
   }
 
@@ -856,6 +856,7 @@ const Inside = (() => {
   function panel(k) {
     const p = parse(k), d = design(p.app);
     if (!APPS[p.app]) return [h("div", { class: "p-empty" }, `Nothing here is called ${k}.`)];
+    if (p.kind === "story" || p.kind === "blocker") return Plan.panel(p.app, p.kind, p.name);
     if (!d && p.kind !== "ct") return [h("div", { class: "p-empty" }, `The ${appTitle(p.app)} team's design is not loaded.`)];
     if (p.kind === "c") return componentPanel(p.app, d, p.name);
     if (p.kind === "ct") return containerPanel(p.app, p.name);

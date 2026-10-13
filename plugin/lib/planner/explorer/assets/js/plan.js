@@ -1,9 +1,11 @@
 /* Build plan: the fourth level of Inside this app (DESIGN-INSIDE.md), the team's work breakdown drawn beside its design.
 
-   - A lane of story cards in build order: what each is, its size, and what blocks it. A story blocked by an open vault
-     question is lit with that question's lamp (attention's, not the plan's); one blocked by an outside party says so.
-     A card opens to its acceptance criteria, its trace chips (the same vault links the design's chips use) and its
-     tasks, each with a size chip and a component chip that jumps to that component in level 3.
+   - The build order, in one of three layouts the reader picks (List, Cards, Path; the choice is kept in this browser).
+     Each story shows what it is, how many tasks it has and what it waits on, in words, never IDs or sizes. A story blocked
+     by an open vault question is lit with that question's lamp (attention's, not the plan's); one blocked by an outside
+     party says so. A story opens to what must be true when it is done, its flags, its trace chips (the same vault links the
+     design's chips use) and its tasks, each with a component chip that jumps to that component in level 3. Stories the
+     team marks as the tracer come first; stories with no tasks (merged, deferred) come last, under Not now.
    - The dependency view: stories left to right, an arrow for each Blocked by, the questions and outside parties that
      block them at the left edge. It uses the layout the components drawing uses, so no two boxes meet.
    - Coverage, computed from the stories' own Traces to lines and tasks (plan_data.py), with every empty cell lit;
@@ -15,8 +17,9 @@
    doors. Loaded after inside.js, which hands it the drawing kit (Inside.kit) and calls render. */
 const Plan = (() => {
   const PLANS = D.plans || {}, DES = D.designs || {};
-  const SIZES = ["S", "M", "L"], POINTS = { S: 2, M: 5, L: 8 };  // the tool's mapping (tools/breakdown_to_tickets.py); sizes are for ordering
-  const st = { open: new Set() };
+  const LAYOUT_KEY = "explorer.plan.layout", LAYOUTS = [["list", "List"], ["cards", "Cards"], ["path", "Path"]];
+  const st = { open: new Set(), pick: "" };
+  const layoutNow = () => { const v = Settings.read(LAYOUT_KEY); return LAYOUTS.some(([id]) => id === v) ? v : "list"; };
   const plan = (app) => PLANS[app] || null;
   const kit = () => Inside.kit;
   const planWord = (app) => `${titleOf(app)} plan`;
@@ -42,7 +45,7 @@ const Plan = (() => {
     if (!p) return DES[app] ? { id: "design", word: "design only", counts: "" } : { id: "none", word: "no design", counts: "" };
     const t = p.totals, id = p.status === "complete" ? "complete" : p.status === "complete-with-gaps" ? "gaps" : "progress";
     return { id, word: { complete: "plan complete", gaps: "plan with gaps", progress: "plan in progress" }[id],
-      counts: `${plural(t.stories, "story", "stories")}, ${plural(t.tasks, "task")}, ${plural(t.points, "point")}` };
+      counts: `${plural(t.stories, "story", "stories")}, ${plural(t.tasks, "task")}` };
   }
   const readinessPill = (app) => { const r = readiness(app); return h("span", { class: "d-status plan-ready " + r.id, "data-ready": r.id, title: r.counts || r.word }, r.word); };
   /* Everything outside the plan that holds stories, grouped by what holds them: for the managers' door. */
@@ -58,11 +61,14 @@ const Plan = (() => {
 
   /* ------------------------------------------------------------ going to a story, a component, the CSV */
   function reveal(app, id) {
-    st.open.add(id);
+    st.open.add(id); st.pick = id;
     if (!(App.view === "inside" && Inside.st.app === app && Inside.st.level === "plan")) Inside.open(app, "plan", { keepTrail: true, still: true });
-    else $$(`.plan-card[data-story="${CSS.escape(id)}"]`).forEach((c) => { c.classList.add("open"); $(".plan-toggle", c).setAttribute("aria-expanded", "true"); });
+    else {
+      $$(`.plan-card[data-story="${CSS.escape(id)}"]`).forEach((c) => { c.classList.add("open"); const t = $(".plan-toggle", c); if (t) t.setAttribute("aria-expanded", "true"); });
+      pickInPath(id);
+    }
     const card = $(`.plan-card[data-story="${CSS.escape(id)}"]`);
-    if (card) card.scrollIntoView({ block: "nearest", inline: "center" });
+    if (card) card.scrollIntoView({ block: "nearest" });
   }
   function toComponent(app, name) {
     Inside.open(app, "components", { keepTrail: true, still: true });
@@ -85,41 +91,61 @@ const Plan = (() => {
   }
 
   /* ------------------------------------------------------------ small pieces */
-  const sizeChip = (size) => h("span", { class: "plan-size s" + size, title: { S: "Small: up to about 2 days", M: "Medium: 3 to 5 days", L: "Large: 1 to 2 weeks" }[size] || "No valid size" }, size || "?");
-  const sizeTotal = (text) => (text === "none" ? h("span", { class: "muted small" }, "no tasks")
-    : h("span", { class: "plan-total", title: "The sizes of its tasks, largest first" }, text.split("+").map((x, i) => [i ? h("i", {}, "+") : null, sizeChip(x)])));
-  const kv = (label, ...kids) => h("div", { class: "plan-kv" }, h("span", { class: "fl" }, label), ...kids);
-
   function statusPill(p) {
     const gaps = p.gaps.map((g) => g.id).filter(Boolean);
     return h("span", { class: "d-status " + (p.status || "unknown"), title: `The team's plan is ${p.status || "of no known status"}${gaps.length ? ", with " + gaps.join(", ") : ""}` },
       p.status === "complete-with-gaps" ? "complete with gaps" : p.status || "status not read", gaps.length ? h("b", {}, " " + gaps.join(" ")) : null);
   }
 
-  /* What blocks a story, one chip each. A vault question is the vault's own chip with its own lamp. */
-  function blocker(app, b) {
-    if (b.kind === "story") return h("a", { class: "ref-chip plan-after", "data-after": b.ref, title: `Waits for ${b.ref}`, onclick: () => reveal(app, b.ref) }, "after ", h("span", { class: "rid" }, b.ref));
-    if (b.kind === "question") {
-      const open = isOpen(UNKNOWN[b.ref]);
-      return h("span", { class: "plan-q", "data-question": b.ref }, refChip(keyForId(b.ref)), open ? null : h("span", { class: "muted small" }, " resolved"));
-    }
-    const label = { outside: "outside party", "plan-question": "open question, named only in the plan", gap: "gap or deferral", other: "not classified" }[b.kind];
-    return h("span", { class: "plan-who " + b.kind, "data-blocker": b.kind, title: label }, h("b", {}, label + ": "), b.text);
+  /* ------------------------------------------------------------ the stories, as the three layouts draw them */
+  /* The groups, from the plan alone: the tracer stories first (only when the team marked some), then the rest in build order,
+     then the stories with no tasks, which are merged into another or deferred. */
+  function arrange(p) {
+    const tasked = p.stories.filter((x) => x.tasks.length), tracer = tasked.filter((x) => x.tracer), rest = tasked.filter((x) => !x.tracer);
+    const groups = tracer.length
+      ? [{ id: "tracer", title: "Build first: the tracer", note: "one thin path a person can use", stories: tracer }, { id: "then", title: "Then", note: "", stories: rest }]
+      : [{ id: "order", title: "In build order", note: "", stories: rest }];
+    const idle = p.stories.filter((x) => !x.tasks.length);
+    return groups.filter((g) => g.stories.length).concat(idle.length ? [{ id: "notnow", title: "Not now", note: "", stories: idle }] : []);
   }
-  function blockedLine(app, story) {
-    if (!story.blockers.length) return h("div", { class: "plan-block ready" }, "Nothing blocks it: ready to start.");
-    return h("div", { class: "plan-block" }, h("span", { class: "fl" }, "Blocked by"), story.blockers.map((b) => blocker(app, b)));
+  const numberOf = (groups) => { const n = {}; let i = 0; for (const g of groups) if (g.id !== "notnow") for (const x of g.stories) n[x.id] = ++i; return n; };
+  const plainText = (t) => String(t || "").replace(/`/g, "").replace(/\s+/g, " ").trim();
+  const trimmed = (t, max) => { const x = plainText(t); if (x.length <= max) return x; return x.slice(0, max).replace(/\s+\S*$/, "") + "…"; };
+  const storyById = (p, id) => p.stories.find((x) => x.id === id);
+  const cleanName = (name) => plainText(name).replace(/\s*\(deferred\)\s*$/i, "");
+
+  /* What a story waits on, in words: a story by its name, a vault question by its title. */
+  function waitsText(p, story) {
+    const words = story.blockers.map((b) => {
+      if (b.kind === "story") { const w = storyById(p, b.ref); return w ? cleanName(w.name) : b.ref; }
+      if (b.kind === "question") { const title = (E[keyForId(b.ref)] || {}).title; return (title || b.text || b.ref) + (isOpen(UNKNOWN[b.ref]) ? "" : " (resolved)"); }
+      return plainText(b.text);
+    }).filter(Boolean);
+    return words.length ? words.join("; ") : "Nothing";
   }
+  const waitsEl = (p, story) => h("span", { class: "plan-waits" }, "Waits on: " + waitsText(p, story));
+
+  /* Why a story with no tasks is parked, in the plan's own words where it has them. */
+  function parkedReason(p, story) {
+    const merged = /^\(merged into (S-[\w-]+)\)/i.exec(story.name);
+    if (merged) { const into = storyById(p, merged[1]); return "Merged into " + (into ? cleanName(into.name) : merged[1]); }
+    const line = p.notPlanned.find((t) => t.slice(0, Math.max(t.indexOf(":"), 0)).includes(story.id));
+    const after = line ? line.slice(line.indexOf(":") + 1).trim().split(/\.\s/)[0].replace(/\.$/, "") : "";
+    if (after) return after[0].toUpperCase() + after.slice(1);
+    return /deferred/i.test(story.name) ? "Deferred" : "No tasks planned";
+  }
+  const parkedName = (story) => (/^\(merged into/i.test(story.name) ? `${story.id}, merged` : cleanName(story.name));
+  const seeText = (story) => (story.criteria.length ? trimmed(story.criteria[0], 150) : "");
 
   function taskRow(app, task) {
     const known = DES[app] && DES[app].components.some((c) => c.name.toLowerCase() === task.component.toLowerCase());
     const name = known ? DES[app].components.find((c) => c.name.toLowerCase() === task.component.toLowerCase()).name : task.component;
-    return h("tr", {}, h("td", { class: "plan-task-size" }, sizeChip(task.size)), h("td", {}, task.name),
-      h("td", {}, known ? h("a", { class: "ref-chip plan-comp", "data-component": name, title: `Show ${name} in the components`, onclick: () => toComponent(app, name) }, name)
-        : h("span", { class: "ref-chip plan-comp dead", title: DES[app] ? "Not a component of the design" : "No design loaded to show it in" }, task.component || "no component")));
+    return h("li", { class: "plan-task" }, h("span", { class: "plan-task-name" }, plainText(task.name)),
+      known ? h("a", { class: "ref-chip plan-comp", "data-component": name, title: `Show ${name} in the components`, onclick: () => toComponent(app, name) }, name)
+        : h("span", { class: "ref-chip plan-comp dead", title: DES[app] ? "Not a component of the design" : "No design loaded to show it in" }, task.component || "no component"));
   }
   /* What the plan flags on a story, as small labelled badges: a question only the design can answer, and a clash with an
-     epic criterion, named by the criterion's title and not just its ID. The full text is in the card's body. */
+     epic criterion, named by the criterion's title and not just its ID. The full text is in the story's detail. */
   function flagBadges(story) {
     const open = story.openNotes.length ? [h("span", { class: "plan-badge open", "data-flag": "open", title: story.openNotes.join("\n\n") },
       story.openNotes.length > 1 ? `Open for design · ${story.openNotes.length}` : "Open for design")] : [];
@@ -131,37 +157,115 @@ const Plan = (() => {
     const K = kit(), note = (title, items) => (items.length ? h("div", { class: "plan-notes" }, h("div", { class: "fl" }, title), h("ul", { class: "plan-ac" }, items.map((t) => h("li", {}, K.prose(t))))) : null);
     return [note("Open for the design", story.openNotes), note("Conflicts with an epic criterion", story.conflicts.map((c) => c.text))];
   }
-  function storyCard(app, p, story) {
-    const lit = unclosedLevel(story), open = st.open.has(story.id), K = kit();
-    const body = h("div", { class: "plan-card-body" },
-      story.criteria.length ? h("div", {}, h("div", { class: "fl" }, "Acceptance criteria"), h("ul", { class: "plan-ac" }, story.criteria.map((c) => h("li", {}, K.prose(c))))) : h("div", { class: "gap" }, "No acceptance criteria in the plan."),
+  /* The detail, the same in all three layouts: done when, flags, traces, tasks. */
+  function storyDetail(app, story) {
+    const K = kit();
+    return h("div", { class: "plan-card-body" },
+      h("div", { class: "fl" }, "Done when"),
+      story.criteria.length ? h("ul", { class: "plan-ac" }, story.criteria.map((c) => h("li", {}, K.prose(c)))) : h("div", { class: "gap" }, "No acceptance criteria in the plan."),
       flagNotes(story),
-      h("div", { class: "fl" }, "Traces to"), h("div", { class: "plan-traces" }, story.traces.map((id) => K.idChip(id))),
-      h("div", { class: "fl" }, "Tasks"),
-      h("table", { class: "plan-tasks" }, story.tasks.map((t) => taskRow(app, t))));
-    const toggle = h("button", { class: "btn tiny plan-toggle", "aria-expanded": String(open), onclick: () => {
+      h("div", { class: "fl" }, "Traces to"), h("div", { class: "plan-traces" }, story.traces.length ? story.traces.map((id) => K.idChip(id)) : h("span", { class: "muted small" }, "Nothing named.")),
+      h("div", { class: "fl" }, `Tasks (${story.tasks.length})`),
+      story.tasks.length ? h("ol", { class: "plan-tasks" }, story.tasks.map((t) => taskRow(app, t))) : h("div", { class: "muted small" }, "No tasks."));
+  }
+  const litOf = (story) => { const lit = unclosedLevel(story); return { cls: lit ? " lit " + lit : "", lamp: lit ? lampEl(lit, "Waiting on an open question: its lamp, from attention") : null }; };
+
+  /* A folding story (List and Cards): a button that is the story's headline, flags beside it, the detail under it. */
+  function foldingStory(app, story, kind, head, extra) {
+    const { cls, lamp } = litOf(story), open = st.open.has(story.id);
+    const toggle = h("button", { class: "plan-toggle", "aria-expanded": String(open), onclick: () => {
       const now = card.classList.toggle("open");
       toggle.setAttribute("aria-expanded", String(now));
       if (now) st.open.add(story.id); else st.open.delete(story.id);
-    } }, "Tasks and criteria");
-    const card = h("article", { class: "plan-card" + (open ? " open" : "") + (lit ? " lit " + lit : ""), "data-story": story.id, "data-order": story.order || "", id: `plan-${app}-${story.id}` },
-      h("header", {}, h("span", { class: "plan-n", title: story.order ? `Number ${story.order} in the build order` : "Not in the build order" }, story.order || "–"), h("b", { class: "plan-id" }, story.id),
-        lit ? lampEl(lit, "Blocked by an open question: its lamp, from attention") : null, h("span", { class: "spacer" }), sizeTotal(story.size)),
-      h("h4", {}, story.name),
-      h("div", { class: "plan-meta muted small" }, `${plural(story.tasks.length, "task")} · ${plural(story.points, "point")} · ${plural(story.traces.length, "trace")}`),
-      blockedLine(app, story),
-      flagBadges(story),
-      h("div", { class: "plan-glance" }, story.traces.slice(0, 3).map((id) => K.idChip(id)), story.traces.length > 3 ? h("span", { class: "muted small" }, ` +${story.traces.length - 3}`) : null),
-      toggle, body);
+    } }, head(lamp));
+    const card = h("article", { class: `plan-card plan-${kind}` + (open ? " open" : "") + cls + (extra || ""), "data-story": story.id, id: `plan-${app}-${story.id}` },
+      toggle, flagBadges(story), storyDetail(app, story));
     return card;
   }
-  function lane(app, p) {
-    const out = [];
-    p.stories.forEach((story, i) => { if (i) out.push(h("span", { class: "plan-then", "aria-hidden": "true" }, "›")); out.push(storyCard(app, p, story)); });
-    return h("div", { class: "plan-lane", role: "list", "aria-label": "Stories in build order" }, out);
+  function listRow(app, p, story, n, tracer) {
+    const parked = !story.tasks.length;
+    return foldingStory(app, story, "row", (lamp) => [
+      h("span", { class: "plan-n", title: n ? `Number ${n} in the build order` : "Not in the build order" }, n || "–"),
+      h("span", { class: "plan-name" }, lamp, parked ? parkedName(story) : cleanName(story.name)),
+      parked ? null : h("span", { class: "plan-count" }, plural(story.tasks.length, "task")),
+      parked ? h("span", { class: "plan-waits" }, parkedReason(p, story)) : waitsEl(p, story)], (tracer ? " tracer" : "") + (parked ? " off" : ""));
+  }
+  function cardTile(app, p, story, tracer) {
+    const parked = !story.tasks.length, see = seeText(story);
+    return foldingStory(app, story, "tile", (lamp) => [
+      h("span", { class: "plan-name" }, lamp, parked ? parkedName(story) : cleanName(story.name)),
+      !parked && see ? h("span", { class: "plan-see", title: "What a person can see when it is done" }, see) : null,
+      parked ? h("span", { class: "plan-waits" }, parkedReason(p, story))
+        : h("span", { class: "plan-foot" }, h("span", { class: "plan-count" }, plural(story.tasks.length, "task")), waitsEl(p, story))], (tracer ? " tracer" : "") + (parked ? " off" : ""));
+  }
+  const groupHead = (g) => h("h4", { class: "plan-group-head" }, g.title, g.note ? h("span", {}, g.note) : null);
+
+  function listLayout(app, p, groups) {
+    const num = numberOf(groups);
+    return groups.map((g) => h("div", { class: "plan-group", "data-group": g.id }, groupHead(g),
+      h("div", { class: "plan-rows" }, g.stories.map((x) => listRow(app, p, x, num[x.id], g.id === "tracer")))));
+  }
+  function cardsLayout(app, p, groups) {
+    return groups.map((g) => h("div", { class: "plan-group", "data-group": g.id }, groupHead(g),
+      h("div", { class: "plan-grid" }, g.stories.map((x) => cardTile(app, p, x, g.id === "tracer")))));
+  }
+
+  /* Path: a vertical line of stories, the picked one's detail beside it (under it on a narrow window). Every story's
+     detail is in the page, the others hidden, so what the page holds does not depend on which is picked. */
+  function pickInPath(id) {
+    const path = $(".plan-path");
+    if (!path) return;
+    $$(".plan-card", path).forEach((li) => { const on = li.dataset.story === id; li.classList.toggle("on", on); $(".plan-toggle", li).setAttribute("aria-current", String(on)); });
+    $$(".plan-pane", path.parentNode).forEach((pane) => { pane.hidden = pane.dataset.pane !== id; });
+  }
+  function pathLayout(app, p, groups) {
+    const num = numberOf(groups), all = groups.flatMap((g) => g.stories.map((x) => ({ x, g })));
+    const total = Object.keys(num).length;
+    if (!all.some(({ x }) => x.id === st.pick)) st.pick = all.length ? all[0].x.id : "";
+    const items = [], panes = [];
+    for (const g of groups) {
+      items.push(h("li", { class: "plan-path-group plan-group", "data-group": g.id }, g.title));
+      for (const story of g.stories) {
+        const parked = !story.tasks.length, { cls, lamp } = litOf(story);
+        const li = h("li", { class: "plan-card plan-step" + cls + (g.id === "tracer" ? " tracer" : "") + (parked ? " off" : "") + (story.id === st.pick ? " on" : ""), "data-story": story.id, id: `plan-${app}-${story.id}` },
+          h("button", { class: "plan-toggle", "aria-current": String(story.id === st.pick), onclick: () => { st.pick = story.id; pickInPath(story.id); } },
+            h("span", { class: "plan-name" }, lamp, parked ? `${parkedName(story)} · ${parkedReason(p, story)}` : cleanName(story.name))),
+          flagBadges(story));
+        items.push(li);
+        const kick = parked ? "Not now" : `Story ${num[story.id]} of ${total}` + (g.id === "tracer" ? ", part of the tracer" : "");
+        panes.push(h("section", { class: "plan-pane", "data-pane": story.id, hidden: story.id !== st.pick },
+          h("p", { class: "plan-kick" }, kick), h("h4", {}, parked ? parkedName(story) : cleanName(story.name)),
+          parked ? h("p", { class: "plan-waits" }, parkedReason(p, story)) : h("p", {}, waitsEl(p, story)), storyDetail(app, story)));
+      }
+    }
+    return h("div", { class: "plan-split" }, h("ol", { class: "plan-path" }, items), h("div", { class: "plan-panes" }, panes));
+  }
+
+  const BUILDERS = { list: listLayout, cards: cardsLayout, path: pathLayout };
+  function buildOrder(app, p) {
+    const host = h("div", { class: "plan-layout" }), groups = arrange(p), draw = (now) => { host.dataset.layout = now; host.replaceChildren(...[].concat(BUILDERS[now](app, p, groups))); };
+    const seg = h("div", { class: "plan-seg", role: "group", "aria-label": "How to lay out the build order" }, LAYOUTS.map(([id, label]) =>
+      h("button", { class: "btn tiny", "data-layout": id, "aria-pressed": String(id === layoutNow()), onclick: () => {
+        Settings.write(LAYOUT_KEY, id); draw(id);
+        $$("button", seg).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.layout === id)));
+      } }, label)));
+    draw(layoutNow());
+    return h("div", { class: "plan-order" }, seg, host);
   }
 
   /* ------------------------------------------------------------ the dependency view */
+  const BLOCKER_WORD = { question: "Open question", outside: "Outside party", "plan-question": "Plan's open question", gap: "Gap or deferral", other: "Outside the plan" };
+  /* Every node the view draws goes through here, so none can be drawn that a reader cannot click or a screen reader cannot
+     name (the Sensor rule: a node that does nothing when clicked is a Black Box). */
+  function planNode(g, b, spec) {
+    if (!spec.label || typeof spec.open !== "function") throw new Error(`[plan] a dependency node needs a name and a click target, got ${JSON.stringify(spec.label)}`);
+    const grp = s("g", { class: "in-node plan-hit " + spec.cls, tabindex: 0, role: "button", "aria-label": spec.label, ...spec.attrs }, g);
+    spec.draw(grp);
+    s("title", {}, grp).textContent = spec.title || spec.label;
+    grp.addEventListener("click", spec.open);
+    grp.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); spec.open(); } });
+    return grp;
+  }
   function dependencyView(app, p) {
     const K = kit(), holder = h("div", { class: "plan-dag", id: "plan-dag" }), frame = h("div", { class: "inside-frame plan-dag-frame" }, holder);
     const nodes = p.stories.map((story) => ({ id: "s:" + story.id, kind: "story", w: 220, h: 66, story })), edges = [], stubs = {};
@@ -179,23 +283,27 @@ const Plan = (() => {
     K.defsFor(svg);
     K.drawLayout(svg, lay, {
       story: (g, b) => {
-        const story = b.node.story, lit = unclosedLevel(story), grp = s("g", { class: "in-node in-box plan-node", tabindex: 0, role: "button", "data-story": story.id, "aria-label": `${story.id} ${story.name}` }, g);
-        s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 10, class: "in-box-face" + (lit ? " lit " + lit : "") }, grp);
-        s("text", { x: b.x + 14, y: b.y + 24, class: "in-box-name plan-id" }, grp).textContent = story.id;
-        s("text", { x: b.x + b.w - 14, y: b.y + 24, "text-anchor": "end", class: "in-box-meta" }, grp).textContent = story.size;
-        s("text", { x: b.x + 14, y: b.y + 46, class: "in-box-sub" }, grp).textContent = K.fit(story.name, b.w - 28, 11.5);
-        s("title", {}, grp).textContent = `${story.id} ${story.name}\n${story.size}, ${plural(story.points, "point")}`;
-        grp.addEventListener("click", () => reveal(app, story.id));
-        grp.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); reveal(app, story.id); } });
+        const story = b.node.story, lit = unclosedLevel(story);
+        planNode(g, b, { cls: "plan-node in-box", attrs: { "data-story": story.id }, label: `${story.id} ${cleanName(story.name)}`, title: `${story.id} ${cleanName(story.name)}\n${plural(story.tasks.length, "task")}`,
+          open: () => openStory(app, story.id),
+          draw: (grp) => {
+            s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 10, class: "in-box-face" + (lit ? " lit " + lit : "") }, grp);
+            s("text", { x: b.x + 14, y: b.y + 24, class: "in-box-name plan-id" }, grp).textContent = story.id;
+            s("text", { x: b.x + b.w - 14, y: b.y + 24, "text-anchor": "end", class: "in-box-meta" }, grp).textContent = story.tasks.length ? plural(story.tasks.length, "task") : "no tasks";
+            s("text", { x: b.x + 14, y: b.y + 46, class: "in-box-sub" }, grp).textContent = K.fit(cleanName(story.name), b.w - 28, 11.5);
+          } });
       },
       outer: (g, b) => {
-        const x = b.node.b, grp = s("g", { class: "in-node in-stub plan-outer " + x.kind, "data-blocker": x.kind, "aria-label": x.text }, g);
-        s("path", { d: `M${b.x + 8},${b.y}H${b.x + b.w - 8}L${b.x + b.w},${b.y + 8}V${b.y + b.h - 8}L${b.x + b.w - 8},${b.y + b.h}H${b.x + 8}L${b.x},${b.y + b.h - 8}V${b.y + 8}Z`, class: "in-stub-face" }, grp);
-        const level = x.kind === "question" && isOpen(UNKNOWN[x.ref]) ? levelForKey(keyForId(x.ref)) : "";
-        if (level && level !== "dark") s("circle", { cx: b.x + 17, cy: b.y + 18, r: 5.5, class: "plan-dot " + level }, grp);
-        s("text", { x: b.x + (level && level !== "dark" ? 30 : 14), y: b.y + 22, class: "in-box-name small" }, grp).textContent = K.fit(x.kind === "question" ? x.ref : { outside: "Outside party", "plan-question": "Plan's open question", gap: "Gap or deferral", other: "Not classified" }[x.kind], b.w - 44, 12.5, 600);
-        s("text", { x: b.x + 14, y: b.y + 41, class: "in-box-sub" }, grp).textContent = K.fit(x.kind === "question" ? (E[keyForId(x.ref)] || {}).title || x.text : x.text, b.w - 24, 11);
-        s("title", {}, grp).textContent = x.text;
+        const x = b.node.b, level = x.kind === "question" && isOpen(UNKNOWN[x.ref]) ? levelForKey(keyForId(x.ref)) : "", vault = x.kind === "question" && ent(keyForId(x.ref)) ? keyForId(x.ref) : "";
+        const word = x.kind === "question" ? (vault ? titleOf(vault) : x.ref) : BLOCKER_WORD[x.kind];
+        planNode(g, b, { cls: "in-stub plan-outer " + x.kind, attrs: { "data-blocker": x.kind }, label: `${BLOCKER_WORD[x.kind]}: ${plainText(x.text)}`, title: x.text,
+          open: () => (vault ? go(vault, {}) : go(Inside.kit.key(app, "blocker", `${x.kind}:${x.ref || x.text}`), {})),
+          draw: (grp) => {
+            s("path", { d: `M${b.x + 8},${b.y}H${b.x + b.w - 8}L${b.x + b.w},${b.y + 8}V${b.y + b.h - 8}L${b.x + b.w - 8},${b.y + b.h}H${b.x + 8}L${b.x},${b.y + b.h - 8}V${b.y + 8}Z`, class: "in-stub-face" }, grp);
+            if (level && level !== "dark") s("circle", { cx: b.x + 17, cy: b.y + 18, r: 5.5, class: "plan-dot " + level }, grp);
+            s("text", { x: b.x + (level && level !== "dark" ? 30 : 14), y: b.y + 22, class: "in-box-name small" }, grp).textContent = K.fit(x.kind === "question" ? x.ref : word, b.w - 44, 12.5, 600);
+            s("text", { x: b.x + 14, y: b.y + 41, class: "in-box-sub" }, grp).textContent = K.fit(x.kind === "question" ? (E[keyForId(x.ref)] || {}).title || plainText(x.text) : plainText(x.text), b.w - 24, 11);
+          } });
       },
     });
     const b = K.boundsOf(Object.values(lay.box));
@@ -205,9 +313,46 @@ const Plan = (() => {
     return frame;
   }
 
+  /* ------------------------------------------------------------ the right-hand panel: a story, or a blocker with no page of its own */
+  const storyKey = (app, id) => Inside.kit.key(app, "story", id);
+  function openStory(app, id) { reveal(app, id); go(storyKey(app, id), {}); }
+  const blockerId = (b) => `${b.kind}:${b.ref || b.text}`;
+  const stubHolds = (p, name) => p.stories.filter((x) => x.blockers.some((b) => blockerId(b) === name));
+  function panelTitle(app, kind, name) {
+    const p = plan(app);
+    if (!p) return name;
+    if (kind === "story") { const x = storyById(p, name); return x ? `${x.id} ${x.tasks.length ? cleanName(x.name) : parkedName(x)}` : name; }
+    const hit = p.stories.flatMap((x) => x.blockers).find((b) => blockerId(b) === name);
+    return hit ? `${BLOCKER_WORD[hit.kind]}: ${trimmed(hit.text, 60)}` : name;
+  }
+  function panelFor(app, kind, name) {
+    const p = plan(app), K = kit();
+    const head = (what, title, ...more) => h("div", { class: "p-head" }, h("div", { class: "kind" }, what), h("h2", {}, title), ...more.filter(Boolean));
+    if (!p) return [h("div", { class: "p-empty" }, `${titleOf(app)} has no build plan loaded.`)];
+    if (kind === "story") {
+      const story = storyById(p, name);
+      if (!story) return [h("div", { class: "p-empty" }, `The ${planWord(app)} has no story ${name}.`)];
+      const parked = !story.tasks.length, into = /^\(merged into (S-[\w-]+)\)/i.exec(story.name), line = p.notPlanned.find((t) => t.slice(0, Math.max(t.indexOf(":"), 0)).includes(story.id));
+      return [head(`Story · ${planWord(app)}`, panelTitle(app, "story", name), h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => reveal(app, story.id) }, "Show it in the build order"))),
+        h("div", { class: "p-body" },
+          parked ? Panel.section("What happened to it", null,
+            into ? h("div", {}, "Merged into ", storyLinks(app, [into[1]]), storyById(p, into[1]) ? " " + cleanName(storyById(p, into[1]).name) : "")
+              : h("div", {}, line ? K.prose(line) : "The plan gives it no tasks and says nothing more about it."))
+            : Panel.section("Waits on", story.blockers.length, story.blockers.length ? h("ul", { class: "mini-list" }, story.blockers.map((b) => h("li", {},
+              b.kind === "story" ? storyLinks(app, [b.ref]) : b.kind === "question" && ent(keyForId(b.ref)) ? refChip(keyForId(b.ref)) : h("span", {}, h("b", {}, BLOCKER_WORD[b.kind] + ": "), plainText(b.text))))) : h("div", { class: "p-empty-line" }, "Nothing: it can start now.")),
+          storyDetail(app, story))];
+    }
+    const holds = stubHolds(p, name), first = holds.length ? holds[0].blockers.find((b) => blockerId(b) === name) : null;
+    if (!first) return [h("div", { class: "p-empty" }, `No story in the ${planWord(app)} waits on that.`)];
+    return [head(`${BLOCKER_WORD[first.kind]} · ${planWord(app)}`, trimmed(first.text, 80)),
+      h("div", { class: "p-body" },
+        Panel.section("What the plan says", null, h("div", { class: "prose-text" }, first.kind === "question" ? `${first.ref}: ${plainText(first.text)}. The vault holds no page for it.` : plainText(first.text))),
+        Panel.section("Holds up", holds.length, h("ul", { class: "mini-list" }, holds.map((x) => h("li", {}, storyLinks(app, [x.id]), " " + cleanName(x.name))))))];
+  }
+
   /* ------------------------------------------------------------ coverage, not planned, totals */
   function storyLinks(app, ids) {
-    return ids.length ? ids.map((id) => h("a", { class: "ref-chip plan-after", onclick: () => reveal(app, id) }, h("span", { class: "rid" }, id))) : null;
+    return ids.length ? ids.map((id) => h("a", { class: "ref-chip plan-after", onclick: () => openStory(app, id) }, h("span", { class: "rid" }, id))) : null;
   }
   function coverageTable(app, p) {
     const K = kit(), c = p.coverage;
@@ -254,8 +399,7 @@ const Plan = (() => {
     const tickets = p.hasTickets ? openLink([Icons.el("docs"), "Tickets"], p.ticketsHref, p.ticketsVaultPath, "The tickets file tools/breakdown_to_tickets.py wrote beside the plan", "btn quiet plan-tickets") : null;
     const file = openLink([Icons.el("docs"), "Open the plan"], p.href, p.vaultPath, p.file);
     return h("div", { class: "plan-bar" },
-      h("div", { class: "plan-kpis" }, ...[["stories", t.stories], ["tasks", t.tasks], ["points", t.points]].map(([w, n]) => h("div", { class: "plan-kpi", "data-kpi": w }, h("b", {}, n), h("span", {}, w))),
-        h("div", { class: "plan-by-size", title: "Tasks by size; points are S=2, M=5, L=8, the tool's mapping, for ordering and not a commitment" }, SIZES.map((z) => h("span", { class: "plan-by", "data-size": z }, sizeChip(z), ` ${t.bySize[z].tasks} · ${t.bySize[z].points} pts`)))),
+      h("div", { class: "plan-kpis" }, ...[["stories", t.stories], ["tasks", t.tasks]].map(([w, n]) => h("div", { class: "plan-kpi", "data-kpi": w }, h("b", {}, n), h("span", {}, w)))),
       h("div", { class: "plan-acts" }, statusPill(p), problemsChip(p, list), file, tickets,
         h("button", { class: "btn plan-copy", title: "The same CSV tools/breakdown_to_tickets.py writes to tickets.csv, ready to paste into Jira's CSV import", onclick: () => copyCsv(app) }, "Copy as Jira CSV")));
   }
@@ -274,7 +418,7 @@ const Plan = (() => {
     stage.dataset.plan = p.status || "unknown";
     const list = problemsList(p), page = h("div", { class: "plan-page", id: "plan-page" }, barOf(app, p, list), list);
     if (p.gaps.length) page.append(h("div", { class: "plan-gaps" }, p.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", K.prose(g.note)))));
-    page.append(section("Build order", plural(p.stories.length, "story", "stories"), h("p", { class: "plan-hint" }, "Left to right, in the order the plan says to build. A lit card is waiting on an open question in the vault, in that question's colour."), lane(app, p)));
+    page.append(section("Build order", plural(p.stories.length, "story", "stories"), h("p", { class: "plan-hint" }, "In the order the plan says to build. A story with a lamp is waiting on an open question in the vault, in that question's colour."), buildOrder(app, p)));
     page.append(section("What waits on what", null, h("p", { class: "plan-hint" }, "An arrow runs from what blocks a story to the story. Questions and outside parties sit at the left edge."), dependencyView(app, p)));
     page.append(section("Coverage", null, coverageTable(app, p)));
     page.append(section("Not planned", p.notPlanned.length, p.notPlanned.length ? h("ul", { class: "plan-np" }, p.notPlanned.map((n) => h("li", {}, K.prose(n)))) : h("div", { class: "p-empty-line" }, "The plan lists nothing under Not planned.")));
@@ -282,5 +426,5 @@ const Plan = (() => {
     K.placeDrawings();
   }
 
-  return { render, st, readiness, readinessPill, built: (id) => BUILT[id] || [], planWord, reveal, copyCsv, sink, blockedOn, plan, statusPill, unclosedLevel };
+  return { render, st, readiness, readinessPill, built: (id) => BUILT[id] || [], planWord, reveal, copyCsv, sink, blockedOn, plan, statusPill, unclosedLevel, panel: panelFor, panelTitle };
 })();
