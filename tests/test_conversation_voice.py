@@ -85,3 +85,12 @@ def test_the_new_instructions_name_no_listed_word():
 def test_the_guide_explains_both_voices():
     guide = (REPO / "docs" / "GUIDE.md").read_text(encoding="utf-8")
     assert "### Two voices, and how to set yours" in guide and "voice/VOICE.md" in guide
+
+
+def test_the_yes_rule_and_the_ask_who_knows_line_are_said_once_not_scripted_in_every_skill():
+    """The skills review (X2, X3, X4): a group yes defined in START, and no skill carries the old verbatim scripts."""
+    assert "A yes that covers a group you read out" in START and "groups of about five" in START
+    for path in sorted((PLUGIN / "skills").glob("*/*.md")) + [PLUGIN / "references" / "MODES.md"]:
+        body = path.read_text(encoding="utf-8")
+        assert "Who would actually know this? If that is not the owner" not in body, path.name
+        assert "explicit yes to that line" not in body and "an explicit yes for that line" not in body, path.name
