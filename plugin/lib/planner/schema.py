@@ -335,6 +335,7 @@ CODES = {
     "W368": "the opening is a line the template wrote",
     "W369": "an abbreviation not spelled out on the page",
     "W370": "an epic criterion has no AC id on its Trace line, or two share one",
+    "W371": "two or more openings above the first heading, over 150 words together",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",
