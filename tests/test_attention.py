@@ -118,3 +118,45 @@ def test_a_marker_on_an_item_no_map_draws_is_lit_too_and_an_owners_vault_is_unch
     mark_pending(vault, "R-01")  # a risk: lit by the same rule though no map draws it
     found, _ = lit(vault)
     assert found["R-01"].level == "pending"
+
+
+def test_a_question_holding_an_app_and_a_contract_on_its_page_is_one_reason_naming_both(tmp_path):
+    """Seen on Heron's Desktop agent: UNK-066 was listed once for the app and again 'through CON-001'. A question
+    that blocks the app's page also reaches every item on it, so the direct line says it all."""
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    page = vault / "11-unknowns-and-risks.md"
+    page.write_text(page.read_text(encoding="utf-8").rstrip("\n") + (
+        "\n\n### UNK-099 Seat map vendor terms\n\nWhether the seat map vendor allows holds.\n\n"
+        "- **Question:** Do the vendor terms allow a ten-minute hold?\n- **Owner:** @hl-solution-lead\n"
+        "- **State:** open\n- **Blocks:** [[booking-building-blocks]], CON-001\n- **Ask by:** 2026-12-01\n"), encoding="utf-8")
+    found, _ = lit(vault)
+    held = [r for r in found["APP-booking"].reasons if r.get("unknown") == "UNK-099"]
+    assert len(held) == 1, held
+    assert held[0]["via"] == [] and " through " not in held[0]["text"]
+
+
+def test_a_question_reaching_an_app_only_through_its_epics_is_one_reason_naming_each(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    page = vault / "11-unknowns-and-risks.md"
+    page.write_text(page.read_text(encoding="utf-8").rstrip("\n") + (
+        "\n\n### UNK-099 Seat map vendor terms\n\nWhether the seat map vendor allows holds.\n\n"
+        "- **Question:** Do the vendor terms allow a ten-minute hold?\n- **Owner:** @hl-solution-lead\n"
+        "- **State:** open\n- **Blocks:** [[EPC-033-website-to-booking|EPC-033]], [[EPC-035-kiosks-to-booking|EPC-035]]\n- **Ask by:** 2026-12-01\n"), encoding="utf-8")
+    found, _ = lit(vault)
+    held = [r for r in found["APP-booking"].reasons if r.get("unknown") == "UNK-099"]
+    assert len(held) == 1 and held[0]["via"] == ["EPC-033", "EPC-035"], held
+    assert "through EPC-033 and EPC-035" in held[0]["text"]
+
+
+def test_an_unexamined_concern_is_named_by_its_title(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    page = vault / "08-concerns" / "concern-cost.md"
+    text = page.read_text(encoding="utf-8")
+    row = next(line for line in text.splitlines() if line.startswith("| [[booking-building-blocks"))
+    page.write_text(text.replace(row, row.replace("| addressed |", "| unexamined |", 1), 1), encoding="utf-8")
+    found, _ = lit(vault)
+    texts = [r["text"] for r in found["APP-booking"].reasons if r["kind"] == "unexamined"]
+    assert texts == ["Cost never examined"], texts
