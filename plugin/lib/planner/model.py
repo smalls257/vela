@@ -31,6 +31,7 @@ class Item:
     page: object
     line: int
     facts: dict  # label -> Bullet (first one wins)
+    repeats: list = field(default_factory=list)  # (kept Bullet, ignored Bullet) for each label written twice
 
     def fact(self, label):
         bullet = self.facts.get(label)
@@ -55,7 +56,8 @@ class Vault:
     by_name: dict = field(default_factory=dict)  # lower-case basename -> [Page]
     by_id: dict = field(default_factory=dict)  # page id -> [Page]
     items: dict = field(default_factory=dict)  # item id -> [Item]
-    row_ids: dict = field(default_factory=dict)  # goal/constraint/source id -> (Page, line)
+    row_ids: dict = field(default_factory=dict)  # goal/constraint/source id -> (Page, line) of the first row
+    row_repeats: list = field(default_factory=list)  # (id, (Page, line) kept, (Page, line) ignored) for each later row
     cells: list = field(default_factory=list)
     catalogue: object = catalog.EMPTY  # the question catalogue; the CLI loads plugin/catalog/questions.yaml
     cache: dict = field(default_factory=dict)  # results computed once per vault, such as the owed questions
@@ -147,12 +149,14 @@ def _collect_items(vault, page):
         if heading.level != 3 or not schema.ITEM_ID_RE.match(first):
             continue
         kind = ITEM_KINDS[first.split("-")[0]]
-        facts = {}
+        facts, repeats = {}, []
         for bullet in page.bullets:
             if bullet.item == first and not bullet.generated and bullet.line > heading.line:
+                if bullet.label in facts:
+                    repeats.append((facts[bullet.label], bullet))
                 facts.setdefault(bullet.label, bullet)
         name = heading.text[len(first):].strip()
-        vault.items.setdefault(first, []).append(Item(first, kind, name, heading.text, page, heading.line, facts))
+        vault.items.setdefault(first, []).append(Item(first, kind, name, heading.text, page, heading.line, facts, repeats))
 
 
 def _row_id_pattern(page, header):
@@ -178,6 +182,8 @@ def _collect_rows(vault, page):
         for row, line in zip(table.rows, table.row_lines):
             row_id = row[0].strip() if row else ""
             if pattern.match(row_id):
+                if row_id in vault.row_ids:
+                    vault.row_repeats.append((row_id, vault.row_ids[row_id], (page, line)))
                 vault.row_ids.setdefault(row_id, (page, line))
 
 

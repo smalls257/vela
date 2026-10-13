@@ -93,6 +93,8 @@ When an item's branch closes, write it at once, before the next question:
 
 A functional requirement is a `### CAP-nnn.FRn <what the capability does>` heading on the capability page, and it is decided the same way. Its `**State:**` bullet moves to `decided`, `- **Decision:** [[<session id>]]` goes under `#### <its ID>` in the capability page's `## History`, and the `## Changes` row cites its ID. A `fact` FR needs a `**Source:**` bullet. An open unknown that blocks the FR fails GATE-4 for it. A requirements session may write an FR at `assumption` only. Only a Grill makes it `decided`.
 
+A release is a `## <name>` section on `04b-releases.md`, with no ID. A Grill decides it by setting that section's `**State:**` to `decided` and adding `- **Decision:** [[<session id>]]` directly under the page's `## History`. Without that Decision, check reports E303 on the release's heading.
+
 Write fact bullets and table cells only. Prose waits for close. Any `- Trace:` line on an item or a criterion is the planner's: leave it exactly as it is.
 
 ## 5. A new unknown mid-grill

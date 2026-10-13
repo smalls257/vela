@@ -10,13 +10,13 @@ import html
 import re
 
 from planner import readability, reading
-from planner.parse import protect_link_pipes
+from planner.parse import closes_fence, protect_link_pipes
 from planner.viewer import body_of
 
 from .record import LISTED, PROSE, chips_html, inline_html, title_of
 
 HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
-FENCE = re.compile(r"^\s{0,3}(```|~~~)\s*([\w-]*)")
+FENCE = re.compile(r"^\s{0,3}(`{3,}(?=[^`]*$)|~{3,})\s*([\w-]*)")
 LIST_ITEM = re.compile(r"^(\s*)(?:[-*]|(\d+)\.)\s+(.*)$")
 DETAILS_OPEN = re.compile(r"^\s*<details><summary>(.*?)</summary>\s*$")
 DETAILS_CLOSE = re.compile(r"^\s*</details>\s*$")
@@ -85,7 +85,7 @@ class Renderer:
                 mark, lang = fence.group(1), fence.group(2)
                 body = []
                 i += 1
-                while i < len(lines) and not lines[i].strip().startswith(mark):
+                while i < len(lines) and not closes_fence(lines[i], mark):
                     body.append(lines[i])
                     i += 1
                 code = html.escape("\n".join(body))

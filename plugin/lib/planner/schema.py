@@ -184,6 +184,9 @@ STORED_VALUE_REQUIRED = ("Holder", "Owner")
 SUBJECT_LABELS = PARTY_REQUIRED + STORED_VALUE_REQUIRED + PARTY_OPTIONAL
 SUBJECT_PAGE = "03-context-and-scope.md"  # the one home of parties and stored value
 # A heading whose first word begins like a subject ID (PTY or SV, any case), whether or not it is well formed.
+# A level-3 heading that opens like an item ID (UNK-12, CON-001:, R-3x) and is not one is dropped from every index and gate.
+ITEM_LOOKALIKE_RE = re.compile(r"^(CON|UNK|R)-\d|^CAP-\d+\.FR", re.IGNORECASE)
+ITEM_FORMS = {"CON": "CON-nnn", "UNK": "UNK-nnn", "R": "R-nn", "CAP": "CAP-nnn.FRn"}
 SUBJECT_LOOKALIKE_RE = re.compile(r"^(PTY|SV)(?![A-Za-z])", re.IGNORECASE)
 
 # ------------------------------------------------------------------ overrides
@@ -280,6 +283,8 @@ CODES = {
     "E204": "two files share a basename",
     "E207": "ID reference resolves to nothing",
     "E208": "item ID used by two headings",
+    "E209": "a fact label is written twice under one heading",
+    "E210": "two rows claim one ID, or one app on a concern page",
     "E301": "concern cell is not valid",
     "E302": "unknown or risk is missing a required fact",
     "E303": "decided without a Grill decision",
@@ -294,6 +299,12 @@ CODES = {
     "E320": "contract is missing a required fact",
     "E321": "override is malformed",
     "E322": "decided-by or confirmed-by is malformed",
+    "E323": "a History heading names no item on its page",
+    "W325": "app is handed off but its PR number is not recorded",
+    "W326": "page is less settled than its rows",
+    "W327": "reader's decisions pending approval",
+    "W329": "a table row's link label pipe is not escaped as `\\|`",
+    "W717": "CONVENTIONS.md is not the copy the plugin ships",
     "W334": "prose calls an answered question open",
     "E340": "release row names no functional requirement",
     "E341": "release row names a criterion the requirement does not have",
@@ -362,7 +373,7 @@ CODES = {
     "W807": "open question blocks the grilled item",
     "E808": "party or stored value is missing a required fact",
     "W809": "possibly an untyped subject",
-    "E810": "heading looks like a party or stored value but is not one",
+    "E810": "heading looks like an item or subject ID but is not one",
     "W811": "subject defined off its page",
     "W812": "ledger row is dated in the future",
     "W813": "ledger page has no question ledger heading",

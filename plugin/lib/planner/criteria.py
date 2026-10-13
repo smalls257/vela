@@ -32,7 +32,7 @@ marker.
 import re
 from dataclasses import dataclass
 
-from planner.parse import FENCE
+from planner.parse import FENCE, closes_fence
 from planner.reading import TRACE_LINE
 
 SECTION = re.compile(r"^##\s+(?P<text>.*?)\s*#*\s*$")
@@ -100,7 +100,7 @@ def _section_lines(page):
     for n, raw in enumerate(page.text.split("\n"), start=1):
         opening = FENCE.match(raw)
         if fence:
-            if raw.strip().startswith(fence):
+            if closes_fence(raw, fence):
                 fence = None
             continue
         if opening:

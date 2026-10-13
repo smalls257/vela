@@ -14,11 +14,11 @@ It runs after viewer.neutralise, so the only raw HTML it adds is its own fixed t
 import re
 
 from planner import schema
+from planner.parse import FENCE, closes_fence
 
 HISTORY_BULLET = re.compile(r"^\s*-\s+\*\*(" + "|".join(re.escape(label) for label in schema.HISTORY_LABELS)
                             + r"):\*\*", re.I)
 HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*$")
-FENCE = re.compile(r"^\s{0,3}(```|~~~)")
 GEN_OPEN = re.compile(r"^\s*<!--\s*generated:([a-z0-9-]+)[^>]*-->\s*$")
 GEN_CLOSE = re.compile(r"^\s*<!--\s*/generated:[a-z0-9-]+\s*-->\s*$")
 ID = r"(?:[A-Z][A-Z0-9]*-\d+(?:\.FR\d+)?|G\d+)"
@@ -191,7 +191,7 @@ def arrange(markdown):
         moving = False
         if in_fence:
             (block if block is not None else history.setdefault(owner, []) if in_history else body).append(line)
-            if FENCE.match(line) and FENCE.match(line).group(1) == in_fence:
+            if closes_fence(line, in_fence):
                 in_fence = None
             continue
         if block is not None:

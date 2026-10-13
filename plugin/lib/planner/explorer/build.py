@@ -29,6 +29,8 @@ import re
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
                      reading, roles, schema, trace)
 from planner import search as planner_search
+from planner.edge import atomic
+from planner.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
                plan_data, roles_data, serve)
@@ -81,11 +83,12 @@ def skipped_lines(page):
         stripped = raw.strip()
         if fence:
             skip.add(n)
-            if stripped.startswith(fence):
+            if closes_fence(raw, fence):
                 fence = None
             continue
-        if stripped.startswith("```") or stripped.startswith("~~~"):
-            fence = stripped[:3]
+        opening = FENCE.match(raw)
+        if opening:
+            fence = opening.group(1)
             skip.add(n)
     return skip
 
@@ -770,7 +773,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     # carrying it would make the first build and every later build of one vault differ. The report lines still say it.
     page = render({**data, "pins": {**data["pins"], "added": []}}, assets)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(page, encoding="utf-8")
+    atomic.write_atomic(out, page)
     said += pin_lines(data, pins_path, was_there, root)
     said += party_lines(data)
     said += asset_lines(assets)

@@ -29,7 +29,7 @@ import yaml
 
 from planner import allocation, trace
 from planner import criteria as criteria_reader
-from planner.parse import FENCE, TABLE_SEPARATOR, split_row
+from planner.parse import FENCE, TABLE_SEPARATOR, closes_fence, split_row
 
 
 class DesignError(Exception):
@@ -375,7 +375,7 @@ def _split_sections(lines, start, problems):
         raw = lines[i]
         opening = FENCE.match(raw)
         if fence:
-            fence = None if raw.strip().startswith(fence) else fence
+            fence = None if closes_fence(raw, fence) else fence
         elif opening:
             fence = opening.group(1)
         elif raw.startswith("# ") and title is None:
@@ -421,7 +421,7 @@ def _blocks(section_lines):
     for n, raw in section_lines:
         opening = FENCE.match(raw)
         if fence:
-            if raw.strip().startswith(fence):
+            if closes_fence(raw, fence):
                 out.append(("fence", lang, start, "\n".join(buf)))
                 fence, buf = None, []
             else:

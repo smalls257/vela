@@ -19,7 +19,7 @@ import csv
 import io
 import re
 
-import yaml
+from planner import parse as vault_parse
 
 from planner import export
 
@@ -53,7 +53,8 @@ class Story:
 
 
 def cells(line):
-    return [c.strip() for c in line.strip().strip("|").split("|")]
+    """A table row's cells, read as the vault's own tables are: an escaped pipe stays inside its cell."""
+    return list(vault_parse.split_row(line))
 
 
 def is_separator(line):
@@ -61,14 +62,18 @@ def is_separator(line):
 
 
 def split_frontmatter(text):
-    match = re.match(r"\A---\n(.*?)\n---\n", text, re.S)
-    return (yaml.safe_load(match.group(1)) or {}, text[match.end():]) if match else ({}, text)
+    """(meta, body, problem). The vault's own reader finds the block, so a BOM or CRLF file reads as an LF one does;
+    `problem` says why no frontmatter was read, and is "" when it was."""
+    text = vault_parse.normalise_text(text)
+    meta, body_start, error = vault_parse.split_frontmatter(text)
+    body = "\n".join(text.split("\n")[body_start - 1:]) if not error else text
+    return meta, body, (error.message if error else "")
 
 
 def sections_of(body):
     """(heading text, lines) for each `## ` section, plus the lines before the first one under the key ''."""
     out, name = {"": []}, ""
-    for line in body.splitlines():
+    for line in body.split("\n"):
         match = re.match(r"^##\s+(.*?)\s*$", line)
         if match:
             name = match.group(1)
@@ -136,7 +141,7 @@ def take_table_line(story, line, state):
 def parse_story_sections(body):
     """The stories in file order, from the `### S-NN` headings anywhere after the frontmatter."""
     stories, current, state = [], None, {}
-    for line in body.splitlines():
+    for line in body.split("\n"):
         heading = STORY_HEADING.match(line)
         if not heading and re.match(r"^###\s+S-", line):
             stories.append(Story("?", line.lstrip("# ").strip()))  # kept, so the caller reports it instead of dropping it
@@ -355,15 +360,17 @@ def coverage_table(sections):
 
 def read(text):
     """The whole plan as plain data. `stories` are Story objects; `problems` is everything that did not map."""
-    meta, body = split_frontmatter(text)
+    meta, body, why = split_frontmatter(text)
     problems = []
-    if meta.get("status") not in STATUSES:
+    if why:
+        problems.append(f"no frontmatter was read ({why[0].lower()}{why[1:]}) so the plan has no status")
+    elif meta.get("status") not in STATUSES:
         problems.append(f"frontmatter status is {meta.get('status')!r}; the plan should be {' or '.join(STATUSES)}")
     stories = parse_story_sections(body)
     if not stories:
         problems.append("no `### S-NN <name>` story section found")
     sections = sections_of(body)
-    summary = summary_table(body.splitlines())
+    summary = summary_table(body.split("\n"))
     problems += cross_check(stories, list(summary), sections)
     for story in stories:
         problems += story_problems(story, {s.id for s in stories})
