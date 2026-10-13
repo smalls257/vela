@@ -19,7 +19,7 @@ Shared files live in `${CLAUDE_PLUGIN_ROOT}/references/`. Read them when a step 
 4. Build on what they say. For each idea, offer one "what if" that removes a constraint, borrows from another domain, or turns the idea around. Write each as a capture with origin `(claude)`. Tag the far-fetched ones `[wild]`. Never judge an idea, and never say one will not work.
 5. Collect questions as `[unknown]` captures. Do not try to answer them now.
 6. When the user slows down, run the pre-mortem. Say: "It is six months from now and this initiative has failed. What went wrong?" Capture every answer as a `[worry]`.
-7. After the pre-mortem, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the pre-mortem" and the captures as its focus. The session record is the written plan here, so the reviewers read it with the vault's pages. Show the lead the digest it ends with, as REVIEW section 5 says: the high and blocking lines in full, the rest as one count per area with the command that lists them, and `--all` when the lead wants every line. Capture what they take. The digest lists questions nobody has answered. It is not a verdict on any idea. Show it without comment on the ideas, and keep building on what the lead says.
+7. After the pre-mortem, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the pre-mortem" and the captures as its focus. The session record is the written plan here, so the reviewers read it with the vault's pages. Show the lead the digest it ends with, as REVIEW section 5 says: once, at the pause after the pre-mortem, at most three plain questions with a recommended answer each, and one line saying how many more are written down. Capture what they take. The digest lists questions nobody has answered. It is not a verdict on any idea. Show it without comment on the ideas, and keep building on what the lead says.
 
    When an answer names a contract, an agreement or a figure, ask who holds it, and capture it as `[unknown]` with "to fetch:", the document and who holds it, so a later Discover can ask for it and read it. Do the same for any contract or document the captures themselves name.
 
@@ -28,7 +28,7 @@ Shared files live in `${CLAUDE_PLUGIN_ROOT}/references/`. Read them when a step 
 
 ## Ends when
 
-The user stops, or the pre-mortem and its review checkpoint are done. Commit, then tell the user: "Run `/planner:close` to mark each capture and open the PR." Do not run close yourself.
+The user stops, or the pre-mortem and its review checkpoint are done. Commit. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session": it files each capture and opens the PR. If the conversation is cut off, the record holds the resume point.
 
 ## Never
 

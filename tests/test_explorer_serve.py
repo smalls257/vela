@@ -6,6 +6,7 @@ import http.client
 import json
 import os
 import pathlib
+import re
 import shutil
 import socket
 import threading
@@ -43,9 +44,12 @@ def helper(tmp_path, stub_log):
     thread.join(5)
 
 
-def request(server, method, path, body=None, host=None, origin="same"):
+def request(server, method, path, body=None, host=None, origin="same", key="own", headers=None):
+    """`key` is the cookie the browser holds after opening the printed link: "own" sends the right one, None sends none."""
     conn = http.client.HTTPConnection(serve.LOOPBACK, server.server_port, timeout=15)
-    headers = {"Host": host or f"{serve.LOOPBACK}:{server.server_port}"}
+    headers = {"Host": host or f"{serve.LOOPBACK}:{server.server_port}", **(headers or {})}
+    if key:
+        headers["Cookie"] = f"{serve.cookie_name(server.server_port)}={server.key if key == 'own' else key}"
     if origin == "same":
         headers["Origin"] = f"http://{serve.LOOPBACK}:{server.server_port}"
     elif origin:
@@ -71,15 +75,13 @@ def value_after(argv, flag):
 
 
 def test_the_server_binds_loopback_only(helper):
+    """A socket bound to 127.0.0.1 accepts nothing from another machine, so the bind address is the guarantee.
+    No name lookups: resolving the host name made the old test error or pass vacuously on some machines."""
     server, _, _ = helper
-    assert server.server_address[0] == serve.LOOPBACK
-    assert server.url.startswith(f"http://{serve.LOOPBACK}:")
-    # a socket to the machine's own non-loopback address finds nothing listening
-    outward = socket.gethostbyname(socket.gethostname())
-    if outward != serve.LOOPBACK:
-        with pytest.raises(OSError), socket.create_connection((outward, server.server_port), timeout=2):
-            pass
-
+    assert server.server_address[0] == "127.0.0.1"
+    assert serve.LOOPBACK == "127.0.0.1"
+    assert server.url.startswith("http://127.0.0.1:")
+    assert request(server, "GET", "/health", origin=None).status == 200
 
 def test_health_names_the_vault_and_the_default_model(helper):
     server, vault, _ = helper
@@ -121,7 +123,7 @@ def test_claude_gets_read_only_tools_the_vault_as_cwd_and_the_citation_rule(help
     ask(server, context={"view": "Flows", "item": "FLO-002", "flow": "FLO-002", "step": 2, "stray": "dropped"})
     (call,) = calls(stub_log)
     argv = call["argv"]
-    assert value_after(argv, "--allowedTools") == "Read,Grep,Glob" and value_after(argv, "--tools") == "Read,Grep,Glob"
+    assert value_after(argv, "--tools") == "Read,Grep,Glob" and "--allowedTools" not in argv  # no bare tool name pre-approves a path outside the vault
     assert pathlib.Path(call["cwd"]).resolve() == vault.resolve()
     assert value_after(argv, "--model") == serve.MODELS["haiku"] and "--disable-slash-commands" in argv
     system = value_after(argv, "--append-system-prompt")
@@ -254,7 +256,7 @@ def test_the_cli_serves_a_built_vault_and_stops_on_ctrl_c(tmp_path, monkeypatch)
     assert cli.main(["explore", str(vault), "--today", "2026-10-10", "--serve", "--no-open", "--model", "sonnet"], out=out) == 0
     text = out.getvalue()
     assert seen and f"serving http://{serve.LOOPBACK}:" in text and "claude-sonnet-5-5" in text and text.rstrip().endswith("stopped")
-    assert (vault / ".planner" / "explorer.html").is_file()
+    assert (vault / "dashboard.html").is_file()
 
 
 def test_a_port_out_of_range_is_a_tool_error(tmp_path):
@@ -267,9 +269,10 @@ def test_a_port_out_of_range_is_a_tool_error(tmp_path):
     assert "not a port number" in out.getvalue()
 
 
-def test_only_ask_js_and_freshness_js_can_reach_the_network_and_each_checks_for_a_file_first():
-    """The page's offline promise: no module but ask.js and freshness.js names a network call, ask.js decides on file:
-    before it looks for the helper, and freshness.js asks only its own origin's /freshness, and only when served."""
+def test_only_ask_js_freshness_js_and_layout_js_can_reach_the_network_and_each_checks_for_a_file_first():
+    """The page's offline promise: no module but ask.js, freshness.js and layout.js names a network call, ask.js decides on
+    file: before it looks for the helper, freshness.js asks only its own origin's /freshness, and only when served, and
+    layout.js asks /pins only when the page was served and its reader is not a reader (a file saves to the browser)."""
     scripts = REPO / "plugin/lib/planner/explorer/assets/js"
     network = ("fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "sendBeacon")
     for script in scripts.glob("*.js"):
@@ -281,5 +284,207 @@ def test_only_ask_js_and_freshness_js_can_reach_the_network_and_each_checks_for_
             assert text.index("if (!served() ||") < text.index('fetchFn("/freshness")')
             assert 'location.protocol === "http:" || location.protocol === "https:"' in text
             assert text.count("fetchFn(") == 1 and "XMLHttpRequest" not in text and "://" not in text.replace('"http:"', "").replace('"https:"', "")
+        elif script.name == "layout.js":
+            assert 'const canSave = () => typeof Ask !== "undefined" && Ask.served() && D.role !== "reader";' in text
+            assert text.index("if (!canSave()) return;") < text.index('net.fetch("/pins")')
+            assert "if (canSave()) { await saveToVault(said);" in text and "    if (canSave()) {\n      base = clone(built);" in text
+            assert text.count("net.fetch(") == 2 and "XMLHttpRequest" not in text and "://" not in text.replace('"http:"', "").replace('"https:"', "")
         elif script.name != "selftest.js":  # the self-test wraps fetch to prove none is made
             assert not [word for word in network if word in text], script.name
+
+
+# ------------------------------------------------------------------ a received vault is hostile input
+
+def test_ask_does_not_load_the_vaults_own_settings_and_turns_hooks_off(helper, stub_log):
+    """E19. A vault arriving by zip or proposal can carry .claude/settings.json with a SessionStart hook. claude -p shows no
+    trust dialog, so loading project settings would run it as the reader."""
+    server, vault, _ = helper
+    (vault / ".claude").mkdir()
+    (vault / ".claude" / "settings.json").write_text(json.dumps({"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": "touch PWNED"}]}]}}), encoding="utf-8")
+    ask(server)
+    (call,) = calls(stub_log)
+    argv = call["argv"]
+    assert value_after(argv, "--setting-sources") == "user"
+    settings = json.loads(value_after(argv, "--settings"))
+    assert settings["disableAllHooks"] is True
+    assert not (vault / "PWNED").exists()
+
+
+def test_ask_is_confined_to_the_vault_when_claude_can_be(helper, stub_log):
+    """E24. The file tools stay in the folder: --restricted where this claude has it, never a bare Read/Grep/Glob allow rule."""
+    server, _, _ = helper
+    ask(server)
+    (call,) = calls(stub_log)
+    assert "--restricted" in call["argv"]
+    assert "--allowedTools" not in call["argv"]
+    assert json.loads(request(server, "GET", "/health").read())["confined"] is True
+    older = serve.claude_argv("m", "q", "/h")
+    assert "--restricted" not in older and "--allowedTools" not in older and value_after(older, "--setting-sources") == "user"
+
+
+def test_the_settings_deny_the_exact_explorer_page_the_helper_writes():
+    """E25. dashboard.html is what `planner explore` writes at the vault root, and the docstring promised no read of it."""
+    from planner import publish
+    deny = serve.claude_settings("/h")["permissions"]["deny"]
+    assert f"Read(./{publish.DASHBOARD_PATH})" in deny and f"Read(./**/{publish.DASHBOARD_PATH})" in deny and "Read(./.planner/**)" in deny
+
+
+def test_a_request_without_the_key_is_refused_even_with_the_right_host_and_origin(helper, stub_log):
+    """E26. Host and Origin are headers any local program can set; the key is what only the opened link carries."""
+    server, _, _ = helper
+    for key in (None, "wrong-key"):
+        assert request(server, "POST", "/ask", {"question": "x"}, key=key).status == 403
+        assert request(server, "POST", "/pins", {"pins": {}}, key=key).status == 403
+        assert request(server, "GET", "/freshness", key=key).status == 403
+        assert request(server, "GET", "/", key=key, origin=None).status == 403
+    assert not stub_log.exists()
+
+
+def test_the_printed_link_hands_the_key_to_the_browser_as_a_cookie_and_redirects(helper):
+    server, _, _ = helper
+    assert "?k=" + server.key in server.url
+    response = request(server, "GET", f"/?k={server.key}", key=None, origin=None)
+    assert response.status == 302 and response.getheader("Location") == "/"
+    cookie = response.getheader("Set-Cookie")
+    assert f"{serve.cookie_name(server.server_port)}={server.key}" in cookie and "HttpOnly" in cookie and "SameSite=Strict" in cookie
+    assert request(server, "GET", "/?k=nope", key=None, origin=None).status == 403
+
+
+@pytest.mark.parametrize("length, status", [("-1", 400), ("abc", 400), ("99999999", 413), (None, 411)])
+def test_a_bad_content_length_gets_a_status_not_a_hung_thread(helper, length, status):
+    """E28. read(-1) blocks until the client closes; int('abc') raised with only a traceback on stderr."""
+    server, _, _ = helper
+    conn = http.client.HTTPConnection(serve.LOOPBACK, server.server_port, timeout=5)
+    conn.putrequest("POST", "/pins", skip_accept_encoding=True)
+    conn.putheader("Host", f"{serve.LOOPBACK}:{server.server_port}")
+    conn.putheader("Origin", f"http://{serve.LOOPBACK}:{server.server_port}")
+    conn.putheader("Cookie", f"{serve.cookie_name(server.server_port)}={server.key}")
+    if length is not None:
+        conn.putheader("Content-Length", length)
+    conn.endheaders()
+    assert conn.getresponse().status == status
+
+
+HELD_TIMEOUTS = []  # the stub hangs on purpose, so the held requests end by timing out; kept so the test can see them
+
+
+def _drain(server):
+    try:
+        request(server, "POST", "/ask", {"question": "x"}).read()
+    except TimeoutError as exc:
+        HELD_TIMEOUTS.append(exc)
+
+
+def test_a_third_question_is_told_to_wait_rather_than_spawning_another_claude(helper, stub_log, monkeypatch):
+    """E40. Each /ask is a claude process with its own budget."""
+    server, _, _ = helper
+    monkeypatch.setenv("EXPLORE_STUB_MODE", "hang")
+    server.ask_timeout = 20
+    held = []
+    for _ in range(serve.MAX_CONCURRENT_ASKS):
+        thread = threading.Thread(target=lambda: _drain(server), daemon=True)
+        thread.start()
+        held.append(thread)
+    for _ in range(400):
+        if stub_log.exists() and len(calls(stub_log)) >= serve.MAX_CONCURRENT_ASKS:
+            break
+        threading.Event().wait(0.05)
+    else:
+        raise AssertionError("the first questions never started")
+    assert request(server, "POST", "/ask", {"question": "x"}).status == 429
+    assert len(calls(stub_log)) == serve.MAX_CONCURRENT_ASKS
+
+
+def test_a_vault_holding_a_symbolic_link_is_not_served(tmp_path):
+    """E24. A link inside the vault can name ~/.ssh/id_rsa; Ask follows it."""
+    import io
+    from planner import cli
+    vault = tmp_path / "vault"
+    shutil.copytree(SNAPSHOT, vault)
+    (vault / "keys").symlink_to(tmp_path)
+    out = io.StringIO()
+    assert cli.main(["explore", str(vault), "--today", "2026-10-10", "--serve", "--no-open"], out=out) == 2
+    assert "keys" in out.getvalue() and "symbolic link" in out.getvalue()
+
+
+# ------------------------------------------------------------ E17: the served page's Open-the-file links
+
+def get(server, path):
+    response = request(server, "GET", path, origin=None)
+    return response.status, dict(response.getheaders()), response.read()
+
+
+def test_e17_the_helper_serves_a_vault_file_as_text_and_nothing_outside_the_vault(helper, tmp_path):
+    server, vault, _ = helper
+    (vault / "docs").mkdir()
+    (vault / "docs" / "Q&A #2.md").write_text("# hello\n", encoding="utf-8")
+    (vault / "page.html").write_text("<script>alert(1)</script>", encoding="utf-8")
+    (vault / ".planner").mkdir()
+    (vault / ".planner" / "explorer-pins.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "secret.txt").write_text("TOPSECRET-4471", encoding="utf-8")
+    (vault / "link.txt").symlink_to(tmp_path / "secret.txt")
+    status, headers, body = get(server, "/vault-file/docs/Q%26A%20%232.md")
+    assert (status, body) == (200, b"# hello\n") and headers["Content-Type"].startswith("text/plain")
+    status, headers, _ = get(server, "/vault-file/page.html")
+    assert status == 200 and headers["Content-Type"].startswith("text/plain") and headers["X-Content-Type-Options"] == "nosniff"
+    for refused in ("/vault-file/.planner/explorer-pins.json", "/vault-file/../secret.txt", "/vault-file/%2e%2e/secret.txt",
+                    "/vault-file/link.txt", "/vault-file/docs", "/vault-file/missing.md", "/vault-file/"):
+        status, _, body = get(server, refused)
+        assert status in (400, 403, 404), refused
+        assert b"TOPSECRET-4471" not in body and json.loads(body)["error"], refused
+
+
+def test_e17_a_vault_file_request_still_has_to_come_from_this_helper(helper):
+    server, vault, _ = helper
+    (vault / "a.md").write_text("x", encoding="utf-8")
+    response = request(server, "GET", "/vault-file/a.md", host="evil.example:80", origin=None)
+    assert response.status == 403
+
+
+# ------------------------------------------------------------ E27: the same port on every run, so the browser's saved state is found
+
+def test_e27_a_vault_gets_the_same_port_every_time_inside_the_private_range():
+    port = serve.preferred_port("v-9f3c0a17d4e2b6")
+    assert port == serve.preferred_port("v-9f3c0a17d4e2b6") and 49152 <= port <= 65151
+    assert serve.preferred_port("v-0000000000000a") != serve.preferred_port("v-0000000000000b")
+
+
+def test_e27_explore_serve_without_a_port_uses_the_vaults_port_or_says_why_it_did_not(tmp_path, stub_log):
+    import subprocess
+    import sys
+    root = tmp_path / "vault"
+    shutil.copytree(SNAPSHOT, root)
+    command = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(root), "--today", "2026-10-12", "--serve", "--no-open"]
+
+    def started():
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        watchdog = threading.Timer(60, proc.kill)
+        watchdog.start()
+        try:
+            lines = []
+            for line in proc.stdout:
+                lines.append(line)
+                if "serving http://" in line:
+                    return lines
+            raise AssertionError("never said where it serves: " + "".join(lines))
+        finally:
+            watchdog.cancel()
+            proc.terminate()
+            proc.wait(10)
+    first = started()
+    port = int(re.search(r"serving http://127.0.0.1:(\d+)/", "".join(first)).group(1))
+    assert port == serve.preferred_port(expected_id(root))
+    assert port == int(re.search(r"serving http://127.0.0.1:(\d+)/", "".join(started())).group(1))
+    with socket.socket() as taken:
+        taken.bind((serve.LOOPBACK, port))
+        taken.listen()
+        lines = "".join(started())
+    other = int(re.search(r"serving http://127.0.0.1:(\d+)/", lines).group(1))
+    assert other != port and "port" in lines and "taken" in lines
+
+
+def expected_id(root):
+    from planner import cli
+    from planner.explorer import build
+    config = cli.load_config(root)
+    return build.vault_id(str(config.get("initiative", "")), str(config.get("title", "")), config.get(build.VAULT_ID_KEY))

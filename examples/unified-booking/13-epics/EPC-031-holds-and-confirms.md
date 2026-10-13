@@ -18,21 +18,61 @@ sources: ["session 2026-07-28 Shape", "session 2026-11-18 Grill", "ADR-0001", "A
 
 - **Decision:** [[2026-11-18-epics]]
 
-Booking becomes the one place that decides whether a crossing is held, confirmed or released. Today each front end works that out from whatever its own adapter scraped, which is why the call centre and the kiosks can disagree about the same booking. This epic builds the hold, confirm and get operations of the Booking API, takes Tidepay's payment outcome, and keeps an unpaid seat for 10 minutes.
+Booking becomes the one place that decides whether a crossing is held, confirmed or released. This epic builds the hold, confirm and get operations of the Booking API, takes Tidepay's payment outcome, and keeps an unpaid seat for 10 minutes.
 
-The hold is new. Today nothing stops a second channel selling the last seat while a customer is on Tidepay's page, and the call centre sorts out the overbooking by hand. FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]]), so Booking reports a booking as confirmed only after the ledger has accepted it. Customers pay on Tidepay's hosted page and card data never reaches Booking.
+Still open: nothing.
 
 **Owning team:** Booking team.
 
-## Epic acceptance criteria
+## Who this is for and what changes
 
-1. A channel that asks to hold a seat through CON-001 gets back a booking reference and an expiry time 10 minutes ahead, and no other channel can sell that seat until the hold ends.
-2. When Tidepay reports a successful payment through CON-007, get on CON-001 returns `confirmed` only after FERRYMASTER has accepted the booking. [testing]
-3. If the ledger write fails after payment, get returns `confirming`, the seat stays held past the 10 minutes, and the booking reaches `confirmed` without anyone at Harbourline touching it.
-4. A failed or abandoned payment releases the hold, and the seat is available to every channel again.
-5. Two channels asking about the same booking reference at the same moment get the same state.
-6. A call to CON-001 without a valid service token is refused at the Platform gateway. [security]
-7. No request or response on CON-001 or CON-007 carries card data. [security] [data]
+Today each front end works that out from whatever its own adapter scraped, which is why the call centre and the kiosks can disagree about the same booking.
+
+The hold is new. Today nothing stops a second channel selling the last seat while a customer is on Tidepay's page, and the call centre sorts out the overbooking by hand. FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]), so Booking reports a booking as confirmed only after the ledger has accepted it. Customers pay on Tidepay's hosted page and card data never reaches Booking.
+
+## Done when
+
+### A hold keeps the seat for ten minutes
+
+A channel that asks to hold a seat through the Booking API gets back a booking reference and an expiry time 10 minutes ahead, and no other channel can sell that seat until the hold ends.
+
+- Trace: CON-001  ·  AC1
+
+### Confirmed only after the ledger accepts
+
+When Tidepay reports a successful payment, a get on the Booking API returns `confirmed` only after FERRYMASTER has accepted the booking.
+
+- Trace: CON-001, CON-007  ·  AC2  ·  [testing]
+
+### A failed ledger write still ends in a confirmation
+
+If the ledger write fails after payment, get returns `confirming`, the seat stays held past the 10 minutes, and the booking reaches `confirmed` without anyone at Harbourline touching it.
+
+- Trace: AC3
+
+### A failed payment frees the seat
+
+A failed or abandoned payment releases the hold, and the seat is available to every channel again.
+
+- Trace: AC4
+
+### Two channels see the same state
+
+Two channels asking about the same booking reference at the same moment get the same state.
+
+- Trace: AC5
+
+### No valid token, no call
+
+A call to the Booking API without a valid service token is refused at the Platform gateway.
+
+- Trace: CON-001  ·  AC6  ·  [security]
+
+### No card data on the API
+
+No request or response on the Booking API or on Tidepay's payment outcome carries card data.
+
+- Trace: CON-001, CON-007  ·  AC7  ·  [security] [data]
 
 ## Traces to
 
@@ -49,7 +89,7 @@ The hold is new. Today nothing stops a second channel selling the last seat whil
 
 ## Depends on
 
-- [[EPC-032-ledger-adapter|EPC-032]]: confirm needs ledger writes.
+- [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]: confirm needs ledger writes.
 
 ## Rollout notes
 
@@ -57,9 +97,8 @@ No channel traffic reaches Booking until that channel's own epic cuts over. Book
 
 ## Out of scope
 
-- Amend and cancel ([[EPC-036-amend-cancel-online|EPC-036]]).
-- Publishing state-changed events ([[EPC-037-events-and-notifications|EPC-037]]).
-- How writes reach FERRYMASTER ([[EPC-032-ledger-adapter|EPC-032]]).
+- Amend and cancel ([[EPC-036-amend-cancel-online|Amend and cancel online]]).
+- Publishing state-changed events ([[EPC-037-events-and-notifications|Booking events and customer notifications]]).
+- How writes reach FERRYMASTER ([[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]).
 - Any channel's Booking API client.
 
-The Booking team breaks this epic into stories after their tech design session.

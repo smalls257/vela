@@ -2,11 +2,11 @@
    the router. Every section opens a section page: its visual in the main area, and its page, in the vault's own
    words, beside it in the panel. Constraints, Strategy and Glossary are mostly words, so their page fills the main
    area instead. The views the explorer already had are the visuals of their sections: the map is Apps (and
-   Capabilities, grouped by capability), the played flows are Flows, Who to ask is Unknowns and risks, the garden is
+   Capabilities, grouped by capability), the played flows are Flows, Who to ask is Unknowns and risks, the decision log is
    Decisions, the stage ladder is Apps' second visual and the trace is Capabilities' and Epics'.
 
    Hash: #home, #role=qa, #s=apps&open=APP-booking, #s=strategy&read, plus the map's &lens= &group= &focus= and the
-   releases' &state=. The old deep links (#map, #flows&open=FLO-002, #asks&open=UNK-065, #garden&open=ADR-0002)
+   releases' &state=. The old deep links (#map, #flows&open=FLO-002, #asks&open=UNK-065, #garden&open=ADR-0002, now the decision log)
    still land where they did. */
 const Nav = (() => {
   const SIDE_KEY = "explorer.side", OPEN_KEY = "explorer.side.open";
@@ -16,7 +16,7 @@ const Nav = (() => {
     goals: [["goals", "Goals"]], constraints: [], context: [["context", "Today and after"]], strategy: [],
     capabilities: [["map", "Capability map"], ["trace", "Trace"]], releases: [["releases", "Timeline"]],
     apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Played"]], concerns: [["concerns", "Concern cells"]],
-    decisions: [["garden", "Garden"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Trace"]],
+    decisions: [["decisions", "Log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Trace"]],
   };
   const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); } };
@@ -51,9 +51,9 @@ const Nav = (() => {
     if (vis.length > 1 || (opts.reading && vis.length)) box.append(h("div", { class: "seg", role: "group", "aria-label": "Visual" }, vis.map(([v, label]) =>
       h("button", { "aria-pressed": String(App.view === v), onclick: () => { Sections.doc.page = ""; showView(v); } }, label))));
     const pk = sectionPage();
-    if (s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside") box.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers and the team's components", onclick: () => Inside.open(st.child, "containers") }, "Inside this app"));
+    if (s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside") box.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers, the team's components and its build plan", onclick: () => Inside.open(st.child, "containers") }, "Inside this app"));
     if (pk && App.view !== "doc") box.append(h("button", { class: "btn", title: "Read the section's page full width", onclick: () => readWide(pk) }, "Read the page"));
-    if (pk && D.vault) box.append(h("a", { class: "btn quiet", href: encodeURI(D.vault + "/" + E[pk].path), target: "_blank", title: E[pk].path }, "Open the file"));
+    if (pk) box.append(openLink(["Open the file"], D.vault ? D.vault + "/" + E[pk].path : "", E[pk].path, E[pk].path));
     return box;
   }
 
@@ -73,7 +73,7 @@ const Nav = (() => {
     if (id === "apps") { MapView.st.lens = MapView.st.lens === "releases" ? null : MapView.st.lens; if (st.child) { MapView.st.focus = st.child; MapView.st.lens = "cockpit"; } if (MapView.st.group === "capability") MapView.st.group = null; }
     if (id === "capabilities") { MapView.st.group = "capability"; MapView.st.lens = "cockpit"; }
     if (id === "flows" && st.child) { Flows.st.key = st.child; Flows.st.cur = -1; }
-    if (id === "decisions" && st.child) Garden.showFor(st.child);
+    if (id === "decisions" && st.child) Decisions.showFor(st.child);
     if (id === "releases" && opts.state !== undefined) Releases.open(opts.state);
     App.trail = []; App.focus = st.child || null;
     App.view = viewDef(view) ? view : "doc";
@@ -140,21 +140,49 @@ const Nav = (() => {
   function openRelease(i) { open("releases", "", { state: i }); }
 
   /* ------------------------------------------------------------ the hash */
+  /* A move between views is a history entry, so Back returns to the view the lead came from (E33); the same address twice
+     replaces, and so does a refinement inside a view (a flow's next step: view-flows.js). `written` is what this page last
+     put in the address bar, so a hashchange the page did not make is a pasted link or a Back, and is followed. */
+  let written = location.hash, following = false;
+  function setHash(hash) {
+    if (hash === location.hash) return;
+    if (following) history.replaceState(null, "", hash); else history.pushState(null, "", hash);  // following a Back must not add an entry to go back to
+    written = location.hash;
+  }
+  function followHash() {
+    if (location.hash === written) return;
+    written = location.hash;
+    reloadHash();
+    Flows.closePresent();
+    following = true;
+    try { followBoot(); } finally { following = false; }
+    refresh();
+  }
+  function followBoot() {
+    if (!boot()) {
+      const open = HASH.get("open");
+      if (open && ent(open)) { App.trail = [open]; App.focus = open; }
+      if (App.view === "flows" && open && FLOW[open]) { Flows.st.key = open; Flows.st.cur = HASH.has("step") ? +HASH.get("step") - 1 : -1; }
+      Panel.render(); rerender();
+    }
+    if (HASH.get("present") && FLOW[HASH.get("present")]) Flows.present(HASH.get("present"), (+HASH.get("step") || 1) - 1);
+  }
+  window.addEventListener("hashchange", followHash);
   function syncHash() {
     const p = [];
     if (App.view === "ask" && typeof Ask !== "undefined") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-      history.replaceState(null, "", "#" + [Ask.hash(), ...p].join("&"));
+      setHash("#" + [Ask.hash(), ...p].join("&"));
       return;
     }
     if (App.view === "drafts") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-      history.replaceState(null, "", "#" + ["drafts", ...p].join("&"));
+      setHash("#" + ["drafts", ...p].join("&"));
       return;
     }
     if (App.view === "inside" && typeof Inside !== "undefined") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-      history.replaceState(null, "", "#" + [Inside.hash(), ...p].join("&"));
+      setHash("#" + [Inside.hash(), ...p].join("&"));
       return;
     }
     if (App.section === "home") p.push("home");
@@ -165,10 +193,10 @@ const Nav = (() => {
     if (App.view === "map") { if (MapView.st.lens) p.push("lens=" + MapView.st.lens); if (MapView.st.group) p.push("group=" + MapView.st.group); }
     if (App.view === "releases" || (App.view === "map" && MapView.lens() === "releases")) p.push("state=" + Releases.st.at);
     for (const keep of ["still", "fx", "selftest", "trace"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-    history.replaceState(null, "", "#" + p.join("&"));
+    setHash("#" + p.join("&"));
   }
   function boot() {
-    const hs = HASH.get("s"), legacy = VIEWS.find((v) => HASH.has(v.id) && !["role", "doc"].includes(v.id));
+    const hs = HASH.get("s"), legacy = VIEWS.find((v) => (HASH.has(v.id) || (v.alias && HASH.has(v.alias))) && !["role", "doc"].includes(v.id));
     if (HASH.get("lens")) MapView.st.lens = HASH.get("lens");
     if (HASH.get("group")) MapView.st.group = HASH.get("group");
     if (HASH.has("role")) { role(HASH.get("role")); return true; }
@@ -224,7 +252,7 @@ const Nav = (() => {
     document.body.classList.toggle("side-hidden", !!st.hidden);
     $("#side-toggle").setAttribute("aria-expanded", String(!st.hidden));
     side.innerHTML = "";
-    const lit = litSubjects().length + D.above.length;
+    const lit = Queue.total();
     side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Front doors"),
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, onclick: home },
         h("span", { class: "side-label" }, "What needs you"), lit ? h("span", { class: "side-n lit " + (litSubjects()[0] ? litSubjects()[0].light.level : "caution") }, lit) : null),
@@ -238,5 +266,5 @@ const Nav = (() => {
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted" }, `${D.initiative} · ${Object.keys(D.reader).length} pages`)));
   }
   $("#side-toggle").addEventListener("click", () => { st.hidden = !st.hidden; write(SIDE_KEY, st.hidden); refresh(); rerender(); });
-  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, boot, refresh, st, VISUALS, SECTIONS };
+  return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();

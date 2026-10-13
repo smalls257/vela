@@ -91,7 +91,7 @@ const Search = (() => {
     if (e.kind === "flow") return "Enter plays it, ready to present";
     if (e.kind === "contract") { const f = flowsFor(key); return f.length ? `Enter shows it on the map, with ${plural(f.length, "flow")} to present from` : "Enter shows it on the map"; }
     if (e.kind === "unknown") return "Enter opens its strip in Who to ask";
-    if (e.kind === "decision") return "Enter opens it in the garden";
+    if (e.kind === "decision") return "Enter opens it in the decision log";
     return "";
   }
 
@@ -102,6 +102,18 @@ const Search = (() => {
     renderResults();
     const row = Ask.row(input.value);
     if (row) { box.prepend(row); box.hidden = false; }
+    sync();
+  }
+  /* What a screen reader hears (E22): the box is a combobox whose popup is a listbox; the highlighted result is the
+     active descendant, and the count or the "nothing" message goes to a polite status line. */
+  function sync() {
+    const open = !box.hidden;
+    input.setAttribute("aria-expanded", String(open));
+    for (const el of box.children) if (el.getAttribute("role") !== "option") el.setAttribute("role", "presentation");
+    const active = open && results.length ? $("#res-" + clamp(at, 0, results.length - 1), box) : null;
+    if (active) input.setAttribute("aria-activedescendant", active.id); else input.removeAttribute("aria-activedescendant");
+    const note = $(".r-more", box);
+    $("#results-status").textContent = !open ? "" : note ? note.textContent : results.length ? plural(results.length, "result") + ", use the arrow keys" : "";
   }
   function renderResults() {
     const q = input.value;
@@ -136,7 +148,7 @@ const Search = (() => {
         const i = results.length; results.push(r);
         const e = ent(r.key), id = idOf(r.key), c = r.link ? CONTRACT[r.key] : null, lvl = levelForKey(r.key);
         const crossing = [...new Set((r.flows || []).filter((f) => f !== r.key && E[f]))];
-        box.append(h("div", { class: "result" + (i === at ? " on" : ""), role: "option", "data-key": r.key, onmousedown: (ev) => { ev.preventDefault(); pick(i); } },
+        box.append(h("div", { class: "result" + (i === at ? " on" : ""), role: "option", id: "res-" + i, "aria-selected": String(i === at), "data-key": r.key, onmousedown: (ev) => { ev.preventDefault(); pick(i); } },
           h("span", { class: "r-lamp lamp " + (lvl || "dark") }),
           h("div", {},
             h("div", { class: "r-head" }, h("span", { class: "kind" }, KIND_WORD[e.kind] || e.kind), h("span", { class: "r-title" }, e.title), id ? h("span", { class: "r-id" }, id) : null,
@@ -153,12 +165,12 @@ const Search = (() => {
   function pick(i) {
     const r = results[i];
     if (!r) return;
-    box.hidden = true; input.blur();
+    box.hidden = true; sync(); input.blur();
     go(r.key, { reset: true, reveal: true });
   }
   input.addEventListener("input", () => { at = 0; moved = false; show(); });
   input.addEventListener("focus", show);
-  input.addEventListener("blur", () => setTimeout(() => { box.hidden = true; }, 140));
+  input.addEventListener("blur", () => setTimeout(() => { box.hidden = true; sync(); }, 140));
   input.addEventListener("keydown", (ev) => {
     if (ev.key === "ArrowDown") { at = Math.min(at + 1, results.length - 1); moved = true; show(); ev.preventDefault(); }
     else if (ev.key === "ArrowUp") { at = Math.max(at - 1, 0); moved = true; show(); ev.preventDefault(); }
@@ -171,7 +183,8 @@ const Search = (() => {
     else if (ev.key === "Escape") { input.value = ""; show(); input.blur(); }
   });
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "/" && document.activeElement !== input && $("#overlay").hidden) { ev.preventDefault(); input.focus(); input.select(); }
+    // '/' is a character in the Ask composer, the board filter and every other field: only outside them is it the search key
+    if (ev.key === "/" && !ev.ctrlKey && !ev.metaKey && !ev.altKey && !(ev.target.closest && ev.target.closest("input,textarea,select,[contenteditable]")) && $("#overlay").hidden) { ev.preventDefault(); input.focus(); input.select(); }
   });
   /* For the self-test: type, as a person would, and return the keys of the results in order. */
   function type(q) { input.value = q; at = 0; show(); return results.map((r) => r.key); }

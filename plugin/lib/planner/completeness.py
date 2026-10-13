@@ -18,7 +18,8 @@ class Share:
 
     @property
     def ratio(self):
-        return self.done / self.total if self.total else 1.0
+        """done / total, or None when there is nothing to count: a share with no members has no progress to report."""
+        return self.done / self.total if self.total else None
 
     def text(self):
         return f"{self.name} {self.done} of {self.total}"
@@ -71,9 +72,12 @@ def pages(vault):
 
 
 def measure(vault):
-    """(the mean share as a whole percent, the five shares)."""
+    """(the mean of the shares that have members, as a whole percent, the five shares). A share with nothing to count
+    (no unknowns yet, no concern pages) stays out of the mean: counted as 100% it lifted an untouched vault to 43%,
+    and adding the first unknown then lowered it. 0 when no share has members."""
     shares = [items(vault), unknowns(vault), cells(vault), owed_questions(vault), pages(vault)]
-    return round(100 * sum(s.ratio for s in shares) / len(shares)), shares
+    counted = [s.ratio for s in shares if s.ratio is not None]
+    return (round(100 * sum(counted) / len(counted)) if counted else 0), shares
 
 
 def line(vault):

@@ -15,7 +15,7 @@ sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 
 - **Decision:** [[2026-08-12-goals-and-data]]
 
-Lets a customer keep a seat on a crossing for 10 minutes while they pay, so no other channel can sell it.
+Keeps a seat for a customer on a crossing for 10 minutes while they pay, so no other channel can sell it.
 
 **Domain:** Sell
 

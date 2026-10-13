@@ -5,11 +5,11 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, flows, links, override, parse, pending, questions, releases, render, schema, trace
+from planner import allocation, flows, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
-def check(vault, today, gate=None, items=()):
+def check(vault, today, gate=None, items=(), app=None):
     """All findings for the vault, sorted by path, line and code.
 
     `gate="epics"` is the moment epics are called complete: every trace gap
@@ -17,6 +17,8 @@ def check(vault, today, gate=None, items=()):
     high-severity question not yet disposed. `gate="shape"` is the end of a
     Shape: each assumed question still unresolved warns. `gate="grill"` with
     `items` is a Grill on those items: each open question that blocks one warns.
+    `app` narrows the epics gate to one app page and its slice (scope_to_app), so a multi-app
+    initiative can call one app's epics complete while another app's are still draft.
     Overrides apply last, so an override can soften an error but never hide one:
     see override.apply.
     """
@@ -26,13 +28,41 @@ def check(vault, today, gate=None, items=()):
     if gate == "epics":
         trace_warnings = {warning for warning, _ in schema.TRACE_CODES.values()}
         findings = [f for f in findings if f.code not in trace_warnings]
-        findings.extend(trace_findings(vault, gated=True))
-        findings.extend(questions.epics_gate(vault))
+        gap_is_theirs, question_is_theirs = scope_to_app(vault, app) if app is not None else (None, None)
+        findings.extend(trace_findings(vault, gated=True, keep=gap_is_theirs))
+        findings.extend(f for f in questions.epics_gate(vault)
+                        if question_is_theirs is None or question_is_theirs(f.message.split(" ", 1)[0]))
     elif gate == "shape":
         findings.extend(questions.shape_gate(vault))
     elif gate == "grill":
         findings.extend(questions.grill_gate(vault, items))
     return sorted(set(override.apply(vault, findings, gate) + pending.findings(vault)))
+
+
+def scope_to_app(vault, app):
+    """(gap filter, question filter) for the epics gate narrowed to `app` and its slice.
+
+    A gap is kept when its subject is the app, a contract it provides, a capability its allocation rows
+    carry, a concern cell for it, or an epic that lists it. T7 (a requirement no app carries) belongs to
+    no app and is left to the whole-vault gate. An E805 is kept when its question is about the app, one of
+    its contracts or the whole initiative, or is a reviewer's question: a reviewer row names no subject,
+    and dropping it would hide a high-severity question.
+    """
+    contracts = {c.id for c in progress.provided(vault, app)}
+    caps = {r.requirement.split(".")[0] for r in allocation.rows(vault) if r.app is app and r.requirement}
+    epics = {e.id for e in trace.epics(vault) if app.id in trace.listed(e, "apps")}
+    own = contracts | caps | epics | {app.id}
+
+    def gap_is_theirs(gap):
+        if gap.rule == "T7":
+            return False
+        return gap.subject in own or gap.subject.endswith(f"× {app.id}")
+
+    def question_is_theirs(copy):
+        subject = copy.split("@", 1)[1] if "@" in copy else ""
+        return not subject or subject in contracts | {app.id} or subject.startswith("INI-")
+
+    return gap_is_theirs, question_is_theirs
 
 
 # ------------------------------------------------------------------ helpers
@@ -103,7 +133,7 @@ def _enum_findings(vault, page, page_type, spec):
         if key in meta and not (isinstance(meta[key], list) and all(isinstance(v, str) for v in meta[key])):
             yield _f(page, meta_line(page, key), "E105", f"'{key}' must be a list of text values.",
                      f"Write it as {key}: [A, B].")
-    if "owner" in meta and not (isinstance(meta["owner"], str) and schema.OWNER_RE.match(meta["owner"])):
+    if meta.get("owner") is not None and not (isinstance(meta["owner"], str) and schema.OWNER_RE.match(meta["owner"])):
         yield _f(page, meta_line(page, "owner"), "E105", f"Owner '{meta['owner']}' is not a GitHub handle or team.",
                  "Write owner: \"@handle\" or \"@org/team\", several separated by spaces.")
     if "domain" in meta and not (isinstance(meta["domain"], str) and meta["domain"].strip()):
@@ -176,6 +206,27 @@ def duplicate_rules(vault, today):
             where = ", ".join(f"{i.page.path}:{i.line}" for i in items[1:])
             yield _f(items[0].page, items[0].line, "E208", f"{item_id} is also a heading at {where}.",
                      "Keep one heading per ID and link to it from elsewhere.")
+    yield from repeated_fact_rules(vault)
+    for row_id, (kept_page, kept_line), (page, line) in vault.row_repeats:
+        yield _f(page, line, "E210", f"{row_id} is also a row at {kept_page.path}:{kept_line}, and only that first row counts.",
+                 "Give each goal, constraint and source its own ID.")
+
+
+# A History keeps every decision and override; Notes is free text sessions add to; Trace lines are the planner's.
+FACTS_MAY_REPEAT = set(schema.HISTORY_LABELS) | {schema.PENDING_LABEL, "Notes", schema.TRACE_LABEL}
+
+
+def repeated_fact_rules(vault):
+    """E209: a label written twice under one heading. The first bullet is the one every rule reads, so a later
+    '- **State:** decided' appended by hand would change nothing and say nothing."""
+    for found in vault.items.values():
+        if len(found) > 1:
+            continue  # two headings share the ID (E208), so each sees the other's bullets
+        for item in found:
+            for kept, ignored in item.repeats:
+                if ignored.label not in FACTS_MAY_REPEAT:
+                    yield _f(item.page, ignored.line, "E209", f"{item.id} has '**{ignored.label}:**' twice; line {kept.line} counts and this one is ignored.",
+                             f"Keep one '**{ignored.label}:**' bullet under {item.id}, with the value you mean.")
 
 
 # --------------------------------------------------------------------- links
@@ -415,6 +466,14 @@ def subject_rules(vault, today):
                 form = "### PTY-nn <name>" if first.upper().startswith("PTY") else "### SV-nn <name>"
                 yield _f(page, heading.line, "E810", f"'{heading.text}' looks like a subject heading but does not read as one.",
                          f"Write it as '{form}': level 3, a two-digit ID in capitals, then a space and the name.")
+    for page in vault.pages:
+        for heading in page.headings:
+            first = heading.text.split()[0] if heading.text.split() else ""
+            if heading.level == 3 and schema.ITEM_LOOKALIKE_RE.match(first) and not schema.ITEM_ID_RE.match(first):
+                form = schema.ITEM_FORMS[first.split("-")[0].upper()]
+                yield _f(page, heading.line, "E810", f"'{heading.text}' looks like an item heading but does not read as one, "
+                         "so no index or gate sees it.",
+                         f"Write it as '### {form} <name>': the ID in capitals with its digits, then a space and the name, no colon after the ID.")
     for item in vault.parties + vault.stored_values:
         if item.page.path != schema.SUBJECT_PAGE:
             yield _f(item.page, item.line, "W811", f"{item.id} is defined on {item.page.path}, not on {schema.SUBJECT_PAGE}.",
@@ -456,6 +515,11 @@ def decided_units(vault):
     # An allocation row has no heading of its own, so its Decision is the app page's, as for a goal row.
     for subject, row in allocation.decided_rows(vault):
         yield subject, row.app, row.line, row.app.page_bullets("Decision")
+    # A release has no heading ID, so its unit is named by its heading and its Decision is the releases page's.
+    for release in releases.releases(vault):
+        if release.state == "decided":
+            page = releases.page(vault)
+            yield f"release '{release.name}'", page, release.line, page.page_bullets("Decision")
 
 
 def _modes(session):
@@ -575,6 +639,20 @@ def stale_mention_rules(vault, today):
                          f"Rewrite the sentence to say what was answered, or run planner query refs {m.group(1)} to find every mention.")
 
 
+def reading_load_rules(vault, today):
+    """W360-W369. A page a person cannot hold in mind: codes in sentences, a long flat list, a wall with no summary,
+    an epic too big to carry as one piece of work, then a paragraph, cell, stock phrase, template opening or abbreviation
+    that costs the reader more than a careful writer would. Warnings only; each fix says how to write it in plain words."""
+    names = readability.NameIndex(vault)
+    for page in vault.pages:
+        for line, code, message, fix in readability.findings(page, names):
+            yield _f(page, line, code, message, fix)
+        for line, code, message, fix in readload.page_findings(page, vault.template_lines):
+            yield _f(page, line, code, message, fix)
+    for page, line, code, message, fix in readload.phrase_findings(vault):
+        yield _f(page, line, code, message, fix)
+
+
 def release_rules(vault, today):
     """E340-E342 and W343. A release row must name a requirement of this vault and criteria it has; each release a
     state. Once any release exists, a requirement at assumption or later that no release delivers is a warning:
@@ -631,6 +709,26 @@ def flow_sender_rules(vault, today):
                          f"{contract.id}, which joins {', '.join(sorted(joined))}.",
                          "Name the two ends of the contract, or link the contract the step really uses.")
                 break
+
+
+def flow_capability_rules(vault, today):
+    """W358 and E359. A flow's `capabilities:` is what groups it in the explorer's flow picker, first one primary. A
+    vault that has capability pages should say which one each journey serves (a warning: the picker guesses from the
+    steps until it is written); an ID that is not a capability page would group the flow under nothing (an error)."""
+    known = {c.id for c in vault.of_type("capability")}
+    for flow in vault.of_type("flow"):
+        named = flow.meta.get("capabilities")
+        if not named:
+            if known:
+                yield _f(flow, 1, "W358", f"{flow.id} names no capability, so the flow picker can only guess where it belongs.",
+                         "Add capabilities: [CAP-nnn] to its frontmatter, the capability the journey serves.")
+            continue
+        if not isinstance(named, list):
+            continue  # E105 already says it must be a list
+        for value in named:
+            if isinstance(value, str) and value not in known:
+                yield _f(flow, meta_line(flow, "capabilities"), "E359", f"{flow.id} names '{value}', which is not a capability page.",
+                         "Use the ID of a capability page, such as CAP-013, or take it out.")
 
 
 def domain_rules(vault, today):
@@ -752,6 +850,10 @@ def concern_rules(vault, today):
     for concern in sorted(vault.of_type("concern"), key=lambda p: p.id):
         seen = set()
         for cell in (c for c in vault.cells if c.concern is concern):
+            if cell.app and cell.app.lower() in seen:
+                yield _f(concern, cell.line, "E210", f"{cell.app} already has a cell on this page, so this row is ignored.",
+                         "Keep one row per app on a concern page.")
+                continue
             seen.add(cell.app.lower())
             label = cell.app or "a row"
             if not cell.app:
@@ -936,9 +1038,11 @@ def freshness_rules(vault, today):
 
 # ------------------------------------------------------------- traceability
 
-def trace_findings(vault, gated):
-    """One finding per trace gap: a warning, or an error under the gate."""
+def trace_findings(vault, gated, keep=None):
+    """One finding per trace gap: a warning, or an error under the gate. `keep` narrows the gaps."""
     for gap in trace.report(vault).gaps:
+        if keep is not None and not keep(gap):
+            continue
         warning, error = schema.TRACE_CODES[gap.rule]
         line = gap.line or meta_line(gap.page, gap.field)
         yield _f(gap.page, line, error if gated else warning, f"{gap.rule}: {gap.message}", gap.fix)
@@ -993,7 +1097,7 @@ def link_pipe_rules(vault, today):
     """W329: a [[link|label]] in a table row written with a bare |. Obsidian, GitHub and other Markdown readers take it
     as a column break and the row falls apart; the planner reads it as the link's, so nothing is lost here."""
     for page in vault.pages:
-        lines = page.text.splitlines()
+        lines = parse.lines_of(page.text)
         for table in page.tables:
             if table.generated:
                 continue
@@ -1005,5 +1109,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
-         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules)
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)

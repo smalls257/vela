@@ -28,11 +28,13 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
 | `voice/examples/` | House-voice passages. Never a source. Committed. |
 | `voice/local/` | The owner's passages that stay on one machine, same format as `voice/examples/`. Gitignored, never committed. `voice/corpus/` is gitignored too. |
+| `docs/` | The team's design and plan for a handed-off app, written by the user's `tech-design-grill` and `work-breakdown` skills when run from the vault root: `docs/tech-design/<slug>.md`, `docs/plan/<slug>-breakdown.md`, `docs/adr/`. Not planner pages: `planner check` does not read them, and `publish`, `open` and `propose` carry them like any other file. `CONTEXT.md` at the vault root is the design's glossary, also not a page. |
 | `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `planner handoff` writes. Never edited by hand. |
 | `.inbox/` | Documents dropped for Discover. Gitignored, never parsed. |
-| `.planner/` | The tool's own files, never parsed. Gitignored except `explorer-pins.json`, which is committed so a team shares one map layout: the explorer's fixed layout, `{node ID: [column, row]}`, written on the first build and added to when an app or party appears; delete it to lay the map out afresh. `explorer.html` is the page `planner explore` builds. A reader's workspace (`workspace.json`, `baseline/`, `replay-backup/`) and `findings/` review scratch stay ignored. The template's `.gitignore` says `.planner/*` then `!.planner/explorer-pins.json`; a plain `.planner/` line cannot be undone for one file inside it. |
+| `dashboard.html` | The explorer page `planner explore` builds (and `/planner:close`, `open` and `import` rebuild), one offline file at the vault root. Committed, so a colleague who pulls the repo or opens the OneDrive folder just opens it; it says at the top when it was built and from which commit. Generated, never edited by hand and never parsed: `planner check`, `search` and `capture` ignore it. `planner publish` rebuilds it from the published pages. |
+| `.planner/` | The tool's own files, never parsed. Gitignored except `explorer-pins.json`, which is committed so a team shares one map layout: the explorer's fixed layout, `{node ID: [column, row]}`, written on the first build and added to when an app or party appears; delete it to lay the map out afresh. A reader's workspace (`workspace.json`, `baseline/`, `replay-backup/`) and `findings/` review scratch stay ignored. The template's `.gitignore` says `.planner/*` then `!.planner/explorer-pins.json`; a plain `.planner/` line cannot be undone for one file inside it. |
 
-`planner check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, anything under `voice/` or `handoffs/`, and anything under a folder whose name starts with a dot.
+`planner check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, `CONTEXT.md`, anything under `voice/`, `handoffs/` or `docs/`, and anything under a folder whose name starts with a dot.
 
 ## Areas and stages
 
@@ -61,7 +63,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `initiative-section` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `c4`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-building-blocks` | as above, plus `change` | `stage`, `initiative`, `arc42`, `c4`, `sources`, `handed_off`, `domain`, `icon`, `design` | `inkling`, `assumption`, `fact`, `decided` |
 | `app-runtime` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
-| `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `inkling`, `assumption`, `fact`, `decided` |
+| `flow` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources`, `capabilities` | `inkling`, `assumption`, `fact`, `decided` |
 | `concern` | `id`, `type`, `title`, `owner`, `authored` | `initiative`, `arc42`, `sources` | none: the cells hold the states |
 | `decision` | `id`, `type`, `title`, `state`, `owner`, `authored` | `initiative`, `arc42`, `sources` | `proposed`, `decided`, `superseded`, `rejected` |
 | `epic` | as above, plus `apps`, `delivers` | `consumes`, `flows`, `depends_on`, `initiative`, `sources` | `draft`, `decided`, `reopened` |
@@ -84,8 +86,9 @@ Field values:
 - `handed_off`: set once a senior takes the app. Form: `"<name>, <date>, PR #N"`, or `"<name>, <date>, PR pending"` until the PR exists; W325 warns until the number is written.
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
+- `capabilities` on a flow page: a list of `CAP-` IDs, the capability or capabilities the journey serves, the first one primary. The explorer's flow picker groups a long list of flows by the primary one; without the field it guesses from the capabilities the steps link and says so. Leave it out while the initiative has no capability pages. W358 warns when a flow has none and capability pages exist; E359 fails an ID that is not a capability page.
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
-- `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `allocate`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
+- `modes` on a session: a list of `dump`, `discover`, `shape`, `boundary`, `allocate`, `releases`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
 
 ## IDs
 
@@ -119,7 +122,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 
 ## Fact bullets
 
-A fact bullet is a list line `- **Label:** value`, one label per line. Unknown labels are prose. Bullets under a `### <ID> <name>` heading belong to that item. Bullets elsewhere belong to the page.
+A fact bullet is a list line `- **Label:** value`, one label per line. Unknown labels are prose. A `- Trace:` line under a criterion is not a fact bullet; see Pages. Bullets under a `### <ID> <name>` heading belong to that item. Bullets elsewhere belong to the page.
 
 Page level: `**Decision:**` (a link to the deciding Grill), `**Dissent:**` (`<name>, <date>: <reason>`) and `**Options considered:**` (what a Shape weighed: `<picked option> (picked); <option>: rejected, <reason>; ...`). `**Override:**`, `**Decided by:**` and `**Confirmed by:**` may go on any page or under any item heading; see Overrides. So may `**Pending approval:**`; see Pending approval.
 
@@ -312,12 +315,15 @@ A question only fires on a subject someone typed. So W809 warns, "possibly an un
 
 A page reads as what is true now. Its history sits at the end, folded in the viewer, for whoever wants it.
 
-- **Opening prose.** Every app, runtime, initiative-section, capability, epic, concern and flow page opens, under its title and before its first `##` heading, with a paragraph or two in the house voice: what the thing is, what it does and does not do, and what is still open. It says the current state, not how it got there. Close rewrites it for every page a session changed.
+- **Opening prose.** Every app, runtime, initiative-section, capability, epic, concern and flow page opens, under its title and before its first `##` heading, with a paragraph or two in the house voice: what the thing is, what it does and does not do, and what is still open. It says the current state, not how it got there, in two or three sentences of about 80 words and three links at most. It names threads, not items: the blocks and tables below list the items, and the opening points at them. A state (open, assumed) is said once in a sentence, never added to each clause. Close rewrites it for every page a session changed.
 - **Prose, not lists.** Bullets are for the fact bullets `planner check` reads (the labels in the tables of this file) and for lists a reader scans, such as an epic's criteria. Everything else is a paragraph. A bold label nothing reads, such as `- **Brightwater, what it does:**`, is prose dressed up as data: write the sentence. Say who says a thing in the sentence ("the product lead says"), never in a bracket.
 - **Every item opens with a sentence.** Under each `### <ID> <name>` heading, before its fact bullets, a sentence or two say what the item is now: what a contract carries and for whom, what an unknown asks and why it matters. The viewer folds the fact bullets under it.
 - **Links on the words.** A source is cited as a link on the words that rely on it, `[[sources#SRC-04|the latency measurement]]`, never a bare "(SRC-04)". A link to an item reads as the item's name, `[[11-unknowns-and-risks#UNK-006 Finance on Booking events|whether Finance reads Booking's events]]`, never its number. Prose names things; IDs stay in headings, fact bullets and tables.
+- **Plain names.** In prose, headings and acceptance criteria, refer to a thing by its plain name ("the calendar entries", "the prep-note flow"), never by a bare ID. A wikilink's visible label is the name, not the ID. An abbreviation is spelled out at its first use on a page ("the data protection officer (DPO)"), or not used at all. IDs stay where the machine reads them: frontmatter, generated blocks, tables, wikilink targets and headings, and the Trace line below.
+- **The Trace line.** What a criterion or bullet traces to goes on its own line under it, not in brackets inside the sentence: `- Trace: CAP-001.FR1, CON-001, FLO-001`. Indent it under its item (three spaces under a numbered criterion, two under a bullet), write the IDs separated by commas, and put the requirement first. It is a plain line, not a fact bullet, and `**Trace:**` is read the same. The planner reads it where it used to read the IDs in the sentence: `planner query refs` finds an ID there, the explorer and the viewer show the line as one folded row of name chips, and `planner style` and close leave it alone. A page written before this keeps its inline "From CAP-001.FR1" and checks as before; rewrite it the next time a session touches it.
+- **A page fits in a head.** People hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so a page is sized to that. It opens with a two or three sentence summary: what it says, and what is still open. A list of more than about seven items is grouped under subheadings of about five. An epic with more than about seven acceptance criteria is a signal to split it: the epics session proposes the cut, and the user may keep it whole, which is recorded. A page that is mostly a list (unknowns and risks, concerns, decisions, sources) opens with two or three sentences that count and point, such as "28 questions are open. Five hold up the first release; the most urgent is who owns Heron, due 23 October.", naming about three items at most and never enumerating the list. The items follow as a list grouped by what they hold up, about seven to a group, each line the plain name, who to ask and by when, and what it holds up. What is past seven in a group folds under `## Also open (n)`, which the viewer and the explorer fold.
 - **History at the end.** Every `**Decision:**`, `**Override:**`, `**Decided by:**`, `**Confirmed by:**`, `**Pending approval:**`, `**Options considered:**` and `**Dissent:**` bullet goes under `## History`, the page's last `##` section. Page-level ones sit directly under it; an item's sit under `#### <ID>` inside it, which gives them to that item exactly as if they were under its own heading. Wherever a skill or this file says "at page level" or "under the item's heading" for one of these bullets, it means there. A bullet anywhere else still counts, so older pages stay valid.
-- `planner style <page>...` lists where a page still reads as a log: a history bullet above `## History`, an ID or a bare source ID in prose, or no opening prose. Close runs it on the pages a session changed.
+- `planner style <page>...` lists where a page still reads as a log: a history bullet above `## History`, an ID or a bare source ID in prose or in a list item, or no opening prose. It never calls a `- Trace:` line prose. Close runs it on the pages a session changed. It also lists each word of the lint list, `plugin/references/lint-words.txt`, that a page uses, with its count; the voice reviewer reads the same file, and drafting instructions never name the words.
 - **App pages go one level in.** A new or changed app gets a building-blocks page (what it does, what it does not do, the `app-context` block, containers, contracts it provides, the `contracts-consumed` block) and a runtime page (its part in each flow, and how it behaves when something fails, under `## On failure`).
 - **Slim pages for unchanged apps.** An `integrated` or `unchanged` app gets one page with its job, why it is a black box, the `app-context` block, and the contracts it provides at `fact`. It has no runtime page; the consumer's runtime page says what happens when it fails.
 - **Contracts live on the provider's page.** A contract with an external provider lives on its consumer's page with a `**Provider:**` bullet.
@@ -327,7 +333,7 @@ A page reads as what is true now. Its history sits at the end, folded in the vie
 ## Links and headings
 
 - Links are Obsidian wikilinks to a basename: `[[booking-building-blocks|Booking]]`. No paths, no Markdown links between pages.
-- An anchor equals the full heading text: `[[booking-building-blocks#CON-001 Booking API|CON-001]]`. A same-page anchor is `[[#UNK-006 Finance on Booking events|UNK-006]]`.
+- An anchor equals the full heading text: `[[booking-building-blocks#CON-001 Booking API|the booking API]]`. A same-page anchor is `[[#UNK-006 Finance on Booking events|whether Finance reads Booking's events]]`. The label is the name; in a table the planner reads, such as an allocation row, the ID stays as the label.
 - Item headings are `### <ID> <short name>`, at most six words, with none of `# | ^ : % [ ]`.
 - Inside a table, escape the pipe: `[[booking-building-blocks\|Booking]]`.
 - A link to a capture line uses its block ID: `[[2026-08-12-goals-and-data#^c01]]`.
@@ -499,6 +505,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W351 | flow step links a contract but names no sender and receiver | W352 | app has no domain though other apps in a large initiative do |
 | W353 | two domains differ only by case or a trailing s | W355 | unknown asks the person who owns it |
 | W356 | changing capability has no functional requirements | W357 | functional requirement lists no acceptance criteria |
+| W358 | flow names no capability though the initiative has capability pages | E359 | flow names a capability that is not a capability page |
 | E340 | release row names no functional requirement | E341 | release row names a criterion the requirement does not have |
 | E342 | release has no valid state | W343 | no release delivers a functional requirement |
 | E321 | override is malformed | W303 | decided without a Grill, by override |
@@ -512,15 +519,30 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | E805 | high-severity question not disposed at the epics gate | W805 | high-severity question not disposed, by override |
 | W806 | assumed question not resolved at the end of shape | W807 | open question blocks the grilled item |
 | E808 | party or stored value is missing a required fact | W809 | possibly an untyped subject |
-| E810 | heading looks like a party or stored value but is not one | | |
+| E810 | heading looks like an item or subject ID but is not one | | |
 | W811 | subject defined off its page | | |
 | W812 | ledger row is dated in the future | W813 | ledger page has no question ledger heading |
+| W360 | one sentence holds three or more IDs | W361 | an ID in prose, outside a link and not followed by its name |
+| W362 | a list of more than nine items with no subheadings | W363 | a long page with no opening summary |
+| W364 | an epic lists more than nine acceptance criteria | W365 | a paragraph over 150 words or 3 links, or an opening over 90 words or 3 links |
+| W366 | a table cell over 40 words | W367 | a phrase of three or more words repeated across pages |
+| W368 | the opening is a line the template wrote | W369 | an abbreviation not spelled out on the page |
+| W370 | an epic criterion has no AC id on its Trace line, or two share one | | |
+| E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
+| E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
+| W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
+
+W360 to W364 are the reading-load warnings. They are warnings only, and each fix line says how to write it in plain words. W360 fires on a sentence with three or more IDs, W361 on an ID written in prose that is neither inside a link nor followed by its name (tables, headings, code, History and `- Trace:` lines are the machine's and are left alone), W362 on more than nine list items under one heading, W363 on a page of more than about 900 words with no paragraph between its title and its first `##` heading, and W364 on an epic with more than nine numbered acceptance criteria. The conventions above aim lower (about seven) so a page at the edge is not nagged.
+
+W370 belongs with the epic template: it fires on a headed criterion whose Trace line carries no `AC<n>` and on two criteria that share one. W365 to W369 are the second five, for what a reader meets word by word. All are warnings, with a fix line, and every limit is in `schema.py`. W365 fires on a prose paragraph of more than 150 words or more than 3 links, and on a page's opening (its first paragraph before the first `##`) of more than 90 words or 3 links, because the opening is the part most readers read; lists, tables, quotes, fact bullets, Trace lines and History are not paragraphs. W366 fires on a table cell of more than 40 words (two sentences), outside generated blocks, History and the question ledger. W367 is vault-level and reported once, with the pages: a phrase of three or more words that sits in prose on more than 5 pages, or more than 10 times in the vault. It skips History, tables, fact bullets, `**Label:**` lines, the `Still open:` label (what follows it counts), generated blocks, and phrases that are only the name of a page or a heading. Phrases built from a state word ("is still open") are counted: they are the finding, and the fix is where the state sits, never a synonym. W368 fires when a page someone has written in still opens with a line the template wrote (`plugin/catalog/template-lines.txt` lists them; an untouched page and an index are left alone). W369 fires once per page on a capitalised abbreviation of two to five letters that is not spelled out on that page; a short list of abbreviations everyone reads (IT, API, QA, SMS) is exempt.
+
+Where two lines say the same thing, check refuses to pick one quietly. A frontmatter key written twice is E102, and names the second line. A `**Label:**` written twice under one item heading is E209: the first bullet is the one every rule reads, so the later one would change nothing. Two rows with one goal, constraint or source ID, or two rows for one app on a concern page, are E210: only the first row counts. An empty `---` block is E101, the same as no block. A level-3 heading that starts like an item ID but does not match it (`UNK-12`, `CON-001:` with a colon, `r-1`) is E810, so it cannot drop out of the indexes and gates unseen.
 
 Codes are stable. A retired code is never reused.
 
 ## Requirements and allocation
 
-Requirements come in two levels, both in the vault. A capability's functional requirements say what the business needs and name no app: `### CAP-nnn.FRn <short name>` under `## Functional requirements` on its capability page, with a paragraph of what it does, `**State:**`, and its acceptance criteria as bullets. `/planner:requirements` writes them at `assumption`, after the strategy is decided and before boundary, so boundary can test each cut against them, and a Grill decides them.
+Requirements come in two levels, both in the vault. A capability's functional requirements say what the business needs and name no app: `### CAP-nnn.FRn <short name>` under `## Functional requirements` on its capability page, with a paragraph of what it does, `**State:**`, and its acceptance criteria as bullets, each followed by an indented `- Trace:` line when it cites another item (the line is not a criterion, and AC numbers skip it). `/planner:requirements` writes them at `assumption`, after the strategy is decided and before boundary, so boundary can test each cut against them, and a Grill decides them.
 
 Allocation divides each requirement among the apps and contracts that deliver it. `/planner:allocate`, after boundary and before epics, writes each app page's share in one table under `## Requirements allocated`:
 
@@ -528,7 +550,7 @@ Allocation divides each requirement among the apps and contracts that deliver it
 |---|---|---|---|
 | `[[CAP-002-paper-trade-a-stock#CAP-002.FR2 Place a paper order\|CAP-002.FR2]]` | accepts the order, rejects fractions and shorting, records the fill | CON-006 | assumption |
 
-- **Requirement** links the functional requirement's heading. **Share** says this app's part in the domain's words. **Through** names the contracts that carry the part across to another app, or `—`. **State** is `inkling`, `assumption`, `fact` or `decided`. A `fact` row records a share an app already carries, and needs the page's `sources`, as a goal row at `fact` does. A `decided` row needs the page's `**Decision:**` to link a Grill, as goal rows do; a Grill on the app decides its rows with its page. An `inkling` row carries nothing: only a row at `assumption` or later counts as the requirement's owner.
+- **Requirement** links the functional requirement's heading. **Share** says this app's part in the domain's words, in one sentence of 40 words or fewer (W366 warns past that); the requirement's acceptance criteria stay on its own page and are never copied into the cell. **Through** names the contracts that carry the part across to another app, or `—`. **State** is `inkling`, `assumption`, `fact` or `decided`. A `fact` row records a share an app already carries, and needs the page's `sources`, as a goal row at `fact` does. A `decided` row needs the page's `**Decision:**` to link a Grill, as goal rows do; a Grill on the app decides its rows with its page. An `inkling` row carries nothing: only a row at `assumption` or later counts as the requirement's owner.
 - A contract's obligation is a row on its provider's table that names it in **Through**. A contract with an outside provider takes the row on its consumer's page.
 - When dividing a requirement shows two apps must talk in a way no contract covers, allocation writes that contract at `assumption` on the provider's page with every required bullet, and raises it.
 
@@ -544,13 +566,13 @@ An app's allocated rows are its team's input. Epics take their acceptance criter
 |---|---|---|
 | `[[CAP-002-paper-trade-a-stock#CAP-002.FR2 Place a paper order\|CAP-002.FR2]]` | AC1, AC2 | AC3 in release two |
 
-**Criteria** is `all`, or the acceptance criteria this release delivers, numbered in the order they appear under the requirement: AC1 is the first bullet. A requirement may be split across releases this way, so an epic never needs a release of its own.
+**Criteria** is `all`, or the acceptance criteria this release delivers, numbered in the order they appear under the requirement: AC1 is the first bullet (an indented `- Trace:` line under a bullet is not a bullet of its own). A requirement may be split across releases this way, so an epic never needs a release of its own.
 
 Nothing else records a release. What the system looks like after each one is worked out from the requirements it delivers: each app that carries a share of one changes, or arrives if it is new, and each contract its share goes through exists. Today is every app whose `change` is not `new`, and every contract whose `**Change:**` is not `new`.
 
 `/planner:releases` writes this page, after allocate and before epics, in a session with mode `releases`. A requirement the user places on no release ("later, no date") stays out of the file; W343 lists it.
 
-`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. A Grill decides a release, as it decides any other item.
+`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
 
 ## Flow steps
 
@@ -570,13 +592,14 @@ An app page may also name the picture views draw for it, as `icon: <word>`, one 
 
 ## Team design docs
 
-The inside of an app is the team's own tech design, `docs/tech-design/<slug>.md` in the team's repository. `planner explore` draws it under Inside this app and finds it itself, from local files only (it never fetches anything), taking the first of these for each app that `--design APP-x=<path>` did not name:
+The inside of an app is the team's own tech design, `docs/tech-design/<slug>.md`, and its build plan, `docs/plan/<slug>-breakdown.md`. Both live in the vault: the team runs `tech-design-grill` and `work-breakdown` from the vault root, so they write there. (`tech-design-grill`'s vault mode says it never edits the vault; that means the planner pages. Its own `docs/` files are the design's.) `planner explore` draws them under Inside this app and finds them itself, from local files only (it never fetches anything), taking the first of these for each app that `--design APP-x=<path>` did not name:
 
 1. `design: <path>` in the app page's frontmatter, such as `design: ../team-repo/docs/tech-design/booking.md`;
 2. `designs: {APP-booking: ../team-repo/docs/tech-design/booking.md}` in `.planner.yaml`, one entry per app;
-3. the app's `GitHub`, `Code`, `Repo` or `Repository` link in `links:`, when it is a `file://` URL to a clone, such as `GitHub: file:///Users/sam/code/booking`. The doc in that clone's `docs/tech-design/` whose frontmatter `vault.app` names the app is the design (the inside-view format records it as `vault: {app: APP-booking}`). A link to a web address is not read.
+3. the vault's own `docs/tech-design/*.md`, with no configuration: the doc whose frontmatter `vault: {app: APP-booking}` names the app, else whose `prereqs` name the app's page, else whose file name is the app's slug (`booking.md` for `APP-booking`);
+4. the app's `GitHub`, `Code`, `Repo` or `Repository` link in `links:`, when it is a `file://` URL to a clone, such as `GitHub: file:///Users/sam/code/booking`. The doc in that clone's `docs/tech-design/` whose frontmatter `vault.app` names the app is the design (the inside-view format records it as `vault: {app: APP-booking}`). A link to a web address is not read.
 
-A relative path is relative to the vault root, and `~` is the home folder. A path that leads to no file, a clone with no doc naming the app and a doc whose frontmatter cannot be read are warnings in the build report; the app is then shown as not loaded, and the build goes on. `design:` that is not a path is E105. The report also lists every app no design was found for, so an empty Inside view is never a mystery.
+The build plan is the `docs/plan/*-breakdown.md` beside the design whose `prereqs` name it (`breakdown:` on the app page or `breakdowns:` in `.planner.yaml` names one directly). A relative path is relative to the vault root, and `~` is the home folder. A path that leads to no file, a clone with no doc naming the app and a doc whose frontmatter cannot be read are warnings in the build report; the app is then shown as not loaded, and the build goes on. `design:` that is not a path is E105. The report also lists every app no design was found for, so an empty Inside view is never a mystery.
 
 ## Links out of the vault
 
@@ -586,11 +609,46 @@ When many pages link one tool, `.planner.yaml` may say once where it lives, as `
 
 ## Epics and traceability
 
-An epic page holds a description, the owning team, 4 to 7 numbered acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behaviour a tester can see at a contract or flow boundary, never inside a container.
+An epic page holds a summary, the owning team (written as `**Owning team:**` and a handle in the description, a label the planner knows), who it is for and what changes, its acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behaviour a tester can see at a contract or flow boundary, never inside a container.
 
-A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
+**The epic template.** An epic page reads in this order, so a person who takes only the first screen has the answer:
 
-Five trace rules run once the vault holds an epic, and T7 alone runs as soon as it holds an app page, because allocation comes before epics. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger).
+```
+# Note or reason
+
+<Two or three sentences: what the epic does and for whom.>
+
+Still open: <one line, or "nothing".>
+
+**Owning team:** @agent-lead
+
+## Who this is for and what changes
+
+<A paragraph or two: the people who meet the change, and what is different for them.>
+
+## Done when
+
+### A first call still gets a note
+
+A first call with a client still gets a note. It says there is no earlier call and lists who is on the call.
+
+- Trace: CAP-001.FR5, CON-001, FLO-001  ·  AC2  ·  [testing]
+
+## Traces to
+...
+## Depends on
+...
+```
+
+Each acceptance criterion is a `###` heading in a short plain phrase, with one or two sentences under it that a tester could read aloud over the phone, and a Trace line. The Trace line has up to three parts divided by a middle dot, in this order: the vault IDs it traces to (requirement first, at least one contract or flow); `AC<n>`, the criterion's stable id; and the concern markers in brackets. `- Trace: CAP-001.FR1, CON-001, FLO-001  ·  AC3  ·  [security] [data]`. The planner reads the parts in any order, with commas, spaces or dots between them. The AC number is written and never counted: `EPC-001.AC3` means the criterion whose Trace line says `AC3`, however many criteria were added, moved or struck since, and a struck criterion keeps its number. Take the next number nobody has used. Two criteria with one number, or a headed criterion with none, draw W370. The concern marker goes on the Trace line, after the AC id, in the template; a marker ending the sentence works as it always has. A criterion whose heading or first sentence starts with `~~` is struck and its markers count for nothing.
+
+More than about seven criteria are grouped: a `###` heading names the group ("Timing of the note") and its criteria drop to `####`. A heading with a deeper heading under it and no Trace line of its own is a group. An epic with more than about seven criteria is a signal to split it (W364 warns past nine, in either shape). The summary and the "Still open" line are the page's opening; W365 holds the opening to about 80 words and three links.
+
+**The first shape still reads.** An epic written before the template has `## Epic acceptance criteria` with numbered criteria, the concern markers ending the sentence (`[testing]`, `[security] [data]`) and a `- Trace:` line indented under each. The AC number is the number as written, `###` subheadings group them, and `planner check`, the trace rules, allocation, releases, the explorer, the ticket export and the design's `EPC-nnn.ACn` targets read it as before. A session that touches such an epic rewrites it to the template; nothing else does.
+
+A concern marker is the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`.
+
+Five trace rules run once the vault holds an epic, and T7 alone runs as soon as it holds an app page, because allocation comes before epics. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger). The gate reads the whole vault; `--app APP-x` narrows it to that app and its slice (its contracts, the capabilities its allocation rows carry, its concern cells, its epics, and the questions about it or the whole initiative), so one team can finish while another is still drafting. T7 belongs to no app and stays with the whole-vault run.
 
 | Rule | Passes when | Codes |
 |---|---|---|
@@ -614,7 +672,7 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 - The runtime page says how the app behaves when something fails.
 - Every open unknown that blocks the app has an owner and an ask-by date.
 
-Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `planner check --gate epics` exits 0.
+Epics come after handoff, not before it. The senior takes the boundary first; the solution lead then writes and decides the app's epics against it (`/planner:epics`), and `planner check --gate epics --app <APP-id>` says when that app's epics are complete. So neither the epics nor the epics gate is a condition of handing over, and one app's handoff never waits on another app's gaps. If the lead hands an app over with items on the list above unmet, that is an override named `"handoff checklist"`, written as the Overrides section says.
 
 In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the functional requirements its allocation rows carry, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
 

@@ -261,6 +261,28 @@ def test_stress_vault_is_synthetic_and_at_scale(tmp_path):
     assert "synthetic" in str(loaded.config.get("title", "")).lower()
 
 
+def test_a_flow_carries_the_capability_it_serves_and_where_that_came_from(booking, trading):
+    """Recorded in frontmatter, it wins and keeps its order; otherwise the "Uses [[CAP-...]]" lines are a guess."""
+    recorded = {f["key"]: f for f in booking[1]["flows"]}["FLO-001"]
+    assert (recorded["capabilities"], recorded["capabilitiesFrom"]) == (["CAP-013", "CAP-014", "CAP-015"], "frontmatter")
+    guessed = {f["key"]: f for f in trading[1]["flows"]}["FLO-002"]
+    assert (guessed["capabilities"], guessed["capabilitiesFrom"]) == (["CAP-002"], "steps")
+
+
+def test_a_stress_vault_has_more_flows_than_the_picker_lists_flat(tmp_path):
+    """14 flows: eight record one capability, one two, two only cite one, three name none (so they go by domain)."""
+    make_stress_vault.main(tmp_path / "stress")
+    _, data = built(tmp_path, tmp_path / "stress", "2026-10-10", "stress")
+    flows = {f["key"]: f for f in data["flows"]}
+    assert len(flows) == 14
+    assert all(flows[f"FLO-{n:03d}"]["capabilitiesFrom"] == "frontmatter" and len(flows[f"FLO-{n:03d}"]["capabilities"]) == 1 for n in range(1, 9))
+    assert len(flows["FLO-012"]["capabilities"]) == 2
+    assert [flows[f"FLO-{n:03d}"]["capabilitiesFrom"] for n in (9, 10)] == ["steps", "steps"]
+    bare = [flows[f"FLO-{n:03d}"] for n in (11, 13, 14)]
+    assert all(f["capabilities"] == [] and f["capabilitiesFrom"] == "" and f["domain"] for f in bare), [(f["key"], f["domain"]) for f in bare]
+    assert data["flows"] == built(tmp_path, tmp_path / "stress", "2026-10-10", "stress-again")[1]["flows"]  # deterministic
+
+
 # --------------------------------------------------------------------------- themes
 
 CSS = PACKAGE / "assets" / "css"
@@ -566,7 +588,7 @@ def test_empty_vault_builds_without_errors(tmp_path):
     assert data["map"]["contracts"] == []
     assert data["flows"] == []
     assert data["asks"] == []
-    assert "SELFTEST OK" in page or "selftest" not in page.lower()  # page loads cleanly
+    assert page.startswith("<!doctype html>") and page.rstrip().endswith("</html>")  # the browser test runs the page's own checks on this vault
 
 
 COASTAL_S2 = REPO / "tests/sim/snapshots/coastal-merger/after-boundary-s2"
@@ -632,3 +654,20 @@ def test_added_and_removed_diff_lines_read_on_the_room_in_every_theme():
             assert contrast(p[token], p["room"]) >= 4.5, f"{name}: --{token} on the room is {contrast(p[token], p['room']):.2f}:1"
             tint = "#%02x%02x%02x" % tuple(round(int(p[token][i:i + 2], 16) * 0.13 + int(p["room"][i:i + 2], 16) * 0.87) for i in (1, 3, 5))
             assert contrast(p[token], tint) >= 4.5, f"{name}: --{token} on its own 13% tint is {contrast(p[token], tint):.2f}:1"
+
+
+def test_a_question_link_and_its_state_pill_never_run_together_and_prose_hides_open():
+    """"where that naming was madeopen": a link and its pill read and copy as one word. The pill follows a real space and
+    carries parentheses, and running prose shows no "open" pill at all; a list item or table cell still shows every state."""
+    from planner import cli
+    from planner.explorer.record import LISTED, PROSE, Keys, inline_html
+    vault = cli.load_vault(TRADING)
+    keys, page = Keys(vault), vault.pages[0]
+    open_q = next(u for u in vault.unknowns if u.fact("State") == "open")
+    done = next((u for u in vault.unknowns if u.fact("State") != "open"), None)
+    text = f"was made [[{open_q.page.path[:-3]}#{open_q.id} {open_q.name}|that]] then"
+    prose, listed = inline_html(text, keys, page, PROSE), inline_html(text, keys, page, LISTED)
+    assert "ustate" not in prose and "us-open" in listed
+    assert '</a> <span class="ustate' in listed and "(</span>open<span" in listed and 'aria-label="' in listed
+    if done:
+        assert '</a> <span class="ustate' in inline_html(f"was made [[{done.page.path[:-3]}#{done.id} {done.name}|that]] then", keys, page, PROSE)

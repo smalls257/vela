@@ -6,7 +6,9 @@ position never comes from a force layout or from the screen size.
 
     <vault>/.planner/explorer-pins.json   {node key: [col, row]}
 
-A node the file lacks takes the nearest free cell to where the layout would put it; a pinned node is never moved.
+A node the file lacks takes the nearest free cell to where the layout would put it; a pinned node is never moved
+unless it sits on another box (see `settle`). A key that starts "grp:" is not a node: it orders a cluster of the
+grouped map (view-map's drag), and takes no cell.
 The caller names the file: the vault's own, or a file kept elsewhere. When that file does not exist yet the caller
 may name a seed to start from, so a layout a lead has already seen carries over. Ported from the gallery mockup's
 maps/extract.py.
@@ -15,6 +17,21 @@ import json
 import pathlib
 
 PINS_FILE = ".planner/explorer-pins.json"
+GROUP_PREFIX = "grp:"
+# Two boxes of one row must stand at least this many columns apart; the drawing's column width is wider than any box
+# it draws (cockpit 380 for a 176 box, line map and minimap 300), so one column is the least that keeps them apart.
+MIN_APART = 1.0
+MIN_PARTY_ROW_WIDTH = 3  # outside parties wrap to a new row past this many columns, or the apps' width when wider
+LIMIT = 10_000  # a column or row beyond this is a typo or an attack, not a layout
+
+
+def is_node(key):
+    return not key.startswith(GROUP_PREFIX)
+
+
+def crowded(taken, col, row):
+    """True when a cell is within one column of a box in its row."""
+    return any(r == row and abs(c - col) < MIN_APART - 1e-9 for c, r in taken)
 
 
 def ideal_layout(nodes, contracts):
@@ -74,14 +91,10 @@ def ideal_layout(nodes, contracts):
     want = {}
     for p in partners:
         near = [col[n] for n in neighbours[p] if n in col]
-        want[p] = round(2 * sum(near) / len(near)) / 2 if near else max_col + 1
-    groups = {}
-    for p in sorted(partners, key=lambda k: (want[k], k)):
-        groups.setdefault(want[p], []).append(p)
-    for spot, members in groups.items():
-        for i, p in enumerate(members):
-            col[p] = round(spot + (i - (len(members) - 1) / 2) * 0.6, 2)
-            row[p] = band
+        want[p] = sum(near) / len(near) if near else max_col + 1
+    for p in partners:
+        col[p] = max(0, int(want[p] + 0.5))  # whole columns: a half column is narrower than the box drawn on it
+        row[p] = band
     return {k: [col[k], row[k]] for k in col}
 
 
@@ -97,34 +110,118 @@ def read_pins(source):
     return pins
 
 
+def check_move(pins, kinds):
+    """Why this layout cannot be drawn without overlap, or "" when it can. `pins` is {key: [col, row]} and `kinds`
+    {node key: "app" | "partner"}; keys beyond `kinds` (clusters) take no cell. Two boxes may not stand within one
+    column of each other in one row, and an outside party may not sit above an app: the drawing puts the parties
+    in a band below the apps, and a row of parties above the last row of apps would be drawn over them."""
+    cells = sorted(((v[0], v[1], k) for k, v in pins.items() if k in kinds), key=lambda x: (x[1], x[0], x[2]))
+    for (c1, r1, k1), (c2, r2, k2) in zip(cells, cells[1:]):
+        if r1 == r2 and c2 - c1 < MIN_APART - 1e-9:
+            return f"{k1} and {k2} would overlap: boxes in one row stand at least {MIN_APART:g} column apart"
+    low = max((r for _, r, k in cells if kinds[k] == "app"), default=None)
+    for _, r, k in cells:
+        if kinds[k] == "partner" and low is not None and r < low:
+            return f"{k} is an outside party and would sit above the apps; parties stay in the band below them"
+    return ""
+
+
+def validate(pins, allowed):
+    """A browser's pins as {key: [col, row]} of finite numbers, or a ValueError saying what is wrong. `allowed` is the
+    set of keys already in the file: a page can move what is pinned and order clusters, it cannot invent a node."""
+    if not isinstance(pins, dict) or not pins or len(pins) > 2000:
+        raise ValueError("pins must be a map of key to [column, row] with at least one key")
+    out = {}
+    for key, cell in pins.items():
+        if not isinstance(key, str) or len(key) > 300 or not (key in allowed or key.startswith(GROUP_PREFIX)):
+            raise ValueError(f"{str(key)[:60]!r} is not a node this vault has pinned")
+        ok = (isinstance(cell, list) and len(cell) == 2 and all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in cell)
+              and all(abs(x) <= LIMIT for x in cell) and cell[0] >= 0)
+        if not ok:
+            raise ValueError(f"{key} must be [column, row], numbers, column not below 0")
+        out[key] = [int(x) if float(x).is_integer() else x for x in cell]
+    return out
+
+
+def write_pins(path, pins):
+    """Write the pins file as the build does: sorted keys, two-space indent. Written beside and renamed, so a reader
+    of the file never sees half of it."""
+    path = pathlib.Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    scratch = path.with_name(path.name + ".tmp")
+    scratch.write_text(json.dumps(dict(sorted(pins.items())), indent=2) + "\n", encoding="utf-8")
+    scratch.replace(path)
+
+
+def settle(pins, kinds):
+    """(pins, moved keys): the pins with every box that sits on another one moved to the nearest free cell. The
+    first of two boxes in a cell (by column, row, key) keeps it, so a lead's pins stay put and only the later of
+    two overlapping boxes moves. An outside party above the apps is lowered to the last row of apps. Keys that are
+    not nodes (clusters) pass through unchanged."""
+    out = {k: list(v) for k, v in pins.items()}
+    nodes = sorted((k for k in out if k in kinds), key=lambda k: (out[k][0], out[k][1], k))
+    low = max((out[k][1] for k in nodes if kinds[k] == "app"), default=0)
+    width = max(MIN_PARTY_ROW_WIDTH, 1 + max((round(out[k][0]) for k in nodes), default=0))
+    moved, taken = [], []
+    for k in nodes:
+        c, r = out[k]
+        want_row = max(r, low) if kinds[k] == "partner" else r
+        if want_row == r and not crowded(taken, c, r):
+            taken.append((c, r))
+            continue
+        # a party stays in its band, along the row and then onto the next; an app takes the nearest free cell in any direction
+        spot = nearest_free(taken, round(c), want_row, width) if kinds[k] == "partner" else nearest_free(taken, round(c), want_row)
+        out[k] = list(spot)
+        taken.append(spot)
+        moved.append(k)
+    return out, moved
+
+
+def nearest_free(taken, col, row, width=None):
+    """The free cell nearest (col, row): ring by ring, or, with a width, along that row and then the rows below it
+    (a row of parties wraps instead of running on without end)."""
+    if width is not None:
+        r = row
+        while True:
+            free = [c for c in range(0, width) if not crowded(taken, c, r)]
+            if free:
+                return min(free, key=lambda c: (abs(c - col), c)), r
+            r += 1
+    ring = 0
+    while True:
+        free = [(col + dc, row + dr) for dc in range(-ring, ring + 1) for dr in range(-ring, ring + 1)
+                if max(abs(dc), abs(dr)) == ring and col + dc >= 0 and not crowded(taken, col + dc, row + dr)]
+        if free:
+            return sorted(free, key=lambda p: (abs(p[0] - col), abs(p[1] - row), p))[0]
+        ring += 1
+
+
 def pinned(path, nodes, contracts, seed=None):
-    """({key: [col, row]}, added keys, stale keys, seed name used). With a path, reads that pins file (else the
-    seed's pins), places any new node at the nearest free cell and writes the file back. With no path the layout
-    is computed and nothing is written."""
+    """({key: [col, row]}, added keys, stale keys, seed name used, moved keys). With a path, reads that pins file (else
+    the seed's pins), settles any box that sits on another, places any new node at the nearest free cell and writes
+    the file back. With no path the layout is computed and nothing is written."""
     path = pathlib.Path(path) if path else None
     seed = pathlib.Path(seed) if seed else None
     source = path if path and path.exists() else seed if seed and seed.exists() else None
     pins = read_pins(source) if source else {}
     ideal = ideal_layout(nodes, contracts)
-    taken = {tuple(v) for v in pins.values()}
+    kinds = {n["key"]: n["kind"] for n in nodes}
+    asked = {k: list(v) for k, v in pins.items()}
+    pins.update(settle({k: v for k, v in pins.items() if k in kinds}, kinds)[0])
+    taken = [tuple(v) for k, v in pins.items() if is_node(k)]
+    width = max(MIN_PARTY_ROW_WIDTH, 1 + max((c for k, (c, _) in ideal.items() if kinds[k] == "app"), default=0))
     added = []
     for key in sorted(ideal, key=lambda k: (ideal[k][0], ideal[k][1], k)):
         if key in pins:
             continue
         c, r = ideal[key]
-        ring = 0
-        while True:
-            free = [(c + dc, r + dr) for dc in range(-ring, ring + 1) for dr in range(-ring, ring + 1)
-                    if max(abs(dc), abs(dr)) == ring and (c + dc, r + dr) not in taken and c + dc >= 0]
-            if free:
-                spot = sorted(free, key=lambda p: (abs(p[0] - c), abs(p[1] - r), p))[0]
-                break
-            ring += 1
+        spot = nearest_free(taken, c, r, width) if kinds[key] == "partner" else nearest_free(taken, c, r)
         pins[key] = list(spot)
-        taken.add(spot)
+        taken.append(tuple(spot))
         added.append(key)
-    stale = sorted(k for k in pins if k not in ideal)
-    if path and (added or not path.exists()):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(dict(sorted(pins.items())), indent=2) + "\n", encoding="utf-8")
-    return pins, added, stale, (seed.name if source and source == seed else "")
+    pins.update(settle({k: v for k, v in pins.items() if k in kinds}, kinds)[0])  # a new app may have taken a row below the parties
+    moved = sorted(k for k in asked if k in kinds and list(pins[k]) != list(asked[k]))
+    stale = sorted(k for k in pins if is_node(k) and k not in ideal)
+    if path and (added or moved or not path.exists()):
+        write_pins(path, pins)
+    return pins, added, stale, (seed.name if source and source == seed else ""), moved

@@ -39,8 +39,8 @@
 html, body { margin: 0; height: 100%; }
 body {
   font: 14px/1.5 var(--ui); color: var(--ink); background: var(--room); overflow: hidden;
-  display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--panel-w); grid-template-rows: 58px auto minmax(0, 1fr);
-  grid-template-areas: "top top top" "note note note" "side main panel"; -webkit-font-smoothing: antialiased;
+  display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--panel-w); grid-template-rows: 58px auto auto minmax(0, 1fr);
+  grid-template-areas: "top top top" "built built built" "note note note" "side main panel"; -webkit-font-smoothing: antialiased;
 }
 button, input, select { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
@@ -113,6 +113,8 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .page-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .btn.quiet { background: transparent; color: var(--ink-3); border-color: transparent; }
 .btn.quiet:hover { color: var(--ink); background: var(--deck); }
+.btn.off { opacity: .55; cursor: not-allowed; font-style: italic; }
+.btn.off:hover { background: transparent; color: var(--ink-3); }
 .btn.tiny { padding: 1px 9px; font-size: 11.5px; margin-left: 6px; }
 .seg.small button { padding: 3px 9px; font-size: 12.5px; }
 .seg button:disabled { opacity: .35; cursor: default; }
@@ -155,7 +157,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .pill.caution { background: color-mix(in srgb, var(--caution) 16%, transparent); color: var(--caution-text); }
 .pill.unexamined { background: color-mix(in srgb, var(--unexamined) 15%, transparent); color: var(--unexamined-text); }
 .pill.override { background: color-mix(in srgb, var(--override) 12%, transparent); color: var(--override-text); box-shadow: inset 0 0 0 1px var(--override-edge); }
-.ustate { font-size: 10.5px; padding: 0 5px; border-radius: 999px; margin-left: 3px; vertical-align: 1px; }
+.ustate { font-size: 10.5px; padding: 0 5px; border-radius: 999px; vertical-align: 1px; }
 .us-open { background: color-mix(in srgb, var(--caution) 18%, transparent); color: var(--caution-text); }
 .us-resolved { background: var(--deck-3); color: var(--ink-3); }
 .ref-chip { display: inline-flex; align-items: baseline; gap: 5px; border: 1px solid var(--rule-3); border-radius: 6px; padding: 1px 7px; margin: 0 4px 4px 0;
@@ -164,6 +166,16 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .ref-chip .rid { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
 .ref-chip .lamp { width: 7px; height: 7px; align-self: center; }
 .ref-dead { color: var(--ink-4); text-decoration: line-through; }
+/* A bare ID in prose reads as the thing's name; the ID shows only on hover, small and muted. */
+a.idname .idsuf { display: none; }
+a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: var(--ink-4); font-size: .78em; font-family: var(--mono); }
+/* A Trace line: one quiet row of name chips, folded until asked for. */
+.r-trace, .ac-trace { margin: 1px 0 6px; font-size: 12px; color: var(--ink-3); }
+.r-trace summary { cursor: pointer; opacity: .75; }
+.r-trace[open] summary { opacity: 1; }
+.r-trace .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.r-trace a.chip { border: 1px solid var(--rule-3); border-radius: 999px; padding: 0 8px; color: var(--ink-2); cursor: pointer; text-decoration: none; }
+.r-trace a.chip:hover { border-color: var(--ink-3); }
 
 #toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--room); padding: 9px 16px;
   border-radius: 999px; font-size: 13.5px; z-index: 90; transition: all .3s var(--ease); pointer-events: none; }
@@ -184,11 +196,24 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+/* Print or save as PDF (E37): the room's chrome goes, the open view flows across pages on white, and a link prints its address. */
+@media print {
+  html[data-theme][data-theme] { --room: #fff; --deck: #fff; --deck-2: #f3f3f3; --ink: #111; --ink-2: #222; --ink-3: #444; --rule-3: #999; --link: #0b4ea2; }
+  html, body { height: auto; display: block; background: #fff; color: #111; }
+  header.top, #side, #panel, #panel-tab, #toast, #tip, #fresh, #built, .page-actions, .seg { display: none !important; }
+  #main { display: block; overflow: visible; background: #fff; }
+  #main :not(svg):not(svg *) { overflow: visible !important; max-height: none !important; }
+  a.ext[href]::after { content: " (" attr(href) ")"; font-size: .85em; color: #444; word-break: break-all; }
+  .scroll, .doc-scroll, .reader, .r-text { display: block !important; flex: none; break-inside: auto; }
+  .r-table { display: block; break-inside: auto; }
+  tr, figure, .strip, .plan-sec { break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
+}
 @media (max-width: 1180px) { :root { --panel-w: 330px; --side-w: 210px; } .brand { max-width: 140px; } .fx-label { display: none; } }
 /* 800 px wide leaves the main pane about 260 px between a 210 px sidebar and a 330 px panel: narrower side columns keep the board usable */
 @media (max-width: 900px) { :root { --panel-w: 280px; --side-w: 176px; } }
-/* A short window (800 x 600) leaves the map's board under 100 px once the lede, the held-above strip and the count
-   line are drawn. Each keeps two lines or one row and says the rest in its tooltip or by scrolling (map.css). */
+/* A short window (800 x 600) leaves the map's board under 100 px once the lede, the work queue and the count
+   line are drawn. The lede keeps two lines, the queue folds to its heading and the count line keeps two (map.css, queue.css). */
 @media (max-height: 720px) {
   .view-head p.lede { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 }

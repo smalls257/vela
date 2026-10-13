@@ -7,7 +7,7 @@ import subprocess
 
 from conftest import MINI
 
-IDENTITY = ["-c", "user.name=Priya Nair", "-c", "user.email=priya@example.com"]
+IDENTITY = ["-c", "user.name=Priya Nair", "-c", "user.email=priya@example.com", "-c", "commit.gpgsign=false"]
 
 
 def git(root, *args):
@@ -23,6 +23,7 @@ def make_vault(tmp_path, name="vault"):
     git(tmp_path, "init", "-q", "-b", "main", str(root))
     git(root, "config", "user.name", "Priya Nair")
     git(root, "config", "user.email", "priya@example.com")
+    git(root, "config", "commit.gpgsign", "false")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "first")
     return root

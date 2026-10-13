@@ -36,21 +36,25 @@ On the capability page, under `## Functional requirements`:
 - **Source:** [[<session id>#^cNN]]
 
 - <acceptance criterion>
+  - Trace: <ID, ID>
 - <acceptance criterion>
 ```
 
-Number new requirements after the highest on the page; numbers are never reused, and a removed requirement stays, struck through, with the reason. Each written requirement gets a capture marked at once, `→ keep: [[<page>#<heading>|<ID>]] (assumption)`, and a `## Changes` row, as Boundary does for its pages. Then run `planner render` and `planner check`, fix every error, and commit a checkpoint.
+A criterion is a sentence in plain words. When it rests on another item, an unknown or a contract, say that item by its name in the sentence and put its ID on the indented `- Trace:` line beneath it; leave the line out when it cites nothing. The Trace line is not a criterion, so release criteria (AC1, AC2) skip it. A requirement with more than about seven criteria is two requirements: propose the split before writing it.
+
+Number new requirements after the highest on the page; numbers are never reused. When the lead drops a requirement, never strike its heading through: that breaks every link to it and fails the check on each page that names it. Run `planner query refs <ID>`, take the requirement out of every row that names it (allocation, release, app page) in the same checkpoint, then delete the requirement, and keep the reason in the session record as a `→ drop` capture. Each written requirement gets a capture marked at once, `→ keep: [[<page>#<heading>|<ID>]] (assumption)`, and a `## Changes` row, as Boundary does for its pages. Then run `planner render` and `planner check`, fix every error, and commit a checkpoint.
 
 ## 4. Review, then finish
 
-Once a capability's requirements are written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the requirements are written" and that capability page as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
+When the lead pauses after a capability, or when every capability is done, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the requirements are written" and the capability pages written so far as its focus. Show the digest as REVIEW section 5 says, once in the session and at most three questions, and capture what the lead takes.
 
-When every capability is done, or the user stops, run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR. Then `/planner:grill CAP-nnn` decides the requirements, and `/planner:boundary` cuts the apps against them."
+When every capability is done, or the user stops, run `git status` and confirm nothing under `.inbox/` is staged. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a Grill on each capability decides the requirements, and a Boundary session cuts the apps against them; say the one line the lead types, `/planner:grill CAP-nnn` or `/planner:boundary`.
 
 ## Never
 
 These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
+- Write an ID in a requirement's sentence or a criterion's: name the thing, and put the ID on a `- Trace:` line.
 - Name an app, a container, a technology or a team in a requirement or its criteria. That is boundary's and allocate's work, then the team's design.
 - Write `decided` or `fact`. Requirements state intent, and only a Grill decides, unless the user overrides it as `START.md` says.
 - Write a non-functional requirement as a functional one. A speed, an availability or a security rule is a concern: write it as a capture for the concern page it belongs to.

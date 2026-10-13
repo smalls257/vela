@@ -8,6 +8,7 @@ state: decided
 owner: "@hl-solution-lead"
 authored: authored
 sources: ["session 2026-09-02 Grill", "UNK-001 ledger latency measurement", SRC-04]
+capabilities: [CAP-013, CAP-014, CAP-015]
 ---
 
 # FLO-001 Hold, pay, confirm
@@ -20,7 +21,7 @@ sources: ["session 2026-09-02 Grill", "UNK-001 ledger latency measurement", SRC-
 2. [[CAP-014-hold-a-seat|Hold a seat]]. Booking checks capacity, looks up the customer, gets the fare through [[CAP-012-quote-a-fare|Quote a fare]] and writes BKHOLD to FERRYMASTER. The hold lasts 10 minutes.
 3. [[CAP-015-take-payment|Take payment]]. The channel sends the customer to Tidepay's hosted payment page. Tidepay reports the outcome to Booking.
 4. [[CAP-013-reserve-a-crossing|Confirm booking]]. Booking writes BKCONF to FERRYMASTER and marks the booking confirmed once the ledger accepts it.
-5. [[CAP-022-notify-customer|Notify customer]]. Booking publishes the state change and Notifications sends the confirmation ([[FLO-003-notify-on-change|FLO-003]]).
+5. [[CAP-022-notify-customer|Notify customer]]. Booking publishes the state change and Notifications sends the confirmation ([[FLO-003-notify-on-change|Notify on change]]).
 
 The diagram shows the website. The call centre desktop and the kiosk app follow the same sequence; only the channel changes.
 
@@ -79,4 +80,12 @@ The customer picks a sailing and sees the fare with a 10-minute timer. They pay 
 
 Yes. The QA lead owns the suite. It runs the website and call centre desktop paths on every Booking release candidate in staging, against the ledger simulator and the Tidepay sandbox. It runs once a week against the FERRYMASTER test region. The Port Systems senior runs the kiosk path on a test kiosk before the March 2027 image is signed off. See [[concern-testing|Testing]].
 
-Delivered by [[EPC-031-holds-and-confirms|EPC-031]], [[EPC-032-ledger-adapter|EPC-032]], [[EPC-033-website-to-booking|EPC-033]], [[EPC-034-call-centre-to-booking|EPC-034]], [[EPC-035-kiosks-to-booking|EPC-035]], [[EPC-037-events-and-notifications|EPC-037]] and [[EPC-038-pricing-serves-booking|EPC-038]].
+Delivered by:
+
+- [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]
+- [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]
+- [[EPC-033-website-to-booking|Website moves to Booking]]
+- [[EPC-034-call-centre-to-booking|Call centre moves to Booking]]
+- [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]]
+- [[EPC-037-events-and-notifications|Booking events and customer notifications]]
+- [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]

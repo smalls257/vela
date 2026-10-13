@@ -8,14 +8,14 @@ import io
 import re
 import urllib.parse
 
+from planner import criteria as criteria_reader
 from planner import override, trace
-from planner.parse import FENCE
+from planner.parse import FENCE, closes_fence
 
 EPICS_FOLDER = "13-epics/"
 COLUMNS = ("Summary", "Description", "Epic Name", "Owner team", "Vault link")
 WIKILINK = re.compile(r"\[\[([^\]]+?)\]\]")
 LABEL_LINE = re.compile(r"^(- )?\*\*[^*]+:\*\*")
-NUMBERED = re.compile(r"^\s*\d+\.\s+")
 FORMULA_LEADS = ("=", "+", "-", "@", "\t", "\r")
 
 
@@ -39,7 +39,7 @@ def body_lines(epic):
     fence, section = None, ""
     for n, raw in enumerate(lines[start:], start=start + 1):
         if fence:
-            if raw.strip().startswith(fence):
+            if closes_fence(raw, fence):
                 fence = None
             continue
         opening = FENCE.match(raw)
@@ -56,10 +56,11 @@ def body_lines(epic):
 
 
 def description(epic):
-    """The paragraphs between the title and the first ## heading, without fact or label lines."""
+    """The paragraphs between the title and the first ## heading, and those under 'Who this is for and what changes' in the
+    epic template, without fact or label lines."""
     paragraphs, current = [], []
     for raw, section in body_lines(epic):
-        if section:
+        if section and not section.startswith("who this is for"):
             break
         line = raw.strip()
         if not line or line.startswith("#") or LABEL_LINE.match(line):
@@ -74,13 +75,18 @@ def description(epic):
 
 
 def criteria(epic):
-    """The numbered acceptance criteria as written, struck ones left out."""
-    found = []
-    for raw, section in body_lines(epic):
-        if section.endswith("acceptance criteria") and NUMBERED.match(raw):
-            body = NUMBERED.sub("", raw, count=1).strip()
-            if not body.startswith("~~"):
-                found.append(plain(body))
+    """The acceptance criteria as written, struck ones left out, each with its label. A numbered one is 'n. sentence' with
+    its concern markers, counted in the order written; a headed one is 'ACn. heading: sentences', so the ticket carries
+    the stable id the Trace line gives it."""
+    found, position = [], 0
+    for c in criteria_reader.read(epic):
+        if c.struck:
+            continue
+        position += 1
+        if c.form == "numbered":
+            found.append(f"{position}. " + plain(c.text + "".join(f" [{m}]" for m in c.markers)))
+        else:
+            found.append(f"AC{c.n}. " + plain(f"{c.heading}: {c.text}" if c.text else c.heading))
     return found
 
 
@@ -120,7 +126,7 @@ def rows(vault, link_for):
         acs = criteria(epic)
         text = description(epic)
         if acs:
-            text += ("\n\n" if text else "") + "Acceptance criteria:\n" + "\n".join(f"{i}. {c}" for i, c in enumerate(acs, start=1))
+            text += ("\n\n" if text else "") + "Acceptance criteria:\n" + "\n".join(acs)
         trail = decision_lines(epic)
         if trail:
             text += ("\n\n" if text else "") + "\n".join(trail)
@@ -142,6 +148,13 @@ def to_csv(table):
     writer.writerow(COLUMNS)
     writer.writerows([defuse(cell) for cell in row] for row in table)
     return buffer.getvalue()
+
+
+def redact_remote(remote):
+    """A git remote with any `user:token@` removed, for every place a remote URL is written down (the view footer, a design
+    doc's origin). A token in a clone URL is a credential; once it is in HTML or a committed page it is public.
+    `git@host:path` keeps its `git@`: that is the ssh account name, not a secret."""
+    return re.sub(r"^([A-Za-z][A-Za-z0-9+.-]*://)[^@/\s]+@", r"\1", remote.strip())
 
 
 def web_url(remote):

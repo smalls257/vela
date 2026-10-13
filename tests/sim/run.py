@@ -63,8 +63,17 @@ ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash(git *)", "Bash(p
 JUDGE_RESERVE = 0.15  # share of an arm's budget kept for the judge, so a spent session budget still gets a scorecard
 MIN_CALL_USD = 0.01  # below this a call cannot do useful work, so the session stops on budget instead
 GH_MESSAGE = "gh: not available in the simulator"
+GIT_TIMEOUT = 120
+PR_LOG = "sim-prs.jsonl"  # in the arm's origin.git, the one place besides the vault a sandboxed gh may write
 END = "[END]"
-TIMEOUTS = {"assistant": 1800, "persona": 300, "judge": 900}
+TICKETS_TIMEOUT = 60
+TEAM_MODES = ("tech-design-grill", "breakdown")  # the team's sessions in a vault script: run from the vault root with the user's own skills (vault_skills)
+EXPLORER_DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
+BREAKDOWN_TO_TICKETS = REPO / "tools" / "breakdown_to_tickets.py"
+TIMEOUTS = {"assistant": 1800, "persona": 600, "judge": 900}
+# Persona and judge calls are text in, text out, with no tools, so a slow one is safe to send again. One slow
+# reply once ended a $100 run at its third session. An assistant call may have edited files, so it is never retried.
+RETRIED = {"persona", "judge"}
 GIT_USER = ["-c", "user.name=Sim Lead", "-c", "user.email=sim-lead@example.invalid"]
 
 
@@ -186,6 +195,10 @@ def with_news(persona, news):
         return persona
     out = dict(persona)
     out["knows"] = list(persona["knows"]) + list(news.get("knows") or [])
+    clash = sorted({k["id"] for k in persona["knows"]} & {k["id"] for k in news.get("knows") or []})
+    if clash:
+        # caught here, before any paid call, not by the judge after the whole run: a repeated ID makes its JSON invalid
+        raise ToolFailure(f"the script's news repeats the persona's knows IDs {', '.join(clash)}; give the news items new IDs")
     out["docs"] = list(persona.get("docs") or []) + list(news.get("docs") or [])
     changes = {d["id"]: d for d in news.get("decisions") or []}
     out["decisions"] = [{**d, **changes.get(d["id"], {})} for d in persona.get("decisions") or []]
@@ -215,6 +228,8 @@ def script_problems(data, persona):
     if not isinstance(data, dict) or not isinstance(data.get("sessions"), list) or not data["sessions"]:
         return ["the script must be a mapping with a non-empty 'sessions' list"]
     problems = news_problems(data.get("news"))
+    if not isinstance(data.get("merge_prs", True), bool):
+        problems.append("'merge_prs' must be true or false")
     events = data.get("events")
     if events is not None:
         if not isinstance(events, list):
@@ -240,8 +255,8 @@ def script_problems(data, persona):
             continue
         if session.get("repo") and session["repo"] not in (data.get("team_repos") or {}):
             problems.append(f"session {n}: repo {session['repo']!r} is not one of the script's team_repos")
-        if session.get("mode") not in MODES and not session.get("repo"):
-            problems.append(f"session {n}: mode {session.get('mode')!r} is not one of {', '.join(MODES)}")
+        if session.get("mode") not in MODES + TEAM_MODES and not session.get("repo"):
+            problems.append(f"session {n}: mode {session.get('mode')!r} is not one of {', '.join(MODES + TEAM_MODES)}")
         if not isinstance(session.get("cap"), int) or session["cap"] < 1:
             problems.append(f"session {n}: 'cap' must be a whole number of assistant turns, at least 1")
         for arm_key in ("planner", "baseline"):
@@ -255,7 +270,7 @@ def script_problems(data, persona):
             except (KeyError, IndexError, ValueError) as exc:
                 problems.append(f"session {n}: the {arm} opening names {exc}, which the persona does not hold")
                 continue
-            if session.get("repo"):
+            if session.get("repo") or session.get("mode") in TEAM_MODES:
                 continue  # a team session runs the team's own skills, or plain words, in the team's repo
             if arm == "planner" and not text.startswith(f"/planner:{session['mode']}"):
                 problems.append(f"session {n}: the planner opening must start with /planner:{session['mode']}")
@@ -350,13 +365,21 @@ def text_call_argv(model, system_prompt, budget, thinking=False):
 
 def call(argv, *, env, cwd, raw_path, kind, stdin=None):
     """Run one claude call and keep its raw output beside the transcript, so any failure can be read afterwards."""
-    try:
-        done = subprocess.run(argv, input=stdin, stdin=None if stdin is not None else subprocess.DEVNULL,
-                              capture_output=True, text=True, env=env, cwd=cwd, timeout=TIMEOUTS[kind])
-    except FileNotFoundError as exc:
-        raise ToolFailure(f"claude is not on PATH: {exc}") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise ToolFailure(f"a {kind} call ran past {TIMEOUTS[kind]}s; partial output in {raw_path}") from exc
+    for attempt in (1, 2):
+        try:
+            done = subprocess.run(argv, input=stdin, stdin=None if stdin is not None else subprocess.DEVNULL,
+                                  capture_output=True, text=True, env=env, cwd=cwd, timeout=TIMEOUTS[kind])
+            break
+        except FileNotFoundError as exc:
+            raise ToolFailure(f"claude is not on PATH: {exc}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raw_path.parent.mkdir(parents=True, exist_ok=True)
+            partial = (exc.stdout or b"").decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+            raw_path.write_text(f"--- timed out after {TIMEOUTS[kind]}s, attempt {attempt} ---\n" + partial, encoding="utf-8")
+            if kind not in RETRIED or attempt == 2:
+                raise ToolFailure(f"a {kind} call ran past {TIMEOUTS[kind]}s"
+                                  f"{' twice' if attempt == 2 else ''}; partial output in {raw_path}") from exc
+            print(f"[sim] a {kind} call ran past {TIMEOUTS[kind]}s; sending it once more", flush=True)
     raw_path.parent.mkdir(parents=True, exist_ok=True)
     raw_path.write_text(done.stdout + ("\n--- stderr ---\n" + done.stderr if done.stderr else ""), encoding="utf-8")
     return done
@@ -385,8 +408,9 @@ def short(value, limit=200):
 
 
 def parse_stream(stdout, raw_path):
-    """Read a stream-json run: the init event, every text block and tool call, and the final result event."""
-    init, texts, tools, unparsed, result = None, [], [], 0, None
+    """Read a stream-json run: the init event, every text block and tool call, and the final result event.
+    Text blocks from subagents (with parent_tool_use_id) are separated from the main assistant text."""
+    init, texts, subagent_texts, tools, unparsed, result = None, [], [], [], 0, None
     for line in stdout.splitlines():
         if not line.strip():
             continue
@@ -407,7 +431,11 @@ def parse_stream(stdout, raw_path):
                 if not isinstance(block, dict):
                     continue
                 if block.get("type") == "text" and isinstance(block.get("text"), str):
-                    texts.append(block["text"])
+                    # Separate subagent output (blocks with parent_tool_use_id) from main assistant text
+                    if block.get("parent_tool_use_id"):
+                        subagent_texts.append(block["text"])
+                    else:
+                        texts.append(block["text"])
                 elif block.get("type") == "tool_use":
                     tools.append({"name": str(block.get("name", "?")), "input": short(block.get("input", ""))})
         elif kind == "result":
@@ -416,7 +444,8 @@ def parse_stream(stdout, raw_path):
         raise ToolFailure(f"claude printed no result event ({unparsed} unparsed lines). Read {raw_path}")
     require_result(result, raw_path)
     text = "\n\n".join(t.strip() for t in texts if t.strip()) or result.get("result") or ""
-    return {"init": init, "text": text, "tools": tools, "result": result, "unparsed": unparsed}
+    subagent_text = "\n\n".join(t.strip() for t in subagent_texts if t.strip()) or ""
+    return {"init": init, "text": text, "subagent_text": subagent_text, "tools": tools, "result": result, "unparsed": unparsed}
 
 
 def parse_single(stdout, raw_path):
@@ -543,7 +572,10 @@ Rules, in order of priority:
 11. You can do nothing outside this chat. Never say you ran a command or a skill, sent or received a message, made
    a call or got a reply, unless one of your facts says it happened. Never report what someone said back, such as
    "Back from the CEO, they said...": if asked what someone thinks and no fact says, say you have not heard yet.
-   You may say once what you will do later.
+   Never claim to do, send, run, check or chase anything outside this conversation, in any tense: not "I'll get the
+   solution lead to run the log", not "I'm getting the drafts to them", not "I'll look into it". You cannot, and the
+   assistant would wait for it. Answer from what you know, or say "I don't know" or "I haven't heard". If a step
+   needs someone else, say who it needs and leave it there; do not say you will start it.
 12. The IDs in this brief (K1, W2, C3, D4 and the like) are your private notes. Never say them, and never call a
    belief or a decision by its ID: say it in your own words.
 
@@ -603,7 +635,10 @@ def persona_input(transcript, session_index, mode, speaker=""):
 # ------------------------------------------------------------------ scratch vault
 
 def git(*args, cwd, check=True):
-    done = subprocess.run(["git", *GIT_USER, *args], cwd=cwd, capture_output=True, text=True)
+    try:
+        done = subprocess.run(["git", *GIT_USER, *args], cwd=cwd, capture_output=True, text=True, timeout=GIT_TIMEOUT)
+    except subprocess.TimeoutExpired as exc:
+        raise ToolFailure(f"git {' '.join(args)} took more than {GIT_TIMEOUT} seconds in {cwd}") from exc
     if check and done.returncode != 0:
         raise ToolFailure(f"git {' '.join(args)} failed in {cwd}: {done.stderr.strip()}")
     return done
@@ -636,7 +671,7 @@ def build_vault(arm_dir, arm, persona):
     vault, origin = arm_dir / "vault", arm_dir / "origin.git"
     vault.mkdir()
     done = subprocess.run([sys.executable, str(SCAFFOLD), "template", "stub" if arm == "baseline" else "plugin"],
-                          cwd=vault, capture_output=True, text=True)
+                          cwd=vault, capture_output=True, text=True, timeout=120)
     if done.returncode != 0:
         raise ToolFailure(f"scaffold.py failed for {arm}: {done.stderr.strip()}")
     notes = []
@@ -715,11 +750,58 @@ def build_team_repo(arm_dir, name, spec):
     return repo
 
 
-def write_gh_stub(bin_dir):
+def install_vault_skills(vault, skills):
+    """The user's own skills (tech-design-grill, work-breakdown) copied into the vault's .claude/skills from the user's
+    ~/.claude/skills, read and never changed, then committed and pushed so the vault stays clean for the closes. The
+    team runs them from the vault root, so the design, the ADRs and the plan land under docs/ in the vault, where the
+    explorer finds them with no flag."""
+    for skill in skills:
+        source = USER_SKILLS / skill
+        if not (source / "SKILL.md").is_file():
+            raise ToolFailure(f"vault skill {skill}: no skill at {source}")
+        shutil.copytree(source, vault / ".claude" / "skills" / skill)
+        git("add", f".claude/skills/{skill}", cwd=vault)
+    if skills:
+        git("commit", "-q", "-m", f"Sim: the team's skills ({', '.join(skills)})", cwd=vault)
+        git("push", "-q", "origin", "main", cwd=vault)
+
+
+GH_STUB = """#!{python}
+import json, pathlib, subprocess, sys
+
+# Only `gh pr create` works: it records the PR where the driver's reviewer will find it, and prints its URL as gh does.
+# Every other gh command fails, as it would with no network or login.
+args = sys.argv[1:]
+if args[:2] != ["pr", "create"]:
+    print({message!r}, file=sys.stderr)
+    sys.exit(1)
+flags = {{args[i]: args[i + 1] for i in range(2, len(args) - 1) if args[i].startswith("--")}}
+head = flags.get("--head") or subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True,
+                                             timeout=30).stdout.strip()
+log = pathlib.Path({log!r})
+prs = [line for line in log.read_text(encoding="utf-8").splitlines() if line] if log.exists() else []
+number = len(prs) + 1
+with log.open("a", encoding="utf-8") as out:
+    out.write(json.dumps({{"number": number, "head": head, "base": flags.get("--base", "main"), "title": flags.get("--title", "")}}) + "\\n")
+print(f"https://github.invalid/sim/heron/pull/{{number}}")
+"""
+
+
+def write_gh_stub(bin_dir, origin):
     bin_dir.mkdir(parents=True, exist_ok=True)
     gh = bin_dir / "gh"
-    gh.write_text(f'#!/bin/sh\necho "{GH_MESSAGE}" >&2\nexit 1\n', encoding="utf-8")
+    gh.write_text(GH_STUB.format(python=sys.executable, message=GH_MESSAGE, log=str(pathlib.Path(origin) / PR_LOG)),
+                  encoding="utf-8")
     gh.chmod(0o755)
+
+
+def opened_prs(arm_dir):
+    """{head branch: PR number} for every PR the arm's gh stub recorded."""
+    log = arm_dir / "origin.git" / PR_LOG
+    if not log.exists():
+        return {}
+    rows = (json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line)
+    return {row["head"]: row["number"] for row in rows}
 
 
 def arm_env(arm_dir, stub):
@@ -762,7 +844,7 @@ def union_hunk(match, lost):
 def check_errors(clone):
     """(error count, first line) of planner check in the clone; the count is None when check itself failed."""
     planner = clone / ".claude" / "skills" / "planner" / "scripts" / "planner"
-    done = subprocess.run([sys.executable, str(planner), "check"], cwd=clone, capture_output=True, text=True)
+    done = subprocess.run([sys.executable, str(planner), "check"], cwd=clone, capture_output=True, text=True, timeout=120)
     first = (done.stdout.splitlines() or [done.stderr.strip() or "no output"])[0]
     found = re.search(r"(\d+) errors", first) if done.returncode in (0, 1) else None
     return (int(found.group(1)) if found else None), first
@@ -780,7 +862,7 @@ def resolve_conflicts(clone, files, errors_before, lost):
             return f"{rel} still holds conflict markers after the union"
         path.write_text(text, encoding="utf-8")
     planner = [sys.executable, str(clone / ".claude" / "skills" / "planner" / "scripts" / "planner")]
-    render = subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True)
+    render = subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True, timeout=120)
     if render.returncode != 0:
         return f"planner render failed after the union: {(render.stdout + render.stderr).strip()[:200]}"
     errors, first = check_errors(clone)
@@ -791,9 +873,17 @@ def resolve_conflicts(clone, files, errors_before, lost):
     return ""
 
 
+def merged_as(branch, prs):
+    if branch in prs:
+        return f"merged PR {prs[branch]} as the reviewer: {branch} into main on origin"
+    return f"merged {branch} into main on origin"
+
+
 def merge_closed(vault, arm_dir):
-    """Stand in for the reviewer merging a closed session's PR, so the next session's START pulls its work.
-    Only a branch whose records are all closed is merged; every action is reported."""
+    """Stand in for the reviewer merging a closed session's PR, so the next session's START (and a team session's
+    handed_off check on origin/main) sees its work. Only a branch whose records are all closed is merged; every action
+    is reported, by PR number when the gh stub recorded one for the branch."""
+    prs = opened_prs(arm_dir)
     git("fetch", "-q", "origin", cwd=vault)  # so origin/main includes earlier simulated merges
     heads = git("for-each-ref", "--format=%(refname:short)", "refs/heads/session/", cwd=vault).stdout.split()
     reports = []
@@ -823,12 +913,12 @@ def merge_closed(vault, arm_dir):
                 reports.append(f"not merged: {branch} conflicts with main, and the union did not settle it: {problem}")
                 continue
             git("push", "-q", "origin", "main", cwd=clone)
-            reports.append(f"merged {branch} into main on origin after settling conflicts in {', '.join(files)} as a "
+            reports.append(f"{merged_as(branch, prs)} after settling conflicts in {', '.join(files)} as a "
                            "reviewer would: main's state lines, both sides' other lines, generated blocks rebuilt"
                            + (f"; the session's state lines not kept: {'; '.join(lost)}" if lost else ""))
             continue
         git("push", "-q", "origin", "main", cwd=clone)
-        reports.append(f"merged {branch} into main on origin, as a reviewer merging its PR would")
+        reports.append(merged_as(branch, prs) + ("" if branch in prs else ", as a reviewer merging its PR would"))
     return reports
 
 
@@ -846,10 +936,11 @@ class Arm:
         self.failure = None
         self.scorecard = None
         self.capture_expect = {}  # the script's `capture:` block: release_date and ask, what the persona planted
+        self.merge_prs = True  # the script's `merge_prs:`, read again in run()
         self.prior_spent = 0.0  # what an earlier run spent, when this arm is only being judged again
         self.judge_calls = []
         self.judge_cuts = {}
-        write_gh_stub(self.dir / "bin")
+        write_gh_stub(self.dir / "bin", self.dir / "origin.git")
         self.env = arm_env(self.dir, args.stub)
         (self.dir / "persona-cwd").mkdir()
         self.transcript = Transcript(self.dir / "transcript.jsonl")
@@ -966,6 +1057,9 @@ class Arm:
                                 session_id=session_id, resumed=turns > 1,
                                 permission_denials=result.get("permission_denials", []),
                                 unparsed_lines=parsed["unparsed"])
+            if parsed["subagent_text"]:
+                self.transcript.add(speaker="subagent", session=index, mode=mode, text=parsed["subagent_text"],
+                                    cost_usd=0)
             self.log(f"S{index} {mode} assistant turn {turns}")
             if budget_stop(result) or self.ledger.session_room() < MIN_CALL_USD:
                 reason = "budget"
@@ -987,13 +1081,36 @@ class Arm:
         self.endings.append({"session": index, "mode": mode, "reason": reason, "turns": turns})
         self.transcript.add(speaker="driver", session=index, mode=mode, event="session-end", reason=reason,
                             text=f"Session {index} ended: {reason} after {turns} assistant turns")
-        if mode == "close":
+        if mode == "close" and self.merge_prs:
             for report in merge_closed(self.vault, self.dir):
                 self.transcript.add(speaker="driver", session=index, mode=mode, event="merge", text=report)
+        if mode == "breakdown":
+            self.make_tickets(index, mode, self.repos[session["repo"]] if session.get("repo") else self.vault)
         return reason
+
+    def make_tickets(self, index, mode, repo):
+        """The tickets come from the breakdown the session wrote, by tools/breakdown_to_tickets.py and no model, so
+        they cannot be invented. They land in <arm>/tickets/ with a README on importing them. A breakdown that is
+        missing or does not map is a finding about the arm, so it is written down there and in the transcript, and it
+        does not fail the run."""
+        out = self.dir / "tickets"
+        try:
+            done = subprocess.run([sys.executable, str(BREAKDOWN_TO_TICKETS), "--repo", str(repo), "--out", str(out)],
+                                  capture_output=True, text=True, timeout=TICKETS_TIMEOUT)
+        except subprocess.TimeoutExpired as exc:
+            raise ToolFailure(f"breakdown_to_tickets took more than {TICKETS_TIMEOUT} seconds on {repo}") from exc
+        said = {0: "every line mapped", 1: "some lines did not map, see the README in that folder",
+                2: "no tickets: " + done.stderr.strip()}.get(done.returncode, f"exit {done.returncode}: {done.stderr.strip()}")
+        if done.returncode not in (0, 1):
+            out.mkdir(exist_ok=True)
+            (out / "README.md").write_text(f"# No tickets\n\nbreakdown_to_tickets exited {done.returncode}.\n\n"
+                                           f"{done.stderr.strip()}\n", encoding="utf-8")
+        self.transcript.add(speaker="driver", session=index, mode=mode, event="tickets",
+                            text=f"Tickets from the breakdown, written to tickets/: {said}")
 
     def run(self, script):
         self.persona = with_news(self.persona, script.get("news"))
+        self.merge_prs = script.get("merge_prs", True)
         if script.get("start"):
             self.vault, self.notes = build_vault_from(self.dir, script["start"], self.persona)
         else:
@@ -1004,6 +1121,10 @@ class Arm:
             self.repos[name] = build_team_repo(self.dir, name, spec)
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup",
                                 text=f"team repo {name} at team-{name}, with skills {', '.join(spec.get('skills') or [])}")
+        install_vault_skills(self.vault, script.get("vault_skills") or [])
+        if script.get("vault_skills"):
+            self.transcript.add(speaker="driver", session=0, mode="setup", event="setup",
+                                text=f"the team's skills in the vault: {', '.join(script['vault_skills'])}; their sessions run from the vault root")
         events = {e["after"]: e for e in script.get("events") or []}
         inbox = self.dir / "news-inbox"
         (inbox / "applied").mkdir(parents=True, exist_ok=True)
@@ -1017,6 +1138,21 @@ class Arm:
                                     text=f"Session {index} ({session['mode']}) not run: the session budget is spent")
                 continue
             self.run_session(index, session)
+        self.report_explorer()
+
+    def report_explorer(self):
+        """Say whether the tool left an explorer page in the vault, and what design and plan it holds. The page is the
+        tool's own (the closing session's last step builds it); this only reads it, so a missing page is a finding."""
+        page = self.vault / "dashboard.html"
+        if not page.is_file():
+            line = "no dashboard.html in the final vault: no close step built the explorer"
+        else:
+            found = EXPLORER_DATA.search(page.read_text(encoding="utf-8"))
+            data = json.loads(found.group(1)) if found else {}
+            line = (f"dashboard.html in the final vault, built by the tool: {len(data.get('designs') or {})} tech design(s), "
+                    f"{len(data.get('plans') or {})} build plan(s) loaded")
+        self.notes.append(line)
+        self.transcript.add(speaker="driver", session=0, mode="end", event="explorer", text=line)
 
     def arrive(self, index, mode, event):
         """News that reaches the lead between sessions: facts they now know, documents now in the inbox, and how
@@ -1279,7 +1415,11 @@ def compact_chat(entries, limit=800):
 # more than this, and whatever is left out is named on the scorecard instead of dropped quietly.
 JUDGE_INPUT_CHARS = 300_000
 EVIDENCE_FLOOR_PER_ITEM = 12_000  # the transcript gives way before an item's vault evidence drops below this
-TURN_LIMITS = (2000, 800, 300)  # the characters a turn keeps, tried in order, when the whole transcript does not fit
+EVIDENCE_FLOOR_MAX = JUDGE_INPUT_CHARS // 2  # but a brief of 34 items cannot reserve more than half the call for it
+TURN_LIMITS = (2000, 800)  # the characters a turn keeps, tried in order, when the whole transcript does not fit
+RELEVANT_TURN_CHARS = 800  # when even that does not fit, the turns that hold a keyword keep this much each
+MARKER_CHARS = 60  # what a "[... T3 to T9 left out]" line and a turn's label can cost
+MAX_NAMED_GAPS = 30  # the left-out runs a cut names one by one; the rest are counted
 INDEX_HEADINGS_CHARS = 300  # the headings listed per page in the page index
 
 
@@ -1372,9 +1512,79 @@ def vault_evidence(persona, category, hits, pages, room):
     return f"PAGE INDEX of the final vault:\n{index}\n\n" + "\n\n".join(blocks), cuts
 
 
-def fit_transcript(transcript, room, shortest_first=False):
-    """(chat, cuts): the whole transcript if it fits `room`, else each turn cut to the longest limit that does.
-    `shortest_first` skips the whole transcript and the 2000-character cut: the retry after a refusal."""
+def turn_relevance(spoken, keywords):
+    """Per turn, how much it matters to a call: the keywords it holds, and half the best neighbour's, since the
+    answer to a question about a fact is the next turn. A turn with neither scores 0 and is cut first."""
+    own = [len(mentions(e["text"], keywords)) for e in spoken]
+    near = [max(own[i - 1] if i else 0, own[i + 1] if i + 1 < len(own) else 0) / 2 for i in range(len(own))]
+    return [own[i] + near[i] for i in range(len(spoken))]
+
+
+def turn_runs(turns):
+    """'T3 to T9, T14' for the turn numbers left out, naming at most MAX_NAMED_GAPS runs."""
+    runs = []
+    for turn in turns:
+        if runs and turn == runs[-1][1] + 1:
+            runs[-1][1] = turn
+        else:
+            runs.append([turn, turn])
+    named = ", ".join(f"T{a}" if a == b else f"T{a} to T{b}" for a, b in runs[:MAX_NAMED_GAPS])
+    return named + (f" and {len(runs) - MAX_NAMED_GAPS} more runs" if len(runs) > MAX_NAMED_GAPS else "")
+
+
+def excerpt(text, keywords, limit):
+    """`text` if it fits `limit`, else the `limit` characters around its first keyword, so the cut keeps the reason
+    the turn was kept, with [...] where it was cut."""
+    if len(text) <= limit:
+        return text
+    flat = text.lower()
+    spots = [flat.find(k.lower()) for k in keywords]
+    spot = min([x for x in spots if x >= 0], default=0)
+    start = max(0, min(spot - limit // 2, len(text) - limit))
+    return ("[...] " if start else "") + text[start:start + limit] + (" [...]" if start + limit < len(text) else "")
+
+
+def relevant_chat(spoken, keywords, room):
+    """(chat, cuts): every session header, then the turns that hold a keyword or sit beside one, most relevant first,
+    each cut to RELEVANT_TURN_CHARS, until `room` is used. What is left out is a marker in the chat and a line in
+    the cuts, so no turn disappears unnamed. Always fits, however long the run: the headers are all it needs."""
+    score = turn_relevance(spoken, keywords)
+    cost = lambda i: min(len(spoken[i]["text"]), RELEVANT_TURN_CHARS) + MARKER_CHARS
+    left = room - MARKER_CHARS * (len({e.get("session") for e in spoken}) + 1)
+    kept = set()
+    for i in sorted(range(len(spoken)), key=lambda i: (-score[i], i)):
+        if cost(i) <= left:
+            kept.add(i)
+            left -= cost(i)
+    lines, gap, session = [], [], None
+
+    def flush():
+        if gap:
+            lines.append(f"[... left out: {turn_runs(gap)}]")
+            gap.clear()
+
+    for i, e in enumerate(spoken):
+        if e.get("session") != session:
+            flush()
+            session = e.get("session")
+            lines.append(f"\n=== Session {session}: {e.get('mode')} ===")
+        if i not in kept:
+            gap.append(e["turn"])
+            continue
+        flush()
+        who = "LEAD" if e["speaker"] == "lead" else "ASSISTANT"
+        lines.append(f"[T{e['turn']}] {who}:\n{excerpt(e['text'], keywords, RELEVANT_TURN_CHARS)}\n")
+    flush()
+    left_out = [spoken[i]["turn"] for i in range(len(spoken)) if i not in kept]
+    cut = (f"transcript: {len(kept)} of {len(spoken)} turns shown, each cut to {RELEVANT_TURN_CHARS} characters around its keyword, the turns "
+           f"that hold one of the category's keywords and their neighbours first; left out: {turn_runs(left_out) or 'none'}")
+    return "\n".join(lines).strip(), cut
+
+
+def fit_transcript(transcript, room, keywords=(), shortest_first=False):
+    """(chat, cuts): the whole transcript if it fits `room`, else each turn cut to the longest limit that does, else
+    the session headers and the turns that matter to `keywords`. `shortest_first` skips the whole transcript and the
+    2000-character cut: the retry after a refusal. It never fails for size."""
     spoken = transcript.spoken()
     full = as_chat(spoken)
     if not shortest_first and len(full) <= room:
@@ -1383,8 +1593,8 @@ def fit_transcript(transcript, room, shortest_first=False):
         chat = compact_chat(spoken, limit)
         if len(chat) <= room:
             return chat, [f"transcript: every turn cut to {limit} characters ({len(full)} in full, {room} fit)"]
-    raise ToolFailure(f"the transcript is {len(full)} characters, and cut to {TURN_LIMITS[-1]} characters a turn it still "
-                      f"does not fit the {room} left in a {JUDGE_INPUT_CHARS}-character judge call")
+    chat, cut = relevant_chat(spoken, keywords, max(room, 0))
+    return chat, [f"{cut} ({len(full)} characters in full, {room} fit)"]
 
 
 def build_judge_input(persona, transcript, vault, category, hits, compact=False):
@@ -1406,8 +1616,10 @@ def build_judge_input(persona, transcript, vault, category, hits, compact=False)
         head.append(f"INBOX DOCUMENTS:\n{docs or 'none'}")
     pages = vault_pages(vault) if "vault" in reads else []
     fixed = sum(len(p) + 2 for p in head) + 200  # the joins and the section labels
-    floor = EVIDENCE_FLOOR_PER_ITEM * len(persona.get(category) or []) + len(page_index(pages)) if pages else 0
-    chat, cuts = fit_transcript(transcript, JUDGE_INPUT_CHARS - fixed - floor, shortest_first=compact)
+    floor = (min(EVIDENCE_FLOOR_PER_ITEM * len(persona.get(category) or []), EVIDENCE_FLOOR_MAX)
+             + len(page_index(pages))) if pages else 0
+    keywords = sorted({k for kind in kinds for i in persona.get(kind) or [] for k in i.get("keywords") or []})
+    chat, cuts = fit_transcript(transcript, JUDGE_INPUT_CHARS - fixed - floor, keywords, shortest_first=compact)
     parts = head + [f"THE TRANSCRIPT:\n{chat}"]
     if pages:
         evidence, evidence_cuts = vault_evidence(persona, category, hits, pages, JUDGE_INPUT_CHARS - fixed - len(chat))
@@ -1669,7 +1881,10 @@ def capture_of(arm):
         argv += ["--expect-release", str(expect["release_date"])]
     if expect.get("ask"):
         argv += ["--expect-ask", str(expect["ask"])]
-    done = subprocess.run(argv, capture_output=True, text=True)
+    try:
+        done = subprocess.run(argv, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired as exc:
+        return {"error": f"planner capture timed out after 120s"}
     if done.returncode != 0:
         return {"error": (done.stdout + done.stderr).strip()[:300]}
     return json.loads(done.stdout)
@@ -1894,12 +2109,12 @@ def finish_arm(arm):
     vault = getattr(arm, "vault", None)
     if vault is None or not (vault / ".git").exists():
         return
-    log = subprocess.run(["git", "log", "--oneline", "--all", "--decorate"], cwd=vault, capture_output=True, text=True)
+    log = subprocess.run(["git", "log", "--oneline", "--all", "--decorate"], cwd=vault, capture_output=True, text=True, timeout=60)
     (arm.dir / "vault-git-log.txt").write_text(log.stdout + log.stderr, encoding="utf-8")
-    check = subprocess.run([sys.executable, str(PLANNER), "check", "--vault", str(vault)], capture_output=True, text=True)
+    check = subprocess.run([sys.executable, str(PLANNER), "check", "--vault", str(vault)], capture_output=True, text=True, timeout=120)
     (arm.dir / "vault-check.txt").write_text(f"exit {check.returncode}\n{check.stdout}{check.stderr}", encoding="utf-8")
     view = subprocess.run([sys.executable, str(PLANNER), "view", "--vault", str(vault), "--out", str(arm.dir / "viewer.html")],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, timeout=120)
     if view.returncode != 0:
         (arm.dir / "viewer-error.txt").write_text(f"exit {view.returncode}\n{view.stdout}{view.stderr}", encoding="utf-8")
 
@@ -2052,6 +2267,11 @@ def main(argv=None):
     run_id = f"{datetime.datetime.now():%Y-%m-%d-%H%M%S}-{pathlib.Path(args.persona).stem}"
     run_dir = pathlib.Path(args.out).resolve() / run_id
     run_dir.mkdir(parents=True)
+    # Write run.json at the start with what's known, so a stopped run can be rescored with --rejudge
+    initial_summary = {"run_id": run_id, "persona": args.persona, "script": args.script, "arms": args.arm_list,
+                       "models": {"assistant": args.model, "persona": args.persona_model, "judge": args.judge_model},
+                       "budget_usd": args.budget, "stub": args.stub, "started": datetime.datetime.now().isoformat()}
+    (run_dir / "run.json").write_text(json.dumps(initial_summary, indent=2), encoding="utf-8")
     share = args.budget / len(args.arm_list)
     arms, failed = [], False
     for name in args.arm_list:
@@ -2072,9 +2292,9 @@ def main(argv=None):
             break
     (run_dir / "compare.html").write_text(render_compare(run_id, persona, arms), encoding="utf-8")
     early = any(a.early() for a in arms)
-    summary = {"run_id": run_id, "persona": args.persona, "script": args.script, "arms": args.arm_list,
-               "models": {"assistant": args.model, "persona": args.persona_model, "judge": args.judge_model},
-               "budget_usd": args.budget, "stub": args.stub,
+    # Load the initial run.json written at the start and update it with final results
+    initial_summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    summary = {**initial_summary,
                "spent_usd": round(sum(a.ledger.spent for a in arms), 4),
                "per_arm": {a.name: {"spent_usd": round(a.ledger.spent, 4), "endings": a.endings,
                                     "failure": a.failure, "notes": a.notes} for a in arms},

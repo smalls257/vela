@@ -19,7 +19,8 @@ Knobs, all environment variables:
                   the window: is_error true, subtype "success", terminal_reason "prompt_too_long"
   SIM_STUB_LOG    a file to append one JSON line per call to: role, judge category, argv, cwd, the gh on PATH, the characters on stdin
   SIM_STUB_REPLY  a file whose text is the assistant's first turn of a session, instead of the default
-  SIM_STUB_WRITE  "<path>::<text>": the assistant's first turn of a session appends <text> to <path> in its cwd
+  SIM_STUB_WRITE  "<path>::<text>": the assistant's first turn of a session appends <text> to <path> in its cwd; a JSON object
+                  {"<path>": "<text>", ...} instead creates each file that does not exist yet, so a design is written once
 """
 import json
 import pathlib
@@ -56,6 +57,24 @@ def result(text, session_id, argv, cost=None):
             "total_cost_usd": cost, "num_turns": 1}
 
 
+def stub_writes(setting):
+    """{path: text} from SIM_STUB_WRITE: a JSON object, or the older "<path>::<text>"."""
+    if setting.startswith("{"):
+        return json.loads(setting)
+    path, written = setting.split("::", 1)
+    return {path: written}
+
+
+def close_rebuilds_the_explorer(argv):
+    """What the real close skill ends with: `planner explore` from the vault root, without --serve. The stub runs the
+    plugin's own command so the page it leaves is the tool's, and says what the command said."""
+    plugin = pathlib.Path(argv[argv.index("--plugin-dir") + 1])
+    done = subprocess.run([sys.executable, str(plugin / "scripts" / "planner"), "explore"], capture_output=True, text=True, timeout=120)
+    if done.returncode != 0:
+        return f"The explorer could not be built: {(done.stdout + done.stderr).strip()}"
+    return "The dashboard is up to date: dashboard.html"
+
+
 def assistant(argv):
     prompt = argv[argv.index("--") + 1] if "--" in argv else ""
     resumed = value_after(argv, "--resume")
@@ -69,12 +88,17 @@ def assistant(argv):
         with open(os.environ["SIM_STUB_REPLY"], encoding="utf-8") as reply:
             text = reply.read()
     else:
-        text = f"Stub assistant heard: {prompt[:120]}\n\ngh said: {gh.stderr.strip()}\n\nWhat else is on your mind?"
+        text = f"Stub assistant heard: {prompt[:120]}\n\ngh said: {(gh.stdout + gh.stderr).strip()}\n\nWhat else is on your mind?"
     if not resumed and os.environ.get("SIM_STUB_WRITE"):
-        path, written = os.environ["SIM_STUB_WRITE"].split("::", 1)
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        with open(path, "a", encoding="utf-8") as out:
-            out.write(written + "\n")
+        once = os.environ["SIM_STUB_WRITE"].startswith("{")
+        for path, written in stub_writes(os.environ["SIM_STUB_WRITE"]).items():
+            if once and os.path.exists(path):
+                continue
+            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+            with open(path, "a", encoding="utf-8") as out:
+                out.write(written + "\n")
+    if not resumed and prompt.startswith("/planner:close"):
+        text += "\n\n" + close_rebuilds_the_explorer(argv)
     # The plugin's own skills, read from the --plugin-dir it was given, as the CLI lists them: a hand-kept list fell
     # behind when requirements, allocate and releases were added, and a stub run then failed on them.
     plugin = pathlib.Path(argv[argv.index("--plugin-dir") + 1]) if "--plugin-dir" in argv else None

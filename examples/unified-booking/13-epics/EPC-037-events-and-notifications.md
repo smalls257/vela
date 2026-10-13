@@ -18,21 +18,61 @@ sources: ["session 2026-11-03 Grill"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-Booking publishes Booking state changed (CON-002) to the Harbourline event bus on every change of state, as the transformation programme requires of new applications (CST-4). Notifications adds a consumer for that event and sends email or SMS through its existing message sender. Today only the website sends emails, so a customer who books at a kiosk or by phone hears nothing, and once customers can amend online they need to hear about it wherever the change came from.
+Booking publishes the Booking state changed event to the Harbourline event bus on every change of state, as the transformation programme requires of new applications. Notifications adds a consumer for that event and sends email or SMS through its existing message sender.
 
-The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005 Event bus readiness|UNK-005]]). Finance reconciliation may read these events later ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]], deferred to INI-005), so the event only ever grows by adding fields.
+Still open: whether Finance reads these events later, which is deferred to the Mainframe Exit initiative and blocks nothing here.
 
 **Owning teams:** Booking team (events) and Platform team (Notifications consumer).
 
-## Epic acceptance criteria
+## Who this is for and what changes
 
-1. Every change of booking state (held, confirmed, amended, cancelled, released) produces one Booking state changed event on the bus, carrying the booking reference, the new state and the time of the change.
-2. A hold that isn't confirmed within 10 minutes is released, and Booking publishes a state-changed event.
-3. A confirmed, amended or cancelled booking produces one message to the customer, by email or SMS as Notifications decides, whichever channel made the change.
-4. An event carries the customer ID and no card data or other personal data.
-5. A change to the event schema that removes or renames a field fails Booking's pipeline, and the Notifications consumer test for CON-002 runs in Notifications' pipeline. [testing]
-6. Once Notifications sends booking messages, the website stops sending its own, so a customer gets one message per change. [data]
-7. Pausing the Notifications consumer leaves events waiting on the bus, and each one is sent once the consumer starts again. [rollout]
+Today only the website sends emails, so a customer who books at a kiosk or by phone hears nothing, and once customers can amend online they need to hear about it wherever the change came from.
+
+The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risks#UNK-005 Event bus readiness|Event bus readiness]]). Finance reconciliation may read these events later ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|Finance on Booking events]], deferred to the Mainframe Exit initiative), so the event only ever grows by adding fields.
+
+## Done when
+
+### Every state change publishes one event
+
+Every change of booking state (held, confirmed, amended, cancelled, released) produces one Booking state changed event on the bus, carrying the booking reference, the new state and the time of the change.
+
+- Trace: AC1
+
+### An unconfirmed hold is released
+
+A hold that isn't confirmed within 10 minutes is released, and Booking publishes a state-changed event.
+
+- Trace: AC2
+
+### One message to the customer for each change
+
+A confirmed, amended or cancelled booking produces one message to the customer, by email or SMS as Notifications decides, whichever channel made the change.
+
+- Trace: AC3
+
+### The event carries no card data
+
+An event carries the customer ID and no card data or other personal data.
+
+- Trace: AC4
+
+### A schema break fails the pipeline
+
+A change to the event schema that removes or renames a field fails Booking's pipeline, and the Notifications consumer test for the event runs in Notifications' pipeline.
+
+- Trace: CON-002  ·  AC5  ·  [testing]
+
+### The website stops sending its own messages
+
+Once Notifications sends booking messages, the website stops sending its own, so a customer gets one message per change.
+
+- Trace: AC6  ·  [data]
+
+### A paused consumer loses nothing
+
+Pausing the Notifications consumer leaves events waiting on the bus, and each one is sent once the consumer starts again.
+
+- Trace: AC7  ·  [rollout]
 
 ## Traces to
 
@@ -49,7 +89,7 @@ The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risk
 
 ## Depends on
 
-- [[EPC-031-holds-and-confirms|EPC-031]]: the state changes to publish.
+- [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]: the state changes to publish.
 
 ## Rollout notes
 
@@ -57,7 +97,6 @@ Events flow from the first production booking. Notifications takes over a channe
 
 ## Out of scope
 
-- Finance reconciliation reading events ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]]).
+- Finance reconciliation reading events ([[11-unknowns-and-risks#UNK-006 Finance on Booking events|Finance on Booking events]]).
 - Changes to how messages are sent.
 
-The Booking and Platform teams break this epic into stories after their tech design session.

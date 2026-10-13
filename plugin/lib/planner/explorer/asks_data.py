@@ -11,7 +11,7 @@ is never drawn.
 """
 import re
 
-from planner import attention, model
+from planner import attention, model, progress
 from .record import plain, refs_in
 
 HANDLE = re.compile(r"@[a-z0-9][a-z0-9-]*", re.I)
@@ -99,6 +99,17 @@ def unknown_light(unknown, as_of):
     return {"level": light.level, "urgency": light.urgency}
 
 
+def date_only(value):
+    """The date when the whole value is one, else ''. A cut-off 'YYYY-MM-DD (maybe)' would look like a date the lights
+    (attention.py) never read, and the page would show a date the board disagrees with."""
+    return value if progress.is_date(value) else ""
+
+
+def raw_unless_date(value):
+    """What an Ask by line says when it is not a date, so the board can show it as text. The page escapes it."""
+    return "" if progress.is_date(value) else plain(value)
+
+
 def asks(vault, keys, as_of):
     handles = sorted({h for page in vault.pages for h in HANDLE.findall(page.text)})
     out = []
@@ -107,7 +118,8 @@ def asks(vault, keys, as_of):
         out.append({
             "id": u.id, "question": plain(u.fact("Question")), "summary": first_prose(u.page, u.line),
             "ownerRaw": plain(u.fact("Owner")), "ask": who_to_ask(u, handles), "state": u.fact("State"),
-            "askBy": u.fact("Ask by")[:10], "opened": u.fact("Opened")[:10],
+            "askBy": date_only(u.fact("Ask by")), "askByRaw": raw_unless_date(u.fact("Ask by")),
+            "opened": date_only(u.fact("Opened")),
             "holdsReason": plain(blocks) if (not blocks or NOTHING.match(blocks)) else "",
             "outcome": plain(u.fact("Outcome")), "resolvedIn": plain(u.fact("Resolved in")),
             "light": unknown_light(u, as_of) if u.fact("State") == "open" else {"level": "dark", "urgency": 0},
@@ -115,7 +127,7 @@ def asks(vault, keys, as_of):
     return out
 
 
-# ---------------------------------------------------------------- decisions, for the garden
+# ---------------------------------------------------------------- decisions, for the decision log
 
 def parse_options(text):
     """'A (picked); B: rejected, why' or 'B. Rejected: why' -> (picked, [rejected])."""

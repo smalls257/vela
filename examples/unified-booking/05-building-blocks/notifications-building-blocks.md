@@ -21,7 +21,7 @@ sources: ["Platform lead review of CON-002", "UNK-005 event bus readiness 2026-1
 
 Notifications tells customers when their booking changes, by email or SMS. Today only the website sends booking emails. After this initiative Notifications reads every Booking state change from the event bus, so a booking made or changed in any channel produces the same message.
 
-Notifications does not decide a booking's state. It reports what Booking published.
+Notifications does not decide what state a booking is in. It reports what Booking published.
 
 | Change in INI-002 | Owner team |
 |---|---|
@@ -60,7 +60,6 @@ flowchart LR
   send -->|"email, SMS"| cust
 ```
 
-Components inside these containers belong to the Platform team's tech design.
 
 ## Contracts this app provides
 
@@ -73,10 +72,6 @@ None. Notifications only consumes.
 |---|---|---|---|
 | [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] | [[booking-building-blocks\|Booking]] | additive changes only. | decided |
 <!-- /generated:contracts-consumed -->
-
-## Concerns
-
-This app's cell on each concern is in the [[08-concerns|concern matrix]]. The concern pages say what each cell means.
 
 ## Epics
 

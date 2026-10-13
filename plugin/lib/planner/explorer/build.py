@@ -19,19 +19,23 @@ design beside the vault (design_data.py reads it, inside_data.py checks it again
 `generate` is the one entry point. It takes the date and every path as arguments and returns the report lines;
 the caller (cli.cmd_explore, or prototypes/explorer/build.py) reads the clock and does the printing.
 """
+import base64
 import hashlib
 import html
 import json
 import os
 import pathlib
 import re
+import uuid
 
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
                      reading, roles, schema, trace)
 from planner import search as planner_search
+from planner.edge import atomic
+from planner.parse import FENCE, closes_fence
 
-from . import (asks_data, assets_inline, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
-               roles_data, serve)
+from . import (asks_data, assets_inline, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
+               plan_data, roles_data, serve)
 from . import pins as pinning
 from .record import (HANDLE, LABELLED_LINE, PROSE_LIMIT, Keys, inline_html,
                      plain, refs_in, title_of)
@@ -47,11 +51,12 @@ class ExplorerError(Exception):
     says which and why; nothing is written."""
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
-JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "geometry", "search", "minimap", "reader", "panel", "panelsize", "motion", "view-map",
-              "wires", "mapgroups", "releases", "flowkit", "view-flows", "rehearse", "view-asks", "view-garden", "view-progress",
-              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "drafts", "freshness", "selftest", "main")
-CSS_MODULES = ("base", "nav", "panel", "map", "flows", "rehearse", "asks", "garden", "pages", "reader", "roles",
-               "releases", "ask", "inside", "pending", "drafts", "themes", "plain")
+JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "layout", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
+              "wires", "mapgroups", "releases", "flowkit", "flowpicker", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
+              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
+SELFTEST_MODULE = "selftest"  # 120 KB of checks: bundled only when asked (`planner explore --selftest`), not shipped to every reader
+CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
+               "releases", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -63,12 +68,49 @@ THEME_IDS = tuple(t[0] for t in THEMES)
 
 # --------------------------------------------------------------------------- vault identity
 
-def vault_id(root, initiative):
-    """A short, stable identifier for this vault, keyed by its resolved path and initiative ID.
-    Used to scope localStorage keys so moves between vaults don't mix their state."""
-    source = f"{root.resolve().as_posix()}|{initiative}"
-    h = hashlib.sha256(source.encode()).hexdigest()[:12]
-    return h
+VAULT_ID_KEY = "vault_id"
+VAULT_ID_OK = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+
+
+def legacy_vault_id(initiative, title):
+    """The id every vault had before .planner.yaml could name one: a hash of its initiative ID and title, never of where
+    the folder sits (a path in the key would give every clone a different page, so a committed dashboard.html would
+    change on each machine's build). Two vaults left at the template's INI-001 / New initiative share it, and retitling
+    changes it, which is why a vault_id is better."""
+    return hashlib.sha256(f"{initiative}|{title}".encode()).hexdigest()[:12]
+
+
+def vault_id(initiative, title, configured=None):
+    """The short, stable identifier that scopes this vault's localStorage keys (board marks, layout, Ask conversations,
+    rehearsals), so vaults and copies do not mix their state. The `vault_id:` line in .planner.yaml when there is one:
+    it survives a retitle and tells two vaults apart. Else the legacy hash. A value that cannot scope a key is refused."""
+    if configured is None:
+        return legacy_vault_id(initiative, title)
+    if not isinstance(configured, str) or not VAULT_ID_OK.match(configured):
+        raise ExplorerError(f".planner.yaml's {VAULT_ID_KEY} is {configured!r}; write 8 to 64 letters, digits or dashes, such as {mint_vault_id()}")
+    return configured
+
+
+def vault_id_for(root):
+    """The id the page for the vault at `root` will carry (the same one generate puts in the page)."""
+    config = cli.load_config(pathlib.Path(root))
+    return vault_id(str(config.get("initiative", "")), str(config.get("title", "")), config.get(VAULT_ID_KEY))
+
+
+def mint_vault_id():
+    """Starts with a letter so YAML reads it as text: a bare 1234567890123456 or 12e45678 would load as a number."""
+    return "v-" + uuid.uuid4().hex[:14]
+
+
+def vault_id_advice(root, role):
+    """What to tell an owner whose .planner.yaml has no vault_id, or None. The build never edits .planner.yaml: two
+    folders of one vault must build the same page, and a build must not leave the vault with an uncommitted change.
+    So the owner adds the line; the page then moves what the browser saved under the old id to the new one."""
+    if role != roles.OWNER or VAULT_ID_KEY in cli.load_config(pathlib.Path(root)):
+        return None
+    return (f"this vault has no {VAULT_ID_KEY} in .planner.yaml, so the browser keeps its saved marks, layout and Ask conversations under a name made "
+            f"from the initiative and title: another vault with the same two shares them, and a new title loses them. Add the line "
+            f"`{VAULT_ID_KEY}: {mint_vault_id()}` and commit it; what was saved before moves over once")
 
 
 # --------------------------------------------------------------------------- opening prose
@@ -82,11 +124,12 @@ def skipped_lines(page):
         stripped = raw.strip()
         if fence:
             skip.add(n)
-            if stripped.startswith(fence):
+            if closes_fence(raw, fence):
                 fence = None
             continue
-        if stripped.startswith("```") or stripped.startswith("~~~"):
-            fence = stripped[:3]
+        opening = FENCE.match(raw)
+        if opening:
+            fence = opening.group(1)
             skip.add(n)
     return skip
 
@@ -243,6 +286,20 @@ def provider_key(vault, keys, contract, parties_by_name):
     return "ext:" + name, "external"
 
 
+PROSE_BREAK = re.compile(r"\s*(?:[,;:\u2014]|\s-\s|\()")
+NAME_CAP = 32
+
+
+def external_title(said):
+    """The name to draw for a provider a contract names in running text: the words before the first comma, colon or
+    bracket, cut at a word under NAME_CAP characters. "the pilot user, on their own laptop" is drawn "the pilot user".
+    A short plain name ("Stripe") is returned unchanged. The full text stays on the node as `said`."""
+    head = PROSE_BREAK.split(said, 1)[0].strip() or said
+    if len(head) <= NAME_CAP:
+        return head
+    return head[:NAME_CAP].rsplit(" ", 1)[0].rstrip(" ,;:") + "\u2026"
+
+
 def system_map(vault, keys):
     parties_by_name = {p.name.lower(): p for p in vault.parties}
     contracts, externals = [], {}
@@ -262,7 +319,8 @@ def system_map(vault, keys):
     with_contract = {c["provider"] for c in contracts}
     parties = [{"key": p.id, "title": p.name, "hasContract": p.id in with_contract} for p in vault.parties]
     return {"apps": apps, "contracts": contracts, "parties": parties,
-            "externals": [{"key": k, "title": v} for k, v in sorted(externals.items())]}
+            "externals": [{"key": k, "title": external_title(v), "said": v,
+                           "contracts": [c["id"] for c in contracts if c["provider"] == k]} for k, v in sorted(externals.items())]}
 
 
 def app_details(vault, keys, blocked):
@@ -468,12 +526,13 @@ def map_nodes(vault, keys, m, pins_path, seed=None):
     nodes += [{"key": p["key"], "kind": "partner", "title": p["title"]} for p in m["parties"] if p["key"] in joined]
     nodes += [{"key": x["key"], "kind": "partner", "title": x["title"], "external": True} for x in m["externals"]]
     try:
-        found, added, stale, seeded = pinning.pinned(pins_path, nodes, m["contracts"], seed)
+        found, added, stale, seeded, moved = pinning.pinned(pins_path, nodes, m["contracts"], seed)
     except ValueError as exc:
         raise ExplorerError(str(exc)) from exc
     for n in nodes:
         n["col"], n["row"] = found[n["key"]]
-    return nodes, {"added": added, "stale": stale, "seededFrom": seeded,
+    return nodes, {"added": added, "stale": stale, "seededFrom": seeded, "moved": moved,
+                   "all": dict(sorted(found.items())),  # sorted: a first build and a rebuild must write the same bytes
                    "file": pathlib.Path(pins_path).name if pins_path else ""}
 
 
@@ -491,7 +550,7 @@ def lights_data(vault, keys, today):
     return {"lights": lights, "ranked": ranked, "above": above, "levels": list(attention.LEVELS)}
 
 
-def extract(vault, root, today, pins_path=None, designs=None, seed=None):
+def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=None):
     keys = Keys(vault)
     entities = {}
     for page in vault.pages:
@@ -506,9 +565,10 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None):
     initiative = str(vault.config.get("initiative", ""))
     data = {
         "initiative": initiative, "title": str(vault.config.get("title", "")),
-        "vaultId": vault_id(root, initiative),
+        "vaultId": vault_id(initiative, str(vault.config.get("title", "")), vault.config.get(VAULT_ID_KEY)),
+        "legacyVaultId": legacy_vault_id(initiative, str(vault.config.get("title", ""))) if VAULT_ID_KEY in vault.config else "",
         "today": today,
-        "vault": "", "entities": entities, "role": roles.NONE, "draft": None, "freshness": None,
+        "vault": "", "entities": entities, "role": roles.NONE, "draft": None, "freshness": None, "built": None,
         "map": system_map(vault, keys), "apps": app_details(vault, keys, blocked),
         "unknowns": unknowns(vault, keys), "risks": [r.id for r in vault.risks],
         "blockedBy": {k: [u.id for u in v] for k, v in blocked.items()},
@@ -536,6 +596,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None):
     data.update(roles_data.extract(vault, keys))
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
+    data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
     data["themes"] = [{"id": i, "label": label, "say": say} for i, label, say in THEMES]
     data["theme"] = THEME_IDS[0]
     return data
@@ -560,11 +621,11 @@ def safe_json(value):
     return json.dumps(value, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
 
 
-def render(data, assets=None):
+def render(data, assets=None, selftest=False):
     shell = (HERE / "assets" / "shell.html").read_text(encoding="utf-8")
     css = "\n".join((HERE / "assets" / "css" / f"{m}.css").read_text(encoding="utf-8") for m in CSS_MODULES)
     js = "\n".join(f"/* ---- {m}.js ---- */\n" + (HERE / "assets" / "js" / f"{m}.js").read_text(encoding="utf-8")
-                   for m in JS_MODULES)
+                   for m in (*JS_MODULES[:-1], *((SELFTEST_MODULE,) if selftest else ()), JS_MODULES[-1]))
     if assets:
         resolver = assets["resolver"]
         if "</script" in resolver.lower():
@@ -586,24 +647,50 @@ def render(data, assets=None):
     theme = data.get("theme") or THEME_IDS[0]
     if theme not in THEME_IDS:
         raise ValueError(f"theme {theme!r} is not one of {', '.join(THEME_IDS)}")
-    return (shell.replace("{{TITLE}}", title).replace("{{THEME}}", theme).replace("/*{{CSS}}*/", css).replace("{{DATA}}", safe_json(data))
+    page = (shell.replace("{{TITLE}}", title).replace("{{THEME}}", theme).replace("/*{{CSS}}*/", css).replace("{{DATA}}", safe_json(data))
             .replace("<!--{{ASSETS}}-->", inline).replace("<!--{{MARKED}}-->", f"<script>{marked}</script>").replace("/*{{JS}}*/", js))
+    return page.replace("<style>", f'<meta http-equiv="Content-Security-Policy" content="{content_security_policy(page)}">\n<style>', 1)
+
+
+INLINE_SCRIPT = re.compile(r"<script(?![^>]*application/json)[^>]*>(.*?)</script>", re.S)
+
+
+def content_security_policy(page):
+    """What the page may do, so an escaping slip in vault text cannot become script or send the vault anywhere: only the
+    page's own inline scripts run (each by hash, no inline handlers, no eval), nothing loads from outside, and the one
+    connection allowed is to the helper that served it. Styles may be inline: the page sets them from script, and a style
+    cannot run code. (Defence in depth: viewer.py keeps the same rule for the offline viewer.)"""
+    hashes = " ".join(f"'sha256-{base64.b64encode(hashlib.sha256(m.group(1).encode('utf-8')).digest()).decode()}'"
+                      for m in INLINE_SCRIPT.finditer(page))
+    return (f"default-src 'none'; script-src {hashes}; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; "
+            "font-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'")
 
 
 def relative_href(target, page_dir):
     """The href a page in `page_dir` uses to reach `target`, relative so no absolute path is built in. A relative
-    href in a file:// page resolves beside it. None when the walk would name the builder's home folder (the
-    target and the page sit in different places under it), because the page must not carry that name."""
-    rel = pathlib.Path(os.path.relpath(pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve()))
-    if pathlib.Path.home().name in rel.parts:
+    href in a file:// page resolves beside it. None when the walk would descend through the builder's home folder (the
+    target is under it and the page is not), because the walk would then name it; a walk that only climbs out of home,
+    or stays inside it, names nothing, whatever the folders are called."""
+    target, page_dir, home = pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve(), pathlib.Path.home().resolve()
+    under_home = lambda p: p == home or home in p.parents  # noqa: E731
+    if under_home(target) and not under_home(page_dir):
         return None
-    return rel.as_posix()
+    return pathlib.Path(os.path.relpath(target, page_dir)).as_posix()
 
 
-def link_sources(data, root, design_args, out_dir):
-    """Set the page's relative hrefs to the vault and to each team design, and return what the build should say
-    about links it left out. A link that cannot be relative without naming the home folder is left out; it is
-    never made absolute."""
+def vault_path(target, root):
+    """`target` as a path inside the vault, or '' when it lies outside. The served page opens only what lies inside
+    (vault_files.py); a design or plan in a team repo beside the vault has no link there."""
+    try:
+        return pathlib.Path(target).resolve().relative_to(pathlib.Path(root).resolve()).as_posix()
+    except ValueError:
+        return ""
+
+
+def link_sources(data, root, design_args, out_dir, plan_args=()):
+    """Set the page's relative hrefs to the vault, to each team design and to each build plan (and the tickets
+    beside it), and return what the build should say about links it left out. A link that cannot be relative
+    without naming the home folder is left out; it is never made absolute."""
     said = []
     data["vault"] = relative_href(root, out_dir) or ""
     if not data["vault"]:
@@ -612,8 +699,19 @@ def link_sources(data, root, design_args, out_dir):
     paths = {m.group(1): m.group(2) for m in (design_data.SPEC.match(a.strip()) for a in design_args)}
     for design in data["designs"].values():
         design["href"] = relative_href(paths[design["appId"]], out_dir) or ""
+        design["vaultPath"] = vault_path(paths[design["appId"]], root)
         if not design["href"]:
             said.append(f"no Open the design doc link for {design['appId']}, the doc and the page sit apart under the home folder")
+    plan_paths = {m.group(1): pathlib.Path(m.group(2)) for m in (design_data.SPEC.match(a.strip()) for a in plan_args)}
+    for plan in data["plans"].values():
+        path = plan_paths[plan["appId"]]
+        plan["href"] = relative_href(path, out_dir) or ""
+        tickets = plan_data.tickets_path(path)
+        plan["ticketsHref"] = (relative_href(tickets, out_dir) or "") if tickets else ""
+        plan["hasTickets"] = bool(tickets)
+        plan["vaultPath"], plan["ticketsVaultPath"] = vault_path(path, root), vault_path(tickets, root) if tickets else ""
+        if not plan["href"] or (tickets and not plan["ticketsHref"]):
+            said.append(f"no Open the plan or Tickets link for {plan['appId']}, the file and the page sit apart under the home folder")
     return said
 
 
@@ -634,6 +732,16 @@ def design_lines(designs):
     return lines
 
 
+def plan_lines(plans):
+    lines = []
+    for plan in plans.values():
+        t = plan["totals"]
+        lines.append(f"{plan['appId']} build plan {plan['file']}: {plan['status'] or 'no status'}, {t['stories']} stories, {t['tasks']} tasks, "
+                     f"{t['points']} points, {len(plan['problems'])} things it could not read"
+                     + "".join(f"\n  {p}" for p in plan["problems"]))
+    return lines
+
+
 def shown(path, root):
     """A path as the report names it: inside the vault, relative to it; otherwise as given."""
     try:
@@ -647,12 +755,24 @@ def pin_lines(data, pins_path, was_there, root):
     if pins_path and not was_there:
         return [f"first build: wrote the pinned positions of {len(data['nodes'])} apps and parties to {shown(pins_path, root)}. "
                 "They keep every app in the same place on every later build; delete the file to lay the map out afresh."]
+    said = []
+    if pins["moved"]:
+        said.append(f"moved {', '.join(pins['moved'])} to the nearest free cell in {shown(pins_path, root) if pins_path else 'the layout'}: "
+                    "each stood on another box or above the apps, and the map would have drawn them over one another")
     if not pins["added"]:
-        return []
+        return said
     names = ", ".join(pins["added"])
     if not pins_path:
-        return [f"computed positions for {names}; nothing keeps them, so the next build may place them differently"]
-    return [f"pinned new positions in {shown(pins_path, root)}: {names}"]
+        return said + [f"computed positions for {names}; nothing keeps them, so the next build may place them differently"]
+    return said + [f"pinned new positions in {shown(pins_path, root)}: {names}"]
+
+
+def party_lines(data):
+    """One line per outside provider a contract names in running text instead of linking an outside party, so the
+    lead can name it in 03-context-and-scope.md. The map draws its first words and shows the full text on hover."""
+    return [f"{'/'.join(x['contracts'])} names its provider in running text, \"{x['said']}\", so the map draws \"{x['title']}\". "
+            "Add the party under Outside parties in 03-context-and-scope.md and link it as the contract's Provider."
+            for x in data["map"]["externals"] if x["title"] != x["said"]]
 
 
 def access_data(root, vault, freshness):
@@ -679,10 +799,14 @@ def plural_pages(n):
     return f"{n} page" if n == 1 else f"{n} pages"
 
 
-def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None):
+def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None,
+             breakdown_args=(), built=None, selftest=False):
     """Build the page for the vault at `root` and write it to `out`. Returns the report lines: what the build
     chose, what it left out and why, and the one-line summary last. Raises ExplorerError, writing nothing, when
-    the vault, the assets, the pins or a design cannot be read.
+    the vault, the assets, the pins, a design or a named breakdown cannot be read.
+
+    `built` is {"date", "commit"}, the line the page shows at the top about what it was built from (commit "" when
+    there is none). Nothing in the page comes from the clock, so the same vault, `today` and `built` write the same bytes.
 
     `pins_path` is the file that keeps every app's cell (None computes the layout and keeps nothing); `seed` is a
     pins file to start from when that one does not exist yet. `freshness` is the report (a dict) `planner freshness`
@@ -704,23 +828,33 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     was_there = bool(pins_path) and pathlib.Path(pins_path).exists()
     found, find_lines = design_find.discover(vault, root, design_args)  # local files only; an app named by --design is not looked up
     design_args = [*design_args, *found]
+    plans_found, plan_find_lines = breakdown_find.discover(vault, root, breakdown_args, design_args)
+    plan_args = [*breakdown_args, *plans_found]
     try:
-        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed)
+        data = extract(vault, root, today, pins_path, design_data.designs_for(design_args), seed, plan_data.plans_for(plan_args))
     except design_data.DesignError as exc:
         raise ExplorerError(f"--design: {exc}") from exc
+    except plan_data.PlanError as exc:
+        raise ExplorerError(f"--breakdown: {exc}") from exc
     data["theme"] = theme
+    data["built"] = built
     data.update(access_data(root, vault, freshness))
-    said = link_sources(data, root, design_args, out.parent)
-    page = render(data, assets)
+    said = link_sources(data, root, design_args, out.parent, plan_args)
+    # Which apps this build newly pinned is a fact about the pins file, not the vault: the page does not read it, and
+    # carrying it would make the first build and every later build of one vault differ. The report lines still say it.
+    page = render({**data, "pins": {**data["pins"], "added": []}}, assets, selftest)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(page, encoding="utf-8")
+    atomic.write_atomic(out, page)
     said += pin_lines(data, pins_path, was_there, root)
+    said += party_lines(data)
     said += asset_lines(assets)
     said += [f"{key} asks for icon: {asked}, which is not in the built-in set; it is drawn by keyword instead"
              for key, asked in data["iconsUnknown"]]
     said += [f"a link was left out, {problem} (planner check reports it as E105)" for problem in data["linkProblems"]]
     said += find_lines
     said += design_lines(data["designs"])
+    said += plan_find_lines
+    said += plan_lines(data["plans"])
     said += draft_lines(data)
     m = data["map"]
     said.append(f"wrote {out} for {data['initiative']} {data['title']}: {len(m['apps'])} apps, "

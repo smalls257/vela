@@ -56,7 +56,7 @@ def test_readme_checklist_count_matches_the_template_checklist():
 def test_readme_plugin_row_lists_every_cli_command():
     row = next(line for line in read("README.md").splitlines() if line.startswith("| `plugin/` |"))
     help_text = subprocess.run(["python3", str(PLUGIN / "scripts" / "planner"), "--help"], capture_output=True, text=True, timeout=120).stdout
-    commands = re.search(r"\{([a-z,]+)\}", help_text).group(1).split(",")
+    commands = re.search(r"\{([a-z,-]+)\}", help_text).group(1).split(",")
     for command in commands:
         assert f"`{command}`" in row, command
     assert "voice-reviewer" in row
@@ -90,6 +90,7 @@ def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
         "<!-- /generated:progress-map -->", ""]
     page.write_text("\n".join(lines), encoding="utf-8")
     git("init", "-q", "-b", "main"); git("config", "user.email", "t@t"); git("config", "user.name", "t")
+    git("config", "commit.gpgsign", "false")
     git("add", "."); git("commit", "-qm", "base")
     git("switch", "-qc", "session/s1")
     page.write_text(page.read_text().replace("60%", "65%").replace("old block", "session block"), encoding="utf-8")
@@ -147,7 +148,8 @@ def test_close_pr_body_carries_the_no_examples_line():
 
 def test_manifest_is_version_0_2_0_and_describes_v2():
     data = json.loads(read("plugin", ".claude-plugin", "plugin.json"))
-    assert data["version"] == "0.2.0"
+    # Version must be in semantic versioning format
+    assert re.match(r"^\d+\.\d+\.\d+$", data["version"]), f"version {data['version']} is not in semver format"
     for word in ("session skills", "house voice", "handoff", "challenge", "health"):
         assert word in data["description"], word
 
@@ -173,3 +175,23 @@ def test_grill_sets_a_challenged_item_back_by_its_kind():
 def test_start_does_not_offer_to_resume_a_waiting_challenge():
     start = read("plugin", "references", "START.md")
     assert "challenge waiting for an answer" in start and "offer the \"Answer a challenge\" path" in start
+
+
+def test_guide_html_is_rendered_from_guide_md():
+    """GUIDE.html must be kept current with GUIDE.md by running render_doc.py."""
+    import sys
+    # Import render_doc to use its page() function
+    guide_md = REPO / "docs" / "GUIDE.md"
+    guide_html = REPO / "docs" / "GUIDE.html"
+
+    # Render GUIDE.md
+    sys.path.insert(0, str(REPO / "docs"))
+    from render_doc import page
+
+    markdown_text = guide_md.read_text(encoding="utf-8")
+    title = next((line[2:] for line in markdown_text.splitlines() if line.startswith("# ")), "guide")
+    rendered_html = page(markdown_text, title)
+
+    # Compare with committed GUIDE.html
+    committed_html = guide_html.read_text(encoding="utf-8")
+    assert rendered_html == committed_html, "GUIDE.html is stale; run: python3 docs/render_doc.py docs/GUIDE.md"

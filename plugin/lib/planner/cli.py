@@ -9,6 +9,7 @@ import datetime
 import difflib
 import importlib.util
 import io
+import errno
 import json
 import os
 import pathlib
@@ -21,12 +22,14 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, viewer, voicecheck, voicescore
-from planner.edge import copies, replays, reviewgit, vaultgit
+from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, untrusted, viewer, voicecheck, voicescore
+from planner.edge import atomic, copies, replays, reviewgit, vaultgit
 from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
+LINT_WORDS = pathlib.Path(__file__).resolve().parent.parent.parent / "references" / "lint-words.txt"
+TEMPLATE_LINES = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "template-lines.txt"
 
 
 class ToolError(Exception):
@@ -68,6 +71,17 @@ def load_catalogue(path=None):
         raise ToolError(f"{path} is not a valid question catalogue: {exc}") from exc
 
 
+def load_template_lines(path=None):
+    """The prose lines the template pages write, one per line, for W368. Missing is a tool failure: an empty list
+    would make every page look as if it had replaced its template opening."""
+    path = pathlib.Path(path or TEMPLATE_LINES)
+    try:
+        return [line for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ToolError(f"{path} cannot be read ({exc}), so planner cannot tell a template opening from a written one. "
+                        "Restore it from the toolkit repo.") from exc
+
+
 def vault_files(root):
     """(pages to parse, basenames of other Markdown files) under the vault root."""
     pages, others = [], []
@@ -76,6 +90,8 @@ def vault_files(root):
         parts = rel.parts
         if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel.as_posix()):
             continue
+        if path.is_symlink():
+            raise ToolError(str(untrusted.link_refusal(rel.as_posix())))
         if (len(parts) == 1 and parts[0] in schema.SKIP_FILES) or parts[0] in schema.SKIP_DIRS:
             others.append(path.stem)
             continue
@@ -93,7 +109,7 @@ def load_vault(root):
         except (OSError, UnicodeDecodeError) as exc:
             raise ToolError(f"Cannot read {path}: {exc}") from exc
         pages.append(parse.parse_page(path.relative_to(root).as_posix(), text))
-    return model.build(pages, config, others, load_catalogue())
+    return model.build(pages, config, others, load_catalogue(), load_template_lines())
 
 
 def parse_today(value):
@@ -196,6 +212,22 @@ def check_counts(files, today):
     return errors, len(found) - errors
 
 
+def publish_dashboard(files, built, today):
+    """dashboard.html bytes built from exactly the files a read copy will hold, so the page and the pages never disagree.
+    Built in a scratch folder with no git and no stamp, so it carries no freshness line: a reader's own build adds that."""
+    from planner.explorer import build as explorer, pins as explorer_pins  # lazy: the explorer imports this module
+    with tempfile.TemporaryDirectory() as scratch:
+        folder = pathlib.Path(scratch)
+        copies.write_folder(files, folder)
+        page = folder / publish.DASHBOARD_PATH
+        try:
+            explorer.generate(folder, page, today, pins_path=folder / explorer_pins.PINS_FILE, assets_config=None,
+                              design_args=[], theme="console", freshness=None, built=built)
+        except explorer.ExplorerError as exc:
+            raise ToolError(f"cannot publish: the dashboard could not be built from the committed pages: {exc}") from exc
+        return page.read_bytes()
+
+
 def cmd_publish(args, out):
     root = pathlib.Path(args.vault).resolve()
     found = detect_role(root)
@@ -213,8 +245,10 @@ def cmd_publish(args, out):
         dirty_files = vaultgit.uncommitted(root)
         git_name, git_email = vaultgit.user_identity(root)
         files = publish.selected(files)
+        secret_notes = check_secrets(files, args.allow_secrets)
         if ".planner.yaml" not in files:
             raise ToolError("HEAD has no .planner.yaml, so there is no initiative to publish. Commit it first.")
+        files[publish.DASHBOARD_PATH] = publish_dashboard(files, {"date": vaultgit.commit_date(root, "HEAD") or today, "commit": short}, today)
         config = load_config_text(files[".planner.yaml"])
         owner = publish.owner_contact(config, git_name, git_email, args.owner_name or "", args.owner_contact or "")
         counts = check_counts(files, today)
@@ -233,12 +267,25 @@ def cmd_publish(args, out):
         raise ToolError(f"cannot write {target}: {exc.strerror or exc}") from exc
     print(f"planner publish: wrote {target.name} ({len(stamped)} files) at {short}, {counts[0]} errors and {counts[1]} warnings "
           f"at publish. Contact: {owner['name']} <{owner['contact']}>.", file=out)
+    for line in secret_notes:
+        print(f"  {line}", file=out)
     note = publish.dirty_message(short, len(dirty_files))
     if note:
         print(f"  {note[0].upper()}{note[1:]} The stamp says dirty: true.", file=out)
     if skipped:
         print(f"  Not copied (links or submodules a read copy cannot carry): {', '.join(skipped[:5])}.", file=out)
     return 0
+
+
+def check_secrets(files, allowed):
+    """Refuse a publish whose pages look like they hold a credential; with --allow-secrets, go on and say what was let through."""
+    texts = {path: data.decode("utf-8", "replace") for path, data in files.items() if path != publish.DASHBOARD_PATH and not drafts.is_binary(data)}
+    hits = secretscan.find_secrets(texts)
+    if not hits:
+        return []
+    if not allowed:
+        raise ToolError(secretscan.refusal(hits))
+    return [f"--allow-secrets: published with {len(hits)} possible secret(s) in it ({hits[0].path} line {hits[0].line} and others); the copy carries them to every reader."]
 
 
 def load_config_text(data):
@@ -283,10 +330,10 @@ def reader_freshness(root, checked_at):
     return freshness.reader_report(workspace, stamp, unreachable, unreadable, checked_at)
 
 
-def freshness_report(root, found, timeout, today):
+def freshness_report(root, found, timeout, today, checked_at=None):
     """The freshness.Report for a folder whose role is `found`. `planner freshness`, `explore` and the helper's
     /freshness all ask here, so the three can never disagree."""
-    checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
+    checked_at = checked_at or f"{today}T{time.strftime('%H:%M:%S')}"
     if found.role == roles.OWNER:
         return owner_freshness(root, timeout, checked_at)
     if found.role == roles.READER:
@@ -295,10 +342,29 @@ def freshness_report(root, found, timeout, today):
 
 
 def page_freshness(root, found, today):
-    """What the explorer page is stamped with at build time: the report as a dict, or None when no role decides one."""
+    """What the explorer page is stamped with at build time: the report as a dict, or None when no role decides one.
+    It is checked "at" the day, not the second, so building twice from one state writes the same page."""
     if found.role == roles.NONE:
         return None
-    return freshness_report(root, found, vaultgit.FETCH_TIMEOUT, today).as_dict()
+    return freshness_report(root, found, vaultgit.FETCH_TIMEOUT, today, checked_at=today).as_dict()
+
+
+def page_built(root, found, today):
+    """{"date", "commit"} the dashboard says it was built from, so someone opening an old copy knows how old it is.
+    The date is the commit's own (never the clock), so an unchanged vault rebuilds to the same file; with no commit to
+    name, the build day and no commit. An owner's is HEAD; a reader's is the publish their workspace was opened from."""
+    if found.role == roles.OWNER:
+        try:
+            return {"date": vaultgit.commit_date(root, "HEAD") or today, "commit": vaultgit.head(root)[1]}
+        except vaultgit.GitUnavailable:
+            return {"date": today, "commit": ""}  # a clone with no commit yet; the page then names no commit
+    if found.role == roles.READER:
+        try:
+            workspace = copies.read_workspace(root)
+        except copies.SourceUnreadable:
+            return {"date": today, "commit": ""}  # page_freshness reports the unreadable record on the same build
+        return {"date": workspace.get("base_date") or today, "commit": (workspace.get("base_commit") or "")[:7]}
+    return {"date": today, "commit": ""}
 
 
 def cmd_freshness(args, out):
@@ -355,21 +421,24 @@ def cmd_open(args, out):
     try:
         files, stamp = copies.read_published(args.source)
         opening.verify_tree(files, stamp)
+        admitted, left_out = opening.admit(files)
         in_cowork = bool(env.get("PLANNER_COWORK") or env.get("CLAUDE_COWORK"))
         folder = workspace_folder(publish.slug(stamp["title"]), args.into, env, in_cowork)
         existing = copies.read_existing_workspace(folder)
         today, _ = parse_today(args.today)
         source_path = os.path.abspath(os.path.expanduser(args.source))
         if existing is not None:
-            return reopen_workspace(folder, existing, (files, stamp), (pathlib.Path(args.source).name, source_path), args.author, today, out)
+            return reopen_workspace(folder, existing, (admitted, stamp), (pathlib.Path(args.source).name, source_path), (args.author, args.newer), today, out)
         record = opening.workspace_record(stamp, pathlib.Path(args.source).name, source_path,
                                           today, reader_author(args.author, pathlib.Path.cwd()),
                                           str(PLANNER_PROGRAM))
-        copies.write_workspace(folder, opening.content_files(files) | {publish.STAMP_PATH: files[publish.STAMP_PATH]}, record)
+        copies.write_workspace(folder, admitted, record)
     except opening.OpenError as exc:
         raise ToolError(str(exc)) from exc
     for line in opening.opened_message(stamp, folder):
         print(line, file=out)
+    if left_out:
+        print(f"  {untrusted.left_out_line(left_out)}", file=out)
     explore_workspace(folder, today, out)
     checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
     print(f"planner open: {reader_freshness(folder, checked_at).message}", file=out)
@@ -379,11 +448,12 @@ def cmd_open(args, out):
     return 0
 
 
-def reopen_workspace(folder, existing, published, source, author_flag, today, out):
+def reopen_workspace(folder, existing, published, source, flags, today, out):
     """`planner open <newer copy> --into <workspace>`: the reader's drafts replayed onto the newer copy (design session 15
     section 8). Pure planning in replay.py; edge/replays.py writes it in an order that leaves the old baseline until the end."""
     files, stamp = published
-    verdict = opening.reopen_verdict(existing, stamp)
+    author_flag, confirmed_newer = flags
+    verdict = opening.reopen_verdict(existing, stamp, confirmed_newer)
     refusal = opening.reopen_refusal(existing, stamp, verdict)
     if refusal:
         raise opening.OpenError(refusal)
@@ -394,7 +464,7 @@ def reopen_workspace(folder, existing, published, source, author_flag, today, ou
     if not baseline_dir.is_dir():
         raise opening.OpenError(f"{baseline_dir} is missing, so I cannot tell what you changed and would risk overwriting it. "
                                 "Open the newer copy into a new folder with --into instead.")
-    new_files = {path: data for path, data in opening.content_files(files).items() if not publish.is_excluded(path)}
+    new_files = {path: data for path, data in files.items() if path != publish.STAMP_PATH and not publish.is_excluded(path)}
     carried = replays.open_conflicts(folder)
     result = replay.plan(copies.read_tree(baseline_dir, skip_published=True), copies.read_tree(folder, skip_published=True), new_files,
                          replays.existing_mine(folder))
@@ -415,12 +485,13 @@ def reopen_workspace(folder, existing, published, source, author_flag, today, ou
 
 
 def explore_workspace(folder, today, out):
-    """Build the explorer page into the workspace's .planner/ so a reader has something to open."""
+    """Build dashboard.html in the workspace root so a reader has something to open."""
     from planner.explorer import build as explorer, pins as explorer_pins  # lazy: the explorer imports this module
+    found = detect_role(folder)
     try:
-        lines = explorer.generate(folder, folder / ".planner" / "explorer.html", today, pins_path=folder / explorer_pins.PINS_FILE,
+        lines = explorer.generate(folder, folder / publish.DASHBOARD_PATH, today, pins_path=folder / explorer_pins.PINS_FILE,
                                   assets_config=None, design_args=[], theme="console",
-                                  freshness=page_freshness(folder, detect_role(folder), today))
+                                  freshness=page_freshness(folder, found, today), built=page_built(folder, found, today))
     except explorer.ExplorerError as exc:
         raise ToolError(f"the workspace was written at {folder}, but the explorer page could not be built: {exc}") from exc
     for line in lines:
@@ -693,6 +764,11 @@ def cmd_proposals_review(args, out):
         if not clean and not conflicts:
             reviewgit.discard_worktree(root, folder, branch)
             raise ToolError(f"git could not apply this proposal, and nothing was changed: {words}")
+        try:
+            untrusted.check_applied(reviewgit.changed_entries(folder), prefix)
+        except untrusted.Refused as exc:
+            reviewgit.discard_worktree(root, folder, branch)
+            raise ToolError(f"I stopped before committing anything: {exc} Nothing was changed.") from exc
         title = note.title if note and note.title else "changes.patch"
         author = note.author if note and note.author else "a reader"
         commit, check, notes = "", None, []
@@ -815,13 +891,14 @@ def cmd_check(args, out):
     started = time.perf_counter()
     vault = load_vault(root)
     items = gate_items(vault, args.gate, args.item)
-    findings = rules.check(vault, today, gate=args.gate, items=items) + conventions_findings(root)
+    app = gate_app(vault, args.gate, args.app)
+    findings = rules.check(vault, today, gate=args.gate, items=items, app=app) + conventions_findings(root)
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     elapsed = time.perf_counter() - started
     print(f"planner check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages. "
           f"Today is {today} ({origin}). Took {elapsed:.2f} s." + (f" Gate: {args.gate}." if args.gate else "")
-          + (f" Items: {', '.join(items)}." if items else ""), file=out)
+          + (f" Items: {', '.join(items)}." if items else "") + (f" App: {app.id}." if app is not None else ""), file=out)
     for finding in findings:
         print(finding.format(), file=out)
     if args.gate == "epics" and not errors:
@@ -831,6 +908,18 @@ def cmd_check(args, out):
                   f"assumption{'' if len(resting) == 1 else 's'} about high-severity questions: {', '.join(resting)}. "
                   "Each holds until its signpost shows.", file=out)
     return 1 if errors else 0
+
+
+def gate_app(vault, gate, app_id):
+    """The app page `--app` names, or None. Only the epics gate narrows to one app."""
+    if app_id is None:
+        return None
+    if gate != "epics":
+        raise ToolError("--app narrows the epics gate to one app, so it goes with --gate epics.")
+    found = next((a for a in vault.apps if a.id == app_id), None)
+    if found is None:
+        raise ToolError(f"--app {app_id} is not an app page in this vault.")
+    return found
 
 
 def gate_items(vault, gate, items):
@@ -855,6 +944,7 @@ def cmd_render(args, out):
         for finding in refusals:
             print(finding.format(), file=out)
         return 1
+    pending_writes = {}
     for path, text in sorted(texts.items()):
         target = root / path
         original = target.read_bytes()
@@ -863,7 +953,14 @@ def cmd_render(args, out):
         data = text.encode("utf-8")
         if original.startswith(codecs.BOM_UTF8):
             data = codecs.BOM_UTF8 + data
-        target.write_bytes(data)
+        pending_writes[target] = data
+    try:
+        atomic.write_all_atomic(pending_writes)
+    except atomic.WriteFailed as exc:
+        def names(paths):
+            return ", ".join(p.relative_to(root).as_posix() for p in paths) or "none"
+        raise ToolError(f"render could not finish: {exc}. Written: {names(exc.written)}. Not written: {names(exc.unwritten)}. "
+                        "Fix the cause and run planner render again; it only rewrites blocks that are out of date.") from exc
     for path, name, old in discarded:
         print(f"{path}: discarded a hand edit in '{name}':", file=out)
         for line in old.split("\n"):
@@ -874,22 +971,85 @@ def cmd_render(args, out):
     return 0
 
 
+# What git says when it ran fine and the answer is "no": not a repository, no commit yet, no such remote.
+GIT_SAYS_NO = ("not a git repository", "unknown revision", "ambiguous argument", "bad revision", "no such remote",
+               "does not have any commits", "needed a single revision")
+
+
 def git(root, *args):
-    """Output of a git command in the vault, or "" when git cannot answer."""
-    try:
-        result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=10)
-    except (OSError, subprocess.SubprocessError):
+    """Output of a git command in the vault. "" means git ran and answered no (no repository, no commit, no remote).
+    A git that is missing, times out or fails for any other reason raises GitUnavailable: it must never read as that
+    answer, or a stamp would claim a clean copy it never checked."""
+    code, out, err = vaultgit.run_git(root, *args, timeout=10)
+    if code == 0:
+        return out
+    if any(phrase in err.lower() for phrase in GIT_SAYS_NO):
         return ""
-    return result.stdout.strip() if result.returncode == 0 else ""
+    raise vaultgit.GitUnavailable(f"git {' '.join(args)} failed: {err or out or 'no message'}")
 
 
-def git_strict(root, *args):
+def remote_url(root):
+    """The origin URL, "" when there is none, or words saying git did not answer."""
+    try:
+        return git(root, "remote", "get-url", "origin")
+    except vaultgit.GitUnavailable as exc:
+        return f"unknown, git did not answer ({exc})"
+
+
+def changes_note(root):
+    """" with uncommitted changes", "", or words saying git could not tell."""
+    try:
+        return " with uncommitted changes" if git(root, "status", "--porcelain", "--", ".") else ""
+    except vaultgit.GitUnavailable as exc:
+        return f" (could not tell whether it has uncommitted changes: {exc})"
+
+
+def commit_stamp(root, override=""):
+    """The commit a generated file is stamped with: the override, the short HEAD, or words that say what could not be
+    learned. Never a clean-looking stamp from a git that did not answer."""
+    if override:
+        return override
+    try:
+        commit = git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
+        dirty = bool(git(root, "status", "--porcelain", "--", "."))
+    except vaultgit.GitUnavailable as exc:
+        return f"unknown, git did not answer ({exc})"
+    return commit + (" with uncommitted changes" if dirty else "")
+
+
+# Where a number can live besides a session branch: the default branch, here and on origin. A session branch that merged
+# and was deleted leaves its numbers only here.
+MAIN_REFS = ("refs/heads/main", "refs/heads/master", "refs/remotes/origin/main", "refs/remotes/origin/master")
+
+
+def cmd_next_id(args, out):
+    """The next free ID for a prefix, counting this working tree, the default branch and every session branch, local and
+    remote. It reads the remote refs this clone last fetched, so run `git fetch` first to see numbers pushed since."""
+    root = pathlib.Path(args.vault).resolve()
+    load_config(root)  # a folder that is not a vault has no IDs to count
+    texts = [path.read_text(encoding="utf-8") for path in vault_files(root)[0]]
+    if (root / ".git").exists() and ids.PREFIX_RE.match(args.prefix):
+        refs = git_strict(root, "for-each-ref", "--format=%(refname)", "refs/heads/session/", "refs/remotes/origin/session/",
+                          *MAIN_REFS)
+        for ref in refs.split():
+            texts.append(git_strict(root, "grep", "-h", "-E", "-o", rf"{args.prefix}-[0-9]+", ref, "--", "*.md",
+                                    allow_no_match=True))
+    try:
+        print(ids.next_id(args.prefix, texts), file=out)
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+    return 0
+
+
+def git_strict(root, *args, allow_no_match=False):
     """Output of a git command, or ToolError with git's own message. For commands whose
     failure must never read as "nothing changed". Output that is not UTF-8 is a failure too."""
     try:
         result = subprocess.run(["git", "-C", str(root), "-c", "core.quotepath=false", *args], capture_output=True, timeout=30)
     except (OSError, subprocess.SubprocessError) as exc:
         raise ToolError(f"git {' '.join(args)} could not run: {exc}") from exc
+    if result.returncode == 1 and allow_no_match and not result.stderr:
+        return ""  # git grep exits 1 when nothing matched, which is an answer
     if result.returncode != 0:
         message = result.stderr.decode("utf-8", "replace").strip() or result.stdout.decode("utf-8", "replace").strip()
         raise ToolError(f"git {' '.join(args)} failed: {message}")
@@ -910,15 +1070,15 @@ def cmd_view(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
     today, _ = parse_today(args.date)
-    commit = args.commit or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
-    if git(root, "status", "--porcelain", "--", "."):
-        commit += " with uncommitted changes"
+    commit = commit_stamp(root, args.commit)
+    if args.commit:
+        commit += changes_note(root)  # a named commit still says when the files differ from it
     findings = rules.check(vault, today)
     errors = sum(1 for f in findings if f.is_error)
     stamp = {
         "commit": commit,
         "date": today,
-        "repo": args.repo_url or git(root, "remote", "get-url", "origin") or "no repository URL recorded",
+        "repo": export.redact_remote(args.repo_url or remote_url(root)) or "no repository URL recorded",
         "errors": errors,
         "warnings": len(findings) - errors,
     }
@@ -929,7 +1089,10 @@ def cmd_view(args, out):
             print(f"  {problem}", file=out)
         return 1
     target = pathlib.Path(args.out)
-    target.write_text(html, encoding="utf-8")
+    try:
+        atomic.write_atomic(target, html)
+    except atomic.WriteFailed as exc:
+        raise ToolError(f"cannot write {target}: {exc}") from exc
     print(f"planner view: wrote {target} ({len(viewer.bundled(vault))} pages). "
           f"Built from {stamp['commit']} on {stamp['date']}. "
           f"Check at build time: {errors} errors, {stamp['warnings']} warnings.", file=out)
@@ -938,14 +1101,15 @@ def cmd_view(args, out):
 
 # What a vault's .gitignore says when it keeps the tool's own files out of commits (the template's does).
 # `.planner/*` is the template's form: it lets `!.planner/explorer-pins.json` keep the shared layout in git.
-IGNORES_PLANNER_DIR = (".planner", ".planner/", "/.planner", "/.planner/", "**/.planner/", ".planner/*", "/.planner/*")
+IGNORES_DASHBOARD = (publish.DASHBOARD_PATH, f"/{publish.DASHBOARD_PATH}", "*.html", "/*.html", "**/*.html")
 
 
-def ignores_planner_dir(root):
+def ignores_dashboard(root):
+    """True when the vault's .gitignore keeps dashboard.html out of git, so the page would not travel with the vault."""
     gitignore = root / ".gitignore"
     if not gitignore.is_file():
         return False
-    return any(line.strip() in IGNORES_PLANNER_DIR for line in gitignore.read_text(encoding="utf-8").splitlines())
+    return any(line.strip() in IGNORES_DASHBOARD for line in gitignore.read_text(encoding="utf-8").splitlines())
 
 
 def live_freshness(root, found, today, unavailable):
@@ -957,34 +1121,50 @@ def live_freshness(root, found, today, unavailable):
 
 
 def cmd_explore(args, out):
-    """Build the explorer page. The page and the pinned layout both go in the vault's .planner/ folder unless
-    --out says otherwise; nothing is written beside the plugin."""
+    """Build the explorer page: dashboard.html at the vault root unless --out says otherwise, so it travels with the vault
+    in git or OneDrive. The pinned layout goes in .planner/; nothing is written beside the plugin."""
     from planner.explorer import build as explorer, pins as explorer_pins, serve as explorer_serve  # lazy: the explorer imports this module
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
-    target = pathlib.Path(args.out) if args.out else root / ".planner" / "explorer.html"
+    target = pathlib.Path(args.out) if args.out else root / publish.DASHBOARD_PATH
     found = detect_role(root)
+    advice = explorer.vault_id_advice(root, found.role)
+    if advice:
+        print(f"planner explore: {advice}.", file=out)
     try:
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
                                   assets_config=args.assets, design_args=args.design, theme=args.theme,
-                                  freshness=page_freshness(root, found, today))
+                                  freshness=page_freshness(root, found, today), breakdown_args=args.breakdown,
+                                  built=page_built(root, found, today), selftest=args.selftest)
     except explorer.ExplorerError as exc:
         raise ToolError(str(exc)) from exc
     for line in lines:
         print(f"planner explore: {line}", file=out)
-    if not ignores_planner_dir(root):
-        print("planner explore: this vault's .gitignore does not list .planner/, so the 3 MB page would be committed. "
-              "Add the lines `.planner/*` and `!.planner/explorer-pins.json` to .gitignore (the pinned layout is the one file a team shares), "
-              "or build with --out somewhere outside the vault.",
-              file=out)
+    if ignores_dashboard(root):
+        print(f"planner explore: this vault's .gitignore lists {publish.DASHBOARD_PATH}, so colleagues who pull the repo will not get the page. "
+              f"Remove that line from .gitignore, or build with --out somewhere else.", file=out)
     if args.serve:
-        if not 0 <= args.port <= 65535:
+        if args.port is not None and not 0 <= args.port <= 65535:
             raise ToolError(f"--port {args.port} is not a port number (0 to 65535)")
+        link = copies.first_symlink(root)
+        if link:
+            raise ToolError(f"I will not serve Ask Claude for this vault: {untrusted.link_refusal(link)}")
+        say = lambda line: print(f"planner explore: {line}", file=out, flush=True)  # noqa: E731
+        port = args.port if args.port is not None else explorer_serve.preferred_port(explorer.vault_id_for(root))
+        serve_page = lambda p: explorer_serve.serve(root, target, p, args.model, not args.no_open, say,  # noqa: E731
+                                                    freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable),
+                                                    pins=root / explorer_pins.PINS_FILE)
         try:
-            explorer_serve.serve(root, target, args.port, args.model, not args.no_open, lambda line: print(f"planner explore: {line}", file=out, flush=True),
-                                 freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable))
+            try:
+                serve_page(port)
+            except OSError as exc:
+                if args.port is not None or exc.errno != errno.EADDRINUSE:
+                    raise
+                say(f"port {port}, this vault's usual one, is taken, so this run uses another. The browser keeps saved marks and Ask conversations "
+                    f"per address, so it will not find the ones saved on {port}. Stop the other run, or pass --port.")
+                serve_page(0)
         except OSError as exc:
-            raise ToolError(f"cannot serve the page on port {args.port}: {exc}") from exc
+            raise ToolError(f"cannot serve the page on port {port}: {exc}") from exc
     return 0
 
 
@@ -992,7 +1172,7 @@ def cmd_health(args, out):
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
     vault = load_vault(root)
-    commit = git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
+    commit = commit_stamp(root)
     findings = rules.check(vault, today)
     print(health.report(vault, findings, today, commit), end="", file=out)
     return 0
@@ -1311,9 +1491,11 @@ def handoff_app(vault, app_id):
 
 
 def stamp_commit(root, override):
-    commit = override or git(root, "rev-parse", "--short", "HEAD") or "an uncommitted copy"
-    if not override and git(root, "status", "--porcelain", "--", "."):
-        commit += " with uncommitted changes"
+    """The commit a handoff manifest records. A manifest is provenance, so a git that did not answer stops the
+    handoff instead of writing a stamp nobody can trust."""
+    commit = commit_stamp(root, override)
+    if commit.startswith("unknown"):
+        raise ToolError(f"cannot record the commit: {commit[len('unknown, '):]}. Pass --commit <sha> to state it yourself.")
     return commit
 
 
@@ -1343,7 +1525,7 @@ def cmd_handoff(args, out):
     commit = stamp_commit(root, args.commit)
     try:
         target.parent.mkdir(exist_ok=True)
-        target.write_text(handoff.write(app_id, entries, commit, today), encoding="utf-8")
+        atomic.write_atomic(target, handoff.write(app_id, entries, commit, today))
     except OSError as exc:
         raise ToolError(f"cannot write {target.relative_to(root).as_posix()}: {exc.strerror or exc}. "
                         f"{schema.HANDOFF_DIR}/ must be a folder and {app_id}.md a file.") from exc
@@ -1380,10 +1562,15 @@ def handoff_verify(root, app_id, out):
 def cmd_export(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
-    remote = args.repo_url or git(root, "remote", "get-url", "origin")
+    git_trouble, dirty = "", False
+    try:
+        dirty = not args.commit and bool(git(root, "status", "--porcelain", "--", "."))
+        remote = args.repo_url or git(root, "remote", "get-url", "origin")
+        commit = args.commit or git(root, "rev-parse", "HEAD")
+        prefix = git(root, "rev-parse", "--show-prefix")
+    except vaultgit.GitUnavailable as exc:
+        remote, commit, prefix, git_trouble = args.repo_url or "", args.commit or "", "", str(exc)
     base = export.web_url(remote)
-    commit = args.commit or git(root, "rev-parse", "HEAD")
-    prefix = git(root, "rev-parse", "--show-prefix")
     if base and commit:
         def link_for(path):
             return f"{base}/blob/{commit}/{export.link_path(prefix + path)}"
@@ -1393,7 +1580,7 @@ def cmd_export(args, out):
     table = export.rows(vault, link_for)
     target = pathlib.Path(args.out)
     try:
-        target.write_text(export.to_csv(table), encoding="utf-8", newline="")
+        atomic.write_atomic(target, export.to_csv(table))
     except (OSError, ValueError) as exc:
         raise ToolError(f"Cannot write {target}: {exc}") from exc
     print(f"planner export: wrote {len(table)} epics to {target}.", file=out)
@@ -1402,8 +1589,10 @@ def cmd_export(args, out):
     if not (base and commit):
         print("  No repository URL or commit was found, so Vault link holds each epic's path in the vault. "
               "Pass --repo-url and --commit to link to the repository.", file=out)
-    elif not args.commit and git(root, "status", "--porcelain", "--", "."):
+    elif dirty:
         print("  The vault has uncommitted changes, so Vault links point at HEAD and may not show them.", file=out)
+    if git_trouble:
+        print(f"  Git did not answer ({git_trouble}), so Vault links hold paths, not repository links.", file=out)
     open_epics = [e for e in vault.of_type("epic") if e.meta.get("state") != "decided"]
     if open_epics:
         print("  Not decided yet: " + ", ".join(f"{e.id or e.path} ({e.meta.get('state', 'no state')})"
@@ -1479,10 +1668,15 @@ def cmd_voicecheck(args, out):
         pairs = range_pairs(pathlib.Path(args.vault).resolve(), args.range)
     failed = []
     for path, before, after in pairs:
-        result = voicecheck.compare(before, after)
+        try:
+            result = voicecheck.compare(before, after, args.redundant or ())
+        except voicecheck.NotRedundant as exc:
+            raise ToolError(f"{path}: {exc}") from exc
         if not result.same:
             failed.append((path, result))
     print(f"planner voicecheck: {len(pairs)} files compared, {len(failed)} with protected tokens changed.", file=out)
+    for sentence in args.redundant or ():
+        print(f"removed as redundant, named by the reviewer: {sentence}", file=out)
     for path, result in failed:
         for line in voicecheck.describe(result):
             print(f"{path}: {line}", file=out)
@@ -1570,7 +1764,10 @@ def cached(embed, folder):
 
 def cache_folder(root):
     """.git/planner-voicescore/ of the vault's repo, so the cache is never staged, or None outside git."""
-    git_dir = git(root, "rev-parse", "--absolute-git-dir")
+    try:
+        git_dir = git(root, "rev-parse", "--absolute-git-dir")
+    except vaultgit.GitUnavailable as exc:
+        raise ToolError(f"cannot place the voice-score cache inside the repository: {exc}") from exc
     return pathlib.Path(git_dir) / "planner-voicescore" if git_dir else None
 
 
@@ -1727,6 +1924,16 @@ def status_line(row, today, vault=None):
             f"decided {progress.decided_text(row)} | oldest open unknown: {oldest_text(row, today)} | next: {next_text}. {row.reason}")
 
 
+def load_lint_words(path=None):
+    """The word list `planner style` and the voice reviewer share. Missing is a tool failure: an empty list would make
+    every page look as if it passed the lint."""
+    path = pathlib.Path(path or LINT_WORDS)
+    try:
+        return reading.lint_words(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ToolError(f"{path} cannot be read ({exc}), so planner style cannot lint words. Restore it from the toolkit repo.") from exc
+
+
 def cmd_style(args, out):
     """Where the named pages read as a log rather than a document: history above ## History, IDs and bare source
     IDs in prose, no opening prose. Close runs it on the pages a session changed."""
@@ -1736,14 +1943,14 @@ def cmd_style(args, out):
     missing = [ref for ref, page in zip(args.pages or [], pages) if page is None]
     if missing:
         raise ToolError(f"{', '.join(missing)} {'is' if len(missing) == 1 else 'are'} not a page in this vault.")
-    found, offset = [], {}
+    found, offset, lint = [], {}, load_lint_words()
     for page in pages:
         if page.type == "session":
             continue
         _, body_start, _ = parse.split_frontmatter(page.text)
         body = "\n".join(page.text.replace("\r\n", "\n").split("\n")[body_start - 1:])
         offset[page.path] = body_start - 1
-        found += [(page, n, why) for n, why in reading.style_problems(body, page.type, parse.KNOWN_LABELS.values())]
+        found += [(page, n, why) for n, why in reading.style_problems(body, page.type, parse.KNOWN_LABELS.values(), lint)]
     print(f"planner style: {len(found)} to fix in {len(pages)} pages.", file=out)
     for page, n, why in found:
         print(f"{page.path}:{n + offset[page.path]}: {why}", file=out)
@@ -1862,6 +2069,8 @@ def cmd_next(args, out):
 
 def build_parser():
     parser = argparse.ArgumentParser(prog="planner", description="Check and render an initiative vault.")
+    parser.add_argument("--version", action="version", version="planner (run `planner --version` on its own)",
+                        help="print the plugin version and exit")
     sub = parser.add_subparsers(dest="command", required=True)
     check = sub.add_parser("check", help="read-only check of the vault")
     check.add_argument("--vault", default=".", help="vault root (default: current directory)")
@@ -1870,6 +2079,8 @@ def build_parser():
                        help="epics: trace gaps and undisposed high-severity questions are errors; shape: assumed "
                             "questions warn; grill: open questions that block an --item warn")
     check.add_argument("--item", action="append", help="with --gate grill: an agenda item's ID; repeat for each")
+    check.add_argument("--app", help="with --gate epics: only this app and its slice (an APP-id); other apps' gaps "
+                                     "and the whole-vault requirement check are left out")
     check.set_defaults(func=cmd_check)
     rend = sub.add_parser("render", help="rewrite generated blocks")
     rend.add_argument("--vault", default=".", help="vault root (default: current directory)")
@@ -1884,15 +2095,19 @@ def build_parser():
     view.set_defaults(func=cmd_view)
     explore = sub.add_parser("explore", help="build the vault explorer, one offline HTML page of the whole initiative")
     explore.add_argument("vault", nargs="?", default=".", help="vault root (default: current directory)")
-    explore.add_argument("-o", "--out", help="HTML file to write (default: <vault>/.planner/explorer.html)")
+    explore.add_argument("-o", "--out", help="HTML file to write (default: <vault>/dashboard.html)")
     explore.add_argument("--today", help="the date due windows count from, YYYY-MM-DD (default: system date)")
     explore.add_argument("--theme", default="console", help="the theme the page opens in: console, graphite, daylight or vaporwave")
     explore.add_argument("--design", action="append", default=[], metavar="APP-x=PATH",
                          help="a team's tech design doc for an app, for Inside this app; repeat for each app")
+    explore.add_argument("--breakdown", action="append", default=[], metavar="APP-x=PATH",
+                         help="a team's work breakdown (docs/plan/<slug>-breakdown.md) for an app, for its Build plan; repeat for each app")
     explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
+    explore.add_argument("--selftest", action="store_true",
+                         help="bundle the page's own checks, so opening it with #selftest runs them (about 120 KB; the browser tests use it)")
     explore.add_argument("--serve", action="store_true",
                          help="then serve the page on this machine only, with Ask Claude on; opens the browser, Ctrl-C stops")
-    explore.add_argument("--port", type=int, default=0, help="with --serve, the port (default: any free one)")
+    explore.add_argument("--port", type=int, default=None, help="with --serve, the port (default: one derived from the vault, so the browser finds what it saved; 0 asks for any free one)")
     explore.add_argument("--model", choices=["haiku", "sonnet"], default="haiku",
                          help="with --serve, the model that answers questions (default: haiku; the page's Think harder asks sonnet)")
     explore.add_argument("--no-open", action="store_true", help="with --serve, do not open the browser")
@@ -1901,12 +2116,17 @@ def build_parser():
     role.add_argument("--vault", default=".", help="vault root (default: current directory)")
     role.add_argument("--json", action="store_true", help="the answer as JSON")
     role.set_defaults(func=cmd_role)
+    nid = sub.add_parser("next-id", help="the next free ID for a prefix, such as UNK, counting main and every session branch as last fetched (git fetch first); never fills a gap")
+    nid.add_argument("prefix", help="1 to 4 capital letters, for example UNK, CON, R or ADR")
+    nid.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    nid.set_defaults(func=cmd_next_id)
     pub = sub.add_parser("publish", help="write a read copy of the committed vault, as a folder or a .zip, for people without git")
     pub.add_argument("--vault", default=".", help="vault root (default: current directory)")
     pub.add_argument("--out", required=True, help="a new folder, or a path ending in .zip")
     pub.add_argument("--today", help="the date to stamp, YYYY-MM-DD (default: system date)")
     pub.add_argument("--owner-name", help="who readers write to (default: git user.name)")
     pub.add_argument("--owner-contact", help="how readers reach the owner (default: owner_contact in .planner.yaml, else git user.email)")
+    pub.add_argument("--allow-secrets", action="store_true", help="publish although the scan found text that looks like a password, token or key (it is named, never printed)")
     pub.set_defaults(func=cmd_publish)
     fresh = sub.add_parser("freshness", help="whether anything changed since this clone or copy was made; reports, never updates")
     fresh.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
@@ -1916,9 +2136,10 @@ def build_parser():
     fresh.set_defaults(func=cmd_freshness)
     opn = sub.add_parser("open", help="make a private reader workspace from a published folder or zip; the source is never written")
     opn.add_argument("source", help="the published folder or .zip")
-    opn.add_argument("--into", help="the workspace folder (default: $PLANNER_WORKSPACES/<slug>, else ~/PlannerWorkspaces/<slug>); OneDrive and SharePoint paths are refused")
+    opn.add_argument("--into", help="the workspace folder (default: $PLANNER_WORKSPACES/<slug>, else ~/PlannerWorkspaces/<slug>); folders OneDrive, SharePoint, Dropbox, iCloud Drive, Google Drive or Box sync are refused")
     opn.add_argument("--author", help="your name for the drafts (default: git user.name)")
     opn.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
+    opn.add_argument("--newer", action="store_true", help="re-opening: say that this copy is the later of two published on the same day (a stamp holds a date, not a time)")
     opn.set_defaults(func=cmd_open)
     prop = sub.add_parser("propose", help="a reader's changes as a proposal folder (proposal.md and changes.patch) beside the workspace; sends nothing")
     prop.add_argument("--vault", default=".", help="the reader workspace (default: current directory)")
@@ -2053,6 +2274,9 @@ def build_parser():
     voice = sub.add_parser("voicecheck", help="fail when a rewrite changed an ID, number, date, link, code span or table cell")
     voice.add_argument("files", nargs="*", metavar="before after", help="the text before the rewrite and after it")
     voice.add_argument("--range", help="a ref range instead of files: A (A against the working tree) or A..B")
+    voice.add_argument("--redundant", action="append", metavar="SENTENCE",
+                       help="a sentence the reviewer named as already said elsewhere; the rewrite may drop it and its negation. "
+                            "Repeat for each. It must be in the text before and gone from the text after")
     voice.add_argument("--vault", default=".", help="vault root for --range (default: current directory)")
     voice.set_defaults(func=cmd_voicecheck)
     score = sub.add_parser("voicescore", help="optional: where each prose paragraph sits against your own voice's range")
@@ -2067,12 +2291,41 @@ def build_parser():
     return parser
 
 
+def unrecognized_message(args, extras):
+    """Why an extra argument was refused. A folder is almost always a vault passed the way `explore` takes it, so say
+    how check, render, view and the rest take it: with --vault."""
+    command = getattr(args, "command", "")
+    first = extras[0]
+    if "vault" in args and pathlib.Path(first).is_dir():
+        return (f"planner: {first} is not an argument of '{command}'. It takes the vault as an option: "
+                f"planner {command} --vault {first}")
+    return f"planner: unrecognized arguments: {' '.join(extras)}"
+
+
+PLUGIN_JSON =pathlib.Path(__file__).resolve().parent.parent.parent / ".claude-plugin" / "plugin.json"
+
+
+def plugin_version(path=PLUGIN_JSON):
+    """The version plugin.json declares, or words saying why it cannot be read: an owner and a reader on different
+    builds can only tell each other so if the tool can say which build it is (Sensor)."""
+    try:
+        return str(json.loads(pathlib.Path(path).read_text(encoding="utf-8"))["version"])
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return f"unknown ({path.name if hasattr(path, 'name') else path} could not be read: {exc})"
+
+
 def main(argv=None, out=None):
     out = out or sys.stdout
+    if list(argv if argv is not None else sys.argv[1:]) == ["--version"]:
+        print(f"planner {plugin_version()}", file=out)
+        return 0
     try:
-        args = build_parser().parse_args(argv)
+        args, extras = build_parser().parse_known_args(argv)
     except SystemExit as exc:
         return 0 if exc.code == 0 else 2
+    if extras:
+        print(unrecognized_message(args, extras), file=out)
+        return 2
     try:
         return args.func(args, out)
     except ToolError as exc:

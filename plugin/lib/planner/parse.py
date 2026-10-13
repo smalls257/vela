@@ -13,13 +13,31 @@ from planner import schema
 WIKILINK = re.compile(r"\[\[([^\]]+?)\]\]")
 HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
 BULLET = re.compile(r"^- \*\*([^*:]+):\*\*\s*(.*)$")
-FENCE = re.compile(r"^\s*(```+|~~~+)\s*([A-Za-z]*)")
+# A backtick fence has no backtick after its opening run, so "```a``` text" is a paragraph with inline code, not a fence.
+FENCE = re.compile(r"^\s*(`{3,}(?=[^`]*$)|~{3,})\s*([A-Za-z]*)")
 CODE_SPAN = re.compile(r"`[^`]*`")
 BLOCK_ID = re.compile(r"\s\^([A-Za-z0-9-]+)\s*$")
 TABLE_SEPARATOR = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
 MARKER_OPEN = re.compile(r"^<!-- generated:([a-z0-9-]+) sha=([0-9a-f]{8}): do not edit, run planner render -->$")
 MARKER_CLOSE = re.compile(r"^<!-- /generated:([a-z0-9-]+) -->$")
 MARKER_ANY = re.compile(r"^\s*<!--\s*/?generated")
+
+
+def closes_fence(raw, marker):
+    """True when `raw` closes a fence opened with `marker`: nothing but that fence character, at least as many."""
+    stripped = raw.strip()
+    return len(stripped) >= len(marker) and stripped == marker[0] * len(stripped)
+
+
+def normalise_text(text):
+    """A page's text as every reader sees it: no byte-order mark, newlines as \\n."""
+    return text.lstrip("\ufeff").replace("\r\n", "\n")
+
+
+def lines_of(text):
+    """The page's lines, split on newline alone. str.splitlines also breaks on form feed, NEL, U+2028 and U+2029,
+    so a line number counted with it drifts from the one parse and the rules report."""
+    return normalise_text(text).split("\n")
 
 
 @dataclass(frozen=True)
@@ -101,7 +119,8 @@ class Page:
 
     @property
     def id(self):
-        return str(self.meta.get("id", ""))
+        value = self.meta.get("id")
+        return str(value) if isinstance(value, (str, int)) and not isinstance(value, bool) else ""
 
     def page_bullets(self, label):
         """Page-level fact bullets with this label, outside generated blocks."""
@@ -111,7 +130,7 @@ class Page:
 KNOWN_LABELS = {label.lower(): label for label in (
     schema.CONTRACT_REQUIRED + schema.CONTRACT_OPTIONAL + schema.UNKNOWN_REQUIRED + schema.UNKNOWN_OPEN_REQUIRED
     + schema.UNKNOWN_RESOLVED_REQUIRED + schema.UNKNOWN_OPTIONAL + schema.RISK_REQUIRED + schema.RISK_OPTIONAL
-    + schema.PAGE_LABELS + schema.SUBJECT_LABELS)}
+    + schema.PAGE_LABELS + schema.SUBJECT_LABELS + schema.READING_LABELS)}
 
 
 def canonical_label(label):
@@ -150,6 +169,21 @@ def split_row(line):
     return tuple(c.strip().replace("\x00", "|") for c in cells)
 
 
+class _UniqueKeyLoader(yaml.SafeLoader):
+    """yaml.safe_load keeps the last of two equal keys without a word, while fact bullets keep the first. Refusing the
+    page says which line is the second one."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=True)
+            if key in seen:
+                raise yaml.constructor.ConstructorError(None, None, f"found a second '{key}:' line (a key may appear once)",
+                                                        key_node.start_mark)
+            seen.add(key)
+        return super().construct_mapping(node, deep)
+
+
 def _normalise_meta(meta):
     out = {}
     for key, value in meta.items():
@@ -161,7 +195,7 @@ def _normalise_meta(meta):
 
 def split_frontmatter(text):
     """Return (meta, body_start_line, error). body_start_line is 1-based."""
-    lines = text.split("\n")
+    lines = lines_of(text)
     if not lines or lines[0].strip() != "---":
         return {}, 1, ParseError("E101", 1, "This page has no frontmatter block.",
                                  "Add a --- block at the top with id, type and title.")
@@ -169,7 +203,7 @@ def split_frontmatter(text):
         if lines[i].strip() == "---":
             raw = "\n".join(lines[1:i])
             try:
-                meta = yaml.safe_load(raw) if raw.strip() else {}
+                meta = yaml.load(raw, Loader=_UniqueKeyLoader) if raw.strip() else None  # noqa: S506 (a SafeLoader subclass)
             except yaml.YAMLError as exc:
                 mark = getattr(exc, "problem_mark", None)
                 line = mark.line + 2 if mark else 1
@@ -178,6 +212,9 @@ def split_frontmatter(text):
             except (ValueError, TypeError) as exc:
                 return {}, i + 2, ParseError("E102", 1, f"The frontmatter has a value YAML cannot read ({exc}).",
                                              "Fix the date. Write it as YYYY-MM-DD with a real month and day, for example 2026-11-20.")
+            if meta is None:  # nothing between the --- lines, or only comments: the page declares nothing
+                return {}, i + 2, ParseError("E101", 1, "The frontmatter block is empty.",
+                                             "Fill the --- block with id, type and title.")
             if not isinstance(meta, dict):
                 return {}, i + 2, ParseError("E102", 1, "The frontmatter is not a YAML mapping.",
                                              "Write the frontmatter as key: value lines.")
@@ -207,7 +244,7 @@ def history_items(page):
 
 def parse_page(path, text):
     """Parse one Markdown file. `path` is vault-relative with / separators."""
-    text = text.lstrip("﻿").replace("\r\n", "\n")
+    text = normalise_text(text)
     name = path.rsplit("/", 1)[-1][:-3] if path.endswith(".md") else path.rsplit("/", 1)[-1]
     page = Page(path=path, name=name, text=text)
     meta, body_start, error = split_frontmatter(text)
@@ -231,7 +268,7 @@ def _parse_body(page, lines, body_start):
         n = i + 1
         i += 1
         if in_fence:
-            if raw.strip().startswith(in_fence):
+            if closes_fence(raw, in_fence):
                 if fence_kind == "mermaid":
                     kind = next((l.split()[0] for l in fence_lines if l.strip() and not l.strip().startswith("%%")), "")
                     page.diagrams.append(Diagram(kind, tuple(fence_lines), fence_start))

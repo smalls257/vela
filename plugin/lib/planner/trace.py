@@ -6,12 +6,9 @@ Pure. One computation feeds the T-rule findings in `rules` and the
 import re
 from dataclasses import dataclass
 
-from planner import schema
-from planner.parse import FENCE
+from planner import criteria, schema
 
-AC_LINE = re.compile(r"^\s*\d+\.\s+(?P<body>.*?)(?P<markers>(?:\s*(?<!\[)\[[A-Za-z][A-Za-z0-9-]*\](?!\]))+)\.?\s*$")
 SECTION_HEADING = re.compile(r"^##\s+(?P<text>.*?)\s*#*\s*$")
-MARKER = re.compile(r"\[([A-Za-z][A-Za-z0-9-]*)\]")
 
 
 @dataclass(frozen=True)
@@ -47,37 +44,13 @@ def listed(epic, key):
 
 
 def ac_markers(page):
-    """Concern names marked on the page's numbered acceptance criteria, e.g. {"testing"}.
+    """Concern names marked on the page's acceptance criteria, e.g. {"testing"}.
 
-    Only the acceptance-criteria section counts, so a numbered line under "Out of scope"
-    or "Rollout" cannot satisfy a concern. A struck-through criterion (its text starts
-    with ~~) carries no markers. Lines inside code fences and generated blocks are skipped.
+    Only the acceptance-criteria section counts (`## Epic acceptance criteria`, or `## Done when` in the epic template),
+    so a numbered line under "Out of scope" or "Rollout" cannot satisfy a concern. A struck-through criterion carries no
+    markers. Lines inside code fences and generated blocks are skipped. `criteria.read` is the one reader of both shapes.
     """
-    skip = set()
-    for block in page.blocks:
-        skip.update(range(block.start, block.end + 1))
-    found, fence, in_criteria = set(), None, False
-    for n, raw in enumerate(page.text.split("\n"), start=1):
-        opening = FENCE.match(raw)
-        if fence:
-            if raw.strip().startswith(fence):
-                fence = None
-            continue
-        if opening:
-            fence = opening.group(1)
-            continue
-        if n in skip:
-            continue
-        section = SECTION_HEADING.match(raw)
-        if section:
-            in_criteria = section["text"].strip().lower().endswith("acceptance criteria")
-            continue
-        if not in_criteria:
-            continue
-        match = AC_LINE.match(raw)
-        if match and not match["body"].lstrip().startswith("~~"):
-            found.update(m.lower() for m in MARKER.findall(match["markers"]))
-    return found
+    return {marker for c in criteria.read(page) for marker in c.markers}
 
 
 def report(vault):

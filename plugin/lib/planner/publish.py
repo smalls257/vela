@@ -16,12 +16,20 @@ import zipfile
 
 STAMP_PATH = ".planner/published.json"
 STAMP_FORMAT = 1
+# The built explorer, at the vault root so a colleague finds it in git or OneDrive without building anything. A view of the
+# pages, not a page: a publish rebuilds it from the published content, and a reader's drafts never count it as a change.
+DASHBOARD_PATH = "dashboard.html"
 # Generated output, a person's private voice material, and the vendored plugin (the reader's own plugin runs).
-EXCLUDED = (".git/", ".planner/", "voice/local/", ".claude/skills/planner/")
-# The one .planner/ file a team commits (the vault .gitignore un-ignores it), so a reader's map is laid out like the owner's.
-# Still "excluded" as far as a reader's drafts go: a layout is not a page, so comparing a workspace with its baseline skips it.
-KEPT = (".planner/explorer-pins.json",)
+EXCLUDED = (".git/", ".planner/", "voice/local/", ".claude/skills/planner/", DASHBOARD_PATH)
+# The files a team commits that sit under EXCLUDED: the pinned layout (the vault .gitignore un-ignores it), so a reader's map is
+# laid out like the owner's, and the dashboard. Still "excluded" as far as a reader's drafts go: neither is a page, so comparing
+# a workspace with its baseline skips them.
+KEPT = (".planner/explorer-pins.json", DASHBOARD_PATH)
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
+# Files a sync client or an operating system adds to a folder; none is part of a published copy. Publish and open both
+# leave them out, so the set that was hashed is the set that is verified.
+OS_JUNK = {".DS_Store", "desktop.ini", "Thumbs.db"}
+OS_JUNK_DIRS = ("__MACOSX/",)
 
 
 class PublishError(Exception):
@@ -30,6 +38,10 @@ class PublishError(Exception):
 
 def is_excluded(path):
     return any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in EXCLUDED)
+
+
+def is_junk(path):
+    return posixpath.basename(path) in OS_JUNK or any(path.startswith(d) or f"/{d}" in path for d in OS_JUNK_DIRS)
 
 
 def check_name(path):
@@ -42,14 +54,18 @@ def check_name(path):
 
 
 def selected(files):
-    """The committed files that belong in a read copy, by path."""
-    return {check_name(path): data for path, data in files.items() if path in KEPT or not is_excluded(path)}
+    """The committed files that belong in a read copy, by path. OS junk is left out here, so the tree_hash covers exactly what open will verify."""
+    return {check_name(path): data for path, data in files.items() if (path in KEPT or not is_excluded(path)) and not is_junk(path)}
 
 
 def tree_hash(files):
-    """sha256 over the sorted path and content hash of each file, so a tampered copy is detectable."""
+    """sha256 over the sorted path and content hash of each file. It notices an accidental edit or a half-copied folder.
+    It is not a signature: the hash sits in the same archive, so whoever changed a file can recompute it, and a match
+    proves nothing about who sent the copy (untrusted.py says what protects a reader instead). The dashboard is left
+    out: it is stamped with the day it was built, so counting it would make every publish of one commit look like
+    different content to a reader's freshness check."""
     digest = hashlib.sha256()
-    for path in sorted(files):
+    for path in sorted(name for name in files if name != DASHBOARD_PATH):
         digest.update(f"{path}\0{hashlib.sha256(files[path]).hexdigest()}\n".encode("utf-8"))
     return digest.hexdigest()
 

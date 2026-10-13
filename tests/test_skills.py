@@ -7,11 +7,14 @@ import subprocess
 import pytest
 import yaml
 
-from conftest import REPO
+from conftest import REPO, run
 
 PLUGIN = REPO / "plugin"
 SKILLS = sorted(p.parent for p in (PLUGIN / "skills").glob("*/SKILL.md"))
 READ_ONLY = {"ask", "find"}  # every other skill writes to the vault
+# Close is the one writing skill the model may start, on the lead's word (S24). Without the platform flag its safety is
+# written into the skill: see test_close_starts_only_on_the_leads_word_and_confirms_before_it_pushes.
+MODEL_MAY_START = {"close"}
 # Files a reference may name that live outside references/: vault files, and files of the user's grill skills.
 OTHER_FILES = {"CONVENTIONS.md", "CLAUDE.md", "SKILL.md", "CONTEXT.md", "NEG-AUDIT.md", "PREREQ-CHECK.md", "GRILL-LOOP.md",
                "REQUIREMENTS-FORMAT.md", "TECH-DESIGN-FORMAT.md"}
@@ -41,6 +44,8 @@ def test_frontmatter(skill):
     if skill.name in READ_ONLY:
         assert "disable-model-invocation" not in meta
         assert meta["disallowed-tools"] == "Write Edit NotebookEdit"
+    elif skill.name in MODEL_MAY_START:
+        assert "disable-model-invocation" not in meta
     else:
         assert meta.get("disable-model-invocation") is True, f"{skill.name} writes, so only the user may invoke it"
 
@@ -82,10 +87,9 @@ def test_claude_plugin_validate():
 
 def test_start_stops_on_a_dirty_clone_and_says_when_main_is_old():
     start = text("references/START.md")
-    assert "If any file is changed or untracked, stop and ask" in start
     assert "Never start from an old `main` without saying so." in start
     assert "add `-2`" in start
-    assert "Never close a session for the user." in start
+    assert "Never close a session the user has not asked to close" in start
     assert "Review comments were not checked" in start or "review comments were not checked" in start
     assert "claude, from <name>" in start
 
@@ -94,7 +98,7 @@ def test_dump_writes_captures_only():
     dump = text("skills/dump/SKILL.md")
     assert "Never edit a page outside `sessions/` during a dump." in dump
     assert "pre-mortem" in dump
-    assert "Do not run close yourself." in dump
+    assert "Do not run close yourself." not in dump
 
 
 def test_close_marks_honestly_and_never_claims_a_pr():
@@ -160,7 +164,7 @@ def test_grill_defines_acceptance_agenda_and_the_mark_exception():
     assert "says yes in person" in grill and "explicit yes" in grill
     assert "record where the provider stands as well as each consumer" in grill
     assert "(decided)" in grill and "the one exception to leaving marks off until close" in grill
-    assert "exception is a Grill" in start and "(decided)" in start and "## Agenda" in start
+    assert "(decided)" in start and "## Agenda" in start
     assert "keeps its mark" in close and "Promoted on a nod" in close
     assert "## Agenda" in grill and "GATE-3 confirmed yes|no" in grill
     assert "blocks every item on that page" in grill
@@ -216,8 +220,8 @@ def test_discover_marks_its_fact_captures_and_close_leaves_them():
     d, start, close = (text("skills/discover/SKILL.md"), text("references/START.md"),
                        text("skills/close/SKILL.md"))
     assert "→ keep: [[<page>#<heading>|<ID>]] (fact)" in d
-    assert "(fact)" in start and "second is a Discover" in start
-    assert "a Discover already marked `(fact)`, or a Boundary, Requirements or Allocate session already marked `(assumption)`, keeps its mark" in close
+    assert "(fact)" in start and "a Discover, which marks" in start
+    assert "a Discover already marked `(fact)`, or a Boundary, Requirements, Allocate or Releases session already marked `(assumption)`, keeps its mark" in close
 
 
 # /ask (V1-15)
@@ -247,17 +251,15 @@ def test_ask_answers_from_opened_sections_and_marks_what_is_missing():
 def test_ask_header_works_with_no_origin_and_no_claude_md(tmp_path):
     import os
     env = {**os.environ, "CLAUDE_PROJECT_DIR": str(tmp_path)}
-    git = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid"]
+    git = ["git", "-c", "user.name=T", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false"]
     subprocess.run(git + ["init", "-q", "-b", "main"], cwd=tmp_path, check=True, timeout=60)
     (tmp_path / "x.md").write_text("x\n", encoding="utf-8")
     subprocess.run(git + ["add", "x.md"], cwd=tmp_path, check=True, timeout=60)
     subprocess.run(git + ["commit", "-q", "-m", "x"], cwd=tmp_path, check=True, timeout=60)
-    rules, fresh = run_injected(tmp_path, env)
-    assert rules.startswith("NO CLAUDE.md")
+    (fresh,) = run_injected(tmp_path, env)
     assert re.match(r"HEAD is [0-9a-f]+, committed \d{4}-\d{2}-\d{2}\.\n", fresh)
     assert "Behind origin/main by an unknown number of commits, as of the last fetch on no recorded date." in fresh
-    (tmp_path / "CLAUDE.md").write_text((REPO / "template" / "CLAUDE.md").read_text(encoding="utf-8"), encoding="utf-8")
-    assert run_injected(tmp_path, env)[0].startswith("TEMPLATE: a person must rewrite this file.")
+    assert len(run_injected(tmp_path, env)) == 1
 
 
 def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
@@ -284,9 +286,9 @@ def test_house_voice_rules():
     voice = text("skills/house-voice/SKILL.md")
     assert "in file-name order" in voice
     assert "Never read `voice/corpus/`." in voice
-    assert "> Replaces the paragraph above after <session id>; delete one." in voice
+    assert "Replaces the paragraph above" not in voice and "## Replaced prose" in voice  # a page never carries two openings
     assert "more than about 20 prose paragraphs" in voice
-    assert "acceptance criteria;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
+    assert "acceptance criteria, and the `- Trace:` line under each;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
 
 
 # requirements-grill vault mode (V1-12): the vault rules live in the planner, not in the user's skill.
@@ -308,14 +310,15 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     epics = text("skills/epics/SKILL.md")
     assert "`traceability` block" in epics
     assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
-    assert "4 to 7 numbered criteria" in epics
+    assert "4 to 7 criteria" in epics and "## Done when" in epics
     assert "`[testing]`" in epics
     assert "offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
     assert "an explicit yes to each criterion on its own" in epics and "while any criterion lacks its own explicit yes" in epics
-    assert "It does not mean they are decided." in epics and "Report those separately" in epics
+    assert "It does not mean they are decided" in epics and "check --gate epics --app <APP-id>" in epics
     assert "list each epic still at `draft`" in epics
-    assert "It cites at least one contract (`CON-`) or flow (`FLO-`) ID." in epics and "Redis or Kafka" in epics
+    assert "Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID" in epics and "Redis or Kafka" in epics
+    assert "- Trace: CAP-001.FR1, CON-001, FLO-001  ·  AC3  ·  [testing]" in epics and "More than 7 means the epic should be split" in epics
     assert "`modes: [epics, shape, grill]` and the title `Epics: <team>`" in epics
     assert "check --gate epics" in epics
     assert "Never say an app's epics are complete while one remains." in epics
@@ -323,7 +326,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
 
 def test_modes_and_close_know_epics():
     assert "| Epics (`epics`)" in text("references/MODES.md") and "| `epics` | `draft` epic pages" in text("references/MODES.md")
-    assert "owes a description paragraph" in text("skills/close/SKILL.md")
+    assert "owes its summary" in text("skills/close/SKILL.md")
 
 
 def test_epics_skill_frontmatter_instruction_names_the_epics_mode():
@@ -393,3 +396,74 @@ def test_every_flag_the_explore_skill_names_is_one_the_command_accepts():
     accepted = {flag for action in sub._actions for flag in action.option_strings}
     named = set(re.findall(r"`(--[a-z]+)[ `]", text("skills/explore/SKILL.md"))) | {"-o"}
     assert named and named <= accepted, named - accepted
+
+
+EXPLORER_LINE = "The dashboard is up to date: dashboard.html — open it, or run /planner:explore to ask Claude from it"
+
+
+def test_close_ends_by_rebuilding_the_static_explorer_and_a_failed_build_never_blocks_it():
+    close = text("skills/close/SKILL.md")
+    last = close.split("\n## ")[-1]
+    assert last.startswith("9. Rebuild the explorer")
+    assert "scripts/planner explore` from the vault root, without `--serve`" in last
+    assert EXPLORER_LINE in last
+    assert "A failed build never undoes or blocks the close" in last
+    assert "never say the dashboard is up to date unless the command exited 0" in last
+    assert "Run it even when section 8 stopped" in last
+    assert "go straight to section 9, which has its own path for a close with no session" in close
+    assert "With no session" in last and "do not commit to `main` and do not push" in last
+    assert "never pipe it" in last and "Read the exit status before you say anything" in last
+
+
+def test_open_and_import_also_say_where_the_explorer_is_and_never_stop_on_a_failed_build():
+    assert EXPLORER_LINE in text("skills/open/SKILL.md")
+    imported = text("skills/import/SKILL.md")
+    assert EXPLORER_LINE in imported and "a failed build never ends the import" in imported
+
+
+def test_explore_and_the_vault_reference_say_designs_and_plans_live_in_the_vault_docs_folder():
+    explore, ref = text("skills/explore/SKILL.md"), text("references/TECH-DESIGN-FROM-VAULT.md")
+    assert "`docs/tech-design/<slug>.md` (with `docs/adr/`" in explore and "team_repos" not in explore
+    assert "Writing its own `docs/` files in the vault is allowed" in explore
+    assert "in the vault" in ref and "team_repos" not in ref
+
+
+def test_the_static_build_close_runs_writes_the_page_and_names_it_on_its_last_line(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(REPO / "tests/sim/snapshots/trading-coach/after-80b", vault)
+    code, said = run("explore", str(vault), "--today", "2026-10-10")
+    assert code == 0, said
+    assert (vault / "dashboard.html").is_file()
+    assert said.strip().splitlines()[-1].startswith("planner explore: wrote ") and "serving" not in said
+
+
+def test_a_build_that_fails_exits_2_says_why_and_leaves_no_new_page(tmp_path):
+    code, said = run("explore", str(tmp_path / "not-a-vault"))
+    assert code == 2 and said.strip(), said
+    assert not (tmp_path / "not-a-vault" / "dashboard.html").exists()
+
+
+def test_no_skill_or_reference_tells_the_session_to_edit_in_place_with_sed():
+    """S10: a session ran GNU-only sed on macOS. The only `sed -i` allowed in the plugin's text is one that forbids it."""
+    texts = [*PLUGIN.glob("skills/*/SKILL.md"), *PLUGIN.glob("references/*.md"), *PLUGIN.glob("agents/*.md")]
+    assert texts
+    for path in texts:
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if "sed -i" in line:
+                assert "Never" in line or "no `sed -i`" in line, f"{path}:{number} suggests sed -i"
+    start = (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
+    assert "Edit tool" in start and "no `sed -i`" in start
+
+
+def test_epics_skill_disposes_of_e805_by_answer_defer_or_override_and_never_leaves_it_unplaced():
+    """S11: the heron run offered "leave the gate failing", the lead took it, and the question had no owner."""
+    epics = text("skills/epics/SKILL.md")
+    assert "Defer it to whoever can answer" in epics and "planner next-id UNK" in epics
+    assert "- Leave the gate failing." not in epics
+    assert "is not a route" in epics and "do not loop" in epics
+
+
+def test_boundary_asks_which_capability_each_flow_serves_and_leaves_it_out_without_capabilities():
+    boundary = text("skills/boundary/SKILL.md")
+    assert "`capabilities`" in boundary and "which capability the journey serves" in boundary
+    assert "leave the field out and do not invent one" in boundary

@@ -473,7 +473,7 @@ def test_a_branch_that_already_exists_is_not_reused(proposed):
     (lambda t: t.split("diff --git", 1)[0], "no 'diff --git' section"),
     (lambda t: t.replace("# base: ", "# basis: "), "no '# base:"),
     (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/../evil.md b/../evil.md"), "climbs out"),
-    (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/.git/hooks/pre-commit b/.git/hooks/pre-commit"), "under .git"),
+    (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/.git/hooks/pre-commit b/.git/hooks/pre-commit"), "git's own folder"),
     (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/old.md b/new.md"), "plain a/<path> b/<path>"),
 ])
 def test_a_malformed_or_hostile_patch_is_refused_before_git_sees_it(proposed, damage, message):
@@ -602,6 +602,6 @@ def test_review_leaves_every_decision_to_the_owner_and_never_pushes():
 def test_the_readers_drafts_view_names_the_propose_command_and_the_page_stays_offline(world):
     _, workspace = world
     assert run("explore", str(workspace), "--today", "2026-10-12")[0] == 0
-    page = read(workspace / ".planner" / "explorer.html")
+    page = read(workspace / "dashboard.html")
     assert "/planner:propose" in page and "Nothing is sent from this page." in page
     assert str(pathlib.Path.home()) not in page

@@ -22,4 +22,4 @@ These came to us. Every design choice in this initiative has to live inside them
 | CST-4 | Every new application publishes events to the Harbourline event bus | Transformation programme standard | Booking publishes state changes; Notifications consumes them. |
 | CST-5 | Mainframe processing stays inside the existing MIPS budget | Finance, via the mainframe team lead | We checked the MQ transaction volume before choosing it. See [[concern-cost\|Cost]]. |
 
-CST-1 and CST-3 shaped the plan more than anything else. CST-1 is why Booking holds state but never owns the truth. CST-3 is why the kiosks are the last channel to move, and why the old Booking API version has to outlive at least one image cycle.
+The mainframe constraint and the kiosk constraint shaped the plan more than anything else. The mainframe constraint is why Booking holds state but never owns the truth. The kiosk constraint is why the kiosks are the last channel to move, and why the old Booking API version has to outlive at least one image cycle.

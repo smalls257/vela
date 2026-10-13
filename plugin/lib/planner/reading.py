@@ -14,11 +14,11 @@ It runs after viewer.neutralise, so the only raw HTML it adds is its own fixed t
 import re
 
 from planner import schema
+from planner.parse import FENCE, closes_fence
 
 HISTORY_BULLET = re.compile(r"^\s*-\s+\*\*(" + "|".join(re.escape(label) for label in schema.HISTORY_LABELS)
                             + r"):\*\*", re.I)
 HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*$")
-FENCE = re.compile(r"^\s{0,3}(```|~~~)")
 GEN_OPEN = re.compile(r"^\s*<!--\s*generated:([a-z0-9-]+)[^>]*-->\s*$")
 GEN_CLOSE = re.compile(r"^\s*<!--\s*/generated:[a-z0-9-]+\s*-->\s*$")
 ID = r"(?:[A-Z][A-Z0-9]*-\d+(?:\.FR\d+)?|G\d+)"
@@ -27,6 +27,7 @@ LEADING_ID = re.compile(rf"^{ID}\s+")
 LINK = re.compile(r"\[\[([^\]|#]*)(#[^\]|]*)?\|([^\]]*)\]\]")
 WIKI = re.compile(r"\[\[[^\]]+\]\]")
 SOURCE = re.compile(r"\bSRC-\d+\b")
+TRACE_LINE = re.compile(r"^(?P<indent>\s*)[-*]\s+(?:\*\*Trace:\*\*|Trace:)\s*(?P<ids>.*?)\s*$")
 CITATION = re.compile(r"\s*\(([^()]*(?:\bSRC-\d+\b|\[\[)[^()]*)\)")
 BLOCK_TITLES = {
     "where-it-stands": "Where it stands", "progress-map": "Progress", "app-context": "Diagram",
@@ -84,7 +85,12 @@ def tidy_prose(text, whole):
 
 
 # Sections that are a record, not the current state: they fold like History, in place.
-FOLDED_SECTIONS = ("Question ledger",)
+FOLDED_SECTIONS = ("Question ledger", "Also open")  # "Also open (7)": the few that matter sit above it
+
+
+def is_folded(title):
+    title = title.strip()
+    return any(title == name or title.startswith(name + " (") for name in FOLDED_SECTIONS)
 
 
 def fold_records(lines):
@@ -95,7 +101,7 @@ def fold_records(lines):
             if inside:
                 out += ["", "</details>", ""]
                 inside = False
-            if heading.group(2).strip() in FOLDED_SECTIONS:
+            if is_folded(heading.group(2)):
                 out += ["", f"<details><summary>{heading.group(2).strip()}</summary>", ""]
                 inside = True
                 continue
@@ -129,6 +135,9 @@ def fold_item_details(lines):
             out.append(line)
             continue
         stripped = line.strip()
+        if TRACE_LINE.match(line) and not run:
+            out.append(line)  # a Trace line under a numbered criterion stays beside it, not in Details
+            continue
         if stripped.startswith(("- ", "* ")) or (run and stripped and line[:1] in " \t"):
             run.append(line)
             continue
@@ -182,7 +191,7 @@ def arrange(markdown):
         moving = False
         if in_fence:
             (block if block is not None else history.setdefault(owner, []) if in_history else body).append(line)
-            if FENCE.match(line) and FENCE.match(line).group(1) == in_fence:
+            if closes_fence(line, in_fence):
                 in_fence = None
             continue
         if block is not None:
@@ -306,11 +315,27 @@ ASIDE = re.compile(r"\(([^()]*\b(?:no source|fact|assumption|inkling|decided|SRC
 ID_LABEL = re.compile(rf"\[\[[^\]|]*\|\s*{VAULT_ID}\s*\]\]")
 
 
-def style_problems(markdown, page_type, known_labels=()):
+def lint_words(text):
+    """The entries of plugin/references/lint-words.txt: one word or phrase a line, # starts a comment."""
+    return [line.strip() for line in text.split("\n") if line.strip() and not line.lstrip().startswith("#")]
+
+
+def lint_pattern(entry):
+    """A whole word with its endings (s, es, d, ed, ing), or a phrase as written; case does not matter."""
+    words = entry.lower().replace("\u2019", "'").split()
+    if len(words) > 1:
+        return re.compile(r"(?<![\w'])" + r"\s+".join(re.escape(w) for w in words) + r"(?![\w'])", re.I)
+    stem = re.escape(words[0])
+    clipped = re.escape(words[0][:-1]) if words[0].endswith("e") else stem
+    return re.compile(rf"(?<![\w'])(?:{stem}(?:s|es|d|ed|ing)?|{clipped}ing)(?![\w'])", re.I)
+
+
+def style_problems(markdown, page_type, known_labels=(), lint=()):
     """(line, problem) for each place a page reads as a list or a log rather than a document. Read by `planner
     style`. `known_labels` are the fact-bullet labels `planner check` reads; any other bold label is prose dressed up
-    as data."""
+    as data. `lint` is the word list, as lint_words reads it: each word on the page is one problem, with the count."""
     known = {label.lower() for label in known_labels}
+    patterns, hits = {entry: lint_pattern(entry) for entry in lint}, {}
     problems, in_fence, in_gen, in_history, seen_h2, opening = [], None, False, False, False, 0
     item_line, item_said = 0, True
     for n, line in enumerate(markdown.split("\n"), 1):
@@ -358,10 +383,17 @@ def style_problems(markdown, page_type, known_labels=()):
         if HISTORY_BULLET.match(line) and not in_history:
             problems.append((n, f"{HISTORY_BULLET.match(line).group(1)} bullet sits above ## History; move it there"))
             continue
+        listed = (stripped.startswith(("-", "*")) or re.match(r"\d+\.", stripped)) and not labelled
+        if listed and not in_history and not TRACE_LINE.match(line) and BARE_ID.search(visible(stripped)):
+            problems.append((n, f"an ID ({BARE_ID.search(visible(stripped)).group(0)}) in a list item; name the thing, "
+                                "and put the ID on a '- Trace:' line under it"))
         prose = not stripped.startswith(("|", "-", "*", ">")) and not re.match(r"\d+\.", stripped) \
             and not BREADCRUMB.match(stripped)
         if prose and not seen_h2:
             opening += 1
+        if prose and not in_history:
+            for entry, pattern in patterns.items():
+                hits.setdefault(entry, []).extend([n] * len(pattern.findall(visible(stripped))))
         if prose and not in_history and ASIDE.search(stripped):
             problems.append((n, f"a bracketed aside, ({ASIDE.search(stripped).group(1)[:40]}); say it in the sentence, "
                                 "as \"the product lead says\" or a link on the words"))
@@ -370,9 +402,14 @@ def style_problems(markdown, page_type, known_labels=()):
                 problems.append((n, "a bare source ID in prose; put the link on the words that rely on it"))
             elif BARE_ID.search(visible(stripped)):
                 problems.append((n, f"an ID ({BARE_ID.search(visible(stripped)).group(0)}) in prose; name the thing, "
-                                    "and link the name"))
+                                    "link the name, and put the ID on a '- Trace:' line"))
     if item_line and not item_said:
         problems.append((item_line, "this item has only bullets; open it with a sentence or two that say what it is now"))
+    for entry, lines in hits.items():
+        if lines:
+            times = f"{len(lines)} times" if len(lines) > 1 else "once"
+            problems.append((lines[0], f"'{entry}' is on the lint list and appears {times} on this page; say what the thing "
+                                       "does in plain words"))
     if page_type in PROSE_PAGE_TYPES and opening == 0:
         problems.append((1, "no opening prose: the page should say in a paragraph or two what is true now"))
     return problems

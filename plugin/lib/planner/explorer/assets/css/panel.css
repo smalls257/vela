@@ -96,5 +96,6 @@ html.still .mini-ring { animation: none; }
 .fail-text { max-height: none; font-size: 13.5px; }
 .fail-text p { margin: 0 0 5px; }
 ol.ac-list { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+ol.ac-list .ac-head { display: block; color: var(--ink); font-weight: 600; }
 ol.ac-list li.struck { text-decoration: line-through; color: var(--ink-4); }
 .marker { display: inline-block; font-size: 10.5px; font-family: var(--mono); padding: 0 6px; margin-left: 5px; border-radius: 4px; background: var(--deck-3); color: var(--ink-2); vertical-align: 1px; }

@@ -1,5 +1,5 @@
-/* The one right-hand panel, on every view. Its home is the lights, most urgent first: what needs the lead, from
-   attention.lights. Anything picked anywhere opens here with a trail of breadcrumbs back, and every app, contract,
+/* The one right-hand panel, on every view. Its home is what needs the lead, from attention.lights: the lit apps,
+   contracts and flows, and, where the home page's queue is not on screen, the queue itself. Anything picked anywhere opens here with a trail of breadcrumbs back, and every app, contract,
    capability and question lists the flows that cross it, each with a Present button. */
 const Panel = (() => {
   const body = () => $("#panel-body");
@@ -27,7 +27,7 @@ const Panel = (() => {
     const box = h("nav", { class: "crumbs", "aria-label": "Trail" });
     const rootIsPage = App.root.startsWith("read:") || App.root.startsWith("inside:");
     box.append(h("a", { onclick: () => { App.trail = []; render(); }, class: App.trail.length ? "" : "cur", title: rootIsPage ? "Back to the page" : "What needs you, most urgent first" },
-      rootIsPage ? "◧ " + shorten(titleOf(App.root), 22) : "◉ Lights"));
+      rootIsPage ? "◧ " + shorten(titleOf(App.root), 22) : "◉ Needs you"));
     App.trail.forEach((k, i) => {
       box.append(h("span", { class: "sep" }, "›"));
       box.append(i === App.trail.length - 1 ? h("span", { class: "cur" }, idOf(k) || shorten(titleOf(k), 26)) : h("a", { "data-ref": k, title: titleOf(k) }, idOf(k) || shorten(titleOf(k), 20)));
@@ -38,6 +38,7 @@ const Panel = (() => {
   function render() {
     const root = body();
     root.innerHTML = "";
+    Queue.sync();
     const key = App.trail[App.trail.length - 1] || (App.root !== "lights" ? App.root : null);
     const tabs = homes();
     if (tabs) root.append(tabs);
@@ -53,26 +54,30 @@ const Panel = (() => {
     root.scrollTop = 0;
   }
 
-  /* ------------------------------------------------------------ home: the lights */
+  /* ------------------------------------------------------------ home: what needs you */
+  /* Why it is this way: on the home page the work queue sits beside the map, so the panel does not list the same
+     questions again. It shows the other half: the apps, contracts and flows that are lit, one line each, with how many
+     questions hold each. On any other page the queue is not on screen, so the panel carries it. */
+  function litWhy(light) {
+    const held = new Set(light.reasons.filter((r) => r.kind === "held").map((r) => r.unknown));
+    const other = [...new Set(light.reasons.filter((r) => r.kind !== "held").map((r) => r.text))];
+    return [held.size ? `held by ${plural(held.size, "question")}` : null, other[0] || null].filter(Boolean).join("; ");
+  }
   function home() {
-    const lit = litSubjects(), dark = darkSubjects();
+    const lit = litSubjects(), dark = darkSubjects(), queue = Queue.items(), late = queue.filter((x) => x.level === "warning").length;
+    const beside = App.section === "home" && App.view === "map";  // the queue is on the page, beside the map
+    const lede = !queue.length && !lit.length ? "Nothing is lit. Every app, contract and flow has a recorded state, is settled, and no open question holds it."
+      : `${queue.length ? `${plural(queue.length, "question")} ${queue.length === 1 ? "is" : "are"} holding things up${late ? `, ${late} overdue` : ""}. ` : ""}${beside ? "They are listed with the map. Pick one there, or a box on the map, to read it here." : queue.length ? "Pick one to read it here." : ""}`;
     const out = [h("div", { class: "p-head" }, h("div", { class: "kind" }, `Lit from the record as of ${day(D.today)}`), h("h2", {}, "What needs you"),
-      h("p", { class: "p-lede" }, lit.length ? `${plural(lit.length, "thing")} lit, most urgent first${D.above.length ? `, and ${plural(D.above.length, "question")} held above the map` : ""}. Everything else is dark: settled, with nothing holding it.`
-        : "Nothing is lit. Every app, contract and flow has a recorded state, is settled, and no open question holds it."))];
-    out.push(section("Lights, most urgent first", lit.length, lit.length ? h("ul", { class: "lights" }, lit.map(({ key, light }) => h("li", {},
-      h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key },
-        lampEl(light.level), h("span", {}, h("span", { class: "what", style: `color:${LIGHT[light.level].colour}` }, `${idOf(key) ? idOf(key) + " " : ""}${titleOf(key)}`),
-          h("span", { class: "why" }, `${LIGHT[light.level].word}: ${reasonSummary(light, 1)}`))))))
-      : empty("Nothing is lit.")));
-    if (D.above.length) out.push(section("Held above the map", D.above.length, h("p", { class: "p-note" }, "Open questions that hold something no map draws: the strategy, a goal, another question."),
-      h("ul", { class: "lights" }, D.above.map((a) => {
-        const u = ASK[a.unknown], lvl = u ? u.light.level : "caution";
-        return h("li", {}, h("button", { class: "light-row", "data-ref": a.unknown },
-          lampEl(lvl), h("span", {}, h("span", { class: "what" }, `${a.unknown} holds ${a.title}`), h("span", { class: "why" }, u ? `${u.question ? shorten(u.question, 110) + " " : ""}Ask ${u.ask.name}${u.ask.inferred ? " (a guess)" : ""} by ${day(a.ask_by)}` : ""))));
-      }))));
+      lede ? h("p", { class: "p-lede" }, lede) : null)];
+    if (!beside && queue.length) out.push(section("Waiting on an answer", queue.length, Queue.block()));
+    out.push(section("Lit on the map", lit.length, lit.length ? h("ul", { class: "lights" }, lit.map(({ key, light }) => h("li", {},
+      h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key, title: `${LIGHT[light.level].word}${idOf(key) ? ", " + idOf(key) : ""}` },
+        lampEl(light.level), h("span", {}, h("span", { class: "what" }, titleOf(key)), h("span", { class: "why" }, litWhy(light) || LIGHT[light.level].say))))))
+      : empty("Nothing on the map is lit.")));
     const challenged = typeof Inside !== "undefined" ? Inside.homeSection() : null;
     if (challenged) out.push(challenged);  // Element.append writes a null as the text "null"
-    out.push(section("Dark, settled", dark.length, h("p", { class: "p-note" }, dark.map((k) => idOf(k) || titleOf(k)).join(", ") || "None.")));
+    out.push(section("Dark, settled", dark.length, h("p", { class: "p-note" }, dark.map((k) => titleOf(k)).join(", ") || "None.")));
     out.push(h("div", { class: "p-key" }, LEVELS.map((l) => h("span", {}, lampEl(l), LIGHT[l].word))));
     return out;
   }
@@ -84,7 +89,7 @@ const Panel = (() => {
       h("h2", {}, e.title), linkChips(pk),
       h("div", { class: "p-actions" }, typeof Nav !== "undefined" ? h("button", { class: "btn", onclick: () => Nav.readWide(pk, anchor) }, "Read full width") : null,
         ent(pk) && e.kind !== "section" && e.kind !== "page" ? h("button", { class: "btn", onclick: () => go(pk, {}) }, "What it is and what holds it") : null,
-        D.vault ? h("a", { class: "btn quiet", href: encodeURI(D.vault + "/" + e.path), target: "_blank", title: "Open the Markdown file itself" }, "Open the file") : null))];
+        openLink(["Open the file"], D.vault ? D.vault + "/" + e.path : "", e.path, "Open the Markdown file itself")))];
     const body = Reader.body(pk, { toc: true });
     out.push(body);
     requestAnimationFrame(() => { if (!Reader.scrollTo(body, anchor)) $("#panel-body").scrollTop = 0; });
@@ -104,7 +109,7 @@ const Panel = (() => {
     const readKey = Reader.keyFor(e.key);
     if (readKey) actions.append(h("button", { class: "btn open-page", title: "Read it here, in the vault's own words", onclick: () => go(readKey, {}) }, "Open the page"));
     if (e.kind === "app" && typeof MapView !== "undefined") actions.append(h("button", { class: "btn", onclick: () => Nav.focusApp(e.key) }, "Focus on the map"));
-    if (e.kind === "app" && typeof Inside !== "undefined") actions.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers and the team's components", onclick: () => Inside.open(e.key, "containers") }, "Inside this app"));
+    if (e.kind === "app" && typeof Inside !== "undefined") actions.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers, the team's components and its build plan", onclick: () => Inside.open(e.key, "containers") }, "Inside this app"));
     if ((e.kind === "app" || e.kind === "decision") && typeof Motion !== "undefined") actions.append(h("button", { class: "btn", title: "What depends on it, ring by ring", onclick: () => Nav.ripple(e.key) }, "Ripple: what depends on it"));
     if ((e.kind === "flow" || e.kind === "contract") && typeof Motion !== "undefined") actions.append(h("button", { class: "btn", title: "Light its path on the map, hop by hop", onclick: () => Nav.trace(e.key) }, "Trace on the map"));
     const light = lightOf(e.key), u = UNKNOWN[e.key];
@@ -207,6 +212,8 @@ const Panel = (() => {
         : h("div", { class: "gap" }, fail.runtime ? "Its runtime page has no section on failure (ladder.FAILURE finds none)." : "It has no runtime page, so nothing says how it behaves on failure.")));
       if (a.reached || a.needs.length) out.push(section("Stage ladder", null, h("div", { class: "p-note" }, `The pages reach ${a.reached || "no stage"}.`, a.needs.length ? h("ul", {}, a.needs.map((n) => h("li", {}, n))) : " Nothing more is needed for the next stage.")));
       if (a.runtime) out.push(section("Runtime", null, refChip(a.runtime)));
+      if (typeof Plan !== "undefined") out.push(section("Build plan", null, h("div", { class: "plan-ready-row", "data-ready": Plan.readiness(k).id }, Plan.readinessPill(k), h("span", { class: "muted small" }, " " + Plan.readiness(k).counts),
+        h("button", { class: "btn tiny", onclick: () => Inside.open(k, "plan") }, "Build plan"))));
     } else if (e.kind === "contract") {
       const c = CONTRACT[k];
       out.push(section("Who talks to whom", null, h("div", { class: "ends" },
@@ -223,6 +230,9 @@ const Panel = (() => {
       if (c.providerKind !== "app") out.push(h("div", { class: "note" }, "The provider is outside the vault, so the contract is kept on ", refChip(c.keptOn), "'s page."));
     } else if (e.kind === "party" || e.kind === "external") {
       const provided = D.map.contracts.filter((c) => c.provider === k);
+      const said = EXTERNAL[k] && EXTERNAL[k].said !== EXTERNAL[k].title ? EXTERNAL[k].said : "";
+      if (said) out.push(section("As the contract words it", null, h("div", { class: "prose-text" }, said),
+        h("div", { class: "p-note" }, "No outside party is recorded for this provider, so the map draws the first words. Add it under Outside parties in the context page and link it as the contract's Provider.")));
       out.push(prose(e), flowsSection(k));
       out.push(section("Contracts it provides", provided.length, provided.length ? h("ul", { class: "mini-list" }, provided.map((c) => contractRow(c.id, "out"))) : empty("No contract names it as provider.")));
       out.push(section("Facts", null, factsGrid(e.facts, [])));
@@ -247,8 +257,8 @@ const Panel = (() => {
       out.push(section("Consumes", x.consumes.length, x.consumes.map((id) => refChip(keyForId(id)))));
       out.push(section("Depends on", x.dependsOn.length, x.dependsOn.map((id) => refChip(keyForId(id)))));
       const ac = D.epicCriteria[k] || [];
-      out.push(section("Acceptance criteria", ac.length, ac.length ? h("ol", { class: "ac-list" }, ac.map((c) => h("li", { class: c.struck ? "struck" : "", value: c.n }, h("span", { html: c.html }), c.markers.map((m) => h("span", { class: "marker" }, m)),
-        typeof Inside !== "undefined" ? Inside.ownedBy(`${e.id}.AC${c.n}`, { inline: true }) : null))) : h("div", { class: "gap" }, "No numbered acceptance criteria under an \"acceptance criteria\" heading.")));
+      out.push(section("Acceptance criteria", ac.length, ac.length ? h("ol", { class: "ac-list" }, ac.map((c) => h("li", { class: c.struck ? "struck" : "", value: c.n }, c.heading ? h("b", { class: "ac-head" }, c.heading) : null, h("span", { html: c.html }), c.markers.map((m) => h("span", { class: "marker" }, m)), c.trace ? h("div", { class: "ac-trace", html: c.trace }) : null,
+        typeof Inside !== "undefined" ? Inside.ownedBy(`${e.id}.AC${c.n}`, { inline: true }) : null))) : h("div", { class: "gap" }, "No acceptance criteria under a \"Done when\" or \"acceptance criteria\" heading.")));
       out.push(flowsSection(k), heldBy(k));
     } else if (e.kind === "capability") {
       const epics = D.trace.epics.filter((x) => x.delivers.includes(e.id));
@@ -283,7 +293,7 @@ const Panel = (() => {
       out.push(section("Everything else they own", rest.length, rest.map((x) => refChip(x.key))));
     } else {
       if (e.kind === "runtime" && RUNTIME_TO_APP[k]) out.push(section("Runtime of", null, refChip(RUNTIME_TO_APP[k])));
-      if (e.kind === "decision") out.push(h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => { showView("garden"); Garden.showFor(k); } }, "See it grow in the garden")));
+      if (e.kind === "decision") out.push(h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => { showView("decisions"); Decisions.showFor(k); } }, "Open it in the decision log")));
       out.push(prose(e), heldBy(k));
       if (["concern", "decision", "section", "risk", "stored-value"].includes(e.kind)) out.push(flowsSection(k));
       out.push(section("Facts", null, factsGrid(e.facts, [])));

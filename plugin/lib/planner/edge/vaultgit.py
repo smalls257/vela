@@ -12,7 +12,7 @@ import tarfile
 
 import yaml
 
-from planner import roles
+from planner import publish, roles
 
 GIT_TIMEOUT = 20
 FETCH_TIMEOUT = 8  # an owner's session start must not hang on a dead network
@@ -66,8 +66,11 @@ def head(root):
 
 
 def uncommitted(root):
-    """Files changed or untracked under the vault, as git status sees them (ignored files are not listed)."""
-    out = git_out(root, "status", "--porcelain", "--", ".")
+    """Files changed or untracked under the vault, as git status sees them (ignored files are not listed). The files the
+    explorer build writes itself (the dashboard and the pinned layout, publish.KEPT) are left out: the build counts what
+    is uncommitted and then writes them, so counting them would make a page built before a commit differ from the same
+    page built after it."""
+    out = git_out(root, "status", "--porcelain", "--", ".", *(f":(exclude){path}" for path in publish.KEPT))
     return [line for line in out.splitlines() if line.strip()]
 
 

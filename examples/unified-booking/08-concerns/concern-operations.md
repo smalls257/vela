@@ -14,11 +14,11 @@ sources: ["session 2026-10-07 Grill"]
 
 ## Strategy
 
-Booking is a new team running a new service, so it joins the Platform on-call rota from go-live instead of building its own ([[11-unknowns-and-risks#UNK-007 Booking on-call|UNK-007]]). Platform already runs the gateway and the event bus Booking depends on, so one rota sees the whole path.
+Booking is a new team running a new service, so it joins the Platform on-call rota from go-live instead of building its own ([[11-unknowns-and-risks#UNK-007 Booking on-call|Booking on-call]]). Platform already runs the gateway and the event bus Booking depends on, so one rota sees the whole path.
 
-Two runbooks exist before go-live. The ledger-write failure runbook covers a booking that is paid and stuck in "confirming" after the Ledger adapter has run out of retries. This is the case the call centre used to fix by hand the next morning ([[CAP-023-fix-failed-bookings|CAP-023]]), and now on-call handles it the same night. The hold-store outage runbook covers Booking refusing new holds while the store is down; existing confirmed bookings are unaffected.
+Two runbooks exist before go-live. The ledger-write failure runbook covers a booking that is paid and stuck in "confirming" after the Ledger adapter has run out of retries. This is the case the call centre used to fix by hand the next morning ([[CAP-023-fix-failed-bookings|Fix failed bookings by hand]]), and now on-call handles it the same night. The hold-store outage runbook covers Booking refusing new holds while the store is down; existing confirmed bookings are unaffected.
 
-Mainframe knowledge sits with two people ([[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|R-01]]). The MQ mapping is written down in [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]], and Booking engineers pair with the mainframe team from January to March 2027, so on-call does not depend on reaching one of them at night.
+Mainframe knowledge sits with two people ([[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|Mainframe knowledge sits with two people]]). The message queue (MQ) mapping is written down in [[ferrymaster-building-blocks#CON-006 Ledger transactions|Ledger transactions]], and Booking engineers pair with the mainframe team from January to March 2027, so on-call does not depend on reaching one of them at night.
 
 ## Per app
 
@@ -36,6 +36,6 @@ Mainframe knowledge sits with two people ([[11-unknowns-and-risks#R-01 Mainframe
 
 ## Related
 
-- Unknowns and risks: [[11-unknowns-and-risks#UNK-007 Booking on-call|UNK-007]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]], [[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|R-01]]
-- Decisions: [[ADR-0004-mq-not-screen-scraping|ADR-0004]]
-- Epics: [[EPC-039-run-booking|EPC-039]], [[EPC-032-ledger-adapter|EPC-032]], [[EPC-034-call-centre-to-booking|EPC-034]]
+- Unknowns and risks: [[11-unknowns-and-risks#UNK-007 Booking on-call|Booking on-call]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]], [[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|Mainframe knowledge sits with two people]]
+- Decisions: [[ADR-0004-mq-not-screen-scraping|the MQ decision]]
+- Epics: [[EPC-039-run-booking|Run Booking: on-call, runbooks, dashboards]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]]

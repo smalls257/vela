@@ -12,7 +12,7 @@ import shutil
 import zipfile
 from dataclasses import dataclass
 
-from planner import proposal, publish
+from planner import proposal, publish, untrusted
 
 NOTE, PATCH, ANSWER = "proposal.md", "changes.patch", "answer.md"
 
@@ -91,9 +91,19 @@ class Loaded:
     answer_to: pathlib.Path  # where answer.md goes for this source
 
 
+def _read_plain_file(path):
+    """A proposal's file as bytes, refusing a link (it could name any file on this machine) and a file over the patch limit."""
+    if path.is_symlink():
+        raise ProposalIOError(f"{path} is a symbolic link, so I did not read it. A proposal holds real files only.")
+    if path.stat().st_size > untrusted.MAX_PATCH_BYTES:
+        raise ProposalIOError(f"{path} is over {untrusted.MAX_PATCH_BYTES // (1024 * 1024)} MB, which is more than a proposal holds, so I did not read it.")
+    return path.read_bytes()
+
+
 def _from_zip(source):
     try:
         with zipfile.ZipFile(source) as archive:
+            untrusted.check_entries(archive.infolist())
             names = [n for n in archive.namelist() if not n.endswith("/")]
             for name in names:
                 publish.check_name(name)
@@ -107,6 +117,8 @@ def _from_zip(source):
         raise ProposalIOError(f"{source} is not a readable zip: {exc}") from exc
     except publish.PublishError as exc:
         raise ProposalIOError(f"{source} holds a name that would write outside its folder, so I did not read it: {exc}") from exc
+    except untrusted.Refused as exc:
+        raise ProposalIOError(f"I did not read {source}: {exc}") from exc
 
 
 def read(source):
@@ -120,10 +132,10 @@ def read(source):
             if not patch.is_file():
                 raise ProposalIOError(f"{source} holds no {PATCH}, so it is not a proposal.")
             note = source / NOTE
-            return Loaded(patch.read_bytes(), note.read_text(encoding="utf-8", errors="replace") if note.is_file() else "", source / ANSWER)
+            return Loaded(_read_plain_file(patch), _read_plain_file(note).decode("utf-8", "replace") if note.is_file() else "", source / ANSWER)
         if zipfile.is_zipfile(source):
             return _from_zip(source)
-        return Loaded(source.read_bytes(), "", source.with_name(ANSWER))
+        return Loaded(_read_plain_file(source), "", source.with_name(ANSWER))
     except OSError as exc:
         raise ProposalIOError(f"cannot read {source}: {exc.strerror or exc}") from exc
 

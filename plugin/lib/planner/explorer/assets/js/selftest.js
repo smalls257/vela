@@ -16,7 +16,8 @@ const SelfTest = (() => {
     for (const f of D.flows) for (const stp of f.steps) for (const m of stp.messages) {
       const c = CONTRACT[m.contract]; if (!c) continue;
       const a = titleOf(c.provider), b = titleOf(c.consumers[0]);
-      if (a && b && a !== b) return { q: `how does ${b} talk to ${a}`.toLowerCase(), contract: c.id };
+      // Two contracts can join the same pair (consent: one to check, one to record); the words cannot tell them apart, so either is right.
+      if (a && b && a !== b) return { q: `how does ${b} talk to ${a}`.toLowerCase(), contracts: Object.values(CONTRACT).filter((o) => o.provider === c.provider && o.consumers[0] === c.consumers[0]).map((o) => o.id) };
     }
     return null;
   }
@@ -37,7 +38,7 @@ const SelfTest = (() => {
       Flows.closePresent();
     } else out.push("skip path 1: this vault has no flow pages");
     // Path 2: "how does Coach talk to Brightwater?" gets to the contract, and presenting from that step.
-    const pq = APPS["APP-coach"] && D.map.parties.some((p) => p.title === "Brightwater") && D.flows.length ? { q: "how does coach talk to brightwater", contract: "CON-003" } : pairQuery();
+    const pq = APPS["APP-coach"] && D.map.parties.some((p) => p.title === "Brightwater") && D.flows.length ? { q: "how does coach talk to brightwater", contracts: ["CON-003"] } : pairQuery();
     if (pq) {
       go("lights", { reset: true }); showView("map"); await frames();
       const keys = Search.type(pq.q);
@@ -45,8 +46,8 @@ const SelfTest = (() => {
       Search.pick(0); await frames(3);
       const key = keys[0];
       const btn = $$("#panel .present-btn")[0];
-      ok(key === pq.contract && App.view === "map" && !!btn, `path 2 "${pq.q}": search, Enter → ${key} ${titleOf(key)} (group "${(group || "").split("·")[0].trim()}"), on the map, panel offers "${buttonText(btn)}"`,
-        `path 2 "${pq.q}": first result ${key}, wanted ${pq.contract}; view ${App.view}; present button ${buttonText(btn)}`);
+      ok(pq.contracts.includes(key) && App.view === "map" && !!btn, `path 2 "${pq.q}": search, Enter → ${key} ${titleOf(key)} (group "${(group || "").split("·")[0].trim()}"), on the map, panel offers "${buttonText(btn)}"`,
+        `path 2 "${pq.q}": first result ${key}, wanted ${pq.contracts.join(" or ")}; view ${App.view}; present button ${buttonText(btn)}`);
       if (btn) { btn.click(); await frames(3); }
       const wantStep = btn ? (buttonText(btn).match(/step (\d+)/) || [0, "1"])[1] : "?";
       ok(presentStep() === String(wantStep), `path 2: 1 click → presenting from step ${presentStep()}, the first step that uses ${key}; clicks after the search: 1`, `path 2: presenting at "${presentStep()}", wanted step ${wantStep}`);
@@ -74,8 +75,7 @@ const SelfTest = (() => {
     const want = D.nodes.length + D.map.contracts.filter((c) => c.consumers.some((k) => k !== c.provider && NODE[k]) && NODE[c.provider]).length + D.flows.length;
     const wrong = lamps.filter((g) => { const lv = D.lights[g.dataset.key] ? D.lights[g.dataset.key].level : "dark"; return !g.classList.contains(lv === "dark" ? "dark" : lv); });
     ok(lamps.length >= want - 1 && !wrong.length, `map, cockpit: ${lamps.length} lamps, each lit as attention.lights says; ${$$("#board g.lit").length} lit`, `map, cockpit: ${lamps.length} lamps (wanted ${want}); ${wrong.length} disagree with attention.lights: ${wrong.slice(0, 3).map((g) => g.dataset.key).join(", ")}`);
-    ok($$("#panel .light-row").length === litSubjects().length + D.above.length, `panel home: ${litSubjects().length} lights, most urgent first, and ${D.above.length} held above the map`, "panel home lights do not match attention.ranked");
-    ok(D.above.length === $$(".above .cap").length, `held above the map: ${D.above.length} shown of ${D.above.length}`, "the held-above strip drops some");
+    await queueChecks();
     if (D.nodes.length > 0) {
       go(D.nodes[0].key, { reset: true }); await frames();
       ok(!!$("#panel-mini .mini-ring"), `minimap: "you are here" ringed at ${titleOf(D.nodes[0].key)}`, "minimap: no you-are-here ring");
@@ -114,6 +114,7 @@ const SelfTest = (() => {
       const r = Rehearse.selfCheck(f.key);
       ok(r.got === r.of, `rehearse, ${f.key}: a perfect attempt scores ${r.got} of ${r.of}`, `rehearse, ${f.key}: a perfect attempt scored ${r.got} of ${r.of}`);
     }
+    await flowPicker(ok);
     out.push(`clip export: ${FlowKit.clipFormat() ? FlowKit.clipFormat().mime : "not available in this browser"}`);
     // Who to ask: every open question is in a rack, or counted as folded; strip edges are attention.hold's.
     showView("asks"); await frames();
@@ -130,8 +131,7 @@ const SelfTest = (() => {
       const inferred = D.asks.filter((x) => x.ask.inferred).length;
       out.push(`who to ask: ${D.asks.filter((x) => x.ask.rule.startsWith("recorded")).length} racks from Ask lines, ${inferred} guessed from Owner lines and marked`);
     }
-    showView("garden"); await frames();
-    ok($$(".plot").length === Garden.trees.length, Garden.trees.length ? `why: ${Garden.trees.length} decisions in the bed, one on the sheet` : "why: no decision records its options, and the view says so", `why: ${$$(".plot").length} plots for ${Garden.trees.length} decisions`);
+    await decisionChecks();
     showView("progress"); await frames();
     ok($$(".pages table.t tr.click").length >= D.progress.rows.length, `progress: ${D.progress.rows.length} apps on the ladder, ${$$(".due-chart .bar-r").length} due bars`, "progress: rows missing");
     showView("trace"); await frames();
@@ -153,7 +153,7 @@ const SelfTest = (() => {
       const reader = $("#panel .reader") || $("#main .reader");
       const visual = App.view !== "doc" ? !!$("#main").children.length : !!$("#main .reader");
       const links = reader ? $$("a[data-ref]", reader) : [], dead = links.filter((a) => !ent(a.dataset.ref) && !a.classList.contains("ref-dead"));
-      const decision = id === "decisions" && $("#panel .open-page");  // the garden opens its first decision beside it
+      const decision = id === "decisions" && $("#panel .open-page");  // a decision picked in the log opens its page beside it
       if (s.page && ((!reader && !decision) || !visual || dead.length)) bad.push(`${id}: reader ${!!reader}, visual ${visual}, ${dead.length} dead links`);
       if (!s.page && !$("#main").textContent.trim()) bad.push(`${id}: no page and nothing says so`);
       const nulls = [$("#main"), $("#panel")].flatMap((root) => { const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), found = []; while (w.nextNode()) if (w.currentNode.nodeValue.trim() === "null") found.push(w.currentNode); return found; });
@@ -188,6 +188,53 @@ const SelfTest = (() => {
     ok(!lines.some((l) => l.includes("overflows")), `front doors: ${lines.join(", ")}, each on one screen`, `front doors: ${lines.join(", ")}`);
     Nav.role("eng"); await frames();
     ok(!!$(".door-pick .chip.on") || !D.map.apps.length, `engineering door: an app picked, its slice of ${(D.slices[Roles.st.app] || []).length} items from handoff.slice_of`, "engineering door has no app picked");
+  }
+  /* The flow picker: it lists every flow once, groups only above ten, filters by name, and takes the keyboard. The
+     grouping is also checked on made-up flows, so a vault with three flows still proves the rule at twelve. */
+  async function flowPicker(ok) {
+    const fake = (n, over) => ({ key: "F" + n, id: "FLO-" + n, title: "Flow " + String(n).padStart(2, "0"), level: "dark", steps: 3, open: 0, caps: [], guessed: false, domain: "", ...over });
+    const ten = Array.from({ length: 10 }, (_, i) => fake(i, { caps: ["Cap A"] })), twelve = [...ten, fake(10, { caps: ["Cap B", "Cap A"] }), fake(11, { domain: "Pay" })];
+    const flat = FlowPicker.arrange(ten, ""), grouped = FlowPicker.arrange(twelve, "");
+    ok(!flat.grouped && flat.groups.length === 1 && grouped.grouped, `flow picker: ten flows are one flat list, twelve are grouped (${grouped.groups.map((g) => g.heading.name + " " + g.items.length).join(", ")})`, "flow picker: the ten-flow boundary is wrong");
+    ok(grouped.groups.flatMap((g) => g.items).length === 12 && new Set(grouped.groups.flatMap((g) => g.items.map((e) => e.key))).size === 12, "flow picker: twelve flows, each under exactly one heading", "flow picker: a flow is missing or listed twice");
+    const first = grouped.groups.find((g) => g.heading.name === "Cap A"), second = FlowPicker.arrange(twelve, "flow 10").groups;
+    ok(first && first.items.length === 10 && grouped.groups[grouped.groups.length - 1].heading.kind === "domain", "flow picker: a flow serving two capabilities sits under its first, and a flow with only a domain follows the capabilities", "flow picker: grouping order is wrong");
+    const mixed = FlowPicker.arrange([...twelve.slice(0, 11), fake(11, { caps: ["Cap B"], guessed: true })], "");
+    ok(mixed.groups.some((g) => g.heading.kind === "guessed" && g.heading.name === "Cap B"), "flow picker: a capability guessed from the steps is its own group, marked as a guess", "flow picker: a guessed capability is grouped with the recorded ones");
+    const urgentFirst = FlowPicker.arrange([...ten.slice(0, 10), fake(10, { caps: ["Cap A"], level: "warning" })], "").groups[0].items[0];
+    ok(urgentFirst.key === "F10" && second.length === 1 && second[0].items.length === 1, "flow picker: inside a group the most urgent lamp is first, and typing narrows the list", "flow picker: urgency order or filtering is wrong");
+    if (!D.flows.length) return;
+    Flows.select(D.flows[0].key, -1); await frames(2);
+    const wrap = $(".flow-picker"), trigger = $(".fp-trigger", wrap), input = $(".fp-input", wrap);
+    ok(!!wrap && !$("nav.tracks") && trigger.getAttribute("aria-haspopup") === "listbox" && trigger.textContent.includes(E[D.flows[0].key].title) && $("#present-btn") && $("#clip-btn"),
+      `flow picker: the Flows view shows one button naming "${E[D.flows[0].key].title}", with Rehearse, Save clip and Present beside it`, `flow picker: the flow strip is still there, or the button does not name the flow (picker ${!!wrap}, tracks ${!!$("nav.tracks")}, text "${wrap && wrap.textContent}", present ${!!$("#present-btn")}, clip ${!!$("#clip-btn")})`);
+    trigger.click(); await frames();
+    const optsOf = () => $$(".fp-opt", wrap), keysOf = () => optsOf().map((o) => o.dataset.flow);
+    const listed = keysOf(), groups = $$(".fp-group", wrap);
+    ok(listed.length === D.flows.length && new Set(listed).size === D.flows.length && D.flows.every((f) => listed.includes(f.key)) && !wrap.querySelector(".fp-pop").hidden,
+      `flow picker: opens with all ${D.flows.length} flows, each once`, `flow picker: lists ${listed.length} of ${D.flows.length} flows`);
+    ok((D.flows.length > FlowPicker.TEN_FLOWS) === (groups.length > 0), `flow picker: ${groups.length ? `${groups.length} headings, ${$$(".fp-head", wrap).map((x) => x.textContent).join("; ")}` : "no headings at ten or fewer"}`, "flow picker: headings do not match the ten-flow rule");
+    ok(input.getAttribute("role") === "combobox" && $("#" + input.getAttribute("aria-activedescendant")) && $("#" + input.getAttribute("aria-activedescendant")).getAttribute("role") === "option" && $(".fp-list", wrap).getAttribute("role") === "listbox",
+      "flow picker: a combobox over a listbox, aria-activedescendant names a real option", "flow picker: the ARIA wiring is missing");
+    const word = E[D.flows[0].key].title.split(/\s+/).pop();
+    input.value = word; input.dispatchEvent(new Event("input")); await frames();
+    const kept = keysOf();
+    ok(kept.includes(D.flows[0].key) && kept.every((k) => E[k].title.toLowerCase().includes(word.toLowerCase()) || E[k].id.toLowerCase().includes(word.toLowerCase()) || (FLOW[k].capabilities || []).some((c) => E[c] && E[c].title.toLowerCase().includes(word.toLowerCase())) || (FLOW[k].domain || "").toLowerCase().includes(word.toLowerCase())),
+      `flow picker: typing "${word}" keeps ${kept.length} of ${D.flows.length}`, `flow picker: typing "${word}" kept ${kept.join(", ")}`);
+    input.value = "zzqx no such flow"; input.dispatchEvent(new Event("input")); await frames();
+    ok(!optsOf().length && !!$(".fp-empty", wrap), "flow picker: a query nothing matches says so", "flow picker: no empty message");
+    input.value = ""; input.dispatchEvent(new Event("input")); await frames();
+    const key = (k) => input.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));
+    const at = optsOf().findIndex((o) => o.id === input.getAttribute("aria-activedescendant")), want = optsOf()[(at + 1) % optsOf().length].dataset.flow;
+    key("ArrowDown"); await frames();
+    ok(optsOf().findIndex((o) => o.id === input.getAttribute("aria-activedescendant")) === (at + 1) % optsOf().length, "flow picker: the down arrow moves to the next option", "flow picker: the down arrow did not move");
+    key("Enter"); await frames(2); await new Promise((r) => setTimeout(r, 0));
+    const trigger2 = $(".flow-picker .fp-trigger"), wrap2 = $(".flow-picker");
+    ok(Flows.st.key === want && location.hash.startsWith(`#flows&open=${encodeURIComponent(want)}`) && wrap2.querySelector(".fp-pop").hidden && document.activeElement === trigger2 && trigger2.textContent.includes(E[want].title),
+      `flow picker: Enter chose ${want}, the hash follows (${location.hash.split("&selftest")[0]}), the list closed and focus came back to the button`, `flow picker: Enter left ${Flows.st.key} (wanted ${want}), hash ${location.hash}`);
+    trigger2.click(); await frames(); wrap2.querySelector(".fp-input").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); await frames();
+    ok(wrap2.querySelector(".fp-pop").hidden && document.activeElement === trigger2, "flow picker: Escape closes the list and keeps your place", "flow picker: Escape left the list open");
+    Flows.select(D.flows[0].key, -1); await frames(2);
   }
   async function scale() {
     Nav.home(); MapView.st.lens = "cockpit"; MapView.st.focus = null;
@@ -248,11 +295,16 @@ const SelfTest = (() => {
     return out;
   }
   const OVERLAP_PARTS = "#board svg.grouped g.hit, #board svg.grouped .cluster-names text, #board svg.grouped .also-chip, #board svg.grouped .also-tab, #board svg.grouped .cluster-toggle";
+  // the ungrouped cockpit, the line map and the minimap: every box, lamp bank, caption, name, works marker and station
+  const COCKPIT = "#board svg.cockpit:not(.grouped):not(.focus)", TRANSIT = "#board svg.transit", MINI = "#panel-mini svg";
+  const COCKPIT_PARTS = `${COCKPIT} g.hit, ${COCKPIT} .zone-text, ${COCKPIT} .engrave`;
+  const TRANSIT_PARTS = `${TRANSIT} g.station, ${TRANSIT} .track-label, ${TRANSIT} g.works, ${TRANSIT} .zone-text`;
+  const MINI_PARTS = `${MINI} g.mini-node`;
   /* Pairs of drawn parts whose boxes intersect by more than a pixel, as "<a> on <b>". A part's own children are not parts. */
-  function overlaps() {
-    const parts = $$(OVERLAP_PARTS).filter((el) => !el.parentElement.closest(".also-chip, .also-tab, .cluster-toggle, g.hit")).map((el) => {
+  function overlaps(selector = OVERLAP_PARTS) {
+    const parts = $$(selector).filter((el) => !el.parentElement.closest(".also-chip, .also-tab, .cluster-toggle, g.hit, g.station, g.mini-node, g.works")).map((el) => {
       const b = el.getBBox();
-      return { el, b, name: el.dataset.key || el.textContent.trim().slice(0, 24) };
+      return { el, b, name: el.dataset.key || el.getAttribute("aria-label") || el.textContent.trim().slice(0, 24) };
     });
     const out = [];
     for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) {
@@ -260,6 +312,188 @@ const SelfTest = (() => {
       if (a.x < c.x + c.width - 1 && c.x < a.x + a.width - 1 && a.y < c.y + c.height - 1 && c.y < a.y + a.height - 1) out.push(`${parts[i].name} on ${parts[j].name}`);
     }
     return out;
+  }
+  /* The ungrouped cockpit, the line map and the minimap, in every theme, in Plain, with nothing on anything. */
+  async function ungrouped() {
+    if (!D.nodes.length) { out.push("skip ungrouped map: this vault has no apps"); return; }
+    const was = { theme: Theme.id, fx: FX.on, lens: MapView.st.lens, group: MapView.st.group };
+    const measure = async (name, lens, parts) => {
+      Nav.home(); MapView.st.lens = lens; MapView.st.group = "none"; MapView.st.focus = null; rerender(); await frames();
+      const bad = overlaps(parts), n = $$(parts).length;
+      ok(!bad.length, `${name}: ${n} boxes, lamps and captions, no two overlap`, `${name}: ${bad.length} overlaps, such as ${bad.slice(0, 4).join("; ")}`);
+    };
+    await measure("ungrouped cockpit", "cockpit", COCKPIT_PARTS);
+    // Past what one drawing carries (MapView.big) the line map is not the lens that opens, and its works markers and
+    // track labels have no free spot on a 60-contract map; the cockpit and the minimap are checked at every size.
+    const lineMapFits = !MapView.big();
+    if (lineMapFits) await measure("line map", "transit", TRANSIT_PARTS);
+    else out.push(`skip line map overlaps: ${plural(D.nodes.length, "box", "boxes")} is past what a node-link drawing carries, so the matrix opens first`);
+    await measure("minimap", "cockpit", MINI_PARTS);
+    MapView.st.lens = "cockpit"; rerender(); await frames();
+    const spilled = $$(`${COCKPIT} g.hit`).filter((g) => { const face = g.querySelector(".face").getBBox(); return $$("text", g).some((x) => { const b = x.getBBox(); return b.x < face.x - 1 || b.x + b.width > face.x + face.width + 1; }); }).map((g) => g.dataset.key);
+    ok(!spilled.length, "ungrouped cockpit: every name and lamp label stays inside its own box", `ungrouped cockpit: text runs past its box in ${spilled.slice(0, 4).join(", ")}`);
+    const problems = [];
+    for (const th of Theme.LIST) {
+      Theme.set(th.id);
+      for (const [lens, parts] of [["cockpit", COCKPIT_PARTS], ["transit", TRANSIT_PARTS], ["cockpit", MINI_PARTS]].filter(([lens]) => lens !== "transit" || lineMapFits)) {
+        MapView.st.lens = lens; MapView.st.group = "none"; rerender(); await frames();
+        const bad = overlaps(parts);
+        if (bad.length) problems.push(`${th.id} ${lens}: ${bad.slice(0, 2).join("; ")}`);
+      }
+    }
+    FX.set(false);
+    for (const [lens, parts] of [["cockpit", COCKPIT_PARTS], ["transit", TRANSIT_PARTS], ["cockpit", MINI_PARTS]].filter(([lens]) => lens !== "transit" || lineMapFits)) {
+      MapView.st.lens = lens; rerender(); await frames();
+      const bad = overlaps(parts);
+      if (bad.length) problems.push(`Plain ${lens}: ${bad.slice(0, 2).join("; ")}`);
+    }
+    FX.set(was.fx); Theme.set(was.theme);
+    ok(!problems.length, `ungrouped cockpit, line map and minimap: no two parts overlap in any of ${plural(Theme.LIST.length, "theme")} or in Plain`, `overlaps in ${problems.slice(0, 3).join(" | ")}`);
+    MapView.st.lens = was.lens; MapView.st.group = was.group; rerender(); await frames();
+  }
+  const flush = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };  // a saved move is a chain of awaited fetches
+  const pointer = (type, x, y) => new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: type === "pointerup" ? 0 : 1, isPrimary: true, pointerId: 7 });
+  /* Moving boxes: the rule, a drag, a drop on an occupied cell, the arrow keys, saving, resetting, Plain, clusters. */
+  async function moves() {
+    const nodes = D.nodes.slice();
+    if (nodes.length < 2) { out.push("skip moving boxes: fewer than two boxes on the map"); return; }
+    const layoutWas = Layout.snapshot(), askWas = Ask.snapshot(), fxWas = FX.on, posts = [];
+    const fake = async (url, init) => {
+      if (url === "/health") return { ok: true, status: 200, json: async () => ({ ok: true, vault: "selftest", model: "haiku", models: {}, claude: false, maxQuestion: 2000 }) };
+      if (url === "/pins" && init) { const sent = JSON.parse(init.body); posts.push(sent); return { ok: true, status: 200, json: async () => ({ saved: Object.keys(sent.pins).length, pins: sent.pins }) }; }
+      return { ok: false, status: 404, json: async () => ({ error: `nothing at ${url}` }) };
+    };
+    Layout.net.fetch = fake;
+    Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; rerender(); await frames();
+    const original = Object.fromEntries(nodes.map((n) => [n.key, [n.col, n.row]]));
+    const mover = nodes.find((n) => n.kind === "app") || nodes[0], other = nodes.find((n) => n.key !== mover.key);
+    const farCol = Math.max(...nodes.map((n) => n.col)) + 2, outside = mover.kind !== "app";
+
+    // the rule: a cell taken, a free cell, the nearest free cell to a taken one, a party above the apps, an app below the parties
+    const taken = Layout.blocker(mover.key, other.col, other.row), free = Layout.blocker(mover.key, farCol, mover.row), near = Layout.nearestFree(mover.key, other.col, other.row);
+    const party = nodes.find((n) => n.kind !== "app"), app = nodes.find((n) => n.kind === "app");
+    const parties = nodes.filter((n) => n.kind !== "app"), appRows = nodes.filter((n) => n.kind === "app").map((n) => n.row);
+    const below = parties.length && app ? Layout.blocker(app.key, farCol, Math.min(...parties.map((n) => n.row)) + 1) : "skip";
+    const above = party && Math.max(...appRows) > 0 ? Layout.blocker(party.key, farCol, 0) : "skip";
+    ok(!!taken && !free && !!near && !Layout.blocker(mover.key, near[0], near[1]) && !!below && !!above && Layout.check(Layout.cells()) === "",
+      `moving a box: a taken cell is refused ("${taken}"), a free one is not, the nearest free cell to a taken one is ${near ? near.join(",") : "none"}, an app below the parties and a party above the apps are refused`,
+      `moving a box: taken "${taken}", free "${free}", near ${near}, app below parties "${below}", party above apps "${above}", layout "${Layout.check(Layout.cells())}"`);
+
+    // a drag, as a pointer would do it, to a free cell beyond the last column
+    const cockpitRoot = () => $("#board svg.cockpit");
+    const clientOf = (col, row, isOutside) => { const svg = cockpitRoot(), pt = svg.createSVGPoint(), at = Geo.pointOf(MapView.COCKPIT, col, row, isOutside); pt.x = at.x; pt.y = at.y; const c = pt.matrixTransform(svg.getScreenCTM()); return { x: c.x, y: c.y }; };
+    const boxOf = (key) => $(`#board g.hit[data-key="${CSS.escape(key)}"]`);
+    const dragTo = (key, col, row) => {
+      const r = boxOf(key).getBoundingClientRect(), goal = clientOf(col, row, NODE[key].kind !== "app");
+      boxOf(key).dispatchEvent(pointer("pointerdown", r.x + r.width / 2, r.y + r.height / 2));
+      window.dispatchEvent(pointer("pointermove", r.x + r.width / 2 + 12, r.y + r.height / 2 + 12));
+      window.dispatchEvent(pointer("pointermove", goal.x, goal.y));
+      window.dispatchEvent(pointer("pointerup", goal.x, goal.y));
+    };
+    const focusBefore = App.focus;
+    dragTo(mover.key, farCol, mover.row);
+    boxOf(mover.key).dispatchEvent(new MouseEvent("click", { bubbles: true }));  // the click that follows a release must not open the page
+    await flush();
+    const now = [NODE[mover.key].col, NODE[mover.key].row];
+    const mini = $$(`${MINI} g.mini-node`).map((g) => ({ label: g.getAttribute("aria-label"), x: g.getBBox().x }));
+    const rightmost = mini.sort((a, b) => b.x - a.x)[0];
+    ok(now[0] === farCol && now[1] === mover.row && Layout.moved() && App.focus === focusBefore && !!rightmost && rightmost.label.startsWith(titleOf(mover.key)),
+      `dragging ${titleOf(mover.key)} to column ${farCol + 1}: it stands there on the cockpit and the minimap, and the release opened nothing`,
+      `dragging ${titleOf(mover.key)}: at ${now}, wanted ${[farCol, mover.row]}; moved ${Layout.moved()}; focus ${App.focus}; minimap rightmost ${rightmost && rightmost.label}`);
+    const bad = [...overlaps(COCKPIT_PARTS), ...overlaps(MINI_PARTS)];
+    ok(!bad.length && Layout.check(Layout.cells()) === "", "after the drag: nothing overlaps on the cockpit or the minimap", `after the drag: ${bad.slice(0, 3).join("; ") || Layout.check(Layout.cells())}`);
+
+    // where the move went: this browser, or the vault by POST /pins
+    const served = Layout.canSave();
+    if (served) {
+      ok(posts.length >= 1 && JSON.stringify(posts[posts.length - 1].pins[mover.key]) === JSON.stringify(now) && /Layout saved to the vault/.test(Layout.note), "served: the drop is POSTed to /pins and the page says Layout saved to the vault", `served: ${posts.length} POSTs, note "${Layout.note}"`);
+    } else {
+      const kept = JSON.parse(Settings.read(`explorer.layout.${D.vaultId}`) || "{}").pins || {};
+      ok(JSON.stringify(kept[mover.key]) === JSON.stringify(now) && !posts.length && !!$('[data-layout="copy"]') && !!$('[data-layout="download"]'), "on a file: the move is kept in this browser under the vault's id, nothing is posted, and Copy layout and Download pins are offered", `on a file: kept ${JSON.stringify(kept)}, ${posts.length} POSTs`);
+      let copied = "";
+      Layout.setCopy(async (text) => { copied = text; });
+      await Layout.copy(); Layout.setCopy(null);
+      let json = null; try { json = JSON.parse(copied); } catch (e) { console.warn("[selftest] copied layout is not JSON:", e.message); }
+      ok(!!json && JSON.stringify(json[mover.key]) === JSON.stringify(now) && copied.endsWith("\n"), "Copy layout gives the pins file's JSON, with the move in it", `Copy layout gave "${copied.slice(0, 60)}"`);
+    }
+
+    // a drop on another box's cell settles in the nearest free cell, never on it
+    dragTo(mover.key, other.col, other.row);
+    await flush();
+    const settled = [NODE[mover.key].col, NODE[mover.key].row], bad2 = [...overlaps(COCKPIT_PARTS), ...overlaps(MINI_PARTS)];
+    ok(!(settled[0] === other.col && settled[1] === other.row) && Layout.check(Layout.cells()) === "" && !bad2.length,
+      `dropping ${titleOf(mover.key)} on ${titleOf(other.key)}: it settles in the nearest free cell (${settled.join(",")}), no overlap`, `drop on a taken cell: at ${settled}, ${Layout.check(Layout.cells())} ${bad2.slice(0, 3).join("; ")}`);
+
+    // the keyboard: an arrow key moves the focused box one cell; a move off the board is refused and said
+    dragTo(mover.key, farCol, mover.row); await flush();
+    const before = Layout.cell(mover.key).slice();
+    boxOf(mover.key).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    await flush();
+    const arrived = Layout.cell(mover.key), focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.key : "";
+    ok(arrived[0] === before[0] + 1 && arrived[1] === before[1] && focused === mover.key && /moved to column/.test(($("#layout-say") || { textContent: "" }).textContent),
+      `arrow key: ${titleOf(mover.key)} moves one cell right and keeps the focus, and the page says where`, `arrow key: ${before} to ${arrived}, focus on ${focused}, said "${($("#layout-say") || { textContent: "" }).textContent}"`);
+    boxOf(mover.key).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+    const up = Layout.cell(mover.key), atTop = arrived[1] === 0;
+    const refused = atTop ? JSON.stringify(up) === JSON.stringify(arrived) && /stays where it is/.test(Layout.note) : up[1] === arrived[1] - 1 || /stays where it is/.test(Layout.note);
+    ok(refused, atTop ? "arrow key: a move off the board is refused and the page says why" : "arrow key: up moves one row, or is refused with the reason", `arrow key up from row ${arrived[1]}: now ${up}, said "${Layout.note}"`);
+
+    const off = Layout.step(mover.key, 0, -(Layout.cell(mover.key)[1] + 1));
+    ok(!off.ok && /off the board/.test(Layout.note), "a step off the top of the board is refused, and the page says why", `a step off the board gave ${JSON.stringify(off)}, said "${Layout.note}"`);
+    // Plain: the same drag, with no animation running
+    FX.set(false); await frames();
+    dragTo(mover.key, farCol + 1, mover.row); await flush();
+    const anim = document.getAnimations ? document.getAnimations().filter((a) => a.playState === "running").length : 0;
+    ok(NODE[mover.key].col === farCol + 1 && !$$("#board .halo").length && !anim, `Plain: dragging works with no glow and ${anim} running animations`, `Plain: at ${NODE[mover.key].col}, ${$$("#board .halo").length} halos, ${anim} animations`);
+    FX.set(fxWas);
+
+    // a cluster of the grouped map moves earlier or later, and the order is kept
+    const ways = [];
+    if (D.map.apps.some((a) => a.domain)) ways.push("domain");
+    ways.push("capability");
+    for (const way of ways) {
+      MapView.st.group = way; MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
+      const keys = () => MapGroups.groups(way).filter((g) => !g.outside).map((g) => g.key);
+      const first = keys();
+      if (first.length < 2) { out.push(`skip moving a ${way} cluster: fewer than two clusters`); continue; }
+      const handle = $(`#board [data-group="${CSS.escape(first[0])}"] .cluster-toggle, #board g.cluster-lamp[data-group="${CSS.escape(first[0])}"]`);
+      handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+      await flush();
+      const second = keys(), swapped = second[0] === first[1] && second[1] === first[0] && second.length === first.length;
+      const clash = overlaps();
+      ok(swapped && !clash.length, `a ${way} cluster moves one place later with the arrow key, and nothing overlaps`, `${way} cluster: order ${first} became ${second}; ${clash.slice(0, 3).join("; ")}`);
+    }
+    MapView.st.group = "none"; MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
+
+    // Reset layout: every box back where the vault's pins have it, and the browser's memory emptied
+    posts.length = 0;
+    const reset = $('[data-layout="reset"]');
+    ok(!!reset && !reset.disabled, "Reset layout is offered once a box has moved", "Reset layout is missing or disabled after moves");
+    reset.click(); await flush();
+    const back = nodes.every((n) => NODE[n.key].col === original[n.key][0] && NODE[n.key].row === original[n.key][1]);
+    const left = served ? "{}" : JSON.stringify((JSON.parse(Settings.read(`explorer.layout.${D.vaultId}`) || "{}").pins) || {});
+    ok(back && (served || left === "{}") && !Layout.moved(), "Reset layout puts every box back where the vault's pins have it, and forgets the moves", `Reset: boxes back ${back}, kept moves ${left}, still moved ${Layout.moved()}`);
+
+    // a reader's page, served: moves stay in this browser unless sent on
+    if (!served) {
+      await Ask.detect(fake, { protocol: "http:", hostname: "127.0.0.1" });
+      Layout.net.fetch = fake; posts.length = 0;
+      Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; rerender(); await frames();
+      const role = D.role, key = mover.key, spot = Layout.nearestFree(key, farCol, mover.row);
+      D.role = "owner";  // a reader's page is the other case, below
+      Layout.move(key, spot); await flush();
+      ok(posts.length === 1 && JSON.stringify(posts[0].pins[key]) === JSON.stringify(spot) && posts[0].kinds[key] === Layout.KIND(key) && /Layout saved to the vault/.test(Layout.note),
+        "served, as the owner: a move is POSTed to /pins with the boxes' kinds, and the page says Layout saved to the vault", `served move: ${posts.length} POSTs, note "${Layout.note}"`);
+      D.role = "reader"; posts.length = 0;
+      const was = Layout.cell(key).slice(), reading = !Layout.canSave();
+      Layout.move(key, [was[0] + 1, was[1]]); await flush();
+      D.role = role;
+      ok(reading && !posts.length, "served, as a reader: a move is not POSTed; it stays in this browser", `reader move posted ${posts.length}, canSave ${!reading}`);
+    }
+    Ask.restore(askWas);
+    Layout.restore(layoutWas);
+    Layout.net.fetch = (...a) => fetch(...a);
+    FX.set(fxWas);
+    MapView.st.group = null; rerender(); await frames();
   }
   async function effects() {
     const was = FX.on;
@@ -360,6 +594,81 @@ const SelfTest = (() => {
   }
   /* What a real vault lacks (no domains, releases, requirement rows, flows, Ask lines) is said where the reader looks,
      with the planner step that writes it; and a flow of inferred arrows says so once. */
+  /* A vault that gains a vault_id keeps what the browser saved under its old id (E18), against a fake store. */
+  /* Keys the page owns must leave fields and controls alone (E34, E35). */
+  /* The page's Content-Security-Policy stops an inline handler from vault text (E38). */
+  async function policy() {
+    window.__cspRan = false;
+    const holder = h("div");
+    document.body.append(holder);
+    holder.innerHTML = '<img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAACAkQBADs=" onload="window.__cspRan = true">';
+    const probe = holder.firstChild;
+    await new Promise((resolve) => { if (probe.complete) resolve(); else { probe.addEventListener("load", resolve); probe.addEventListener("error", resolve); } });
+    holder.remove();
+    ok(!!document.querySelector('meta[http-equiv="Content-Security-Policy"]') && window.__cspRan === false, "policy: the page carries a Content-Security-Policy and an inline handler in vault text does not run", `policy: meta present ${!!document.querySelector('meta[http-equiv="Content-Security-Policy"]')}, injected onload ran ${window.__cspRan}`);
+  }
+  /* Browser Back and a pasted link move the page (E33). Needs a real address bar, so it runs on a file or a served page alike. */
+  async function history_() {
+    const changed = (act) => new Promise((resolve) => { addEventListener("hashchange", resolve, { once: true }); act(); });
+    Nav.home(); Nav.open("decisions", ""); Nav.open("unknowns", "");
+    const before = App.section;
+    await changed(() => history.back());
+    const back = App.section;
+    await changed(() => { location.hash = "#s=goals"; });
+    const pasted = App.section;
+    await changed(() => history.back());
+    ok(before === "unknowns" && back === "decisions" && pasted === "goals", "history: Back returns to the section the lead came from, and a pasted #s= link opens that section",
+      `history: before ${before}, after Back ${back} (wanted decisions), after a pasted link ${pasted} (wanted goals)`);
+    Nav.home();
+  }
+  /* The search box is a combobox a screen reader can follow (E22). */
+  function searchAria() {
+    const q = $("#q"), word = (Object.values(E).map((e) => (e.title || "").split(/\s+/).find((w) => /^[A-Za-z]{4,}$/.test(w))).find(Boolean)) || "vault";
+    Search.type(word);
+    const opts = $$("#results [role=option]"), on = opts.find((o) => o.getAttribute("aria-selected") === "true");
+    if (!opts.length) out.push(`skip search combobox: "${word}" finds nothing in this vault`);
+    else ok(q.getAttribute("role") === "combobox" && q.getAttribute("aria-controls") === "results" && q.getAttribute("aria-expanded") === "true" && !!on && q.getAttribute("aria-activedescendant") === on.id && opts.every((o) => o.id),
+      "search: the box is a combobox; the open list is expanded, every result has an id and the highlighted one is the active descendant", `search: role ${q.getAttribute("role")}, expanded ${q.getAttribute("aria-expanded")}, ${opts.length} options, selected ${on && on.id}, active ${q.getAttribute("aria-activedescendant")}`);
+    Search.type("zzqqxx nothingmatches");
+    const said = $("#results-status").textContent;
+    ok(!!said && !$("#results [role=option]") && !q.getAttribute("aria-activedescendant"), "search: a search that finds nothing is said aloud, with no active descendant", `search: status "${said}"`);
+    q.value = ""; Search.type(""); 
+    ok(q.getAttribute("aria-expanded") === "false" && $("#results-status").textContent === "", "search: an emptied box collapses and goes quiet", `search: expanded ${q.getAttribute("aria-expanded")}`);
+  }
+  function keyboard() {
+    const press = (target, key) => { const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }); target.dispatchEvent(ev); return ev; };
+    const box = h("textarea"), button = h("button", {}, "Next step");
+    document.body.append(box, button);
+    box.focus(); press(box, "/");
+    const stayed = document.activeElement === box;
+    const view = App.view; if (D.flows.length) showView("flows");  // the player's keys only act in the flows view
+    button.focus(); const space = press(button, " "), arrow = press(button, "ArrowRight");
+    showView(view);
+    document.body.focus(); press(document.body, "/");
+    const toSearch = document.activeElement === $("#q");
+    box.remove(); button.remove(); $("#q").blur();
+    ok(stayed && toSearch, "keys: / types a slash in a text field and jumps to search from anywhere else", `keys: / stayed in the field ${stayed}, reached search from the page ${toSearch}`);
+    ok(!space.defaultPrevented && !arrow.defaultPrevented, "keys: Space and the arrows are left to a focused button, so Next and Play can be pressed", `keys: Space prevented ${space.defaultPrevented}, arrow prevented ${arrow.defaultPrevented}`);
+  }
+  /* A saved value that will not parse is kept and reported, not replaced by an empty one (E31). */
+  function corruptState() {
+    const key = "explorer.selftest.corrupt", warn = console.warn; let said = "";
+    console.warn = (m) => { said = String(m); };
+    Settings.write(key, "{not json");
+    const got = Settings.readJson(key, { fresh: true }, "the selftest's marks");
+    console.warn = warn;
+    const kept = Settings.read(key + ".unreadable"), note = $("#toast").textContent;
+    localStorage.removeItem(key); localStorage.removeItem(key + ".unreadable");
+    ok(got.fresh === true && kept === "{not json" && /cannot be read/.test(said) && /Could not read/.test(note), "saved state: a value that will not parse is kept under .unreadable, logged, and the page says so", `saved state: got ${JSON.stringify(got)}, kept ${kept}, log "${said}", note "${note}"`);
+  }
+  function savedState() {
+    const data = { "asks:old1": "board", "explorer.layout.old1": "layout", "explorer.ask.old1": "chats", "rehearse:old1:FLO-001": "tries", "asks:other": "x", "asks:new1": "kept" };
+    const fake = { get length() { return Object.keys(data).length; }, key: (i) => Object.keys(data)[i], getItem: (k) => (k in data ? data[k] : null), setItem: (k, v) => { data[k] = v; } };
+    const copied = migrateSaved("old1", "new1", fake);
+    ok(data["explorer.layout.new1"] === "layout" && data["explorer.ask.new1"] === "chats" && data["rehearse:new1:FLO-001"] === "tries" && data["asks:new1"] === "kept" && data["asks:other"] === "x" && data["asks:old1"] === "board",
+      "saved state: marks, layout, conversations and rehearsals move to a new vault id once; what is already there is kept; the old copy stays", `saved state: ${JSON.stringify(data)}`);
+    ok(copied.length === 3 && !migrateSaved("old1", "old1", fake).length, "saved state: only the keys that were missing are copied, and the same id moves nothing", `saved state: copied ${copied.length}`);
+  }
   async function emptyStates() {
     const has = (root, text) => $$(".empty-state", root).some((e) => e.dataset.empty === text);
     const doorHas = async (role, text) => { Nav.role(role); await frames(); return has($(".door"), text); };
@@ -434,6 +743,11 @@ const SelfTest = (() => {
     } else {
       ok(real.mode === "served" && real.fetches === 1 && document.documentElement.dataset.ask === "served",
         "ask when served: the page found its helper with one /health request", `ask when served: mode ${real.mode}, ${real.fetches} fetches, flag ${document.documentElement.dataset.ask}`);
+      // every file link the served page offers reaches its file through the helper (a design outside the vault offers none)
+      const hrefs = [...Object.values(E).filter((e) => e.path).slice(0, 4).map((e) => openHref("", e.path)), ...Object.values(D.designs).map((d) => openHref(d.href, d.vaultPath)).filter(Boolean)];
+      const missed = [];
+      for (const href of hrefs) { const res = await realFetch(href); if (!res.ok) missed.push(`${href} ${res.status}`); }
+      ok(hrefs.length > 0 && !missed.length, `served: ${plural(hrefs.length, "Open the file link")} each reach their file through the helper`, `served: Open-the-file links that reach nothing: ${missed.join(", ") || "none offered"}`);
     }
     // served, against a fake helper
     const known = Object.keys(E).find((k) => idOf(k)), id = idOf(known), calls = [];
@@ -564,11 +878,123 @@ const SelfTest = (() => {
     Ask.restore(real);
     Nav.home(); go("lights", { reset: true });
   }
+  /* The work queue beside the map, and the panel that complements it. The queue is a short ranked list of the open
+     questions that hold something up, in plain words; the panel lists the lit things on the map, not the same
+     questions again, and carries the queue itself only where the queue is not on the page. */
+  async function queueChecks() {
+    const q = Queue.items(), top = Math.min(Queue.TOP, q.length), rows = () => $$(".home-stage .q-row");
+    const ranked = q.every((x, i) => !i || rank(q[i - 1].level) > rank(x.level) || (q[i - 1].level === x.level && q[i - 1].urgency >= x.urgency));
+    ok(ranked && q.every((x) => x.level === ASK[x.id].light.level), `queue: ${q.length} open questions that hold something, in attention's order (level, then urgency), each lamp the question's own light`, "queue: the order or a lamp is not attention's");
+    const held = new Set([...D.above.map((a) => a.unknown), ...Object.values(D.blockedBy).flat()].filter((u) => isOpen(ASK[u])));
+    ok(held.size === q.length && [...held].every((u) => q.some((x) => x.id === u)), `queue: every open question that holds something is listed once (${held.size}), not once per thing it holds (${D.above.length} held above the map)`, `queue: ${q.length} listed for ${held.size} holding questions`);
+    ok(rows().length === top && rows().every((r) => !/^[A-Z]+-\d+/.test($(".q-title", r).textContent) && !/\b(UNK|CAP|EPC|CON|APP)-\d/.test(r.textContent) && r.title.startsWith(r.dataset.ref)),
+      `queue: the top ${top} show in plain words, with what each holds up and who to ask; the ID is in the tooltip only`, "queue: a row shows an ID or lacks its tooltip");
+    ok(rows().every((r) => /Holds /.test($(".q-sub", r).textContent) && /Ask /.test($(".q-ask", r).textContent) && $(".q-when b", r).textContent.trim()), "queue: each row says what it holds up, who to ask and by when", "queue: a row lacks what it holds, who to ask or when");
+    ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$(".home-stage .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
+    const card = $(".q-card"), map = $(".home-map"), a = card.getBoundingClientRect(), b = map.getBoundingClientRect();
+    const apart = a.right <= b.left + 1 || a.bottom <= b.top + 1;  // beside the map, or folded above it
+    ok(apart && b.height > 150, `queue: the card and the map do not overlap, and the map keeps ${Math.round(b.height)} px of height (${innerWidth}x${innerHeight})`, `queue: card ${Math.round(a.left)}..${Math.round(a.right)} x ${Math.round(a.top)}..${Math.round(a.bottom)} meets the map ${Math.round(b.left)}..${Math.round(b.right)} x ${Math.round(b.top)}..${Math.round(b.bottom)}`);
+    if (q.length > Queue.TOP) {
+      $(".q-more").click(); await frames();
+      const groups = $$(".home-stage .q-group"), sum = groups.reduce((n, g) => n + (+$(".ct", g).textContent), 0);
+      ok(rows().length === q.length && sum === q.length && groups.every((g) => $$(".q-row", g).length === +$(".ct", g).textContent), `queue: Show all ${q.length} groups them by what they hold (${groups.map((g) => $("h4", g).firstChild.textContent).join(", ")}), counts adding up`, `queue: ${rows().length} rows in ${groups.length} groups, counts ${sum}, wanted ${q.length}`);
+      $(".q-more").click(); await frames();
+      ok(rows().length === top, `queue: Show the top ${Queue.TOP} folds it back to ${top}`, "queue: the list did not fold back");
+    }
+    if (q.length) {
+      rows()[0].click(); await frames();
+      ok(App.focus === q[0].id && $("#panel h2").textContent === q[0].title && rows()[0].classList.contains("on"), `queue: picking "${q[0].title}" opens it in the panel and marks the row`, `queue: focus ${App.focus}, panel "${$("#panel h2").textContent}"`);
+    }
+    go("lights", { reset: true }); await frames();
+    const lit = litSubjects();
+    ok($$("#panel .q-row").length === 0 && $$("#panel .light-row").length === lit.length, `panel home: ${lit.length} lit things on the map, and none of the ${q.length} queued questions repeated beside the queue`, `panel home: ${$$("#panel .q-row").length} queue rows and ${$$("#panel .light-row").length} lit rows beside the queue`);
+    Nav.open("goals"); go("lights", { reset: true }); await frames();
+    ok($$("#panel .q-row").length === top, `panel home, away from the home page: carries the queue (${top} of ${q.length}) because the page does not`, `panel home on Goals: ${$$("#panel .q-row").length} queue rows`);
+    const counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
+    ok(Object.entries(masters).every(([lv, n]) => n === counts[lv]), `top bar: ${Object.entries(masters).map(([lv, n]) => `${n} ${lv}`).join(", ")}, each question counted once`, `top bar ${JSON.stringify(masters)} against ${JSON.stringify(counts)}`);
+    Nav.home(); go("lights", { reset: true }); await frames();
+  }
+
+  /* The decision log: a table that sorts and filters, and a decision record per row. */
+  async function decisionChecks() {
+    showView("decisions"); await frames();
+    const all = Decisions.trees.length, base = Decisions.entries.filter((e) => !e.bare), rows = () => $$(".dl-row");
+    if (!all) { ok(!!$("#main .empty-state"), "decisions: no decision records its options, and the view says so", "decisions: nothing listed and no empty state"); return; }
+    ok(rows().length === base.length && $$(".dl-name").every((n) => n.textContent.trim()), `decisions: ${base.length} in the log, each with a plain name${Decisions.entries.length > base.length ? `; ${Decisions.entries.length - base.length} decided pages with no options are kept behind a filter` : ""}`, `decisions: ${rows().length} rows for ${base.length} decisions`);
+    ok(viewDef("decisions").alias === "garden", "decisions: the old #garden route still lands here", "decisions: the #garden alias is gone");
+    const cells = rows().slice(0, 3).every((r) => { const rs = $$(".dl-c", r).map((c) => c.getBoundingClientRect()); return rs.every((x, i) => rs.every((y, j) => i >= j || x.right <= y.left + 1 || y.right <= x.left + 1 || x.bottom <= y.top + 1 || y.bottom <= x.top + 1)); });
+    ok(cells, "decisions: the cells of a row do not overlap", "decisions: cells of a row overlap");
+    const states = Decisions.STATES.filter(([id]) => base.some((e) => e.state === id));
+    for (const [id, word] of states.slice(0, 2)) {
+      $(`[data-state="${id}"]`).click(); await frames();
+      const want = base.filter((e) => e.state === id).length;
+      ok(rows().length === want && rows().every((r) => $(".dl-state .pill", r).textContent.includes(word)), `decisions: filtering to ${word} shows ${want}`, `decisions: ${word} filter shows ${rows().length}, wanted ${want}`);
+      $(`[data-state="${id}"]`).click(); await frames();
+    }
+    $('[data-sort="name"]').click(); await frames();
+    const names = $$(".dl-name").map((n) => n.textContent.trim().toLowerCase()), sorted = names.slice().sort((x, y) => cmp(x, y));
+    ok(JSON.stringify(names) === JSON.stringify(sorted) && $('[data-sort="name"]').getAttribute("aria-sort") === "ascending", "decisions: sorting by Decision puts the names in order, and the header says so", `decisions: sort by name gave ${names.slice(0, 3).join(" | ")}`);
+    $('[data-sort="name"]').click(); await frames();
+    ok($('[data-sort="name"]').getAttribute("aria-sort") === "descending" && $$(".dl-name")[0].textContent.trim().toLowerCase() === sorted[sorted.length - 1], "decisions: the same header again reverses it", "decisions: the second click did not reverse the order");
+    $('[data-sort="state"]').click(); await frames();
+    const first = base[0], word = first.name.split(/\s+/).find((w) => w.length > 3) || first.name;
+    const find = $(".dl-find"); find.value = word; find.dispatchEvent(new Event("input")); await frames();
+    ok(rows().length >= 1 && rows().length <= base.length && document.activeElement !== null, `decisions: finding "${word}" leaves ${rows().length} of ${base.length}`, `decisions: search for "${word}" left ${rows().length}`);
+    find.value = "zzzz-no-such-decision"; find.dispatchEvent(new Event("input")); await frames();
+    ok(!rows().length && !!$(".dl-none"), "decisions: a search that matches nothing says so and offers to clear the filters", "decisions: an empty search shows nothing and says nothing");
+    find.value = ""; find.dispatchEvent(new Event("input")); await frames();
+    const pick = Decisions.visible()[0];
+    rows()[0].click(); await frames();
+    const rec = $(".dl-detail"), chosen = rec && $$(".dl-options .chosen", rec).length, turned = rec ? $$(".dl-options .rejected", rec).length : -1;
+    ok(!!rec && $("h2", rec).textContent === pick.name && chosen === 1 && turned === pick.rejected.length, `decisions: opening "${pick.name}" shows its record with the choice and ${turned} option${turned === 1 ? "" : "s"} turned down, each with its reason`, `decisions: record ${!!rec}, chosen ${chosen}, turned down ${turned} of ${pick.rejected.length}`);
+    ok(["Context", "Options considered", "Decision", "Consequences", "History"].every((s) => $$(".dl-sec h3", rec).some((x) => x.textContent === s) || (s === "Context" && !pick.t.carriedBy[0].text)), "decisions: the record has its context, options, decision, consequences and history", "decisions: a section of the record is missing");
+    const lr = $(".dl-listwrap"), dr = rec.getBoundingClientRect(), ls = lr.getBoundingClientRect(), hidden = getComputedStyle(lr).display === "none";
+    ok(hidden || ls.right <= dr.left + 1, "decisions: the list and the record sit side by side or the record takes the room, never over one another", `decisions: list ${Math.round(ls.left)}..${Math.round(ls.right)} meets the record from ${Math.round(dr.left)}`);
+    const adr = base.find((e) => e.t.adr);
+    if (adr) { Decisions.select(""); Decisions.showFor(adr.t.adr.key); await frames(); ok($(".dl-detail h2").textContent === adr.name, `decisions: a link to ${adr.t.adr.id} opens its record, ${adr.name}`, `decisions: ${adr.t.adr.id} opened "${($(".dl-detail h2") || { textContent: "nothing" }).textContent}"`); }
+    Decisions.select(""); await frames();
+    $('[data-mode="timeline"]').click(); await frames();
+    const tl = $$(".dl-tl");
+    ok(tl.length === Decisions.visible().length && !$$(".dl-row").length, `decisions: the timeline lists the same ${tl.length}, by month`, `decisions: timeline ${tl.length} of ${Decisions.visible().length}`);
+    $('[data-mode="log"]').click(); await frames();
+    ok(!$$("#main svg.sheet").length, "decisions: no drawing stands in for the data", "decisions: a sheet drawing is still there");
+  }
+  /* Plain names in prose: a bare ID the vault holds reads as its name with the ID in the tooltip, and a Trace line is
+     one folded row of name chips. Both are read from the pages this vault ships; a vault with neither says so. */
+  async function plainNames() {
+    const boxes = Object.keys(D.reader).map((k) => h("div", { html: D.reader[k].html }));
+    const named = boxes.flatMap((b) => $$("a.idname", b)), rows = boxes.flatMap((b) => $$("details.r-trace", b));
+    if (!named.length) out.push("skip plain names: no page here writes a bare ID the vault holds");
+    else {
+      const bad = named.filter((a) => { const id = a.getAttribute("title"), label = [...a.childNodes].filter((n) => !(n.classList && n.classList.contains("idsuf"))).map((n) => n.textContent).join("").trim(); return !id || !label || label === id || !ent(a.dataset.ref); });
+      ok(!bad.length, `plain names: ${named.length} bare IDs in prose read as their names, the ID in the tooltip`, `plain names: ${bad.length} of ${named.length} bare IDs lost their name or tooltip, first ${bad[0] && bad[0].outerHTML}`);
+      const host = h("div", {}, named.slice(0, 1).map((a) => a.cloneNode(true))); document.body.append(host);
+      const suffix = $(".idsuf", host), shown = suffix && getComputedStyle(suffix).display !== "none";
+      host.remove();
+      ok(!!suffix && !shown, "plain names: the muted ID suffix stays hidden until hover", "plain names: the ID suffix shows without hover");
+    }
+    // A question's state pill beside its link: a real space between them, so copied text reads "made (resolved)" and
+    // never "madeopen"; and no "open" pill in running prose, where open is the default and only noise.
+    const pills = boxes.flatMap((b) => $$(".ustate", b));
+    if (!pills.length) out.push("skip state pills: no page here links a question with a state worth flagging");
+    else {
+      const glued = pills.filter((p) => { const prev = p.previousSibling; return !(prev && prev.nodeType === 3 && /\s$/.test(prev.nodeValue)); });
+      const labelled = pills.filter((p) => !p.getAttribute("aria-label") || !/^\(.*\)$/.test(p.textContent));
+      ok(!glued.length && !labelled.length, `state pills: ${pills.length} pills, each set off from its link by a space, with an accessible label and parentheses that copy`, `state pills: ${glued.length} glued to the link (first ${glued[0] && glued[0].parentNode.textContent.slice(0, 60)}), ${labelled.length} unlabelled`);
+    }
+    const proseOpen = boxes.flatMap((b) => $$("p .ustate.us-open, blockquote .ustate.us-open, h1 .ustate.us-open, h2 .ustate.us-open, h3 .ustate.us-open", b)).filter((p) => !p.closest("li, td, th"));
+    ok(!proseOpen.length, "state pills: no 'open' pill in running prose", `state pills: ${proseOpen.length} 'open' pills in prose, first after ${proseOpen[0] && proseOpen[0].previousElementSibling && proseOpen[0].previousElementSibling.textContent}`);
+    if (!rows.length) out.push("skip trace rows: no page here carries a Trace line");
+    else {
+      const bad = rows.filter((r) => !$("summary", r) || !$$("a.chip", r).length || $$("a.chip", r).some((a) => !ent(a.dataset.ref) || /^[A-Z]+-\d+/.test(a.textContent.trim())));
+      ok(!bad.length && rows.every((r) => !r.open), `trace rows: ${rows.length} Trace lines are folded rows of name chips`, `trace rows: ${bad.length} rows lack a summary, a chip, or show an ID as a chip name`);
+    }
+  }
   async function run() {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await effects(); await panelRoom(); await releases(); await emptyStates(); await askChecks(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
@@ -687,13 +1113,17 @@ const SelfTest = (() => {
       ok(!!row && !!row.querySelector(kind === "ack" ? ".lamp.dark" : ".lamp.caution"), `reverse trace: ${id} untraced, ${kind === "ack" ? "grey, acknowledged by " + Inside.UNTRACED[id].find((u) => u.gap).gap : "amber, and no gap says so"}`, `reverse trace: ${id} shows no ${kind} row`);
     }
     // a design question's challenge lights the vault item it challenges, with its scenario
-    for (const [id, list] of Object.entries(Inside.CHALLENGED)) {
-      const k = keyForId(id), chipLamp = refChip(k).querySelector(".lamp");
+    for (const id of Object.keys(Inside.CHALLENGED)) {
+      const k = keyForId(Inside.challengeHome(id)), list = Inside.challenge(k);
+      // a constraint row (CST-010) is a line in a page, not a page: the home list names it, no item page can light
+      if (!ent(k)) { out.push(`skip challenge: ${id} has no page or item of its own to light`); continue; }
+      const chipLamp = refChip(k).querySelector(".lamp");
       go(k, { reset: true });
       const sec = $$("#panel .in-challenge");
       ok(!!chipLamp && chipLamp.classList.contains("caution") && sec.length === list.length && (!list[0].scenario || sec[0].textContent.includes(list[0].scenario.slice(0, 30))),
         `challenge: ${id} lit "needs you" by ${list.map((c) => c.oq).join(", ")} in the ${titleOf(list[0].app)} design${list[0].scenario ? ", with its scenario" : ""}`, `challenge: ${id} lamp ${chipLamp ? chipLamp.className : "none"}, ${sec.length} sections`);
     }
+    await planChecks(ok, out, apps);
     // the deep link, the crumbs, the doors, the sidebar and the map
     const k0 = loaded[0] || apps[0];
     Inside.open(k0, "components", { tab: "flows" });
@@ -704,7 +1134,7 @@ const SelfTest = (() => {
     ok($$(".pages table.t .d-status").length === loaded.length, `progress: the stage ladder carries ${plural(loaded.length, "design")}' state`, `progress: ${$$(".pages table.t .d-status").length} design states for ${loaded.length}`);
     Roles.st.app = k0; Nav.role("eng");
     const entry = $(".door-card .in-door");
-    ok(!!entry && $$("[data-inside]", entry).length === 3, `engineering door: an Inside entry for ${titleOf(k0)}, with its three levels`, "engineering door: no Inside entry");
+    ok(!!entry && $$("[data-inside]", entry).length === 4 && !!$("[data-readiness]", entry), `engineering door: an Inside entry for ${titleOf(k0)}, with its four levels and its plan readiness`, "engineering door: no Inside entry");
     Nav.open("apps", k0);
     const listed = Nav.st.expanded.has("apps");  // past 12 apps the sidebar starts with its app list folded
     ok((!listed || !!$(`#side .side-inside[data-inside="${CSS.escape(k0)}"]`)) && !!$("#main .inside-btn"), `${listed ? "sidebar and " : ""}section page: ${titleOf(k0)} offers Inside this app`, "the app's sidebar entry or page has no Inside");
@@ -712,13 +1142,87 @@ const SelfTest = (() => {
     if (box) { box.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })); ok(App.view === "inside" && Inside.st.level === "containers", `the map: double-clicking ${titleOf(k0)} goes inside, to its containers`, `double-click: view ${App.view}, level ${Inside.st.level}`); }
     // every theme and Plain: the drawing still lays out with nothing on anything, and Plain runs no animation
     const was = Theme.id, fx = FX.on, themed = [];
-    for (const t of Theme.LIST) { Theme.set(t.id); Inside.open(k0, "components"); const o = overlaps(); if (o.bad.length || !$("#inside-stage")) themed.push(`${t.id}: ${o.bad.length} overlaps`); }
+    const planned0 = apps.find((k) => (D.plans || {})[k]);
+    for (const t of Theme.LIST) {
+      Theme.set(t.id); Inside.open(k0, "components");
+      let o = overlaps();
+      if (planned0) { Inside.open(planned0, "plan"); const q = overlaps(); o = { bad: [...o.bad, ...q.bad] }; }
+      if (o.bad.length || !$("#inside-stage")) themed.push(`${t.id}: ${o.bad.length} overlaps`);
+    }
     Theme.set(was);
     FX.set(false); Inside.open(k0, "containers"); Inside.open(k0, "components");
     const anim = document.getAnimations ? document.getAnimations().filter((a) => a.playState === "running").length : 0;
     ok(!themed.length && !anim, `inside in every theme (${Theme.LIST.map((t) => t.label).join(", ")}) lays out cleanly; in Plain a level change runs ${anim} animations`, `inside themes: ${themed.join("; ")}; Plain animations ${anim}`);
     FX.set(fx);
   }
+  /* The build plan (plan.js): level 4 draws from the plan, the dependency view has nothing on anything, every trace chip
+     resolves or is dead for the reason the build gave, a lit card wears its question's lamp, the copy is the CSV the
+     tool writes, and the vault item says which story builds it. */
+  async function planChecks(ok, out, apps) {
+    const planned = apps.filter((k) => (D.plans || {})[k]), bare = apps.find((k) => !(D.plans || {})[k]);
+    if (!planned.length) out.push("skip inside, build plan: no work breakdown was found for this build");
+    for (const k of planned) {
+      const p = D.plans[k], name = titleOf(k);
+      Inside.open(k, "plan");
+      const cards = $$("#inside-stage .plan-card"), crumb = $(".inside-crumbs .cur");
+      ok(cards.length === p.stories.length && cards.every((c, i) => c.dataset.story === p.stories[i].id) && crumb && crumb.textContent === "Build plan",
+        `inside ${name}, build plan: ${cards.length} story cards in build order, crumbs end at Build plan`, `inside ${name}, build plan: ${cards.length} cards of ${p.stories.length}`);
+      ok(location.hash.includes(`level=plan`), `deep link: ${location.hash.split("&selftest")[0]}`, `deep link: ${location.hash}`);
+      planProblemsChecks(ok, k, p, name);
+      const flagged = p.stories.filter((x) => x.openNotes.length || x.conflicts.length);
+      ok(flagged.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return $$(".plan-badge[data-flag=open]", c).length === (x.openNotes.length ? 1 : 0) && $$(".plan-badge[data-flag=conflict]", c).length === x.conflicts.length; })
+        && $$("#inside-stage .plan-badge").length === flagged.reduce((n, x) => n + (x.openNotes.length ? 1 : 0) + x.conflicts.length, 0),
+        `inside ${name}, build plan: ${plural(flagged.length, "card")} wear a labelled badge for each open note and conflict`, `inside ${name}, build plan: badges do not match the notes of ${flagged.map((x) => x.id).join(", ")}`);
+      const o = overlaps(), nodes = $$("#plan-dag .plan-node").length;
+      ok(nodes === p.stories.length && !o.bad.length, `inside ${name}, dependency view: ${nodes} stories, ${o.n} boxes and labels, no two overlap`, `inside ${name}, dependency view: ${nodes} of ${p.stories.length}; overlaps ${o.bad.slice(0, 3).join("; ")}`);
+      const arrows = $$("#plan-dag path.in-edge").length, want = p.stories.reduce((n, x) => n + x.blockers.length, 0);
+      ok(arrows === want, `inside ${name}, dependency view: ${arrows} arrows, one for each Blocked by`, `inside ${name}, dependency view: ${arrows} arrows for ${want} blockers`);
+      const dead = $$("#inside-stage .plan-traces .ref-chip.ref-dead").length;
+      ok(dead === p.unresolved.length && $$("#inside-stage .plan-traces .ref-chip:not(.ref-dead)").every((c) => !!c.dataset.ref && !!ent(c.dataset.ref)),
+        `inside ${name}, build plan: every trace chip resolves into the vault (${dead} named by the build as not in it)`, `inside ${name}, build plan: ${dead} dead chips, the build names ${p.unresolved.length}`);
+      const lit = p.stories.filter((x) => x.blockers.some((b) => b.kind === "question" && isOpen(UNKNOWN[b.ref])));
+      ok(lit.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return c.className.includes("lit ") && !!$(".lamp", c); }),
+        `inside ${name}, build plan: ${plural(lit.length, "card")} blocked by an open vault question wear that question's lamp`, `inside ${name}, build plan: a card blocked by an open question is not lit`);
+      const empty = $$("#inside-stage .plan-cov tr.empty").length, want0 = p.coverage.targets.concat(p.coverage.components).filter((r) => !r.stories.length).length;
+      ok(empty === want0 && (!empty || !!$("#inside-stage .plan-sum.bad")), `inside ${name}, build plan: coverage lights its ${plural(empty, "empty row")}`, `inside ${name}, build plan: ${empty} empty rows lit, ${want0} computed`);
+      const comp = $("#inside-stage .plan-comp[data-component]");
+      if (comp) {
+        const want1 = comp.dataset.component; comp.click();
+        ok(Inside.st.level === "components" && !!$(`#panel h2`) && $("#panel h2").textContent.includes(want1), `inside ${name}, build plan: a component chip jumps to ${want1} in the components`, `inside ${name}, build plan: the chip left level ${Inside.st.level}`);
+        Inside.open(k, "plan");
+      }
+      let copied = null;
+      const was = Plan.sink.write;
+      Plan.sink.write = async (text) => { copied = text; };
+      $("#inside-stage .plan-copy").click();
+      await new Promise((r) => setTimeout(r, 30));
+      Plan.sink.write = was;
+      ok(copied === p.csv && copied.split("\r\n").length - 1 === p.stories.length + p.totals.tasks + 1,
+        `inside ${name}, build plan: "Copy as Jira CSV" hands over the build's CSV, ${p.stories.length + p.totals.tasks} rows and a header`, `inside ${name}, build plan: copied ${copied === null ? "nothing" : copied.length + " characters, not the CSV"}`);
+      const built = Object.keys(Plan_BUILT_KEYS(k)).find((id) => E[id]);
+      if (built) { go(built, { reset: true }); ok($$("#panel .in-owner.built").some((x) => /Built by S-\d+/.test(x.textContent)), `reverse trace: ${built}'s panel says "Built by ${Plan.built(built)[0].story} (${Plan.planWord(k)})"`, `reverse trace: ${built} shows no Built by`); }
+    }
+    if (bare) {
+      Inside.open(bare, "plan");
+      const say = ($("#inside-stage .inside-chip-card") || { textContent: "" }).textContent;
+      ok(/No build plan yet\./.test(say) && say.includes("docs/plan/<slug>-breakdown.md"), `inside ${titleOf(bare)}, build plan: none, so the chip says what writes one`, `inside ${titleOf(bare)}, build plan: no empty-state chip`);
+    }
+  }
+  /* What the page could not read of the plan is a count that opens a list, and the list starts closed and is never the
+     first thing on the page. With none to show, a line is added for the check and taken away again. */
+  function planProblemsChecks(ok, k, p, name) {
+    const added = !p.problems.length;
+    if (added) { p.problems.push("selftest: a line this page could not read"); Inside.open(k, "plan"); }
+    const list = $("#inside-stage #plan-problems"), chip = $("#inside-stage .d-problems"), first = $("#plan-page").firstElementChild;
+    ok(!!list && list.hidden && !!chip && +chip.dataset.problems === p.problems.length && chip.getAttribute("aria-expanded") === "false" && /could not read — show$/.test(chip.textContent) && first !== list,
+      `inside ${name}, build plan: ${plural(p.problems.length, "unreadable line")} counted on the chip, the list collapsed and not the first thing on the page`, `inside ${name}, build plan: list ${list ? (list.hidden ? "hidden" : "OPEN") : "missing"}, chip "${chip ? chip.textContent : "missing"}"`);
+    if (chip) {
+      chip.click();
+      ok(!list.hidden && list.querySelectorAll("li").length === p.problems.length + p.unresolved.length && /— hide$/.test(chip.textContent), `inside ${name}, build plan: the chip opens the list`, `inside ${name}, build plan: the chip did not open the list`);
+    }
+    if (added) { p.problems.pop(); Inside.open(k, "plan"); }
+  }
+  const Plan_BUILT_KEYS = (app) => Object.fromEntries(D.plans[app].stories.flatMap((x) => x.traces.map((t) => [t.split("@")[0], 1])));
   /* Reader drafts, pending approval and freshness: the build's data drawn as the spec says, and the file:// page
      touching nothing. Synthetic rows stand in where this vault has no draft, so every build checks the drawing. */
   async function draftChecks(ok) {
@@ -812,6 +1316,15 @@ const SelfTest = (() => {
     const polled = calls.length === 1 && calls[0] === "/freshness" && Freshness.st.fetches === count + 1 && !$("#fresh").hidden && Freshness.st.live;
     Freshness.st.report = live.report; Freshness.st.live = live.live; Freshness.st.fetches = count; restore(); Freshness.render();
     ok(polled, "freshness when served: a poll asks /freshness once and shows the banner from the answer", `freshness when served: calls ${calls}, banner hidden ${$("#fresh").hidden}`);
+    // E39: after a failed check the banner stops saying "checked just now" in its visible text
+    const broken = Freshness.use(async () => new Response("{}", { status: 503 }), () => true), saved = { report: Freshness.st.report, live: Freshness.st.live, error: Freshness.st.error };
+    Freshness.st.report = newer; Freshness.st.live = true; Freshness.st.last = 0;
+    const warn = console.warn; console.warn = () => {};
+    await Freshness.poll("selftest");
+    console.warn = warn;
+    const said = $("#fresh").textContent;
+    Object.assign(Freshness.st, saved); broken(); Freshness.render();
+    ok(/could not check just now; as of 2026-10-18 09:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
   }
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length;

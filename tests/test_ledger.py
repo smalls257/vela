@@ -359,14 +359,14 @@ def test_a_ledger_saved_with_crlf_line_endings_still_reads(ub):
 ])
 def test_a_ledger_header_that_is_not_exact_is_e801_and_never_hides_the_ledger(ub, header):
     edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n|---|---|---|---|---|", header + "\n|---|---|---|---|---|")
-    assert broken(ub, allow=("W809",)) == [("E801", LEDGER)]
+    assert broken(ub, allow=("W809", "W366")) == [("E801", LEDGER)]
     untyped_warns(ub)
     assert "is headed" in check(ub, TODAY)[1] and "not exactly" in check(ub, TODAY)[1]
 
 
 def test_a_ledger_table_must_sit_directly_under_the_ledger_heading(ub):
     edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n", "## Notes\n\n| Copy | State | Evidence | By | Date |\n")
-    assert broken(ub, allow=("W809",)) == [("E801", LEDGER)]
+    assert broken(ub, allow=("W809", "W366")) == [("E801", LEDGER)]
     untyped_warns(ub)
     assert "must sit under ## Question ledger" in check(ub, TODAY)[1]
 
@@ -408,7 +408,7 @@ def test_a_reviewer_quote_is_checked_against_its_page_too(ub):
 
 def test_rows_of_a_misplaced_table_are_read_but_dispose_of_nothing(ub):
     edit(ub / LEDGER, "| Copy | State | Evidence | By | Date |\n", "## Notes\n\n| Copy | State | Evidence | By | Date |\n")
-    assert broken(ub, allow=("W809",)) == [("E801", LEDGER)]
+    assert broken(ub, allow=("W809", "W366")) == [("E801", LEDGER)]
     untyped_warns(ub)
     code, answer = ask(ub)
     assert code == 0 and answer["undisposed"] == 57 and not any(c["valid"] for c in answer["copies"] if c["row"])

@@ -14,6 +14,9 @@ import time
 import uuid
 
 argv = sys.argv[1:]
+if argv == ["--help"]:  # the helper asks which flags this program has; that is not a question to log or answer
+    print("Options:\n  --restricted  Restricted mode: confines the file tools to the working directories")
+    sys.exit(0)
 log = os.environ.get("EXPLORE_STUB_LOG")
 if log:
     with open(log, "a", encoding="utf-8") as out:

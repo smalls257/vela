@@ -33,7 +33,7 @@ Lets an agent repair a booking that was paid for but never confirmed.
 
 ## Flows
 
-None after INI-002. The retry path in [[FLO-001-hold-pay-confirm|FLO-001 Hold, pay, confirm]] replaces it.
+None after this initiative. The retry path in [[FLO-001-hold-pay-confirm|Hold, pay, confirm]] replaces it.
 
 ## Delivered by
 
@@ -43,4 +43,4 @@ None after INI-002. The retry path in [[FLO-001-hold-pay-confirm|FLO-001 Hold, p
 | [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
 <!-- /generated:delivered-by -->
 
-[[EPC-034-call-centre-to-booking|EPC-034]] retires the manual fix queue.
+[[EPC-034-call-centre-to-booking|Call centre moves to Booking]] retires the manual fix queue.

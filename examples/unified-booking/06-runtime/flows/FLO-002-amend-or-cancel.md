@@ -8,6 +8,7 @@ state: decided
 owner: "@hl-solution-lead"
 authored: authored
 sources: ["session 2026-09-16 Grill", SRC-04]
+capabilities: [CAP-021]
 ---
 
 # FLO-002 Amend or cancel
@@ -18,11 +19,11 @@ sources: ["session 2026-09-16 Grill", SRC-04]
 
 1. [[CAP-021-amend-or-cancel|Find booking]]. The channel asks Booking for the booking by reference. Booking looks up the customer to check the booking is theirs.
 2. [[CAP-021-amend-or-cancel|Check change allowed]]. Booking checks the booking is confirmed and the sailing has not left. For an amend it checks capacity on the new sailing.
-3. [[CAP-012-quote-a-fare|Re-quote]] (amend only). Booking gets the new fare from Pricing. If it is higher, the customer pays the difference through [[CAP-015-take-payment|Take payment]], as in [[FLO-001-hold-pay-confirm|FLO-001]] step 3.
+3. [[CAP-012-quote-a-fare|Re-quote]] (amend only). Booking gets the new fare from Pricing. If it is higher, the customer pays the difference through [[CAP-015-take-payment|Take payment]], as in [[FLO-001-hold-pay-confirm|Hold, pay, confirm]] step 3.
 4. [[CAP-021-amend-or-cancel|Write to ledger]]. Booking writes BKAMND or BKCANC to FERRYMASTER. The booking changes state only when the ledger accepts the write.
-5. [[CAP-022-notify-customer|Notify customer]]. Booking publishes the state change and Notifications tells the customer ([[FLO-003-notify-on-change|FLO-003]]).
+5. [[CAP-022-notify-customer|Notify customer]]. Booking publishes the state change and Notifications tells the customer ([[FLO-003-notify-on-change|Notify on change]]).
 
-The diagram shows an amend from the website with a higher fare. A cancel skips the capacity check, quote and payment. The call centre desktop follows the same sequence. Only the website and the call centre desktop run this flow. Kiosks show booking state through CON-001 get and do not amend or cancel in the March 2027 image.
+The diagram shows an amend from the website with a higher fare. A cancel skips the capacity check, quote and payment. The call centre desktop follows the same sequence. Only the website and the call centre desktop run this flow. Kiosks show booking state through a get on the Booking API and do not amend or cancel in the March 2027 image.
 
 ```mermaid
 sequenceDiagram
@@ -50,7 +51,7 @@ sequenceDiagram
 
 ## What the customer sees
 
-Today a customer who wants to change a crossing phones the call centre, and an agent retypes it on a mainframe screen. After INI-002 the customer opens the booking on the website, picks a new sailing, sees the price difference and pays it. A cancel is one button. Call centre agents use the same operations from new screens in the desktop client, so an agent and the website always show the same booking. Refunds are unchanged by INI-002 and stay with Tidepay.
+Today a customer who wants to change a crossing phones the call centre, and an agent retypes it on a mainframe screen. After this initiative the customer opens the booking on the website, picks a new sailing, sees the price difference and pays it. A cancel is one button. Call centre agents use the same operations from new screens in the desktop client, so an agent and the website always show the same booking. Refunds are unchanged by this initiative and stay with Tidepay.
 
 ## Failure behaviour
 
@@ -77,4 +78,12 @@ Today a customer who wants to change a crossing phones the call centre, and an a
 
 Yes. The QA lead owns the suite. It covers amend with a higher fare, amend with a lower fare, and cancel, from the website and the call centre desktop. It runs on every Booking release candidate in staging against the ledger simulator and the Tidepay sandbox, and once a week against the FERRYMASTER test region. See [[concern-testing|Testing]].
 
-Delivered by [[EPC-036-amend-cancel-online|EPC-036]], [[EPC-034-call-centre-to-booking|EPC-034]], [[EPC-032-ledger-adapter|EPC-032]], [[EPC-037-events-and-notifications|EPC-037]] and [[EPC-038-pricing-serves-booking|EPC-038]]. This flow carries goal G3 in [[01-goals|Goals]].
+Delivered by:
+
+- [[EPC-036-amend-cancel-online|Amend and cancel online]]
+- [[EPC-034-call-centre-to-booking|Call centre moves to Booking]]
+- [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]
+- [[EPC-037-events-and-notifications|Booking events and customer notifications]]
+- [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]
+
+This flow carries goal G3 in [[01-goals|Goals]].

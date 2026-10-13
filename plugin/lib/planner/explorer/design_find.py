@@ -9,7 +9,11 @@ named by `--design` is never looked up.
 
   1. `design: <path>` in the app page's frontmatter;
   2. `designs: {APP-x: <path>}` in .planner.yaml;
-  3. the app's GitHub, Code, Repo or Repository link, when it is a local path or a file:// URL to a repository that
+  3. the vault's own docs/tech-design/*.md, where tech-design-grill writes when run from the vault root (a design
+     is a vault file, so a team needs nothing configured): the doc whose frontmatter `vault.app` is the app, else
+     whose `prereqs` name the app's page, else whose file name is the app's slug (`booking` for APP-booking, or the
+     app page `booking-building-blocks.md`). Docs that match nothing are named in the report;
+  4. the app's GitHub, Code, Repo or Repository link, when it is a local path or a file:// URL to a repository that
      holds docs/tech-design/*.md, taking the doc whose frontmatter `vault.app` names the app.
 
 A relative path is relative to the vault root; `~` is the home folder. Only the local disk is read. A link to a web
@@ -24,6 +28,7 @@ import urllib.parse
 import yaml
 
 DOC_GLOB = "docs/tech-design/*.md"
+VAULT_DOCS = "docs/tech-design"
 CODE_LABELS = ("github", "code", "repo", "repository")
 FRONTMATTER_LIMIT = 64 * 1024  # a doc's frontmatter is a few hundred bytes; never read a whole doc to find it
 
@@ -33,6 +38,7 @@ def discover(vault, root, named):
     root = pathlib.Path(root)
     given = {arg.split("=", 1)[0].strip() for arg in named}
     configured, said = configured_designs(vault.config)
+    in_vault = vault_designs(root, said)
     found, missing = [], []
     for app in vault.apps:
         if app.id in given:
@@ -40,6 +46,7 @@ def discover(vault, root, named):
         look = Look(app, root, said)
         look.page_field()
         look.config_entry(configured)
+        look.vault_docs(in_vault)
         look.repo_link()
         if look.doc:
             found.append(f"{app.id}={look.doc}")
@@ -48,10 +55,38 @@ def discover(vault, root, named):
             missing.append((app.id, look.tried))
     if missing:
         said.append(f"no design doc found for {', '.join(app for app, _ in missing)}; Inside this app stops at their containers. "
-                    "Point to one with design: on the app page, designs: in .planner.yaml, or --design APP-x=<path>.")
-        said += [f"  {app}: {'; '.join(tried) if tried else 'no design:, no designs: entry, no local GitHub or Code link'}"
+                    f"Put the design at {VAULT_DOCS}/<slug>.md in the vault (run tech-design-grill from the vault root), "
+                    "or point to one with design: on the app page, designs: in .planner.yaml, or --design APP-x=<path>.")
+        said += [f"  {app}: {'; '.join(tried) if tried else f"no design: or designs: entry, no {VAULT_DOCS}/*.md in the vault, no local GitHub or Code link"}"
                  for app, tried in missing if tried]
     return found, said
+
+
+def vault_designs(root, said):
+    """[(doc, frontmatter)] for every docs/tech-design/*.md in the vault. A doc whose frontmatter cannot be read is one
+    warning here, said once, and takes no part in matching."""
+    found = []
+    for doc in sorted((root / VAULT_DOCS).glob("*.md")):
+        try:
+            with doc.open(encoding="utf-8") as handle:
+                head = handle.read(FRONTMATTER_LIMIT)
+        except (OSError, UnicodeDecodeError) as exc:
+            said.append(f"warning: cannot read {shown(doc, root)}: {exc}")
+            continue
+        meta = frontmatter(head)
+        if meta is None:
+            said.append(f"warning: {shown(doc, root)} has no readable frontmatter, so it cannot be matched to an app")
+            continue
+        found.append((doc, meta))
+    return found
+
+
+def prereq_paths(meta):
+    """The paths a doc's `prereqs` point at: each entry is a path, or a map with a `path`."""
+    raw = meta.get("prereqs")
+    entries = raw if isinstance(raw, list) else [raw]
+    paths = [e.get("path") if isinstance(e, dict) else e for e in entries]
+    return [p for p in paths if isinstance(p, str)]
 
 
 def configured_designs(config):
@@ -105,7 +140,28 @@ class Look:
         if not path.is_file():
             self.warn(f"{where} is {value}, which is not a file ({path})")
             return None
+        why = not_a_doc(path, "tech-design")
+        if why:
+            self.warn(f"{where} is {value}, which {why}, so it is not read")
+            return None
         return path
+
+    def vault_docs(self, docs):
+        if self.doc or not docs:
+            return
+        slugs = {self.app.id.removeprefix("APP-").lower(), self.app.name.lower().removesuffix("-building-blocks")}
+        page_name = self.app.path.rsplit("/", 1)[-1]
+        rules = (("vault.app", lambda doc, meta: (meta.get("vault") or {}).get("app") == self.app.id if isinstance(meta.get("vault"), dict) else False),
+                 ("the prereqs naming its page", lambda doc, meta: any(p.rsplit("/", 1)[-1] == page_name for p in prereq_paths(meta))),
+                 ("its file name", lambda doc, meta: doc.stem.lower() in slugs))
+        for why, matches in rules:
+            hits = [doc for doc, meta in docs if matches(doc, meta)]
+            if hits:
+                if len(hits) > 1:
+                    self.warn(f"{len(hits)} docs in {VAULT_DOCS} match it by {why} ({', '.join(d.name for d in hits)}); using {hits[0].name}")
+                self.adopt(hits[0], f"{VAULT_DOCS}/ in the vault, by {why}")
+                return
+        self.tried.append(f"{VAULT_DOCS}/ holds {len(docs)} design doc{'s' if len(docs) != 1 else ''}, none naming it by vault.app, prereqs or file name")
 
     def repo_link(self):
         if self.doc:
@@ -153,6 +209,18 @@ class Look:
             return False
         vault = meta.get("vault")
         return isinstance(vault, dict) and vault.get("app") == self.app.id
+
+
+def not_a_doc(path, folder):
+    """Why a path named by a page is not read, or "" when it is. A page can come from outside (a pulled branch, a proposal), and
+    what this module reads is copied into dashboard.html and published; so only a Markdown file under docs/<folder>/ is read,
+    never `~/Documents/salary-notes.md` or an `id_rsa`."""
+    parts = path.resolve().parts
+    if path.suffix.lower() != ".md":
+        return "is not a Markdown file"
+    if not any(parts[i:i + 2] == ("docs", folder) for i in range(len(parts) - 1)):
+        return f"is not under a docs/{folder} folder"
+    return ""
 
 
 def local_path(value, root):

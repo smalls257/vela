@@ -1,0 +1,19 @@
+What this initiative cannot change.
+Every capability this initiative changes. Each capability page holds what provides it today and after.
+What each app carries of each functional requirement.
+No release is planned yet. Each release will be a section here that lists the functional requirements it delivers, so that what the system looks like after each release can be worked out from them.
+One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
+Flow pages live in `flows/` and app runtime pages in `apps/`.
+One row per app, one column per concern.
+Running cost, licences and shared budgets such as mainframe processing.
+What each app stores, which app is the record, and what moves during the change.
+What is measured, so a failure shows up without a debugger or a release.
+Who is on call, and the runbooks for the failures that hurt customers.
+Which team owns each app and each piece of new work.
+The order apps cut over, and how each one rolls back.
+Who can call what, and what data each boundary carries.
+Who tests each contract from each side, the end-to-end suites, and the test data. This is the main page for QA.
+One page per decision, named `ADR-nnnn-<slug>.md`.
+One paragraph per term: the term in bold, then what it means in this initiative.
+One page per epic, named `EPC-nnn-<slug>.md`.
+Every document a fact rests on. Facts cite the ID. Raw files go in `.inbox/`, which git ignores.

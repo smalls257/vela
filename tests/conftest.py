@@ -1,5 +1,6 @@
 """Shared test helpers. Tests build broken copies of a vault in tmp_path."""
 import io
+import os
 import pathlib
 import re
 import shutil
@@ -45,6 +46,18 @@ def mini(tmp_path):
 
 def check(vault, today="2026-01-15"):
     return run("check", "--vault", str(vault), "--today", today)
+
+
+@pytest.fixture(autouse=True)
+def isolate_git_config(tmp_path, monkeypatch):
+    """Isolate each test from the developer's global git config by setting environment variables.
+    This ensures tests don't fail under global settings like commit signing or custom hooks."""
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+    monkeypatch.setenv("GIT_CONFIG_SYSTEM", "/dev/null")
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    # Clear git-related env vars that might interfere
+    for var in ["GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"]:
+        monkeypatch.delenv(var, raising=False)
 
 
 def pytest_configure(config):

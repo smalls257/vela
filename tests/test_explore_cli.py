@@ -21,7 +21,7 @@ from conftest import REPO, run
 SNAPSHOT = REPO / "tests/sim/snapshots/trading-coach/after-80b"
 PLUGIN = REPO / "plugin"
 PINS = ".planner/explorer-pins.json"
-PAGE = ".planner/explorer.html"
+PAGE = "dashboard.html"
 
 
 @pytest.fixture
@@ -96,16 +96,16 @@ def test_the_page_carries_no_path_of_the_machine_that_built_it(vault, tmp_path):
 def test_a_page_built_beside_the_vault_links_to_its_files_relatively(vault):
     explore(vault)
     page = (vault / PAGE).read_text(encoding="utf-8")
-    assert '"vault":".."' in page
+    assert '"vault":"."' in page
 
 
-def test_the_report_warns_when_the_vault_would_commit_the_page(vault):
-    (vault / ".gitignore").write_text("voice/local/\n", encoding="utf-8")
+def test_the_report_warns_when_the_vault_would_not_commit_the_page(vault):
+    (vault / ".gitignore").write_text("voice/local/\ndashboard.html\n", encoding="utf-8")
     code, said = explore(vault)
-    assert code == 0 and "does not list .planner/" in said
+    assert code == 0 and "lists dashboard.html" in said
     (vault / ".gitignore").write_text("voice/local/\n.planner/*\n!.planner/explorer-pins.json\n", encoding="utf-8")
     code, said = explore(vault)
-    assert "does not list .planner/" not in said
+    assert "lists dashboard.html" not in said
 
 
 @pytest.mark.parametrize("args,message", [

@@ -8,6 +8,11 @@ window.addEventListener("unhandledrejection", (ev) => window.__errors.push("prom
 const D = JSON.parse(document.getElementById("data").textContent);
 const E = D.entities;
 const HASH = new URLSearchParams((location.hash || "").slice(1));
+/* The address bar's hash again, in the same object, when a pasted link or Back changes it. */
+function reloadHash() {
+  for (const k of [...HASH.keys()]) HASH.delete(k);
+  new URLSearchParams((location.hash || "").slice(1)).forEach((v, k) => HASH.append(k, v));
+}
 const STILL = HASH.has("still") || HASH.has("selftest");  // screenshots and checks: no transitions to wait out
 
 /* ------------------------------------------------------------------ small helpers */
@@ -45,6 +50,21 @@ function s(tag, attrs, parent) {
   return node;
 }
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+/* The files the page links to: Open the file, the design doc, the plan, the tickets. Opened as a file, a path relative
+   to the page works. Served from this machine, the helper answers /vault-file/<path> for the vault's own files and
+   nothing else (vault_files.py), so a design or plan kept in a team repo has no link there and says why. */
+const SERVED_HERE = /^https?:$/.test(location.protocol) && ["127.0.0.1", "localhost", "[::1]"].includes(location.hostname);
+const urlPath = (path) => path.split("/").map(encodeURIComponent).join("/");  // per segment, so a # or ? in a file name stays in the name
+function openHref(relative, inVault) {
+  if (SERVED_HERE) return inVault ? "/vault-file/" + urlPath(inVault) : null;
+  return relative ? urlPath(relative) : null;
+}
+function openLink(kids, relative, inVault, title, cls = "btn quiet") {
+  const href = openHref(relative, inVault);
+  if (href) return h("a", { class: cls, href, target: "_blank", title }, ...kids);
+  if (!SERVED_HERE) return null;
+  return h("span", { class: cls + " off", "aria-disabled": "true", title: "This helper opens only files inside the vault, and this one is outside it. Open it from your editor, or open the page as a file." }, ...kids, " (outside the vault)");
+}
 const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
 const shorten = (t, n) => { t = t || ""; return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -71,8 +91,37 @@ function dueText(iso) {
    page carries on with its defaults. */
 const Settings = {
   read(k) { try { return localStorage.getItem(k); } catch (e) { console.warn("[settings] this browser keeps no settings:", e.message); return null; } },
+  /* JSON saved by this page (the asks board, rehearsal tries). A value that will not parse is not silently replaced by an
+     empty one: it is kept under "<key>.unreadable" so the next save cannot overwrite it, the console says so, and a note shows once. */
+  readJson(k, fallback, what) {
+    const raw = this.read(k);
+    if (raw === null) return fallback;
+    try { return JSON.parse(raw) ?? fallback; } catch (e) {
+      console.warn(`[settings] ${what} saved in this browser cannot be read (${e.message}); the unreadable copy is kept under ${k}.unreadable`);
+      this.write(k + ".unreadable", raw);
+      toast(`Could not read ${what} saved in this browser, so it starts empty. The old copy is kept.`);
+      return fallback;
+    }
+  },
   write(k, v) { try { localStorage.setItem(k, v); } catch (e) { console.warn("[settings] this browser keeps no settings:", e.message); } },
 };
+/* A vault that gains a vault_id in .planner.yaml (E18) keeps what this browser saved under the id it had before: the
+   asks board, the layout, the Ask conversations and the rehearsals are copied to the new id once, never moved or
+   overwritten, so going back to an older page still finds them. Returns the keys it copied. */
+function migrateSaved(legacy, current, store = localStorage) {
+  if (!legacy || legacy === current) return [];
+  const moves = [];
+  try {
+    for (let i = 0; i < store.length; i++) {
+      const key = store.key(i);
+      const to = [["asks:", ""], ["explorer.layout.", ""], ["explorer.ask.", ""], ["rehearse:", ":"]].map(([p, tail]) => (key === p + legacy || (tail && key.startsWith(p + legacy + tail))) ? p + current + key.slice((p + legacy).length) : null).find(Boolean);
+      if (to && store.getItem(to) === null) moves.push([key, to]);
+    }
+    for (const [from, to] of moves) store.setItem(to, store.getItem(from));
+  } catch (e) { console.warn("[settings] could not move what this browser saved under the vault's old id:", e.message); }
+  return moves.map(([, to]) => to);
+}
+migrateSaved(D.legacyVaultId, D.vaultId);
 const relDue = (iso) => { if (!isDate(iso)) return "no date"; const d = dayNum(iso) - TODAY; return d < 0 ? `${-d} d late` : d === 0 ? "today" : `in ${d} d`; };
 
 /* ------------------------------------------------------------------ the lamp vocabulary: attention.py's levels */
@@ -97,17 +146,6 @@ const unknownLevel = (id) => { const u = ASK[id]; if (!u) return "dark"; return 
 /* The pending-approval mark in words: a clock glyph and the text, with who and when on hover, so colour is never alone. */
 const pendingPill = (p) => h("span", { class: "pill pending", title: p ? `Decided by ${p.by} on ${p.date}; the owner has not reviewed it` : LIGHT.pending.say }, "◷ Pending approval");
 function lampEl(level, title) { return h("span", { class: "lamp " + level, title: title || (LIGHT[level] ? LIGHT[level].word : level) }); }
-/* A light's reasons in one line: each holding question once, soonest first, then the rest. */
-function reasonSummary(light, max = 2) {
-  const held = new Map();
-  for (const r of light.reasons) if (r.kind === "held" && r.unknown && !held.has(r.unknown)) held.set(r.unknown, r);
-  const qs = [...held.values()].sort((a, b) => cmp((ASK[a.unknown] || {}).askBy || "9999", (ASK[b.unknown] || {}).askBy || "9999"));
-  const other = light.reasons.filter((r) => r.kind !== "held").map((r) => r.text);
-  const parts = qs.slice(0, max).map((r) => { const u = ASK[r.unknown]; return `${r.unknown} ${E[r.unknown] ? shorten(E[r.unknown].title, 48) : ""}, ask ${r.ask || (u ? u.ask.name : "")} by ${day(u ? u.askBy : "")}`; });
-  const more = qs.length - max;
-  if (more > 0) parts.push(`${plural(more, "more question")}`);
-  return parts.concat([...new Set(other)].slice(0, 2)).join("; ");
-}
 function reasonText(r) {
   if (r.kind === "held" && r.unknown && ASK[r.unknown]) {
     const u = ASK[r.unknown], e = E[r.unknown];
@@ -299,7 +337,7 @@ function go(key, opts = {}) {
 function revealView(e) {
   if (e.kind === "flow") return "flows";
   if (e.kind === "unknown") return "asks";
-  if (e.kind === "decision") return "garden";
+  if (e.kind === "decision") return "decisions";
   if (mapAnchors(e.key).length) return "map";
   if (e.kind === "capability" || e.kind === "requirement" || e.kind === "epic") return "trace";
   return null;
@@ -341,7 +379,7 @@ function showTip(ev, html) {
 }
 function hideTip() { $("#tip").classList.remove("on"); }
 
-/* Every lit subject, most urgent first, as attention.ranked orders them: the cockpit memo and the panel's home. */
+/* Every lit subject, most urgent first, as attention.ranked orders them: the panel's home and the sidebar's count. */
 function litSubjects() {
   return D.ranked.map((key) => ({ key, light: D.lights[key] })).filter((x) => x.light && ent(x.key));
 }

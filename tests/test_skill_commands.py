@@ -39,9 +39,11 @@ def test_options_considered_is_one_bullet_in_every_skill():
 
 def test_close_writes_the_handoff_manifest_when_a_senior_takes_an_app():
     close = text("skills/close/SKILL.md")
-    assert "If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff <APP-id>` now." in close
+    assert "If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff <APP-id>` only now, after that commit" in close
     assert "run it with `--replace` only once they say so in this session" in close
-    assert "any manifest `planner handoff` wrote" in close
+    # S34: the manifest is written after the session's commit, so it records a clean commit, and is committed alone.
+    assert close.index("Commit with the message `Close session <id>`") < close.index("handoff <APP-id>` only now")
+    assert "Handoff manifest for <APP-id>" in close
 
 
 APP = """---

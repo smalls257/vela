@@ -112,12 +112,15 @@ def test_every_assistant_call_is_pinned_and_permissioned(full_run):
         assert call[call.index("--model") + 1] in ("test-persona", "test-judge")
 
 
-def test_the_gh_stub_is_first_on_path_and_says_why_it_failed(full_run):
+def test_the_gh_stub_is_first_on_path_records_a_pr_and_fails_everything_else(full_run, tmp_path):
     for call in full_run["calls"]:
         arm_dir = full_run["run"] / call["cwd"].split(str(full_run["run"]) + os.sep, 1)[1].split(os.sep)[0]
         assert call["gh"] == str(arm_dir / "bin" / "gh")
     assistant = [e for e in entries(full_run["run"] / "planner") if e["speaker"] == "assistant"]
-    assert sim.GH_MESSAGE in assistant[0]["text"]
+    assert "https://github.invalid/sim/heron/pull/1" in assistant[0]["text"]
+    gh = full_run["run"] / "planner" / "bin" / "gh"
+    other = subprocess.run([str(gh), "pr", "list"], capture_output=True, text=True, timeout=30)
+    assert other.returncode == 1 and sim.GH_MESSAGE in other.stderr
 
 
 def test_seuss_examples_reach_voice_local_only_in_the_seuss_arm(full_run):
@@ -813,7 +816,7 @@ def test_an_item_no_page_mentions_says_so_and_a_long_transcript_is_cut_in_the_op
     text, cuts = sim.build_judge_input(persona, transcript, vault, "knows", hits)
     assert len(text) <= sim.JUDGE_INPUT_CHARS
     assert any(c.startswith("K1: no page holds a keyword") for c in cuts)
-    assert any(c.startswith("transcript: every turn cut to") for c in cuts)
+    assert any(c.startswith("transcript: ") and "cut to" in c for c in cuts)
     assert "no page of the final vault holds one of its keywords" in text
 
 
@@ -857,3 +860,238 @@ def test_dry_judge_reports_every_input_size_without_calling_claude(full_run):
     assert done.returncode == 0, done.stderr
     assert "[planner] knows: " in done.stdout and f"of {sim.JUDGE_INPUT_CHARS}" in done.stdout
     assert done.stdout.count("[planner] ") == len(sim.JUDGE_CATEGORIES)
+
+
+def long_run_transcript(tmp_path, persona, sessions=23, per_session=30, size=2_000):
+    """A run far over the judge's cap: every turn is padding, and one lead turn per session holds a keyword."""
+    rows, turn = [], 0
+    keyword = persona["knows"][0]["keywords"][0]
+    for session in range(1, sessions + 1):
+        for n in range(per_session):
+            turn += 1
+            text = ("padding " * (size // 8)) + (f" {keyword}" if n == 7 else "")
+            rows.append({"turn": turn, "session": session, "mode": "grill", "speaker": "lead" if turn % 2 else "assistant",
+                         "text": text})
+    path = tmp_path / "transcript.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    return sim.Transcript.load(path)
+
+
+def test_a_transcript_far_over_the_cap_still_fits_every_call_and_names_what_it_left_out(tmp_path):
+    persona = coastal()
+    vault = padded_vault(tmp_path, persona, pages=3, chars=6_000)
+    transcript = long_run_transcript(tmp_path, persona)
+    assert len(sim.as_chat(transcript.spoken())) > 3 * sim.JUDGE_INPUT_CHARS
+    hits = sim.vault_hits(persona, transcript, vault)
+    keyword = persona["knows"][0]["keywords"][0]
+    for category in sim.JUDGE_CATEGORIES:
+        for compact in (False, True):
+            text, cuts = sim.build_judge_input(persona, transcript, vault, category, hits, compact)
+            assert len(text) <= sim.JUDGE_INPUT_CHARS, category
+            assert any(c.startswith("transcript:") and "left out: T" in c for c in cuts), category
+            assert text.count("=== Session ") == 23, "every session keeps its header"
+            assert "[... left out: T" in text
+    knows, _ = sim.build_judge_input(persona, transcript, vault, "knows", hits)
+    assert keyword in knows.split("THE TRANSCRIPT:", 1)[1].split("THE FINAL VAULT", 1)[0]
+
+
+def test_the_turns_beside_a_keyword_outrank_the_rest_when_the_transcript_is_cut(tmp_path):
+    persona = coastal()
+    transcript = long_run_transcript(tmp_path, persona, sessions=2, per_session=40, size=1_000)
+    spoken = transcript.spoken()
+    chat, cut = sim.relevant_chat(spoken, [persona["knows"][0]["keywords"][0]], 9_000)
+    hit = next(e["turn"] for e in spoken if persona["knows"][0]["keywords"][0] in e["text"])
+    assert f"[T{hit}]" in chat and f"[T{hit + 1}]" in chat and f"[T{hit - 1}]" in chat
+    assert len(chat) <= 9_000 and "left out:" in cut
+
+
+def test_rejudge_scores_a_synthetic_run_far_over_the_cap_with_the_stub(full_run, tmp_path):
+    import shutil
+    run_dir = tmp_path / full_run["run"].name
+    shutil.copytree(full_run["run"], run_dir, symlinks=True)
+    for arm in ("planner-seuss", "baseline"):
+        shutil.rmtree(run_dir / arm)
+    summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    summary["per_arm"] = {"planner": summary["per_arm"]["planner"]}
+    summary["arms"] = ["planner"]
+    (run_dir / "run.json").write_text(json.dumps(summary), encoding="utf-8")
+    big = long_run_transcript(tmp_path, coastal())
+    (run_dir / "planner" / "transcript.jsonl").write_text(big.path.read_text(encoding="utf-8"), encoding="utf-8")
+    log = tmp_path / "long-log.jsonl"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "--rejudge", str(run_dir), "--stub", "--judge-model", "j",
+                           "--budget", "1"], capture_output=True, text=True,
+                          env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
+    assert done.returncode == 0, done.stderr
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert any("left out: T" in c for c in card["check_these"] + sum(card["judge_cuts"].values(), []))
+    sizes = [json.loads(line)["stdin_chars"] for line in log.read_text(encoding="utf-8").splitlines()]
+    assert max(sizes) <= sim.JUDGE_INPUT_CHARS
+
+
+def breakdown_run(tmp_path, written):
+    """A stub run whose breakdown session writes `written` to docs/plan/x-breakdown.md in the team repo."""
+    if not (sim.USER_SKILLS / "work-breakdown" / "SKILL.md").is_file():
+        pytest.skip("the user's work-breakdown skill is not installed on this machine")
+    script = {"name": "team", "persona": "coastal-merger", "team_repos": {"x": {"title": "X", "skills": ["work-breakdown"]}},
+              "sessions": [{"mode": "breakdown", "cap": 3, "repo": "x", "persona": "coach-lead",
+                            "planner": "/work-breakdown x", "baseline": "break it down"}]}
+    path = tmp_path / "team.yaml"
+    path.write_text(yaml.safe_dump(script), encoding="utf-8")
+    env = {**os.environ}
+    if written is not None:
+        env["SIM_STUB_WRITE"] = f"docs/plan/x-breakdown.md::{written}"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(path),
+                           "--arms", "planner", "--out", str(tmp_path / "results"), *MODELS, "--budget", "2"],
+                          capture_output=True, text=True, env=env, timeout=600)
+    return done, sorted((tmp_path / "results").iterdir())[0] / "planner"
+
+
+def test_the_breakdown_session_is_followed_by_tickets_from_the_breakdown_not_a_model(tmp_path):
+    fixture = (REPO / "tests" / "fixtures" / "breakdown" / "desk-agent-breakdown.md").read_text(encoding="utf-8")
+    done, arm = breakdown_run(tmp_path, fixture)
+    assert done.returncode == 0, done.stderr
+    assert (arm / "tickets" / "tickets.csv").read_text(encoding="utf-8").count("\n") > 8
+    assert "Import into Jira" in (arm / "tickets" / "README.md").read_text(encoding="utf-8")
+    assert any(e.get("event") == "tickets" and "every line mapped" in e["text"] for e in entries(arm))
+
+
+def test_a_run_whose_breakdown_is_missing_says_so_in_tickets_and_the_transcript_and_still_exits_0(tmp_path):
+    done, arm = breakdown_run(tmp_path, None)
+    assert done.returncode == 0, done.stderr
+    assert "found 0" in (arm / "tickets" / "README.md").read_text(encoding="utf-8")
+    assert any(e.get("event") == "tickets" and "no tickets" in e["text"] for e in entries(arm))
+
+
+# ---------------------------------------------------------------- the explorer the tool builds at the end of a run
+
+DEMO = REPO / "prototypes" / "explorer" / "demo_designs"
+EXPLORER_DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
+
+
+def team_in_vault_run(tmp_path, write):
+    """A stub run from the trading snapshot (APP-coach is in it): the team's two sessions and a closing close, all from the vault
+    root. The stub's close runs the plugin's `planner explore`, as the close skill's last step does; `write` is what the stub's
+    first turns create under docs/ (a JSON object of path to text), or None."""
+    for skill in ("tech-design-grill", "work-breakdown"):
+        if not (sim.USER_SKILLS / skill / "SKILL.md").is_file():
+            pytest.skip(f"the user's {skill} skill is not installed on this machine")
+    script = {"name": "team", "persona": "trading-coach", "start": "trading-coach/after-final",
+              "vault_skills": ["tech-design-grill", "work-breakdown"],
+              "sessions": [{"mode": "tech-design-grill", "cap": 2, "persona": "coach-lead", "planner": "/tech-design-grill coach", "baseline": "design it"},
+                           {"mode": "breakdown", "cap": 2, "persona": "coach-lead", "planner": "/work-breakdown coach", "baseline": "plan it"},
+                           {"mode": "close", "cap": 2, "planner": "/planner:close", "baseline": "Close out."}]}
+    path = tmp_path / "team.yaml"
+    path.write_text(yaml.safe_dump(script), encoding="utf-8")
+    env = {**os.environ}
+    if write is not None:
+        env["SIM_STUB_WRITE"] = json.dumps(write)
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "trading-coach", "--stub", "--script", str(path), "--arms", "planner",
+                           "--out", str(tmp_path / "results"), *MODELS, "--budget", "2"],
+                          capture_output=True, text=True, env=env, timeout=600)
+    return done, sorted((tmp_path / "results").iterdir())[0] / "planner"
+
+
+def page_data(arm):
+    page = (arm / "vault" / "dashboard.html").read_text(encoding="utf-8")
+    return json.loads(EXPLORER_DATA.search(page).group(1))
+
+
+def test_the_final_close_leaves_an_explorer_with_the_design_and_plan_found_in_the_vaults_docs(tmp_path):
+    design = (DEMO / "pricing" / "docs/tech-design/pricing.md").read_text(encoding="utf-8").replace("prereqs:\n", "vault:\n  app: APP-coach\nprereqs:\n", 1)
+    plan = (DEMO / "booking" / "docs/plan/booking-breakdown.md").read_text(encoding="utf-8").replace("docs/tech-design/booking.md", "docs/tech-design/coach.md")
+    done, arm = team_in_vault_run(tmp_path, {"docs/tech-design/coach.md": design, "docs/plan/coach-breakdown.md": plan})
+    assert done.returncode == 0, done.stderr
+    data = page_data(arm)
+    assert [d["appId"] for d in data["designs"].values()] == ["APP-coach"] and [p["appId"] for p in data["plans"].values()] == ["APP-coach"]
+    assert any(e.get("event") == "explorer" and "1 tech design(s), 1 build plan(s)" in e["text"] for e in entries(arm))
+
+
+def test_a_run_whose_team_wrote_no_design_still_ends_with_the_page_and_says_none_was_loaded(tmp_path):
+    done, arm = team_in_vault_run(tmp_path, None)
+    assert done.returncode == 0, done.stderr
+    data = page_data(arm)
+    assert data["designs"] == {} and data["plans"] == {}
+    assert any(e.get("event") == "explorer" and "0 tech design(s), 0 build plan(s)" in e["text"] for e in entries(arm))
+
+
+def test_the_full_heron_script_ends_with_the_explorer_the_tool_built_in_its_vault(tmp_path):
+    for skill in ("tech-design-grill", "work-breakdown"):
+        if not (sim.USER_SKILLS / skill / "SKILL.md").is_file():
+            pytest.skip(f"the user's {skill} skill is not installed on this machine")
+    script = SIM / "scripts" / "heron-desk-full.yaml"
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(script), "--arms", "planner",
+                           "--out", str(tmp_path / "results"), *MODELS, "--budget", "5"], capture_output=True, text=True, timeout=900)
+    assert done.returncode == 0, done.stderr
+    arm = sorted((tmp_path / "results").iterdir())[0] / "planner"
+    assert (arm / "vault" / "dashboard.html").is_file()
+    assert (arm / "vault" / ".claude" / "skills" / "tech-design-grill" / "SKILL.md").is_file() and not (arm / "team-agent").exists()
+    assert any(e.get("event") == "explorer" for e in entries(arm))
+
+
+def test_a_pr_opened_through_the_gh_stub_is_merged_by_number_and_a_handoff_reaches_origin_main(tmp_path):
+    persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+    arm_dir = tmp_path / "planner"
+    arm_dir.mkdir()
+    vault, _ = sim.build_vault(arm_dir, "planner", persona)
+    sim.write_gh_stub(arm_dir / "bin", arm_dir / "origin.git")
+    branch = "session/2026-10-05-handoff"
+    sim.git("switch", "-q", "-c", branch, "main", cwd=vault)
+    (vault / "sessions").mkdir(exist_ok=True)
+    (vault / "sessions" / "2026-10-05-handoff.md").write_text("---\nid: 2026-10-05-handoff\nstatus: closed\n---\n", encoding="utf-8")
+    (vault / "handoff-page.md").write_text('---\nhanded_off: "Booking senior, 2026-10-05, PR #1"\n---\n', encoding="utf-8")
+    sim.git("add", "-A", cwd=vault)
+    sim.git("commit", "-q", "-m", "Close session", cwd=vault)
+    made = subprocess.run([str(arm_dir / "bin" / "gh"), "pr", "create", "--base", "main", "--head", branch, "--title", "t"],
+                          capture_output=True, text=True, timeout=30, cwd=vault)
+    assert made.returncode == 0 and made.stdout.strip().endswith("/pull/1")
+    assert sim.merge_closed(vault, arm_dir) == [f"merged PR 1 as the reviewer: {branch} into main on origin"]
+    sim.git("fetch", "-q", "origin", cwd=vault)
+    page = sim.git("show", "origin/main:handoff-page.md", cwd=vault).stdout
+    assert "handed_off:" in page, "the next session, team sessions included, finds the handoff on origin/main"
+
+
+def test_merge_prs_must_be_true_or_false_and_defaults_on():
+    persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+    script = yaml.safe_load((SIM / "scripts" / "smoke.yaml").read_text(encoding="utf-8"))
+    assert "merge_prs" not in script
+    assert not sim.script_problems(script, persona)
+    assert any("merge_prs" in p for p in sim.script_problems({**script, "merge_prs": "no"}, persona))
+    assert not sim.script_problems({**script, "merge_prs": False}, persona)
+
+
+def test_the_persona_prompt_forbids_claiming_or_promising_any_action_outside_the_chat():
+    source = (SIM / "run.py").read_text(encoding="utf-8")
+    assert "Never claim to do, send, run, check or chase anything outside this conversation, in any tense" in source
+    assert "You may say once what you will do later." not in source
+
+
+def test_parse_stream_ignores_text_blocks_with_parent_tool_use_id(tmp_path):
+    """Text blocks from subagents (with parent_tool_use_id) are excluded from main assistant text
+    and counted separately, preventing subagent output from inflating question counts."""
+    fake_stream = json.dumps({"type": "system", "subtype": "init"}) + "\n" + \
+                  json.dumps({"type": "assistant", "message": {"content": [
+                      {"type": "text", "text": "Main assistant response"},
+                      {"type": "text", "text": "Subagent review", "parent_tool_use_id": "tool-123"},
+                      {"type": "tool_use", "name": "Agent", "input": {}}
+                  ]}}) + "\n" + \
+                  json.dumps({"type": "result", "total_cost_usd": 0.01, "is_error": False, "session_id": "test",
+                              "result": ""})
+    raw_path = tmp_path / "test.jsonl"
+    raw_path.write_text(fake_stream, encoding="utf-8")
+    parsed = sim.parse_stream(fake_stream, raw_path)
+    assert "Main assistant response" in parsed["text"]
+    assert "Subagent review" not in parsed["text"]
+    assert "Subagent review" in parsed["subagent_text"]
+    assert len(parsed["tools"]) == 1
+
+
+def test_run_json_is_written_at_the_start(tmp_path):
+    """run.json is written when a run starts so a stopped run can be rescored with --rejudge."""
+    exit_code, stderr, run_folder, calls = simulate(tmp_path, "--budget", "0.5")
+    assert exit_code == 0, stderr
+    assert run_folder is not None
+    assert (run_folder / "run.json").is_file(), "run.json should exist for a completed run"
+    run_json = json.loads((run_folder / "run.json").read_text(encoding="utf-8"))
+    assert "run_id" in run_json
+    assert run_json["stub"] is True
+    assert "started" in run_json

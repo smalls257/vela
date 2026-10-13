@@ -33,7 +33,7 @@ def excluded(name):
 
 def committed_plugin_tar(repo, ref):
     done = subprocess.run(["git", "-C", str(repo), "archive", "--format=tar", f"{ref}:plugin"],
-                          capture_output=True)
+                          capture_output=True, timeout=60)
     if done.returncode != 0:
         raise PackageError(f"git archive {ref}:plugin failed: {done.stderr.decode(errors='replace').strip()}")
     return tarfile.open(fileobj=io.BytesIO(done.stdout))
@@ -70,7 +70,10 @@ def validate_with_claude(out, say):
     with tempfile.TemporaryDirectory() as unpacked:
         with zipfile.ZipFile(out) as archive:
             archive.extractall(unpacked)
-        done = subprocess.run([claude, "plugin", "validate", unpacked], capture_output=True, text=True)
+        try:
+            done = subprocess.run([claude, "plugin", "validate", unpacked], capture_output=True, text=True, timeout=300)
+        except subprocess.TimeoutExpired as exc:
+            raise PackageError(f"claude plugin validate timed out after 300s") from exc
     if done.returncode != 0:
         raise PackageError(f"claude plugin validate failed:\n{done.stdout}{done.stderr}")
     say("claude plugin validate passed")

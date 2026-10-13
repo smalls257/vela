@@ -21,7 +21,7 @@ sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 
 | [[FLO-001-hold-pay-confirm\|FLO-001]] | Finds the crossing, asks Booking for a hold, takes payment through Tidepay, asks Booking to confirm and shows the state it returns. |
 | [[FLO-002-amend-or-cancel\|FLO-002]] | The kiosk shows a booking's state through get. Amend and cancel are not in the March 2027 image; customers use the website or the call centre. |
 
-Kiosks have no part in [[FLO-003-notify-on-change|FLO-003]].
+Kiosks have no part in [[FLO-003-notify-on-change|Notify on change]].
 
 ```mermaid
 sequenceDiagram
@@ -50,5 +50,5 @@ The customer has 10 minutes to pay before the hold expires. The ledger write beh
 ## When a dependency is slow or down
 
 - **Ledger write slow.** The kiosk shows "confirming" and keeps polling get. The customer has paid and Booking keeps the hold.
-- **Booking down.** The kiosk says booking is unavailable and takes no payment. It does not switch to the FM adapter on its own.
+- **Booking down.** The kiosk says booking is unavailable and takes no payment. It does not switch to the FERRYMASTER adapter on its own.
 - **Device certificate rejected.** The gateway refuses every call from that kiosk. The kiosk shows it is out of service, and the rejection appears in the per-channel error rate.

@@ -29,9 +29,11 @@ def test_one_row_per_epic_with_the_five_columns(tmp_path):
     assert (summary, name, owner) == ("Booking holds and confirms crossings", "EPC-031", "harbourline/booking-team")
     assert link == "https://github.com/harbourline/unified-booking/blob/3f9c2a1/13-epics/EPC-031-holds-and-confirms.md"
     assert description.startswith("Booking becomes the one place that decides whether a crossing is held")
-    assert "FERRYMASTER stays the ledger of record (ADR-0002), so Booking" in description
-    assert "\n\nAcceptance criteria:\n1. A channel that asks to hold a seat through CON-001" in description
-    assert description.endswith("7. No request or response on CON-001 or CON-007 carries card data. [security] [data]")
+    assert "FERRYMASTER stays the ledger of record (the ledger-of-record decision), so Booking" in description  # under "Who this is for"
+    assert "Still open: nothing." in description
+    assert "\n\nAcceptance criteria:\nAC1. A hold keeps the seat for ten minutes: A channel that asks to hold a seat through the Booking API" in description
+    assert description.endswith("AC7. No card data on the API: No request or response on the Booking API or on Tidepay's payment outcome carries card data.")
+    assert "Trace:" not in description  # the IDs stay in the vault; a tracker reader gets the plain sentence
     assert "[[" not in description and "**Owning team:**" not in description and "**Decision:**" not in description
 
 
@@ -55,11 +57,11 @@ def test_struck_criteria_and_commas_and_quotes_survive(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
     path = vault / "13-epics" / "EPC-031-holds-and-confirms.md"
-    edit(path, "5. Two channels asking", '5. ~~Dropped, "for now"~~\n6. Two "channels", asking')
+    edit(path, "### Two channels see the same state\n\nTwo channels asking", '### ~~Dropped, "for now"~~\n\nOld.\n\n- Trace: AC9\n\n### Two "channels" see the same state\n\nTwo "channels", asking')
     _, _, rows = exported(tmp_path, vault=vault)
     description = rows[1][1]
-    assert "Dropped" not in description
-    assert '5. Two "channels", asking about the same booking reference' in description
+    assert "Dropped" not in description and "AC9" not in description
+    assert 'AC5. Two "channels" see the same state: Two "channels", asking about the same booking reference' in description
 
 
 def test_an_empty_vault_writes_the_header_only(tmp_path):
@@ -180,7 +182,8 @@ def test_uncommitted_vault_warns_that_links_point_at_head(tmp_path):
     import subprocess
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    git = lambda *a: subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@t", *a], check=True, capture_output=True)
+    git = lambda *a: subprocess.run(["git", "-C", str(vault), "-c", "user.name=t", "-c", "user.email=t@t",
+                                      "-c", "commit.gpgsign=false", *a], check=True, capture_output=True)
     git("init", "-q"); git("add", "-A"); git("commit", "-qm", "x")
     _, clean, _ = exported(tmp_path, "--repo-url", "https://github.com/o/r", vault=vault)
     assert "uncommitted changes" not in clean
@@ -229,7 +232,7 @@ def test_an_epic_that_carries_an_override_and_an_unconfirmed_decision_says_so_at
     description = rows[1][1]
     assert description.endswith("\n\nOverride: GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
                                 "Decided by @hl-solution-lead on behalf of @harbourline/booking-team (not yet confirmed)")
-    assert "Acceptance criteria:\n1." in description and description.index("Acceptance criteria") < description.index("Override:")
+    assert "Acceptance criteria:\nAC1." in description and description.index("Acceptance criteria") < description.index("Override:")
     assert "Override:" not in rows[2][1], "an epic without overrides is unchanged"
 
 

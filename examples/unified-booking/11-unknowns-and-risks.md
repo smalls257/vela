@@ -11,6 +11,8 @@ sources: ["session 2026-07-14 Discover"]
 
 # Unknowns and risks
 
+This page keeps every question nobody could answer when it was asked, and every risk the team watches. The table says which are still open and who must answer; each unknown and risk then has its own section.
+
 <!-- generated:unknowns-index sha=dca6f859: do not edit, run planner render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
@@ -35,7 +37,7 @@ sources: ["session 2026-07-14 Discover"]
 - **Opened:** 2026-07-28 Grill
 - **State:** resolved
 - **Blocks:** [[FLO-001-hold-pay-confirm|FLO-001]] design, [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]], [[EPC-031-holds-and-confirms|EPC-031]]
-- **Outcome:** Measured p95 of 2.1 s over MQ. The customer sees "confirming" while Booking retries. Fine.
+- **Outcome:** Measured p95 of 2.1 s over message queue (message queue (MQ)). The customer sees "confirming" while Booking retries. Fine.
 - **Resolved in:** [[2026-09-02-hold-pay-confirm]]
 
 ### UNK-002 Repeatable test data
@@ -112,7 +114,7 @@ sources: ["session 2026-07-14 Discover"]
 
 ### R-01 Mainframe knowledge sits with two people
 
-Two people understand FERRYMASTER's COBOL and MQ transactions. If both are away, nobody can diagnose a ledger write problem.
+Two people understand FERRYMASTER's mainframe programming and message queue (MQ) transactions. If both are away, nobody can diagnose a ledger write problem.
 
 - **Owner:** @hl-solution-lead (solution lead)
 - **State:** mitigated

@@ -20,7 +20,7 @@ Accepted, 2026-08-12, in a Grill session with the Booking senior and the mainfra
 
 ## Context
 
-FERRYMASTER cannot change before its vendor contract ends in 2028 (CST-1). The data warehouse feed, the finance reconciliation job and the loyalty scheme read it directly, and they stay out of scope until INI-004 and INI-005. Booking needs some state of its own to hold seats for 10 minutes and to answer channels quickly.
+FERRYMASTER cannot change before its vendor contract ends in 2028. The data warehouse feed, the finance reconciliation job and the loyalty scheme read it directly, and they stay out of scope until the Loyalty Revamp and Mainframe Exit initiatives. Booking needs some state of its own to hold seats for 10 minutes and to answer channels quickly.
 
 ## Decision
 
@@ -36,13 +36,13 @@ FERRYMASTER remains the ledger of record for every booking. Booking keeps holds 
 
 ## Consequences
 
-- Confirmation waits for the ledger write. The customer sees "confirming" for about 2.1 s at p95 ([[FLO-001-hold-pay-confirm|FLO-001]]).
+- Confirmation waits for the ledger write. The customer sees "confirming" for about 2.1 s at p95 ([[FLO-001-hold-pay-confirm|Hold, pay, confirm]]).
 - A failed ledger write after payment leaves a booking paid and unconfirmed until the Ledger adapter's retry succeeds. Booking keeps the hold while it retries, and on-call is alerted if retries run out.
-- When INI-005 retires FERRYMASTER, this decision is the one it supersedes.
+- When the Mainframe Exit initiative retires FERRYMASTER, this decision is the one it supersedes.
 
 ## Assumptions it depends on
 
-- Ledger write latency is low enough for customers to wait on: [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]], resolved at 2.1 s p95.
-- Finance keeps reading FERRYMASTER for now: [[11-unknowns-and-risks#UNK-006 Finance on Booking events|UNK-006]], open, deferred to INI-005.
+- Ledger write latency is low enough for customers to wait on: [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]], resolved at 2.1 s p95.
+- Finance keeps reading FERRYMASTER for now: [[11-unknowns-and-risks#UNK-006 Finance on Booking events|Finance on Booking events]], open, deferred to the Mainframe Exit initiative.
 
-Delivered by [[EPC-031-holds-and-confirms|EPC-031]] and [[EPC-032-ledger-adapter|EPC-032]]. See [[concern-data|Data]].
+Delivered by [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]] and [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]. See [[concern-data|Data]].

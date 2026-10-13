@@ -19,7 +19,8 @@ delivers: [CON-001, G1]
 
 ## Acceptance criteria
 
-1. A basket sent on CON-001 returns a receipt with the till's sale number. [testing]
+1. A basket sent to the sale API returns a receipt with the till's sale number. [testing]
+   - Trace: CON-001
 2. A sale that fails leaves the stock level as it was.
 """
 SHOP = "05-building-blocks/shop-building-blocks.md"
@@ -160,3 +161,32 @@ def test_waiver_by_a_team_handle_covers(mini):
          "| addressed | no work (@mini/qa-team @mini-qa, review 2026-06-01): covered by the till's tests |")
     run("render", "--vault", str(mini))
     assert findings(check(mini)[1]) == []
+
+
+# S30: the epics gate was vault-wide, so one app could not be handed over or called complete until every other
+# app was done. --app narrows it to one app and its slice.
+
+TILL = "05-building-blocks/till-building-blocks.md"
+
+
+def test_the_app_scope_leaves_out_another_apps_gaps(mini):
+    code, out = run("check", "--vault", str(mini), "--today", "2026-01-15", "--gate", "epics", "--app", "APP-till")
+    assert code == 0, out
+    assert findings(out) == [] and "App: APP-till." in out.splitlines()[0]
+
+
+def test_the_app_scope_still_fails_for_the_apps_own_gaps(mini):
+    code, out = run("check", "--vault", str(mini), "--today", "2026-01-15", "--gate", "epics", "--app", "APP-shop")
+    assert code == 1
+    assert findings(out) == [("E502", SHOP), ("E503", TESTING)]
+
+
+def test_the_whole_vault_gate_is_unchanged_without_the_scope(mini):
+    assert findings(gated(mini)[1]) == [("E502", SHOP), ("E503", TESTING)]
+
+
+def test_the_app_scope_names_an_app_that_exists_and_goes_with_the_epics_gate(mini):
+    code, out = run("check", "--vault", str(mini), "--gate", "epics", "--app", "APP-nope")
+    assert code == 2 and "APP-nope is not an app page" in out
+    code, out = run("check", "--vault", str(mini), "--app", "APP-shop")
+    assert code == 2 and "--gate epics" in out

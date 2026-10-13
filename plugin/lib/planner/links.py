@@ -15,7 +15,8 @@ from dataclasses import dataclass
 from planner import schema
 
 URL_RE = re.compile(r"^(?:https?://|file:///)[^\s<>\"']+$")  # file:// is a local clone: `planner explore` reads a team design from one
-MD_LINK = re.compile(r"\[([^\]\n]+)\]\(([^)\s]+)\)")
+# One level of balanced parentheses stays in the URL, as Wikipedia and SharePoint links need: .../Foo_(bar).
+MD_LINK = re.compile(r"\[([^\]\n]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)")
 KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
 
 

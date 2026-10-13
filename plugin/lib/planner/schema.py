@@ -35,7 +35,7 @@ PAGE_TYPES = {
     },
     "flow": {
         "required": ("id", "type", "title", "state", "owner", "authored"),
-        "optional": ("initiative", "arc42", "sources"),
+        "optional": ("initiative", "arc42", "sources", "capabilities"),
         "states": STATE_ITEM,
     },
     "concern": {
@@ -93,7 +93,7 @@ ENUMS = {
     "stage": ("baseline", "target", "boundaries", "contracts", "handoff", "epics"),
     "status": ("open", "closed"),
 }
-LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes")
+LIST_FIELDS = ("sources", "apps", "delivers", "consumes", "flows", "depends_on", "modes", "capabilities")
 DOMAIN_MIN_APPS = 6  # W352 applies from this many apps
 SESSION_MODES = ("dump", "discover", "shape", "boundary", "allocate", "releases", "grill", "requirements", "epics", "challenge", "answer")
 LADDERED_CHANGES = ("new", "changed")  # app pages with these carry `stage`
@@ -158,14 +158,23 @@ CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 UNKNOWN_REQUIRED = ("Question", "Owner", "State", "Blocks")
 UNKNOWN_OPEN_REQUIRED = ("Ask by",)
 UNKNOWN_RESOLVED_REQUIRED = ("Outcome", "Resolved in")
-UNKNOWN_OPTIONAL = ("Opened", "Notes")
+# Ask is who holds the answer when that is not the owner. It must be a known label: planner style tells a session to
+# turn every unknown label into prose, and close then deletes the Ask line the views that group by who to ask read.
+UNKNOWN_OPTIONAL = ("Opened", "Notes", "Ask")
 UNKNOWN_STATES = ("open", "resolved")
 
 RISK_REQUIRED = ("Owner", "State")
 RISK_OPTIONAL = ("Mitigation",)
 RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
-PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL) + OVERRIDE_LABELS
+# Target is a release's date and Owning team an epic's receiving team; both are read or required, so style must not
+# call them prose.
+PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team") + OVERRIDE_LABELS
+
+# `- Trace: CAP-001.FR1, CON-001` under a criterion or bullet holds the IDs its sentence no longer shows. The planner
+# reads it, so `planner style` must never call it prose, and close must never delete it.
+TRACE_LABEL = "Trace"
+READING_LABELS = (TRACE_LABEL,)
 
 # Subjects the question catalogue fires on that are not pages: an outside party, and value held for customers.
 PARTY_REQUIRED = ("Relationship", "Agreements")
@@ -175,6 +184,9 @@ STORED_VALUE_REQUIRED = ("Holder", "Owner")
 SUBJECT_LABELS = PARTY_REQUIRED + STORED_VALUE_REQUIRED + PARTY_OPTIONAL
 SUBJECT_PAGE = "03-context-and-scope.md"  # the one home of parties and stored value
 # A heading whose first word begins like a subject ID (PTY or SV, any case), whether or not it is well formed.
+# A level-3 heading that opens like an item ID (UNK-12, CON-001:, R-3x) and is not one is dropped from every index and gate.
+ITEM_LOOKALIKE_RE = re.compile(r"^(CON|UNK|R)-\d|^CAP-\d+\.FR", re.IGNORECASE)
+ITEM_FORMS = {"CON": "CON-nnn", "UNK": "UNK-nnn", "R": "R-nn", "CAP": "CAP-nnn.FRn"}
 SUBJECT_LOOKALIKE_RE = re.compile(r"^(PTY|SV)(?![A-Za-z])", re.IGNORECASE)
 
 # ------------------------------------------------------------------ overrides
@@ -271,6 +283,8 @@ CODES = {
     "E204": "two files share a basename",
     "E207": "ID reference resolves to nothing",
     "E208": "item ID used by two headings",
+    "E209": "a fact label is written twice under one heading",
+    "E210": "two rows claim one ID, or one app on a concern page",
     "E301": "concern cell is not valid",
     "E302": "unknown or risk is missing a required fact",
     "E303": "decided without a Grill decision",
@@ -285,6 +299,12 @@ CODES = {
     "E320": "contract is missing a required fact",
     "E321": "override is malformed",
     "E322": "decided-by or confirmed-by is malformed",
+    "E323": "a History heading names no item on its page",
+    "W325": "app is handed off but its PR number is not recorded",
+    "W326": "page is less settled than its rows",
+    "W327": "reader's decisions pending approval",
+    "W329": "a table row's link label pipe is not escaped as `\\|`",
+    "W717": "CONVENTIONS.md is not the copy the plugin ships",
     "W334": "prose calls an answered question open",
     "E340": "release row names no functional requirement",
     "E341": "release row names a criterion the requirement does not have",
@@ -298,6 +318,19 @@ CODES = {
     "W355": "unknown asks the person who owns it",
     "W356": "changing capability has no functional requirements",
     "W357": "functional requirement lists no acceptance criteria",
+    "W358": "flow names no capability though the initiative has capability pages",
+    "E359": "flow names a capability that is not a capability page",
+    "W360": "one sentence holds three or more IDs",
+    "W361": "an ID in prose, outside a link and not followed by its name",
+    "W362": "a list of more than nine items with no subheadings",
+    "W363": "a long page with no opening summary",
+    "W364": "an epic lists more than nine acceptance criteria",
+    "W365": "a paragraph over 150 words or 3 links, or an opening over 90 words or 3 links",
+    "W366": "a table cell over 40 words",
+    "W367": "a phrase of three or more words repeated across pages",
+    "W368": "the opening is a line the template wrote",
+    "W369": "an abbreviation not spelled out on the page",
+    "W370": "an epic criterion has no AC id on its Trace line, or two share one",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",
     "E332": "allocation row has no valid state",
@@ -340,7 +373,7 @@ CODES = {
     "W807": "open question blocks the grilled item",
     "E808": "party or stored value is missing a required fact",
     "W809": "possibly an untyped subject",
-    "E810": "heading looks like a party or stored value but is not one",
+    "E810": "heading looks like an item or subject ID but is not one",
     "W811": "subject defined off its page",
     "W812": "ledger row is dated in the future",
     "W813": "ledger page has no question ledger heading",
@@ -356,6 +389,31 @@ TRACE_CONTRACT_CHANGES = ("new", "changed")  # contracts T2 needs an epic for
 OWNERSHIP_CONCERN = "concern-ownership"  # covered by an epic listing the app, not by a marker
 WAIVER_RE = re.compile(rf"^no work \({HANDLE}(?: {HANDLE})*, review \d{{4}}-\d{{2}}-\d{{2}}\): \S")
 
+# ------------------------------------------------------------ reading load
+
+# People hold about four to seven things at once (Cowan 2001; Miller 1956). Pages are written to that size; the
+# warnings fire a little past it, so a page at the edge of the convention is never nagged.
+SENTENCE_ID_LIMIT = 3  # W360 from this many IDs in one sentence
+LIST_LIMIT = 9  # W362: more list items than this under one heading, with no subheadings
+LONG_PAGE_WORDS = 900  # W363: a page this long opens with a summary
+EPIC_CRITERIA_LIMIT = 9  # W364: more acceptance criteria than this on one epic
+# W365 to W369 (design session 16). Pages are written to 80 words in an opening and 120 in a paragraph; the warnings fire
+# a little past that, so a page at the edge is not nagged. digital.gov's ceiling for a paragraph is 150.
+PARAGRAPH_WORD_LIMIT = 150  # W365: more words than this in one paragraph
+OPENING_WORD_LIMIT = 90  # W365: more words than this in a page's opening paragraph, the part most readers read
+PARAGRAPH_LINK_LIMIT = 3  # W365: more links than this in one paragraph or opening; each link is a decision for the reader
+CELL_WORD_LIMIT = 40  # W366: two sentences; a cell is read as one chunk
+PHRASE_WORDS = 3  # W367: words in a phrase. A four-word phrase over the limit makes its three-word parts over it, so three finds both.
+PHRASE_PAGE_LIMIT = 5  # W367: a phrase on more pages than this
+PHRASE_TIME_LIMIT = 10  # W367: or used more times than this across the vault
+# Words that cannot make a phrase on their own: "of the first" is a phrase only because of "first".
+PHRASE_FILLER = frozenset("a an the of to in on at by for and or but is are was were be been it its that this these those as "
+                          "with from has have had will would can could should may might which who there their they we you "
+                          "i he she his her our your".split())
+# W369: capitalised words of two to five letters that need no spelling out, and shouted ordinary words.
+ABBREVIATIONS_UNDERSTOOD = frozenset("IT PC ID IDS OK AM PM US UK EU UTC URL PDF FAQ CEO API QA SMS HTML SQL JSON CSV UI UX "
+                                     "NOT AND OR MUST ONLY NEVER ALL NO YES TBC TBD".split())
+
 # ------------------------------------------------------------ voice examples
 
 # voice/examples/<type>/VX-<type>-NNN.md frontmatter. The check never reads voice/; these
@@ -366,6 +424,7 @@ VOICE_STATES = ("active", "retired")
 VOICE_ACTIVE_MAX = 5
 
 # Files the check never parses as pages (paths relative to the vault root).
-SKIP_FILES = ("CLAUDE.md", "CONVENTIONS.md")
-SKIP_DIRS = ("voice", "handoffs")
+SKIP_FILES = ("CLAUDE.md", "CONVENTIONS.md", "CONTEXT.md")
+# docs/ holds the team's tech designs, build plans and ADRs (tech-design-grill and work-breakdown write there when run from the vault root).
+SKIP_DIRS = ("voice", "handoffs", "docs")
 HANDOFF_DIR = "handoffs"  # planner handoff writes <APP-id>.md here; it is a record, not a page

@@ -73,7 +73,7 @@ const Sections = (() => {
           h("span", { class: "p-id" }, e.id), h("b", {}, e.title), statePill(e.state), h("span", { class: "ct" }, plural(ac.length, "criterion", "criteria"))),
         h("div", { class: "ec-row" }, x.apps.map((id) => APP_BY_ID[id] ? refChip(APP_BY_ID[id].key) : h("span", { class: "ref-chip" }, id)), markers.map((m) => h("span", { class: "marker" }, m))),
         linkChips(x.key, { small: true }),
-        open ? h("ol", { class: "ac-list" }, ac.map((c) => h("li", { class: c.struck ? "struck" : "", value: c.n }, h("span", { html: c.html }), c.markers.map((m) => h("span", { class: "marker" }, m))))) : null,
+        open ? h("ol", { class: "ac-list" }, ac.map((c) => h("li", { class: c.struck ? "struck" : "", value: c.n }, c.heading ? h("b", { class: "ac-head" }, c.heading) : null, h("span", { html: c.html }), c.markers.map((m) => h("span", { class: "marker" }, m)), c.trace ? h("div", { class: "ac-trace", html: c.trace }) : null))) : null,
         open && x.delivers.length ? h("div", { class: "ec-row" }, h("span", { class: "muted small" }, "Delivers "), x.delivers.map((id) => refChip(keyForId(id)))) : null));
     }
     sc.append(grid);

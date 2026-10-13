@@ -1,17 +1,7 @@
 /* ------------------------------------------------ map: cockpit, line map, matrix */
-.above { display: flex; gap: 8px; align-items: center; padding: 0 24px 10px; flex-wrap: wrap; min-height: 38px;
-  max-height: 96px; overflow-y: auto; flex: none; scrollbar-width: thin; }  /* many held questions scroll here instead of taking the board's height */
-.above-label { font-size: 12.5px; color: var(--ink-3); margin-right: 4px; }
 @media (max-height: 720px) {
-  .above { max-height: 44px; }
   .countline { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 }
-.cap { all: unset; cursor: pointer; display: inline-flex; flex-direction: column; padding: 5px 10px; min-width: 120px; border-radius: 4px;
-  background: var(--unlit); font-size: 11.5px; line-height: 1.25; box-shadow: inset 0 2px 5px var(--shade); color: var(--node-sub); }
-.cap b { font-size: 12.5px; }
-.cap.lit.warning { background: var(--warning); color: var(--warning-ink); box-shadow: 0 0 8px -3px var(--warning); }
-.cap.lit.caution { background: var(--caution); color: var(--caution-ink); box-shadow: 0 0 8px -3px var(--caution); }
-.cap:focus-visible { outline: 2px solid var(--focus); }
 .board { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; overflow: hidden;
   background: radial-gradient(1100px 600px at 40% 30%, var(--board-light), transparent 60%), var(--room);
   border-top: 1px solid var(--rule); }
@@ -120,8 +110,6 @@ ul.matrix-key li { display: flex; gap: 8px; align-items: center; }
 .cell-sw.warning { background: var(--warning); } .cell-sw.caution { background: var(--caution); } .cell-sw.unexamined { background: var(--unexamined); } .cell-sw.override { background: var(--override); box-shadow: inset 0 0 0 1.5px var(--override-edge); }
 .cell-sw.upper-sw { background: var(--cell-upper); box-shadow: inset 0 0 0 1px var(--cell-upper-edge); }
 .holds-sw { min-width: 18px; height: 18px; border-radius: 9px; background: var(--caution); color: var(--caution-ink); font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; font-style: normal; }
-.cap { flex-direction: row; align-items: baseline; gap: 7px; min-width: 0; padding: 4px 10px; }
-.cap i { font-style: normal; opacity: .75; }
 .board-transit { display: grid; grid-template-columns: 250px minmax(0, 1fr); place-items: stretch; }
 .board-transit .line-legend { position: static; margin: 14px 0 14px 16px; align-self: start; max-width: none; }
 .transit-area { display: grid; place-items: center; min-width: 0; min-height: 0; overflow: hidden; }
@@ -246,4 +234,15 @@ table.dsm.angled th.row a { display: inline-block; max-width: 190px; overflow: h
 table.dsm.angled thead th { padding-top: 18px; }
 table.dsm.angled tbody th.row, table.dsm.angled tbody th.group { padding-left: 24px; }
 table.dsm.angled { margin: -3px 0 0 -3px; }  /* the border-spacing, so a frozen cell starts where it stays */
-.grouped .leader { stroke: var(--ink-4); stroke-width: 1.2; stroke-dasharray: 2 3; fill: none; }
+.cockpit .leader { stroke: var(--ink-4); stroke-width: 1.2; stroke-dasharray: 2 3; fill: none; }
+
+/* moving a box: the dashed outline is the free cell it will settle in */
+g.hit[data-movable] { cursor: grab; touch-action: none; }
+.board.moving, .board.moving g.hit[data-movable] { cursor: grabbing; }
+.board.moving svg { user-select: none; -webkit-user-select: none; }
+.cockpit g.hit.dragging { opacity: .85; }
+.cockpit .drag-ghost { fill: none; stroke: var(--focus); stroke-width: 2; stroke-dasharray: 7 6; opacity: .9; }
+.layout-tools { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.layout-say { color: var(--ink-2, inherit); font-weight: 500; }
+.cockpit .drop-mark { stroke: var(--focus); stroke-width: 4; stroke-linecap: round; }
+.cockpit .cluster[data-movable] .cluster-frame, g.cluster-lamp[data-movable] { cursor: grab; }

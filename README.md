@@ -33,7 +33,7 @@ Run each one as `python3 .claude/skills/planner/scripts/planner <command>` from 
 
 | Command | What it tells you |
 |---|---|
-| `planner explore [<vault>]` | Builds the vault explorer, one offline page: the map, each flow played, who holds each open answer, why things were decided, where each app stands. Writes `.planner/explorer.html` and the fixed layout `.planner/explorer-pins.json` in the vault. `-o`, `--today`, `--theme`, `--design APP-x=<path>`, `--assets`. `/planner:explore` runs it and opens the page |
+| `planner explore [<vault>]` | Builds the vault explorer, one offline page: the map, each flow played, who holds each open answer, why things were decided, where each app stands. Writes `dashboard.html` at the vault root (committed, so colleagues open it from git or OneDrive without building) and the fixed layout `.planner/explorer-pins.json`. The page says at the top when it was built and from which commit; an unchanged vault rebuilds to the same bytes. `planner publish` rebuilds it into the read copy. `-o`, `--today`, `--theme`, `--design APP-x=<path>`, `--assets`. `/planner:explore` runs it and opens the page |
 | `planner status` | Every app's stage, certainty mix and oldest open unknown |
 | `planner style <page>...` | Where a page still reads as a log: history above `## History`, IDs or bare source IDs in prose, no opening prose |
 | `planner ladder` | Each app's typed stage, the stage its pages already reach, and what the next stage needs |
@@ -87,7 +87,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 
 ## After handoff
 
-- **When the first app nears handoff,** use `/planner:epics` and `planner check --gate epics`. Then `planner handoff <APP-id>` in the PR that sets `handed_off`.
+- **When the first app nears handoff,** grill its handoff, then `/planner:close` writes `planner handoff <APP-id>` in the PR that sets `handed_off`. Epics come after: `/planner:epics` writes them against the accepted boundary, and `planner check --gate epics --app <APP-id>` says when that app's epics are complete.
 - **A senior who disputes a boundary or contract** runs `/planner:challenge`. It writes an open unknown the senior owns and a `**Dissent:**` line, and opens a PR whose check stays red (E316) on purpose.
 - **To answer it,** run `/planner:grill` and name the challenge PR or the challenged ID. START opens an answer session on the challenge's branch. Resolve the unknown or set the item back, then `/planner:close` pushes to that branch and comments on the challenge PR. It doesn't open a second PR. A reopened epic is decided again as `reopened → decided`.
 
@@ -105,7 +105,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `explore`, `status`, `next`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
+| `plugin/` | The `planner` CLI (`check`, `render`, `view`, `explore`, `status`, `next`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `next-id`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |

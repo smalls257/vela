@@ -16,15 +16,15 @@ sources: ["session 2026-07-14 Discover", SRC-04]
 
 ## Status
 
-Accepted in the Grill on 2026-07-28. It came out of a Discover session with the mainframe team lead on 2026-07-14. The team planned to build one shared screen scraper inside Booking until the mainframe team lead mentioned that FERRYMASTER already exposes BKHOLD, BKCONF, BKAMND and BKCANC over MQ for the finance reconciliation job.
+Accepted in the Grill on 2026-07-28. It came out of a Discover session with the mainframe team lead on 2026-07-14. The team planned to build one shared screen scraper inside Booking until the mainframe team lead mentioned that FERRYMASTER already exposes BKHOLD, BKCONF, BKAMND and BKCANC over message queue (MQ) for the finance reconciliation job.
 
 ## Context
 
-Every adapter today scrapes FERRYMASTER screens. A screen change broke all three front ends 11 times in the last 12 months (G1). FERRYMASTER itself cannot change (CST-1), and its processing must stay within the MIPS budget (CST-5).
+Every adapter today scrapes FERRYMASTER screens. A screen change broke all three front ends 11 times in the last 12 months. FERRYMASTER itself cannot change, and its processing must stay within the millions of instructions per second (MIPS) budget.
 
 ## Decision
 
-Booking's Ledger adapter writes to FERRYMASTER only through the existing MQ transactions ([[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]]). It does not scrape screens. The Ledger adapter is the only Booking component that talks to FERRYMASTER.
+Booking's Ledger adapter writes to FERRYMASTER only through the existing MQ transactions ([[ferrymaster-building-blocks#CON-006 Ledger transactions|Ledger transactions]]). It does not scrape screens. The Ledger adapter is the only Booking component that talks to FERRYMASTER.
 
 ## Alternatives considered
 
@@ -37,14 +37,14 @@ Booking's Ledger adapter writes to FERRYMASTER only through the existing MQ tran
 ## Consequences
 
 - Screen changes no longer affect booking. MQ changes are announced 8 weeks ahead, so Booking has time to adapt.
-- Booking depends on MQ transactions designed for a batch job. Latency had to be measured before design ([[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]]).
-- The MQ mapping had to be written down, which also reduces the risk that only two people understand it ([[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|R-01]]).
+- Booking depends on MQ transactions designed for a batch job. Latency had to be measured before design ([[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]]).
+- The MQ mapping had to be written down, which also reduces the risk that only two people understand it ([[11-unknowns-and-risks#R-01 Mainframe knowledge sits with two people|Mainframe knowledge sits with two people]]).
 - MQ transactions use less mainframe processing than terminal sessions. The mainframe team lead confirmed the volume fits the MIPS budget ([[concern-cost|Cost]]).
 
 ## Assumptions it depends on
 
-- MQ write latency is acceptable for a customer waiting on a confirm: [[11-unknowns-and-risks#UNK-001 Ledger write latency|UNK-001]], resolved.
-- Booking can test against the MQ transactions without fresh test data from the mainframe: [[11-unknowns-and-risks#UNK-002 Repeatable test data|UNK-002]], resolved with a ledger simulator.
-- The mainframe team has time to support Booking's first MQ client: [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|UNK-003]], resolved.
+- MQ write latency is acceptable for a customer waiting on a confirm: [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]], resolved.
+- Booking can test against the MQ transactions without fresh test data from the mainframe: [[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]], resolved with a ledger simulator.
+- The mainframe team has time to support Booking's first MQ client: [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]], resolved.
 
-Delivered by [[EPC-032-ledger-adapter|EPC-032]].
+Delivered by [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]].

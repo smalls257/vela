@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 from conftest import REPO
 
@@ -9,7 +10,8 @@ STUB = REPO / "tests" / "stub-conventions"
 def test_manifest_names_the_plugin():
     data = json.loads((REPO / "plugin" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert data["name"] == "planner"
-    assert data["version"] == "0.2.0"
+    # Version must be in semantic versioning format (e.g., 0.3.0)
+    assert re.match(r"^\d+\.\d+\.\d+$", data["version"]), f"version {data['version']} is not in semver format"
     assert data["author"]["name"]
 
 

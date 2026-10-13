@@ -106,11 +106,5 @@ const Sound = {
     const base = [523.25, 587.33, 659.25, 698.46, 783.99, 880][order % 6], t = this.ctx.currentTime;
     this.tone(base, t, { gain: 0.12, dur: 0.6 }); this.tone(base * 0.75, t + 0.16, { gain: 0.1, dur: 0.6 });
   },
-  /* A rising bell for the garden: each further decision one step higher on a pentatonic scale. */
-  bell(step = 0) {
-    if (!this.enabled || !this.ensure()) return;
-    const semis = [0, 2, 4, 7, 9][step % 5] + 12 * Math.floor(step / 5);
-    this.tone(392 * Math.pow(2, Math.min(semis, 30) / 12), undefined, { gain: 0.16, dur: 1.4 });
-  },
 };
 $("#sound").addEventListener("click", () => Sound.set(!Sound.enabled));

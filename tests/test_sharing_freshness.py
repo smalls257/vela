@@ -2,6 +2,7 @@
 It reports; it never pulls, updates or fails because a source is out of reach."""
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 
@@ -251,3 +252,23 @@ def test_the_json_carries_the_documented_keys(tmp_path):
     root = make_vault(tmp_path)
     report = fresh(root)
     assert set(report) == {"role", "state", "checked_at", "have", "latest", "behind", "ahead", "uncommitted", "message"}
+
+
+# ---- the explorer's own write is not an uncommitted change
+
+def page_freshness_of(root):
+    page = (root / "dashboard.html").read_text(encoding="utf-8")
+    return json.loads(re.search(r'<script type="application/json" id="data">(.*?)</script>', page, re.S).group(1))["freshness"]
+
+
+def test_a_dashboard_built_by_close_does_not_count_its_own_write_as_uncommitted(tmp_path, owner):
+    root, _ = owner
+    for _ in range(2):  # the first build creates dashboard.html and the pins; the second rewrites them
+        code, out = run("explore", str(root), "--today", "2026-10-12")
+        assert code == 0, out
+        assert page_freshness_of(root)["uncommitted"] == 0
+    assert "dashboard.html" in git(root, "status", "--short")  # git sees it, and the page does not count it
+    (root / "01-goals.md").write_text((root / "01-goals.md").read_text(encoding="utf-8") + "\nmore\n", encoding="utf-8")
+    code, out = run("explore", str(root), "--today", "2026-10-12")
+    assert code == 0, out
+    assert page_freshness_of(root)["uncommitted"] == 1

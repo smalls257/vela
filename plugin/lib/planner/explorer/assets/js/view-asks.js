@@ -9,7 +9,7 @@ const Asks = (() => {
   const store = `asks:${D.vaultId}`;
   const st = { days: null, widened: false, q: "", holdingOnly: false, meeting: "", expandedLater: new Set(), expandedDone: new Set(), flipped: new Set() };
   let marks = load();
-  function load() { try { return JSON.parse(localStorage.getItem(store)) || fresh(); } catch (e) { return fresh(); } }
+  function load() { return Settings.readJson(store, fresh(), "the Who-to-ask board's marks"); }
   function fresh() { return { moved: {}, critical: {}, cocked: {}, asked: {} }; }
   function save() { try { localStorage.setItem(store, JSON.stringify(marks)); } catch (e) { console.warn("[asks] this browser would not keep the board marks:", e.message); } }
   const U = (id) => ASK[id];
@@ -69,9 +69,9 @@ const Asks = (() => {
       ? `<div class="front"><div class="edge"></div><div class="cellbox idbox"><div class="uid">${u.id}</div><div class="rel">answered</div></div>
           <div class="cellbox qbox"><div class="q">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div></div>`
       : `<div class="front"><div class="edge"></div>
-          <div class="cellbox idbox"><div class="uid">${u.id}</div><div class="due">${day(u.askBy)}</div><div class="rel">${relDue(u.askBy)}</div></div>
+          <div class="cellbox idbox"><div class="uid">${u.id}</div><div class="due">${esc(day(u.askBy))}</div><div class="rel">${relDue(u.askBy)}</div></div>
           <div class="cellbox qbox"><div class="q">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div>
-          <div class="timebar" title="Opened ${day(u.opened)}, ask by ${day(u.askBy)}"><i style="width:${(fill(u) * 100).toFixed(1)}%"></i></div>
+          <div class="timebar" title="Opened ${esc(day(u.opened))}, ask by ${esc(day(u.askBy))}"><i style="width:${(fill(u) * 100).toFixed(1)}%"></i></div>
           ${inferred}${fails ? `<span class="mark critical-note" title="A critical question must hold a decision; this one's Blocks line names nothing">holds nothing!</span>` : ""}${marks.asked[u.id] ? `<span class="mark tick">✓</span>` : ""}</div>`;
     const who = marks.moved[u.id] ? `moved here by you; the record ${u.ask.inferred ? "guess" : "says"} <i>${esc(u.ask.name)}</i>` : u.ask.inferred ? `<span class="inferred-why">${esc(u.ask.rule)}</span>` : esc(u.ask.rule);
     const back = `<div class="face back"><h4>${u.id} ${esc(title)}</h4><dl>
@@ -79,11 +79,11 @@ const Asks = (() => {
         <dt>Who to ask</dt><dd>${who}</dd>
         ${resolved && u.outcome ? `<dt>Answer</dt><dd class="clamp">${esc(u.outcome)}</dd>` : `<dt>Asks</dt><dd class="clamp">${esc(q)}</dd>`}
         <dt>Owner</dt><dd>${esc(u.ownerRaw || "none")}</dd>
-        <dt>Dates</dt><dd>opened ${day(u.opened)}${u.askBy ? `, ask by ${day(u.askBy)}` : ""}</dd></dl>
+        <dt>Dates</dt><dd>opened ${esc(day(u.opened))}${u.askBy ? `, ask by ${esc(day(u.askBy))}` : u.askByRaw ? `, ask by "${esc(u.askByRaw)}", which is not a date` : ""}</dd></dl>
         ${resolved ? "" : `<div class="actions"><button data-act="open">Details</button><button data-act="crit">${crit ? "Not critical" : "Declare critical"}</button>
           <button data-act="cock">${marks.cocked[u.id] ? "Push back in line" : "Cock it out"}</button><button data-act="asked">${marks.asked[u.id] ? "Not asked yet" : "Mark asked"}</button>
           <button data-act="flip">Turn back over</button></div>`}</div>`;
-    return `<div class="${cls}" data-id="${u.id}" data-level="${lvl}" style="--u:${resolved ? 0 : u.light.urgency}" tabindex="0" role="button" aria-label="${u.id}: ${esc(q)}. ${resolved ? "Answered" : "Ask by " + day(u.askBy)}.">
+    return `<div class="${cls}" data-id="${u.id}" data-level="${lvl}" style="--u:${resolved ? 0 : u.light.urgency}" tabindex="0" role="button" aria-label="${u.id}: ${esc(q)}. ${resolved ? "Answered" : "Ask by " + esc(day(u.askBy))}.">
       <div class="card"><div class="face front-face">${front}</div>${back}</div></div>`;
   }
   function bays() {
@@ -128,7 +128,7 @@ const Asks = (() => {
     if (b.later.length) {
       const open = st.expandedLater.has(b.key);
       if (open) body += b.later.map(stripHtml).join("");
-      body += `<button class="later" data-later="${esc(b.key)}"><span>${open ? `Fold the <b>${b.later.length}</b> later ones again` : `+ <b>${b.later.length}</b> later${b.later[0].askBy ? `, the earliest ${b.later[0].id} on ${day(b.later[0].askBy)}` : ""}`}</span></button>`;
+      body += `<button class="later" data-later="${esc(b.key)}"><span>${open ? `Fold the <b>${b.later.length}</b> later ones again` : `+ <b>${b.later.length}</b> later${b.later[0].askBy ? `, the earliest ${b.later[0].id} on ${esc(day(b.later[0].askBy))}` : ""}`}</span></button>`;
     }
     if (b.done.length) {
       const open = st.expandedDone.has(b.key);
@@ -198,8 +198,8 @@ const Asks = (() => {
     const out = [];
     for (const [id, key] of Object.entries(marks.moved)) { const u = U(id); if (u) out.push({ text: `<code>${id}</code> add <code>- **Ask:** ${esc(key)}</code> <span class="muted">(${u.ask.inferred ? "was a guess" : "the record said"}: ${esc(u.ask.name)})</span>`, raw: `${id}: - **Ask:** ${key}` }); }
     for (const id of Object.keys(marks.critical)) { const u = U(id); if (!u) continue;
-      out.push({ text: `<code>${id}</code> session note: declared critical on ${day(D.today)}${holdsOf(id).length ? "" : ` <span class="warn">Fails the check: its Blocks line names nothing, and a critical question must hold a decision.</span>`}`, raw: `${id}: session note, declared critical on ${D.today}` }); }
-    for (const id of Object.keys(marks.asked)) out.push({ text: `<code>${id}</code> session note: asked ${esc(U(id) ? U(id).ask.name : "")} on ${day(D.today)}, answer pending`, raw: `${id}: session note, asked on ${D.today}, answer pending` });
+      out.push({ text: `<code>${id}</code> session note: declared critical on ${esc(day(D.today))}${holdsOf(id).length ? "" : ` <span class="warn">Fails the check: its Blocks line names nothing, and a critical question must hold a decision.</span>`}`, raw: `${id}: session note, declared critical on ${D.today}` }); }
+    for (const id of Object.keys(marks.asked)) out.push({ text: `<code>${id}</code> session note: asked ${esc(U(id) ? U(id).ask.name : "")} on ${esc(day(D.today))}, answer pending`, raw: `${id}: session note, asked on ${D.today}, answer pending` });
     const cocked = Object.keys(marks.cocked).length;
     if (cocked) out.push({ text: `<span class="muted">${plural(cocked, "strip")} cocked out: a mark on this board only, not recorded.</span>`, raw: "" });
     return out;

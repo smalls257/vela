@@ -1,14 +1,20 @@
 /* Boot: the top bar, the master lamps, assets if the build carried any, the deep link, and the first view.
    Deep links: #map, #flows&open=FLO-002&step=2, #present=FLO-001&step=3, #asks&open=UNK-065, #map&q=paper%20order,
-   #garden&open=ADR-0002, #map&lens=transit; add &still for screenshots (no transitions), &selftest to run the checks. */
+   #decisions&open=ADR-0002 (the old #garden still works), #map&lens=transit; add &still for screenshots (no transitions), &selftest to run the checks. */
 $("#brand-title").textContent = D.title || "Vault";
 $("#brand-sub").textContent = `${D.initiative} · as of ${day(D.today)}`;
+/* A copy opened long after it was built says so, quietly, above everything: when it was built and from which commit. */
+if (D.built) {
+  const built = $("#built");
+  built.textContent = `Built ${D.built.date}${D.built.commit ? ` from commit ${D.built.commit}` : ""}. An older copy may be behind the vault.`;
+  built.hidden = false;
+}
 $("#brand").addEventListener("click", () => Nav.home());
 if (STILL) document.documentElement.classList.add("still");
 
 function renderMasters() {
-  const lit = litSubjects(), box = $("#masters");
-  const count = (lv) => lit.filter((x) => x.light.level === lv).length + D.above.filter((a) => ASK[a.unknown] && ASK[a.unknown].light.level === lv).length;
+  const box = $("#masters"), counts = Queue.counts();  // a question counts once however many things it holds
+  const count = (lv) => counts[lv] || 0;
   box.innerHTML = "";
   for (const [lv, word] of [["warning", "overdue"], ["caution", "need you"], ["unexamined", "unexamined"]]) {
     const n = count(lv);
@@ -26,7 +32,7 @@ const open = HASH.get("open");
 if (!Nav.boot()) {
   if (open && ent(open)) { App.trail = [open]; App.focus = open; }
   if (App.view === "flows" && open && FLOW[open]) { Flows.st.key = open; Flows.st.cur = HASH.has("step") ? +HASH.get("step") - 1 : -1; }
-  if (App.view === "garden" && open) Garden.showFor(open);
+  if (App.view === "decisions" && open) Decisions.showFor(open);
   Panel.render();
   rerender();
   Nav.syncHash();
@@ -40,7 +46,7 @@ Assets.load().then(() => {
   const v = viewDef(App.view);
   if (App.focus && v.highlight) v.highlight(App.focus);
 });
-Ask.ready = Ask.detect();  // a file asks nothing of the network; a page served from this machine asks /health once
+Ask.ready = Ask.detect().then(Layout.boot);  // a file asks nothing of the network; a page served from this machine asks /health once, then for the layout the helper holds
 if (HASH.get("q")) { $("#q").value = HASH.get("q"); $("#q").focus(); $("#q").dispatchEvent(new Event("input")); }
 if (HASH.get("present") && FLOW[HASH.get("present")]) Flows.present(HASH.get("present"), (+HASH.get("step") || 1) - 1);
 if (HASH.has("rehearse") && FLOW[HASH.get("rehearse")]) Rehearse.open(HASH.get("rehearse"));
@@ -49,4 +55,7 @@ if (HASH.has("clip") && App.view === "flows") {
   window.__selftestClip = true;
   Flows.saveClip().then(() => document.body.setAttribute("data-clip", JSON.stringify(window.__clipResult || { ok: false })));
 }
-else if (HASH.has("selftest")) setTimeout(() => SelfTest.run(), 60);
+else if (HASH.has("selftest")) {
+  if (typeof SelfTest === "undefined") { console.warn("[selftest] this page was built without its checks; rebuild with planner explore --selftest"); document.body.setAttribute("data-selftest", "SELFTEST FAIL: this page was built without its checks (planner explore --selftest)"); }
+  else setTimeout(() => SelfTest.run(), 60);
+}

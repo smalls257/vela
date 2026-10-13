@@ -9,14 +9,14 @@ so a link opens its target inside the explorer, not as a file.
 import html
 import re
 
-from planner import reading
-from planner.parse import protect_link_pipes
+from planner import readability, reading
+from planner.parse import closes_fence, protect_link_pipes
 from planner.viewer import body_of
 
-from .record import inline_html, title_of
+from .record import LISTED, PROSE, chips_html, inline_html, title_of
 
-HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
-FENCE = re.compile(r"^\s{0,3}(```|~~~)\s*([\w-]*)")
+HEADING = re.compile(r"^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$")
+FENCE = re.compile(r"^\s{0,3}(`{3,}(?=[^`]*$)|~{3,})\s*([\w-]*)")
 LIST_ITEM = re.compile(r"^(\s*)(?:[-*]|(\d+)\.)\s+(.*)$")
 DETAILS_OPEN = re.compile(r"^\s*<details><summary>(.*?)</summary>\s*$")
 DETAILS_CLOSE = re.compile(r"^\s*</details>\s*$")
@@ -48,8 +48,8 @@ class Renderer:
             self.item_by_name.setdefault(name, item_id)
         self.toc, self.used = [], set()
 
-    def inline(self, text):
-        out = inline_html(text, self.keys, self.page)
+    def inline(self, text, where=PROSE):
+        out = inline_html(text, self.keys, self.page, where)
         # reading.arrange writes its own <sup> around folded citations; those, and only those, become tags again
         return out.replace("&lt;sup&gt;", "<sup>").replace("&lt;/sup&gt;", "</sup>")
 
@@ -85,7 +85,7 @@ class Renderer:
                 mark, lang = fence.group(1), fence.group(2)
                 body = []
                 i += 1
-                while i < len(lines) and not lines[i].strip().startswith(mark):
+                while i < len(lines) and not closes_fence(lines[i], mark):
                     body.append(lines[i])
                     i += 1
                 code = html.escape("\n".join(body))
@@ -133,7 +133,7 @@ class Renderer:
                     rows.append(cells(lines[i]))
                     i += 1
                 th = "".join(f"<th>{self.inline(c)}</th>" for c in head)
-                tb = "".join("<tr>" + "".join(f"<td>{self.inline(c)}</td>" for c in r) + "</tr>" for r in rows)
+                tb = "".join("<tr>" + "".join(f"<td>{self.inline(c, LISTED)}</td>" for c in r) + "</tr>" for r in rows)
                 out.append(f'<div class="r-table"><table><thead><tr>{th}</tr></thead><tbody>{tb}</tbody></table></div>')
                 continue
             if stripped.startswith(">"):
@@ -159,9 +159,20 @@ class Renderer:
         flush()
         return "\n".join(out)
 
+    def trace_row(self, lines, i, out):
+        """The run of Trace lines starting at `i` as one row of name chips; returns the line after the run."""
+        ids = []
+        while i < len(lines) and readability.is_trace(lines[i]):
+            ids += readability.trace_ids(lines[i])
+            i += 1
+        out.append(chips_html(ids, self.keys))
+        return i
+
     def list_block(self, lines, i, out):
         """A list, with one level of nesting by indentation."""
         first = LIST_ITEM.match(lines[i])
+        if readability.is_trace(lines[i]):
+            return self.trace_row(lines, i, out)
         ordered = first.group(2) is not None
         base = len(first.group(1))
         tag = "ol" if ordered else "ul"
@@ -170,12 +181,15 @@ class Renderer:
         open_li = False
         while i < len(lines):
             m = LIST_ITEM.match(lines[i])
+            if m and readability.is_trace(lines[i]) and open_li:
+                i = self.trace_row(lines, i, parts)  # a Trace line at this level belongs to the item above it
+                continue
             if m and len(m.group(1)) <= base:
                 if (m.group(2) is not None) != ordered:
                     break
                 if open_li:
                     parts.append("</li>")
-                parts.append(f"<li>{self.inline(m.group(3))}")
+                parts.append(f"<li>{self.inline(m.group(3), LISTED)}")
                 open_li = True
                 i += 1
                 continue
@@ -185,7 +199,7 @@ class Renderer:
                 parts.extend(sub)
                 continue
             if lines[i].strip() and lines[i][:1] in " \t" and open_li:
-                parts.append(" " + self.inline(lines[i].strip()))
+                parts.append(" " + self.inline(lines[i].strip(), LISTED))
                 i += 1
                 continue
             break
