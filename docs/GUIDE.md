@@ -1,8 +1,8 @@
 # Planner user guide
 
-The planner turns a pile of ideas, documents and meetings into one planning vault: a folder of Markdown pages for a single initiative (goals, apps, contracts, requirements, epics, open questions). Claude runs the sessions that fill it. A checker keeps the pages honest. An offline page, the explorer, lets you walk through it on a call.
+Vela (the planner) takes a pile of ideas, documents and meetings and turns them into one planning vault: a folder of Markdown pages for a single initiative. The pages cover goals, apps, contracts, requirements, epics and open questions. Claude runs the sessions that fill the vault, and a checker keeps the pages honest. On a call, you walk through the vault in the explorer, an offline page.
 
-This guide is for people who have never seen it. Find your role first.
+This guide is for people who have never seen Vela. Start by finding your role in the table.
 
 | You are | You have | You do | Go to |
 |---|---|---|---|
@@ -21,7 +21,7 @@ flowchart LR
   V -->|"answer file"| R
 ```
 
-Nothing in this loop sends anything for you. You move the files (email, Teams, OneDrive).
+Vela doesn't send anything for you. People move the files, by email, Teams or OneDrive.
 
 ## 1. Install
 
@@ -38,7 +38,7 @@ Add this repo as a marketplace, then install the plugin. Replace the placeholder
 
 The marketplace is called `proj-planner` and holds one plugin, `planner` (`.claude-plugin/marketplace.json`). Skills then appear as `/planner:dump`, `/planner:close`, and so on.
 
-**So teammates get it without typing anything**, commit this to the team repo as `.claude/settings.json`. Claude Code asks them to trust the repo once, then offers the plugin:
+To give teammates the plugin without typing anything, commit this to the team repo as `.claude/settings.json`. Claude Code asks them to trust the repo once, then offers the plugin:
 
 ```json
 {
@@ -49,27 +49,27 @@ The marketplace is called `proj-planner` and holds one plugin, `planner` (`.clau
 }
 ```
 
-(This snippet follows Claude Code's settings format. It is not stored anywhere in this repo, so check it once on a clean machine.)
+This snippet follows Claude Code's settings format, and the repo doesn't store it anywhere, so check it once on a clean machine.
 
 In the CLI, the plugin's `bin/` puts a `planner` command on the PATH that Claude uses. In your own terminal, run it as `python3 <plugin folder>/scripts/planner ...`. `/planner:where` prints the folder.
 
-Older route, still works: copy `plugin/` into the vault as `.claude/skills/planner` and start Claude with `bin/claude-planner` (`template/README.md`, steps 2 and 9). With that route a plain `claude` will not find the skills.
+The older route still works: copy `plugin/` into the vault as `.claude/skills/planner` and start Claude with `bin/claude-planner` (`template/README.md`, steps 2 and 9). With that route, a plain `claude` won't find the skills.
 
 ### Claude Cowork
 
-Cowork takes a zip, and it rejects plugins that carry a top-level `bin/`. Do not zip the folder by hand. Build the zip from this repo:
+Cowork takes a zip, and it rejects any plugin with a top-level `bin/`, so don't zip the folder by hand. Build the zip from this repo:
 
 ```
 python3 tools/package_plugin.py --out ~/Desktop/planner-plugin.zip
 ```
 
-You will see `claude plugin validate passed` (if `claude` is on your PATH) and `package_plugin: ... written, 176 entries`. It packages what is committed at `HEAD`, never your working tree. Add `--ref <commit>` for another commit. Upload that file.
+The command prints `claude plugin validate passed` (if `claude` is on your PATH) and `package_plugin: ... written, 176 entries`. It packages what is committed at `HEAD`, not your working tree; add `--ref <commit>` for another commit. Then upload the file.
 
-What works in Cowork: every skill, reading, asking, drafting, proposing. Skills call `scripts/planner`, not `bin/`, for this reason.
+Every skill works in Cowork: reading, asking, drafting and proposing. The skills call `scripts/planner` rather than `bin/` for this reason.
 
-What may not: the explorer's live "Ask Claude" box, which needs a `claude` command on the machine's PATH. Without it the explorer still opens and searches. When you type a question, it offers it as a prompt to copy. Paste that into Cowork's own chat, or use `/planner:ask <question>` or `/planner:find <words>`, which need no helper.
+One thing may not work. The explorer's live "Ask Claude" box needs a `claude` command on the machine's PATH. Without one, the explorer still opens and searches, and when you type a question it offers the question as a prompt to copy. Paste that into Cowork's own chat, or use `/planner:ask <question>` or `/planner:find <words>`, which need no helper.
 
-In Cowork, keep the private workspace inside the working folder, since that is the only place kept:
+In Cowork, keep the private workspace inside the working folder, because that is the only place Cowork keeps:
 
 ```
 /planner:open <published zip> --into planner-workspaces/<initiative-slug>
@@ -107,7 +107,7 @@ flowchart LR
   I --> J["handoff<br/>(in a grill)"]
 ```
 
-It is a guide, not a track. The tool suggests requirements before boundary once the strategy is decided, grills come back for each app, and you can skip stages you already have. Ask it:
+The order is a guide, not a track. Once the strategy is decided, `planner next` suggests requirements before boundary. A grill comes back for each app, and you can skip any stage you already have. Ask it:
 
 ```
 planner next
@@ -116,23 +116,25 @@ planner next: initiative, dump. No app page exists yet, so start with a Dump & D
 
 `planner status` shows every app's stage and its oldest open unknown.
 
-Only a grill sets an item to `decided`. Everything else writes `inkling`, `assumption` or `fact`. If you want to override a rule, say so. Claude says once what the rule protects, does it, and writes an `Override:` line on the item so nobody has to guess later.
+Only a grill sets an item to `decided`. Every other session writes `inkling`, `assumption` or `fact`. If you want to override a rule, say so. Claude tells you once what the rule protects, does what you asked, and writes an `Override:` line on the item so nobody has to guess later.
 
-Handoff is part of a grill on an app that is ready: it records the senior's name and date on the app page. `close` then writes the handoff manifest (`planner handoff verify APP-x` later tells you if anything the senior accepted has changed). Seniors who disagree later use `/planner:challenge`, and you answer on the same branch.
+Handoff happens inside a grill on an app that is ready, and it records the senior's name and date on the app page. Close then writes the handoff manifest, and `planner handoff verify APP-x` later tells you if anything the senior accepted has changed. A senior who disagrees later uses `/planner:challenge`, and you answer on the same branch.
 
 ### Close every session
 
-Say "close" (or "we're done") and the assistant starts the close for you; typing `/planner:close` does the same. It marks each capture keep, park or drop by its own defaults and asks you only the two or three things it cannot settle, then writes the kept ones into the pages, renders, checks, commits, pushes `session/<id>` after one yes from you, and opens a PR. Its last step rebuilds the dashboard without `--serve`, commits it if it changed, and tells you:
+Say "close" (or "we're done") and the assistant starts the close for you; typing `/planner:close` does the same. Claude marks each capture keep, park or drop by its own defaults, and asks you only the two or three things it can't settle.
+
+Then it writes the kept captures into the pages, renders, checks and commits. After one yes from you, it pushes `session/<id>` and opens a PR. The last step rebuilds the dashboard without `--serve`, commits it if it changed, and tells you:
 
 ```
 The dashboard is up to date: dashboard.html
 ```
 
-A failed explorer build never undoes the close. `/planner:import` and `/planner:open` end the same way.
+A failed explorer build never undoes the close, and `/planner:import` and `/planner:open` end the same way.
 
 ### Material you already have
 
-`/planner:import <where it lives>` turns existing folders, decks, spreadsheets, code or wiki exports into pages. It registers every source in `sources.md`, shows you an import map before writing anything, writes each line with its source, and turns every clash between sources into a question with an owner and a date. Large piles go in batches; run it again to resume.
+`/planner:import <where it lives>` turns existing folders, decks, spreadsheets, code or wiki exports into pages. It registers every source in `sources.md` and shows you an import map before it writes anything. Each line it writes carries its source, and every clash between sources becomes a question with an owner and a date. Large piles go in batches, and you run it again to resume.
 
 ### The explorer
 
@@ -140,13 +142,15 @@ A failed explorer build never undoes the close. `/planner:import` and `/planner:
 /planner:explore            # serves it on this machine, opens the browser, search box can ask Claude
 ```
 
-or `planner explore` for a static `dashboard.html` at the vault root. Nobody else has to build it: it is committed with the vault, so a teammate who pulls the repo opens `dashboard.html`, and a reader on OneDrive opens `dashboard.html` in the published folder (`planner publish` rebuilds it from the published pages). A quiet line at the top says when it was built and from which commit, so an old copy shows its age. Useful flags, all checked against `planner explore --help`: `--theme console|graphite|daylight|vaporwave`, `--today YYYY-MM-DD` (a vault dated ahead of your clock), `--port`, `--no-open`, `--model haiku|sonnet`.
+or `planner explore` for a static `dashboard.html` at the vault root. Nobody else has to build it. The explorer is committed with the vault, so a teammate who pulls the repo opens `dashboard.html`, and a reader on OneDrive opens `dashboard.html` in the published folder (`planner publish` rebuilds it from the published pages). A quiet line at the top says when it was built and from which commit, so an old copy shows its age.
+
+The flags worth knowing, all checked against `planner explore --help`: `--theme console|graphite|daylight|vaporwave`, `--today YYYY-MM-DD` (a vault dated ahead of your clock), `--port`, `--no-open`, `--model haiku|sonnet`.
 
 What you get:
 - **What needs you** is the home screen: lit lamps for overdue questions, unreviewed decisions and unsettled items.
 - **Five doors** for other readers: Exec, Product, QA, Engineering, Managers.
 - **Map, flows, releases, who to ask, why** (the decision log). A flow plays step by step; press `P` to present it full screen.
-- **Ask Claude**: type a question and press Enter. Claude reads the vault only (it cannot edit), cites page IDs as links, and flags an ID the vault does not hold. Each answer shows its model and cost. "Think harder" uses Sonnet.
+- **Ask Claude**: type a question and press Enter. Claude reads the vault only (it can't edit), cites page IDs as links, and flags an ID the vault doesn't hold. Each answer shows its model and cost. "Think harder" uses Sonnet.
 - **Inside this app** (double-click an app) goes Context, Containers, Components, then **Build plan**: the team's stories in build order, what blocks what, and coverage of the requirements.
 
 The first build writes `.planner/explorer-pins.json`, which fixes each app's place on the map. Commit it, so the team shares one layout. The rest of `.planner/` stays out of git.
@@ -163,7 +167,7 @@ Nothing is required. With no file and no examples, the defaults apply. If text i
 
 ### Where team designs and plans live
 
-In the vault's own `docs/` folder. A senior runs `tech-design-grill` and `work-breakdown` from the vault root, which writes:
+Designs and plans live in the vault's own `docs/` folder. A senior runs `tech-design-grill` and `work-breakdown` from the vault root, and they write:
 
 ```
 docs/tech-design/<slug>.md          the design (with vault.app: APP-x in its frontmatter)
@@ -171,11 +175,11 @@ docs/adr/  CONTEXT.md
 docs/plan/<slug>-breakdown.md       the work breakdown
 ```
 
-`planner explore` finds them with no flag. `planner check` does not read `docs/`. If a design lives in another clone, put `design: <path>` on the app page, or pass `--design APP-x=<path>` (and `--breakdown APP-x=<path>`). The build prints what it found and `no design doc found for ...` when it did not.
+`planner explore` finds them with no flag. `planner check` doesn't read `docs/`. If a design lives in another clone, put `design: <path>` on the app page, or pass `--design APP-x=<path>` (and `--breakdown APP-x=<path>`). The build prints what it found and `no design doc found for ...` when it did not.
 
 ### Work breakdown to Jira tickets
 
-No model is involved, so no word is invented:
+No model is involved, so nothing gets invented:
 
 ```
 python3 tools/breakdown_to_tickets.py --repo <vault or team repo>
@@ -192,7 +196,7 @@ python3 <plugin>/scripts/planner publish --out ~/Desktop/paper-orders.zip
 planner publish: wrote paper-orders.zip (47 files) at eebe61f, 0 errors and 0 warnings at publish. Contact: Priya <p@x.com>.
 ```
 
-`--out` takes a new folder or a path ending in `.zip`. It publishes the last commit, never your working tree, and leaves out `.git`, the voice folders and the plugin copy. Uncommitted pages are not in it, and the copy says so. Readers are told your name and email (`--owner-name`, `--owner-contact`, or `owner_contact` in `.planner.yaml`). Put the result on OneDrive or Teams. There is no `/planner:publish` skill: it is this command.
+`--out` takes a new folder or a path ending in `.zip`. It publishes the last commit, never your working tree, and leaves out `.git`, the voice folders and the plugin copy. Uncommitted pages aren't in the copy, and the copy says so. Readers see your name and email (`--owner-name`, `--owner-contact`, or `owner_contact` in `.planner.yaml`). Put the result on OneDrive or Teams. There's no `/planner:publish` skill; you run this command.
 
 ### Review a proposal
 
@@ -200,11 +204,15 @@ planner publish: wrote paper-orders.zip (47 files) at eebe61f, 0 errors and 0 wa
 /planner:proposals review <proposal folder, .zip or changes.patch>
 ```
 
-Claude runs `planner proposals review`, which applies the change on a branch `proposal/<slug>` in a separate git worktree. Your own checkout does not move. It stops, saying why, if the base commit is missing from your clone or you have uncommitted files. Then it walks each change, pending decisions first, the reader's reason before the diff. For each you say accept, reject or edit. Accepting a pending decision records you as the decider and credits the reader. A rejection needs your reason, in your words, because the reader reads it. At the end it writes the answer file beside the proposal (for a zip named `2026-10-11-audit-deadline.zip`, you get `2026-10-11-audit-deadline-answer.md`). You send it. You merge the branch yourself; the tool never pushes or merges.
+Claude runs `planner proposals review`, which applies the change on a branch `proposal/<slug>` in a separate git worktree, so your own checkout doesn't move. It stops and says why if the base commit is missing from your clone or you have uncommitted files.
+
+Then it walks you through each change, pending decisions first, with the reader's reason before the diff. For each one you say accept, reject or edit. Accepting a pending decision records you as the decider and credits the reader. A rejection needs your reason, in your words, because the reader reads it.
+
+At the end Claude writes the answer file beside the proposal (for a zip named `2026-10-11-audit-deadline.zip`, you get `2026-10-11-audit-deadline-answer.md`). You send it. You merge the branch yourself; the tool never pushes or merges.
 
 ## 3. Readers
 
-You have no git and do not need it. You use Claude Code or Cowork with the plugin.
+You have no git and don't need it. You work in Claude Code or Cowork with the plugin.
 
 ### Open a copy
 
@@ -221,26 +229,26 @@ planner open: Your copy is the latest published (eebe61f, 2026-10-11).
   Work from that folder: cd ~/PlannerWorkspaces/new-initiative
 ```
 
-It copies into `~/PlannerWorkspaces/<initiative>/` (or `$PLANNER_WORKSPACES`, or `--into <folder>`). The folder you opened from is never written to. A location inside OneDrive or SharePoint is refused, since a synced workspace corrupts; pick a local folder with `--into`. Then start Claude in that workspace folder.
+It copies into `~/PlannerWorkspaces/<initiative>/` (or `$PLANNER_WORKSPACES`, or `--into <folder>`) and never writes to the folder you opened from. It refuses a location inside OneDrive or SharePoint, because a synced workspace gets corrupted; pick a local folder with `--into`. Then start Claude in the workspace folder.
 
 ### Explore and ask
 
-Open `dashboard.html` in the workspace, or run `/planner:explore`. Your own closes rebuild it, so it shows your drafts. Two quick questions in Claude:
+Open `dashboard.html` in the workspace, or run `/planner:explore`. Your own closes rebuild it, so it shows your drafts. Claude answers two kinds of quick question:
 
 - `/planner:find how does coach talk to brightwater` gives the best places, in seconds.
 - `/planner:ask <question>` gives a cited answer, flags what is not decided yet, and says "Not recorded" and who to ask when the vault is silent.
 
 ### Draft privately
 
-Run any session (`/planner:dump`, `/planner:grill`, ...) in the workspace. It writes to your copy only. Claude tells you once: this is a read copy, nothing is committed or sent. When you close a session, your record is saved, with no commit and no PR.
+Any session you run in the workspace (`/planner:dump`, `/planner:grill`, ...) writes to your copy only. Claude tells you once that this is a read copy and nothing is committed or sent. When you close a session, your record is saved, with no commit and no PR.
 
-If you decide something in a grill, it is written as decided, with a line beside it:
+If you decide something in a grill, Claude writes it as decided, with a line beside it:
 
 ```
 - **Pending approval:** @sam, 2026-10-18
 ```
 
-It means the owner has not seen it yet. It shows as a ring with a clock in the explorer, and `planner check` gives warning W327 listing them. It is a warning, never an error.
+That line means the owner hasn't seen the decision yet. The explorer shows it as a ring with a clock, and `planner check` lists these under warning W327. It's a warning, never an error.
 
 The explorer's "Draft: N pages changed" chip and Drafts view show exactly what you changed against the copy you opened.
 
@@ -250,18 +258,18 @@ The explorer's "Draft: N pages changed" chip and Drafts view show exactly what y
 /planner:propose Clearer refund rule
 ```
 
-Claude lists your changes in groups (pending decisions first), and for each asks why you changed it. You can skip any. A skipped one reads "no reason given", and Claude never invents one. Then it asks for a title, and folder or zip, and writes:
+Claude lists your changes in groups, pending decisions first, and asks why you made each one. You can skip any; a skipped one reads "no reason given", and Claude never makes one up. Then it asks for a title and for a folder or a zip, and writes:
 
 ```
 planner propose: wrote .../proposals/2026-10-11-audit-deadline.zip (1 text files patched, 0 binary listed, 0 pending decision(s) first).
   Send that file to Priya (p@x.com). Nothing was sent from here.
 ```
 
-The proposals folder sits beside your workspace, not in it. Check errors in your copy do not stop a proposal; they are listed first for the owner. The file holds only vault paths and your name. If a line holds your home folder path, Claude shows it and offers to write `<home>` instead (`--rewrite-home`), with your yes.
+The proposals folder sits beside your workspace, not in it. Check errors in your copy don't stop a proposal; the owner sees them listed first. The file holds only vault paths and your name. If a line holds your home folder path, Claude shows it and, with your yes, writes `<home>` instead (`--rewrite-home`).
 
 ### Send it, get the answer
 
-Send the file any way you send files: email, Teams, OneDrive. The owner reviews it and sends back an answer file that says, per change, accepted, rejected (with their reason) or edited. When it comes, the owner will usually publish a new copy. Open that to continue.
+Send the file any way you send files: email, Teams, OneDrive. The owner reviews it and sends back an answer file that says, for each change, whether it was accepted, rejected (with their reason) or edited. The owner will usually publish a new copy as well, and you open that to continue.
 
 ### Open a newer copy
 
@@ -269,7 +277,7 @@ Send the file any way you send files: email, Teams, OneDrive. The owner reviews 
 /planner:open <the newer copy> --into <your workspace>
 ```
 
-(Claude adds `--into` for you.) Your drafts are replayed onto the new pages, and it prints what happened page by page:
+Claude adds `--into` for you. Your drafts are replayed onto the new pages, and the command prints what happened to each page:
 
 | Result | What it means |
 |---|---|
@@ -278,13 +286,13 @@ Send the file any way you send files: email, Teams, OneDrive. The owner reviews 
 | merged | both changed different lines; read it once |
 | conflict | the page is now the owner's, and yours sits beside it as `<page>.mine.md` |
 
-Nothing of yours is overwritten. Go through each pair with Claude, copy over the lines you want, and delete the `.mine.md` file. While any conflict is open you cannot propose. Your pre-merge pages are also kept in `.planner/replay-backup/`.
+Nothing of yours is overwritten. Go through each pair with Claude, copy over the lines you want, and delete the `.mine.md` file. While any conflict is open, you can't propose. Your pre-merge pages are also kept in `.planner/replay-backup/`.
 
-To check without opening: `planner freshness` says "Your copy is the latest published", or "A newer copy was published ... Your drafts are kept", or "I cannot reach the folder you opened this from (OneDrive offline?)". It only reports. The explorer shows the same as a banner.
+To check without opening, run `planner freshness`. It says "Your copy is the latest published", or "A newer copy was published ... Your drafts are kept", or "I cannot reach the folder you opened this from (OneDrive offline?)". It only reports, and the explorer shows the same message as a banner.
 
 ## 4. Roles are decided by access
 
-`planner role` prints your role. Access decides, never a title or a config file.
+Your access decides your role, never a title or a config file. `planner role` prints it.
 
 | | Owner | Reader |
 |---|---|---|
@@ -296,13 +304,13 @@ To check without opening: `planner freshness` says "Your copy is the latest publ
 | Review proposals | yes | no |
 | Handoff, publish, `planner upgrade`, `/planner:challenge` | yes | no |
 
-Why readers cannot do the last row: handoff stamps the owner's commit, publish writes the owner's copy, and upgrade overwrites the shared conventions file. A challenge needs a branch and a PR. A reader's disagreement is a proposal. Claude names the owner when it refuses ("That is Priya's call. Send a proposal and they decide.").
+Readers can't do the last row for three reasons. Handoff stamps the owner's commit, publish writes the owner's copy, and upgrade overwrites the shared conventions file. A challenge needs a branch and a PR, so a reader who disagrees sends a proposal. When Claude refuses, it names the owner ("That is Priya's call. Send a proposal and they decide.").
 
-A product owner with git access is an owner. A sponsor with only OneDrive is a reader. `.planner.yaml` can lower your role to reader but cannot raise it. A vault without a remote called `origin` is still an owner, and says nothing can be pushed.
+A product owner with git access is an owner. A sponsor with only OneDrive is a reader. `.planner.yaml` can lower your role to reader but can't raise it. A vault without a remote called `origin` is still an owner, and says nothing can be pushed.
 
 ## 5. When something goes wrong
 
-**1. "I cannot find the planner program."** Run `/planner:where` and send the whole output to whoever maintains the plugin. It prints what the host expanded and which paths exist. The skills try the plugin path, then the skill's sibling folder, then `.claude/skills/planner/`, then the path in `.planner/workspace.json`. They will not guess.
+**1. "I cannot find the planner program."** Run `/planner:where` and send the whole output to whoever maintains the plugin. It prints what the host expanded and which paths exist. The skills try the plugin path, then the skill's sibling folder, then `.claude/skills/planner/`, then the path in `.planner/workspace.json`. They don't guess.
 
 **2. `planner` is not a command in my terminal.** The PATH entry exists inside Claude Code only. Use `python3 <plugin folder>/scripts/planner ...`.
 
