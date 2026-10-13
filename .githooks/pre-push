@@ -11,6 +11,15 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && continue            # deleting a remote branch: nothing to check
   tree="$(mktemp -d "${TMPDIR:-/tmp}/gate.XXXXXX")"
   git worktree add --quiet --detach "$tree" "$local_sha" || exit 2
+  if [ "$remote_ref" = "refs/heads/gh-pages" ]; then
+    # The published example site: built pages, no code, so no gate to run. Anyone with the link reads it,
+    # so it is checked for leaks instead (tools/check_site.py), with the pusher's git name and email forbidden.
+    echo "pre-push: $local_ref -> $remote_ref at ${local_sha:0:9} (site check)"
+    python3 "$(git rev-parse --show-toplevel)/tools/check_site.py" "$tree" \
+      --forbid "$(git config user.name)" --forbid "$(git config user.email)" || status=1
+    git worktree remove --force "$tree"
+    continue
+  fi
   echo "pre-push: $local_ref -> $remote_ref at ${local_sha:0:9} ($mode)"
   (cd "$tree" && .githooks/gate "$mode") || status=1
   git worktree remove --force "$tree"

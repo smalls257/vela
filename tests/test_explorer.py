@@ -533,9 +533,12 @@ def test_no_absolute_paths_in_built_pages(tmp_path):
     home = pathlib.Path.home().as_posix()
     assert home not in page, "the page names the builder's home directory"
     assert BOOKING.resolve().as_posix() not in page, "the page names the vault's absolute path"
-    # the vault and the page sit apart under home, so the build leaves the links out rather than name home
-    assert data["vault"] == ""
-    assert all(d["href"] == "" for d in data["designs"].values())
+    # Whether a link back is kept depends on where this machine puts the vault and the temp folder; what never
+    # changes is that the link is exactly what relative_href decides, and is relative.
+    from planner.explorer import build as explorer_build
+    assert data["vault"] == (explorer_build.relative_href(BOOKING, tmp_path) or "")
+    assert not data["vault"].startswith("/") and home not in data["vault"]
+    assert all(not d["href"].startswith("/") and home not in d["href"] for d in data["designs"].values())
 
 
 def test_open_file_links_resolve_from_the_output_folder(tmp_path):
