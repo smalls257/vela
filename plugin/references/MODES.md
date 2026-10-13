@@ -15,6 +15,8 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | Releases (`releases`) | every requirement at `assumption` or later is on a release or marked "later, no date", or the user stops | ask one question at a time with a recommended answer; say each release's date and who sees it; write only what has an explicit yes | write `decided`, invent a date, or write a requirement on a release the user did not place it on |
 | Challenge (`challenge`) | the challenge is an open unknown and its PR is open, or the senior stops | quote the senior's words; write one open unknown the senior owns that blocks the item, and one `**Dissent:**` line on the item | change the item's state or text, decide anything, or argue the item's side |
 | Answer (`answer`) | the challenged item is decided again, set back, or its unknown resolved, or the lead stops | work on the challenge's own branch; decide only inside a Grill part, with `grill` added to `modes` | open a second PR, or decide anything outside a Grill |
+| Breakdown (`breakdown`) | the plan is complete or complete-with-gaps, or the person stops | start the first story from the team's piece of the tracer flow; quote each story's criteria word for word from the vault; say for each story whether it fits before the next release date, or that it cannot tell and why | invent a criterion, plan around a person the design or the vault does not name, or split, merge or reorder agreed stories without a yes |
+| Tickets (`tickets`) | the output file is written and the summary said | check the plan against the vault before writing anything; ask which output the person wants; stop after the summary | create or change anything in an outside system without an explicit yes |
 
 ## Who writes what, and when
 
@@ -31,6 +33,8 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | `releases` | `04b-releases.md`: each release's heading, Target, State and rows at `assumption`, with a checkpoint commit; unknowns | prose |
 | `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |
 | `answer` | what its Grill decides, or the item set back, on the challenge's branch | a push to that branch and a comment on the challenge PR, never a new PR |
+| `breakdown` | `docs/plan/<slug>-breakdown.md` and `docs/plan/<slug>-audit.md` in the team's vault clone, on the design's branch, with a commit per agreed story (no session record) | nothing |
+| `tickets` | `docs/work/tickets.md`, or `docs/work/tickets.csv` with its README, once the person picks | nothing |
 
 No mode writes inside a generated block. `planner render` fills them. Close runs it, and so does `epics`, mid-session, to read its frontier. Whoever runs it stages every file it reports, by exact path.
 

@@ -1095,3 +1095,18 @@ def test_run_json_is_written_at_the_start(tmp_path):
     assert "run_id" in run_json
     assert run_json["stub"] is True
     assert "started" in run_json
+
+
+def test_the_teams_sessions_can_run_the_plugins_own_skills_and_the_old_user_skill_path_still_validates():
+    persona = {"opening": "x", "topics": {}}
+
+    def sessions(*pairs):
+        return [{"mode": mode, "cap": 1, "persona": "coach-lead", "planner": opening, "baseline": "go"} for mode, opening in pairs]
+
+    plugin = sessions(("design", "/planner:design coach"), ("breakdown", "/planner:breakdown coach"), ("tickets", "/planner:tickets coach"))
+    assert sim.script_problems({"sessions": plugin}, persona) == []
+    legacy = sessions(("tech-design-grill", "/tech-design-grill coach"), ("breakdown", "/work-breakdown coach"))
+    assert sim.script_problems({"sessions": legacy, "vault_skills": ["tech-design-grill", "work-breakdown"]}, persona) == []
+    wrong = sessions(("tickets", "/planner:breakdown coach"))
+    assert any("must start with /planner:tickets" in p for p in sim.script_problems({"sessions": wrong}, persona))
+    assert set(sim.PLUGIN_TEAM_MODES) <= set(sim.TEAM_MODES) and "tech-design-grill" in sim.TEAM_MODES
