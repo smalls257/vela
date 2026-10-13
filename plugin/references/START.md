@@ -12,7 +12,7 @@ The skills write the planner as `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`.
 4. The `planner_path` recorded in `.planner/workspace.json`, in a reader copy.
 5. None: stop and say "I cannot find the planner program. Run `/planner:where` and send me what it prints." Do not guess a path.
 
-Say which one you picked in a sentence the first time. The installed plugin wins over a vendored copy, because two versions answering one vault is how a vault gets rules its skills no longer follow. Other files the skills name as `${CLAUDE_PLUGIN_ROOT}/...` (this file, `MODES.md`, `REVIEW.md`, the catalogue) live in the same plugin root as `scripts/`. When the variable was not expanded, the root is the folder that holds the `scripts/planner` you picked, so a vendored vault's `.claude/skills/planner/`.
+Do not say which one you picked unless you could not find one. The installed plugin wins over a vendored copy, because two versions answering one vault is how a vault gets rules its skills no longer follow. Other files the skills name as `${CLAUDE_PLUGIN_ROOT}/...` (this file, `MODES.md`, `REVIEW.md`, the catalogue) live in the same plugin root as `scripts/`. When the variable was not expanded, the root is the folder that holds the `scripts/planner` you picked, so a vendored vault's `.claude/skills/planner/`.
 
 ## Owner or reader
 
@@ -29,7 +29,10 @@ Run `planner role`. Access decides, never a title. An **owner** works in the vau
 The people who read this vault hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so what you say and what you write are sized to that. `CONVENTIONS.md` says under "Pages" what the files follow; in a session:
 
 - Say each thing by its plain name: "the calendar entries", "the prep-note flow", not `CON-001` or `FLO-001`. Give an ID only where the user must find it, or where it goes into a file. Spell an abbreviation out the first time you use it.
+- What the lead reads has no codes in it: no check code (a W or E and digits), no gate name or number, no capture number (`^c12`), no copy ID (`Q-DAT-01@APP-x`), no finding ID (`F1.4`), and no rule name in capitals. Say what each means, in the lead's words: "the pilot date is a plan, not a fact yet", not "W343"; "the strategy page is ready to decide", not "it passes GATE-2". Codes go in files, the pull request body and the `**Override:**` bullet, where the check reads them. If the lead asks for an ID, give it.
+- Tool trouble you fix yourself (a failed shell command, a retry, a reviewer still running) is not news. Mention it only if you cannot get past it.
 - In a page, the IDs a sentence would have carried go on a `- Trace: CAP-001.FR1, CON-001, FLO-001` line under it. Never delete a Trace line, and never turn one into prose.
+- A link with a label, written inside a table cell, escapes its pipe: `[[page#Heading\|label]]`. A bare `|` splits the cell and `planner check` warns (W329). Outside a table the pipe is plain: `[[page#Heading|label]]`.
 - Offer a few things at a time. A list of more than about seven items is shown in groups of about five, the ones that matter first and the rest counted. A page opens with two or three plain sentences: what it says and what is still open.
 - `planner check` warns with W360 to W364 when a page drifts back. Each warning's fix line says how to write it in plain words.
 
@@ -39,12 +42,12 @@ Owners work on macOS (BSD tools) as often as on Linux (GNU tools). Edit a file w
 
 ## The user may override any rule
 
-The user may override any rule in these skills. Say once, in one sentence, what the rule protects. Then do what they asked, and record an `**Override:**` bullet (or the session's Changes row note) naming the rule and their reason. Never refuse, and never ask twice.
+The user may override any rule in these skills. Say once, in one plain sentence and without the rule's code, what the rule protects. Then do what they asked, and record an `**Override:**` bullet (or the session's Changes row note) naming the rule and their reason. Never refuse, and never ask twice.
 
 This holds in every skill, whichever steps of this file it runs, and it covers the grill gates, "only a Grill decides", an open unknown that blocks an item, an absent owner, and every "never" and "must not" in the skills and in `MODES.md`. The lead may decide on others' behalf.
 
 - History bullets (Override, Decision, Decided by, Confirmed by, Options considered, Dissent) go under the page's `## History`, as `CONVENTIONS.md` says under "Pages": page level directly under it, an item's under `#### <ID>`. Add the section at the end of the page if it is missing.
-- Write the bullet in the grammar of `CONVENTIONS.md` under "Overrides": `- **Override:** <rule> by @<user's handle> on <today>: <their reason, in their words>`, under the item's heading or at page level. Name the rule as the skills do: `GATE-1` to `GATE-5`, `grill`, a check code such as `E316`, or the rule's own words in double quotes. The handle comes from `gh api user -q .login`; if `gh` fails, ask for it once. In a reader copy, do not run `gh`: ask once for a short handle.
+- Write the bullet in the grammar of `CONVENTIONS.md` under "Overrides": `- **Override:** <rule> by @<user's handle> on <today>: <their reason, in their words>`, under the item's heading or at page level. Name the rule as the skills do: `GATE-1` to `GATE-5`, `grill`, a check code such as `E316`, or the rule's own words in double quotes (the file needs the name; the lead does not hear it). If no rule was set aside, write no `**Override:**` bullet: something the lead wishes, such as who may reopen an item, is a Notes line. The handle comes from `gh api user -q .login`; if `gh` fails, read it from the first line of `.planner/handle`, and if that is missing ask once and write it there (`.planner/` is not committed). In a reader copy, do not run `gh`: read or ask for a short handle the same way, once, and never again in any skill.
 - The "session's note" is that same bullet at page level in the session record, for a rule that belongs to no item, such as batching writes. Also capture the user's instruction verbatim, with them as origin, so the record holds what they said.
 - When the user decides for an owner who is not there, add `- **Decided by:** @<user>, on behalf of @<owner>`. The owner later adds `- **Confirmed by:** @<owner> on <date>`, or raises `/planner:challenge` if they disagree. Until then `planner check` warns with W324.
 - If they give no reason, ask for one once. If they still give none, write `reason not given`.
@@ -60,9 +63,9 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 
 **Reader copy:** skip every git command in steps 1 to 3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner freshness` and tell the user what it prints in its own words: whether a newer copy was published, or that the folder they opened this from is out of reach. It reports and never updates. There is nothing to pull. Then go to step 2.
 
-**Owner:** run `git status --short --branch` and show the output. If any file is changed or untracked, stop and ask: commit it, stash it, or carry it into this session. The one exception is untracked output the planner itself writes under `.planner/` (`explorer-pins.json`, `findings/`, `owed/`, `pr-body*.md`): say once that you are leaving it unstaged and go on, and never stage it. A changed `dashboard.html` is the exception to the exception: it is the rebuilt explorer page and it is tracked, so it is not a reason to stop (close commits it). Do nothing else until the user answers.
+**Owner:** run `git status --short --branch` and read it; do not paste it to the lead. If a page of the vault is changed or untracked, carry it into the session unstaged and say so in one clause ("your edit to the strategy page comes with us, unstaged"). Ask only when two reasonable choices would lose work, for example when the pull cannot run over the change. The one exception is untracked output the planner itself writes under `.planner/` (`findings/`, `owed/`, `pr-body*.md`, `handle`): leave it unstaged and go on, and never stage it. `.planner/explorer-pins.json` is different: it is the shared map layout, committed, so stage it by exact path when it changed. Files under `docs/` and `CONTEXT.md` are a team's design files and are not a reason to stop either. A changed `dashboard.html` is the exception to the exception: it is the rebuilt explorer page and it is tracked, so it is not a reason to stop (close commits it). 
 
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner freshness` and tell the user what it prints, in its own plain words: how far behind or ahead the clone is, how many files are uncommitted, or that origin could not be reached and this is the local state. It fetches with a short timeout and never pulls or changes anything; if it says origin is unreachable, say so and do not describe the clone as up to date. If it fails, show its message.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner freshness` and tell the user only if the clone is behind, or origin could not be reached and this is the local state. Say nothing when it is in step. It fetches with a short timeout and never pulls or changes anything; if it says origin is unreachable, say so and never describe the clone as up to date. If it fails, show its message.
 
 If the user names a challenge to answer, by its PR number or the challenged ID, take the path "Answer a challenge" below instead of the rest of this step. Otherwise run `git switch main` and `git pull --ff-only`. If any of them fails, show the error and say the session would start from an old `main`. Ask whether to go on. Never start from an old `main` without saying so.
 
@@ -77,7 +80,7 @@ An open record lives on its own `session/<id>` branch until its PR merges, so `m
 - Offer three choices: resume it, close it now with `/planner:close`, or leave it open and start a new one.
 - A branch whose only record is a closed `Challenge:` record is not an open session: it waits for the solution lead. Name it as "challenge waiting for an answer" and offer the "Answer a challenge" path instead of the three choices.
 
-To resume, run `git switch session/<id>`, read the record, and carry on from the last capture. For a Grill, carry on from the `## Agenda` section of the record: take the first item whose status is `open`. Never close a session for the user.
+To resume, run `git switch session/<id>`, read the record, and carry on from the last capture. For a Grill, carry on from the `## Agenda` section of the record: take the first item whose status is `open`. Never close a session the user has not asked to close; "Closing a session" below says what asking looks like.
 
 ## 3. Bring in review comments
 
@@ -101,7 +104,7 @@ Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner next` and show its line.
 
 ## 5. Open the record and the branch
 
-Ask for a topic of two to four words. The id is today's date plus the topic as a lower-case slug, for example `2026-10-05-mainframe-breaks-booking`. If `sessions/<id>.md` exists, or a `session/<id>` branch exists locally or on `origin`, add `-2`, then `-3`, and so on until both are free.
+Take the topic from the user's first message, in two to four words, and tell them the id in half a sentence ("calling this one `desk-helper-start`"). Change it only if they object; ask for a topic only when they have said nothing about what the session is for. The id is today's date plus the topic as a lower-case slug, for example `2026-10-05-mainframe-breaks-booking`. If `sessions/<id>.md` exists, or a `session/<id>` branch exists locally or on `origin`, add `-2`, then `-3`, and so on until both are free.
 
 **Reader copy:** do not run `git switch -c`, and do not commit; write the record on the folder as it is.
 
@@ -128,9 +131,11 @@ summary: In progress.
 |---|---|---|---|
 ```
 
-`<Mode name>` is the display name in `MODES.md`: Dump & Diverge, Discover, Shape, Requirements, Boundary, Allocate, Grill, Epics, Challenge or Answer. Commit it with the message `Open session <id>`. (A reader copy writes the file and stops there.)
+`<Mode name>` is the display name in `MODES.md`: Dump & Diverge, Discover, Shape, Boundary, Allocate, Releases, Grill, Requirements, Epics, Challenge or Answer. Commit it with the message `Open session <id>`. (A reader copy writes the file and stops there.)
 
 A session that runs a second mode adds that mode to `modes`. It never opens a second record.
+
+Then say in one sentence how much there is and how far you expect to get: "Six capabilities, two or three requirements each; we'll do two or three today." When you have done about two thirds of what you said, say so, and ask whether to push on or stop and close. If the conversation is cut off, the record holds the resume point; on resume, say in one line where you stopped.
 
 ## Answer a challenge
 
@@ -143,9 +148,20 @@ The solution lead answers a challenge on the challenge's own branch, so the red 
 
 In the answer session, a Grill works on that branch and adds `grill` to `modes`. It resolves `UNK-nnn` with the senior, or decides the item again. Or the lead sets the item back, a contract to `assumption` or an epic to `reopened`, with a `## Changes` row such as `| CON-nnn | decided | assumption | [[<id>#^cNN]] |`. `/planner:close` then pushes to the same branch and comments on the challenge PR.
 
+## Closing a session
+
+Close is a skill you may start, and only on the lead's word. That word is any plain way of saying they are done: "close", "close it", "we're done", "that's enough", "let's wrap up", or a request to move to another mode ("now do requirements for the third capability"), because the open session has to be closed before another opens.
+
+- **They said close, or something equal to it.** That is the yes. Say in one line what will happen ("I'll file your notes, write the pages and send the branch for review"), and run the `close` skill in this conversation.
+- **They only sounded finished** ("I think that's it", a long pause after the last answer). Ask once, "Shall I close this out now?", and wait. Do not start it on a guess.
+- **Never start close** because the work looks complete, a turn limit is near, or a gate stopped you. The lead decides when the session ends.
+- **One confirmation stays, before anything leaves the machine.** Close pushes the branch and opens a pull request. Before it does, close says what will be sent and waits for a yes, unless the lead typed `/planner:close` themselves or said "push" or "open the PR" in so many words. A "close" alone is not consent to push company material; it is consent to file.
+- **A switch.** After closing for a switch, say the one line the lead types to start the next mode ("Type `/planner:requirements CAP-005`"). Modes start on the lead's word and are not started by you.
+- **If close cannot be started from where you are,** say only: "Type `/planner:close` and I'll take it from there." Say nothing about why, and give no lecture.
+
 ## Captures during the session
 
-Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close. The first exception is a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`. The second is a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)` at once. The third is a Boundary, which marks the capture of each line it writes `→ keep: [[<page>#<heading>|<ID>]] (assumption)` at once.
+Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close, except in a mode whose skill says its captures are marked at once. Those are a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`; a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)`; and Boundary, Requirements, Allocate and Releases, which mark the capture of each line they write `→ keep: [[<page>#<heading>|<ID>]] (assumption)`. Close leaves a mark already written alone.
 
 - A person's words are quoted verbatim, with their name, role or handle as the origin.
 - Claude's own idea has origin `claude`.

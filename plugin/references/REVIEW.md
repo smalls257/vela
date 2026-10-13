@@ -4,6 +4,10 @@ A review checkpoint finds the questions the plan owes and nobody has asked. Code
 
 The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`. The skill that sends you here names the checkpoint and its focus.
 
+## Reader copy
+
+A reader copy has no git (`START.md`, "Owner or reader"). Skip the commit in section 1, and build the `Changed:` list from the session record's `## Changes` table and its captures instead of `git diff`. In section 3, replace the `git status --porcelain` comparison with a hash of each page and the record taken before and after the reviewers run (`shasum <path>`); a page whose hash moved was changed by a reviewer, so stop and show the lead. Everything else is as written.
+
 ## Numbering
 
 The checkpoint number `n` is 1 plus the number of `### ` headings under `## Reviews` in this session's record, or 1 if it has no such section. Work it out from the record each time, so it stays right after a resume. A re-run of some areas is a checkpoint of its own: see "Re-running areas" below.
@@ -48,6 +52,8 @@ Dispatch the `planner:area-reviewer` subagent with the Agent tool, once per area
 - `Changed: <paths>`: this session's record and every page this session has changed, from section 1, comma-separated. A page most sessions touch only in part, `11-unknowns-and-risks.md` above all, goes in with the lines this session changed, `11-unknowns-and-risks.md:40-52+88-90`: the `+<start>,<count>` of each hunk header in `git diff -U0 main...HEAD -- <page>`. A new question is about these; an owed copy may be about any page;
 - `Questions file: .planner/findings/<session id>/<n>-questions/<AREA>.json`, written out in full with the real session id, number and area code. It is the file you just saved for that area, so check that it exists before you dispatch. Never send a placeholder, a `<...>` template or the output pasted in place of the path.
 
+While the reviewers run, say one line ("Checking this against five angles, about a minute.") and nothing more until the digest is ready. Do not report each reviewer returning, a failed command, a retry or a commit.
+
 Give no conversation, no summary of what the lead said, and no other area's questions. If the Agent tool lists no `planner:area-reviewer`, dispatch a general-purpose subagent instead, with `model` set to `sonnet` as well, and give it everything in `${CLAUDE_PLUGIN_ROOT}/agents/area-reviewer.md` after the frontmatter as its instructions, then the same inputs, then this: you must not change any file. If you changed a file, return `{"area": "<your area code>", "error": "changed <path>"}` instead. Never review the pages yourself in this conversation.
 
 Save each reply exactly as it came back, with the Write tool, to `.planner/findings/<session id>/<n>/<AREA>.json`. If a reviewer errored, or could not be dispatched, write `{"area": "<AREA>", "error": "<what happened>"}` instead. Never write an empty findings list for a reviewer that did not finish: that would read as "checked, none".
@@ -77,7 +83,7 @@ Number the kept findings `F<n>.1`, `F<n>.2` and so on, in the merge's order. The
 
 Once the table is written, run `rm -rf .planner/findings/<session id>/<n>` again, with the real values written in, so no stale file is left to be read as fresh.
 
-Tell the lead the coverage in plain words: which areas found something, which ran and found nothing, which were skipped because nothing in them was in scope, and which did not run and why. An area that did not run is never reported as clean. A skipped area is never reported as checked. Offer to run either.
+Give the coverage in one sentence ("All five angles found something", or "Four angles ran; the regulation angle did not run, because its reviewer failed"). An area that did not run is never reported as clean. It is named in that sentence. A skipped area is never reported as checked. The per-area detail goes in the record and the pull request body, not the conversation. Offer to run an area that did not.
 
 ## Re-running areas
 
@@ -87,9 +93,22 @@ A re-run of one or more areas is a new checkpoint, `n+1`, headed `### <n+1>. Re-
 
 Run `planner questions --open --digest`. It prints the consequential lines in full first: those of high severity, and those that block something, ranked high and blocking first. Then it counts the rest by area, one line each, such as `FIN: 6 more (normal). List them: planner questions --open --digest --all --area FIN`, and ends with the command that prints every line in full, `planner questions --open --digest --all`. Nothing is hidden: every line stays in `planner questions --open`, in `--json` and in the ledger's `undisposed-questions` block.
 
-Fold in the kept findings: one about an owed copy joins that copy's line, and one with copy `new` is a line of its own, ranked the same way: in full when it is high severity, else in its area's count. Show the full lines in that order, each with its focus area in brackets (every area, for a finding several areas raised), its copy IDs or finding ID, what it blocks, and "one answer for all?" when it groups several copies. Then show each area's count line and its command as the digest prints them, adding the normal findings to their area's count. There is no cap. When the lead asks for an area, or for everything, run the command the digest names and show those lines in full. Never drop a line to keep it short.
+Fold in the kept findings: one about an owed copy joins that copy's line, and one with copy `new` is a line of its own, ranked the same way. All of it stays in the ledger and in `planner questions --open`, whatever the lead is shown: no question is dropped, only held back from the conversation.
 
-No turn puts more than five questions to the lead, however many lines the digest holds: one turn of 50 questions is a dump, not an interview, and the lead answers none of them well (the heron run's turn 38). Show the first five full lines, then the count lines, and ask: "Which of these do you want to take now? Any you can rule out? Say 'more' for the next five." Every line past the first five stays in the ledger and in `planner questions --open`, and comes up in the next turn the lead asks for it. Never paste a reviewer's reply, or the findings JSON, into the conversation: the digest is the only thing the lead reads.
+What the lead is shown is small, so they can answer it.
+
+- **Once per session, at a pause.** A mode may run its checkpoint more than once; each result goes in `## Reviews`. But the lead sees one digest per session, at the natural pause after a topic or at the end, never in the middle of their own line of thought. If they are still talking, carry on and show it last. Shape is the exception: its checkpoint comes before the options, and its findings go with the options as "what must be true" (the Shape skill says how); what is left goes in the one digest.
+- **At most three questions.** Take the high and blocking lines first, and only those a reviewer tied to a page this session changed. Say each as one plain sentence with one question mark, as a colleague would across a desk, naming the thing and the person who would know, and give your recommended answer with it. No copy ID, finding ID, area code or severity in the sentence; those go in the record.
+- **Never twice, never ruled out.** A question shown once this session is not shown again. Before you show a line, check the record's captures: a question the lead has ruled out, or answered, is not asked.
+- **The rest, in one line.** "Eleven more are written down; say 'more' if you want the next three now." On "more", show the next three the same way.
+
+For example, instead of "Q-PTN-02@PTY-01 and @PTY-03: does the agreement permit transfer of data to a new owner or user? One answer for all?", say:
+
+> Legal hasn't been asked whether a digest of a client call counts as a client record. My suggestion is to write it down as a question for legal, due 6 November, unless you already know. Fine?
+>
+> Eleven more are written down; say "more" if you want the next three now.
+
+A turn of 50 questions is a dump, not an interview, and the lead answers none of it well. Never paste a reviewer's reply, or the findings JSON, into the conversation: the digest is the only thing the lead reads. When the lead asks for an area, or for everything, run the command the digest names (`planner questions --open --digest --all --area FIN`) and show those lines three at a time.
 
 ## 6. Record what the lead does
 

@@ -87,7 +87,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 
 ## After handoff
 
-- **When the first app nears handoff,** use `/planner:epics` and `planner check --gate epics`. Then `planner handoff <APP-id>` in the PR that sets `handed_off`.
+- **When the first app nears handoff,** grill its handoff, then `/planner:close` writes `planner handoff <APP-id>` in the PR that sets `handed_off`. Epics come after: `/planner:epics` writes them against the accepted boundary, and `planner check --gate epics --app <APP-id>` says when that app's epics are complete.
 - **A senior who disputes a boundary or contract** runs `/planner:challenge`. It writes an open unknown the senior owns and a `**Dissent:**` line, and opens a PR whose check stays red (E316) on purpose.
 - **To answer it,** run `/planner:grill` and name the challenge PR or the challenged ID. START opens an answer session on the challenge's branch. Resolve the unknown or set the item back, then `/planner:close` pushes to that branch and comments on the challenge PR. It doesn't open a second PR. A reopened epic is decided again as `reopened → decided`.
 

@@ -22,7 +22,7 @@ Use whatever access the user already has: local files, a clone, an export they m
 5. Write the pages in `CONVENTIONS.md` format, in batches, committing a checkpoint after each (in a reader copy, which has no git, write the batch and skip the commit; START.md says what a reader copy skips). Every line cites its source, and its state follows where it came from:
    - `exists` or `repo` gives a `fact`.
    - `intends` gives an `assumption`, or an `inkling` if it is vague. Anything about the future is an `assumption` whatever the Kind.
-   - A decision is `decided` only when the source names who decided it and when. Otherwise it is an `assumption` plus an unknown asking the owner to confirm it. When `CONVENTIONS.md` has the `**Pending approval:**` rule and this is a reader copy, decisions carry it. If that rule is not there yet, note that in the report as coming.
+   - A decision a source names is an `assumption` here, never `decided`: only a Grill decides, and the check flags `decided` with no Grill behind it. When the source names who decided it and when, write that on the item as a note ("Decided by the CTO on 3 March, per the architecture decision record; a Grill confirms") and add a "grill to confirm" note, so the Grill has the decider and the date. When it names neither, add an unknown asking the owner to confirm it. When `CONVENTIONS.md` has the `**Pending approval:**` rule and this is a reader copy, decisions carry it. If that rule is not there yet, note that in the report as coming.
    - A gap stays a gap. Say it in your own words, in plain names, with the source as a link on the words that rely on it and no bare ID in the sentence. Never copy document text, and never use general knowledge as a source.
 6. Every clash between sources becomes one unknown naming both `SRC-nn`, with an owner handle and an ask-by date, as `MODES.md` says under "Unknowns". Never pick a side.
 7. Large piles go in batches across sessions. Keep an `## Import ledger` in the session record: one line per source, `processed` or `pending`, so a later `/planner:import` resumes where this one stopped.
@@ -42,7 +42,7 @@ Do not say the import is done until each of these holds:
 
 ## Ends when
 
-The checklist holds, or the user stops. If they stop early, write the ledger and the report for what was done. Run `git status` and confirm nothing under `.inbox/` is staged. Rebuild the explorer with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner explore` (no `--serve`). If it exits 0, say: "The dashboard is up to date: dashboard.html — open it, or run /planner:explore to ask Claude from it". If it fails, say "The explorer could not be built: <message>." and go on; a failed build never ends the import. Then tell the user: "Run `/planner:close` to finish the session and open the PR."
+The checklist holds, or the user stops. If they stop early, write the ledger and the report for what was done. In an owner's vault run `git status` and confirm nothing under `.inbox/` is staged; a reader copy has no git, so skip it and every other commit or stage step. Rebuild the explorer with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner explore` (no `--serve`). If it exits 0, say: "The dashboard is up to date: dashboard.html — open it, or run /planner:explore to ask Claude from it". If it fails, say "The explorer could not be built: <message>." and go on; a failed build never ends the import. Then tell the user: "Run `/planner:close` to finish the session and open the PR."
 
 ## Never
 
@@ -50,4 +50,4 @@ These are the defaults. The user may override any of them, as `START.md` says, a
 
 - Never ask for, keep or write a credential, and never upload material.
 - Never commit anything from `.inbox/`.
-- Never write a `fact` from an `intends` source, or `decided` without a named decider and date.
+- Never write a `fact` from an `intends` source, or `decided` at all: a decision a source names is an `assumption` with its decider and date in a note, until a Grill.

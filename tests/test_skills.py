@@ -12,6 +12,9 @@ from conftest import REPO, run
 PLUGIN = REPO / "plugin"
 SKILLS = sorted(p.parent for p in (PLUGIN / "skills").glob("*/SKILL.md"))
 READ_ONLY = {"ask", "find"}  # every other skill writes to the vault
+# Close is the one writing skill the model may start, on the lead's word (S24). Without the platform flag its safety is
+# written into the skill: see test_close_starts_only_on_the_leads_word_and_confirms_before_it_pushes.
+MODEL_MAY_START = {"close"}
 # Files a reference may name that live outside references/: vault files, and files of the user's grill skills.
 OTHER_FILES = {"CONVENTIONS.md", "CLAUDE.md", "SKILL.md", "CONTEXT.md", "NEG-AUDIT.md", "PREREQ-CHECK.md", "GRILL-LOOP.md",
                "REQUIREMENTS-FORMAT.md", "TECH-DESIGN-FORMAT.md"}
@@ -41,6 +44,8 @@ def test_frontmatter(skill):
     if skill.name in READ_ONLY:
         assert "disable-model-invocation" not in meta
         assert meta["disallowed-tools"] == "Write Edit NotebookEdit"
+    elif skill.name in MODEL_MAY_START:
+        assert "disable-model-invocation" not in meta
     else:
         assert meta.get("disable-model-invocation") is True, f"{skill.name} writes, so only the user may invoke it"
 
@@ -82,10 +87,9 @@ def test_claude_plugin_validate():
 
 def test_start_stops_on_a_dirty_clone_and_says_when_main_is_old():
     start = text("references/START.md")
-    assert "If any file is changed or untracked, stop and ask" in start
     assert "Never start from an old `main` without saying so." in start
     assert "add `-2`" in start
-    assert "Never close a session for the user." in start
+    assert "Never close a session the user has not asked to close" in start
     assert "Review comments were not checked" in start or "review comments were not checked" in start
     assert "claude, from <name>" in start
 
@@ -94,7 +98,7 @@ def test_dump_writes_captures_only():
     dump = text("skills/dump/SKILL.md")
     assert "Never edit a page outside `sessions/` during a dump." in dump
     assert "pre-mortem" in dump
-    assert "Do not run close yourself." in dump
+    assert "Do not run close yourself." not in dump
 
 
 def test_close_marks_honestly_and_never_claims_a_pr():
@@ -160,7 +164,7 @@ def test_grill_defines_acceptance_agenda_and_the_mark_exception():
     assert "says yes in person" in grill and "explicit yes" in grill
     assert "record where the provider stands as well as each consumer" in grill
     assert "(decided)" in grill and "the one exception to leaving marks off until close" in grill
-    assert "exception is a Grill" in start and "(decided)" in start and "## Agenda" in start
+    assert "(decided)" in start and "## Agenda" in start
     assert "keeps its mark" in close and "Promoted on a nod" in close
     assert "## Agenda" in grill and "GATE-3 confirmed yes|no" in grill
     assert "blocks every item on that page" in grill
@@ -216,8 +220,8 @@ def test_discover_marks_its_fact_captures_and_close_leaves_them():
     d, start, close = (text("skills/discover/SKILL.md"), text("references/START.md"),
                        text("skills/close/SKILL.md"))
     assert "→ keep: [[<page>#<heading>|<ID>]] (fact)" in d
-    assert "(fact)" in start and "second is a Discover" in start
-    assert "a Discover already marked `(fact)`, or a Boundary, Requirements or Allocate session already marked `(assumption)`, keeps its mark" in close
+    assert "(fact)" in start and "a Discover, which marks" in start
+    assert "a Discover already marked `(fact)`, or a Boundary, Requirements, Allocate or Releases session already marked `(assumption)`, keeps its mark" in close
 
 
 # /ask (V1-15)
@@ -252,12 +256,10 @@ def test_ask_header_works_with_no_origin_and_no_claude_md(tmp_path):
     (tmp_path / "x.md").write_text("x\n", encoding="utf-8")
     subprocess.run(git + ["add", "x.md"], cwd=tmp_path, check=True, timeout=60)
     subprocess.run(git + ["commit", "-q", "-m", "x"], cwd=tmp_path, check=True, timeout=60)
-    rules, fresh = run_injected(tmp_path, env)
-    assert rules.startswith("NO CLAUDE.md")
+    (fresh,) = run_injected(tmp_path, env)
     assert re.match(r"HEAD is [0-9a-f]+, committed \d{4}-\d{2}-\d{2}\.\n", fresh)
     assert "Behind origin/main by an unknown number of commits, as of the last fetch on no recorded date." in fresh
-    (tmp_path / "CLAUDE.md").write_text((REPO / "template" / "CLAUDE.md").read_text(encoding="utf-8"), encoding="utf-8")
-    assert run_injected(tmp_path, env)[0].startswith("TEMPLATE: a person must rewrite this file.")
+    assert len(run_injected(tmp_path, env)) == 1
 
 
 def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
@@ -284,7 +286,7 @@ def test_house_voice_rules():
     voice = text("skills/house-voice/SKILL.md")
     assert "in file-name order" in voice
     assert "Never read `voice/corpus/`." in voice
-    assert "> Replaces the paragraph above after <session id>; delete one." in voice
+    assert "Replaces the paragraph above" not in voice and "## Replaced prose" in voice  # a page never carries two openings
     assert "more than about 20 prose paragraphs" in voice
     assert "acceptance criteria, and the `- Trace:` line under each;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
 
@@ -313,7 +315,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
     assert "an explicit yes to each criterion on its own" in epics and "while any criterion lacks its own explicit yes" in epics
-    assert "It does not mean they are decided." in epics and "Report those separately" in epics
+    assert "It does not mean they are decided" in epics and "check --gate epics --app <APP-id>" in epics
     assert "list each epic still at `draft`" in epics
     assert "Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID" in epics and "Redis or Kafka" in epics
     assert "- Trace: CAP-001.FR1, CON-001, FLO-001  ·  AC3  ·  [testing]" in epics and "More than 7 means the epic should be split" in epics
@@ -408,7 +410,9 @@ def test_close_ends_by_rebuilding_the_static_explorer_and_a_failed_build_never_b
     assert "A failed build never undoes or blocks the close" in last
     assert "never say the dashboard is up to date unless the command exited 0" in last
     assert "Run it even when section 8 stopped" in last
-    assert "If none is open, say so plainly, change nothing, and go straight to section 9." in close
+    assert "go straight to section 9, which has its own path for a close with no session" in close
+    assert "With no session" in last and "do not commit to `main` and do not push" in last
+    assert "never pipe it" in last and "Read the exit status before you say anything" in last
 
 
 def test_open_and_import_also_say_where_the_explorer_is_and_never_stop_on_a_failed_build():

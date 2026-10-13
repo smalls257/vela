@@ -266,7 +266,7 @@ def read(*parts):
     return (PLUGIN.joinpath(*parts)).read_text(encoding="utf-8")
 
 
-START_RULE = ("The user may override any rule in these skills. Say once, in one sentence, what the rule protects. "
+START_RULE = ("The user may override any rule in these skills. Say once, in one plain sentence and without the rule's code, what the rule protects. "
               "Then do what they asked, and record an `**Override:**` bullet (or the session's Changes row note) "
               "naming the rule and their reason. Never refuse, and never ask twice.")
 
@@ -282,7 +282,7 @@ def test_start_holds_the_shared_override_rule_and_its_hard_stops():
 
 def test_grill_offers_the_override_and_still_runs_the_rest_of_the_grill():
     grill = read("skills", "grill", "SKILL.md")
-    assert '"decide anyway (override GATE-n)"' in grill
+    assert "If the lead wants to decide it anyway, do it and record the override" in grill
     assert "the rest of the Grill runs as normal" in grill and "read-back" in grill
     assert "- **Decided by:** @<user's handle>, on behalf of @<owner>" in grill
     assert "This is how GATE-5 passes with the owner away." in grill

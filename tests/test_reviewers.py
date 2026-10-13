@@ -108,8 +108,9 @@ def test_review_covers_the_minor_gaps():
 def test_review_puts_no_cap_on_the_digest():
     review = text("references/REVIEW.md")
     assert "planner questions --open --digest" in review
-    assert "There is no cap." in review and "Never drop a line to keep it short." in review
-    assert not re.search(r"\b(?:at most|no more than|up to) (?:\d+|one|two|three|four|five) (?:questions|lines)", review)
+    # S26: the lead is shown at most three questions, once; nothing is dropped from the ledger.
+    assert "no question is dropped, only held back from the conversation" in review
+    assert "At most three questions" in review and "Once per session" in review
 
 
 def test_a_reviews_section_in_the_documented_form_passes_check(tmp_path):
@@ -157,7 +158,7 @@ def test_discover_runs_the_checkpoint_after_the_read_back_and_the_implications_l
 def test_modes_has_no_question_cap_and_no_sweep():
     modes = text("references/MODES.md")
     assert "at most two questions" not in modes and "concern sweep" not in modes
-    assert "## Owed questions" in modes and "There is no cap on questions and no quota" in modes
+    assert "## Owed questions" in modes and "No question is dropped and none is owed a quota" in modes
     assert modes.count("question ledger rows") == 5  # dump, discover, shape, boundary and grill write them at close
 
 
@@ -209,7 +210,7 @@ def test_epics_reads_the_question_gate():
 def test_shape_shows_the_top_conditions_and_sends_the_rest_through_the_digest():
     shape = text("skills/shape/SKILL.md")
     assert "only the top few conditions" in shape and "coverage line" in shape
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --open --digest" in shape
+    assert "digest in REVIEW section 5" in shape
     assert "quotes the option's capture" in shape and "counterparties" in shape
     assert "the shape gate will warn until" in shape
 
@@ -218,7 +219,7 @@ def test_grill_records_a_decision_over_an_open_blocking_question():
     grill = text("skills/grill/SKILL.md")
     assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate grill --item <ID>" in grill
     assert "Repeat `--item`" in grill and "exits 2" in grill and "can be stale" in grill
-    assert "Which do you want to take now?" in grill and "REVIEW section 5" in grill
+    assert "REVIEW section 5" in grill and "at most three questions" in grill
     assert "decided with <copy IDs> open (W807)" in grill and "`## Changes` row" in grill
 
 
@@ -227,7 +228,7 @@ def test_epics_offers_the_e805_override_with_its_exact_bullet():
     assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
     assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
     assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --open --digest" in epics
-    assert "Defer it to whoever can answer" in epics and "the whole vault, not one team" in epics
+    assert "Defer it to whoever can answer" in epics and "--gate epics --app <APP-id>" in epics
     assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
     assert "the override is the only way to a clean `--gate epics`" in epics
 
@@ -245,9 +246,9 @@ def test_close_writes_a_ledger_row_for_every_copy_taken_and_every_finding():
 def test_close_proposes_catalogue_entries_and_never_edits_the_catalogue():
     close = text("skills/close/SKILL.md")
     assert "### Gaps the catalogue missed" in close
-    assert '"Did any other gap turn up late, or by luck?"' in close
+    assert "Never ask the lead whether a gap turned up late" in close  # S25: the answer was no, 11 times in 11
     assert "Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`" in close
-    assert "planner questions --stats" in close and "Pruning is the user's call." in close
+    assert "planner questions --stats" in close and "Pruning is the maintainer's call." in close
 
 
 def test_close_reports_questions_and_reviews_in_the_pr_body():
@@ -755,9 +756,9 @@ def test_review_hands_each_reviewer_a_real_questions_file_and_the_reviewer_refus
 def test_a_review_digest_puts_at_most_five_questions_to_the_lead_in_a_turn_and_never_pastes_findings():
     """S12: the heron run's turn 38 put 89 question marks to the lead, with the reviewers' raw JSON."""
     review = text("references/REVIEW.md")
-    assert "No turn puts more than five questions to the lead" in review
+    assert "At most three questions" in review and "A turn of 50 questions is a dump" in review
     assert "Never paste a reviewer's reply, or the findings JSON, into the conversation" in review
-    assert "There is no cap." in review and "Never drop a line to keep it short." in review
+    assert "no question is dropped" in review
 
 
 def test_modes_asks_once_what_the_lead_might_not_know_they_need():

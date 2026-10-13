@@ -890,13 +890,14 @@ def cmd_check(args, out):
     started = time.perf_counter()
     vault = load_vault(root)
     items = gate_items(vault, args.gate, args.item)
-    findings = rules.check(vault, today, gate=args.gate, items=items) + conventions_findings(root)
+    app = gate_app(vault, args.gate, args.app)
+    findings = rules.check(vault, today, gate=args.gate, items=items, app=app) + conventions_findings(root)
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     elapsed = time.perf_counter() - started
     print(f"planner check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages. "
           f"Today is {today} ({origin}). Took {elapsed:.2f} s." + (f" Gate: {args.gate}." if args.gate else "")
-          + (f" Items: {', '.join(items)}." if items else ""), file=out)
+          + (f" Items: {', '.join(items)}." if items else "") + (f" App: {app.id}." if app is not None else ""), file=out)
     for finding in findings:
         print(finding.format(), file=out)
     if args.gate == "epics" and not errors:
@@ -906,6 +907,18 @@ def cmd_check(args, out):
                   f"assumption{'' if len(resting) == 1 else 's'} about high-severity questions: {', '.join(resting)}. "
                   "Each holds until its signpost shows.", file=out)
     return 1 if errors else 0
+
+
+def gate_app(vault, gate, app_id):
+    """The app page `--app` names, or None. Only the epics gate narrows to one app."""
+    if app_id is None:
+        return None
+    if gate != "epics":
+        raise ToolError("--app narrows the epics gate to one app, so it goes with --gate epics.")
+    found = next((a for a in vault.apps if a.id == app_id), None)
+    if found is None:
+        raise ToolError(f"--app {app_id} is not an app page in this vault.")
+    return found
 
 
 def gate_items(vault, gate, items):
@@ -2052,6 +2065,8 @@ def build_parser():
                        help="epics: trace gaps and undisposed high-severity questions are errors; shape: assumed "
                             "questions warn; grill: open questions that block an --item warn")
     check.add_argument("--item", action="append", help="with --gate grill: an agenda item's ID; repeat for each")
+    check.add_argument("--app", help="with --gate epics: only this app and its slice (an APP-id); other apps' gaps "
+                                     "and the whole-vault requirement check are left out")
     check.set_defaults(func=cmd_check)
     rend = sub.add_parser("render", help="rewrite generated blocks")
     rend.add_argument("--vault", default=".", help="vault root (default: current directory)")

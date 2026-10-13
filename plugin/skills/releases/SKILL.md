@@ -26,7 +26,7 @@ Ask one question at a time, with your recommendation. Run it as a release-scope 
 3. **What comes next.** "What comes next, and when?" Repeat steps 1 and 2 for the next release. Go on until every requirement at `assumption` or later is on a release or the user says "later, no date" for it.
 4. **What the first date depends on.** "Does anything on the first date depend on something not yet agreed?" Each answer becomes an unknown, with an owner handle, an ask-by date and `**Blocks:**` linking the release's heading. When the owner is not who would actually know, ask "Who would actually know this? If that is not the owner, give me a name or a role, like outside counsel." and write it as `**Ask:**`. Ask the lead first, as `MODES.md` says under "Unknowns".
 
-Label every line with what it rests on: a source, the user's words, or `(claude)`. Write nothing until the user has said yes to that line. Silence, or "ok" with nothing else, does not count: ask again. A requirement the user will not date stays out of the file, and you tell them that `planner check` will list it (W343) until it has a release.
+Label every line with what it rests on: a source, the user's words, or `(claude)`. Write nothing until the user has said yes to that line. Silence, or "ok" with nothing else, does not count: ask again. A requirement the user will not date stays out of the file, and you tell them that the check will keep listing it as undated until it has a release.
 
 ## 3. Write the confirmed releases
 
@@ -49,13 +49,13 @@ On `04b-releases.md`, one section per release, in the order they ship:
 - Replace the page's "No release is planned yet" line with one opening paragraph: how many releases, the first date and what is undated. Close rewrites it in the house voice.
 - Each release written gets a capture marked at once, `→ keep: [[04b-releases#<release heading>|<release name>]] (assumption)`, and a `## Changes` row in the session record, `| releases | - | assumption | [[<id>#^cNN]] |`. A release has no ID of its own, so the row names the page, and the capture names the release.
 
-Then run `planner render` and `planner check`, fix every error (E340 and E341 mean a link or a criterion number is wrong), read the W343 list back to the user as the requirements still on no release, and commit a checkpoint.
+Then run `planner render` and `planner check`, fix every error (E340 and E341 mean a link or a criterion number is wrong), tell the user which requirements are still on no release, by their plain names (that is what the W343 lines list; do not say the code), and commit a checkpoint.
 
 ## 4. Review, then finish
 
-Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the releases are written" and `04b-releases.md` as its focus. Show the digest as REVIEW section 5 says, and capture what the lead takes.
+Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the releases are written" and `04b-releases.md` as its focus. Show the digest as REVIEW section 5 says, once and at most three questions, and capture what the lead takes.
 
-Run `git status` and confirm nothing under `.inbox/` is staged. Tell the user: "Run `/planner:close` to finish the session and open the PR. Then a Grill on `releases` decides them, and `/planner:epics` cuts each team's epics against them."
+Run `git status` and confirm nothing under `.inbox/` is staged. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a Grill on `releases` decides them, and `/planner:epics` cuts each team's epics against them.
 
 ## Never
 

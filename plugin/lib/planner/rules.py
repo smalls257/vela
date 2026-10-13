@@ -5,11 +5,11 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, flows, links, override, parse, pending, questions, readability, readload, releases, render, schema, trace
+from planner import allocation, flows, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
-def check(vault, today, gate=None, items=()):
+def check(vault, today, gate=None, items=(), app=None):
     """All findings for the vault, sorted by path, line and code.
 
     `gate="epics"` is the moment epics are called complete: every trace gap
@@ -17,6 +17,8 @@ def check(vault, today, gate=None, items=()):
     high-severity question not yet disposed. `gate="shape"` is the end of a
     Shape: each assumed question still unresolved warns. `gate="grill"` with
     `items` is a Grill on those items: each open question that blocks one warns.
+    `app` narrows the epics gate to one app page and its slice (scope_to_app), so a multi-app
+    initiative can call one app's epics complete while another app's are still draft.
     Overrides apply last, so an override can soften an error but never hide one:
     see override.apply.
     """
@@ -26,13 +28,41 @@ def check(vault, today, gate=None, items=()):
     if gate == "epics":
         trace_warnings = {warning for warning, _ in schema.TRACE_CODES.values()}
         findings = [f for f in findings if f.code not in trace_warnings]
-        findings.extend(trace_findings(vault, gated=True))
-        findings.extend(questions.epics_gate(vault))
+        gap_is_theirs, question_is_theirs = scope_to_app(vault, app) if app is not None else (None, None)
+        findings.extend(trace_findings(vault, gated=True, keep=gap_is_theirs))
+        findings.extend(f for f in questions.epics_gate(vault)
+                        if question_is_theirs is None or question_is_theirs(f.message.split(" ", 1)[0]))
     elif gate == "shape":
         findings.extend(questions.shape_gate(vault))
     elif gate == "grill":
         findings.extend(questions.grill_gate(vault, items))
     return sorted(set(override.apply(vault, findings, gate) + pending.findings(vault)))
+
+
+def scope_to_app(vault, app):
+    """(gap filter, question filter) for the epics gate narrowed to `app` and its slice.
+
+    A gap is kept when its subject is the app, a contract it provides, a capability its allocation rows
+    carry, a concern cell for it, or an epic that lists it. T7 (a requirement no app carries) belongs to
+    no app and is left to the whole-vault gate. An E805 is kept when its question is about the app, one of
+    its contracts or the whole initiative, or is a reviewer's question: a reviewer row names no subject,
+    and dropping it would hide a high-severity question.
+    """
+    contracts = {c.id for c in progress.provided(vault, app)}
+    caps = {r.requirement.split(".")[0] for r in allocation.rows(vault) if r.app is app and r.requirement}
+    epics = {e.id for e in trace.epics(vault) if app.id in trace.listed(e, "apps")}
+    own = contracts | caps | epics | {app.id}
+
+    def gap_is_theirs(gap):
+        if gap.rule == "T7":
+            return False
+        return gap.subject in own or gap.subject.endswith(f"× {app.id}")
+
+    def question_is_theirs(copy):
+        subject = copy.split("@", 1)[1] if "@" in copy else ""
+        return not subject or subject in contracts | {app.id} or subject.startswith("INI-")
+
+    return gap_is_theirs, question_is_theirs
 
 
 # ------------------------------------------------------------------ helpers
@@ -1008,9 +1038,11 @@ def freshness_rules(vault, today):
 
 # ------------------------------------------------------------- traceability
 
-def trace_findings(vault, gated):
-    """One finding per trace gap: a warning, or an error under the gate."""
+def trace_findings(vault, gated, keep=None):
+    """One finding per trace gap: a warning, or an error under the gate. `keep` narrows the gaps."""
     for gap in trace.report(vault).gaps:
+        if keep is not None and not keep(gap):
+            continue
         warning, error = schema.TRACE_CODES[gap.rule]
         line = gap.line or meta_line(gap.page, gap.field)
         yield _f(gap.page, line, error if gated else warning, f"{gap.rule}: {gap.message}", gap.fix)

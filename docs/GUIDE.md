@@ -122,7 +122,7 @@ Handoff is part of a grill on an app that is ready: it records the senior's name
 
 ### Close every session
 
-`/planner:close` marks each capture keep, park or drop, writes the kept ones into the pages, renders, checks, commits, pushes `session/<id>` and opens a PR. Its last step rebuilds the dashboard without `--serve`, commits it if it changed, and tells you:
+Say "close" (or "we're done") and the assistant starts the close for you; typing `/planner:close` does the same. It marks each capture keep, park or drop by its own defaults and asks you only the two or three things it cannot settle, then writes the kept ones into the pages, renders, checks, commits, pushes `session/<id>` after one yes from you, and opens a PR. Its last step rebuilds the dashboard without `--serve`, commits it if it changed, and tells you:
 
 ```
 The dashboard is up to date: dashboard.html
