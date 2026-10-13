@@ -47,16 +47,19 @@ const MapView = (() => {
       typeof Nav !== "undefined" ? Nav.pageActions() : null);
     main.append(head);
     const col = queued ? h("div", { class: "home-map" }) : main;
+    // On the home page the lens, grouping, motion and layout controls and the count line run the full width above the
+    // queue card and the map, at every window width, so they are where the reader looks first, not under the map.
+    const above = queued ? h("div", { class: "home-tools" }) : main;
     const tools = toolbar();
-    if (tools) col.append(tools);  // Element.append writes a null as the text "null"
-    col.append(countLine());
+    if (tools) above.append(tools);  // Element.append writes a null as the text "null"
+    above.append(countLine());
     if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No capability requirements recorded yet.", "No app carries one, and no epic lists an app against a capability, so there is nothing to group the apps by.", "/planner:requirements", "inline"));
     const board = h("div", { class: "board board-" + (lens() === "cockpit" && mode !== "cockpit" ? "cockpit board-" + mode : lens()), id: "board" });
     // The matrix's key sits beside (or, in a narrow window, under) the scrolling board and not inside it, so nothing
     // after the table adds scroll room and pushes the frozen head and row names out with the table's edge.
     const stage = lens() === "matrix" ? h("div", { class: "matrix-stage" }, board) : null;
     col.append(stage || board);
-    if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
+    if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, above, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
     if (!D.nodes.length) { board.append(emptyState("This vault has no apps yet.", "There is no map to draw.", "/planner:boundary")); return; }
     if (lens() === "matrix") { const m = matrix(); board.append(m.table); stage.append(m.key); }
     else if (lens() === "releases") Releases.mapLens(board);
