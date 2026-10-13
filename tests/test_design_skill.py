@@ -284,7 +284,9 @@ def test_planner_next_offers_the_design_for_a_handed_off_app_with_none(tmp_path)
     vault = tmp_path / "vault"
     shutil.copytree(HERON, vault)
     code, out = run("next", "--vault", str(vault), "--today", "2026-10-12")
-    assert code == 0 and "design" not in out, out  # the design is there, so only the lead's step is named
+    assert code == 0 and ", design." not in out, out  # the design is there, so no design step is named
+    assert out.splitlines()[0].startswith("planner next: APP-consent-and-identity, grill"), out  # the lead's step stays first
+    assert "planner next: team side, APP-desktop-agent, breakdown desktop-agent." in out, out  # the team's own next step
     shutil.rmtree(vault / "docs" / "tech-design")
     code, out = run("next", "--vault", str(vault), "--today", "2026-10-12")
     lines = out.splitlines()

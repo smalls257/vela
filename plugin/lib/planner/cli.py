@@ -2056,15 +2056,19 @@ def cmd_next(args, out):
         print(f"planner next: {first_step(vault)} {when}", file=out)
         return 0
     row = progress.best(progress.grid(vault, today))
-    step = initiative_step(vault, row) or teamdocs.team_step(root)
+    step = initiative_step(vault, row)
     if step:
         print(f"planner next: {step} {when}", file=out)
     elif row is None:
         print(f"planner next: nothing to do. Every app's items are settled and its epics decided. {when}", file=out)
     else:
         print(f"planner next: {row.app.id}, {row.mode} {row.subject}. {row.reason} {when}", file=out)
+    # The team's next step is another person's work, so it is a line of its own beside the lead's, never instead of it.
     for line in design_steps(vault, root):
         print(line, file=out)
+    team = teamdocs.team_step(root)
+    if team:
+        print(f"planner next: team side, {team}", file=out)
     return 0
 
 
