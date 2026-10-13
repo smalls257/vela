@@ -26,7 +26,7 @@ from . import breakdown_find, design_data
 
 TICKETS = "tickets.csv"
 OUTSIDE = re.compile(r"\b(?:outside party|outside|vendor|third[- ]party|external|supplier)\b", re.I)
-PLAN_QUESTION = re.compile(r"\bQ-\d+\b|\bopen question\b", re.I)
+PLAN_QUESTION = re.compile(r"\b(?:OQ|Q)-\d+\b|\bopen question\b", re.I)
 GAP_OR_DEFERRAL = re.compile(r"\b(?:GAP|G|D|DEF)-?\d+\b|\bgap\b|\bdeferred\b", re.I)
 VAULT_QUESTION = re.compile(r"\bUNK-\d{3}\b")
 APP_ONLY = re.compile(r"^APP-[A-Za-z0-9-]+$")
@@ -71,6 +71,11 @@ def tickets_path(plan_path):
 
 # ---------------------------------------------------------------- what blocks a story
 
+PLAN_IDS = re.compile(r"\b(?:OQ|Q)-\d+\b")
+GAP_IDS = re.compile(r"\b(?:GAP|G|D|DEF|PG)-\d+\b")
+ANY_ID = re.compile(r"\b[A-Z]{1,5}-\d+[a-z]?\b")  # an ID-like token, such as UNK-777 or CST-010
+
+
 def segments(text):
     """The parts of a Blocked by line, split at commas and semicolons that are not inside parentheses."""
     parts, depth, current = [], 0, ""
@@ -103,13 +108,24 @@ def blockers_of(text, known):
             out += [{"kind": "question", "ref": q, "text": part} for q in vault_q]
         elif OUTSIDE.search(part):
             out.append({"kind": "outside", "ref": "", "text": part})
-        elif PLAN_QUESTION.search(part):
-            out.append({"kind": "plan-question", "ref": "", "text": part})
-        elif GAP_OR_DEFERRAL.search(part):
-            out.append({"kind": "gap", "ref": "", "text": part})
-        else:
+        elif PLAN_QUESTION.search(part) or GAP_OR_DEFERRAL.search(part):
+            # The design's own open questions (OQ-nnn) and deferrals (D-nnn): one node per ID, named by it, so the same
+            # question named in three clauses of one story is one node, not three.
+            for kind, ids in (("plan-question", PLAN_IDS.findall(part)), ("gap", GAP_IDS.findall(part))):
+                out += [{"kind": kind, "ref": i, "text": part} for i in ids]
+            if not PLAN_IDS.search(part) and not GAP_IDS.search(part):
+                out.append({"kind": "plan-question" if PLAN_QUESTION.search(part) else "gap", "ref": "", "text": part})
+        elif ANY_ID.search(part):
             out.append({"kind": "other", "ref": "", "text": part})
-    return out
+        # Otherwise the part is only words, a clause of the sentence ("so confirm with the owner", "not decided
+        # here"): it is not a blocker, and the story's blockedText keeps the whole sentence for the reader.
+    seen, unique = set(), []
+    for b in out:  # one node per thing named: a question named in two clauses of the same line is one blocker
+        key = (b["kind"], b["ref"] or b["text"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(b)
+    return unique
 
 
 # ---------------------------------------------------------------- coverage
@@ -204,7 +220,7 @@ def totals(stories):
             if t["size"] in by_size:
                 by_size[t["size"]]["tasks"] += 1
                 by_size[t["size"]]["points"] += t["points"]
-    return {"stories": len(stories), "tasks": sum(len(s["tasks"]) for s in built), "points": sum(s["points"] for s in built), "bySize": by_size}
+    return {"stories": len(stories), "built": len(built), "tasks": sum(len(s["tasks"]) for s in built), "points": sum(s["points"] for s in built), "bySize": by_size}
 
 
 def plan_entry(app_id, wrapped, known, design):

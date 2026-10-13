@@ -85,7 +85,7 @@ const Plan = (() => {
     },
   };
   async function copyCsv(app) {
-    const p = plan(app), rows = p.stories.length + p.totals.tasks;
+    const p = plan(app), rows = (p.totals.built ?? p.stories.length) + p.totals.tasks;  // merged and deferred stories get no ticket
     try { await sink.write(p.csv); toast(`Copied the Jira CSV: ${plural(rows, "row")}, as tools/breakdown_to_tickets.py writes it.`); }
     catch (e) { console.warn("[plan] could not copy the CSV:", e); toast("This page could not reach the clipboard. Open the Tickets file instead, or run tools/breakdown_to_tickets.py."); }
   }

@@ -1221,8 +1221,8 @@ const SelfTest = (() => {
       $("#inside-stage .plan-copy").click();
       await new Promise((r) => setTimeout(r, 30));
       Plan.sink.write = was;
-      ok(copied === p.csv && copied.split("\r\n").length - 1 === p.stories.length + p.totals.tasks + 1,
-        `inside ${name}, build plan: "Copy as Jira CSV" hands over the build's CSV, ${p.stories.length + p.totals.tasks} rows and a header`, `inside ${name}, build plan: copied ${copied === null ? "nothing" : copied.length + " characters, not the CSV"}`);
+      ok(copied === p.csv && copied.split("\r\n").length - 1 === p.totals.built + p.totals.tasks + 1,
+        `inside ${name}, build plan: "Copy as Jira CSV" hands over the build's CSV, ${p.totals.built + p.totals.tasks} rows (stories it builds, and their tasks) and a header`, `inside ${name}, build plan: copied ${copied === null ? "nothing" : copied.length + " characters, not the CSV"}`);
       const built = Object.keys(Plan_BUILT_KEYS(k)).find((id) => E[id]);
       if (built) { go(built, { reset: true }); ok($$("#panel .in-owner.built").some((x) => /Built by S-\d+/.test(x.textContent)), `reverse trace: ${built}'s panel says "Built by ${Plan.built(built)[0].story} (${Plan.planWord(k)})"`, `reverse trace: ${built} shows no Built by`); }
     }
@@ -1263,8 +1263,8 @@ const SelfTest = (() => {
       ok(dead === p.unresolved.length && $$("#inside-stage .plan-traces .ref-chip:not(.ref-dead)").every((c) => !!c.dataset.ref && !!ent(c.dataset.ref)),
         `inside ${name}, build plan (${layout}): every trace chip resolves into the vault (${dead} named by the build as not in it)`, `inside ${name}, build plan (${layout}): ${dead} dead chips, the build names ${p.unresolved.length}`);
       const row = tasked.length ? $(`#inside-stage .plan-card[data-story="${tasked[0].id}"]`) : null, waits = row ? $(".plan-waits", row) || $(`#inside-stage .plan-pane[data-pane="${tasked[0].id}"] .plan-waits`) : null, listed = $$("#inside-stage .plan-task").length;
-      ok(!tasked.length || (!!waits && /^Waits on: /.test(waits.textContent) && !$(".ref-chip", waits) && listed === p.totals.tasks),
-        `inside ${name}, build plan (${layout}): each story says what it waits on in words, and all ${p.totals.tasks} tasks are listed`, `inside ${name}, build plan (${layout}): waits "${waits ? waits.textContent : "missing"}", ${listed} tasks listed of ${p.totals.tasks}`);
+      ok(!tasked.length || (!!waits && /^Waits on: /.test(waits.textContent) && !$(".ref-chip", waits) && listed === p.stories.reduce((n, x) => n + x.tasks.length, 0)),
+        `inside ${name}, build plan (${layout}): each story says what it waits on in words, and all ${p.stories.reduce((n, x) => n + x.tasks.length, 0)} tasks are listed, deferred ones under Not now`, `inside ${name}, build plan (${layout}): waits "${waits ? waits.textContent : "missing"}", ${listed} tasks listed of ${p.stories.reduce((n, x) => n + x.tasks.length, 0)}`);
       const sizes = $$("#plan-page .plan-size, #plan-page .plan-total, #plan-page .plan-by-size, #plan-page [data-kpi=points]").length, text = $("#plan-page").textContent;
       ok(!sizes && !/\b[SML] ?\+ ?[SML]\b/.test(text), `inside ${name}, build plan (${layout}): no size chip anywhere`, `inside ${name}, build plan (${layout}): ${sizes} size chips or a size run in the text`);
       const page = $("#plan-page"), wide = Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, page.scrollWidth - page.clientWidth);

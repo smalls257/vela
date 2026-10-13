@@ -183,8 +183,15 @@ def test_copy_as_jira_csv_is_the_file_the_tool_writes(tmp_path):
 def test_what_blocks_a_story_is_told_apart():
     known = {"UNK-009"}
     got = plan_data.blockers_of("S-01, UNK-009 (open question), the CISO review (outside party), Q-7 (open question: who), D-001 (deferred), UNK-777, none", known)
-    assert [(b["kind"], b["ref"]) for b in got] == [("story", "S-01"), ("question", "UNK-009"), ("outside", ""), ("plan-question", ""), ("gap", ""), ("other", "")]
+    assert [(b["kind"], b["ref"]) for b in got] == [("story", "S-01"), ("question", "UNK-009"), ("outside", ""), ("plan-question", "Q-7"), ("gap", "D-001"), ("other", "")]
     assert plan_data.blockers_of("none", known) == []
+    # A clause that names nothing is part of the sentence, not a blocker of its own (seen on Heron: "not recorded in
+    # the vault", "drops from the plan if no." each drawn as a box in What waits on what).
+    got = plan_data.blockers_of("not recorded in the vault, drops from the plan if no.", known)
+    assert got == [], got
+    # The design's open questions and deferrals are named by their IDs, one node each, however many clauses name them.
+    got = plan_data.blockers_of("certificate holders (OQ-009); OQ-009 again for pushes, D-004 is a pilot measurement", known)
+    assert [(b["kind"], b["ref"]) for b in got] == [("plan-question", "OQ-009"), ("gap", "D-004")], got
     assert plan_data.blockers_of("S-02 and S-03", known) == [{"kind": "story", "ref": "S-02", "text": "S-02"}, {"kind": "story", "ref": "S-03", "text": "S-03"}]
 
 
@@ -199,7 +206,7 @@ def test_the_demo_plan_reads_clean_with_one_empty_coverage_row(tmp_path):
     plan = entry_for(tmp_path, DEMO_PLAN.read_text(encoding="utf-8"))
     assert plan["problems"] == []
     assert [s["id"] for s in plan["stories"]] == [f"S-0{n}" for n in range(1, 9)]
-    assert plan["totals"] == {"stories": 8, "tasks": 21, "points": 90, "bySize": {"S": {"tasks": 7, "points": 14}, "M": {"tasks": 12, "points": 60}, "L": {"tasks": 2, "points": 16}}}
+    assert plan["totals"] == {"stories": 8, "built": 8, "tasks": 21, "points": 90, "bySize": {"S": {"tasks": 7, "points": 14}, "M": {"tasks": 12, "points": 60}, "L": {"tasks": 2, "points": 16}}}
     assert [r["target"] for r in plan["coverage"]["targets"] if not r["stories"]] == ["EPC-036.AC4"]
     assert all(r["stories"] for r in plan["coverage"]["components"])
 
