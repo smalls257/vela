@@ -145,8 +145,6 @@ Write the PR body to a temporary file: each committed example added, with its ty
 
 ## Never
 
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded. Its hard stops still hold.
-
 - Never rewrite, shorten, correct or paraphrase the owner's words.
 - Never store a passage the owner did not write. Never commit one they did not clear for the repository.
 - Never write under `voice/corpus/`. It is gitignored reading material, not examples.

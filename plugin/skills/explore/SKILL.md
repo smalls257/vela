@@ -10,7 +10,7 @@ allowed-tools: Read Bash(python3 *scripts/planner *) Bash(uname *) Bash(open *) 
 
 The explorer is one HTML page drawn from the vault: the map, each flow played step by step, who holds each open question, why things were decided, and each app's stage. It is for looking and presenting. It never changes a vault page.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). Run from the vault root.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). Run from the vault root.
 
 ## Asked for
 

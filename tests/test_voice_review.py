@@ -9,7 +9,7 @@ import textwrap
 import pytest
 import yaml
 
-from conftest import REPO
+from conftest import REPO, skill_text
 from planner import schema
 
 PLUGIN = REPO / "plugin"
@@ -18,7 +18,7 @@ CLOSE = PLUGIN / "skills" / "close" / "SKILL.md"
 
 
 def close_text():
-    return CLOSE.read_text(encoding="utf-8")
+    return skill_text("close")
 
 
 def test_the_agent_is_named_described_and_may_only_read():
@@ -219,7 +219,9 @@ def test_harvest_keeps_five_active_and_retires_the_seed_first():
 # The two folders and the gh failure rule, added after the brief was written.
 
 def harvest_text():
-    return close_text().split("### Harvest the owner's edits", 1)[1].split("## 5.", 1)[0]
+    """Close's own opening of the harvest part, then the steps in HARVEST.md, which close reads only when it harvests."""
+    opening = close_text().split("### Harvest the owner's edits", 1)[1].split("## 5.", 1)[0]
+    return opening + (PLUGIN / "skills" / "close" / "HARVEST.md").read_text(encoding="utf-8")
 
 
 def test_harvest_asks_committed_or_local_and_recommends_local_for_employer_text():
@@ -266,14 +268,15 @@ def test_the_rewrite_commit_sentence_ends_voice_review_before_harvest():
     close = close_text()
     sentence = "Then commit the rewrites that passed with the message `draft: voice rewrite for <id>`"
     assert close.count(sentence) == 1
-    assert close.index("### Voice review") < close.index(sentence) < close.index("### Harvest the owner's edits")
-    assert close.index("### Harvest the owner's edits") < close.index("## 5. Read back decided wording")
+    review_file = (PLUGIN / "skills" / "close" / "VOICE-REVIEW.md").read_text(encoding="utf-8")
+    assert review_file.rstrip().endswith(sentence + ", staging each page by exact path.")  # the last thing the review does
+    assert close.index("### Voice review") < close.index("### Harvest the owner's edits") < close.index("## 5. Read back decided wording")
 
 
 def test_no_jump_says_a_bare_step_5_and_a_skipped_review_still_runs_harvest():
     close = close_text()
     assert "go on to step 5" not in close
-    review = close.split("### Voice review", 1)[1].split("### Harvest the owner's edits", 1)[0]
+    review = (PLUGIN / "skills" / "close" / "VOICE-REVIEW.md").read_text(encoding="utf-8")
     assert review.count('go on to the part "Harvest the owner\'s edits"') >= 3
     harvest = harvest_text()
     exits = re.findall(r"go on to ([^.]*)\.", harvest)

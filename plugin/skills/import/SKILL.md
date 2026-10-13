@@ -46,8 +46,6 @@ The checklist holds, or the user stops. If they stop early, write the ledger and
 
 ## Never
 
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded. Its hard stops still hold.
-
 - Never ask for, keep or write a credential, and never upload material.
 - Never commit anything from `.inbox/`.
 - Never write a `fact` from an `intends` source, or `decided` at all: a decision a source names is an `assumption` with its decider and date in a note, until a Grill.

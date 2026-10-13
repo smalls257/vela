@@ -7,7 +7,7 @@ import re
 
 import yaml
 
-from conftest import REPO
+from conftest import REPO, skill_text
 from planner import reviews
 
 PLUGIN = REPO / "plugin"
@@ -179,7 +179,7 @@ def test_round_two_fixes_in_dump_discover_and_the_reviewer():
     dump, disc = text("skills/dump/SKILL.md"), text("skills/discover/SKILL.md")
     agent = text("agents/area-reviewer.md")
     assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>" in disc
-    assert "It is not a verdict on any idea." in dump
+    assert "is not a verdict on any idea" in dump
     assert "Never present the checkpoint's digest as a verdict" in dump
     assert "say aloud any pair of lines" in disc and "never two facts" in disc
     assert '"after the read-back" (the "Here\'s what I think exists" step' in disc
@@ -210,9 +210,9 @@ def test_epics_reads_the_question_gate():
 def test_shape_shows_the_top_conditions_and_sends_the_rest_through_the_digest():
     shape = text("skills/shape/SKILL.md")
     assert "only the top few conditions" in shape and "coverage line" in shape
-    assert "digest in REVIEW section 5" in shape
+    assert "through the one digest (REVIEW section 5)" in shape
     assert "quotes the option's capture" in shape and "counterparties" in shape
-    assert "the shape gate will warn until" in shape
+    assert "the shape gate will warn" not in shape and "tell the lead only that close will list what is still assumed" in shape
 
 
 def test_grill_records_a_decision_over_an_open_blocking_question():
@@ -236,7 +236,7 @@ def test_epics_offers_the_e805_override_with_its_exact_bullet():
 # ------------------------------------------------------------------ close writes the ledger and proposes entries
 
 def test_close_writes_a_ledger_row_for_every_copy_taken_and_every_finding():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "### The question ledger" in close
     assert "`R-<AREA>-nn`" in close and "Its state is `open` unless the lead took it." in close
     assert "Never write `answered` without an item link and a source" in close
@@ -244,7 +244,7 @@ def test_close_writes_a_ledger_row_for_every_copy_taken_and_every_finding():
 
 
 def test_close_proposes_catalogue_entries_and_never_edits_the_catalogue():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "### Gaps the catalogue missed" in close
     assert "Never ask the lead whether a gap turned up late" in close  # S25: the answer was no, 11 times in 11
     assert "Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`" in close
@@ -252,7 +252,7 @@ def test_close_proposes_catalogue_entries_and_never_edits_the_catalogue():
 
 
 def test_close_reports_questions_and_reviews_in_the_pr_body():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     for label in ("**Questions:**", "**Reviews:**", "**Catalogue proposals:**"):
         assert label in close
     assert "Never write that the questions are complete." in close
@@ -267,7 +267,7 @@ def test_start_keeps_its_override_rule():
 def test_close_writes_answered_rows_in_the_grammar_check_reads():
     """An answered row needs answer: and a source check can verify. "The lead's own words in quotes"
     with no page is E802, so close must never be told to write one."""
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "the lead's own words in double quotes" not in close
     assert "quote the words section 3 wrote" not in close
     assert "| SRC-nn | <name>'s first-hand account of <subject> | @<lead> | <today> | exists | said in session <id> |" in close
@@ -280,7 +280,7 @@ def test_close_writes_answered_rows_in_the_grammar_check_reads():
 
 
 def test_close_types_the_subjects_dump_named_and_never_invents_a_fact():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "### Type the subjects Dump named" in close
     assert "`type at close: PTY`" in close and "`type at close: SV`" in close
     for label in ("**Relationship:**", "**Agreements:**", "**Holder:**", "**Owner:**"):
@@ -300,13 +300,13 @@ def test_conventions_lists_the_states_a_keep_mark_may_carry():
 
 
 def test_close_keeps_the_grill_record_of_a_decision_over_open_questions():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "decided with <copy IDs> open (W807)" in close
     assert "write no row for those copies" in close
 
 
 def test_close_keeps_its_existing_guards():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     for kept in ("### Voice review", "**Voicescore, optional.**", "### Harvest the owner's edits",
                  "git merge --no-edit origin/main", "Never stage anything in `voice/local/`",
                  "gh pr comment <number> --body-file <file>", "planner handoff <APP-id>",
@@ -764,4 +764,4 @@ def test_a_review_digest_puts_at_most_five_questions_to_the_lead_in_a_turn_and_n
 def test_modes_asks_once_what_the_lead_might_not_know_they_need():
     modes = text("references/MODES.md")
     assert "**Ask what they might not know they need.**" in modes
-    assert "In Discover, Shape and Grill" in modes and "Who has to agree, or be consulted" in modes
+    assert "In Discover, Shape and Grill" in modes and "who has to agree or be consulted" in modes

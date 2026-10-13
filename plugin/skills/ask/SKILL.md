@@ -22,7 +22,7 @@ $ARGUMENTS
 
 ## Steps
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from").
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded).
 
 1. Start the answer with the two lines under "How fresh this clone is", word for word.
 2. Find the pages. Start with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query search <the asker's words> --json`, which ranks pages and sections by the words and lists the flows that cross each, then `planner query find <words> --json` for exact titles and headings, then use Grep and Glob over the vault's `.md` files. Never search `voice/`. Search `sessions/` only if the question asks about a session or what was said.

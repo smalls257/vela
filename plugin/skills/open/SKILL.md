@@ -10,7 +10,7 @@ allowed-tools: Read Bash(python3 *scripts/planner *) Bash(uname *) Bash(open *) 
 
 A sponsor or architect receives a folder or zip that an owner published. This skill makes a private copy to read and draft in. The source is never written, because it is usually a shared OneDrive or SharePoint folder where the last save wins.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). There is no vault yet, so there is no vendored copy and no `.planner/workspace.json`: when you cannot find the program, stop with the message in that order.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). There is no vault yet, so there is no vendored copy and no `.planner/workspace.json`: when you cannot find the program, stop with the message in that order.
 
 ## Opening
 

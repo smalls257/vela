@@ -65,7 +65,7 @@ Merged prose belongs to the vault and the people who edited it. When a session c
 
 ## The rules
 
-The examples are what to match. These rules are what to do where they are thin, and they are repeated nowhere else: close and epics point here.
+The examples are what to match. These rules are what to do where they are thin. Close and epics point here for page prose.
 
 1. **Write like a senior technical writer explaining the system to a colleague.** Plain, spoken sentences in the active voice. Use negatives where a person would ("the agent doesn't send anything off the laptop"), and don't twist them into positives.
 2. **Open with what the system does for people, then what is still open.** The first paragraph is two or three sentences, at most about 80 words and three links. It names threads, not items; the blocks and tables below list the items.
@@ -86,13 +86,9 @@ Write paragraphs where the page asks for prose: a run of bullets that are not fa
 Unknowns and risks, concerns, decisions, sources and any page that is mostly a list have two parts, and the opening never does the second part's job.
 
 1. **An opening that counts and points.** Two or three plain sentences: how many are open, which few hold the rest up, and the most urgent with its date. "28 questions are open. Five hold up the first release; the most urgent is who owns Heron, due 23 October." It names about three items at most and sends the reader to the list below.
-   This opening, from an unknowns page, is the shape to match. One call holds most of the page up, so it comes first with the two behind it; the documents nobody is writing are one sentence; the newest question closes it, with a pointer to the list:
+   This opening, from an unknowns page, is the shape to match, and it fits the opening's limit of about 80 words. One call holds most of the page up, so it comes first; the documents nobody is writing are one sentence; the newest question closes it with a pointer to the list:
 
-   > One open call holds up most of this page: who settles whether meeting text may leave the laptop. Most of the other questions wait on it, or on two more: the lawful basis for each source, and who builds Consent and identity.
-   >
-   > Three documents have an owner and a date but nobody writing them yet: the security review pack, the impact assessment and the full data list.
-   >
-   > The newest question is whether the works council votes on the pilot. If it does, that's one more gate before February. Everything else is listed below, grouped by what it holds up.
+   > One open call holds up most of this page: who settles whether meeting text may leave the laptop. Most other questions wait on it, or on the lawful basis for each source. Three documents have an owner and a date but nobody writing them yet. The newest question is whether the works council votes on the pilot; everything else is listed below, grouped by what it holds up.
 
 2. **The items as a grouped list.** Group by what they hold up (the first release, the prep-note requirements, the security review), about seven to a group. Each line reads: the plain name, who to ask and by when, what it holds up. Anything past seven in a group goes under `## Also open (n)`, which the viewer folds.
 

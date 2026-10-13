@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Say what the business needs, once, before anyone decides which app does it. A requirement here names no app: boundary cuts the work into apps afterwards, and `/planner:allocate` divides each requirement among them. A requirements session never decides: what it writes is an `assumption` until a Grill.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md` under "Requirements and allocation" and "Fact bullets" (the functional requirement row).
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md` under "Requirements and allocation" and "Fact bullets" (the functional requirement row).
 
 ## 1. Start
 
@@ -50,11 +50,9 @@ Number new requirements after the highest on the page; numbers are never reused.
 
 When the lead pauses after a capability, or when every capability is done, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the requirements are written" and the capability pages written so far as its focus. Show the digest as REVIEW section 5 says, once in the session and at most three questions, and capture what the lead takes.
 
-When every capability is done, or the user stops, run `git status` and confirm nothing under `.inbox/` is staged. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a Grill on each capability decides the requirements, and a Boundary session cuts the apps against them; say the one line the lead types, `/planner:grill CAP-nnn` or `/planner:boundary`.
+When every capability is done, or the user stops, and the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a Grill on each capability decides the requirements, and a Boundary session cuts the apps against them; say the one line the lead types, `/planner:grill CAP-nnn` or `/planner:boundary`.
 
 ## Never
-
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Write an ID in a requirement's sentence or a criterion's: name the thing, and put the ID on a `- Trace:` line.
 - Name an app, a container, a technology or a team in a requirement or its criteria. That is boundary's and allocate's work, then the team's design.

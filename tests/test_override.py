@@ -10,7 +10,7 @@ import shutil
 
 import pytest
 
-from conftest import REPO, check, edit, findings, run
+from conftest import REPO, check, edit, findings, run, skill_text
 from planner import override
 from planner.parse import Bullet
 
@@ -290,7 +290,7 @@ def test_grill_offers_the_override_and_still_runs_the_rest_of_the_grill():
 
 
 def test_epics_close_challenge_and_ask_know_the_bullets():
-    epics, close = read("skills", "epics", "SKILL.md"), read("skills", "close", "SKILL.md")
+    epics, close = read("skills", "epics", "SKILL.md"), skill_text("close")
     challenge, ask = read("skills", "challenge", "SKILL.md"), read("skills", "ask", "SKILL.md")
     assert "Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet" in epics
     assert "Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet as written" in close
@@ -316,12 +316,15 @@ def test_no_skill_tells_claude_to_refuse_a_process_override():
             assert not re.search(r"\brefus", stripped, re.I), f"{doc.relative_to(REPO)}: {line}"
 
 
-def test_every_never_list_is_a_default_the_user_can_override():
+def test_every_never_list_is_a_default_the_user_can_override_because_start_says_so_once():
+    start = (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
+    assert 'every "never" and "must not" in the skills' in start and "Never refuse, and never ask twice." in start
     for doc in sorted((PLUGIN / "skills").glob("*/SKILL.md")):
         text = doc.read_text(encoding="utf-8")
+        assert "These are the defaults" not in text, doc.parent.name  # said once, in START, so the copies cannot drift
         if "\n## Never\n" in text:
             section = text.split("\n## Never\n", 1)[1]
-            assert "The user may override any of them" in section.split("\n- ", 1)[0], doc.parent.name
+            assert not re.search(r"cannot be overridden|may not be overridden|no override", section, re.I), doc.parent.name
 
 
 def test_an_owner_confirming_after_handoff_changes_nothing_the_senior_accepted(ub):

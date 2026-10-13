@@ -10,7 +10,7 @@ allowed-tools: Read Bash(python3 *scripts/planner *)
 
 A reader has no git, so a change reaches the vault as a proposal the owner reviews, never as an edited file. This skill turns what you drafted since you opened the copy into a folder holding `proposal.md` (the note the owner reads) and `changes.patch` (the changes themselves). It sends nothing: you send the folder, however you normally send files.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). Run it from the workspace folder.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). Run it from the workspace folder.
 
 ## Proposing
 
@@ -40,8 +40,6 @@ JSON
 9. Tell them the owner's answer will come back as `answer.md`. When it does, the owner publishes a new copy and they open that to continue.
 
 ## Never
-
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Never send, email, upload or share the proposal. Say where it is and stop.
 - Never edit the pages in the workspace, and never run `git` or `gh`.

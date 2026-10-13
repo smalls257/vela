@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Turn a finished design into stories and tasks, and show that nothing was left out. The plan is the team's file: the explorer's Build plan draws it, and `/planner:tickets` turns it into tickets, so the format in `${CLAUDE_PLUGIN_ROOT}/skills/breakdown/PLAN-FORMAT.md` is exact and read by code. Read that file before the first story.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The vault is the folder this runs in. The design, the plan and the tickets sit in its `docs/` folder, beside the pages they trace to.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The vault is the folder this runs in. The design, the plan and the tickets sit in its `docs/` folder, beside the pages they trace to.
 
 ## 1. Start
 

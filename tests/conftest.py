@@ -64,3 +64,12 @@ def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line("markers", "browser: browser smoke tests (require Chrome; slow)")
 
+
+
+def skill_text(name):
+    """A skill's SKILL.md and the files beside it that it sends the model to, read together. A rule that moved to a file
+    read only at the step that needs it is still the skill's rule."""
+    folder = REPO / "plugin" / "skills" / name
+    parts = [(folder / "SKILL.md").read_text(encoding="utf-8")]
+    parts += [path.read_text(encoding="utf-8") for path in sorted(folder.glob("*.md")) if path.name != "SKILL.md"]
+    return "\n".join(parts)

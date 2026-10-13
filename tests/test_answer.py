@@ -1,7 +1,7 @@
 """Answering a challenge: START opens an answer session on the challenge's own branch, a Grill
 (or the lead setting the item back) works there, and close pushes to that branch and comments
 on the open challenge PR instead of opening a new one."""
-from conftest import REPO, check, edit, findings
+from conftest import REPO, check, edit, findings, skill_text
 from planner import schema
 
 PLUGIN = REPO / "plugin"
@@ -47,7 +47,7 @@ def test_start_answers_a_challenge_on_its_own_branch():
 def test_start_and_close_find_an_answer_record_on_a_shared_branch():
     command = "git grep -l '^status: open' <branch> -- sessions/"
     assert command in read("plugin", "references", "START.md")
-    assert command in section(read("plugin", "skills", "close", "SKILL.md"), "## 1.", "## 2.")
+    assert command in section(skill_text("close"), "## 1.", "## 2.")
 
 
 def test_grill_and_challenge_send_the_lead_to_the_answer_path():
@@ -59,7 +59,7 @@ def test_grill_and_challenge_send_the_lead_to_the_answer_path():
 
 
 def test_close_pushes_an_answer_to_the_challenge_branch_and_comments_on_its_pr():
-    close = read("plugin", "skills", "close", "SKILL.md")
+    close = skill_text("close")
     assert "git push origin <branch>" in section(close, "## 7.", "## 8.")
     pr = section(close, "## 8.", "\n## 9") if "\n## 9" in close else close.split("## 8.", 1)[1]
     assert "do not open a new PR" in pr

@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Make every requirement somebody's. A capability's requirements say what the business needs; the apps and contracts are now drawn. Allocation says, for each requirement, which app carries which part, and which contract carries the part that crosses between them, so every requirement has an owner before anyone cuts epics. Allocation never decides: each row is an `assumption` until a Grill.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md` under "Requirements and allocation".
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md` under "Requirements and allocation".
 
 ## 1. Start
 
@@ -41,11 +41,9 @@ Then run `planner render` and `planner check`, fix every error, and commit a che
 
 Once the rows in scope are written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the rows are written" and the app pages and contracts this session changed as its focus. Show the digest as REVIEW section 5 says, once and at most three questions, and capture what the lead takes.
 
-Run `git status` and confirm nothing under `.inbox/` is staged. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a Grill on each app (`/planner:grill APP-<slug>`) decides its allocated rows with its page, which sets each confirmed row's State to decided, and `/planner:epics` takes each team's criteria from them.
+When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a Grill on each app (`/planner:grill APP-<slug>`) decides its allocated rows with its page, which sets each confirmed row's State to decided, and `/planner:epics` takes each team's criteria from them.
 
 ## Never
-
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Allocate inside one app: how an app splits its share among its own parts is its team's design.
 - Put a requirement's criteria into a Share cell. The cell is one sentence; the criteria stay on the requirement.

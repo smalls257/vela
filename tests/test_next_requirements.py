@@ -34,13 +34,13 @@ def test_next_names_allocate_once_a_requirement_exists_and_no_app_carries_it(tmp
 
 
 def test_a_partly_filled_vault_with_a_release_still_goes_on_to_its_open_question():
-    assert said(WITH_RELEASE).startswith("planner next: APP-coach, probe "), said(WITH_RELEASE)
+    assert said(WITH_RELEASE).startswith("planner next: APP-coach, ask about "), said(WITH_RELEASE)
 
 
 def test_an_overdue_question_still_comes_before_requirements(tmp_path):
     vault = copy(NO_REQUIREMENTS, tmp_path)
     code, out = run("next", "--vault", str(vault), "--today", "2031-01-01")
-    assert out.startswith("planner next: APP-coach, probe "), out
+    assert out.startswith("planner next: APP-coach, ask about "), out
 
 
 def test_an_empty_vault_still_starts_with_dump_or_discover():

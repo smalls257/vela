@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Turn a handed-off slice into epics a team can build from. The check finds the gaps, so the frontier is never guessed. Only the Grill part of this session sets an epic to `decided`.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format, including the epic page and the trace rules, is in `CONVENTIONS.md` under "Epics and traceability".
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format, including the epic page and the trace rules, is in `CONVENTIONS.md` under "Epics and traceability".
 
 ## 1. Start
 
@@ -17,21 +17,21 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`,
 
 ## 2. Read the frontier
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render`, then read the `traceability` block on `13-epics/13-epics.md`. Its rows are the work: capabilities nobody delivers (T1), new or changed contracts with no provider epic (T2), concern cells with work and no marked criterion (T4), and epics that deliver nothing (T6). Work one team at a time. A team is an `owner:` handle on app pages.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render`, then read the `traceability` block on `13-epics/13-epics.md`. Its rows are the work: capabilities nobody delivers (T1), new or changed contracts with no provider epic (T2), concern cells with work and no marked criterion (T4), and epics that deliver nothing (T6). Work one team at a time. A team is an `owner:` handle on app pages. Say how many epics and criteria there are and how far you expect to get in this session, and say it again when about two thirds is done.
 
 ## 3. Shape the cuts
 
-Read `04b-releases.md` first, if the vault has one. The team's epics are cut against the releases: say which release each proposed epic serves, and when a requirement is dated in part ("AC1 and AC2 in January, AC3 later"), say whether the epic carries all of its criteria or only those on the first date. A requirement on no release is cut as usual and flagged as undated. Say too whether the team's first epic is on the tracer, a thin path through every app that release one builds first: its `flows:` lists a tracer flow from release one's `**Tracer:**` bullet. If it is not, say what comes first instead; it is not a fault.
+Read `04b-releases.md` first, if the vault has one. The team's epics are cut against the releases: say which release each proposed epic serves, and when a requirement is dated in part ("AC1 and AC2 in January, AC3 later"), say whether the epic carries all of its criteria or only those on the first date. A requirement on no release is cut as usual and flagged as undated. Say too whether the team's first epic is on the first thin path (the tracer, as `CONVENTIONS.md` defines it under "Releases"), and if it is not, what comes first instead; it is not a fault. To check, read whether the epic's `flows:` lists a flow from release one's `**Tracer:**` bullet.
 
 For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exactly one owning team. Say what each cut makes easy and what it makes hard, such as which cutover it unblocks first. Say which one you prefer. Capture the user's choice, and each rejected cut with its reason. Shape never decides, so the chosen cut stays `draft`. People hold about four to seven things at once, so a cut that would give an epic more than about seven acceptance criteria is a cut to split: propose the split as one of the options, with what each half delivers. The user may keep it whole; record that as an override, as `START.md` says.
 
 ## 4. Draft each epic
 
-Write `13-epics/EPC-nnn-<slug>.md` with the number `planner next-id EPC` prints, at `state: draft`. If the command is unavailable, grep the vault for the existing EPC numbers, and also read the `## Changes` tables of the records on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:sessions/<id>.md`), because another open session may already hold the next number. Add one to the highest in use. Add a `## Changes` row to the session record: `| EPC-nnn | - | draft | [[<session id>#^cNN]] |`, citing the capture of the chosen cut. A new ID with no row there is an invented ID.
+Write `13-epics/EPC-nnn-<slug>.md` with the number `planner next-id EPC` prints, at `state: draft`. Add a `## Changes` row to the session record: `| EPC-nnn | - | draft | [[<session id>#^cNN]] |`, citing the capture of the chosen cut. A new ID with no row there is an invented ID.
 
 - Frontmatter: `id`, `type: epic`, `title`, `state: draft`, `owner` (the owning team's handle), `authored: mixed`, `apps`, `delivers`, `consumes`, `flows` and `depends_on`, per `CONVENTIONS.md`. Lists hold IDs. `delivers` is never empty: an epic that delivers nothing fails T6.
 - `**Owning team:**` in the description, written now, in this session. Close does not write it.
-- Where the work is tracked: ask "Is there a tracker item for this epic? Give me its key or link, or say skip." If `.planner.yaml` has a `link_templates` entry for `Tracker`, write the key, `links: {Tracker: BOOK-12}`; otherwise write the URL the user gave. Never make up a key or an address, and write no `links:` line when they skip.
+- Where the work is tracked: ask whether there is a tracker item for this epic, and for its key or link, or a skip. If `.planner.yaml` has a `link_templates` entry for `Tracker`, write the key, `links: {Tracker: BOOK-12}`; otherwise write the URL the user gave. Never make up a key or an address, and write no `links:` line when they skip.
 - The page follows the epic template in `CONVENTIONS.md` under "Epics and traceability", in this order: a two or three sentence summary and a `Still open:` line; `**Owning team:**`; `## Who this is for and what changes`; `## Done when`; then the sections below. The summary is the page's opening, so write it in the house voice at close, as section 4 of `close` says; until then leave a one-line stub.
 - `## Done when`: 4 to 7 criteria, each a `###` heading in a short plain phrase ("A first call still gets a note") with one or two sentences under it that a tester could read aloud over the phone, and a Trace line. Each describes behaviour a tester can see at a contract or a flow boundary. Name the contract or flow by its name ("the calendar entries", "the prep-note flow"), never by its ID, and write no "From CAP-001.FR1" in the sentence. The Trace line is the last line under the criterion: `- Trace: CAP-001.FR1, CON-001, FLO-001  ·  AC3  ·  [testing]`, which is the IDs it traces to (requirement first), then its stable id `AC<n>`, then its concern markers. Take the next `AC` number nobody has used on this epic: the number is written, never counted, so a later insert or strike renumbers nothing and `EPC-nnn.AC3` always means the same criterion. Never name a component, a table, a technology or a container's internals. Every criterion sits at the boundary. More than 7 means the epic should be split (section 3); if an epic holds more than 7 and the user keeps it whole, group the criteria under `###` group headings of about five and drop each criterion to `####`.
 - Put a criterion's concern marker on its Trace line, after the AC id, such as `[testing]` or `[security] [data]`. Every `addressed` cell for the epic's apps needs one marked criterion on an epic whose `apps` lists the app, or a waiver in the cell. An epic written in the first shape (numbered criteria under `## Epic acceptance criteria`, markers ending the sentence) still checks; when this session touches it, rewrite it to the template and keep each criterion's number as its `AC` id.
@@ -51,20 +51,20 @@ Write no summary yet beyond a stub. Prose is drafted at close, through `house-vo
 
 Start each team's criteria from its apps' `## Requirements allocated` rows: each row is a share of a requirement the team owns, and its criteria are the acceptance criteria of that requirement, which stay on the requirement's page, as far as that share carries them. Write each as a read-aloud sentence of its own; never copy the requirement's wording into a table. Put the requirement's ID on the criterion's `- Trace:` line. If a criterion needs behaviour no requirement holds, stop on that criterion. Say which capability it belongs to, and offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`. The requirement is written once, on the capability, at most `assumption`, and the criterion cites it. Never write the requirement into the epic. If the user declines, leave the criterion out and list it under the epic's `## Out of scope` as waiting on that `CAP-nnn`.
 
-A question nobody present can answer becomes an unknown, as `MODES.md` says under "Unknowns". When the owner is not the person who would actually know, ask once: "Who would actually know this? If that is not the owner, give me a name or a role, like outside counsel." Write the answer as `**Ask:** @handle` or `**Ask:** outside counsel`, and leave the line out when the owner holds the answer.
+A question nobody present can answer becomes an unknown, as `MODES.md` says under "Unknowns". Write who would actually know as `**Ask:**`, as `MODES.md` says under "Unknowns".
 
 ## 6. Grill the criteria
 
 For each epic the user wants decided, run the gate in `${CLAUDE_PLUGIN_ROOT}/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` or `reopened` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Say in plain words which epics are ready to decide and which are not (never a gate table), and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it. A failed gate gets grill's choice too: "decide anyway (override GATE-n)", with the `**Override:**` and `**Decided by:**` bullets grill writes.
 
-Then take each criterion in turn. Every criterion needs its own explicit yes before the epic can be confirmed:
+Then take the criteria in groups of about five (an epic's usual 4 to 7 are one or two groups), and read each group back:
 
-- Show the criterion and ask whether it is right. Give your recommended wording and a one-line reason, in the form *Recommended: <wording>. <reason>.* Wait.
+- Show the criteria and ask whether they are right. Give your recommended wording and a one-line reason for any you would change, in the form *Recommended: <wording>. <reason>.* Wait.
 - Capture the answer. The lead's own words take their name as origin. An accepted recommendation has origin `claude, from <name>`.
-- Silence, "ok", "next" or "sure" with nothing else do not count. Ask for an explicit yes or for another wording. Keep your recommendation under pushback without a reason.
+- Write a criterion only on a yes that names it or covers its group (`START.md` defines a yes). Silence, "ok", "next" or "sure" with nothing else do not count: ask once more in different words, or for another wording. Keep your recommendation under pushback without a reason.
 - Never answer your own question.
 
-Set an epic to `decided` only when the solution lead confirms it in this session, and only after the lead has given an explicit yes to each criterion on its own. A yes to the epic as a whole does not stand in for them. When every criterion has its yes, read the final set back and get an explicit yes to that read-back. A criterion with no yes of its own keeps the epic at `draft`. Then, as grill does:
+Set an epic to `decided` only when the solution lead confirms it in this session, and only after every criterion has a yes, its own or its group's. A yes to the epic as a whole does not stand in for them. When every group has its yes, read the final set back and get a yes to that read-back. A criterion with no yes keeps the epic at `draft`. Then, as grill does:
 
 - set `state: decided`;
 - add `- **Decision:** [[<session id>]]` and a `## Changes` row `| EPC-nnn | draft | decided | [[<session id>#^cNN]] |`, or `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |` for an epic a challenge's answer reopened;
@@ -75,7 +75,7 @@ Render (steps 2 and 7) rewrites generated blocks on other pages too. Stage every
 
 If the lead never confirms, the epic stays `draft`, and its agenda line says `status open`.
 
-If the user tells you to decide an epic without a yes per criterion, or without the read-back, say once that each yes is what makes a criterion something a tester can hold the team to. Then do it, and write `- **Override:** GATE-3 by @<handle> on <today>: <reason>` under the epic page's `## History`, with its `**Decision:**` line. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet an epic already carries when you edit it.
+If the user tells you to decide an epic without a yes on its criteria, or without the read-back, say once that each yes is what makes a criterion something a tester can hold the team to. Then do it, and write `- **Override:** GATE-3 by @<handle> on <today>: <reason>` under the epic page's `## History`, with its `**Decision:**` line. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet an epic already carries when you edit it.
 
 ## 7. Check the gate
 
@@ -97,9 +97,7 @@ Every chosen team's gaps are closed or listed, or the user stops. Epics left at 
 
 ## Never
 
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
-
-- Never set `decided` without the lead's confirmation in this session, or while any criterion lacks its own explicit yes, unless the user overrides `GATE-3` and the bullet is written.
+- Never set `decided` without the lead's confirmation in this session, or while any criterion lacks a yes (its own or its group's), unless the user overrides `GATE-3` and the bullet is written.
 - Never read exit 0 from the gate as `decided`.
 - Never put one epic under two owning teams.
 - Never name a component, table or technology in a criterion, and never write an ID in its sentence or its heading: the name goes in the sentence and the ID on the `- Trace:` line.

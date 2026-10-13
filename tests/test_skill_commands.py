@@ -2,7 +2,7 @@
 bullet Shape leaves and next reads, and the handoff manifest close writes."""
 import re
 
-from conftest import REPO
+from conftest import REPO, skill_text
 from planner import progress
 from planner.model import build
 from planner.parse import parse_page
@@ -28,8 +28,8 @@ def test_modes_says_where_to_start():
 
 
 def test_options_considered_is_one_bullet_in_every_skill():
-    assert "`**Options considered:**` bullet, at page level or under the item's heading" in text("skills/close/SKILL.md")
-    assert "`- **Options considered:** <picked option> (picked); <option>: rejected, <reason>; ...`" in text("skills/close/SKILL.md")
+    assert "`**Options considered:**` bullet, at page level or under the item's heading" in skill_text("close")
+    assert "`- **Options considered:** <picked option> (picked); <option>: rejected, <reason>; ...`" in skill_text("close")
     assert "`**Options considered:**` bullet naming the picked option" in text("skills/shape/SKILL.md")
     assert "written down in its `**Options considered:**` bullet" in text("skills/grill/SKILL.md")
     assert "`assumption` items with `**Options considered:**`" in text("references/MODES.md")
@@ -38,7 +38,7 @@ def test_options_considered_is_one_bullet_in_every_skill():
 
 
 def test_close_writes_the_handoff_manifest_when_a_senior_takes_an_app():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff <APP-id>` only now, after that commit" in close
     assert "run it with `--replace` only once they say so in this session" in close
     # S34: the manifest is written after the session's commit, so it records a clean commit, and is committed alone.
@@ -76,7 +76,7 @@ def suggestion(options):
 
 
 def test_the_bullet_close_writes_is_what_planner_next_reads():
-    form = re.search(r"`(- \*\*Options considered:\*\* [^`]+)`", text("skills/close/SKILL.md")).group(1)
+    form = re.search(r"`(- \*\*Options considered:\*\* [^`]+)`", skill_text("close")).group(1)
     filled = (form.replace("<picked option>", "versioned API").replace("<option>", "one shared schema")
               .replace("<reason>", "kiosks lag six months").replace("; ...", ""))
     assert suggestion("") == ("shape", "CON-001")

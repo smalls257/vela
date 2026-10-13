@@ -10,7 +10,7 @@ allowed-tools: Read Edit Bash(python3 *scripts/planner *)
 
 A reader worked in a published copy and sent changes. You are the owner, so you decide each one. The reader's changes are applied on their own branch in a git worktree beside your checkout, so nothing you are working on moves.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md`.
 
 ## Reviewing
 
@@ -64,8 +64,6 @@ It writes `answer.md` into the proposal folder (beside a zip, or beside a bare p
 The work is on `proposal/<slug>`. Offer the owner their normal git steps and print the commands, for example `git switch main && git merge proposal/<slug>`, or `git push -u origin proposal/<slug>` and a PR as `/planner:close` opens one. Run a local merge only if they say so. **Never push, and never open a PR yourself.** Remind them that `git worktree remove <worktree>` tidies up once the branch is merged, and that a new published copy is how the reader continues.
 
 ## Never
-
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Never accept, reject or edit a change the owner did not decide in this session.
 - Never write the owner's reason for them.
