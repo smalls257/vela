@@ -54,7 +54,8 @@ These keep the exact words they were written in. Do not restyle them:
 - acceptance criteria, and the `- Trace:` line under each;
 - `**Decision:**` and `**Dissent:**` lines;
 - generated blocks;
-- a person's words lifted from a capture.
+- a person's words lifted from a capture;
+- a sentence another page quotes as evidence: a reviewer question's `quote:` or a `source:` quote names its page, and `planner check` looks for those exact words there. Leave the sentence as it is, or rewrite it and change the quote in the same edit to the new words, which must carry the same fact. E802 from `planner check` means a quote lost its words.
 
 ## Prose that is already merged
 
@@ -67,7 +68,7 @@ The examples are what to match. These rules are what to do where they are thin, 
 1. **Write like a senior technical writer explaining the system to a colleague.** Plain, spoken sentences in the active voice. Use negatives where a person would ("the agent doesn't send anything off the laptop"), and don't twist them into positives.
 2. **Open with what the system does for people, then what is still open.** The first paragraph is two or three sentences, at most about 80 words and three links. It names threads, not items; the blocks and tables below list the items.
 3. **Every sentence has a character.** The subject is a person, a team, an app, a document or a date: "Sam Hadley hasn't confirmed the 70% figure". Where a subject is "it", "this" or "there", find who acts and make that the subject. The subject may be the app: "Booking holds the seat for ten minutes".
-4. **Give each point its true state, once.** Say whether it is assumed, decided or open, in one sentence, worded the way you would say it to a colleague. Never make it sound more certain than the record, and don't reach for the same phrase on every page.
+4. **Give each point its true state, once.** Say whether it is assumed, decided or open, in one sentence, worded the way you would say it to a colleague. Never make it sound more certain than the record, and don't reach for the same phrase on every page. On a capability page and in a requirement, the paragraph says what the system will do, because it is planned, not built: "The Desktop agent will read a person's own calendar entries", not "reads", which says it already does, and not "the business can have".
 5. **For anything open, say who settles it and by when,** in words, not codes: "the identity team needs to confirm this by 6 November". "The lead believes most of the team's work comes from client calls, and the pilot lead hasn't confirmed it" is a hedge a reader can use.
 6. **One topic, under 120 words, ending on the last fact worth knowing.** A second topic starts a second paragraph. Start a sentence with what the last one left and end it on the new thing. The page type's own closing section, such as `## Out of scope`, is the only ending.
 7. **Ask the reader to hold about four new things at once.** A paragraph that brings in more names, numbers or open points than that groups them ("three things hold up the first release") or moves them to a list or a table. People hold about four things in mind at once (Cowan); grouping is what keeps a long record readable.

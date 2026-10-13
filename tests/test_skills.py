@@ -480,3 +480,11 @@ def test_house_voice_carries_the_plain_spoken_rules():
     assert "not about the record" in voice and "## History" in voice
     assert "Who said what, and every state word" in voice
     assert "One open call holds up most of this page" in voice
+
+
+def test_house_voice_protects_quoted_sentences_and_writes_capabilities_as_planned():
+    """S51: the Heron rewrite broke 8 evidence quotes (E802). And capability prose said "the business can have" or
+    "reads" for something not built; the user picked "will read"."""
+    voice = text("skills/house-voice/SKILL.md")
+    assert "a sentence another page quotes as evidence" in voice and "change the quote in the same edit" in voice and "E802" in voice
+    assert "what the system will do" in voice and '"The Desktop agent will read' in voice and '"the business can have"' in voice
