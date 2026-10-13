@@ -38,6 +38,7 @@ def test_each_fix_from_the_review_and_session_18_is_in_the_breakdown_skill():
     assert "word for word from the epic criterion or requirement" in body and "put every ID on the `Traces to:` line" in body
     assert "Never copy vault text" not in body and "not copied here" not in body
     assert "No IDs, no trace lines" in body  # the read-back says story names
+    assert "`- **Tracer:**` bullet" in body and "`- **Not in the tracer:**`" in body and "`- **Tracer:** yes`" in body
     assert "first story is its piece of that flow" in body and "vertical slices" in body and "`Slice: layer`" in body
     assert "unblocks the most" in body and body.index("tracer stories first") < body.index("unblocks the most")
     assert "before the next release date" in body and "cannot tell" in body and "from their numbers" in body
@@ -67,8 +68,6 @@ def test_no_skill_file_names_a_plugin_file_that_is_not_there_or_a_word_the_lint_
         body = skill_text(folder)
         for rel in re.findall(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)", body):
             rel = rel.rstrip(".")
-            if rel.endswith("CONVERSATION-VOICE.md"):
-                continue  # written by the voices change and merged beside this one
             assert (PLUGIN / rel).exists(), f"{folder.name} names {rel}"
         for word in LINT:
             assert not re.search(rf"\b{re.escape(word)}", body, re.I), f"{folder.name} uses {word!r}"
