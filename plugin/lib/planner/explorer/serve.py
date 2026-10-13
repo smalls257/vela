@@ -23,6 +23,7 @@ Four things this module exists to prevent:
   socket or a process. Only `stream_answer` and `Handler` touch the OS.
 """
 import functools
+import hashlib
 import hmac
 import http.cookies
 import http.server
@@ -38,6 +39,7 @@ import urllib.parse
 import webbrowser
 
 from . import pins as pinning
+from . import vault_files
 
 # nosemgrep: prototype-no-hardcoded-server -- the policy itself: the helper listens on loopback and nowhere else, under these two names
 LOOPBACK, LOCAL_NAME = "127.0.0.1", "localhost"
@@ -349,7 +351,7 @@ def stream_answer(vault, model_key, prompt, session_id, timeout=ASK_TIMEOUT, hom
 
 class Handler(http.server.BaseHTTPRequestHandler):
     """GET / is the page, GET /health says the helper is here, GET /freshness is `planner freshness --json` asked again
-    now (the page polls it on load and on window focus), GET /pins is the saved layout, POST /ask streams an answer and
+    now (the page polls it on load and on window focus), GET /pins is the saved layout, GET /vault-file/<path> is one of the vault's own files (read-only), POST /ask streams an answer and
     POST /pins saves a dragged layout."""
 
     def log_message(self, fmt, *args):
@@ -408,6 +410,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_freshness()
         elif self.path == "/pins":
             self.send_pins()
+        elif self.path.startswith(vault_files.PREFIX):
+            self.send_vault_file()
         elif self.path in ("/", "/index.html"):
             data = self.server.page.read_bytes()
             self.send_response(200)
@@ -418,6 +422,26 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(data)
         else:
             self.send_json(404, {"error": f"nothing at {self.path}"})
+
+    def send_vault_file(self):
+        """The page's 'Open the file' links when served: a file inside the vault, as text, read-only (vault_files.py)."""
+        try:
+            target = vault_files.resolve(self.server.vault, self.path)
+            data = target.read_bytes()
+        except vault_files.Refused as exc:
+            self.send_json(exc.status, {"error": str(exc)})
+            return
+        except OSError as exc:
+            self.server.log(f"vault file {self.path}: {exc}")
+            self.send_json(500, {"error": f"cannot read that file: {exc}"})
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", vault_files.content_type(target))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
 
     def send_pins(self):
         """The layout as saved now, so a reload after a save shows it though the page file still carries the old one."""
@@ -527,6 +551,13 @@ class Server(http.server.ThreadingHTTPServer):
     def url(self):
         """The link to open: it carries the key once, and the helper moves it into a cookie and redirects to /."""
         return f"http://{LOOPBACK}:{self.server_port}/?k={self.key}"
+
+
+def preferred_port(vault_id):
+    """The port this vault is served on unless the caller names one. The browser keeps a page's saved marks, layout and Ask
+    conversations per origin, and a random port makes every run a new origin that finds none of them; the same vault
+    on the same port is the same origin. In the private range 49152-65151, derived from the vault's id."""
+    return 49152 + int(hashlib.sha256(vault_id.encode("utf-8")).hexdigest()[:8], 16) % 16000
 
 
 def serve(vault, page, port, model, open_browser, log, ask_timeout=ASK_TIMEOUT, freshness=None, pins=None):

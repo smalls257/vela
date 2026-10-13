@@ -11,7 +11,8 @@ from planner.parse import WIKILINK, parse_link
 HANDLE = re.compile(r"@[A-Za-z0-9][\w./-]*")
 STEP = re.compile(r"^(\d+)\.\s+(.*)$")
 BLOCK_REF = re.compile(r"\s\^[A-Za-z0-9-]+\s*$")
-MD_LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+MD_LINK = re.compile(r"\[([^\]]*)\]\(([^)]*)\)")
+WEB_ADDRESS = re.compile(r"^(?:https?://[^\s<>\"']+|mailto:[^\s<>\"']+)$")
 LABELLED_LINE = re.compile(r"^\*\*[^*]+:\*\*")
 PROSE_LIMIT = 1100  # characters of opening prose kept for the panel; the panel says when the page goes on
 
@@ -71,8 +72,17 @@ def inline_html(text, keys, page, where=LISTED):
     surrounds the text: running PROSE shows a question's state only when it is worth flagging (an "open" pill mid-sentence
     is noise, since open is what a linked question is by default); a LISTED item or table cell shows every state."""
     text = BLOCK_REF.sub("", text)
-    text = MD_LINK.sub(r"\1", text)
-    parts, refs = [], []
+    parts, refs, web_links = [], [], []
+
+    def hold_web_link(match):
+        """A web link keeps its address; any other target (a relative file, javascript:) shows its label only."""
+        label, target = match.group(1), match.group(2).strip()
+        if not WEB_ADDRESS.match(target):
+            return label
+        web_links.append((label, target))
+        return f"\x01{len(web_links) - 1}\x01"
+
+    text = MD_LINK.sub(hold_web_link, text)
 
     def hold(match):
         link = parse_link(match.group(1), 0)
@@ -85,9 +95,16 @@ def inline_html(text, keys, page, where=LISTED):
 
     held = readability.name_ids(WIKILINK.sub(hold, text), keys.names, name_it)
     out = html.escape(held, quote=False)
-    out = re.sub(r"`([^`]+)`", r"<code>\1</code>", out)
+    code = []  # code spans are set aside so a `*.md` glob is never read as emphasis
+    out = re.sub(r"`([^`]+)`", lambda m: (code.append(m.group(1)), f"\x02{len(code) - 1}\x02")[1], out)
     out = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", out)
     out = re.sub(r"(?<!\*)\*([^*\s][^*]*)\*(?!\*)", r"<em>\1</em>", out)
+    for i, span in enumerate(code):
+        out = out.replace(f"\x02{i}\x02", f"<code>{span}</code>")
+    for i, (label, target) in enumerate(web_links):
+        anchor = (f'<a class="ext" href="{html.escape(target)}" target="_blank" rel="noopener noreferrer">'
+                  f'{html.escape(label, quote=False)}</a>')
+        out = out.replace(f"\x01{i}\x01", anchor)
     for i, (link, key, label, named) in enumerate(refs):
         label_html = html.escape(label, quote=False)
         if named:

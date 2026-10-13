@@ -362,7 +362,7 @@ const MapView = (() => {
       s("rect", { x: left - 4000, y: L.zoneY, width: right - left + 8000, height: bottom - L.zoneY + 4000, fill: Theme.c("duct"), opacity: 0.18 }, map);
       s("line", { x1: left - 4000, x2: right + 4000, y1: L.zoneY, y2: L.zoneY, stroke: Theme.c("rule-3"), "stroke-width": 1.5, "stroke-dasharray": "2 6" }, map);
       s("text", { x: right - 18, y: L.zoneY - 12, "text-anchor": "end", class: "zone-text" }, map).textContent = "Our apps";
-      s("text", { x: right - 18, y: L.zoneY + 24, "text-anchor": "end", class: "zone-text" }, map).textContent = "Outside the fare zone: partners";
+      s("text", { x: right - 18, y: L.zoneY + 24, "text-anchor": "end", class: "zone-text" }, map).textContent = "Outside parties";
     }
     const gTrack = s("g", {}, map), gLabels = s("g", {}, map), gStations = s("g", {}, map), gWorks = s("g", {}, map);
     gPulses = s("g", {}, map);

@@ -113,6 +113,8 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .page-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .btn.quiet { background: transparent; color: var(--ink-3); border-color: transparent; }
 .btn.quiet:hover { color: var(--ink); background: var(--deck); }
+.btn.off { opacity: .55; cursor: not-allowed; font-style: italic; }
+.btn.off:hover { background: transparent; color: var(--ink-3); }
 .btn.tiny { padding: 1px 9px; font-size: 11.5px; margin-left: 6px; }
 .seg.small button { padding: 3px 9px; font-size: 12.5px; }
 .seg button:disabled { opacity: .35; cursor: default; }
@@ -193,6 +195,19 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+/* Print or save as PDF (E37): the room's chrome goes, the open view flows across pages on white, and a link prints its address. */
+@media print {
+  html[data-theme][data-theme] { --room: #fff; --deck: #fff; --deck-2: #f3f3f3; --ink: #111; --ink-2: #222; --ink-3: #444; --rule-3: #999; --link: #0b4ea2; }
+  html, body { height: auto; display: block; background: #fff; color: #111; }
+  header.top, #side, #panel, #panel-tab, #toast, #tip, #fresh, #built, .page-actions, .seg { display: none !important; }
+  #main { display: block; overflow: visible; background: #fff; }
+  #main :not(svg):not(svg *) { overflow: visible !important; max-height: none !important; }
+  a.ext[href]::after { content: " (" attr(href) ")"; font-size: .85em; color: #444; word-break: break-all; }
+  .scroll, .doc-scroll, .reader, .r-text { display: block !important; flex: none; break-inside: auto; }
+  .r-table { display: block; break-inside: auto; }
+  tr, figure, .strip, .plan-sec { break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
 }
 @media (max-width: 1180px) { :root { --panel-w: 330px; --side-w: 210px; } .brand { max-width: 140px; } .fx-label { display: none; } }
 /* 800 px wide leaves the main pane about 260 px between a 210 px sidebar and a 330 px panel: narrower side columns keep the board usable */

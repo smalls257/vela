@@ -255,8 +255,10 @@ const Flows = (() => {
     history.replaceState(null, "", "#" + App.view);
   }
   document.addEventListener("keydown", (e) => {
-    if (e.target.closest && e.target.closest("input,textarea,select")) return;
-    if (e.key.toLowerCase() === "s" && !e.metaKey && !e.ctrlKey) { Sound.set(!Sound.enabled); return; }
+    if (e.target.closest && e.target.closest("input,textarea,select,[contenteditable]")) return;
+    if (e.key.toLowerCase() === "s" && !e.metaKey && !e.ctrlKey && !e.altKey) { Sound.set(!Sound.enabled); return; }
+    // on a focused button, link, tab or option the key belongs to that control: Space presses it, arrows move among tabs
+    if (e.target.closest && e.target.closest("button,a[href],[role=tab],[role=option],[role=combobox],[role=button]") && !(e.key === "Escape")) return;
     const pr = presenter && $("#overlay").classList.contains("present") ? presenter : null;
     const p = pr || (App.view === "flows" && $("#overlay").hidden ? player : null);
     if (!p) return;

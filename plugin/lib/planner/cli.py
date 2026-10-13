@@ -9,6 +9,7 @@ import datetime
 import difflib
 import importlib.util
 import io
+import errno
 import json
 import os
 import pathlib
@@ -1127,11 +1128,14 @@ def cmd_explore(args, out):
     today, _ = parse_today(args.today)
     target = pathlib.Path(args.out) if args.out else root / publish.DASHBOARD_PATH
     found = detect_role(root)
+    advice = explorer.vault_id_advice(root, found.role)
+    if advice:
+        print(f"planner explore: {advice}.", file=out)
     try:
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
                                   assets_config=args.assets, design_args=args.design, theme=args.theme,
                                   freshness=page_freshness(root, found, today), breakdown_args=args.breakdown,
-                                  built=page_built(root, found, today))
+                                  built=page_built(root, found, today), selftest=args.selftest)
     except explorer.ExplorerError as exc:
         raise ToolError(str(exc)) from exc
     for line in lines:
@@ -1140,17 +1144,27 @@ def cmd_explore(args, out):
         print(f"planner explore: this vault's .gitignore lists {publish.DASHBOARD_PATH}, so colleagues who pull the repo will not get the page. "
               f"Remove that line from .gitignore, or build with --out somewhere else.", file=out)
     if args.serve:
-        if not 0 <= args.port <= 65535:
+        if args.port is not None and not 0 <= args.port <= 65535:
             raise ToolError(f"--port {args.port} is not a port number (0 to 65535)")
         link = copies.first_symlink(root)
         if link:
             raise ToolError(f"I will not serve Ask Claude for this vault: {untrusted.link_refusal(link)}")
+        say = lambda line: print(f"planner explore: {line}", file=out, flush=True)  # noqa: E731
+        port = args.port if args.port is not None else explorer_serve.preferred_port(explorer.vault_id_for(root))
+        serve_page = lambda p: explorer_serve.serve(root, target, p, args.model, not args.no_open, say,  # noqa: E731
+                                                    freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable),
+                                                    pins=root / explorer_pins.PINS_FILE)
         try:
-            explorer_serve.serve(root, target, args.port, args.model, not args.no_open, lambda line: print(f"planner explore: {line}", file=out, flush=True),
-                                 freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable),
-                                 pins=root / explorer_pins.PINS_FILE)
+            try:
+                serve_page(port)
+            except OSError as exc:
+                if args.port is not None or exc.errno != errno.EADDRINUSE:
+                    raise
+                say(f"port {port}, this vault's usual one, is taken, so this run uses another. The browser keeps saved marks and Ask conversations "
+                    f"per address, so it will not find the ones saved on {port}. Stop the other run, or pass --port.")
+                serve_page(0)
         except OSError as exc:
-            raise ToolError(f"cannot serve the page on port {args.port}: {exc}") from exc
+            raise ToolError(f"cannot serve the page on port {port}: {exc}") from exc
     return 0
 
 
@@ -2089,9 +2103,11 @@ def build_parser():
     explore.add_argument("--breakdown", action="append", default=[], metavar="APP-x=PATH",
                          help="a team's work breakdown (docs/plan/<slug>-breakdown.md) for an app, for its Build plan; repeat for each app")
     explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
+    explore.add_argument("--selftest", action="store_true",
+                         help="bundle the page's own checks, so opening it with #selftest runs them (about 120 KB; the browser tests use it)")
     explore.add_argument("--serve", action="store_true",
                          help="then serve the page on this machine only, with Ask Claude on; opens the browser, Ctrl-C stops")
-    explore.add_argument("--port", type=int, default=0, help="with --serve, the port (default: any free one)")
+    explore.add_argument("--port", type=int, default=None, help="with --serve, the port (default: one derived from the vault, so the browser finds what it saved; 0 asks for any free one)")
     explore.add_argument("--model", choices=["haiku", "sonnet"], default="haiku",
                          help="with --serve, the model that answers questions (default: haiku; the page's Think harder asks sonnet)")
     explore.add_argument("--no-open", action="store_true", help="with --serve, do not open the browser")

@@ -27,7 +27,7 @@ const Freshness = (() => {
     box.hidden = !text;
     box.textContent = "";
     if (!text) return;
-    const when = st.live ? "checked just now" : st.report.checked_at ? `as of ${stamp(st.report)}, when this page was built` : "";
+    const when = st.error ? `could not check just now; as of ${stamp(st.report)}, when this page was built` : st.live ? "checked just now" : st.report.checked_at ? `as of ${stamp(st.report)}, when this page was built` : "";
     box.append(h("span", { class: "fresh-text" }, text), when ? h("span", { class: "fresh-when" }, ` (${when})`) : null);
     box.title = st.error ? `The live check failed: ${st.error}` : "";
     box.dataset.state = st.report.state;
@@ -40,7 +40,7 @@ const Freshness = (() => {
       if (!res.ok) throw new Error(`/freshness answered ${res.status}`);
       st.report = await res.json(); st.live = true; st.error = "";
     } catch (e) {
-      st.error = e.message;
+      st.error = e.message; st.live = false;
       console.warn(`[freshness] the ${why} check failed; the banner keeps the build-time stamp:`, e.message);
     } finally { st.busy = false; st.last = Date.now(); render(); }
     return true;

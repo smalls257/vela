@@ -46,3 +46,5 @@ rules:
     pattern-either:
       - pattern: try { ... } catch ($E) {}
       - pattern: try { ... } catch {}
+      # a catch whose only act is to return a stand-in (the board's empty marks, an empty list) hides a corrupt value just as well
+      - pattern: try { ... } catch ($E) { return $V; }

@@ -19,12 +19,14 @@ design beside the vault (design_data.py reads it, inside_data.py checks it again
 `generate` is the one entry point. It takes the date and every path as arguments and returns the report lines;
 the caller (cli.cmd_explore, or prototypes/explorer/build.py) reads the clock and does the printing.
 """
+import base64
 import hashlib
 import html
 import json
 import os
 import pathlib
 import re
+import uuid
 
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
                      reading, roles, schema, trace)
@@ -51,7 +53,8 @@ class ExplorerError(Exception):
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "layout", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
               "wires", "mapgroups", "releases", "flowkit", "flowpicker", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
-              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "selftest", "main")
+              "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
+SELFTEST_MODULE = "selftest"  # 120 KB of checks: bundled only when asked (`planner explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
                "releases", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
@@ -65,11 +68,49 @@ THEME_IDS = tuple(t[0] for t in THEMES)
 
 # --------------------------------------------------------------------------- vault identity
 
-def vault_id(initiative, title):
-    """A short, stable identifier for this vault, keyed by its initiative ID and title, never by where the folder sits.
-    Used to scope localStorage keys so moves between vaults don't mix their state. A path in the key would give every
-    clone and every workspace a different page, so a committed dashboard.html would change on each machine's build."""
+VAULT_ID_KEY = "vault_id"
+VAULT_ID_OK = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+
+
+def legacy_vault_id(initiative, title):
+    """The id every vault had before .planner.yaml could name one: a hash of its initiative ID and title, never of where
+    the folder sits (a path in the key would give every clone a different page, so a committed dashboard.html would
+    change on each machine's build). Two vaults left at the template's INI-001 / New initiative share it, and retitling
+    changes it, which is why a vault_id is better."""
     return hashlib.sha256(f"{initiative}|{title}".encode()).hexdigest()[:12]
+
+
+def vault_id(initiative, title, configured=None):
+    """The short, stable identifier that scopes this vault's localStorage keys (board marks, layout, Ask conversations,
+    rehearsals), so vaults and copies do not mix their state. The `vault_id:` line in .planner.yaml when there is one:
+    it survives a retitle and tells two vaults apart. Else the legacy hash. A value that cannot scope a key is refused."""
+    if configured is None:
+        return legacy_vault_id(initiative, title)
+    if not isinstance(configured, str) or not VAULT_ID_OK.match(configured):
+        raise ExplorerError(f".planner.yaml's {VAULT_ID_KEY} is {configured!r}; write 8 to 64 letters, digits or dashes, such as {mint_vault_id()}")
+    return configured
+
+
+def vault_id_for(root):
+    """The id the page for the vault at `root` will carry (the same one generate puts in the page)."""
+    config = cli.load_config(pathlib.Path(root))
+    return vault_id(str(config.get("initiative", "")), str(config.get("title", "")), config.get(VAULT_ID_KEY))
+
+
+def mint_vault_id():
+    """Starts with a letter so YAML reads it as text: a bare 1234567890123456 or 12e45678 would load as a number."""
+    return "v-" + uuid.uuid4().hex[:14]
+
+
+def vault_id_advice(root, role):
+    """What to tell an owner whose .planner.yaml has no vault_id, or None. The build never edits .planner.yaml: two
+    folders of one vault must build the same page, and a build must not leave the vault with an uncommitted change.
+    So the owner adds the line; the page then moves what the browser saved under the old id to the new one."""
+    if role != roles.OWNER or VAULT_ID_KEY in cli.load_config(pathlib.Path(root)):
+        return None
+    return (f"this vault has no {VAULT_ID_KEY} in .planner.yaml, so the browser keeps its saved marks, layout and Ask conversations under a name made "
+            f"from the initiative and title: another vault with the same two shares them, and a new title loses them. Add the line "
+            f"`{VAULT_ID_KEY}: {mint_vault_id()}` and commit it; what was saved before moves over once")
 
 
 # --------------------------------------------------------------------------- opening prose
@@ -524,7 +565,8 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     initiative = str(vault.config.get("initiative", ""))
     data = {
         "initiative": initiative, "title": str(vault.config.get("title", "")),
-        "vaultId": vault_id(initiative, str(vault.config.get("title", ""))),
+        "vaultId": vault_id(initiative, str(vault.config.get("title", "")), vault.config.get(VAULT_ID_KEY)),
+        "legacyVaultId": legacy_vault_id(initiative, str(vault.config.get("title", ""))) if VAULT_ID_KEY in vault.config else "",
         "today": today,
         "vault": "", "entities": entities, "role": roles.NONE, "draft": None, "freshness": None, "built": None,
         "map": system_map(vault, keys), "apps": app_details(vault, keys, blocked),
@@ -579,11 +621,11 @@ def safe_json(value):
     return json.dumps(value, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
 
 
-def render(data, assets=None):
+def render(data, assets=None, selftest=False):
     shell = (HERE / "assets" / "shell.html").read_text(encoding="utf-8")
     css = "\n".join((HERE / "assets" / "css" / f"{m}.css").read_text(encoding="utf-8") for m in CSS_MODULES)
     js = "\n".join(f"/* ---- {m}.js ---- */\n" + (HERE / "assets" / "js" / f"{m}.js").read_text(encoding="utf-8")
-                   for m in JS_MODULES)
+                   for m in (*JS_MODULES[:-1], *((SELFTEST_MODULE,) if selftest else ()), JS_MODULES[-1]))
     if assets:
         resolver = assets["resolver"]
         if "</script" in resolver.lower():
@@ -605,18 +647,44 @@ def render(data, assets=None):
     theme = data.get("theme") or THEME_IDS[0]
     if theme not in THEME_IDS:
         raise ValueError(f"theme {theme!r} is not one of {', '.join(THEME_IDS)}")
-    return (shell.replace("{{TITLE}}", title).replace("{{THEME}}", theme).replace("/*{{CSS}}*/", css).replace("{{DATA}}", safe_json(data))
+    page = (shell.replace("{{TITLE}}", title).replace("{{THEME}}", theme).replace("/*{{CSS}}*/", css).replace("{{DATA}}", safe_json(data))
             .replace("<!--{{ASSETS}}-->", inline).replace("<!--{{MARKED}}-->", f"<script>{marked}</script>").replace("/*{{JS}}*/", js))
+    return page.replace("<style>", f'<meta http-equiv="Content-Security-Policy" content="{content_security_policy(page)}">\n<style>', 1)
+
+
+INLINE_SCRIPT = re.compile(r"<script(?![^>]*application/json)[^>]*>(.*?)</script>", re.S)
+
+
+def content_security_policy(page):
+    """What the page may do, so an escaping slip in vault text cannot become script or send the vault anywhere: only the
+    page's own inline scripts run (each by hash, no inline handlers, no eval), nothing loads from outside, and the one
+    connection allowed is to the helper that served it. Styles may be inline: the page sets them from script, and a style
+    cannot run code. (Defence in depth: viewer.py keeps the same rule for the offline viewer.)"""
+    hashes = " ".join(f"'sha256-{base64.b64encode(hashlib.sha256(m.group(1).encode('utf-8')).digest()).decode()}'"
+                      for m in INLINE_SCRIPT.finditer(page))
+    return (f"default-src 'none'; script-src {hashes}; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; "
+            "font-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'")
 
 
 def relative_href(target, page_dir):
     """The href a page in `page_dir` uses to reach `target`, relative so no absolute path is built in. A relative
-    href in a file:// page resolves beside it. None when the walk would name the builder's home folder (the
-    target and the page sit in different places under it), because the page must not carry that name."""
-    rel = pathlib.Path(os.path.relpath(pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve()))
-    if pathlib.Path.home().name in rel.parts:
+    href in a file:// page resolves beside it. None when the walk would descend through the builder's home folder (the
+    target is under it and the page is not), because the walk would then name it; a walk that only climbs out of home,
+    or stays inside it, names nothing, whatever the folders are called."""
+    target, page_dir, home = pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve(), pathlib.Path.home().resolve()
+    under_home = lambda p: p == home or home in p.parents  # noqa: E731
+    if under_home(target) and not under_home(page_dir):
         return None
-    return rel.as_posix()
+    return pathlib.Path(os.path.relpath(target, page_dir)).as_posix()
+
+
+def vault_path(target, root):
+    """`target` as a path inside the vault, or '' when it lies outside. The served page opens only what lies inside
+    (vault_files.py); a design or plan in a team repo beside the vault has no link there."""
+    try:
+        return pathlib.Path(target).resolve().relative_to(pathlib.Path(root).resolve()).as_posix()
+    except ValueError:
+        return ""
 
 
 def link_sources(data, root, design_args, out_dir, plan_args=()):
@@ -631,6 +699,7 @@ def link_sources(data, root, design_args, out_dir, plan_args=()):
     paths = {m.group(1): m.group(2) for m in (design_data.SPEC.match(a.strip()) for a in design_args)}
     for design in data["designs"].values():
         design["href"] = relative_href(paths[design["appId"]], out_dir) or ""
+        design["vaultPath"] = vault_path(paths[design["appId"]], root)
         if not design["href"]:
             said.append(f"no Open the design doc link for {design['appId']}, the doc and the page sit apart under the home folder")
     plan_paths = {m.group(1): pathlib.Path(m.group(2)) for m in (design_data.SPEC.match(a.strip()) for a in plan_args)}
@@ -639,6 +708,8 @@ def link_sources(data, root, design_args, out_dir, plan_args=()):
         plan["href"] = relative_href(path, out_dir) or ""
         tickets = plan_data.tickets_path(path)
         plan["ticketsHref"] = (relative_href(tickets, out_dir) or "") if tickets else ""
+        plan["hasTickets"] = bool(tickets)
+        plan["vaultPath"], plan["ticketsVaultPath"] = vault_path(path, root), vault_path(tickets, root) if tickets else ""
         if not plan["href"] or (tickets and not plan["ticketsHref"]):
             said.append(f"no Open the plan or Tickets link for {plan['appId']}, the file and the page sit apart under the home folder")
     return said
@@ -729,7 +800,7 @@ def plural_pages(n):
 
 
 def generate(root, out, today, pins_path=None, seed=None, assets_config=None, design_args=(), theme=THEME_IDS[0], freshness=None,
-             breakdown_args=(), built=None):
+             breakdown_args=(), built=None, selftest=False):
     """Build the page for the vault at `root` and write it to `out`. Returns the report lines: what the build
     chose, what it left out and why, and the one-line summary last. Raises ExplorerError, writing nothing, when
     the vault, the assets, the pins, a design or a named breakdown cannot be read.
@@ -771,7 +842,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     said = link_sources(data, root, design_args, out.parent, plan_args)
     # Which apps this build newly pinned is a fact about the pins file, not the vault: the page does not read it, and
     # carrying it would make the first build and every later build of one vault differ. The report lines still say it.
-    page = render({**data, "pins": {**data["pins"], "added": []}}, assets)
+    page = render({**data, "pins": {**data["pins"], "added": []}}, assets, selftest)
     out.parent.mkdir(parents=True, exist_ok=True)
     atomic.write_atomic(out, page)
     said += pin_lines(data, pins_path, was_there, root)

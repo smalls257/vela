@@ -11,6 +11,7 @@
 .reader strong { color: var(--ink); font-weight: 600; }
 .reader a.ref { color: var(--link); border-bottom: 1px dotted color-mix(in srgb, var(--link) 45%, transparent); }
 .reader a.ref:hover { text-decoration: none; border-bottom-style: solid; }
+a.ext { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
 .reader a.ref-id { font-family: var(--mono); font-size: .86em; }
 .reader blockquote { margin: 0 0 10px; padding: 4px 12px; border-left: 3px solid var(--rule-3); color: var(--ink-3); }
 .reader pre { font: 12px/1.45 var(--mono); background: var(--room); border: 1px solid var(--rule); border-radius: 8px; padding: 10px; overflow: auto; color: var(--ink-3); }

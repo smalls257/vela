@@ -16,7 +16,8 @@ const SelfTest = (() => {
     for (const f of D.flows) for (const stp of f.steps) for (const m of stp.messages) {
       const c = CONTRACT[m.contract]; if (!c) continue;
       const a = titleOf(c.provider), b = titleOf(c.consumers[0]);
-      if (a && b && a !== b) return { q: `how does ${b} talk to ${a}`.toLowerCase(), contract: c.id };
+      // Two contracts can join the same pair (consent: one to check, one to record); the words cannot tell them apart, so either is right.
+      if (a && b && a !== b) return { q: `how does ${b} talk to ${a}`.toLowerCase(), contracts: Object.values(CONTRACT).filter((o) => o.provider === c.provider && o.consumers[0] === c.consumers[0]).map((o) => o.id) };
     }
     return null;
   }
@@ -37,7 +38,7 @@ const SelfTest = (() => {
       Flows.closePresent();
     } else out.push("skip path 1: this vault has no flow pages");
     // Path 2: "how does Coach talk to Brightwater?" gets to the contract, and presenting from that step.
-    const pq = APPS["APP-coach"] && D.map.parties.some((p) => p.title === "Brightwater") && D.flows.length ? { q: "how does coach talk to brightwater", contract: "CON-003" } : pairQuery();
+    const pq = APPS["APP-coach"] && D.map.parties.some((p) => p.title === "Brightwater") && D.flows.length ? { q: "how does coach talk to brightwater", contracts: ["CON-003"] } : pairQuery();
     if (pq) {
       go("lights", { reset: true }); showView("map"); await frames();
       const keys = Search.type(pq.q);
@@ -45,8 +46,8 @@ const SelfTest = (() => {
       Search.pick(0); await frames(3);
       const key = keys[0];
       const btn = $$("#panel .present-btn")[0];
-      ok(key === pq.contract && App.view === "map" && !!btn, `path 2 "${pq.q}": search, Enter → ${key} ${titleOf(key)} (group "${(group || "").split("·")[0].trim()}"), on the map, panel offers "${buttonText(btn)}"`,
-        `path 2 "${pq.q}": first result ${key}, wanted ${pq.contract}; view ${App.view}; present button ${buttonText(btn)}`);
+      ok(pq.contracts.includes(key) && App.view === "map" && !!btn, `path 2 "${pq.q}": search, Enter → ${key} ${titleOf(key)} (group "${(group || "").split("·")[0].trim()}"), on the map, panel offers "${buttonText(btn)}"`,
+        `path 2 "${pq.q}": first result ${key}, wanted ${pq.contracts.join(" or ")}; view ${App.view}; present button ${buttonText(btn)}`);
       if (btn) { btn.click(); await frames(3); }
       const wantStep = btn ? (buttonText(btn).match(/step (\d+)/) || [0, "1"])[1] : "?";
       ok(presentStep() === String(wantStep), `path 2: 1 click → presenting from step ${presentStep()}, the first step that uses ${key}; clicks after the search: 1`, `path 2: presenting at "${presentStep()}", wanted step ${wantStep}`);
@@ -593,6 +594,81 @@ const SelfTest = (() => {
   }
   /* What a real vault lacks (no domains, releases, requirement rows, flows, Ask lines) is said where the reader looks,
      with the planner step that writes it; and a flow of inferred arrows says so once. */
+  /* A vault that gains a vault_id keeps what the browser saved under its old id (E18), against a fake store. */
+  /* Keys the page owns must leave fields and controls alone (E34, E35). */
+  /* The page's Content-Security-Policy stops an inline handler from vault text (E38). */
+  async function policy() {
+    window.__cspRan = false;
+    const holder = h("div");
+    document.body.append(holder);
+    holder.innerHTML = '<img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAACAkQBADs=" onload="window.__cspRan = true">';
+    const probe = holder.firstChild;
+    await new Promise((resolve) => { if (probe.complete) resolve(); else { probe.addEventListener("load", resolve); probe.addEventListener("error", resolve); } });
+    holder.remove();
+    ok(!!document.querySelector('meta[http-equiv="Content-Security-Policy"]') && window.__cspRan === false, "policy: the page carries a Content-Security-Policy and an inline handler in vault text does not run", `policy: meta present ${!!document.querySelector('meta[http-equiv="Content-Security-Policy"]')}, injected onload ran ${window.__cspRan}`);
+  }
+  /* Browser Back and a pasted link move the page (E33). Needs a real address bar, so it runs on a file or a served page alike. */
+  async function history_() {
+    const changed = (act) => new Promise((resolve) => { addEventListener("hashchange", resolve, { once: true }); act(); });
+    Nav.home(); Nav.open("decisions", ""); Nav.open("unknowns", "");
+    const before = App.section;
+    await changed(() => history.back());
+    const back = App.section;
+    await changed(() => { location.hash = "#s=goals"; });
+    const pasted = App.section;
+    await changed(() => history.back());
+    ok(before === "unknowns" && back === "decisions" && pasted === "goals", "history: Back returns to the section the lead came from, and a pasted #s= link opens that section",
+      `history: before ${before}, after Back ${back} (wanted decisions), after a pasted link ${pasted} (wanted goals)`);
+    Nav.home();
+  }
+  /* The search box is a combobox a screen reader can follow (E22). */
+  function searchAria() {
+    const q = $("#q"), word = (Object.values(E).map((e) => (e.title || "").split(/\s+/).find((w) => /^[A-Za-z]{4,}$/.test(w))).find(Boolean)) || "vault";
+    Search.type(word);
+    const opts = $$("#results [role=option]"), on = opts.find((o) => o.getAttribute("aria-selected") === "true");
+    if (!opts.length) out.push(`skip search combobox: "${word}" finds nothing in this vault`);
+    else ok(q.getAttribute("role") === "combobox" && q.getAttribute("aria-controls") === "results" && q.getAttribute("aria-expanded") === "true" && !!on && q.getAttribute("aria-activedescendant") === on.id && opts.every((o) => o.id),
+      "search: the box is a combobox; the open list is expanded, every result has an id and the highlighted one is the active descendant", `search: role ${q.getAttribute("role")}, expanded ${q.getAttribute("aria-expanded")}, ${opts.length} options, selected ${on && on.id}, active ${q.getAttribute("aria-activedescendant")}`);
+    Search.type("zzqqxx nothingmatches");
+    const said = $("#results-status").textContent;
+    ok(!!said && !$("#results [role=option]") && !q.getAttribute("aria-activedescendant"), "search: a search that finds nothing is said aloud, with no active descendant", `search: status "${said}"`);
+    q.value = ""; Search.type(""); 
+    ok(q.getAttribute("aria-expanded") === "false" && $("#results-status").textContent === "", "search: an emptied box collapses and goes quiet", `search: expanded ${q.getAttribute("aria-expanded")}`);
+  }
+  function keyboard() {
+    const press = (target, key) => { const ev = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }); target.dispatchEvent(ev); return ev; };
+    const box = h("textarea"), button = h("button", {}, "Next step");
+    document.body.append(box, button);
+    box.focus(); press(box, "/");
+    const stayed = document.activeElement === box;
+    const view = App.view; if (D.flows.length) showView("flows");  // the player's keys only act in the flows view
+    button.focus(); const space = press(button, " "), arrow = press(button, "ArrowRight");
+    showView(view);
+    document.body.focus(); press(document.body, "/");
+    const toSearch = document.activeElement === $("#q");
+    box.remove(); button.remove(); $("#q").blur();
+    ok(stayed && toSearch, "keys: / types a slash in a text field and jumps to search from anywhere else", `keys: / stayed in the field ${stayed}, reached search from the page ${toSearch}`);
+    ok(!space.defaultPrevented && !arrow.defaultPrevented, "keys: Space and the arrows are left to a focused button, so Next and Play can be pressed", `keys: Space prevented ${space.defaultPrevented}, arrow prevented ${arrow.defaultPrevented}`);
+  }
+  /* A saved value that will not parse is kept and reported, not replaced by an empty one (E31). */
+  function corruptState() {
+    const key = "explorer.selftest.corrupt", warn = console.warn; let said = "";
+    console.warn = (m) => { said = String(m); };
+    Settings.write(key, "{not json");
+    const got = Settings.readJson(key, { fresh: true }, "the selftest's marks");
+    console.warn = warn;
+    const kept = Settings.read(key + ".unreadable"), note = $("#toast").textContent;
+    localStorage.removeItem(key); localStorage.removeItem(key + ".unreadable");
+    ok(got.fresh === true && kept === "{not json" && /cannot be read/.test(said) && /Could not read/.test(note), "saved state: a value that will not parse is kept under .unreadable, logged, and the page says so", `saved state: got ${JSON.stringify(got)}, kept ${kept}, log "${said}", note "${note}"`);
+  }
+  function savedState() {
+    const data = { "asks:old1": "board", "explorer.layout.old1": "layout", "explorer.ask.old1": "chats", "rehearse:old1:FLO-001": "tries", "asks:other": "x", "asks:new1": "kept" };
+    const fake = { get length() { return Object.keys(data).length; }, key: (i) => Object.keys(data)[i], getItem: (k) => (k in data ? data[k] : null), setItem: (k, v) => { data[k] = v; } };
+    const copied = migrateSaved("old1", "new1", fake);
+    ok(data["explorer.layout.new1"] === "layout" && data["explorer.ask.new1"] === "chats" && data["rehearse:new1:FLO-001"] === "tries" && data["asks:new1"] === "kept" && data["asks:other"] === "x" && data["asks:old1"] === "board",
+      "saved state: marks, layout, conversations and rehearsals move to a new vault id once; what is already there is kept; the old copy stays", `saved state: ${JSON.stringify(data)}`);
+    ok(copied.length === 3 && !migrateSaved("old1", "old1", fake).length, "saved state: only the keys that were missing are copied, and the same id moves nothing", `saved state: copied ${copied.length}`);
+  }
   async function emptyStates() {
     const has = (root, text) => $$(".empty-state", root).some((e) => e.dataset.empty === text);
     const doorHas = async (role, text) => { Nav.role(role); await frames(); return has($(".door"), text); };
@@ -667,6 +743,11 @@ const SelfTest = (() => {
     } else {
       ok(real.mode === "served" && real.fetches === 1 && document.documentElement.dataset.ask === "served",
         "ask when served: the page found its helper with one /health request", `ask when served: mode ${real.mode}, ${real.fetches} fetches, flag ${document.documentElement.dataset.ask}`);
+      // every file link the served page offers reaches its file through the helper (a design outside the vault offers none)
+      const hrefs = [...Object.values(E).filter((e) => e.path).slice(0, 4).map((e) => openHref("", e.path)), ...Object.values(D.designs).map((d) => openHref(d.href, d.vaultPath)).filter(Boolean)];
+      const missed = [];
+      for (const href of hrefs) { const res = await realFetch(href); if (!res.ok) missed.push(`${href} ${res.status}`); }
+      ok(hrefs.length > 0 && !missed.length, `served: ${plural(hrefs.length, "Open the file link")} each reach their file through the helper`, `served: Open-the-file links that reach nothing: ${missed.join(", ") || "none offered"}`);
     }
     // served, against a fake helper
     const known = Object.keys(E).find((k) => idOf(k)), id = idOf(known), calls = [];
@@ -913,7 +994,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
@@ -1032,8 +1113,11 @@ const SelfTest = (() => {
       ok(!!row && !!row.querySelector(kind === "ack" ? ".lamp.dark" : ".lamp.caution"), `reverse trace: ${id} untraced, ${kind === "ack" ? "grey, acknowledged by " + Inside.UNTRACED[id].find((u) => u.gap).gap : "amber, and no gap says so"}`, `reverse trace: ${id} shows no ${kind} row`);
     }
     // a design question's challenge lights the vault item it challenges, with its scenario
-    for (const [id, list] of Object.entries(Inside.CHALLENGED)) {
-      const k = keyForId(id), chipLamp = refChip(k).querySelector(".lamp");
+    for (const id of Object.keys(Inside.CHALLENGED)) {
+      const k = keyForId(Inside.challengeHome(id)), list = Inside.challenge(k);
+      // a constraint row (CST-010) is a line in a page, not a page: the home list names it, no item page can light
+      if (!ent(k)) { out.push(`skip challenge: ${id} has no page or item of its own to light`); continue; }
+      const chipLamp = refChip(k).querySelector(".lamp");
       go(k, { reset: true });
       const sec = $$("#panel .in-challenge");
       ok(!!chipLamp && chipLamp.classList.contains("caution") && sec.length === list.length && (!list[0].scenario || sec[0].textContent.includes(list[0].scenario.slice(0, 30))),
@@ -1232,6 +1316,15 @@ const SelfTest = (() => {
     const polled = calls.length === 1 && calls[0] === "/freshness" && Freshness.st.fetches === count + 1 && !$("#fresh").hidden && Freshness.st.live;
     Freshness.st.report = live.report; Freshness.st.live = live.live; Freshness.st.fetches = count; restore(); Freshness.render();
     ok(polled, "freshness when served: a poll asks /freshness once and shows the banner from the answer", `freshness when served: calls ${calls}, banner hidden ${$("#fresh").hidden}`);
+    // E39: after a failed check the banner stops saying "checked just now" in its visible text
+    const broken = Freshness.use(async () => new Response("{}", { status: 503 }), () => true), saved = { report: Freshness.st.report, live: Freshness.st.live, error: Freshness.st.error };
+    Freshness.st.report = newer; Freshness.st.live = true; Freshness.st.last = 0;
+    const warn = console.warn; console.warn = () => {};
+    await Freshness.poll("selftest");
+    console.warn = warn;
+    const said = $("#fresh").textContent;
+    Object.assign(Freshness.st, saved); broken(); Freshness.render();
+    ok(/could not check just now; as of 2026-10-18 09:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
   }
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length;

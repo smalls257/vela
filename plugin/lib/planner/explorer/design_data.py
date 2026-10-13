@@ -358,7 +358,7 @@ def _vault_link(meta, text, problems):
             _problem(problems, None, "vault link", f"citations name {', '.join(stray)}, not vault.commit")
         return {"mode": "vault", "source": "recorded", "app": recorded.get("app") or app, "vault_path": vault_path,
                 "building_blocks": building_blocks, "commits": [str(recorded["commit"])] if recorded.get("commit")
-                else cited, "initiative": recorded.get("initiative"), "origin": recorded.get("origin")}
+                else cited, "initiative": recorded.get("initiative")}
     if not cited:
         _problem(problems, None, "vault link", "no vault citation names a commit (INI-nnn ... @ <sha>), "
                                                "so links back to the vault cannot be pinned")

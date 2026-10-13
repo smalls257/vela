@@ -21,6 +21,7 @@ import pytest
 from sharing import draft_workspace, git, make_vault
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
+CHECKS_FLOOR = 80  # the emptiest snapshot ran 92 when this was set; a drop below means checks went missing
 
 # Vault snapshots to test: map of (name, path) for snapshots that exist.
 SNAPSHOT_BASE = REPO / "tests" / "sim" / "snapshots"
@@ -35,6 +36,9 @@ SNAPSHOTS = {
     # Contracts whose providers are written as prose, not linked: three outside boxes on one row under one app, and
     # three lamps meeting at it. The ungrouped map, the line map and the minimap once drew these on top of each other.
     "heron-desk/after-full-1": SNAPSHOT_BASE / "heron-desk" / "after-full-1",
+    # Two contracts join one pair of apps (consent: check and record), a design challenges an acceptance criterion and a
+    # constraint that have no page of their own, and the line map has an outside party under the zone label (E14).
+    "heron-desk/after-design-2": SNAPSHOT_BASE / "heron-desk" / "after-design-2",
 }
 
 
@@ -45,7 +49,7 @@ def test_plain_names_and_trace_rows_pass_the_selftest(tmp_path, chrome_path):
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOTS["heron-desk/after-full-1"], vault)
     shutil.copy(REPO / "tests" / "fixtures" / "readable" / "EPC-001-calendar.md", vault / "13-epics" / "EPC-001-calendar.md")
-    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10"]
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     html_path = vault / "dashboard.html"
     _check_selftest_in_chrome(chrome_path, html_path, "heron-desk/readable")
@@ -63,7 +67,7 @@ def test_fourteen_flows_are_grouped_in_the_picker_and_pass_the_selftest(tmp_path
     import make_stress_vault
     vault = tmp_path / "stress"
     make_stress_vault.main(vault)
-    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10"]
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
     assert subprocess.run(cmd, timeout=180, capture_output=True, text=True).returncode == 0
     _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", "stress/14 flows")
 
@@ -121,6 +125,7 @@ def test_explorer_selftest(tmp_path, chrome_path, vault_name, vault_path):
         sys.executable,
         str(REPO / "plugin" / "scripts" / "planner"),
         "explore",
+        "--selftest",
         str(vault_copy),
         "--today",
         "2026-10-10",
@@ -162,6 +167,7 @@ def test_explorer_selftest_800x600(tmp_path, chrome_path):
         sys.executable,
         str(REPO / "plugin" / "scripts" / "planner"),
         "explore",
+        "--selftest",
         str(vault_copy),
         "--today",
         "2026-10-10",
@@ -173,6 +179,15 @@ def test_explorer_selftest_800x600(tmp_path, chrome_path):
     html_path = vault_copy / "dashboard.html"
     assert html_path.exists()
     _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="800,600")
+
+
+@pytest.mark.browser
+def test_the_heron_design_vault_passes_the_selftest_at_800x600(tmp_path, chrome_path):
+    vault = tmp_path / "vault"
+    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], vault)
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
+    assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
+    _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", "heron-desk/after-design-2", viewport="800,600")
 
 
 def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600,1000"):
@@ -202,6 +217,9 @@ def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600
     assert selftest_text.startswith(
         "SELFTEST OK"
     ), f"{vault_name} selftest failed:\n" + "\n".join(fail_lines)
+    # a selftest that quietly skipped most of its checks still says OK, so a floor on how many ran guards it (E32)
+    ran = int(re.match(r"SELFTEST OK: (\d+) checks passed", selftest_text).group(1))
+    assert ran >= CHECKS_FLOOR, f"{vault_name}: only {ran} selftest checks ran, wanted at least {CHECKS_FLOOR}"
 
 
 @pytest.mark.browser
@@ -211,7 +229,7 @@ def test_a_served_page_finds_its_helper(tmp_path, chrome_path):
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOT_BASE / "trading-coach" / "after-capture-boundary", vault)
     env = {**os.environ, "PATH": f"{REPO / 'tests' / 'explorer_stub'}:{os.environ['PATH']}"}
-    server = subprocess.Popen([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10",
+    server = subprocess.Popen([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10",
                                "--serve", "--no-open", "--port", "0"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
     watchdog = threading.Timer(120, server.kill)  # a server that never says where it is must not hang the suite
     watchdog.start()
@@ -231,6 +249,7 @@ def test_a_served_page_finds_its_helper(tmp_path, chrome_path):
         selftest = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1))
         assert selftest.startswith("SELFTEST OK"), [line for line in selftest.split(" || ") if line.startswith("FAIL")]
         assert "ask when served: the page found its helper with one /health request" in selftest
+        assert re.search(r"ok served: \d+ Open the file links? each reach their file through the helper", selftest), "E17: served file links were not followed"
     finally:
         watchdog.cancel()
         server.send_signal(signal.SIGINT)
@@ -250,7 +269,7 @@ def test_a_reader_workspace_shows_its_draft_and_its_pending_decision(tmp_path, c
     """publish a snapshot, open it, edit a page and record a pending-approval decision, explore: the page's own #selftest
     passes with the draft badge, the Drafts view, the pending badge and the stamped freshness all drawn."""
     _, _, workspace = draft_workspace(tmp_path)
-    result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(workspace), "--today", "2026-10-12"],
+    result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(workspace), "--today", "2026-10-12"],
                             timeout=120, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     page = workspace / "dashboard.html"
@@ -271,7 +290,7 @@ def test_a_served_reader_page_asks_freshness_once_on_load(tmp_path, chrome_path)
     """The same workspace served: the page polls /freshness (the helper's answer is `planner freshness --json`) and its self-test passes."""
     _, _, workspace = draft_workspace(tmp_path)
     env = {**os.environ, "PATH": f"{REPO / 'tests' / 'explorer_stub'}:{os.environ['PATH']}"}
-    server = subprocess.Popen([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(workspace), "--today", "2026-10-12",
+    server = subprocess.Popen([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(workspace), "--today", "2026-10-12",
                                "--serve", "--no-open", "--port", "0"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
     watchdog = threading.Timer(120, server.kill)
     watchdog.start()
@@ -306,6 +325,9 @@ def test_a_replayed_workspace_lists_its_conflicts_first_and_the_badge_counts_the
     from test_replay import conflicted_workspace
     workspace = conflicted_workspace(tmp_path)
     page = workspace / "dashboard.html"
+    rebuilt = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(workspace), "--today", "2026-10-12"],
+                             timeout=120, capture_output=True, text=True)
+    assert rebuilt.returncode == 0, rebuilt.stderr  # re-open writes the page without its checks; this test needs them
     dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
                           "--dump-dom", f"file://{page}#home&selftest"], timeout=180, capture_output=True, text=True).stdout
     lines = _selftest_lines(dom)
@@ -349,7 +371,7 @@ def test_explorer_selftest_with_three_designs_loaded(tmp_path, chrome_path, view
     assert made.returncode == 0, made.stderr
     designs = REPO / "prototypes/explorer/demo_designs"
     page = tmp_path / "booking-demo.html"
-    built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(page), "--today", "2026-11-20",
+    built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(page), "--today", "2026-11-20", "--selftest",
                             "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
                             *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in ("booking", "pricing", "notifications")]],
                            timeout=120, capture_output=True, text=True)
@@ -362,7 +384,7 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
     if chrome_path is None:
         pytest.skip("Chrome not available")
     vault = make_vault(tmp_path, "shown")
-    subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-10-10"], timeout=120, check=True, capture_output=True)
+    subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10"], timeout=120, check=True, capture_output=True)
     short = git(vault, "rev-parse", "--short", "HEAD")
     dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=20000", "--dump-dom",
                           f"file://{vault / 'dashboard.html'}#home"], timeout=180, capture_output=True, text=True).stdout
@@ -374,7 +396,7 @@ def _explore_and_dump(chrome_path, source, tmp_path, today, route, viewport="160
     """Build `source` as a vault copy and return the page's DOM after loading `route`."""
     vault = tmp_path / "vault"
     shutil.copytree(source, vault)
-    subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", today], timeout=120, check=True, capture_output=True)
+    subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", today], timeout=120, check=True, capture_output=True)
     return subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--window-size={viewport}", "--virtual-time-budget=20000", "--dump-dom",
                            f"file://{vault / 'dashboard.html'}#{route}"], timeout=180, capture_output=True, text=True).stdout
 

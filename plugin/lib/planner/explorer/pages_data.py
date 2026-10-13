@@ -15,7 +15,7 @@ from planner.viewer import body_of
 
 from .record import LISTED, PROSE, chips_html, inline_html, title_of
 
-HEADING = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
+HEADING = re.compile(r"^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$")
 FENCE = re.compile(r"^\s{0,3}(`{3,}(?=[^`]*$)|~{3,})\s*([\w-]*)")
 LIST_ITEM = re.compile(r"^(\s*)(?:[-*]|(\d+)\.)\s+(.*)$")
 DETAILS_OPEN = re.compile(r"^\s*<details><summary>(.*?)</summary>\s*$")

@@ -15,9 +15,10 @@
   <button class="brand" id="brand" title="What needs you"><span class="brand-title" id="brand-title"></span><span class="brand-sub" id="brand-sub"></span></button>
   <div class="search">
     <svg class="search-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Ask in plain words: how does a reader place a paper trade?" aria-label="Search the vault">
+    <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="results" autocomplete="off" spellcheck="false" placeholder="Ask in plain words: how does a reader place a paper trade?" aria-label="Search the vault">
     <kbd class="search-key">/</kbd>
-    <div id="results" role="listbox" hidden></div>
+    <div id="results" role="listbox" aria-label="Search results" hidden></div>
+    <div id="results-status" class="sr-only" role="status" aria-live="polite"></div>
   </div>
   <div class="masters" id="masters" aria-live="polite"></div>
   <div class="flags" id="flags" hidden></div>
