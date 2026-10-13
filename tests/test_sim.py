@@ -1189,3 +1189,65 @@ def test_a_refused_tracer_call_reads_not_scored_and_the_rest_still_count(tmp_pat
     assert list(card["not_scored"]) == ["tracer"] and card["tracer"] is None
     md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
     assert "## Tracer in release one" in md and "## Facts captured (K):" in md
+
+
+# ---- T22: the conversation-voice rule is counted, not hoped for
+
+def voice_transcript(tmp_path, turns):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    for n, (speaker, text, extra) in enumerate(turns, 1):
+        t.add(session=1, mode="grill", speaker=speaker, text=text, turn=n, **extra)
+    return t
+
+
+def test_codes_are_counted_in_what_the_assistant_says_to_the_lead(tmp_path):
+    t = voice_transcript(tmp_path, [
+        ("lead", "What about UNK-004 and W343?", {}),  # the lead's words never count
+        ("assistant", "The pilot date is a plan, not a fact yet. What would move it?", {}),
+        ("assistant", "That trips W343 and E316, and CON-002 waits on UNK-004.", {}),
+        ("assistant", "It passes GATE-2 and CAP-001.FR3 is covered; run it with --gate epics.", {}),
+        ("assistant", "Fine. The epics gate and the grill gate are both plain words here.", {}),
+    ])
+    assert sim.codes_in("W343 then CAP-001.FR3, GATE-2") == ["check code W343", "id CAP-001.FR3", "gate GATE-2"]
+    voice = sim.codes_in_conversation(t)
+    assert (voice["turns"], voice["turns_with_codes"], voice["codes"]) == (4, 2, 7)
+    assert voice["score"] == 50
+    assert [f["turn"] for f in voice["flagged"]] == [3, 4]
+    assert voice["flagged"][0]["codes"] == ["check code W343", "check code E316", "id CON-002", "id UNK-004"]
+
+
+def test_tool_output_and_subagent_text_are_not_what_a_person_reads(tmp_path):
+    tool = [{"name": "Bash", "input": "planner check -> W343 at UNK-004 under GATE-2"}]
+    t = voice_transcript(tmp_path, [("assistant", "All clear. Want the next item?", {"tool_calls": tool, "subagent_text": "E316 CON-001 CAP-002"})])
+    voice = sim.codes_in_conversation(t)
+    assert voice["codes"] == 0 and voice["score"] == 100 and voice["flagged"] == []
+
+
+def test_a_subagent_event_is_kept_out_of_the_assistants_text_whichever_level_marks_it(tmp_path):
+    stream = "\n".join(json.dumps(e) for e in [
+        {"type": "assistant", "message": {"content": [{"type": "text", "text": "Main reply"}]}},
+        {"type": "assistant", "parent_tool_use_id": "toolu_1", "message": {"content": [{"type": "text", "text": "Review says W343 on UNK-004"}]}},
+        {"type": "result", "total_cost_usd": 0.01, "is_error": False, "session_id": "s", "result": ""}])
+    parsed = sim.parse_stream(stream, tmp_path / "raw.jsonl")
+    assert parsed["text"] == "Main reply" and "W343" in parsed["subagent_text"]
+
+
+def test_a_run_with_no_assistant_turns_has_no_voice_score(tmp_path):
+    assert sim.codes_in_conversation(voice_transcript(tmp_path, [("lead", "Hello", {})]))["score"] is None
+
+
+def test_the_scorecard_and_the_shape_judge_carry_the_voice_count(tmp_path):
+    reply = tmp_path / "reply.txt"
+    reply.write_text("It trips W343, E316 and UNK-004. Want to fix it?", encoding="utf-8")
+    code, err, run_dir, _ = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_REPLY": str(reply)})
+    assert code == 0, err
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert card["voice"]["turns_with_codes"] >= 1 and card["voice"]["score"] < 100
+    assert any(c.startswith("voice: T") and "W343" in c for c in card["check_these"])
+    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "## Voice: codes the lead reads" in md and f"Voice score {card['voice']['score']} of 100" in md
+    persona = coastal()
+    transcript = sim.Transcript.load(run_dir / "planner" / "transcript.jsonl")
+    hits = sim.vault_hits(persona, transcript, run_dir / "planner" / "vault")
+    shape = sim.judge_input(persona, transcript, run_dir / "planner" / "vault", "shape", hits)
+    assert f"voice score {card['voice']['score']} of 100" in shape and "Do not count codes yourself" in shape

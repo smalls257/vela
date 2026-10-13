@@ -124,6 +124,12 @@ The shape of the guidance: the most questions in one assistant turn (counted by 
 the turns that told rather than asked, decisions made without a yes, invented facts, and whether each session
 ended with a clear next step.
 
+The voice rule is counted by the driver, not the judge: the scorecard counts check codes (a W or E and three
+digits), raw IDs (`UNK-`, `CAP-`, `CON-`, `EPC-`) and gate names (`GATE-2`, `gate 2`, `--gate`) in the assistant's own
+text, which is what the lead reads. Tool output and subagent text are not counted. The voice score is the share of
+assistant turns with none, a turn with more than two is listed under Check these, and the shape judge is shown the
+count so its view of the guidance agrees with it.
+
 One more scored question, the tracer: does release one name a tracer that runs end to end through every app and
 contract it needs, or record why not (`**Tracer:** none, <reason>` or a `**Not in the tracer:**` bullet)? The
 judge reads the releases page and quotes the Tracer line; a quote the page does not hold reads as not recorded.

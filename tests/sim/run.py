@@ -435,12 +435,13 @@ def parse_stream(stdout, raw_path):
             init = event
         elif kind == "assistant":
             content = (event.get("message") or {}).get("content")
+            from_subagent = bool(event.get("parent_tool_use_id"))
             for block in content if isinstance(content, list) else []:
                 if not isinstance(block, dict):
                     continue
                 if block.get("type") == "text" and isinstance(block.get("text"), str):
                     # Separate subagent output (blocks with parent_tool_use_id) from main assistant text
-                    if block.get("parent_tool_use_id"):
+                    if from_subagent or block.get("parent_tool_use_id"):
                         subagent_texts.append(block["text"])
                     else:
                         texts.append(block["text"])
@@ -1640,6 +1641,16 @@ def fit_transcript(transcript, room, keywords=(), shortest_first=False):
     return chat, [f"{cut} ({len(full)} characters in full, {room} fit)"]
 
 
+def voice_line(voice):
+    """The driver's code count as a hint for the shape judge, which reads it and does not count codes itself."""
+    if not voice["turns"]:
+        return "CODES IN ASSISTANT TURNS (counted by the driver): the assistant never spoke"
+    where = ", ".join(f"T{f['turn']}" for f in voice["flagged"]) or "none"
+    return (f"CODES IN ASSISTANT TURNS (counted by the driver; a code is a check code, a raw ID or a gate name): "
+            f"{voice['turns_with_codes']} of {voice['turns']} turns show the lead one; voice score {voice['score']} of 100; "
+            f"turns over {CODES_PER_TURN} codes: {where}. Do not count codes yourself.")
+
+
 def build_judge_input(persona, transcript, vault, category, hits, compact=False):
     """(input, cuts) for one call: its own brief items and their hints, the transcript, and only what the category
     needs, never more than JUDGE_INPUT_CHARS. `cuts` is what was left out. `compact` cuts each turn short: the retry
@@ -1654,6 +1665,8 @@ def build_judge_input(persona, transcript, vault, category, hits, compact=False)
         head.append(f"IDS {category}: {', '.join(i['id'] for i in persona.get(category) or [])}")
         head.append(f"HINTS, which turns and files hold each item's keywords:\n{hint_lines(persona, category, hits)}")
     head.append(f"SESSIONS THAT RAN: {', '.join(map(str, sessions))}")
+    if category == "shape":
+        head.append(voice_line(codes_in_conversation(transcript)))
     if "inbox" in reads:
         docs = "\n\n".join(f"----- INBOX {d['name']} -----\n{d['text']}" for d in persona.get("docs") or [])
         head.append(f"INBOX DOCUMENTS:\n{docs or 'none'}")
@@ -1815,6 +1828,35 @@ def enforce_citations(data, transcript, vault):
         data["tracer"] = checked_tracer(data["tracer"], dict(vault_pages(vault)), dropped)
     data["dropped"] = dropped
     return data
+
+
+# The conversation-voice rule: what the lead reads has no rule code, raw ID or gate name in it. A check code is a W or
+# E and three digits; the raw IDs are the item kinds a lead never needs to say (UNK-, CAP-, CON-, EPC-); a gate is
+# named by GATE-n, a "gate 2" or the --gate flag. "The epics gate" in plain words is not counted.
+CODE_KINDS = {
+    "id": re.compile(r"\b(?:UNK|CAP|CON|EPC)-\d{1,3}(?:\.FR\d+)?\b"),
+    "check code": re.compile(r"\b[WE]\d{3}\b"),
+    "gate": re.compile(r"\bGATE-\w+|--gate\b|\bgate\s+\d\b", re.I),
+}
+CODES_PER_TURN = 2  # a turn with more codes than this is listed under Check these
+
+
+def codes_in(text):
+    """Every code in one turn, in the order written, as 'kind text' pairs."""
+    found = [(m.start(), kind, m.group(0)) for kind, pattern in CODE_KINDS.items() for m in pattern.finditer(text)]
+    return [f"{kind} {word}" for _, kind, word in sorted(found)]
+
+
+def codes_in_conversation(transcript, limit=CODES_PER_TURN):
+    """The assistant turns a person reads, counted for codes by the driver. A turn is the assistant's own text: tool
+    output is not in it and a subagent's text is kept out when the stream is read. `score` is the share of turns that
+    carry none, 0 to 100, or None when the assistant never spoke; the voice part of the scorecard reads it."""
+    turns = [e for e in transcript.spoken() if e["speaker"] == "assistant"]
+    per_turn = [(e["turn"], codes_in(e["text"])) for e in turns]
+    dirty = [(turn, codes) for turn, codes in per_turn if codes]
+    return {"turns": len(turns), "turns_with_codes": len(dirty), "codes": sum(len(c) for _, c in dirty),
+            "score": round(100 * (len(turns) - len(dirty)) / len(turns)) if turns else None,
+            "flagged": [{"turn": turn, "codes": codes} for turn, codes in dirty if len(codes) > limit]}
 
 
 def max_questions(transcript):
@@ -1979,6 +2021,9 @@ def build_scorecard(arm, data, hits):
                             for category, cuts in card["judge_cuts"].items()]
     card["max_questions_in_one_turn"] = max_questions(arm.transcript)
     card["drafted_messages"] = drafted_messages(arm.transcript)
+    card["voice"] = codes_in_conversation(arm.transcript)
+    card["check_these"] += [f"voice: T{f['turn']} shows the lead {len(f['codes'])} codes ({', '.join(f['codes'][:6])})"
+                            for f in card["voice"]["flagged"]]
     card["capture"] = capture_of(arm)
     claimed = claimed_actions(arm.transcript)
     if claimed:
@@ -2089,6 +2134,20 @@ def tracer_cell(card):
     return f"{'yes' if row['ok'] else 'no'}: {detail}"
 
 
+def render_voice(card):
+    voice = card.get("voice")
+    if not voice:
+        return []
+    lines = ["## Voice: codes the lead reads", ""]
+    if voice["score"] is None:
+        return lines + ["- The assistant never spoke.", ""]
+    lines.append(f"- Voice score {voice['score']} of 100: {voice['turns_with_codes']} of {voice['turns']} assistant turns "
+                 f"show a check code, a raw ID or a gate name ({voice['codes']} in all). Counted by the driver in the "
+                 "assistant's own text, not tool output or subagents.")
+    lines += [f"  - T{f['turn']}: {', '.join(f['codes'])}" for f in voice["flagged"]]
+    return lines + [""]
+
+
 def render_tracer(card):
     lines = ["## Tracer in release one", ""]
     if "tracer" in (card.get("not_scored") or {}):
@@ -2143,7 +2202,7 @@ def render_scorecard_md(card, persona):
             cells += [evidence(r), hits_summary(hits[r["id"]]) if r["id"] in hits else "", r.get("search", "")]
             lines.append("| " + " | ".join(str(c).replace("|", "\\|").replace("\n", " ") for c in cells) + " |")
         lines.append("")
-    lines += render_tracer(card)
+    lines += render_tracer(card) + render_voice(card)
     mq = card["max_questions_in_one_turn"]
     unscored = "shape" in (card.get("not_scored") or {})
     count = (lambda key: "not scored") if unscored else (lambda key: len(card[key]))
@@ -2202,6 +2261,7 @@ def render_compare(run_id, persona, arms):
             label = item.get("gap") or item.get("belief") or item.get("fact") or item.get("question") or item.get("who")
             row(f"{item['id']} {short(label, 70)}", cells)
     row("Tracer in release one", [esc(tracer_cell(a.scorecard)) if a.scorecard else "not scored" for a in arms])
+    row("Voice score (turns without codes)", [esc((a.scorecard or {}).get("voice", {}).get("score", "")) for a in arms])
     row("Most questions in one turn", [esc((a.scorecard or {}).get("max_questions_in_one_turn", {}).get("count", "")) for a in arms])
     def shape_cell(a, key):
         if not a.scorecard or (key != "dropped" and "shape" in (a.scorecard.get("not_scored") or {})):
