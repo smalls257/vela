@@ -23,6 +23,8 @@ For each capability, read back what the vault already says it must do, from the 
 
 Then take them one at a time, one question each, with your recommended answer, as a Grill asks. Push on the edge cases the plain statement hides: what happens at the limits, when something is turned down or late, when the reader does it twice, when they are not allowed to. Write nothing until the user has said yes to that requirement and its criteria. A line the user cannot answer becomes an unknown on `11-unknowns-and-risks.md` with an owner handle, an ask-by date and `**Blocks:**` linking the requirement's heading, written in the same checkpoint. Ask the lead first, as `MODES.md` says under "Unknowns". When the owner is not the person who would actually know, ask once: "Who would actually know this? If that is not the owner, give me a name or a role, like outside counsel." Write the answer as `**Ask:** @handle` or `**Ask:** outside counsel`, and leave the line out when the owner holds the answer.
 
+**Fix each term once.** When the lead uses two words for one thing, such as "order" and "booking", ask once which is the vault's word, and use that word from then on in every requirement and criterion. Capture the choice as a term for `12-glossary.md`, so the glossary owns the language.
+
 ## 3. Write the confirmed requirements
 
 On the capability page, under `## Functional requirements`:
