@@ -9,13 +9,13 @@ import hashlib
 import re
 from dataclasses import dataclass
 
-from planner import allocation, model, parse, progress, trace
+from planner import allocation, model, parse, progress, releases, trace
 from planner.parse import split_row
 
 # Lines a hash ignores: they change when a page is reread, handed off, or an owner confirms a decision
 # made on their behalf, not when its content does.
 VOLATILE = re.compile(r"^(last_verified|verified_by|handed_off):|^- \*\*[Cc]onfirmed [Bb]y:\*\*")
-KIND_ORDER = ("app", "runtime", "provides", "consumes", "requirement", "epic", "unknown")
+KIND_ORDER = ("app", "runtime", "provides", "consumes", "requirement", "epic", "release", "unknown")
 HEADER = ("ID", "Kind", "Page", "State", "Hash")
 FACT = re.compile(r"^- \*\*(App|Commit|Written|Items):\*\* (.+)$")
 
@@ -106,9 +106,25 @@ def item_entry(item, kind):
     return Entry(item.id, kind, item.page.path, item.fact("State"), digest(item_text(item)))
 
 
+TRACER_ID = "TRACER-1"
+
+
+def tracer_entry(vault):
+    """Release one's Tracer and Not in the tracer bullets as one entry, or None when there are no releases. The
+    tracer names the thin path every app builds its first story from, so a change to it must reach the senior
+    who accepted the slice. The hash reads only those bullets: other edits to the release page are not the tracer."""
+    first = releases.first_release(vault)
+    if first is None:
+        return None
+    page = releases.page(vault)
+    lines = page.text.split("\n")
+    numbers = ([first.tracer_line] if first.tracer_line else []) + [left.line for left in first.not_in_tracer]
+    return Entry(TRACER_ID, "release", page.path, "", digest([lines[n - 1] for n in sorted(numbers)]))
+
+
 def slice_of(vault, app):
     """Every entry in the app's slice: the app page, its runtime page, contracts provided and
-    consumed, the functional requirements its allocation rows carry, epics whose `apps` lists it,
+    consumed, release one's tracer, the functional requirements its allocation rows carry, epics whose `apps` lists it,
     and open unknowns that block any of those."""
     entries = [page_entry(vault, app, "app")]
     runtime = progress.runtime_page(vault, app)
@@ -122,6 +138,9 @@ def slice_of(vault, app):
     carried = {r.requirement for r in allocation.rows(vault) if r.app is app and r.requirement}
     entries += [item_entry(r, "requirement") for r in allocation.requirements(vault) if r.id in carried]
     entries += [page_entry(vault, e, "epic") for e in trace.epics(vault) if app.id in trace.listed(e, "apps")]
+    tracer = tracer_entry(vault)
+    if tracer is not None:
+        entries.append(tracer)
     ids = {e.id for e in entries}
     blocking = {u.id: u for u in model.blocking_unknowns(vault, app)}
     for unit_id, unknowns in model.blockers(vault).items():
@@ -187,6 +206,8 @@ def same(old, new):
 
 def lookup(vault, old):
     """The accepted ID as the whole vault holds it now, or None when the vault no longer has it."""
+    if old.kind == "release":
+        return tracer_entry(vault)
     found = vault.items.get(old.id)
     if found:
         return item_entry(found[0], old.kind)

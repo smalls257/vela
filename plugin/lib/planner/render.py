@@ -272,7 +272,7 @@ def skipped_table(skipped):
 def graph_block(graph, direction="LR", groups=(), reserved=0):
     drawn, left_out = diagrams.fit(graph, schema.FLOWCHART_BUDGET, reserved)
     rows = [row(node_link(n), cell(", ".join(diagrams.overflow_contracts(graph, n)) or "none")) for n in left_out]
-    fence = mermaid_fence(diagrams.flowchart(drawn, direction, groups)) if graph.nodes else []
+    fence = mermaid_fence(diagrams.flowchart(drawn, direction, groups)) + ["", diagrams.key_line(drawn)] if graph.nodes else []
     return fence + left_out_table(len(left_out), "Contracts", rows) + skipped_table(graph.skipped)
 
 
@@ -309,7 +309,7 @@ def capability_block(groups):
     subgraphs = [(keys[domain], diagrams.safe_label(domain, diagrams.NO_DOMAIN), [n.key for n in members])
                  for domain, members in groups]
     rows = [row(node_link(n), cell(str(n.page.meta.get("change", "")))) for n in left_out]
-    return (mermaid_fence(diagrams.flowchart(drawn, "TB", subgraphs))
+    return (mermaid_fence(diagrams.flowchart(drawn, "TB", subgraphs)) + ["", diagrams.key_line(drawn)]
             + left_out_table(len(left_out), "Change", rows))
 
 

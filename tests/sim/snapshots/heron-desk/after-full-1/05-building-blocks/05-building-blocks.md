@@ -10,7 +10,7 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=28f73eb6: do not edit, run planner render -->
+<!-- generated:context-map sha=ae328095: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_heron["Heron (new)"]
@@ -25,6 +25,8 @@ flowchart LR
   class x_microsoft,x_the_call_tools_the_pilot_team_and_its_clients_use__not_yet_known,x_the_pilot_user__on_their_own_laptop external
   class n_APP_heron new
 ```
+
+Key: green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:context-map -->
 
 ## One laptop app

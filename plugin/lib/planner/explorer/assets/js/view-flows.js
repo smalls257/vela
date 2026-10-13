@@ -67,7 +67,7 @@ const Flows = (() => {
       if (t.type === "unknown" || t.type === "contract") { if (!p.present) go(t.id, {}); else opts.onPick && opts.onPick(t); }
       else if (t.type === "ref") { p.key = t.id; p.go(-1, false); opts.onFlow && opts.onFlow(p); }
       else if (t.type === "lane") { if (!p.present) go(t.id, {}); if (!Assets.theme(FlowKit.laneName(t.id))) Sound.lane(t.id, undefined, { gain: 0.45, dur: 1.2 }); }
-      else if (t.si !== undefined) { p.pause(); p.go(t.si); }
+      else if (t.si !== undefined) { p.pause(); p.go(t.si); if (!p.present) go(stepNote(p.key, flow().steps[t.si]), { reset: true }); }
     });
     requestAnimationFrame(p.frame);
     return p;
@@ -89,13 +89,36 @@ const Flows = (() => {
     stage.append(canvas);
     const key = Legend.open("flow", { root: () => $(".stage"), probes: FlowKit.flowProbes(() => st.key) });
     FlowKit.census(f).forEach((id) => key.saw(id));
+    const nodeList = flowNodes(st.key, () => player);
     const caption = h("section", { class: "caption", id: "caption", "aria-live": "polite" });
     const transport = h("footer", { class: "transport", id: "transport" });
-    main.append(stage, key.el(), caption, transport);
+    main.append(stage, key.el(), nodeList, caption, transport);
     key.paint();
     player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); Minimap.refresh(); }, onPlay: paintTransport,
       onFlow: (p) => select(p.key, -1) });
     paintCaption(); buildTransport(); paintTransport();
+  }
+  /* A flow step has no page of its own: its panel entry says what the step does and which contracts, apps and questions it touches. */
+  function stepNote(flowKey, stp) {
+    const ends = [...stepEnds(stp)].filter((k) => ent(k));
+    return Nodes.note({ diagram: `Flow ${E[flowKey].title}`, name: `Step ${stp.n}: ${stp.short}`, kind: "Flow step", text: stp.text || stp.short,
+      relates: [...new Set([...stp.contracts, ...ends, ...stp.unknowns.map((u) => u.id), ...stp.linked])].filter((k) => ent(k)) });
+  }
+  /* The canvas is pixels, so a keyboard cannot reach what is drawn on it. This list is the same nodes as buttons: every
+     lane, step, contract and open question the canvas draws, each opening the panel as a click on the canvas does. */
+  function flowNodes(flowKey, playerOf) {
+    const f = FlowKit.flowOf(flowKey);
+    const lanes = [...FlowKit.touchedLanes(f)].sort((a, b) => LANE_INDEX[a] - LANE_INDEX[b]);
+    const contracts = [...new Set(f.steps.flatMap((x) => x.contracts))].filter((c) => CONTRACT[c]);
+    const pins = [...new Set(f.steps.flatMap((x) => x.unknowns.map((u) => u.id)))].filter((u) => ent(u));
+    const btn = (spec) => Nodes.wire(h("button", { class: "flow-node", type: "button" }, spec.text), spec);
+    const group = (title, kids) => (kids.length ? h("div", { class: "fn-group" }, h("b", {}, title), kids) : null);
+    return h("details", { class: "flow-nodes", "data-flow-nodes": flowKey },
+      h("summary", {}, "The same flow as a list: steps, contracts, apps and open questions"),
+      group("Steps", f.steps.map((x) => btn({ text: `${x.n}. ${x.short}`, label: `Step ${x.n}: ${x.short}`, open: () => { const p = playerOf(); if (p) { p.pause(); p.go(f.steps.indexOf(x)); } go(stepNote(flowKey, x), { reset: true }); } }))),
+      group("Apps and parties", lanes.filter((k) => ent(k)).map((k) => btn({ text: titleOf(k), label: titleOf(k), key: k }))),
+      group("Contracts", contracts.map((c) => btn({ text: c, label: `${c} ${CONTRACT[c].title}`, key: c }))),
+      group("Open questions", pins.map((u) => btn({ text: u, label: `${u} ${titleOf(u)}`, key: u }))));
   }
   function svgIcon(kind) {
     const paths = { present: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>', download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',

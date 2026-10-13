@@ -23,7 +23,7 @@ The product lead says TickerTalk is the foundation: the app, the readers and a m
 
 ## After
 
-<!-- generated:system-context sha=08129087: do not edit, run planner render -->
+<!-- generated:system-context sha=58d1b902: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]
@@ -42,6 +42,8 @@ flowchart LR
   class n_APP_coach,n_APP_tickertalk app
   class x_brightwater,x_quoteline external
 ```
+
+Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:system-context -->
 
 ## In scope

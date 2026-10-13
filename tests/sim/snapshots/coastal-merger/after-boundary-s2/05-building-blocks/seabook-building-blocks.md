@@ -18,7 +18,7 @@ It does not own the login, which is [[northway-id-building-blocks|Northway ID]],
 
 - **Options considered:** Login with a link service (picked); Login only, no new app: rejected, it holds the link in two places, leaves the rail-side link with no owner and puts the link step on SeaBook, which Ferry Ops says is frozen; Ferry sign-in adapter: rejected, its adapter has no named owner and the link step still has no app
 
-<!-- generated:app-context sha=810eb772: do not edit, run planner render -->
+<!-- generated:app-context sha=12eb78ad: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]
@@ -36,6 +36,8 @@ flowchart LR
   class n_APP_seabook focus
   class n_APP_account_link_service new
 ```
+
+Key: dark blue: the app this page is about · green: new in this initiative · amber: changed by this initiative · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Containers

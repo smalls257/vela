@@ -15,6 +15,10 @@ PAGE_ID = "releases"
 HEADER = ("Delivers", "Criteria", "Note")
 STATES = ("inkling", "assumption", "decided")
 CRITERION = re.compile(r"^AC(\d+)$", re.I)
+FLOW_ID = re.compile(r"\bFLO-\d+\b")
+ITEM_ID = re.compile(r"\b[A-Z]{3}-[A-Za-z0-9]+(?:\.FR\d+)?\b")
+_LEADING_LINKS = re.compile(r"^\s*(?:\[\[[^\]]+\]\]\s*(?:,\s*|$))+")
+_NONE = re.compile(r"^none\b\s*,?\s*(.*)$", re.I)
 
 
 @dataclass
@@ -26,6 +30,15 @@ class Row:
     line: int
 
 
+@dataclass(frozen=True)
+class Left:
+    """One piece a lead left out of the tracer: what, the IDs it names (an app, a contract, a requirement), and why."""
+    text: str
+    ids: tuple
+    reason: str
+    line: int
+
+
 @dataclass
 class Release:
     name: str  # the section heading, "Release one: January board demo"
@@ -34,6 +47,12 @@ class Release:
     state: str
     rows: list = field(default_factory=list)
     declared: bool = False  # it carries a Target or State bullet, which is what makes a ## section a release
+    tracer_line: int = 0
+    tracer_given: bool = False  # it has a **Tracer:** bullet of any kind, including "none, reason" and plain words
+    tracer_flows: tuple = ()  # flow ids in the order they run
+    tracer_words: str = ""  # the thin version in plain words
+    tracer_none: str = ""  # the reason, when the lead chose no tracer; "no reason given" if the bullet says only none
+    not_in_tracer: list = field(default_factory=list)  # [Left]
 
 
 def page(vault):
@@ -57,6 +76,35 @@ def criteria_of(raw):
     return tuple(numbers), ""
 
 
+def read_tracer(value):
+    """(flow ids, words, none-reason) from a Tracer bullet's text. One or more flow links in the order they run, then
+    an optional comma and plain words; or `none, <reason>`; or plain words with no link."""
+    none = _NONE.match(value.strip())
+    if none:
+        return (), "", none.group(1).strip() or "no reason given"
+    lead = _LEADING_LINKS.match(value)
+    head, words = (value[:lead.end()], value[lead.end():]) if lead else ("", value)
+    flows = []
+    for found in FLOW_ID.findall(head):
+        if found not in flows:
+            flows.append(found)
+    return tuple(flows), words.strip().lstrip(",").strip(), ""
+
+
+def read_left(value, line):
+    """A Not-in-the-tracer entry: the words before the first colon name the piece (IDs may sit in parentheses or
+    links), the words after it give the reason."""
+    head, colon, reason = value.partition(":")
+    ids = tuple(dict.fromkeys(ITEM_ID.findall(head)))
+    return Left(value.strip(), ids, reason.strip() if colon else "", line)
+
+
+def first_release(vault):
+    """Release one, the only release that carries a tracer, or None when there are no releases."""
+    found = releases(vault)
+    return found[0] if found else None
+
+
 def releases(vault):
     """Every release on the releases page, in page order, outside History. A ## section is a release when it has a
     Target or State bullet or a Delivers table; any other section (Notes, Open questions) is prose and is left out."""
@@ -77,6 +125,12 @@ def releases(vault):
             if m:
                 setattr(current, m.group(1).lower(), m.group(2).strip())
                 current.declared = True
+            m = re.match(r"^- \*\*(Tracer|Not in the tracer):\*\*\s*(.*)$", line)
+            if m and m.group(1) == "Tracer":
+                current.tracer_given, current.tracer_line = True, n
+                current.tracer_flows, current.tracer_words, current.tracer_none = read_tracer(m.group(2))
+            elif m:
+                current.not_in_tracer.append(read_left(m.group(2), n))
     for table in p.tables:
         if table.generated or tuple(table.header)[:3] != HEADER or not table.row_lines:
             continue
@@ -89,6 +143,19 @@ def releases(vault):
             numbers, _ = criteria_of(padded[1])
             owner.rows.append(Row(found.group(0) if found else "", numbers, padded[1].strip(), padded[2].strip(), line))
     return [r for r in out if r.declared or r.rows]
+
+
+def reach(vault, release):
+    """(app ids, contract ids) that carry a share of what this release delivers, in first-seen order: the apps whose
+    allocation rows carry its requirements and the contracts those shares go through."""
+    carried = allocation.carried(vault)
+    apps, contracts = [], []
+    for row in release.rows:
+        for share in carried.get(row.requirement, []):
+            if share.app.id not in apps:
+                apps.append(share.app.id)
+            contracts += [c for c in share.through if c not in contracts]
+    return apps, contracts
 
 
 def criteria_count(requirement):

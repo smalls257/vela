@@ -85,7 +85,7 @@ const Plan = (() => {
     },
   };
   async function copyCsv(app) {
-    const p = plan(app), rows = p.stories.length + p.totals.tasks;
+    const p = plan(app), rows = (p.totals.built ?? p.stories.length) + p.totals.tasks;  // merged and deferred stories get no ticket
     try { await sink.write(p.csv); toast(`Copied the Jira CSV: ${plural(rows, "row")}, as tools/breakdown_to_tickets.py writes it.`); }
     catch (e) { console.warn("[plan] could not copy the CSV:", e); toast("This page could not reach the clipboard. Open the Tickets file instead, or run tools/breakdown_to_tickets.py."); }
   }
@@ -262,35 +262,84 @@ const Plan = (() => {
   Legend.define("pw.outside", [{ k: "clip", fill: "room-2", stroke: "ink-2", w: 1.6 }], "Clipped solid box: an outside party a story waits on");
   const WAITS_LOOKS = () => ({
     "pw.story": "g.plan-node", "pw.arrow": "path.in-edge:not(.soft)", "pw.soft": "path.in-edge.soft", "pw.stub": ".plan-outer:not(.outside) .in-stub-face", "pw.outside": ".plan-outer.outside .in-stub-face",
-    ...Legend.lampProbes((lv) => (lv === "dark" ? "g.hit.dark" : `.plan-node .in-box-face.lit.${lv}, .plan-dot.${lv}, .in-edge.lit.${lv}`)), "inside.mini": ".in-mini:not([hidden])",
+    ...Legend.lampProbes((lv) => (lv === "dark" ? "g.hit.dark" : `.plan-node .in-box-face.lit.${lv}, .plan-dot.${lv}, .in-edge.lit.${lv}`)),
   });
   const BLOCKER_WORD = { question: "Open question", outside: "Outside party", "plan-question": "Plan's open question", gap: "Gap or deferral", other: "Outside the plan" };
-  /* Every node the view draws goes through here, so none can be drawn that a reader cannot click or a screen reader cannot
-     name (the Sensor rule: a node that does nothing when clicked is a Black Box). */
+  /* Every node the view draws goes through here, and so through Nodes.wire (core.js): none can be drawn that a reader
+     cannot click or a screen reader cannot name (the Sensor rule: a node that does nothing when clicked is a Black Box). */
   function planNode(g, b, spec) {
-    if (!spec.label || typeof spec.open !== "function") throw new Error(`[plan] a dependency node needs a name and a click target, got ${JSON.stringify(spec.label)}`);
-    const grp = s("g", { class: "in-node plan-hit " + spec.cls, tabindex: 0, role: "button", "aria-label": spec.label, ...spec.attrs }, g);
+    const grp = s("g", { class: "in-node plan-hit " + spec.cls, ...spec.attrs }, g);
     spec.draw(grp);
     s("title", {}, grp).textContent = spec.title || spec.label;
-    grp.addEventListener("click", spec.open);
-    grp.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); spec.open(); } });
-    return grp;
+    return Nodes.wire(grp, { label: spec.label, open: spec.open });
+  }
+  /* Lays the dependency view out in rows that fit a fixed width (DAG_W). The blockers outside the plan take the first rows;
+     each story sits on the row after the deepest story that blocks it, and a row that holds more than fit wraps onto the
+     next. An arrow leaves the bottom of what blocks, runs along the gap under its row, and enters the top of the story it
+     blocks (the bottom, when both sit on one row). Arrows are drawn beneath the boxes, so one that crosses a row passes behind. */
+  const DAG_W = 880, DAG_GAP = 16, DAG_ROW_GAP = 46;
+  function wrapped(nodes, edges) {
+    const stories = nodes.filter((n) => n.kind === "story"), stubs = nodes.filter((n) => n.kind === "outer");
+    const after = {};  // story node id -> the story nodes that block it
+    for (const e of edges) if (e.from.startsWith("s:")) (after[e.to] = after[e.to] || []).push(e.from);
+    const depth = {}, visiting = new Set();
+    const deepest = (id) => {
+      if (depth[id] !== undefined) return depth[id];
+      if (visiting.has(id)) return 0;  // a cycle in the plan: break it here, the plan's own check reports it
+      visiting.add(id);
+      depth[id] = 1 + Math.max(-1, ...(after[id] || []).map(deepest));
+      visiting.delete(id);
+      return depth[id];
+    };
+    stories.forEach((n) => deepest(n.id));
+    const rows = [];
+    const addRow = (list) => { const per = Math.max(1, Math.floor((DAG_W + DAG_GAP) / (list[0].w + DAG_GAP))); for (let i = 0; i < list.length; i += per) rows.push(list.slice(i, i + per)); };
+    if (stubs.length) addRow(stubs);
+    for (let d = 0; d <= Math.max(0, ...Object.values(depth)); d++) { const layer = stories.filter((n) => depth[n.id] === d); if (layer.length) addRow(layer); }
+    const box = {}, rowOf = {}, rowTop = [];
+    let y = 0;
+    rows.forEach((row, r) => {
+      const w = row.reduce((n, x) => n + x.w, 0) + DAG_GAP * (row.length - 1), h0 = Math.max(...row.map((x) => x.h));
+      let x = (DAG_W - w) / 2;
+      rowTop[r] = { y, h: h0 };
+      for (const n of row) { box[n.id] = { x, y: y + (h0 - n.h) / 2, w: n.w, h: n.h, node: n }; rowOf[n.id] = r; x += n.w + DAG_GAP; }
+      y += h0 + DAG_ROW_GAP;
+    });
+    const paths = [];
+    edges.forEach((e, i) => {
+      const a = box[e.from], b = box[e.to];
+      if (!a || !b) return;
+      const ra = rowOf[e.from], rb = rowOf[e.to], jitter = ((i % 5) - 2) * 3;
+      const sx = a.x + a.w / 2, sy = a.y + a.h, below = rowTop[ra].y + rowTop[ra].h + DAG_ROW_GAP / 2 + jitter;
+      const tx = b.x + b.w / 2 + ((i % 3) - 1) * 10;
+      let pts;
+      if (ra === rb) pts = [{ x: sx, y: sy }, { x: sx, y: below }, { x: tx, y: below }, { x: tx, y: b.y + b.h }];
+      else {
+        // down the gutter beside the target (clear of its row's boxes), then along the gap over it and into its top
+        const above = rowTop[rb].y - DAG_ROW_GAP / 2 + jitter, gx = b.x - DAG_GAP / 2 + ((i % 3) - 1) * 3;
+        pts = ra + 1 === rb ? [{ x: sx, y: sy }, { x: sx, y: below }, { x: tx, y: below }, { x: tx, y: b.y }]
+          : [{ x: sx, y: sy }, { x: sx, y: below }, { x: gx, y: below }, { x: gx, y: above }, { x: tx, y: above }, { x: tx, y: b.y }];
+      }
+      paths.push({ e, pts });
+    });
+    return { box, paths, gaps: [], dir: "TB" };
   }
   function dependencyView(app, p) {
     const K = kit(), holder = h("div", { class: "plan-dag", id: "plan-dag" }), frame = h("div", { class: "inside-frame plan-dag-frame" }, holder);
     const wrap = h("div", { class: "plan-dag-wrap" }, frame), lg = Legend.open("plan-waits", { root: () => wrap, probes: WAITS_LOOKS() });
     wrap.append(lg.el());  // under the frame, not in it: the drawing's minimap sits over the frame's corner
-    const nodes = p.stories.map((story) => ({ id: "s:" + story.id, kind: "story", w: 220, h: 66, story })), edges = [], stubs = {};
+    const nodes = p.stories.map((story) => ({ id: "s:" + story.id, kind: "story", w: 204, h: 66, story })), edges = [], stubs = {};
     const stubFor = (b) => {
       const id = `x:${b.kind}:${b.ref || b.text}`;
-      if (!stubs[id]) { stubs[id] = true; nodes.push({ id, kind: "outer", side: "in", w: 184, h: 54, b }); }
+      if (!stubs[id]) { stubs[id] = true; nodes.push({ id, kind: "outer", side: "in", w: 204, h: 54, b }); }
       return id;
     };
     for (const story of p.stories) for (const b of story.blockers) {
       if (b.kind === "story") { if (p.stories.some((x) => x.id === b.ref)) edges.push({ from: "s:" + b.ref, to: "s:" + story.id, title: `${story.id} is blocked by ${b.ref}` }); continue; }
       edges.push({ from: stubFor(b), to: "s:" + story.id, soft: true, lit: b.kind === "question" && isOpen(UNKNOWN[b.ref]) ? levelForKey(keyForId(b.ref)) : "", title: `${story.id} is blocked by ${b.text}` });
     }
-    const lay = K.layered(nodes, edges, { gapX: 96, gapY: 26, minColW: 184, dir: "LR" });
+    // top to bottom, wrapped to the room's width: the page never scrolls sideways, the drawing grows taller instead
+    const lay = wrapped(nodes, edges);
     lay.looks = { solid: "pw.arrow", soft: "pw.soft" };
     const svg = s("svg", { class: "inside-svg cockpit plan-dag-svg", role: "img", "aria-label": `${titleOf(app)}'s stories, each after the stories that block it` }, holder);
     K.defsFor(svg);
@@ -323,9 +372,9 @@ const Plan = (() => {
     }));
     lg.paint();
     const b = K.boundsOf(Object.values(lay.box));
-    holder.style.height = Math.round(clamp(b.y1 - b.y0 + 120, 220, 520)) + "px";
-    const first = Object.values(lay.box).find((x) => x.node.kind === "story");
-    K.sized(svg, holder, b, 24, { open: "read", key: "plan", focus: first, lg });  // names stay readable; the drawing scrolls, with its minimap, when it is wider than the room
+    const pad = 24, w = b.x1 - b.x0 + pad * 2, ht = b.y1 - b.y0 + pad * 2;
+    svg.setAttribute("viewBox", `${(b.x0 - pad).toFixed(1)} ${(b.y0 - pad).toFixed(1)} ${w.toFixed(1)} ${ht.toFixed(1)}`);
+    svg.style.width = "100%"; svg.style.maxWidth = Math.round(w * 1.15) + "px"; svg.style.height = "auto";  // the width the room gives sets the height
     return wrap;
   }
 
@@ -435,7 +484,7 @@ const Plan = (() => {
     const list = problemsList(p), page = h("div", { class: "plan-page", id: "plan-page" }, barOf(app, p, list), list);
     if (p.gaps.length) page.append(h("div", { class: "plan-gaps" }, p.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", K.prose(g.note)))));
     page.append(section("Build order", plural(p.stories.length, "story", "stories"), h("p", { class: "plan-hint" }, "In the order the plan says to build. A story with a lamp is waiting on an open question in the vault, in that question's colour."), buildOrder(app, p)));
-    page.append(section("What waits on what", null, h("p", { class: "plan-hint" }, "An arrow runs from what blocks a story to the story. Questions and outside parties sit at the left edge."), dependencyView(app, p)));
+    page.append(section("What waits on what", null, h("p", { class: "plan-hint" }, "An arrow runs from what blocks a story to the story. Questions and outside parties sit at the top; the drawing fits the width and grows taller."), dependencyView(app, p)));
     page.append(section("Coverage", null, coverageTable(app, p)));
     page.append(section("Not planned", p.notPlanned.length, p.notPlanned.length ? h("ul", { class: "plan-np" }, p.notPlanned.map((n) => h("li", {}, K.prose(n)))) : h("div", { class: "p-empty-line" }, "The plan lists nothing under Not planned.")));
     stage.append(page);

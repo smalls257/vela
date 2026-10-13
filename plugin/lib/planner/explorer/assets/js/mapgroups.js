@@ -251,11 +251,11 @@ const MapGroups = (() => {
   /* On a short duct a lamp would cover the boxes, so the contracts there are a round count in their worst light. */
   function countBadge(g, at, ids, lv, bundle, crowded) {
     Legend.saw("kind.count"); Legend.saw("lamp." + lv);
-    const grp = s("g", { class: `hit count-badge ${lv === "dark" ? "dark" : "lit " + lv}`, tabindex: 0, role: "button", "data-key": ids[0], "data-agg": "1", "data-crowded": crowded ? "1" : null, "aria-label": `${plural(ids.length, "contract")}: ${ids.join(", ")}` }, g);
+    const grp = s("g", { class: `hit count-badge ${lv === "dark" ? "dark" : "lit " + lv}`, "data-key": ids[0], "data-agg": "1", "data-crowded": crowded ? "1" : null }, g);
     s("circle", { cx: at.x, cy: at.y, r: 14, fill: lv === "dark" ? LIGHT.dark.colour : LIGHT[lv].colour, stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" }, grp);
     s("text", { x: at.x, y: at.y + 4.5, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = ids.length;
     s("title", {}, grp).textContent = ids.map((id) => `${id} ${CONTRACT[id].title}`).join("; ");
-    grp.addEventListener("click", () => go(ids.length === 1 ? ids[0] : bundle, { reset: true }));
+    Nodes.wire(grp, { label: `${plural(ids.length, "contract")}: ${ids.join(", ")}`, key: ids.length === 1 ? ids[0] : bundle });
   }
 
   /* ------------------------------------------------------------ moving a cluster */
@@ -372,6 +372,10 @@ const MapGroups = (() => {
     const lens = s("linearGradient", { id: "ck-lens", x1: 0, y1: 0, x2: 0, y2: 1 }, d);
     s("stop", { offset: "0", "stop-color": Theme.c("face-hi") }, lens); s("stop", { offset: "1", "stop-color": Theme.c("face-lo") }, lens);
   }
+  /* A cluster has no page of its own: its panel entry says what it stands for, app by app. */
+  function groupNote(g, say) {
+    return Nodes.note({ diagram: "Map", name: g.label, kind: g.outside ? "Group of outside parties" : "Group of apps", text: say + ".", stands: g.members, relates: g.page ? [g.page] : [] });
+  }
   /* A cluster: open, a frame with its apps inside; closed, one lamp with its counts and a small lamp per app. */
   function frame(g, gFrames, gNodes, mode, gNames, obs, list, root) {
     const levels = g.members.map(levelOf), lv = worst(levels.slice()), lit = levels.filter((l) => l !== "dark").length;
@@ -403,7 +407,7 @@ const MapGroups = (() => {
       s("text", { x: g.x + g.w / 2, y: g.y + g.h + 3, "text-anchor": "middle" }, close).textContent = "Close ▴";
       close.addEventListener("click", () => { if (!MapView.justDropped()) toggle(g); });
       close.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(g); } else arrowMove(e, g, list); });
-      t.addEventListener("click", () => { if (g.page && !MapView.justDropped()) go(g.page, { reset: true }); });
+      Nodes.wire(t, { label: g.label, ...(g.page ? { key: g.page } : { note: groupNote(g, say) }), guard: () => !MapView.justDropped() });
       for (const handle of [grp, t]) movable(handle, g, list, root);
       return;
     }
@@ -411,8 +415,7 @@ const MapGroups = (() => {
     // each app keeps its own small lamp, so the cluster says which of its apps is lit without shouting it.
     obs.push({ x: g.x, y: g.y, w: g.w, h: g.h });
     Legend.saw("cluster.closed"); Legend.saw("lamp." + lv);
-    const el = s("g", { class: `hit cluster-lamp ${lv === "dark" ? "dark" : "lit " + lv}`, tabindex: 0, role: "button", "data-key": g.key, "data-group": g.key, "data-level": lv,
-      "aria-label": `${g.label}: ${say}. Open it in place.` }, gNodes);
+    const el = s("g", { class: `hit cluster-lamp ${lv === "dark" ? "dark" : "lit " + lv}`, "data-key": g.key, "data-group": g.key, "data-level": lv }, gNodes);
     s("rect", { x: g.x, y: g.y + 2, width: g.w, height: g.h, rx: 14, fill: Theme.c("face-drop") }, el);
     s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, fill: "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" }, el);
     if (lv !== "dark") {
@@ -428,8 +431,9 @@ const MapGroups = (() => {
     while (line.length > 4 && measure(line, 11.5) > g.w - 36) line = line.slice(0, -2).trimEnd() + "…";
     s("text", { x: g.x + 20, y: g.y + 60, class: "node-sub" }, el).textContent = line.length < say.length ? line.replace(/…?$/, "…") : line;
     s("title", {}, el).textContent = `${g.label}: ${say}`;
-    el.addEventListener("click", () => { if (!MapView.justDropped()) toggle(g); });
-    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(g); } else arrowMove(e, g, list); });
+    // opening it in place also puts what it stands for in the panel, so the panel never lags a cluster the reader just picked
+    Nodes.wire(el, { label: g.label, aria: `${g.label}: ${say}. Open it in place.`, open: () => { go(groupNote(g, say), { reset: true }); toggle(g); }, guard: () => !MapView.justDropped() });
+    el.addEventListener("keydown", (e) => { if (e.key !== "Enter" && e.key !== " ") arrowMove(e, g, list); });
     movable(el, g, list, root);
     // one small lamp per app, so a closed cluster still shows which of its apps is lit
     const per = Math.min(g.members.length, 12), mw = Math.min(16, (g.w - 40) / per - 4);
@@ -438,8 +442,11 @@ const MapGroups = (() => {
       // each app's glyph stands over its lamp, so a closed cluster still says what is inside it
       if (mw >= 12) Icons.put(el, Icons.name(k), g.x + 20 + i * (mw + 4) + mw / 2, g.y + g.h - 40, Math.min(14, mw), "mini-glyph");
       Legend.saw("cluster.mini");
-      s("rect", { x: g.x + 20 + i * (mw + 4), y: g.y + g.h - 26, width: mw, height: 8, rx: 2, fill: l === "dark" ? Theme.c("mini-dark") : LIGHT[l].colour, class: "mini-lamp", "data-key": k }, el)
-        .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${titleOf(k)}: ${LIGHT[l].word}`;
+      const tiny = s("rect", { x: g.x + 20 + i * (mw + 4), y: g.y + g.h - 26, width: mw, height: 8, rx: 2, fill: l === "dark" ? Theme.c("mini-dark") : LIGHT[l].colour, class: "mini-lamp", "data-key": k }, el);
+      tiny.appendChild(document.createElementNS(SVGNS, "title")).textContent = `${titleOf(k)}: ${LIGHT[l].word}`;
+      // a part inside a focusable cluster: the cluster's panel lists the same apps for the keyboard
+      Nodes.wire(tiny, { label: `${titleOf(k)}: ${LIGHT[l].word}`, key: k, nested: true, stop: true });
+      tiny.addEventListener("pointerdown", (e) => e.stopPropagation());
     });
     s("text", { x: g.x + g.w - 18, y: g.y + g.h - 18, "text-anchor": "end", class: "node-sub open-hint" }, el).textContent = "Open ▾";
     Scene.node(g.key, { x: g.x, y: g.y, w: g.w, h: g.h, el });
@@ -451,7 +458,7 @@ const MapGroups = (() => {
     g.alsoLines.forEach((line, row) => line.forEach(({ k, x, w }) => {
       const cx = g.x + PAD + x, cy = y0 + row * (CHIP_H + CHIP_GAP);
       Legend.saw("cluster.also-chip");
-      const chip = s("g", { class: "also-chip", tabindex: 0, role: "link", "data-key": k, "aria-label": `${titleOf(k)}, drawn in another region` }, gNames);
+      const chip = s("g", { class: "also-chip", "data-key": k }, gNames);
       s("rect", { x: cx, y: cy, width: w, height: CHIP_H, rx: CHIP_H / 2 }, chip);
       Icons.put(chip, Icons.name(k), cx + 12, cy + CHIP_H / 2, 12, "also-glyph");
       s("text", { x: cx + 22, y: cy + 14 }, chip).textContent = shorten(titleOf(k), 26);
@@ -459,8 +466,7 @@ const MapGroups = (() => {
       s("title", {}, chip).textContent = `${titleOf(k)} carries this capability too; it is drawn in ${home}`;
       obs.push({ x: cx, y: cy, w, h: CHIP_H });
       const pick = () => { go(k, { reset: true }); const real = $(`#board g.hit[data-key="${CSS.escape(k)}"]`); if (real && !reducedMotion()) real.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 500, iterations: 2 }); };
-      chip.addEventListener("click", pick);
-      chip.addEventListener("keydown", (e) => { if (e.key === "Enter") pick(); });
+      Nodes.wire(chip, { label: titleOf(k), aria: `${titleOf(k)}, drawn in another region`, role: "link", open: pick });
     }));
     obs.push({ x: g.x + PAD, y: y0, w: measure("Also carried by", 11.5, 500), h: CHIP_H });
   }
@@ -470,14 +476,14 @@ const MapGroups = (() => {
     if (caps.length < 2) return;
     const text = `+${plural(caps.length - 1, "capability", "capabilities")}`, w = measure(text, 11, 600) + 16;
     Legend.saw("cluster.also-tab");
-    const tab = s("g", { class: "also-tab", tabindex: 0, role: "button", "data-key": k, "aria-label": `${titleOf(k)} also carries ${caps.slice(1).join(", ")}` }, gNames);
+    const tab = s("g", { class: "also-tab", "data-key": k }, gNames);
     s("rect", { x: b.x + b.w - w - 6, y: b.y - 22, width: w, height: 18, rx: 9 }, tab);
     s("text", { x: b.x + b.w - w / 2 - 6, y: b.y - 9, "text-anchor": "middle" }, tab).textContent = text;
     s("title", {}, tab).textContent = `${titleOf(k)} also carries ${caps.slice(1).map((c) => `${c} ${ent(keyForId(c)) ? ent(keyForId(c)).title : ""}`.trim()).join("; ")}`;
     obs.push({ x: b.x + b.w - w - 6, y: b.y - 22, w, h: 18 });
     tab.addEventListener("mouseenter", () => lightAlso(k, true));
     tab.addEventListener("mouseleave", () => lightAlso(App.focus === k ? k : null, true));
-    tab.addEventListener("click", () => go(k, { reset: true }));
+    Nodes.wire(tab, { label: `${titleOf(k)} also carries ${caps.slice(1).join(", ")}`, key: k });
   }
   function lightAlso(k) {
     const caps = new Set(k ? (D.appCaps[k] || { caps: [] }).caps.slice(1) : []);
@@ -494,7 +500,8 @@ const MapGroups = (() => {
     }
     return { uses, usedBy };
   }
-  function focus(board, key) {
+  /* onCentre: what picking the app in the middle does besides open it in the panel (Inside this app goes in a level). */
+  function focus(board, key, onCentre) {
     if (!NODE[key]) { board.append(emptyState(`${key} is not on the map.`)); return; }
     const { uses, usedBy } = neighbours(key);
     const left = [...usedBy.keys()].filter((k) => NODE[k].kind === "app" && !uses.has(k)).sort(byPin);
@@ -523,7 +530,7 @@ const MapGroups = (() => {
       const n = NODE[k], light = lightOf(k);
       const sub = n.kind !== "app" ? (n.external ? "outside provider" : "outside party") : !light || light.level === "dark" ? "settled" : MapView.shortWhy(light);
       const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(k),
-        onpick: k === key ? null : () => go(k, { reset: true }) });
+        onpick: k === key ? (onCentre ? () => { go(k, { reset: true }); onCentre(el); } : null) : () => go(k, { reset: true }) });
       if (k === key) { el.classList.add("focus-centre"); Legend.saw("picked", "White outline: the app in focus, and what you pick"); }
       Scene.node(k, { x: b.x, y: b.y, w: W, h: H, el });
     }

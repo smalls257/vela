@@ -79,7 +79,7 @@ Consent and identity asks Microsoft 365 who signed in, so each record belongs to
 
 ## Where it fits
 
-<!-- generated:app-context sha=6b4f9cdc: do not edit, run planner render -->
+<!-- generated:app-context sha=8815d317: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
@@ -95,6 +95,8 @@ flowchart LR
   class n_APP_consent_and_identity focus
   class n_APP_desktop_agent new
 ```
+
+Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 <!-- generated:contracts-consumed sha=a859dfe7: do not edit, run planner render -->

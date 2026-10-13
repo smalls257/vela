@@ -133,3 +133,20 @@ def test_render_keeps_crlf_line_endings(mini):
     data = path.read_bytes()
     assert b"\r\n" in data and b"\n" not in data.replace(b"\r\n", b"")
     assert findings(check(mini)[1]) == []
+
+
+def test_every_generated_diagram_carries_a_key_for_the_styles_it_drew():
+    """The user: "don't understand why some things are highlighted, dashed, solid". A generated diagram says, under it,
+    what its colours, dashes and arrows mean, for the styles it drew only."""
+    import pathlib
+    from planner import diagrams
+    graph = diagrams.Graph((diagrams.Node("n_a", "A", "app", None, "a"), diagrams.Node("x_b", "B", "external", None, "b")),
+                           (diagrams.Edge("n_a", "x_b", "CON-001"),))
+    line = diagrams.key_line(graph)
+    assert line.startswith("Key: ") and "outside the initiative" in line and "an arrow is a contract" in line
+    assert "retired" not in line and "green" not in line  # styles not drawn are not listed
+    page = (pathlib.Path(__file__).resolve().parents[1] / "examples" / "unified-booking" / "03-context-and-scope.md").read_text(encoding="utf-8")
+    import re
+    blocks = re.findall(r"<!-- generated:[a-z-]+ sha=\w+[^>]*-->(.*?)<!-- /generated", page, re.S)
+    drawn = [b for b in blocks if "```mermaid" in b]
+    assert drawn and all("\nKey: " in b for b in drawn), "every generated diagram in the shipped example has its key"

@@ -511,6 +511,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W358 | flow names no capability though the initiative has capability pages | E359 | flow names a capability that is not a capability page |
 | E340 | release row names no functional requirement | E341 | release row names a criterion the requirement does not have |
 | E342 | release has no valid state | W343 | no release delivers a functional requirement |
+| W345 | release one has no Tracer bullet | W347 | the tracer passes through an app or contract release one delivers no share of |
 | E321 | override is malformed | W303 | decided without a Grill, by override |
 | E322 | decided-by or confirmed-by is malformed | W304 | fact without a source, by override |
 | W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
@@ -571,11 +572,27 @@ An app's allocated rows are its team's input. Epics take their acceptance criter
 
 **Criteria** is `all`, or the acceptance criteria this release delivers, numbered in the order they appear under the requirement: AC1 is the first bullet (an indented `- Trace:` line under a bullet is not a bullet of its own). A requirement may be split across releases this way, so an epic never needs a release of its own.
 
+Release one also carries two bullets about its tracer, a thin path through every app and contract it needs, built first and kept, so the first story each team builds is its part of it:
+
+```
+## Release one: February pilot, Client Delivery London
+
+- **Target:** 2027-02-02
+- **State:** assumption
+- **Tracer:** [[FLO-001-switch-heron-on|FLO-001]], [[FLO-002-get-morning-digest|FLO-002]], a person switches Heron on and gets the 7:30 digest from calendar entries only
+- **Not in the tracer:** Teams transcripts (CAP-001.FR1): waits on the CISO review of 4 December and the tenant admins' approval
+```
+
+- **`**Tracer:**`** takes one or more flow links, in the order they run, then a comma and the thin version in plain words. A tracer is often several flows, and the planner joins their steps. If the flow has no page yet, write plain words with no link (`**Tracer:** a person gets the 7:30 digest from their calendar, no flow page yet`) and draw the flow in a boundary session. To record a deliberate choice of no tracer, write `**Tracer:** none, <reason>`.
+- **`**Not in the tracer:**`** is free text, one bullet per piece: what is left out, an optional ID in parentheses (an app, a contract or a requirement) and the reason. It is the record of "not ready", so nothing else needs an override.
+- The thinning itself goes in the Delivers table. Put the criteria the tracer needs in the row's Criteria column (`AC1, AC2`) and say in the Note that the rest is in release two. The words after the comma in the Tracer bullet summarise those rows.
+- Only release one carries these bullets. Later releases say what they add through their own Delivers tables.
+
 Nothing else records a release. What the system looks like after each one is worked out from the requirements it delivers: each app that carries a share of one changes, or arrives if it is new, and each contract its share goes through exists. Today is every app whose `change` is not `new`, and every contract whose `**Change:**` is not `new`.
 
 `/planner:releases` writes this page, after allocate and before epics, in a session with mode `releases`. A requirement the user places on no release ("later, no date") stays out of the file; W343 lists it.
 
-`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
+`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. If Not in the tracer lists that requirement, W343 quotes the reason. W345 warns when release one has no Tracer bullet; any Tracer bullet quiets it, including `none, <reason>` and plain words with no link. W347 warns when a tracer flow passes through an app or contract of this vault that release one delivers no share of; listing that app or contract by ID under Not in the tracer quiets it, an app or contract whose change is `unchanged` already runs and never counts, and neither do outside parties. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
 
 ## Flow steps
 
@@ -677,8 +694,8 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 
 Epics come after handoff, not before it. The senior takes the boundary first; the solution lead then writes and decides the app's epics against it (`/planner:epics`), and `planner check --gate epics --app <APP-id>` says when that app's epics are complete. So neither the epics nor the epics gate is a condition of handing over, and one app's handoff never waits on another app's gaps. If the lead hands an app over with items on the list above unmet, that is an override named `"handoff checklist"`, written as the Overrides section says.
 
-In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the functional requirements its allocation rows carry, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
+In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the functional requirements its allocation rows carry, the epics whose `apps` lists it, release one's tracer and Not in the tracer bullets as one entry, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
 
-`planner handoff verify <APP-id>` lists every item changed, added or removed since. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
+`planner handoff verify <APP-id>` lists every item changed, added or removed since. A changed tracer is a changed item, so it reaches the senior. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
 
 A senior who disputes a boundary or contract after handoff, or an owner who disputes a decision made on their behalf, raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: it blocks the merge wherever planner-check is a required check, so a challenge cannot merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.

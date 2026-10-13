@@ -19,7 +19,7 @@
 .rel-caption { font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
 .rel-mapbox, .rel-pane { flex: 1; min-height: 0; display: grid; place-items: center; background: var(--board); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
 .rel-side { overflow: auto; min-height: 0; padding-right: 2px; }
-.rel-side h3, .rel-diff h3, .ctx-pane h3 { margin: 0 0 8px; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+.rel-side h3, .rel-diff h3, .ctx-pane h3 { overflow-wrap: anywhere; margin: 0 0 8px; font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
 .rel-card { background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 12.5px; }
 .rel-card.on { border-color: var(--ink-3); background: var(--deck); }
 .rc-head { all: unset; cursor: pointer; display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; width: 100%; margin-bottom: 4px; }
@@ -57,8 +57,8 @@ ul.rc-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .rel-pane-h { margin-bottom: 6px; }
 .rel-select { background: var(--deck); border: 1px solid var(--rule-3); border-radius: 8px; padding: 4px 8px; font-size: 13px; max-width: 100%; }
 .rel-diff { background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; max-height: 190px; overflow: auto; }
-.ctx-two { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 22px; }
-.ctx-pane { display: flex; flex-direction: column; min-height: 0; }
+.ctx-two { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 0 22px; }
+.ctx-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .ctx-parties { padding: 10px 22px 14px; font-size: 13px; }
 .board-releases .rel-grid { min-width: 0; }
 .rel-side { padding-right: 6px; }
@@ -66,3 +66,10 @@ ul.rc-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .rel-grid.big .rc-row { grid-template-columns: 1fr; gap: 1px; }
 .rl-map .rl-glyph { color: var(--rl-sub); }
 .rl-map .rl-node.s-new .rl-glyph { color: var(--room); }
+/* narrow windows: the map and the list of releases stack, and the page scrolls, so the map and its key keep a readable width */
+@media (max-width: 1100px) {
+  .rel-body, .board-releases { overflow: auto; }
+  .rel-grid, .rel-grid.big { grid-template-columns: minmax(0, 1fr); flex: none; }
+  .rel-left { min-height: 360px; }
+  .rel-mapbox { min-height: 280px; }
+}

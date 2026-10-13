@@ -119,3 +119,4 @@
   .dl-back { display: inline-block; }
   .dl-close { display: none; }
 }
+.dl-options li > *, .dl-options li b { min-width: 0; overflow-wrap: anywhere; }

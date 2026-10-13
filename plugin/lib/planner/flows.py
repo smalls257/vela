@@ -93,3 +93,24 @@ def contract_parties(vault, contract):
         if target is None or target.type != "app-building-blocks":
             parties.add(_name(link.label or re.sub(r"^[A-Z]+-\d+\s+", "", link.anchor) or link.target))
     return parties
+
+
+def passes_through(vault, flow_ids):
+    """(app ids, contract ids) the named flows pass through, unioned, in first-seen order. Reads each step's
+    sender and receiver (`endpoint`) and the contracts it links, then keeps only the vault's own apps and contracts:
+    an outside party never counts, because the lead cannot build it."""
+    wanted = {p.path for fid in flow_ids for p in vault.by_id.get(fid, ())}
+    app_ids = {a.id for a in vault.apps}
+    contract_ids = {c.id for c in vault.contracts}
+    apps, contracts = [], []
+    for step in steps(vault):
+        if step.page.path not in wanted:
+            continue
+        for end in step.pair:
+            key = endpoint(vault, step.page, end)
+            if key in app_ids and key not in apps:
+                apps.append(key)
+        for contract in step.contracts:
+            if contract.id in contract_ids and contract.id not in contracts:
+                contracts.append(contract.id)
+    return apps, contracts

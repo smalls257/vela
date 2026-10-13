@@ -189,12 +189,11 @@ const Inside = (() => {
     const board = h("div", { class: "board board-cockpit board-focus", id: "board" });
     const lg = keyFor("inside-context", () => $("#inside-stage"), MapView.LOOKS.focus());
     stage.append(board, lg.el());
-    lg.within(() => MapGroups.focus(board, app));
+    lg.within(() => MapGroups.focus(board, app, (el) => open(app, "containers", { from: el.getBoundingClientRect() })));
     lg.paint();
     const centre = $(`#board g.hit[data-key="${CSS.escape(app)}"]`);
     if (centre) {
       centre.classList.add("inside-door");
-      centre.addEventListener("click", () => open(app, "containers", { from: centre.getBoundingClientRect() }));
       centre.appendChild(document.createElementNS(SVGNS, "title")).textContent = `${appTitle(app)}: click to go inside, to its containers`;
     }
     stage.append(h("div", { class: "inside-hint" }, `Click ${appTitle(app)} to go in to its containers. Double-click a neighbour to go inside it instead.`));
@@ -367,7 +366,7 @@ const Inside = (() => {
       s("rect", { x: r.x, y: r.y, width: r.w, height: r.h, rx: 4 }, g);
       s("text", { x: r.x + r.w / 2, y: r.y + 14, "text-anchor": "middle" }, g).textContent = text;
       s("title", {}, g).textContent = e.title || e.label;
-      if (e.onpick) g.addEventListener("click", e.onpick);
+      if (e.onpick) Nodes.wire(g, { label: `${e.label}: ${e.title || "a contract"}`, open: e.onpick });
     }
     for (const [id, b] of Object.entries(lay.box)) (drawers[b.node.kind] || (() => null))(gNodes, b, id);
     return { obs, hidden };
@@ -551,11 +550,7 @@ const Inside = (() => {
     MapView.startBreathing();
   }
   const worstOf = (ids) => { const lv = ids.map(levelOf).sort((p, q) => rank(q) - rank(p))[0]; return lv && lv !== "dark" ? lv : ""; };
-  function pick(el, k) {
-    const go1 = () => go(k, { reset: true });
-    el.addEventListener("click", go1);
-    el.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); go1(); } });
-  }
+  function pick(el, k, label) { Nodes.wire(el, { label: label || el.getAttribute("aria-label") || k, key: k }); }
   /* A component's glyph, by the words in its name: the built-in set, never a colour of its own. */
   const GLYPHS = [[/api|gateway|endpoint/i, "gateway"], [/store|repositor|cache|database|db\b/i, "database"], [/publish|event|bus|consumer|queue/i, "messaging"],
     [/adapter|reader|client|sender/i, "nodes"], [/check|guard|auth|caller/i, "lock"], [/engine|rule|calculat|pric/i, "layers"], [/render|template|page/i, "docs"],
@@ -668,7 +663,10 @@ const Inside = (() => {
         s("text", { x: b.x + 12, y: b.y + 45, class: "in-box-sub" }, grp).textContent = fit(names.length ? names.join(", ") : x.protocol || "not on the map", b.w - 22, 11);
         s("title", {}, grp).textContent = `${x.system}${x.protocol ? ": " + x.protocol : ""}${names.length ? "\nOn the map: " + names.join(", ") : ""}\n${x.component ? `Meets ${x.component}: ${x.how}` : x.how}`;
         const target = nk || x.contracts.find((c) => CONTRACT[c]);
-        if (target) pick(grp, target);
+        if (target) pick(grp, target, x.system);
+        else Nodes.wire(grp, { label: x.system, note: Nodes.note({ diagram: `${appTitle(app)} components`, name: x.system, kind: "Integration point with no page in the vault",
+          text: x.how || `${x.system} is named in the design as an integration point.`, facts: [["Protocol", x.protocol], ["Auth", x.auth], ["Direction", x.direction || "out"]].filter(([, v]) => v),
+          relates: [x.component ? key(app, "c", x.component) : ""] }) });
         grp.addEventListener("dblclick", (ev) => { if (nk && APPS[nk]) { ev.stopPropagation(); open(nk, "context", { from: grp.getBoundingClientRect() }); } });
       },
     }, [fr.name, ...heads]);
@@ -743,7 +741,7 @@ const Inside = (() => {
   function dataTab(app, d) {
     const m = d.data_model, out = [];
     if (m.parsed_from === "erDiagram") {
-      out.push(best("Entities and relationships from the design's erDiagram."), erDiagram(m));
+      out.push(best("Entities and relationships from the design's erDiagram."), erDiagram(m, appTitle(app)));
     } else if (m.entities.length) {
       out.push(best(`No erDiagram, so these are read from its ${m.parsed_from}: best effort, no relationships.`),
         card(null, m.entities.map((x) => h("div", { class: "in-entity" }, h("b", {}, x.name), x.text ? h("div", {}, prose(x.text)) : null))));
@@ -756,7 +754,7 @@ const Inside = (() => {
   const cardinality = (c) => `${CARD[c.slice(0, 2)] || "?"} to ${CARD[c.slice(-2)] || "?"}`;
   /* The data model's entities, drawn at a size the fields can be read at, scrolled to the entity most things relate to,
      with a minimap; "Whole" puts every entity in view. */
-  function erDiagram(m) {
+  function erDiagram(m, diagramName = "Design") {
     const holder = h("div", { class: "in-er" }), wrap = h("div", { class: "in-er-wrap" }, holder);
     const outer = h("div", { class: "in-er-outer" }, wrap), lg = keyFor("inside-data", () => outer, { "er.entity": ".in-entity-box", "er.key": ".in-field-key", "er.rel": "path.in-edge", "inside.mini": ".in-mini:not([hidden])" });
     outer.append(lg.el());  // under the drawing, not in its frame: the drawing's minimap sits over the frame's corner
@@ -770,6 +768,9 @@ const Inside = (() => {
       entity: (g, b) => {
         Legend.saw("er.entity");
         const x = b.node.x, grp = s("g", { class: "in-node in-entity-box", "data-entity": x.name }, g);
+        const rels = m.relationships.filter((r) => r.from === x.name || r.to === x.name).map((r) => `${r.from} ${r.label} ${r.to}: ${cardinality(r.cardinality)}`);
+        Nodes.wire(grp, { label: `${x.name}, an entity of the data model`, note: Nodes.note({ diagram: `${diagramName} data model`, name: x.name, kind: "Entity in the data model",
+          text: x.fields.length ? undefined : `${x.name} is drawn with no fields.`, facts: x.fields.map((f) => [f.name, `${f.type}${f.keys.length ? " · " + f.keys.join(" ") : ""}`]), relates: rels }) });
         s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 6, class: "in-box-face" }, grp);
         s("rect", { x: b.x, y: b.y, width: b.w, height: 24, rx: 6, class: "in-entity-head" }, grp);
         s("text", { x: b.x + 10, y: b.y + 16, class: "in-box-name small" }, grp).textContent = fit(x.name, b.w - 20, 12.5, 600);
@@ -848,7 +849,7 @@ const Inside = (() => {
   }
   function sequence(app, d, f, id) {
     const seq = parseSequence(f.mermaid), n = seq.steps.length;
-    const box = h("div", { class: "in-seq", "data-seq": id });
+    const box = h("div", { class: "in-seq", "data-seq": id }), diagram = `${appTitle(app)}: ${f.title || "sequence"}`;
     const lg = keyFor("inside-sequence", () => box, { "sq.lane": ".seq-lane", "sq.msg": ".seq-msg:not(.reply)", "sq.reply": ".seq-msg.reply", "sq.note": ".seq-note", "sq.block": ".seq-block", "sq.now": ".seq-step.on .seq-msg", "sq.later": ".seq-step.later .seq-msg" }, null, id);
     if (st.step[id] === undefined) st.step[id] = 0;
     const comp = (name) => d.components.find((c) => c.name.toLowerCase() === name.toLowerCase());
@@ -869,8 +870,10 @@ const Inside = (() => {
         if (v) Icons.put(g, Icons.name(v.key), cx - LW / 2 + 18, 18, 13, "node-glyph");
         s("text", { x: cx + (v ? 6 : 0), y: 22, "text-anchor": "middle" }, g).textContent = fit(p.name, LW - (v ? 34 : 20), 11.5, 600);
         s("title", {}, g).textContent = p.name + (c ? ": a component of this design" : v ? ": on the vault's map" : "");
-        if (c) g.addEventListener("click", () => go(key(app, "c", c.name), { reset: true }));
-        else if (v) g.addEventListener("click", () => go(v.key, { reset: true }));
+        if (c) Nodes.wire(g, { label: p.name, key: key(app, "c", c.name) });
+        else if (v) Nodes.wire(g, { label: p.name, key: v.key });
+        else Nodes.wire(g, { label: p.name, note: Nodes.note({ diagram, name: p.name, kind: "Who takes part", text: `${p.name} takes part in this sequence. It is neither a component of this design nor a box on the vault's map.`,
+          relates: seq.steps.filter((q) => q.from === p.id || q.to === p.id || (q.over || []).includes(p.id)).slice(0, 6).map((q) => describe(q, seq)) }) });
       });
       seq.steps.forEach((stp, i) => {
         const y = top + i * RH + RH / 2 + 4, on = i === cur, cls = "seq-step" + (on ? " on" : i > cur ? " later" : "");
@@ -892,7 +895,13 @@ const Inside = (() => {
           s("text", { x: (x0 + x1) / 2, y: y - 1, "text-anchor": "middle", class: "seq-text" }, g).textContent = fit(stp.text, Math.abs(x1 - x0) - 10, 11);
         }
         s("title", {}, g).textContent = `${i + 1}. ${describe(stp, seq)}`;
-        g.addEventListener("click", () => { st.step[id] = i; draw(); });
+        const ends = [stp.from, stp.to, ...(stp.over || [])].filter(Boolean).map((pid) => (seq.parts.find((q) => q.id === pid) || {}).name).filter(Boolean);
+        const related = [...new Set(ends)].map((nm) => (comp(nm) ? key(app, "c", comp(nm).name) : node(nm) ? node(nm).key : nm));
+        Nodes.wire(g, { label: `Step ${i + 1}: ${describe(stp, seq)}`, open: () => {
+          st.step[id] = i; draw();
+          go(Nodes.note({ diagram, name: `Step ${i + 1} of ${n}`, kind: stp.kind === "note" ? "Note in a sequence" : stp.kind === "block" ? "Block in a sequence" : "Message in a sequence", text: describe(stp, seq), relates: related }), { reset: true });
+          const again = box.querySelector(`[data-i="${i}"]`); if (again) again.focus();
+        } });
       });
       const ctl = h("div", { class: "seq-ctl" },
         h("button", { class: "btn tiny", disabled: cur <= 0 ? true : null, onclick: () => { st.step[id] = Math.max(0, cur - 1); draw(); } }, "‹ Back"),

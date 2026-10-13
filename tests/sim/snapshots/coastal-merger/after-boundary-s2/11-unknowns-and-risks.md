@@ -546,7 +546,7 @@ authored: mixed
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=e729d335: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=de495fc5: do not edit, run planner render -->
 **Questions:** 52 owed, 48 undisposed, 54 open reviewer questions, against catalogue v1.
 
 | Copy | State | Area | Severity | Subject | Question |
@@ -582,7 +582,7 @@ authored: mixed
 | Q-OPS-02@CON-005 | no row | OPS | normal | [[northway-id-building-blocks#CON-005 Enrol a ferry customer\|CON-005 Enrol a ferry customer]] | What happens to each consumer when the provider is down or slow? |
 | Q-OPS-02@CON-006 | no row | OPS | normal | [[seabook-building-blocks#CON-006 Ferry customer reference\|CON-006 Ferry customer reference]] | What happens to each consumer when the provider is down or slow? |
 | Q-OPS-05@INI-001 | no row | OPS | normal | INI-001 | What is being retired, and who still depends on it? |
-| Q-OPS-06@INI-001 | no row | OPS | normal | INI-001 | Who is affected by this change but not yet in the room? |
+| Q-OPS-06@INI-001 | no row | OPS | normal | INI-001 | Who is affected by this change but not yet in the room, and who wants something different from it? |
 | Q-OPS-07@INI-001 | no row | OPS | normal | INI-001 | Which beliefs does the plan rest on that no source supports, and which one would change the plan most if it were wrong? |
 | Q-PTN-01@INI-001 | no row | PTN | high | INI-001 | Does ownership, operation or payment change for anything, such as a system, an agreement, a team or a service? |
 | Q-PTN-02@PTY-01 | no row | PTN | high | [[03-context-and-scope#PTY-01 Partner hotels\|PTY-01 Partner hotels]] | Does their agreement let us share data with a new owner or user of it? |

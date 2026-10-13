@@ -24,7 +24,7 @@ Customer identity does not know about bookings. Booking holds the link from book
 |---|---|
 | Unchanged. Booking becomes a new caller of the existing read API. | Platform team |
 
-<!-- generated:app-context sha=83097126: do not edit, run planner render -->
+<!-- generated:app-context sha=5d9b057a: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -35,6 +35,8 @@ flowchart LR
   class n_APP_customer_identity focus
   class n_APP_booking new
 ```
+
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 Customer identity is a black box on this page. Nothing inside it changes, so its containers belong to the Platform team's own documentation.

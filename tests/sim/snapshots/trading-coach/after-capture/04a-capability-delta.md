@@ -12,7 +12,7 @@ authored: mixed
 
 The first release adds five capabilities, all new. [[coach-building-blocks|Coach]] provides four: teaching a stock lesson, paper-trading a stock, passing the ready track and keeping the stock list. [[tickertalk-building-blocks|TickerTalk]] provides the fifth, opting in to the coach. Each capability page says what provides it.
 
-<!-- generated:capability-map sha=7720a9b6: do not edit, run planner render -->
+<!-- generated:capability-map sha=cd2bac59: do not edit, run planner render -->
 ```mermaid
 flowchart TB
   subgraph d_coach["Coach"]
@@ -27,6 +27,8 @@ flowchart TB
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
   class c_CAP_001,c_CAP_002,c_CAP_003,c_CAP_004,c_CAP_005 new
 ```
+
+Key: green: new in this initiative.
 <!-- /generated:capability-map -->
 
 ## Capabilities

@@ -10,7 +10,7 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=dcb1bf1e: do not edit, run planner render -->
+<!-- generated:context-map sha=d1158534: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
@@ -27,6 +27,8 @@ flowchart LR
   class x_microsoft external
   class n_APP_consent_and_identity,n_APP_desktop_agent,n_APP_summariser new
 ```
+
+Key: green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:context-map -->
 
 ## Three apps

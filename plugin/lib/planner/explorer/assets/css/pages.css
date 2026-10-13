@@ -3,19 +3,24 @@
 .card { background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
 .card h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
 .card h2 .sub { font-weight: 400; color: var(--ink-3); font-size: 12.5px; margin-left: 10px; }
-.kpis { display: grid; grid-template-columns: auto 1fr auto; gap: 26px; align-items: center; }
-.kpis .next { grid-column: 1 / -1; }
+/* The ring, the shares and the state tiles sit side by side when there is room and wrap when there is not, so a narrow
+   window never pushes them past the card's edge. */
+.kpis { display: flex; flex-wrap: wrap; gap: 20px 26px; align-items: center; }
+.kpis > .kpi-big { flex: 1 1 260px; min-width: 0; }
+.kpis > .shares { flex: 2 1 300px; min-width: 0; }
+.kpis > .tiles { flex: 0 0 auto; }
+.kpis .next { flex: 1 1 100%; }
 .kpi-big { display: flex; gap: 16px; align-items: center; max-width: 360px; }
 .kpi-ring { width: 118px; height: 118px; flex: none; }
 .kpi-num { font: 400 28px var(--serif); fill: var(--ink); }
 .kpi-big .lab { font-size: 12.5px; color: var(--ink-3); }
 .kpi-big .lab b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 2px; }
-.shares { display: grid; gap: 7px; min-width: 260px; }
-.share { display: grid; grid-template-columns: 170px 1fr 70px; gap: 10px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+.shares { display: grid; gap: 7px; min-width: 0; }
+.share { display: grid; grid-template-columns: minmax(0, 170px) minmax(60px, 1fr) max-content; gap: 10px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
 .share .bar { height: 7px; background: var(--deck-3); border-radius: 4px; overflow: hidden; }
 .share .bar span { display: block; height: 100%; background: var(--ink-2); border-radius: 4px; }
 .share .v { color: var(--ink-3); text-align: right; font-variant-numeric: tabular-nums; }
-.tiles { display: grid; grid-template-columns: repeat(2, 90px); gap: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(90px, max-content)); gap: 8px; }
 .tile-card, .tiles .tile { background: var(--deck); border-radius: 8px; padding: 8px 10px; }
 .tiles .tile .num { font: 400 24px var(--serif); }
 .tiles .tile .lab { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 5px; }
@@ -47,8 +52,22 @@ td.wide { max-width: 320px; }
 .cap-head:hover { background: var(--deck); border-radius: 10px; }
 .cap-head .ct { margin-left: auto; color: var(--ink-3); font-size: 12px; }
 .cap-body { padding: 4px 14px 12px; }
-.tr-col-h { display: grid; grid-template-columns: 22px 1.2fr 1.6fr 1fr; gap: 12px; font-size: 11px; color: var(--ink-4); letter-spacing: .05em; text-transform: uppercase; padding: 8px 0 4px; }
-.tr-row { display: grid; grid-template-columns: 22px 1.2fr 1.6fr 1fr; gap: 12px; padding: 6px 0; border-top: 1px solid var(--rule); font-size: 13px; }
+.tr-col-h { display: grid; grid-template-columns: 22px minmax(0, 1.2fr) minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; font-size: 11px; color: var(--ink-4); letter-spacing: .05em; text-transform: uppercase; padding: 8px 0 4px; }
+.tr-row { display: grid; grid-template-columns: 22px minmax(0, 1.2fr) minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; padding: 6px 0; border-top: 1px solid var(--rule); font-size: 13px; }
 .tr-row .arrow { color: var(--ink-4); }
 .alloc { margin-bottom: 6px; }
-.tiles { grid-template-columns: repeat(2, 118px); }
+.tiles { grid-template-columns: repeat(2, minmax(118px, max-content)); }
+/* A narrow card (a small window keeps three columns, so the page pane can be about 250px) stacks a table's rows into
+   blocks instead of letting the table run past the card or scroll sideways; the ring's caption wraps under it. */
+.kpi-big { flex-wrap: wrap; }
+.kpi-big .lab { flex: 1 1 140px; min-width: 0; }
+section.card:has(> table.t) { container-type: inline-size; }
+@container (max-width: 760px) {
+  table.t, table.t tbody, table.t tr, table.t td { display: block; width: auto; }
+  table.t tr:has(> th) { display: none; }
+  table.t tr { border-bottom: 1px solid var(--rule); padding: 6px 0; }
+  table.t td { border-bottom: 0; padding: 3px 10px; }
+}
+.tr-col-h > span, .tr-row > * { min-width: 0; overflow-wrap: anywhere; }
+table.t td, table.t th { overflow-wrap: anywhere; }
+table.t .d-status { padding: 1px 7px; }

@@ -45,7 +45,7 @@ const Minimap = (() => {
     for (const st of Object.values(L.stations)) {
       const light = lightOf(st.key), lv = light ? light.level : "dark", c = LIGHT[lv].colour;
       const w = st.outside ? 150 : 190, ht = 70;
-      const g = s("g", { class: "mini-node", "data-level": lv, "data-kind": st.outside ? "party" : "app", tabindex: 0, role: "link", "aria-label": `${st.node.title}: ${LIGHT[lv].word}` }, root);
+      const g = s("g", { class: "mini-node", "data-level": lv, "data-kind": st.outside ? "party" : "app", }, root);
       lg.saw("lamp." + lv); if (st.outside) lg.saw("mini.party");
       if (lv !== "dark" && glowOn()) {
         const glow = s("rect", { x: st.x - w / 2, y: st.y - ht / 2, width: w, height: ht, rx: 16, fill: c, filter: "url(#mini-glow)", opacity: 0.6 }, g);
@@ -56,8 +56,7 @@ const Minimap = (() => {
       if (at.has(st.key)) s("rect", { x: st.x - w / 2 - 16, y: st.y - ht / 2 - 16, width: w + 32, height: ht + 32, rx: 26, fill: "none", stroke: Theme.c("focus"), "stroke-width": 8, class: "mini-ring" }, g);
       const t = s("text", { x: st.x, y: st.y + 11, "text-anchor": "middle", fill: lv === "dark" ? (at.has(st.key) ? Theme.c("focus") : Theme.c("node-name")) : LIGHT[lv].ink, "font-size": st.outside ? 26 : 30, "font-weight": 600 }, g);
       t.textContent = shorten(st.node.title, st.outside ? 10 : 11);
-      g.addEventListener("click", () => go(st.key, { reveal: App.view === "map" }));
-      g.addEventListener("keydown", (e) => { if (e.key === "Enter") go(st.key, {}); });
+      Nodes.wire(g, { label: `${st.node.title}: ${LIGHT[lv].word}`, role: "link", open: () => go(st.key, { reveal: App.view === "map" }) });
     }
     box.append(lg.el());
     lg.el().classList.add("tight");

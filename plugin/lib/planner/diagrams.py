@@ -258,6 +258,27 @@ def flowchart(graph, direction="LR", groups=()):
     return lines
 
 
+# What each node style means, in the words a reader uses. A diagram's key lists only the styles it drew.
+STYLE_WORDS = {
+    "focus": "dark blue: the app this page is about",
+    "app": "blue outline: an app in the initiative",
+    "new": "green: new in this initiative",
+    "changed": "amber: changed by this initiative",
+    "unchanged": "grey: stays as it is",
+    "retired": "red, dashed: retired by this initiative",
+    "external": "white, dashed: outside the initiative (a party or provider)",
+}
+
+
+def key_line(graph):
+    """One plain line under a diagram saying what its colours, dashes and arrows mean, for the styles it drew only."""
+    if not graph.nodes:
+        return ""
+    used = [STYLE_WORDS[s] for s in sorted({n.style for n in graph.nodes}, key=lambda s: list(STYLE_WORDS).index(s)) if s in STYLE_WORDS]
+    arrows = ["an arrow is a contract, labelled with its ID"] if graph.edges else []
+    return "Key: " + " · ".join(used + arrows) + "."
+
+
 def overflow_contracts(graph, node):
     """The contracts that touch a node left out of a diagram, as "CON-001 from A to B"."""
     names = {n.key: safe_label(n.ref, n.key) for n in graph.nodes}

@@ -28,7 +28,7 @@ Booking does not own fares, capacity, customer records, card payments or the led
 |---|---|
 | New ([[ADR-0001-one-booking-context\|ADR-0001]]) | Booking team (new) |
 
-<!-- generated:app-context sha=3198038a: do not edit, run planner render -->
+<!-- generated:app-context sha=f51bb681: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -59,6 +59,8 @@ flowchart LR
   class n_APP_booking focus
   class n_APP_customer_identity,n_APP_ferrymaster,n_APP_vessel_schedule unchanged
 ```
+
+Key: dark blue: the app this page is about · amber: changed by this initiative · grey: stays as it is · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Booking: main containers

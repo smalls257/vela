@@ -10,7 +10,7 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=c9cea270: do not edit, run planner render -->
+<!-- generated:context-map sha=d66c076b: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]
@@ -36,6 +36,8 @@ flowchart LR
   class n_APP_account_link_service new
   class n_APP_railcore unchanged
 ```
+
+Key: green: new in this initiative · amber: changed by this initiative · grey: stays as it is · an arrow is a contract, labelled with its ID.
 <!-- /generated:context-map -->
 
 ## Login with a link service

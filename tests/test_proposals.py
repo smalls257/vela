@@ -469,7 +469,7 @@ def test_a_branch_that_already_exists_is_not_reused(proposed):
 
 
 @pytest.mark.parametrize("damage,message", [
-    (lambda t: t.replace("@@ -63,7 +63,7 @@", "@@ -63,7 +63,9 @@"), "says 7 old and 9 new"),
+    (lambda t: re.sub(r"@@ -(\d+),7 \+(\d+),7 @@", r"@@ -\1,7 +\2,9 @@", t, count=1), "says 7 old and 9 new"),
     (lambda t: t.split("diff --git", 1)[0], "no 'diff --git' section"),
     (lambda t: t.replace("# base: ", "# basis: "), "no '# base:"),
     (lambda t: t.replace("diff --git a/reader-notes.md b/reader-notes.md", "diff --git a/../evil.md b/../evil.md"), "climbs out"),

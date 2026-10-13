@@ -14,7 +14,7 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=e3e97a7d: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=920438ec: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -55,7 +55,7 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 | [[11-unknowns-and-risks#UNK-075 Acceptance in the calendar read\|UNK-075]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
 | [[11-unknowns-and-risks#UNK-076 Council vote on the pilot\|UNK-076]] | @product-owner (Product owner) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
 
-**Last session:** 2026-10-12
+**Last session:** none recorded
 
 **Coverage gaps:** 5, listed on [[13-epics|Epics]]
 
@@ -64,8 +64,8 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Progress by app
 
-<!-- generated:progress-map sha=12fd63e3: do not edit, run planner render -->
-**As of:** 2026-10-12, the last session
+<!-- generated:progress-map sha=3fdbed13: do not edit, run planner render -->
+**As of:** no session yet, so no unknown counts as overdue
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
 |---|---|---|---|---|---|---|---|

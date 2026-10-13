@@ -27,7 +27,7 @@ The website no longer decides whether a booking is confirmed and no longer talks
 |---|---|
 | Changed: calls the Booking API. The FM screen adapter is retired. | Digital team |
 
-<!-- generated:app-context sha=af4040bb: do not edit, run planner render -->
+<!-- generated:app-context sha=8d58fc7c: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -38,6 +38,8 @@ flowchart LR
   class n_APP_website focus
   class n_APP_booking new
 ```
+
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Public website: main containers

@@ -682,10 +682,39 @@ def release_rules(vault, today):
                          f"{problem or ', '.join(f'AC{n}' for n in over)} of {row.requirement}, which lists {count} criteria.",
                          "Write all, or ACn for the nth acceptance criterion under the requirement.")
     delivered = {row.requirement for r in found for row in r.rows}
+    left_out = {i: left for left in found[0].not_in_tracer for i in left.ids}
     for req in allocation.due(vault):
         if req.id not in delivered:
+            why = left_out.get(req.id)
+            ending = (f"and Not in the tracer says why: {why.reason}" if why and why.reason
+                      else "so nothing says when it ships.")
             yield _f(req.page, req.line, "W343", f"{req.id} is at {req.fact('State')}, but no release on 04b-releases.md "
-                     "delivers it, so nothing says when it ships.", "Add it to the release that delivers it.")
+                     f"delivers it, {ending}", "Add it to the release that delivers it.")
+    yield from tracer_rules(vault, page, found[0])
+
+
+def tracer_rules(vault, page, first):
+    """W345 and W347, on release one only. Both warn, and both go quiet when the record says why: any Tracer bullet
+    (even `none, reason`) answers W345; naming an app or contract under Not in the tracer answers W347 for it."""
+    if not first.tracer_given:
+        yield _f(page, first.line, "W345", f"'{first.name}' has no Tracer bullet, so nothing names the thin path the team builds first.",
+                 "Add '- **Tracer:** [[FLO-001-...|FLO-001]], then the thin version in words', or '- **Tracer:** none, <reason>'.")
+        return
+    if not first.tracer_flows:
+        return
+    apps, contracts = flows.passes_through(vault, first.tracer_flows)
+    got_apps, got_contracts = releases.reach(vault, first)
+    named = {i for left in first.not_in_tracer for i in left.ids}
+    # An app or contract no release changes already runs, so the thin path needs no share of it in release one.
+    unchanged = {a.id for a in vault.apps if str(a.meta.get("change") or "") == "unchanged"}
+    unchanged |= {c.id for c in vault.contracts if (c.fact("Change") or "").strip().lower() == "unchanged"}
+    missing = [i for i in apps if i not in got_apps and i not in unchanged] + [i for i in contracts if i not in got_contracts and i not in unchanged]
+    for item_id in missing:
+        if item_id in named:
+            continue
+        yield _f(page, first.tracer_line, "W347", f"The tracer of '{first.name}' passes through {item_id}, "
+                 "but release one delivers no share of it, so the thin path cannot run end to end.",
+                 f"Deliver a requirement that {item_id} carries in release one, or list it under '- **Not in the tracer:** ({item_id}) <reason>'.")
 
 
 def flow_sender_rules(vault, today):
