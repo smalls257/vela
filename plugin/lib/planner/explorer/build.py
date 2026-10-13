@@ -666,14 +666,22 @@ def content_security_policy(page):
             "font-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'")
 
 
+# A shared folder this close to the root (/, or one folder under it) names the whole path on the way down.
+SHALLOW_SHARED_FOLDER = 2
+
+
 def relative_href(target, page_dir):
     """The href a page in `page_dir` uses to reach `target`, relative so no absolute path is built in. A relative
-    href in a file:// page resolves beside it. None when the walk would descend through the builder's home folder (the
-    target is under it and the page is not), because the walk would then name it; a walk that only climbs out of home,
-    or stays inside it, names nothing, whatever the folders are called."""
+    href in a file:// page resolves beside it. The walk climbs to the folder the two share and then names every folder
+    below it, so it is None when that would name the path: when it descends through the builder's home folder (the
+    target is under it and the page is not), or when the shared folder is the disk's root or a folder just under it
+    (/tmp, /private), where the folders named below are the absolute path. Sibling folders such as ~/Code/vault and
+    ~/Code/booking share a deep folder, so their link is kept."""
     target, page_dir, home = pathlib.Path(target).resolve(), pathlib.Path(page_dir).resolve(), pathlib.Path.home().resolve()
     under_home = lambda p: p == home or home in p.parents  # noqa: E731
     if under_home(target) and not under_home(page_dir):
+        return None
+    if len(pathlib.Path(os.path.commonpath([target, page_dir])).parts) <= SHALLOW_SHARED_FOLDER:
         return None
     return pathlib.Path(os.path.relpath(target, page_dir)).as_posix()
 

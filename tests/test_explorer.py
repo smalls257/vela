@@ -671,3 +671,13 @@ def test_a_question_link_and_its_state_pill_never_run_together_and_prose_hides_o
     assert '</a> <span class="ustate' in listed and "(</span>open<span" in listed and 'aria-label="' in listed
     if done:
         assert '</a> <span class="ustate' in inline_html(f"was made [[{done.page.path[:-3]}#{done.id} {done.name}|that]] then", keys, page, PROSE)
+
+
+def test_a_link_whose_only_shared_folder_is_near_the_root_is_left_out():
+    """A relative walk names every folder it descends into below the shared one, so climbing to / (or /tmp, /private)
+    and back down spells out the absolute path. Seen when the vault sat in /tmp and the page in another temp folder."""
+    from planner.explorer import build
+    assert build.relative_href("/tmp/cleanrun/examples/unified-booking", "/var/folders/x/page") is None
+    assert build.relative_href("/private/tmp/vault", "/private/var/folders/x") is None
+    assert build.relative_href("/srv/work/vault/docs/plan.md", "/srv/work/vault") == "docs/plan.md"
+    assert build.relative_href("/srv/work/booking/design.md", "/srv/work/vault") == "../booking/design.md"
