@@ -3,6 +3,7 @@
    #decisions&open=ADR-0002 (the old #garden still works), #map&lens=transit; add &still for screenshots (no transitions), &selftest to run the checks. */
 $("#brand-title").textContent = D.title || "Vault";
 $("#brand-sub").textContent = `${D.initiative} · as of ${day(D.today)}`;
+$("#brand-title").title = $("#brand-title").textContent; $("#brand-sub").title = $("#brand-sub").textContent;  // both cut with an ellipsis when the sidebar is narrow
 /* A copy opened long after it was built says so, quietly, above everything: when it was built and from which commit. */
 if (D.built) {
   const built = $("#built");

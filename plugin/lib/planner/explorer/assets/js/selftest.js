@@ -1404,3 +1404,156 @@ const SelfTest = (() => {
     return out;
   };
 })();
+
+/* ------------------------------------------------------------ Text fits its box (the label sensor)
+   A small label (a pill, chip, badge, button, tab, table heading) is sized by its text, so it is the first thing to
+   spill when the box around it is narrow or its text is long: the text runs past its own edge, or the label sticks out
+   past the box it sits in. Nothing else sees this, because the page still renders and every other check still passes.
+   textFits(root) lists each such label with the words in it and its class, and the checks below sweep every view the
+   page has, in every theme and in Plain, at the window the page was opened in. A label that cuts itself short with an
+   ellipsis on purpose is fine; one that scrolls its own row is too. */
+const TextFit = (() => {
+  const KINDS = [".pill", ".chip", ".ref-chip", "[class*=badge]", ".d-status", ".dstate", ".dl-tag", ".dl-stage", ".fp-status", ".plan-kpi", ".kpi-label",
+    ".kpi-num", "button", ".btn", ".tab", "[role=tab]", ".seg button", "th", ".in-status-cell", ".ask-about-tag", ".holdbox .tag"].join(", ");
+  const px = (v) => parseFloat(v) || 0;
+  const scrolls = (cs) => /auto|scroll/.test(cs.overflowX);
+  const clips = (cs) => /hidden|clip/.test(cs.overflowX) || /hidden|clip/.test(cs.overflowY);
+  const words = (el) => (el.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40);
+  const classOf = (el) => (typeof el.className === "string" ? el.className : "").trim();
+  const where = (el) => { const p = el.parentElement; return p ? p.tagName.toLowerCase() + (classOf(p) ? "." + classOf(p).split(/\s+/)[0] : "") : ""; };
+  function visible(el) {
+    if (!el.getClientRects().length || el.closest("[hidden], svg")) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== "hidden" && cs.display !== "none" && cs.position !== "fixed" && px(cs.opacity) !== 0;
+  }
+  /* The box a label's parent offers its children: the parent's rectangle less its border and padding. */
+  function contentBox(p) {
+    const r = p.getBoundingClientRect(), cs = getComputedStyle(p);
+    return { left: r.left + px(cs.borderLeftWidth) + px(cs.paddingLeft), right: r.right - px(cs.borderRightWidth) - px(cs.paddingRight) };
+  }
+  /* A label that hands its text to an inner span which cuts itself short with an ellipsis (the angled matrix headings) has chosen to. */
+  const ellipsized = (el) => [...el.querySelectorAll("*")].find((c) => { const k = getComputedStyle(c); return k.textOverflow === "ellipsis" && clips(k); });
+  function problem(el) {
+    // a label that wraps across lines has one rectangle per line: its bounding box is the union, wider than any line
+    const cs = getComputedStyle(el), lines = [...el.getClientRects()].filter((q) => q.width > 0), r = { left: Math.min(...lines.map((q) => q.left)), right: Math.max(...lines.map((q) => q.right)) };
+    if (!lines.length || (!words(el) && !el.querySelector("svg, img"))) return "";
+    const ellipsis = (cs.textOverflow === "ellipsis" && clips(cs)) || !!ellipsized(el);
+    if (el.clientWidth > 0 && !ellipsis && !scrolls(cs) && el.scrollWidth > el.clientWidth + 1) return `its text runs ${el.scrollWidth - el.clientWidth}px past its own edge`;
+    if (cs.position === "absolute") return "";
+    let p = el.parentElement;
+    while (p && getComputedStyle(p).display === "contents") p = p.parentElement;
+    if (p && p !== document.body && !/^(TR|TABLE|THEAD|TBODY)$/.test(p.tagName)) {
+      const pcs = getComputedStyle(p), box = contentBox(p);
+      if (!scrolls(pcs) && p.getBoundingClientRect().width > 0 && (r.right > box.right + 1 || r.left < box.left - 1)) {
+        return `it sticks out ${Math.round(Math.max(r.right - box.right, box.left - r.left))}px past ${where(el)}`;
+      }
+    }
+    for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {  // an ancestor that clips shows it cut off
+      const acs = getComputedStyle(a);
+      if (scrolls(acs)) break;
+      if (clips(acs) && a.clientWidth > 0) {
+        const ar = a.getBoundingClientRect();
+        if (r.right > ar.right + 1 || r.left < ar.left - 1) return `${a.tagName.toLowerCase()}.${classOf(a).split(/\s+/)[0]} clips it by ${Math.round(Math.max(r.right - ar.right, ar.left - r.left))}px`;
+      }
+    }
+    return "";
+  }
+  /* Every visible small label under root that does not fit, each as { text, cls, why }. */
+  function textFits(root = document) {
+    const bad = [];
+    for (const el of root.querySelectorAll(KINDS)) {
+      if (!visible(el)) continue;
+      const why = problem(el);
+      if (why) bad.push({ text: words(el), cls: classOf(el) || el.tagName.toLowerCase(), why });
+    }
+    return bad;
+  }
+  return { textFits, KINDS };
+})();
+
+(() => {
+  const base = SelfTest.run;
+  const found = new Map();  // "text (class)" -> { view, why, more }: the first view a label failed in, and how many others it failed in
+  const note = (view, root) => {
+    for (const b of TextFit.textFits(root || document)) {
+      const id = `"${b.text}" (${b.cls})`, seen = found.get(id);
+      if (seen) seen.more++; else found.set(id, { view, why: b.why, more: 0 });
+    }
+  };
+  /* Every view the page has, drawn once; each is swept for labels that do not fit. */
+  async function sweep() {
+    const apps = D.map.apps.map((a) => a.key);
+    Nav.home(); MapView.st.group = "none";
+    for (const lens of ["cockpit", "transit", "matrix"]) { MapView.st.lens = lens; rerender(); note(`map, ${lens}`); }
+    MapView.st.group = "domain"; MapView.st.lens = "cockpit"; rerender(); note("map, grouped by domain");
+    MapView.st.lens = null; MapView.st.group = null; rerender();
+    for (const s of D.sections) {
+      Nav.open(s.id); note(`section ${s.label}`);
+      for (const child of (s.children || []).slice(0, s.id === "apps" ? 99 : 3)) { Nav.open(s.id, child); note(`${s.label} > ${titleOf(child)}`); }
+    }
+    for (const view of ["asks", "progress", "trace", "decisions", "releases", "flows"]) { showView(view); note(`view ${view}`); }
+    for (const f of D.flows) { Flows.select(f.key, 0); note(`flow ${f.key}`); }
+    for (const id of ["lead", "exec", "product", "qa", "mgr"]) { Nav.role(id); note(`door ${id}`); }
+    for (const k of apps) { Roles.st.app = k; Nav.role("eng"); note(`door eng, ${titleOf(k)}`); }
+    Nav.home();
+    for (const k of apps) {
+      for (const level of ["context", "containers", "components", "plan"]) {
+        Inside.open(k, level); note(`${titleOf(k)}, inside ${level}`);
+        for (const box of $$("#inside-stage .in-node[data-key]").slice(0, 12)) { box.dispatchEvent(new MouseEvent("click", { bubbles: true })); note(`${titleOf(k)}, ${level}, panel for ${box.dataset.key.split(":").slice(-1)[0]}`); }
+        Inside.open(k, level);
+        if (level === "plan" && D.plans && D.plans[k]) for (const layout of ["list", "cards", "path"]) {
+          const btn = $(`#inside-stage .plan-seg [data-layout="${layout}"]`);
+          if (btn) { btn.click(); note(`${titleOf(k)}, build plan as ${layout}`); }
+        }
+      }
+      if (D.designs[k]) for (const [tab] of Inside.TABS) { Inside.open(k, "components", { tab }); note(`${titleOf(k)}, design tab ${tab}`); }
+      Inside.open(k, "containers");
+      const page = Nav.pageBeside();
+      for (const [name, root] of [["The design", Inside.designKey()], ["The page", page ? "read:" + page : ""], ["What needs you", "lights"]]) {
+        if (root) { App.root = root; App.trail = []; Panel.render(); note(`${titleOf(k)}, panel tab ${name}`); }
+      }
+      go(k, { reset: true }); note(`panel, app ${titleOf(k)}`);
+    }
+    const contract = D.map.contracts[0], unknown = D.asks[0];
+    if (contract) { go(contract.id || contract.key, { reset: true }); note("panel, a contract"); }
+    if (unknown) { go(unknown.id, { reset: true }); note("panel, an unknown"); }
+    if (D.flows[0]) { go(D.flows[0].key, { reset: true }); note("panel, a flow"); }
+  }
+  /* The sensor must see what it is for: a nowrap pill in a 90 px box sticks out, the same pill allowed to wrap does not. */
+  function sensorSeesOverflow(ok) {
+    const box = h("div", { style: "width:90px;display:flex;position:absolute;left:0;top:0" }), long = "a status that is far too long for this box";
+    const out = h("span", { class: "pill", style: "white-space:nowrap;flex:none" }, long), wrapped = h("span", { class: "pill" }, long);
+    box.append(out); $("#main").append(box);
+    const seen = TextFit.textFits(box).length;
+    box.replaceChildren(wrapped);
+    const fine = TextFit.textFits(box).length;
+    box.remove();
+    ok(seen === 1 && fine === 0, "text fits: the sensor flags a pill that sticks out of its box and passes the same pill when it may wrap", `text fits: the sensor saw ${seen} of 1 planted overflows and ${fine} false alarms`);
+  }
+  async function checks(ok) {
+    sensorSeesOverflow(ok);
+    if (!D.map.apps.length) return;
+    const was = Theme.id, fx = FX.on, themes = [...Theme.LIST.map((t) => [t.id, t.label, true]), [was, "Plain", false]];
+    for (const [id, label, motion] of themes) {
+      found.clear(); Theme.set(id); FX.set(motion);
+      try { await sweep(); } catch (e) { found.set(`the sweep threw: ${e.message} ${(e.stack || "").split("\n")[1]}`, { view: "sweep", why: "", more: 0 }); }
+      const list = [...found].map(([id, f]) => `${f.view}: ${id} ${f.why}${f.more ? ` (and in ${plural(f.more, "other view")})` : ""}`);
+      ok(!list.length, `text fits: in ${label}, no label in any view runs past its box (window ${innerWidth}x${innerHeight})`,
+        `text fits in ${label} at ${innerWidth}x${innerHeight}: ${list.length} labels overflow, ${list.slice(0, 14).join(" | ")}`);
+    }
+    Theme.set(was); FX.set(fx);
+  }
+  SelfTest.textFits = TextFit.textFits;
+  SelfTest.run = async () => {
+    const report = await base(), lines = [], errors = window.__errors.length;
+    const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
+    try { await checks(ok); } catch (e) { lines.push("FAIL the text-fit checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    Nav.home(); go("lights", { reset: true });
+    if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the text-fit checks: " + window.__errors.slice(errors).join(" | "));
+    const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;
+    const out = [fails ? `SELFTEST FAIL: ${fails} of ${body.length} checks failed` : `SELFTEST OK: ${body.length} checks passed`, ...body];
+    console.log(lines.join("\n"));
+    document.body.setAttribute("data-selftest", out.join(" || "));
+    return out;
+  };
+})();

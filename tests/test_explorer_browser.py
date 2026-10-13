@@ -190,6 +190,38 @@ def test_the_heron_design_vault_passes_the_selftest_at_800x600(tmp_path, chrome_
     _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", "heron-desk/after-design-2", viewport="800,600")
 
 
+def _text_fit_lines(chrome_path, html_path, viewport):
+    cmd = [str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", f"--window-size={viewport}", "--virtual-time-budget=60000", "--dump-dom", f"file://{html_path}#map&selftest"]
+    match = re.search(r'data-selftest="([^"]*)"', subprocess.run(cmd, timeout=180, capture_output=True, text=True).stdout)
+    assert match, "data-selftest not found in Chrome output"
+    return html.unescape(match.group(1)).split(" || ")
+
+
+@pytest.mark.browser
+@pytest.mark.parametrize("viewport", ["720,800", "900,700"])
+def test_no_label_runs_past_its_box_in_a_narrow_window(tmp_path, chrome_path, viewport):
+    """The selftest's text-fit sweep alone, at windows narrower than the layout is built for (the other checks assume the
+    three columns at 800 or wider): no pill, chip, badge, button, tab or heading in any view, theme or Plain runs out of
+    its box. A failure names the view, the label's words and its class. The Heron design vault and the demo with three
+    designs, so the sweep is not tuned to one vault."""
+    heron = tmp_path / "heron"
+    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], heron)
+    assert subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(heron), "--today", "2026-10-10"], timeout=120, capture_output=True, text=True).returncode == 0
+    demo = tmp_path / "booking-demo"
+    assert subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True).returncode == 0
+    designs = REPO / "prototypes/explorer/demo_designs"
+    page = tmp_path / "booking-demo.html"
+    built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(page), "--today", "2026-11-20", "--selftest",
+                            "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
+                            *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in ("booking", "pricing", "notifications")]],
+                           timeout=120, capture_output=True, text=True)
+    assert built.returncode == 0, built.stderr
+    for name, path in (("heron-desk/after-design-2", heron / "dashboard.html"), ("booking-demo with designs", page)):
+        fit = [line for line in _text_fit_lines(chrome_path, path, viewport) if "text fits" in line]
+        failed = [line for line in fit if line.startswith("FAIL")]
+        assert len(fit) >= 5 and not failed, f"{name} at {viewport}: {len(fit)} text-fit checks ran\n" + "\n".join(failed)
+
+
 def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600,1000"):
     """Run Chrome headless and check #selftest output."""
     cmd = [
@@ -362,10 +394,10 @@ def test_gallery_pages_load_the_plugins_art(chrome_path, page, said):
 
 
 @pytest.mark.browser
-@pytest.mark.parametrize("viewport", ["1600,1000", "1280,720"])
+@pytest.mark.parametrize("viewport", ["1600,1000", "1280,720", "800,600"])
 def test_explorer_selftest_with_three_designs_loaded(tmp_path, chrome_path, viewport):
     """The demo vault with its three team designs: Inside this app draws components and the data model, which the
-    snapshot vaults above have no design for. Run at a wide and at a laptop window."""
+    snapshot vaults above have no design for. Run at a wide, a laptop and a small window."""
     demo = tmp_path / "booking-demo"
     made = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True)
     assert made.returncode == 0, made.stderr
