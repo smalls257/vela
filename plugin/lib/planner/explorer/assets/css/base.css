@@ -244,3 +244,4 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 .link-chips.small { margin: 3px 0 0; gap: 4px; }
 .link-chips.small .link-chip { font-size: 11.5px; padding: 0 6px; }
 .link-chips.small .link-chip .ico { width: 12px; height: 12px; }
+.nowrap { white-space: nowrap; }

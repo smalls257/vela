@@ -137,7 +137,7 @@ const Inside = (() => {
   function statusPill(app) {
     const d = design(app), fm = d.frontmatter, gaps = fm.gaps.map((g) => g.id).filter(Boolean);
     return h("span", { class: "d-status " + (fm.status || "unknown"), title: `The team's design is ${fm.status || "of no known status"}${gaps.length ? ", with " + gaps.join(", ") : ""}; last session ${fm.last_session || "not recorded"}` },
-      fm.status === "complete-with-gaps" ? `complete with gaps` : fm.status || "status not read", gaps.length ? h("b", {}, " " + gaps.join(" ")) : null);
+      fm.status === "complete-with-gaps" ? `complete with gaps` : fm.status || "status not read", gapsTag(gaps));
   }
   /* The count of what the reader could not read: always shown, opening the list with line numbers. */
   function problemsChip(app, opts = {}) {
