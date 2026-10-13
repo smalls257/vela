@@ -1110,3 +1110,82 @@ def test_the_teams_sessions_can_run_the_plugins_own_skills_and_the_old_user_skil
     wrong = sessions(("tickets", "/planner:breakdown coach"))
     assert any("must start with /planner:tickets" in p for p in sim.script_problems({"sessions": wrong}, persona))
     assert set(sim.PLUGIN_TEAM_MODES) <= set(sim.TEAM_MODES) and "tech-design-grill" in sim.TEAM_MODES
+
+
+# ---- the tracer question: one scored question, does release one name a tracer or record why not
+
+TRACER_LINE = "- **Tracer:** [[FLO-001-switch-on|FLO-001]], a person switches Heron on and gets the digest"
+
+
+def test_the_judge_has_one_tracer_question_that_reads_the_releases_page(full_run):
+    assert sim.JUDGE_CATEGORIES[-1] == "tracer"
+    prompt = sim.judge_system_prompt("tracer")
+    assert "through every app and contract it needs" in prompt and "Tracer:** none" in prompt
+    persona = coastal()
+    run = full_run["run"] / "planner"
+    transcript = sim.Transcript.load(run / "transcript.jsonl")
+    hits = sim.vault_hits(persona, transcript, run / "vault")
+    text = sim.judge_input(persona, transcript, run / "vault", "tracer", hits)
+    assert "THE RELEASES PAGES" in text and "----- FILE 04b-releases.md -----" in text
+
+
+def test_a_tracer_reply_needs_a_search_note_a_known_answer_and_a_yes_or_no_for_a_tracer():
+    ok = {"search": "read the releases page", "answer": "tracer", "through_every_app": True, "where": "x", "quote": "y"}
+    assert sim.category_problems(ok, {}, "tracer") == []
+    assert sim.category_problems({"search": "x", "answer": "none_with_reason"}, {}, "tracer") == []
+    assert sim.category_problems({"answer": "tracer", "through_every_app": True}, {}, "tracer") == [
+        "the reply: 'search' must say what you looked for and where"]
+    assert sim.category_problems({"search": "x", "answer": "maybe"}, {}, "tracer") == [
+        "'answer' must be one of tracer, none_with_reason, not_recorded, no_releases_session"]
+    assert sim.category_problems({"search": "x", "answer": "tracer"}, {}, "tracer") == [
+        "'through_every_app' must be true or false when the answer is tracer"]
+
+
+def test_a_tracer_verdict_counts_only_when_the_page_holds_its_quote_and_it_reaches_every_app():
+    pages = {"04b-releases.md": f"## Release one\n\n{TRACER_LINE}\n- **Not in the tracer:** Teams transcripts, waits on review\n"}
+    quote = TRACER_LINE.lstrip("- ")
+    dropped = []
+    full = sim.checked_tracer({"answer": "tracer", "through_every_app": True, "where": "04b-releases.md", "quote": quote},
+                              pages, dropped)
+    assert full["ok"] and full["answer"] == "tracer" and dropped == []
+    partial = sim.checked_tracer({"answer": "tracer", "through_every_app": False, "where": "04b-releases.md", "quote": quote},
+                                 pages, dropped)
+    assert partial["answer"] == "tracer" and not partial["ok"]
+    invented = sim.checked_tracer({"answer": "tracer", "through_every_app": True, "where": "04b-releases.md",
+                                   "quote": "**Tracer:** everything"}, pages, dropped)
+    assert invented["answer"] == "not_recorded" and not invented["ok"] and len(dropped) == 1
+    nowhere = sim.checked_tracer({"answer": "none_with_reason", "where": "nope.md", "quote": quote}, pages, dropped)
+    assert nowhere["answer"] == "not_recorded" and len(dropped) == 2
+    none = sim.checked_tracer({"answer": "none_with_reason", "where": "04b-releases.md",
+                               "quote": "**Not in the tracer:** Teams transcripts, waits on review"}, pages, dropped)
+    assert none["ok"] and none["answer"] == "none_with_reason"
+    assert not sim.checked_tracer({"answer": "no_releases_session"}, pages, dropped)["ok"]
+
+
+def test_the_scorecard_scores_the_tracer_question_from_the_releases_page(tmp_path):
+    env = {"SIM_STUB_WRITE": f"04b-releases.md::\n{TRACER_LINE}\n"}
+    code, err, run_dir, _ = simulate(tmp_path, "--budget", "5", env=env)
+    assert code == 0, err
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert card["tracer"]["answer"] == "tracer" and card["tracer"]["ok"] and card["tracer"]["where"] == "04b-releases.md"
+    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "## Tracer in release one" in md and "yes: a tracer is named, through every app and contract it needs" in md
+    assert "Tracer in release one" in (run_dir / "compare.html").read_text(encoding="utf-8")
+
+
+def test_a_release_page_with_no_tracer_scores_no(tmp_path):
+    code, err, run_dir, _ = simulate(tmp_path, "--budget", "5")
+    assert code == 0, err
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert card["tracer"]["answer"] == "not_recorded" and not card["tracer"]["ok"]
+    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "no: release one records neither a tracer nor why not" in md
+
+
+def test_a_refused_tracer_call_reads_not_scored_and_the_rest_still_count(tmp_path):
+    code, err, run_dir, _ = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "refuse:tracer"})
+    assert code == 0, err
+    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    assert list(card["not_scored"]) == ["tracer"] and card["tracer"] is None
+    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "## Tracer in release one" in md and "## Facts captured (K):" in md

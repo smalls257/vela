@@ -72,7 +72,7 @@ The reasoning, for a Sonnet-class assistant model:
   about 80: around 55 ordinary turns and 25 close turns. That is about $10 to $40 an arm.
 - Each assistant turn has a persona turn. On a Haiku-class model, over a transcript that grows to about
   40k tokens, that is about $2 to $4 an arm.
-- The judge is six calls an arm, one per category. Each holds the transcript and only what its category needs:
+- The judge is seven calls an arm, one per category. Each holds the transcript and only what its category needs:
   the inbox for W and the shape, and for K and D a page index plus, per item, the vault passages that hold its
   keywords. No call sends more than `JUDGE_INPUT_CHARS` (300k characters, about 100k tokens); a 69-page vault of
   990k characters once sent whole came back `prompt_too_long`. Whatever is left out (passages, or turns cut
@@ -123,6 +123,11 @@ The brief has five kinds of item, each with an ID:
 The shape of the guidance: the most questions in one assistant turn (counted by the driver, not the judge),
 the turns that told rather than asked, decisions made without a yes, invented facts, and whether each session
 ended with a clear next step.
+
+One more scored question, the tracer: does release one name a tracer that runs end to end through every app and
+contract it needs, or record why not (`**Tracer:** none, <reason>` or a `**Not in the tracer:**` bullet)? The
+judge reads the releases page and quotes the Tracer line; a quote the page does not hold reads as not recorded.
+A tracer that skips an app and does not say why scores no.
 
 Beside every verdict the scorecard sets the driver's **keyword hits**: the assistant turns and final vault pages
 that hold one of the item's `keywords` from the persona, and for W and U items the lead turns too. A gap the lead
