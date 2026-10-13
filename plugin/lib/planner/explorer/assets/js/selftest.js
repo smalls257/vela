@@ -1049,6 +1049,12 @@ const SelfTest = (() => {
         ok(/design is not loaded/.test(say) && say.includes("--design"), `inside ${name}, components: no design, so the chip says how to load one with --design`, `inside ${name}, components: no design and no chip ("${say.slice(0, 60)}")`);
         continue;
       }
+      if (d.summary && d.summary.text) {  // a summary-first design (/planner:design) opens its panel on the summary, then the walking skeleton
+        const body = h("div", {}, ...Inside.panel(Inside.designKey())), first = $(".p-body > *", body), skel = [...$$(".p-body *", body)].some((x) => x.textContent.trim() === "Walking skeleton");
+        const wantSkel = !!(d.walking_skeleton && Object.keys(d.walking_skeleton.fields || {}).length);
+        ok(!!first && first.classList.contains("in-summary") && skel === wantSkel, `inside ${name}: the design panel opens on its summary${wantSkel ? ", with the walking skeleton below" : ""}`,
+          `inside ${name}: the design panel opens on ${first ? first.className : "nothing"}; walking skeleton shown ${skel}, wanted ${wantSkel}`);
+      }
       const comps = $$("#inside-stage .in-box.component").length, stubs = $$("#inside-stage .in-stub").length, o = overlaps();
       ok(comps === d.components.length && stubs === d.stubs.length && !o.bad.length, `inside ${name}, components: ${comps} components and ${stubs} integration stubs, ${o.n} boxes and labels, no two overlap`,
         `inside ${name}, components: ${comps} of ${d.components.length}, ${stubs} of ${d.stubs.length} stubs; overlaps ${o.bad.slice(0, 3).join("; ")}`);

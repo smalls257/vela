@@ -57,11 +57,15 @@ SECTIONS = {
     "risks": ("risks & mitigations", "risks and mitigations", "risks"),
     "adrs": ("adrs", "architecture decision records"),
     "operations": ("operations",),
-    # not in the template: OQ-XXX is defined in FRONTMATTER-FORMAT.md, and Trace is the proposed fix
+    # not required: OQ-XXX is defined in FRONTMATTER-FORMAT.md, Trace is read when present, and Summary and Walking
+    # skeleton open a doc written by /planner:design (plugin/skills/design/TECH-DESIGN-FORMAT.md); older docs lack them
     "open_questions": ("open questions",),
     "trace": ("trace", "traceability"),
+    "summary": ("summary",),
+    "walking_skeleton": ("walking skeleton",),
 }
-TEMPLATE_SECTIONS = [k for k in SECTIONS if k not in ("open_questions", "trace")]
+OPTIONAL_SECTIONS = ("open_questions", "trace", "summary", "walking_skeleton")
+TEMPLATE_SECTIONS = [k for k in SECTIONS if k not in OPTIONAL_SECTIONS]
 HEADING_TO_KEY = {alias: key for key, aliases in SECTIONS.items() for alias in aliases}
 TITLES = {key: aliases[0].capitalize() for key, aliases in SECTIONS.items()}
 
@@ -119,6 +123,8 @@ def read_design(path, adr_dir=None, context=None):
         "title": title,
         "frontmatter": _frontmatter_fields(meta, problems),
         "vault": _vault_link(meta, text, problems),
+        "summary": _prose_and_mermaid(sections.get("summary")),
+        "walking_skeleton": _walking_skeleton(sections.get("walking_skeleton")),
         "overview": _prose_and_mermaid(sections.get("overview")),
         "boundaries": _boundaries(sections.get("boundaries"), problems),
         "components": [],
@@ -448,6 +454,15 @@ def _prose_and_mermaid(section):
     return {"text": text, "mermaid": [b[3] for b in blocks if b[0] == "fence" and b[1] == "mermaid"]}
 
 
+def _walking_skeleton(section):
+    """{text, fields}: the section's prose, and its `- **Flow:**`, `**Path:**`, `**Stubbed:**`, `**Carries:**` bullets."""
+    if not section:
+        return {"text": "", "fields": {}}
+    fields = {label: value for label, (value, _) in _fields(section["lines"]).items()}
+    text = "\n".join(t for _, t in section["lines"] if not BULLET_FIELD.match(t)).strip()
+    return {"text": text, "fields": fields}
+
+
 def _boundaries(section, problems):
     """**Inside the app:** and **Outside the app:**, each running on until the next field or a blank line."""
     out = {"inside": "", "outside": "", "raw": _raw(section)}
@@ -498,8 +513,11 @@ def _fields(lines):
     return out
 
 
-def _split_names(value):
-    """'A, B (CON-003, CON-004) and C' -> ['A', 'B (CON-003, CON-004)', 'C']; 'none' -> []."""
+def _split_names(value, known=()):
+    """'A, B (CON-003, CON-004) and C' -> ['A', 'B (CON-003, CON-004)', 'C']; 'none' -> [].
+
+    A part whose bare name is in `known` (lower case, parentheses dropped) is kept whole, so a system called
+    "Consent and identity" is one name and not two."""
     if value.strip().lower().rstrip(".") in ("none", "nothing", "-", "—", ""):
         return []
     parts, depth, buf = [], 0, ""
@@ -513,6 +531,9 @@ def _split_names(value):
     parts.append(buf)
     out = []
     for part in parts:
+        if part.strip() and _bare(part.strip().rstrip(".")) in known:
+            out.append(part.strip().rstrip("."))
+            continue
         out += [p.strip().rstrip(".") for p in re.split(r"\s+and\s+(?![^(]*\))", part) if p.strip()]
     return out
 
@@ -724,7 +745,9 @@ def _check_components(design, problems):
             _problem(problems, row["line"], "Responsibility matrix",
                      f"row for {row.get('component')!r}, which is not a ### component")
     in_matrix = {r.get("component", "").lower() for r in design["matrix"]}
+    known = set(names) | systems
     for c in design["components"]:
+        c["depends_on_names"] = _split_names(c["depends_on"], known)
         if c["name"].lower() not in in_matrix:
             _problem(problems, c["line"], f"Components › {c['name']}", "no Responsibility-matrix row (format rule)")
         c["depends_on_components"], c["depends_on_other"] = [], []
