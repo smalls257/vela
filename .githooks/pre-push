@@ -2,26 +2,42 @@
 # Runs the gate on exactly what is being pushed, in a throwaway worktree at that commit. The working tree
 # can hold untracked files a test leans on (tests/sim/results is gitignored); a clean checkout cannot,
 # so a push passes here only if it would pass in CI.
+# The gate is about the code, so it runs once per distinct tree: two branches at the same tree are one run, and a
+# tree that already passed in this mode is not run again. Passes are recorded in <git dir>/gate-passed, one
+# "<tree> <mode>" line each, and every skip is printed with its reason. Delete that file to force a full re-run.
 # stdin: <local-ref> <local-sha> <remote-ref> <remote-sha> per ref (git-scm.com/docs/githooks#_pre_push)
 set -uo pipefail
 zero=0000000000000000000000000000000000000000
 mode="${GATE_MODE:-fast}"
+passed_file="$(git rev-parse --git-common-dir)/gate-passed"
+touch "$passed_file"
 status=0
 while read -r local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && continue            # deleting a remote branch: nothing to check
-  tree="$(mktemp -d "${TMPDIR:-/tmp}/gate.XXXXXX")"
-  git worktree add --quiet --detach "$tree" "$local_sha" || exit 2
   if [ "$remote_ref" = "refs/heads/gh-pages" ]; then
     # The published example site: built pages, no code, so no gate to run. Anyone with the link reads it,
     # so it is checked for leaks instead (tools/check_site.py), with the pusher's git name and email forbidden.
+    tree="$(mktemp -d "${TMPDIR:-/tmp}/gate.XXXXXX")"
+    git worktree add --quiet --detach "$tree" "$local_sha" || exit 2
     echo "pre-push: $local_ref -> $remote_ref at ${local_sha:0:9} (site check)"
     python3 "$(git rev-parse --show-toplevel)/tools/check_site.py" "$tree" \
       --forbid "$(git config user.name)" --forbid "$(git config user.email)" || status=1
     git worktree remove --force "$tree"
     continue
   fi
+  tree_id="$(git rev-parse "$local_sha^{tree}")"
+  if grep -qx "$tree_id $mode" "$passed_file"; then
+    echo "pre-push: $local_ref -> $remote_ref at ${local_sha:0:9}: this exact code (tree ${tree_id:0:9}) already passed the $mode gate; not run again"
+    continue
+  fi
+  tree="$(mktemp -d "${TMPDIR:-/tmp}/gate.XXXXXX")"
+  git worktree add --quiet --detach "$tree" "$local_sha" || exit 2
   echo "pre-push: $local_ref -> $remote_ref at ${local_sha:0:9} ($mode)"
-  (cd "$tree" && .githooks/gate "$mode") || status=1
+  if (cd "$tree" && .githooks/gate "$mode"); then
+    echo "$tree_id $mode" >> "$passed_file"
+  else
+    status=1
+  fi
   git worktree remove --force "$tree"
 done
 if [ $status -ne 0 ]; then
