@@ -1621,7 +1621,9 @@ const TextFit = (() => {
     const bad = [], badAt = new Set();
     const named = nodes.filter((el) => el.getAttribute("aria-label") || el.textContent.trim());
     let live = $$("[data-node]", $(d.root));  // drawn again only when a click redrew the page: drawing is what costs the time
-    for (let i = 0; i < nodes.length; i++) {
+    // every node of a diagram of ordinary size; a drawing of hundreds (the synthetic 24-app vault) is walked at an even stride, 60 nodes, so the page's check stays quick
+    const MAX = 60, picks = nodes.length <= MAX ? nodes.map((_, i) => i) : Array.from({ length: MAX }, (_, j) => Math.floor((j * nodes.length) / MAX));
+    for (const i of picks) {
       for (const how of ["click", "Enter"]) {
         if (!live[i] || !live[i].isConnected) { d.show(); await frames(); live = $$("[data-node]", $(d.root)); }
         const el = live[i];
@@ -1635,7 +1637,7 @@ const TextFit = (() => {
         if (!fresh(before, panelNow())) { bad.push(`${how} on "${label}"`); badAt.add(i); }
       }
     }
-    ok(!bad.length && named.length === nodes.length, `node sweep, ${d.name}: ${plural(nodes.length, "node")}, each opens the panel by click and by Enter`,
+    ok(!bad.length && named.length === nodes.length, `node sweep, ${d.name}: ${plural(nodes.length, "node")}${picks.length < nodes.length ? ` (${picks.length} of them, at an even stride)` : ""}, each opens the panel by click and by Enter`,
       `node sweep, ${d.name}: the panel stayed empty or unchanged for ${badAt.size} of ${plural(nodes.length, "node")}: ${bad.slice(0, 6).join("; ")}${named.length !== nodes.length ? `; ${nodes.length - named.length} have no name` : ""}`);
     ok(!loose.length, `node sweep, ${d.name}: every node-shaped element was drawn through Nodes.wire`,
       `node sweep, ${d.name}: ${plural(loose.length, "node")} drawn without Nodes.wire, so with no click target or name: ${loose.slice(0, 6).map(words).join("; ")}`);
