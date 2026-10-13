@@ -22,57 +22,12 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "plugin" / "lib"))
 
-from planner.breakdown import SIZE_POINTS, build_rows, csv_text, parse  # noqa: E402  (the one reader of the format; the explorer's Build plan level uses it too)
+from planner.breakdown import build_rows, parse  # noqa: E402,F401  (the one reader of the format; the explorer's Build plan level uses it too)
+from planner import tickets  # noqa: E402  (the conversion itself: `planner tickets` writes the same files from an installed plugin)
 
 
 class BreakdownError(Exception):
     """The breakdown could not be found, read or written; nothing was converted."""
-
-
-def write_csv(rows, path):
-    with path.open("w", encoding="utf-8", newline="") as out:
-        out.write(csv_text(rows))
-
-
-README = """# Tickets from the work breakdown
-
-`tickets.csv` was written by `tools/breakdown_to_tickets.py` from `{source}`. No model touched it: each Story row is a
-`### S-NN` section and each Task row is a row of that story's task table, in the breakdown's own words. Nothing was
-added, merged or reworded. {counts}
-
-## How each column is filled
-
-| Column | From |
-|---|---|
-| Issue Id | `S-NN` for a story, `S-NN-Tn` for its nth task. Used only to link rows during import. |
-| Summary | the story heading (`S-NN name`), or the task's name |
-| Description | story: its Traces to line, its acceptance criteria under an "Acceptance criteria" heading, its Blocked by line, then any "Open for the design" notes and "Conflicts" notes, each as written. Task: its component, size, and its story's Traces to line |
-| Issue Type | Story for a section, Task for a task row. The breakdown has no epic level, so there are no Epics |
-| Parent | a task's Issue Id of its story. Blank for stories |
-| Story Points | tasks only: S = {s}, M = {m}, L = {l}. The work-breakdown skill gives sizes in days, not points, so this mapping is ours, and sizes are for ordering, not commitments. Stories carry no points so the total is not counted twice |
-| Labels | the requirement, contract, criterion and app IDs in the story's Traces to line (`CAP-nnn.FRn@APP-slug`, `CON-nnn`, `EPC-nnn.ACn`, `FR-nnn`, `APP-slug`), one per Labels column; a task has its story's. A story with an "Open for ..." note also gets `needs-design`, and one with a "Conflict with ..." note gets `conflict` |
-| Blocked by | the stories a story is blocked by, from its Blocked by line. Anything else it names (an open question, a gap, an outside party) is in the Description only |
-
-## Import into Jira
-
-1. Jira Cloud: Settings, System, External system import, CSV. (Team-managed or company-managed project: choose the target project first.)
-2. Upload `tickets.csv`, tick the comma delimiter, and map the columns: Summary to Summary, Description to Description,
-   Issue Type to Issue Type, Issue Id to Issue ID, Parent to Parent, Story Points to Story point estimate, every Labels
-   column to Labels, Blocked by to the issue link "Blocks" (as "is blocked by").
-3. Map the values Story and Task to your project's issue types. If your project only allows a Sub-task under a Story,
-   map Task to Sub-task.
-4. Import, then check one story and one of its tasks against `{source}`.
-{problems}{not_planned}"""
-
-
-def write_readme(path, source, stories, rows, problems, not_planned):
-    counts = f"{len(stories)} stories and {sum(len(s.tasks) for s in stories)} tasks, {len(rows)} rows."
-    prob = ("\n## Problems\n\nThese lines could not be mapped cleanly. Fix the breakdown (or the ticket by hand), then run again.\n\n"
-            + "\n".join(f"- {p}" for p in problems) + "\n") if problems else "\nNo problems: every line of the breakdown mapped.\n"
-    notp = ("\n## Not ticketed\n\nThe breakdown lists these under Not planned, so they have no ticket:\n\n"
-            + "\n".join(f"- {n}" for n in not_planned) + "\n") if not_planned else ""
-    path.write_text(README.format(source=source, counts=counts, s=SIZE_POINTS["S"], m=SIZE_POINTS["M"], l=SIZE_POINTS["L"],
-                                  problems=prob, not_planned=notp), encoding="utf-8")
 
 
 def find_breakdown(repo):
@@ -88,21 +43,12 @@ def convert(breakdown, out):
     try:
         text = breakdown.read_text(encoding="utf-8")
         out.mkdir(parents=True, exist_ok=True)
+        csv_body, readme, problems = tickets.convert_text(text, breakdown.name)
+        with (out / "tickets.csv").open("w", encoding="utf-8", newline="") as handle:
+            handle.write(csv_body)
+        (out / "README.md").write_text(readme, encoding="utf-8")
     except OSError as exc:
-        raise BreakdownError(f"cannot read {breakdown} or create {out}: {exc}") from exc
-    stories, not_planned, problems = parse(text)
-    # A story the plan retired into another ("Merged into S-05 …"), with no tasks of its own, is a pointer, not work:
-    # it is named in the README instead of becoming an empty ticket a team would have to close.
-    retired = [s for s in stories if not s.tasks and re.search(r"\bmerged into (S-\d+[a-z]?)", " ".join([s.name, *s.extra]), re.I)]
-    stories = [s for s in stories if s not in retired]
-    problems = [p for p in problems if not any(p.startswith(f"{s.id}:") for s in retired)]
-    problems += [f"{s.id}: merged into {re.search(r'merged into (S-[0-9]+[a-z]?)', ' '.join([s.name, *s.extra]), re.I).group(1)}, so not exported" for s in retired]
-    rows = build_rows(stories)
-    try:
-        write_csv(rows, out / "tickets.csv")
-        write_readme(out / "README.md", breakdown.name, stories, rows, problems, not_planned)
-    except OSError as exc:
-        raise BreakdownError(f"cannot write to {out}: {exc}") from exc
+        raise BreakdownError(f"cannot read {breakdown} or write to {out}: {exc}") from exc
     return problems
 
 
