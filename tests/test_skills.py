@@ -240,7 +240,7 @@ def run_injected(cwd, env):
 
 def test_ask_answers_from_opened_sections_and_marks_what_is_missing():
     ask = text("skills/ask/SKILL.md")
-    assert "Never search `voice/`." in ask
+    assert "Never search or Read a file under `voice/` or `.inbox/`." in ask  # said once
     assert "Cite nothing you did not open in this answer." in ask
     assert "`Not recorded:`" in ask and "`Not decided:`" in ask
     assert "Never create, edit or delete a file." in ask
@@ -268,9 +268,11 @@ def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
     for banned in ("`tee`", "`sed -i`", "`git commit`", "`git checkout`", "`git log --output`", "`planner render`"):
         assert banned in ask
     assert "writes a file or changes git state" in ask
-    assert "Every claim is followed by its ID or labelled `Not from the vault:`. There is no third choice." in ask
+    assert "Every claim rests on a page in the `Sources:` list or is labelled `Not from the vault:`. There is no third choice." in ask
+    assert "Name each thing in the sentence by its plain name, not its ID." in ask  # the lead reads names; IDs sit in Sources
     assert "Assert nothing you did not open and read. A Grep snippet alone does not count." in ask
-    assert "Never Read a file under `voice/` or `.inbox/`. Read `sessions/` only if the user asks." in ask
+    assert "Search and Read `sessions/` only if the question asks about a session or what was said." in ask
+    assert "only when the clone is behind origin/main" in ask  # a lead who asks a question does not read a commit hash first
 
 
 # house voice (V1-09): close now drafts prose through it, and only through it.
@@ -386,7 +388,7 @@ def test_explore_opens_a_page_only_after_a_build_that_succeeded_and_writes_nothi
     explore = text("skills/explore/SKILL.md")
     assert "If the command exits 2, show its message in full, say no page was built, and stop." in explore
     assert "Never say the page is open unless the command succeeded." in explore
-    assert "Nothing is written into the plugin folder." in explore
+    assert "Nothing is written into the plugin folder." in skill_text("explore")  # product notes, in ABOUT.md, read on request
     meta = frontmatter(PLUGIN / "skills/explore/SKILL.md")
     assert "Write" not in meta["allowed-tools"].split() and "Edit" not in meta["allowed-tools"].split()
 
@@ -424,9 +426,10 @@ def test_open_and_import_also_say_where_the_explorer_is_and_never_stop_on_a_fail
 
 
 def test_explore_and_the_vault_reference_say_designs_and_plans_live_in_the_vault_docs_folder():
-    explore, ref = text("skills/explore/SKILL.md"), text("references/TECH-DESIGN-FROM-VAULT.md")
+    explore, ref = skill_text("explore"), text("references/TECH-DESIGN-FROM-VAULT.md")
     assert "`docs/tech-design/<slug>.md` (with `docs/adr/`" in explore and "team_repos" not in explore
-    assert "Writing its own `docs/` files in the vault is allowed" in explore
+    assert "write their own `docs/` files in the vault and never edit a planner page" in explore
+    assert 'says "never edit the vault"' not in explore  # an outside skill's words go stale; say what is true here
     assert "in the vault" in ref and "team_repos" not in ref
 
 

@@ -25,7 +25,7 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner proposals review "<proposal>"
 Tell the user in plain words what it printed:
 - If it stopped (a base commit this clone lacks, a dirty checkout, a branch that exists, a damaged patch), say why in one sentence and what to do. Do not work around a stop by hand; fix its cause or ask the owner.
 - If the vault moved since the reader's copy, say by how many commits. It is a warning, not a stop.
-- **Conflicts:** the files hold conflict markers in the worktree. Walk the user through each conflicted file: show both sides, ask which text wins or what the merged text says, edit the worktree file, then stage and commit with `git -C <worktree> add -A` and `git -C <worktree> commit -m "Resolve proposal conflicts"`. Do this before anything else.
+- **Conflicts:** the files hold conflict markers in the worktree. Walk the user through each conflicted file: show both sides, ask which text wins or what the merged text says, edit the worktree file, then stage each conflicted file by exact path (`git -C <worktree> add -- <file>`) and commit with `git -C <worktree> commit -m "Resolve proposal conflicts"`. Do this before anything else.
 - **Check:** compare its counts with the proposal's claim. If the reader's copy had errors, show them first. They do not decide the review; the owner does.
 
 ## 2. Walk the changes
@@ -40,9 +40,7 @@ Read `proposal.md` in the proposal folder (for a zip, the tool read it; show the
    - **Edit.** The owner says what the text should be; edit the worktree file with them, commit it (`git -C <worktree> commit -am "Edit <key> from the proposal"`), and for a pending decision run `planner proposals accept` afterwards so the marker goes and the reader is credited. Ask for a one-line note of what they changed; the reader reads it.
 4. Keep a note of the outcome and the owner's reason for each group.
 
-If the owner wants to accept something a rule forbids, such as a check error or a decision made without a Grill, they may: record it as an `**Override:**` on the item, as `CONVENTIONS.md` says under "Overrides", with their handle, today's date and their reason. Never block it, never hide it.
-
-If a reader changed the words of an item that was already `decided` (not one they decided themselves), and the owner does not want to settle it now, do not leave it quietly decided. Record a blocking unknown as `/planner:challenge` section 4 does, with the reader as its owner and `**Blocks:**` the item, and commit it on the branch. `planner check` then shows E316 until an answer session (`modes: [answer, grill]`, `START.md` "Answer a challenge") settles it.
+Two rarer cases are under "Special cases" at the end.
 
 ## 3. Check and answer
 
@@ -62,6 +60,12 @@ It writes `answer.md` into the proposal folder (beside a zip, or beside a bare p
 ## 4. The branch
 
 The work is on `proposal/<slug>`. Offer the owner their normal git steps and print the commands, for example `git switch main && git merge proposal/<slug>`, or `git push -u origin proposal/<slug>` and a PR as `/planner:close` opens one. Run a local merge only if they say so. **Never push, and never open a PR yourself.** Remind them that `git worktree remove <worktree>` tidies up once the branch is merged, and that a new published copy is how the reader continues.
+
+## Special cases
+
+If the owner wants to accept something a rule forbids, such as a check error or a decision made without a Grill, they may: record it as an `**Override:**` on the item, as `CONVENTIONS.md` says under "Overrides", with their handle, today's date and their reason. Never block it, never hide it.
+
+If a reader changed the words of an item that was already `decided` (not one they decided themselves), and the owner does not want to settle it now, do not leave it quietly decided. Record a blocking unknown as `/planner:challenge` section 4 does, with the reader as its owner and `**Blocks:**` the item, and commit it on the branch. `planner check` then shows E316 until an answer session (`modes: [answer, grill]`, `START.md` "Answer a challenge") settles it.
 
 ## Never
 

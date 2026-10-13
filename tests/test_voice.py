@@ -6,7 +6,7 @@ import sys
 import pytest
 import yaml
 
-from conftest import REPO
+from conftest import REPO, skill_text
 from planner import parse, schema
 
 EXAMPLES = REPO / "template" / "voice" / "examples"
@@ -119,7 +119,7 @@ def test_house_voice_reads_only_active_examples():
 
 
 def test_voice_seed_stores_the_owner_words_and_never_rewrites_them():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     assert "It never rewrites them." in seed
     assert "Never rewrite, shorten, correct or paraphrase the owner's words." in seed
     assert "Did you write this yourself?" in seed and "wait for an explicit yes to each" in seed
@@ -128,7 +128,7 @@ def test_voice_seed_stores_the_owner_words_and_never_rewrites_them():
 
 
 def test_voice_seed_retires_the_seed_only_once_the_owner_has_two():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     assert "A `public-seed` example retires when" in seed
     assert "Set `state: retired` on each example in it. Change only the `state:` line." in seed
     assert "Never delete a seed example" in seed
@@ -137,15 +137,15 @@ def test_voice_seed_retires_the_seed_only_once_the_owner_has_two():
 
 
 def test_voice_seed_commits_by_path_and_never_claims_a_pr():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     assert "Never use `git add -A`." in seed
     assert "Never say a PR exists unless `gh` printed its URL." in seed
     assert "gh api user -q .login" in seed
 
 
 def test_the_example_voice_seed_writes_has_only_documented_fields():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
-    block = seed.split("## 4. Write the examples", 1)[1].split("````\n")[1]
+    seed = skill_text("voice-seed")
+    block = seed.split("## Write the examples (section 4)", 1)[1].split("````\n")[1]  # the recipe lives in WRITE.md
     filled = (block.replace("<type>", "decision").replace("NNN", "004").replace("<handle>", "hl-solution-lead")
               .replace("<where it comes from>", "design review").replace("<today>", "2026-11-20"))
     meta = yaml.safe_load(filled.split("---\n")[1])
@@ -161,7 +161,7 @@ def test_the_example_voice_seed_writes_has_only_documented_fields():
 # fix round 1: write mechanism, risky lines, privacy, count and cap rules, quoting, final check.
 
 def test_voice_seed_writes_verbatim_with_a_quoted_heredoc_and_compares():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     assert "write the frontmatter with the Write tool" in seed
     assert "cat >> <file> <<'PLANNER_EOF'" in seed
     assert "If the passage contains a line `PLANNER_EOF`, pick another delimiter" in seed
@@ -174,14 +174,14 @@ def test_voice_seed_writes_verbatim_with_a_quoted_heredoc_and_compares():
 
 
 def test_voice_seed_warns_about_boundary_and_generated_lines():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     assert "Take everything after the frontmatter's closing `---` as the body." in seed
     assert "exactly `---`, or contains `<!-- generated:`" in seed
     assert "Store it only on an explicit yes, and never rewrite the line." in seed
 
 
 def test_voice_seed_offers_a_local_only_place_and_says_what_is_committed():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     assert "`voice/examples/` is committed, pushed and opened as a PR, so anyone with access to this repository can read" in seed
     assert "local only: `voice/local/<type>/`" in seed
     assert "If the owner says their employer owns the text, or is not sure, recommend local only." in seed
@@ -200,7 +200,7 @@ def test_house_voice_reads_the_local_folder_too():
 
 
 def test_voice_seed_and_conventions_count_owner_examples_the_same_way():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "A `public-seed` example retires when the active `owner` and `owner-edit` examples in its own folder, after this run, number at least 2." in seed
     assert "2 `active` examples with `source: owner` or `owner-edit` in the same folder as a `public-seed` example, counted after the run" in conventions
@@ -208,7 +208,7 @@ def test_voice_seed_and_conventions_count_owner_examples_the_same_way():
 
 
 def test_voice_seed_cap_order_and_refusal_match_conventions():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "`public-seed` first, then `owner-edit`, then `owner`" in seed
     assert "the `public-seed` examples first, then the `owner-edit`, then the `owner`, the oldest `added` first" in conventions
@@ -217,10 +217,10 @@ def test_voice_seed_cap_order_and_refusal_match_conventions():
 
 
 def test_voice_seed_quotes_from_and_runs_a_final_check(tmp_path):
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     assert "Write `from` in single-quoted YAML, and double any `'` inside it" in seed
     assert "re-read the frontmatter and confirm it parses as YAML" in seed
-    block = seed.split("## 6. Final check", 1)[1].split("```\n", 2)[1]
+    block = seed.split("## Final check (section 6)", 1)[1].split("```\n", 2)[1]  # the count lives in WRITE.md
     script = block.split("<<'PLANNER_EOF'\n", 1)[1].rsplit("PLANNER_EOF", 1)[0]
     vault = tmp_path
     for folder, n in (("voice/examples", 3), ("voice/local", 3)):
@@ -240,7 +240,7 @@ def test_voice_seed_quotes_from_and_runs_a_final_check(tmp_path):
 # fix round 2: local examples never change committed files; the verbatim check is a tool comparison.
 
 def test_a_local_only_run_never_retires_a_committed_seed():
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     voice = SKILL.read_text(encoding="utf-8")
     assert "A local example never retires a committed seed" in seed
@@ -258,7 +258,7 @@ def _verbatim_script(seed, file, passage):
 
 
 def test_the_verbatim_check_compares_with_cmp(tmp_path):
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     passage = "It’s “quoted”  \r\n---\ntrailing   \n\nlast line\n"
     stored = tmp_path / "VX-decision-001.md"
     head = "---\nid: VX-decision-001\nstate: active\n---\n\n"
@@ -277,7 +277,7 @@ def test_the_verbatim_check_compares_with_cmp(tmp_path):
 
 def test_the_verbatim_check_block_cleans_up_its_own_temp_file(tmp_path):
     """Each block runs in a fresh shell, so the one that makes the temp file also removes it."""
-    seed = SEED_SKILL.read_text(encoding="utf-8")
+    seed = skill_text("voice-seed")
     stored = tmp_path / "VX-decision-001.md"
     stored.write_text("---\nid: VX-decision-001\n---\n\nA passage.\n", encoding="utf-8")
     scratch = tmp_path / "scratch"

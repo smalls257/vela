@@ -6,7 +6,7 @@ The user's `requirements-grill` skill reads this file when it runs in a reposito
 
 ## Scope
 
-Vault mode always runs on one capability, `CAP-NNN`. If the user gave none, ask: "Which capability? For example CAP-021." Stop until there is one, and stop if `capabilities/CAP-NNN-*.md` does not exist.
+Vault mode always runs on one capability, `CAP-NNN`. If the user gave none, ask which capability, by name, and take its `CAP-NNN` from the vault. Stop until there is one, and stop if `capabilities/CAP-NNN-*.md` does not exist.
 
 It is called from two places:
 
@@ -41,7 +41,7 @@ An unknown that blocks an FR links the FR's heading:
 - **Blocks:** [[CAP-021-amend-or-cancel#CAP-021.FR2 Partial cancel|CAP-021.FR2]]
 ```
 
-FR numbers are never reused. A removed FR stays, struck through, with the reason.
+FR numbers are never reused. When the lead drops an FR, never strike its heading through, because that breaks every link to it: run `planner query refs <ID>`, take it out of every row that names it in the same checkpoint, delete it, and keep the reason in the session record as a `→ drop` capture. `/planner:requirements` does the same.
 
 ## Certainty
 
@@ -53,4 +53,4 @@ FR numbers are never reused. A removed FR stays, struck through, with the reason
 
 ## Completion
 
-When every section has content and every branch is closed or is an unknown, run the skill's `NEG-AUDIT.md`. Then do not set any `status: complete`. Tell the user: "Run `/planner:close` to mark the captures, check the vault and open the PR."
+When every section has content and every branch is closed or is an unknown, run `${CLAUDE_PLUGIN_ROOT}/references/NEG-AUDIT.md` (the copy the plugin ships; a vendored vault carries it beside this file). Then do not set any `status: complete`. Tell the user: "Run `/planner:close` to mark the captures, check the vault and open the PR."

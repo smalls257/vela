@@ -30,6 +30,11 @@ First say this plainly: "`voice/examples/` is committed, pushed and opened as a 
 - committed: `voice/examples/<type>/`. The passages go through a PR.
 - local only: `voice/local/<type>/`. They stay on this machine, are gitignored, and are never committed.
 
+| Place | Who can read it | Retires a committed seed | Opens a PR |
+|---|---|---|---|
+| committed, `voice/examples/<type>/` | anyone with access to the repository | yes, within its folder | yes |
+| local only, `voice/local/<type>/` | this machine only | no | no |
+
 If the owner says their employer owns the text, or is not sure, recommend local only. A local-only run changes no committed file and makes no branch, commit or PR. Say so. A local example never retires a committed seed: that would drop every teammate's house voice below 2 examples of the type. On this machine, house-voice reads local owner examples ahead of the committed seed. Create `voice/local/<type>/` when it does not exist.
 
 Take the voice type the user named, or the three page types in this order: diagnosis, decision, how-it-works. The `conversation` type is taken when it is named or when the owner accepts the offer at the end. For each type:
@@ -66,46 +71,7 @@ After the types, offer once: "Do you want to start `voice/VOICE.md`, your own ru
 
 ## 4. Write the examples
 
-Write each passage to `<folder>/<type>/VX-<type>-NNN.md`, where the folder is `voice/examples` or `voice/local`. NNN is one higher than the highest number for that type in both folders, retired files included, in three digits. Write a file in three moves.
-
-First, write the frontmatter with the Write tool. End it with the closing `---` and one blank line. Write `from` in single-quoted YAML, and double any `'` inside it:
-
-````
----
-id: VX-<type>-NNN
-voice_type: <type>
-source: owner
-author: "@<handle>"
-from: '<where it comes from>'
-state: active
-added: <today>
----
-
-````
-
-Second, append the pasted text exactly as given, with a quoted heredoc so nothing expands:
-
-```
-cat >> <file> <<'PLANNER_EOF'
-<the passage, exactly as pasted>
-PLANNER_EOF
-```
-
-If the passage contains a line `PLANNER_EOF`, pick another delimiter and use it in both places.
-
-Third, compare the stored body with the pasted text, with a tool. Write the pasted text to a temp file with a second quoted heredoc. Extract the stored body, which is everything after the closing frontmatter `---` line and its one blank line. Compare the two with `cmp`:
-
-```
-tmp=$(mktemp)
-cat > "$tmp" <<'PLANNER_EOF'
-<the passage, exactly as pasted>
-PLANNER_EOF
-awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - "$tmp"; code=$?; rm -f "$tmp"; (exit $code)
-```
-
-Run the whole block in one call: the shell keeps no variable between calls, so `$tmp` exists only inside it. If `cmp` reports a difference, stop. Tell the owner and do not repair the file. A heredoc always ends its text with a newline, so a paste that had no final newline gains one in both files, and `cmp` will not show it. When the paste had none, tell the owner. The check proves the file holds what the heredoc received. It does not prove the chat text reached the heredoc unchanged. Store an accepted passage as it was pasted.
-
-Then re-read the frontmatter and confirm it parses as YAML and that `from` is the text the owner gave.
+Write each passage as `<folder>/<type>/VX-<type>-NNN.md`, in the three moves `${CLAUDE_PLUGIN_ROOT}/skills/voice-seed/WRITE.md` gives: frontmatter, the pasted text exactly as given, and a compare with `cmp`. Read that file now and follow it; the stored text must equal the pasted text, and a difference stops the run.
 
 ## 5. Retire examples
 
@@ -115,25 +81,7 @@ A type with fewer than 2 owner passages keeps its seed. A local-only run always 
 
 ## 6. Final check
 
-Re-read every file you wrote or changed. Confirm each frontmatter parses, then run this from the vault root. It prints a count per type and exits 1 if a type has more than 5 active examples or a file does not parse:
-
-```
-python3 - <<'PLANNER_EOF'
-import glob, sys, yaml
-active, bad = {}, []
-for path in glob.glob("voice/examples/*/*.md") + glob.glob("voice/local/*/*.md"):
-    try:
-        meta = yaml.safe_load(open(path, encoding="utf-8").read().split("---\n", 2)[1])
-        if meta["state"] == "active":
-            active[meta["voice_type"]] = active.get(meta["voice_type"], 0) + 1
-    except Exception as err:
-        bad.append(f"{path}: {err}")
-print(active, bad)
-sys.exit(1 if bad or any(n > 5 for n in active.values()) else 0)
-PLANNER_EOF
-```
-
-If it fails, say what failed and stop.
+Re-read every file you wrote or changed, confirm each frontmatter parses, and run the count in `${CLAUDE_PLUGIN_ROOT}/skills/voice-seed/WRITE.md`: it exits 1 if a type has more than 5 active examples or a file does not parse. If it fails, say what failed and stop.
 
 ## 7. Commit and open the PR
 

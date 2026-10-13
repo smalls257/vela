@@ -27,7 +27,7 @@ def test_ask_runs_the_planner_by_the_one_loose_pattern_and_stays_read_only_by_di
 def test_ask_resolves_every_id_before_citing_it():
     ask = ASK.read_text(encoding="utf-8")
     assert "Before you cite any ID, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query get <ID> --json`." in ask
-    assert "Cite the ID by the `link` it returns" in ask
+    assert "Put the ID, by the `link` it returns, in the `Sources:` list" in ask
     assert "If the answer is `not_found`, never cite that ID" in ask
     assert "`Not recorded: <ID> is not in this vault.`" in ask
     assert "planner query find <words> --json" in ask and "planner query refs <ID> --json" in ask

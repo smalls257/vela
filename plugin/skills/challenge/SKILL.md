@@ -15,7 +15,7 @@ The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Whe
 
 First run `planner role`. In a reader copy (a published copy with no `.git`), stop: say "That is the owner's call, and a challenge opens a PR, which needs git. Your disagreement is a proposal: write it down and send it to <the owner named in `.planner/published.json`>." Write nothing and open no session.
 
-Run steps 1, 2, 5 and 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
+Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the state of the clone, find open sessions, open the record and read how to talk (its steps 1, 2, 5 and 6), with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 ## 2. Find the challenged item
 
@@ -42,7 +42,7 @@ Capture each answer as said, with the senior's handle as origin. If you restate 
 
 Write only these, and change nothing else:
 
-- On `11-unknowns-and-risks.md`, add the unknown. Get its number from `planner next-id UNK` and use exactly what it prints; never work it out by eye. It is the highest `UNK-nnn` in use plus one, the next free `UNK-nnn`, and the command counts the places listed below. Never fill a gap. Count the numbers in use in three places: `main`; the `11-unknowns-and-risks.md` of each branch on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:11-unknowns-and-risks.md`); and the `## Changes` tables of those branches' records (`git show <branch>:sessions/<id>.md`), because an open session may already hold the next number. Add the entry at the end of `## Unknowns`, before `## Risks`. The short name has at most six words and none of `# | ^ : % [ ]`.
+- On `11-unknowns-and-risks.md`, add the unknown. Get its number from `planner next-id UNK` and use exactly what it prints: it counts `main` and every open session branch, so a number is never handed out twice. Add the entry at the end of `## Unknowns`, before `## Risks`. The short name has at most six words and none of `# | ^ : % [ ]`.
 
 ```
 ### UNK-nnn <short name>
