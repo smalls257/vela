@@ -62,6 +62,8 @@ const FlowPicker = (() => {
   const mutedLine = (e, grouped) => {
     const bits = [plural(e.steps, "step")];
     if (e.open) bits.push(plural(e.open, "open question"));
+    const pl = Releases.tracerPlace(e.key);
+    if (pl) bits.push(`${Releases.tracerPlaceWords(pl)} in the tracer`);
     if (grouped && e.caps.length > 1) bits.push(`also serves ${e.caps.slice(1).join(", ")}`);
     return bits.join(" · ");
   };
@@ -110,7 +112,7 @@ const FlowPicker = (() => {
       return h("div", { class: "fp-opt" + (on ? " on" : ""), role: "option", id: `fp-${id}-${options.length}`, "aria-selected": String(on), "data-flow": e.key,
         onmousedown: (ev) => ev.preventDefault(), onclick: () => choose(e.key), onmousemove: () => { const at = options.findIndex((o) => o.key === e.key); if (at !== active) setActive(at, false); } },
         swatchEl(e.key), lampEl(e.level),
-        h("span", { class: "fp-text" }, h("span", { class: "fp-title" }, e.title), h("small", {}, mutedLine(e, grouped))));
+        h("span", { class: "fp-text" }, h("span", { class: "fp-title" }, e.title, Releases.tracerTag(e.key)), h("small", {}, mutedLine(e, grouped))));
     }
     function noneOption() {
       const on = current() === null;
