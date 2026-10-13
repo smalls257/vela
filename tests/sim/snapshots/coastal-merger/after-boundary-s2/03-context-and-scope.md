@@ -77,7 +77,7 @@ Each bullet is an `assumption`, source SRC-06, because the reply states what the
 - **Shared account service** (assumption, SRC-06): the Northway Platform team owns it. Who owns Northway ID itself is still open: [[11-unknowns-and-risks#UNK-012 Northway ID ownership|UNK-012]].
 - **Live date** (assumption, SRC-06): live by 1 June 2027, which is what the CIO means by next summer. [[11-unknowns-and-risks#UNK-002 Meaning of next summer|UNK-002]] stays open until the CIO's office confirms it.
 
-<!-- generated:system-context sha=3cd83795: do not edit, run planner render -->
+<!-- generated:system-context sha=bcd10c1b: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]
@@ -101,6 +101,8 @@ flowchart LR
   classDef app fill:#eef1f5,stroke:#2448b8,color:#19212d
   class n_APP_account_link_service,n_APP_ferrymaster,n_APP_northway_id,n_APP_railcore,n_APP_seabook app
 ```
+
+Key: blue outline: an app in the initiative · an arrow is a contract, labelled with its ID.
 <!-- /generated:system-context -->
 
 ## In scope

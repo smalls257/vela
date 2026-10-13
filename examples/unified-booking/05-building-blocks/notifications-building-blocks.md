@@ -27,7 +27,7 @@ Notifications does not decide what state a booking is in. It reports what Bookin
 |---|---|
 | Changed: a new Booking event consumer. The existing email and SMS sender is reused. | Platform team |
 
-<!-- generated:app-context sha=eeecc3bd: do not edit, run planner render -->
+<!-- generated:app-context sha=735fe849: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -38,6 +38,8 @@ flowchart LR
   class n_APP_notifications focus
   class n_APP_booking new
 ```
+
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Notifications: main containers

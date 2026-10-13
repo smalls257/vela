@@ -20,7 +20,7 @@ The picked cut for the first release. The coach is a new service, Coach, that ho
 
 - **Options considered:** A Coach service behind TickerTalk (picked); Coach inside TickerTalk: rejected, the product lead says "news app stays news"; Coach plus a paper-trading gateway: rejected, two new services for a January demo and a seam that only pays off once real orders exist (Claude's reason, the product lead gave none)
 
-<!-- generated:context-map sha=6ae7150c: do not edit, run planner render -->
+<!-- generated:context-map sha=56ca60b0: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -39,4 +39,6 @@ flowchart LR
   class x_brightwater,x_quoteline external
   class n_APP_coach new
 ```
+
+Key: green: new in this initiative · amber: changed by this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:context-map -->

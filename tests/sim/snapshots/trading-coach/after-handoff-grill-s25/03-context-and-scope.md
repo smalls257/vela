@@ -49,21 +49,23 @@ sources: [SRC-01, SRC-02, SRC-03, SRC-04, SRC-06, SRC-07]
 
 ## After
 
-<!-- generated:system-context sha=a0d4697b: do not edit, run planner render -->
+<!-- generated:system-context sha=7628f404: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]
     n_APP_coach["Coach"]
     n_APP_tickertalk["TickerTalk"]
   end
-  x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___["Quoteline ( 03-context-and-scope PTY-02 Quoteline PTY-02 )"]
+  x_quoteline__pty_02_["Quoteline (PTY-02)"]
   n_APP_coach -->|"CON-001"| n_APP_tickertalk
-  x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___ -->|"CON-002"| n_APP_coach
+  x_quoteline__pty_02_ -->|"CON-002"| n_APP_coach
   classDef app fill:#eef1f5,stroke:#2448b8,color:#19212d
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   class n_APP_coach,n_APP_tickertalk app
-  class x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___ external
+  class x_quoteline__pty_02_ external
 ```
+
+Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:system-context -->
 
 ## In scope

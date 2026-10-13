@@ -79,7 +79,7 @@ Heron reads what each call tool leaves behind about a call, such as notes or a t
 - **Change:** new
 - **State:** assumption
 
-<!-- generated:app-context sha=88a41db9: do not edit, run planner render -->
+<!-- generated:app-context sha=b9a0afa9: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_heron["Heron (new)"]
@@ -94,6 +94,8 @@ flowchart LR
   class x_microsoft,x_the_call_tools_the_pilot_team_and_its_clients_use__not_yet_known,x_the_pilot_user__on_their_own_laptop external
   class n_APP_heron focus
 ```
+
+Key: dark blue: the app this page is about · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Requirements allocated

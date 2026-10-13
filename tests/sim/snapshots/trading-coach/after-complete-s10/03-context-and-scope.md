@@ -21,25 +21,27 @@ The product lead says TickerTalk is the foundation: the app, the readers and a m
 
 ## After
 
-<!-- generated:system-context sha=4a254c68: do not edit, run planner render -->
+<!-- generated:system-context sha=58d1b902: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]
     n_APP_coach["Coach"]
     n_APP_tickertalk["TickerTalk"]
   end
-  x___03_context_and_scope_pty_01_brightwater_brightwater__["03-context-and-scope PTY-01 Brightwater Brightwater"]
-  x___03_context_and_scope_pty_02_quoteline_quoteline__["03-context-and-scope PTY-02 Quoteline Quoteline"]
+  x_brightwater["Brightwater"]
+  x_quoteline["Quoteline"]
   n_APP_coach -->|"CON-001"| n_APP_tickertalk
   n_APP_coach -->|"CON-002"| n_APP_tickertalk
-  x___03_context_and_scope_pty_01_brightwater_brightwater__ -->|"CON-003"| n_APP_coach
-  x___03_context_and_scope_pty_02_quoteline_quoteline__ -->|"CON-004"| n_APP_coach
+  x_brightwater -->|"CON-003"| n_APP_coach
+  x_quoteline -->|"CON-004"| n_APP_coach
   n_APP_tickertalk -->|"CON-005"| n_APP_coach
   classDef app fill:#eef1f5,stroke:#2448b8,color:#19212d
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   class n_APP_coach,n_APP_tickertalk app
-  class x___03_context_and_scope_pty_01_brightwater_brightwater__,x___03_context_and_scope_pty_02_quoteline_quoteline__ external
+  class x_brightwater,x_quoteline external
 ```
+
+Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:system-context -->
 
 ## In scope

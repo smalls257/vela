@@ -27,7 +27,7 @@ Pricing does not hold seats or know if a booking is confirmed. Booking does that
 |---|---|
 | Changed: callers narrowed from the three front ends to Booking only | Revenue team |
 
-<!-- generated:app-context sha=4800e492: do not edit, run planner render -->
+<!-- generated:app-context sha=4f500fae: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -38,6 +38,8 @@ flowchart LR
   class n_APP_pricing focus
   class n_APP_booking new
 ```
+
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Pricing: main containers

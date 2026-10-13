@@ -16,7 +16,7 @@ Each application in scope has two pages: its building blocks and contracts (§5)
 
 ## Who owns what, and how they relate
 
-<!-- generated:context-map sha=eeba7f34: do not edit, run planner render -->
+<!-- generated:context-map sha=3b5200eb: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -47,6 +47,8 @@ flowchart LR
   class n_APP_booking new
   class n_APP_customer_identity,n_APP_ferrymaster,n_APP_vessel_schedule unchanged
 ```
+
+Key: green: new in this initiative · amber: changed by this initiative · grey: stays as it is · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:context-map -->
 
 Each arrow is a contract, drawn from its provider to each consumer. Each contract lives on the provider's page.

@@ -12,7 +12,7 @@ authored: mixed
 
 Every capability this initiative changes. Each capability page holds what provides it today and after.
 
-<!-- generated:capability-map sha=bacbef06: do not edit, run planner render -->
+<!-- generated:capability-map sha=e9305f84: do not edit, run planner render -->
 ```mermaid
 flowchart TB
   subgraph d_capture["Capture"]
@@ -30,6 +30,8 @@ flowchart TB
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
   class c_CAP_001,c_CAP_002,c_CAP_003,c_CAP_004,c_CAP_005,c_CAP_006 new
 ```
+
+Key: green: new in this initiative.
 <!-- /generated:capability-map -->
 
 ## Capabilities

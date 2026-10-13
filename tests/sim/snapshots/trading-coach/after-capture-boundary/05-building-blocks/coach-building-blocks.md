@@ -18,7 +18,7 @@ Coach is the new service behind TickerTalk's coach screens. It teaches one stock
 
 Coach places no real order and trades nothing for a reader, because [[sources#SRC-08|Outside Counsel's reply]] bars it in the first release. It covers no options, gives no trade idea for a particular reader, holds no money, which stays with Brightwater, and draws no screens, which stay in TickerTalk. It does not use Signal in release one. It does not write the lessons: Fieldnote Learning does, and starts on 12 October according to the product lead. It runs on Kestrel's AWS account, run by the Coach team, according to the CTO. Until Quoteline answers whether [[11-unknowns-and-risks#UNK-038 Valuing paper trades on Quoteline quotes|valuing paper trades on its quotes]] is display use, Coach shows a reader's cash balance and positions at fill price and computes no valued balance. Who covers Coach out of hours is not recorded, and the data concern has not been examined.
 
-<!-- generated:app-context sha=5dfa70c3: do not edit, run planner render -->
+<!-- generated:app-context sha=a4da5dee: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -37,6 +37,8 @@ flowchart LR
   class x_brightwater,x_quoteline external
   class n_APP_coach focus
 ```
+
+Key: dark blue: the app this page is about · amber: changed by this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Containers

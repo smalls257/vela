@@ -20,21 +20,23 @@ Coach teaches individual US-listed stocks through lessons and paper practice on 
 
 Coach prepares or places no real order: real orders are release two, and Brightwater keeps the execution (SRC-01). It teaches no ETFs and no options in release one, shows no trade ideas to customers (SRC-06) and holds no customer money, which Brightwater holds (SRC-01). Sign-in and the news stay with [[tickertalk-building-blocks|TickerTalk]]. Coach does not run Signal, whose place is not decided.
 
-<!-- generated:app-context sha=1d2e32a8: do not edit, run planner render -->
+<!-- generated:app-context sha=1ee14375: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
   n_APP_tickertalk["TickerTalk (changed)"]
-  x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___["Quoteline ( 03-context-and-scope PTY-02 Quoteline PTY-02 )"]
+  x_quoteline__pty_02_["Quoteline (PTY-02)"]
   n_APP_coach -->|"CON-001"| n_APP_tickertalk
-  x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___ -->|"CON-002"| n_APP_coach
+  x_quoteline__pty_02_ -->|"CON-002"| n_APP_coach
   classDef changed fill:#fdf0d5,stroke:#a06400,color:#3a2600
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
   class n_APP_tickertalk changed
-  class x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___ external
+  class x_quoteline__pty_02_ external
   class n_APP_coach focus
 ```
+
+Key: dark blue: the app this page is about · amber: changed by this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Containers

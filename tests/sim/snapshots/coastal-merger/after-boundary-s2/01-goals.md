@@ -76,7 +76,7 @@ authored: mixed
 
 ## Progress by app
 
-<!-- generated:progress-map sha=4d07490e: do not edit, run planner render -->
+<!-- generated:progress-map sha=a8d5e291: do not edit, run planner render -->
 **As of:** 2026-10-07, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
@@ -85,7 +85,7 @@ authored: mixed
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | target | 0 | 2 | 0 | 0 | none | grill APP-ferrymaster |
 | [[northway-id-building-blocks\|Northway ID]] | target | 0 | 4 | 0 | 0 | none | grill APP-northway-id |
 | [[seabook-building-blocks\|SeaBook]] | target | 0 | 3 | 0 | 0 | none | grill APP-seabook |
-| [[railcore-building-blocks\|RailCore]] | - | 0 | 2 | 0 | 0 | none | shape APP-railcore |
+| [[railcore-building-blocks\|RailCore]] | - | 0 | 2 | 0 | 0 | none | discover APP-railcore |
 <!-- /generated:progress-map -->
 
 ## Why now

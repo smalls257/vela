@@ -72,7 +72,7 @@ The Desktop agent reads the signed-in person's calendar entries and existing Tea
 
 ## Where it fits
 
-<!-- generated:app-context sha=5b6a48c7: do not edit, run planner render -->
+<!-- generated:app-context sha=ea6f1bf9: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
@@ -90,6 +90,8 @@ flowchart LR
   class n_APP_desktop_agent focus
   class n_APP_consent_and_identity,n_APP_summariser new
 ```
+
+Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 <!-- generated:contracts-consumed sha=8ab64157: do not edit, run planner render -->

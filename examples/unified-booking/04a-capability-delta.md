@@ -19,7 +19,7 @@ Every capability this initiative changes, which software provides it before and 
 
 Each capability page holds the change, what provides it today and after, its flows and its epics.
 
-<!-- generated:capability-map sha=86713d8f: do not edit, run planner render -->
+<!-- generated:capability-map sha=26e98444: do not edit, run planner render -->
 ```mermaid
 flowchart TB
   subgraph d_booking["Booking"]
@@ -47,6 +47,8 @@ flowchart TB
   class c_CAP_023 retired
   class c_CAP_011,c_CAP_015 unchanged
 ```
+
+Key: green: new in this initiative · amber: changed by this initiative · grey: stays as it is · red, dashed: retired by this initiative.
 <!-- /generated:capability-map -->
 
 - [[CAP-013-reserve-a-crossing|Reserve a crossing]]

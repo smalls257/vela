@@ -35,7 +35,7 @@ Three channels, three adapters, three opinions about what state a booking is in.
 
 ## After
 
-<!-- generated:system-context sha=ea819ab2: do not edit, run planner render -->
+<!-- generated:system-context sha=1ac6e749: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["Unified Booking"]
@@ -64,6 +64,8 @@ flowchart LR
   class n_APP_booking,n_APP_call_centre,n_APP_customer_identity,n_APP_ferrymaster,n_APP_kiosks,n_APP_notifications,n_APP_pricing,n_APP_vessel_schedule,n_APP_website app
   class x_tidepay__external_ external
 ```
+
+Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:system-context -->
 
 The channels stop knowing FERRYMASTER exists. Booking is the only thing that writes bookings to the ledger, and it tells everyone else what changed through the event bus.

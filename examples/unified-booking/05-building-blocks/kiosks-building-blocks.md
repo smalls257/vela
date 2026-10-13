@@ -27,7 +27,7 @@ Kiosks no longer decide if a booking is confirmed and no longer cache FERRYMASTE
 |---|---|
 | Changed: Booking API v1 client ships in the March 2027 image. The FM adapter is removed in the September 2027 image. | Port Systems team |
 
-<!-- generated:app-context sha=f0b55cab: do not edit, run planner render -->
+<!-- generated:app-context sha=815799c8: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -38,6 +38,8 @@ flowchart LR
   class n_APP_kiosks focus
   class n_APP_booking new
 ```
+
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Port kiosks: main containers

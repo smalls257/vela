@@ -10,21 +10,23 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=6c6bc5cc: do not edit, run planner render -->
+<!-- generated:context-map sha=f01fd47c: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
   n_APP_tickertalk["TickerTalk (changed)"]
-  x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___["Quoteline ( 03-context-and-scope PTY-02 Quoteline PTY-02 )"]
+  x_quoteline__pty_02_["Quoteline (PTY-02)"]
   n_APP_coach -->|"CON-001"| n_APP_tickertalk
-  x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___ -->|"CON-002"| n_APP_coach
+  x_quoteline__pty_02_ -->|"CON-002"| n_APP_coach
   classDef changed fill:#fdf0d5,stroke:#a06400,color:#3a2600
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
   class n_APP_tickertalk changed
-  class x_quoteline____03_context_and_scope_pty_02_quoteline_pty_02___ external
+  class x_quoteline__pty_02_ external
   class n_APP_coach new
 ```
+
+Key: green: new in this initiative · amber: changed by this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
 <!-- /generated:context-map -->
 
 ## Coach app behind TickerTalk
