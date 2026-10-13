@@ -115,6 +115,7 @@ const SelfTest = (() => {
       ok(r.got === r.of, `rehearse, ${f.key}: a perfect attempt scores ${r.got} of ${r.of}`, `rehearse, ${f.key}: a perfect attempt scored ${r.got} of ${r.of}`);
     }
     await flowPicker(ok);
+    await tracerMarks(ok);
     out.push(`clip export: ${FlowKit.clipFormat() ? FlowKit.clipFormat().mime : "not available in this browser"}`);
     // Who to ask: every open question is in a rack, or counted as folded; strip edges are attention.hold's.
     showView("asks"); await frames();
@@ -252,6 +253,47 @@ const SelfTest = (() => {
     trigger2.click(); await frames(); wrap2.querySelector(".fp-input").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })); await frames();
     ok(wrap2.querySelector(".fp-pop").hidden && document.activeElement === trigger2, "flow picker: Escape closes the list and keeps your place", "flow picker: Escape left the list open");
     Flows.select(D.flows[0].key, -1); await frames(2);
+  }
+  /* Release one's tracer on the flow views and the Releases lens: the tag sits on exactly the tracer flows and nowhere else,
+     the releases line names them and what is left out, and a vault that records no tracer shows nothing of it. */
+  async function tracerMarks(ok) {
+    if (!D.flows.length) return;
+    const orig = D.releases.tracer, keys = D.flows.map((f) => f.key), idOf = (k) => E[k].id;
+    const pickerTags = async () => {
+      Flows.select(keys[0], -1); await frames(2);
+      $(".flow-picker .fp-trigger").click(); await frames();
+      const got = $$(".flow-picker .fp-opt").filter((o) => o.querySelector(".tracer-tag")).map((o) => o.dataset.flow);
+      const small = $$(".flow-picker .fp-opt .tracer-tag").every((t) => t.getAttribute("title") && t.textContent === "tracer");
+      $(".flow-picker .fp-trigger").click(); await frames();
+      return { got, small };
+    };
+    const pageTags = async () => {
+      const got = [];
+      showView("map"); await frames();  // the page is drawn afresh, since the tracer changed under the one already showing
+      for (const k of keys) { Flows.select(k, -1); await frames(2); if ($(".flows-head .tracer-tag")) got.push(`${k}:${$(".flows-head .tracer-place").textContent.trim()}`); }
+      return got;
+    };
+    const check = async (label, t) => {
+      D.releases.tracer = t;
+      const want = t ? t.flows : [];
+      const pk = await pickerTags(), pg = await pageTags();
+      ok(pk.got.length === want.length && pk.got.every((k) => want.includes(idOf(k))) && pk.small, `tracer, ${label}: the picker tags ${want.join(", ") || "no flow"}, each with a tooltip`, `tracer, ${label}: the picker tags ${pk.got.map(idOf).join(", ") || "nothing"}, wanted ${want.join(", ") || "nothing"}`);
+      const wantPg = keys.filter((k) => want.includes(idOf(k))).map((k) => `${k}:tracer ${want.indexOf(idOf(k)) + 1} of ${want.length}`);
+      ok(JSON.stringify(pg) === JSON.stringify(wantPg), `tracer, ${label}: each tracer flow's page shows the tag and its place${wantPg.length ? ` (${wantPg.map((x) => x.split(":")[1]).join("; ")})` : ", none here"}`, `tracer, ${label}: flow pages show ${pg.join("; ") || "nothing"}, wanted ${wantPg.join("; ") || "nothing"}`);
+      if (!D.releases.count || !D.map.apps.length) return;
+      Nav.open("releases"); await frames(2);
+      const line = $("[data-tracer-line]");
+      if (!want.length) { ok(!line && !$(".tracer-tag"), `tracer, ${label}: the Releases lens shows nothing of a tracer`, `tracer, ${label}: a tracer line shows with none recorded`); return; }
+      const text = line ? line.textContent : "";
+      ok(!!line && !!line.closest('.rel-card[data-state="1"]') && want.every((id) => text.includes(E[keys.find((k) => idOf(k) === id)].title)) && (!t.words || text.includes(t.words)) && t.notIn.every((x) => text.includes(x.text)) && text.includes("not in it") === !!t.notIn.length,
+        `tracer, ${label}: release one's card carries the line naming the flows, the thin version and what is not in it`, `tracer, ${label}: the line reads "${text}"`);
+    };
+    await check("none recorded", null);
+    await check("two flows, one item left out", { given: true, flows: [idOf(keys[keys.length - 1]), idOf(keys[0])].filter((v, i, a) => a.indexOf(v) === i), words: "a thin path", none: "", notIn: [{ text: "Big thing (CAP-009.FR1): waits on approval", ids: ["CAP-009.FR1"], reason: "waits on approval" }] });
+    await check("one flow, nothing left out", { given: true, flows: [idOf(keys[0])], words: "", none: "", notIn: [] });
+    if (orig) await check("as recorded", orig);
+    D.releases.tracer = orig;
+    Nav.home(); await frames();
   }
   async function scale() {
     Nav.home(); MapView.st.lens = "cockpit"; MapView.st.focus = null;

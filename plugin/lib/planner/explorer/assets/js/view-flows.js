@@ -82,7 +82,8 @@ const Flows = (() => {
       h("button", { class: "btn", onclick: () => Rehearse.open(st.key), title: "Rebuild the flow from memory, then reveal it" }, svgIcon("rehearse"), "Rehearse this flow"),
       h("button", { class: "btn", id: "clip-btn", onclick: saveClip, title: clipNote() }, svgIcon("download"), "Save clip"),
       h("button", { class: "btn primary", id: "present-btn", onclick: () => present(st.key, Math.max(0, st.cur)), title: "Present full screen (P)" }, svgIcon("present"), "Present"));
-    main.append(h("div", { class: "flows-head" }, picker, actions));
+    const tag = Releases.tracerTag(st.key), pl = Releases.tracerPlace(st.key);
+    main.append(h("div", { class: "flows-head" }, picker, ...(tag ? [h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`)] : []), actions));
     if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
     const stage = h("div", { class: "stage" });
     const canvas = h("canvas", { class: "stage-canvas", role: "img", "aria-label": `Sequence of ${f.title}` });

@@ -117,6 +117,30 @@ const Releases = (() => {
     return { set, svg };
   }
 
+  /* ------------------------------------------------------------ release one's tracer, as the flow views and the card show it */
+  const TRACER_TIP = "release one's thin path through every app, built first";
+  const tracer = () => (R.tracer && R.tracer.flows.length ? R.tracer : null);
+  /* { n, of } for a flow the tracer runs, n counting from 1 in the order the record gives; null for any other flow, or no tracer. */
+  function tracerPlace(flowKey) {
+    const t = tracer(), at = t && E[flowKey] ? t.flows.indexOf(E[flowKey].id) : -1;
+    return at < 0 ? null : { n: at + 1, of: t.flows.length };
+  }
+  const tracerPlaceWords = (pl) => `${pl.n} of ${pl.of}`;
+  function tracerTag(flowKey) {
+    const pl = tracerPlace(flowKey);
+    return pl ? h("span", { class: "tracer-tag", "data-tracer-tag": flowKey, title: `${TRACER_TIP} (${tracerPlaceWords(pl)})` }, "tracer") : null;
+  }
+  const flowKeyOf = (id) => (D.flows.find((f) => E[f.key].id === id) || {}).key;
+  function tracerLine() {
+    const t = tracer();
+    if (!t) return null;
+    const kids = ["Tracer: "];
+    t.flows.forEach((id, i) => { const k = flowKeyOf(id); kids.push(i ? " and " : "", k ? h("a", { onclick: () => Nav.open("flows", k) }, E[k].title) : id); });
+    if (t.words) kids.push(`, ${t.words}`);
+    if (t.notIn.length) kids.push(`; not in it: ${t.notIn.map((x) => x.text).join("; ")}`);
+    return h("p", { class: "rel-tracer", "data-tracer-line": "" }, ...kids.filter((x) => x !== ""));
+  }
+
   /* ------------------------------------------------------------ what each release changes */
   function changes(j) {
     const S = STATES[j], P = STATES[j - 1] || STATES[0];
@@ -134,6 +158,7 @@ const Releases = (() => {
     return h("section", { class: "rel-card" + (cur ? " on" : ""), "data-state": j },
       h("button", { class: "rc-head", onclick: () => onPick(j) }, h("span", { class: "rc-n" }, S.fromChange ? "End" : `R${j}`), h("span", { class: "rc-t" }, S.fromChange ? "End state, from each app's change" : S.heading || S.name),
         h("span", { class: "rc-m" }, S.target ? day(S.target) + (S.target.slice(0, 4) !== D.today.slice(0, 4) ? " " + S.target.slice(0, 4) : "") : "", S.state ? h("span", { class: "pill" }, S.state) : null)),
+      j === 1 ? tracerLine() : null,
       row("Arrive", c.arrive, (k) => refChip(k)), row("Change", c.change, (k) => refChip(k)), row("Retire", c.gone, (k) => refChip(k)), row("Contracts appear", c.appear, (k) => refChip(k)),
       S.rows ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivers"), h("ul", { class: "rc-reqs" }, S.rows.map((r) => h("li", {}, r.requirement ? refChip(r.requirement) : h("span", { class: "gap" }, "a row naming no requirement"),
         h("span", { class: "muted small" }, " " + criteriaText(r)), r.note ? h("div", { class: "muted small" }, r.note) : null)))) : null,
@@ -231,6 +256,6 @@ const Releases = (() => {
     return out;
   }
   function open(j) { st.at = clamp(j, 0, STATES.length - 1); st.compare = false; }
-  return { render, mapLens, drawMap, deliveringRequirement, open, changes, STATES, st, appWord };
+  return { render, mapLens, drawMap, deliveringRequirement, open, changes, STATES, st, appWord, tracerPlace, tracerPlaceWords, tracerTag, tracerLine };
 })();
 View("releases", { label: "Releases", title: "The system before and after each release", render: Releases.render, count: () => String(D.releases.count) });
