@@ -15,7 +15,7 @@
 .share .bar { height: 7px; background: var(--deck-3); border-radius: 4px; overflow: hidden; }
 .share .bar span { display: block; height: 100%; background: var(--ink-2); border-radius: 4px; }
 .share .v { color: var(--ink-3); text-align: right; font-variant-numeric: tabular-nums; }
-.tiles { display: grid; grid-template-columns: repeat(2, 90px); gap: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(90px, max-content)); gap: 8px; }
 .tile-card, .tiles .tile { background: var(--deck); border-radius: 8px; padding: 8px 10px; }
 .tiles .tile .num { font: 400 24px var(--serif); }
 .tiles .tile .lab { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 5px; }
@@ -51,4 +51,4 @@ td.wide { max-width: 320px; }
 .tr-row { display: grid; grid-template-columns: 22px 1.2fr 1.6fr 1fr; gap: 12px; padding: 6px 0; border-top: 1px solid var(--rule); font-size: 13px; }
 .tr-row .arrow { color: var(--ink-4); }
 .alloc { margin-bottom: 6px; }
-.tiles { grid-template-columns: repeat(2, 118px); }
+.tiles { grid-template-columns: repeat(2, minmax(118px, max-content)); }

@@ -1481,9 +1481,37 @@ const TextFit = (() => {
     }
     return "";
   }
+  /* Text anywhere, not only the listed label kinds: an element that holds text of its own must stay inside the nearest
+     box drawn around it (a border, a background or an inset outline), unless that box scrolls. A list of kinds always
+     misses one (the Progress page's state cards were not on it). */
+  const ownText = (el) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+  function drawnBox(el) {
+    for (let a = el.parentElement, hops = 0; a && a !== document.body && hops < 6; a = a.parentElement, hops++) {
+      const cs = getComputedStyle(a);
+      // a scrolling box, a deliberate cut with an ellipsis (its full text on hover), or a rotated label is not an overflow
+      if (scrolls(cs) || (cs.textOverflow === "ellipsis" && clips(cs)) || (cs.transform && cs.transform !== "none")) return null;
+      const bg = cs.backgroundColor, framed = px(cs.borderRightWidth) > 0 || px(cs.borderLeftWidth) > 0 || /inset/.test(cs.boxShadow);
+      if (framed || (bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg))) return a;
+    }
+    return null;
+  }
+  function boxFit(el) {
+    const box = drawnBox(el);
+    if (!box) return "";
+    const b = contentBox(box), lines = [...el.getClientRects()].filter((q) => q.width > 0);
+    if (!lines.length) return "";
+    const right = Math.max(...lines.map((q) => q.right)), left = Math.min(...lines.map((q) => q.left));
+    return right > b.right + 1 || left < b.left - 1 ? `its text runs ${Math.round(Math.max(right - b.right, b.left - left))}px outside ${box.tagName.toLowerCase()}.${classOf(box).split(/\s+/)[0]}` : "";
+  }
   /* Every visible small label under root that does not fit, each as { text, cls, why }. */
   function textFits(root = document) {
     const bad = [];
+    for (const el of root.querySelectorAll("body *:not(svg *):not(script):not(style)")) {
+      const ecs = getComputedStyle(el);
+      if (el.matches(KINDS) || !ownText(el) || !visible(el) || ecs.position === "absolute" || (ecs.transform && ecs.transform !== "none")) continue;
+      const why = boxFit(el);
+      if (why) bad.push({ text: words(el), cls: classOf(el) || el.tagName.toLowerCase(), why });
+    }
     for (const el of root.querySelectorAll(KINDS)) {
       if (!visible(el)) continue;
       const why = problem(el);
