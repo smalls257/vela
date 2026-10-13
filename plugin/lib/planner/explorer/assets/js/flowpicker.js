@@ -20,6 +20,7 @@
 
    The grouping and filtering are plain functions over the record (arrange); the widget only draws what they return. */
 const FlowPicker = (() => {
+  Legend.define("list.swatch", [Legend.ln({ stroke: "line-grey", w: 4 })], "Coloured bar: the colour this flow has on the line map");
   const TEN_FLOWS = 10;
   let uid = 0, pendingFocus = null;  // choosing redraws the whole view; the new button takes the focus the old one held
 
@@ -82,6 +83,11 @@ const FlowPicker = (() => {
     const list = h("div", { class: "fp-list", id: listId, role: "listbox", "aria-label": `${label}s` });
     const status = h("div", { class: "fp-status", role: "status", "aria-live": "polite" });
     const pop = h("div", { class: "fp-pop", hidden: "" }, input, list, status);
+    // what the little marks in front of each flow mean; the key is folded until a reader opens it
+    const key = Legend.open(label === "Flow" ? "flows-list" : "lines-list", { root: () => pop, open: false,
+      probes: { "list.swatch": ".fp-opt .swatch", ...Legend.lampProbes((lv) => `.fp-opt .lamp.${lv}`) } });
+    pop.append(key.el());
+    key.el().classList.add("tight");
     wrap.append(trigger, pop);
 
     const swatchEl = (key) => (swatch && key ? h("span", { class: "swatch", style: `--c:${swatch(key)}` }) : null);
@@ -100,6 +106,7 @@ const FlowPicker = (() => {
 
     function option(e, grouped) {
       const on = e.key === current();
+      key.saw("lamp." + e.level); if (swatch) key.saw("list.swatch");
       return h("div", { class: "fp-opt" + (on ? " on" : ""), role: "option", id: `fp-${id}-${options.length}`, "aria-selected": String(on), "data-flow": e.key,
         onmousedown: (ev) => ev.preventDefault(), onclick: () => choose(e.key), onmousemove: () => { const at = options.findIndex((o) => o.key === e.key); if (at !== active) setActive(at, false); } },
         swatchEl(e.key), lampEl(e.level),
@@ -113,7 +120,7 @@ const FlowPicker = (() => {
     }
     function paintList() {
       const plan = arrange(entries(), query);
-      list.innerHTML = ""; options = [];
+      list.innerHTML = ""; options = []; key.seen.clear();
       if (none && !query.trim()) { list.append(noneOption()); options.push({ key: null }); }
       for (const g of plan.groups) {
         if (!g.items.length) continue;
@@ -123,6 +130,7 @@ const FlowPicker = (() => {
         list.append(h("div", { class: "fp-group", role: "group", "aria-labelledby": hid },
           h("div", { class: "fp-head", id: hid }, h("span", {}, headingText(g.heading)), h("span", { class: "fp-count" }, n)), ...items));
       }
+      key.paint();
       status.textContent = plan.count ? (query.trim() ? `${plural(plan.count, "flow")} match` : "") : "No flow matches";
       if (!plan.count) list.append(h("div", { class: "fp-empty" }, `No flow matches "${query.trim()}".`));
       const at = options.findIndex((o) => o.key === current());

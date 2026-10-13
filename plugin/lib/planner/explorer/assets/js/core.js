@@ -394,3 +394,121 @@ function litSubjects() {
 function darkSubjects() {
   return Object.entries(D.lights).filter(([k, l]) => l.level === "dark" && ent(k)).map(([k]) => k).sort();
 }
+
+/* ------------------------------------------------------------------ the key under every diagram
+   A drawing that uses a look (a dashed line, a lit box, a ringed one) must say what the look means, or a reader on a
+   call has to ask. Without this, each view kept its own fixed list of looks, and a list written once drifts from the
+   drawing: it names a look that is not on screen, or leaves out one that is.
+
+   So the key is made from the drawing. A diagram opens a key (Legend.open) with the looks it can draw and, for each,
+   a probe that finds it in the drawing; while it draws, every look it really uses calls saw(); the key then lists
+   exactly those, in the order the probes were written. One look is described once (Legend.define), in plain words
+   and a small picture, so a dashed line means the same thing in the same words wherever it appears.
+
+   The probes are also the self-test's way to look at the page from outside: Legend.audit() finds each drawn look by
+   its probe and compares it to what the key shows. A diagram that draws a look and forgets saw() fails there by name.
+   The key sits under the drawing, never inside what scrolls, and folds away; the choice is kept per diagram. */
+const Legend = (() => {
+  const CATALOGUE = new Map(), live = new Map();
+  let active = null;
+  const token = (c) => `var(--${c})`;
+  const LAMPS = ["warning", "caution", "pending", "unexamined", "override", "dark"];
+  /* One part of a picture: a line, a box, a clipped box, a dot or a few letters, on a 34 x 16 canvas. */
+  function part(k, o) {
+    const paint = (el) => {
+      el.style.fill = o.fill ? token(o.fill) : "none";
+      if (o.stroke) { el.style.stroke = token(o.stroke); el.style.strokeWidth = o.w || 1.6; }
+      if (o.dash) el.style.strokeDasharray = o.dash;
+      if (o.opacity) el.style.opacity = o.opacity;
+      return el;
+    };
+    if (k === "line") {
+      const g = s("g", {}), y = o.y ?? 8;
+      paint(s("path", { d: `M3 ${y}H${o.head ? 26 : 31}`, "stroke-linecap": "round" }, g)).style.fill = "none";
+      if (o.head === "fill") { const t = s("path", { d: `M24 ${y - 4}L31 ${y}L24 ${y + 4}Z` }, g); t.style.fill = token(o.stroke); }
+      if (o.head === "open") { const t = s("path", { d: `M24 ${y - 4}L30 ${y}L24 ${y + 4}`, "stroke-linecap": "round", "stroke-linejoin": "round" }, g); t.style.fill = "none"; t.style.stroke = token(o.stroke); t.style.strokeWidth = o.w || 1.6; }
+      return g;
+    }
+    if (k === "box") return paint(s("rect", { x: o.x ?? 3, y: o.y ?? 2.5, width: o.width ?? 28, height: o.height ?? 11, rx: o.rx ?? 3 }));
+    if (k === "clip") return paint(s("path", { d: "M7 2.5H27L31 6.5V9.5L27 13.5H7L3 9.5V6.5Z" }));
+    if (k === "dot") return paint(s("circle", { cx: o.x ?? 17, cy: o.y ?? 8, r: o.r ?? 4.5 }));
+    const t = s("text", { x: o.x ?? 17, y: o.y ?? 12, "text-anchor": "middle" });
+    t.textContent = o.t; t.style.fill = token(o.fill || "ink-2"); t.style.fontSize = (o.size || 11) + "px"; t.style.fontWeight = 700;
+    return t;
+  }
+  function picture(parts) {
+    const svg = s("svg", { class: "lg-sw", viewBox: "0 0 34 16", width: 34, height: 16, "aria-hidden": "true" });
+    for (const p of [].concat(parts)) svg.appendChild(part(p.k, p));
+    return svg;
+  }
+  /* A look, once. `text` is "Lead words: what it means"; the lead is what to look for, the rest is the meaning. */
+  function define(id, parts, text) { CATALOGUE.set(id, { parts, text }); }
+  const ln = (o) => ({ k: "line", stroke: "ink-3", ...o }), bx = (o) => ({ k: "box", ...o });
+  /* The lamp levels: the same words and meanings as LIGHT, drawn as the colour they are drawn in. */
+  const lampPicture = (lv) => lv === "dark" ? [bx({ fill: "unlit", stroke: "rule-3", w: 1 })]
+    : lv === "pending" ? [bx({ stroke: "pending", w: 2.2 })] : lv === "override" ? [bx({ fill: "override", stroke: "override-edge", w: 1 })] : [bx({ fill: lv })];
+  for (const lv of LAMPS) {
+    define("lamp." + lv, lampPicture(lv), lv === "dark" ? "Grey: settled, and nothing holds it" : `${LIGHT[lv].word}: ${LIGHT[lv].say}`);
+  }
+  define("picked", [bx({ fill: "deck-2", stroke: "focus", w: 2.2 })], "White outline: what you picked, or what it touches");
+  const lampProbes = (selector) => Object.fromEntries(LAMPS.map((lv) => ["lamp." + lv, selector(lv)]));
+
+  /* Opens the key for one diagram.
+       root    () => the element the drawing is in, for the probes
+       probes  { look id: CSS selector, or (root) => boolean }, in the order the key lists them
+       open    whether the key starts open (a reader's choice, once made, wins) */
+  function open(name, def) {
+    const lg = { name, def, seen: new Map(), host: null, last: "" };
+    lg.saw = (id, text) => { if (id) lg.seen.set(id, text || null); };
+    lg.unsaw = (id) => { lg.seen.delete(id); };
+    lg.set = (id, on, text) => (on ? lg.saw(id, text) : lg.unsaw(id));
+    lg.within = (fn) => { const was = active; active = lg; try { return fn(); } finally { active = was; } };
+    lg.paint = () => paint(lg);
+    lg.el = () => lg.host || (lg.host = build(lg));
+    live.set(name + "#" + (def.instance || ""), lg);  // one key per drawing: a page can hold several of one kind (each sequence)
+    return lg;
+  }
+  const saw = (id, text) => { if (active) active.saw(id, text); };
+  const textOf = (lg, id) => lg.seen.get(id) || (CATALOGUE.get(id) || { text: id }).text;
+  function build(lg) {
+    const remembered = Settings.read("explorer.legend." + lg.name);
+    const isOpen = remembered === null ? lg.def.open !== false && innerHeight >= 700 : remembered === "1";
+    const host = h("details", { class: "legend", "data-legend": lg.name, hidden: true, open: isOpen ? "" : null });
+    host.addEventListener("toggle", () => { Settings.write("explorer.legend." + lg.name, host.open ? "1" : "0"); dispatchEvent(new Event("resize")); });
+    return host;
+  }
+  function paint(lg) {
+    const host = lg.el(), ids = Object.keys(lg.def.probes).filter((id) => lg.seen.has(id));
+    for (const id of lg.seen.keys()) if (!ids.includes(id)) { console.warn(`[legend] ${lg.name} drew "${id}", which it gave no probe; the self-test cannot check it`); ids.push(id); }
+    const signature = ids.map((id) => id + "=" + textOf(lg, id)).join("|");
+    if (signature === lg.last) return;
+    lg.last = signature;
+    host.replaceChildren();
+    host.hidden = !ids.length;
+    if (!ids.length) return;
+    host.append(h("summary", {}, "Key", h("span", { class: "lg-n" }, String(ids.length))),
+      h("ul", { class: "lg-items" }, ids.map((id) => {
+        const text = textOf(lg, id), at = text.indexOf(": "), entry = CATALOGUE.get(id);
+        return h("li", { "data-lg": id }, entry ? picture(entry.parts) : null, h("span", {}, at > 0 ? [h("b", {}, text.slice(0, at)), text.slice(at)] : text));
+      })));
+    if (host.isConnected && !lg.def.quiet) dispatchEvent(new Event("resize"));  // the key took or gave back room, so the drawing above refits
+  }
+  const present = (lg, root) => Object.entries(lg.def.probes).filter(([, p]) => (typeof p === "function" ? p(root) : !!root.querySelector(p))).map(([id]) => id);
+  /* What the self-test asks: for every key in the page, each look its drawing really has is in the key, and each look
+     the key lists is in the drawing. Each problem names the diagram and the meaning. */
+  function audit() {
+    const problems = [];
+    for (const lg of live.values()) {
+      if (!lg.host || !lg.host.isConnected) continue;
+      const root = lg.def.root();
+      if (!root) { problems.push(`${lg.name}: its key is on the page but its drawing is not`); continue; }
+      const drawn = present(lg, root), shown = [...lg.host.querySelectorAll("[data-lg]")].map((li) => li.dataset.lg);
+      for (const id of drawn) if (!shown.includes(id)) problems.push(`${lg.name}: the drawing has "${textOf(lg, id)}" but the key does not say so`);
+      for (const id of shown) if (!drawn.includes(id)) problems.push(`${lg.name}: the key says "${textOf(lg, id)}" but the drawing does not have it`);
+    }
+    return problems;
+  }
+  const keyed = () => [...live.values()].filter((lg) => lg.host && lg.host.isConnected);
+  const forget = (name) => live.delete(name + "#");
+  return { define, open, saw, audit, keyed, forget, lampProbes, LAMPS, ln, bx, part, picture, CATALOGUE };
+})();

@@ -13,6 +13,26 @@ const Releases = (() => {
   const st = { at: Math.min(STATES.length - 1, Math.max(0, +(HASH.get("state") || 0))), compare: HASH.has("compare"), a: 0, b: STATES.length - 1, playing: 0 };
   const short = (s) => (s.name.split(":")[0] || s.name).trim();
   const STATUS_WORD = { exists: "unchanged", changes: "changes", new: "new", absent: "not there" };
+  /* The key: release status is drawn in shape and ink only (solid, heavy, dashed, dotted), so the lamp colours keep their one meaning. */
+  const { bx, ln } = Legend;
+  Legend.define("rel.new", [bx({ fill: "ink", stroke: "focus", w: 1.4, rx: 5 })], "Filled box: an app that is new in this state");
+  Legend.define("rel.changes", [bx({ fill: "deck-3", stroke: "ink", w: 2.6, rx: 5 })], "Heavy outline: an app that is changing, or has changed");
+  Legend.define("rel.exists", [bx({ fill: "deck-3", stroke: "rl-edge", w: 1.4, rx: 5 })], "Plain box: an app that stays as it is");
+  Legend.define("rel.absent", [bx({ stroke: "ink-4", w: 1.4, rx: 5, dash: "3.5 3", opacity: 0.6 })], "Dashed, faded box: an app not there yet, or retired");
+  Legend.define("rel.party", [bx({ fill: "rl-party", stroke: "rl-edge", w: 1.4, rx: 2, dash: "1.5 3" })], "Dotted outline: an outside party");
+  Legend.define("rel.touched", [bx({ fill: "ink", width: 13, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "Δ", fill: "room", x: 16.5, y: 11, size: 8 }], "Tag (Δ or NEW): this release's work touches the app");
+  Legend.define("rel.lamp", [bx({ fill: "caution", width: 8, height: 8, x: 13, y: 4, rx: 2 })], "Small coloured square: the app's light today, as on the map");
+  Legend.define("rel.cor.exists", [ln({ stroke: "track", w: 3.5 })], "Grey line: a contract that already exists");
+  Legend.define("rel.cor.new", [ln({ stroke: "rl-name", w: 3.5 })], "Bright line: a contract that appears in this state");
+  Legend.define("rel.cor.through", [ln({ stroke: "focus", w: 4.5 })], "White line: a contract this release's work goes through");
+  Legend.define("rel.cor.planned", [ln({ stroke: "siding", w: 3, dash: "1 6" })], "Dotted line: a contract still to come");
+  const LOOKS = () => ({
+    "rel.new": ".rl-node.s-new", "rel.changes": ".rl-node.s-changes", "rel.exists": ".rl-node.s-exists:not(.party)", "rel.absent": ".rl-node.s-absent", "rel.party": ".rl-node.party",
+    "rel.touched": ".rl-node.touched", "rel.lamp": ".rl-lamp", "rel.cor.exists": ".rl-cor.s-exists:not(.through)", "rel.cor.new": ".rl-cor.s-new:not(.through)",
+    "rel.cor.through": ".rl-cor.through", "rel.cor.planned": ".rl-cor.s-absent.planned:not(.through)",
+  });
+  let KEY = null, DRAWN = [];  // the key of the releases now on the page, and what each map in it (one, or two compared) really drew
+  const refreshKey = () => { if (!KEY) return; KEY.seen.clear(); DRAWN = DRAWN.filter((m) => m.svg.isConnected); DRAWN.forEach((m) => m.looks.forEach((id) => KEY.saw(id))); KEY.paint(); };
 
   function appWord(i, k) {
     const now = STATES[i].apps[k] || "exists", prev = i > 0 ? STATES[i - 1].apps[k] || "exists" : null;
@@ -33,6 +53,7 @@ const Releases = (() => {
     const L = Geo.layout({ cw: 300, rh: 150 }), b = L.bounds, W = 172, H = 58;
     const left = b.x0 - 104, right = b.x1 + 104, top = b.y0 - 50, bottom = b.y1 + 36;  // room for the 172-wide boxes and their tags
     const svg = s("svg", { viewBox: `${left} ${top} ${right - left} ${bottom - top}`, class: "rl-map", role: "img", "aria-label": "The system in this state" }, box);
+    const looks = new Set();
     MapView.fitSvg(svg, box, right - left, bottom - top, opts.max || 1.0);
     if (L.zoneY !== null) s("line", { x1: left, x2: right, y1: L.zoneY, y2: L.zoneY, class: "zone" }, svg);
     const gCor = s("g", {}, svg), gNodes = s("g", {}, svg);
@@ -53,19 +74,22 @@ const Releases = (() => {
       s("rect", { x: stn.x + W / 2 - 40, y: stn.y - H / 2 - 9, width: 46, height: 18, rx: 9 }, tag);
       const tagText = s("text", { x: stn.x + W / 2 - 17, y: stn.y - H / 2 + 4, "text-anchor": "middle" }, tag);
       const lv = levelOf(n.key);
-      if (lv !== "dark" && n.kind === "app") s("rect", { x: stn.x - W / 2 + 8, y: stn.y - H / 2 + 8, width: 8, height: 8, rx: 2, fill: LIGHT[lv].colour, class: "rl-lamp" }, g)
-        .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${LIGHT[lv].word} today (attention.lights)`;
+      if (lv !== "dark" && n.kind === "app") { s("rect", { x: stn.x - W / 2 + 8, y: stn.y - H / 2 + 8, width: 8, height: 8, rx: 2, fill: LIGHT[lv].colour, class: "rl-lamp" }, g)
+        .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${LIGHT[lv].word} today (attention.lights)`; looks.add("rel.lamp"); }
       g.addEventListener("click", () => go(n.key, { reset: true }));
       return { n, g, sub, tagText };
     });
     function set(j, animate) {
       const S = STATES[j], prev = j > 0 ? STATES[j - 1] : null, morph = animate && !reducedMotion();
+      for (const id of [...looks]) if (id !== "rel.lamp") looks.delete(id);
       for (const { n, g, sub, tagText } of nodes) {
         const status = n.kind === "app" ? S.apps[n.key] || "exists" : "exists", word = n.kind === "app" ? appWord(j, n.key) : "outside party";
         const was = prev && n.kind === "app" ? prev.apps[n.key] || "exists" : status;
         const touched = (S.touched || []).includes(n.key);
         g.setAttribute("class", `rl-node s-${status}${touched ? " touched" : ""}${n.kind !== "app" ? " party" : ""}`);
         g.dataset.status = status;
+        looks.add(n.kind !== "app" ? "rel.party" : "rel." + status);
+        if (touched) looks.add("rel.touched");
         sub.textContent = word;
         tagText.textContent = word === "arrives" ? "NEW" : touched ? "Δ" : "";
         if (morph && was !== status) {
@@ -77,11 +101,16 @@ const Releases = (() => {
       for (const { cor, el } of cors) {
         const status = corridorStatus(cor, j), was = prev ? corridorStatus(cor, j - 1) : status;
         const through = cor.contracts.some((c) => (S.through || []).includes(c));
-        el.setAttribute("class", `rl-cor s-${status}${through ? " through" : ""}${status === "absent" && cor.contracts.some((c) => STATES.slice(j + 1).some((x) => x.contracts[c] !== "absent")) ? " planned" : ""}`);
+        const planned = status === "absent" && cor.contracts.some((c) => STATES.slice(j + 1).some((x) => x.contracts[c] !== "absent"));
+        el.setAttribute("class", `rl-cor s-${status}${through ? " through" : ""}${planned ? " planned" : ""}`);
+        if (through) looks.add("rel.cor.through"); else if (status === "absent") { if (planned) looks.add("rel.cor.planned"); } else looks.add("rel.cor." + status);
         if (morph && was === "absent" && status !== "absent") { const len = el.getTotalLength(); el.animate([{ strokeDasharray: `${len}`, strokeDashoffset: len }, { strokeDasharray: `${len}`, strokeDashoffset: 0 }], { duration: 900, easing: "ease-in-out" }); }
       }
       svg.dataset.state = j;
+      refreshKey();
     }
+    const drawn = { svg, looks };
+    DRAWN.push(drawn);
     set(i, false);
     return { set, svg };
   }
@@ -120,6 +149,8 @@ const Releases = (() => {
   }
   function body(box, opts = {}) {
     box.innerHTML = "";
+    DRAWN = [];
+    KEY = Legend.open("releases", { root: () => box, probes: LOOKS() });
     if (!R.count) box.append(emptyState("No releases recorded yet.", `They go in 04b-releases.md${R.page ? ", which lists none yet" : ""}. Until then this shows only today against the end state, worked out from each app's change and each contract's Change line.`, null, "inline rel-none"));
     if (!D.nodes.length) { box.append(emptyState("This vault has no apps yet.", "There is no system to show before and after.", "/planner:boundary")); return; }
     let map = null;
@@ -143,8 +174,7 @@ const Releases = (() => {
     const mapBox = h("div", { class: "rel-mapbox" });
     const side = h("div", { class: "rel-side" }, h("h3", {}, R.count ? "What each release changes" : "Today to the end state"));
     for (let j = 1; j < STATES.length; j++) side.append(card(j, (x) => pick(x)));
-    side.append(legend());
-    grid.append(h("div", { class: "rel-left" }, h("div", { class: "rel-caption" }, caption(st.at)), mapBox), side);
+    grid.append(h("div", { class: "rel-left" }, h("div", { class: "rel-caption" }, caption(st.at)), mapBox, KEY.el()), side);
     box.append(grid);
     map = drawMap(mapBox, st.at, { max: opts.max || 1.0 });
     pick(st.at, false);
@@ -154,13 +184,6 @@ const Releases = (() => {
     if (j === 0) return `Today, ${day(D.today)}: what exists before the initiative. ${Object.values(S.apps).filter((x) => x === "absent").length} of ${Object.keys(S.apps).length} apps are not built yet.`;
     const c = changes(j);
     return `${S.fromChange ? "The end state" : `After ${S.heading || S.name}`}: ${[c.arrive.length ? `${plural(c.arrive.length, "app")} ${c.arrive.length === 1 ? "arrives" : "arrive"}` : "", c.change.length ? `${plural(c.change.length, "app")} ${S.fromChange ? "changed" : "touched"}` : "", c.appear.length ? `${plural(c.appear.length, "contract")} ${c.appear.length === 1 ? "appears" : "appear"}` : "", c.gone.length ? `${c.gone.length} retired` : ""].filter(Boolean).join(", ") || "nothing new"}.`;
-  }
-  function legend() {
-    return h("div", { class: "rel-legend" },
-      h("span", {}, h("i", { class: "k s-new" }), "new"), h("span", {}, h("i", { class: "k s-changes" }), "changes"), h("span", {}, h("i", { class: "k s-exists" }), "unchanged"),
-      h("span", {}, h("i", { class: "k s-absent" }), "not there"), h("span", {}, h("i", { class: "k touched" }, "Δ"), "touched by this release"),
-      h("span", {}, h("i", { class: "kl new" }), "contract appears"), h("span", {}, h("i", { class: "kl planned" }), "contract to come"),
-      h("p", { class: "p-note" }, "Status is planner.releases', drawn in shape and ink so the lamp colours keep their meaning; the small lamp is today's light."));
   }
   function playAll(pick, btn) {
     if (st.playing) { clearInterval(st.playing); st.playing = 0; btn.textContent = "▶ Play the releases"; return; }
@@ -184,7 +207,7 @@ const Releases = (() => {
       apps.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Apps"), h("span", {}, apps.map((k) => refChip(k, h("span", { class: "rid" }, `${STATUS_WORD[SA.apps[k] || "exists"]} → ${STATUS_WORD[SB.apps[k] || "exists"]}`))))) : h("div", { class: "muted small" }, "No app's status differs."),
       cons.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Contracts"), h("span", {}, cons.map((c) => refChip(c, h("span", { class: "rid" }, `${SA.contracts[c]} → ${SB.contracts[c]}`))))) : null,
       delivered.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivered between"), h("span", {}, delivered.map((r) => refChip(r)))) : null);
-    wrap.append(diff);
+    wrap.append(KEY.el(), diff);
     wrap.drawMaps = () => { drawMap(A.box, st.a, { max: 0.8 }); drawMap(B.box, st.b, { max: 0.8 }); };
     return wrap;
   }

@@ -254,6 +254,16 @@ const Plan = (() => {
   }
 
   /* ------------------------------------------------------------ the dependency view */
+  const { ln, bx } = Legend;
+  Legend.define("pw.story", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.4, rx: 4 })], "Flat box with an ID: a story, with its task count");
+  Legend.define("pw.arrow", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: a story that blocks another, pointing at it");
+  Legend.define("pw.soft", [ln({ stroke: "ink-4", w: 1.6, head: "fill", dash: "4 3" })], "Dashed arrow: something other than a story blocks a story");
+  Legend.define("pw.stub", [{ k: "clip", fill: "room-2", stroke: "ink-4", w: 1.4, dash: "4 3" }], "Clipped dashed box: an open question, a gap or a deferral blocking a story");
+  Legend.define("pw.outside", [{ k: "clip", fill: "room-2", stroke: "ink-2", w: 1.6 }], "Clipped solid box: an outside party a story waits on");
+  const WAITS_LOOKS = () => ({
+    "pw.story": "g.plan-node", "pw.arrow": "path.in-edge:not(.soft)", "pw.soft": "path.in-edge.soft", "pw.stub": ".plan-outer:not(.outside) .in-stub-face", "pw.outside": ".plan-outer.outside .in-stub-face",
+    ...Legend.lampProbes((lv) => (lv === "dark" ? "g.hit.dark" : `.plan-node .in-box-face.lit.${lv}, .plan-dot.${lv}, .in-edge.lit.${lv}`)), "inside.mini": ".in-mini:not([hidden])",
+  });
   const BLOCKER_WORD = { question: "Open question", outside: "Outside party", "plan-question": "Plan's open question", gap: "Gap or deferral", other: "Outside the plan" };
   /* Every node the view draws goes through here, so none can be drawn that a reader cannot click or a screen reader cannot
      name (the Sensor rule: a node that does nothing when clicked is a Black Box). */
@@ -268,6 +278,8 @@ const Plan = (() => {
   }
   function dependencyView(app, p) {
     const K = kit(), holder = h("div", { class: "plan-dag", id: "plan-dag" }), frame = h("div", { class: "inside-frame plan-dag-frame" }, holder);
+    const wrap = h("div", { class: "plan-dag-wrap" }, frame), lg = Legend.open("plan-waits", { root: () => wrap, probes: WAITS_LOOKS() });
+    wrap.append(lg.el());  // under the frame, not in it: the drawing's minimap sits over the frame's corner
     const nodes = p.stories.map((story) => ({ id: "s:" + story.id, kind: "story", w: 220, h: 66, story })), edges = [], stubs = {};
     const stubFor = (b) => {
       const id = `x:${b.kind}:${b.ref || b.text}`;
@@ -279,11 +291,13 @@ const Plan = (() => {
       edges.push({ from: stubFor(b), to: "s:" + story.id, soft: true, lit: b.kind === "question" && isOpen(UNKNOWN[b.ref]) ? levelForKey(keyForId(b.ref)) : "", title: `${story.id} is blocked by ${b.text}` });
     }
     const lay = K.layered(nodes, edges, { gapX: 96, gapY: 26, minColW: 184, dir: "LR" });
+    lay.looks = { solid: "pw.arrow", soft: "pw.soft" };
     const svg = s("svg", { class: "inside-svg cockpit plan-dag-svg", role: "img", "aria-label": `${titleOf(app)}'s stories, each after the stories that block it` }, holder);
     K.defsFor(svg);
-    K.drawLayout(svg, lay, {
+    lg.within(() => K.drawLayout(svg, lay, {
       story: (g, b) => {
         const story = b.node.story, lit = unclosedLevel(story);
+        Legend.saw("pw.story"); if (lit) Legend.saw("lamp." + lit);
         planNode(g, b, { cls: "plan-node in-box", attrs: { "data-story": story.id }, label: `${story.id} ${cleanName(story.name)}`, title: `${story.id} ${cleanName(story.name)}\n${plural(story.tasks.length, "task")}`,
           open: () => openStory(app, story.id),
           draw: (grp) => {
@@ -296,6 +310,7 @@ const Plan = (() => {
       outer: (g, b) => {
         const x = b.node.b, level = x.kind === "question" && isOpen(UNKNOWN[x.ref]) ? levelForKey(keyForId(x.ref)) : "", vault = x.kind === "question" && ent(keyForId(x.ref)) ? keyForId(x.ref) : "";
         const word = x.kind === "question" ? (vault ? titleOf(vault) : x.ref) : BLOCKER_WORD[x.kind];
+        Legend.saw(x.kind === "outside" ? "pw.outside" : "pw.stub"); if (level && level !== "dark") Legend.saw("lamp." + level);
         planNode(g, b, { cls: "in-stub plan-outer " + x.kind, attrs: { "data-blocker": x.kind }, label: `${BLOCKER_WORD[x.kind]}: ${plainText(x.text)}`, title: x.text,
           open: () => (vault ? go(vault, {}) : go(Inside.kit.key(app, "blocker", `${x.kind}:${x.ref || x.text}`), {})),
           draw: (grp) => {
@@ -305,12 +320,13 @@ const Plan = (() => {
             s("text", { x: b.x + 14, y: b.y + 41, class: "in-box-sub" }, grp).textContent = K.fit(x.kind === "question" ? (E[keyForId(x.ref)] || {}).title || plainText(x.text) : plainText(x.text), b.w - 24, 11);
           } });
       },
-    });
+    }));
+    lg.paint();
     const b = K.boundsOf(Object.values(lay.box));
     holder.style.height = Math.round(clamp(b.y1 - b.y0 + 120, 220, 520)) + "px";
     const first = Object.values(lay.box).find((x) => x.node.kind === "story");
-    K.sized(svg, holder, b, 24, { open: "read", key: "plan", focus: first });  // names stay readable; the drawing scrolls, with its minimap, when it is wider than the room
-    return frame;
+    K.sized(svg, holder, b, 24, { open: "read", key: "plan", focus: first, lg });  // names stay readable; the drawing scrolls, with its minimap, when it is wider than the room
+    return wrap;
   }
 
   /* ------------------------------------------------------------ the right-hand panel: a story, or a blocker with no page of its own */
