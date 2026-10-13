@@ -48,12 +48,27 @@ def days_until(as_of, date):
     return (datetime.date.fromisoformat(date) - datetime.date.fromisoformat(as_of)).days
 
 
+def held_text(unknown, via, who, ask):
+    through = " through " + " and ".join([", ".join(via[:-1]), via[-1]] if len(via) > 1 else via) if via else ""
+    return f"{unknown.id} {unknown.heading.split(' ', 1)[-1]} holds it{through}; ask {who} by {ask or 'no date'}"
+
+
 def hold(light, unknown, as_of, via=""):
+    """One reason per question on a light. A question can reach a subject several ways (the app's page, and every
+    item on that page, which the page block also reaches); listing each way repeated the question. A direct hold says
+    it all, so it drops the routes; otherwise the one reason names every route. The level is the question's either way."""
     ask = unknown.fact("Ask by")
-    through = f" through {via}" if via else ""
     who = unknown.fact("Ask") or unknown.fact("Owner").split(" ")[0]
-    light.reasons.append({"kind": "held", "unknown": unknown.id, "ask": who,
-                          "text": f"{unknown.id} {unknown.heading.split(' ', 1)[-1]} holds it{through}; ask {who} by {ask or 'no date'}"})
+    seen = next((r for r in light.reasons if r["kind"] == "held" and r.get("unknown") == unknown.id), None)
+    if seen is not None:
+        if not via:
+            seen["via"] = []
+        elif seen["via"] and via not in seen["via"]:
+            seen["via"].append(via)
+        seen["text"] = held_text(unknown, seen["via"], who, ask)
+        return
+    routes = [via] if via else []
+    light.reasons.append({"kind": "held", "unknown": unknown.id, "ask": who, "via": routes, "text": held_text(unknown, routes, who, ask)})
     if not progress.is_date(ask):
         light.raise_to("caution", 0.45)
         return
@@ -117,7 +132,7 @@ def lights(vault, as_of):
                 for unknown in blockers.get(epic.id, []):
                     hold(light, unknown, as_of, via=epic.id)
         cells = [c for c in vault.cells if c.app.lower() == app.name.lower() and c.state == "unexamined"]
-        settle(light, str(app.meta.get("state") or ""), [c.concern.id for c in cells], override.valid_overrides(app),
+        settle(light, str(app.meta.get("state") or ""), [str(c.concern.meta.get("title") or c.concern.id) for c in cells], override.valid_overrides(app),
                pending.pending_for(app))
     for contract in vault.contracts:
         light = out.setdefault(contract.id, Light())

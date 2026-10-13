@@ -150,7 +150,8 @@ function reasonText(r) {
   if (r.kind === "held" && r.unknown && ASK[r.unknown]) {
     const u = ASK[r.unknown], e = E[r.unknown];
     const who = r.ask || u.ask.name;
-    return `${r.unknown} ${e ? e.title : ""}: ask ${who} by ${day(u.askBy)}${r.text.includes(" through ") ? ", through " + r.text.split(" through ")[1].split(";")[0] : ""}`;
+    const via = r.via || [];
+    return `${r.unknown} ${e ? e.title : ""}: ask ${who} by ${day(u.askBy)}${via.length ? ", through " + (via.length > 1 ? via.slice(0, -1).join(", ") + " and " + via[via.length - 1] : via[0]) : ""}`;
   }
   return r.text;
 }
