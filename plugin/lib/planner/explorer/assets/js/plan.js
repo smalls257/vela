@@ -94,7 +94,7 @@ const Plan = (() => {
   function statusPill(p) {
     const gaps = p.gaps.map((g) => g.id).filter(Boolean);
     return h("span", { class: "d-status " + (p.status || "unknown"), title: `The team's plan is ${p.status || "of no known status"}${gaps.length ? ", with " + gaps.join(", ") : ""}` },
-      p.status === "complete-with-gaps" ? "complete with gaps" : p.status || "status not read", gaps.length ? h("b", {}, " " + gaps.join(" ")) : null);
+      p.status === "complete-with-gaps" ? "complete with gaps" : p.status || "status not read", gapsTag(gaps));
   }
 
   /* ------------------------------------------------------------ the stories, as the three layouts draw them */

@@ -215,6 +215,13 @@ function linkChips(key, opts = {}) {
   return h("div", { class: "link-chips" + (opts.small ? " small" : "") }, list.map((l) => h("a", { class: "link-chip", href: l.url, target: "_blank", rel: "noopener noreferrer",
     title: `${l.label}: ${l.url}`, onmousedown: (ev) => ev.stopPropagation(), onclick: (ev) => ev.stopPropagation() }, Icons.el(l.kind || "link"), l.label)));
 }
+/* A status pill's gap IDs: up to three are shown, each kept whole on one line; more than that become a count, with
+   every ID in the pill's title, so a long list never runs out of the pill or breaks an ID across two lines. */
+function gapsTag(gaps) {
+  if (!gaps.length) return null;
+  if (gaps.length > 3) return h("b", {}, ` · ${gaps.length} gaps`);
+  return h("b", {}, gaps.map((g) => h("span", { class: "nowrap" }, " " + g)));
+}
 function statePill(state) { return state ? h("span", { class: "pill" }, state) : null; }
 function levelPill(level, text) { return level === "pending" && !text ? pendingPill(null) : h("span", { class: "pill " + level }, text || LIGHT[level].word); }
 
