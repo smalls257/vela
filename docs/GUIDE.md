@@ -125,6 +125,14 @@ The last three sessions are the team's. Once an app is handed off, its senior ru
 
 Handoff happens inside a grill on an app that is ready, and it records the senior's name and date on the app page. Close then writes the handoff manifest, and `planner handoff verify APP-x` later tells you if anything the senior accepted has changed. A senior who disagrees later uses `/planner:challenge`, and you answer on the same branch.
 
+### Tracer first
+
+A tracer is one thin path that runs end to end through every app and contract release one needs. It is built first and kept, so the contracts between the apps get proved before anyone builds a second slice. [How the approach works](explainers/tracer-bullets.html).
+
+In the releases session, release one names it. Two bullets carry it: `**Tracer:**` lists the flows and says the thin version in plain words, and `**Not in the tracer:**` lists what is held back and why. Design then names each app's walking skeleton, its piece of that path with the other apps stubbed at their contracts. Breakdown makes story one of each plan the team's piece of the tracer.
+
+Claude steers you to this, it doesn't force it. If the path isn't ready, say "not ready" and Claude records the reason under `**Not in the tracer:**`, or writes `**Tracer:** none` and your reason. Nothing stops the session.
+
 ### Close every session
 
 Say "close" (or "we're done") and the assistant starts the close for you; typing `/planner:close` does the same. Claude marks each capture keep, park or drop by its own defaults, and asks you only the two or three things it can't settle.
