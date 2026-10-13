@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vela: an example</title>
+<style>
+  :root { color-scheme: light dark; --ink: #1d2433; --soft: #5b6475; --line: #d9dee8; --accent: #3b5bdb; --bg: #fbfcfe; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #e7ebf3; --soft: #a3acbd; --line: #2e3646; --accent: #8ea6ff; --bg: #12161f; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 56px 24px 72px; }
+  h1 { font-size: 40px; margin: 0 0 4px; letter-spacing: -0.5px; }
+  .tag { color: var(--soft); margin: 0 0 32px; }
+  h2 { font-size: 20px; margin: 36px 0 8px; }
+  p { margin: 0 0 14px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 28px 0 8px; }
+  a.card { display: block; border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; color: inherit; text-decoration: none; }
+  a.card:hover { border-color: var(--accent); }
+  a.card b { display: block; font-size: 18px; color: var(--accent); margin-bottom: 4px; }
+  a.card span { color: var(--soft); font-size: 15px; }
+  ul { padding-left: 20px; margin: 0 0 14px; }
+  li { margin-bottom: 6px; }
+  .note { border-left: 3px solid var(--line); padding: 2px 0 2px 14px; color: var(--soft); font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Vela</h1>
+  <p class="tag">Planning for initiatives that cross many apps and teams.</p>
+
+  <p>Vela helps a solution lead take a fuzzy initiative to something teams can build. Through guided sessions with
+  stakeholders it records the goals and constraints, which apps are involved and where their boundaries sit, the
+  contracts between them, the open questions and who can answer them, and the decisions with the options turned down.
+  From there it writes requirements, releases and epics, and hands each app to its team for a technical design and a
+  work breakdown that becomes tickets. Every ticket traces back to the goal it serves.</p>
+
+  <div class="cards">
+    <a class="card" href="dashboard.html"><b>Open the example dashboard</b><span>Heron Desk: three apps, five contracts, four epics, as of 12 October 2026.</span></a>
+    <a class="card" href="guide.html"><b>Read the user guide</b><span>How the sessions work, what each one produces, and how teams take it from there.</span></a>
+  </div>
+
+  <h2>What to look at in the dashboard</h2>
+  <ul>
+    <li><b>What needs you:</b> the questions, reviews and decisions waiting on someone, with who can settle each.</li>
+    <li><b>The map:</b> the apps, the contracts between them, and the flows a request takes. Pick an app and open “Inside this app”.</li>
+    <li><b>Decisions:</b> what was decided, the options turned down, and why.</li>
+    <li><b>Build plan:</b> releases, epics, and the stories and tasks one team broke its share into.</li>
+  </ul>
+
+  <h2>About this example</h2>
+  <p class="note">Heron Desk is invented. It was produced by simulated sessions in which AI personas played the
+  stakeholders, so the people, apps and numbers are fictional, and some gaps are left in on purpose: they show how
+  the tool reports what is still open. The dashboard is one self-contained file; nothing on this site sends data anywhere.</p>
+
+  <h2>Why “Vela”</h2>
+  <p>Vela is the constellation of the Sails. It was once part of Argo Navis, the ship of Jason and the Argonauts, until
+  astronomers split that great constellation into the keel, the stern and the sails. The sails are what carry the
+  expedition into water nobody has charted yet.</p>
+</main>
+</body>
+</html>
