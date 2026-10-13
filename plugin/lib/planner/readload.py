@@ -12,6 +12,8 @@ reviewer cannot be the Sensor for them:
 - W368 the opening is a line the template wrote, so the page still says what a page of its kind is about, not what is
   true now.
 - W369 a capitalised abbreviation not spelled out on the page: a definition elsewhere does not undo the cost.
+- W371 two or more separate openings above the first `##` heading that together run over a body paragraph's limit: a later
+  session added an opening beside the old one instead of replacing it, and the two can disagree.
 
 All are warnings. Every limit is in `schema.py`, and each finding carries a plain fix line.
 """
@@ -99,6 +101,35 @@ def paragraph_findings(page):
                "Split at the second topic, or move the pointers to a table under a heading.")
         out.append((n, "W365", f"{where} runs {why}; the limit is {max_words} words and {max_links} links.", fix))
     return out
+
+
+# ---------------------------------------------------------------------------------------------------- W371
+
+def opening_paragraphs(page):
+    """(first line, words) for each paragraph of real prose above the page's first `##` heading, in order."""
+    first_h2 = next((n for n, raw, _, _ in _regions(page)
+                     if (h := HEADING.match(raw)) and len(h.group(1)) == 2), None)
+    return [(n, _word_count(text)) for n, text, _ in paragraphs(page)
+            if (first_h2 is None or n < first_h2) and _word_count(text) >= SUMMARY_MIN_WORDS]
+
+
+def split_opening_findings(page):
+    """W371: two or more prose paragraphs above the first `##` heading, longer together than one body paragraph may be.
+    The house voice gives a page one opening of two or three sentences, so a second paragraph written as another
+    opening is a second account of the same page. Two paragraphs that fit what one body paragraph may hold (what a page
+    does, then what it does not own) are an ordinary opening and are left alone, and a list, table or label between
+    paragraphs does not make them one. An index and the glossary are exempt: one describes its folder, the other is a
+    paragraph per term."""
+    if page.type == "index" or page.id == "glossary":  # an index describes its folder; a glossary is one paragraph per term
+        return []
+    found = opening_paragraphs(page)
+    total = sum(words for _, words in found)
+    if len(found) < 2 or total <= schema.PARAGRAPH_WORD_LIMIT:
+        return []
+    return [(found[1][0], "W371",
+             f"The page keeps {len(found)} openings above its first heading ({total} words); the second may contradict the first.",
+             "Keep one opening: rewrite the first so it says what is true now, delete the others, and move anything "
+             "they add under a heading.")]
 
 
 # ---------------------------------------------------------------------------------------------------- W366
@@ -368,8 +399,8 @@ def counts(vault, criteria_of):
 
 
 def page_findings(page, template_known):
-    """W365, W366, W368 and W369 for one page, as (line, code, message, fix)."""
+    """W365, W366, W368, W369 and W371 for one page, as (line, code, message, fix)."""
     if not _readable(page):
         return []
     return sorted(paragraph_findings(page) + cell_findings(page) + template_opening_findings(page, template_known)
-                  + abbreviation_findings(page))
+                  + abbreviation_findings(page) + split_opening_findings(page))

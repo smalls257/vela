@@ -141,6 +141,32 @@ def conventions_findings(root):
                           "Run planner upgrade, review the change with git diff CONVENTIONS.md, and commit it.")]
 
 
+def title_line(root):
+    """The line of `title:` in .planner.yaml, or 1."""
+    for number, line in enumerate((root / ".planner.yaml").read_text(encoding="utf-8").splitlines(), 1):
+        if line.startswith("title:"):
+            return number
+    return 1
+
+
+def config_findings(root):
+    """W718 when .planner.yaml still has the title the template ships once a session has been opened. The first session
+    asks for the name, so a fresh vault with no session record is not behind on anything; after one, the title heads the
+    dashboard and every reader's copy, and a vault nobody named reads as 'New initiative' to the people it is for."""
+    config = load_config(root)
+    if str(config.get("title", "")).strip() != schema.PLACEHOLDER_TITLE or not any((root / "sessions").glob("*.md")):
+        return []
+    return [model.Finding(".planner.yaml", title_line(root), "W718",
+                          f"The initiative's title is still the template's '{schema.PLACEHOLDER_TITLE}', so the dashboard "
+                          "and every reader's copy show that.",
+                          "Ask the lead for a short name for the initiative and write it as title: in .planner.yaml.")]
+
+
+def vault_file_findings(root):
+    """The findings about the vault's own files, which are not pages: its conventions copy and its config."""
+    return conventions_findings(root) + config_findings(root)
+
+
 def cmd_upgrade(args, out):
     root = pathlib.Path(args.vault).resolve()
     refuse_if_reader(root, "Upgrading CONVENTIONS.md")
@@ -207,7 +233,7 @@ def check_counts(files, today):
         copies.write_folder(files, folder + "/vault")
         root = pathlib.Path(folder) / "vault"
         vault = load_vault(root)
-        found = rules.check(vault, today) + conventions_findings(root)
+        found = rules.check(vault, today) + vault_file_findings(root)
     errors = sum(1 for f in found if f.is_error)
     return errors, len(found) - errors
 
@@ -502,7 +528,7 @@ def explore_workspace(folder, today, out):
 
 def vault_findings(root, today):
     """Every finding `planner check` would print for the vault at `root`."""
-    return rules.check(load_vault(root), today) + conventions_findings(root)
+    return rules.check(load_vault(root), today) + vault_file_findings(root)
 
 
 def check_summary(root, baseline_dir, today):
@@ -892,7 +918,7 @@ def cmd_check(args, out):
     vault = load_vault(root)
     items = gate_items(vault, args.gate, args.item)
     app = gate_app(vault, args.gate, args.app)
-    findings = rules.check(vault, today, gate=args.gate, items=items, app=app) + conventions_findings(root)
+    findings = rules.check(vault, today, gate=args.gate, items=items, app=app) + vault_file_findings(root)
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     elapsed = time.perf_counter() - started

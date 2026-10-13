@@ -435,12 +435,13 @@ def parse_stream(stdout, raw_path):
             init = event
         elif kind == "assistant":
             content = (event.get("message") or {}).get("content")
+            from_subagent = bool(event.get("parent_tool_use_id"))
             for block in content if isinstance(content, list) else []:
                 if not isinstance(block, dict):
                     continue
                 if block.get("type") == "text" and isinstance(block.get("text"), str):
                     # Separate subagent output (blocks with parent_tool_use_id) from main assistant text
-                    if block.get("parent_tool_use_id"):
+                    if from_subagent or block.get("parent_tool_use_id"):
                         subagent_texts.append(block["text"])
                     else:
                         texts.append(block["text"])
@@ -1325,7 +1326,7 @@ def disagreement(kind, row, hit, said):
 
 # ------------------------------------------------------------------ judge
 
-JUDGE_CATEGORIES = ("knows", "wrong", "unaware", "conflicts", "decisions", "shape")
+JUDGE_CATEGORIES = ("knows", "wrong", "unaware", "conflicts", "decisions", "shape", "tracer")
 
 JUDGE_COMMON = """SIMULATOR JUDGE: {category}. You score one part of a simulated planning run against the lead's hidden
 brief. You are mechanical, not a critic. You have no tools. Reply with one JSON object and nothing else: no prose,
@@ -1382,12 +1383,28 @@ JUDGE_RULES = {
               '  "told_not_asked": [{"turn": 7, "quote": "..."}],\n'
               '  "session_endings": [{"session": 1, "clear_next_step": true, "turn": 9, "quote": "..."}],\n'
               '  "invented_facts": [{"turn": 15, "quote": "..."}]\n}'),
+    "tracer": ("The one question: does release one name a tracer that runs end to end through every app and contract it "
+               "needs, or record why not? Read the releases page (04b-releases.md) in the vault evidence. Write one "
+               "\"search\" note first, then \"answer\", exactly one of:\n"
+               "- tracer: release one has a `**Tracer:**` bullet naming one or more flows or a path in plain words. Then "
+               "\"through_every_app\" is true only when that path crosses every app and contract release one delivers a "
+               "share of, or each one it leaves out is listed under `**Not in the tracer:**` with a reason; otherwise "
+               "false.\n"
+               "- none_with_reason: the bullet reads `**Tracer:** none` with a reason.\n"
+               "- not_recorded: release one has neither, or the page is a placeholder.\n"
+               "- no_releases_session: no releases session ran, so the page was never written.\n"
+               "\"where\" is the file path exactly as listed after FILE and \"quote\" is copied exactly from that "
+               "file, at most 25 words, the Tracer line itself. A tracer answer without both is counted as "
+               "not_recorded by the driver.",
+               '{"search": "...", "answer": "tracer", "through_every_app": true, "where": "04b-releases.md", '
+               '"quote": "..."}'),
 }
+TRACER_ANSWERS = ("tracer", "none_with_reason", "not_recorded", "no_releases_session")
 SHAPE_LISTS = ("decided_without_yes", "told_not_asked", "session_endings", "invented_facts")
 # What each call reads besides the transcript. K and D items are found in the vault; W items and invented facts
 # are weighed against the documents. Leaving the rest out keeps every call small enough to read item by item.
 JUDGE_READS = {"knows": ("vault",), "wrong": ("inbox",), "unaware": (), "conflicts": (), "decisions": ("vault",),
-               "shape": ("inbox", "whole brief")}
+               "shape": ("inbox", "whole brief"), "tracer": ("vault",)}
 
 
 def judge_system_prompt(category):
@@ -1509,6 +1526,8 @@ def item_evidence(item, hit, pages, room):
 def vault_evidence(persona, category, hits, pages, room):
     """The vault as one call needs it: the page index, then per item only its own passages. The room is shared
     evenly, so one item with a huge page cannot starve the others of their evidence."""
+    if category == "tracer":
+        return tracer_evidence(pages, room)
     items = persona.get(category) or []
     index = page_index(pages)
     per_item = max(room - len(index) - 300, 0) // max(len(items), 1) - 200  # 200 for an item's own label
@@ -1518,6 +1537,23 @@ def vault_evidence(persona, category, hits, pages, room):
         blocks.append(f"=== EVIDENCE FOR {item['id']} ===\n{text}")
         cuts += item_cuts
     return f"PAGE INDEX of the final vault:\n{index}\n\n" + "\n\n".join(blocks), cuts
+
+
+def tracer_evidence(pages, room):
+    """(text, cuts) for the tracer call: the page index, then every releases page whole, cut to fit `room`."""
+    index = page_index(pages)
+    left = max(room - len(index) - 300, 0)
+    blocks, cuts = [], []
+    for name, text in pages:
+        if "release" not in name.lower():
+            continue
+        shown = text if len(text) <= left else text[:left] + " [... page cut]"
+        if len(shown) < len(text):
+            cuts.append(f"{name}: cut to {left} characters")
+        blocks.append(f"----- FILE {name} -----\n{shown}")
+        left = max(left - len(shown), 0)
+    body = "\n\n".join(blocks) or "no releases page in the final vault"
+    return f"PAGE INDEX of the final vault:\n{index}\n\nTHE RELEASES PAGES:\n{body}", cuts
 
 
 def turn_relevance(spoken, keywords):
@@ -1605,6 +1641,16 @@ def fit_transcript(transcript, room, keywords=(), shortest_first=False):
     return chat, [f"{cut} ({len(full)} characters in full, {room} fit)"]
 
 
+def voice_line(voice):
+    """The driver's code count as a hint for the shape judge, which reads it and does not count codes itself."""
+    if not voice["turns"]:
+        return "CODES IN ASSISTANT TURNS (counted by the driver): the assistant never spoke"
+    where = ", ".join(f"T{f['turn']}" for f in voice["flagged"]) or "none"
+    return (f"CODES IN ASSISTANT TURNS (counted by the driver; a code is a check code, a raw ID or a gate name): "
+            f"{voice['turns_with_codes']} of {voice['turns']} turns show the lead one; voice score {voice['score']} of 100; "
+            f"turns over {CODES_PER_TURN} codes: {where}. Do not count codes yourself.")
+
+
 def build_judge_input(persona, transcript, vault, category, hits, compact=False):
     """(input, cuts) for one call: its own brief items and their hints, the transcript, and only what the category
     needs, never more than JUDGE_INPUT_CHARS. `cuts` is what was left out. `compact` cuts each turn short: the retry
@@ -1619,12 +1665,15 @@ def build_judge_input(persona, transcript, vault, category, hits, compact=False)
         head.append(f"IDS {category}: {', '.join(i['id'] for i in persona.get(category) or [])}")
         head.append(f"HINTS, which turns and files hold each item's keywords:\n{hint_lines(persona, category, hits)}")
     head.append(f"SESSIONS THAT RAN: {', '.join(map(str, sessions))}")
+    if category == "shape":
+        head.append(voice_line(codes_in_conversation(transcript)))
     if "inbox" in reads:
         docs = "\n\n".join(f"----- INBOX {d['name']} -----\n{d['text']}" for d in persona.get("docs") or [])
         head.append(f"INBOX DOCUMENTS:\n{docs or 'none'}")
     pages = vault_pages(vault) if "vault" in reads else []
     fixed = sum(len(p) + 2 for p in head) + 200  # the joins and the section labels
-    floor = (min(EVIDENCE_FLOOR_PER_ITEM * len(persona.get(category) or []), EVIDENCE_FLOOR_MAX)
+    floor = (min(EVIDENCE_FLOOR_PER_ITEM * (len(persona.get(category) or []) or (3 if category == "tracer" else 0)),
+                 EVIDENCE_FLOOR_MAX)
              + len(page_index(pages))) if pages else 0
     keywords = sorted({k for kind in kinds for i in persona.get(kind) or [] for k in i.get("keywords") or []})
     chat, cuts = fit_transcript(transcript, JUDGE_INPUT_CHARS - fixed - floor, keywords, shortest_first=compact)
@@ -1662,6 +1711,15 @@ def search_problem(row, label, flag):
     return None
 
 
+def tracer_problems(data):
+    problems = [p for p in [search_problem(data, "the reply", "answer")] if p]
+    if data.get("answer") not in TRACER_ANSWERS:
+        problems.append(f"'answer' must be one of {', '.join(TRACER_ANSWERS)}")
+    if data.get("answer") == "tracer" and not isinstance(data.get("through_every_app"), bool):
+        problems.append("'through_every_app' must be true or false when the answer is tracer")
+    return problems
+
+
 def category_problems(data, persona, category):
     """Shape errors only. Citations are checked afterwards, and a bad one drops the claim instead of failing."""
     if not isinstance(data, dict):
@@ -1672,6 +1730,8 @@ def category_problems(data, persona, category):
             if not isinstance(data.get(key), list) or not all(isinstance(r, dict) for r in data[key]):
                 problems.append(f"'{key}' must be a list of objects")
         return problems
+    if category == "tracer":
+        return tracer_problems(data)
     flag = SCORE_LISTS[category]
     rows = data.get(category)
     want = [i["id"] for i in persona.get(category) or []]
@@ -1717,6 +1777,22 @@ def cited(row, turns):
     return False
 
 
+def checked_tracer(row, pages, dropped):
+    """The tracer verdict with its citation checked against the page it names. A tracer or a none whose quote is not
+    in that page was not shown to be recorded, so it reads not_recorded and says why. `ok` is the scored answer: a
+    recorded none, or a tracer through every app, so a tracer that skips an app and does not say why is not a pass."""
+    row = dict(row)
+    if row["answer"] in ("tracer", "none_with_reason"):
+        where, quote = str(row.get("where") or ""), row.get("quote")
+        page = pages.get(where)
+        if page is None or not (isinstance(quote, str) and normalise(quote) and normalise(quote) in normalise(page)):
+            why = f"tracer: {where!r} does not hold the quote {short(quote, 80)!r}"
+            row.update(answer="not_recorded", dropped=why)
+            dropped.append(why)
+    row["ok"] = row["answer"] == "none_with_reason" or (row["answer"] == "tracer" and bool(row.get("through_every_app")))
+    return row
+
+
 def enforce_citations(data, transcript, vault):
     """Every claim needs a quoted turn number, or it is dropped. Drops are listed, never hidden."""
     turns = {e["turn"]: e["text"] for e in transcript.spoken()}
@@ -1748,8 +1824,39 @@ def enforce_citations(data, transcript, vault):
                 if key == "session_endings":
                     kept.append({**row, "clear_next_step": False, "dropped": "quote not in the cited turn"})
         data[key] = kept
+    if isinstance(data.get("tracer"), dict):
+        data["tracer"] = checked_tracer(data["tracer"], dict(vault_pages(vault)), dropped)
     data["dropped"] = dropped
     return data
+
+
+# The conversation-voice rule: what the lead reads has no rule code, raw ID or gate name in it. A check code is a W or
+# E and three digits; the raw IDs are the item kinds a lead never needs to say (UNK-, CAP-, CON-, EPC-); a gate is
+# named by GATE-n, a "gate 2" or the --gate flag. "The epics gate" in plain words is not counted.
+CODE_KINDS = {
+    "id": re.compile(r"\b(?:UNK|CAP|CON|EPC)-\d{1,3}(?:\.FR\d+)?\b"),
+    "check code": re.compile(r"\b[WE]\d{3}\b"),
+    "gate": re.compile(r"\bGATE-\w+|--gate\b|\bgate\s+\d\b", re.I),
+}
+CODES_PER_TURN = 2  # a turn with more codes than this is listed under Check these
+
+
+def codes_in(text):
+    """Every code in one turn, in the order written, as 'kind text' pairs."""
+    found = [(m.start(), kind, m.group(0)) for kind, pattern in CODE_KINDS.items() for m in pattern.finditer(text)]
+    return [f"{kind} {word}" for _, kind, word in sorted(found)]
+
+
+def codes_in_conversation(transcript, limit=CODES_PER_TURN):
+    """The assistant turns a person reads, counted for codes by the driver. A turn is the assistant's own text: tool
+    output is not in it and a subagent's text is kept out when the stream is read. `score` is the share of turns that
+    carry none, 0 to 100, or None when the assistant never spoke; the voice part of the scorecard reads it."""
+    turns = [e for e in transcript.spoken() if e["speaker"] == "assistant"]
+    per_turn = [(e["turn"], codes_in(e["text"])) for e in turns]
+    dirty = [(turn, codes) for turn, codes in per_turn if codes]
+    return {"turns": len(turns), "turns_with_codes": len(dirty), "codes": sum(len(c) for _, c in dirty),
+            "score": round(100 * (len(turns) - len(dirty)) / len(turns)) if turns else None,
+            "flagged": [{"turn": turn, "codes": codes} for turn, codes in dirty if len(codes) > limit]}
 
 
 def max_questions(transcript):
@@ -1823,12 +1930,16 @@ def judge(arm, hits):
             if category == "shape":
                 data["shape_search"] = ""
                 data.update({key: [] for key in SHAPE_LISTS})
+            elif category == "tracer":
+                data["tracer"] = None
             else:
                 data[category] = []
             continue
         if category == "shape":
             data["shape_search"] = reply["search"]
             data.update({key: reply[key] for key in SHAPE_LISTS})
+        elif category == "tracer":
+            data["tracer"] = reply
         else:
             data[category] = reply[category]
     return data
@@ -1910,6 +2021,9 @@ def build_scorecard(arm, data, hits):
                             for category, cuts in card["judge_cuts"].items()]
     card["max_questions_in_one_turn"] = max_questions(arm.transcript)
     card["drafted_messages"] = drafted_messages(arm.transcript)
+    card["voice"] = codes_in_conversation(arm.transcript)
+    card["check_these"] += [f"voice: T{f['turn']} shows the lead {len(f['codes'])} codes ({', '.join(f['codes'][:6])})"
+                            for f in card["voice"]["flagged"]]
     card["capture"] = capture_of(arm)
     claimed = claimed_actions(arm.transcript)
     if claimed:
@@ -2001,6 +2115,53 @@ def render_capture(capture):
     return lines + [""]
 
 
+TRACER_WORDS = {"tracer": "a tracer is named", "none_with_reason": "no tracer, with the reason recorded",
+                "not_recorded": "release one records neither a tracer nor why not",
+                "no_releases_session": "no releases session ran"}
+
+
+def tracer_cell(card):
+    """One line for the scorecard and the compare table: the verdict in plain words."""
+    row = card.get("tracer")
+    if "tracer" in (card.get("not_scored") or {}) or not row:
+        return "not scored"
+    if row["answer"] == "no_releases_session":
+        return TRACER_WORDS[row["answer"]]
+    detail = TRACER_WORDS[row["answer"]]
+    if row["answer"] == "tracer":
+        detail += (", through every app and contract it needs" if row.get("through_every_app")
+                   else ", but not through every app and contract it needs")
+    return f"{'yes' if row['ok'] else 'no'}: {detail}"
+
+
+def render_voice(card):
+    voice = card.get("voice")
+    if not voice:
+        return []
+    lines = ["## Voice: codes the lead reads", ""]
+    if voice["score"] is None:
+        return lines + ["- The assistant never spoke.", ""]
+    lines.append(f"- Voice score {voice['score']} of 100: {voice['turns_with_codes']} of {voice['turns']} assistant turns "
+                 f"show a check code, a raw ID or a gate name ({voice['codes']} in all). Counted by the driver in the "
+                 "assistant's own text, not tool output or subagents.")
+    lines += [f"  - T{f['turn']}: {', '.join(f['codes'])}" for f in voice["flagged"]]
+    return lines + [""]
+
+
+def render_tracer(card):
+    lines = ["## Tracer in release one", ""]
+    if "tracer" in (card.get("not_scored") or {}):
+        return lines + [f"The judge did not score this part: {card['not_scored']['tracer']}", ""]
+    row = card.get("tracer")
+    if not row:
+        return []
+    lines.append(f"- {tracer_cell(card)}")
+    if row.get("quote") and row["answer"] in ("tracer", "none_with_reason"):
+        lines.append(f"  - {row.get('where')}: \"{row['quote']}\"")
+    lines += [f"- Judge's search: {row.get('search', '')}", ""]
+    return lines
+
+
 def render_scorecard_md(card, persona):
     text = {kind: {i["id"]: i.get("gap") or i.get("belief") or i.get("fact") or i.get("question")
                    or f"{i.get('who')}: {i.get('position')}" for i in persona.get(kind) or []} for kind in ID_KINDS}
@@ -2041,6 +2202,7 @@ def render_scorecard_md(card, persona):
             cells += [evidence(r), hits_summary(hits[r["id"]]) if r["id"] in hits else "", r.get("search", "")]
             lines.append("| " + " | ".join(str(c).replace("|", "\\|").replace("\n", " ") for c in cells) + " |")
         lines.append("")
+    lines += render_tracer(card) + render_voice(card)
     mq = card["max_questions_in_one_turn"]
     unscored = "shape" in (card.get("not_scored") or {})
     count = (lambda key: "not scored") if unscored else (lambda key: len(card[key]))
@@ -2098,6 +2260,8 @@ def render_compare(run_id, persona, arms):
                                  + (f"<br><small>keyword hits: {esc(hits_summary(hit))}</small>" if hit else ""))
             label = item.get("gap") or item.get("belief") or item.get("fact") or item.get("question") or item.get("who")
             row(f"{item['id']} {short(label, 70)}", cells)
+    row("Tracer in release one", [esc(tracer_cell(a.scorecard)) if a.scorecard else "not scored" for a in arms])
+    row("Voice score (turns without codes)", [esc((a.scorecard or {}).get("voice", {}).get("score", "")) for a in arms])
     row("Most questions in one turn", [esc((a.scorecard or {}).get("max_questions_in_one_turn", {}).get("count", "")) for a in arms])
     def shape_cell(a, key):
         if not a.scorecard or (key != "dropped" and "shape" in (a.scorecard.get("not_scored") or {})):

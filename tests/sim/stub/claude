@@ -147,6 +147,15 @@ def judge(stdin, argv, category):
                 for label in re.findall(r"^LABEL: (.+)$", stdin, re.M)]
         print(json.dumps(result(json.dumps({**note, "options": rows}), "judge", argv, cost=0.01)))
         return
+    if category == "tracer":
+        line = re.search(r"^- \*\*Tracer:\*\*.*$", stdin, re.M)
+        if not line:
+            print(json.dumps(result(json.dumps({**note, "answer": "not_recorded"}), "judge", argv, cost=0.01)))
+            return
+        page = re.findall(r"^----- FILE (\S+) -----$", stdin[:line.start()], re.M)[-1]
+        card = {**note, "answer": "tracer", "through_every_app": True, "where": page, "quote": line.group(0).lstrip("- ")}
+        print(json.dumps(result(json.dumps(card), "judge", argv, cost=0.01)))
+        return
     if category == "shape":
         sessions = [int(s) for s in re.search(r"^SESSIONS THAT RAN: (.*)$", stdin, re.M).group(1).split(",") if s.strip()]
         card = {**note, "decided_without_yes": [], "told_not_asked": [], "invented_facts": [],
