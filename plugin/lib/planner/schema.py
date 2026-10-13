@@ -259,6 +259,7 @@ DIAGRAM_KINDS = ("flowchart", "graph", "sequenceDiagram")
 
 # ------------------------------------------------------------ freshness
 
+PLACEHOLDER_TITLE = "New initiative"  # what template/.planner.yaml ships; W718 while a vault keeps it
 STALE_AFTER_DAYS = 60  # default for .planner.yaml's stale_after_days
 SESSION_GAP_DAYS = 30  # W711 when no session has closed for longer than this
 
@@ -305,6 +306,7 @@ CODES = {
     "W327": "reader's decisions pending approval",
     "W329": "a table row's link label pipe is not escaped as `\\|`",
     "W717": "CONVENTIONS.md is not the copy the plugin ships",
+    "W718": "the initiative's title in .planner.yaml is still the template's placeholder",
     "W334": "prose calls an answered question open",
     "E340": "release row names no functional requirement",
     "E341": "release row names a criterion the requirement does not have",

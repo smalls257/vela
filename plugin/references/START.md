@@ -137,6 +137,8 @@ A session that runs a second mode adds that mode to `modes`. It never opens a se
 
 Then say in one sentence how much there is and how far you expect to get: "Six capabilities, two or three requirements each; we'll do two or three today." When you have done about two thirds of what you said, say so, and ask whether to push on or stop and close. If the conversation is cut off, the record holds the resume point; on resume, say in one line where you stopped.
 
+**Name the initiative, once.** The template ships `title: New initiative` in `.planner.yaml`, and that title heads the dashboard and every copy a reader gets. If the title is still that (`planner check` says W718), ask the lead before the first question of the session: "What short name should this initiative go by? A few words, as you would say it to a colleague." Write their answer as `title:` in `.planner.yaml`, commit it with the message `Name the initiative`, and never ask again; a title that is already something else is theirs, so leave it alone. If they decline, say once that the dashboard will read "New initiative" until they give one, and go on. **Reader copy:** do not edit the file; say the owner names the initiative.
+
 ## 6. Read how to talk
 
 Before the session's first question, read `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`. If the vault has `voice/VOICE.md`, read that first: it holds the owner's own rules and sits above the defaults. The conversation file says which examples to read and how. Every mode skill reaches this step through START, so no skill repeats it. Do not tell the lead you read it.

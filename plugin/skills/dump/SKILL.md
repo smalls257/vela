@@ -13,7 +13,7 @@ Shared files live in `${CLAUDE_PLUGIN_ROOT}/references/`. Read them when a step 
 
 ## Steps
 
-1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `dump`. Read the Dump & Diverge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
+1. Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `dump`, including its step that asks once for the initiative's short name. Read the Dump & Diverge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 2. Read `01-goals.md`, `11-unknowns-and-risks.md` and any parked captures in earlier session records (`→ park`), so you can build on what is already there. Do not repeat a parked idea as new.
 3. Let the user talk. Capture each point as its own line, in their words, with their name or role as the origin. Tag it `idea`, `thought`, `unknown`, `worry` or `wild`.
 4. Build on what they say. For each idea, offer one "what if" that removes a constraint, borrows from another domain, or turns the idea around. Write each as a capture with origin `(claude)`. Tag the far-fetched ones `[wild]`. Never judge an idea, and never say one will not work.

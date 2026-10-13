@@ -453,6 +453,7 @@ Requirements cut across apps, so two steps are the initiative's, not any app's, 
 - W711: the last session with `status: closed` is more than 30 days before today. A vault with no closed session yet is not judged.
 - W326: a goals page whose every goal is further along than the page's own `state`, or a constraints page at `inkling` or `assumption` whose every row cites where it comes from. Close sets the page's state as the warning says.
 - W717: this file is not the copy the installed plugin ships. `planner upgrade` replaces it with the plugin's copy; review the change with `git diff CONVENTIONS.md` and commit it.
+- W718: `.planner.yaml` still has `title: New initiative`, the title the template ships, and a session has been opened. The title heads the dashboard and every reader's copy. The first session asks the lead for a short name once and writes it, so a fresh vault with no session yet is not warned.
 
 A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: W704, W716 or W711 says it is "dated in the future (<date>); check for a typo." `planner health` marks the row the same way.
 
@@ -535,6 +536,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
 | E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
+| W718 | the initiative's title in .planner.yaml is still the template's placeholder | | |
 
 W360 to W364 are the reading-load warnings. They are warnings only, and each fix line says how to write it in plain words. W360 fires on a sentence with three or more IDs, W361 on an ID written in prose that is neither inside a link nor followed by its name (tables, headings, code, History and `- Trace:` lines are the machine's and are left alone), W362 on more than nine list items under one heading, W363 on a page of more than about 900 words with no paragraph between its title and its first `##` heading, and W364 on an epic with more than nine numbered acceptance criteria. The conventions above aim lower (about seven) so a page at the edge is not nagged.
 
