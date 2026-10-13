@@ -62,6 +62,14 @@ def grouping(vault, keys):
             "noDomain": len(undomained), "noCapability": len(uncapped)}
 
 
+def tracer_data(first):
+    """Release one's tracer for the dashboard: the flows in order, the plain words, the reason when there is none,
+    and what is left out of it."""
+    return {"given": first.tracer_given, "flows": list(first.tracer_flows), "words": first.tracer_words,
+            "none": first.tracer_none,
+            "notIn": [{"text": left.text, "ids": list(left.ids), "reason": left.reason} for left in first.not_in_tracer]}
+
+
 def release_data(vault, keys):
     found = releases.releases(vault)
     snaps = releases.snapshots(vault)
@@ -93,7 +101,8 @@ def release_data(vault, keys):
         end = {"name": "End state", "target": "", "state": "", "apps": apps, "contracts": cons, "delivers": [],
                "fromChange": True}
     page = releases.page(vault)
-    return {"states": states, "end": end, "page": keys.page(page) if page else "", "count": len(found)}
+    return {"states": states, "end": end, "page": keys.page(page) if page else "", "count": len(found),
+            "tracer": tracer_data(found[0]) if found else None}
 
 
 def table_rows(vault, keys, header):

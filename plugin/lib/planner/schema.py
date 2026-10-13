@@ -169,7 +169,7 @@ RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
 # Target is a release's date and Owning team an epic's receiving team; both are read or required, so style must not
 # call them prose.
-PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team") + OVERRIDE_LABELS
+PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team", "Tracer", "Not in the tracer") + OVERRIDE_LABELS
 
 # `- Trace: CAP-001.FR1, CON-001` under a criterion or bullet holds the IDs its sentence no longer shows. The planner
 # reads it, so `planner style` must never call it prose, and close must never delete it.
@@ -310,6 +310,8 @@ CODES = {
     "E341": "release row names a criterion the requirement does not have",
     "E342": "release has no valid state",
     "W343": "no release delivers a functional requirement",
+    "W345": "release one has no Tracer bullet",
+    "W347": "the tracer passes through an app or contract release one delivers no share of",
     "E344": "release target is not a YYYY-MM-DD date",
     "E350": "flow step names a sender or receiver its contract does not join",
     "W351": "flow step links a contract but names no sender and receiver",
