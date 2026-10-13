@@ -105,6 +105,9 @@ flowchart LR
   G --> H["/planner:releases<br/>what ships when"]
   H --> I["/planner:epics<br/>work per team"]
   I --> J["handoff<br/>(in a grill)"]
+  J --> K["/planner:design<br/>the team's design"]
+  K --> L["/planner:breakdown<br/>stories and tasks"]
+  L --> M["/planner:tickets<br/>checked, ready to import"]
 ```
 
 The order is a guide, not a track. Once the strategy is decided, `planner next` suggests requirements before boundary. A grill comes back for each app, and you can skip any stage you already have. Ask it:
@@ -117,6 +120,8 @@ planner next: initiative, dump. No app page exists yet, so start with a Dump & D
 `planner status` shows every app's stage and its oldest open unknown.
 
 Only a grill sets an item to `decided`. Every other session writes `inkling`, `assumption` or `fact`. If you want to override a rule, say so. Claude tells you once what the rule protects, does what you asked, and writes an `Override:` line on the item so nobody has to guess later.
+
+The last three sessions are the team's. Once an app is handed off, its senior runs `/planner:design` and then `/planner:breakdown`, and `/planner:tickets` turns the build plan into tickets. `planner next` shows the team's next step as its own line, beside yours.
 
 Handoff happens inside a grill on an app that is ready, and it records the senior's name and date on the app page. Close then writes the handoff manifest, and `planner handoff verify APP-x` later tells you if anything the senior accepted has changed. A senior who disagrees later uses `/planner:challenge`, and you answer on the same branch.
 
@@ -167,7 +172,7 @@ Nothing is required. With no file and no examples, the defaults apply. If text i
 
 ### Where team designs and plans live
 
-Designs and plans live in the vault's own `docs/` folder. A senior runs `tech-design-grill` and `work-breakdown` from the vault root, and they write:
+Designs and plans live in the vault's own `docs/` folder. A senior runs `/planner:design --app APP-x` and then `/planner:breakdown` from the vault root. (A team that already uses its own `tech-design-grill` and `work-breakdown` skills can keep them; they write the same files.) They write:
 
 ```
 docs/tech-design/<slug>.md          the design (with vault.app: APP-x in its frontmatter)
@@ -177,15 +182,18 @@ docs/plan/<slug>-breakdown.md       the work breakdown
 
 `planner explore` finds them with no flag. `planner check` doesn't read `docs/`. If a design lives in another clone, put `design: <path>` on the app page, or pass `--design APP-x=<path>` (and `--breakdown APP-x=<path>`). The build prints what it found and `no design doc found for ...` when it did not.
 
-### Work breakdown to Jira tickets
+### From the build plan to tickets
 
-No model is involved, so nothing gets invented:
+`/planner:tickets` takes a finished build plan and holds it against the vault one more time: every story traces to a criterion or a requirement, every requirement the app carries has a story, criteria match the vault word for word, blockers point at real stories, and the tracer stories come first. Then it asks what you want: a Markdown list of tickets, a CSV for Jira's import, or, if you already have Jira tools set up (an MCP server or a CLI), whether to use them. It creates nothing in Jira without your yes, and it stops once it has written the file and told you what it found, such as "9 stories, 42 tasks, 3 flagged".
+
+The same check and output work without a session, and no model is involved, so nothing gets invented:
 
 ```
-python3 tools/breakdown_to_tickets.py --repo <vault or team repo>
+planner tickets check
+planner tickets write --format csv
 ```
 
-It reads the single `docs/plan/*-breakdown.md` (or `--breakdown <file>`) and writes `docs/work/tickets.csv` and a README beside it with the import steps and anything it could not map. Exit 0 means every line mapped, 1 means the CSV is written but the README lists problems, 2 means nothing was written. Each story is a Story row and each task a Task row; sizes S, M, L become 2, 5, 8 points (our mapping, for ordering only). The explorer's Build plan level shows the same plan, with a "Copy as Jira CSV" button.
+It reads the single `docs/plan/*-breakdown.md` (or the plan you name) and writes into `docs/work/` (or `--out`). Merged and deferred stories aren't exported; the output lists them as not ticketed. Each story becomes a Story row and each task a Task row, and the CSV turns sizes S, M and L into 2, 5 and 8 points, our mapping, for ordering only. `python3 tools/breakdown_to_tickets.py` still works and runs the same code. The explorer's Build plan level shows the same plan, with a "Copy as Jira CSV" button.
 
 For epics rather than stories: `planner export jira-csv --out epics.csv`.
 
