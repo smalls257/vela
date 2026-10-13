@@ -482,7 +482,7 @@ def test_harvest_step_four_and_step_eight_each_run_in_a_fresh_shell(pr_repo):
     (repo / ".gitignore").write_text(".planner/\n", encoding="utf-8")  # as template/.gitignore does
     run_git(repo, "add", ".gitignore")
     page = "04-solution-strategy.md"
-    (repo / page).write_text("# Strategy\n\nFirst line of the owner’s paragraph.\nIt’s kept   word for word.\n\nTail.\n",
+    (repo / page).write_text("# Strategy\n\nFirst line of the owner's paragraph.\nIt’s kept   word for word.\n\nTail.\n",
                              encoding="utf-8")
     run_git(repo, "add", page)
     run_git(repo, "-c", "user.name=T", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false", "commit", "-qm", "merged")
