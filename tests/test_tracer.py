@@ -164,3 +164,13 @@ def test_page_data_carries_release_ones_tracer(tmp_path):
     tracer = roles_data.release_data(vault, type("K", (), {"page": staticmethod(lambda p: p.id)})())["tracer"]
     assert tracer["flows"] == ["FLO-903"] and tracer["words"] == "one fare quote"
     assert tracer["notIn"][0]["ids"] == ["APP-website"]
+
+
+def test_w347_skips_an_app_or_contract_that_release_one_leaves_unchanged(tmp_path):
+    """An existing app on the tracer's path that no release changes needs no share in release one: it already runs."""
+    vault = vault_for(tmp_path, ["**Tracer:** [[FLO-901-site-to-booking|FLO-901]], hold and quote"])
+    page = vault / "05-building-blocks" / "pricing-building-blocks.md"
+    text = page.read_text(encoding="utf-8")
+    page.write_text(text.replace("\nchange: ", "\nchange: unchanged\nold_change: ", 1), encoding="utf-8")
+    out = "\n".join(line for line in check(vault).split("\n") if "W347" in line)
+    assert "APP-pricing" not in out and "APP-website" in out, out

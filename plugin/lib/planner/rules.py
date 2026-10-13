@@ -705,7 +705,10 @@ def tracer_rules(vault, page, first):
     apps, contracts = flows.passes_through(vault, first.tracer_flows)
     got_apps, got_contracts = releases.reach(vault, first)
     named = {i for left in first.not_in_tracer for i in left.ids}
-    missing = [i for i in apps if i not in got_apps] + [i for i in contracts if i not in got_contracts]
+    # An app or contract no release changes already runs, so the thin path needs no share of it in release one.
+    unchanged = {a.id for a in vault.apps if str(a.meta.get("change") or "") == "unchanged"}
+    unchanged |= {c.id for c in vault.contracts if (c.fact("Change") or "").strip().lower() == "unchanged"}
+    missing = [i for i in apps if i not in got_apps and i not in unchanged] + [i for i in contracts if i not in got_contracts and i not in unchanged]
     for item_id in missing:
         if item_id in named:
             continue
