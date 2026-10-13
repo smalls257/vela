@@ -26,7 +26,8 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `capabilities/` | `CAP-nnn-<slug>.md` per capability touched |
 | `sources.md` | The source register, `SRC-nn` |
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
-| `voice/examples/` | House-voice passages. Never a source. Committed. |
+| `voice/VOICE.md` | Optional. The owner's own rules for either voice (pages, conversation), in their own words. Committed. Never a source. |
+| `voice/examples/` | House-voice passages and conversation exchanges. Never a source. Committed. |
 | `voice/local/` | The owner's passages that stay on one machine, same format as `voice/examples/`. Gitignored, never committed. `voice/corpus/` is gitignored too. |
 | `docs/` | The team's design and plan for a handed-off app, written by the user's `tech-design-grill` and `work-breakdown` skills when run from the vault root: `docs/tech-design/<slug>.md`, `docs/plan/<slug>-breakdown.md`, `docs/adr/`. Not planner pages: `planner check` does not read them, and `publish`, `open` and `propose` carry them like any other file. `CONTEXT.md` at the vault root is the design's glossary, also not a page. |
 | `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `planner handoff` writes. Never edited by hand. |
@@ -365,7 +366,9 @@ A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, di
 
 ## Voice examples
 
-House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works`. `planner check` never reads `voice/`.
+House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works` for pages, and `conversation` for how sessions talk to the lead. A `conversation` example is an exchange the owner liked, stored word for word under `voice/examples/conversation/` or `voice/local/conversation/`, in the same format. It has no public seed, so the template ships none. `planner check` never reads `voice/`.
+
+`voice/VOICE.md` is optional. It holds the owner's own rules in their own words, under `## Pages` and `## Conversation`. Both voices read it first, so it sits above the plugin's defaults and above the examples where they disagree. With no file and no examples, the defaults apply. The owner may override any default.
 
 | Field | Rule |
 |---|---|
@@ -381,7 +384,7 @@ House-voice passages live in `voice/examples/<voice type>/`, one per file named 
 
 A voice type holds at most 5 `active` examples, counting `voice/examples/` and `voice/local/` together. When a sixth becomes active, one retires: the `public-seed` examples first, then the `owner-edit`, then the `owner`, the oldest `added` first within each. The owner may refuse a retirement. Then nothing new is stored for that type. Once a type has 2 `active` examples with `source: owner` or `owner-edit` in the same folder as a `public-seed` example, counted after the run, that seed retires, so drafts follow the owner. A local example never retires a committed seed, so every clone keeps its seed. An owner's words are stored as written and never rewritten. Nothing is ever deleted.
 
-`voice/local/<voice type>/VX-<voice type>-NNN.md` holds examples in the same format that stay on one machine, for text the owner may not publish. `/planner:voice-seed` writes there when the owner picks local only. House-voice reads both folders, and on that machine reads local `owner` and `owner-edit` examples ahead of the committed ones.
+`voice/local/<voice type>/VX-<voice type>-NNN.md` holds examples in the same format that stay on one machine, for text the owner may not publish. `/planner:voice-seed` writes there when the owner picks local only. House-voice reads both folders for the page types, and sessions read both for `conversation`; on that machine reads local `owner` and `owner-edit` examples ahead of the committed ones.
 
 `planner voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite. The kinds are `id`, `number` (with its unit and currency symbol), `date`, `version`, `link` (wikilinks, Markdown link URLs and bare URLs), `code`, `cell` (table cells), `frontmatter` (every line, compared exactly) and `negation` (the count of negation words in the prose of each file, outside frontmatter, table rows, code spans, links and URLs: not, no, never, cannot, without, nobody, nothing, none, nor, neither, nowhere, and any word ending in n't. The count is per file, so splitting, merging or moving paragraphs does not change it). `planner voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
 
