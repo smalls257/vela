@@ -48,13 +48,13 @@
     <a class="card" href="guide.html"><b>Read the user guide</b><span>How the sessions work, what each one produces, and how teams take it from there.</span></a>
   </div>
 
-  <h2>How it works, in four steps</h2>
+  <h2>How it works, in five steps</h2>
   <p>A solution lead runs a series of guided sessions. Each is one conversation with Claude with one job: open it,
   work, close it. The sessions run roughly in the order below. The order is a guide, not a track: you skip any stage
   you already have, and some sessions come back for each app.</p>
   <figure>
-    <svg viewBox="0 0 830 172" role="img" aria-label="Four stages from left to right: understand, shape the system, say what is needed and who builds it, hand to teams, with the guided sessions listed under each."><defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor" stroke="none"/></marker></defs><g><rect x="10" y="10" width="150" height="152" rx="8"/><text class="b" x="22" y="34">1. Understand</text><text x="22" y="58">Dump &amp; Diverge</text><text x="22" y="78">Discover</text></g><g><rect x="230" y="10" width="150" height="152" rx="8"/><text class="b" x="242" y="34">2. Pick the approach</text><text x="242" y="58">Shape</text><text x="242" y="78">Grill</text></g><g><rect x="450" y="10" width="150" height="152" rx="8"/><text class="b" x="462" y="34">3. What and who</text><text x="462" y="58">Requirements</text><text x="462" y="78">Boundary</text><text x="462" y="98">Allocate</text><text x="462" y="118">Releases</text><text x="462" y="138">Epics</text></g><g style="color:var(--accent)"><rect x="670" y="10" width="150" height="152" rx="8"/><text class="b" x="682" y="34">4. Hand to teams</text><text x="682" y="58">Handoff</text><text x="682" y="78">Tech design</text><text x="682" y="98">Work breakdown</text><text x="682" y="118">Tickets</text></g><path class="l" d="M166 76H224" marker-end="url(#a1)"/><text x="195" y="68" text-anchor="middle">feeds</text><path class="l" d="M386 76H444" marker-end="url(#a1)"/><text x="415" y="68" text-anchor="middle">sets up</text><path class="l" d="M606 76H664" marker-end="url(#a1)"/><text x="635" y="68" text-anchor="middle">hands off</text></svg>
-    <figcaption>The journey from a fuzzy idea to tickets, in four stages, with the guided sessions under each.</figcaption>
+    <svg viewBox="0 0 874 172" role="img" aria-label="Five stages from left to right: understand, pick the approach, say what is needed and who builds it, design the build, and tickets, with the guided sessions listed under each."><defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor" stroke="none"/></marker></defs><g><rect x="10" y="10" width="150" height="152" rx="8"/><text class="b" x="22" y="34">1. Understand</text><text x="22" y="58">Dump &amp; Diverge</text><text x="22" y="78">Discover</text></g><g><rect x="186" y="10" width="150" height="152" rx="8"/><text class="b" x="198" y="34">2. Pick the approach</text><text x="198" y="58">Shape</text><text x="198" y="78">Grill</text></g><g><rect x="362" y="10" width="150" height="152" rx="8"/><text class="b" x="374" y="34">3. What and who</text><text x="374" y="58">Requirements</text><text x="374" y="78">Boundary</text><text x="374" y="98">Allocate</text><text x="374" y="118">Releases</text><text x="374" y="138">Epics</text></g><g><rect x="538" y="10" width="150" height="152" rx="8"/><text class="b" x="550" y="34">4. Design the build</text><text x="550" y="58">Handoff</text><text x="550" y="78">Design</text><text x="550" y="98">Breakdown</text></g><g style="color:var(--accent)"><rect x="714" y="10" width="150" height="152" rx="8"/><text class="b" x="726" y="34">5. Tickets</text><text x="726" y="58">Checked against</text><text x="726" y="78">the vault, ready</text><text x="726" y="98">to import</text></g><path class="l" d="M164 76H182" marker-end="url(#a1)"/><path class="l" d="M340 76H358" marker-end="url(#a1)"/><path class="l" d="M516 76H534" marker-end="url(#a1)"/><path class="l" d="M692 76H710" marker-end="url(#a1)"/></svg>
+    <figcaption>The journey from a fuzzy idea to tickets, in five stages, with the guided sessions under each.</figcaption>
   </figure>
   <p><b>Understand.</b> Dump &amp; Diverge gets every idea and worry out of the lead's head. Discover reads the
   documents and code that exist and asks the lead to confirm what is there today.</p>
@@ -63,9 +63,12 @@
   <p><b>Say what is needed and who builds it.</b> Requirements writes what the business needs, with no app named.
   Boundary cuts the work into apps. Allocate gives each app its share. Releases says what ships when, and Epics
   shapes the work for each team.</p>
-  <p><b>Hand to teams.</b> Once an app is ready, its team's senior accepts a handoff, then writes a technical design
-  and a work breakdown. The breakdown can be turned into a CSV for Jira. Each session is a command such as
-  <code>/planner:shape</code> or <code>/planner:epics</code>.</p>
+  <p><b>Design the build.</b> Once an app is ready, its team's senior accepts the handoff. Design then works out how
+  the app is built, and Breakdown cuts that into stories and tasks, each one tracing back to what it delivers.</p>
+
+  <p><b>Tickets.</b> Tickets checks the plan against the vault one last time, then writes the tickets as a list or a
+  CSV for Jira, or asks whether to use the Jira tools you already have. It doesn't create anything without your yes.
+  Each session is a command such as <code>/planner:shape</code> or <code>/planner:tickets</code>.</p>
 
     <p>A plan works best as a tracer bullet: one thin path through every app first, then slice after slice. Vela is gaining support for planning it that way. <a href="tracer-bullets.html">How the tracer-bullet approach works</a>.</p>
 
