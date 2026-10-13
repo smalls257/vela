@@ -15,8 +15,13 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | Releases (`releases`) | every requirement at `assumption` or later is on a release or marked "later, no date", or the user stops | ask one question at a time with a recommended answer; say each release's date and who sees it; write only what has an explicit yes | write `decided`, invent a date, or write a requirement on a release the user did not place it on |
 | Challenge (`challenge`) | the challenge is an open unknown and its PR is open, or the senior stops | quote the senior's words; write one open unknown the senior owns that blocks the item, and one `**Dissent:**` line on the item | change the item's state or text, decide anything, or argue the item's side |
 | Answer (`answer`) | the challenged item is decided again, set back, or its unknown resolved, or the lead stops | work on the challenge's own branch; decide only inside a Grill part, with `grill` added to `modes` | open a second PR, or decide anything outside a Grill |
-| Breakdown (`breakdown`) | the plan is complete or complete-with-gaps, or the person stops | start the first story from the team's piece of the tracer flow; quote each story's criteria word for word from the vault; say for each story whether it fits before the next release date, or that it cannot tell and why | invent a criterion, plan around a person the design or the vault does not name, or split, merge or reorder agreed stories without a yes |
-| Tickets (`tickets`) | the output file is written and the summary said | check the plan against the vault before writing anything; ask which output the person wants; stop after the summary | create or change anything in an outside system without an explicit yes |
+
+## Team skills
+
+These two run in the team's clone of the vault, after a design is complete, and write no session record. Neither is a session mode: a vault session's `modes` list never holds them.
+
+- **Breakdown** (`/planner:breakdown`) ends when the plan is complete or complete-with-gaps, or the person stops. Claude starts the first story from the team's piece of the tracer flow, quotes each story's criteria word for word from the vault, and says for each story whether it fits before the next release date, or that it cannot tell and why. It does not invent a criterion, plan around a person the design or the vault does not name, or split, merge or reorder agreed stories without a yes.
+- **Tickets** (`/planner:tickets`) ends when the output file is written and the summary said. Claude checks the plan against the vault before writing anything, asks which output the person wants, and stops after the summary. It creates or changes nothing in an outside system without an explicit yes.
 
 ## Who writes what, and when
 

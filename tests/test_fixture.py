@@ -59,7 +59,8 @@ def test_render_changes_no_bytes(ub):
 
 def test_no_jira_anywhere():
     roots = [REPO / "examples" / "unified-booking", REPO / "template", REPO / "plugin" / "skills"]
-    hits = [f"{p}" for root in roots for p in root.rglob("*") if p.is_file()
+    # The tickets skill names Jira on purpose: it offers a Jira CSV and asks whether the person's own Jira tools may be used.
+    hits = [f"{p}" for root in roots for p in root.rglob("*") if p.is_file() and p.parent.name != "tickets"
             and re.search(r"jira|\bHB-\d", p.read_text(encoding="utf-8", errors="ignore"), re.I)]
     assert hits == []
 
