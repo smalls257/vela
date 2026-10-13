@@ -1597,7 +1597,9 @@ const TextFit = (() => {
     D.flows.slice(0, 4).forEach((f) => list.push({ name: `flow ${f.key}`, root: "#main", show: () => Flows.select(f.key, -1) }));
     list.push({ name: "progress, open questions by week", root: "#main", show: () => showView("progress") });
     list.push({ name: "the minimap", root: "#panel-mini", show: () => { Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; rerender(); } });
-    for (const k of apps) {
+    // the inside levels are the same code for every app, so a big vault sweeps the apps with a design or a plan first, at most six
+    const inside = [...apps.filter((k) => D.designs[k] || (D.plans || {})[k]), ...apps.filter((k) => !D.designs[k] && !(D.plans || {})[k])].slice(0, 6);
+    for (const k of inside) {
       const d = D.designs[k], p = (D.plans || {})[k], name = titleOf(k);
       list.push({ name: `inside ${name}, context`, root: "#inside-stage", show: () => Inside.open(k, "context") });
       list.push({ name: `inside ${name}, containers`, root: "#inside-stage", show: () => Inside.open(k, "containers") });
@@ -1618,10 +1620,11 @@ const TextFit = (() => {
     const nodes = $$("[data-node]", root), loose = $$(NODE_SHAPES, root).filter((el) => !el.hasAttribute("data-node") && !el.closest("[data-node]") && !el.closest(".in-mini, #panel-mini .mini-head"));
     const bad = [], badAt = new Set();
     const named = nodes.filter((el) => el.getAttribute("aria-label") || el.textContent.trim());
+    let live = $$("[data-node]", $(d.root));  // drawn again only when a click redrew the page: drawing is what costs the time
     for (let i = 0; i < nodes.length; i++) {
       for (const how of ["click", "Enter"]) {
-        d.show(); await frames();
-        const el = $$("[data-node]", $(d.root))[i];
+        if (!live[i] || !live[i].isConnected) { d.show(); await frames(); live = $$("[data-node]", $(d.root)); }
+        const el = live[i];
         if (!el) { bad.push(`${how}: node ${i + 1} is gone after a redraw`); continue; }
         if (how === "Enter" && el.getAttribute("tabindex") === "-1") continue;  // a small part inside a focusable parent: the parent is the keyboard's way in
         const label = words(el);
