@@ -91,7 +91,9 @@ const ProgressView = (() => {
         const r = s("rect", { x, y: H - bh, width: bw - 8, height: bh, rx: 4, fill: colour, opacity: op.toFixed(2), class: "bar-r" }, svg);
         r.addEventListener("mousemove", (ev) => showTip(ev, `<b>${esc(b.label)}${b.sub ? " (" + b.sub + ")" : ""}: ${b.ids.length}</b>${esc(b.ids.join(", "))}`));
         r.addEventListener("mouseleave", hideTip);
-        r.addEventListener("click", () => { hideTip(); listBox.innerHTML = ""; listBox.append(h("div", { class: "note" }, h("b", {}, `${b.label}: `), b.ids.map((id) => refChip(id)))); });
+        const week = `${b.label}${b.sub ? " (" + b.sub + ")" : ""}`;
+        const note = Nodes.note({ diagram: "Open questions by week", name: week, kind: "Questions due in this bucket", text: `${plural(b.ids.length, "open question")} fall${b.ids.length === 1 ? "s" : ""} due in ${week.toLowerCase().startsWith("overdue") || week === "Later" || week === "No date" ? week.toLowerCase() : "the week starting " + week}. The bar takes the colour of the most urgent.`, stands: b.ids });
+        Nodes.wire(r, { label: `${week}: ${plural(b.ids.length, "open question")}`, open: () => { hideTip(); listBox.innerHTML = ""; listBox.append(h("div", { class: "note" }, h("b", {}, `${b.label}: `), b.ids.map((id) => refChip(id)))); go(note, { reset: true }); } });
         s("text", { x: x + (bw - 8) / 2, y: H - bh - 6, "text-anchor": "middle", class: "bar-n" }, svg).textContent = b.ids.length;
       }
       s("text", { x: x + (bw - 8) / 2, y: H + 16, "text-anchor": "middle", class: "axis" + (i === 0 ? " warn" : "") }, svg).textContent = b.label;

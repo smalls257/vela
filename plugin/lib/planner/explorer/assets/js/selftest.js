@@ -1188,6 +1188,12 @@ const SelfTest = (() => {
       ok(nodes === p.stories.length && !o.bad.length, `inside ${name}, dependency view: ${nodes} stories, ${o.n} boxes and labels, no two overlap`, `inside ${name}, dependency view: ${nodes} of ${p.stories.length}; overlaps ${o.bad.slice(0, 3).join("; ")}`);
       const arrows = $$("#plan-dag path.in-edge").length, want = p.stories.reduce((n, x) => n + x.blockers.length, 0);
       ok(arrows === want, `inside ${name}, dependency view: ${arrows} arrows, one for each Blocked by`, `inside ${name}, dependency view: ${arrows} arrows for ${want} blockers`);
+      {
+        const dag = $("#plan-dag"), box = $("#plan-dag svg").getBoundingClientRect(), room = dag.getBoundingClientRect();
+        ok(dag.scrollWidth <= dag.clientWidth + 1 && box.width <= room.width + 1 && getComputedStyle(dag).overflowX !== "auto",
+          `inside ${name}, dependency view: fits the width (${Math.round(box.width)} px in ${Math.round(room.width)} px), no sideways scroll, ${Math.round(box.height)} px tall`,
+          `inside ${name}, dependency view: scrolls sideways (drawing ${Math.round(box.width)} px, room ${Math.round(room.width)} px, scroll width ${dag.scrollWidth})`);
+      }
       const hits = $$("#plan-dag .plan-hit"), unnamed = hits.filter((n) => !n.getAttribute("aria-label") || n.getAttribute("role") !== "button" || n.tabIndex !== 0);
       ok(hits.length === $$("#plan-dag g.in-node").length && hits.length >= p.stories.length && !unnamed.length,
         `inside ${name}, dependency view: all ${hits.length} nodes can be focused and have a name`, `inside ${name}, dependency view: ${$$("#plan-dag g.in-node").length - hits.length} nodes cannot be clicked, ${unnamed.length} have no name`);
@@ -1550,6 +1556,108 @@ const TextFit = (() => {
     try { await checks(ok); } catch (e) { lines.push("FAIL the text-fit checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the text-fit checks: " + window.__errors.slice(errors).join(" | "));
+    const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;
+    const out = [fails ? `SELFTEST FAIL: ${fails} of ${body.length} checks failed` : `SELFTEST OK: ${body.length} checks passed`, ...body];
+    console.log(lines.join("\n"));
+    document.body.setAttribute("data-selftest", out.join(" || "));
+    return out;
+  };
+})();
+
+/* ------------------------------------------------------------ Every diagram node opens the panel (E44)
+   The standing rule: every node of every diagram is clickable and opens more about it in the right-hand panel, and works
+   from the keyboard. Nodes.wire (core.js) is the one way a node is drawn; this sweep is its sensor. For each diagram the
+   page draws it renders the diagram afresh for every node (a click can redraw the page), clears the panel, clicks the
+   node, and fails when the panel does not show a heading and a body that were not there before; then the same with the
+   Enter key. It also lists any node-shaped element that was drawn without going through the helper. A failure names the
+   diagram and the node's words. */
+(() => {
+  const base = SelfTest.run;
+  const frames = () => Promise.resolve();
+  const NODE_SHAPES = ".hit, g.station, g.works, .also-chip, .also-tab, .mini-lamp, .rl-node, path.rl-cor, .in-node, .seq-head, .seq-step, .in-label.pick, .bar-r, .mini-node, .line-hit, .track-label, .cluster-name";
+  const panelNow = () => {
+    const b = $("#panel-body"), head = b && $(".p-head h2", b), body = b && $(".p-body, .reader", b);
+    return { text: b ? b.textContent.trim() : "", head: head ? head.textContent.trim() : "", body: body ? body.textContent.trim() : "", empty: !!(b && $(".p-empty", b)) };
+  };
+  const fresh = (before, after) => !!after.head && !!after.body && !after.empty && after.text !== before.text;
+  const press = (el, how) => el.dispatchEvent(how === "click" ? new MouseEvent("click", { bubbles: true, cancelable: true }) : new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+  const words = (el) => (el.getAttribute("data-node") || el.getAttribute("aria-label") || el.textContent || el.getAttribute("class") || "").replace(/\s+/g, " ").trim().slice(0, 60);
+
+  /* The diagrams: how to draw each one, and the element that holds it. */
+  function diagrams() {
+    const apps = D.map.apps.map((a) => a.key), list = [];
+    const map = (name, lens, group, extra) => list.push({ name, root: "#board", show: () => { Nav.home(); MapView.st.lens = lens; MapView.st.group = group; MapView.st.focus = null; if (extra) extra(); rerender(); } });
+    map("map, cockpit", "cockpit", "none");
+    if (apps.length) map("map, one app and its neighbours", "cockpit", "none", () => { MapView.st.focus = apps[0]; });
+    map("map, grouped by domain, clusters closed", "cockpit", "domain", () => MapGroups.all(false));
+    map("map, grouped by domain, clusters open", "cockpit", "domain", () => MapGroups.all(true));
+    map("map, grouped by capability, clusters open", "cockpit", "capability", () => MapGroups.all(true));
+    map("map, line map", "transit", "none");
+    list.push({ name: "releases", root: "#main", show: () => { Releases.st.compare = false; Releases.st.at = 0; Nav.open("releases"); } });
+    D.flows.slice(0, 4).forEach((f) => list.push({ name: `flow ${f.key}`, root: "#main", show: () => Flows.select(f.key, -1) }));
+    list.push({ name: "progress, open questions by week", root: "#main", show: () => showView("progress") });
+    list.push({ name: "the minimap", root: "#panel-mini", show: () => { Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; rerender(); } });
+    for (const k of apps) {
+      const d = D.designs[k], p = (D.plans || {})[k], name = titleOf(k);
+      list.push({ name: `inside ${name}, context`, root: "#inside-stage", show: () => Inside.open(k, "context") });
+      list.push({ name: `inside ${name}, containers`, root: "#inside-stage", show: () => Inside.open(k, "containers") });
+      if (d) {
+        list.push({ name: `inside ${name}, components`, root: "#inside-stage", show: () => Inside.open(k, "components", { tab: "trace" }) });
+        list.push({ name: `inside ${name}, data model`, root: "#inside-stage", show: () => Inside.open(k, "components", { tab: "data" }) });
+        list.push({ name: `inside ${name}, key flows`, root: "#inside-stage", show: () => Inside.open(k, "components", { tab: "flows" }) });
+      }
+      if (p) list.push({ name: `inside ${name}, build plan`, root: "#inside-stage", show: () => Inside.open(k, "plan") });
+    }
+    return list;
+  }
+  async function sweepOne(d, ok) {
+    MapView.clearDrop();
+    d.show(); await frames();
+    const root = $(d.root);
+    if (!root) { ok(false, "", `node sweep, ${d.name}: the diagram's holder ${d.root} is not on the page`); return; }
+    const nodes = $$("[data-node]", root), loose = $$(NODE_SHAPES, root).filter((el) => !el.hasAttribute("data-node") && !el.closest("[data-node]") && !el.closest(".in-mini, #panel-mini .mini-head"));
+    const bad = [], badAt = new Set();
+    const named = nodes.filter((el) => el.getAttribute("aria-label") || el.textContent.trim());
+    for (let i = 0; i < nodes.length; i++) {
+      for (const how of ["click", "Enter"]) {
+        d.show(); await frames();
+        const el = $$("[data-node]", $(d.root))[i];
+        if (!el) { bad.push(`${how}: node ${i + 1} is gone after a redraw`); continue; }
+        if (how === "Enter" && el.getAttribute("tabindex") === "-1") continue;  // a small part inside a focusable parent: the parent is the keyboard's way in
+        const label = words(el);
+        go("lights", { reset: true });
+        const before = panelNow();
+        press(el, how);
+        await frames();
+        if (!fresh(before, panelNow())) { bad.push(`${how} on "${label}"`); badAt.add(i); }
+      }
+    }
+    ok(!bad.length && named.length === nodes.length, `node sweep, ${d.name}: ${plural(nodes.length, "node")}, each opens the panel by click and by Enter`,
+      `node sweep, ${d.name}: the panel stayed empty or unchanged for ${badAt.size} of ${plural(nodes.length, "node")}: ${bad.slice(0, 6).join("; ")}${named.length !== nodes.length ? `; ${nodes.length - named.length} have no name` : ""}`);
+    ok(!loose.length, `node sweep, ${d.name}: every node-shaped element was drawn through Nodes.wire`,
+      `node sweep, ${d.name}: ${plural(loose.length, "node")} drawn without Nodes.wire, so with no click target or name: ${loose.slice(0, 6).map(words).join("; ")}`);
+  }
+  async function checks(ok, out) {
+    if (!D.map.apps.length) { out.push("skip node sweep: vault has no apps"); return; }
+    const list = diagrams(), seen = new Set();
+    for (const d of list) {
+      d.show(); await frames();
+      const key = d.root + "|" + $$("[data-node]", $(d.root) || document.body).map((n) => n.getAttribute("data-node")).join("\u0001");
+      if (seen.has(key)) { out.push(`skip node sweep, ${d.name}: draws the same nodes as an earlier diagram`); continue; }
+      seen.add(key);
+      await sweepOne(d, ok);
+    }
+    // a node without a name, or without exactly one click target, is refused at draw time and never drawn
+    let refused = 0;
+    for (const spec of [{}, { label: "x" }, { label: "x", key: "a", open: () => 0 }, { label: " ", key: "a" }]) { try { Nodes.wire(document.createElementNS(SVGNS, "g"), spec); } catch (e) { refused++; } }
+    ok(refused === 4, "node sweep: the helper refuses a node with no name, no click target, or two", `node sweep: the helper let ${4 - refused} of 4 malformed nodes through`);
+  }
+  SelfTest.run = async () => {
+    const report = await base(), lines = [], errors = window.__errors.length;
+    const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
+    try { await checks(ok, lines); } catch (e) { lines.push("FAIL the node sweep threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    Nav.home(); go("lights", { reset: true });
+    if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the node sweep: " + window.__errors.slice(errors).join(" | "));
     const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;
     const out = [fails ? `SELFTEST FAIL: ${fails} of ${body.length} checks failed` : `SELFTEST OK: ${body.length} checks passed`, ...body];
     console.log(lines.join("\n"));

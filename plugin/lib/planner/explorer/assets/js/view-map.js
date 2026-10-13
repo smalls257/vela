@@ -209,6 +209,7 @@ const MapView = (() => {
   // the release of a drag is followed by a click on whatever is under the pointer; a pick within this long of a drop is that click
   let droppedAt = -1e9;
   const markDrop = () => { droppedAt = Date.now(); };
+  const clearDrop = () => { droppedAt = -1e9; };  // the selftest clicks in the same instant a drag check just ended
   const justDropped = () => Date.now() - droppedAt < 350;
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   function movable(el, key, board) {
@@ -296,8 +297,7 @@ const MapView = (() => {
     const light = o.level ? { level: o.level, urgency: 0.3, reasons: [] } : lightOf(o.key), level = light ? light.level : "dark", isLit = level !== "dark", colour = LIGHT[level].colour;
     // Pending approval is a ring, not a lit face: a reader's decision is not an alarm, and it must not read as one.
     const ringed = level === "pending", glows = isLit && glowOn() && !ringed;
-    const grp = s("g", { class: `hit ${isLit ? "lit " + level : "dark"}`, tabindex: 0, role: "button", "data-key": o.key, "data-agg": o.level ? "1" : null,
-      "aria-label": o.aria || `${o.title || o.label}: ${light ? LIGHT[level].word : "no light of its own"}. ${o.sub || ""}` }, g);
+    const grp = s("g", { class: `hit ${isLit ? "lit " + level : "dark"}`, "data-key": o.key, "data-agg": o.level ? "1" : null }, g);
     const shape = (attrs) => o.clip ? s("path", { d: clipped(o.x, o.y, o.w, o.h, 12), ...attrs }, grp) : s("rect", { x: o.x, y: o.y, width: o.w, height: o.h, rx: o.rx, ...attrs }, grp);
     if (glows) {
       const halo = shape({ fill: colour, filter: "url(#ck-glow)", opacity: 0.32, class: "halo" });
@@ -322,8 +322,7 @@ const MapView = (() => {
     }
     s("title", {}, grp).textContent = `${o.title || o.label}: ${light ? LIGHT[level].word : "outside party, no light of its own"}`;
     const pick = o.onpick || (() => { go(o.key, { reset: true }); if (o.kind === "app" || o.kind === "partner") Assets.theme(o.label); });
-    grp.addEventListener("click", () => { if (!justDropped()) pick(); });
-    grp.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    Nodes.wire(grp, { label: o.title || o.label || o.key, aria: o.aria || `${o.title || o.label}: ${light ? LIGHT[level].word : "no light of its own"}. ${o.sub || ""}`, open: pick, guard: () => !justDropped() });
     grp.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(o.title || o.label)}</b>${light ? esc(LIGHT[level].word) + (light.reasons[0] ? ": " + esc(reasonText(light.reasons[0])) : "") : "No light of its own"}`));
     grp.addEventListener("mouseleave", hideTip);
     return grp;
@@ -378,7 +377,7 @@ const MapView = (() => {
         s("path", { d, fill: "none", stroke: colour, "stroke-width": Geo.LINE_W, "stroke-linecap": "round" }, g);
         if (["assumption", "inkling", ""].includes(E[fid].state || "")) s("path", { d, fill: "none", stroke: Theme.c("room"), "stroke-width": 2.2, "stroke-linecap": "round" }, g);
         const hit = s("path", { d, fill: "none", stroke: "transparent", "stroke-width": 16, class: "line-hit" }, g);
-        hit.addEventListener("click", () => selectLine(fid));
+        Nodes.wire(hit, { label: `${E[fid].title}, a flow line on the map`, open: () => selectLine(fid) });  // selectLine opens the flow in the panel too
         hit.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(E[fid].title)}</b>${esc(E[fid].id)}, ${esc(E[fid].state || "no state")}. Click to follow it.`));
         hit.addEventListener("mouseleave", hideTip);
       }
@@ -406,7 +405,7 @@ const MapView = (() => {
     const lit = ids.some((id) => levelOf(id) !== "dark");
     const t = s("text", { class: "track-label" + (lit ? " lit" : ""), "data-corridor": cor.key }, g);
     t.textContent = short;
-    t.addEventListener("click", () => go(ids[0], { reset: true }));
+    Nodes.wire(t, { label: ids.length > 1 ? `${ids.length} contracts: ${ids.join(", ")}` : `${ids[0]} ${CONTRACT[ids[0]].title}`, key: ids.length > 1 ? `bundle:${ids.join(",")}|${titleOf(cor.b)}` : ids[0] });
     t.addEventListener("mousemove", (e) => showTip(e, ids.map((id) => `<b>${esc(id)} ${esc(CONTRACT[id].title)}</b>${esc(CONTRACT[id].state || "no state")}, ${esc(LIGHT[levelOf(id)].word.toLowerCase())}`).join("")));
     t.addEventListener("mouseleave", hideTip);
     const total = Geo.length(pts), off = cor.width / 2 + 10;
@@ -429,7 +428,7 @@ const MapView = (() => {
   }
   function station(stn, L, g) {
     const n = stn.node, w = stn.w, ht = stn.h;
-    const grp = s("g", { class: "station", tabindex: 0, role: "button", "aria-label": `${n.title}. Open details.`, "data-key": n.key }, g);
+    const grp = s("g", { class: "station", "data-key": n.key }, g);
     if (n.kind !== "app") {
       s("rect", { x: stn.x - w / 2 - 2, y: stn.y - ht / 2 - 2, width: w + 4, height: ht + 4, rx: 7, fill: Theme.c("room"), stroke: Theme.c("ink-3"), "stroke-width": 3.5, class: "ring" }, grp);
       s("rect", { x: stn.x - w / 2 + 4, y: stn.y - ht / 2 + 4, width: w - 8, height: ht - 8, rx: 3, fill: "none", stroke: Theme.c("ink-3"), "stroke-width": 1.5 }, grp);
@@ -453,8 +452,7 @@ const MapView = (() => {
     s("text", { x, y: y + 18, "text-anchor": anchor, class: "station-sub" + (lv !== "dark" ? " " + lv : "") }, grp).textContent =
       n.kind !== "app" ? "outside party" : lv !== "dark" ? LIGHT[lv].word.toLowerCase() : (APPS[n.key].change || "change not recorded");
     const open = () => { go(n.key, { reset: true }); Assets.theme(n.title); };
-    grp.addEventListener("click", open);
-    grp.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+    Nodes.wire(grp, { label: n.title, aria: `${n.title}. Open details.`, open });
   }
   /* Engineering works: open questions on the track or station they hold up, from each question's Blocks line. Each
      marker takes the first of its candidate spots that touches no station, name or track label, or marker before it. */
@@ -484,13 +482,13 @@ const MapView = (() => {
     for (const m of markers) {
       const x = m.at.x - 15, y = m.at.y + m.off - 9;
       const worst = m.held.map(unknownLevel).sort((p, q) => rank(q) - rank(p))[0];
-      const grp = s("g", { class: "works", tabindex: 0, role: "button", "aria-label": `Works: ${plural(m.held.length, "open question")}` }, g);
+      const grp = s("g", { class: "works" }, g);
       s("line", { x1: x + 4, y1: y + 16, x2: x + 4, y2: y + 23, stroke: Theme.c("ink-3"), "stroke-width": 2 }, grp);
       s("line", { x1: x + 26, y1: y + 16, x2: x + 26, y2: y + 23, stroke: Theme.c("ink-3"), "stroke-width": 2 }, grp);
       s("rect", { x, y, width: 30, height: 16, rx: 2, fill: "url(#works-hatch)", stroke: Theme.c("face-drop"), "stroke-width": 1.5 }, grp);
       s("circle", { cx: x + 34, cy: y, r: 9, fill: LIGHT[worst] ? LIGHT[worst].colour : LIGHT.caution.colour }, grp);
       s("text", { x: x + 34, y: y + 4, "text-anchor": "middle", fill: LIGHT[worst] ? LIGHT[worst].ink : LIGHT.caution.ink, "font-size": 11.5, "font-weight": 700 }, grp).textContent = m.held.length;
-      grp.addEventListener("click", (e) => { e.stopPropagation(); go(m.key, { reset: true }); });
+      Nodes.wire(grp, { label: `Works on ${titleOf(m.key)}: ${plural(m.held.length, "open question")}`, key: m.key, stop: true });
       grp.addEventListener("mousemove", (e) => showTip(e, m.held.map((u) => `<b>${esc(u)} ${esc(E[u] ? E[u].title : "")}</b>ask by ${esc(day(ASK[u].askBy))}`).join("")));
       grp.addEventListener("mouseleave", hideTip);
     }
@@ -667,7 +665,7 @@ const MapView = (() => {
     if (bar && fresh) bar.replaceWith(fresh);  // "Focus on <the app you picked>"
   }
   function here() { return App.focus ? mapAnchors(App.focus) : []; }
-  return { render, highlight, here, lens, group, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
+  return { render, highlight, here, lens, group, st, lamp, fitSvg, shortWhy, startBreathing: () => breathe.start(), big, COCKPIT, markDrop, clearDrop, justDropped, resetPulses: () => { pulses = []; }, CLUSTER_PAST };
 })();
 View("map", { label: "Map", title: "The system: apps, contracts, and what needs you", render: MapView.render, highlight: MapView.highlight,
   count: () => `${D.map.apps.length}·${D.map.contracts.length}`, lamp: () => { const top = litSubjects()[0]; return top ? top.light.level : null; } });

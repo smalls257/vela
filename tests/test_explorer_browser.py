@@ -451,3 +451,36 @@ def test_the_old_garden_route_opens_the_decision_log_at_the_decision(tmp_path, c
     dom = _explore_and_dump(chrome_path, REPO / "examples" / "unified-booking", tmp_path, "2026-11-20", "garden&open=ADR-0002&still")
     assert 'data-view="decisions"' in dom and "dl-detail" in dom and "FERRYMASTER stays the ledger of record" in dom
     assert 'class="sheet' not in dom and "garden" not in re.sub(r"#garden", "", re.search(r"<main.*?</main>", dom, re.S).group(0))
+
+
+@pytest.mark.browser
+def test_every_diagram_node_opens_the_panel_on_heron_and_the_booking_demo(tmp_path, chrome_path):
+    """E44: the selftest clicks every node of every diagram and presses Enter on it, and fails on an empty panel. This holds
+    it to the diagrams that were inert: the data model's entities, the sequence steps, the line map, the releases corridors,
+    the due-by-week bars, the cluster mini-lamps, and the flows canvas (through its list), on a vault with designs and plans
+    (Heron) and on the demo, so the fix is in the builder and not tuned to one vault."""
+    heron = tmp_path / "heron"
+    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], heron)
+    assert subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(heron), "--today", "2026-10-10"], timeout=120, capture_output=True, text=True).returncode == 0
+    demo = tmp_path / "booking-demo"
+    assert subprocess.run([sys.executable, str(REPO / "prototypes/explorer/make_demo_vault.py"), str(demo)], timeout=120, capture_output=True, text=True).returncode == 0
+    designs = REPO / "prototypes/explorer/demo_designs"
+    page = tmp_path / "booking-demo.html"
+    built = subprocess.run([sys.executable, str(REPO / "prototypes/explorer/build.py"), str(demo), str(page), "--today", "2026-11-20", "--selftest",
+                            "--pins", str(REPO / "prototypes/explorer/pins/unified-booking.json"),
+                            *[f"--design=APP-{name}={designs / name / 'docs/tech-design' / (name + '.md')}" for name in ("booking", "pricing", "notifications")]],
+                           timeout=120, capture_output=True, text=True)
+    assert built.returncode == 0, built.stderr
+    must = ["map, cockpit", "map, line map", "map, grouped by domain, clusters closed", "releases", "progress, open questions by week", "the minimap",
+            ", context", ", containers", ", components", ", data model", ", key flows", "flow FLO-"]
+    for name, path in (("heron-desk/after-design-2", heron / "dashboard.html"), ("booking-demo with designs", page)):
+        lines = _text_fit_lines(chrome_path, path, "1600,1000")
+        sweep = [line for line in lines if "node sweep" in line]
+        failed = [line for line in sweep if line.startswith("FAIL")]
+        assert not failed, f"{name}: " + "\n".join(failed)
+        for part in must:
+            assert any(part in line and line.startswith("ok") and "each opens the panel" in line for line in sweep), f"{name}: no node sweep ran on {part!r}"
+        if "booking" in name:  # the Heron snapshot carries no work breakdown; the demo does
+            assert any(", build plan" in line and line.startswith("ok") and "each opens the panel" in line for line in sweep)
+            assert any("dependency view: fits the width" in line for line in lines), f"{name}: the dependency view's width check did not run"
+        assert any("the helper refuses a node" in line for line in sweep)

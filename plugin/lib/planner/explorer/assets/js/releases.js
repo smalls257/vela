@@ -40,10 +40,12 @@ const Releases = (() => {
       const d = Geo.roundedPath(Geo.route({ x: L.stations[cor.a].x, y: L.stations[cor.a].y }, { x: L.stations[cor.b].x, y: L.stations[cor.b].y }, cor.sideA), 30);
       const el = s("path", { d, class: "rl-cor", "data-contracts": cor.contracts.join(",") }, gCor);
       el.appendChild(document.createElementNS(SVGNS, "title")).textContent = cor.contracts.map((c) => `${c} ${CONTRACT[c].title}`).join("; ");
+      const many = cor.contracts.length > 1;
+      Nodes.wire(el, { label: many ? `${cor.contracts.length} contracts: ${cor.contracts.join(", ")}` : `${cor.contracts[0]} ${CONTRACT[cor.contracts[0]].title}`, key: many ? `bundle:${cor.contracts.join(",")}|${titleOf(cor.b)}` : cor.contracts[0] });
       return { cor, el };
     });
     const nodes = Object.values(L.stations).map((stn) => {
-      const n = stn.node, g = s("g", { class: "rl-node", "data-key": n.key, tabindex: 0, role: "button" }, gNodes);
+      const n = stn.node, g = s("g", { class: "rl-node", "data-key": n.key }, gNodes);
       g.style.transformOrigin = `${stn.x}px ${stn.y}px`;
       s("rect", { x: stn.x - W / 2, y: stn.y - H / 2, width: W, height: H, rx: n.kind === "app" ? 10 : 3, class: "rl-face" }, g);
       Icons.put(g, Icons.name(n.key), stn.x - W / 2 + 20, stn.y + 1, 18, "rl-glyph");
@@ -55,7 +57,7 @@ const Releases = (() => {
       const lv = levelOf(n.key);
       if (lv !== "dark" && n.kind === "app") s("rect", { x: stn.x - W / 2 + 8, y: stn.y - H / 2 + 8, width: 8, height: 8, rx: 2, fill: LIGHT[lv].colour, class: "rl-lamp" }, g)
         .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${LIGHT[lv].word} today (attention.lights)`;
-      g.addEventListener("click", () => go(n.key, { reset: true }));
+      Nodes.wire(g, { label: n.title, key: n.key });
       return { n, g, sub, tagText };
     });
     function set(j, animate) {

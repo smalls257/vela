@@ -174,8 +174,67 @@ const RUNTIME_TO_APP = {};
 for (const [k, a] of Object.entries(D.apps)) if (a.runtime) RUNTIME_TO_APP[a.runtime] = k;
 const isOpen = (u) => u && u.state === "open";
 
+/* ------------------------------------------------------------------ every diagram node opens the panel (E44)
+   The Sensor rule, as a helper: a node that does nothing when clicked is a Black Box, and so is one a keyboard or a
+   screen reader cannot reach. Every node of every diagram is drawn through Nodes.wire(el, spec), which refuses a node
+   without a name and without somewhere to go. Where it goes is exactly one of
+     key:  a vault page, or an Inside key (inside:...): go(key) opens it as a click on a chip would;
+     note: a node with no page of its own (free text, a group, an outside party the vault has no page for, an entity
+           of a data model): the panel gets a small entry with its text and what it relates to, never an empty one;
+     open: a function, for a node whose click does more than open the panel; it must itself reach go().
+   The selftest clicks and presses Enter on every [data-node] on every diagram and fails on an empty panel. */
+const Nodes = (() => {
+  const notes = {};
+  const noteKey = (diagram, name) => "node:" + encodeURIComponent(diagram) + "|" + encodeURIComponent(name);
+  /* spec: diagram (which drawing), name, kind (a short word for the panel's heading), text (what it says),
+     facts [[label, value]], stands [keys of what a group stands for], relates [keys, or plain words]. Returns the key. */
+  function note(spec) {
+    if (!spec || !spec.name || !spec.diagram) throw new Error(`[nodes] a note needs a diagram and a name, got ${JSON.stringify(spec && [spec.diagram, spec.name])}`);
+    const k = noteKey(spec.diagram, spec.name);
+    notes[k] = Object.assign({ kind: "In a diagram", text: "", facts: [], stands: [], relates: [] }, spec, { key: k });
+    return k;
+  }
+  const entOf = (k) => (notes[k] ? { key: k, kind: "note", title: notes[k].name, id: "" } : null);
+  const isKey = (x) => !!ent(x);
+  const line = (r) => h("li", {}, isKey(r) ? refChip(r) : r);
+  function panel(k) {
+    const n = notes[k];
+    if (!n) return [h("div", { class: "p-empty" }, "That part of the drawing is not held any more. Pick it again.")];
+    const stands = n.stands.filter(isKey), relates = n.relates.filter(Boolean);
+    const bare = !n.text && !n.facts.length && !stands.length && !relates.length;
+    return [h("div", { class: "p-head" }, h("div", { class: "kind" }, n.kind, h("span", { class: "p-id" }, n.diagram)), h("h2", {}, n.name)),
+      h("div", { class: "p-body" },
+        n.text ? h("div", { class: "prose-text" }, n.text) : null,
+        n.facts.length ? h("div", { class: "facts" }, n.facts.flatMap(([label, v]) => [h("div", { class: "fl" }, label), h("div", {}, v)])) : null,
+        stands.length ? Panel.section("Stands for", stands.length, h("ul", { class: "mini-list" }, stands.map(line))) : null,
+        relates.length ? Panel.section("Relates to", relates.length, h("ul", { class: "mini-list" }, relates.map(line))) : null,
+        bare ? h("div", { class: "p-note" }, `Part of the ${n.diagram} drawing. The vault says nothing more about it.`) : null)];
+  }
+  /* Makes `el` a node: focusable, named, opened by click, Enter and Space. `guard` returns false to swallow a click (a
+     box just dropped after a drag). `nested` leaves a small part inside a focusable parent out of the tab order (a
+     mini-lamp in a cluster): the parent is the keyboard's way in, and its panel lists what it holds. */
+  function wire(el, spec) {
+    const name = spec && spec.label;
+    const where = spec ? [spec.key, spec.note, spec.open].filter(Boolean).length : 0;
+    if (!name || !String(name).trim() || where !== 1) throw new Error(`[nodes] a diagram node needs a name and exactly one of key, note or open, got ${JSON.stringify(name)} with ${where}`);
+    const target = spec.key || spec.note || "";
+    const open = spec.open || (() => go(target, spec.opts || { reset: true }));
+    const fire = (ev) => { if (spec.guard && !spec.guard()) return; if (spec.stop && ev) ev.stopPropagation(); open(ev); };
+    el.setAttribute("tabindex", spec.nested ? "-1" : "0");
+    el.setAttribute("role", spec.role || "button");
+    el.setAttribute("aria-label", spec.aria || name);
+    el.setAttribute("data-node", name);
+    if (target) el.setAttribute("data-opens", target);
+    el.addEventListener("click", fire);
+    el.addEventListener("keydown", (ev) => { if (ev.target !== el) return; if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); fire(ev); } });
+    return el;
+  }
+  return { note, ent: entOf, panel, wire, noteKey };
+})();
+
 function ent(key) {
   if (E[key]) return E[key];
+  if (key && key.startsWith("node:")) return Nodes.ent(key);
   if (key && key.startsWith("owner:")) { const o = D.owners[key.slice(6)]; return o ? { key, kind: "owner", title: o.handle, id: "" } : null; }
   if (EXTERNAL[key]) return { key, kind: "external", title: EXTERNAL[key].title, id: "" };
   if (key === "lights") return { key, kind: "lights", title: "What needs you", id: "" };
