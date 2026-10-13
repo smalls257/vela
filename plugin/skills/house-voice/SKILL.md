@@ -11,6 +11,8 @@ Prose in this vault has one voice. Draft it from the example passages, not from 
 
 ## Load the examples
 
+If the vault has `voice/VOICE.md`, read it first. It holds the owner's own rules for their pages, in their own words, and it sits above the rules at the end of this file and above the examples where they disagree. With no file, the defaults apply. The owner may override any default.
+
 The examples are `voice/examples/<voice type>/*.md` in the vault, and `voice/local/<voice type>/*.md` when that gitignored folder exists on this machine. For the page you are drafting, find its voice type in the table below. Read every example of that type whose frontmatter says `state: active`, in file-name order, local `owner` and `owner-edit` examples first, then `voice/examples/`, then any other local example, before you write a word. Skip every `state: retired` example. The order is fixed so two drafts of the same page start from the same context.
 
 An example with `source: owner` or `source: owner-edit` is the owner's own writing. When `/planner:voice-seed` adds the owner's examples of a type, it retires that type's public seed, so the owner's voice is what you read.

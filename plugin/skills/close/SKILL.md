@@ -16,6 +16,8 @@ Close is started by the lead's word, never by yours. If the lead typed `/planner
 
 One confirmation stays, because the push and the pull request are the only steps that leave the machine and a hard stop forbids sending company material without consent. Before section 7 pushes, say what is about to be sent ("I'll push `session/<id>` and open a pull request for <reviewers>") and wait for a yes. Skip that wait only when the lead has said "push" or "open the PR" in so many words in this conversation. A bare "close" is consent to file, not to send.
 
+Close talks in the session's voice. If this conversation has not read `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` yet (a close typed in a fresh conversation), read it now, as step 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` says.
+
 What the lead reads while close runs is short and in plain words. No check code, gate name, capture number, copy ID or finding ID appears in what you say to them; those go in the files and the pull request body. A command that fails and that you fix is not news.
 
 ## Reader copy: no git, no PR
