@@ -46,6 +46,8 @@ Then write a stub for every app of the picked cut whose `change` is `new` or `ch
 
 ## 3. Read back one boundary sheet per app
 
+Draw the tracer candidate's flows first. A tracer is a thin path through every app it needs, built first, so the contracts get proved early. Before the first sheet, ask "If one thin path went through all of these first, what would a person do on it?" Offer the journey that crosses the most of the cut's apps, from the user's words and the sources, and read its steps back (item 8 below) before any other flow, so its flow pages exist when `/planner:releases` chooses the tracer. A user with no candidate yet is not held up: say releases will ask again, and carry on.
+
 Take the stubs one at a time. For each, show its sheet as a numbered list:
 
 1. **Does:** what the app decides or keeps, in the domain's words, and the domain the user named for it.

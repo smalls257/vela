@@ -21,7 +21,7 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render`, then read the `trace
 
 ## 3. Shape the cuts
 
-Read `04b-releases.md` first, if the vault has one. The team's epics are cut against the releases: say which release each proposed epic serves, and when a requirement is dated in part ("AC1 and AC2 in January, AC3 later"), say whether the epic carries all of its criteria or only those on the first date. A requirement on no release is cut as usual and flagged as undated.
+Read `04b-releases.md` first, if the vault has one. The team's epics are cut against the releases: say which release each proposed epic serves, and when a requirement is dated in part ("AC1 and AC2 in January, AC3 later"), say whether the epic carries all of its criteria or only those on the first date. A requirement on no release is cut as usual and flagged as undated. Say too whether the team's first epic is on the tracer, a thin path through every app that release one builds first: its `flows:` lists a tracer flow from release one's `**Tracer:**` bullet. If it is not, say what comes first instead; it is not a fault.
 
 For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exactly one owning team. Say what each cut makes easy and what it makes hard, such as which cutover it unblocks first. Say which one you prefer. Capture the user's choice, and each rejected cut with its reason. Shape never decides, so the chosen cut stays `draft`. People hold about four to seven things at once, so a cut that would give an epic more than about seven acceptance criteria is a cut to split: propose the split as one of the options, with what each half delivers. The user may keep it whole; record that as an override, as `START.md` says.
 
