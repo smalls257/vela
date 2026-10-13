@@ -43,6 +43,40 @@ const Inside = (() => {
     return ent(k) ? k : null;
   }
 
+  /* ------------------------------------------------------------ the key: what each look in the drawings means */
+  const { ln, bx } = Legend;
+  const def = (id, parts, text) => Legend.define(id, parts, text);
+  def("ic.frame", [bx({ stroke: "rule-3", w: 1.4, rx: 5 })], "Faint frame: the app these belong to");
+  def("ic.container", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.4, rx: 4 })], "Flat box with a glyph: a container, with its job and state");
+  def("ic.contract", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: a contract to an app or party outside, labelled with its ID");
+  def("ic.soft", [ln({ stroke: "ink-4", w: 1.6, head: "fill", dash: "4 3" })], "Dashed arrow: read from the app page's own diagram, best effort");
+  def("ic.component", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.4, rx: 4, height: 8 }), bx({ fill: "room-2", stroke: "rule-3", w: 1, x: 6, y: 10, width: 22, height: 4, rx: 1 })], "Flat box: a component, with what it does under its name");
+  def("ic.lip", [bx({ fill: "room-2", stroke: "rule-3", w: 1.2, y: 5, height: 6, rx: 2 })], "Strip under a box: what the component exposes");
+  def("ic.lip.missing", [bx({ fill: "room-2", stroke: "note-text", w: 1.2, y: 5, height: 6, rx: 2, dash: "3 2" })], "Dashed amber strip: the design gives it no Exposes line");
+  def("ic.owns", [bx({ fill: "deck-3", width: 14, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "3", fill: "ink-2", y: 11, size: 8 }], "Grey count: how many vault items the component owns");
+  def("ic.oq", [{ k: "dot", fill: "caution", r: 4.5 }], "Amber dot: an open design question affects it");
+  def("ic.stub", [{ k: "clip", fill: "room-2", stroke: "ink-4", w: 1.4, dash: "4 3" }], "Clipped dashed box: an integration point, a system outside");
+  def("ic.stub.loose", [{ k: "clip", fill: "room-2", stroke: "note-text", w: 1.6 }], "Amber clipped box: an integration point no component meets");
+  def("ic.depends", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: depends on, or reaches an integration point; the label says over what");
+  def("ic.loose", [ln({ stroke: "ink-4", w: 1.6, head: "fill", dash: "5 4" })], "Dashed arrow: an integration point no component meets");
+  def("er.entity", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.2, rx: 3 }), bx({ fill: "deck-3", y: 2.5, height: 4, rx: 2, x: 3, width: 28 })], "Box with a heading: an entity, its fields listed under it");
+  def("er.key", [{ k: "text", t: "PK", fill: "ink-4", size: 10 }], "Letters at a field's right edge (PK, FK): the field is a key");
+  def("er.rel", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Arrow: a relationship; the label says what and how many");
+  def("sq.lane", [ln({ stroke: "rule-3", w: 1, dash: "2 4" })], "Dotted line down a column: that participant's lifeline");
+  def("sq.msg", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: a message from one participant to another");
+  def("sq.reply", [ln({ stroke: "ink-3", w: 1.6, head: "fill", dash: "4 3" })], "Dashed arrow: the answer coming back");
+  def("sq.note", [bx({ fill: "note-text", stroke: "note-text", w: 0.8, opacity: 0.6, y: 4, height: 8, rx: 2 })], "Tinted band: a note across the participants it names");
+  def("sq.block", [bx({ stroke: "rule-3", w: 1.2, dash: "3 3", y: 4, height: 8, rx: 2 })], "Dashed band: a block of steps, such as a loop or a choice");
+  def("sq.now", [ln({ stroke: "ink", w: 2.6, head: "fill" })], "Bold arrow: the step you are on");
+  def("sq.later", [ln({ stroke: "ink-3", w: 1.6, head: "fill", opacity: 0.42 })], "Faded arrow: a step not reached yet");
+  def("inside.mini", [bx({ stroke: "rule-3", w: 1.2, rx: 2 }), bx({ fill: "focus", stroke: "focus", w: 1.2, opacity: 0.4, x: 17, y: 5, width: 10, height: 6, rx: 1 })], "Small copy in the corner: the whole drawing, the part in view outlined");
+  const insideLamps = (extra) => Legend.lampProbes((lv) => (lv === "dark" ? "g.hit.dark" : [`g.hit.lit.${lv}`, `.in-edge.lit.${lv}`, `.in-label.lit.${lv}`].concat(extra ? extra(lv) : []).join(", ")));
+  const PICKS = ".in-box.picked, .in-stub.picked, g.hit.picked, .focus-centre";
+  /* Opens a drawing's key where the drawing goes: before it is drawn, so the room it measures is the room it keeps. */
+  const keyFor = (name, root, probes, picks, instance) => Legend.open(name, { root, probes, picks, instance });
+  /* Paints a key after its drawing, with "picked" as the drawing now stands (highlight() adds that class, not the drawing). */
+  const settle = (lg) => { if (lg.def.picks) lg.set("picked", !!lg.def.root().querySelector(lg.def.picks)); lg.paint(); };
+
   /* ------------------------------------------------------------ the vault and the design, both ways */
   const OWNERS = {}, UNTRACED = {}, CHALLENGED = {};
   for (const [app, d] of Object.entries(DES)) {
@@ -153,8 +187,10 @@ const Inside = (() => {
   /* ------------------------------------------------------------ level 1: the context, as the map's Focus */
   function context(stage, app) {
     const board = h("div", { class: "board board-cockpit board-focus", id: "board" });
-    stage.append(board);
-    MapGroups.focus(board, app, (el) => open(app, "containers", { from: el.getBoundingClientRect() }));
+    const lg = keyFor("inside-context", () => $("#inside-stage"), MapView.LOOKS.focus());
+    stage.append(board, lg.el());
+    lg.within(() => MapGroups.focus(board, app, (el) => open(app, "containers", { from: el.getBoundingClientRect() })));
+    lg.paint();
     const centre = $(`#board g.hit[data-key="${CSS.escape(app)}"]`);
     if (centre) {
       centre.classList.add("inside-door");
@@ -320,6 +356,8 @@ const Inside = (() => {
       const pts = p.pts.filter((q, i) => !i || Math.hypot(q.x - p.pts[i - 1].x, q.y - p.pts[i - 1].y) > 0.5);  // a bend needs two distinct points
       s("path", { d: Geo.roundedPath(pts, 18), class: "in-edge" + (e.soft ? " soft" : "") + (e.lit ? " lit " + e.lit : ""), "marker-end": `url(#${e.soft ? "in-arrow-soft" : "in-arrow"})`, "data-from": e.from, "data-to": e.to }, gEdges)
         .appendChild(document.createElementNS(SVGNS, "title")).textContent = e.title || `${e.fromName || e.from} → ${e.toName || e.to}${e.label ? ": " + e.label : ""}`;
+      Legend.saw(e.soft ? (lay.looks || {}).soft : (lay.looks || {}).solid);
+      if (e.lit) Legend.saw("lamp." + e.lit);
       if (!e.label) continue;
       const text = fit(e.label, 168, 11.5, 500, MONO), w = measure(text, 11.5, 500, MONO) + 14, r = placeLabel(pts, w, 20, obs, lay.gaps, lay.dir);
       if (!r) { hidden++; continue; }
@@ -357,7 +395,7 @@ const Inside = (() => {
       return { x: r.left - b.left + holder.scrollLeft + (x - x0) * k, y: r.top - b.top + holder.scrollTop + (y - y0) * k }; };
     const centreOn = (x, y) => { const p = at(x, y); holder.scrollLeft = p.x - holder.clientWidth / 2; holder.scrollTop = p.y - holder.clientHeight / 2; };
     const centreNow = () => { const k = +holder.dataset.scale; return { x: x0 + (holder.scrollLeft + holder.clientWidth / 2 - at(x0, y0).x) / k, y: y0 + (holder.scrollTop + holder.clientHeight / 2 - at(x0, y0).y) / k }; };
-    const mini = opts.open === "read" ? minimap(svg, holder, { x0, y0, w, ht }) : null;
+    const mini = opts.open === "read" ? minimap(svg, holder, { x0, y0, w, ht, lg: opts.lg }) : null;
     const apply = () => {
       const k = scaleOf();
       svg.setAttribute("width", Math.round(w * k)); svg.setAttribute("height", Math.round(ht * k));
@@ -413,6 +451,7 @@ const Inside = (() => {
       el.hidden = !over;
       // the minimap sits over the drawing's corner: leave room under the drawing so any box can scroll out from under it
       holder.style.paddingBottom = over ? `${(el.offsetHeight || Math.round(v.ht * k) + 10) + 16}px` : "";
+      if (v.lg && v.lg.host && v.lg.host.isConnected) { v.lg.set("inside.mini", over); v.lg.paint(); }
       if (!over) return;
       const l = Math.max(b.left, r.left), t = Math.max(b.top, r.top), rt = Math.min(b.right, r.right), bt = Math.min(b.bottom, r.bottom);
       view.setAttribute("x", (v.x0 + (l - r.left) / sc).toFixed(1)); view.setAttribute("y", (v.y0 + (t - r.top) / sc).toFixed(1));
@@ -466,7 +505,9 @@ const Inside = (() => {
       return;
     }
     const holder = h("div", { class: "inside-draw", id: "inside-draw" });
-    stage.append(h("div", { class: "inside-frame" }, holder), h("div", { class: "inside-hint" }, `From "${c.heading}" on ${appTitle(app)}'s page: ${plural(c.rows.length, "container")}. Arrows to and from other apps follow the contracts each row serves or uses; `,
+    const lg = keyFor("inside-containers", () => $("#inside-stage"), { "ic.frame": ".in-frame", "ic.container": "g.in-box.container", ...insideLamps(), "kind.app": 'g.hit[data-kind="app"]', "kind.party": 'g.hit[data-kind="partner"]',
+      "ic.contract": "path.in-edge:not(.soft):not(.loose)", "ic.soft": "path.in-edge.soft", "picked": PICKS }, PICKS);
+    stage.append(h("div", { class: "inside-frame" }, holder), lg.el(), h("div", { class: "inside-hint" }, `From "${c.heading}" on ${appTitle(app)}'s page: ${plural(c.rows.length, "container")}. Arrows to and from other apps follow the contracts each row serves or uses; `,
       c.edges.length ? h("span", { class: "heuristic" }, "dashed arrows between containers are read from the page's own diagram") : "the page's diagram draws no arrow between containers", ". Click a container for its row; Components is the team's own design."));
     const nodes = c.rows.map((r) => ({ id: "k:" + r.name, kind: "container", w: 214, h: 72, row: r }));
     const edges = [], stub = {};
@@ -482,14 +523,16 @@ const Inside = (() => {
     for (const e of c.edges) all.push({ from: "k:" + e.from, to: "k:" + e.to, soft: true, label: e.label, title: `${e.from} → ${e.to}, from the page's diagram (best effort)` });
     const room = holder.getBoundingClientRect();
     const lay = layered(nodes, all, { gapX: 150, gapY: 26, minColW: 176, dir: "auto", fit: { w: room.width, h: room.height } });
+    lay.looks = { solid: "ic.contract", soft: "ic.soft" };
     const svg = s("svg", { class: "inside-svg cockpit containers", role: "img", "aria-label": `${appTitle(app)}'s main containers` }, holder);
     defsFor(svg);
     const gFrame = s("g", {}, svg);
     const inner = Object.values(lay.box).filter((b) => b.node.kind === "container");
     const fr = frameAround(gFrame, inner, `${appTitle(app)}: main containers`, `From its page: ${c.heading}, line ${c.line}`);
     const heads = [columnHeads(gFrame, lay, "in", "Uses it"), columnHeads(gFrame, lay, "out", "It uses")].filter(Boolean);
-    drawLayout(svg, lay, {
+    lg.within(() => drawLayout(svg, lay, {
       container: (g, b) => {
+        Legend.saw("ic.container");
         const r = b.node.row, grp = s("g", { class: "in-node in-box container", tabindex: 0, role: "button", "data-key": key(app, "ct", r.name), "aria-label": `${r.name}: ${r.job}` }, g);
         s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 10, class: "in-box-face" }, grp);
         Icons.put(grp, glyphFor(r.name), b.x + 20, b.y + 22, 18, "node-glyph");
@@ -500,7 +543,9 @@ const Inside = (() => {
         pick(grp, key(app, "ct", r.name));
       },
       vault: (g, b) => vaultBox(g, b, b.node.vkey),
-    }, [fr.name, ...heads]);
+    }, [fr.name, ...heads]));
+    lg.saw("ic.frame");
+    settle(lg);
     sized(svg, holder, boundsOf([...Object.values(lay.box), fr, ...heads]), 24);
     MapView.startBreathing();
   }
@@ -529,9 +574,14 @@ const Inside = (() => {
       dispatchEvent(new Event("resize"));  // the drawing refits to the room it now has
     } }, st.tabsHidden ? "Show the tabs" : "Hide the tabs");
     wrap.classList.toggle("tabs-hidden", !!st.tabsHidden);
-    wrap.append(h("div", { class: "inside-left" }, h("div", { class: "inside-tools" }, toggle), h("div", { class: "inside-frame" }, holder), componentsNote(app, d)), side);  // the toggle sits above the drawing, never on a box
+    const lg = keyFor("inside-components", () => $("#inside-stage"), { "ic.frame": ".in-frame", "ic.component": "g.in-box.component", "ic.lip": ".in-lip:not(.missing)", "ic.lip.missing": ".in-lip.missing",
+      "ic.owns": ".in-owns", "ic.oq": ".in-oq", "ic.stub": ".in-stub-face:not(.loose)", "ic.stub.loose": ".in-stub-face.loose", "ic.depends": "path.in-edge:not(.soft):not(.loose)", "ic.loose": "path.in-edge.loose",
+      ...insideLamps(), "inside.mini": ".in-mini:not([hidden])", "picked": PICKS }, PICKS);
+    wrap.append(h("div", { class: "inside-left" }, h("div", { class: "inside-tools" }, toggle), h("div", { class: "inside-frame" }, holder), lg.el(), componentsNote(app, d)), side);  // the toggle sits above the drawing, never on a box
     stage.append(wrap);
-    drawComponents(holder, app, d);
+    lg.within(() => drawComponents(holder, app, d, lg));
+    lg.saw("ic.frame");
+    settle(lg);
     side.append(tabs(app, d));
     placeDrawings();
   }
@@ -541,7 +591,7 @@ const Inside = (() => {
       missing ? h("span", { class: "gap" }, "the design has no Integration points section, so no stub is drawn for it. ") : "stubs at the sides are its Integration points, joined where the design cites their contract. ",
       h("span", { class: "heuristic" }, d.trace_source === "recorded" ? "Owned IDs are recorded in its Trace table." : "Owned IDs are inferred from where each ID appears; the format records no trace."));
   }
-  function drawComponents(holder, app, d) {
+  function drawComponents(holder, app, d, lg) {
     const comps = d.components, affects = {};
     for (const oq of d.open_questions) for (const c of comps) if (new RegExp(`\\b${c.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(oq.affects)) (affects[c.name] = affects[c.name] || []).push(oq.id);
     const nodes = comps.map((c) => ({ id: "c:" + c.name, kind: "component", w: 206, h: 86, portH: 62, c }));
@@ -560,6 +610,7 @@ const Inside = (() => {
     });
     const room = holder.getBoundingClientRect();
     const lay = layered(nodes, edges, { gapX: 170, gapY: 30, gapTB: 70, gapYTB: 26, minColW: 170, dir: "auto", fit: { w: room.width, h: room.height } });
+    lay.looks = { solid: "ic.depends", soft: "ic.loose" };
     const svg = s("svg", { class: "inside-svg cockpit components", role: "img", "aria-label": `${appTitle(app)}'s components, from the team's design` }, holder);
     defsFor(svg);
     const gFrame = s("g", {}, svg);
@@ -571,6 +622,7 @@ const Inside = (() => {
       const b = lay.box[l.id], tb = lay.dir === "TB", inward = l.side === "in";
       const a = tb ? { x: b.x + b.w / 2, y: inward ? b.y + b.h : fr.y + fr.h } : { x: inward ? b.x + b.w : fr.x + fr.w, y: b.y + b.h / 2 };
       const z = tb ? { x: a.x, y: inward ? fr.y : b.y } : { x: inward ? fr.x : b.x, y: a.y };
+      Legend.saw("ic.loose");
       s("path", { d: `M${a.x},${a.y}L${z.x},${z.y}`, class: "in-edge loose", "marker-end": "url(#in-arrow-soft)" }, gFrame)
         .appendChild(document.createElementNS(SVGNS, "title")).textContent = l.title;
     }
@@ -580,6 +632,7 @@ const Inside = (() => {
         const c = b.node.c, k = key(app, "c", c.name), grp = s("g", { class: "in-node in-box component", tabindex: 0, role: "button", "data-key": k, "aria-label": `${c.name}: ${c.responsibility}` }, g);
         const LIP = 24, tb = lay.dir === "TB", y = tb ? b.y + LIP : b.y, faceH = b.h - LIP;
         const exposes = c.exposes && c.exposes.trim(), lip = exposes ? "exposes " + exposes : "no Exposes line";
+        Legend.saw("ic.component"); Legend.saw(exposes ? "ic.lip" : "ic.lip.missing");
         s("rect", { x: b.x + 10, y: tb ? b.y : b.y + faceH - 1, width: b.w - 20, height: LIP + 1, rx: 5, class: "in-lip" + (exposes ? "" : " missing") }, grp);
         s("text", { x: b.x + 18, y: tb ? b.y + 16 : b.y + b.h - 8, class: "in-lip-text" + (exposes ? "" : " missing") }, grp).textContent = fit(lip, b.w - 36, 10.5, 500, exposes ? MONO : null);
         s("rect", { x: b.x, y, width: b.w, height: faceH, rx: 10, class: "in-box-face" }, grp);
@@ -587,10 +640,12 @@ const Inside = (() => {
         const n = owned(c.name), badge = n ? `${n}` : "";
         s("text", { x: b.x + 36, y: y + 27, class: "in-box-name" }, grp).textContent = fit(c.name, b.w - 50 - (badge ? 30 : 0) - (affects[c.name] ? 18 : 0), 14, 600);
         if (badge) {
+          Legend.saw("ic.owns");
           const w = measure(badge, 10.5, 600) + 12;
           s("rect", { x: b.x + b.w - w - 8, y: y + 10, width: w, height: 16, rx: 8, class: "in-owns" }, grp);
           s("text", { x: b.x + b.w - w / 2 - 8, y: y + 22, "text-anchor": "middle", class: "in-owns-text" }, grp).textContent = badge;
         }
+        if (affects[c.name]) Legend.saw("ic.oq");
         if (affects[c.name]) s("circle", { cx: b.x + b.w - (badge ? measure(badge, 10.5, 600) + 30 : 16), cy: y + 18, r: 5, class: "in-oq" }, grp)
           .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${affects[c.name].join(", ")} affects it`;
         s("text", { x: b.x + 14, y: y + 48, class: "in-box-sub" }, grp).textContent = fit(c.responsibility, b.w - 24, 11.5);
@@ -598,7 +653,9 @@ const Inside = (() => {
         pick(grp, k);
       },
       stub: (g, b) => {
-        const x = b.node.stub, nk = x.nodes.find((k) => NODE[k]), grp = s("g", { class: "in-node in-stub", tabindex: 0, role: "button", "data-stub": x.system, "aria-label": `${x.system}, ${x.direction || "out"}` }, g);
+        const x = b.node.stub, nk = x.nodes.find((k) => NODE[k]);
+        Legend.saw(x.component ? "ic.stub" : "ic.stub.loose");
+        const grp = s("g", { class: "in-node in-stub", tabindex: 0, role: "button", "data-stub": x.system, "aria-label": `${x.system}, ${x.direction || "out"}` }, g);
         s("path", { d: `M${b.x + 8},${b.y}H${b.x + b.w - 8}L${b.x + b.w},${b.y + 8}V${b.y + b.h - 8}L${b.x + b.w - 8},${b.y + b.h}H${b.x + 8}L${b.x},${b.y + b.h - 8}V${b.y + 8}Z`, class: "in-stub-face" + (x.component ? "" : " loose") }, grp);
         Icons.put(grp, nk ? Icons.name(nk) : "partner", b.x + 20, b.y + 20, 17, "node-glyph");
         s("text", { x: b.x + 36, y: b.y + 25, class: "in-box-name small" }, grp).textContent = fit(x.system, b.w - 44, 13, 600);
@@ -619,7 +676,7 @@ const Inside = (() => {
     const meets = {};
     for (const e of edges) for (const id of [e.from, e.to]) meets[id] = (meets[id] || 0) + 1;
     const main = comps.map((c) => lay.box["c:" + c.name]).filter(Boolean).sort((a, b) => (meets[b.node.id] || 0) - (meets[a.node.id] || 0))[0];
-    sized(svg, holder, boundsOf([...Object.values(lay.box), fr, ...heads]), 24, { open: "read", key: "components", focus: main });
+    sized(svg, holder, boundsOf([...Object.values(lay.box), fr, ...heads]), 24, { open: "read", key: "components", focus: main, lg });
   }
 
   /* ------------------------------------------------------------ beside level 3: the design's sections */
@@ -699,13 +756,17 @@ const Inside = (() => {
      with a minimap; "Whole" puts every entity in view. */
   function erDiagram(m, diagramName = "Design") {
     const holder = h("div", { class: "in-er" }), wrap = h("div", { class: "in-er-wrap" }, holder);
+    const outer = h("div", { class: "in-er-outer" }, wrap), lg = keyFor("inside-data", () => outer, { "er.entity": ".in-entity-box", "er.key": ".in-field-key", "er.rel": "path.in-edge", "inside.mini": ".in-mini:not([hidden])" });
+    outer.append(lg.el());  // under the drawing, not in its frame: the drawing's minimap sits over the frame's corner
     const nodes = m.entities.map((x) => ({ id: "e:" + x.name, kind: "entity", w: 190, h: 30 + Math.max(1, x.fields.length) * 17, x }));
     const edges = m.relationships.map((r) => ({ from: "e:" + r.from, to: "e:" + r.to, label: `${r.label} · ${cardinality(r.cardinality)}`, title: `${r.from} ${r.label} ${r.to}: ${cardinality(r.cardinality)} (${r.cardinality})` }));
     const lay = layered(nodes, edges, { gapX: 150, gapY: 18, minColW: 150, gapTB: 60, gapYTB: 18, dir: "auto", fit: { w: 320, h: 420 } });
     const svg = s("svg", { class: "inside-svg er", role: "img", "aria-label": "Data model" }, holder);
     defsFor(svg);
-    drawLayout(svg, lay, {
+    lay.looks = { solid: "er.rel", soft: "er.rel" };
+    lg.within(() => drawLayout(svg, lay, {
       entity: (g, b) => {
+        Legend.saw("er.entity");
         const x = b.node.x, grp = s("g", { class: "in-node in-entity-box", "data-entity": x.name }, g);
         const rels = m.relationships.filter((r) => r.from === x.name || r.to === x.name).map((r) => `${r.from} ${r.label} ${r.to}: ${cardinality(r.cardinality)}`);
         Nodes.wire(grp, { label: `${x.name}, an entity of the data model`, note: Nodes.note({ diagram: `${diagramName} data model`, name: x.name, kind: "Entity in the data model",
@@ -715,15 +776,17 @@ const Inside = (() => {
         s("text", { x: b.x + 10, y: b.y + 16, class: "in-box-name small" }, grp).textContent = fit(x.name, b.w - 20, 12.5, 600);
         x.fields.forEach((f, i) => {
           s("text", { x: b.x + 10, y: b.y + 40 + i * 17, class: "in-field" }, grp).textContent = fit(`${f.name} ${f.type}`, b.w - 50, 11);
+          if (f.keys.length) Legend.saw("er.key");
           if (f.keys.length) s("text", { x: b.x + b.w - 8, y: b.y + 40 + i * 17, "text-anchor": "end", class: "in-field-key" }, grp).textContent = f.keys.join(" ");
         });
       },
-    });
+    }));
+    lg.paint();
     const related = {};
     for (const e of edges) for (const id of [e.from, e.to]) related[id] = (related[id] || 0) + 1;
     const main = Object.values(lay.box).sort((a, b) => (related[b.node.id] || 0) - (related[a.node.id] || 0))[0];
-    sized(svg, holder, boundsOf(Object.values(lay.box)), 14, { open: "read", key: "er", focus: main, frame: wrap });
-    return wrap;
+    sized(svg, holder, boundsOf(Object.values(lay.box)), 14, { open: "read", key: "er", focus: main, frame: wrap, lg });
+    return outer;
   }
   function apiTab(app, d) {
     if (!d.api.length) return [card(null, h("div", { class: "p-empty-line" }, "The design has no ### <Component> public surface under API contracts."))];
@@ -787,11 +850,13 @@ const Inside = (() => {
   function sequence(app, d, f, id) {
     const seq = parseSequence(f.mermaid), n = seq.steps.length;
     const box = h("div", { class: "in-seq", "data-seq": id }), diagram = `${appTitle(app)}: ${f.title || "sequence"}`;
+    const lg = keyFor("inside-sequence", () => box, { "sq.lane": ".seq-lane", "sq.msg": ".seq-msg:not(.reply)", "sq.reply": ".seq-msg.reply", "sq.note": ".seq-note", "sq.block": ".seq-block", "sq.now": ".seq-step.on .seq-msg", "sq.later": ".seq-step.later .seq-msg" }, null, id);
     if (st.step[id] === undefined) st.step[id] = 0;
     const comp = (name) => d.components.find((c) => c.name.toLowerCase() === name.toLowerCase());
     const node = (name) => D.nodes.find((x) => x.title.toLowerCase() === name.toLowerCase());
     function draw() {
       box.innerHTML = "";
+      lg.seen.clear();
       const cur = st.step[id], LW = 128, RH = 30, top = 42, W = seq.parts.length * LW, H = top + n * RH + 16;
       const x = (pid) => seq.parts.findIndex((p) => p.id === pid) * LW + LW / 2;
       const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, class: "inside-svg seq", role: "img", "aria-label": f.title || "sequence" });
@@ -799,6 +864,7 @@ const Inside = (() => {
       seq.parts.forEach((p) => {
         const cx = x(p.id), c = comp(p.name), v = node(p.name);
         s("line", { x1: cx, x2: cx, y1: top - 6, y2: H - 6, class: "seq-lane" }, svg);
+        lg.saw("sq.lane");
         const g = s("g", { class: "seq-head" + (c || v ? " pick" : "") }, svg);
         s("rect", { x: cx - LW / 2 + 6, y: 4, width: LW - 12, height: 28, rx: 6 }, g);
         if (v) Icons.put(g, Icons.name(v.key), cx - LW / 2 + 18, 18, 13, "node-glyph");
@@ -815,14 +881,17 @@ const Inside = (() => {
         if (stp.kind === "note" || stp.kind === "block") {
           const xs = (stp.over || seq.parts.map((p) => p.id)).map(x), x0 = Math.min(...xs) - LW / 2 + 10, x1 = Math.max(...xs) + LW / 2 - 10;
           s("rect", { x: x0, y: y - 11, width: x1 - x0, height: 20, rx: 4, class: stp.kind === "note" ? "seq-note" : "seq-block" }, g);
+          lg.saw(stp.kind === "note" ? "sq.note" : "sq.block");
           s("text", { x: (x0 + x1) / 2, y: y + 3, "text-anchor": "middle", class: "seq-text" }, g).textContent = fit(stp.text, x1 - x0 - 12, 11);
         } else if (stp.from === stp.to) {
           const cx = x(stp.from);
           s("path", { d: `M${cx},${y - 8}h26v14h-24`, class: "seq-msg" + (stp.kind === "reply" ? " reply" : ""), "marker-end": "url(#in-arrow)" }, g);
+          lg.saw(stp.kind === "reply" ? "sq.reply" : "sq.msg"); lg.saw(on ? "sq.now" : i > cur ? "sq.later" : null);
           s("text", { x: cx + 32, y: y + 3, class: "seq-text" }, g).textContent = fit(stp.text, LW + 40, 11);
         } else {
           const x0 = x(stp.from), x1 = x(stp.to), dir = Math.sign(x1 - x0);
           s("line", { x1: x0, x2: x1 - dir * 3, y1: y + 4, y2: y + 4, class: "seq-msg" + (stp.kind === "reply" ? " reply" : ""), "marker-end": "url(#in-arrow)" }, g);
+          lg.saw(stp.kind === "reply" ? "sq.reply" : "sq.msg"); lg.saw(on ? "sq.now" : i > cur ? "sq.later" : null);
           s("text", { x: (x0 + x1) / 2, y: y - 1, "text-anchor": "middle", class: "seq-text" }, g).textContent = fit(stp.text, Math.abs(x1 - x0) - 10, 11);
         }
         s("title", {}, g).textContent = `${i + 1}. ${describe(stp, seq)}`;
@@ -840,7 +909,8 @@ const Inside = (() => {
         h("button", { class: "btn tiny", disabled: cur >= n - 1 ? true : null, onclick: () => { st.step[id] = Math.min(n - 1, cur + 1); draw(); } }, "Next ›"),
         FX.on && n > 1 ? h("button", { class: "btn tiny", onclick: () => play(id, n, draw) }, st.playing === id ? "Pause" : "▶ Play") : null);
       svg.style.width = W + "px";
-      box.append(h("div", { class: "in-scroll" }, svg), ctl, n ? h("div", { class: "seq-now" }, `${cur + 1}. `, prose(describe(seq.steps[cur], seq))) : null);
+      lg.paint();
+      box.append(h("div", { class: "in-scroll" }, svg), lg.el(), ctl, n ? h("div", { class: "seq-now" }, `${cur + 1}. `, prose(describe(seq.steps[cur], seq))) : null);
     }
     draw();
     return box;
@@ -999,6 +1069,7 @@ const Inside = (() => {
   function highlight(k) {
     $$("#inside-stage [data-key]").forEach((g) => g.classList.toggle("picked", g.dataset.key === k));
     if (st.level === "context") MapGroups.highlight(k);
+    for (const lg of Legend.keyed()) if (lg.def.picks && lg.name.startsWith("inside-")) settle(lg);
   }
 
   // Double-click an app on the map, or one beside it on the context level, to go inside it.

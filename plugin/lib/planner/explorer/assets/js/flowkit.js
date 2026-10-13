@@ -128,6 +128,7 @@ const FlowKit = (() => {
     });
     lanes.forEach((lane, i) => {
       const X = G.laneX[i], on = G.touched.has(lane.id), width = on ? G.colW : G.colW * G.idle;
+      if (st.seen) { st.seen.add("flow.lane"); if (!on) st.seen.add("flow.lane.idle"); }
       ctx.save(); ctx.globalAlpha = on ? 1 : 0.4;
       if (!on && width < 64 * k) {  // too narrow for a name: a mark in its place, the name on hover
         ctx.beginPath(); ctx.arc(X, G.y + 22 * k, 4 * k, 0, 7);
@@ -175,6 +176,7 @@ const FlowKit = (() => {
       drawUnit(ctx, G, r, step, phase, p, st, hits);
     }
     for (const [si, r] of Object.entries(firstRow)) {
+      if (st.seen) st.seen.add("flow.stepno");
       const i = +si, cx = G.x + G.gutter * 0.42, cy = r.y, rad = 11 * k;
       ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 7);
       if (i === cur) { ctx.fillStyle = C.ink; ctx.fill(); } else { ctx.fillStyle = C.deck; ctx.fill(); ctx.strokeStyle = i < cur ? C.ink2 : C.rule; ctx.lineWidth = 1 * k; ctx.stroke(); }
@@ -202,6 +204,7 @@ const FlowKit = (() => {
       ctx.strokeStyle = col; ctx.lineWidth = (phase === "now" ? 2.4 : 1.6) * k;
       ctx.beginPath(); ctx.moveTo(a, y); ctx.lineTo(phase === "future" ? b : head, y); ctx.stroke(); ctx.setLineDash([]);
       const stated = u.kind === "msg" && u.msg.direction === "stated";
+      if (st.seen) { st.seen.add(u.kind === "reply" ? "flow.reply" : stated ? "flow.stated" : "flow.inferred"); if (u.kind === "msg" && phase === "future") st.seen.add("flow.future"); }
       if (phase !== "now" || p >= 1) arrowHead(ctx, b + dir * 2 * k, y, dir, 9 * k, stated, col);
       if (phase === "now" && p > 0 && p < 1) {
         const tail = Math.max(0, e - 0.18), tx = a + (b - a) * tail;
@@ -223,6 +226,7 @@ const FlowKit = (() => {
         const nameW = name.length > 1 ? ctx.measureText(name).width + 6 * k : 0;
         const cw = idW + nameW + 16 * k, ch = 19 * k, cx = mid - cw / 2, cy = y - ch - 6 * k;
         const lv = levelOf(con.id);
+        if (st.seen) { st.seen.add("flow.chip"); if (lv !== "dark" && phase !== "future") st.seen.add("lamp." + lv); }
         ctx.globalAlpha = phase === "future" ? 0.4 : 1;
         rr(ctx, cx, cy, cw, ch, ch / 2); ctx.fillStyle = C.deck; ctx.fill();
         ctx.strokeStyle = lv !== "dark" && phase !== "future" ? hexA(lampLine(lv), 0.8) : phase === "now" ? hexA(laneColor(u.from), 0.7) : C.rule; ctx.lineWidth = 1 * k; ctx.stroke();
@@ -239,6 +243,7 @@ const FlowKit = (() => {
       hits.push({ type: "row", si: r.si, x: Math.min(x1, x2), y: y - 14 * k, w: Math.abs(x2 - x1), h: 28 * k });
     } else if (u.kind === "self") {
       const X = G.laneX[LANE_INDEX[u.lane]], col = unitColor(phase, u.lane), lw = 34 * k, lh = 11 * k;
+      if (st.seen) { st.seen.add("flow.self"); if (phase === "future") st.seen.add("flow.future"); }
       ctx.strokeStyle = col; ctx.lineWidth = (phase === "now" ? 2.2 : 1.5) * k;
       ctx.setLineDash(phase === "future" ? [2 * k, 4 * k] : []);
       ctx.beginPath(); ctx.moveTo(X + 4 * k, y - lh); ctx.bezierCurveTo(X + lw, y - lh * 1.5, X + lw, y + lh * 1.5, X + 6 * k, y + lh); ctx.stroke(); ctx.setLineDash([]);
@@ -256,6 +261,7 @@ const FlowKit = (() => {
       }
       hits.push({ type: "row", si: r.si, x: X - 10 * k, y: y - 14 * k, w: lw + room, h: 28 * k });
     } else {
+      if (st.seen) st.seen.add("flow.band");
       const xs = [...G.touched].map((id) => G.laneX[LANE_INDEX[id]]).filter((x) => x !== undefined);
       const x0 = xs.length ? Math.min(...xs) - G.colW * 0.32 : G.x + G.gutter, x1 = xs.length ? Math.max(...xs) + G.colW * 0.32 : G.x + G.w - 10, bh = Math.min(G.rowH * 0.66, 32 * k);
       ctx.globalAlpha = phase === "future" ? 0.4 : 1;
@@ -282,6 +288,7 @@ const FlowKit = (() => {
     step.unknowns.forEach((pin, j) => {
       if (!ASK[pin.id]) return;
       const x = base.x + j * 17 * k, y = base.y, colour = markerColour(pin.id);
+      if (st.seen) { st.seen.add(colour ? "flow.pin" : "flow.pin.settled"); if (colour) st.seen.add("lamp." + unknownLevel(pin.id)); }
       if (colour) {
         const breath = reducedMotion() && !st.recording ? 0.6 : 0.5 + 0.5 * Math.sin((st.clock || 0) * 2.4);
         if (glowOn() || st.recording) {
@@ -446,6 +453,51 @@ const FlowKit = (() => {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }
-  return { PALETTE, C, UI, SERIF, laneColor, laneName, flowOf, inferredNote, unitsOf, openPins, flowQuestions, touchedLanes, stepTiming, travelTime, layout, drawScene,
+  /* ------------------------------------------------------------ the key
+     The canvas has no elements to look at, so the key is made two ways that must agree. census() draws the flow on a
+     scratch canvas, once at each step, and collects the looks the drawing code really used. expected() works the same
+     looks out from the flow's data alone; the self-test compares the key to that. */
+  const { ln, bx } = Legend;
+  Legend.define("flow.stated", [ln({ stroke: "ink-2", w: 1.8, head: "fill" })], "Solid arrow: the step says who sends");
+  Legend.define("flow.inferred", [ln({ stroke: "ink-2", w: 1.8, head: "open" })], "Open arrowhead: who sends is worked out from the contract's provider");
+  Legend.define("flow.reply", [ln({ stroke: "ink-2", w: 1.8, head: "open", dash: "4 3" })], "Dashed arrow: the answer coming back");
+  Legend.define("flow.self", [bx({ stroke: "ink-2", w: 1.8, x: 9, y: 3, width: 14, height: 10, rx: 5 })], "Loop on one column: an app doing this step on its own");
+  Legend.define("flow.band", [bx({ stroke: "ink-3", w: 1.2, dash: "3 3", rx: 4, y: 3.5, height: 9 })], "Dashed band: a step with no sender, a note, or a repeat of another flow");
+  Legend.define("flow.future", [ln({ stroke: "ink-4", w: 1.8, dash: "2 4.5" })], "Dotted line: a step that has not been played yet");
+  Legend.define("flow.chip", [bx({ fill: "deck", stroke: "ink-3", w: 1.2, rx: 4, y: 4, height: 8 })], "Pill on an arrow: the contract sent, outlined in its light");
+  Legend.define("flow.pin", [{ k: "dot", fill: "caution", r: 4.5 }], "Glowing dot at a step: an open question pinned there, in its light");
+  Legend.define("flow.pin.settled", [{ k: "dot", fill: "room", stroke: "ink-3", w: 1.3, r: 5 }, { k: "text", t: "✓", fill: "ink-3", y: 11, size: 8 }], "Ring with a tick: a pinned question that has been settled");
+  Legend.define("flow.lane", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 9, r: 2 }], "Pill at the top: one app or outside party, in its own colour");
+  Legend.define("flow.lane.idle", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9, opacity: 0.4 })], "Faded pill: this app or party takes no part in the flow");
+  Legend.define("flow.stepno", [{ k: "dot", fill: "ink", r: 5.5 }, { k: "text", t: "2", fill: "room", y: 11, size: 8 }], "Numbered circle at the left: a step; the one playing is filled");
+  const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.lane.idle", "flow.stepno"];
+  function census(flow) {
+    const seen = new Set(), canvas = document.createElement("canvas");
+    canvas.width = 1040; canvas.height = 700;
+    const ctx = canvas.getContext("2d"), G = layout(flow, { x: 0, y: 6, w: 1032, h: 694, s: 1 });
+    for (let cur = 0; cur <= flow.steps.length; cur++) drawScene(ctx, G, { cur, tau: 99, clock: 0, D: 0.8, seen, images: false });
+    return seen;
+  }
+  function expected(flow) {
+    const out = new Set(), units = flow.steps.flatMap((step, si) => unitsOf(step).map((u) => ({ u, si })));
+    const has = (f) => units.some(f);
+    if (has(({ u }) => u.kind === "msg" && u.msg.direction === "stated")) out.add("flow.stated");
+    if (has(({ u }) => u.kind === "msg" && u.msg.direction !== "stated")) out.add("flow.inferred");
+    if (has(({ u }) => u.kind === "reply")) out.add("flow.reply");
+    if (has(({ u }) => u.kind === "self")) out.add("flow.self");
+    if (has(({ u }) => u.kind === "ref" || u.kind === "note")) out.add("flow.band");
+    if (has(({ u, si }) => si >= 1 && (u.kind === "msg" || u.kind === "self"))) out.add("flow.future");
+    for (const { u } of units) if (u.kind === "msg") { out.add("flow.chip"); const lv = levelOf(u.msg.contract); if (lv !== "dark") out.add("lamp." + lv); }
+    for (const step of flow.steps) for (const pin of step.unknowns) {
+      if (!ASK[pin.id]) continue;
+      const lv = unknownLevel(pin.id);
+      if (lv === "resolved" || lv === "dark") out.add("flow.pin.settled"); else { out.add("flow.pin"); out.add("lamp." + lv); }
+    }
+    out.add("flow.lane"); if (lanes.some((l) => !touchedLanes(flow).has(l.id))) out.add("flow.lane.idle");
+    if (flow.steps.length) out.add("flow.stepno");
+    return out;
+  }
+  const flowProbes = (keyOf) => Object.fromEntries(LOOK_ORDER.map((id) => [id, () => expected(flowOf(keyOf())).has(id)]));
+  return { census, expected, flowProbes, PALETTE, C, UI, SERIF, laneColor, laneName, flowOf, inferredNote, unitsOf, openPins, flowQuestions, touchedLanes, stepTiming, travelTime, layout, drawScene,
     drawClipFrame, clipPlan, clipFormat, recordClip, download, hexA, markerColour, CLIP };
 })();

@@ -86,11 +86,14 @@ const Flows = (() => {
     if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
     const stage = h("div", { class: "stage" });
     const canvas = h("canvas", { class: "stage-canvas", role: "img", "aria-label": `Sequence of ${f.title}` });
-    stage.append(canvas, legendRow());
+    stage.append(canvas);
+    const key = Legend.open("flow", { root: () => $(".stage"), probes: FlowKit.flowProbes(() => st.key) });
+    FlowKit.census(f).forEach((id) => key.saw(id));
     const nodeList = flowNodes(st.key, () => player);
     const caption = h("section", { class: "caption", id: "caption", "aria-live": "polite" });
     const transport = h("footer", { class: "transport", id: "transport" });
-    main.append(stage, nodeList, caption, transport);
+    main.append(stage, key.el(), nodeList, caption, transport);
+    key.paint();
     player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); Minimap.refresh(); }, onPlay: paintTransport,
       onFlow: (p) => select(p.key, -1) });
     paintCaption(); buildTransport(); paintTransport();
@@ -123,12 +126,6 @@ const Flows = (() => {
     const el = s("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 1.8 });
     el.innerHTML = paths[kind];
     return el;
-  }
-  function legendRow() {
-    return h("div", { class: "stage-legend", "aria-hidden": "true", html:
-      `<span><svg viewBox="0 0 22 10"><path d="M1 5h15" stroke="currentColor" stroke-width="1.6"/><path d="M14 1l7 4-7 4z" fill="currentColor"/></svg>The step says who sends</span>
-       <span><svg viewBox="0 0 22 10"><path d="M1 5h18" stroke="currentColor" stroke-width="1.6"/><path d="M14 1l6 4-6 4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><i class="heuristic">Direction inferred from the contract</i></span>
-       <span><i class="lamp warning"></i>Open, overdue</span><span><i class="lamp caution"></i>Open question</span><span><i class="lamp resolved"></i>Settled, still cited</span>` });
   }
   function inferredLine() { const t = FlowKit.inferredNote(st.key); return t ? h("div", { class: "cap-inferred heuristic", "data-inferred-flow": st.key }, t) : null; }
   function paintCaption() {

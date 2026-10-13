@@ -3,6 +3,16 @@
    (progress.grid, progress.best, completeness.measure, override, handoff); the page only draws them. */
 const ProgressView = (() => {
   const MIX = ["inkling", "assumption", "fact", "decided"].map((s) => [s, `var(--mix-${s})`]);
+  const { bx } = Legend;
+  const step = (o) => bx({ y: 5, height: 6, rx: 2, width: 8, ...o });
+  Legend.define("pg.done", [step({ x: 3, fill: "ink-3" }), step({ x: 13, fill: "ink-3" })], "Grey step: a stage the app has already passed");
+  Legend.define("pg.cur", [step({ x: 12, fill: "ink" })], "Bright step: the stage the app is at");
+  Legend.define("pg.reach", [step({ x: 12, fill: "deck-3", stroke: "ink-2", w: 1.4 })], "Ringed step: how far its pages already reach, ahead of the recorded stage");
+  Legend.define("pg.empty", [step({ x: 12, fill: "deck-3" })], "Empty step: a stage still to come");
+  Legend.define("pg.off", [step({ x: 12, fill: "deck" })], "Dim steps: outside the ladder, so no stage applies");
+  const MIX_SAY = { inkling: "a hunch", assumption: "believed but not checked", fact: "has a source", decided: "came out of a Grill session" };
+  for (const [state, colour] of MIX) Legend.define("pg.mix." + state, [{ k: "box", y: 5, height: 6, rx: 2, fill: `mix-${state}` }], `${state[0].toUpperCase() + state.slice(1)}: ${MIX_SAY[state]}`);
+  Legend.define("pg.fade", [bx({ fill: "caution", opacity: 0.4, x: 11, y: 2, width: 12, height: 12, rx: 3 })], "Paler bar: the most urgent question is some way off; bars strengthen as they fall due");
   function render(main) {
     const P = D.progress, sc = h("div", { class: "scroll pages" });
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, "Progress"),
@@ -22,9 +32,18 @@ const ProgressView = (() => {
       h("div", { class: "shares" }, P.shares.map((x) => h("div", { class: "share" }, h("span", {}, x.name), h("div", { class: "bar" }, h("span", { style: `width:${x.total ? ((100 * x.done) / x.total).toFixed(1) : 100}%` })), h("span", { class: "v" }, `${x.done} of ${x.total}`)))),
       h("div", { class: "tiles" }, [3, 2, 1, 0].map((i) => h("div", { class: "tile" }, h("div", { class: "num" }, totals[i]), h("div", { class: "lab" }, h("i", { class: "sw", style: `background:${MIX[i][1]}` }), MIX[i][0])))),
       P.next ? h("div", { class: "note next" }, h("b", {}, "Planner's next step: "), `${P.next.mode} `, P.next.subject ? refChip(keyForId(P.next.subject)) : null, " ", P.next.reason) : null));
+    const tableKey = Legend.open("progress-table", { root: () => tableCard, probes: { "pg.done": ".ladder .done", "pg.cur": ".ladder .cur", "pg.reach": ".ladder .reach", "pg.empty": ".ladder:not(.off) span:not(.done):not(.cur):not(.reach)",
+      "pg.off": ".ladder.off", ...Object.fromEntries(MIX.map(([state]) => ["pg.mix." + state, `.mix span[style*="--mix-${state}"]`])) } });
     const table = h("table", { class: "t" }, h("tr", {}, h("th", {}, "App"), h("th", {}, "Light"), h("th", {}, "Stage"), h("th", {}, "States"), h("th", {}, "Next, by planner's rule"), h("th", {}, "Handoff"), h("th", {}, "Team design")));
     for (const r of P.rows) {
       const a = E[r.app], ad = D.apps[r.app], idx = P.stages.indexOf(r.stage), reach = P.stages.indexOf(ad.reached), lv = levelOf(r.app);
+      if (r.stage) {
+        if (idx > 0) tableKey.saw("pg.done");
+        tableKey.saw("pg.cur");
+        if (reach > idx) tableKey.saw("pg.reach");
+        if (P.stages.some((x, i) => i > idx && !(i === reach && reach > idx))) tableKey.saw("pg.empty");
+      } else tableKey.saw("pg.off");
+      r.mix.forEach((n, i) => { if (n) tableKey.saw("pg.mix." + MIX[i][0]); });
       const caption = r.stage ? `at ${r.stage}` + (reach > idx ? `; its pages already reach ${ad.reached}` : "") : `${a.change || "no change"}: outside the ladder`;
       table.append(h("tr", { class: "click", onclick: () => go(r.app, { reset: true }) },
         h("td", {}, h("b", {}, a.title), h("div", { class: "muted" }, a.change || "")),
@@ -35,7 +54,9 @@ const ProgressView = (() => {
         h("td", { class: "wide" }, h("b", {}, r.mode === "none" ? "nothing to run" : r.mode), h("div", { class: "muted small" }, r.reason), r.oldest ? h("div", { class: "small" }, h("span", { class: "muted" }, "oldest blocker: "), refChip(r.oldest)) : null),
         h("td", { class: "small" }, handoff(r.handoff)), h("td", { class: "small" }, Inside.statusCell(r.app))));
     }
-    sc.append(h("section", { class: "card" }, h("h2", {}, "Each app on the ladder", h("span", { class: "sub" }, `${P.stages.join(" → ")}; filled to the recorded stage, a ringed step is where the pages already reach`)), table));
+    const tableCard = h("section", { class: "card" }, h("h2", {}, "Each app on the ladder", h("span", { class: "sub" }, `${P.stages.join(" → ")}; filled to the recorded stage, a ringed step is where the pages already reach`)), table, tableKey.el());
+    sc.append(tableCard);
+    tableKey.paint();
     sc.append(dueChart());
     const ov = h("section", { class: "card" }, h("h2", {}, "Overrides awaiting confirmation"));
     if (P.awaiting.length) ov.append(h("table", { class: "t" }, h("tr", {}, h("th", {}, "On"), h("th", {}, "Decided by"), h("th", {}, "On behalf of, not yet confirmed")),
@@ -77,6 +98,7 @@ const ProgressView = (() => {
     }
     const W = 900, H = 190, pad = 30, bw = (W - pad) / buckets.length, max = Math.max(...buckets.map((b) => b.ids.length), 1);
     const svg = s("svg", { viewBox: `0 0 ${W} ${H + 36}`, class: "due-chart" });
+    const key = Legend.open("progress-due", { root: () => sec, probes: { ...Legend.lampProbes((lv) => `rect.bar-r.${lv}`), "pg.fade": 'rect.bar-r:not([opacity="1.00"])' } });
     for (let g = 0; g <= max; g += Math.max(1, Math.ceil(max / 4))) {
       const y = H - ((H - 20) * g) / max;
       s("line", { x1: pad, x2: W, y1: y, y2: y, stroke: Theme.c("rule") }, svg);
@@ -88,7 +110,8 @@ const ProgressView = (() => {
       if (b.ids.length) {
         const lit = b.ids.map((id) => ASK[id].light).sort((p, q) => rank(q.level) - rank(p.level) || q.urgency - p.urgency)[0];
         const colour = LIGHT[lit.level].colour, op = lit.level === "warning" ? 1 : 0.35 + 0.65 * lit.urgency;
-        const r = s("rect", { x, y: H - bh, width: bw - 8, height: bh, rx: 4, fill: colour, opacity: op.toFixed(2), class: "bar-r" }, svg);
+        const r = s("rect", { x, y: H - bh, width: bw - 8, height: bh, rx: 4, fill: colour, opacity: op.toFixed(2), class: "bar-r " + lit.level }, svg);
+        key.saw("lamp." + lit.level); if (op < 1) key.saw("pg.fade");
         r.addEventListener("mousemove", (ev) => showTip(ev, `<b>${esc(b.label)}${b.sub ? " (" + b.sub + ")" : ""}: ${b.ids.length}</b>${esc(b.ids.join(", "))}`));
         r.addEventListener("mouseleave", hideTip);
         const week = `${b.label}${b.sub ? " (" + b.sub + ")" : ""}`;
@@ -100,7 +123,8 @@ const ProgressView = (() => {
       if (b.sub) s("text", { x: x + (bw - 8) / 2, y: H + 30, "text-anchor": "middle", class: "axis faint" }, svg).textContent = b.sub;
     });
     s("line", { x1: pad, x2: W, y1: H, y2: H, stroke: Theme.c("rule-3") }, svg);
-    sec.append(h("div", { class: "chart" }, svg), listBox);
+    sec.append(h("div", { class: "chart" }, svg), key.el(), listBox);
+    key.paint();
     return sec;
   }
   return { render };

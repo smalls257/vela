@@ -27,6 +27,19 @@ const MapGroups = (() => {
   const st = MapView.st;
   const byPin = (a, b) => (NODE[a].col - NODE[b].col) || (NODE[a].row - NODE[b].row) || cmp(a, b);
   const worst = (levels) => levels.sort((p, q) => rank(q) - rank(p))[0] || "dark";
+  /* What the grouped map and the focus drawing add to the cockpit's key (view-map.js has the rest). */
+  const { bx } = Legend;
+  Legend.define("cluster.open", [bx({ stroke: "rule", w: 1.4, rx: 5 })], "Faint frame: a group, with its apps drawn inside it");
+  Legend.define("cluster.outside", [bx({ stroke: "ink-4", w: 1.4, rx: 5, dash: "3 3.5" })], "Dashed frame: the outside parties, kept apart from our apps");
+  Legend.define("cluster.closed", [bx({ fill: "unlit", stroke: "rule-3", w: 1.2, rx: 4 }), bx({ fill: "caution", x: 3, y: 4, width: 3, height: 8, rx: 1.5 })], "Card with a coloured edge: a closed group, in its worst light; click to open");
+  Legend.define("cluster.mini", [bx({ fill: "caution", x: 5, y: 6, width: 6, height: 4, rx: 1 }), bx({ fill: "unlit", x: 13, y: 6, width: 6, height: 4, rx: 1 }), bx({ fill: "warning", x: 21, y: 6, width: 6, height: 4, rx: 1 })], "Row of small lamps: one per app in a closed group, each in its light");
+  Legend.define("cluster.also-tab", [bx({ fill: "deck-3", stroke: "rule-3", w: 1, height: 8, y: 4, rx: 4 }), { k: "text", t: "+2", fill: "ink-2", y: 11, size: 8 }], "Small tab above a box: the app carries other capabilities too");
+  Legend.define("cluster.also-chip", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.2, dash: "3 2.5", height: 8, y: 4, rx: 4 })], "Dashed chip: an app drawn in another region that carries this one too");
+  const LOOKS = {
+    "cluster.open": ".cluster-frame:not(.outside)", "cluster.outside": ".cluster-frame.outside", "cluster.closed": "g.cluster-lamp", "cluster.mini": "rect.mini-lamp",
+    "cluster.also-tab": "g.also-tab", "cluster.also-chip": "g.also-chip",
+  };
+  const LOOKS_FOCUS = { "picked": "g.hit.picked, path.duct.picked, .focus-centre" };
   const PARTIES = "grp:outside";
 
   function groups(mode) {
@@ -210,7 +223,8 @@ const MapGroups = (() => {
       const lv = worst(e.contracts.map(levelOf));
       const duct = s("path", { d, class: "duct", "data-a": e.a, "data-b": e.b }, gDucts);
       s("path", { d, class: "duct-hi", transform: "translate(0,2.5)" }, gDucts);
-      if (lv !== "dark") s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts);
+      Legend.saw("link");
+      if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts); Legend.saw("link.lit"); }
       Scene.edge(e.a, e.b, { pts, el: duct, contracts: e.contracts });
       const one = e.contracts.length === 1, lw = one ? 84 : 98;
       const ids = e.contracts.slice().sort();
@@ -219,7 +233,7 @@ const MapGroups = (() => {
       if (!spot) {
         // no room for a lamp: a round count on the duct; failing that, the nearest free spot beside it, tied by a leader
         const round = place(pts, 30, 30, obs) || beside(pts, 30, 30, obs);
-        if (round.leader) s("path", { d: `M${round.leader.x},${round.leader.y}L${round.at.x},${round.at.y}`, class: "leader" }, gDucts);
+        if (round.leader) { s("path", { d: `M${round.leader.x},${round.leader.y}L${round.at.x},${round.at.y}`, class: "leader" }, gDucts); Legend.saw("link.leader"); }
         if (round.crowded) console.warn(`[map] no free place for the lamp of ${ids.join(", ")}; drawn where it overlaps`);
         obs.push(round.r);
         countBadge(gLamps, round.at, ids, lv, bundle, round.crowded);
@@ -236,6 +250,7 @@ const MapGroups = (() => {
   const label = (k) => (k.startsWith("grp:") ? k.slice(4) : k.startsWith("cap:") ? k.slice(4) || "No capability" : titleOf(k));
   /* On a short duct a lamp would cover the boxes, so the contracts there are a round count in their worst light. */
   function countBadge(g, at, ids, lv, bundle, crowded) {
+    Legend.saw("kind.count"); Legend.saw("lamp." + lv);
     const grp = s("g", { class: `hit count-badge ${lv === "dark" ? "dark" : "lit " + lv}`, "data-key": ids[0], "data-agg": "1", "data-crowded": crowded ? "1" : null }, g);
     s("circle", { cx: at.x, cy: at.y, r: 14, fill: lv === "dark" ? LIGHT.dark.colour : LIGHT[lv].colour, stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" }, grp);
     s("text", { x: at.x, y: at.y + 4.5, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = ids.length;
@@ -370,6 +385,7 @@ const MapGroups = (() => {
     if (g.isOpen) {
       const grp = s("g", { class: "cluster open", "data-group": g.key }, gFrames);
       s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, class: "cluster-frame" + (g.outside ? " outside" : ""), "data-cap": g.cap || null }, grp);
+      Legend.saw(g.outside ? "cluster.outside" : "cluster.open");
       // the name takes the room the counts leave it, and is cut there with the full name on hover
       const subText = g.w >= 300 && counts.length ? counts.map(([l, n]) => `${n} ${LIGHT[l].word.toLowerCase()}`).join(" · ") : "";
       const subW = subText ? measure(subText, 12) + 14 : 0;
@@ -398,6 +414,7 @@ const MapGroups = (() => {
     // Closed, a cluster stays a dark panel: its worst light is the band on its edge and the lamp by its name, and
     // each app keeps its own small lamp, so the cluster says which of its apps is lit without shouting it.
     obs.push({ x: g.x, y: g.y, w: g.w, h: g.h });
+    Legend.saw("cluster.closed"); Legend.saw("lamp." + lv);
     const el = s("g", { class: `hit cluster-lamp ${lv === "dark" ? "dark" : "lit " + lv}`, "data-key": g.key, "data-group": g.key, "data-level": lv }, gNodes);
     s("rect", { x: g.x, y: g.y + 2, width: g.w, height: g.h, rx: 14, fill: Theme.c("face-drop") }, el);
     s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, fill: "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" }, el);
@@ -424,6 +441,7 @@ const MapGroups = (() => {
       const l = levelOf(k);
       // each app's glyph stands over its lamp, so a closed cluster still says what is inside it
       if (mw >= 12) Icons.put(el, Icons.name(k), g.x + 20 + i * (mw + 4) + mw / 2, g.y + g.h - 40, Math.min(14, mw), "mini-glyph");
+      Legend.saw("cluster.mini");
       const tiny = s("rect", { x: g.x + 20 + i * (mw + 4), y: g.y + g.h - 26, width: mw, height: 8, rx: 2, fill: l === "dark" ? Theme.c("mini-dark") : LIGHT[l].colour, class: "mini-lamp", "data-key": k }, el);
       tiny.appendChild(document.createElementNS(SVGNS, "title")).textContent = `${titleOf(k)}: ${LIGHT[l].word}`;
       // a part inside a focusable cluster: the cluster's panel lists the same apps for the keyboard
@@ -439,6 +457,7 @@ const MapGroups = (() => {
     s("text", { x: g.x + PAD, y: y0 + 14, class: "also-label" }, gNames).textContent = "Also carried by";
     g.alsoLines.forEach((line, row) => line.forEach(({ k, x, w }) => {
       const cx = g.x + PAD + x, cy = y0 + row * (CHIP_H + CHIP_GAP);
+      Legend.saw("cluster.also-chip");
       const chip = s("g", { class: "also-chip", "data-key": k }, gNames);
       s("rect", { x: cx, y: cy, width: w, height: CHIP_H, rx: CHIP_H / 2 }, chip);
       Icons.put(chip, Icons.name(k), cx + 12, cy + CHIP_H / 2, 12, "also-glyph");
@@ -456,6 +475,7 @@ const MapGroups = (() => {
     const caps = (D.appCaps[k] || { caps: [] }).caps;
     if (caps.length < 2) return;
     const text = `+${plural(caps.length - 1, "capability", "capabilities")}`, w = measure(text, 11, 600) + 16;
+    Legend.saw("cluster.also-tab");
     const tab = s("g", { class: "also-tab", "data-key": k }, gNames);
     s("rect", { x: b.x + b.w - w - 6, y: b.y - 22, width: w, height: 18, rx: 9 }, tab);
     s("text", { x: b.x + b.w - w / 2 - 6, y: b.y - 9, "text-anchor": "middle" }, tab).textContent = text;
@@ -511,7 +531,7 @@ const MapGroups = (() => {
       const sub = n.kind !== "app" ? (n.external ? "outside provider" : "outside party") : !light || light.level === "dark" ? "settled" : MapView.shortWhy(light);
       const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(k),
         onpick: k === key ? (onCentre ? () => { go(k, { reset: true }); onCentre(el); } : null) : () => go(k, { reset: true }) });
-      if (k === key) el.classList.add("focus-centre");
+      if (k === key) { el.classList.add("focus-centre"); Legend.saw("picked", "White outline: the app in focus, and what you pick"); }
       Scene.node(k, { x: b.x, y: b.y, w: W, h: H, el });
     }
     // each neighbour's contracts as a bank of lamps on its one duct, as on the cockpit
@@ -524,7 +544,8 @@ const MapGroups = (() => {
       const pb = { L: { x: B.x + W, y: o.y }, R: { x: B.x, y: o.y }, U: { x: o.x, y: B.y + H }, D: { x: o.x, y: B.y } }[sd];
       const pts = Geo.route(pa, pb, sd), d = Geo.roundedPath(pts, 34), lv = worst(ids.map(levelOf));
       const duct = s("path", { d, class: "duct" }, gDucts);
-      if (lv !== "dark") s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts);
+      Legend.saw("link");
+      if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts); Legend.saw("link.lit"); }
       Scene.edge(key, k, { pts, el: duct, contracts: ids });
       const at = Geo.pointAt(pts, Geo.length(pts) * 0.55);
       ids.forEach((id, i) => MapView.lamp(gLamps, { key: id, x: at.x - 42, y: at.y - 11 + (i - (ids.length - 1) / 2) * 27, w: 84, h: 22, rx: 3, label: id, kind: "contract", title: `${id} ${CONTRACT[id].title}` }));
@@ -541,5 +562,5 @@ const MapGroups = (() => {
     $$("g.hit", board).forEach((g) => g.classList.toggle("picked", anchors.has(g.dataset.key) || g.dataset.key === key));
     lightAlso(key && APPS[key] ? key : null);
   }
-  return { grouped, focus, groups, highlight, all, neighbours, isOpen, place, beside, drawnBox };
+  return { grouped, focus, groups, highlight, all, neighbours, isOpen, place, beside, drawnBox, LOOKS, LOOKS_FOCUS };
 })();

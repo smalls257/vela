@@ -1715,3 +1715,98 @@ const TextFit = (() => {
     return out;
   };
 })();
+
+/* ------------------------------------------------------------ the key under every diagram (core.js, Legend)
+   A block of its own, last, so it merges apart from the rest: it wraps SelfTest.run and adds its lines. It tours every
+   diagram the page draws, in the states a reader reaches them in (picked, grouped, closed, a line chosen, a flow
+   played, an app's levels), and in each: every look the drawing really has is in its key, every look the key lists is
+   in the drawing, and every drawing has a key at all. A failure names the diagram and the meaning that is missing. */
+(() => {
+  const base = SelfTest.run;
+  const found = new Map(), visited = new Set();
+  /* Each drawing the page can show, how to find it, and the key it must have. */
+  const EXPECT = [
+    ["svg.cockpit.grouped", "map-grouped"], ["#main svg.cockpit.focus", "map-focus", "outside"], ["#inside-stage svg.cockpit.focus", "inside-context", "inside"],
+    ["#main svg.cockpit:not(.grouped):not(.focus):not(.containers):not(.components)", "map-cockpit", "outside"], ["svg.transit", "map-lines"], ["table.dsm", "map-matrix"],
+    ["svg.rl-map", "releases"], ["canvas.stage-canvas", "flow"], [".fp-pop:not([hidden])", "flows-list|lines-list"],
+    ["svg.containers", "inside-containers"], ["svg.components", "inside-components"], [".in-er svg", "inside-data"], [".in-seq svg", "inside-sequence"],
+    ["svg.plan-dag-svg", "plan-waits"], [".due-chart", "progress-due"], [".card table.t .ladder:not(.inline)", "progress-table"], [".card table.t .mix", "progress-table"], ["#panel-mini svg", "minimap"],
+  ];
+  function look(where) {
+    for (const p of Legend.audit()) if (!found.has(p)) found.set(p, where);
+    const keys = Legend.keyed();
+    for (const [sel, name, scope] of EXPECT) for (const el of $$(sel)) {
+      if (scope === "outside" && el.closest("#inside-stage")) continue;
+      const own = keys.find((lg) => name.split("|").includes(lg.name) && lg.def.root() && lg.def.root().contains(el));
+      if (!own) found.set(`${name}: a drawing (${sel}) is on the page and has no key`, where);
+      else visited.add(own.name);
+    }
+  }
+  async function tour() {
+    const apps = D.map.apps.map((a) => a.key);
+    Nav.home(); go("lights", { reset: true });
+    MapView.st.group = "none"; MapView.st.focus = null;
+    for (const lens of ["cockpit", "transit", "matrix", "releases"]) {
+      MapView.st.lens = lens; rerender(); look(`map, ${lens}`);
+      if (lens === "cockpit" && apps.length) { go(apps[0], { reset: true }); look("map, cockpit, an app picked"); go("lights", { reset: true }); }
+      if (lens === "transit" && D.flows.length) { MapView.st.line = D.flows[0].key; rerender(); look("map, line map, a line picked"); MapView.st.line = null; }
+      if (lens === "matrix" && apps.length) { go(apps[0], { reset: true }); look("map, matrix, an app picked"); go("lights", { reset: true }); }
+    }
+    for (const g of ["domain", "capability"]) {
+      if (!D.grouping[g]) continue;
+      MapView.st.lens = "cockpit"; MapView.st.group = g;
+      for (const open of [true, false]) { MapGroups.all(open); rerender(); look(`map, grouped by ${g}, ${open ? "open" : "closed"}`); }
+      if (apps.length) { go(apps[0], { reset: true }); look(`map, grouped by ${g}, an app picked`); go("lights", { reset: true }); }
+    }
+    MapView.st.group = "none"; MapView.st.lens = "cockpit";
+    for (const k of apps.slice(0, 3)) { MapView.st.focus = k; rerender(); look(`map, focus on ${titleOf(k)}`); }
+    MapView.st.lens = null; MapView.st.group = null; MapView.st.focus = null; rerender();
+    Nav.open("releases"); look("releases section");
+    for (let j = 0; j < Releases.STATES.length; j++) { const stop = $(`.rel-stop[data-state="${j}"]`); if (stop) { stop.click(); look(`releases, state ${j}`); } }
+    Releases.st.compare = true; Releases.st.a = 0; Releases.st.b = Releases.STATES.length - 1; rerender(); look("releases, compared");
+    Releases.st.compare = false; Releases.st.at = 0;
+    if (D.flows.length) {
+      showView("flows");
+      for (const f of D.flows.slice(0, 6)) { Flows.select(f.key, -1); look(`flow ${f.key}`); }
+      const picker = $(".flow-picker"); if (picker) { picker.open(); look("flows list"); }
+      showView("map");
+    }
+    showView("progress"); look("progress");
+    for (const k of apps) {
+      for (const level of ["context", "containers", "components", "plan"]) {
+        Inside.open(k, level); look(`${titleOf(k)}, inside ${level}`);
+      }
+      if (D.designs[k]) for (const tab of ["data", "flows"]) { Inside.open(k, "components", { tab }); look(`${titleOf(k)}, design tab ${tab}`); }
+    }
+    Nav.home(); go("lights", { reset: true });
+  }
+  SelfTest.run = async () => {
+    const report = await base(), lines = [], errors = window.__errors.length;
+    const ok = (cond, good, bad) => { lines.push(cond ? "ok " + good : "FAIL " + (bad || good)); if (HASH.has("trace")) console.log("[selftest] " + lines[lines.length - 1]); };
+    // The sensor must see what it is for: a look drawn but left out of its key, and a look in the key that is not drawn.
+    const planted = h("div", {}, h("span", { class: "x-drawn" }));
+    $("#main").append(planted);
+    const fake = Legend.open("selftest-planted", { root: () => planted, probes: { "lamp.warning": ".x-drawn", "lamp.caution": ".x-absent" } });
+    planted.append(fake.el()); fake.saw("lamp.caution"); fake.paint();
+    const seen = Legend.audit().filter((p) => p.startsWith("selftest-planted"));
+    planted.remove(); Legend.forget("selftest-planted");
+    ok(seen.length === 2 && seen.some((p) => /drawing has/.test(p)) && seen.some((p) => /does not have it/.test(p)), "keys: the sensor flags a look drawn but missing from its key, and a look in the key that is not drawn", `keys: the sensor saw ${seen.length} of 2 planted faults: ${seen.join(" | ")}`);
+    try {
+      found.clear(); visited.clear();
+      if (D.map.apps.length) await tour();
+      const list = [...found].map(([problem, where]) => `${problem} (seen in ${where})`);
+      const want = D.map.apps.length ? ["map-cockpit", "map-lines", "map-matrix", "releases", "minimap", "progress-due"].concat(D.flows.length ? ["flow", "flows-list"] : []) : [];
+      const missing = want.filter((n) => !visited.has(n));
+      ok(!list.length, `keys: in ${visited.size} diagrams (${[...visited].sort().join(", ")}) every look drawn is in the key and every look in the key is drawn`,
+        `keys: ${list.length} problems, ${list.slice(0, 12).join(" | ")}`);
+      ok(!missing.length, "keys: the tour reached the cockpit, the line map, the matrix, releases, the minimap and the progress charts, and each had a key", `keys: the tour found no key for ${missing.join(", ")}`);
+    } catch (e) { lines.push("FAIL the key checks threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
+    Nav.home(); go("lights", { reset: true });
+    if (window.__errors.length > errors) lines.push("FAIL JS ERRORS in the key checks: " + window.__errors.slice(errors).join(" | "));
+    const body = report.slice(1).concat(lines), fails = body.filter((l) => l.startsWith("FAIL")).length;
+    const out = [fails ? `SELFTEST FAIL: ${fails} of ${body.length} checks failed` : `SELFTEST OK: ${body.length} checks passed`, ...body];
+    console.log(lines.join("\n"));
+    document.body.setAttribute("data-selftest", out.join(" || "));
+    return out;
+  };
+})();

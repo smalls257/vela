@@ -31,14 +31,6 @@
 .rc-l { color: var(--ink-4); font-size: 11.5px; }
 .rc-row .ref-chip { font-size: 11.5px; padding: 0 6px; margin-bottom: 3px; }
 ul.rc-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.rel-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 11.5px; color: var(--ink-3); margin-top: 10px; }
-.rel-legend span { display: inline-flex; align-items: center; gap: 5px; }
-.rel-legend .k { width: 18px; height: 12px; border-radius: 4px; display: inline-grid; place-items: center; font-style: normal; font-size: 9px; }
-.k.s-new { background: var(--ink); } .k.s-changes { background: var(--deck-3); box-shadow: inset 0 0 0 2px var(--ink); } .k.s-exists { background: var(--deck-3); }
-.k.s-absent { box-shadow: inset 0 0 0 1.5px var(--siding); background: transparent; } .k.touched { background: var(--ink); color: var(--room); font-weight: 700; border-radius: 9px; }
-.rel-legend .kl { width: 20px; height: 0; border-top: 3px solid var(--siding); display: inline-block; }
-.kl.new { border-top-color: var(--ink); } .kl.planned { border-top: 3px dotted var(--siding); }
-.rel-legend .p-note { flex-basis: 100%; margin: 2px 0 0; }
 /* the map, drawn in shape and ink only */
 .rl-map .rl-face { fill: var(--rl-face); stroke: var(--rl-edge); stroke-width: 1.5; transition: fill .6s, stroke .6s, stroke-width .6s, opacity .6s; }
 .rl-map .rl-name { font-size: 15px; font-weight: 600; fill: var(--rl-name); transition: fill .6s; }
@@ -59,7 +51,7 @@ ul.rc-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .rl-map .rl-cor.through { stroke: var(--focus); stroke-width: 5; }
 .rl-map .rl-cor.s-absent { stroke-dasharray: 1 9; stroke: var(--siding); opacity: 0; }
 .rl-map .rl-cor.s-absent.planned { opacity: .7; }
-.rel-compare { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; }
+.rel-compare { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 10px; }
 .rel-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 0; }
 .rel-two > div { display: flex; flex-direction: column; min-height: 0; }
 .rel-pane-h { margin-bottom: 6px; }
@@ -74,3 +66,10 @@ ul.rc-reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .rel-grid.big .rc-row { grid-template-columns: 1fr; gap: 1px; }
 .rl-map .rl-glyph { color: var(--rl-sub); }
 .rl-map .rl-node.s-new .rl-glyph { color: var(--room); }
+/* narrow windows: the map and the list of releases stack, and the page scrolls, so the map and its key keep a readable width */
+@media (max-width: 1100px) {
+  .rel-body, .board-releases { overflow: auto; }
+  .rel-grid, .rel-grid.big { grid-template-columns: minmax(0, 1fr); flex: none; }
+  .rel-left { min-height: 360px; }
+  .rel-mapbox { min-height: 280px; }
+}
