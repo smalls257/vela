@@ -1,3 +1,7 @@
+.flow-nodes { margin: 6px 0 2px; font-size: 12.5px; } .flow-nodes summary { cursor: pointer; color: var(--ink-3); }
+.flow-nodes .fn-group { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; margin: 6px 0; } .flow-nodes .fn-group > b { flex: none; min-width: 9em; color: var(--ink-3); font-weight: 600; }
+.flow-nodes .flow-node { font: inherit; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 12px; background: transparent; color: var(--ink-2); cursor: pointer; text-align: left; }
+.flow-nodes .flow-node:hover { border-color: var(--ink-3); color: var(--ink); }
 /* ------------------------------------------------ flows, played */
 .flows-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 20px 6px 18px; }
 .flow-picker { position: relative; flex: 1 1 14rem; min-width: min(14rem, 100%); max-width: 460px; }

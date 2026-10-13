@@ -29,6 +29,11 @@
 .cockpit .lit .lamp-text { fill: var(--caution-ink); font-weight: 700; }
 g.hit { cursor: pointer; }
 g.hit:focus { outline: none; }
+.transit .line-hit:focus-visible { stroke: var(--focus); stroke-opacity: .35; outline: none; }
+.rl-map .rl-cor { pointer-events: stroke; cursor: pointer; } .rl-map .rl-cor.s-absent:not(.planned) { pointer-events: none; }
+.rl-map .rl-cor:focus-visible { stroke: var(--focus); outline: none; }
+.due-chart .bar-r { cursor: pointer; } .due-chart .bar-r:focus-visible { stroke: var(--focus); stroke-width: 3; outline: none; }
+.grouped .mini-lamp { cursor: pointer; }
 g.hit:focus-visible .face, g.hit.picked .face { stroke: var(--focus); stroke-width: 3; }
 /* line map */
 .board-transit { place-items: center; }

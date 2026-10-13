@@ -46,6 +46,7 @@ const Panel = (() => {
     if (App.view === "ask" && !key) root.append(h("p", { class: "p-note ask-hint" }, "A citation in the conversation opens here, so you can read the source beside it."));
     if (!key) { root.append(...home()); root.scrollTop = 0; return; }
     if (key.startsWith("read:")) { root.append(...reading(key)); return; }
+    if (key.startsWith("node:")) { root.append(...Nodes.panel(key)); root.scrollTop = 0; return; }
     if (key.startsWith("bundle:")) { root.append(...bundle(key)); return; }
     if (key.startsWith("inside:") && typeof Inside !== "undefined") { root.append(...Inside.panel(key)); root.scrollTop = 0; return; }
     const e = ent(key);
