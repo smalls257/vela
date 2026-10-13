@@ -436,7 +436,12 @@ function renderTabs() {
 
 let toastTimer = 0;
 function toast(text) { const t = $("#toast"); t.textContent = text; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2800); }
+/* The tip belongs to the element that showed it. A click that swaps the page removes that element under the pointer,
+   so its mouseleave never fires and the tip would stay; the tip hides on any click, page change, scroll, Escape or
+   blur, and whenever the pointer is no longer over the element that showed it or that element has gone. */
+let tipSource = null;
 function showTip(ev, html) {
+  tipSource = ev.currentTarget instanceof Element ? ev.currentTarget : ev.target instanceof Element ? ev.target : null;
   const tip = $("#tip"); tip.innerHTML = html; tip.classList.add("on");
   const w = tip.offsetWidth, ht = tip.offsetHeight;
   let x = ev.clientX + 14, y = ev.clientY + 16;
@@ -444,7 +449,16 @@ function showTip(ev, html) {
   if (y + ht > innerHeight - 8) y = ev.clientY - ht - 12;
   tip.style.left = x + "px"; tip.style.top = y + "px";
 }
-function hideTip() { $("#tip").classList.remove("on"); }
+function hideTip() { const tip = $("#tip"); if (tip) tip.classList.remove("on"); tipSource = null; }
+const tipShown = () => { const tip = $("#tip"); return !!tip && tip.classList.contains("on"); };
+document.addEventListener("pointerdown", hideTip, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideTip(); }, true);
+document.addEventListener("scroll", hideTip, true);
+addEventListener("hashchange", hideTip);
+addEventListener("blur", hideTip);
+document.addEventListener("mousemove", (e) => {
+  if (tipShown() && (!tipSource || !tipSource.isConnected || !(e.target instanceof Node) || !tipSource.contains(e.target))) hideTip();
+}, { capture: true, passive: true });
 
 /* Every lit subject, most urgent first, as attention.ranked orders them: the panel's home and the sidebar's count. */
 function litSubjects() {

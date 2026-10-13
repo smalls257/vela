@@ -140,6 +140,23 @@ const SelfTest = (() => {
   }
   /* ------------------------------------------------------------ the second pass: navigation, doors, scale, effects, releases */
   async function navigation() {
+    // A tooltip never outlives the element that showed it: a click that swaps the page removes the element under the
+    // pointer, so its mouseleave never comes (the user saw tips stay after clicking through to another page).
+    {
+      const host = h("span", {}, "tip host"); document.body.append(host);
+      const at = { currentTarget: host, target: host, clientX: 40, clientY: 40 };
+      showTip(at, "<b>a tip</b>"); host.remove();
+      document.dispatchEvent(new MouseEvent("mousemove", { clientX: 41, clientY: 41, bubbles: true }));
+      const goneAfterRemove = !$("#tip").classList.contains("on");
+      document.body.append(host); showTip(at, "<b>a tip</b>");
+      host.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      const goneAfterClick = !$("#tip").classList.contains("on");
+      showTip(at, "<b>a tip</b>"); dispatchEvent(new HashChangeEvent("hashchange"));
+      const goneAfterHash = !$("#tip").classList.contains("on");
+      host.remove(); hideTip();
+      ok(goneAfterRemove && goneAfterClick && goneAfterHash, "tooltip: it hides when its element goes, on any click and on a page change",
+        `tooltip stayed: after its element went ${!goneAfterRemove}, after a click ${!goneAfterClick}, after a page change ${!goneAfterHash}`);
+    }
     const order = ["goals", "constraints", "context", "strategy", "capabilities", "releases", "apps", "flows", "concerns", "decisions", "unknowns", "glossary", "epics"];
     Nav.refresh();
     const shown = [...new Set($$("#side .side-link").map((b) => b.dataset.section))];
