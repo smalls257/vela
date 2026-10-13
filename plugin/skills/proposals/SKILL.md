@@ -1,6 +1,6 @@
 ---
 name: proposals
-description: Review a reader's proposal as the vault's owner. Applies it on a branch proposal/<slug> in a separate git worktree (your own work is untouched), runs the check, then walks the owner through each change, pending decisions first, to accept, reject or edit it. Writes answer.md for the reader. You decide everything; nothing is pushed or merged for you. Use when a reader has sent a proposal folder, zip or patch.
+description: Review a reader's proposal as the owner, walking each change to accept, reject or edit it, and write the answer. Use when a reader sends a proposal folder or zip.
 argument-hint: "review <proposal folder, .zip or changes.patch>"
 disable-model-invocation: true
 allowed-tools: Read Edit Bash(python3 *scripts/planner *)

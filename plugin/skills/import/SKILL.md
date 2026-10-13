@@ -1,6 +1,6 @@
 ---
 name: import
-description: Import session for an initiative vault. Turns material that already exists (folders of documents, decks, spreadsheets, code, wiki spaces, tickets, emails) into plan pages. The session works out with the user how to reach each source, registers every one in sources.md with a confirmed Kind, shows an import map before writing, then writes cited pages and one unknown per clash. Use when an initiative is already under way and the vault is empty or thin.
+description: Turn material that already exists (documents, decks, spreadsheets, code, wiki spaces, tickets, emails) into cited plan pages, with an import map shown first. Use when an initiative is under way and the vault is empty or thin.
 argument-hint: "[where the material lives, or none to resume]"
 disable-model-invocation: true
 ---

@@ -1,6 +1,6 @@
 ---
 name: releases
-description: Releases session for an initiative vault. After allocation, asks when anyone outside the team first uses or sees the result, then for each release which requirements must be there, which can wait and which only in part, helps choose the first thin path (the tracer) and what it leaves out, and writes the dated releases to 04b-releases.md line by line after the user's yes, at assumption for a later Grill. Names the requirements it leaves on no release. Use after allocate and before epics.
+description: Date each release, say which requirements must be there and which can wait, choose the first thin path (the tracer), and write the releases at assumption. Use after allocate and before epics.
 argument-hint: "[a release name or date, or none for the whole plan]"
 disable-model-invocation: true
 ---

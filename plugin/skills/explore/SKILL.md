@@ -1,6 +1,6 @@
 ---
 name: explore
-description: Build the vault explorer and open it in the browser, served from this machine so the search box can also ask Claude about the vault. One page for a live conversation, showing the map of apps and contracts, each flow played across them, who holds each open answer, why things were decided, and where each app stands. Use when the user wants to look at the whole initiative, present a flow to a senior, or see what needs them. For one fact, use /planner:find or /planner:ask.
+description: Build the vault explorer and open it in the browser, so one page shows the map, the flows, who holds each open answer and where each app stands. Use to look at the whole initiative or present a flow; for one fact use /planner:find or /planner:ask.
 argument-hint: "[console|graphite|daylight|vaporwave] [--today YYYY-MM-DD] [--design APP-x=<path to its tech design>]"
 disable-model-invocation: true
 allowed-tools: Read Bash(python3 *scripts/planner *) Bash(uname *) Bash(open *) Bash(xdg-open *)

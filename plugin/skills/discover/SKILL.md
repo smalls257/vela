@@ -1,6 +1,6 @@
 ---
 name: discover
-description: Discover session for an initiative vault. Registers documents and code repositories in sources.md, reads the ranked ones, shows "here's what I think exists" for correction, writes facts that each cite a SRC-nn, then runs a review checkpoint for the questions owed. Use when nobody is sure what exists today.
+description: Register documents and code in sources.md, read them, show "here's what I think exists" for correction, and write cited facts. Use when nobody is sure what exists today.
 argument-hint: "[area, app or question]"
 disable-model-invocation: true
 ---

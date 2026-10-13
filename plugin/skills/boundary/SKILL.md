@@ -1,6 +1,6 @@
 ---
 name: boundary
-description: Boundary session for an initiative vault. Turns a decided direction into apps. Offers 2 or 3 ways to cut it into apps, then reads back one boundary sheet per app (what it does and does not do, its containers, the contracts it provides and consumes, how it behaves on failure, its concern cells), writes the confirmed lines as app, contract and runtime pages at assumption, and runs a review checkpoint on the new apps and contracts. Use when the direction is decided and no app page says who builds what.
+description: Cut a decided direction into apps, read back one boundary sheet per app, and write the confirmed lines at assumption. Use when the direction is decided and no app page says who builds what.
 argument-hint: "[the decided item, or an app]"
 disable-model-invocation: true
 ---

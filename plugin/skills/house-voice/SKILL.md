@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 # House voice
 
+Contents: load the examples; page types and voice types; what is never voiced; prose that is already merged; the rules; pages that are mostly a list; size; when examples are thin.
+
 Prose in this vault has one voice. Draft it from the example passages, not from rules alone. Prose is drafted only here, so every paragraph meets the examples.
 
 ## Load the examples

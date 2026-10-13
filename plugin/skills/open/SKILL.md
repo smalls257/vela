@@ -1,6 +1,6 @@
 ---
 name: open
-description: Open a published copy of an initiative vault as a private reader workspace, for people who have no git, or open a newer copy onto a workspace that already has your drafts and replay them. Copies the folder or zip into a safe place on this machine, keeps a pristine baseline, builds the explorer page and says whether a newer copy exists. Never writes to the folder you opened it from. Use when someone sends you a published vault folder or zip, or a newer one.
+description: Open a published copy of an initiative vault, or a newer one, as a private reader workspace for someone with no git. Never writes to the folder you opened it from. Use when someone sends you a published vault folder or zip.
 argument-hint: "<published folder or .zip>"
 disable-model-invocation: true
 allowed-tools: Read Bash(python3 *scripts/planner *) Bash(uname *) Bash(open *) Bash(xdg-open *)

@@ -1,6 +1,6 @@
 ---
 name: dump
-description: Dump & Diverge session for an initiative vault. Captures a hunch, a one-liner or a pile of ideas as session capture lines, builds on them, runs a pre-mortem and a review checkpoint for the questions owed, and writes nothing to the plan pages until close. Use when the user has an idea and no documents yet.
+description: Capture a hunch, a one-liner or a pile of ideas, build on them, and run a pre-mortem and a review checkpoint; nothing reaches the plan pages until close. Use when the user has an idea and no documents yet.
 argument-hint: "[what is on your mind]"
 disable-model-invocation: true
 ---

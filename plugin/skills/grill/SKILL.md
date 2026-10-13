@@ -1,11 +1,13 @@
 ---
 name: grill
-description: Grill session for an initiative vault, the only session that may set an item to decided unless the user overrides that. Checks the readiness gate per item, offers to decide anyway on an override, asks one question at a time with a recommended answer, and writes each decided item as its branch closes. Use when there is a shaped position to defend.
+description: Decide ready items one question at a time, each with a recommended answer, and write each decision as its branch closes. The only session that sets an item to decided, unless the user overrides that. Use when there is a shaped position to defend.
 argument-hint: "<item IDs or page names to decide>"
 disable-model-invocation: true
 ---
 
 # Grill
+
+Contents: 1 start; 2 the gate, per item; 3 the questions; acceptance; handing an app over; 4 write each decision; 5 a new unknown mid-grill; ends when; never.
 
 A Grill is the only session that makes an item `decided`. It decides items that are ready, or that the user chooses to decide anyway on an override, asks one question at a time, and writes each decision the moment its branch closes.
 

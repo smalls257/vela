@@ -1,6 +1,6 @@
 ---
 name: shape
-description: Shape session for an initiative vault. Offers 2 or 3 strawman options with trade-offs for one area, each with what must be true for it to work, records the rejected ones with reasons, and leaves the chosen one at assumption for a later Grill. Use when the user roughly knows what they want.
+description: Offer 2 or 3 options with trade-offs and what must be true for each, record the rejected ones, and leave the chosen one at assumption for a Grill. Use when the user roughly knows what they want.
 argument-hint: "<area, app or item>"
 disable-model-invocation: true
 ---

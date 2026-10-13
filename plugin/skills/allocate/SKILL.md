@@ -1,6 +1,6 @@
 ---
 name: allocate
-description: Allocation session for an initiative vault, the second of two levels of requirements. Divides each functional requirement among the apps and contracts that deliver it, writing each app's share in its Requirements allocated table, line by line after the user's yes, at assumption for a later Grill. Proposes a missing contract when a share must cross between apps with no contract to carry it. Runs on one capability, one app, or the whole initiative. Use after boundary and before epics.
+description: Divide each functional requirement among the apps and contracts that deliver it, and write each app's share at assumption. Use after boundary and before epics.
 argument-hint: "[CAP-nnn, APP-<slug>, or none for the whole initiative]"
 disable-model-invocation: true
 ---

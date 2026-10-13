@@ -1,6 +1,6 @@
 ---
 name: propose
-description: Send what you drafted in a published copy to the vault's owner as a proposal. Lists your changes grouped by what they touch, asks you for a plain-language reason for each (you may skip any), then writes a proposal folder or zip you can send by email or Teams. Sends nothing itself. Use when you have finished drafting in a reader workspace and want the owner to consider it.
+description: Turn what you drafted in a read copy into a proposal folder for the owner, with your reasons. Use when you have changes to send and no git.
 argument-hint: "[a few words naming the proposal]"
 disable-model-invocation: true
 allowed-tools: Read Bash(python3 *scripts/planner *)

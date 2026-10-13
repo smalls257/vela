@@ -1,5 +1,7 @@
 # Starting a session
 
+Contents: where the planner runs from; owner or reader; plain names and a page a person can hold; shell on a Mac and on Linux; the user may override any rule; steps 1 to 6 (the clone, open sessions, review comments, overdue unknowns, the record, how to talk); answer a challenge; closing a session; captures.
+
 Every mode skill runs these steps before its own. The vault root is the current directory. The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (see "Where the planner runs from" below), and the format is `CONVENTIONS.md`. Every command in the skills is written with that prefix.
 
 ## Where the planner runs from

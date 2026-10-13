@@ -1,6 +1,6 @@
 ---
 name: challenge
-description: Challenge a handed-off boundary or contract as a team senior. Records the challenge as an open unknown the senior owns that blocks the challenged item, adds a Dissent line to the item, and opens a PR that asks the solution lead to answer. Never changes the item's state or text. Use when a senior disputes what they accepted at handoff.
+description: Record a senior's challenge to a handed-off boundary or contract as an open unknown plus a Dissent line, and open a PR asking the solution lead to answer. Use when a senior disputes what they accepted at handoff.
 argument-hint: "<item ID> <what is wrong>"
 disable-model-invocation: true
 ---

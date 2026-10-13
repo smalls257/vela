@@ -1,11 +1,13 @@
 ---
 name: voice-seed
-description: Seed an initiative vault's voices with the owner's own writing. The owner pastes 2 or 3 passages per page voice type (diagnosis, decision, how-it-works), or 2 or 3 exchanges they liked for the conversation voice (conversation). The skill stores them word for word in voice/examples/ with source owner, retires the public seed examples of each type the owner filled, and opens a PR. Use when the owner wants drafts to sound like them.
+description: Store the owner's own writing as the voice examples that drafts and sessions are written from. Use when the owner wants drafts and conversations to sound like them.
 argument-hint: "[diagnosis | decision | how-it-works | conversation]"
 disable-model-invocation: true
 ---
 
 # Voice seed
+
+Contents: 1 start clean; 2 who the owner is; 3 collect the passages (the conversation type, the owner's own rules); 4 write the examples; 5 retire examples; 6 final check; 7 commit and open the PR.
 
 The vault's prose is drafted from `voice/examples/` and `voice/local/`. This skill puts the owner's own writing there, so drafts sound like the owner instead of the public seed. It stores the owner's words exactly as pasted. It never rewrites them.
 

@@ -88,7 +88,8 @@ def test_review_clears_stale_findings_and_numbers_from_the_record():
 
 
 def test_review_defines_a_rerun_as_a_new_checkpoint_with_areas():
-    review = text("references/REVIEW.md")
+    assert "REVIEW-RERUN.md" in text("references/REVIEW.md")  # read only when an area is run again
+    review = text("references/REVIEW-RERUN.md")
     assert "Re-run of checkpoint <n>: <areas>" in review
     assert "--areas FIN,REG" in review and "F<n+1>.1" in review
     assert "the ids of earlier checkpoints never change" in review
