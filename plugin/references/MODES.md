@@ -16,6 +16,13 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | Challenge (`challenge`) | the challenge is an open unknown and its PR is open, or the senior stops | quote the senior's words; write one open unknown the senior owns that blocks the item, and one `**Dissent:**` line on the item | change the item's state or text, decide anything, or argue the item's side |
 | Answer (`answer`) | the challenged item is decided again, set back, or its unknown resolved, or the lead stops | work on the challenge's own branch; decide only inside a Grill part, with `grill` added to `modes` | open a second PR, or decide anything outside a Grill |
 
+## Team skills
+
+These two run in the team's clone of the vault, after a design is complete, and write no session record. Neither is a session mode: a vault session's `modes` list never holds them.
+
+- **Breakdown** (`/planner:breakdown`) ends when the plan is complete or complete-with-gaps, or the person stops. Claude starts the first story from the team's piece of the tracer flow, quotes each story's criteria word for word from the vault, and says for each story whether it fits before the next release date, or that it cannot tell and why. It does not invent a criterion, plan around a person the design or the vault does not name, or split, merge or reorder agreed stories without a yes.
+- **Tickets** (`/planner:tickets`) ends when the output file is written and the summary said. Claude checks the plan against the vault before writing anything, asks which output the person wants, and stops after the summary. It creates or changes nothing in an outside system without an explicit yes.
+
 ## Who writes what, and when
 
 | Mode | During the session | At close |
@@ -31,8 +38,14 @@ Each mode skill holds only what is particular to it. This table is what every mo
 | `releases` | `04b-releases.md`: each release's heading, Target, State and rows at `assumption`, with a checkpoint commit; unknowns | prose |
 | `challenge` | the unknown and the `**Dissent:**` line, then its own PR | nothing: a challenge closes its own record |
 | `answer` | what its Grill decides, or the item set back, on the challenge's branch | a push to that branch and a comment on the challenge PR, never a new PR |
+| `breakdown` | `docs/plan/<slug>-breakdown.md` and `docs/plan/<slug>-audit.md` in the team's vault clone, on the design's branch, with a commit per agreed story (no session record) | nothing |
+| `tickets` | `docs/work/tickets.md`, or `docs/work/tickets.csv` with its README, once the person picks | nothing |
 
 No mode writes inside a generated block. `planner render` fills them. Close runs it, and so does `epics`, mid-session, to read its frontier. Whoever runs it stages every file it reports, by exact path.
+
+## Team-side sessions
+
+Once an app is handed off, its team designs it. `/planner:design --app APP-x` runs from the vault root with the app's senior, opens no session record and writes no planner page: it writes `docs/tech-design/<slug>.md`, its ADRs under `docs/adr/` and `CONTEXT.md` on a `design/<slug>` branch, and opens a pull request at the end. A gap it finds in the vault goes back through `/planner:challenge`. `planner next` adds a team-side line for each handed-off app with no design doc yet.
 
 ## Where to start
 

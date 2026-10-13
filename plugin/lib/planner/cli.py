@@ -22,8 +22,8 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, untrusted, viewer, voicecheck, voicescore
-from planner.edge import atomic, copies, replays, reviewgit, vaultgit
+from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, tickets, untrusted, viewer, voicecheck, voicescore
+from planner.edge import atomic, copies, replays, reviewgit, teamdocs, vaultgit
 from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
@@ -2059,12 +2059,71 @@ def cmd_next(args, out):
     step = initiative_step(vault, row)
     if step:
         print(f"planner next: {step} {when}", file=out)
-        return 0
-    if row is None:
+    elif row is None:
         print(f"planner next: nothing to do. Every app's items are settled and its epics decided. {when}", file=out)
-        return 0
-    print(f"planner next: {row.app.id}, {row.mode} {row.subject}. {row.reason} {when}", file=out)
+    else:
+        print(f"planner next: {row.app.id}, {row.mode} {row.subject}. {row.reason} {when}", file=out)
+    # The team's next step is another person's work, so it is a line of its own beside the lead's, never instead of it.
+    for line in design_steps(vault, root):
+        print(line, file=out)
+    team = teamdocs.team_step(root)
+    if team:
+        print(f"planner next: team side, {team}", file=out)
     return 0
+
+
+def find_plan(root):
+    found = sorted((root / "docs" / "plan").glob("*-breakdown.md"))
+    if len(found) != 1:
+        raise tickets.TicketsError(f"expected exactly one docs/plan/*-breakdown.md in {root}, found {len(found)}"
+                                   + (": " + ", ".join(f.name for f in found) if found else "") + " (name one)")
+    return found[0]
+
+
+def cmd_tickets(args, out):
+    """`planner tickets check|write`: hold a build plan against the vault, then write the ticket list a person chose.
+    Nothing here creates anything in an outside system; it reads the vault and the plan and writes files under --out."""
+    root = pathlib.Path(args.vault).resolve()
+    action = args.action
+    try:
+        plan_path = pathlib.Path(args.plan) if args.plan else find_plan(root)
+        text = plan_path.read_text(encoding="utf-8")
+        findings = tickets.check(text, load_vault(root), args.app or "")
+    except (OSError, UnicodeDecodeError, tickets.TicketsError) as exc:
+        raise ToolError(f"tickets: {exc}") from exc
+    for finding in findings:
+        print(f"{'flag' if finding.flag else 'note'} {finding.kind}: {finding}", file=out)
+    line = tickets.summary(text, findings)
+    if action == "check":
+        print(line, file=out)
+        return 1 if any(f.flag for f in findings) else 0
+    target = pathlib.Path(args.out) if args.out else root / "docs" / "work"
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+        if args.format == "markdown":
+            atomic.write_atomic(target / "tickets.md", tickets.markdown_text(text, plan_path.name))
+            written = [target / "tickets.md"]
+        else:
+            csv_body, readme, _ = tickets.convert_text(text, plan_path.name, tool="planner tickets")
+            atomic.write_atomic(target / "tickets.csv", csv_body)
+            atomic.write_atomic(target / "README.md", readme)
+            written = [target / "tickets.csv", target / "README.md"]
+    except (OSError, ValueError) as exc:
+        raise ToolError(f"tickets: cannot write to {target}: {exc}") from exc
+    print(f"wrote {', '.join(str(w) for w in written)}", file=out)
+    print(line, file=out)
+    return 1 if any(f.flag for f in findings) else 0
+
+
+def design_steps(vault, root):
+    """One line per handed-off app with no design doc where the explorer looks for one: the team side's next step.
+    It runs alongside the lead's, so it is a line of its own and never one of the progress rules."""
+    from planner.explorer import design_find
+    found, _ = design_find.discover(vault, root, [])
+    designed = {arg.split("=", 1)[0] for arg in found}
+    return [f"planner next: team side, {app.id}, design. {app.id} is handed off and has no design doc in "
+            f"docs/tech-design/ yet; its team runs /planner:design --app {app.id}."
+            for app in vault.apps if app.meta.get("handed_off") and app.id not in designed]
 
 
 def build_parser():
@@ -2271,6 +2330,14 @@ def build_parser():
     jira.add_argument("--repo-url", help="repository to link to (default: git remote get-url origin)")
     jira.add_argument("--commit", help="commit to link to (default: git rev-parse HEAD)")
     jira.set_defaults(func=cmd_export)
+    tick = sub.add_parser("tickets", help="check a build plan against the vault, then write its tickets as Markdown or a Jira CSV")
+    tick.add_argument("action", choices=("check", "write"), help="check: print what does not line up; write: also write the file")
+    tick.add_argument("plan", nargs="?", help="the build plan (default: the one docs/plan/*-breakdown.md in the vault)")
+    tick.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    tick.add_argument("--app", help="the app the plan is for, an APP-id (default: vault.app in the plan's frontmatter)")
+    tick.add_argument("--format", choices=("markdown", "csv"), default="markdown", help="with write: the file to write (default: markdown)")
+    tick.add_argument("--out", help="with write: the folder to write into (default: <vault>/docs/work)")
+    tick.set_defaults(func=cmd_tickets)
     voice = sub.add_parser("voicecheck", help="fail when a rewrite changed an ID, number, date, link, code span or table cell")
     voice.add_argument("files", nargs="*", metavar="before after", help="the text before the rewrite and after it")
     voice.add_argument("--range", help="a ref range instead of files: A (A against the working tree) or A..B")

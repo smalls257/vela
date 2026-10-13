@@ -46,7 +46,7 @@ $ARGUMENTS
 
 ## Where designs and plans live
 
-Both live in the vault: `docs/tech-design/<slug>.md` (with `docs/adr/` and `CONTEXT.md`) from tech-design-grill and `docs/plan/<slug>-breakdown.md` from work-breakdown, when the team runs them from the vault root. The build finds them with no flag. tech-design-grill's vault mode says "never edit the vault"; that means never edit planner pages. Writing its own `docs/` files in the vault is allowed, so say so if a senior asks. `planner check` does not read `docs/`.
+Both live in the vault: `docs/tech-design/<slug>.md` (with `docs/adr/` and `CONTEXT.md`) from `/planner:design` (or the user's own tech-design-grill) and `docs/plan/<slug>-breakdown.md` from `/planner:breakdown`, when the team runs them from the vault root. The build finds them with no flag. tech-design-grill's vault mode says "never edit the vault"; that means never edit planner pages. Writing its own `docs/` files in the vault is allowed, so say so if a senior asks. `planner check` does not read `docs/`.
 
 ## Where the files go
 

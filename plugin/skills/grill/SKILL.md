@@ -38,7 +38,7 @@ An item that is not ready is said so in one sentence ("The Summariser can't be d
 When the user decides an item anyway, the item goes on the agenda and the rest of the Grill runs as normal: the agenda and its explicit yes (GATE-3), one question at a time, the read-back and the explicit yes before `decided`. When the item is written `decided` in section 4, also write, under its heading or at page level:
 
 - `- **Override:** GATE-n by @<user's handle> on <today>: <their reason>`, one rule per failed gate, several in one bullet as `GATE-4, GATE-5`. Overriding GATE-3 itself means the user waives the agenda's explicit yes.
-- When the owner is not the user and is not present: `- **Decided by:** @<user's handle>, on behalf of @<owner>`, with `GATE-5` in the Override. This is how GATE-5 passes with the owner away. Tell the user the owner confirms later with `- **Confirmed by:** @<owner> on <date>`, or raises `/planner:challenge` if they disagree, and that `planner check` warns with W324 until then.
+- When the owner is not the user and is not present: `- **Decided by:** @<user's handle>, on behalf of @<owner>`, with `GATE-5` in the Override. This is how GATE-5 passes with the owner away. Tell the user the owner confirms later with `- **Confirmed by:** @<owner> on <date>`, or raises `/planner:challenge` if they disagree, and that the check keeps warning until they do (name the warning code in the file, not to the lead).
 - A `GATE-4` override keeps the open unknown open. `planner check` reports W316 instead of E316 for the item, quoting the override, until the unknown is resolved.
 
 Before you show the agenda for GATE-3, find the open questions under each item, in two ways:
@@ -101,7 +101,7 @@ Write fact bullets and table cells only. Prose waits for close. Any `- Trace:` l
 
 If a question turns up that nobody present can answer, write it as an unknown with owner, ask-by and `**Blocks:**` naming the item. Commit the new unknown at once. Take that item off the agenda (`off-agenda: UNK-xxx`), unless the user chooses to decide it anyway (override GATE-4), re-run GATE-4 for every other agenda item it blocks, and go on with the rest.
 
-If it blocks an item already written `decided`, tell the user, and leave a `**Dissent:**` or follow-up note on that item. It will fail `check` with E316 until the unknown is resolved, or warn with W316 if the user overrides GATE-4 for it.
+If it blocks an item already written `decided`, tell the user in plain words that the decision stands in doubt until the question is answered, and leave a `**Dissent:**` or follow-up note on that item. It will fail `check` with E316 until the unknown is resolved, or warn with W316 if the user overrides GATE-4 for it.
 
 ## Ends when
 

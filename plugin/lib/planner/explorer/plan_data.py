@@ -90,6 +90,8 @@ def blockers_of(text, known):
     only when the vault holds it. Kinds: story, question (in the vault), outside, plan-question (named only by the plan),
     gap (a gap or deferral), other (nothing here can say what it is, and the page says so)."""
     out = []
+    if breakdown.NO_BLOCKERS.match(text or ""):
+        return out  # "none. D-001 runs in parallel, not a gate": nothing blocks the story; blockedText keeps the note
     for part in segments(text):
         if breakdown.NOTHING.match(part):
             continue
@@ -178,11 +180,12 @@ def story_entry(story, summary, order_of, known, problems):
     tasks = [{"name": r[0], "size": (r[1] if len(r) > 1 else "").strip().upper(), "component": r[2] if len(r) > 2 else "",
               "points": breakdown.SIZE_POINTS.get((r[1] if len(r) > 1 else "").strip().upper(), 0)} for r in story.tasks]
     entry = {"id": story.id, "name": story.name, "order": order_of.get(story.id), "traces": traced_ids(story.traces), "tracesText": story.traces or "",
-             "size": breakdown.size_total(story), "points": breakdown.points(story), "criteria": story.criteria, "criteriaLabel": story.criteria_label, "openNotes": story.open_notes,
+             "size": breakdown.size_total(story), "points": breakdown.points(story), "state": story.state, "slice": story.slice, "tracer": story.tracer,
+             "doneWhen": story.done_when or "", "components": story.components or "", "fit": story.fit or "", "criteria": story.criteria, "criteriaLabel": story.criteria_label, "openNotes": story.open_notes,
              "conflicts": [{"text": c, "ref": (EPIC_CRITERION.findall(c) or [""])[0]} for c in story.conflicts], "tasks": tasks,
              "blockedText": story.blocked or "", "blockers": [b for b in blockers_of(story.blocked, known) if b["ref"] != story.id]}  # a note that names its own story ("S-06 must not ship before S-11") does not make it wait for itself
     row = summary.get(story.id)
-    if row:
+    if row and story.built:
         if breakdown.size_counts(row["size"]) != breakdown.size_counts(entry["size"]):
             problems.append(f"{story.id}: the summary table says its size is {row['size']!r}, but its tasks add up to {entry['size']}")
         if not {base(t) for t in traced_ids(row["traces"])} <= {base(t) for t in entry["traces"]}:  # the table abbreviates ("FR1 and FR4 shares"); it must not name a target the section does not
@@ -193,13 +196,15 @@ def story_entry(story, summary, order_of, known, problems):
 
 
 def totals(stories):
+    """Counts over the stories the team will build: a deferred or merged story keeps its tasks on the page but is in no total."""
     by_size = {size: {"tasks": 0, "points": 0} for size in SIZES}
-    for s in stories:
+    built = [s for s in stories if s["state"] not in breakdown.NOT_BUILT]
+    for s in built:
         for t in s["tasks"]:
             if t["size"] in by_size:
                 by_size[t["size"]]["tasks"] += 1
                 by_size[t["size"]]["points"] += t["points"]
-    return {"stories": len(stories), "tasks": sum(len(s["tasks"]) for s in stories), "points": sum(s["points"] for s in stories), "bySize": by_size}
+    return {"stories": len(stories), "tasks": sum(len(s["tasks"]) for s in built), "points": sum(s["points"] for s in built), "bySize": by_size}
 
 
 def plan_entry(app_id, wrapped, known, design):

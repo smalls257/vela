@@ -15,7 +15,7 @@ The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leav
 
 First run `planner role`. In a reader copy (a published copy with no `.git`), stop: say "That is the owner's call, and a challenge opens a PR, which needs git. Your disagreement is a proposal: write it down and send it to <the owner named in `.planner/published.json`>." Write nothing and open no session.
 
-Run steps 1, 2 and 5 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
+Run steps 1, 2, 5 and 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 ## 2. Find the challenged item
 
@@ -56,7 +56,7 @@ Write only these, and change nothing else:
 - **Notes:** Challenge after handoff. Case: <the case, in the senior's words>. Proposed: <what they would have it say>.
 ```
 
-  Use `link` from the query answer for the `**Blocks:**` link. For an app page or an epic, link the page: `[[<page>|<ID>]]`. Challenging an APP page blocks every decided unit on it, so E316 fires once per unit. Say so to the senior before writing, and prefer the one contract when the dispute is about one.
+  Use `link` from the query answer for the `**Blocks:**` link. For an app page or an epic, link the page: `[[<page>|<ID>]]`. Challenging an APP page blocks every decided unit on it, so E316 fires once per unit. Say that to the senior before writing as "the check goes red once per unit", without the code, and prefer the one contract when the dispute is about one.
 - On the challenged item, add one line. For a contract, put it under the contract's heading, after its last bullet. For an app page or an epic, put it at page level, after its `**Decision:**` line: `- **Dissent:** <senior handle>, <today>: <the reason in a few words> (see [[11-unknowns-and-risks#UNK-nnn <short name>|UNK-nnn]])`.
 - In the record's `## Changes`, add `| UNK-nnn | - | open | [[<session id>#^cNN]] |`, citing the capture of the question. Mark that capture `→ keep: [[11-unknowns-and-risks#UNK-nnn <short name>|UNK-nnn]] (open)`. Mark each other capture of the senior's `→ keep` the same way, since its words are in the unknown. Park any capture whose origin starts with `claude` unless the senior picked it.
 

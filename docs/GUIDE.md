@@ -151,6 +151,16 @@ What you get:
 
 The first build writes `.planner/explorer-pins.json`, which fixes each app's place on the map. Commit it, so the team shares one layout. The rest of `.planner/` stays out of git.
 
+### Two voices, and how to set yours
+
+The planner has two voices. The **page voice** is how the pages it writes read: the vault pages, the design docs, the build plans. The **conversation voice** is how a session talks to you: the grill, shape, boundary, close and the rest. Both have sensible defaults, and you can change either.
+
+- **Your own wording for pages.** Run `/planner:voice-seed` and paste two or three passages you wrote. Drafts then follow you instead of the public examples.
+- **Your own wording for conversation.** Run `/planner:voice-seed conversation` and paste two or three exchanges you liked, from any session or chat. They are stored word for word. Sessions read them before the first question and talk the way they do.
+- **Your own rules.** Write them in `voice/VOICE.md`, in your words, for either voice: "use British spelling", "give me the trade-off in one line, then the question". Both voices read this file first, and your rules win over the defaults. `/planner:voice-seed` can help you start it, writing down only what you tell it.
+
+Nothing is required. With no file and no examples, the defaults apply. If text is your employer's, choose "local only" when voice-seed asks: it stays on your machine and is never committed.
+
 ### Where team designs and plans live
 
 In the vault's own `docs/` folder. A senior runs `tech-design-grill` and `work-breakdown` from the vault root, which writes:

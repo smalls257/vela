@@ -17,7 +17,7 @@ READ_ONLY = {"ask", "find"}  # every other skill writes to the vault
 MODEL_MAY_START = {"close"}
 # Files a reference may name that live outside references/: vault files, and files of the user's grill skills.
 OTHER_FILES = {"CONVENTIONS.md", "CLAUDE.md", "SKILL.md", "CONTEXT.md", "NEG-AUDIT.md", "PREREQ-CHECK.md", "GRILL-LOOP.md",
-               "REQUIREMENTS-FORMAT.md", "TECH-DESIGN-FORMAT.md"}
+               "REQUIREMENTS-FORMAT.md", "TECH-DESIGN-FORMAT.md", "REVIEW-CHECKPOINT.md"}
 INSTALLED = re.compile(r"(?:\.claude/skills/planner|\$\{CLAUDE_PLUGIN_ROOT\})/([A-Za-z0-9_./-]+)")
 SIBLING = re.compile(r"`([A-Z][A-Z0-9-]*\.md)`")
 

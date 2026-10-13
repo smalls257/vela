@@ -9,7 +9,11 @@ The work-breakdown skill writes the file: frontmatter (status, prereqs, gaps), a
 section per story (a "Traces to:" line, acceptance criteria as bullets, a `| Task | Size | Component |` table, a
 "Blocked by:" line), then Build order, Coverage and Not planned. A story may also carry an "Acceptance criteria:" label
 (with a lead-in on the same line), "Open for tech-design-grill: ..." notes and "Conflict with an epic criterion: ..."
-notes; they are read into `open_notes` and `conflicts`, not flagged. This is the one reader of that format.
+notes; they are read into `open_notes` and `conflicts`, not flagged. A story may also carry the lines the team skills
+write since design session 18: "Done when:", "Components:", "Slice:" (tracer, vertical or layer), "Release fit:" and
+"Status:" (deferred, held, split, or merged into another story). A deferred or held story keeps its tasks and criteria;
+a merged one is a pointer and needs none. Plans written without those lines read exactly as before. This is the one
+reader of that format.
 tools/breakdown_to_tickets.py turns it into tickets; the explorer's Build plan level (explorer/plan_data.py) draws
 it. They share this module so the ticket a story becomes and the card it is drawn as can never read the file two ways.
 
@@ -32,6 +36,7 @@ BLOCKED = re.compile(r"^\W*Blocked by\W*:\W*(.*)$", re.I)
 BULLET = re.compile(r"^\s*[-*+]\s+(.*)$")
 VAULT_ID = re.compile(r"CAP-\d+(?:\.FR\d+)?(?:@APP-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)?|CON-\d+|EPC-\d+(?:\.AC\d+)?|FR-\d+"
                       r"|APP-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*")
+CONSTRAINT_ID = re.compile(r"\bCST-\d+\b")  # a story may rest on a constraint; it is not a label, so the tickets of earlier plans stay as they were
 NOTHING = re.compile(r"^(none|nothing|n/a|-+|\u2014|\u2013)\.?$", re.I)
 # The label above a story's bullets. The skill writes "Acceptance criteria:"; the real files also write a lead-in on the
 # same line ("Acceptance criteria. Design behaviour, except where marked:"), which is kept as the label.
@@ -39,6 +44,15 @@ CRITERIA_LABEL = re.compile(r"^\W*Acceptance criteria\b.*:\s*$", re.I)
 # Notes the skill writes under a story: a question only the design can answer, and a clash with an epic criterion.
 OPEN_NOTE = re.compile(r"^\W*Open for\b", re.I)
 CONFLICT_NOTE = re.compile(r"^\W*Conflicts? with\b", re.I)
+DONE_WHEN = re.compile(r"^\W*Done when\W*:\W*(.*)$", re.I)
+COMPONENTS = re.compile(r"^\W*Components\W*:\W*(.*)$", re.I)
+SLICE = re.compile(r"^\W*Slice\W*:\W*(.*)$", re.I)
+RELEASE_FIT = re.compile(r"^\W*Release fit\W*:\W*(.*)$", re.I)
+TRACER_FACT = re.compile(r"^\s*[-*+]\s+\*\*Tracer:\*\*\s*(.*?)\s*$", re.I)  # the team's tracer story: `- **Tracer:** yes`
+NO_BLOCKERS = re.compile(r"^\W*none\b", re.I)  # "none. D-001 runs in parallel, not a gate": no blockers, the rest is a note
+STATUS = re.compile(r"^\W*Status\W*:\W*(.*)$", re.I)
+SLICES = ("tracer", "vertical", "layer")
+NOT_BUILT = ("deferred", "merged")  # a story in either state is in no total and has no ticket
 # A story the plan says traces to nothing ("Traces to: no requirement row or epic criterion; ...") is stated, not unreadable.
 NO_TRACE = re.compile(r"^\W*(none|no |nothing|design only)", re.I)
 STORY_RANGE = re.compile(r"\b(S-\d+[a-z]?)\s+(?:to|through|until|\u2013|\u2014|-)\s+(S-\d+[a-z]?)\b")
@@ -50,6 +64,26 @@ class Story:
         self.id, self.name = sid, name
         self.traces, self.criteria, self.tasks, self.blocked, self.extra = None, [], [], None, []
         self.criteria_label, self.open_notes, self.conflicts = "", [], []
+        self.done_when, self.components, self.slice_text, self.fit, self.status = None, None, None, None, None
+        self.tracer = False
+
+    @property
+    def state(self):
+        """planned, or the first word of the Status line: deferred, held, split or merged."""
+        words = re.findall(r"[a-z]+", (self.status or "").lower())
+        return words[0] if words else "planned"
+
+    @property
+    def slice(self):
+        """tracer (the Tracer fact bullet, or a Slice line that starts with it), vertical or layer; "" when absent or something else."""
+        if self.tracer:
+            return "tracer"
+        words = re.findall(r"[a-z]+", (self.slice_text or "").lower())
+        return words[0] if words and words[0] in SLICES else ""
+
+    @property
+    def built(self):
+        return self.state not in NOT_BUILT
 
 
 def cells(line):
@@ -89,6 +123,19 @@ def take_story_line(story, line, state):
         story.traces, state["last"] = TRACES.match(line).group(1).strip(), "traces"
     elif BLOCKED.match(line):
         story.blocked, state["last"] = BLOCKED.match(line).group(1).strip(), "blocked"
+    elif TRACER_FACT.match(line):
+        story.tracer = TRACER_FACT.match(line).group(1).lower().startswith(("yes", "true"))
+        state["last"] = None
+    elif DONE_WHEN.match(line):
+        story.done_when, state["last"] = DONE_WHEN.match(line).group(1).strip(), "done_when"
+    elif COMPONENTS.match(line):
+        story.components, state["last"] = COMPONENTS.match(line).group(1).strip(), "components"
+    elif SLICE.match(line):
+        story.slice_text, state["last"] = SLICE.match(line).group(1).strip(), "slice"
+    elif RELEASE_FIT.match(line):
+        story.fit, state["last"] = RELEASE_FIT.match(line).group(1).strip(), "fit"
+    elif STATUS.match(line):
+        story.status, state["last"] = STATUS.match(line).group(1).strip(), "status"
     elif BULLET.match(line):
         story.criteria.append(BULLET.match(line).group(1).strip())
         state["last"] = "criteria"
@@ -109,7 +156,8 @@ def take_story_line(story, line, state):
     return True
 
 
-CONTINUES = ("traces", "blocked", "criteria", "open", "conflict")
+CONTINUES = ("traces", "blocked", "criteria", "open", "conflict", "done_when", "components", "slice", "fit", "status")
+WRAPPED = {"done_when": "done_when", "components": "components", "slice": "slice_text", "fit": "fit", "status": "status"}
 
 
 def continue_line(story, line, field):
@@ -121,6 +169,8 @@ def continue_line(story, line, field):
         story.blocked += text
     elif field == "criteria":
         story.criteria[-1] += text
+    elif field in WRAPPED:
+        setattr(story, WRAPPED[field], getattr(story, WRAPPED[field]) + text)
     elif field == "open":
         story.open_notes[-1] += text
     else:
@@ -197,16 +247,23 @@ def cross_check(stories, summary_ids, sections):
 
 def story_problems(story, story_ids):
     problems = []
+    if story.state == "merged":  # a pointer to the story that took its work; it needs no fields of its own
+        problems += [f"{story.id}: blocked by {sid}, which is not a story in this plan" for sid in blockers(story) if sid not in story_ids]
+        if not set(story_refs(story.status)) & story_ids:
+            problems.append(f"{story.id}: 'Status: merged' names no story of this plan to merge into")
+        return problems
     if not story.traces:
         problems.append(f"{story.id}: no 'Traces to:' line")
-    elif not VAULT_ID.findall(story.traces) and not NO_TRACE.match(story.traces):
+    elif not VAULT_ID.findall(story.traces) and not CONSTRAINT_ID.search(story.traces) and not NO_TRACE.match(story.traces):
         problems.append(f"{story.id}: 'Traces to' names no requirement ID, so the ticket has no labels")
     if not story.criteria:
         problems.append(f"{story.id}: no acceptance criteria bullets")
-    if not story.tasks:
+    if not story.tasks and story.state != "deferred":  # a deferred story may not be sized yet; a held one is
         problems.append(f"{story.id}: no task table rows")
     if story.blocked is None:
         problems.append(f"{story.id}: no 'Blocked by:' line")
+    if story.slice_text is not None and story.slice_text.split()[:1] and story.slice_text.split()[0].lower().strip(".,;:") not in SLICES:
+        problems.append(f"{story.id}: 'Slice:' starts with {story.slice_text.split()[0] if story.slice_text.split() else 'nothing'!r}, not tracer, vertical or layer")
     for number, row in enumerate(story.tasks, 1):
         if len(row) != 3 or not all(row):
             problems.append(f"{story.id} task {number} ({row[0]!r}): expected three filled cells, Task | Size | Component")
@@ -239,7 +296,7 @@ def range_ids(first, last):
 
 
 def blockers(story):
-    return story_refs(story.blocked)
+    return [] if NO_BLOCKERS.match(story.blocked or "") else story_refs(story.blocked)
 
 
 def labels_of(story):
@@ -261,6 +318,10 @@ def story_description(story):
     if story.criteria:
         parts += [story.criteria_label or "Acceptance criteria:"] + [f"- {c}" for c in story.criteria]
     parts.append(f"Blocked by: {story.blocked}" if story.blocked is not None else "Blocked by: (none stated)")
+    for label, value in (("Done when", story.done_when), ("Components", story.components), ("Slice", story.slice_text),
+                         ("Release fit", story.fit), ("Status", story.status)):
+        if value:
+            parts.append(f"{label}: {value}")
     if story.open_notes:
         parts += ["Open for the design:"] + [f"- {n}" for n in story.open_notes]
     if story.conflicts:
@@ -279,6 +340,8 @@ def build_rows(stories):
     """One row per story and one per task row, in file order. Labels go in as many trailing Labels cells as needed."""
     rows = []
     for story in stories:
+        if not story.built:
+            continue  # deferred or merged: the converter's README lists it as not ticketed
         rows.append({"Issue Id": story.id, "Summary": f"{story.id} {story.name}".strip(), "Description": story_description(story),
                      "Issue Type": "Story", "Parent": "", "Story Points": "", "labels": story_labels(story),
                      "Blocked by": ", ".join(dict.fromkeys(blockers(story)))})

@@ -67,7 +67,11 @@ GIT_TIMEOUT = 120
 PR_LOG = "sim-prs.jsonl"  # in the arm's origin.git, the one place besides the vault a sandboxed gh may write
 END = "[END]"
 TICKETS_TIMEOUT = 60
-TEAM_MODES = ("tech-design-grill", "breakdown")  # the team's sessions in a vault script: run from the vault root with the user's own skills (vault_skills)
+# The team's sessions in a vault script run from the vault root. design, breakdown and tickets are the plugin's own skills
+# (/planner:design, /planner:breakdown, /planner:tickets), loaded like every other mode. The older path still works:
+# "tech-design-grill" (and a "breakdown" opened as /work-breakdown) run the user's own skills copied in by `vault_skills`.
+TEAM_MODES = ("design", "breakdown", "tickets", "tech-design-grill")
+PLUGIN_TEAM_MODES = ("design", "breakdown", "tickets")
 EXPLORER_DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
 BREAKDOWN_TO_TICKETS = REPO / "tools" / "breakdown_to_tickets.py"
 TIMEOUTS = {"assistant": 1800, "persona": 600, "judge": 900}
@@ -269,6 +273,10 @@ def script_problems(data, persona):
                 text = opening(session, arm, persona)
             except (KeyError, IndexError, ValueError) as exc:
                 problems.append(f"session {n}: the {arm} opening names {exc}, which the persona does not hold")
+                continue
+            if session.get("mode") in PLUGIN_TEAM_MODES and arm == "planner" and text.startswith("/planner:"):
+                if not text.startswith(f"/planner:{session['mode']}"):
+                    problems.append(f"session {n}: the planner opening must start with /planner:{session['mode']}")
                 continue
             if session.get("repo") or session.get("mode") in TEAM_MODES:
                 continue  # a team session runs the team's own skills, or plain words, in the team's repo

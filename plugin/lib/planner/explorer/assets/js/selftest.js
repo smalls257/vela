@@ -1049,6 +1049,12 @@ const SelfTest = (() => {
         ok(/design is not loaded/.test(say) && say.includes("--design"), `inside ${name}, components: no design, so the chip says how to load one with --design`, `inside ${name}, components: no design and no chip ("${say.slice(0, 60)}")`);
         continue;
       }
+      if (d.summary && d.summary.text) {  // a summary-first design (/planner:design) opens its panel on the summary, then the walking skeleton
+        const body = h("div", {}, ...Inside.panel(Inside.designKey())), first = $(".p-body > *", body), skel = [...$$(".p-body *", body)].some((x) => x.textContent.trim() === "Walking skeleton");
+        const wantSkel = !!(d.walking_skeleton && Object.keys(d.walking_skeleton.fields || {}).length);
+        ok(!!first && first.classList.contains("in-summary") && skel === wantSkel, `inside ${name}: the design panel opens on its summary${wantSkel ? ", with the walking skeleton below" : ""}`,
+          `inside ${name}: the design panel opens on ${first ? first.className : "nothing"}; walking skeleton shown ${skel}, wanted ${wantSkel}`);
+      }
       const comps = $$("#inside-stage .in-box.component").length, stubs = $$("#inside-stage .in-stub").length, o = overlaps();
       ok(comps === d.components.length && stubs === d.stubs.length && !o.bad.length, `inside ${name}, components: ${comps} components and ${stubs} integration stubs, ${o.n} boxes and labels, no two overlap`,
         `inside ${name}, components: ${comps} of ${d.components.length}, ${stubs} of ${d.stubs.length} stubs; overlaps ${o.bad.slice(0, 3).join("; ")}`);
@@ -1166,25 +1172,35 @@ const SelfTest = (() => {
     for (const k of planned) {
       const p = D.plans[k], name = titleOf(k);
       Inside.open(k, "plan");
-      const cards = $$("#inside-stage .plan-card"), crumb = $(".inside-crumbs .cur");
-      ok(cards.length === p.stories.length && cards.every((c, i) => c.dataset.story === p.stories[i].id) && crumb && crumb.textContent === "Build plan",
-        `inside ${name}, build plan: ${cards.length} story cards in build order, crumbs end at Build plan`, `inside ${name}, build plan: ${cards.length} cards of ${p.stories.length}`);
+      const crumb = $(".inside-crumbs .cur");
+      ok(!!crumb && crumb.textContent === "Build plan", `inside ${name}, build plan: crumbs end at Build plan`, `inside ${name}, build plan: crumbs read "${crumb ? crumb.textContent : "none"}"`);
       ok(location.hash.includes(`level=plan`), `deep link: ${location.hash.split("&selftest")[0]}`, `deep link: ${location.hash}`);
       planProblemsChecks(ok, k, p, name);
-      const flagged = p.stories.filter((x) => x.openNotes.length || x.conflicts.length);
-      ok(flagged.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return $$(".plan-badge[data-flag=open]", c).length === (x.openNotes.length ? 1 : 0) && $$(".plan-badge[data-flag=conflict]", c).length === x.conflicts.length; })
-        && $$("#inside-stage .plan-badge").length === flagged.reduce((n, x) => n + (x.openNotes.length ? 1 : 0) + x.conflicts.length, 0),
-        `inside ${name}, build plan: ${plural(flagged.length, "card")} wear a labelled badge for each open note and conflict`, `inside ${name}, build plan: badges do not match the notes of ${flagged.map((x) => x.id).join(", ")}`);
+      planLayoutChecks(ok, k, p, name);
+      const tasked0 = p.stories.filter((x) => x.tasks.length);
+      if (tasked0.length > 2 && !p.stories.some((x) => x.tracer)) {  // the build marks none here, so mark two for a moment to see the tracer group
+        const marked = tasked0.slice(0, 2);
+        marked.forEach((x) => { x.tracer = true; }); Inside.open(k, "plan");
+        planLayoutChecks(ok, k, p, name + ", with a tracer marked");
+        marked.forEach((x) => { delete x.tracer; }); Inside.open(k, "plan");
+      }
       const o = overlaps(), nodes = $$("#plan-dag .plan-node").length;
       ok(nodes === p.stories.length && !o.bad.length, `inside ${name}, dependency view: ${nodes} stories, ${o.n} boxes and labels, no two overlap`, `inside ${name}, dependency view: ${nodes} of ${p.stories.length}; overlaps ${o.bad.slice(0, 3).join("; ")}`);
       const arrows = $$("#plan-dag path.in-edge").length, want = p.stories.reduce((n, x) => n + x.blockers.length, 0);
       ok(arrows === want, `inside ${name}, dependency view: ${arrows} arrows, one for each Blocked by`, `inside ${name}, dependency view: ${arrows} arrows for ${want} blockers`);
-      const dead = $$("#inside-stage .plan-traces .ref-chip.ref-dead").length;
-      ok(dead === p.unresolved.length && $$("#inside-stage .plan-traces .ref-chip:not(.ref-dead)").every((c) => !!c.dataset.ref && !!ent(c.dataset.ref)),
-        `inside ${name}, build plan: every trace chip resolves into the vault (${dead} named by the build as not in it)`, `inside ${name}, build plan: ${dead} dead chips, the build names ${p.unresolved.length}`);
-      const lit = p.stories.filter((x) => x.blockers.some((b) => b.kind === "question" && isOpen(UNKNOWN[b.ref])));
-      ok(lit.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return c.className.includes("lit ") && !!$(".lamp", c); }),
-        `inside ${name}, build plan: ${plural(lit.length, "card")} blocked by an open vault question wear that question's lamp`, `inside ${name}, build plan: a card blocked by an open question is not lit`);
+      const hits = $$("#plan-dag .plan-hit"), unnamed = hits.filter((n) => !n.getAttribute("aria-label") || n.getAttribute("role") !== "button" || n.tabIndex !== 0);
+      ok(hits.length === $$("#plan-dag g.in-node").length && hits.length >= p.stories.length && !unnamed.length,
+        `inside ${name}, dependency view: all ${hits.length} nodes can be focused and have a name`, `inside ${name}, dependency view: ${$$("#plan-dag g.in-node").length - hits.length} nodes cannot be clicked, ${unnamed.length} have no name`);
+      const dull = [], kinds = new Set();
+      for (const n of hits) {
+        n.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        const head = $("#panel h2"), body = $("#panel").textContent.trim(), label = n.getAttribute("aria-label");
+        kinds.add(n.dataset.story ? "story" : n.dataset.blocker);
+        if (!head || !head.textContent.trim() || body.length < 40 || (n.dataset.story && !head.textContent.includes(n.dataset.story))) dull.push(label);
+      }
+      ok(!dull.length, `inside ${name}, dependency view: clicking any of its ${hits.length} nodes (${[...kinds].join(", ")}) fills the panel`, `inside ${name}, dependency view: the panel stayed empty for ${dull.slice(0, 4).join("; ")}`);
+      hits.length && hits[0].dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      go("lights", { reset: true });
       const empty = $$("#inside-stage .plan-cov tr.empty").length, want0 = p.coverage.targets.concat(p.coverage.components).filter((r) => !r.stories.length).length;
       ok(empty === want0 && (!empty || !!$("#inside-stage .plan-sum.bad")), `inside ${name}, build plan: coverage lights its ${plural(empty, "empty row")}`, `inside ${name}, build plan: ${empty} empty rows lit, ${want0} computed`);
       const comp = $("#inside-stage .plan-comp[data-component]");
@@ -1209,6 +1225,52 @@ const SelfTest = (() => {
       const say = ($("#inside-stage .inside-chip-card") || { textContent: "" }).textContent;
       ok(/No build plan yet\./.test(say) && say.includes("docs/plan/<slug>-breakdown.md"), `inside ${titleOf(bare)}, build plan: none, so the chip says what writes one`, `inside ${titleOf(bare)}, build plan: no empty-state chip`);
     }
+  }
+  /* The build order in each of its three layouts (List, Cards, Path): every layout holds one element per story in the
+     order the groups give, wears the badges and the lamp, resolves its trace chips, and shows no size chip; the toggle
+     switches between them, remembers the choice, and the page never scrolls sideways. */
+  function planLayoutChecks(ok, k, p, name) {
+    const hasTracer = p.stories.some((x) => x.tracer), tasked = p.stories.filter((x) => x.tasks.length), isT = (x) => hasTracer && x.tracer;
+    const want = [...tasked.filter(isT), ...tasked.filter((x) => !isT(x)), ...p.stories.filter((x) => !x.tasks.length)].map((x) => x.id);
+    const flagged = p.stories.filter((x) => x.openNotes.length || x.conflicts.length);
+    const lit = p.stories.filter((x) => x.blockers.some((b) => b.kind === "question" && isOpen(UNKNOWN[b.ref])));
+    const buttons = $$("#inside-stage .plan-seg button");
+    ok(buttons.map((b) => b.dataset.layout).join() === "list,cards,path" && buttons.map((b) => b.textContent).join() === "List,Cards,Path",
+      `inside ${name}, build plan: a toggle offers List, Cards and Path`, `inside ${name}, build plan: toggle reads ${buttons.map((b) => b.textContent).join()}`);
+    for (const layout of ["list", "cards", "path"]) {
+      const btn = $(`#inside-stage .plan-seg [data-layout="${layout}"]`);
+      if (!btn) { ok(false, "", `inside ${name}, build plan: no ${layout} button`); continue; }
+      btn.click();
+      const cards = $$("#inside-stage .plan-card"), host = $("#inside-stage .plan-layout");
+      ok(!!host && host.dataset.layout === layout && $(`#inside-stage .plan-seg [data-layout="${layout}"]`).getAttribute("aria-pressed") === "true" && $$("#inside-stage .plan-seg [aria-pressed=true]").length === 1,
+        `inside ${name}, build plan: the toggle switches to ${layout}`, `inside ${name}, build plan: the toggle left ${host ? host.dataset.layout : "no layout"} for ${layout}`);
+      ok(cards.length === p.stories.length && cards.every((c, i) => c.dataset.story === want[i]),
+        `inside ${name}, build plan (${layout}): ${cards.length} stories, the tracer first when there is one, then build order, then not now`, `inside ${name}, build plan (${layout}): ${cards.map((c) => c.dataset.story).join(" ")} not ${want.join(" ")}`);
+      const groups = $$("#inside-stage .plan-group").map((g) => g.dataset.group).join();
+      ok(groups === (hasTracer ? "tracer,then" : "order") + (p.stories.some((x) => !x.tasks.length) ? ",notnow" : ""), `inside ${name}, build plan (${layout}): the groups read ${groups}`, `inside ${name}, build plan (${layout}): groups were ${groups}`);
+      ok(flagged.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return $$(".plan-badge[data-flag=open]", c).length === (x.openNotes.length ? 1 : 0) && $$(".plan-badge[data-flag=conflict]", c).length === x.conflicts.length; })
+        && $$("#inside-stage .plan-badge").length === flagged.reduce((n, x) => n + (x.openNotes.length ? 1 : 0) + x.conflicts.length, 0),
+        `inside ${name}, build plan (${layout}): ${plural(flagged.length, "story", "stories")} wear a labelled badge for each open note and conflict`, `inside ${name}, build plan (${layout}): badges do not match the notes of ${flagged.map((x) => x.id).join(", ")}`);
+      ok(lit.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return c.className.includes("lit ") && !!$(".lamp", c); }),
+        `inside ${name}, build plan (${layout}): ${plural(lit.length, "story", "stories")} blocked by an open vault question wear that question's lamp`, `inside ${name}, build plan (${layout}): a story blocked by an open question is not lit`);
+      const dead = $$("#inside-stage .plan-traces .ref-chip.ref-dead").length;
+      ok(dead === p.unresolved.length && $$("#inside-stage .plan-traces .ref-chip:not(.ref-dead)").every((c) => !!c.dataset.ref && !!ent(c.dataset.ref)),
+        `inside ${name}, build plan (${layout}): every trace chip resolves into the vault (${dead} named by the build as not in it)`, `inside ${name}, build plan (${layout}): ${dead} dead chips, the build names ${p.unresolved.length}`);
+      const row = tasked.length ? $(`#inside-stage .plan-card[data-story="${tasked[0].id}"]`) : null, waits = row ? $(".plan-waits", row) || $(`#inside-stage .plan-pane[data-pane="${tasked[0].id}"] .plan-waits`) : null, listed = $$("#inside-stage .plan-task").length;
+      ok(!tasked.length || (!!waits && /^Waits on: /.test(waits.textContent) && !$(".ref-chip", waits) && listed === p.totals.tasks),
+        `inside ${name}, build plan (${layout}): each story says what it waits on in words, and all ${p.totals.tasks} tasks are listed`, `inside ${name}, build plan (${layout}): waits "${waits ? waits.textContent : "missing"}", ${listed} tasks listed of ${p.totals.tasks}`);
+      const sizes = $$("#plan-page .plan-size, #plan-page .plan-total, #plan-page .plan-by-size, #plan-page [data-kpi=points]").length, text = $("#plan-page").textContent;
+      ok(!sizes && !/\b[SML] ?\+ ?[SML]\b/.test(text), `inside ${name}, build plan (${layout}): no size chip anywhere`, `inside ${name}, build plan (${layout}): ${sizes} size chips or a size run in the text`);
+      const page = $("#plan-page"), wide = Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, page.scrollWidth - page.clientWidth);
+      ok(wide <= 1, `inside ${name}, build plan (${layout}): nothing scrolls sideways at ${innerWidth}px`, `inside ${name}, build plan (${layout}): the page is ${wide}px wider than the window`);
+    }
+    const pathBtn = $("#inside-stage .plan-seg [data-layout=path]");
+    if (pathBtn) pathBtn.click();
+    Inside.open(k, "plan");
+    const kept = $("#inside-stage .plan-layout");
+    ok(!!kept && kept.dataset.layout === "path" && Settings.read("explorer.plan.layout") === "path", `inside ${name}, build plan: the layout chosen is kept in this browser`, `inside ${name}, build plan: layout came back ${kept ? kept.dataset.layout : "none"}, saved ${Settings.read("explorer.plan.layout")}`);
+    const listBtn = $("#inside-stage .plan-seg [data-layout=list]");
+    if (listBtn) listBtn.click();
   }
   /* What the page could not read of the plan is a count that opens a list, and the list starts closed and is never the
      first thing on the page. With none to show, a line is added for the check and taken away again. */
