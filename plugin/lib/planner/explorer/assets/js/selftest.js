@@ -893,6 +893,8 @@ const SelfTest = (() => {
     ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$(".home-stage .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
     const card = $(".q-card"), map = $(".home-map"), a = card.getBoundingClientRect(), b = map.getBoundingClientRect();
     const apart = a.right <= b.left + 1 || a.bottom <= b.top + 1;  // beside the map, or folded above it
+    const bar = $(".home-tools .map-tools"), tb = bar && bar.getBoundingClientRect();
+    ok(!!bar && tb.bottom <= a.top + 1 && tb.bottom <= b.top + 1 && !$(".home-map .map-tools"), "queue: the map's controls sit in one row above the waiting card and the map", "queue: the map's controls are not above the waiting card");
     ok(apart && b.height > 150, `queue: the card and the map do not overlap, and the map keeps ${Math.round(b.height)} px of height (${innerWidth}x${innerHeight})`, `queue: card ${Math.round(a.left)}..${Math.round(a.right)} x ${Math.round(a.top)}..${Math.round(a.bottom)} meets the map ${Math.round(b.left)}..${Math.round(b.right)} x ${Math.round(b.top)}..${Math.round(b.bottom)}`);
     if (q.length > Queue.TOP) {
       $(".q-more").click(); await frames();
