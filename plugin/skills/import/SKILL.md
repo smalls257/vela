@@ -1,6 +1,6 @@
 ---
 name: import
-description: Import session for an initiative vault. Turns material that already exists (folders of documents, decks, spreadsheets, code, wiki spaces, tickets, emails) into plan pages. The session works out with the user how to reach each source, registers every one in sources.md with a confirmed Kind, shows an import map before writing, then writes cited pages and one unknown per clash. Use when an initiative is already under way and the vault is empty or thin.
+description: Turn material that already exists (documents, decks, spreadsheets, code, wiki spaces, tickets, emails) into cited plan pages, with an import map shown first. Use when an initiative is under way and the vault is empty or thin.
 argument-hint: "[where the material lives, or none to resume]"
 disable-model-invocation: true
 ---
@@ -45,8 +45,6 @@ Do not say the import is done until each of these holds:
 The checklist holds, or the user stops. If they stop early, write the ledger and the report for what was done. In an owner's vault run `git status` and confirm nothing under `.inbox/` is staged; a reader copy has no git, so skip it and every other commit or stage step. Rebuild the explorer with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner explore` (no `--serve`). If it exits 0, say: "The dashboard is up to date: dashboard.html — open it, or run /planner:explore to ask Claude from it". If it fails, say "The explorer could not be built: <message>." and go on; a failed build never ends the import. Then tell the user: "Run `/planner:close` to finish the session and open the PR."
 
 ## Never
-
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded. Its hard stops still hold.
 
 - Never ask for, keep or write a credential, and never upload material.
 - Never commit anything from `.inbox/`.

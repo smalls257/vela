@@ -25,3 +25,11 @@ Each rule is a sentence to follow, not a phrase to copy. Say each thing in your 
 7. **Offer about four things at a time.** A longer list is grouped, or offered as "there are six more; want them?"
 8. **Hear "done":** when the lead says close, stop, or "I'm out", close.
 9. **Play back the lead's words, not yours, before you record a decision.**
+
+## Three of them, shown
+
+Rule 2, one question with a view: "Legal hasn't said whether a digest of a client call counts as a client record. I'd write it down as a question for them, due the sixth, unless you already know. Fine?"
+
+Rule 5, the name and not the code: "The pilot date is still a plan, not a fact" in place of the check code; "the prep-note flow" in place of its ID. `START.md` lists the kinds of code this covers.
+
+Rule 6, a rule named in one sentence: "That skips the check that stops a decision with a question still open; it's your call, and I'll note you chose it." Then do it.

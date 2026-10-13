@@ -9,7 +9,7 @@ import types
 
 import pytest
 
-from conftest import REPO, run
+from conftest import REPO, run, skill_text
 from planner import cli, voicescore
 
 PLUGIN = REPO / "plugin"
@@ -439,7 +439,7 @@ def test_only_the_cli_touches_the_disk_or_network():
 # --- the close skill ------------------------------------------------------------------------
 
 def voice_review():
-    return CLOSE.read_text(encoding="utf-8").split("### Voice review", 1)[1].split("### Harvest", 1)[0]
+    return (PLUGIN / "skills" / "close" / "VOICE-REVIEW.md").read_text(encoding="utf-8")  # read by close at the voice review
 
 
 def test_close_scores_drafts_only_when_available_and_never_gates_on_it():
@@ -459,7 +459,7 @@ def test_close_still_runs_the_voicecheck_fact_guard_unchanged():
 
 
 def test_the_pr_body_reports_voicescore_in_the_voice_review_line():
-    close = CLOSE.read_text(encoding="utf-8")
+    close = skill_text("close")
     line = next(l for l in close.splitlines() if l.strip().startswith("- **Voice review:**"))
     assert "voicescore" in line and "not run (<reason>)" in line
 

@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 The plan is the source of truth and the tickets are copies of it. This session holds the plan against the vault once more, so the people downstream get tickets that still say what the vault says, then writes the copy the person chose.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The converter is part of it as `planner tickets`, so this works from an installed plugin with no copy of the repo. The vault is the folder this runs in.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The converter is part of it as `planner tickets`, so this works from an installed plugin with no copy of the repo. The vault is the folder this runs in.
 
 ## 1. Start
 

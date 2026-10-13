@@ -1,5 +1,7 @@
 # Review checkpoints
 
+Contents: reader copy; numbering; 1 write it down; 2 the owed questions; 3 one reviewer per area; 4 merge; re-running areas; 5 the digest; 6 record what the lead does.
+
 A review checkpoint finds the questions the plan owes and nobody has asked. Code works out what the catalogue owes (`planner questions`). One focused reviewer per focus area, each in a fresh context, reads only the written pages and finds what code cannot. `planner findings merge` combines what they return. The lead never sees the reviewers, only one ranked digest.
 
 The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`. The skill that sends you here names the checkpoint and its focus.
@@ -87,7 +89,7 @@ Give the coverage in one sentence ("All five angles found something", or "Four a
 
 ## Re-running areas
 
-A re-run of one or more areas is a new checkpoint, `n+1`, headed `### <n+1>. Re-run of checkpoint <n>: <areas>, <today>`. Running an area a checkpoint skipped is a re-run too. Dispatch only those areas into the new folder, and merge with `planner findings merge .planner/findings/<session id>/<n+1> --changed <paths> --areas FIN,REG`, naming them, with the same `Changed:` list. Areas not listed are neither read nor reported as did not run, and a file for one is ignored and listed under `ignored:`. The new findings get ids `F<n+1>.1` and on, so the ids of earlier checkpoints never change.
+A re-run of one or more areas, or running an area a checkpoint skipped, is a new checkpoint `n+1`. Read `${CLAUDE_PLUGIN_ROOT}/references/REVIEW-RERUN.md` for how it is headed, dispatched and merged.
 
 ## 5. The digest
 

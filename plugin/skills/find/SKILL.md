@@ -17,10 +17,10 @@ $ARGUMENTS
 
 ## Steps
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from").
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded).
 
 1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query search <the user's words> --limit 6`.
-2. If it finds nothing, or the top places don't match what was asked, the user's words are probably not the vault's. Think of the words the vault would use: the app, partner and flow names in the hits, and plain synonyms ("book" → "hold", "pay", "confirm"; "talk to" → the partner's name and "contract"). Search once or twice more with those. Read `12-glossary.md` only if that still fails. Stop after three searches in all.
+2. If it finds nothing, or the top places don't match what was asked, the user's words are probably not the vault's. Think of the words the vault would use: the app, partner and flow names in the hits, and plain synonyms (for example "book" → "hold", "pay", "confirm"; "talk to" → the partner's name and "contract"). Search once or twice more with those. Read `12-glossary.md` only if that still fails. Stop after three searches in all.
 3. Answer in this shape, and nothing longer:
 
    ```

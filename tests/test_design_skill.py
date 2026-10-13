@@ -299,7 +299,7 @@ def test_design_is_named_where_the_modes_are_listed():
     modes = (PLUGIN / "references" / "MODES.md").read_text(encoding="utf-8")
     team = section(modes, "Team-side sessions")
     assert "`/planner:design --app APP-x`" in team and "`docs/tech-design/<slug>.md`" in team
-    explore = (PLUGIN / "skills" / "explore" / "SKILL.md").read_text(encoding="utf-8")
+    explore = (PLUGIN / "skills" / "explore" / "ABOUT.md").read_text(encoding="utf-8")  # where designs live is product notes, read on request
     assert "from `/planner:design`" in explore
 
 

@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-from conftest import REPO, check, edit, findings
+from conftest import REPO, check, edit, findings, skill_text
 
 BIN = REPO / "plugin" / "scripts" / "planner"
 CAP = "capabilities/CAP-001-sell.md"
@@ -217,7 +217,7 @@ def read(*parts):
 
 
 def test_close_and_epics_stage_what_render_rewrote():
-    close, epics, modes = read("plugin/skills/close/SKILL.md"), read("plugin/skills/epics/SKILL.md"), read("plugin/references/MODES.md")
+    close, epics, modes = skill_text("close"), read("plugin/skills/epics/SKILL.md"), read("plugin/references/MODES.md")
     assert "Stage every file `planner render` reported" in close
     assert "`git status --short` must show nothing modified" in close
     assert "Stage every file `planner render` reported" in epics
@@ -233,13 +233,13 @@ def test_pr_workflow_fails_a_stale_generated_block():
 
 
 def test_epics_writes_owning_team_and_close_leaves_it():
-    close, epics = read("plugin/skills/close/SKILL.md"), read("plugin/skills/epics/SKILL.md")
+    close, epics = skill_text("close"), read("plugin/skills/epics/SKILL.md")
     assert "written now, in this session" in epics
     assert "and its `**Owning team:**` line" not in close and "close leaves it as written" in close
 
 
 def test_close_checks_remote_session_records_before_taking_an_id():
-    close = read("plugin/skills/close/SKILL.md")
+    close = skill_text("close")
     step3 = close.split("## 3.")[1].split("## 4.")[0]
     assert "git branch -r --list 'origin/session/*'" in step3
 

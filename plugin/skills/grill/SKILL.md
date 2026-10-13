@@ -1,15 +1,19 @@
 ---
 name: grill
-description: Grill session for an initiative vault, the only session that may set an item to decided unless the user overrides that. Checks the readiness gate per item, offers to decide anyway on an override, asks one question at a time with a recommended answer, and writes each decided item as its branch closes. Use when there is a shaped position to defend.
+description: Decide ready items one question at a time, each with a recommended answer, and write each decision as its branch closes. The only session that sets an item to decided, unless the user overrides that. Use when there is a shaped position to defend.
 argument-hint: "<item IDs or page names to decide>"
 disable-model-invocation: true
 ---
 
 # Grill
 
+Contents: 1 start; 2 the gate, per item; 3 the questions; acceptance; handing an app over; 4 write each decision; 5 a new unknown mid-grill; ends when; never.
+
 A Grill is the only session that makes an item `decided`. It decides items that are ready, or that the user chooses to decide anyway on an override, asks one question at a time, and writes each decision the moment its branch closes.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md`.
+
+What a Grill is for is section 3, the questions: one at a time, each with your recommended answer, kept under pushback. Sections 1 and 2 only decide what goes on the agenda, and section 4 is how a decision is written.
 
 In a reader copy (`planner role` says `reader`), a Grill may still decide, but beside every item it decides write `- **Pending approval:** @<handle>, <today>`, and say that the owner sees it before it counts.
 
@@ -46,7 +50,7 @@ Before you show the agenda for GATE-3, find the open questions under each item, 
 - Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate grill --item <ID>`. Repeat `--item` once per item on the agenda. An ID that is not in the vault exits 2. Each W807 is an owed question, still open, asked or with no ledger row, that blocks that item. W807 can be stale for an answer captured this session, because close writes its row later: skip a W807 the session record already answers.
 - Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "on the agenda" and the agenda items as its focus.
 
-Route both lists through the digest in REVIEW section 5: at most three questions, as plain sentences with a recommended answer each, the ones that block the agenda's items first. The Grill asks the ones the lead takes before the item is decided. An owed question that blocks an item is a question to ask, not a gate. The user may decide the item with it still open. Then capture "decided with <copy IDs> open (W807)" with the user as origin, and add a note to that item's `## Changes` row. W807 prints only under `--gate grill --item`, so a plain check and CI never show it again: the capture is the record that the question was open when the item was decided.
+Route both lists through the digest in REVIEW section 5 (at most three questions at a time, the ones that block the agenda's items first). The Grill asks the ones the lead takes before the item is decided. An owed question that blocks an item is a question to ask, not a gate. The user may decide the item with it still open. Then capture "decided with <copy IDs> open (W807)" with the user as origin, and add a note to that item's `## Changes` row. W807 prints only under `--gate grill --item`, so a plain check and CI never show it again: the capture is the record that the question was open when the item was decided.
 
 After the gate check, write the agenda into the session record as an `## Agenda` section, one line per item: `- <ID>: GATE-3 confirmed yes|no, status open|decided|off-agenda: UNK-xxx|off-agenda: GATE-n`. An item that fails a gate other than GATE-4 carries `off-agenda: GATE-n` with the gate's number. An item the user chose to decide anyway carries `override: GATE-n` and a status, for example `- CON-003: GATE-3 confirmed yes, status open, override: GATE-5`. Update the line as the item changes. START's resume rule reads this section.
 
@@ -65,18 +69,13 @@ GATE-4 is also a check rule: `planner check` fails an item that is `decided` whi
 
 ## Acceptance
 
-Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. Before you close a branch, ask for an explicit yes or for an alternative. Before you write `decided`, read the final wording back and get a yes.
+Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance. Before you close a branch, ask for an explicit yes or for an alternative. Before you write `decided`, read the final wording back and get a yes; for several items that close together, one read-back of about five and one yes to them is enough (`START.md` defines a yes).
 
 Capture each answer. The user's own words take their name as origin. When the user accepts your recommendation as it stands, the origin is `claude, from <name>`.
 
 ## Handing an app over
 
-When the user grills an app's handoff, or `planner ladder` shows an app's pages reach `handoff`: in a reader copy, stop here and say "Handing an app to a senior is the owner's call: it stamps their commit. Name the owner from `.planner/published.json` and send a proposal." Otherwise:
-
-1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner ladder` and read the list under "Handoff" in `CONVENTIONS.md`. The epics are not on it: epics come after handoff, so neither the epics nor the epics gate holds a handoff back, and another app's gaps never do. Say once what is not met, as one list in plain words, and offer to hand over anyway; that is an override named `"handoff checklist"`, as `START.md` says. Do not ask about each line.
-2. The senior who takes the app is named, with a handle. They are present and say yes, or their answer is quoted with the channel and the date, or the user decides on their behalf, recorded as GATE-5 says. If nobody is named, ask the user first, as `MODES.md` says under "Unknowns"; if they cannot name one, write the unknown and end the session.
-3. Read back what the senior takes: the app, its runtime page, the contracts it provides and consumes, its epics, and every open unknown that blocks any of them. Also read back the tracer, which is the thin path through every app that release one builds first (say so the first time), and this app's piece of it: the steps of those flows this app is on. If the vault names no tracer, say so. Also read back the links recorded for the app and each of its epics, and say which have none: "The team will look for the code, the wiki and the tracker items here. Anything to add before you hand over?" Record only what the user gives, and let them skip. Get an explicit yes.
-4. On the app page, write `handed_off: "<senior>, <today>, PR pending"` and set `stage` to the stage `planner ladder` says the pages reach. If an open unknown asks who the senior is, resolve it with the name. Commit. Tell the senior that their tech design and build plan go in this vault, under `docs/`, when they run the skills from the vault root, and that the explorer then shows them with no setup. Do not run `planner handoff` here: close commits everything first, then writes the manifest, so it records a clean commit, and then the PR number.
+When the user grills an app's handoff, or `planner ladder` shows an app's pages reach `handoff`: in a reader copy, stop here and say "Handing an app to a senior is the owner's call: it stamps their commit. Name the owner from `.planner/published.json` and send a proposal." Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/grill/HANDOFF.md` and follow it.
 
 ## 4. Write each decision as its branch closes
 
@@ -101,15 +100,13 @@ Write fact bullets and table cells only. Prose waits for close. Any `- Trace:` l
 
 If a question turns up that nobody present can answer, write it as an unknown with owner, ask-by and `**Blocks:**` naming the item. Commit the new unknown at once. Take that item off the agenda (`off-agenda: UNK-xxx`), unless the user chooses to decide it anyway (override GATE-4), re-run GATE-4 for every other agenda item it blocks, and go on with the rest.
 
-If it blocks an item already written `decided`, tell the user in plain words that the decision stands in doubt until the question is answered, and leave a `**Dissent:**` or follow-up note on that item. It will fail `check` with E316 until the unknown is resolved, or warn with W316 if the user overrides GATE-4 for it.
+If it blocks an item already written `decided`, tell the user in plain words that the decision stands in doubt until the question is answered, and leave a `**Dissent:**` or follow-up note on that item. (For the file: `check` fails it with E316 until the unknown is resolved, or warns with W316 if the user overrides GATE-4 for it. The lead hears neither.)
 
 ## Ends when
 
 The agenda is empty or the user stops. Commit. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session".
 
 ## Never
-
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Never set `decided` on an item that failed a gate, unless the user overrode that gate and the `**Override:**` bullet is written.
 - Never write `fact` from what someone said in the grill without a source row, unless the user overrides `E304`.

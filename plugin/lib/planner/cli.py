@@ -2073,6 +2073,11 @@ def cmd_capture(args, out):
     return 0
 
 
+# "probe" is the progress grid's name for an overdue or blocking unknown. There is no Probe skill, so the line the
+# lead hears says what to do instead.
+NEXT_MODE_WORDS = {"probe": "ask about"}
+
+
 def cmd_next(args, out):
     root = pathlib.Path(args.vault).resolve()
     today, origin = parse_today(args.today)
@@ -2088,7 +2093,7 @@ def cmd_next(args, out):
     elif row is None:
         print(f"planner next: nothing to do. Every app's items are settled and its epics decided. {when}", file=out)
     else:
-        print(f"planner next: {row.app.id}, {row.mode} {row.subject}. {row.reason} {when}", file=out)
+        print(f"planner next: {row.app.id}, {NEXT_MODE_WORDS.get(row.mode, row.mode)} {row.subject}. {row.reason} {when}", file=out)
     # The team's next step is another person's work, so it is a line of its own beside the lead's, never instead of it.
     for line in design_steps(vault, root):
         print(line, file=out)

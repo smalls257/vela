@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 
-from conftest import REPO
+from conftest import REPO, skill_text
 from planner import voicecheck
 
 PLUGIN = REPO / "plugin"
@@ -18,7 +18,7 @@ def read(*parts):
 
 
 def close_section(start, end):
-    return read("plugin", "skills", "close", "SKILL.md").split(start, 1)[1].split(end, 1)[0]
+    return skill_text("close").split(start, 1)[1].split(end, 1)[0]
 
 
 # I3 and M7: the root README
@@ -106,11 +106,12 @@ def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
     assert "65%" in text and "<<<<<<<" not in text
 
 
-# M2: a probe suggestion is START's ask-or-research offer
+# M2: a suggestion to chase an unknown reaches the lead as plain words, not as the name of a skill that does not exist
 
-def test_start_says_what_a_probe_suggestion_means():
+def test_start_never_mentions_a_probe_skill_because_next_says_what_to_do():
     start = read("plugin", "references", "START.md").split("## 4.", 1)[1].split("## 5.", 1)[0]
-    assert "When `planner next` suggests `probe`, it means the question to the user and the research offer above. There is no Probe skill." in start
+    assert "probe" not in start.lower()
+    assert "Ask the user whether they know the answer now" in start
 
 
 # M3: CONVENTIONS' negation sentence matches voicecheck
@@ -132,7 +133,7 @@ def test_close_says_the_draft_commit_holds_whole_pages_and_review_lists_only_pro
     draft = close_section("## 4. Draft the prose", "### Voice review")
     assert "holds each drafted page whole, including its structured section-3 edits" in draft
     assert "Commit the drafts on their own" not in draft
-    review = close_section("### Voice review", "### Harvest")
+    review = (PLUGIN / "skills" / "close" / "VOICE-REVIEW.md").read_text(encoding="utf-8")
     assert "List only the prose paragraphs this section drafted" in review
 
 
@@ -140,7 +141,7 @@ def test_close_says_the_draft_commit_holds_whole_pages_and_review_lists_only_pro
 
 def test_close_pr_body_carries_the_no_examples_line():
     assert "No examples for <type>: drafted without examples" in read("plugin", "skills", "house-voice", "SKILL.md")
-    body = close_section("## 8. Open the PR", "- **Minutes.**")
+    body = (PLUGIN / "skills" / "close" / "PR-BODY.md").read_text(encoding="utf-8")
     assert '- **House voice:** each "No examples for <type>: drafted without examples" line house-voice gave' in body
 
 

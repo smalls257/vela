@@ -1,5 +1,5 @@
 """planner ladder: the stage an app's pages reach, against its hand-typed stage. Read-only, and never a prompt."""
-from conftest import REPO, run
+from conftest import REPO, run, skill_text
 
 FIXTURE = REPO / "examples" / "unified-booking"
 
@@ -36,7 +36,7 @@ def test_status_says_nothing_when_the_pages_reach_no_further_than_the_stage(tmp_
 
 
 def test_close_reports_the_stage_as_a_line_and_never_asks():
-    close = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
+    close = skill_text("close")
     assert "**Stage:** run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner ladder`" in close
     assert "never a question" in close
 
@@ -52,7 +52,9 @@ def test_a_handoff_may_say_pr_pending_until_the_pr_exists(tmp_path):
 
 def test_grill_hands_an_app_over_and_close_writes_the_pr_number():
     grill = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="utf-8")
-    close = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
-    assert "## Handing an app over" in grill and 'handed_off: "<senior>, <today>, PR pending"' in grill
-    assert "Say once what is not met, as one list" in grill and "Do not ask about each line." in grill
+    close = skill_text("close")
+    handoff = (REPO / "plugin" / "skills" / "grill" / "HANDOFF.md").read_text(encoding="utf-8")  # read only when an app is handed over
+    assert "## Handing an app over" in grill and "skills/grill/HANDOFF.md" in grill
+    assert 'handed_off: "<senior>, <today>, PR pending"' in handoff
+    assert "Say once what is not met, as one list" in handoff and "Do not ask about each line." in handoff
     assert "replace `pending` with `#<the PR's number>`" in close

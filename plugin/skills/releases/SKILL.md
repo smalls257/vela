@@ -1,6 +1,6 @@
 ---
 name: releases
-description: Releases session for an initiative vault. After allocation, asks when anyone outside the team first uses or sees the result, then for each release which requirements must be there, which can wait and which only in part, helps choose the tracer (the thin path through every app that is built first) and what it leaves out, and writes the dated releases to 04b-releases.md line by line after the user's yes, at assumption for a later Grill. Names the requirements it leaves on no release. Use after allocate and before epics.
+description: Date each release, say which requirements must be there and which can wait, choose the first thin path (the tracer), and write the releases at assumption. Use after allocate and before epics.
 argument-hint: "[a release name or date, or none for the whole plan]"
 disable-model-invocation: true
 ---
@@ -9,25 +9,29 @@ disable-model-invocation: true
 
 Say when people get each part of what the initiative builds. Requirements say what the business needs and allocation says who carries it; neither says by when. A release is a date somebody outside the team will see, and the requirements, or only some of a requirement's checks, that must hold on that day. A releases session never decides: what it writes is an `assumption` until a Grill.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md` under "Releases".
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md` under "Releases".
 
 ## 1. Start
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `releases`. Read the Releases row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
-Read `04b-releases.md`, every capability page's functional requirements with their acceptance criteria, `04a-capability-delta.md`, the `allocation` block (run `planner render` first), the goals and constraints for dates anybody already gave, and the open unknowns. If there are no functional requirements, say so and offer `/planner:requirements`. If requirements exist and none is allocated, offer `/planner:allocate`, and go on only if the user says to, recording that as an override as `START.md` says. A release that already exists is kept: change only the lines the user confirms.
+Read `04b-releases.md`, every capability page's functional requirements with their acceptance criteria, `04a-capability-delta.md`, the `allocation` block (run `planner render` first), the goals and constraints for dates anybody already gave, the first thin path the boundary session recorded (a capture in its session record, which the flow pages back), and the open unknowns. If there are no functional requirements, say so and offer `/planner:requirements`. If requirements exist and none is allocated, offer `/planner:allocate`, and go on only if the user says to, recording that as an override as `START.md` says. A release that already exists is kept: change only the lines the user confirms.
 
 ## 2. One question at a time
 
 Ask one question at a time, with your recommendation. Run it as a release-scope workshop, the way a business analyst would: date first, then must, should and later, requirement by requirement.
 
-1. **The first release.** "What is the first date anyone outside the team uses or sees this, and who are they?" Take a name and a date. Propose the name from the audience, such as "January board demo", and say where the date came from: a source, the user's words, or `(claude)` for a guess, which the user must replace before it is written.
-2. **What must be there.** For each requirement that is not yet placed, in the order of the capability map: "For that date, take <requirement>. Must it be there, can it wait, or does only part have to be there?" If part: list its criteria as AC1, AC2 and so on, and ask "Which of these checks must hold on that day?" The rest goes on a later release.
-3. **The tracer.** Ask this once the first release has its requirements, before the later releases. Say first what it is: "A tracer is a thin path through every app it needs, built first and kept, so the contracts between the apps get proved early. Each team's first story is then its steps of that path." Read the flows from `06-runtime/flows/` and show a short table in plain words, with the flow's name rather than its ID: the flow, the apps it crosses, the new contracts it crosses (an outside party is not counted). Recommend the flow that proves the most of the system, which is the one crossing the most apps and new contracts. Break a tie by what the first release's audience sees first. A tracer is often several flows in the order they run, such as switching on and then the first digest. Heron's flows give the example: getting the morning digest and getting a prep note each cross three apps and three new contracts, so recommend the digest, the pilot's first morning, with switching Heron on before it so a person can get to it. If no flow page exists yet for the path the user wants, take it in plain words, say a boundary session can draw it, and write no link. Then, for each requirement the tracer touches, offer the thin version: "For the tracer, does <requirement> need all of its checks, or only AC1 and AC2?" The checks left out go on a later release through the Delivers table below. Last, ask what the tracer leaves out and why: "Is anything held back from this path because it is not ready, such as a review or an approval?" Each answer is a line under Not in the tracer. Keeping the whole requirement in the tracer is a fine answer: write it as given and record in the session that the lead kept it all. Nothing here holds the session back; a lead who wants no tracer says so, and that is written as `none` with their reason.
-4. **What comes next.** "What comes next, and when?" Repeat steps 1 and 2 for the next release. Go on until every requirement at `assumption` or later is on a release or the user says "later, no date" for it.
-5. **What the first date depends on.** "Does anything on the first date depend on something not yet agreed?" Each answer becomes an unknown, with an owner handle, an ask-by date and `**Blocks:**` linking the release's heading. When the owner is not who would actually know, ask "Who would actually know this? If that is not the owner, give me a name or a role, like outside counsel." and write it as `**Ask:**`. Ask the lead first, as `MODES.md` says under "Unknowns".
+1. **The first release.** Ask when anyone outside the team first uses or sees this, and who they are. Take a date, and a name for the release that you propose yourself from the audience, such as "January board demo". Say where the date came from: a source, the user's words, or `(claude)` for a guess, which the user must replace before it is written.
+2. **What must be there.** For each requirement not yet placed, in the order of the capability map, ask whether it must be there for that date, can wait, or only part of it has to be there. If part: list its criteria as AC1, AC2 and so on, and ask which of these checks must hold on that day. The rest goes on a later release.
+3. **The first thin path (the tracer).** Ask this once the first release has its requirements, before the later releases. It runs in four short moves.
+   - *Start from what boundary recorded.* If the boundary session recorded a first thin path (look in its session record and in the flow pages), open with it and ask whether it is still right. Ask the lead to name one only when none was recorded.
+   - *Offer it.* Say once, in your own words, what it is and why it comes first: it is built first and kept, so the contracts between the apps get proved early and each team's first story is its steps of it (`CONVENTIONS.md` defines it under "Releases"). Read the flows from `06-runtime/flows/` and show a short table in plain words, with the flow's name rather than its ID: the flow, the apps it crosses, the new contracts it crosses (an outside party is not counted). Recommend the flow that proves the most of the system, the one crossing the most apps and new contracts. Break a tie by what the first release's audience sees first. A tracer is often several flows in the order they run. For example, if two flows each cross three apps and three new contracts, recommend the one the first audience sees first, and put the flow that gets a person to it before it. If no flow page exists yet for the path the user wants, take it in plain words, say a boundary session can draw it, and write no link (the file says "no flow page yet").
+   - *Thin it.* For each requirement the tracer touches, ask whether it needs all of its checks or only some, such as AC1 and AC2. The checks left out go on a later release through the Delivers table below.
+   - *What it leaves out.* Ask whether anything is held back from this path because it is not ready, such as a review or an approval. Each answer is a line under Not in the tracer. Keeping the whole requirement in the tracer is a fine answer: write it as given and record in the session that the lead kept it all. Nothing here holds the session back; a lead who wants no tracer says so, and that is written as `**Tracer:** none, <reason>`.
+4. **What comes next.** Ask what comes next, and when. Repeat steps 1 and 2 for the next release. Go on until every requirement at `assumption` or later is on a release or the user says "later, no date" for it.
+5. **What the first date depends on.** Ask whether anything on the first date depends on something not yet agreed. Each answer becomes an unknown, with an owner handle, an ask-by date and `**Blocks:**` linking the release's heading. Ask the lead first, and write who would actually know as `**Ask:**`, as `MODES.md` says under "Unknowns".
 
-Label every line with what it rests on: a source, the user's words, or `(claude)`. Write nothing until the user has said yes to that line. Silence, or "ok" with nothing else, does not count: ask again. A requirement the user will not date stays out of the file, and you tell them that the check will keep listing it as undated until it has a release.
+Label every line with what it rests on: a source, the user's words, or `(claude)`. Write a line only after the yes `START.md` defines; read the release back in groups of about five lines. A requirement the user will not date stays out of the file, and you tell them that the check will keep listing it as undated until it has a release.
 
 ## 3. Write the confirmed releases
 
@@ -57,13 +61,11 @@ Then run `planner render` and `planner check`, fix every error (E340 and E341 me
 
 ## 4. Review, then finish
 
-Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the releases are written" and `04b-releases.md` as its focus. Show the digest as REVIEW section 5 says, once and at most three questions, and capture what the lead takes.
+Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the releases are written" and `04b-releases.md` as its focus. Show the digest as REVIEW says and capture what the lead takes.
 
-Run `git status` and confirm nothing under `.inbox/` is staged. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a Grill on `releases` decides them, and `/planner:epics` cuts each team's epics against them.
+When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session". Then a Grill on `releases` decides them, and `/planner:epics` cuts each team's epics against them.
 
 ## Never
-
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Write `decided`. Only a Grill decides, unless the user overrides it as `START.md` says.
 - Invent a date, or turn a hope into a target. A date has a source or the user's word.

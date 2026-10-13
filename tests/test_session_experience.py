@@ -7,7 +7,7 @@ import re
 
 import pytest
 
-from conftest import REPO
+from conftest import REPO, skill_text
 
 PLUGIN = REPO / "plugin"
 MODE_SKILLS = ("dump", "discover", "shape", "boundary", "requirements", "allocate", "releases", "epics", "grill")
@@ -25,14 +25,14 @@ def section(body, heading):
 # --- S24: close starts on the lead's word, and still confirms before anything leaves the machine
 
 def test_close_can_be_started_by_the_model_but_the_modes_cannot():
-    close = text("skills/close/SKILL.md").split("---\n", 2)[1]
+    close = skill_text("close").split("---\n", 2)[1]
     assert "disable-model-invocation" not in close
     for mode in MODE_SKILLS:
         assert "disable-model-invocation: true" in text(f"skills/{mode}/SKILL.md"), f"{mode} must stay the lead's to start"
 
 
 def test_close_asks_one_confirmation_before_it_pushes_and_never_starts_on_its_own():
-    starting = section(text("skills/close/SKILL.md"), "Starting a close")
+    starting = section(skill_text("close"), "Starting a close")
     assert "never by yours" in starting
     assert re.search(r"Before section 7 pushes.*wait for a yes", starting, re.S)
     assert "A bare \"close\" is consent to file, not to send." in starting
@@ -88,21 +88,23 @@ def test_the_digest_example_and_the_grill_gate_prose_carry_no_code():
 
 def test_start_forbids_codes_in_conversation_and_names_what_counts():
     plain = section(text("references/START.md"), "Plain names and a page a person can hold")
-    for kind in ("check code", "gate name", "capture number", "copy ID", "finding ID"):
+    for kind in ("check codes", "gate names", "capture numbers", "copy and finding IDs", "unknowns", "capabilities",
+                 "contracts", "flows", "epics", "apps", "parties", "runs"):
         assert kind in plain, kind
+    assert "The lead reads names, never codes." in plain  # one definition for every kind of ID
 
 
 # --- S25: record by default, ask only the few unsettled items, never the tool's own filing
 
 def test_close_files_by_default_and_asks_at_most_three_unsettled_items():
-    sec2 = section(text("skills/close/SKILL.md"), "2. Mark every capture")
+    sec2 = section(skill_text("close"), "2. Mark every capture")
     assert "without asking" in sec2 and "at most three items" in sec2
     assert "numbered list" not in sec2.split("Defaults:")[0].replace("never show it to the lead as a numbered list", "")
     assert "Never ask the lead for bookkeeping" in sec2
 
 
 def test_close_never_asks_for_minutes_handles_or_the_late_gap():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "Did any other gap turn up late" not in close
     assert "Ask the user how long" not in close and "Never ask." in close
     assert "Never ask the lead whether a gap turned up late" in close
@@ -117,7 +119,7 @@ def test_the_handle_is_asked_once_and_kept():
 # --- S29 and S30: handoff and epics no longer wait on each other
 
 def test_handoff_does_not_require_the_epics_gate_and_epics_use_the_app_scope():
-    grill = section(text("skills/grill/SKILL.md"), "3. The questions") + text("skills/grill/SKILL.md").split("## Handing an app over")[1].split("## 4.")[0]
+    grill = section(text("skills/grill/SKILL.md"), "3. The questions") + text("skills/grill/SKILL.md").split("## Handing an app over")[1].split("## 4.")[0] + text("skills/grill/HANDOFF.md")
     assert "check --gate epics" not in grill
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     handoff = conventions.split("\n## Handoff\n", 1)[1].split("\n## ", 1)[0]
@@ -182,7 +184,7 @@ def test_session_modes_are_listed_the_same_everywhere():
 
 
 def test_every_mode_that_marks_at_once_is_named_in_start_and_close():
-    start, close = text("references/START.md"), text("skills/close/SKILL.md")
+    start, close = text("references/START.md"), skill_text("close")
     names = {"grill": "Grill", "discover": "Discover", "boundary": "Boundary", "requirements": "Requirements",
              "allocate": "Allocate", "releases": "Releases"}
     marks = start.split("Leave the mark off until close")[1].split("\n")[0]

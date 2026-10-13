@@ -4,7 +4,7 @@ views that list what holds the gates, or a warning the lead never hears about.""
 import json
 import shutil
 
-from conftest import REPO, check, edit, findings, run
+from conftest import REPO, check, edit, findings, run, skill_text
 
 FIXTURE = REPO / "examples" / "unified-booking"
 PLUGIN = REPO / "plugin"
@@ -120,7 +120,7 @@ def test_dump_captures_a_yes_as_one_capture_that_starts_with_the_copy_id():
 
 
 def test_close_gives_a_typed_capture_one_mark_and_writes_the_existence_row():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     marks = close.split("## 2. Mark every capture", 1)[1].split("## 3.", 1)[0]
     assert "Any other capture whose words start with a copy ID or a finding ID is kept as its ledger row" in marks
     assert "It gets one mark, to the subject" in marks
@@ -133,11 +133,12 @@ def test_close_gives_a_typed_capture_one_mark_and_writes_the_existence_row():
 
 
 def test_close_allocates_ids_before_it_writes_the_marks():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     two = close.split("## 2. Mark every capture", 1)[1].split("## 3.", 1)[0]
     assert "Write each mark into the line" not in two
     three = close.split("## 3. Write the promoted items", 1)[1].split("## 4.", 1)[0]
-    assert three.index("Write each mark into the line") > three.index("### Gaps the catalogue missed")
+    assert three.index("Write each mark into the line") > three.index("### Subjects, the question ledger and catalogue gaps")
+    assert "### Gaps the catalogue missed" in skill_text("close")  # the ledger part, read before the marks are written
 
 
 # ------------------------------------------------------------------ asked copies hold the gates, so the views list them
@@ -276,7 +277,7 @@ def test_sources_titles_never_raise_w809(tmp_path):
 # ------------------------------------------------------------------ W809 and W804 reach the lead; W807 is described as it is
 
 def test_close_lists_w809_and_w804_to_the_lead_and_carries_them_into_the_pr():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     six = close.split("## 6. Render and check", 1)[1].split("## 7.", 1)[0]
     for said in ("W809", "W804", "possibly an untyped subject", "orphaned", "no longer owed",
                  "offer to type the subject", "fix the row"):

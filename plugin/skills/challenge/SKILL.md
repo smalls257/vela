@@ -1,6 +1,6 @@
 ---
 name: challenge
-description: Challenge a handed-off boundary or contract as a team senior. Records the challenge as an open unknown the senior owns that blocks the challenged item, adds a Dissent line to the item, and opens a PR that asks the solution lead to answer. Never changes the item's state or text. Use when a senior disputes what they accepted at handoff.
+description: Record a senior's challenge to a handed-off boundary or contract as an open unknown plus a Dissent line, and open a PR asking the solution lead to answer. Use when a senior disputes what they accepted at handoff.
 argument-hint: "<item ID> <what is wrong>"
 disable-model-invocation: true
 ---
@@ -9,13 +9,13 @@ disable-model-invocation: true
 
 A senior who accepted an app at handoff can still find that a boundary or a contract is wrong. An owner whose item someone else decided on their behalf, with a `**Decided by:** @x, on behalf of @owner` bullet, uses this skill the same way when they disagree; when they agree, they add `- **Confirmed by:** @owner on <date>` instead. This skill records that disagreement where the solution lead must answer it, without settling it. The challenged item keeps its state and its text. The senior's challenge becomes an open unknown that blocks it, so the vault cannot stay quietly `decided` on something a senior disputes.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md`.
 
 ## 1. Start
 
 First run `planner role`. In a reader copy (a published copy with no `.git`), stop: say "That is the owner's call, and a challenge opens a PR, which needs git. Your disagreement is a proposal: write it down and send it to <the owner named in `.planner/published.json`>." Write nothing and open no session.
 
-Run steps 1, 2, 5 and 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
+Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the state of the clone, find open sessions, open the record and read how to talk (its steps 1, 2, 5 and 6), with mode `challenge`. The record has `modes: [challenge]` and the title `Challenge: <ID>`. The topic is the challenged ID, so the session id is `<date>-challenge-<id-lowercased>`, for example `2026-11-21-challenge-con-001`. Read the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 ## 2. Find the challenged item
 
@@ -42,7 +42,7 @@ Capture each answer as said, with the senior's handle as origin. If you restate 
 
 Write only these, and change nothing else:
 
-- On `11-unknowns-and-risks.md`, add the unknown. Get its number from `planner next-id UNK` and use exactly what it prints; never work it out by eye. It is the highest `UNK-nnn` in use plus one, the next free `UNK-nnn`, and the command counts the places listed below. Never fill a gap. Count the numbers in use in three places: `main`; the `11-unknowns-and-risks.md` of each branch on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:11-unknowns-and-risks.md`); and the `## Changes` tables of those branches' records (`git show <branch>:sessions/<id>.md`), because an open session may already hold the next number. Add the entry at the end of `## Unknowns`, before `## Risks`. The short name has at most six words and none of `# | ^ : % [ ]`.
+- On `11-unknowns-and-risks.md`, add the unknown. Get its number from `planner next-id UNK` and use exactly what it prints: it counts `main` and every open session branch, so a number is never handed out twice. Add the entry at the end of `## Unknowns`, before `## Risks`. The short name has at most six words and none of `# | ^ : % [ ]`.
 
 ```
 ### UNK-nnn <short name>
@@ -84,8 +84,6 @@ Write the PR body to a temporary file:
 Run `gh pr create --base main --head session/<id> --title "<today> Challenge: <ID>" --body-file <file> --reviewer <handle>`. If `gh` fails, say so, print the branch name and the exact command, and stop. Never say a PR exists unless `gh` printed its URL.
 
 ## Never
-
-These are the defaults. The user may override any of them, as `START.md` says, and the override is recorded.
 
 - Never change the challenged item's state or text. Only the `**Dissent:**` line is added.
 - Never decide, resolve, reopen or set back anything. Only a Grill decides, and the solution lead answers the challenge.

@@ -1,5 +1,7 @@
 # Starting a session
 
+Contents: where the planner runs from; owner or reader; plain names and a page a person can hold; shell on a Mac and on Linux; the user may override any rule; steps 1 to 6 (the clone, open sessions, review comments, overdue unknowns, the record, how to talk); answer a challenge; closing a session; captures.
+
 Every mode skill runs these steps before its own. The vault root is the current directory. The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (see "Where the planner runs from" below), and the format is `CONVENTIONS.md`. Every command in the skills is written with that prefix.
 
 ## Where the planner runs from
@@ -28,8 +30,11 @@ Run `planner role`. Access decides, never a title. An **owner** works in the vau
 
 The people who read this vault hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so what you say and what you write are sized to that. `CONVENTIONS.md` says under "Pages" what the files follow; in a session:
 
-- Say each thing by its plain name: "the calendar entries", "the prep-note flow", not `CON-001` or `FLO-001`. Give an ID only where the user must find it, or where it goes into a file. Spell an abbreviation out the first time you use it.
-- What the lead reads has no codes in it: no check code (a W or E and digits), no gate name or number, no capture number (`^c12`), no copy ID (`Q-DAT-01@APP-x`), no finding ID (`F1.4`), and no rule name in capitals. Say what each means, in the lead's words: "the pilot date is a plan, not a fact yet", not "W343"; "the strategy page is ready to decide", not "it passes GATE-2". Codes go in files, the pull request body and the `**Override:**` bullet, where the check reads them. If the lead asks for an ID, give it.
+- **The lead reads names, never codes.** Every kind of ID and code stays out of what the lead reads: unknowns, capabilities and requirements, contracts, flows, epics, apps, parties, runs, copy and finding IDs, capture numbers, check codes, gate names and numbers, and rule names in capitals. Say the thing's name, or what the code means in the lead's words: "the pilot date is a plan, not a fact yet", not a check code; "the strategy page is ready to decide", not a gate; "the calendar entries", "the prep-note flow", not a contract or flow ID. IDs go in files, the pull request body, `- Trace:` lines and the `**Override:**` bullet, where the check reads them. If the lead asks for an ID, give it. Spell an abbreviation out the first time you use it.
+- **A line is written after a yes to that line.** A yes that covers a group you read out ("yes to these five") counts for every line in it, so read sheets, criteria and rows back in groups of about five, not one by one. Silence or "ok" is not a yes: ask once more in different words, then park the line as an open question. The reason: a decided or assumed line should carry the lead's own word, and a yes to a long list is not consent to each line in it.
+- **One question at a time, with your recommendation and why.** Never a list of questions, and never a question without a view.
+- **Review checkpoint and digest.** Where a skill says to run the review checkpoint, run it as `REVIEW.md` says and show the digest as section 5 of that file says: once per session, at most three questions.
+- **Write a line at once.** The state a mode writes is marked on its capture at once (see "Captures during the session" below); a skill names only the state it writes.
 - Tool trouble you fix yourself (a failed shell command, a retry, a reviewer still running) is not news. Mention it only if you cannot get past it.
 - In a page, the IDs a sentence would have carried go on a `- Trace: CAP-001.FR1, CON-001, FLO-001` line under it. Never delete a Trace line, and never turn one into prose.
 - A link with a label, written inside a table cell, escapes its pipe: `[[page#Heading\|label]]`. A bare `|` splits the cell and `planner check` warns (W329). Outside a table the pipe is plain: `[[page#Heading|label]]`.
@@ -100,7 +105,7 @@ If `gh` fails, say: "gh could not list merged PRs (<the error>), so review comme
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check` and read its first line, which says which date it used. For each `W705` line, name the unknown, its owner and its ask-by date. Ask the user whether they know the answer now, and how, as `MODES.md` says under "Unknowns". If they do not, offer to turn the question into a research task Claude does now with a source. Never draft an ask for the user to send, and never offer to. A research answer becomes a capture with the source named. It never becomes a `fact` without a row in `sources.md`.
 
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner next` and show its line. If the user has not said what this session is for, offer that app and mode first. It is a suggestion from the rules in `CONVENTIONS.md` under "Progress and next step", never a decision. When `planner next` suggests `probe`, it means the question to the user and the research offer above. There is no Probe skill.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner next` and show its line. If the user has not said what this session is for, offer that app and mode first. It is a suggestion from the rules in `CONVENTIONS.md` under "Progress and next step", never a decision.
 
 ## 5. Open the record and the branch
 
@@ -145,14 +150,7 @@ Before the session's first question, read `${CLAUDE_PLUGIN_ROOT}/references/CONV
 
 ## Answer a challenge
 
-The solution lead answers a challenge on the challenge's own branch, so the red E316 check and its answer land in the same PR.
-
-1. Find the open challenge PR: `gh pr list --search "Challenge: <ID>" --state open --json number,headRefName,title`, then keep only the PRs whose title ends with exactly `Challenge: <ID>`, because the search also matches longer IDs such as `CON-0010` for `CON-001`. If the user gave a PR number, run `gh pr view <number> --json number,headRefName,title,state` and confirm its title starts with the date and `Challenge:` and its state is `OPEN`. If none is open, or more than one, stop and show what `gh` returned. If `gh` fails, show the error and stop: an answer never starts on a guessed branch.
-2. Check out that `session/...` branch instead of `git switch main`: `git switch <headRefName>`, then `git pull --ff-only`. If either fails, show the error and stop.
-3. Run steps 2 to 4 as usual. Step 4's check shows the E316 the challenge left; that is the work.
-4. Open the record as step 5 says, with two changes. Do not run `git switch -c`: the record goes on the branch you are on. The id is `<date>-answer-<id-lowercased>`, for example `2026-11-24-answer-con-001`, with `-2` and so on if that file exists. Write `modes: [answer]` and the title `Answer: <ID>`. Commit it with the message `Open session <id>`.
-
-In the answer session, a Grill works on that branch and adds `grill` to `modes`. It resolves `UNK-nnn` with the senior, or decides the item again. Or the lead sets the item back, a contract to `assumption` or an epic to `reopened`, with a `## Changes` row such as `| CON-nnn | decided | assumption | [[<id>#^cNN]] |`. `/planner:close` then pushes to the same branch and comments on the challenge PR.
+The solution lead answers a challenge on the challenge's own branch, so the red check and its answer land in the same PR. When the user names a challenge to answer, read `${CLAUDE_PLUGIN_ROOT}/references/ANSWER-A-CHALLENGE.md` and follow it instead of the rest of step 1; it finds the challenge PR, switches to its branch and opens the answer record on it.
 
 ## Closing a session
 

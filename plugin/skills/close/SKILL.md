@@ -6,33 +6,23 @@ argument-hint: "[session id, if more than one is open]"
 
 # Close a session
 
-Close turns a session record into a reviewed PR. Run every step in order. Never skip a step to save time, and never report a step as done when it failed.
+Close turns a session record into a reviewed PR. Run every step in order, because a skipped step leaves the pull request describing work nobody checked, and never report a step as done when it failed.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (if the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, use the order in `${CLAUDE_PLUGIN_ROOT}/references/START.md` under "Where the planner runs from"). The format is `CONVENTIONS.md`.
+The path, in order: find the session (1), mark every capture (2), write the promoted items, the ledger and the marks (3), draft the prose, review its voice and harvest the owner's edits (4), read back decided wording (5), render and check (6), finish the record and push (7), open the PR (8), rebuild the explorer (9). The longer parts live in files beside this one, each read at the step that needs it: `READER.md`, `LEDGER.md`, `VOICE-REVIEW.md`, `HARVEST.md`, `PR-BODY.md`.
+
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md`.
 
 ## Starting a close
 
-Close is started by the lead's word, never by yours. If the lead typed `/planner:close`, go on. If you were asked to start it in conversation ("close", "close it", "we're done", "switch to requirements"), that word is the yes to filing: say in one line what will happen ("I'll file your notes, write the pages and send the branch for review") and go on. If the lead only sounded finished, ask "Shall I close this out now?" and wait. Do not start a close because the work looks complete, a turn limit is near or a gate stopped you.
+Close is started by the lead's word, never by yours, as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session": typing `/planner:close`, or saying "close", "we're done" or "switch to requirements", is the yes to filing. Say in one line what will happen ("I'll file your notes, write the pages and send the branch for review") and go on.
 
 One confirmation stays, because the push and the pull request are the only steps that leave the machine and a hard stop forbids sending company material without consent. Before section 7 pushes, say what is about to be sent ("I'll push `session/<id>` and open a pull request for <reviewers>") and wait for a yes. Skip that wait only when the lead has said "push" or "open the PR" in so many words in this conversation. A bare "close" is consent to file, not to send.
 
-Close talks in the session's voice. If this conversation has not read `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` yet (a close typed in a fresh conversation), read it now, as step 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` says.
-
-What the lead reads while close runs is short and in plain words. No check code, gate name, capture number, copy ID or finding ID appears in what you say to them; those go in the files and the pull request body. A command that fails and that you fix is not news.
+Close talks in the session's voice. If this conversation has not read `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` yet (a close typed in a fresh conversation), read it now, as step 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` says. What the lead reads while close runs is short, in plain words and without codes (START defines them); those go in the files and the pull request body. A command that fails and that you fix is not news.
 
 ## Reader copy: no git, no PR
 
-Run `planner role` first. If it says `reader` (a published copy: `.planner/workspace.json`, no `.git`), say once, plainly: "This is a read copy, so close writes your session record and stops. Nothing is committed, pushed or sent." Then run the sections below with these changes, and no other:
-
-- **Section 1:** find the open record with `grep -l '^status: open' sessions/*.md`. There are no branches; run no `git` or `gh` command.
-- **Section 3:** an item the session decided or overrode keeps `decided` and gets `- **Pending approval:** @<handle>, <today>` beside it (see "Pending approval" in `CONVENTIONS.md`). Use the handle START.md asked for. An owner's decision never gets the marker; here every decision is a reader's.
-- **Section 4:** the changed pages are the ones the session's `## Changes` table and captures name, not `git diff`. Skip the examples harvest (it needs `gh` and `git`). Skip the `git restore` and checkpoint-commit lines of the voice review: write the rewrite to the page only after `planner voicecheck` passes, and keep the earlier draft in a copy beside it until then.
-- **Section 6:** run only the render and the check. Skip the fetch and the merge of `main`.
-- **Section 7:** write `summary:` and set `status: closed`, render and check; stage nothing. Never write a handoff manifest: handoff is the owner's.
-- **Section 9:** runs as written; it needs neither git nor `gh`.
-- **Section 8:** skip it. Say: "Nothing was committed, pushed or sent. Your changes are in this folder; to send them to the owner as a proposal, run `/planner:propose`." Never say a PR exists.
-
-Write the session record as usual: it is the one record of what you did.
+Run `planner role` first. If it says `reader` (a published copy: `.planner/workspace.json`, no `.git`), say once, plainly: "This is a read copy, so close writes your session record and stops. Nothing is committed, pushed or sent." Then read `${CLAUDE_PLUGIN_ROOT}/skills/close/READER.md`: it lists the few changes to the sections below, and there are no others. Never say a PR exists in a reader copy.
 
 ## 1. Find the session
 
@@ -75,56 +65,9 @@ Write each kept item onto its page as structured content only: fact bullets, tab
 
 For a session whose `modes` include `epics`, the epic pages already exist, so write no `assumption` item for a picked cut, and skip the `shape` paragraph that follows. Still add the `## Changes` rows for every epic whose state changed, `| EPC-nnn | - | draft | [[<id>#^cNN]] |` and `| EPC-nnn | draft | decided | ... |`, or `| EPC-nnn | reopened | decided | ... |` for a reopened epic, if the session has not already. For any other session whose `modes` include `shape`, write the picked option as an `assumption` item with an `**Options considered:**` bullet, at page level or under the item's heading: `- **Options considered:** <picked option> (picked); <option>: rejected, <reason>; ...`. `planner next` reads it: an `assumption` without it still needs a Shape, and one with it is ready for a Grill. If a capture says "that's decided", add a "grill to confirm" note to the item. The item must pass grill's GATE-2 afterwards: at `assumption`, with a preferred option and the rejected options with their reasons. New items get the next free ID of their kind: grep the vault for the existing IDs of that kind, and also read the `## Changes` tables of the records on `git branch --list 'session/*'` and `git branch -r --list 'origin/session/*'` (`git show <branch>:sessions/<id>.md`), because another open session may already hold the next ID. Add one to the highest in use. Add one row to `## Changes` for each item whose state changed: `| ID | From | To | [[<id>#^cNN]] |`.
 
-### Type the subjects Dump named
+### Subjects, the question ledger and catalogue gaps
 
-A kept capture that says `type at close: PTY` or `type at close: SV` names a subject the lead said exists, in this session or an earlier one. Write it on `03-context-and-scope.md`: a party as `### PTY-nn <name>` under `## Outside parties`, stored value as `### SV-nn <name>` under `## Value held for customers`, adding the section if the page lacks it, with the next free ID as above. Fill each required fact from what the user said, in the captures or in this turn, and ask for any the user did not give. Never fill a fact from general knowledge, and never guess one. A missing fact is E808.
-
-- A party: `**Relationship:**` is `partner`, `supplier`, `regulator` or `customer group`. `**Agreements:**` lists the agreements, with their `SRC-nn`, or says `none known`.
-- Stored value: `**Holder:**` is a link to the app or party that holds the balances, or its name. `**Owner:**` is who carries them, or `not known yet, see [[11-unknowns-and-risks#UNK-nnn <name>|UNK-nnn]]`, with that unknown written as section 2 says. Only `**Owner:**` may say `not known yet`.
-- If nobody knows a party's relationship or a stored value's holder, write an unknown that asks, with an owner and an ask-by date, and leave the subject untyped. Mark its capture as a keep to that unknown, as section 2 says, and list it under **Questions** in the PR body.
-
-Then record the yes. Dump starts the capture with the existence question's copy ID, such as `Q-FIN-01@INI-001: yes, ... type at close: SV`. A capture with only the note comes from an older session: its copy is the initiative copy of the entry whose `creates:` is that kind, so ask the lead which question they answered if more than one fits. Write that copy's row in the ledger as the next part says: `answered`, `item:` linking the new subject, `answer:` the lead's yes in one line, and `source:` by the source rule there, which means a first-hand `SRC-nn` when the lead's word is the only source. If the subject stays untyped, the row is `unknown`, linking the unknown that asks for its relationship or holder: the yes is said, and the subject waits for that answer. If the copy already has a row, an earlier session recorded the yes, so write no second row. Add the `## Changes` row for the copy, citing the capture.
-
-A typed subject makes the catalogue owe its questions. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>`, list its copies under **Questions** in the PR body, and write its row below for each copy a capture answers. The rest stay undisposed until a session takes them.
-
-### The question ledger
-
-Every owed copy the lead took, and every finding a review checkpoint kept, ends in a row of the table under `## Question ledger` on `11-unknowns-and-risks.md`, in the grammar of `CONVENTIONS.md` under "Questions and the ledger". If the page has no such section, add it after `## Risks`: the heading, an empty block (`<!-- generated:undisposed-questions sha=00000000: do not edit, run planner render -->` and `<!-- /generated:undisposed-questions -->` on the next line), then the header `| Copy | State | Evidence | By | Date |` and `|---|---|---|---|---|`.
-
-List every capture whose words start with a copy ID such as `Q-FIN-03@SV-01`, a wildcard such as `Q-OPS-01@APP-*`, or a finding ID such as `F1.2`, and every row of the record's `## Reviews` tables. Write a ledger row for each by the rules below, without asking; the rows go in the pull request body, not the conversation. Only a row whose state the lead's words leave unclear is one of the few items section 2 asks about:
-
-- A capture `waits on UNK-nnn: <IDs>` makes each ID's row `unknown`, with `unknown: UNK-nnn`. A copy or `R-` id that already has a row keeps its one row, changed in place, with a reviewer question's `question:`, `quote:` and `severity:` kept; a copy with no row gets one. A finding ID in the list stands for the copy or `R-` id its row in `## Reviews` names; a finding with copy `new` first gets its `R-<AREA>-nn` id, as the next item says, and that row is written `unknown`. Each gets a `## Changes` row from its old state, such as `| R-OPS-12 | open | unknown | [[<id>#^cNN]] |`, or from `-` for a new row. The unknown must be open and its owner a handle; if it is not, use the lead's handle as owner and the role the lead named as `**Ask:**`.
-- A finding about an owed copy that the lead did not take adds no row. The copy stays undisposed, and the `undisposed-questions` block shows it.
-- A finding with copy `new` becomes a reviewer question, `R-<AREA>-nn`, with the next free number for its area. When its Area cell lists several areas, because the merge folded the same question from each, the row takes the first area's code and is one row, never one per area. Section 6 merges `main` in later, so look in the ledger on this branch and on `origin/main` (run `git fetch origin`, then `git show origin/main:11-unknowns-and-risks.md`), and in the ledger rows and `## Changes` tables on the other `session/*` branches. Its evidence holds `question:`, `quote:` and `severity:` from its row in `## Reviews`. Its state is `open` unless the lead took it.
-- The state comes from what the lead said, and its evidence follows the state table in `CONVENTIONS.md`. What close adds:
-  - `answered`: `item:` links the item the answer was written into. A document the lead names is cited by its `SRC-nn`. When the lead's own word is the only source, add a first-hand row to `sources.md`, `| SRC-nn | <name>'s first-hand account of <subject> | @<lead> | <today> | exists | said in session <id> |`, and cite it. A page quote may cite only text that was on the page before this close, or that sits under an item at `fact` or `decided`, never words this close wrote. With no such source, the row is `assumed`.
-  - `assumed`: write `load-bearing: yes` when the captures show the plan resting on it and `no` otherwise, and a `signpost:` from what the lead said would show it wrong. Ask only when the question is high severity and you cannot tell.
-  - `unknown`: link the UNK this close writes, with its owner and ask-by date.
-- One answer for several copies is one row: a wildcard such as `Q-OPS-01@APP-*`, or an initiative row with `covers: <scope>`. A copy that is an exception gets its own row.
-- By is the handle of whoever recorded or decided the row, and Date is today. Never write `answered` without an item link and a source, and never invent a source.
-- A Grill's capture "decided with <copy IDs> open (W807)" is a record of a decision, not an answer: write no row for those copies, and keep the note on the item's `## Changes` row as the Grill wrote it.
-
-Add a `## Changes` row for each new ledger row: `| <copy> | - | <state> | [[<id>#^cNN]] |`, citing the capture. A reviewer question the lead did not take has no capture, so its row cites its checkpoint's heading in `## Reviews` instead: `[[<id>#<n>. <checkpoint>, <date>]]`.
-
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check`. Each E801, E802 or E803 on the ledger is a row written wrong: show it and fix it with the user. If no source the check accepts exists, write the row as `assumed` or `open`, whichever the lead's words support, and list it in the pull request body. Never delete a row to quiet the check, and never drop one without saying so.
-
-### Gaps the catalogue missed
-
-Never ask the lead whether a gap turned up late, or by luck: the answer is almost always no, and the question belongs to whoever maintains the catalogue. Instead, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --stats` and list in the pull request body, under **Catalogue proposals**, each entry whose copies in this vault all ended `not-applicable` as one to prune or tighten, and each reviewer question this close wrote that is not `not-applicable` as an entry that never fired. Pruning is the maintainer's call.
-
-If the lead said during the session, in so many words, that the catalogue missed something, draft an entry from that capture:
-
-```yaml
-- id: Q-<AREA>-nn  # the next free number in that area of the catalogue
-  area: <AREA>
-  scope: <initiative, app, contract, capability, party or stored-value>
-  trigger: <exists, or a condition in the grammar of CONVENTIONS.md>
-  question: <the question, worded for any vault, not only this one>
-  why: <found late in session <id>: what was missed, and what finding it late cost>
-  severity: <high or normal>
-```
-
-Write it under `## Catalogue proposals` in the session record as one YAML block and list it in the pull request body. Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`: the catalogue belongs to the toolkit, so code decides what is owed only once the toolkit takes the entry.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/close/LEDGER.md` and follow it. It types the subjects Dump named (`type at close: PTY` or `SV` captures), writes a ledger row for every copy or finding the lead took (and for every row of the record's `## Reviews` tables), runs `planner check` on the ledger, and lists catalogue gaps in the pull request body. Skip it only when the record holds no such capture and no `## Reviews` table.
 
 ### Write the marks
 
@@ -137,7 +80,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and follow it for every
 - the opening prose of every page this session changed (`git diff --name-only --diff-filter=d main...HEAD`, leaving out `sessions/` and `sources.md`), rewritten to say what is true now, as `CONVENTIONS.md` says under "Pages". Keep the owner's own wording wherever the facts it states have not changed, because a later close harvests those edits; rewrite only what the session made untrue or left out. Never add a paragraph about what changed: that is the page's `## History`. A page has one opening: the one you rewrite replaces the old one, and you never write a new opening beside it. Two or more separate opening paragraphs above the first `##` heading, running past 150 words together, draw W371; keep one and fold what the others add under a heading. The opening is two or three plain sentences, at most about 80 words and three links: what is true now and the one thing that holds it up. It names threads, not items, and sends the reader to the block or table below for the items; a state is said once, in one sentence, and never added to each clause (`house-voice` rules 1, 3 and 7). A page of more than about 900 words with no such opening draws W363, an opening over 90 words or 3 links draws W365, and an opening that is still a line the template wrote draws W368. Run `planner check` for W363, W365, W368 and W371 on every page whose opening you wrote, and rewrite until none remains; do not list the warning in the pull request instead. An opening is never a changelog ("Five more unknowns came from the desks session..."). On a page that is mostly a list (unknowns and risks, concerns, decisions, sources), the opening counts and points and never enumerates the list, as `house-voice` says under "Pages that are mostly a list": "28 questions are open. Five hold up the first release; the most urgent is who owns Heron, due 23 October." The items go below it, grouped by what they hold up;
 - the sentences on other pages that mention an item whose state this session changed. For each unknown this session resolved and each item it decided, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query refs <ID>`, open each page it lists, and rewrite the sentence that links the item so it says what is true now: "the account opens at the first practice trade", not "when the account opens is still open". Leave `## History` alone. `planner check` reports W334 for a sentence still calling an answered question open;
 - the `## Strategy` paragraph of each concern page whose cells this session changed;
-- on a page that lists more than about seven unknowns, concerns or other items, the few that matter first, and the rest under `## Also open (n)` at the end of the list's section, which the viewer and the explorer fold. Group any other list of more than about seven under subheadings of about five, each line reading the plain name, who to ask and by when, and what it holds up. People hold about four to seven things at once;
+- on a page that lists more than about seven unknowns, concerns or other items, the few that matter first, and the rest under `## Also open (n)` at the end of the list's section, which the viewer and the explorer fold. Group any other list of more than about seven under subheadings of about five, each line reading the plain name, who to ask and by when, and what it holds up;
 - the opening sentence of each `### <ID>` item this session wrote or changed, before its fact bullets;
 - a decision record for each page this session made `decided` whose decision shapes the whole design: the solution strategy or another initiative section, an app page, or a flow. Write it as `09-decisions/ADR-nnnn-<slug>.md`, with `id`, `type: decision`, `title`, `state: decided`, `owner`, `authored: authored` and `sources`, and these sections: `## Context` (what forced the choice), `## Decision` (what was chosen, linking the decided page), `## Alternatives considered` (a table, `| Alternative | Why rejected |`, from its `**Options considered:**`) and `## Consequences` (what it commits people to). Put its `**Decision:**` bullet, linking the Grill, under `## History`, and link the record from `09-decisions/09-decisions.md`. Contracts and unknowns get no record of their own;
 - a glossary entry for each term the session used that a newcomer to the initiative would not know, such as a product name or a word like "paper trading": one paragraph on `12-glossary.md`, the term in bold, then what it means here;
@@ -147,99 +90,11 @@ Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner style <each changed page
 
 ### Voice review
 
-A fresh reader checks the drafts, because the drafter cannot judge its own voice. Skip this part if the session drafted no paragraph, and go on to the part "Harvest the owner's edits".
-
-**Voicescore, optional.** `planner voicescore` places each paragraph against the owner's own range with a style embedding, a second reading of a different kind from the reviewer's. It is information, not a gate. It runs only when it is installed and the owner has at least 5 active `owner` and `owner-edit` examples. Run it after step 1 and before step 2:
-
-- Write the paragraphs of step 1's list to `.planner/voicescore-input.md`, in list order, one blank line between them, so ¶n is entry n. It sits in `.planner/` is gitignored, so nothing in it is ever staged. It is not under `.git/`, because Claude Code will not write there without asking.
-- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner voicescore .planner/voicescore-input.md --json`, then `rm -f .planner/voicescore-input.md`.
-- It did not run when it printed `"ran": false` (keep its `reason`), when `"reliable"` is false (the reason is "fewer than 5 owner examples"), when its paragraph count differs from the list (the reason is "its paragraphs did not match the list"), or when the command failed in any other way (the reason is what it printed). Then the PR body says "voicescore: not run (<reason>)" and the reviewer gets no labels.
-- Otherwise add each paragraph's `label` to its entry, marked "voicescore hint", and keep the `summary` line for the PR body, such as "voicescore: 3 of 4 paragraphs inside your range; ¶2 outside (p96)".
-- Never block, rewrite or skip a paragraph because of its voicescore. Only the reviewer's flags lead to a rewrite.
-
-1. List only the prose paragraphs this section drafted, from the `draft: prose for <id>` commit. The word list the reviewer lints with is `${CLAUDE_PLUGIN_ROOT}/references/lint-words.txt`; give it that path, and do not copy the words into the list or into your own drafting. Leave out the bullets, table rows and headings section 3 wrote, even though the commit holds them. For each paragraph give a number, the page path, its voice type from house-voice's table, and the paragraph's text. Run `git status --porcelain` and keep the output.
-2. Dispatch the `planner:voice-reviewer` subagent with the Agent tool, and give it the list. If the Agent tool lists no `planner:voice-reviewer`, dispatch a general-purpose subagent instead, and give it everything in `${CLAUDE_PLUGIN_ROOT}/agents/voice-reviewer.md` after the frontmatter as its instructions, then the list, then this: you must not change any file, and you must report any file you changed. Never review the drafts yourself in this conversation. If no subagent can be dispatched, write "**Voice review:** not run: <the reason>" in the PR body and go on to the part "Harvest the owner's edits". The harvest does not depend on the review.
-3. Run `git status --porcelain` again. If the output differs from step 1 of this part, the reviewer changed a file: stop and show the user. If the reviewer errored, or returned anything but the table, treat the review as not run, write "**Voice review:** not run: <the reason>" in the PR body, and go on to the part "Harvest the owner's edits". If it flagged no paragraph, skip steps 4 and 5 of this part: there is nothing to rewrite and no commit, so go on to the part "Harvest the owner's edits".
-4. Rewrite each paragraph the reviewer flags once, in the working tree, from what it says differs. The reviewer may also name a sentence as redundant, because its claim stands elsewhere in the paragraph. Drop only a sentence it named, in the rewrite of that paragraph, and keep its exact text for step 5. Do not send the rewrite back for review. A paragraph it did not flag stays as drafted. Note the pages you rewrote. Touch no other file. Before you rewrite a page, check it holds no uncommitted edit from sections 2 and 3, because a restore would discard that edit. For each `<page>`:
-
-   ```
-   git diff --quiet HEAD -- <page> || { git add -- <page> && git commit -qm "Checkpoint <id>" -- <page>; }
-   ```
-
-   This commits that page alone, with the message `Checkpoint <id>`, when it differs from HEAD. Then rewrite it, so `git restore -- <page>` returns the page to a state that already holds those edits.
-5. Check only the pages you rewrote, one at a time, because the working tree also holds the work of sections 2 and 3 that is not committed. For each rewritten `<page>`:
-
-   ```
-   tmp=$(mktemp)
-   git show HEAD:<page> > "$tmp"
-   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)
-   ```
-
-   voicecheck fails if a rewrite lost, added or moved a wikilink, code span, date, ID, number (with its units or currency), table cell, version, frontmatter line or negation.
-
-   For a page where the rewrite dropped sentences the reviewer named as redundant, add `--redundant "<the sentence exactly as it stood>"` for each: `planner voicecheck "$tmp" <page> --redundant "<sentence>"`. voicecheck then lets that sentence's own negation go, still fails if the sentence carried an ID, number, date or link that is now gone, and exits 2 if the sentence was not in the draft or is still in the rewrite. The PR body lists every such sentence under **Voice review**.
-   - Exit 0: keep the rewrite.
-   - Exit 1: run `git restore -- <page>`. That discards every rewrite on that page and keeps its earlier draft whole. Run it for no other file.
-   - Exit 2: show the error, then run `git restore -- <page>` so the unchecked rewrite stays out of the work that section 7 stages. Never commit a rewrite voicecheck could not check.
-
-   Then commit the rewrites that passed with the message `draft: voice rewrite for <id>`, staging each page by exact path.
+A fresh reader checks the drafts, because the drafter cannot judge its own voice. Skip this part if the session drafted no paragraph. Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/close/VOICE-REVIEW.md` and follow it (the optional voicescore reading, the reviewer subagent, one rewrite per flagged paragraph, and the voicecheck that decides whether a rewrite stays), then go on to the harvest.
 
 ### Harvest the owner's edits
 
-Only the vault's owner harvests, and only their own edits. The owner is the `author` of the `source: owner` examples in `voice/examples/` and `voice/local/`. If there are none, say "No owner examples yet, so nothing to harvest. `/planner:voice-seed` adds them." and go on to section 5, Read back decided wording. Harvest does not depend on the voice review: run it even when the review did not run.
-
-Each command runs in its own shell call, and no shell variable survives from one call to the next. So each paragraph's text is kept in a file with a fixed path every later step names: `.planner/harvest/<pr>-<n>.txt`, where `<pr>` is the PR number and `<n>` is the paragraph's order in this harvest, from 1. It sits in `.planner/`, which is gitignored, so it never shows in `git status` and is never staged. When harvest ends, by any route, run `rm -rf .planner/harvest`.
-
-Every `gh` or `git` call below can fail. When one does, say which call failed and what it left unchecked. Never read a failure as "no edits found". Say "no edits found" only when every merged PR was checked.
-
-1. Get the user's handle with `gh api user -q .login`. If `gh` fails, say "gh could not read your handle, so nothing was harvested." and go on to section 5, Read back decided wording. If the handle is not the owner's handle without the `@`, say "Harvest is owner-only." and go on to section 5, Read back decided wording.
-2. List the user's merged session PRs: `gh pr list --state merged --search "head:session/" --author @me --json number,headRefName --limit 10`. If `gh` fails, say "gh could not list merged PRs, so nothing was harvested." and go on to section 5, Read back decided wording. If it returns 10 PRs, say "10 merged PRs came back, so older PRs were not checked."
-3. Take one PR at a time, because `FETCH_HEAD` holds only the last fetch. Run `gh pr view <number> --json commits`, which lists each commit's `oid`, `messageHeadline` and `messageBody`, and `git fetch origin pull/<number>/head`. If `gh` fails, say "gh could not read the commits of PR <number>, so its edits were not checked." and go to the next PR. If the fetch fails, say "git could not fetch PR <number>, so it was not checked." and go to the next PR. Then:
-   - Keep the commits whose `messageHeadline` starts `draft: `, both `draft: prose for` and `draft: voice rewrite for`. Skip the PR if there are none.
-   - For each, list its pages with `git diff-tree --no-commit-id --name-only -r <oid>`. For each page, the baseline is the last draft commit in the PR's list that touched it.
-4. For each page of the PR:
-   - Run `git log --format=%H <baseline>..FETCH_HEAD -- <page>` and keep the commits that are in the PR's list. Drop each one whose `messageHeadline` starts with `draft: `, `Checkpoint ` or `Close session `, and each one whose `messageBody` carries a `Co-Authored-By: Claude` trailer or a `Claude-Session:` trailer. Those are the skill's own commits. Drop a merge commit too. If none remain, the owner did not edit the page, so skip it.
-   - For each remaining commit, run `git diff -U0 <oid>^ <oid> -- <page>`. Never compare the baseline with the tip, because the tip also holds section 3's content. The added lines are the owner's edit. Find the paragraph of `git show FETCH_HEAD:<page>` that holds them. If a later commit removed them, skip. The draft paragraph is the one in its place in `git show <oid>^:<page>`. Read the merged text from `FETCH_HEAD`, never from `origin/main`.
-   - Extract the merged paragraph into its file, and hash it, in one call:
-
-     ```
-     mkdir -p .planner/harvest
-     git show FETCH_HEAD:<page> | sed -n '<first>,<last>p' > .planner/harvest/<pr>-<n>.txt
-     shasum < .planner/harvest/<pr>-<n>.txt | cut -c1-12
-     ```
-
-   - Skip a paragraph that is already saved or declined, and run `rm -f .planner/harvest/<pr>-<n>.txt`. It is saved when an example in either folder has the same `page`, a `harvested_from` equal to the baseline's full hash, and a body equal to the merged paragraph. It is declined when `grep -rh '^Harvest declined: ' sessions/` has its line: `Harvest declined: PR <number> <page> <hash>`.
-5. Offer each remaining paragraph, one at a time. Show the draft paragraph, the file `.planner/harvest/<pr>-<n>.txt` and the voice type from house-voice's table, so the text is never retyped. Harvest offers and never saves by itself. Ask "Did you write this change?" The owner's answer is the check that the edit is theirs. If the answer is unclear, ask once more. If it is no, or still unclear, record a decline, run `rm -f .planner/harvest/<pr>-<n>.txt`, and do not ask the save question. Otherwise ask "Save the merged paragraph as a <type> example?" Save it only on an explicit yes. On any other answer, record a decline and run `rm -f .planner/harvest/<pr>-<n>.txt`. To record a decline, insert one bare line `Harvest declined: PR <number> <page> <hash>` directly under `## Captures` in the session record. It is never a bullet.
-6. Ask where it goes, and say plainly that a committed example is pushed in this PR, where everyone with access to the repository can read it:
-   - committed: `voice/examples/<type>/`. Ask "May this text be committed to the vault?" and wait for an explicit yes.
-   - local only: `voice/local/<type>/`. It stays on this machine and no step below stages it.
-
-   If the owner's employer owns the text, or the owner is not sure, recommend local only. If the answer is not an explicit choice, do not save, and run `rm -f .planner/harvest/<pr>-<n>.txt`.
-7. Plan the room before you save, and change no example yet. A type keeps at most 5 active examples. Count both folders together, with the new one. If that makes 6, plan to retire one: the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`, by `added` and then file name. A local example never retires a committed seed, and in a local-only save only local examples may retire. If the cap blocks a local-only save, store nothing, run `rm -f .planner/harvest/<pr>-<n>.txt`, and say "The cap blocks a local save: <type> holds 5 active examples and none in voice/local/ may retire." Show the owner each planned retirement and ask. If they refuse, store nothing for that type, and run `rm -f .planner/harvest/<pr>-<n>.txt`.
-8. Save the merged paragraph word for word as `<folder>/<type>/VX-<type>-NNN.md`, NNN one higher than the highest in that type in both folders, retired files included. First write the frontmatter with the Write tool, quoting every free value, ending with the closing `---` and one blank line:
-
-   ```
-   ---
-   id: VX-<type>-NNN
-   voice_type: <type>
-   source: owner-edit
-   author: "@<handle>"
-   page: '<page path>'
-   harvested_from: '<full hash of the baseline draft commit>'
-   state: active
-   added: <today>
-   ---
-
-   ```
-
-   Then append the paragraph's file and compare it with the stored body, with a tool, in one call. The block removes the file whatever `cmp` finds:
-
-   ```
-   cat .planner/harvest/<pr>-<n>.txt >> <file>
-   awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - .planner/harvest/<pr>-<n>.txt; code=$?; rm -f .planner/harvest/<pr>-<n>.txt; (exit $code)
-   ```
-
-   If `cmp` reports a difference, stop, tell the owner, and do not repair the file. Then re-read the frontmatter and confirm it parses as YAML and that `page` and `harvested_from` hold the text you gave. Only now apply the retirements you planned in step 7, changing only each `state:` line. If the save made a folder's active `owner` and `owner-edit` examples of the type 2 or more, retire that folder's active `public-seed` examples of the type the same way, as `/planner:voice-seed` does. A local save retires only local seeds. Retire by editing `state:` and never delete an example.
+Only the vault's owner harvests, and only their own edits. The owner is the `author` of the `source: owner` examples in `voice/examples/` and `voice/local/`. If there are none, say "No owner examples yet, so nothing to harvest. `/planner:voice-seed` adds them." and go on to section 5, Read back decided wording. Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/close/HARVEST.md` and follow it; it offers the owner's merged edits as voice examples, one at a time. Harvest does not depend on the voice review: run it even when the review did not run.
 
 ## 5. Read back decided wording
 
@@ -267,7 +122,7 @@ Carry each one into the PR body's **Questions** line with what the user chose. F
 
 ## 7. Finish the record
 
-Stage every file `planner render` reported, every example harvested or retired in `voice/examples/`, plus the session record and the changed pages, by exact path. Never stage anything in `voice/local/`. Never use `git add -A`. Before pushing, `git status --short` must show nothing modified. A rewritten block left out of the commit fails CI's render check. Write a one-line `summary:` yourself, in plain words, and mention it in your closing message. Set `status: closed`, then stage. Commit with the message `Close session <id>`.
+Stage every file `planner render` reported, every example harvested or retired in `voice/examples/`, plus the session record and the changed pages, by exact path. Never stage anything in `voice/local/`. Never use `git add -A`. Before pushing, `git status --short` must show nothing modified, and nothing under `.inbox/` is staged: it holds company material that only the owner may send. A rewritten block left out of the commit fails CI's render check. Write a one-line `summary:` yourself, in plain words, and mention it in your closing message. Set `status: closed`, then stage. Commit with the message `Close session <id>`.
 
 If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff <APP-id>` only now, after that commit, so the manifest records a clean commit and not "with uncommitted changes". It writes `handoffs/<APP-id>.md`, the record of what the senior accepts. If the manifest already exists, the senior is accepting changes: run it with `--replace` only once they say so in this session. Then commit the manifest alone, by exact path, with the message `Handoff manifest for <APP-id>`.
 
@@ -284,26 +139,7 @@ Collect the reviewers:
 
 Get the user's own handle with `gh api user -q .login`. Strip the leading `@` from each individual handle. A team handle `@org/team` is passed as `org/team`. Drop the user's own handle. If nobody remains, leave out `--reviewer`.
 
-Write the PR body to a temporary file. Fill the headings of the vault's PR template:
-
-- **What changed.** The promoted items, each with its new state. Then these lists, each with "none" when empty:
-  - **Prose drafted:** each prose paragraph drafted in section 4, page by page, and each merged paragraph rewritten whole, with the page and a pointer to `## Replaced prose` in the session record.
-  - **House voice:** each "No examples for <type>: drafted without examples" line house-voice gave, one per type, or "none".
-  - **Voice review:** each paragraph the reviewer flagged, what it said, and whether it was rewritten or kept because voicecheck named a changed token; each sentence dropped as redundant, quoted, with the reviewer named as the one who asked and the sentence that already says it; or "not run: <reason>". Then the voicescore `summary` line, or "voicescore: not run (<reason>)".
-  - **Voice examples:** each example harvested or retired. Name a local example only as a count, never by its text. Add each PR harvest could not check, and why, and say when the PR limit hid older PRs.
-  - **Decided wording not yet read back:** each `decided` item whose owner was not present in section 5.
-  - **Promoted on a nod:** every item kept or promoted from a capture whose origin starts with `claude`, not only the deciding capture, with the capture quoted.
-  - **Overrides:** every `**Override:**` bullet this session wrote, with its item, rules and reason, and every item decided on an owner's behalf that is not yet confirmed, with the owner @-mentioned so they can confirm or raise `/planner:challenge`. Or "none".
-  - **Changed contracts:** each contract, and for each consumer, who was asked: present, async, in this PR, or "not consulted: <reason>".
-  - **Overdue unknowns:** each `W705` line from section 6, with its owner @-mentioned.
-  - **Questions:** the coverage line from section 6, each ledger row this session wrote with its state, each W806 from the shape gate, each item decided with a question open (W807), each subject typed with the copies it now owes, each left untyped with its unknown, and each W809 and W804 from section 6 with what the user chose. Never write that the questions are complete.
-  - **Reviews:** each checkpoint's `**Coverage:**` line from `## Reviews`, word for word, with its dropped findings and their reasons; or "none: no checkpoint ran". An area that did not run is listed with its reason, never left out.
-  - **Catalogue proposals:** each entry the user approved, and each entry `--stats` names as one to prune or tighten; or "none".
-  - **May still say the old value:** for each `decided` or `fact` value this session changed, run `grep -rn -F "<old wording>" --include='*.md' . | grep -v '^./sessions/'` and list every hit.
-  - **Check:** the first line of the check output, and any error left in place.
-  - **Stage:** run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner ladder` and copy each line whose `pages reach` is later than its `stage`, word for word; or "none". This is a line in the report, never a question: the lead types `stage` on the app page when they choose, in this session or a later one.
-- **Minutes.** Work it out from the session's commits: `git log --format=%ct <main>..HEAD` gives the first and last commit times. Write "about <n> minutes (from the commit log)", and if there is only one commit, write "not recorded". Never ask.
-- **Structural fixes** and **Prose edits.** Write "Filled in by the reviewer."
+Write the PR body to a temporary file, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says: it lists the headings, the lists that appear only when they have something to say, the minutes from the commit log, and the two lines left for the reviewer.
 
 Then run the command below, with one `--reviewer` per remaining reviewer (none, if nobody remains). `<Mode name>` is the display name in `MODES.md`.
 

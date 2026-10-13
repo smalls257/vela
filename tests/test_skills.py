@@ -7,7 +7,7 @@ import subprocess
 import pytest
 import yaml
 
-from conftest import REPO, run
+from conftest import REPO, run, skill_text
 
 PLUGIN = REPO / "plugin"
 SKILLS = sorted(p.parent for p in (PLUGIN / "skills").glob("*/SKILL.md"))
@@ -102,7 +102,7 @@ def test_dump_writes_captures_only():
 
 
 def test_close_marks_honestly_and_never_claims_a_pr():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "Never propose `fact`." in close
     assert "A `(claude)` line is parked unless the user picks it." in close
     assert "It is never parked." in close
@@ -114,7 +114,7 @@ def test_close_marks_honestly_and_never_claims_a_pr():
 
 
 def test_open_sessions_are_found_on_their_branches_and_ids_do_not_collide():
-    start, close = text("references/START.md"), text("skills/close/SKILL.md")
+    start, close = text("references/START.md"), skill_text("close")
     assert "git branch --list 'session/*'" in start and "git branch -r --list 'origin/session/*'" in start
     assert "add `-2`, then `-3`" in start
     assert "git branch -r --list 'origin/session/*'" in close and "git switch <branch>" in close and "it is `session/<id>`" in close
@@ -124,7 +124,7 @@ def test_open_sessions_are_found_on_their_branches_and_ids_do_not_collide():
 
 
 def test_close_parks_every_claude_origin_and_never_decides_its_unknowns():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "including `(claude, from <name>)`" in close
     assert "kept as an UNK with an owner and an ask-by date, or dropped with a reason" in close
     assert "Claude never decides it alone" in close and "This rule wins over the park default" in close
@@ -134,7 +134,7 @@ def test_close_parks_every_claude_origin_and_never_decides_its_unknowns():
 
 
 def test_close_pr_body_reviewers_and_staging():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "**Prose drafted:**" in close and "**Decided wording not yet read back:**" in close
     assert "gh api user -q .login" in close and "Strip the leading `@`" in close
     assert "If nobody remains, leave out `--reviewer`." in close
@@ -158,7 +158,7 @@ def test_grill_holds_the_gate_and_writes_each_decision_at_once():
 
 def test_grill_defines_acceptance_agenda_and_the_mark_exception():
     grill, start, close = (text("skills/grill/SKILL.md"), text("references/START.md"),
-                           text("skills/close/SKILL.md"))
+                           skill_text("close"))
     assert 'Silence, "ok", "next", "sure" with nothing else, or a change of subject do not count as acceptance.' in grill
     assert "read the final wording back and get a yes" in grill
     assert "says yes in person" in grill and "explicit yes" in grill
@@ -181,7 +181,7 @@ def test_discover_cites_sources_and_never_promotes_a_plan_to_fact():
     assert "Never copy document text into the vault." in discover
     assert "Claude's general knowledge is never a source." in discover
     assert "`Kind: repo`" in discover and "<url>@<sha>" in discover
-    assert "nothing under `.inbox/` is staged" in discover
+    assert "nothing under `.inbox/` is staged" in skill_text("close")  # close owns the staging check
 
 
 def test_shape_offers_two_or_three_and_never_decides():
@@ -193,22 +193,22 @@ def test_shape_offers_two_or_three_and_never_decides():
 
 def test_there_is_no_probe_skill():
     assert not (PLUGIN / "skills" / "probe").exists()
-    assert "There is no separate Probe skill." in text("references/MODES.md")
+    assert "probe" not in text("references/MODES.md").lower()
 
 
 def test_discover_fix_round_guesses_never_become_facts():
     d = text("skills/discover/SKILL.md")
     assert "Propose a `Kind` for each source" in d and "confirmed `Kind`" in d
     assert 'A line about the future ("will", "planned", "by Q4", "ready in") is an `assumption`, whatever its source\'s `Kind`.' in d
-    assert "Label every line with its source `SRC-nn` and that source's `Kind`." in d
-    assert "explicit yes for that line" in d and "ask again" in d
+    assert "Label every line with its source" in d and "that source's `Kind`" in d and "what runs today or a plan" in d
+    assert "the lines the lead said yes to" in d and "ask once more in different words" in d
     assert "`first-hand` is not a registered `Kind`" in d and "`Kind: exists`" in d
     assert "an owner handle and an ask-by date" in d
     assert "capture line and a `## Changes` row" in d
 
 
 def test_shape_and_close_fix_round():
-    shape, close = text("skills/shape/SKILL.md"), text("skills/close/SKILL.md")
+    shape, close = text("skills/shape/SKILL.md"), skill_text("close")
     assert "`claude, from <name>`" in shape
     assert "After close, run `/planner:grill <ID>`" in shape
     assert "never an `inkling`" in close and "`**Options considered:**` bullet" in close
@@ -218,7 +218,7 @@ def test_shape_and_close_fix_round():
 
 def test_discover_marks_its_fact_captures_and_close_leaves_them():
     d, start, close = (text("skills/discover/SKILL.md"), text("references/START.md"),
-                       text("skills/close/SKILL.md"))
+                       skill_text("close"))
     assert "→ keep: [[<page>#<heading>|<ID>]] (fact)" in d
     assert "(fact)" in start and "a Discover, which marks" in start
     assert "a Discover already marked `(fact)`, or a Boundary, Requirements, Allocate or Releases session already marked `(assumption)`, keeps its mark" in close
@@ -240,7 +240,7 @@ def run_injected(cwd, env):
 
 def test_ask_answers_from_opened_sections_and_marks_what_is_missing():
     ask = text("skills/ask/SKILL.md")
-    assert "Never search `voice/`." in ask
+    assert "Never search or Read a file under `voice/` or `.inbox/`." in ask  # said once
     assert "Cite nothing you did not open in this answer." in ask
     assert "`Not recorded:`" in ask and "`Not decided:`" in ask
     assert "Never create, edit or delete a file." in ask
@@ -268,15 +268,17 @@ def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
     for banned in ("`tee`", "`sed -i`", "`git commit`", "`git checkout`", "`git log --output`", "`planner render`"):
         assert banned in ask
     assert "writes a file or changes git state" in ask
-    assert "Every claim is followed by its ID or labelled `Not from the vault:`. There is no third choice." in ask
+    assert "Every claim rests on a page in the `Sources:` list or is labelled `Not from the vault:`. There is no third choice." in ask
+    assert "Name each thing in the sentence by its plain name, not its ID." in ask  # the lead reads names; IDs sit in Sources
     assert "Assert nothing you did not open and read. A Grep snippet alone does not count." in ask
-    assert "Never Read a file under `voice/` or `.inbox/`. Read `sessions/` only if the user asks." in ask
+    assert "Search and Read `sessions/` only if the question asks about a session or what was said." in ask
+    assert "only when the clone is behind origin/main" in ask  # a lead who asks a question does not read a commit hash first
 
 
 # house voice (V1-09): close now drafts prose through it, and only through it.
 
 def test_close_drafts_prose_through_house_voice():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     assert "Read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and follow it" in close
     assert "draft: prose for <id>" in close
     assert "Prose to draft" not in close
@@ -314,7 +316,8 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "`[testing]`" in epics
     assert "offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
-    assert "an explicit yes to each criterion on its own" in epics and "while any criterion lacks its own explicit yes" in epics
+    assert "in groups of about five" in epics and "while any criterion lacks a yes (its own or its group's)" in epics
+    assert "every criterion has a yes, its own or its group's" in epics
     assert "It does not mean they are decided" in epics and "check --gate epics --app <APP-id>" in epics
     assert "list each epic still at `draft`" in epics
     assert "Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID" in epics and "Redis or Kafka" in epics
@@ -326,13 +329,13 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
 
 def test_modes_and_close_know_epics():
     assert "| Epics (`epics`)" in text("references/MODES.md") and "| `epics` | `draft` epic pages" in text("references/MODES.md")
-    assert "owes its summary" in text("skills/close/SKILL.md")
+    assert "owes its summary" in skill_text("close")
 
 
 def test_epics_skill_frontmatter_instruction_names_the_epics_mode():
     epics = text("skills/epics/SKILL.md")
     assert "`modes: [epics, shape, grill]`" in epics and "`modes: [shape, grill]`" not in epics
-    assert "Still add the `## Changes` rows for every epic" in text("skills/close/SKILL.md")
+    assert "Still add the `## Changes` rows for every epic" in skill_text("close")
 
 
 # tech-design-grill vault mode (V1-18): read the slice, link back by ID and commit, never copy vault text.
@@ -348,10 +351,11 @@ def test_tech_design_from_vault_reads_the_slice_and_links_back():
 
 
 def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
-    b, modes, close = text("skills/boundary/SKILL.md"), text("references/MODES.md"), text("skills/close/SKILL.md")
+    b, modes, close = text("skills/boundary/SKILL.md"), text("references/MODES.md"), skill_text("close")
     assert "Offer 2 or 3 ways to cut the direction into apps, never one and never more than three" in b
-    assert "Write nothing until the user has given an explicit yes to that line" in b
-    assert "every page it writes is an `assumption` until a Grill" in b and "Never `addressed`" in b
+    assert "write a line only after the yes `START.md` defines" in b and "a yes to a group counts for the lines in it" in b
+    assert "read the sheet back in two groups" in b.lower()
+    assert "Every page this session writes is an `assumption`, never `decided`" in b and "never `addressed`" in b
     assert "→ keep: [[<page>#<heading>|<ID>]] (assumption)" in b
     assert 'the checkpoint "after the pages are written"' in b and "questions --subject <ID>" in b
     assert "/planner:grill <APP-id>" in b
@@ -373,7 +377,7 @@ def test_claude_asks_the_lead_first_never_drafts_an_ask_and_ends_a_blocked_sessi
 
 
 def test_a_review_is_about_what_this_session_changed_and_a_group_can_wait_on_one_unknown():
-    review, agent, close = text("references/REVIEW.md"), text("agents/area-reviewer.md"), text("skills/close/SKILL.md")
+    review, agent, close = text("references/REVIEW.md"), text("agents/area-reviewer.md"), skill_text("close")
     assert "--changed <paths>" in review and "`Changed: <paths>`" in review
     assert "it quotes a `Changed:` page" in agent
     assert "waits on UNK-050: Q-DAT-02@APP-account-link-service, R-OPS-12, F2.4" in review
@@ -384,7 +388,7 @@ def test_explore_opens_a_page_only_after_a_build_that_succeeded_and_writes_nothi
     explore = text("skills/explore/SKILL.md")
     assert "If the command exits 2, show its message in full, say no page was built, and stop." in explore
     assert "Never say the page is open unless the command succeeded." in explore
-    assert "Nothing is written into the plugin folder." in explore
+    assert "Nothing is written into the plugin folder." in skill_text("explore")  # product notes, in ABOUT.md, read on request
     meta = frontmatter(PLUGIN / "skills/explore/SKILL.md")
     assert "Write" not in meta["allowed-tools"].split() and "Edit" not in meta["allowed-tools"].split()
 
@@ -402,7 +406,7 @@ EXPLORER_LINE = "The dashboard is up to date: dashboard.html — open it, or run
 
 
 def test_close_ends_by_rebuilding_the_static_explorer_and_a_failed_build_never_blocks_it():
-    close = text("skills/close/SKILL.md")
+    close = skill_text("close")
     last = close.split("\n## ")[-1]
     assert last.startswith("9. Rebuild the explorer")
     assert "scripts/planner explore` from the vault root, without `--serve`" in last
@@ -422,9 +426,10 @@ def test_open_and_import_also_say_where_the_explorer_is_and_never_stop_on_a_fail
 
 
 def test_explore_and_the_vault_reference_say_designs_and_plans_live_in_the_vault_docs_folder():
-    explore, ref = text("skills/explore/SKILL.md"), text("references/TECH-DESIGN-FROM-VAULT.md")
+    explore, ref = skill_text("explore"), text("references/TECH-DESIGN-FROM-VAULT.md")
     assert "`docs/tech-design/<slug>.md` (with `docs/adr/`" in explore and "team_repos" not in explore
-    assert "Writing its own `docs/` files in the vault is allowed" in explore
+    assert "write their own `docs/` files in the vault and never edit a planner page" in explore
+    assert 'says "never edit the vault"' not in explore  # an outside skill's words go stale; say what is true here
     assert "in the vault" in ref and "team_repos" not in ref
 
 
@@ -464,7 +469,7 @@ def test_epics_skill_disposes_of_e805_by_answer_defer_or_override_and_never_leav
 
 
 def test_boundary_asks_which_capability_each_flow_serves_and_leaves_it_out_without_capabilities():
-    boundary = text("skills/boundary/SKILL.md")
+    boundary = skill_text("boundary")
     assert "`capabilities`" in boundary and "which capability the journey serves" in boundary
     assert "leave the field out and do not invent one" in boundary
 

@@ -4,7 +4,7 @@ import re
 
 import pytest
 import yaml
-from conftest import REPO, run
+from conftest import REPO, run, skill_text
 from sharing import make_vault
 
 PLUGIN = REPO / "plugin"
@@ -51,8 +51,10 @@ def test_start_skips_git_for_a_reader_and_still_writes_the_record():
 
 
 def test_close_has_a_reader_section_that_commits_and_pushes_nothing():
-    close = text("skills/close/SKILL.md")
-    section = close.split("## Reader copy: no git, no PR")[1].split("## 1. Find the session")[0]
+    close = skill_text("close")
+    pointer = close.split("## Reader copy: no git, no PR")[1].split("## 1. Find the session")[0]
+    assert "skills/close/READER.md" in pointer and "Never say a PR exists" in pointer
+    section = text("skills/close/READER.md")  # read only when `planner role` says reader
     assert "Nothing is committed, pushed or sent" in section and "Never say a PR exists" in section
     assert "Pending approval" in section and "Never write a handoff manifest" in section
     assert "grep -l '^status: open' sessions/*.md" in section

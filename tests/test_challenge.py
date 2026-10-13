@@ -47,7 +47,7 @@ def test_challenge_writes_an_unknown_the_senior_owns():
     assert "- **Blocks:** [[<page>#<heading>|<ID>]]" in text
     assert "- **Dissent:** <senior handle>, <today>: <the reason in a few words>" in text
     assert "Never name anyone but the senior as the unknown's owner." in text
-    assert "next free `UNK-nnn`" in text and "git branch -r --list 'origin/session/*'" in text
+    assert "planner next-id UNK" in text and "counts `main` and every open session branch" in text  # the command counts; the skill does not
 
 
 def test_challenge_asks_the_solution_lead_in_a_pr():
@@ -143,8 +143,8 @@ def test_handoff_verify_exit_2_has_two_cases_and_the_skill_shows_the_message():
 
 def test_the_next_unknown_number_is_highest_plus_one_and_the_session_id_names_the_item():
     text = skill_text()
-    assert "highest `UNK-nnn` in use plus one" in text and "Never fill a gap." in text
-    assert "git show <branch>:11-unknowns-and-risks.md" in text
+    assert "use exactly what it prints" in text and "a number is never handed out twice" in text
+    assert "highest `UNK-nnn` in use plus one" not in text  # a dead hand method: planner next-id does it
     assert "at the end of `## Unknowns`, before `## Risks`" in text.replace("Add the entry at", "at")
     assert "`<date>-challenge-<id-lowercased>`" in text
     assert "E316 fires once per unit" in text
