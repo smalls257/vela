@@ -56,7 +56,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
   border-bottom: 1px solid var(--rule); position: relative; z-index: 30; }
 .brand { all: unset; cursor: pointer; display: flex; flex-direction: column; min-width: 0; max-width: 210px; line-height: 1.2; }
 .brand-title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.brand-sub { color: var(--ink-3); font-size: 12px; white-space: nowrap; }
+.brand-sub { color: var(--ink-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tabs { display: flex; gap: 2px; background: var(--room); padding: 3px; border-radius: 9px; box-shadow: inset 0 1px 3px var(--shade); }
 .tab { border: 0; background: transparent; color: var(--ink-3); padding: 6px 11px; border-radius: 7px; cursor: pointer; font-size: 13.5px; white-space: nowrap; position: relative; }
 .tab:hover { color: var(--ink); }
@@ -115,7 +115,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .btn.quiet:hover { color: var(--ink); background: var(--deck); }
 .btn.off { opacity: .55; cursor: not-allowed; font-style: italic; }
 .btn.off:hover { background: transparent; color: var(--ink-3); }
-.btn.tiny { padding: 1px 9px; font-size: 11.5px; margin-left: 6px; }
+.btn.tiny { padding: 1px 9px; font-size: 11.5px; margin-left: 6px; white-space: normal; max-width: 100%; text-align: left; }
 .seg.small button { padding: 3px 9px; font-size: 12.5px; }
 .seg button:disabled { opacity: .35; cursor: default; }
 .chip:disabled { opacity: .4; cursor: default; }
@@ -124,7 +124,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .view-head p { margin: 2px 0 0; color: var(--ink-3); font-size: 13.5px; max-width: 70ch; }
 .view-head .spacer { flex: 1; }
 .scroll { overflow: auto; flex: 1; min-height: 0; }
-.seg { display: inline-flex; background: var(--room-2); border: 1px solid var(--rule-3); border-radius: 8px; padding: 2px; gap: 2px; }
+.seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; background: var(--room-2); border: 1px solid var(--rule-3); border-radius: 8px; padding: 2px; gap: 2px; }
 .seg button { border: 0; background: transparent; color: var(--ink-3); padding: 4px 11px; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap; }
 .seg button[aria-pressed="true"] { background: var(--deck-3); color: var(--ink); }
 .btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--rule-3); background: var(--deck); color: var(--ink); border-radius: 999px;
@@ -152,7 +152,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .lamp.override { background: var(--override); box-shadow: 0 0 6px color-mix(in srgb, var(--override) 60%, transparent), inset 0 0 0 1.5px var(--override-edge); }
 .lamp.dark { background: var(--unlit); box-shadow: inset 0 0 0 1px var(--rule-3); }
 .lamp.resolved { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); border-radius: 50%; }
-.pill { display: inline-block; font-size: 11.5px; padding: 0 8px; border-radius: 999px; background: var(--deck-3); color: var(--ink-2); vertical-align: 1px; white-space: nowrap; }
+.pill { display: inline-block; font-size: 11.5px; padding: 0 8px; border-radius: 999px; background: var(--deck-3); color: var(--ink-2); vertical-align: 1px; white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
 .pill.warning { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--warning-text); }
 .pill.caution { background: color-mix(in srgb, var(--caution) 16%, transparent); color: var(--caution-text); }
 .pill.unexamined { background: color-mix(in srgb, var(--unexamined) 15%, transparent); color: var(--unexamined-text); }
@@ -160,7 +160,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .ustate { font-size: 10.5px; padding: 0 5px; border-radius: 999px; vertical-align: 1px; }
 .us-open { background: color-mix(in srgb, var(--caution) 18%, transparent); color: var(--caution-text); }
 .us-resolved { background: var(--deck-3); color: var(--ink-3); }
-.ref-chip { display: inline-flex; align-items: baseline; gap: 5px; border: 1px solid var(--rule-3); border-radius: 6px; padding: 1px 7px; margin: 0 4px 4px 0;
+.ref-chip { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: baseline; gap: 5px; border: 1px solid var(--rule-3); border-radius: 6px; padding: 1px 7px; margin: 0 4px 4px 0;
   font-size: 12.5px; color: var(--ink); cursor: pointer; background: var(--room-2); text-decoration: none; }
 .ref-chip:hover { border-color: var(--ink-3); text-decoration: none; }
 .ref-chip .rid { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
@@ -218,7 +218,7 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
   .view-head p.lede { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 }
 @media (max-width: 1500px) { .sound-btn span { display: none; } .sound-btn { padding: 7px 9px; } }
-.ref-chip .rid { white-space: nowrap; }
+.ref-chip .rid { white-space: normal; overflow-wrap: anywhere; }
 /* A phone-width window has no room for three columns: the page, then its detail, then the front doors stack in one
    column and the window scrolls down through them, so nothing needs a sideways scroll (360 px is the floor). */
 @media (max-width: 700px) {

@@ -191,7 +191,7 @@ table.cmx td.none { background: var(--cell-empty); border-radius: 5px; }
 .grouped .duct-lit { opacity: .35; }
 .grouped .count-badge .lamp-text { font-size: 12px; font-weight: 700; fill: var(--unlit-ink); }
 .grouped .count-badge.lit .lamp-text { fill: var(--caution-ink); }
-.tool-unit { display: inline-flex; align-items: center; gap: 8px; }
+.tool-unit { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: center; gap: 4px 8px; }
 svg.tracing .duct.picked:not(.tr-on), svg.rippling .duct.picked:not(.rp-on) { stroke: var(--duct); }
 .grouped .cluster-names text { paint-order: stroke; stroke: var(--board); stroke-width: 5px; stroke-linejoin: round; }
 .cockpit.grouped .cluster-lamp .node-sub { fill: var(--ink-3); font-weight: 400; }

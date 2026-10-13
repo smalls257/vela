@@ -15,17 +15,20 @@
 .inside-chip-card { margin: 30px 28px; display: flex; gap: 16px; max-width: 70ch; background: var(--room-2); border: 1px dashed var(--rule-3); border-radius: 12px; padding: 18px 20px; }
 .inside-chip-card b { display: block; font-size: 15px; margin-bottom: 4px; color: var(--ink); }
 .inside-chip-card .muted { font-size: 13.5px; line-height: 1.5; }
+.inside-chip-card > div:last-child { min-width: 0; }
+.inside-chip-card .btn { white-space: normal; text-align: left; max-width: 100%; }
 .icc-ico { color: var(--ink-3); font-size: 26px; }
 .board g.hit.inside-door { cursor: zoom-in; }
 
 /* the design's state and its problems: shape and ink */
-.d-status { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 1px 10px; border-radius: 999px; white-space: nowrap; color: var(--ink); border: 1.5px solid var(--ink-2); }
+.d-status { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 1px 10px; border-radius: 14px; white-space: normal; flex-wrap: wrap; max-width: 100%; min-width: 0; overflow-wrap: anywhere; text-align: left; color: var(--ink); border: 1.5px solid var(--ink-2); }
 .d-status.complete { background: var(--ink-2); color: var(--room); border-color: var(--ink-2); }
 .d-status.complete-with-gaps { border-style: solid; background: transparent; }
 .d-status.in-progress, .d-status.unknown { border-style: dashed; color: var(--ink-3); }
 .d-status b { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--ink-3); }
 .d-status.complete b { color: var(--room); }
-.d-problems { white-space: nowrap; }
+/* A status pill or problems chip carries a list that can run long (the gaps a design names); in a narrow box it wraps inside its own outline rather than running out of it. */
+.d-problems { border-radius: 14px; white-space: normal; flex-wrap: wrap; max-width: 100%; min-width: 0; text-align: left; overflow-wrap: anywhere; }
 .d-problems.some { border-color: var(--note-text); color: var(--note-text); }
 .d-problems .ico { width: 13px; height: 13px; }
 
@@ -119,7 +122,7 @@ a.vid { font-family: var(--mono); font-size: .92em; }
 .seq-step.later { opacity: .42; }
 .seq-step.on .seq-msg { stroke: var(--ink); stroke-width: 2.4; }
 .seq-step.on .seq-text { fill: var(--ink); font-weight: 600; }
-.seq-ctl { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.seq-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; }
 .seq-ctl .btn.tiny { margin-left: 0; }
 .seq-now { margin-top: 6px; font: 14px/1.45 var(--serif); color: var(--ink); }
 
