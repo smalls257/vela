@@ -2059,11 +2059,12 @@ def cmd_next(args, out):
     step = initiative_step(vault, row) or teamdocs.team_step(root)
     if step:
         print(f"planner next: {step} {when}", file=out)
-        return 0
-    if row is None:
+    elif row is None:
         print(f"planner next: nothing to do. Every app's items are settled and its epics decided. {when}", file=out)
-        return 0
-    print(f"planner next: {row.app.id}, {row.mode} {row.subject}. {row.reason} {when}", file=out)
+    else:
+        print(f"planner next: {row.app.id}, {row.mode} {row.subject}. {row.reason} {when}", file=out)
+    for line in design_steps(vault, root):
+        print(line, file=out)
     return 0
 
 
@@ -2108,6 +2109,17 @@ def cmd_tickets(args, out):
     print(f"wrote {', '.join(str(w) for w in written)}", file=out)
     print(line, file=out)
     return 1 if any(f.flag for f in findings) else 0
+
+
+def design_steps(vault, root):
+    """One line per handed-off app with no design doc where the explorer looks for one: the team side's next step.
+    It runs alongside the lead's, so it is a line of its own and never one of the progress rules."""
+    from planner.explorer import design_find
+    found, _ = design_find.discover(vault, root, [])
+    designed = {arg.split("=", 1)[0] for arg in found}
+    return [f"planner next: team side, {app.id}, design. {app.id} is handed off and has no design doc in "
+            f"docs/tech-design/ yet; its team runs /planner:design --app {app.id}."
+            for app in vault.apps if app.meta.get("handed_off") and app.id not in designed]
 
 
 def build_parser():

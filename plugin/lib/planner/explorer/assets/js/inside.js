@@ -870,7 +870,9 @@ const Inside = (() => {
     return [phead(`Team design · ${d.path.split("/").slice(-1)[0]}`, d.title || designWord(app), h("div", { class: "p-meta" }, statusPill(app), problemsChip(app, { keep: true })),
       h("div", { class: "p-actions" }, designLink(d), linkChips(app))),
     h("div", { class: "p-body" },
-      d.overview.text ? h("div", { class: "prose-text in-prose" }, prose(d.overview.text)) : null,
+      d.summary && d.summary.text ? h("div", { class: "prose-text in-prose in-summary" }, prose(d.summary.text)) : null,
+      d.overview.text ? (d.summary && d.summary.text ? sec("Architecture overview", null, h("div", { class: "prose-text in-prose" }, prose(d.overview.text))) : h("div", { class: "prose-text in-prose" }, prose(d.overview.text))) : null,
+      skeletonSection(d),
       sec("Boundaries", null, h("div", { class: "facts" }, h("div", { class: "fl" }, "Inside"), h("div", {}, prose(d.boundaries.inside || "not written")), h("div", { class: "fl" }, "Outside"), h("div", {}, prose(d.boundaries.outside || "not written")))),
       sec("Gaps", fm.gaps.length, fm.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", prose(g.what || ""), h("div", { class: "ml-sub" }, [g.acknowledged_by ? `acknowledged by ${g.acknowledged_by}` : "acknowledged by nobody", g.why ? `; why: ${g.why}` : "; no why", g.revisit ? `; revisit ${g.revisit}` : "; no revisit"].join(""))))),
       sec("Deferred", fm.deferred.length, fm.deferred.map((x) => h("div", { class: "in-gap" }, h("b", {}, x.id), " ", x.section || "", ": ", prose(x.reason || "")))),
@@ -881,6 +883,13 @@ const Inside = (() => {
         d.vault.source === "inferred" ? h("span", { class: "heuristic" }, " Inferred from the prereq path and the citations; the format has no vault: field.") : null)),
       sec("Trace", null, h("div", { class: "p-note" }, `${plural(d.targets.length, "target")} the vault gives it; ${d.targets.length - d.resolved.untraced.length} owned, ${Object.keys(d.resolved.acknowledged).length} acknowledged by a gap, ${d.resolved.untraced.length - Object.keys(d.resolved.acknowledged).length} missed. Owners are ${sourceWord(d)}.`),
         h("button", { class: "btn tiny", onclick: () => { st.tab = "trace"; open(app, "components", { keepTrail: true }); } }, "The trace, by component")))];
+  }
+  /* The walking skeleton a /planner:design doc names: the release-one path through the components, and what is stubbed. */
+  function skeletonSection(d) {
+    const w = d.walking_skeleton;
+    if (!w || (!w.text && !Object.keys(w.fields || {}).length)) return null;
+    return sec("Walking skeleton", null, w.text ? h("div", { class: "prose-text in-prose" }, prose(w.text)) : null,
+      h("div", { class: "facts in-skeleton" }, Object.entries(w.fields).flatMap(([label, v]) => [h("div", { class: "fl" }, label), h("div", {}, prose(v))])));
   }
   function componentPanel(app, d, name) {
     const c = d.components.find((x) => x.name === name);
