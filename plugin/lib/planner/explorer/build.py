@@ -29,7 +29,7 @@ import re
 import uuid
 
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
-                     reading, roles, schema, terms, trace)
+                     reading, roles, schema, slices, terms, trace)
 from planner import search as planner_search
 from planner.edge import atomic
 from planner.parse import FENCE, closes_fence
@@ -598,7 +598,8 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["sections"] = pages_data.sections(vault, keys)
     data["outgoing"] = pages_data.outgoing(vault, keys)
     data.update(roles_data.extract(vault, keys))
-    data["slicePlan"] = slices_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)))
+    recorded, _ = cli.recorded_standings(pathlib.Path(root), vault, [s.key for s in slices.read_slices(vault)], today)
+    data["slicePlan"] = slices_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)), recorded)
     data["branches"] = branches_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)))
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})

@@ -1203,7 +1203,8 @@ def cmd_check_slice(args, out):
     explored = flowcheck.explore_prepared(prepared, args.max_states, args.max_seconds, time.perf_counter)
     result = flowcheck.finish(catalog, prepared, explored, today)
     store["slices"][recorded_key(catalog, args.slice, prepared)] = record.to_record(
-        result, explored, record.fingerprint(prepared, args.max_states, args.max_seconds, version), today)
+        result, explored, record.fingerprint(prepared, args.max_states, args.max_seconds, version), today,
+        (args.max_states, args.max_seconds))
     warnings.append(flowstore.write_store(root, record.dump_store(store)))
     print(result.format(), file=out)
     for warning in filter(None, warnings):
@@ -1904,24 +1905,42 @@ def cmd_handoff(args, out):
     entries = handoff.handoff_list(vault, app)
     commit = stamp_commit(root, args.commit)
     not_firm = handoffwarn.lines(handoffwarn.gaps(vault, app))
+    taking_part = slices.for_app(vault, slices.read_slices(vault), app)
+    standings, record_warning = recorded_standings(root, vault, [s.key for s in taking_part], today)
+    checks = handoff.check_lines(taking_part, standings)
     try:
         target.parent.mkdir(exist_ok=True)
-        atomic.write_atomic(target, handoff.write(app_id, entries, commit, today, not_firm, vault.name_of(app_id)))
+        atomic.write_atomic(target, handoff.write(app_id, entries, commit, today, not_firm, vault.name_of(app_id), checks))
     except OSError as exc:
         raise ToolError(f"cannot write {target.relative_to(root).as_posix()}: {exc.strerror or exc}. "
                         f"{schema.HANDOFF_DIR}/ must be a folder and {app_id}.md a file.") from exc
     print(f"planner handoff: wrote the handoff record for {vault.named(app_id)}, {target.relative_to(root).as_posix()}: "
           f"{len(entries)} things its team takes on, as of commit {commit}.", file=out)
-    taking_part = [s for s in slices.for_app(vault, slices.read_slices(vault), app)] if slices.on_pages(vault) else []
-    if taking_part:
+    if taking_part and slices.on_pages(vault):
         print(f"{vault.name_of(app_id)} is part of {len(taking_part)} slice{'' if len(taking_part) == 1 else 's'}: "
               + "; ".join(f"{s.label} ({s.status or 'not planned yet'})" for s in taking_part) + ".", file=out)
+    if checks:
+        print("Flow checks, as recorded:", file=out)
+        for line in checks:
+            print(line, file=out)
+    if record_warning:
+        print(f"Warning: {record_warning}", file=out)
     if not_firm:
         print(f"{len(not_firm)} {'thing is' if len(not_firm) == 1 else 'things are'} not settled yet. Tell the app's team before "
               "they accept it; the handoff record lists them too.", file=out)
         for line in not_firm:
             print(line, file=out)
     return 0
+
+
+def recorded_standings(root, vault, keys, today):
+    """({slice key: standing.Standing}, warning) from the flow checker's record, read by its own reader; nothing is
+    explored. A missing record or one that does not read gives "not checked", never a pass."""
+    from planner.edge import flowstore
+    from planner.flowcheck import readers, standing
+    store, warning = flowstore.read_record(root)
+    catalog = readers.read_catalog(vault, spec_texts(root))
+    return standing.standings(catalog, store, keys, today, flowstore.checker_version()), warning
 
 
 def handoff_verify(root, app_id, out):

@@ -144,15 +144,14 @@ def test_a_corrupt_or_foreign_store_is_ignored_with_a_warning():
         record.explored_of({"explored": {"findings": [{"nonsense": 1}]}})
 
 
-def test_the_recorded_state_keeps_not_fully_checked_as_itself():
+def test_the_record_keeps_not_fully_checked_as_itself_and_its_budget():
     catalog = readers.read_vault(files_of())
     prepared = flowcheck.prepare(catalog, "SLC-002", TODAY)
     explored = flowcheck.explore_prepared(prepared, max_states=1)
     result = flowcheck.finish(catalog, prepared, explored, TODAY)
-    store = {"format": 1, "slices": {"SLC-002": record.to_record(result, explored, "fp", TODAY)}}
-    state = record.last_state(store, "SLC-002")
-    assert state["status"] == "not fully checked" and state["checked"] == TODAY and state["open"] == ["not fully checked"]
-    assert record.last_state(store, "SLC-009") is None
+    kept = record.to_record(result, explored, "fp", TODAY, (1, 10.0))
+    assert kept["status"] == "not fully checked" and kept["checked"] == TODAY and kept["openTitles"] == ["not fully checked"]
+    assert kept["budget"] == [1, 10.0]  # a reader judges whether it still holds with the budget it was explored with
 
 
 # --- check_slices: walk plus record -------------------------------------------------------------------------------------

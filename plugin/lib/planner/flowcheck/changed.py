@@ -119,7 +119,7 @@ def check_slices(catalog, today, store, walk=None, everything=False, max_states=
         if reuse:
             report.lines.append(Line(found.key, found.label, result, kept.get("checked", "an earlier check"), why))
         else:
-            report.store["slices"][found.key] = record.to_record(result, explored, fp, today)
+            report.store["slices"][found.key] = record.to_record(result, explored, fp, today, (max_states, max_seconds))
             report.lines.append(Line(found.key, found.label, result, "", why))
     return report
 

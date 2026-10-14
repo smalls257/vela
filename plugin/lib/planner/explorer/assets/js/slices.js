@@ -171,6 +171,15 @@ const Slices = (() => {
     if (c.status === "passes") return [`passes${covered}`];
     return [`${c.status}: ${plural(c.open.length, "kind")} of open finding (${c.open.join(", ")})${covered}`];
   }
+  /* The last full flow check, as recorded (flowcheck/standing.py reads the record; the page never does). A slice with
+     no record, or one that changed since, says so in amber: never shown as passed. */
+  function recordedSays(r) {
+    if (!r) return [h("span", { class: "gap small" }, "not checked")];
+    const day_ = (d) => (isDate(d) ? day(d) : d);
+    const said = r.state === "stale" ? `not checked since ${day_(r.checked)}. ${r.why}` : r.state === "not checked" ? `not checked. ${r.why}`
+      : `${r.words}${r.open.length ? ` (${r.open.join(", ")})` : ""}, recorded ${day_(r.checked)}`;
+    return [h("span", { class: r.passed ? "" : "gap small", "data-recorded": r.state }, said)];
+  }
   function overrideItem(o) {
     const item = E[o.item] ? chip(E[o.item].title, o.item, { key: o.item }, "sl-join") : h("span", {}, o.item);
     return h("li", { class: o.ended ? "sl-ended" : "" }, `${o.code} on `, item, ` (${o.case}) until ${o.until}`, o.ended ? h("b", {}, ". It has ended, so it doesn't cover anything") : null);
@@ -187,6 +196,7 @@ const Slices = (() => {
       x.milestones.length ? line("Milestone", x.milestones.join("; ")) : null,
       x.notIn.length ? line("Not in it", h("ul", { class: "sl-notin" }, x.notIn.map((l) => h("li", {}, l.text)))) : null,
       line("Flow check", checkSays(x.check)),
+      line("Full check", recordedSays(x.recorded)),
       x.check && x.check.overrides.length ? line("Overrides", h("ul", { class: "sl-overrides" }, x.check.overrides.map(overrideItem))) : null,
     ].filter(Boolean);
   }

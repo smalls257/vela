@@ -32,7 +32,17 @@ def flow_check(vault, found, today, specs):
     return out
 
 
-def extract(vault, keys, today, specs=None):
+def recorded_words(found):
+    """A `flowcheck.standing.Standing` as the page shows it; None when no standing was read for the slice."""
+    if found is None:
+        return None
+    return {"state": found.state, "words": found.words, "checked": found.checked, "open": list(found.open), "why": found.why,
+            "line": found.line(), "passed": found.passed}
+
+
+def extract(vault, keys, today, specs=None, recorded=None):
+    """The Slices view's data. `recorded` is {slice key: flowcheck.standing.Standing}, the last full flow check as
+    recorded (the dashboard never reads the record itself); a slice with none reads "not checked"."""
     found = slices.read_slices(vault)
     part = slices.taking_part(vault, found)
     app_key = {a.id: keys.page(a) for a in vault.apps}
@@ -59,6 +69,7 @@ def extract(vault, keys, today, specs=None):
             "apps": [app_key[a] for a in part.get(s.key, [])],
             "journeyDue": s.journey_due, "overdue": slices.journey_overdue_says(s) if slices.journey_overdue(s, today) else "",
             "check": checks.get(s.key),
+            "recorded": recorded_words((recorded or {}).get(s.key)) if recorded is not None else None,
             "after": list(s.after), "circled": s.key in circled,
             "owner": s.owner, "doneWhen": plain(s.done_when), "shipsOff": plain(s.ships_off), "milestone": plain(s.milestone),
             "milestones": [r.name for r in marked.get(s.id, [])], "journey": journey, "notIn": left_out(s.not_in),
