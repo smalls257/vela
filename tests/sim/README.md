@@ -165,6 +165,35 @@ appear in that turn, give or take whitespace, quote marks and emphasis. A K clai
 not the inbox, the conventions or the voice examples. A claim that fails is turned to "no" and listed under "Dropped claims". This is mechanical,
 not taste. Read the quoted turns in `transcript.html` before you believe a score.
 
+## Compare two runs
+
+    python3 tests/sim/compare.py results/<earlier run> results/<later run> [--json]
+
+This is how the overhaul's mid-point gate is read: the later run against the baseline, arm by arm. It reads only what
+the runs stored (run.json `per_arm`, each arm's `scorecard.json` and `transcript.jsonl`), replays nothing and costs
+nothing. Arms pair by name. For each pair it prints, old value then new:
+
+- **Lead-facing turns.** Every assistant turn's own text, matched against `say.LEAD_PATTERNS` (the patterns
+  `--for-lead` enforces: check codes, gates, captures, copies, findings, reviewer rows, item IDs, goals), plus the
+  tool's own names (`vela <command>`, `/vela:x`, `scripts/vela`). Totals, per turn, by kind, and the turns with any.
+- **Detail parity.** The `vela capture` counts stored for the final vault (unknowns, unknowns with an Ask,
+  requirements, allocation rows, epics, and the rest). A detail count more than 10% down is flagged, the gate's
+  threshold. Fewer codes and IDs is the direction you want, so those are never flagged.
+- **Judge and sessions.** Items captured, challenged, surfaced and decided; decided without a yes, invented facts,
+  drafted messages; how each session ended and what the arm spent.
+
+Skipped close steps, consent before a push, ledger rows and items written are not counted, and the report says so:
+run.py stores none of them, and the tool calls in a transcript are cut at 200 characters, so a count read from them
+would quietly miss some. Read the transcripts for those.
+
+Runs recorded before the tool was renamed to vela keep their old arm folders and their old command names in the
+text. `LEGACY_NAMES` in `compare.py` is the one place those names live: it pairs an old arm folder with today's arm,
+and rewrites an old run's assistant text into today's names before anything is counted, so an old command name and
+today's count the same. A new run's text is never rewritten. `--rejudge` scores an old run as it is, under its old
+arm names. A run that stopped before writing `per_arm` or a scorecard is read from its arm folders, and every number
+it lacks prints as "not known", never as 0. Exit 0 when the runs compared, 2 when a folder is not a run or the two
+runs share no arm.
+
 ## Long runs: launch them detached
 
 A shell command started in the background by a tool (Claude Code's included) is killed after 2 hours, and a full run
@@ -331,7 +360,7 @@ How each criterion is measured:
 | Snapshot | What it is |
 |---|---|
 | `coastal-merger/empty` | `template/` as `tests/evals/scaffold.py` builds it for a run, without `.claude/skills` |
-| `coastal-merger/after-s2` | the vela arm of `results/2026-10-05-124823-coastal-merger` after its dump and close: `git archive 4185442` |
+| `coastal-merger/after-s2` | the vela arm of `results/2026-10-05-124823-coastal-merger` (recorded under its old arm name, see `LEGACY_NAMES`) after its dump and close: `git archive 4185442` |
 | `coastal-merger/after-s4` | the same run after its first discover and close: `git archive 0ed88c7` |
 | `holdout-hospitals/empty`, `after-dump`, `after-discover` | written by hand as a dump and close, then a discover and close, would leave them; each passes `vela check` with 0 errors |
 
@@ -406,9 +435,14 @@ detection (a question, a cue, an unknown, a read-back list counted as listed), d
 options and the judge's quotes, blind output holding no ID, keyword or brief text, the holdout always blind, the
 ledger refusing to start, and every exit code. Holdout tests assert on counts only. It costs nothing.
 
+`tests/test_sim_compare.py` runs `compare.py` on lines copied from a run recorded before the rename
+(`legacy_lines.py`): each reads as its hand-renamed twin and counts the same, and an old arm folder pairs with
+today's. `tests/test_sim.py` also rejudges and compares a stub run whose arm folder carries the old name.
+
 ## Files
 
 - `run.py`: the driver.
+- `compare.py`: two finished runs side by side, arm by arm. `legacy_lines.py`: its test lines.
 - `probe.py`: one-session probes from a snapshot, for the iteration loop.
 - `probes/`: the probe cases. `snapshots/`: the starting vaults.
 - `personas/holdout-hospitals.yaml`: the holdout. Do not read it while iterating.
