@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Turn a decided direction into apps a team senior can take. Until an app page exists, the catalog's app and contract questions are owed by nothing, `planner status` has nothing to show, and epics and handoff have nothing to work on. Boundary never decides: every page it writes is an `assumption` until a Grill.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The page formats are `CONVENTIONS.md`: "Frontmatter", "IDs", "Fact bullets" for contracts, "Fact tables" for containers, "Concern cells and waivers", and the ladder under "Areas and stages".
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The page formats are in `CONVENTIONS.md`, read one section at a time with `planner conventions "<section>"`: "Frontmatter", "IDs", "Fact bullets" for contracts, "Fact tables" for containers, "Concern cells and waivers", and the ladder under "Areas and stages".
 
 ## 1. Start
 
@@ -46,11 +46,11 @@ Then write a stub for every app of the picked cut whose `change` is `new` or `ch
 
 ## 3. Read back one boundary sheet per app
 
-Draw the tracer candidate's flows first. The tracer is the first thin path through the apps (`CONVENTIONS.md` defines it under "Releases"; say what it is the first time you mention it). Before the first sheet, ask what a person would do if one thin path went through all of these first. Offer the journey that crosses the most of the cut's apps, from the user's words and the sources, and read its steps back (item 8 below) before any other flow, so its flow pages exist when `/planner:releases` chooses the tracer.
+Draw the tracer candidate's flows first. The tracer is the first thin path through the apps (`planner conventions "Releases"` defines it; say what it is the first time you mention it). Before the first sheet, ask what a person would do if one thin path went through all of these first. Offer the journey that crosses the most of the cut's apps, from the user's words and the sources, and read its steps back (item 8 below) before any other flow, so its flow pages exist when `/planner:releases` chooses the tracer.
 
 Record the answer so releases does not ask again: a capture of the path in the lead's words, marked at once `→ keep: [[<first flow page>#Steps|<the flow's name>]] (assumption)`, and the path as the opening sentence of that flow page ("the first thin path: ..."). A user with no candidate yet is not held up: say releases will ask once, and carry on.
 
-When a flow's steps and its contracts' case tables are confirmed, draw it as the strict sequence diagram (`CONVENTIONS.md`, "Flow check") and run `planner check-slice FLO-nnn`. Read each finding to the lead in its own words, with the apps that own it, and settle it there as a case row, a branch or an unknown; don't write a finding into the page yourself.
+When a flow's steps and its contracts' case tables are confirmed, draw it as the strict sequence diagram (`planner conventions "Flow check"`) and run `planner check-slice FLO-nnn`. Read each finding to the lead in its own words, with the apps that own it, and settle it there as a case row, a branch or an unknown; don't write a finding into the page yourself.
 
 Take the stubs one at a time. For each, show its sheet as a numbered list:
 
@@ -65,17 +65,17 @@ Take the stubs one at a time. For each, show its sheet as a numbered list:
 9. **Concerns:** one line per concern page: `unknown` with the question that must be answered first, `unchanged` when a changed app's existing practice holds, `n/a` with why, or `unexamined`. Never `addressed`, because only a Grill decides one.
 10. **Where it lives:** ask where this app's code and its team's wiki live, and for the links or a skip. A link is only what the user gives you. Never guess an address from the app's name, and a skip is not recorded.
 
-**The case table for each contract in item 4.** A contract is not read back as one sentence about what crosses; it gets a table of every way the provider can answer (`CONVENTIONS.md`, "Fact bullets": the case table). Draft it yourself from what the contract's text, the sources and the runtime failure lines already say, mark each row `(claude)`, and show the rows to the lead. The lead confirms; you invent nothing the text does not support, and a case you cannot support is asked, not guessed. Ask one question per open case, each with your recommendation: "When the stock check can't find the item, what does Stock say back? Recommended: a 409 that names the item, because Shop has to show the customer why." Ask the same way whether the contract can time out and how often the caller retries, and what proves the caller's identity. A row with no yes is left out, and the contract's missing table stays a warning for the next session to settle; it is never filled with a guess.
+**The case table for each contract in item 4.** A contract is not read back as one sentence about what crosses; it gets a table of every way the provider can answer (`planner conventions "Fact bullets"`: the case table). Draft it yourself from what the contract's text, the sources and the runtime failure lines already say, mark each row `(claude)`, and show the rows to the lead. The lead confirms; you invent nothing the text does not support, and a case you cannot support is asked, not guessed. Ask one question per open case, each with your recommendation: "When the stock check can't find the item, what does Stock say back? Recommended: a 409 that names the item, because Shop has to show the customer why." Ask the same way whether the contract can time out and how often the caller retries, and what proves the caller's identity. A row with no yes is left out, and the contract's missing table stays a warning for the next session to settle; it is never filled with a guess.
 
 Label every line with what it rests on: a source, a decided item and the Grill that decided it, the user's own words, or `(claude)` for your proposal. A line with nothing under it is a proposal, and it says so. Say each app, contract and flow by its plain name when you show a sheet. Read the sheet back in two groups, "what it does and doesn't" (items 1 to 3) and "how it connects" (items 4 to 10), and write a line only after the yes `START.md` defines; a yes to a group counts for the lines in it. A correction replaces the line, and the corrected line needs its own yes. A line the user cannot answer becomes an unknown on `11-unknowns-and-risks.md`, `### UNK-nnn <short name>`, with `**Question:**`, an `**Owner:**` handle, `**State:** open`, an `**Ask by:**` date and `**Blocks:**` linking what it blocks, written in the same checkpoint as the line that links it. Write who would actually know as `**Ask:**`, as `MODES.md` says under "Unknowns".
 
 ## 4. Write the confirmed lines
 
-After each sheet, write what was confirmed and commit a checkpoint. `${CLAUDE_PLUGIN_ROOT}/skills/boundary/PAGES.md` lists what each page holds: the app page, its containers, the contracts it provides and consumes, what was weighed, the runtime page, the concern cells, capabilities, flows and scope. The required fields are in the Frontmatter table of `CONVENTIONS.md`, and `planner check` reports a missing one. Five things are easy to get wrong:
+After each sheet, write what was confirmed and commit a checkpoint. `${CLAUDE_PLUGIN_ROOT}/skills/boundary/PAGES.md` lists what each page holds: the app page, its containers, the contracts it provides and consumes, what was weighed, the runtime page, the concern cells, capabilities, flows and scope. The required fields are in the table `planner conventions "Frontmatter"` prints, and `planner check` reports a missing one. Five things are easy to get wrong:
 
 - Every page this session writes is an `assumption`, never `decided`, and a concern cell is never `addressed`: only a Grill decides one.
 - A contract's provider outside the initiative is a link to the outside party's page, never a sentence about who supplies it.
-- A hand-over step in a flow starts with its sender and receiver and an arrow (`CONVENTIONS.md`, "Flow steps"), so no reader guesses the direction.
+- A hand-over step in a flow starts with its sender and receiver and an arrow (`planner conventions "Flow steps"`), so no reader guesses the direction.
 - A skipped answer (a link, a domain) is not recorded, and a line with no yes keeps `unexamined`: it claims nothing.
 - New IDs come from `planner next-id <PREFIX>`, so an open session branch never hands out the same number twice.
 

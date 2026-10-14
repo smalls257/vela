@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 A senior who accepted an app at handoff can still find that a boundary or a contract is wrong. An owner whose item someone else decided on their behalf, with a `**Decided by:** @x, on behalf of @owner` bullet, uses this skill the same way when they disagree; when they agree, they add `- **Confirmed by:** @owner on <date>` instead. This skill records that disagreement where the solution lead must answer it, without settling it. The challenged item keeps its state and its text. The senior's challenge becomes an open unknown that blocks it, so the vault cannot stay quietly `decided` on something a senior disputes.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is in `CONVENTIONS.md`; read the section a step names with `planner conventions "<section>"` (`--list` names them all), never the whole file.
 
 ## 1. Start
 

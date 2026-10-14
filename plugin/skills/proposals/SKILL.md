@@ -10,7 +10,7 @@ allowed-tools: Read Edit Bash(python3 *scripts/planner *)
 
 A reader worked in a published copy and sent changes. You are the owner, so you decide each one. The reader's changes are applied on their own branch in a git worktree beside your checkout, so nothing you are working on moves.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md`.
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is in `CONVENTIONS.md`; read the section a step names with `planner conventions "<section>"` (`--list` names them all), never the whole file.
 
 ## Reviewing
 
@@ -63,7 +63,7 @@ The work is on `proposal/<slug>`. Offer the owner their normal git steps and pri
 
 ## Special cases
 
-If the owner wants to accept something a rule forbids, such as a check error or a decision made without a Grill, they may: record it as an `**Override:**` on the item, as `CONVENTIONS.md` says under "Overrides", with their handle, today's date and their reason. Never block it, never hide it.
+If the owner wants to accept something a rule forbids, such as a check error or a decision made without a Grill, they may: record it as an `**Override:**` on the item, as `planner conventions "Overrides"` says, with their handle, today's date and their reason. Never block it, never hide it.
 
 If a reader changed the words of an item that was already `decided` (not one they decided themselves), and the owner does not want to settle it now, do not leave it quietly decided. Record a blocking unknown as `/planner:challenge` section 4 does, with the reader as its owner and `**Blocks:**` the item, and commit it on the branch. `planner check` then shows E316 until an answer session (`modes: [answer, grill]`, `START.md` "Answer a challenge") settles it.
 

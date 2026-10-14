@@ -2,7 +2,7 @@
 
 Contents: where the planner runs from; owner or reader; plain names and a page a person can hold; shell on a Mac and on Linux; the user may override any rule; steps 1 to 6 (the clone, open sessions, review comments, overdue unknowns, the record, how to talk); answer a challenge; closing a session; captures.
 
-Every mode skill runs these steps before its own. The vault root is the current directory. The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (see "Where the planner runs from" below), and the format is `CONVENTIONS.md`. Every command in the skills is written with that prefix.
+Every mode skill runs these steps before its own. The vault root is the current directory. The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (see "Where the planner runs from" below), and the format is in `CONVENTIONS.md`, read one section at a time with `planner conventions "<section>"` (`--list` names them all), never the whole file. Every command in the skills is written with that prefix.
 
 ## Where the planner runs from
 
@@ -22,13 +22,13 @@ Run `planner role`. Access decides, never a title. An **owner** works in the vau
 
 - **No git or `gh`, anywhere.** Never run `git switch`, `git pull`, `git fetch`, `git commit`, `git push`, `git status` or `gh`, and skip every step in any skill that stages, commits, checkpoints, pushes or opens a PR. Say so once, plainly: "This is a read copy, so I will not use git: your work stays in this folder and nothing is committed or sent."
 - **Session records are still written**, in place, to `sessions/<id>.md`, and kept up to date by hand as captures arrive.
-- **Decisions and overrides are pending.** A reader may record `decided`, but beside every item they decide or override, write `- **Pending approval:** @<their handle>, <today>` (where `CONVENTIONS.md` says under "Pending approval"). The handle is a short lower-case name, asked once and reused; their full name is `author` in `.planner/workspace.json`. Owner decisions never carry the marker. Tell the reader why: the owner sees it before it counts.
+- **Decisions and overrides are pending.** A reader may record `decided`, but beside every item they decide or override, write `- **Pending approval:** @<their handle>, <today>` (where `planner conventions "Pending approval"` says). The handle is a short lower-case name, asked once and reused; their full name is `author` in `.planner/workspace.json`. Owner decisions never carry the marker. Tell the reader why: the owner sees it before it counts.
 - **Owner-only, so not open to a reader:** handoff, publish, `planner upgrade` and `/planner:challenge`. Name the owner as the CLI does (`published.json` has `owner`): "That is <name>'s call. Send a proposal (`/planner:propose`) and they decide."
 - If `planner role` says `none`, stop and show its message.
 
 ## Plain names and a page a person can hold
 
-The people who read this vault hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so what you say and what you write are sized to that. `CONVENTIONS.md` says under "Pages" what the files follow; in a session:
+The people who read this vault hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so what you say and what you write are sized to that. `planner conventions "Pages"` says what the files follow; in a session:
 
 - **The lead reads names, never codes.** Every kind of ID and code stays out of what the lead reads: unknowns, capabilities and requirements, contracts, flows, epics, apps, parties, runs, copy and finding IDs, capture numbers, check codes, gate names and numbers, and rule names in capitals. Say the thing's name, or what the code means in the lead's words: "the pilot date is a plan, not a fact yet", not a check code; "the strategy page is ready to decide", not a gate; "the calendar entries", "the prep-note flow", not a contract or flow ID. IDs go in files, the pull request body, `- Trace:` lines and the `**Override:**` bullet, where the check reads them. If the lead asks for an ID, give it. Spell an abbreviation out the first time you use it.
 - **A line is written after a yes to that line.** A yes that covers a group you read out ("yes to these five") counts for every line in it, so read sheets, criteria and rows back in groups of about five, not one by one. Silence or "ok" is not a yes: ask once more in different words, then park the line as an open question. The reason: a decided or assumed line should carry the lead's own word, and a yes to a long list is not consent to each line in it.
@@ -51,8 +51,8 @@ The user may override any rule in these skills. Say once, in one plain sentence 
 
 This holds in every skill, whichever steps of this file it runs, and it covers the grill gates, "only a Grill decides", an open unknown that blocks an item, an absent owner, and every "never" and "must not" in the skills and in `MODES.md`. The lead may decide on others' behalf.
 
-- History bullets (Override, Decision, Decided by, Confirmed by, Options considered, Dissent) go under the page's `## History`, as `CONVENTIONS.md` says under "Pages": page level directly under it, an item's under `#### <ID>`. Add the section at the end of the page if it is missing.
-- Write the bullet in the grammar of `CONVENTIONS.md` under "Overrides": `- **Override:** <rule> by @<user's handle> on <today>: <their reason, in their words>`, under the item's heading or at page level. Name the rule as the skills do: `GATE-1` to `GATE-5`, `grill`, a check code such as `E316`, or the rule's own words in double quotes (the file needs the name; the lead does not hear it). If no rule was set aside, write no `**Override:**` bullet: something the lead wishes, such as who may reopen an item, is a Notes line. The handle comes from `gh api user -q .login`; if `gh` fails, read it from the first line of `.planner/handle`, and if that is missing ask once and write it there (`.planner/` is not committed). In a reader copy, do not run `gh`: read or ask for a short handle the same way, once, and never again in any skill.
+- History bullets (Override, Decision, Decided by, Confirmed by, Options considered, Dissent) go under the page's `## History`, as `planner conventions "Pages"` says: page level directly under it, an item's under `#### <ID>`. Add the section at the end of the page if it is missing.
+- Write the bullet in the grammar of `planner conventions "Overrides"`: `- **Override:** <rule> by @<user's handle> on <today>: <their reason, in their words>`, under the item's heading or at page level. Name the rule as the skills do: `GATE-1` to `GATE-5`, `grill`, a check code such as `E316`, or the rule's own words in double quotes (the file needs the name; the lead does not hear it). If no rule was set aside, write no `**Override:**` bullet: something the lead wishes, such as who may reopen an item, is a Notes line. The handle comes from `gh api user -q .login`; if `gh` fails, read it from the first line of `.planner/handle`, and if that is missing ask once and write it there (`.planner/` is not committed). In a reader copy, do not run `gh`: read or ask for a short handle the same way, once, and never again in any skill.
 - The "session's note" is that same bullet at page level in the session record, for a rule that belongs to no item, such as batching writes. Also capture the user's instruction verbatim, with them as origin, so the record holds what they said.
 - When the user decides for an owner who is not there, add `- **Decided by:** @<user>, on behalf of @<owner>`. The owner later adds `- **Confirmed by:** @<owner> on <date>`, or raises `/planner:challenge` if they disagree. Until then `planner check` warns with W324.
 - If they give no reason, ask for one once. If they still give none, write `reason not given`.
@@ -105,7 +105,7 @@ If `gh` fails, say: "gh could not list merged PRs (<the error>), so review comme
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check` and read its first line, which says which date it used. For each `W705` line, name the unknown, its owner and its ask-by date. Ask the user whether they know the answer now, and how, as `MODES.md` says under "Unknowns". If they do not, offer to turn the question into a research task Claude does now with a source. Never draft an ask for the user to send, and never offer to. A research answer becomes a capture with the source named. It never becomes a `fact` without a row in `sources.md`.
 
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner next` and show its line. If the user has not said what this session is for, offer that app and mode first. It is a suggestion from the rules in `CONVENTIONS.md` under "Progress and next step", never a decision.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner next` and show its line. If the user has not said what this session is for, offer that app and mode first. It is a suggestion from the rules in `planner conventions "Progress and next step"`, never a decision.
 
 ## 5. Open the record and the branch
 
@@ -165,7 +165,7 @@ Close is a skill you may start, and only on the lead's word. That word is any pl
 
 ## Captures during the session
 
-Write each point as a capture line in `## Captures`, in the form `CONVENTIONS.md` gives. Leave the mark off until close, except in a mode whose skill says its captures are marked at once. Those are a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`; a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)`; and Boundary, Requirements, Allocate and Releases, which mark the capture of each line they write `→ keep: [[<page>#<heading>|<ID>]] (assumption)`. Close leaves a mark already written alone.
+Write each point as a capture line in `## Captures`, in the form `planner conventions "Sessions"` gives. Leave the mark off until close, except in a mode whose skill says its captures are marked at once. Those are a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`; a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)`; and Boundary, Requirements, Allocate and Releases, which mark the capture of each line they write `→ keep: [[<page>#<heading>|<ID>]] (assumption)`. Close leaves a mark already written alone.
 
 - A person's words are quoted verbatim, with their name, role or handle as the origin.
 - Claude's own idea has origin `claude`.

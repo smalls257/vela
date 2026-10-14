@@ -9,13 +9,13 @@ disable-model-invocation: true
 
 Say what the business needs, once, before anyone decides which app does it. A requirement here names no app: boundary cuts the work into apps afterwards, and `/planner:allocate` divides each requirement among them. A requirements session never decides: what it writes is an `assumption` until a Grill.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `CONVENTIONS.md` under "Requirements and allocation" and "Fact bullets" (the functional requirement row).
+The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is `planner conventions "Requirements and allocation"` and `planner conventions "Fact bullets"` (the functional requirement row).
 
 ## 1. Start
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `requirements`. Read the Requirements row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. If `04-solution-strategy.md` is not `decided`, say so: requirements written against an undecided strategy may be written again. Go on only if the user says to, and record that as an override as `START.md` says.
 
-Read the strategy, the goals, the constraints, `04a-capability-delta.md` and every capability page. List the capabilities the strategy needs: the user's argument, or every one the strategy implies. For each that has no page, propose its name in the domain's words, such as "Refund a canceled booking", with its `change` (`new`, `extend`, `replace`, `narrow` or `retire`), and on the user's yes write `capabilities/CAP-nnn-<slug>.md` as `CONVENTIONS.md` says under "Frontmatter" for a capability (`state: assumption`, `origin: proposed`), with opening prose saying what the business can do with it, and a link from `04a-capability-delta.md`. Take the number from `planner next-id CAP`.
+Read the strategy, the goals, the constraints, `04a-capability-delta.md` and every capability page. List the capabilities the strategy needs: the user's argument, or every one the strategy implies. For each that has no page, propose its name in the domain's words, such as "Refund a canceled booking", with its `change` (`new`, `extend`, `replace`, `narrow` or `retire`), and on the user's yes write `capabilities/CAP-nnn-<slug>.md` as `planner conventions "Frontmatter"` says for a capability (`state: assumption`, `origin: proposed`), with opening prose saying what the business can do with it, and a link from `04a-capability-delta.md`. Take the number from `planner next-id CAP`.
 
 ## 2. One capability at a time
 

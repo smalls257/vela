@@ -110,3 +110,19 @@ def test_render_and_check_leave_the_codes_block_alone(tmp_path):
     assert (vault / "CONVENTIONS.md").read_bytes() == before and "CONVENTIONS" not in out
     code, out = run("check", "--vault", str(vault))
     assert code == 0 and "CONVENTIONS.md:" not in out
+
+
+def test_every_planner_conventions_call_in_the_skills_resolves_exactly():
+    """Task 30, skill lines: skills name a section through `planner conventions "<section>"` instead of telling the
+    model to read the whole file; each name they use must be a section the command prints."""
+    import re
+    texts = [p.read_text(encoding="utf-8") for p in (REPO / "plugin" / "skills").rglob("*.md")]
+    texts += [p.read_text(encoding="utf-8") for p in (REPO / "plugin" / "references").glob("*.md")]
+    names = {n for t in texts for n in re.findall(r'`planner conventions "([^"<]+)"`', t)}
+    assert len(names) >= 15, names
+    for name in sorted(names):
+        code, out = run("conventions", name, "--vault", str(REPO / "template"))
+        assert code == 0, (name, out[:200])
+    for t in texts:
+        assert not re.search(r"\bread\b[^.\n]{0,40}`?CONVENTIONS\.md`?", t, re.I), "a skill still says to read CONVENTIONS.md"
+        assert "`CONVENTIONS.md` says under" not in t and '`CONVENTIONS.md`, "' not in t

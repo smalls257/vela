@@ -84,7 +84,7 @@ The examples are what to match. These rules are what to do where they are thin. 
 11. **Keep the owner's words and the record's facts.** Who said what, and every state word, number, date and negation, stay as the record has them, even when a smoother sentence is tempting. A merged paragraph changes only the fact that changed; voicecheck says so when one is gone.
 12. **Spell in American English.** Behavior, organization, color, license, canceled. The owner may override it in `voice/VOICE.md`.
 
-Write paragraphs where the page asks for prose: a run of bullets that are not fact bullets is a paragraph waiting to be written. Name things in the sentence and keep their IDs on a `- Trace:` line. Facts come from somewhere. Every number, date and ID in a draft comes from a capture, a source or a page; where you cannot point to it, leave it out. Spell an abbreviation out at its first use on the page, put a link on the words that rely on a source or point at an item, and link every ID as `CONVENTIONS.md` says under "Pages". A paragraph says what is true now; how a decision was reached is the page's `## History`.
+Write paragraphs where the page asks for prose: a run of bullets that are not fact bullets is a paragraph waiting to be written. Name things in the sentence and keep their IDs on a `- Trace:` line. Facts come from somewhere. Every number, date and ID in a draft comes from a capture, a source or a page; where you cannot point to it, leave it out. Spell an abbreviation out at its first use on the page, put a link on the words that rely on a source or point at an item, and link every ID as `planner conventions "Pages"` says. A paragraph says what is true now; how a decision was reached is the page's `## History`.
 
 ## Pages that are mostly a list
 
