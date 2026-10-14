@@ -65,6 +65,15 @@ function openLink(kids, relative, inVault, title, cls = "btn quiet") {
   if (!SERVED_HERE) return null;
   return h("span", { class: cls + " off", "aria-disabled": "true", title: "This helper opens only files inside the vault, and this one is outside it. Open it from your editor, or open the page as a file." }, ...kids, " (outside the vault)");
 }
+/* Slice, tracer and grill are the only working words the page keeps (the user's ruling); each carries its one-line
+   definition as a tooltip wherever it shows. The text comes from planner/terms.py through the data, so the CLI, the
+   generated pages and this page say the same thing. An unknown word throws rather than showing an undefined term. */
+function termEl(word, shown) {
+  const text = (D.terms || {})[word];
+  if (!text) throw new Error(`termEl: no definition for "${word}" in planner/terms.py`);
+  return h("span", { class: "term", title: text, tabindex: "0", "aria-label": `${shown || word}: ${text}` }, shown || word);
+}
+const termTip = (word) => { const text = (D.terms || {})[word]; if (!text) throw new Error(`termTip: no definition for "${word}"`); return text; };
 const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
 const shorten = (t, n) => { t = t || ""; return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);

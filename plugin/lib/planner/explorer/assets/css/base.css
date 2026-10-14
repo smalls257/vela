@@ -268,3 +268,6 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 .pannable { cursor: grab; }
 .pannable.panning, .pannable.panning * { cursor: grabbing !important; }
 html.pan-now, html.pan-now * { user-select: none; -webkit-user-select: none; }
+
+/* kept working words (termEl in core.js): a dotted underline says "hover or focus for the definition" */
+.term { text-decoration: underline dotted; text-underline-offset: 2px; cursor: help; }

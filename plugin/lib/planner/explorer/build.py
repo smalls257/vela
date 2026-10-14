@@ -29,7 +29,7 @@ import re
 import uuid
 
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
-                     reading, roles, schema, trace)
+                     reading, roles, schema, terms, trace)
 from planner import search as planner_search
 from planner.edge import atomic
 from planner.parse import FENCE, closes_fence
@@ -576,6 +576,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
         "blockedBy": {k: [u.id for u in v] for k, v in blocked.items()},
         "progress": progress_data(vault, root, keys, today), "trace": trace_data(vault, keys),
         "backlinks": backlinks(vault, keys), "search": search_index(vault, keys), "ask": {"rules": list(serve.RULES)},
+        "terms": dict(terms.TERMS),
     }
     data["pending"] = pending_list(vault, keys)
     data["owners"] = owners(entities)
