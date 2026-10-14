@@ -102,3 +102,12 @@ def test_a_reader_cannot_hand_off_or_upgrade_and_is_told_whose_call_it_is(reader
 def test_a_reader_may_still_verify_a_handoff_read_only(reader_copy):
     code, out = run("handoff", "verify", "APP-till", "--vault", str(reader_copy))
     assert "owner's job" not in out
+
+
+def test_where_reports_whether_injection_ran():
+    """Wave 1, step 0: the user's /planner:where in Cowork answers whether `!` injection runs there. The skill must say
+    which happened, and still produce the values when the host left the line unrun."""
+    skill = text("skills/where/SKILL.md")
+    assert "`injection: yes`" in skill and "`injection: no`" in skill
+    assert "run the same `echo ...` line yourself" in skill
+    assert "end by asking the user to send this whole output" in skill
