@@ -18,7 +18,7 @@
 .sl-empty { max-width: 70ch; padding: 14px 0; }
 .sl-empty p { margin: 0 0 8px; color: var(--ink-2); }
 
-/* status pills: the same colour the path draws on a box's edge */
+/* status pills: the same color the path draws on a box's edge */
 .pill.sl-st { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--st); }
 .pill.sl-st.st-none { box-shadow: none; border: 1px dashed var(--st); color: var(--ink-2); }
 .pill.sl-st.st-on { box-shadow: inset 0 0 0 2.5px var(--st); font-weight: 600; }

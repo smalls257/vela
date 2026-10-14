@@ -1,7 +1,7 @@
 /* ------------------------------------------------ themes: the room's palette, picked in the top bar (theme.js)
    Console is base.css's :root. Each theme here sets every palette property base.css lists, and the lamps keep
    their five meanings in every room: red overdue, amber needs you, blue never examined, white overridden, unlit
-   settled. On a light ground amber and white cannot stand on colour alone, so --lamp-edge rings every lamp and
+   settled. On a light ground amber and white cannot stand on color alone, so --lamp-edge rings every lamp and
    --override-edge rings the white one (test_build.py checks the contrast of each). */
 :root[data-theme="graphite"] {
   /* palette */
@@ -24,7 +24,7 @@
   --rl-face: #262626; --rl-edge: #4a4a4a; --rl-name: #f0f0f0; --rl-sub: #a8a8a8; --rl-party: #1d1d1d;
   --bay: #2a2a2a; --bay-edge: #383838; --rack: #141414;
   --mix-inkling: #9a6060; --mix-assumption: #c0922f; --mix-fact: #5a90d0; --mix-decided: #dedede;
-  --lines: #f06aa8, #5b9bff, #36c98a, #a58cff, #b6d35a, #e28a5c; --line-grey: #8a8a8a;
+  --lines: #f06aa8, #5b9bff, #36c98a, #a58cff, #b6d35a, #e28a5c; --line-gray: #8a8a8a;
   --lanes: #6f9bff, #44d39f, #cf8ff2, #b5d86a, #9a8cff, #f08fc0, #d9c39a, #5fc2b4, #8fb8e8, #e8a3ff;
   --scheme: dark;
   /* end of palette */
@@ -51,7 +51,7 @@
   --rl-face: #ffffff; --rl-edge: #aab5ba; --rl-name: #1e2a30; --rl-sub: #5f6e74; --rl-party: #f1f3f2;
   --bay: #dfe4e5; --bay-edge: #c9d0d2; --rack: #d3d9da;
   --mix-inkling: #b46a6a; --mix-assumption: #c08a1e; --mix-fact: #2f6db3; --mix-decided: #56666d;
-  --lines: #d0347e, #2f6fe0, #11905d, #7254d6, #6b8a12, #c25d27; --line-grey: #8a979c;
+  --lines: #d0347e, #2f6fe0, #11905d, #7254d6, #6b8a12, #c25d27; --line-gray: #8a979c;
   --lanes: #2f64d8, #12895f, #9a4fc4, #5f7f12, #5b4fd0, #c2457f, #8c6a2a, #1f8a7c, #3d6fa8, #a34fc9;
   --scheme: light;
   /* end of palette */
@@ -82,7 +82,7 @@
   --rl-face: #2c1750; --rl-edge: #5a3c8a; --rl-name: #f1dcff; --rl-sub: #a888c8; --rl-party: #22113d;
   --bay: #2c1650; --bay-edge: #3e2070; --rack: #160a2a;
   --mix-inkling: #b0607a; --mix-assumption: #c99a3c; --mix-fact: #5f8ee0; --mix-decided: #e6c9f5;
-  --lines: #ff71ce, #b967ff, #05ffa1, #7d8cff, #c6ff6b, #ff8fe0; --line-grey: #8f7aa8;
+  --lines: #ff71ce, #b967ff, #05ffa1, #7d8cff, #c6ff6b, #ff8fe0; --line-gray: #8f7aa8;
   --lanes: #ff71ce, #05ffa1, #b967ff, #c6ff6b, #7d8cff, #ff8fe0, #e0c3ff, #5fe0c0, #a0b4ff, #f0a0ff;
   --scheme: dark;
   /* end of palette */

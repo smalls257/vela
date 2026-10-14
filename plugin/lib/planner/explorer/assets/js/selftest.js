@@ -182,8 +182,8 @@ const SelfTest = (() => {
     if (D.map.apps.length) {
       const app = D.map.apps[0].key;
       Nav.open("apps", app); await frames();
-      const shownN = +($("#board") || { dataset: {} }).dataset.shown, want = 1 + new Set([...MapGroups.neighbours(app).uses.keys(), ...MapGroups.neighbours(app).usedBy.keys()]).size;
-      ok(MapView.st.focus === app && shownN === want && App.root === "read:" + app, `Apps › ${titleOf(app)}: the map focused on it with its ${want - 1} direct neighbours only, its page in the panel`, `focus on ${app}: shown ${shownN}, wanted ${want}; root ${App.root}`);
+      const shownN = +($("#board") || { dataset: {} }).dataset.shown, want = 1 + new Set([...MapGroups.neighbors(app).uses.keys(), ...MapGroups.neighbors(app).usedBy.keys()]).size;
+      ok(MapView.st.focus === app && shownN === want && App.root === "read:" + app, `Apps › ${titleOf(app)}: the map focused on it with its ${want - 1} direct neighbors only, its page in the panel`, `focus on ${app}: shown ${shownN}, wanted ${want}; root ${App.root}`);
       const btn = $("#panel .open-page") || null;
       go(app, { reset: true }); await frames();
       const open = $("#panel .open-page");
@@ -546,7 +546,7 @@ const SelfTest = (() => {
       const movedBy = after[first][1] - was[first][1], stayed = list.filter((g) => g.key !== first).every((g) => Math.hypot(after[g.key][0] - was[g.key][0], after[g.key][1] - was[g.key][1]) < 1);
       const clash = overlaps();
       ok(!!Layout.clusterAt(first) && (Math.abs(movedBy - MapView.COCKPIT.rh) < 1 || /stopped just short|went just past/.test(said)) && stayed && !clash.length,
-        `a ${way} cluster moves a whole row down with Shift and the arrow key (or stops short of a neighbour and says so), the others stay where they were, and nothing overlaps`,
+        `a ${way} cluster moves a whole row down with Shift and the arrow key (or stops short of a neighbor and says so), the others stay where they were, and nothing overlaps`,
         `${way} cluster: moved ${movedBy.toFixed(1)} px down, said "${said}", others stayed ${stayed}; ${clash.slice(0, 3).join("; ")}`);
     }
     MapView.st.group = "none"; MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
@@ -986,7 +986,7 @@ const SelfTest = (() => {
     if (D.asks.some((u) => !u.ask.recorded)) {
       showView("asks"); await frames();
       const racks = $$(".bay-head .not-asked").length, unrecorded = new Set(D.asks.filter((u) => !u.ask.recorded).map((u) => u.ask.key)).size;
-      ok(racks === unrecorded, `who to ask: ${plural(racks, "rack")} labelled as placed by owner, since their questions have no Ask line`, `who to ask: ${racks} labelled racks, wanted ${unrecorded}`);
+      ok(racks === unrecorded, `who to ask: ${plural(racks, "rack")} labeled as placed by owner, since their questions have no Ask line`, `who to ask: ${racks} labeled racks, wanted ${unrecorded}`);
     } else out.push("skip not-asked racks: every question has an Ask line");
     Nav.home(); go("lights", { reset: true });
   }
@@ -1036,7 +1036,7 @@ const SelfTest = (() => {
     // the answer is streamed in pieces that cut through the Markdown: a table, a nested list, a code block, chips, and a payload
     const answer = (turn) => [
       "## What it delivers\n\n", `- It delivers [[${id}]]\n  - nested, from [[${id}]]\n    - deeper still\n- Bare ID ${otherId} in a bullet\n\n`,
-      "| Thing | Where |\n|---|---|\n", `| Alpha | [[${id}]] |\n| Beta | [[${id}|a labelled link]] in a cell |\n\n`, "```js\nconst x = 1 < 2;\n```\n\n",
+      "| Thing | Where |\n|---|---|\n", `| Alpha | [[${id}]] |\n| Beta | [[${id}|a labeled link]] in a cell |\n\n`, "```js\nconst x = 1 < 2;\n```\n\n",
       withToc ? `See [[${E[withToc].path}#${heading}]]. ` : "",
       // the forms Claude copies from the vault's own pages: a path without .md, a bare file name, a heading, a |label
       withToc ? `Also [[${E[withToc].path.replace(/\.md$/, "")}|the stem link]] and [[${E[withToc].path.replace(/\.md$/, "").split("/").pop()}#${heading}|the base link]]. ` : "",
@@ -1070,15 +1070,15 @@ const SelfTest = (() => {
       `ask, fake helper: ${id} cited with [[ ]] is a chip in a bullet, a nested bullet and a table cell`, "ask, fake helper: [[ID]] chips are missing from the list or the table");
     ok(!!bullet && !!$(`.ref-chip[data-ref="${CSS.escape(other)}"]`, bullet) && !$("code", bullet), `ask, fake helper: ${otherId}, written bare, is a chip too`, `ask, fake helper: bare ID in "${bullet && bullet.textContent}"`);
     const rows = a1 ? $$("table tr", a1) : [];
-    ok(rows.length >= 3 && rows.every((r) => r.children.length === 2) && /a labelled link/.test(rows[2].textContent),
+    ok(rows.length >= 3 && rows.every((r) => r.children.length === 2) && /a labeled link/.test(rows[2].textContent),
       "ask, fake helper: a table row's [[ID|label]] keeps its pipe: the row has 2 cells, not 3", `ask, fake helper: table cells per row ${rows.map((r) => r.children.length)}`);
     const dead = a1 && $(".ask-unknown", a1);
     ok(!!dead && /ZZZ-999/.test(dead.textContent) && /not in this vault/.test(dead.textContent), "ask, fake helper: [[ZZZ-999]] is flagged as not in this vault", "ask, fake helper: the unknown ID is not flagged");
     if (withToc) {
       const unknown = $$(".ask-unknown", a1).map((c) => c.textContent);
-      const labelled = ["the stem link", "the base link"].every((l) => $$(`.ref-chip[data-ref^="${CSS.escape(withToc)}"], .ref-chip[data-ref^="read:${CSS.escape(withToc)}"]`, a1).some((c) => c.textContent.includes(l)));
-      ok(unknown.length === 1 && labelled, "ask, fake helper: Obsidian links ([[path|label]], [[file#heading|label]]) are chips showing their label, and only ZZZ-999 is flagged",
-        `ask, fake helper: flagged ${JSON.stringify(unknown)}, labelled chips ${labelled}`);
+      const labeled = ["the stem link", "the base link"].every((l) => $$(`.ref-chip[data-ref^="${CSS.escape(withToc)}"], .ref-chip[data-ref^="read:${CSS.escape(withToc)}"]`, a1).some((c) => c.textContent.includes(l)));
+      ok(unknown.length === 1 && labeled, "ask, fake helper: Obsidian links ([[path|label]], [[file#heading|label]]) are chips showing their label, and only ZZZ-999 is flagged",
+        `ask, fake helper: flagged ${JSON.stringify(unknown)}, labeled chips ${labeled}`);
     }
     if (withToc) {
       const prose = $$(".ask-prose-link", a1).find((l) => l.textContent.startsWith("It stays the news app"));
@@ -1126,8 +1126,8 @@ const SelfTest = (() => {
     const was = Theme.id, fx = FX.on, bad = [], dots = [];
     for (const [t, plain] of [...Theme.LIST.map((x) => [x.id, false]), [was, true]]) {
       Theme.set(t); FX.set(!plain);
-      const a = $("#main .ask-a"), bg = getComputedStyle($("#main")).backgroundColor, colour = (el) => getComputedStyle(el).color;
-      if (!a || colour(a) === bg || !$(".ask-unknown", a) || colour($(".ask-unknown", a)) === bg || colour($("th", a)) === getComputedStyle($("th", a)).backgroundColor || colour($("a[href]", a)) === bg) bad.push(plain ? "plain" : t);
+      const a = $("#main .ask-a"), bg = getComputedStyle($("#main")).backgroundColor, color = (el) => getComputedStyle(el).color;
+      if (!a || color(a) === bg || !$(".ask-unknown", a) || color($(".ask-unknown", a)) === bg || color($("th", a)) === getComputedStyle($("th", a)).backgroundColor || color($("a[href]", a)) === bg) bad.push(plain ? "plain" : t);
       const wait = h("span", { class: "ask-wait" }, "x"); a.append(wait); dots.push(getComputedStyle(wait, "::after").animationName); wait.remove();
     }
     Theme.set(was); FX.set(fx);
@@ -1265,8 +1265,8 @@ const SelfTest = (() => {
     if (!pills.length) out.push("skip state pills: no page here links a question with a state worth flagging");
     else {
       const glued = pills.filter((p) => { const prev = p.previousSibling; return !(prev && prev.nodeType === 3 && /\s$/.test(prev.nodeValue)); });
-      const labelled = pills.filter((p) => !p.getAttribute("aria-label") || !/^\(.*\)$/.test(p.textContent));
-      ok(!glued.length && !labelled.length, `state pills: ${pills.length} pills, each set off from its link by a space, with an accessible label and parentheses that copy`, `state pills: ${glued.length} glued to the link (first ${glued[0] && glued[0].parentNode.textContent.slice(0, 60)}), ${labelled.length} unlabelled`);
+      const labeled = pills.filter((p) => !p.getAttribute("aria-label") || !/^\(.*\)$/.test(p.textContent));
+      ok(!glued.length && !labeled.length, `state pills: ${pills.length} pills, each set off from its link by a space, with an accessible label and parentheses that copy`, `state pills: ${glued.length} glued to the link (first ${glued[0] && glued[0].parentNode.textContent.slice(0, 60)}), ${labeled.length} unlabeled`);
     }
     const proseOpen = boxes.flatMap((b) => $$("p .ustate.us-open, blockquote .ustate.us-open, h1 .ustate.us-open, h2 .ustate.us-open, h3 .ustate.us-open", b)).filter((p) => !p.closest("li, td, th"));
     ok(!proseOpen.length, "state pills: no 'open' pill in running prose", `state pills: ${proseOpen.length} 'open' pills in prose, first after ${proseOpen[0] && proseOpen[0].previousElementSibling && proseOpen[0].previousElementSibling.textContent}`);
@@ -1319,8 +1319,8 @@ const SelfTest = (() => {
     for (const k of [...loaded, bare].filter(Boolean)) {
       const d = D.designs[k], name = titleOf(k);
       Inside.open(k, "context");
-      const nb = MapGroups.neighbours(k), want = 1 + new Set([...nb.uses.keys(), ...nb.usedBy.keys()]).size, shown = +(($("#inside-stage #board") || { dataset: {} }).dataset.shown);
-      ok(shown === want && $(".inside-crumbs .cur").textContent === "Context", `inside ${name}, context: it and its ${want - 1} direct neighbours, as the map's Focus`, `inside ${name}, context: shown ${shown}, wanted ${want}`);
+      const nb = MapGroups.neighbors(k), want = 1 + new Set([...nb.uses.keys(), ...nb.usedBy.keys()]).size, shown = +(($("#inside-stage #board") || { dataset: {} }).dataset.shown);
+      ok(shown === want && $(".inside-crumbs .cur").textContent === "Context", `inside ${name}, context: it and its ${want - 1} direct neighbors, as the map's Focus`, `inside ${name}, context: shown ${shown}, wanted ${want}`);
       Inside.open(k, "containers");
       const c = D.containers[k], boxes = $$("#inside-stage .in-box.container").length;
       if (c && c.rows.length) {
@@ -1412,7 +1412,7 @@ const SelfTest = (() => {
       const epic = id.match(/^(EPC-\d{3})\.AC\d+$/);
       go(epic ? keyForId(epic[1]) : id, { reset: true });
       const row = $$(`#panel .in-owner.untraced.${kind}`)[0];
-      ok(!!row && !!row.querySelector(kind === "ack" ? ".lamp.dark" : ".lamp.caution"), `reverse trace: ${id} untraced, ${kind === "ack" ? "grey, acknowledged by " + Inside.UNTRACED[id].find((u) => u.gap).gap : "amber, and no gap says so"}`, `reverse trace: ${id} shows no ${kind} row`);
+      ok(!!row && !!row.querySelector(kind === "ack" ? ".lamp.dark" : ".lamp.caution"), `reverse trace: ${id} untraced, ${kind === "ack" ? "gray, acknowledged by " + Inside.UNTRACED[id].find((u) => u.gap).gap : "amber, and no gap says so"}`, `reverse trace: ${id} shows no ${kind} row`);
     }
     // a design question's challenge lights the vault item it challenges, with its scenario
     for (const id of Object.keys(Inside.CHALLENGED)) {
@@ -1551,7 +1551,7 @@ const SelfTest = (() => {
       ok(groups === (hasTracer ? "tracer,then" : "order") + (p.stories.some((x) => !x.tasks.length) ? ",notnow" : ""), `inside ${name}, build plan (${layout}): the groups read ${groups}`, `inside ${name}, build plan (${layout}): groups were ${groups}`);
       ok(flagged.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return $$(".plan-badge[data-flag=open]", c).length === (x.openNotes.length ? 1 : 0) && $$(".plan-badge[data-flag=conflict]", c).length === x.conflicts.length; })
         && $$("#inside-stage .plan-badge").length === flagged.reduce((n, x) => n + (x.openNotes.length ? 1 : 0) + x.conflicts.length, 0),
-        `inside ${name}, build plan (${layout}): ${plural(flagged.length, "story", "stories")} wear a labelled badge for each open note and conflict`, `inside ${name}, build plan (${layout}): badges do not match the notes of ${flagged.map((x) => x.id).join(", ")}`);
+        `inside ${name}, build plan (${layout}): ${plural(flagged.length, "story", "stories")} wear a labeled badge for each open note and conflict`, `inside ${name}, build plan (${layout}): badges do not match the notes of ${flagged.map((x) => x.id).join(", ")}`);
       ok(lit.every((x) => { const c = $(`#inside-stage .plan-card[data-story="${x.id}"]`); return c.className.includes("lit ") && !!$(".lamp", c); }),
         `inside ${name}, build plan (${layout}): ${plural(lit.length, "story", "stories")} blocked by an open vault question wear that question's lamp`, `inside ${name}, build plan (${layout}): a story blocked by an open question is not lit`);
       const dead = $$("#inside-stage .plan-traces .ref-chip.ref-dead").length;
@@ -1599,7 +1599,7 @@ const SelfTest = (() => {
     const evil = "<img src=x onerror=\"window.__draftpayload = 1\"> & <b>bold</b>";
     const block = Drafts.diffBlock([["hunk", "@@ -1 +1 @@"], ["del", "old line"], ["add", evil], ["ctx", "same"]]);
     ok(!block.querySelector("img, b, script") && $$(".tx", block)[2].textContent === evil && $$(".sym", block).map((x) => x.textContent).join("") === "-+ " && !window.__draftpayload,
-      "drafts view: a diff line is escaped text, and additions and removals carry a + and - symbol as well as a colour", `drafts view: markup in a line became elements (${block.innerHTML.slice(0, 120)})`);
+      "drafts view: a diff line is escaped text, and additions and removals carry a + and - symbol as well as a color", `drafts view: markup in a line became elements (${block.innerHTML.slice(0, 120)})`);
     const sample = { path: "p.md", mine: "p.mine.md", kind: "both-edited", why: "You and the owner changed the same lines.", ranges: [[2, 3]], binary: false,
       lines: [["del", "the owner's line"], ["add", evil]], added: 1, removed: 1, title: "P", key: "" };
     const cc = Drafts.conflictCard(sample);
@@ -1638,7 +1638,7 @@ const SelfTest = (() => {
       "pending approval ranks below an overdue or held question and above never examined, overridden and settled", `pending approval rank: ${LEVELS.join(" > ")}`);
     const pill = pendingPill({ by: "@sam", date: "2026-10-18" }), lamp = lampEl("pending");
     ok(/Pending approval/.test(pill.textContent) && /@sam/.test(pill.title) && lamp.classList.contains("pending") && /Pending approval/.test(lamp.title),
-      "pending approval: a ring lamp and a pill with the words, never colour alone", `pending approval: pill "${pill.textContent}", lamp ${lamp.className}`);
+      "pending approval: a ring lamp and a pill with the words, never color alone", `pending approval: pill "${pill.textContent}", lamp ${lamp.className}`);
     for (const m of D.pending.slice(0, 3)) {
       const light = lightOf(m.key);
       go(m.key, { reset: true }); await frames();
@@ -1802,9 +1802,9 @@ const TextFit = (() => {
      and a box with a "Show more" button beside it (the text is one click away). The page shell and drawings are not prose. */
   const SHELL = new Set(["HTML", "BODY", "MAIN"]);
   const hasMore = (el) => { for (let a = el; a && a !== document.body; a = a.parentElement) if (a.querySelector(":scope > [data-more]")) return true; return false; };
-  const ellipsised = (cs) => (cs.webkitLineClamp && cs.webkitLineClamp !== "none") || cs.textOverflow === "ellipsis";
-  /* Words inside a line-clamped or ellipsised child end in an ellipsis where the cut falls, so they are not lost. */
-  const underEllipsis = (n, el) => { for (let a = n.parentElement; a && a !== el; a = a.parentElement) if (ellipsised(getComputedStyle(a))) return true; return false; };
+  const ellipsizedStyle = (cs) => (cs.webkitLineClamp && cs.webkitLineClamp !== "none") || cs.textOverflow === "ellipsis";
+  /* Words inside a line-clamped or ellipsized child end in an ellipsis where the cut falls, so they are not lost. */
+  const underEllipsis = (n, el) => { for (let a = n.parentElement; a && a !== el; a = a.parentElement) if (ellipsizedStyle(getComputedStyle(a))) return true; return false; };
   function cutWords(el) {
     const box = el.getBoundingClientRect(), walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
     for (let n = walk.nextNode(); n; n = walk.nextNode()) {
@@ -1820,7 +1820,7 @@ const TextFit = (() => {
       if (SHELL.has(el.tagName) || el.id === "main" || el instanceof SVGElement || el.scrollHeight <= el.clientHeight + 2 || !el.clientHeight) continue;
       const cs = getComputedStyle(el);
       if (!/hidden|clip/.test(cs.overflowY) || /scroll|auto/.test(cs.overflowY) || cs.display === "none" || !visible(el)) continue;
-      if (ellipsised(cs) || hasMore(el)) continue;
+      if (ellipsizedStyle(cs) || hasMore(el)) continue;
       const lost = cutWords(el);
       if (lost) bad.push({ text: lost, cls: classOf(el) || el.tagName.toLowerCase(), why: "cuts its text off at the bottom with no ellipsis and no Show more" });
     }
@@ -1988,7 +1988,7 @@ const TextFit = (() => {
     const apps = D.map.apps.map((a) => a.key), list = [];
     const map = (name, lens, group, extra) => list.push({ name, root: "#board", show: () => { Nav.home(); MapView.st.lens = lens; MapView.st.group = group; MapView.st.focus = null; if (extra) extra(); rerender(); } });
     map("map, cockpit", "cockpit", "none");
-    if (apps.length) map("map, one app and its neighbours", "cockpit", "none", () => { MapView.st.focus = apps[0]; });
+    if (apps.length) map("map, one app and its neighbors", "cockpit", "none", () => { MapView.st.focus = apps[0]; });
     map("map, grouped by domain, clusters closed", "cockpit", "domain", () => MapGroups.all(false));
     map("map, grouped by domain, clusters open", "cockpit", "domain", () => MapGroups.all(true));
     map("map, grouped by capability, clusters open", "cockpit", "capability", () => MapGroups.all(true));

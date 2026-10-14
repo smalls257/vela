@@ -41,7 +41,7 @@ const Layout = (() => {
   const nameOf = (k) => (NODE[k] ? titleOf(k) : k);
 
   /* ------------------------------------------------------------ the rule: pins.check_move */
-  /* Where a box's centre is drawn, in the frame's pixels: an outside party a band below its row (pins.drawn). */
+  /* Where a box's center is drawn, in the frame's pixels: an outside party a band below its row (pins.drawn). */
   const drawn = (at, kind) => ({ x: at[0] * F.cw, y: at[1] * F.rh + (kind === "app" ? 0 : F.bandGap) });
   function clash(a, ka, b, kb) {
     const p = drawn(a, ka), q = drawn(b, kb);
@@ -72,8 +72,8 @@ const Layout = (() => {
   }
 
   /* ------------------------------------------------------------ stopping short of a box */
-  /* Along the line from `a` to `b` (a moving box's centres, px), the point nearest `b` where the box, w by h, keeps
-     `gap` from every one of `others` ({x, y, w, h, key}, centres) and `ok(point)` holds: { at, t, hit }, where t = 1
+  /* Along the line from `a` to `b` (a moving box's centers, px), the point nearest `b` where the box, w by h, keeps
+     `gap` from every one of `others` ({x, y, w, h, key}, centers) and `ok(point)` holds: { at, t, hit }, where t = 1
      is `b` itself, t < 1 stopped short of `hit` and t > 1 went just past it; null when no point on the line is clear.
      Shared with the grouped map's clusters (mapgroups.js). Measured with the whole gap, so a point rounded to a
      thousandth of a cell still passes the rule, which allows F.slack. */

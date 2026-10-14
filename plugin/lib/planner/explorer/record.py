@@ -13,7 +13,7 @@ STEP = re.compile(r"^(\d+)\.\s+(.*)$")
 BLOCK_REF = re.compile(r"\s\^[A-Za-z0-9-]+\s*$")
 MD_LINK = re.compile(r"\[([^\]]*)\]\(([^)]*)\)")
 WEB_ADDRESS = re.compile(r"^(?:https?://[^\s<>\"']+|mailto:[^\s<>\"']+)$")
-LABELLED_LINE = re.compile(r"^\*\*[^*]+:\*\*")
+LABELED_LINE = re.compile(r"^\*\*[^*]+:\*\*")
 PROSE_LIMIT = 1100  # characters of opening prose kept for the panel; the panel says when the page goes on
 
 

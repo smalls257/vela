@@ -23,7 +23,7 @@ import pathlib
 PINS_FILE = ".planner/explorer-pins.json"
 GROUP_PREFIX = "grp:"
 # How a cell is drawn on the cockpit, the minimap and the releases view (they share this frame, so a box clear of its
-# neighbours on one is clear on all): pixels per column and per row, and how far below its row an outside party is
+# neighbors on one is clear on all): pixels per column and per row, and how far below its row an outside party is
 # drawn (the parties' band). The page reads these numbers from the build (D.pins.frame); #selftest checks every
 # view's boxes fit inside BOX.
 FRAME = {"cw": 380, "rh": 128, "bandGap": 104}
@@ -39,7 +39,7 @@ def is_node(key):
 
 
 def drawn(cell, kind):
-    """Where a box's centre is drawn, in the frame's pixels: an outside party a band below its row."""
+    """Where a box's center is drawn, in the frame's pixels: an outside party a band below its row."""
     return cell[0] * FRAME["cw"], cell[1] * FRAME["rh"] + (FRAME["bandGap"] if kind != "app" else 0)
 
 
@@ -87,12 +87,12 @@ def ideal_layout(nodes, contracts):
     for a in sorted(apps, key=lambda k: (col[k], order[k])):
         by_col.setdefault(col[a], []).append(a)
     keys = [n["key"] for n in nodes]
-    neighbours = {k: set() for k in keys}
+    neighbors = {k: set() for k in keys}
     for c in contracts:
         for consumer in c["consumers"]:
-            if consumer != c["provider"] and consumer in neighbours and c["provider"] in neighbours:
-                neighbours[c["provider"]].add(consumer)
-                neighbours[consumer].add(c["provider"])
+            if consumer != c["provider"] and consumer in neighbors and c["provider"] in neighbors:
+                neighbors[c["provider"]].add(consumer)
+                neighbors[consumer].add(c["provider"])
     row = {}
     for k in sorted(by_col):
         members = by_col[k]
@@ -100,7 +100,7 @@ def ideal_layout(nodes, contracts):
             for i, a in enumerate(members):
                 row[a] = i
             continue
-        bary = {a: sum(row[n] for n in neighbours[a] if n in row) / max(1, len([n for n in neighbours[a] if n in row]))
+        bary = {a: sum(row[n] for n in neighbors[a] if n in row) / max(1, len([n for n in neighbors[a] if n in row]))
                 for a in members}
         for i, a in enumerate(sorted(members, key=lambda m: (bary[m], m))):
             row[a] = i
@@ -111,7 +111,7 @@ def ideal_layout(nodes, contracts):
     band = max(row.values(), default=0) + 1
     want = {}
     for p in partners:
-        near = [col[n] for n in neighbours[p] if n in col]
+        near = [col[n] for n in neighbors[p] if n in col]
         want[p] = sum(near) / len(near) if near else max_col + 1
     for p in partners:
         col[p] = max(0, int(want[p] + 0.5))  # whole columns: a half column is narrower than the box drawn on it

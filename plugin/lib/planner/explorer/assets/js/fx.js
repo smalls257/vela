@@ -1,6 +1,6 @@
 /* Effects: On or Plain, in the top bar, remembered in this browser, On by default.
-   Plain removes every motion, glow and pulse on the page and keeps every colour's meaning: a lamp is still the
-   colour attention.lights gives it; it only stops breathing and glowing. The map's motion option (trace on demand,
+   Plain removes every motion, glow and pulse on the page and keeps every color's meaning: a lamp is still the
+   color attention.lights gives it; it only stops breathing and glowing. The map's motion option (trace on demand,
    ripple of impact, or trains on the line map) is remembered the same way. */
 const FX = (() => {
   const KEY = "explorer.effects", MOTION_KEY = "explorer.motion";
@@ -17,8 +17,8 @@ const FX = (() => {
     const b = $("#fx");
     if (b) {
       b.setAttribute("aria-pressed", String(on));
-      b.title = on ? "Effects on: motion and glow that carry meaning. Switch to Plain for a still page with the same colours."
-        : "Plain: no motion, glow or pulsing; every colour keeps its meaning. Switch effects back on.";
+      b.title = on ? "Effects on: motion and glow that carry meaning. Switch to Plain for a still page with the same colors."
+        : "Plain: no motion, glow or pulsing; every color keeps its meaning. Switch effects back on.";
       $$("button", b).forEach((x) => x.setAttribute("aria-current", String((x.dataset.fx === "on") === on)));
     }
   }

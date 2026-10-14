@@ -137,7 +137,7 @@ tr.grouprow td { background: none !important; height: 14px; }
 .grouped .also-tab text { font-size: 11px; font-weight: 600; fill: var(--ink-2); }
 .grouped .also-tab:hover rect, .grouped .also-tab:focus-visible rect { stroke: var(--ink); }
 .grouped .cluster-frame.also-on { stroke: var(--ink-2); stroke-width: 2; stroke-dasharray: 6 4; }
-.focus .focus-centre .face { stroke: var(--focus); stroke-width: 3; }
+.focus .focus-center .face { stroke: var(--focus); stroke-width: 3; }
 .focus-note { position: absolute; left: 18px; bottom: 12px; font-size: 12.5px; color: var(--ink-3); background: var(--glass); border: 1px solid var(--rule); border-radius: 8px; padding: 5px 10px; }
 /* motion: trace and ripple */
 .m-layer .tr-path { fill: none; stroke-width: 5; stroke-linecap: round; opacity: .95; }
@@ -194,7 +194,7 @@ svg.tracing .duct.picked:not(.tr-on), svg.rippling .duct.picked:not(.rp-on) { st
 .m-layer .tr-path.inferred { stroke-dasharray: 9 7; }
 svg.tracing .duct.picked, svg.rippling .duct.picked { stroke: var(--duct); stroke-width: 6; }
 .motion-legend { top: auto; bottom: 12px; right: 16px; }
-/* glyphs on the boxes take the box's ink: quiet grey when settled, the lamp's ink when lit */
+/* glyphs on the boxes take the box's ink: quiet gray when settled, the lamp's ink when lit */
 .cockpit g.hit .node-glyph { color: var(--node-name); }
 .cockpit g.hit.lit .node-glyph { color: var(--caution-ink); }
 .cockpit g.hit.lit.warning .node-glyph { color: var(--warning-ink); }

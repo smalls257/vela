@@ -1,6 +1,6 @@
 /* ------------------------------------------------ the work queue beside the map (queue.js)
    Calm on purpose: one surface, hairlines between rows, a small lamp for the level and plain text for the rest, so
-   a lit row reads as "this one first" and a wall of colour never forms. Every colour is a theme variable. */
+   a lit row reads as "this one first" and a wall of color never forms. Every color is a theme variable. */
 .home-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; container-type: inline-size; }
 .home-stage { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(260px, 20rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .home-tools { flex: none; }

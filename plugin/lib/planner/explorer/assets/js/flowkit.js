@@ -6,7 +6,7 @@
    its timestamp, not from accumulated animation state. Lanes keep the map's left-to-right order (pins.py), and a
    lane the flow does not touch keeps its place at half width, so every flow shares one stage. */
 const FlowKit = (() => {
-  // Ten hues per theme (--lanes in themes.css) that stay apart on the room and away from the lamp colours. The
+  // Ten hues per theme (--lanes in themes.css) that stay apart on the room and away from the lamp colors. The
   // palette is read when a frame is drawn, so the stage, present mode and a clip all follow the theme.
   const C = {};
   let PALETTE = [], paletteOf = null;
@@ -32,7 +32,7 @@ const FlowKit = (() => {
     return { key, id: e.id, title: e.title, state: e.state || "", steps: f.steps, unknowns: f.unknowns };
   }
   /* A flow whose steps never say who sends: every arrow is drawn from the contract's provider. On a call an arrow
-     reads as fact, so such a flow carries one line saying so (a flow with some named senders is labelled per arrow). */
+     reads as fact, so such a flow carries one line saying so (a flow with some named senders is labeled per arrow). */
   const INFERRED_NOTE = "Direction inferred from who provides each contract";
   function inferredNote(key) {
     const msgs = FLOW[key].steps.flatMap((stp) => stp.messages);
@@ -61,12 +61,12 @@ const FlowKit = (() => {
   }
   const stepTiming = (step, Dt) => unitsOf(step).map((u, j) => ({ u, t0: j * Dt, t1: (j + 1) * Dt }));
   const travelTime = (step, Dt) => unitsOf(step).length * Dt;
-  // On a light room (a theme that rings its lamps) a lamp's colour is a fill, not ink: words take the lamp's text
-  // form, and the white override draws its line in its ring colour, so CON-003 stays readable on white.
+  // On a light room (a theme that rings its lamps) a lamp's color is a fill, not ink: words take the lamp's text
+  // form, and the white override draws its line in its ring color, so CON-003 stays readable on white.
   const ringed = () => Theme.c("lamp-edge") !== "transparent";
-  const lampText = (lv) => (ringed() ? Theme.c(lv + "-text") : LIGHT[lv].colour);
-  const lampLine = (lv) => (ringed() && lv === "override" ? Theme.c("override-edge") : LIGHT[lv].colour);
-  const markerColour = (id) => { const lv = unknownLevel(id); return lv === "resolved" || lv === "dark" ? null : LIGHT[lv].colour; };
+  const lampText = (lv) => (ringed() ? Theme.c(lv + "-text") : LIGHT[lv].color);
+  const lampLine = (lv) => (ringed() && lv === "override" ? Theme.c("override-edge") : LIGHT[lv].color);
+  const markerColor = (id) => { const lv = unknownLevel(id); return lv === "resolved" || lv === "dark" ? null : LIGHT[lv].color; };
 
   function layout(flow, box) {
     const { x, y, w, h: ht } = box, k = box.s ?? 1;
@@ -159,7 +159,7 @@ const FlowKit = (() => {
       ctx.strokeStyle = hexA(laneColor(lane.id), 0.45 + 0.5 * glow); ctx.lineWidth = (hl && hl.has(lane.id) ? 2 : 1) * k; ctx.stroke();
       const dx = bx + 16 * k, dy = by + bh / 2, img = st.images !== false && emblemImg[lane.id];
       if (img && img.complete && img.naturalWidth) { ctx.save(); ctx.beginPath(); ctx.arc(dx, dy, 9 * k, 0, 7); ctx.clip(); ctx.drawImage(img, dx - 9 * k, dy - 9 * k, 18 * k, 18 * k); ctx.restore(); }
-      // no emblem: the lane's own glyph, in the lane's colour, so the colour still says which lane it is
+      // no emblem: the lane's own glyph, in the lane's color, so the color still says which lane it is
       else Icons.stroke(ctx, Icons.name(lane.id), dx, dy, 15 * k, laneColor(lane.id));
       ctx.fillStyle = C.ink; ctx.textBaseline = "middle"; ctx.textAlign = "left";
       if (lines.length > 1) { ctx.fillText(lines[0], dx + 12 * k, dy - 7 * k); ctx.fillText(lines[1], dx + 12 * k, dy + 8 * k); }
@@ -287,16 +287,16 @@ const FlowKit = (() => {
     const base = markerPoint(G, r);
     step.unknowns.forEach((pin, j) => {
       if (!ASK[pin.id]) return;
-      const x = base.x + j * 17 * k, y = base.y, colour = markerColour(pin.id);
-      if (st.seen) { st.seen.add(colour ? "flow.pin" : "flow.pin.settled"); if (colour) st.seen.add("lamp." + unknownLevel(pin.id)); }
-      if (colour) {
+      const x = base.x + j * 17 * k, y = base.y, color = markerColor(pin.id);
+      if (st.seen) { st.seen.add(color ? "flow.pin" : "flow.pin.settled"); if (color) st.seen.add("lamp." + unknownLevel(pin.id)); }
+      if (color) {
         const breath = reducedMotion() && !st.recording ? 0.6 : 0.5 + 0.5 * Math.sin((st.clock || 0) * 2.4);
         if (glowOn() || st.recording) {
           const R = (11 + 6 * breath) * k, g = ctx.createRadialGradient(x, y, 0, x, y, R);
-          g.addColorStop(0, hexA(colour, 0.55)); g.addColorStop(1, hexA(colour, 0));
+          g.addColorStop(0, hexA(color, 0.55)); g.addColorStop(1, hexA(color, 0));
           ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill();
         }
-        ctx.fillStyle = colour; ctx.beginPath(); ctx.arc(x, y, 5.5 * k, 0, 7); ctx.fill();
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 5.5 * k, 0, 7); ctx.fill();
         ctx.strokeStyle = C.room; ctx.lineWidth = 1.5 * k; ctx.stroke();
       } else {
         ctx.fillStyle = C.room; ctx.beginPath(); ctx.arc(x, y, 6 * k, 0, 7); ctx.fill();
@@ -358,13 +358,13 @@ const FlowKit = (() => {
     ctx.fillText(open.length ? "Still open on this flow" : "Nothing open on this flow", 96 * k, 170 * k);
     let y = 240 * k;
     open.slice(0, 3).forEach((id) => {
-      const q = ASK[id], colour = markerColour(id) || C.muted;
-      ctx.fillStyle = colour; ctx.beginPath(); ctx.arc(104 * k, y - 8 * k, 8 * k, 0, 7); ctx.fill();
+      const q = ASK[id], color = markerColor(id) || C.muted;
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(104 * k, y - 8 * k, 8 * k, 0, 7); ctx.fill();
       ctx.fillStyle = C.ink; ctx.font = `600 ${24 * k}px ${UI}`; ctx.fillText(`${id} ${E[id] ? E[id].title : ""}`, 128 * k, y);
       ctx.font = `400 ${21 * k}px ${SERIF}`; ctx.fillStyle = C.ink2;
       const lines = wrap(ctx, q.question || "", 1000 * k).slice(0, 3);
       lines.forEach((l, i) => ctx.fillText(l, 128 * k, y + 36 * k + i * 29 * k));
-      ctx.font = `500 ${18 * k}px ${UI}`; ctx.fillStyle = colour;
+      ctx.font = `500 ${18 * k}px ${UI}`; ctx.fillStyle = color;
       ctx.fillText(`Ask ${q.ask.name}${q.ask.inferred ? " (a guess)" : ""} by ${day(q.askBy)}`, 128 * k, y + 36 * k + lines.length * 29 * k + 8 * k);
       y += 36 * k + lines.length * 29 * k + 64 * k;
     });
@@ -467,7 +467,7 @@ const FlowKit = (() => {
   Legend.define("flow.chip", [bx({ fill: "deck", stroke: "ink-3", w: 1.2, rx: 4, y: 4, height: 8 })], "Pill on an arrow: the contract sent, outlined in its light");
   Legend.define("flow.pin", [{ k: "dot", fill: "caution", r: 4.5 }], "Glowing dot at a step: an open question pinned there, in its light");
   Legend.define("flow.pin.settled", [{ k: "dot", fill: "room", stroke: "ink-3", w: 1.3, r: 5 }, { k: "text", t: "✓", fill: "ink-3", y: 11, size: 8 }], "Ring with a tick: a pinned question that has been settled");
-  Legend.define("flow.lane", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 9, r: 2 }], "Pill at the top: one app or outside party, in its own colour");
+  Legend.define("flow.lane", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 9, r: 2 }], "Pill at the top: one app or outside party, in its own color");
   Legend.define("flow.lane.idle", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9, opacity: 0.4 })], "Faded pill: this app or party takes no part in the flow");
   Legend.define("flow.stepno", [{ k: "dot", fill: "ink", r: 5.5 }, { k: "text", t: "2", fill: "room", y: 11, size: 8 }], "Numbered circle at the left: a step; the one playing is filled");
   const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.lane.idle", "flow.stepno"];
@@ -499,5 +499,5 @@ const FlowKit = (() => {
   }
   const flowProbes = (keyOf) => Object.fromEntries(LOOK_ORDER.map((id) => [id, () => expected(flowOf(keyOf())).has(id)]));
   return { census, expected, flowProbes, PALETTE, C, UI, SERIF, laneColor, laneName, flowOf, inferredNote, unitsOf, openPins, flowQuestions, touchedLanes, stepTiming, travelTime, layout, drawScene,
-    drawClipFrame, clipPlan, clipFormat, recordClip, download, hexA, markerColour, CLIP };
+    drawClipFrame, clipPlan, clipFormat, recordClip, download, hexA, markerColor, CLIP };
 })();

@@ -1,6 +1,6 @@
 /* ------------------------------------------------ pending approval: a reader's decision the owner has not reviewed
    The one lamp that is a ring, not a fill: a hollow circle with clock hands, always with the words "pending
-   approval" beside it, so colour is never the only signal. It is drawn from a border, not a box-shadow, because
+   approval" beside it, so color is never the only signal. It is drawn from a border, not a box-shadow, because
    Plain and Daylight rewrite every lamp's box-shadow. --pending is the ring and --pending-text the words on the room
    (test_explorer.py checks both in every theme). */
 .lamp.pending { width: 12px; height: 12px; border-radius: 50%; border: 1.6px solid var(--pending);

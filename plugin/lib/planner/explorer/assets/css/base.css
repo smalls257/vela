@@ -1,9 +1,9 @@
 /* One visual language for every view: a dark instrument room. The room is calm slate; only what needs the lead is
-   lit, in the attention lamp colours and nothing else. Paper (ask strips, the specimen sheet) is for things you
+   lit, in the attention lamp colors and nothing else. Paper (ask strips, the specimen sheet) is for things you
    handle. Type is system faces, so the page looks the same offline. */
 :root {
   /* palette: the Console theme. Every theme in themes.css sets every property in this block, so no theme
-     inherits a colour drawn for another room (test_build.py checks it). */
+     inherits a color drawn for another room (test_build.py checks it). */
   --room: #0d1317; --room-2: #111a1f; --deck: #152027; --deck-2: #1b2830; --deck-3: #22323b;
   --rule: #263540; --rule-2: #34475300; --rule-3: #3b4f5b;
   --ink: #e8eef0; --ink-2: #b7c4c9; --ink-3: #82939a; --ink-4: #5d6e75;
@@ -23,8 +23,8 @@
   --rl-face: #1d282e; --rl-edge: #33434c; --rl-name: #cfd8dc; --rl-sub: #7f9097; --rl-party: #151d22;
   --bay: #1f2b31; --bay-edge: #2a3940; --rack: #10181c;
   --mix-inkling: #8f5a5a; --mix-assumption: #b98a2c; --mix-fact: #4f86c6; --mix-decided: #cfd8dc;
-  /* flow lines on the map and lanes in a played flow: kept apart from the lamp colours */
-  --lines: #f06aa8, #5b9bff, #36c98a, #a58cff, #b6d35a, #e28a5c; --line-grey: #7d8b92;
+  /* flow lines on the map and lanes in a played flow: kept apart from the lamp colors */
+  --lines: #f06aa8, #5b9bff, #36c98a, #a58cff, #b6d35a, #e28a5c; --line-gray: #7d8b92;
   --lanes: #6f9bff, #44d39f, #cf8ff2, #b5d86a, #9a8cff, #f08fc0, #d9c39a, #5fc2b4, #8fb8e8, #e8a3ff;
   --scheme: dark;
   /* end of palette */
@@ -144,7 +144,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .note { background: var(--deck); border-left: 3px solid var(--rule-3); border-radius: 0 8px 8px 0; padding: 9px 12px; font-size: 13px; color: var(--ink-2); }
 .heuristic { font-style: italic; font-family: var(--serif); color: var(--heuristic-ink); }
 
-/* lamp vocabulary, shared by every view: a light's level is a class, its colour is one of five */
+/* lamp vocabulary, shared by every view: a light's level is a class, its color is one of five */
 .lamp { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--unlit); flex: none; }
 .lamp.warning { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
 .lamp.caution { background: var(--caution); box-shadow: 0 0 8px var(--caution); }

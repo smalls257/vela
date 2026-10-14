@@ -1,6 +1,6 @@
 /* ------------------------------------------------ Inside this app: context, containers, components (inside.js)
    Drawn in the room's own palette, so it repaints with every theme. The design's state is shape and ink, never a
-   lamp colour; amber here means what it means everywhere, "needs you": a missed trace, or a challenged vault item. */
+   lamp color; amber here means what it means everywhere, "needs you": a missed trace, or a challenged vault item. */
 .inside-head h1 { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; overflow-wrap: anywhere; }
 .inside-crumbs { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 4px; color: var(--ink-3); }
 .inside-crumbs a { color: var(--ink-2); padding: 2px 9px; border-radius: 6px; background: var(--deck); border: 1px solid var(--rule); }

@@ -10,9 +10,9 @@
    out instead of piling onto one point. Ported from prototypes/gallery/maps/shared/geometry.js. */
 const Geo = (() => {
   const LINE_W = 6, LINE_GAP = 8.5, PORT_GAP = 16, MIN_SIDE = 26, NEAR_LEVEL = 8;
-  // Flow line colours per theme (--lines in themes.css), kept apart from the lamp colours; past the sixth a line is
-  // grey and told apart by its label.
-  const flowColour = (i) => Theme.list("lines")[i] || Theme.c("line-grey");
+  // Flow line colors per theme (--lines in themes.css), kept apart from the lamp colors; past the sixth a line is
+  // gray and told apart by its label.
+  const flowColor = (i) => Theme.list("lines")[i] || Theme.c("line-gray");
   const FLOW_ORDER = Object.fromEntries(D.flows.map((f, i) => [f.key, i]));
 
   const DEFAULTS = { cw: 290, rh: 150, padX: 120, padY: 120, bandGap: 70 };
@@ -82,7 +82,7 @@ const Geo = (() => {
       cor.lanes = {};
       const n = cor.flows.length;
       cor.flows.forEach((fid, i) => { cor.lanes[fid] = offsetPolyline(cor.path, (i - (n - 1) / 2) * LINE_GAP); });
-      cor.centre = cor.path;
+      cor.center = cor.path;
     }
     const xs = Object.values(stations).flatMap((st) => [st.x - st.w / 2, st.x + st.w / 2]);
     const ys = Object.values(stations).flatMap((st) => [st.y - st.h / 2, st.y + st.h / 2]);
@@ -153,5 +153,5 @@ const Geo = (() => {
     }
     return { x: pts[0].x, y: pts[0].y, angle: 0 };
   }
-  return { layout, pointOf, cellAt, route, roundedPath, offsetPolyline, length, pointAt, LINE_W, flowColour, FLOW_ORDER };
+  return { layout, pointOf, cellAt, route, roundedPath, offsetPolyline, length, pointAt, LINE_W, flowColor, FLOW_ORDER };
 })();

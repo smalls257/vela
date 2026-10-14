@@ -5,7 +5,7 @@
    shows only today against the end state, from each app's change.
 
    One drawing serves the Releases section and the map's Releases lens: the pinned formation, with release status
-   drawn in shape and ink only (solid, ringed, dashed), so the five lamp colours keep their one meaning. With effects
+   drawn in shape and ink only (solid, ringed, dashed), so the five lamp colors keep their one meaning. With effects
    on, moving between states morphs: apps arrive, change and fade, and contracts draw in. Plain switches at once. */
 const Releases = (() => {
   const R = D.releases;
@@ -13,7 +13,7 @@ const Releases = (() => {
   const st = { at: Math.min(STATES.length - 1, Math.max(0, +(HASH.get("state") || 0))), compare: HASH.has("compare"), a: 0, b: STATES.length - 1, playing: 0 };
   const short = (s) => (s.name.split(":")[0] || s.name).trim();
   const STATUS_WORD = { exists: "unchanged", changes: "changes", new: "new", absent: "not there" };
-  /* The key: release status is drawn in shape and ink only (solid, heavy, dashed, dotted), so the lamp colours keep their one meaning. */
+  /* The key: release status is drawn in shape and ink only (solid, heavy, dashed, dotted), so the lamp colors keep their one meaning. */
   const { bx, ln } = Legend;
   Legend.define("rel.new", [bx({ fill: "ink", stroke: "focus", w: 1.4, rx: 5 })], "Filled box: an app that is new in this state");
   Legend.define("rel.changes", [bx({ fill: "deck-3", stroke: "ink", w: 2.6, rx: 5 })], "Heavy outline: an app that is changing, or has changed");
@@ -21,8 +21,8 @@ const Releases = (() => {
   Legend.define("rel.absent", [bx({ stroke: "ink-4", w: 1.4, rx: 5, dash: "3.5 3", opacity: 0.6 })], "Dashed, faded box: an app not there yet, or retired");
   Legend.define("rel.party", [bx({ fill: "rl-party", stroke: "rl-edge", w: 1.4, rx: 2, dash: "1.5 3" })], "Dotted outline: an outside party");
   Legend.define("rel.touched", [bx({ fill: "ink", width: 13, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "Δ", fill: "room", x: 16.5, y: 11, size: 8 }], "Tag (Δ or NEW): this release's work touches the app");
-  Legend.define("rel.lamp", [bx({ fill: "caution", width: 8, height: 8, x: 13, y: 4, rx: 2 })], "Small coloured square: the app's light today, as on the map");
-  Legend.define("rel.cor.exists", [ln({ stroke: "track", w: 3.5 })], "Grey line: a contract that already exists");
+  Legend.define("rel.lamp", [bx({ fill: "caution", width: 8, height: 8, x: 13, y: 4, rx: 2 })], "Small colored square: the app's light today, as on the map");
+  Legend.define("rel.cor.exists", [ln({ stroke: "track", w: 3.5 })], "Gray line: a contract that already exists");
   Legend.define("rel.cor.new", [ln({ stroke: "rl-name", w: 3.5 })], "Bright line: a contract that appears in this state");
   Legend.define("rel.cor.through", [ln({ stroke: "focus", w: 4.5 })], "White line: a contract this release's work goes through");
   Legend.define("rel.cor.planned", [ln({ stroke: "siding", w: 3, dash: "1 6" })], "Dotted line: a contract still to come");
@@ -77,7 +77,7 @@ const Releases = (() => {
       s("rect", { x: stn.x + W / 2 - 40, y: stn.y - H / 2 - 9, width: 46, height: 18, rx: 9 }, tag);
       const tagText = s("text", { x: stn.x + W / 2 - 17, y: stn.y - H / 2 + 4, "text-anchor": "middle" }, tag);
       const lv = levelOf(n.key);
-      if (lv !== "dark" && n.kind === "app") { s("rect", { x: stn.x - W / 2 + 8, y: stn.y - H / 2 + 8, width: 8, height: 8, rx: 2, fill: LIGHT[lv].colour, class: "rl-lamp" }, g)
+      if (lv !== "dark" && n.kind === "app") { s("rect", { x: stn.x - W / 2 + 8, y: stn.y - H / 2 + 8, width: 8, height: 8, rx: 2, fill: LIGHT[lv].color, class: "rl-lamp" }, g)
         .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${LIGHT[lv].word} today (attention.lights)`; looks.add("rel.lamp"); }
       Nodes.wire(g, { label: n.title, key: n.key });
       return { n, g, sub, tagText };

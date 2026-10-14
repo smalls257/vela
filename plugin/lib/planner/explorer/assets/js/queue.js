@@ -3,7 +3,7 @@
    questions read as 34 chips and none said what it held up. That is a Leaky Narrative (the pairing is the data's
    shape, not the lead's) and, past about seven, a wall nobody can scan. A row here is one question in plain words:
    what is waiting, what it holds up, who to ask and by when. The lamp is the question's own light and the order is
-   attention.ranked's rule (level, then urgency, then ID); nothing here ranks or colours on its own. The top five show;
+   attention.ranked's rule (level, then urgency, then ID); nothing here ranks or colors on its own. The top five show;
    "Show all" groups the rest by the thing each holds, so the reader can find "what holds the strategy" in one look.
    The ID rides in the tooltip, and the question's own words, with who and when, open in the panel. */
 const Queue = (() => {

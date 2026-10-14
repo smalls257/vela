@@ -18,7 +18,7 @@ import zlib
 RULES = (
     ("legacy", "legacy|mainframe|ledger of record|cobol"),
     ("gateway", "gateway|api gateway|edge|proxy|integration hub"),
-    ("callcentre", "call cent|contact cent|agent|telephon|phone line"),
+    ("callcenter", "call cent|contact cent|agent|telephon|phone line"),
     ("kiosk", "kiosk|terminal|self.service"),
     ("mobile", "mobile|app store|ios|android"),
     ("web", "web|site|portal|browser|front.?end"),
@@ -39,7 +39,7 @@ RULES = (
     ("notifications", "notif|alert|email|sms|push"),
     ("messaging", "messag|chat|queue|event|bus|kafka|mq\\b"),
     ("search", "search|find|lookup|index"),
-    ("catalogue", "catalog|product|menu|listing"),
+    ("catalog", "catalog|product|menu|listing"),
     ("analytics", "report|analytic|insight|dashboard|metric|bi\\b"),
     ("database", "data|database|warehouse|lake|store\\b|storage"),
     ("audit", "audit|log\\b|compliance trail|record keeping"),
@@ -52,14 +52,22 @@ RULES = (
 )
 FALLBACKS = ("cube", "hexagon", "layers", "nodes", "diamond")
 ICONS = tuple(name for name, _ in RULES) + FALLBACKS
+# The glyphs took American names; a vault written before that still says `icon: catalogue` or `icon: callcentre`.
+# Those must keep drawing their glyph, not fall to a keyword guess with a "not in the built-in set" note.
+ICON_ALIASES = {"catalogue": "catalog", "callcentre": "callcenter"}
 _COMPILED = tuple((name, re.compile(rf"\b(?:{pattern})", re.I)) for name, pattern in RULES)
+
+
+def canonical(asked):
+    """The built-in glyph name an `icon:` value means: its American name when it is an older British spelling."""
+    return ICON_ALIASES.get(asked, asked)
 
 
 def choose(title, domain="", summary="", asked=""):
     """(icon name, why) for one box. `asked` is the page's `icon:`, when it has one."""
     if asked:
-        if asked in ICONS:
-            return asked, f"icon: {asked} on its page"
+        if canonical(asked) in ICONS:
+            return canonical(asked), f"icon: {asked} on its page"
         reason = f"its page asks for icon: {asked}, which is not in the built-in set, so "
     else:
         reason = ""
@@ -86,7 +94,7 @@ def for_map(nodes, entities, domains, apps_meta):
         asked = str(apps_meta.get(n["key"], {}).get("icon") or "")
         summary = e.get("text", "") or " ".join(f.get("text", "") for f in e.get("facts", []))
         name, why = choose(n["title"], domains.get(n["key"], ""), summary, asked)
-        if asked and asked not in ICONS:
+        if asked and canonical(asked) not in ICONS:
             unknown.append((n["key"], asked))
         out[n["key"]] = {"icon": name, "why": why}
     return out, unknown

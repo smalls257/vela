@@ -1,7 +1,7 @@
 /* A reader's draft, and the decisions waiting for an owner. The top bar carries two quiet chips, "Draft: N pages
    changed" (readers only) and the pending-approval count; either opens this view (#drafts). The diff is computed at
    build time from the pristine baseline (planner's drafts.py), and every line of it is drawn with textContent,
-   never as HTML: a page can hold any text. Additions and removals carry a symbol as well as a colour. */
+   never as HTML: a page can hold any text. Additions and removals carry a symbol as well as a color. */
 const Drafts = (() => {
   const st = { from: null };
   const SYMBOL = { add: "+", del: "-", ctx: " ", hunk: "" };

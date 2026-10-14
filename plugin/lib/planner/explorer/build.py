@@ -37,11 +37,11 @@ from planner.parse import FENCE, closes_fence
 from . import (asks_data, assets_inline, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
                plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
-from .record import (HANDLE, LABELLED_LINE, PROSE_LIMIT, Keys, inline_html,
+from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
                      plain, refs_in, title_of)
 
 HERE = pathlib.Path(__file__).resolve().parent
-# marked, the Markdown parser the offline viewer already vendors (its licence and checksum are in that folder's NOTICE.md).
+# marked, the Markdown parser the offline viewer already vendors (its license and checksum are in that folder's NOTICE.md).
 # The page inlines it whole, with its copyright header, so Ask Claude can show an answer as Markdown with no network.
 MARKED = HERE.parent / "assets" / "marked.min.js"
 
@@ -61,7 +61,7 @@ CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "ask
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
 THEMES = (("console", "Console", "the dark instrument room"),
-          ("graphite", "Graphite", "neutral grey with brighter type, for projectors"),
+          ("graphite", "Graphite", "neutral gray with brighter type, for projectors"),
           ("daylight", "Daylight", "light, for screen-sharing and print"),
           ("vaporwave", "Vaporwave", "a 1990s sunset over a grid"))
 THEME_IDS = tuple(t[0] for t in THEMES)
@@ -144,7 +144,7 @@ def paragraphs(page, start, stop):
         stripped = raw.strip()
         prose = (stripped and n not in skip and not stripped.startswith(("-", "*", "|", "#", ">", "<!--", "<"))
                  and not re.match(r"^\d+\.\s", stripped) and not reading.BREADCRUMB.match(stripped)
-                 and not LABELLED_LINE.match(stripped) and stripped != "---")
+                 and not LABELED_LINE.match(stripped) and stripped != "---")
         if prose:
             current.append(stripped)
         elif current:
@@ -662,7 +662,7 @@ def content_security_policy(page):
     """What the page may do, so an escaping slip in vault text cannot become script or send the vault anywhere: only the
     page's own inline scripts run (each by hash, no inline handlers, no eval), nothing loads from outside, and the one
     connection allowed is to the helper that served it. Styles may be inline: the page sets them from script, and a style
-    cannot run code. (Defence in depth: viewer.py keeps the same rule for the offline viewer.)"""
+    cannot run code. (Defense in depth: viewer.py keeps the same rule for the offline viewer.)"""
     hashes = " ".join(f"'sha256-{base64.b64encode(hashlib.sha256(m.group(1).encode('utf-8')).digest()).decode()}'"
                       for m in INLINE_SCRIPT.finditer(page))
     return (f"default-src 'none'; script-src {hashes}; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; "

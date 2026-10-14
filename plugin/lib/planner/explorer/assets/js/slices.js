@@ -4,7 +4,7 @@
    Table is for finding one slice fast in a live call: a row each with its name, where it stands, what it comes after
    and whether it needs you; a row is a button that folds open to its flows, its joins with both sides, its journey or
    the date it is due, what is left out of it, and its flow check with any overrides. Path is for the planning talk:
-   what comes after what, drawn as boxes whose edge is the status colour, an arrow for "comes after", and slices side by
+   what comes after what, drawn as boxes whose edge is the status color, an arrow for "comes after", and slices side by
    side when they can be built at the same time.
 
    Why the search and filters live here and in the address bar: under pressure a lead says "show me what's building for

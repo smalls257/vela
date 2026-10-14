@@ -148,7 +148,7 @@ const Plan = (() => {
       known ? h("a", { class: "ref-chip plan-comp", "data-component": name, title: `Show ${name} in the components`, onclick: () => toComponent(app, name) }, name)
         : h("span", { class: "ref-chip plan-comp dead", title: DES[app] ? "Not a component of the design" : "No design loaded to show it in" }, task.component || "no component"));
   }
-  /* What the plan flags on a story, as small labelled badges: a question only the design can answer, and a clash with an
+  /* What the plan flags on a story, as small labeled badges: a question only the design can answer, and a clash with an
      epic criterion, named by the criterion's title and not just its ID. The full text is in the story's detail. */
   function flagBadges(story) {
     const open = story.openNotes.length ? [h("span", { class: "plan-badge open", "data-flag": "open", title: story.openNotes.join("\n\n") },
@@ -488,7 +488,7 @@ const Plan = (() => {
     stage.dataset.plan = p.status || "unknown";
     const list = problemsList(p), page = h("div", { class: "plan-page", id: "plan-page" }, barOf(app, p, list), list);
     if (p.gaps.length) page.append(h("div", { class: "plan-gaps" }, p.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", K.prose(g.note)))));
-    page.append(section("Build order", plural(p.stories.length, "story", "stories"), h("p", { class: "plan-hint" }, "In the order the plan says to build. A story with a lamp is waiting on an open question in the vault, in that question's colour."), buildOrder(app, p)));
+    page.append(section("Build order", plural(p.stories.length, "story", "stories"), h("p", { class: "plan-hint" }, "In the order the plan says to build. A story with a lamp is waiting on an open question in the vault, in that question's color."), buildOrder(app, p)));
     page.append(section("What waits on what", null, h("p", { class: "plan-hint" }, "An arrow runs from what blocks a story to the story. Questions and outside parties sit at the top; the drawing fits the width and grows taller."), dependencyView(app, p)));
     page.append(section("Coverage", null, coverageTable(app, p)));
     page.append(section("Not planned", p.notPlanned.length, p.notPlanned.length ? h("ul", { class: "plan-np" }, p.notPlanned.map((n) => h("li", {}, K.prose(n)))) : h("div", { class: "p-empty-line" }, "The plan lists nothing under Not planned.")));

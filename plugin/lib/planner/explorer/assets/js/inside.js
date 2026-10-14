@@ -1,17 +1,17 @@
 /* Inside this app: the C4 drill-down, from the vault's boundary into the team's own design (DESIGN-INSIDE.md).
 
    - Context: the app in the middle, its contracts in and out, the outside parties: the map's Focus drawing.
-   - Containers: the app page's main containers table, each container joined to the neighbours its contracts reach;
+   - Containers: the app page's main containers table, each container joined to the neighbors its contracts reach;
      the arrows between containers are read from the page's flowchart, best effort, and dashed.
    - Components: the team's tech design, given to build.py with --design. Each component is a box, Depends on is a
-     labelled arrow, Exposes sits on the box's lower edge, and each Integration point is a stub out to the level 1
-     neighbour it reaches. Beside it, the design's own sections, in tabs.
+     labeled arrow, Exposes sits on the box's lower edge, and each Integration point is a stub out to the level 1
+     neighbor it reaches. Beside it, the design's own sections, in tabs.
    - Build plan: the team's work breakdown beside the design (plan.js draws it; build.py --breakdown, or found beside the
      design). A requirement row or epic criterion says which story builds it, next to which component owns it.
 
    The vault and the design meet in both directions. A component's panel lists the vault IDs it owns, each with
    where it was found and, while the format records no trace, marked inferred. A requirement row, contract or epic
-   criterion in the vault says which component owns it, or that none does: grey when a gap acknowledges it, amber
+   criterion in the vault says which component owns it, or that none does: gray when a gap acknowledges it, amber
    when nobody has. A design question that challenges a vault item lights that item in the "needs you" lamp, with
    its scenario, until the vault records the challenge. This lamp is the design's, not attention.lights, and every
    place it shows says so; the map's lamps stay attention's alone.
@@ -48,12 +48,12 @@ const Inside = (() => {
   const def = (id, parts, text) => Legend.define(id, parts, text);
   def("ic.frame", [bx({ stroke: "rule-3", w: 1.4, rx: 5 })], "Faint frame: the app these belong to");
   def("ic.container", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.4, rx: 4 })], "Flat box with a glyph: a container, with its job and state");
-  def("ic.contract", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: a contract to an app or party outside, labelled with its ID");
+  def("ic.contract", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: a contract to an app or party outside, labeled with its ID");
   def("ic.soft", [ln({ stroke: "ink-4", w: 1.6, head: "fill", dash: "4 3" })], "Dashed arrow: read from the app page's own diagram, best effort");
   def("ic.component", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.4, rx: 4, height: 8 }), bx({ fill: "room-2", stroke: "rule-3", w: 1, x: 6, y: 10, width: 22, height: 4, rx: 1 })], "Flat box: a component, with what it does under its name");
   def("ic.lip", [bx({ fill: "room-2", stroke: "rule-3", w: 1.2, y: 5, height: 6, rx: 2 })], "Strip under a box: what the component exposes");
   def("ic.lip.missing", [bx({ fill: "room-2", stroke: "note-text", w: 1.2, y: 5, height: 6, rx: 2, dash: "3 2" })], "Dashed amber strip: the design gives it no Exposes line");
-  def("ic.owns", [bx({ fill: "deck-3", width: 14, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "3", fill: "ink-2", y: 11, size: 8 }], "Grey count: how many vault items the component owns");
+  def("ic.owns", [bx({ fill: "deck-3", width: 14, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "3", fill: "ink-2", y: 11, size: 8 }], "Gray count: how many vault items the component owns");
   def("ic.oq", [{ k: "dot", fill: "caution", r: 4.5 }], "Amber dot: an open design question affects it");
   def("ic.stub", [{ k: "clip", fill: "room-2", stroke: "ink-4", w: 1.4, dash: "4 3" }], "Clipped dashed box: an integration point, a system outside");
   def("ic.stub.loose", [{ k: "clip", fill: "room-2", stroke: "note-text", w: 1.6 }], "Amber clipped box: an integration point no component meets");
@@ -71,7 +71,7 @@ const Inside = (() => {
   def("sq.later", [ln({ stroke: "ink-3", w: 1.6, head: "fill", opacity: 0.42 })], "Faded arrow: a step not reached yet");
   def("inside.mini", [bx({ stroke: "rule-3", w: 1.2, rx: 2 }), bx({ fill: "focus", stroke: "focus", w: 1.2, opacity: 0.4, x: 17, y: 5, width: 10, height: 6, rx: 1 })], "Small copy in the corner: the whole drawing, the part in view outlined");
   const insideLamps = (extra) => Legend.lampProbes((lv) => (lv === "dark" ? "g.hit.dark" : [`g.hit.lit.${lv}`, `.in-edge.lit.${lv}`, `.in-label.lit.${lv}`].concat(extra ? extra(lv) : []).join(", ")));
-  const PICKS = ".in-box.picked, .in-stub.picked, g.hit.picked, .focus-centre";
+  const PICKS = ".in-box.picked, .in-stub.picked, g.hit.picked, .focus-center";
   /* Opens a drawing's key where the drawing goes: before it is drawn, so the room it measures is the room it keeps. */
   const keyFor = (name, root, probes, picks, instance) => Legend.open(name, { root, probes, picks, instance });
   /* Paints a key after its drawing, with "picked" as the drawing now stands (highlight() adds that class, not the drawing). */
@@ -191,12 +191,12 @@ const Inside = (() => {
     stage.append(board, lg.el());
     lg.within(() => MapGroups.focus(board, app, (el) => open(app, "containers", { from: el.getBoundingClientRect() })));
     lg.paint();
-    const centre = $(`#board g.hit[data-key="${CSS.escape(app)}"]`);
-    if (centre) {
-      centre.classList.add("inside-door");
-      centre.appendChild(document.createElementNS(SVGNS, "title")).textContent = `${appTitle(app)}: click to go inside, to its containers`;
+    const center = $(`#board g.hit[data-key="${CSS.escape(app)}"]`);
+    if (center) {
+      center.classList.add("inside-door");
+      center.appendChild(document.createElementNS(SVGNS, "title")).textContent = `${appTitle(app)}: click to go inside, to its containers`;
     }
-    stage.append(h("div", { class: "inside-hint" }, `Click ${appTitle(app)} to go in to its containers. Double-click a neighbour to go inside it instead.`));
+    stage.append(h("div", { class: "inside-hint" }, `Click ${appTitle(app)} to go in to its containers. Double-click a neighbor to go inside it instead.`));
   }
 
   /* ------------------------------------------------------------ text measured before drawing, and fitted */
@@ -216,7 +216,7 @@ const Inside = (() => {
   /* ------------------------------------------------------------ a layered drawing, left to right
      Sugiyama's method, kept small and deterministic: cycles broken in document order, each node at the end of its
      longest path, a waypoint for every column a long arrow crosses (so it runs between boxes, never through one),
-     three sweeps of barycentre ordering, then each column pulled towards its neighbours without two boxes ever
+     three sweeps of barycenter ordering, then each column pulled toward its neighbors without two boxes ever
      closer than the gap. Stubs (side "in" or "out") take the first and last columns.
 
      It lays out left to right; top to bottom is the same layout on swapped sizes, transposed. With dir "auto" it
@@ -287,7 +287,7 @@ const Inside = (() => {
     const cy = {};
     const sep = (a, b) => byId[a].h / 2 + byId[b].h / 2 + (byId[a].dummy || byId[b].dummy ? GY / 2 : GY);
     cols.forEach((col) => { let y = 0; col.forEach((id, i) => { if (i) y += sep(col[i - 1], id); cy[id] = y; }); const mid = y / 2; col.forEach((id) => { cy[id] -= mid; }); });
-    // y: each column pulled towards the mean of its neighbours, never closer than the gap (forward and back, averaged)
+    // y: each column pulled toward the mean of its neighbors, never closer than the gap (forward and back, averaged)
     for (let pass = 0; pass < 4; pass++) {
       const ls = pass % 2 ? [...cols.keys()].reverse() : [...cols.keys()];
       for (const L of ls) {
@@ -390,11 +390,11 @@ const Inside = (() => {
     const whole = () => { const r = holder.getBoundingClientRect(); return r.width ? Math.min(1.15, (r.width - 28) / w, (r.height - 16) / ht) : READ_SCALE; };
     const opening = () => { const k = whole(); return opts.open === "read" ? (k >= READ_FITS ? k : READ_SCALE) : Math.max(MIN_SCALE, k); };
     const scaleOf = () => { const z = st.zoom[zkey]; return z === "whole" ? whole() : typeof z === "number" ? z : opening(); };
-    // where a point of the drawing sits, in the holder's scrolled content; the holder centres a drawing that fits
+    // where a point of the drawing sits, in the holder's scrolled content; the holder centers a drawing that fits
     const at = (x, y) => { const r = svg.getBoundingClientRect(), b = holder.getBoundingClientRect(), k = +holder.dataset.scale;
       return { x: r.left - b.left + holder.scrollLeft + (x - x0) * k, y: r.top - b.top + holder.scrollTop + (y - y0) * k }; };
-    const centreOn = (x, y) => { const p = at(x, y); holder.scrollLeft = p.x - holder.clientWidth / 2; holder.scrollTop = p.y - holder.clientHeight / 2; };
-    const centreNow = () => { const k = +holder.dataset.scale; return { x: x0 + (holder.scrollLeft + holder.clientWidth / 2 - at(x0, y0).x) / k, y: y0 + (holder.scrollTop + holder.clientHeight / 2 - at(x0, y0).y) / k }; };
+    const centerOn = (x, y) => { const p = at(x, y); holder.scrollLeft = p.x - holder.clientWidth / 2; holder.scrollTop = p.y - holder.clientHeight / 2; };
+    const centerNow = () => { const k = +holder.dataset.scale; return { x: x0 + (holder.scrollLeft + holder.clientWidth / 2 - at(x0, y0).x) / k, y: y0 + (holder.scrollTop + holder.clientHeight / 2 - at(x0, y0).y) / k }; };
     const mini = opts.open === "read" ? minimap(svg, holder, { x0, y0, w, ht, lg: opts.lg }) : null;
     // drag the background to pan: it scrolls the holder, so the zoom and the minimap keep telling the truth
     Pan.attach(holder, { key: "inside-" + zkey, svg: () => svg, scrollOnly: true });
@@ -404,14 +404,14 @@ const Inside = (() => {
       holder.dataset.scale = k.toFixed(2);
       if (mini) mini.update();
     };
-    const showFocus = () => { if (opts.focus) centreOn(opts.focus.x + opts.focus.w / 2, opts.focus.y + opts.focus.h / 2); };
+    const showFocus = () => { if (opts.focus) centerOn(opts.focus.x + opts.focus.w / 2, opts.focus.y + opts.focus.h / 2); };
     let placed = false;  // the first time the drawing is in the page: size it, then show the box the page is about
     const place = () => { placed = true; apply(); showFocus(); };
     const fitIt = (ev) => {
       if (!svg.isConnected) { if (placed || ev instanceof Event) { observer.disconnect(); removeEventListener("resize", fitIt); } return; }
       if (!placed) { place(); return; }
-      const keep = centreNow();
-      apply(); centreOn(keep.x, keep.y);
+      const keep = centerNow();
+      apply(); centerOn(keep.x, keep.y);
     };
     const observer = new ResizeObserver(fitIt);
     observer.observe(holder);
@@ -419,16 +419,16 @@ const Inside = (() => {
     apply();
     if (svg.isConnected) place(); else unplaced.push({ svg, place });
     const set = (z) => {
-      const keep = centreNow();
+      const keep = centerNow();
       st.zoom[zkey] = z; apply();
-      if (z === null && opts.focus) showFocus(); else if (z !== "whole") centreOn(keep.x, keep.y);
+      if (z === null && opts.focus) showFocus(); else if (z !== "whole") centerOn(keep.x, keep.y);
     };
     const now = () => +holder.dataset.scale;
     // the controls sit on the frame around the holder, not in it: inside a scrolling holder they took a column of room
     frame.append(h("div", { class: "in-zoom", role: "group", "aria-label": "Zoom" },
       h("button", { title: "Zoom out", onclick: () => set(Math.max(0.3, now() / 1.25)) }, "−"),
       h("button", { title: "The whole drawing in view", onclick: () => set("whole") }, "Whole"),
-      h("button", { title: opts.open === "read" ? "Reading size, centred on the main box" : "Reading size: names at 10px or more, scrolling if it must", onclick: () => set(null) }, "Read"),
+      h("button", { title: opts.open === "read" ? "Reading size, centered on the main box" : "Reading size: names at 10px or more, scrolling if it must", onclick: () => set(null) }, "Read"),
       h("button", { title: "Zoom in", onclick: () => set(Math.min(2, now() * 1.25)) }, "+")));
     if (mini) frame.append(mini.el);
   }
@@ -553,7 +553,7 @@ const Inside = (() => {
   }
   const worstOf = (ids) => { const lv = ids.map(levelOf).sort((p, q) => rank(q) - rank(p))[0]; return lv && lv !== "dark" ? lv : ""; };
   function pick(el, k, label) { Nodes.wire(el, { label: label || el.getAttribute("aria-label") || k, key: k }); }
-  /* A component's glyph, by the words in its name: the built-in set, never a colour of its own. */
+  /* A component's glyph, by the words in its name: the built-in set, never a color of its own. */
   const GLYPHS = [[/api|gateway|endpoint/i, "gateway"], [/store|repositor|cache|database|db\b/i, "database"], [/publish|event|bus|consumer|queue/i, "messaging"],
     [/adapter|reader|client|sender/i, "nodes"], [/check|guard|auth|caller/i, "lock"], [/engine|rule|calculat|pric/i, "layers"], [/render|template|page/i, "docs"],
     [/hold|keeper|timer|schedul|expir/i, "schedule"], [/lifecycle|state|machine/i, "hexagon"], [/suppress|filter/i, "fraud"], [/ui|app|desktop|kiosk|screen/i, "web"]];
@@ -589,7 +589,7 @@ const Inside = (() => {
   }
   function componentsNote(app, d) {
     const missing = d.problems.some((p) => p.section === "Integration points" && /missing section/.test(p.message));
-    return h("div", { class: "inside-hint" }, `${plural(d.components.length, "component")} from ${d.path.split("/").slice(-1)[0]}. Arrows are each Depends on, labelled with what the other offers on its Exposes line; `,
+    return h("div", { class: "inside-hint" }, `${plural(d.components.length, "component")} from ${d.path.split("/").slice(-1)[0]}. Arrows are each Depends on, labeled with what the other offers on its Exposes line; `,
       missing ? h("span", { class: "gap" }, "the design has no Integration points section, so no stub is drawn for it. ") : "stubs at the sides are its Integration points, joined where the design cites their contract. ",
       h("span", { class: "heuristic" }, d.trace_source === "recorded" ? "Owned IDs are recorded in its Trace table." : "Owned IDs are inferred from where each ID appears; the format records no trace."));
   }

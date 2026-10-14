@@ -3,7 +3,7 @@
      contract's provider to each consumer), numbered where it lands.
    - Ripple: pick an app or a decision and a ripple spreads, ring by ring, to what depends on it. Ring 1 is every
      app that consumes a contract the app provides (its Consumers lines); ring 2 consumes from ring 1; and so on. A
-     decision starts from the apps and contracts its page links, or that link it (heuristic, labelled).
+     decision starts from the apps and contracts its page links, or that link it (heuristic, labeled).
    - Trains are the third option and live on the line map (view-map.js).
    With effects off (Plain) the same path or rings are shown at once, numbered, with nothing moving.
 
@@ -34,7 +34,7 @@ const Motion = (() => {
     const legend = $("#motion-legend"); if (legend) legend.remove();
   }
   const later = (ms, fn) => { if (reducedMotion() || ms <= 0) fn(); else timers.push(setTimeout(fn, ms)); };
-  const centre = (b) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+  const center = (b) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
   function badge(x, y, text, cls) {
     const g = s("g", { class: "m-badge " + (cls || "") }, Scene.st.top);
     s("circle", { cx: x, cy: y, r: 13 }, g);
@@ -68,7 +68,7 @@ const Motion = (() => {
     clear();
     const S = Scene.st;
     if (!S || !S.svg.isConnected) return { hops: 0, drawn: 0 };
-    const hops = hopsOf(key), colour = FLOW[key] ? Geo.flowColour(Geo.FLOW_ORDER[key]) : Theme.c("focus");
+    const hops = hopsOf(key), color = FLOW[key] ? Geo.flowColor(Geo.FLOW_ORDER[key]) : Theme.c("focus");
     active = { kind: "trace", key };
     S.svg.classList.add("tracing");
     let drawn = 0, n = 0, inside = 0;
@@ -85,7 +85,7 @@ const Motion = (() => {
       seen.add(tag); drawn++;
       later(at * HOP_MS, () => {
         if (!Scene.live || !active) return;
-        const path = s("path", { d: Geo.roundedPath(pts, 26), class: "tr-path" + (hop.inferred ? " inferred" : ""), stroke: colour }, S.layer);
+        const path = s("path", { d: Geo.roundedPath(pts, 26), class: "tr-path" + (hop.inferred ? " inferred" : ""), stroke: color }, S.layer);
         if (!reducedMotion() && hop.inferred) path.animate([{ opacity: 0 }, { opacity: 0.95 }], { duration: HOP_MS * 0.9, fill: "forwards" });
         else if (!reducedMotion()) { const len = path.getTotalLength(); path.style.strokeDasharray = len; path.style.strokeDashoffset = len; path.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: HOP_MS * 0.9, fill: "forwards", easing: "ease-in-out" }); }
         [a, b].forEach((k) => S.nodes[k].el.classList.add("tr-on"));
@@ -134,7 +134,7 @@ const Motion = (() => {
     S.svg.classList.add("rippling");
     const seedVis = [...new Set(R.seed.map(Scene.vis).filter(Boolean))];
     seedVis.forEach((k) => { S.nodes[k].el.classList.add("rp-on"); S.nodes[k].el.setAttribute("data-ring", "0"); });
-    const origin = seedVis.length ? centre(S.nodes[seedVis[0]]) : null;
+    const origin = seedVis.length ? center(S.nodes[seedVis[0]]) : null;
     const placed = new Set(seedVis);
     R.rings.forEach((ring, i) => {
       const vis = [...new Set(ring.map(Scene.vis).filter(Boolean))].filter((k) => !placed.has(k));
@@ -142,7 +142,7 @@ const Motion = (() => {
       later((i + 1) * RING_MS, () => {
         if (!Scene.live || !active) return;
         if (origin && !reducedMotion()) {
-          const far = Math.max(60, ...vis.map((k) => { const c = centre(S.nodes[k]); return Math.hypot(c.x - origin.x, c.y - origin.y); }));
+          const far = Math.max(60, ...vis.map((k) => { const c = center(S.nodes[k]); return Math.hypot(c.x - origin.x, c.y - origin.y); }));
           const wave = s("circle", { cx: origin.x, cy: origin.y, r: 10, class: "rp-wave" }, S.layer);
           wave.animate([{ r: 10, opacity: 0.7 }, { r: far + 40, opacity: 0 }], { duration: RING_MS * 1.3, easing: "ease-out", fill: "forwards" });
         }

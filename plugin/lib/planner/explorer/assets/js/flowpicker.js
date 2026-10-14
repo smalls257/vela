@@ -20,7 +20,7 @@
 
    The grouping and filtering are plain functions over the record (arrange); the widget only draws what they return. */
 const FlowPicker = (() => {
-  Legend.define("list.swatch", [Legend.ln({ stroke: "line-grey", w: 4 })], "Coloured bar: the colour this flow has on the line map");
+  Legend.define("list.swatch", [Legend.ln({ stroke: "line-gray", w: 4 })], "Colored bar: the color this flow has on the line map");
   const TEN_FLOWS = 10;
   let uid = 0, pendingFocus = null;  // choosing redraws the whole view; the new button takes the focus the old one held
 
@@ -73,7 +73,7 @@ const FlowPicker = (() => {
        current  () => the chosen flow key, or null
        onPick   (key | null) => void; null only when `none` is given
        none     the words for "no flow chosen" ("Every line"), or null when a flow must be chosen
-       swatch   (key) => colour, to draw the line's colour beside the name, or null
+       swatch   (key) => color, to draw the line's color beside the name, or null
      Returns the element; el.refresh() redraws the button after the choice changed somewhere else. */
   function make({ current, onPick, none = null, swatch = null, label = "Flow" }) {
     const id = ++uid, listId = `fp-list-${id}`;

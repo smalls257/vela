@@ -1,7 +1,7 @@
 """Each flow as a played sequence: lanes, the messages each step sends, and the open questions pinned to it.
 
 Ported from prototypes/gallery/flows/extract.py and widened to the explorer's vaults. Everything is read with the
-planner's own parser and model. Two things the record does not say directly, each labelled on the page:
+planner's own parser and model. Two things the record does not say directly, each labeled on the page:
 
 - Direction. A step that starts "Sender -> Receiver:" records it, and is "stated". Otherwise a step names a
   contract, not who sends to whom. A sentence such as "TickerTalk sends Coach the ID"
