@@ -28,10 +28,16 @@ def test_each_kept_word_used_is_defined_once_in_first_use_order():
     assert cli.term_notes(["Nothing to define here."]) == []
 
 
-def test_next_defines_grill_when_it_names_one():
+def test_routine_output_does_not_repeat_definitions_but_terms_gives_them():
     _, out = run("next", "--vault", str(REPO / "tests" / "fixtures" / "team-skills" / "heron"), "--today", "2026-10-12")
     assert " grill " in out.splitlines()[0]
-    assert sum(1 for line in out.splitlines() if line.startswith('What "grill" means:')) == 1
+    assert not [line for line in out.splitlines() if line.startswith("What \"")]
+    code, out = run("terms")
+    assert code == 0 and [line.split('"')[1] for line in out.splitlines()] == ["grill", "slice", "tracer"]
+    code, out = run("terms", "slices")
+    assert code == 0 and out.startswith('What "slice" means:')
+    code, out = run("terms", "lamp")
+    assert code == 2 and "no definition" in out
 
 
 def test_check_says_the_date_it_judged_by_in_words():

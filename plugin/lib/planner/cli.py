@@ -946,6 +946,18 @@ def cmd_proposals_answer(args, out):
     return 0
 
 
+def cmd_terms(args, out):
+    """The kept working words and what each means, for a reader meeting them cold (`planner terms`, or one word)."""
+    words = [args.word.lower().rstrip("s")] if args.word else sorted(terms.TERMS)
+    unknown = [w for w in words if w not in terms.TERMS]
+    if unknown:
+        print(f"planner terms: no definition for {unknown[0]!r}; the kept words are {', '.join(sorted(terms.TERMS))}.", file=out)
+        return 2
+    for note in term_notes(words):
+        print(note, file=out)
+    return 0
+
+
 def cmd_doctor(args, out):
     """Whether this machine has what planner needs, one line per item. The folder need not be a vault."""
     root = pathlib.Path(args.vault).resolve()
@@ -1001,8 +1013,6 @@ def cmd_check(args, out):
           + (f" App: {vault.named(app.id)}." if app is not None else ""), file=out)
     for finding in findings:
         print(finding.format(), file=out)
-    for note in term_notes(f.message + " " + f.fix for f in findings):
-        print(note, file=out)
     if args.gate == "epics" and not errors:
         resting = questions.load_bearing_assumptions(vault)
         if resting:
@@ -1021,8 +1031,10 @@ TERM_WORD = re.compile(r"\b(grill|slice|tracer)s?\b", re.IGNORECASE)
 
 
 def term_notes(texts):
-    """One definition line for each kept word (slice, tracer, grill) the lines above used, in first-use order.
-    The user ruled the words stay and are defined on first use; definitions live in planner/terms.py only."""
+    """One definition line for each kept word (slice, tracer, grill) the given lines use, in first-use order.
+    The user ruled the words stay and are defined on first use. Routine output (check, next, status) doesn't print
+    these: a definition repeated on every run is noise readers learn to skip. They're printed by `planner terms`,
+    shown as dashboard tooltips, and given by the skills the first time a session uses the word."""
     seen = []
     for text_value in texts:
         for match in TERM_WORD.finditer(text_value):
@@ -1885,8 +1897,6 @@ def cmd_handoff(args, out):
               "they accept it; the handoff record lists them too.", file=out)
         for line in not_firm:
             print(line, file=out)
-    for note in term_notes(["slice"] if taking_part else []):
-        print(note, file=out)
     return 0
 
 
@@ -2364,8 +2374,6 @@ def cmd_status(args, out):
     for row in rows:
         print(status_line(row, today, vault), file=out)
     print(completeness.line(vault), file=out)
-    for note in term_notes(status_line(r, today, vault) for r in rows):
-        print(note, file=out)
     return 0
 
 
@@ -2447,8 +2455,6 @@ def cmd_next(args, out):
     if not vault.apps:
         line = f"planner next: {first_step(vault)} {when}"
         print(line, file=out)
-        for note in term_notes([line]):
-            print(note, file=out)
         return 0
     row = progress.best(progress.grid(vault, today))
     step = initiative_step(vault, row)
@@ -2470,7 +2476,7 @@ def cmd_next(args, out):
     team = teamdocs.team_step(root, vault.name_of)
     if team:
         lines.append(f"planner next: for {team}")
-    for line in lines + term_notes(lines):
+    for line in lines:
         print(line, file=out)
     return 0
 
@@ -2683,6 +2689,9 @@ def build_parser():
     ans.add_argument("--decisions", required=True, help="JSON list of {group, outcome: accepted|rejected|edited, reason, commit}, from a file or - for standard input")
     ans.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
     ans.set_defaults(func=cmd_proposals_answer)
+    trm = sub.add_parser("terms", help="what the kept working words (slice, tracer, grill) mean")
+    trm.add_argument("word", nargs="?", help="one word to define")
+    trm.set_defaults(func=cmd_terms)
     doc = sub.add_parser("doctor", help="whether this machine has what planner needs; each missing piece says what it adds and how to get it")
     doc.add_argument("--vault", default=".", help="folder to check as a vault too (default: current directory)")
     doc.set_defaults(func=cmd_doctor)
