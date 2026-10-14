@@ -897,13 +897,20 @@ def grill_gate(vault, items):
             yield Finding(where[0], where[1], "W807", f"None of the standard questions applies to {vault.named(unit_id)}, so nothing is checked for it before the grill.",
                           "To get the checks, name the app, contract, requirement, capability or concern it affects instead.")
             continue
-        for d in dispositions(vault):
-            if d.pending and unit_id in blocks(vault, d.copy):
-                yield Finding(where[0], where[1], "W807",
-                              f"A question that holds up {vault.named(unit_id)} {_standing(d)}: {d.copy.entry.question} ({d.copy.id})",
-                              "Put it on the agenda and settle it first, or decide anyway and capture "
-                              "\"decided with <copy IDs> open (W807)\": that capture is the record, because W807 "
-                              "prints only under this gate.")
+        for d in owed_on(vault, unit_id):
+            yield Finding(where[0], where[1], "W807",
+                          f"A question that holds up {vault.named(unit_id)} {_standing(d)}: {d.copy.entry.question} ({d.copy.id})",
+                          "Put it on the agenda and settle it first, or decide anyway and capture "
+                          "\"decided with <copy IDs> open (W807)\": that capture is the record, because W807 "
+                          "prints only under this gate.")
+
+
+def owed_on(vault, unit_id):
+    """The dispositions still open, asked or with no row whose copy blocks `unit_id`, in copy order: what W807 warns on,
+    and what `gates.verdict` lists as still owed. One computation, so the warning and the verdict never disagree."""
+    if not can_be_blocked(vault, unit_id):
+        return []
+    return [d for d in dispositions(vault) if d.pending and unit_id in blocks(vault, d.copy)]
 
 
 # ------------------------------------------------------------------ a subject nobody typed
