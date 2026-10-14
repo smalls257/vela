@@ -69,7 +69,7 @@ The owner pastes 2 or 3 exchanges they liked, from any session or chat: a few tu
 
 ### The owner's own rules
 
-After the types, offer once: "Do you want to start `voice/VOICE.md`, your own rules for how pages read or how sessions talk, in your words?" It is optional. If yes, ask which facet (pages, conversation or both) and take the rules the owner states, one at a time. Write each rule as the owner said it, never reworded and never invented by you; if you think of a rule they might want, you may offer it as a question and write it only when they say yes in their own words. Put the pages rules and the conversation rules under two headings, `## Pages` and `## Conversation`. Create the file if it does not exist, append to it if it does, and never delete or rewrite a line already there. `voice/VOICE.md` is committed, so say the same plain words about who can read it and ask for the same yes before it goes in the PR.
+After the types, offer once: "Do you want to start `voice/VOICE.md`, your own rules for how pages read or how sessions talk, in your words?" It is optional. The defaults already say to spell in American English, and the owner can change that here. If yes, ask which facet (pages, conversation or both) and take the rules the owner states, one at a time. Write each rule as the owner said it, never reworded and never invented by you; if you think of a rule they might want, you may offer it as a question and write it only when they say yes in their own words. Put the pages rules and the conversation rules under two headings, `## Pages` and `## Conversation`. Create the file if it does not exist, append to it if it does, and never delete or rewrite a line already there. `voice/VOICE.md` is committed, so say the same plain words about who can read it and ask for the same yes before it goes in the PR.
 
 ## 4. Write the examples
 
@@ -77,7 +77,7 @@ Write each passage as `<folder>/<type>/VX-<type>-NNN.md`, in the three moves `${
 
 ## 5. Retire examples
 
-Apply the plan from step 3. Set `state: retired` on each example in it. Change only the `state:` line. Never delete a seed example: its licence and attribution stay in the file. Retiring a committed example changes a committed file, so it goes through the PR in step 7. Retiring a local example needs no PR.
+Apply the plan from step 3. Set `state: retired` on each example in it. Change only the `state:` line. Never delete a seed example: its license and attribution stay in the file. Retiring a committed example changes a committed file, so it goes through the PR in step 7. Retiring a local example needs no PR.
 
 A type with fewer than 2 owner passages keeps its seed. A local-only run always leaves the committed seed in place. Say: "<type> has one owner passage, so house-voice still reads the public seed. Add another to replace it."
 

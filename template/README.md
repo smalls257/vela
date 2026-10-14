@@ -27,7 +27,7 @@ Twelve steps in three groups: put the files in place, check they work, then conn
 ### Check that it works
 
 7. Run `python3 .claude/skills/planner/scripts/planner check`. It should report 0 errors.
-8. Run `python3 .claude/skills/planner/scripts/planner questions --digest`. It lists the questions the catalogue says a new initiative owes, most consequential first. Nothing is answered yet, and that is expected: your sessions take them at your pace, and close records each answer in the question ledger.
+8. Run `python3 .claude/skills/planner/scripts/planner questions --digest`. It lists the questions the catalog says a new initiative owes, most consequential first. Nothing is answered yet, and that is expected: your sessions take them at your pace, and close records each answer in the question ledger.
 9. Start every Claude Code session with `bin/claude-planner` (or `sh bin/claude-planner`). The copied plugin only loads through its `--plugin-dir` flag, so a plain `claude` will not find `/planner:dump` or `/planner:close`.
 
 ### Connect GitHub and read it

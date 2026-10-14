@@ -1,4 +1,4 @@
-# Subjects, the question ledger and catalogue gaps
+# Subjects, the question ledger and catalog gaps
 
 Read by close in section 3, after the promoted items are written and before the marks. Section numbers below are the sections of `SKILL.md`.
 
@@ -12,7 +12,7 @@ A kept capture that says `type at close: PTY` or `type at close: SV` names a sub
 
 Then record the yes. Dump starts the capture with the existence question's copy ID, such as `Q-FIN-01@INI-001: yes, ... type at close: SV`. Write that copy's row in the ledger as the next part says: `answered`, `item:` linking the new subject, `answer:` the lead's yes in one line, and `source:` by the source rule there, which means a first-hand `SRC-nn` when the lead's word is the only source. If the subject stays untyped, the row is `unknown`, linking the unknown that asks for its relationship or holder: the yes is said, and the subject waits for that answer. If the copy already has a row, an earlier session recorded the yes, so write no second row. Add the `## Changes` row for the copy, citing the capture.
 
-A typed subject makes the catalogue owe its questions. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>`, list its copies under **Questions** in the PR body, and write its row below for each copy a capture answers. The rest stay undisposed until a session takes them.
+A typed subject makes the catalog owe its questions. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>`, list its copies under **Questions** in the PR body, and write its row below for each copy a capture answers. The rest stay undisposed until a session takes them.
 
 ### The question ledger
 
@@ -35,14 +35,14 @@ Add a `## Changes` row for each new ledger row: `| <copy> | - | <state> | [[<id>
 
 Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check`. Each E801, E802 or E803 on the ledger is a row written wrong: show it and fix it with the user. If no source the check accepts exists, write the row as `assumed` or `open`, whichever the lead's words support, and list it in the pull request body. Never delete a row to quiet the check, and never drop one without saying so.
 
-### Gaps the catalogue missed
+### Gaps the catalog missed
 
-Never ask the lead whether a gap turned up late, or by luck: the answer is almost always no, and the question belongs to whoever maintains the catalogue. Instead, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --stats` and list in the pull request body, under **Catalogue proposals**, each entry whose copies in this vault all ended `not-applicable` as one to prune or tighten, and each reviewer question this close wrote that is not `not-applicable` as an entry that never fired. Pruning is the maintainer's call.
+Never ask the lead whether a gap turned up late, or by luck: the answer is almost always no, and the question belongs to whoever maintains the catalog. Instead, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --stats` and list in the pull request body, under **Catalog proposals**, each entry whose copies in this vault all ended `not-applicable` as one to prune or tighten, and each reviewer question this close wrote that is not `not-applicable` as an entry that never fired. Pruning is the maintainer's call.
 
-If the lead said during the session, in so many words, that the catalogue missed something, draft an entry from that capture:
+If the lead said during the session, in so many words, that the catalog missed something, draft an entry from that capture:
 
 ```yaml
-- id: Q-<AREA>-nn  # the next free number in that area of the catalogue
+- id: Q-<AREA>-nn  # the next free number in that area of the catalog
   area: <AREA>
   scope: <initiative, app, contract, capability, party or stored-value>
   trigger: <exists, or a condition in the grammar of CONVENTIONS.md>
@@ -51,4 +51,4 @@ If the lead said during the session, in so many words, that the catalogue missed
   severity: <high or normal>
 ```
 
-Write it under `## Catalogue proposals` in the session record as one YAML block and list it in the pull request body. Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`: the catalogue belongs to the toolkit, so code decides what is owed only once the toolkit takes the entry.
+Write it under `## Catalog proposals` in the session record as one YAML block and list it in the pull request body. Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`: the catalog belongs to the toolkit, so code decides what is owed only once the toolkit takes the entry.

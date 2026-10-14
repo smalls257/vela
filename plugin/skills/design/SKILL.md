@@ -37,9 +37,9 @@ Propose it in a sentence or two and ask whether it's right.
 
 When neither names a tracer, ask one question first: which flow should release one prove end to end? Recommend one from the flows this app takes part in, with the reason ("the 7:30 digest, because it crosses all three apps"). A release that says `**Tracer:** none, <reason>` has no skeleton to serve: say so, and design in template order. Then design its components and contracts first, and widen from there to the rest of `TECH-DESIGN-FORMAT.md`. The skeleton changes the order of the interview, not its coverage: every trace target still needs an owner.
 
-For Heron's Desktop agent it read: "At 7:30 the agent asks the consent check, reads the person's calendar entries, sends them to the Summariser and shows the digest. Consent and identity and the Summariser are stubbed at their contracts until those teams' pieces land."
+For Heron's Desktop agent it read: "At 7:30 the agent asks the consent check, reads the person's calendar entries, sends them to the Summarizer and shows the digest. Consent and identity and the Summarizer are stubbed at their contracts until those teams' pieces land."
 
-If the vault has no releases page at all, propose a skeleton from the app's first epic and ask. If the senior says the skeleton isn't ready ("we don't know the Summariser's shape yet"), say once what it protects (a team that can show the flow working early), record their words as an override, and carry on in template order.
+If the vault has no releases page at all, propose a skeleton from the app's first epic and ask. If the senior says the skeleton isn't ready ("we don't know the Summarizer's shape yet"), say once what it protects (a team that can show the flow working early), record their words as an override, and carry on in template order.
 
 ## 3. Ask one question at a time
 

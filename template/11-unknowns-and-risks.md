@@ -18,8 +18,8 @@ none
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=21456430: do not edit, run planner render -->
-**Questions:** 12 owed, 12 undisposed, against catalogue v1.
+<!-- generated:undisposed-questions sha=38d9fed0: do not edit, run planner render -->
+**Questions:** 12 owed, 12 undisposed, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |
 |---|---|---|---|---|---|

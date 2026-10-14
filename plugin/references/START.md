@@ -14,7 +14,7 @@ The skills write the planner as `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`.
 4. The `planner_path` recorded in `.planner/workspace.json`, in a reader copy.
 5. None: stop and say "I cannot find the planner program. Run `/planner:where` and send me what it prints." Do not guess a path.
 
-Do not say which one you picked unless you could not find one. The installed plugin wins over a vendored copy, because two versions answering one vault is how a vault gets rules its skills no longer follow. Other files the skills name as `${CLAUDE_PLUGIN_ROOT}/...` (this file, `MODES.md`, `REVIEW.md`, the catalogue) live in the same plugin root as `scripts/`. When the variable was not expanded, the root is the folder that holds the `scripts/planner` you picked, so a vendored vault's `.claude/skills/planner/`.
+Do not say which one you picked unless you could not find one. The installed plugin wins over a vendored copy, because two versions answering one vault is how a vault gets rules its skills no longer follow. Other files the skills name as `${CLAUDE_PLUGIN_ROOT}/...` (this file, `MODES.md`, `REVIEW.md`, the catalog) live in the same plugin root as `scripts/`. When the variable was not expanded, the root is the folder that holds the `scripts/planner` you picked, so a vendored vault's `.claude/skills/planner/`.
 
 ## Owner or reader
 
