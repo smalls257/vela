@@ -91,8 +91,8 @@ def test_preview_writes_nothing(example, draft_shop):
         before = snapshot(vault)
         for mode in ((), ("--json",), ("--for-lead",)):
             preview(vault, app, *mode)
-        assert snapshot(vault) == before
-        assert not (vault / "handoffs").exists() and not (vault / ".vela").exists()
+        assert snapshot(vault) == before  # the example's own handoff records included
+        assert not (vault / ".vela").exists()
 
 
 def test_preview_refuses_an_id_that_is_not_an_app(example):
@@ -100,9 +100,9 @@ def test_preview_refuses_an_id_that_is_not_an_app(example):
     assert code == 2 and "is not the id of an app's building-blocks page" in out
 
 
-def test_preview_refuses_the_handoffs_own_flags(example):
-    code, out = preview(example, "APP-kiosks", "--replace")
-    assert code == 2 and "--replace" in out and not (example / "handoffs").exists()
+def test_preview_refuses_the_handoffs_own_flags(draft_shop):
+    code, out = preview(draft_shop, "APP-shop", "--replace")
+    assert code == 2 and "--replace" in out and not (draft_shop / "handoffs").exists()
 
 
 def test_handoff_and_verify_unchanged(tmp_path):
