@@ -216,5 +216,4 @@ def extract(vault, keys):
             "releases": release_data(vault, keys), "goals": goals(vault, keys), "constraints": constraints(vault, keys),
             "riskList": risks(vault, keys), "epicCriteria": epic_criteria(vault, keys),
             "reqCriteria": requirement_criteria(vault, keys), "failure": failure(vault, keys),
-            "testedBy": tested_by(vault), "slices": slices(vault, keys), "cells": cells(vault, keys),
-            "slicePlan": slices_data.extract(vault, keys)}
+            "testedBy": tested_by(vault), "slices": slices(vault, keys), "cells": cells(vault, keys)}

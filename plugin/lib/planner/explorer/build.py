@@ -35,7 +35,7 @@ from planner.edge import atomic
 from planner.parse import FENCE, closes_fence
 
 from . import (asks_data, assets_inline, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
-               plan_data, roles_data, serve)
+               plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELLED_LINE, PROSE_LIMIT, Keys, inline_html,
                      plain, refs_in, title_of)
@@ -594,6 +594,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["sections"] = pages_data.sections(vault, keys)
     data["outgoing"] = pages_data.outgoing(vault, keys)
     data.update(roles_data.extract(vault, keys))
+    data["slicePlan"] = slices_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)))
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])

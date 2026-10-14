@@ -267,30 +267,24 @@ def _plain(text):
     return " ".join(re.sub(r"\[\[[^\]|]*\|([^\]]+)\]\]|\[\[([^\]]+)\]\]", lambda m: m.group(1) or m.group(2), text).split())
 
 
-def names(app):
-    """The words a slice page may call an app by: its title or its slug, ignoring case."""
-    return {str(app.meta.get("title") or "").lower(), app.id.removeprefix("APP-").replace("-", " ").lower()} - {""}
-
-
-def _calls(side, app):
-    """A side names the app when its words are the app's name or a part of it ("Kiosks" for "Port kiosks")."""
-    words = set(side.lower().split())
-    return bool(words) and any(words <= set(n.split()) or set(n.split()) <= words for n in names(app))
+def taking_part(vault, found):
+    """{slice key: [app id]}: the apps each slice takes part in, in vault order. An app takes part when a flow of the
+    slice has a step to or from it, or the slice joins a contract it provides. Consuming a joined contract is not
+    enough: three channels consume one booking API, and only the channel a slice moves takes part in it. The one rule
+    behind the handoff, the dashboard's team filter and planner next."""
+    from planner import flows, progress
+    provided = {app.id: {c.id for c in progress.provided(vault, app) if not c.fact("Provider")} for app in vault.apps}
+    out = {}
+    for s in found:
+        apps, _ = flows.passes_through(vault, s.flows)
+        out[s.key] = [app.id for app in vault.apps if app.id in apps or provided[app.id] & set(s.joins)]
+    return out
 
 
 def for_app(vault, found, app):
-    """The slices an app takes part in: a flow of the slice has a step to or from it, a join names it on one side,
-    or the slice joins a contract it provides. Consuming a joined contract is not enough: three channels consume one
-    booking API, and only the channel a slice moves takes part in it."""
-    from planner import flows, progress
-    provided = {c.id for c in progress.provided(vault, app) if not c.fact("Provider")}
-    out = []
-    for s in found:
-        apps, _ = flows.passes_through(vault, s.flows)
-        sided = any(_calls(sender, app) or _calls(receiver, app) for _, sender, receiver in s.sides)
-        if app.id in apps or sided or provided & set(s.joins):
-            out.append(s)
-    return out
+    """The slices an app takes part in (taking_part), in slice order."""
+    part = taking_part(vault, found)
+    return [s for s in found if app.id in part[s.key]]
 
 
 # What moves a slice on from each status, in words for `planner next`. Vela plans and records; the teams run things.

@@ -20,11 +20,60 @@ def test_the_slices_view_reads_the_slice_pages(booking):  # noqa: F811
     assert all(E[x["key"]]["kind"] == "slice" for x in P["list"])
     assert [f["id"] for f in rows["SLC-001"]["flows"]] == ["FLO-001", "FLO-003"]
     assert all(E[f["key"]]["kind"] == "flow" for f in rows["SLC-001"]["flows"])
-    assert rows["SLC-001"]["joins"][0] == {"id": "CON-001", "key": "CON-001"}
-    assert all(j["key"] in E for x in P["list"] for j in x["joins"])
+    assert all(x["joins"] == [] and x["apps"] == [] for x in P["list"])  # the example's flow steps name no pairs, so no joins
+    assert all(x["check"]["status"] == "not fully checked" and x["check"]["open"] == ["unreadable or undeclared"] and x["overdue"] == "" for x in P["list"])  # as W391 says
     assert rows["SLC-003"]["notIn"][0]["text"].startswith("Amend and cancel at a kiosk")
     section = next(s for s in data["sections"] if s["id"] == "slices")
     assert section["children"] == [x["key"] for x in P["list"]]
+
+
+KIOSK_FLOW = """---
+id: FLO-009
+type: flow
+title: A kiosk books
+state: assumption
+owner: "@hl-solution-lead"
+authored: authored
+---
+
+# A kiosk books
+
+A customer at a kiosk holds a seat.
+
+## Steps
+
+1. [[kiosks-building-blocks|Kiosks]] → [[booking-building-blocks|Booking]]: holds a seat, over [[booking-building-blocks#CON-001 Booking API|Booking API]].
+"""
+
+
+def test_a_row_carries_its_joins_both_sides_the_apps_in_it_and_a_journey_past_due(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(BOOKING, vault)
+    (vault / "06-runtime" / "flows" / "FLO-009-a-kiosk-books.md").write_text(KIOSK_FLOW, encoding="utf-8")
+    page = next((vault / "slices").glob("SLC-003-*.md"))
+    page.write_text(page.read_text(encoding="utf-8").replace("[[FLO-001-hold-pay-confirm|FLO-001]]", "[[FLO-009-a-kiosk-books|FLO-009]]")
+                    .replace("- **Owner:**", "- **Status:** building\n- **Journey due:** 2026-11-19\n- **Owner:**", 1), encoding="utf-8")
+    _, data = built(tmp_path, vault, "2026-11-20", "kiosk")
+    row = next(x for x in data["slicePlan"]["list"] if x["id"] == "SLC-003")
+    assert row["joins"] == [{"id": "CON-001", "key": "CON-001", "from": "Kiosks", "to": "Booking"}]
+    assert [data["entities"][a]["id"] for a in row["apps"]] == ["APP-booking", "APP-kiosks"]
+    assert row["journeyDue"] == "2026-11-19" and row["overdue"].endswith("journey was due 2026-11-19 and nothing is recorded")
+    assert row["check"]["status"] == "not fully checked"  # building with nothing drawn: what check's W395 says
+    key = row["key"]
+    assert data["lights"][key]["level"] == "warning" and data["ranked"][0] == key  # it is in What needs you
+
+
+def test_a_row_carries_its_flow_check_state_and_overrides_with_their_end_dates(tmp_path):
+    from test_slices import FLOWCHECK, page, write
+    rule = '- **Override:** "F8 CON-020 declined until 2026-10-01" by @lead on 2026-09-13: the refund flow lands next sprint\n'
+    vault = tmp_path / "v"
+    shutil.copytree(FLOWCHECK / "05-hold-never-released", vault)
+    write(vault, "SLC-001", page("SLC-001", "Hold and pay", "**Status:** planned", "**Flows:** [[FLO-005-05-hold-never-released|FLO-005]]",
+                                 extra="\n## Overrides\n\n" + rule))
+    _, data = built(tmp_path, vault, "2026-10-13", "checked")
+    check = data["slicePlan"]["list"][0]["check"]
+    assert check["status"] == "fails" and check["open"] == ["not final"] and check["covered"] == 0
+    assert [(o["code"], o["item"], o["until"], o["ended"]) for o in check["overrides"]] == [("F8", "CON-020", "2026-10-01", True)]
 
 
 def test_the_tracer_reads_from_the_tracer_slice_and_from_release_one_without_slice_pages(booking, tmp_path):  # noqa: F811
