@@ -18,7 +18,7 @@ def test_each_lead_side_skill_carries_its_tracer_guidance():
     assert "Draw the tracer candidate's flows first" in read("skills/boundary/SKILL.md")
     releases = read("skills/releases/SKILL.md")
     for part in ("the apps it crosses", "the new contracts it crosses", "Break a tie", "if two flows each cross three apps and three new contracts", "each requirement the tracer touches",
-                 "Not in the tracer", "kept it all", "**Tracer:** none, <reason>", "no flow page yet"):
+                 "Not in this slice", "kept it all", "**Flows:** none, <reason>", "no flow page yet", "The tracer is the slice page SLC-001"):
         assert part in releases, part
     assert "this app's piece of it" in skill_text("grill")
     assert "first epic is on the first thin path (the tracer" in read("skills/epics/SKILL.md")
@@ -28,14 +28,12 @@ def test_each_lead_side_skill_carries_its_tracer_guidance():
     assert "**Not in the tracer:**" in read("references/TECH-DESIGN-FROM-VAULT.md")
 
 
-def test_the_tracer_is_explained_where_a_skill_first_says_it_and_is_never_a_slice():
-    for name in ("boundary", "releases", "grill", "epics", "shape"):
-        text = skill_text(name)
-        if name != "shape":  # the tracer is defined once, in CONVENTIONS "Releases"; each skill names it the first thin path
-            assert "first thin path" in text and "Releases" in text, name
-        for sentence in re.split(r"(?<=[.?!])\s+", text):
-            if re.search(r"tracer", sentence, re.I):
-                assert not re.search(r"\bslices?\b", sentence, re.I), (name, sentence)
+def test_the_tracer_is_explained_where_a_skill_first_says_it_and_is_the_first_slice():
+    # The amendment of 2026-10-13: a slice is the unit of done and the tracer is slice one, so a sentence may say both.
+    for name in ("boundary", "releases", "grill", "epics"):
+        text = skill_text(name)  # the tracer is defined once, in CONVENTIONS; each skill names it the first thin path
+        assert "first thin path" in text and ("Releases" in text or "Slices" in text), name
+    assert "The tracer is the first slice, SLC-001" in (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
 
 
 def test_the_tracer_has_one_definition_and_boundary_hands_the_candidate_to_releases():
@@ -58,14 +56,14 @@ def test_no_skill_makes_the_tracer_a_gate():
 
 def test_the_releases_example_matches_the_plans_bullet_format():
     text = read("skills/releases/SKILL.md")
-    assert re.search(r"^- \*\*Tracer:\*\* \[\[FLO-001-[^|\]]+\|FLO-001\]\], \[\[FLO-002-[^|\]]+\|FLO-002\]\], [a-z]", text, re.M)
-    assert re.search(r"^- \*\*Not in the tracer:\*\* .+ \(CAP-\d+\.FR\d+\): .+", text, re.M)
     block = text.split("```", 2)[1]
-    assert block.index("**State:**") < block.index("**Tracer:**") < block.index("**Not in the tracer:**") < block.index("| Delivers")
+    assert block.index("**State:**") < block.index("**Slices:** SLC-001") < block.index("| Delivers")
+    assert "`**Tracer:**`, `**Not in the tracer:**`" in text  # a vault still on the releases page keeps working
+    assert '`CONVENTIONS.md` gives under "Slices"' in text
 
 
 def test_the_conversation_asks_for_names_not_codes():
-    section = read("skills/releases/SKILL.md").split("3. **The first thin path (the tracer).**", 1)[1].split("4. **What comes next.**", 1)[0]
+    section = read("skills/releases/SKILL.md").split("3. **The first thin path (the tracer).**", 1)[1].split("4. **The next slices.**", 1)[0]
     assert not re.search(r"\b(FLO|CAP|CON|APP)-\d", section)
     for word in LINT:
         assert not re.search(rf"\b{re.escape(word)}\b", section, re.I), word

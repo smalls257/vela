@@ -659,7 +659,7 @@ Nothing else records a release. What the system looks like after each one is wor
 
 ## Slices
 
-A slice is the unit of done: one journey, proven end to end through every app and contract it needs, and switched on when that journey passes. The tracer is the first slice, SLC-001, built first and kept. Several slices can be in flight at once; each says which slices it comes after, so the order is a graph, not a queue. A slice stands on its own: a release may point at it as a milestone, and nothing waits for the release.
+A slice is the unit of done: one journey, proven end to end through every app and contract it needs, and switched on when that journey passes. The tracer is the first slice, SLC-001: a thin path through every app and contract it needs, built first and kept, so the first story each team builds is its part of it. Several slices can be in flight at once; each says which slices it comes after, so the order is a graph, not a queue. A slice stands on its own: a release may point at it as a milestone, and nothing waits for the release.
 
 Each slice is a page in `slices/`, `SLC-nnn-<slug>.md`, with `type: slice`. Its facts are bullets under the title:
 
