@@ -1,9 +1,21 @@
-"""`vela explore`: the parser, moved out of cli.py (Task 2) so Task 21c (`explore --for-lead`) edits this file and
-not cli.py. The command itself is `cli.cmd_explore`."""
+"""`vela explore [--json|--for-lead]`: the parser, moved out of cli.py (Task 2), and the plain build report (Task 21c).
+
+The build itself is `cli.cmd_explore`, unchanged: the default output is exactly what it prints, for the developer and
+for tests. `--for-lead` and `--json` wrap it. The build's report lines name apps by ID, quote check codes and open the
+summary with the initiative's ID; explore/SKILL.md used to ask the model to put each into plain words, so raw lines
+reached the lead (a Leaky Narrative). `explorereport` holds those words now, and `--for-lead` prints them through
+say's leak check, which fails the command (exit 2, "vela bug") if an ID or code survives.
+
+`--serve` with `--for-lead` is refused (exit 1, nothing built): serving keeps the run going and prints as it goes, so
+there is no finished report to put into words. Build with `--for-lead`, then serve without it.
+"""
+import io
+import pathlib
+
+from vela import commands, explorereport, say
 
 
 def register(sub):
-    from vela import cli  # cli builds the parser, so it is loaded by the time this runs
     explore = sub.add_parser("explore", help="build the vault explorer, one offline HTML page of the whole initiative")
     explore.add_argument("vault", nargs="?", default=".", help="vault root (default: current directory)")
     explore.add_argument("-o", "--out", help="HTML file to write (default: <vault>/dashboard.html)")
@@ -22,4 +34,38 @@ def register(sub):
     explore.add_argument("--model", choices=["haiku", "sonnet"], default="haiku",
                          help="with --serve, the model that answers questions (default: haiku; the page's Think harder asks sonnet)")
     explore.add_argument("--no-open", action="store_true", help="with --serve, do not open the browser")
-    explore.set_defaults(func=cli.cmd_explore)
+    say.add_output_flags(explore)
+    explore.set_defaults(func=cmd_explore)
+
+
+SERVE_REFUSAL = say.Refusal(
+    rule="serve-for-lead",
+    plain=("Serving the page keeps this run going, so there's no finished build report to put into plain words. "
+           "Build it with --for-lead first, then serve it without --for-lead."),
+    fix="Build with `vela explore --for-lead` and relay it, then serve with `vela explore --serve` and relay its lines.",
+    override="`vela explore --serve` alone serves the page and prints the raw build lines.")
+
+
+def lead_resolver(root):
+    """A resolver over the vault when it loads; a folder that is not a vault still gets the kind words."""
+    from vela import cli
+    try:
+        return say.Resolver(cli.load_vault(root))
+    except cli.ToolError:
+        return say.Resolver()
+
+
+def cmd_explore(args, out):
+    from vela import cli  # cli builds the parser, so it is loaded by the time this runs
+    if say.mode_of(args) == "default":
+        return cli.cmd_explore(args, out)
+    if args.serve:
+        return commands.emit(say.Result("explore", exit=say.REFUSED, refusals=[SERVE_REFUSAL]), args, out)
+    printed = io.StringIO()
+    code = cli.cmd_explore(args, printed)
+    resolver = lead_resolver(pathlib.Path(args.vault).resolve())
+    report = [{"kind": explorereport.kind_of(entry), "text": entry, "plain": explorereport.lead_line(entry, resolver)}
+              for entry in explorereport.entries(printed.getvalue())]
+    result = say.Result("explore", exit=code, lines=[say.Line(r["text"], r["plain"]) for r in report],
+                        data={"report": report})
+    return commands.emit(result, args, out, resolver)
