@@ -24,7 +24,7 @@ def test_a_literal_variable_is_skipped_and_says_why():
     vendored = "/vault/.claude/skills/planner/scripts/planner"
     path, tried = pick({vendored}, plugin_root=LITERAL)
     assert path == vendored
-    assert "did not expand it" in tried[0].skipped and tried[0].path == ""
+    assert "did not expand it" in tried[1].skipped and tried[1].path == ""
 
 
 def test_the_skill_directory_comes_before_the_vendored_copy():
@@ -47,7 +47,7 @@ def test_the_recorded_workspace_path_is_the_last_resort():
 def test_an_expanded_variable_pointing_nowhere_falls_through_and_says_so():
     vendored = "/vault/.claude/skills/planner/scripts/planner"
     path, tried = pick({vendored}, plugin_root="/gone")
-    assert path == vendored and tried[0].skipped == "does not exist"
+    assert path == vendored and tried[1].skipped == "does not exist"
 
 
 def test_nothing_found_returns_none_with_every_reason():

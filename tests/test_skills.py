@@ -130,7 +130,7 @@ def test_close_parks_every_claude_origin_and_never_decides_its_unknowns():
     assert "Claude never decides it alone" in close and "This rule wins over the park default" in close
     assert "A person's `wild` line is parked, never dropped." in close
     assert "every item kept or promoted from a capture whose origin starts with `claude`" in close
-    assert "next free ID of their kind" in close
+    assert "planner next-id <its prefix>" in close
 
 
 def test_close_pr_body_reviewers_and_staging():

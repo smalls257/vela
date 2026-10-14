@@ -8,8 +8,8 @@ Every mode skill runs these steps before its own. The vault root is the current 
 
 The skills write the planner as `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`. The host may or may not replace that variable. Pick the program once, at the start, by the first of these that works, and use it for every `planner` command in the session:
 
-1. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`, if the variable was expanded (no literal `${` is left in the text you were given) and the file exists.
-2. `${CLAUDE_SKILL_DIR}/../../scripts/planner`, on the same terms. The skill's own folder sits two levels under the plugin root.
+1. `${CLAUDE_SKILL_DIR}/../../scripts/planner`, if the variable was expanded (no literal `${` is left in the text you were given) and the file exists. The skill's own folder sits two levels under the plugin root. It comes first because both Claude Code and Cowork document that they expand it in skill text.
+2. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`, on the same terms. Claude Code expands it; Cowork doesn't say.
 3. `.claude/skills/planner/scripts/planner`, if it exists. That is the copy a vendored vault carries.
 4. The `planner_path` recorded in `.planner/workspace.json`, in a reader copy.
 5. None: stop and say "I cannot find the planner program. Run `/planner:where` and send me what it prints." Do not guess a path.

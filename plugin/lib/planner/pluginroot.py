@@ -6,8 +6,10 @@ plugin means two versions answer one vault. A skill must run the INSTALLED plann
 variables that say where it is are expanded by the host, and whether Cowork expands them is unverified, so a
 literal `${CLAUDE_PLUGIN_ROOT}` must be recognized as "not expanded" and skipped, not run as a path.
 
-Order (design session 15, "Plugin path"): the plugin root, the skill's own directory, the vendored copy in the
-vault, and last the path a reader workspace recorded when it was opened.
+Order (design session 15, "Plugin path", revised 2026-10-14 by the CLI/skill overhaul, Task 1): the skill's own
+directory, the plugin root, the vendored copy in the vault, and last the path a reader workspace recorded when it was
+opened. The skill directory leads because both Claude Code and Cowork document expanding `${CLAUDE_SKILL_DIR}` in
+skill text, while `${CLAUDE_PLUGIN_ROOT}` is documented for Claude Code only. START.md lists the same order.
 """
 import posixpath
 from dataclasses import dataclass
@@ -44,8 +46,8 @@ def _from_variable(source, value, suffix):
 def candidates(plugin_root, skill_dir, vault, workspace_path):
     """Every rule in order with its path or the reason it gave none. Existence is checked by `resolve`."""
     return [
-        _from_variable("${CLAUDE_PLUGIN_ROOT}", plugin_root, PROGRAM),
         _from_variable("${CLAUDE_SKILL_DIR}", skill_dir, "../../" + PROGRAM),
+        _from_variable("${CLAUDE_PLUGIN_ROOT}", plugin_root, PROGRAM),
         Candidate("the vendored copy in the vault", posixpath.join(vault.rstrip("/") or ".", VENDORED), ""),
         Candidate("planner_path in .planner/workspace.json", workspace_path, "" if workspace_path else "is not recorded"),
     ]

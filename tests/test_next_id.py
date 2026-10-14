@@ -62,3 +62,23 @@ def test_skills_number_new_ids_with_the_command_not_by_eye():
     from conftest import REPO
     for path in ("references/MODES.md", "skills/close/SKILL.md", "skills/challenge/SKILL.md"):
         assert "planner next-id UNK" in (REPO / "plugin" / path).read_text(encoding="utf-8"), path
+
+
+def test_close_numbers_new_items_one_way():
+    """Close once said `planner next-id` in section 2 and "grep the vault ... add one to the highest" in section 3. Two
+    ways to number is how two branches take one ID; the command counts every session branch, so it is the only way."""
+    from conftest import REPO
+    close = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
+    assert "grep the vault for the existing IDs" not in close and "Add one to the highest" not in close
+    assert "planner next-id <its prefix>" in close
+
+
+def test_start_tries_skill_dir_first():
+    """`${CLAUDE_SKILL_DIR}` is the variable both apps document expanding in skill text, so START and `planner where`
+    try it before `${CLAUDE_PLUGIN_ROOT}`, and in the same order."""
+    from conftest import REPO
+    from planner import pluginroot
+    start = (REPO / "plugin" / "references" / "START.md").read_text(encoding="utf-8")
+    order = start.split("## Where the planner runs from")[1].split("\n## ")[0]
+    assert order.index("1. `${CLAUDE_SKILL_DIR}/../../scripts/planner`") < order.index("2. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`")
+    assert [c.source for c in pluginroot.candidates("/p", "/s", "/v", "")][:2] == ["${CLAUDE_SKILL_DIR}", "${CLAUDE_PLUGIN_ROOT}"]

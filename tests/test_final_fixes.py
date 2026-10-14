@@ -238,9 +238,13 @@ def test_epics_writes_owning_team_and_close_leaves_it():
 
 
 def test_close_checks_remote_session_records_before_taking_an_id():
+    """Close numbers through `planner next-id`, which reads every local and remote session branch itself (Task 1 of
+    the overhaul dropped the grep recipe; `tests/test_next_id.py` pins what the command counts)."""
     close = skill_text("close")
     step3 = close.split("## 3.")[1].split("## 4.")[0]
-    assert "git branch -r --list 'origin/session/*'" in step3
+    assert "planner next-id <its prefix>" in step3 and "every session branch" in step3
+    cli = read("plugin/lib/planner/cli.py")
+    assert '"refs/heads/session/", "refs/remotes/origin/session/"' in cli
 
 
 def test_grill_agenda_status_names_the_failed_gate():

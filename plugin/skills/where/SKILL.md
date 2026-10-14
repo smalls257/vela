@@ -10,6 +10,6 @@ disallowed-tools: Write Edit NotebookEdit
 
 Run each of these and show the output unedited. They need no planner to be found, and say what the host expanded.
 
-!`echo "CLAUDE_PLUGIN_ROOT = ${CLAUDE_PLUGIN_ROOT}"; echo "CLAUDE_SKILL_DIR = ${CLAUDE_SKILL_DIR}"; echo "working folder = $(pwd)"; for p in "${CLAUDE_PLUGIN_ROOT}/scripts/planner" "${CLAUDE_SKILL_DIR}/../../scripts/planner" ".claude/skills/planner/scripts/planner"; do if [ -f "$p" ]; then echo "found:   $p"; else echo "missing: $p"; fi; done; if [ -f .planner/workspace.json ]; then echo "workspace.json: $(grep planner_path .planner/workspace.json)"; else echo "workspace.json: none"; fi; echo "python3: $(python3 --version 2>&1)"`
+!`echo "CLAUDE_PLUGIN_ROOT = ${CLAUDE_PLUGIN_ROOT}"; echo "CLAUDE_SKILL_DIR = ${CLAUDE_SKILL_DIR}"; echo "working folder = $(pwd)"; for p in "${CLAUDE_SKILL_DIR}/../../scripts/planner" "${CLAUDE_PLUGIN_ROOT}/scripts/planner" ".claude/skills/planner/scripts/planner"; do if [ -f "$p" ]; then echo "found:   $p"; else echo "missing: $p"; fi; done; if [ -f .planner/workspace.json ]; then echo "workspace.json: $(grep planner_path .planner/workspace.json)"; else echo "workspace.json: none"; fi; echo "python3: $(python3 --version 2>&1)"`
 
 Then, if any line says `found:`, run `python3 <that path> where --plugin-root "${CLAUDE_PLUGIN_ROOT}" --skill-dir "${CLAUDE_SKILL_DIR}"` and show it too. If nothing was found, say so and ask the user to send this whole output to the plugin's maintainer. Do not guess a path and do not search the disk.

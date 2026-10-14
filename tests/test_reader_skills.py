@@ -35,8 +35,8 @@ def test_the_resolution_order_is_stated_once_in_start():
     start = text("references/START.md")
     assert start.count("## Where the planner runs from") == 1
     order = start.split("## Where the planner runs from")[1].split("## ")[0]
-    positions = [order.index(m) for m in ("${CLAUDE_PLUGIN_ROOT}/scripts/planner", "${CLAUDE_SKILL_DIR}/../../scripts/planner",
-                                          ".claude/skills/planner/scripts/planner", "planner_path")]
+    positions = [order.index(m) for m in ("1. `${CLAUDE_SKILL_DIR}/../../scripts/planner`", "2. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`",
+                                          "3. `.claude/skills/planner/scripts/planner`", "planner_path")]
     assert positions == sorted(positions)
     assert "I cannot find the planner program. Run `/planner:where` and send me what it prints." in order
 
