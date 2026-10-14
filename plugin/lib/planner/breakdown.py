@@ -39,7 +39,7 @@ VAULT_ID = re.compile(r"CAP-\d+(?:\.FR\d+)?(?:@APP-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)
 CONSTRAINT_ID = re.compile(r"\bCST-\d+\b")  # a story may rest on a constraint; it is not a label, so the tickets of earlier plans stay as they were
 NOTHING = re.compile(r"^(none|nothing|n/a|-+|\u2014|\u2013)\.?$", re.I)
 # The label above a story's bullets. The skill writes "Acceptance criteria:"; the real files also write a lead-in on the
-# same line ("Acceptance criteria. Design behaviour, except where marked:"), which is kept as the label.
+# same line ("Acceptance criteria. Design behavior, except where marked:"), which is kept as the label.
 CRITERIA_LABEL = re.compile(r"^\W*Acceptance criteria\b.*:\s*$", re.I)
 # Notes the skill writes under a story: a question only the design can answer, and a clash with an epic criterion.
 OPEN_NOTE = re.compile(r"^\W*Open for\b", re.I)
@@ -109,7 +109,7 @@ def is_separator(line):
 def split_frontmatter(text):
     """(meta, body, problem). The vault's own reader finds the block, so a BOM or CRLF file reads as an LF one does;
     `problem` says why no frontmatter was read, and is "" when it was."""
-    text = vault_parse.normalise_text(text)
+    text = vault_parse.normalize_text(text)
     meta, body_start, error = vault_parse.split_frontmatter(text)
     body = "\n".join(text.split("\n")[body_start - 1:]) if not error else text
     return meta, body, (error.message if error else "")

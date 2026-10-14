@@ -1,6 +1,6 @@
-"""Which questions a vault owes. Pure: reads the Vault and its catalogue, returns data.
+"""Which questions a vault owes. Pure: reads the Vault and its catalog, returns data.
 
-A catalogue entry is a template with a scope. Code applies it once per subject its trigger
+A catalog entry is a template with a scope. Code applies it once per subject its trigger
 matches, so the copies multiply and nobody has to remember them. A copy's ID is
 `<entry>@<subject>`: it stays the same while the subject keeps its ID, so a renamed file
 carries its questions with it. The same vault always gives the same copies in the same order.
@@ -103,7 +103,7 @@ def subject(vault, subject_id):
 
 
 def owed(vault):
-    """Every owed copy, sorted by copy ID: each catalogue entry applied once per subject of its
+    """Every owed copy, sorted by copy ID: each catalog entry applied once per subject of its
     scope whose facts its trigger matches."""
     if "owed" in vault.cache:
         return vault.cache["owed"]
@@ -111,7 +111,7 @@ def owed(vault):
     for found in subjects(vault):
         by_kind.setdefault(found.kind, []).append(found)
     copies = [Copy(f"{entry.id}@{found.id}", entry, found)
-              for entry in vault.catalogue.entries
+              for entry in vault.catalog.entries
               for found in by_kind.get(entry.scope, [])
               if entry.trigger.matches(found.fact_map())]
     vault.cache["owed"] = tuple(sorted(copies, key=lambda c: c.id))
@@ -338,13 +338,13 @@ def dispositions(vault):
 
 
 def coverage_line(vault, owed_count, undisposed_count, reviewer_open=0, asked=0):
-    """What every report says about coverage. Never "complete": the catalogue only finds what is written into it.
+    """What every report says about coverage. Never "complete": the catalog only finds what is written into it.
     Asked questions and open reviewer questions are named when there are any, so the line describes every row
     listed under it. An asked question is disposed of nothing yet, and it still holds the gates."""
     asked_text = f", {asked} asked" if asked else ""
     reviewers = f", {reviewer_open} open reviewer question{'' if reviewer_open == 1 else 's'}" if reviewer_open else ""
     return (f"{owed_count} owed, {undisposed_count} undisposed{asked_text}{reviewers}, "
-            f"against catalogue v{vault.catalogue.version}")
+            f"against catalog v{vault.catalog.version}")
 
 
 def reviewer_open(vault, row):
@@ -541,9 +541,9 @@ def _evidence_problems(vault, row):
 
 def _copy_problem(vault, row):
     """(code, message) when a readable copy or wildcard row names nothing owed, else None."""
-    entry = vault.catalogue.entry(row.entry)
+    entry = vault.catalog.entry(row.entry)
     if entry is None:
-        return "E803", f"{row.copy} names {row.entry}, which is not in catalogue v{vault.catalogue.version}"
+        return "E803", f"{row.copy} names {row.entry}, which is not in catalog v{vault.catalog.version}"
     if row.kind == "wildcard":
         prefix = SUBJECT_PREFIX[entry.scope]
         if not row.subject.startswith(prefix):
@@ -582,7 +582,7 @@ def _row_findings(vault):
     if "row_findings" in vault.cache:
         return vault.cache["row_findings"]
     found, seen = {}, {}
-    areas = vault.catalogue.area_codes
+    areas = vault.catalog.area_codes
     vault.cache["row_findings"] = found  # a wildcard check reads assignments, which never read findings
     for row in rows(vault):
         out = found.setdefault(row.line, [])
@@ -595,7 +595,7 @@ def _row_findings(vault):
                           "Write | <copy> | <state> | <key: value; key: value> | @handle | YYYY-MM-DD |, as CONVENTIONS.md shows."))
             continue
         if row.kind == "reviewer" and row.area not in areas:
-            out.append(_f(row, "E803", f"{row.copy} names area {row.area}, which catalogue v{vault.catalogue.version} does not have.",
+            out.append(_f(row, "E803", f"{row.copy} names area {row.area}, which catalog v{vault.catalog.version} does not have.",
                           f"Use one of: {', '.join(areas)}."))
         elif row.kind != "reviewer":
             problem = _copy_problem(vault, row)
@@ -656,7 +656,7 @@ def _missing_heading(vault):
 
 def ledger_findings(vault, today=None):
     """E801 for a malformed row or an unreadable ledger table, E802 for a state without its evidence, E803 for a
-    row that names nothing the catalogue can owe, W804 for a row whose copy is orphaned, no longer owed, or
+    row that names nothing the catalog can owe, W804 for a row whose copy is orphaned, no longer owed, or
     shadowed, W812 for a row dated after today, and W813 for a ledger page with no ledger heading."""
     yield from _page_findings(vault)
     yield from _missing_heading(vault)
@@ -698,7 +698,7 @@ def listing(vault, area=None, open_only=False, subject_id=None):
     opened = [r for r in reviewers if reviewer_open(vault, r)]
     asked = asked_count(vault, kept, reviewers)
     return {
-        "catalogue": vault.catalogue.version,
+        **catalog.version_keys(vault.catalog.version),
         "coverage": coverage_line(vault, len(kept), undisposed, len(opened), asked),
         "owed": len(kept),
         "undisposed": undisposed,
@@ -763,7 +763,7 @@ def digest(vault, area=None, subject_id=None):
     asked = asked_count(vault, kept, reviewers)
     out.sort(key=lambda g: (g["band"], g["entry"]))
     undisposed = sum(1 for d in kept if d.undisposed)
-    return {"catalogue": vault.catalogue.version, "coverage": coverage_line(vault, len(kept), undisposed, opened, asked),
+    return {**catalog.version_keys(vault.catalog.version), "coverage": coverage_line(vault, len(kept), undisposed, opened, asked),
             "owed": len(kept), "undisposed": undisposed, "asked": asked, "reviewer_open": opened, "groups": out}
 
 
@@ -772,7 +772,7 @@ def stats(vault, area=None):
     not-applicable: the evidence for pruning an entry or tightening its trigger. Pruning is the user's call."""
     found = dispositions(vault)
     out = []
-    for entry in vault.catalogue.entries:
+    for entry in vault.catalog.entries:
         if area is not None and entry.area != area:
             continue
         mine = [d for d in found if d.copy.entry.id == entry.id]
@@ -783,7 +783,7 @@ def stats(vault, area=None):
         out.append({"entry": entry.id, "area": entry.area, "owed": len(mine),
                     "states": {k: v for k, v in states.items() if v}, "not_applicable": na,
                     "not_applicable_share": round(na / len(mine), 2) if mine else 0.0})
-    return {"catalogue": vault.catalogue.version, "entries": out}
+    return {**catalog.version_keys(vault.catalog.version), "entries": out}
 
 
 # ------------------------------------------------------------------ the gates
@@ -870,8 +870,8 @@ def unit_location(vault, unit_id):
 
 
 def can_be_blocked(vault, unit_id):
-    """Whether any catalogue entry blocks a unit of this ID's kind: a party, a stored value or a readme never is."""
-    kinds = {kind for entry in vault.catalogue.entries for kind in entry.blocks}
+    """Whether any catalog entry blocks a unit of this ID's kind: a party, a stored value or a readme never is."""
+    kinds = {kind for entry in vault.catalog.entries for kind in entry.blocks}
     return any(uid == unit_id for kind in kinds for uid, _page, _item in _units(vault)[kind])
 
 
@@ -886,7 +886,7 @@ def grill_gate(vault, items):
                           "Name an item the vault holds as a heading, a page or a table row.")
             continue
         if not can_be_blocked(vault, unit_id):
-            yield Finding(where[0], where[1], "W807", f"No catalogue question blocks {unit_id}: it is not a unit of any kind the catalogue holds up.",
+            yield Finding(where[0], where[1], "W807", f"No catalog question blocks {unit_id}: it is not a unit of any kind the catalog holds up.",
                           "A Grill on it gets no ledger warning. Name the app, contract, requirement, capability or concern it touches.")
             continue
         for d in dispositions(vault):
@@ -946,7 +946,7 @@ def untyped_mentions(vault):
     """W809 where a fact says "points", "clause" or another word an existence question lists, the page
     neither holds nor links a subject of the kind that question creates, and that question has no answer
     yet. A missed extraction would otherwise leave the ledger looking clean. Once per page and question."""
-    creators = [e for e in vault.catalogue.entries if e.creates and e.mentions]
+    creators = [e for e in vault.catalog.entries if e.creates and e.mentions]
     initiative = _initiative_id(vault)
     settled = {d.copy.entry.id for d in dispositions(vault) if d.copy.subject.kind == "initiative" and not d.undisposed}
     for page in sorted(vault.pages, key=lambda p: p.path):

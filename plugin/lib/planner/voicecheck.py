@@ -55,7 +55,7 @@ def cells(line):
     return [c.strip().replace("\x00", "|") for c in protect_link_pipes(body.replace("\\|", "\x00")).split("|")]
 
 
-def normalised_lines(text):
+def normalized_lines(text):
     return text.replace("\r\n", "\n").split("\n")
 
 
@@ -89,7 +89,7 @@ def line_tokens(line, n):
 def tokens(text):
     """Protected tokens in document order. Frontmatter gives one token per line. A table row
     gives one token per cell and nothing else."""
-    lines = normalised_lines(text)
+    lines = normalized_lines(text)
     skip = frontmatter_length(lines)
     found = [Token("frontmatter", line, n) for n, line in enumerate(lines[:skip], start=1)]
     for n, line in enumerate(lines[skip:], start=skip + 1):
@@ -104,7 +104,7 @@ def tokens(text):
 def negations(text):
     """Number of negation words in the prose of a text. n't counts as not. The count is for the
     whole file, so splitting, merging or moving paragraphs does not change it."""
-    lines = normalised_lines(text)
+    lines = normalized_lines(text)
     total = 0
     for line in lines[frontmatter_length(lines):]:
         if line.lstrip().startswith("|"):

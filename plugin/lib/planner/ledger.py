@@ -168,7 +168,7 @@ def _under(page, table):
 def lookalike_tables(page):
     """Hand-kept tables directly under the first `## Question ledger` whose header is not exactly the ledger's:
     a typo, `Copy ID`, `**Copy**`, an extra column, a different order. Planner cannot read them as the ledger,
-    so check reports them rather than let a misspelt header hide every row. Only this page and this section
+    so check reports them rather than let a misspelled header hide every row. Only this page and this section
     are looked at, so a glossary table headed `Copy` elsewhere is never taken for a ledger."""
     start = heading_line(page)
     return [t for t in page.tables if start and not t.generated and tuple(t.header) != HEADER

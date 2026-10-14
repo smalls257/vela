@@ -170,9 +170,9 @@ OVERRIDE_LABELS = (OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL)
 PENDING_LABEL = "Pending approval"
 # Auth, Can time out, Retries and Idempotent are what a stub and a flow check read beside the case table (cases.py).
 # Delivery and Order go on a contract an outside party calls (a webhook): the checker treats the call like an event.
-CONTRACT_BEHAVIOUR_LABELS = ("Auth", "Can time out", "Retries", "Idempotent", "Delivery", "Order")
+CONTRACT_BEHAVIOR_LABELS = ("Auth", "Can time out", "Retries", "Idempotent", "Delivery", "Order")
 CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, LINKS_LABEL, PENDING_LABEL) \
-    + CONTRACT_BEHAVIOUR_LABELS + OVERRIDE_LABELS
+    + CONTRACT_BEHAVIOR_LABELS + OVERRIDE_LABELS
 CONTRACT_STATES = ("inkling", "assumption", "fact", "decided")
 CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 
@@ -205,7 +205,7 @@ PAGE_LABELS = ("Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, PENDING_LABEL, "
 TRACE_LABEL = "Trace"
 READING_LABELS = (TRACE_LABEL,)
 
-# Subjects the question catalogue fires on that are not pages: an outside party, and value held for customers.
+# Subjects the question catalog fires on that are not pages: an outside party, and value held for customers.
 PARTY_REQUIRED = ("Relationship", "Agreements")
 PARTY_OPTIONAL = (LINKS_LABEL,)
 PARTY_RELATIONSHIPS = ("partner", "supplier", "regulator", "customer group")
@@ -365,6 +365,7 @@ CODES = {
     "W369": "an abbreviation not spelled out on the page",
     "W370": "an epic criterion has no AC id on its Trace line, or two share one",
     "W371": "two or more openings above the first heading, over 150 words together",
+    "W372": "a British spelling in the page's own words",
     "W380": "contract has no case table",
     "W381": "a case table row, or a Can time out, Retries or Idempotent line, cannot be read",
     "W382": "two cases of one contract share a key",
@@ -426,7 +427,7 @@ CODES = {
     "E505": "no app carries a functional requirement",
     "E801": "question ledger row is malformed",
     "E802": "ledger state lacks the evidence it needs",
-    "E803": "ledger row names nothing the catalogue owes",
+    "E803": "ledger row names nothing the catalog owes",
     "W804": "ledger row is orphaned or no longer owed",
     "E805": "high-severity question not disposed at the epics gate",
     "W805": "high-severity question not disposed, by override",
@@ -471,7 +472,7 @@ PHRASE_TIME_LIMIT = 10  # W367: or used more times than this across the vault
 PHRASE_FILLER = frozenset("a an the of to in on at by for and or but is are was were be been it its that this these those as "
                           "with from has have had will would can could should may might which who there their they we you "
                           "i he she his her our your".split())
-# W369: capitalised words of two to five letters that need no spelling out, and shouted ordinary words.
+# W369: capitalized words of two to five letters that need no spelling out, and shouted ordinary words.
 ABBREVIATIONS_UNDERSTOOD = frozenset("IT PC ID IDS OK AM PM US UK EU UTC URL PDF FAQ CEO API QA SMS HTML SQL JSON CSV UI UX "
                                      "NOT AND OR MUST ONLY NEVER ALL NO YES TBC TBD".split())
 

@@ -523,7 +523,7 @@ def risk_rules(vault, today):
 # ------------------------------------------------------------------ subjects
 
 def subject_rules(vault, today):
-    """A party or a stored value is a subject the question catalogue fires on. One that cannot be
+    """A party or a stored value is a subject the question catalog fires on. One that cannot be
     typed would leave its questions never owed and the ledger looking clean, so every gap is said."""
     for item, required, what in [(p, schema.PARTY_REQUIRED, "party") for p in vault.parties] + \
             [(s, schema.STORED_VALUE_REQUIRED, "stored value") for s in vault.stored_values]:
@@ -715,9 +715,10 @@ def stale_mention_rules(vault, today):
 
 
 def reading_load_rules(vault, today):
-    """W360-W369. A page a person cannot hold in mind: codes in sentences, a long flat list, a wall with no summary,
-    an epic too big to carry as one piece of work, then a paragraph, cell, stock phrase, template opening or abbreviation
-    that costs the reader more than a careful writer would. Warnings only; each fix says how to write it in plain words."""
+    """W360-W372. A page a person cannot hold in mind: codes in sentences, a long flat list, a wall with no summary,
+    an epic too big to carry as one piece of work, then a paragraph, cell, stock phrase, template opening, abbreviation
+    or British spelling that costs the reader more than a careful writer would. Warnings only; each fix says how to
+    write it in plain words."""
     names = readability.NameIndex(vault)
     for page in vault.pages:
         for line, code, message, fix in readability.findings(page, names):
@@ -1216,7 +1217,7 @@ def block_rules(vault, today):
                 yield _f(page, block.start, "E403", f"Generated block '{block.name}' is not allowed on this page. {why}",
                          "Remove the block, or move it to the right page.")
                 continue
-            current = render.normalise(block.content)
+            current = render.normalize(block.content)
             if current and render.block_hash(current) != block.sha:
                 yield _f(page, block.start, "E401", f"Someone edited the '{block.name}' block by hand. The next render would overwrite it.",
                          "Undo the edit and change the source pages instead, or run planner render --discard-edits.")

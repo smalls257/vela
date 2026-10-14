@@ -98,7 +98,7 @@ def tests_for(changed):
 
 
 def semgrep_ignores(path, ignore_lines):
-    """Whether a .semgrepignore line covers this repo-relative path. Pure. Semgrep honours the file only when it
+    """Whether a .semgrepignore line covers this repo-relative path. Pure. Semgrep honors the file only when it
     walks a directory; a file named on its command line is scanned regardless, so the hooks filter first.
     Covers the forms that file uses: `dir/`, `**/dir/`, and a glob over a path."""
     parts = pathlib.PurePosixPath(path).parts

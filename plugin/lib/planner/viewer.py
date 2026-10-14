@@ -47,7 +47,7 @@ def scheme_of(url):
     return match.group(0) if match else ""
 
 
-def neutralise_links(text):
+def neutralize_links(text):
     def swap(m):
         bang, label, dest = m.group(1), m.group(2), m.group(3)
         url = dest.strip().lstrip("<")
@@ -61,19 +61,19 @@ def neutralise_links(text):
     return MD_LINK.sub(swap, text)
 
 
-def neutralise_prose(text):
+def neutralize_prose(text):
     pieces, last = [], 0
     for marker in GENERATED_MARKER.finditer(text):
-        pieces.append(neutralise_links(text[last:marker.start()]).replace("<", "&lt;"))
+        pieces.append(neutralize_links(text[last:marker.start()]).replace("<", "&lt;"))
         pieces.append(marker.group(0))
         last = marker.end()
-    pieces.append(neutralise_links(text[last:]).replace("<", "&lt;"))
+    pieces.append(neutralize_links(text[last:]).replace("<", "&lt;"))
     return "".join(pieces)
 
 
-def neutralise(markdown):
-    """Defence in depth ahead of the browser, whose Content-Security-Policy and
-    sanitiser are the guarantee: no raw HTML, no script or data links, and no
+def neutralize(markdown):
+    """Defense in depth ahead of the browser, whose Content-Security-Policy and
+    sanitizer are the guarantee: no raw HTML, no script or data links, and no
     images that fetch. Code fences and code spans are left as written."""
     out, in_fence, fence_mark = [], False, ""
     for line in markdown.split("\n"):
@@ -89,10 +89,10 @@ def neutralise(markdown):
             continue
         pieces, last = [], 0
         for span in CODE_SPAN.finditer(line):
-            pieces.append(neutralise_prose(line[last:span.start()]))
+            pieces.append(neutralize_prose(line[last:span.start()]))
             pieces.append(span.group(0))
             last = span.end()
-        pieces.append(neutralise_prose(line[last:]))
+        pieces.append(neutralize_prose(line[last:]))
         out.append("".join(pieces))
     return "\n".join(out)
 
@@ -139,7 +139,7 @@ def override_lines(page):
 
 
 def wiki_to(entry):
-    """A wikilink to the thing an ID names, labelled with its name. The pipe, brackets and hash are the link's own."""
+    """A wikilink to the thing an ID names, labeled with its name. The pipe, brackets and hash are the link's own."""
     label = re.sub(r"[\[\]|#]", " ", entry.name).strip() or entry.id
     anchor = "#" + entry.anchor if entry.anchor else ""
     return f"[[{entry.page.name}{anchor}|{label}]]"
@@ -182,7 +182,7 @@ def name_the_ids(markdown, names):
 
 def page_data(page, names=None):
     state = str(page.meta.get("state", ""))
-    body = reading.arrange(neutralise(body_of(page)))
+    body = reading.arrange(neutralize(body_of(page)))
     return {
         "path": page.path,
         "name": page.name,
@@ -362,7 +362,7 @@ const pages = DATA.pages;
 const byName = new Map(pages.map(p => [p.name.toLowerCase(), p]));
 const pageNamed = name => byName.get(String(name).toLowerCase());
 // Classes the viewer puts on its own markup carry a per-load secret suffix, so
-// the sanitiser can tell them from a class a page tries to claim.
+// the sanitizer can tell them from a class a page tries to claim.
 const NONCE = Array.from(crypto.getRandomValues(new Uint32Array(3)), n => n.toString(36)).join('');
 const OWN_CLASS = { ['gen-' + NONCE]: 'gen', ['offline-link-' + NONCE]: 'offline-link', ['missing-' + NONCE]: 'missing' };
 const excluded = new Set(DATA.excluded);
@@ -416,13 +416,13 @@ function imageFetches(href) {
   const t = decoded(href).replace(/[\u0000-\u0020]/g, '');
   return /^([a-z][a-z0-9+.-]*:|\/|\\)/i.test(t);
 }
-// Second line of defence behind the build-time neutralise(): reference-style and
+// Second line of defense behind the build-time neutralize(): reference-style and
 // entity-encoded links reach marked in forms the build step does not rewrite.
 if (window.marked) marked.use({ renderer: {
   link(href, title, text) { return hrefOk(href) ? false : text; },
   image(href, title, text) { return imageFetches(href) ? esc(text + ' (' + href + ')') : false; },
 } });
-// The sanitiser is the guarantee. Page markdown is untrusted, and marked and the
+// The sanitizer is the guarantee. Page markdown is untrusted, and marked and the
 // build step can disagree about what is code, so everything marked produces is
 // parsed into an inert <template> and rebuilt from an allowlist before it is shown.
 const HTML_OK = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'code', 'pre',
@@ -457,7 +457,7 @@ function cleanChildren(parent) {
     cleanChildren(node);
   }
 }
-function sanitiseHtml(html) {
+function sanitizeHtml(html) {
   const holder = document.createElement('template');
   holder.innerHTML = html;
   cleanChildren(holder.content);
@@ -480,7 +480,7 @@ function cleanSvgChildren(parent) {
     cleanSvgChildren(el);
   }
 }
-function sanitiseSvg(svg) {
+function sanitizeSvg(svg) {
   const holder = document.createElement('template');
   holder.innerHTML = svg;
   cleanSvgChildren(holder.content);
@@ -493,7 +493,7 @@ function toNodes(body) {
   let md = body.replace(/\[\[([^\]]+?)\]\]/g, (_, inner) => linkHtml(inner));
   md = md.replace(/<!--\s*generated:[a-z0-9-]+ sha=[0-9a-f]{8}: do not edit, run planner render\s*-->/g, '<div class="gen-' + NONCE + '">\n')
          .replace(/<!--\s*\/generated:[a-z0-9-]+\s*-->/g, '\n</div>');
-  return sanitiseHtml(window.marked ? marked.parse(md) : '<pre>' + esc(md) + '</pre>');
+  return sanitizeHtml(window.marked ? marked.parse(md) : '<pre>' + esc(md) + '</pre>');
 }
 
 function buildTree(filter) {
@@ -544,7 +544,7 @@ async function drawDiagrams(art) {
     if (hasDiagramConfig(source)) { box.className = 'diagram-error'; box.textContent = "Diagram not drawn: diagram directives aren't allowed in the offline viewer\n\n" + source; continue; }
     try {
       const { svg } = await mermaid.render('diagram-' + (++diagramCount), source);
-      box.className = 'mermaid'; box.replaceChildren(sanitiseSvg(svg));
+      box.className = 'mermaid'; box.replaceChildren(sanitizeSvg(svg));
     } catch (e) {
       box.className = 'diagram-error';
       box.textContent = 'Diagram not drawn: ' + (e && e.message ? e.message : String(e)) + '\n\n' + source;

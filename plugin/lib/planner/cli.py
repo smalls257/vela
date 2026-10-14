@@ -28,9 +28,12 @@ from planner.edge import atomic, copies, machine, mermaidjs, replays, reviewgit,
 from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
-CATALOGUE = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
+CATALOG = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
 LINT_WORDS = pathlib.Path(__file__).resolve().parent.parent.parent / "references" / "lint-words.txt"
 TEMPLATE_LINES = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "template-lines.txt"
+# Lines older templates wrote and the current one no longer does, such as the British "licences" line the cost concern
+# opened with. A vault made from that template still opens with it, so W368 has to keep knowing it was template text.
+TEMPLATE_LINES_RETIRED = TEMPLATE_LINES.with_name("template-lines-retired.txt")
 
 
 class ToolError(Exception):
@@ -55,10 +58,10 @@ def load_config(root):
     return config
 
 
-def load_catalogue(path=None):
-    """The question catalogue the plugin ships. Missing or unreadable is a tool failure, never an empty
-    catalogue: an empty one would make every vault look as if it owed no questions."""
-    path = pathlib.Path(path or CATALOGUE)
+def load_catalog(path=None):
+    """The question catalog the plugin ships. Missing or unreadable is a tool failure, never an empty
+    catalog: an empty one would make every vault look as if it owed no questions."""
+    path = pathlib.Path(path or CATALOG)
     if not path.is_file():
         raise ToolError(f"{path} is missing, so planner cannot work out which questions are owed. "
                         "Restore it from the toolkit repo.")
@@ -67,20 +70,25 @@ def load_catalogue(path=None):
     except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
         raise ToolError(f"{path} cannot be read as YAML: {exc}") from exc
     try:
-        return catalog.parse_catalogue(data)
-    except catalog.CatalogueError as exc:
-        raise ToolError(f"{path} is not a valid question catalogue: {exc}") from exc
+        return catalog.parse_catalog(data)
+    except catalog.CatalogError as exc:
+        raise ToolError(f"{path} is not a valid question catalog: {exc}") from exc
 
 
 def load_template_lines(path=None):
-    """The prose lines the template pages write, one per line, for W368. Missing is a tool failure: an empty list
-    would make every page look as if it had replaced its template opening."""
-    path = pathlib.Path(path or TEMPLATE_LINES)
-    try:
-        return [line for line in path.read_text(encoding="utf-8").split("\n") if line.strip()]
-    except (OSError, UnicodeDecodeError) as exc:
-        raise ToolError(f"{path} cannot be read ({exc}), so planner cannot tell a template opening from a written one. "
-                        "Restore it from the toolkit repo.") from exc
+    """The prose lines the template pages write, one per line, for W368: the shipped list and the retired lines older
+    templates wrote, or only the file at `path`. Missing is a tool failure: an empty list would make every page look
+    as if it had replaced its template opening."""
+    paths = [pathlib.Path(path)] if path else [TEMPLATE_LINES, TEMPLATE_LINES_RETIRED]
+    lines = []
+    for one in paths:
+        try:
+            text = one.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise ToolError(f"{one} cannot be read ({exc}), so planner cannot tell a template opening from a written "
+                            "one. Restore it from the toolkit repo.") from exc
+        lines += [line for line in text.split("\n") if line.strip() and line not in lines]
+    return lines
 
 
 def vault_files(root):
@@ -110,7 +118,7 @@ def load_vault(root):
         except (OSError, UnicodeDecodeError) as exc:
             raise ToolError(f"Cannot read {path}: {exc}") from exc
         pages.append(parse.parse_page(path.relative_to(root).as_posix(), text))
-    return model.build(pages, config, others, load_catalogue(), load_template_lines())
+    return model.build(pages, config, others, load_catalog(), load_template_lines())
 
 
 def parse_today(value):
@@ -1431,9 +1439,9 @@ def cmd_query(args, out):
 def cmd_questions(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
-    if args.area is not None and args.area not in vault.catalogue.area_codes:
-        raise ToolError(f"--area {args.area} is not an area of catalogue v{vault.catalogue.version}. "
-                        f"Use one of: {', '.join(vault.catalogue.area_codes)}.")
+    if args.area is not None and args.area not in vault.catalog.area_codes:
+        raise ToolError(f"--area {args.area} is not an area of catalog v{vault.catalog.version}. "
+                        f"Use one of: {', '.join(vault.catalog.area_codes)}.")
     if args.subject is not None and questions.subject(vault, args.subject) is None:
         answer = {"subject": args.subject, "not_found": True}
         print(json.dumps(answer, indent=2) if args.json else
@@ -1456,7 +1464,7 @@ def cmd_questions(args, out):
         if args.json:
             print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
         else:
-            print_digest(answer, out, vault.catalogue.area_codes, args)
+            print_digest(answer, out, vault.catalog.area_codes, args)
         return 0
     answer = questions.listing(vault, args.area, args.open, args.subject)
     if args.json:
@@ -1534,7 +1542,7 @@ def digest_label(label):
 
 
 def print_stats(answer, out):
-    print(f"planner questions --stats: how each entry of catalogue v{answer['catalogue']} ended in this vault. "
+    print(f"planner questions --stats: how each entry of catalog v{answer['catalog']} ended in this vault. "
           "An entry that nearly always ends not-applicable is one to prune or tighten; that is your call.", file=out)
     for entry in answer["entries"]:
         states = ", ".join(f"{k} {v}" for k, v in entry["states"].items()) or "nothing owed"
@@ -1617,8 +1625,8 @@ def cmd_findings(args, out):
     if not folder.is_dir():
         raise ToolError(f"{folder} is not a folder. Write each reviewer's output to <folder>/<AREA>.json, such as FIN.json.")
     vault = load_vault(root)
-    only = parse_areas(args.areas, vault.catalogue.area_codes)
-    skipped = parse_areas(args.skipped, vault.catalogue.area_codes, "--skipped") or ()
+    only = parse_areas(args.areas, vault.catalog.area_codes)
+    skipped = parse_areas(args.skipped, vault.catalog.area_codes, "--skipped") or ()
     if skipped and only is None:
         raise ToolError("--skipped goes with --areas: name the areas whose reviewers ran with --areas, "
                         "and the areas left out as out of scope with --skipped.")
@@ -1626,12 +1634,12 @@ def cmd_findings(args, out):
     if both:
         raise ToolError(f"{', '.join(both)} {'is' if len(both) == 1 else 'are'} in both --areas and --skipped. "
                         "An area either ran or was skipped.")
-    outputs, ignored = read_findings(folder, vault.catalogue.area_codes)
+    outputs, ignored = read_findings(folder, vault.catalog.area_codes)
     if only is not None:
         ignored += [f"{code}.json" for code in sorted(outputs) if code not in only]
     result = reviews.merge(vault, outputs, ignored, only, skipped, changed_pages(vault, args.changed))
     if args.json:
-        print(json.dumps(result.as_dict(vault.catalogue.version), indent=2, ensure_ascii=False), file=out)
+        print(json.dumps(result.as_dict(vault.catalog.version), indent=2, ensure_ascii=False), file=out)
         return 0 if result.clean else 1
     ran = sum(1 for a in result.areas if a.ran)
     print(f"planner findings merge: {len(result.kept)} kept, {len(result.duplicates)} "
@@ -1648,10 +1656,10 @@ def cmd_findings(args, out):
     for name in result.ignored:
         if name[:-5] in skipped:
             print(f"ignored: {name} is for an area skipped with --skipped {','.join(skipped)}", file=out)
-        elif only is not None and name[:-5] in vault.catalogue.area_codes:
+        elif only is not None and name[:-5] in vault.catalog.area_codes:
             print(f"ignored: {name} is not one of the areas asked for with --areas {','.join(only)}", file=out)
         else:
-            print(f"ignored: {name} is not <AREA>.json for an area of catalogue v{vault.catalogue.version}", file=out)
+            print(f"ignored: {name} is not <AREA>.json for an area of catalog v{vault.catalog.version}", file=out)
     return 0 if result.clean else 1
 
 
@@ -1662,7 +1670,7 @@ def parse_areas(text, codes, flag="--areas"):
     wanted = [w.strip().upper() for w in text.split(",") if w.strip()]
     unknown = [w for w in wanted if w not in codes]
     if not wanted or unknown:
-        raise ToolError(f"{flag} takes area codes of the catalogue ({', '.join(codes)}); "
+        raise ToolError(f"{flag} takes area codes of the catalog ({', '.join(codes)}); "
                         f"{', '.join(unknown) or 'it was empty'} {'is' if len(unknown) < 2 else 'are'} not one.")
     return tuple(c for c in codes if c in wanted)
 
@@ -2536,10 +2544,10 @@ def build_parser():
         one.add_argument("--vault", default=".", help="vault root (default: current directory)")
         one.add_argument("--json", action="store_true", help="print JSON instead of text")
         one.set_defaults(func=cmd_query)
-    ques = sub.add_parser("questions", help="the questions the catalogue says this vault owes, and where each stands")
+    ques = sub.add_parser("questions", help="the questions the catalog says this vault owes, and where each stands")
     ques.add_argument("--vault", default=".", help="vault root (default: current directory)")
     ques.add_argument("--json", action="store_true", help="print JSON instead of text")
-    ques.add_argument("--area", help="only this area of the catalogue, such as FIN")
+    ques.add_argument("--area", help="only this area of the catalog, such as FIN")
     ques.add_argument("--open", action="store_true", help="list only copies with no row, an open row, an invalid row or an asked row")
     ques.add_argument("--subject", help="only copies about this subject, such as APP-booking")
     view_of = ques.add_mutually_exclusive_group()
@@ -2597,7 +2605,7 @@ def build_parser():
                        help="setup to download the model once; a page to score its prose paragraphs; with --rank, two or more drafts")
     score.add_argument("--rank", action="store_true", help="rank drafts of the same paragraph, closest to the voice first")
     score.add_argument("--against", choices=voicescore.AGAINST, default="owner",
-                       help="owner (default): your active owner and owner-edit examples; seed: the public seed, labelled as such")
+                       help="owner (default): your active owner and owner-edit examples; seed: the public seed, labeled as such")
     score.add_argument("--vault", default=".", help="vault root holding voice/ (default: current directory)")
     score.add_argument("--json", action="store_true", help="print JSON instead of text")
     score.set_defaults(func=cmd_voicescore)

@@ -127,7 +127,7 @@ class Merge:
     kept: tuple
     duplicates: tuple
     dropped: tuple
-    ignored: tuple  # files that name no area of the catalogue
+    ignored: tuple  # files that name no area of the catalog
 
     @property
     def coverage(self):
@@ -139,7 +139,7 @@ class Merge:
         return all(a.ran or a.skipped for a in self.areas) and not self.dropped and not self.ignored
 
     def as_dict(self, version):
-        return {"catalogue": version, "coverage": self.coverage, "areas": [a.as_dict() for a in self.areas],
+        return {**catalog.version_keys(version), "coverage": self.coverage, "areas": [a.as_dict() for a in self.areas],
                 "kept": [k.as_dict() for k in self.kept], "duplicates": [d.as_dict() for d in self.duplicates],
                 "dropped": [d.as_dict() for d in self.dropped], "ignored": list(self.ignored)}
 
@@ -310,7 +310,7 @@ def open_reviewer_ids(vault):
 
 
 def merge(vault, outputs, ignored=(), only=None, skipped=(), changed=None):
-    """The merge of every area's output. `outputs` maps each area code of the catalogue to
+    """The merge of every area's output. `outputs` maps each area code of the catalog to
     (data, problem): the reviewer's parsed JSON, or None and why the CLI could not read it.
     `only` lists the area codes that ran, for a re-run or a checkpoint that skips some. The others are neither
     read nor reported, except those in `skipped`, which are reported as skipped and never read. `changed`, when
@@ -322,7 +322,7 @@ def merge(vault, outputs, ignored=(), only=None, skipped=(), changed=None):
     about = {c.id: c.subject.title for c in owed}
     about.update({r.copy: r.get("question") for r in questions.reviewer_rows(vault)})
     areas, kept, duplicates, dropped, seen = [], [], [], [], {}
-    for code, label in vault.catalogue.areas:
+    for code, label in vault.catalog.areas:
         if code in skipped:
             areas.append(AreaRun(code, label, "", 0, 0, skipped=True))
             continue

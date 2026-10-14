@@ -48,7 +48,7 @@ def read_catalog(vault, specs):
     for page in vault.apps:
         _add_app(cat, _app_key(page.id), str(page.meta.get("title") or page.id), False, page.path)
     for path, text in specs.items():
-        text = parse.normalise_text(text)
+        text = parse.normalize_text(text)
         if path.endswith((".openapi.yaml", ".openapi.yml")):
             _add_openapi(cat, path, text)
         elif path.endswith((".asyncapi.yaml", ".asyncapi.yml")):

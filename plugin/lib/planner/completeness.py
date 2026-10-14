@@ -1,6 +1,6 @@
 """How complete a vault's design is, as five shares a reader can check, and their mean. Pure: reads the vault.
 
-"Done" is never claimed: a vault with every share at 100% has settled what it has written down, and the catalogue
+"Done" is never claimed: a vault with every share at 100% has settled what it has written down, and the catalog
 and the reviewers find only what is written. Each share says what it counts, so a reader can see what moves it.
 """
 from dataclasses import dataclass

@@ -29,7 +29,7 @@ def closes_fence(raw, marker):
     return len(stripped) >= len(marker) and stripped == marker[0] * len(stripped)
 
 
-def normalise_text(text):
+def normalize_text(text):
     """A page's text as every reader sees it: no byte-order mark, newlines as \\n."""
     return text.lstrip("\ufeff").replace("\r\n", "\n")
 
@@ -37,7 +37,7 @@ def normalise_text(text):
 def lines_of(text):
     """The page's lines, split on newline alone. str.splitlines also breaks on form feed, NEL, U+2028 and U+2029,
     so a line number counted with it drifts from the one parse and the rules report."""
-    return normalise_text(text).split("\n")
+    return normalize_text(text).split("\n")
 
 
 @dataclass(frozen=True)
@@ -184,7 +184,7 @@ class _UniqueKeyLoader(yaml.SafeLoader):
         return super().construct_mapping(node, deep)
 
 
-def _normalise_meta(meta):
+def _normalize_meta(meta):
     out = {}
     for key, value in meta.items():
         if isinstance(value, (datetime.date, datetime.datetime)):
@@ -218,7 +218,7 @@ def split_frontmatter(text):
             if not isinstance(meta, dict):
                 return {}, i + 2, ParseError("E102", 1, "The frontmatter is not a YAML mapping.",
                                              "Write the frontmatter as key: value lines.")
-            return _normalise_meta(meta), i + 2, None
+            return _normalize_meta(meta), i + 2, None
     return {}, 1, ParseError("E101", 1, "The frontmatter block is never closed.",
                              "Add a closing --- line after the frontmatter.")
 
@@ -244,7 +244,7 @@ def history_items(page):
 
 def parse_page(path, text):
     """Parse one Markdown file. `path` is vault-relative with / separators."""
-    text = normalise_text(text)
+    text = normalize_text(text)
     name = path.rsplit("/", 1)[-1][:-3] if path.endswith(".md") else path.rsplit("/", 1)[-1]
     page = Page(path=path, name=name, text=text)
     meta, body_start, error = split_frontmatter(text)

@@ -1,11 +1,11 @@
-"""The question catalogue as data. Pure: takes the parsed YAML, returns a Catalogue.
+"""The question catalog as data. Pure: takes the parsed YAML, returns a Catalog.
 
 Code decides what a vault owes; the model only decides how to ask. So a trigger is a small
 declarative condition this module reads, never Python it runs: no eval, no exec, no lookup of
 an attribute by name. A trigger may test only the fields TRIGGER_FIELDS lists for its scope,
-against values those fields can take, so a typo in the catalogue is an error at load, not a
-question that silently never fires. A catalogue that cannot be read raises CatalogueError, and
-the CLI exits 2: an empty catalogue would make every vault look as if it owed nothing.
+against values those fields can take, so a typo in the catalog is an error at load, not a
+question that silently never fires. A catalog that cannot be read raises CatalogError, and
+the CLI exits 2: an empty catalog would make every vault look as if it owed nothing.
 """
 import re
 from dataclasses import dataclass
@@ -39,8 +39,8 @@ TRIGGER_FIELDS = {
 CONDITION_RE = re.compile(r"^(?P<field>[a-z][a-z_]*)(?:: (?P<value>[^\[\],]+)| in \[(?P<values>[^\[\]]+)\])$")
 
 
-class CatalogueError(ValueError):
-    """The catalogue cannot be read. The message lists every problem found."""
+class CatalogError(ValueError):
+    """The catalog cannot be read. The message lists every problem found."""
 
 
 class StrictLoader(yaml.SafeLoader):
@@ -63,7 +63,7 @@ class StrictLoader(yaml.SafeLoader):
 
 
 def load_yaml(text):
-    """The data in catalogue YAML text. Raises yaml.YAMLError, including for a duplicate key."""
+    """The data in catalog YAML text. Raises yaml.YAMLError, including for a duplicate key."""
     return yaml.load(text, Loader=StrictLoader)  # noqa: S506 - StrictLoader is a SafeLoader
 
 
@@ -101,7 +101,7 @@ class Entry:
 
 
 @dataclass(frozen=True)
-class Catalogue:
+class Catalog:
     version: int
     areas: tuple  # ((code, label), ...) in file order
     entries: tuple  # of Entry, sorted by id
@@ -117,18 +117,25 @@ class Catalogue:
         return dict(self.areas).get(code, code)
 
 
-EMPTY = Catalogue(0, (), ())
+EMPTY = Catalog(0, (), ())
+
+
+def version_keys(version):
+    """The catalog version as the JSON answers carry it. "catalog" is the key; "catalogue" is the same value under
+    the British spelling the key had before, kept for one release so a script that reads the old key keeps working
+    instead of getting nothing. Drop the old key once that release is out."""
+    return {"catalog": version, "catalogue": version}
 
 
 def parse_trigger(text, scope):
-    """A Trigger, or CatalogueError naming what is wrong with the text.
+    """A Trigger, or CatalogError naming what is wrong with the text.
 
     Grammar: `exists`, or conditions joined by ` and `, each `field: value` or `field in [a, b]`.
     Values are lower-case words and may hold spaces, as in `new consumers`."""
     if scope not in SCOPES:
-        raise CatalogueError(f"trigger scope {scope!r} is not one of {', '.join(SCOPES)}")
+        raise CatalogError(f"trigger scope {scope!r} is not one of {', '.join(SCOPES)}")
     if not isinstance(text, str) or not text.strip():
-        raise CatalogueError("trigger must be text, such as 'exists' or 'change in [new, changed]'")
+        raise CatalogError("trigger must be text, such as 'exists' or 'change in [new, changed]'")
     text = " ".join(text.split())
     if text == "exists":
         return Trigger(text, ())
@@ -138,29 +145,29 @@ def parse_trigger(text, scope):
     for part in text.split(" and "):
         match = CONDITION_RE.match(part)
         if not match:
-            raise CatalogueError(f"trigger part '{part}' is not 'field: value' or 'field in [a, b]'")
+            raise CatalogError(f"trigger part '{part}' is not 'field: value' or 'field in [a, b]'")
         field = match["field"]
         if field in seen_fields:
-            raise CatalogueError(f"trigger field '{field}' appears twice; use 'field in [a, b]' for either value")
+            raise CatalogError(f"trigger field '{field}' appears twice; use 'field in [a, b]' for either value")
         seen_fields.add(field)
         if field not in fields:
             allowed = ", ".join(fields) or "none: use exists"
-            raise CatalogueError(f"trigger field '{field}' is not one a {scope} subject has (fields: {allowed})")
+            raise CatalogError(f"trigger field '{field}' is not one a {scope} subject has (fields: {allowed})")
         raw = [match["value"]] if match["value"] is not None else match["values"].split(",")
         values = tuple(v.strip().lower() for v in raw)
         if any(not v for v in values):
-            raise CatalogueError(f"trigger part '{part}' has an empty value")
+            raise CatalogError(f"trigger part '{part}' has an empty value")
         repeated = sorted({v for v in values if values.count(v) > 1})
         if repeated:
-            raise CatalogueError(f"trigger part '{part}' lists {', '.join(repr(v) for v in repeated)} twice")
+            raise CatalogError(f"trigger part '{part}' lists {', '.join(repr(v) for v in repeated)} twice")
         dangling = [v for v in values if v == "and" or v.endswith(" and") or v.startswith("and ")]
         if dangling:
-            raise CatalogueError(f"trigger value {dangling[0]!r} has a stray 'and'; join conditions as "
+            raise CatalogError(f"trigger value {dangling[0]!r} has a stray 'and'; join conditions as "
                                  "'field: value and field: value'")
         allowed_values = fields[field]
         bad = [v for v in values if allowed_values is not None and v not in allowed_values]
         if bad:
-            raise CatalogueError(f"trigger value {', '.join(repr(v) for v in bad)} is not one {field} can take "
+            raise CatalogError(f"trigger value {', '.join(repr(v) for v in bad)} is not one {field} can take "
                                  f"({', '.join(allowed_values)})")
         conditions.append(Condition(field, values))
     return Trigger(text, tuple(conditions))
@@ -292,17 +299,17 @@ def _entry(raw, n, areas, problems):
     if scope in SCOPES:
         try:
             trigger = parse_trigger(raw["trigger"], scope)
-        except CatalogueError as exc:
+        except CatalogError as exc:
             problems.append(f"{where}: {exc}")
     if len(problems) > before or trigger is None:
         return None
     return Entry(entry_id, area, scope, trigger, question, why, severity, blocks, creates or "", mentions, mention_why, exceptions)
 
 
-def parse_catalogue(data):
-    """The Catalogue the YAML describes, or CatalogueError listing every problem."""
+def parse_catalog(data):
+    """The Catalog the YAML describes, or CatalogError listing every problem."""
     if not isinstance(data, dict):
-        raise CatalogueError("the catalogue must be a mapping with version, areas and entries")
+        raise CatalogError("the catalog must be a mapping with version, areas and entries")
     problems = []
     version = data.get("version")
     if isinstance(version, bool) or not isinstance(version, int) or version < 1:
@@ -339,5 +346,5 @@ def parse_catalogue(data):
             problems.append(f"{entry.id} is used by two entries")
         seen.add(entry.id)
     if problems:
-        raise CatalogueError("; ".join(problems))
-    return Catalogue(version, tuple(areas), tuple(sorted(entries, key=lambda e: e.id)))
+        raise CatalogError("; ".join(problems))
+    return Catalog(version, tuple(areas), tuple(sorted(entries, key=lambda e: e.id)))

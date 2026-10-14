@@ -103,7 +103,7 @@ class Scored:
 def read_example(folder, text):
     """An Example from a voice file's text, or None when its frontmatter cannot be read.
     The CLI reports the None ones, so a broken example is never dropped silently."""
-    lines = voicecheck.normalised_lines(text)
+    lines = voicecheck.normalized_lines(text)
     length = voicecheck.frontmatter_length(lines)
     if not length:
         return None
@@ -128,7 +128,7 @@ def reference(examples, against="owner"):
                           key=lambda e: (e.folder != "local", e.id)))
     who = "owner" if against == "owner" else "public-seed"
     if len(chosen) < MIN_TO_SCORE:
-        hint = (" `/planner:voice-seed` adds them. `--against seed` scores against the public seed instead, labelled as such."
+        hint = (" `/planner:voice-seed` adds them. `--against seed` scores against the public seed instead, labeled as such."
                 if against == "owner" else "")
         raise NotScorable(f"{len(chosen)} active {who} examples in voice/examples/ and voice/local/; "
                           f"at least {MIN_TO_SCORE} are needed to score and {MIN_RELIABLE} to trust it.{hint}")
@@ -144,7 +144,7 @@ def reference(examples, against="owner"):
 def prose_lines(text):
     """(line number, line) for every line that may hold voiced prose, with "" standing in for each
     line that may not, so paragraphs never join across a skipped table, list or block."""
-    lines = voicecheck.normalised_lines(text)
+    lines = voicecheck.normalized_lines(text)
     start = voicecheck.frontmatter_length(lines)
     out, fenced, generated = [], False, False
     for n, line in enumerate(lines[start:], start=start + 1):
@@ -175,7 +175,7 @@ def is_prose(line):
 
 def paragraphs(text):
     """The prose paragraphs of a page, in order. Frontmatter, headings, tables, code, generated
-    blocks, quotes, list items and labelled lines are never voiced, so they are never scored."""
+    blocks, quotes, list items and labeled lines are never voiced, so they are never scored."""
     found, current, first = [], [], 0
     for n, line in prose_lines(text) + [(0, "")]:
         if line:
@@ -224,7 +224,7 @@ def leave_one_out(vectors):
 
 def percentile(distance, spread):
     """Where a distance falls in the sorted leave-one-out spread, 0 to 100, interpolated between
-    neighbours. Past the widest example it is 101, shown as p100+."""
+    neighbors. Past the widest example it is 101, shown as p100+."""
     if distance <= spread[0]:
         return 0
     if distance > spread[-1]:
@@ -250,11 +250,11 @@ def place(distance, spread, range_name="your range"):
 class Measure:
     """The reference embedded once: its centroid and its own spread."""
     reference: Reference
-    centre: list
+    center: list
     spread: list
 
     def place(self, vector):
-        return place(cosine_distance(vector, self.centre), self.spread, self.reference.range_name)
+        return place(cosine_distance(vector, self.center), self.spread, self.reference.range_name)
 
 
 def measure(ref, embed):

@@ -11,16 +11,18 @@ reviewer cannot be the Sensor for them:
   on thirty pages is the loudest tell in the Heron vault, and it comes from a rule applied everywhere.
 - W368 the opening is a line the template wrote, so the page still says what a page of its kind is about, not what is
   true now.
-- W369 a capitalised abbreviation not spelled out on the page: a definition elsewhere does not undo the cost.
+- W369 a capitalized abbreviation not spelled out on the page: a definition elsewhere does not undo the cost.
 - W371 two or more separate openings above the first `##` heading that together run over a body paragraph's limit: a later
   session added an opening beside the old one instead of replacing it, and the two can disagree.
+- W372 a British spelling in the page's own words ("colour", "licence"), once per page with every word it found. The
+  house voice is American; quotes, code, links, IDs, names and History keep the spelling they were written in.
 
 All are warnings. Every limit is in `schema.py`, and each finding carries a plain fix line.
 """
 import re
 from collections import defaultdict
 
-from planner import schema
+from planner import schema, spelling
 from planner.readability import (HEADING, LIST_ITEM, NO_PROSE_TYPES, SUMMARY_MIN_WORDS, _is_prose, _regions,
                                  BARE_VAULT_ID, CODE_SPAN, URL, WIKILINK)
 from planner.parse import split_frontmatter
@@ -32,6 +34,7 @@ MD_LINK = re.compile(r"\[[^\]]*\]\([^)]*\)")
 WORD = re.compile(r"[A-Za-z0-9][A-Za-z0-9'’@-]*")
 SPACES = re.compile(r"\s+")
 ABBREVIATION = re.compile(r"(?<![\w@./#-])[A-Z]{2,5}(?![\w-])")
+SLUG_ID = re.compile(r"(?<![\w-])(?:APP|RUN|concern)-[a-z0-9]+(?:-[a-z0-9]+)*")  # APP-call-centre names a file, not a word
 SMALL_WORDS = {"of", "the", "and", "for", "to", "a", "an", "in", "on", "or", "by", "with"}
 
 
@@ -283,6 +286,32 @@ def _spelled_anywhere(whole, letters):
     return any(spelled_out(whole, found) for found in re.finditer(rf"(?<![\w-]){letters}(?![\w-])", whole))
 
 
+# ---------------------------------------------------------------------------------------------------- W372
+
+def _spelling_text(page):
+    """(line number, words a reader meets) for each line of the page outside History and quotes, with links, code,
+    URLs and IDs taken out: a quote keeps its source's spelling, and an ID or a link target is a file name."""
+    for n, raw, _, history in _regions(page):
+        if history or raw.lstrip().startswith(">"):
+            continue
+        plain = URL.sub(" ", CODE_SPAN.sub(" ", WIKILINK.sub(" ", raw)))
+        yield n, SLUG_ID.sub(" ", BARE_VAULT_ID.sub(" ", plain))
+
+
+def spelling_findings(page):
+    """W372, once per page: the British spellings its own words use, each named once, at the line of the first."""
+    first, found = None, {}
+    for n, text in _spelling_text(page):
+        for written, american in spelling.british_words(text):
+            first = first or n
+            found.setdefault(written.lower(), american.lower())
+    if not found:
+        return []
+    noun = "word" if len(found) == 1 else "words"
+    return [(first, "W372", f"This page spells {len(found)} {noun} the British way: {', '.join(found)}.",
+             f"Write the American spelling: {', '.join(found.values())}.")]
+
+
 # ---------------------------------------------------------------------------------------------------- W367
 
 def clauses(text):
@@ -399,8 +428,8 @@ def counts(vault, criteria_of):
 
 
 def page_findings(page, template_known):
-    """W365, W366, W368, W369 and W371 for one page, as (line, code, message, fix)."""
+    """W365, W366, W368, W369, W371 and W372 for one page, as (line, code, message, fix)."""
     if not _readable(page):
         return []
     return sorted(paragraph_findings(page) + cell_findings(page) + template_opening_findings(page, template_known)
-                  + abbreviation_findings(page) + split_opening_findings(page))
+                  + abbreviation_findings(page) + split_opening_findings(page) + spelling_findings(page))
