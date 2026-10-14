@@ -32,8 +32,8 @@ Twelve steps in three groups: put the files in place, check they work, then conn
 
 ### Connect GitHub and read it
 
-10. On GitHub, make the `planner-check` job a required status check on `main`. The `planner weekly` workflow needs Issues enabled on the repo and no other setup: every Monday it posts the vault's health to one issue titled "Vault health".
-11. To read the vault without Obsidian, build the offline viewer to a path outside the vault: `python3 .claude/skills/planner/scripts/planner view --out ~/Desktop/<name>.html`. It is one HTML file. Its header shows the commit, whether the vault had uncommitted changes, and the error and warning counts from `planner check` at build time.
+10. On GitHub, make the vault check (the `planner-check` job) a required status check on `main`. The weekly health report (the `planner weekly` workflow) needs Issues enabled on the repo and no other setup: every Monday it posts the vault's health to one issue titled "Vault health".
+11. To read the vault without Obsidian, build a reading copy (every page in one HTML file, to send or print) to a path outside the vault: `python3 .claude/skills/planner/scripts/planner view --out ~/Desktop/<name>.html`. Its header says when it was built, whether the vault had changes not yet committed, and how many problems `planner check` found at the time. For a live call, open the dashboard instead (`planner explore`).
 12. Open the folder in Obsidian if you use it. `.obsidian/app.json` is committed; workspace files are ignored.
 
 ## How the vault is laid out
@@ -51,5 +51,5 @@ Twelve steps in three groups: put the files in place, check they work, then conn
 | CIO / CTO | [[01-goals\|Goals]] → [[03-context-and-scope\|Context and scope]] → [[11-unknowns-and-risks\|Unknowns and risks]] |
 | Product | [[01-goals\|Goals]] → [[04a-capability-delta\|Capability delta]] → [[06-flows\|Flows]] |
 | Architects | [[03-context-and-scope\|Context and scope]] → [[04-solution-strategy\|Solution strategy]] → [[05-building-blocks\|Building blocks]] → [[09-decisions\|Decisions]] |
-| Team seniors | Your app's building-blocks page → its runtime page → [[13-epics\|Epics]] |
+| Team leads | Your app's page → how it behaves at run time and when things fail → [[13-epics\|Epics]] |
 | QA | [[concern-testing\|Testing]] → [[06-flows\|Flows]] → [[13-epics\|Epics]] |

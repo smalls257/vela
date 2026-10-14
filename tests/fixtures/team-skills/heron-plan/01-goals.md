@@ -14,64 +14,64 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=c45f8ff4: do not edit, run planner render -->
-**Apps on the ladder**
+<!-- generated:where-it-stands sha=8879a6d9: do not edit, run planner render -->
+**Where each app has got to**
 
-| App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
+| App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
 |---|---|---|---|---|
-| [[consent-and-identity-building-blocks\|Consent and identity]] | target | 3 | 4 | 0 of 3 |
-| [[summarizer-building-blocks\|Summarizer]] | target | 1 | 4 | 0 of 1 |
-| [[desktop-agent-building-blocks\|Desktop agent]] | handoff | 2 | 5 | 0 of 4 |
+| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 3 | 4 | 0 of 3 |
+| [[summarizer-building-blocks\|Summarizer]] | researched | 1 | 4 | 0 of 1 |
+| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 2 | 5 | 0 of 4 |
 
-**Handed off:** [[desktop-agent-building-blocks|Desktop agent]] (@agent-lead, 2026-10-12, PR pending)
+**Handed to its team:** [[desktop-agent-building-blocks|Desktop agent]] (@agent-lead, 2026-10-12, PR pending)
 
-**Open unknowns**
+**Open questions**
 
-| Unknown | Owner | Ask by | Blocks |
+| Question | Who answers | Answer needed by | Holds up |
 |---|---|---|---|
-| [[11-unknowns-and-risks#UNK-051 Text call\|UNK-051]] | @solution-lead (Solution lead) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-052 CISO line reaching the CIO\|UNK-052]] | @solution-lead (Solution lead) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-054 Mac in the first release\|UNK-054]] | @product-owner (Product owner) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-055 Frankfurt in Client Delivery\|UNK-055]] | @pilot-lead (Pilot lead) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-056 On-device model quality\|UNK-056]] | @product-owner (Product owner) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-057 Full list of data Heron reads\|UNK-057]] | @product-owner (Product owner) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
-| [[11-unknowns-and-risks#UNK-058 Security review pack\|UNK-058]] | @ciso (CISO) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
-| [[11-unknowns-and-risks#UNK-059 Transcripts and admin approval\|UNK-059]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-060 Impact assessment\|UNK-060]] | @dpo (DPO) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
-| [[11-unknowns-and-risks#UNK-061 Who settles the lock\|UNK-061]] | @solution-lead (Solution lead) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-062 Design, research and trial\|UNK-062]] | @product-owner (Product owner) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-063 Heron on Zoom\|UNK-063]] | @pilot-lead (Pilot lead) | 2026-11-06 | nothing |
-| [[11-unknowns-and-risks#UNK-064 Digest as client record\|UNK-064]] | @legal-counsel (Legal counsel) | 2026-10-29 | [[CAP-001-read-calendar-and-transcripts#CAP-001.FR1 Read existing Teams transcripts\|Read existing Teams transcripts]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR1 Show the 7:30 digest\|Show the 7:30 digest]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR2 Show a prep note before a meeting\|Show a prep note before a meeting]], [[CAP-003-write-morning-digest#CAP-003.FR1 Write each person's digest\|Write each person's digest]], [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
-| [[11-unknowns-and-risks#UNK-065 Client Delivery told what Heron surfaces\|UNK-065]] | @pilot-lead (Pilot lead) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
-| [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|UNK-066]] | @product-owner (Product owner) | 2026-11-06 | [[desktop-agent-building-blocks\|the Desktop agent's list of contracts it provides]] |
-| [[11-unknowns-and-risks#UNK-067 How slow is too slow\|UNK-067]] | @product-owner (Product owner) | 2026-10-29 | [[summarizer-building-blocks\|the Summarizer's failure behavior]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR2 Show a prep note before a meeting\|Show a prep note before a meeting]] |
-| [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|UNK-068]] | @product-owner (Product owner) | 2026-11-06 | [[consent-and-identity-building-blocks\|the Consent and identity page's builder]] |
-| [[11-unknowns-and-risks#UNK-069 When the registration request goes in\|UNK-069]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | [[desktop-agent-building-blocks\|the Desktop agent's boundary]], [[consent-and-identity-building-blocks\|the Consent and identity boundary]], [[FLO-005-get-tenant-registration\|the tenant registration flow]] |
-| [[11-unknowns-and-risks#UNK-070 Who stands behind the data list\|UNK-070]] | @product-owner (Product owner) | 2026-11-06 | [[11-unknowns-and-risks#UNK-057 Full list of data Heron reads\|the full list of data Heron reads]] |
-| [[11-unknowns-and-risks#UNK-071 Lawful basis for each source\|UNK-071]] | @dpo (DPO) | 2026-11-10 | [[consent-and-identity-building-blocks#CON-004 Record consent\|Record consent]], [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
-| [[11-unknowns-and-risks#UNK-072 How many organizers turn transcripts on\|UNK-072]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | [[CAP-001-read-calendar-and-transcripts#CAP-001.FR1 Read existing Teams transcripts\|Read existing Teams transcripts]] |
-| [[11-unknowns-and-risks#UNK-073 Digest held until first login\|UNK-073]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-002-show-digest-and-prep-note#CAP-002.FR1 Show the 7:30 digest\|Show the 7:30 digest]] |
-| [[11-unknowns-and-risks#UNK-074 Accepted invitees and the digest\|UNK-074]] | @dpo (DPO) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
-| [[11-unknowns-and-risks#UNK-075 Acceptance in the calendar read\|UNK-075]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
-| [[11-unknowns-and-risks#UNK-076 Council vote on the pilot\|UNK-076]] | @product-owner (Product owner) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
+| [[11-unknowns-and-risks#UNK-051 Text call\|Text call (UNK-051)]] | @solution-lead (Solution lead) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-052 CISO line reaching the CIO\|CISO line reaching the CIO (UNK-052)]] | @solution-lead (Solution lead) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-054 Mac in the first release\|Mac in the first release (UNK-054)]] | @product-owner (Product owner) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-055 Frankfurt in Client Delivery\|Frankfurt in Client Delivery (UNK-055)]] | @pilot-lead (Pilot lead) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-056 On-device model quality\|On-device model quality (UNK-056)]] | @product-owner (Product owner) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-057 Full list of data Heron reads\|Full list of data Heron reads (UNK-057)]] | @product-owner (Product owner) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
+| [[11-unknowns-and-risks#UNK-058 Security review pack\|Security review pack (UNK-058)]] | @ciso (CISO) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
+| [[11-unknowns-and-risks#UNK-059 Transcripts and admin approval\|Transcripts and admin approval (UNK-059)]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-060 Impact assessment\|Impact assessment (UNK-060)]] | @dpo (DPO) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
+| [[11-unknowns-and-risks#UNK-061 Who settles the lock\|Who settles the lock (UNK-061)]] | @solution-lead (Solution lead) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-062 Design, research and trial\|Design, research and trial (UNK-062)]] | @product-owner (Product owner) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-063 Heron on Zoom\|Heron on Zoom (UNK-063)]] | @pilot-lead (Pilot lead) | 2026-11-06 | nothing yet |
+| [[11-unknowns-and-risks#UNK-064 Digest as client record\|Digest as client record (UNK-064)]] | @legal-counsel (Legal counsel) | 2026-10-29 | [[CAP-001-read-calendar-and-transcripts#CAP-001.FR1 Read existing Teams transcripts\|Read existing Teams transcripts]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR1 Show the 7:30 digest\|Show the 7:30 digest]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR2 Show a prep note before a meeting\|Show a prep note before a meeting]], [[CAP-003-write-morning-digest#CAP-003.FR1 Write each person's digest\|Write each person's digest]], [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
+| [[11-unknowns-and-risks#UNK-065 Client Delivery told what Heron surfaces\|Client Delivery told what Heron surfaces (UNK-065)]] | @pilot-lead (Pilot lead) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
+| [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read (UNK-066)]] | @product-owner (Product owner) | 2026-11-06 | [[desktop-agent-building-blocks\|the Desktop agent's list of contracts it provides]] |
+| [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow (UNK-067)]] | @product-owner (Product owner) | 2026-10-29 | [[summarizer-building-blocks\|the Summarizer's failure behavior]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR2 Show a prep note before a meeting\|Show a prep note before a meeting]] |
+| [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity (UNK-068)]] | @product-owner (Product owner) | 2026-11-06 | [[consent-and-identity-building-blocks\|the Consent and identity page's builder]] |
+| [[11-unknowns-and-risks#UNK-069 When the registration request goes in\|When the registration request goes in (UNK-069)]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | [[desktop-agent-building-blocks\|the Desktop agent's boundary]], [[consent-and-identity-building-blocks\|the Consent and identity boundary]], [[FLO-005-get-tenant-registration\|the tenant registration flow]] |
+| [[11-unknowns-and-risks#UNK-070 Who stands behind the data list\|Who stands behind the data list (UNK-070)]] | @product-owner (Product owner) | 2026-11-06 | [[11-unknowns-and-risks#UNK-057 Full list of data Heron reads\|the full list of data Heron reads]] |
+| [[11-unknowns-and-risks#UNK-071 Lawful basis for each source\|Lawful basis for each source (UNK-071)]] | @dpo (DPO) | 2026-11-10 | [[consent-and-identity-building-blocks#CON-004 Record consent\|Record consent]], [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
+| [[11-unknowns-and-risks#UNK-072 How many organizers turn transcripts on\|How many organizers turn transcripts on (UNK-072)]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | [[CAP-001-read-calendar-and-transcripts#CAP-001.FR1 Read existing Teams transcripts\|Read existing Teams transcripts]] |
+| [[11-unknowns-and-risks#UNK-073 Digest held until first login\|Digest held until first login (UNK-073)]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-002-show-digest-and-prep-note#CAP-002.FR1 Show the 7:30 digest\|Show the 7:30 digest]] |
+| [[11-unknowns-and-risks#UNK-074 Accepted invitees and the digest\|Accepted invitees and the digest (UNK-074)]] | @dpo (DPO) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
+| [[11-unknowns-and-risks#UNK-075 Acceptance in the calendar read\|Acceptance in the calendar read (UNK-075)]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
+| [[11-unknowns-and-risks#UNK-076 Council vote on the pilot\|Council vote on the pilot (UNK-076)]] | @product-owner (Product owner) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
 
 **Last session:** none recorded
 
-**Coverage gaps:** 5, listed on [[13-epics|Epics]]
+**Gaps in the planned work:** 5, listed on [[13-epics|Epics]]
 
-**Delivery status:** not tracked in this vault
+**Build progress:** tracked in each team's tickets, not in this vault
 <!-- /generated:where-it-stands -->
 
 ## Progress by app
 
-<!-- generated:progress-map sha=fef76e6d: do not edit, run planner render -->
-**As of:** no session yet, so no unknown counts as overdue
+<!-- generated:progress-map sha=549cd601: do not edit, run planner render -->
+**How sure each app's items are:** no session yet, so no question counts as overdue
 
-| App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
+| App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|
-| [[consent-and-identity-building-blocks\|Consent and identity]] | target | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|UNK-068]] opened 2026-10-12 | grill RUN-consent-and-identity |
-| [[summarizer-building-blocks\|Summarizer]] | target | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|UNK-067]] opened 2026-10-12 | grill RUN-summarizer |
-| [[desktop-agent-building-blocks\|Desktop agent]] | handoff | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|UNK-066]] opened 2026-10-12 | grill RUN-desktop-agent |
+| [[consent-and-identity-building-blocks\|Consent and identity]] | researched | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|Who builds Consent and identity (UNK-068)]], open since 2026-10-12 | Grill: Consent and identity runtime (RUN-consent-and-identity) |
+| [[summarizer-building-blocks\|Summarizer]] | researched | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|How slow is too slow (UNK-067)]], open since 2026-10-12 | Grill: Summarizer runtime (RUN-summarizer) |
+| [[desktop-agent-building-blocks\|Desktop agent]] | ready to hand over | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|Consent sees what agent read (UNK-066)]], open since 2026-10-12 | Grill: Desktop agent runtime (RUN-desktop-agent) |
 <!-- /generated:progress-map -->
 
 ## Why now

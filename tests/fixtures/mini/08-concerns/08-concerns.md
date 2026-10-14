@@ -8,10 +8,10 @@ authored: mixed
 
 # Concerns
 
-<!-- generated:concern-matrix sha=08028a6e: do not edit, run planner render -->
+<!-- generated:concern-matrix sha=c8f028b8: do not edit, run planner render -->
 | App | [[concern-testing\|Testing]] |
 |---|---|
-| [[shop-building-blocks\|Shop]] | addressed |
+| [[shop-building-blocks\|Shop]] | covered |
 | [[stock-building-blocks\|Stock]] | unchanged |
-| [[till-building-blocks\|Till]] | unknown |
+| [[till-building-blocks\|Till]] | waiting on an open question |
 <!-- /generated:concern-matrix -->

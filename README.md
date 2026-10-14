@@ -26,14 +26,14 @@ The repo is private, so your colleague needs access to it on GitHub first, and g
    - `/planner:requirements` writes each capability's functional requirements, naming no app, once the strategy is decided.
    - `/planner:boundary` turns a decided direction into apps: 2–3 ways to cut it, then one sheet per app (what it does and does not do, containers, contracts, failure, concerns), written at `assumption` line by line.
    - `/planner:allocate` divides each requirement among the apps and contracts that carry it, so every requirement has an owner before epics.
-   - `/planner:releases` asks when anyone outside the team first gets the result, then which requirements (or which of their checks) each dated release delivers, and writes `04b-releases.md`, which the explorer's Releases lens reads.
+   - `/planner:releases` asks when anyone outside the team first gets the result, then which requirements (or which of their checks) each dated release delivers, and writes `04b-releases.md`, which the dashboard's Releases view reads.
    - Only `/planner:grill` can mark an item `decided`, and only after your explicit yes.
    - `/planner:ask` answers questions from the vault. It is read-only, and anything the vault doesn't hold comes back as `Not recorded:`.
    - `/planner:find` finds where something is, in seconds, mid-conversation: "how does coach talk to brightwater" gives the best place to look and the flows that cross it.
-   - `/planner:explore` builds the explorer, one offline page of the whole initiative (map, flows played, who holds each answer), and opens it in your browser.
+   - `/planner:explore` builds the dashboard, one offline page of the whole initiative (map, flows played, who holds each answer), and opens it in your browser.
    - Discover, Shape and Grill each run a review checkpoint too. Between sessions, `python3 .claude/skills/planner/scripts/planner questions --digest` shows what is still owed. See "What v3 adds" below.
 5. **Before each PR,** run `python3 .claude/skills/planner/scripts/planner check`. CI runs it too. If you make it a required check, a broken vault can't merge.
-6. **For the CIO,** run `python3 .claude/skills/planner/scripts/planner view --out ~/Desktop/<name>.html` and email the file. It works offline and can't run page script or make network calls. The viewer is the reading copy: every page rendered, stamped with the commit and the check counts. For a live conversation use the explorer instead, `/planner:explore`: the map, the flows played step by step, and what needs the lead. The two are kept apart on purpose, one a document you send and the other a surface you present from.
+6. **For the CIO,** run `python3 .claude/skills/planner/scripts/planner view --out ~/Desktop/<name>.html` and email the file. It works offline and can't run page script or make network calls. The viewer is the reading copy: every page rendered, stamped with the commit and the check counts. For a live conversation use the dashboard instead, `/planner:explore`: the map, the flows played step by step, and what needs the lead. The two are kept apart on purpose, one a document you send and the other a surface you present from.
 
 The kill rule you set: if it isn't faster than plain Markdown after five sessions, cut back to the conventions, `check` and the viewer.
 
@@ -43,7 +43,7 @@ Run each one as `python3 .claude/skills/planner/scripts/planner <command>` from 
 
 | Command | What it tells you |
 |---|---|
-| `planner explore [<vault>]` | Builds the vault explorer, one offline page: the map, each flow played, who holds each open answer, why things were decided, where each app stands. Writes `dashboard.html` at the vault root (committed, so colleagues open it from git or OneDrive without building) and the fixed layout `.planner/explorer-pins.json`. The page says at the top when it was built and from which commit; an unchanged vault rebuilds to the same bytes. `planner publish` rebuilds it into the read copy. `-o`, `--today`, `--theme`, `--design APP-x=<path>`, `--assets`. `/planner:explore` runs it and opens the page |
+| `planner explore [<vault>]` | Builds the dashboard, one offline page: the map, each flow played, who holds each open answer, why things were decided, where each app stands. Writes `dashboard.html` at the vault root (committed, so colleagues open it from git or OneDrive without building) and the fixed layout `.planner/explorer-pins.json`. The page says at the top when it was built; an unchanged vault rebuilds to the same bytes. `planner publish` rebuilds it into the read copy. `-o`, `--today`, `--theme`, `--design APP-x=<path>`, `--assets`. `/planner:explore` runs it and opens the page |
 | `planner status` | Every app's stage, certainty mix and oldest open unknown |
 | `planner style <page>...` | Where a page still reads as a log: history above `## History`, IDs or bare source IDs in prose, no opening prose |
 | `planner ladder` | Each app's typed stage, the stage its pages already reach, and what the next stage needs |
@@ -54,7 +54,7 @@ Run each one as `python3 .claude/skills/planner/scripts/planner <command>` from 
 | `planner query search <words>` | Plain-word search, ranked, with the flows that cross each place. `/planner:find` uses it |
 | `planner questions` | The questions the catalog says this vault owes, one copy per subject, and where each stands in the question ledger. `--open`, `--area`, `--subject` and `--json`; `--digest` ranks the pending ones, `--stats` counts how often each entry ends not-applicable |
 | `planner findings merge <folder>` | Merges the focused reviewers' findings: keeps the union, removes duplicates, drops any finding whose quote is not on the page it cites, and says per area whether it found something, found nothing, or did not run |
-| `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the slice a senior accepts |
+| `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the app's handoff list: everything its team's lead accepts |
 | `planner handoff verify <APP-id>` | What changed in that slice since handoff. Exits 1 when something accepted changed |
 | `planner voicecheck <before> <after>` | Fails when a rewrite lost or moved an ID, number, date, link, code span, table cell or negation |
 | `planner doctor` | What this machine has for planner, one line per item: Python, the bundled PyYAML, git, and the optional node, `claude` and voice-scoring packages, each missing one with what it adds and the command that gets it. Also whether the folder is a vault, and the plugin version. Exit 0 when nothing required is missing |
@@ -99,7 +99,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 ## After handoff
 
 - **When the first app nears handoff,** grill its handoff, then `/planner:close` writes `planner handoff <APP-id>` in the PR that sets `handed_off`. Epics come after: `/planner:epics` writes them against the accepted boundary, and `planner check --gate epics --app <APP-id>` says when that app's epics are complete.
-- **A senior who disputes a boundary or contract** runs `/planner:challenge`. It writes an open unknown the senior owns and a `**Dissent:**` line, and opens a PR whose check stays red (E316) on purpose.
+- **A team lead who disputes a boundary or contract** runs `/planner:challenge`. It writes an open question the lead owns and a `**Dissent:**` line, and opens a PR whose check stays red (E316) on purpose.
 - **To answer it,** run `/planner:grill` and name the challenge PR or the challenged ID. START opens an answer session on the challenge's branch. Resolve the unknown or set the item back, then `/planner:close` pushes to that branch and comments on the challenge PR. It doesn't open a second PR. A reopened epic is decided again as `reopened → decided`.
 
 ## Later

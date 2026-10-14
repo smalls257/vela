@@ -243,7 +243,7 @@ def test_query_get_marks_a_malformed_override_and_an_unconfirmed_decision(ub):
 
 def test_progress_grid_counts_override_decisions_as_decided_and_says_so():
     goals = (FIXTURE / "01-goals.md").read_text(encoding="utf-8")
-    assert "| [[pricing-building-blocks\\|Pricing]] | epics | 0 | 0 | 0 | 3 (1 by override) | none | none |" in goals
+    assert "| [[pricing-building-blocks\\|Pricing]] | writing epics | 0 | 0 | 0 | 3 (1 by override) | none | none |" in goals
     code, out = run("status", "--vault", str(FIXTURE), "--today", TODAY)
     assert code == 0
     assert "APP-pricing | stage epics | inkling 0, assumption 0, fact 0, decided 3 (1 by override) |" in out

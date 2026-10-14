@@ -74,6 +74,6 @@ Key: green: new in this initiative · amber: changed by this initiative · gray:
 
 What each app carries of each functional requirement.
 
-<!-- generated:allocation sha=7a7b4fb4: do not edit, run planner render -->
-**Allocation:** no functional requirements at assumption or later yet.
+<!-- generated:allocation sha=12251505: do not edit, run planner render -->
+**Who does what:** no requirement is firm enough to split between the apps yet.
 <!-- /generated:allocation -->

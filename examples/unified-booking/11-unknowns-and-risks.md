@@ -13,19 +13,26 @@ sources: ["session 2026-07-14 Discover"]
 
 This page keeps every question nobody could answer when it was asked, and every risk the team watches. The table says which are still open and who must answer; each unknown and risk then has its own section.
 
-<!-- generated:unknowns-index sha=dca6f859: do not edit, run planner render -->
-| ID | Name | Owner | State | Ask by |
-|---|---|---|---|---|
-| [[#UNK-001 Ledger write latency\|UNK-001]] | Ledger write latency | @hl-booking-senior (Booking senior) | resolved |  |
-| [[#UNK-002 Repeatable test data\|UNK-002]] | Repeatable test data | @hl-qa-lead (QA lead) | resolved |  |
-| [[#UNK-003 Mainframe capacity in Q1\|UNK-003]] | Mainframe capacity in Q1 | @hl-solution-lead (solution lead) | resolved |  |
-| [[#UNK-004 Kiosk authentication\|UNK-004]] | Kiosk authentication | @hl-port-senior (Port Systems senior) | resolved |  |
-| [[#UNK-005 Event bus readiness\|UNK-005]] | Event bus readiness | @hl-platform-lead (Platform lead) | resolved |  |
-| [[#UNK-006 Finance on Booking events\|UNK-006]] | Finance on Booking events | @hl-platform-lead (Platform lead) | open | 2027-03-01 |
-| [[#UNK-007 Booking on-call\|UNK-007]] | Booking on-call | @hl-solution-lead (solution lead) | resolved |  |
-| [[#UNK-008 Review of the customer data Booking holds\|UNK-008]] | Review of the customer data Booking holds | @hl-solution-lead (solution lead) | open | 2026-12-15 |
-| [[#R-01 Mainframe knowledge sits with two people\|R-01]] | Mainframe knowledge sits with two people | @hl-solution-lead (solution lead) | mitigated |  |
-| [[#R-02 The March 2027 kiosk image slips\|R-02]] | The March 2027 kiosk image slips | @hl-port-senior (Port Systems senior) | mitigated |  |
+<!-- generated:unknowns-index sha=c3b1e888: do not edit, run planner render -->
+**Questions**
+
+| Question | Who answers | Status | Answer needed by |
+|---|---|---|---|
+| [[#UNK-001 Ledger write latency\|Ledger write latency (UNK-001)]] | @hl-booking-senior (Booking senior) | answered |  |
+| [[#UNK-002 Repeatable test data\|Repeatable test data (UNK-002)]] | @hl-qa-lead (QA lead) | answered |  |
+| [[#UNK-003 Mainframe capacity in Q1\|Mainframe capacity in Q1 (UNK-003)]] | @hl-solution-lead (solution lead) | answered |  |
+| [[#UNK-004 Kiosk authentication\|Kiosk authentication (UNK-004)]] | @hl-port-senior (Port Systems senior) | answered |  |
+| [[#UNK-005 Event bus readiness\|Event bus readiness (UNK-005)]] | @hl-platform-lead (Platform lead) | answered |  |
+| [[#UNK-006 Finance on Booking events\|Finance on Booking events (UNK-006)]] | @hl-platform-lead (Platform lead) | open | 2027-03-01 |
+| [[#UNK-007 Booking on-call\|Booking on-call (UNK-007)]] | @hl-solution-lead (solution lead) | answered |  |
+| [[#UNK-008 Review of the customer data Booking holds\|Review of the customer data Booking holds (UNK-008)]] | @hl-solution-lead (solution lead) | open | 2026-12-15 |
+
+**Risks**
+
+| Risk | Owner | Status |
+|---|---|---|
+| [[#R-01 Mainframe knowledge sits with two people\|Mainframe knowledge sits with two people (R-01)]] | @hl-solution-lead (solution lead) | mitigated |
+| [[#R-02 The March 2027 kiosk image slips\|The March 2027 kiosk image slips (R-02)]] | @hl-port-senior (Port Systems senior) | mitigated |
 <!-- /generated:unknowns-index -->
 
 ## Unknowns
@@ -132,13 +139,13 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 Catalog v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
-<!-- generated:undisposed-questions sha=062a2ac9: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=89cc3278: do not edit, run planner render -->
 **Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
 
-| Copy | State | Area | Severity | Subject | Question |
+| Ref | Status | Area | How serious | About | Question |
 |---|---|---|---|---|---|
-| Q-FIN-02@INI-002 | asked | FIN | normal | INI-002 | Who pays for the change, and who carries its running cost once it is live? |
-| R-FIN-01 | open | FIN | normal | reviewer | Points are earned at reservation, so does a canceled booking take its points back, and who tells the loyalty scheme? |
+| Q-FIN-02@INI-002 | asked | Finance and liabilities | normal | INI-002 | Who pays for the change, and who carries its running cost once it is live? |
+| R-FIN-01 | open | Finance and liabilities | normal | a reviewer's question | Points are earned at reservation, so does a canceled booking take its points back, and who tells the loyalty scheme? |
 <!-- /generated:undisposed-questions -->
 
 | Copy | State | Evidence | By | Date |

@@ -72,7 +72,7 @@ def test_discard_edits_overwrites_and_prints_what_was_lost(mini):
 def test_missing_cell_renders_unexamined_no_row(mini):
     edit(mini / TESTING, "| [[stock-building-blocks\\|Stock]] | unchanged | Existing tests hold |\n", "")
     render(mini)
-    assert "| [[stock-building-blocks\\|Stock]] | unexamined (no row) |" in (mini / MATRIX).read_text(encoding="utf-8")
+    assert "| [[stock-building-blocks\\|Stock]] | not looked at yet (no line for this app) |" in (mini / MATRIX).read_text(encoding="utf-8")
 
 
 def test_new_empty_block_is_filled(mini):
@@ -112,7 +112,7 @@ def test_render_writes_nothing_while_a_page_cannot_parse(mini):
 
 def test_where_it_stands_lists_open_unknowns_with_owner_and_ask_by(mini):
     text = (mini / GOALS).read_text(encoding="utf-8")
-    assert "| [[11-unknowns-and-risks#UNK-001 Till test rig\\|UNK-001]] | @mini-qa | 2026-02-01 | nothing |" in text
+    assert "| [[11-unknowns-and-risks#UNK-001 Till test rig\\|Till test rig (UNK-001)]] | @mini-qa | 2026-02-01 | nothing yet |" in text
     assert "**Last session:** 2026-01-10" in text
 
 
@@ -120,7 +120,7 @@ def test_where_it_stands_counts_blocking_unknowns(mini):
     edit(mini / "11-unknowns-and-risks.md", "- **Blocks:** nothing\n", "- **Blocks:** [[till-building-blocks|Till]]\n")
     render(mini)
     text = (mini / GOALS).read_text(encoding="utf-8")
-    assert "| [[till-building-blocks\\|Till]] | baseline | 1 | 0 | 1 of 1 |" in text
+    assert "| [[till-building-blocks\\|Till]] | named in scope | 1 | 0 | 1 of 1 |" in text
 
 
 def test_render_keeps_crlf_line_endings(mini):
@@ -143,7 +143,7 @@ def test_every_generated_diagram_carries_a_key_for_the_styles_it_drew():
     graph = diagrams.Graph((diagrams.Node("n_a", "A", "app", None, "a"), diagrams.Node("x_b", "B", "external", None, "b")),
                            (diagrams.Edge("n_a", "x_b", "CON-001"),))
     line = diagrams.key_line(graph)
-    assert line.startswith("Key: ") and "outside the initiative" in line and "an arrow is a contract" in line
+    assert line.startswith("Key: ") and "outside this initiative" in line and "an arrow is a contract" in line
     assert "retired" not in line and "green" not in line  # styles not drawn are not listed
     page = (pathlib.Path(__file__).resolve().parents[1] / "examples" / "unified-booking" / "03-context-and-scope.md").read_text(encoding="utf-8")
     import re

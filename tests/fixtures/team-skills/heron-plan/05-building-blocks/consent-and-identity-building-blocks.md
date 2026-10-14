@@ -79,15 +79,15 @@ Consent and identity asks Microsoft 365 who signed in, so each record belongs to
 
 ## Where it fits
 
-<!-- generated:app-context sha=9a121243: do not edit, run planner render -->
+<!-- generated:app-context sha=5a3013f9: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
   n_APP_desktop_agent["Desktop agent (new)"]
   x_microsoft["Microsoft"]
-  n_APP_consent_and_identity -->|"CON-003"| n_APP_desktop_agent
-  n_APP_consent_and_identity -->|"CON-004"| n_APP_desktop_agent
-  x_microsoft -->|"CON-005"| n_APP_consent_and_identity
+  n_APP_consent_and_identity -->|"Consent check"| n_APP_desktop_agent
+  x_microsoft -->|"Microsoft sign-in"| n_APP_consent_and_identity
+  n_APP_consent_and_identity -->|"Record consent"| n_APP_desktop_agent
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
@@ -96,13 +96,13 @@ flowchart LR
   class n_APP_desktop_agent new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside this initiative (another company or system) · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
-<!-- generated:contracts-consumed sha=a859dfe7: do not edit, run planner render -->
-| Contract | Provider | Change policy | State |
+<!-- generated:contracts-consumed sha=c17e6cd6: do not edit, run planner render -->
+| Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
-| [[consent-and-identity-building-blocks#CON-005 Microsoft sign-in\|CON-005 Microsoft sign-in]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not recorded. Microsoft runs the interface, and no agreement with Microsoft is registered. | assumption |
+| [[consent-and-identity-building-blocks#CON-005 Microsoft sign-in\|Microsoft sign-in (CON-005)]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not recorded. Microsoft runs the interface, and no agreement with Microsoft is registered. | assumed |
 <!-- /generated:contracts-consumed -->
 
 ## History

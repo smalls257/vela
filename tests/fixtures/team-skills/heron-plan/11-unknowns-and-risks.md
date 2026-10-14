@@ -10,39 +10,46 @@ authored: mixed
 
 The plan rests on one open call, [[11-unknowns-and-risks#UNK-051 Text call|who settles whether meeting text may leave the laptop]], and most of the other unknowns and risks wait on it. The security review pack, the impact assessment and the full data list each have an owner and an ask-by date but no author yet. Five more unknowns came from the desks session: who calls the lock, whether any design or trial exists, how Heron would read Zoom, whether a digest is a client record, and whether Client Delivery knows what Heron surfaces about them. The requirements session added three more, each holding up a requirement it wrote: how many organizers turn transcripts on, which decides how often a note is calendar-only; whether a digest held until first login is acceptable; and whether accepted invitees count as being in a meeting. It also added the risk that thin calendar-only notes pile up. The allocation session added one more, [[11-unknowns-and-risks#UNK-075 Acceptance in the calendar read|whether the calendar read carries each invitee's response]]. The newest is [[11-unknowns-and-risks#UNK-076 Council vote on the pilot|whether the works council votes on the pilot]]; if it does vote, that is a further gate on the pilot, on top of the unknowns that list the February pilot under what they block. The rows under Question ledger show how each owed question ended; most now wait on the text call, on [[11-unknowns-and-risks#UNK-071 Lawful basis for each source|the lawful basis for each source]] or on [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity|who builds Consent and identity]].
 
-<!-- generated:unknowns-index sha=4d9f5e70: do not edit, run planner render -->
-| ID | Name | Owner | State | Ask by |
-|---|---|---|---|---|
-| [[#UNK-051 Text call\|UNK-051]] | Text call | @solution-lead (Solution lead) | open | 2026-11-06 |
-| [[#UNK-052 CISO line reaching the CIO\|UNK-052]] | CISO line reaching the CIO | @solution-lead (Solution lead) | open | 2026-11-06 |
-| [[#UNK-053 Install or push\|UNK-053]] | Install or push | @endpoint-lead (IT endpoint lead) | resolved |  |
-| [[#UNK-054 Mac in the first release\|UNK-054]] | Mac in the first release | @product-owner (Product owner) | open | 2026-11-06 |
-| [[#UNK-055 Frankfurt in Client Delivery\|UNK-055]] | Frankfurt in Client Delivery | @pilot-lead (Pilot lead) | open | 2026-11-06 |
-| [[#UNK-056 On-device model quality\|UNK-056]] | On-device model quality | @product-owner (Product owner) | open | 2026-11-06 |
-| [[#UNK-057 Full list of data Heron reads\|UNK-057]] | Full list of data Heron reads | @product-owner (Product owner) | open | 2026-11-06 |
-| [[#UNK-058 Security review pack\|UNK-058]] | Security review pack | @ciso (CISO) | open | 2026-11-06 |
-| [[#UNK-059 Transcripts and admin approval\|UNK-059]] | Transcripts and admin approval | @endpoint-lead (IT endpoint lead) | open | 2026-11-06 |
-| [[#UNK-060 Impact assessment\|UNK-060]] | Impact assessment | @dpo (DPO) | open | 2026-11-06 |
-| [[#UNK-061 Who settles the lock\|UNK-061]] | Who settles the lock | @solution-lead (Solution lead) | open | 2026-11-06 |
-| [[#UNK-062 Design, research and trial\|UNK-062]] | Design, research and trial | @product-owner (Product owner) | open | 2026-11-06 |
-| [[#UNK-063 Heron on Zoom\|UNK-063]] | Heron on Zoom | @pilot-lead (Pilot lead) | open | 2026-11-06 |
-| [[#UNK-064 Digest as client record\|UNK-064]] | Digest as client record | @legal-counsel (Legal counsel) | open | 2026-10-29 |
-| [[#UNK-065 Client Delivery told what Heron surfaces\|UNK-065]] | Client Delivery told what Heron surfaces | @pilot-lead (Pilot lead) | open | 2026-11-06 |
-| [[#UNK-066 Consent sees what agent read\|UNK-066]] | Consent sees what agent read | @product-owner (Product owner) | open | 2026-11-06 |
-| [[#UNK-067 How slow is too slow\|UNK-067]] | How slow is too slow | @product-owner (Product owner) | open | 2026-10-29 |
-| [[#UNK-068 Who builds Consent and identity\|UNK-068]] | Who builds Consent and identity | @product-owner (Product owner) | open | 2026-11-06 |
-| [[#UNK-069 When the registration request goes in\|UNK-069]] | When the registration request goes in | @endpoint-lead (IT endpoint lead) | open | 2026-11-06 |
-| [[#UNK-070 Who stands behind the data list\|UNK-070]] | Who stands behind the data list | @product-owner (Product owner) | open | 2026-11-06 |
-| [[#UNK-071 Lawful basis for each source\|UNK-071]] | Lawful basis for each source | @dpo (DPO) | open | 2026-11-10 |
-| [[#UNK-072 How many organizers turn transcripts on\|UNK-072]] | How many organizers turn transcripts on | @endpoint-lead (IT endpoint lead) | open | 2026-11-06 |
-| [[#UNK-073 Digest held until first login\|UNK-073]] | Digest held until first login | @product-owner (Product owner) | open | 2026-10-29 |
-| [[#UNK-074 Accepted invitees and the digest\|UNK-074]] | Accepted invitees and the digest | @dpo (DPO) | open | 2026-10-29 |
-| [[#UNK-075 Acceptance in the calendar read\|UNK-075]] | Acceptance in the calendar read | @product-owner (Product owner) | open | 2026-10-29 |
-| [[#UNK-076 Council vote on the pilot\|UNK-076]] | Council vote on the pilot | @product-owner (Product owner) | open | 2026-11-06 |
-| [[#R-01 Two ends, nobody picks\|R-01]] | Two ends, nobody picks | @solution-lead (Solution lead) | open |  |
-| [[#R-02 Digest fails the first morning\|R-02]] | Digest fails the first morning | @solution-lead (Solution lead) | open |  |
-| [[#R-03 No boundary with the desk agent team\|R-03]] | No boundary with the desk agent team | @solution-lead (Solution lead) | open |  |
-| [[#R-04 Thin notes pile up\|R-04]] | Thin notes pile up | @product-owner (Product owner) | open |  |
+<!-- generated:unknowns-index sha=dc83b915: do not edit, run planner render -->
+**Questions**
+
+| Question | Who answers | Status | Answer needed by |
+|---|---|---|---|
+| [[#UNK-051 Text call\|Text call (UNK-051)]] | @solution-lead (Solution lead) | open | 2026-11-06 |
+| [[#UNK-052 CISO line reaching the CIO\|CISO line reaching the CIO (UNK-052)]] | @solution-lead (Solution lead) | open | 2026-11-06 |
+| [[#UNK-053 Install or push\|Install or push (UNK-053)]] | @endpoint-lead (IT endpoint lead) | answered |  |
+| [[#UNK-054 Mac in the first release\|Mac in the first release (UNK-054)]] | @product-owner (Product owner) | open | 2026-11-06 |
+| [[#UNK-055 Frankfurt in Client Delivery\|Frankfurt in Client Delivery (UNK-055)]] | @pilot-lead (Pilot lead) | open | 2026-11-06 |
+| [[#UNK-056 On-device model quality\|On-device model quality (UNK-056)]] | @product-owner (Product owner) | open | 2026-11-06 |
+| [[#UNK-057 Full list of data Heron reads\|Full list of data Heron reads (UNK-057)]] | @product-owner (Product owner) | open | 2026-11-06 |
+| [[#UNK-058 Security review pack\|Security review pack (UNK-058)]] | @ciso (CISO) | open | 2026-11-06 |
+| [[#UNK-059 Transcripts and admin approval\|Transcripts and admin approval (UNK-059)]] | @endpoint-lead (IT endpoint lead) | open | 2026-11-06 |
+| [[#UNK-060 Impact assessment\|Impact assessment (UNK-060)]] | @dpo (DPO) | open | 2026-11-06 |
+| [[#UNK-061 Who settles the lock\|Who settles the lock (UNK-061)]] | @solution-lead (Solution lead) | open | 2026-11-06 |
+| [[#UNK-062 Design, research and trial\|Design, research and trial (UNK-062)]] | @product-owner (Product owner) | open | 2026-11-06 |
+| [[#UNK-063 Heron on Zoom\|Heron on Zoom (UNK-063)]] | @pilot-lead (Pilot lead) | open | 2026-11-06 |
+| [[#UNK-064 Digest as client record\|Digest as client record (UNK-064)]] | @legal-counsel (Legal counsel) | open | 2026-10-29 |
+| [[#UNK-065 Client Delivery told what Heron surfaces\|Client Delivery told what Heron surfaces (UNK-065)]] | @pilot-lead (Pilot lead) | open | 2026-11-06 |
+| [[#UNK-066 Consent sees what agent read\|Consent sees what agent read (UNK-066)]] | @product-owner (Product owner) | open | 2026-11-06 |
+| [[#UNK-067 How slow is too slow\|How slow is too slow (UNK-067)]] | @product-owner (Product owner) | open | 2026-10-29 |
+| [[#UNK-068 Who builds Consent and identity\|Who builds Consent and identity (UNK-068)]] | @product-owner (Product owner) | open | 2026-11-06 |
+| [[#UNK-069 When the registration request goes in\|When the registration request goes in (UNK-069)]] | @endpoint-lead (IT endpoint lead) | open | 2026-11-06 |
+| [[#UNK-070 Who stands behind the data list\|Who stands behind the data list (UNK-070)]] | @product-owner (Product owner) | open | 2026-11-06 |
+| [[#UNK-071 Lawful basis for each source\|Lawful basis for each source (UNK-071)]] | @dpo (DPO) | open | 2026-11-10 |
+| [[#UNK-072 How many organizers turn transcripts on\|How many organizers turn transcripts on (UNK-072)]] | @endpoint-lead (IT endpoint lead) | open | 2026-11-06 |
+| [[#UNK-073 Digest held until first login\|Digest held until first login (UNK-073)]] | @product-owner (Product owner) | open | 2026-10-29 |
+| [[#UNK-074 Accepted invitees and the digest\|Accepted invitees and the digest (UNK-074)]] | @dpo (DPO) | open | 2026-10-29 |
+| [[#UNK-075 Acceptance in the calendar read\|Acceptance in the calendar read (UNK-075)]] | @product-owner (Product owner) | open | 2026-10-29 |
+| [[#UNK-076 Council vote on the pilot\|Council vote on the pilot (UNK-076)]] | @product-owner (Product owner) | open | 2026-11-06 |
+
+**Risks**
+
+| Risk | Owner | Status |
+|---|---|---|
+| [[#R-01 Two ends, nobody picks\|Two ends, nobody picks (R-01)]] | @solution-lead (Solution lead) | open |
+| [[#R-02 Digest fails the first morning\|Digest fails the first morning (R-02)]] | @solution-lead (Solution lead) | open |
+| [[#R-03 No boundary with the desk agent team\|No boundary with the desk agent team (R-03)]] | @solution-lead (Solution lead) | open |
+| [[#R-04 Thin notes pile up\|Thin notes pile up (R-04)]] | @product-owner (Product owner) | open |
 <!-- /generated:unknowns-index -->
 
 ## Unknowns
@@ -398,47 +405,47 @@ If few organizers turn transcripts on, most notes are written from the calendar 
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=c1ac0aec: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=f2703b0e: do not edit, run planner render -->
 **Questions:** 45 owed, 0 undisposed, 36 open reviewer questions, against catalog v1.
 
-| Copy | State | Area | Severity | Subject | Question |
+| Ref | Status | Area | How serious | About | Question |
 |---|---|---|---|---|---|
-| R-FIN-01 | invalid (unknown) | FIN | normal | reviewer | Who funds and staffs the security review pack, the app-registration review, the impact assessment and the Intune and Jamf packaging, and is that budget agreed before January? |
-| R-DAT-01 | invalid (unknown) | DAT | high | reviewer | How will the digest be stopped from naming people who were only mentioned? Should the DPO's limit be written into 02-constraints.md? |
-| R-DAT-02 | invalid (unknown) | DAT | normal | reviewer | Does Client Delivery include anyone in Frankfurt, and how will their data be kept out of the pilot? |
-| R-DAT-03 | invalid (unknown) | DAT | high | reviewer | Who writes the full list of data Heron reads, and by when, so the council can read it before its December meeting? |
-| R-DAT-04 | invalid (unknown) | DAT | normal | reviewer | Do the other attendees of a transcribed meeting have a say in Heron reading it, and who decides whether to request tenant admin approval? |
-| R-DAT-05 | invalid (unknown) | DAT | normal | reviewer | What needs to follow a person between their devices, and where may it be stored under the CISO's rule? |
-| R-PTN-01 | invalid (unknown) | PTN | high | reviewer | Is there or would there be a contract with a cloud or language-model vendor? Who would sign it, on what terms, and would it be allowed given the CISO's line? |
-| R-PTN-02 | invalid (assumed) | PTN | high | reviewer | What agreement with the works council does the pilot need, who holds it, and how does a December meeting fit a January packaging date and a 2 February pilot? |
-| R-REG-01 | invalid (unknown) | REG | high | reviewer | What is the lawful basis for reading staff mail, meetings and documents, if opt-in consent does not hold? Who owns that answer: the DPO or the works council? |
-| R-REG-02 | invalid (unknown) | REG | normal | reviewer | Does Client Delivery include anyone in Frankfurt, and what is the gate sequence (CISO outcome, works council, DPO impact assessment) before 2 February 2027? |
-| R-OPS-01 | invalid (unknown) | OPS | high | reviewer | Can packaging in January happen before the CISO outcome of 4 December and the council's December view? Who owns the pilot date and the order of the gates? |
-| R-OPS-02 | invalid (unknown) | OPS | high | reviewer | Who writes the data list, the impact assessment and the security review pack, and by when, given the 10 November submission? |
-| R-OPS-03 | invalid (unknown) | OPS | normal | reviewer | Who runs and supports Heron day to day (packaging, Intune and Jamf pushes, failed digests), and who handles problems early in the pilot? |
-| R-FIN-03 | invalid (unknown) | FIN | high | reviewer | Who carries the commitment and liability to the works council and the DPO for a data list that nothing checks against use, and does the product owner accept that? |
-| R-OPS-07 | invalid (answered) | OPS | normal | reviewer | Who is Sam and which team is it? Is that team in the pilot, and what do they want from a thin note? |
-| R-DAT-15 | invalid (unknown) | DAT | high | reviewer | Should UNK-071 (lawful basis, DPO, ask by 10 November) and UNK-074 be recorded as blocking the February pilot? If the DPO names a basis other than consent, does the pilot's consent design change? |
-| R-PTN-11 | invalid (answered) | PTN | high | reviewer | Does the February pilot read Teams transcripts at all? If it does, how can it do so without AC1 and AC2, given that transcripts need tenant admin approval and the endpoint lead and legal have not answered? If it does not, should AC3 to AC5 also wait? |
-| R-PTN-12 | invalid (unknown) | PTN | high | reviewer | Does the calendar-only pilot still need the Graph app registration and its six-week review? If so, which date must the request go in by for the release to hold on 2 February, and who raises it with the identity team? |
-| R-REG-10 | invalid (answered) | REG | high | reviewer | If AC1 and AC2 are the controls for reading transcripts, can FR1 AC3 to AC5 ship in February without them? Or does the pilot need an explicit rule that no transcript is read until AC1 and AC2 land? |
-| R-REG-11 | invalid (answered) | REG | high | reviewer | If legal counsel (UNK-064) says a digest or transcript read breaches the client engagement terms, what is the fallback release content? Who is liable to the client, and should client-confidential calls be excluded until it is answered? |
-| R-PTN-13 | invalid (open) | PTN | normal | reviewer | Is 2 February a fact, as CST-009 says by override, or an assumption, as the releases page says? Which page owns the date? |
-| R-PTN-14 | invalid (open) | PTN | high | reviewer | Which works council, Frankfurt's or another, must agree to a London pilot? Does it vote or only note, which meeting date is the last one before 2 February, and who holds that agreement? |
-| R-PTN-15 | invalid (open) | PTN | high | reviewer | Do the Zoom terms and the client engagement terms allow Heron to read calendar entries for, and write digests or prep notes about, Zoom and client meetings in the pilot? Who checks them and by when? |
-| R-PTN-16 | invalid (open) | PTN | normal | reviewer | Who at Client Delivery gives the pilot sign-off, in what form, and by what date before 2 February? |
-| R-PTN-17 | invalid (open) | PTN | normal | reviewer | What do people agree to for transcripts when none is read in the pilot, and does that consent still stand when transcript reading arrives under the DPO's notice wording or must it be asked again? |
-| R-REG-12 | invalid (open) | REG | normal | reviewer | Who asks the works council whether it votes in December, and what happens to the February pilot date if it declines or defers? |
-| R-OPS-15 | invalid (open) | OPS | high | reviewer | Should the February pilot be recorded as blocked by UNK-051, UNK-056 and UNK-069, and who owns the order of those gates and the pilot date? |
-| R-OPS-16 | invalid (open) | OPS | normal | reviewer | What supports the 70 percent Zoom figure, who confirms it, and does the pilot lead accept calendar-only notes as the expected case? |
-| R-OPS-17 | invalid (open) | OPS | normal | reviewer | Does the February pilot include Macs as well as Windows PCs, and who checks that no Frankfurt staff are in the Client Delivery London group? |
-| R-DAT-16 | open | DAT | high | reviewer | Should the February pilot offer the transcripts choice at all? If it does, will a consent given then be valid for reading that starts in a later release under a notice that is not yet written? |
-| R-DAT-17 | open | DAT | normal | reviewer | Can a person withdraw one source only? If so, what happens to the other source, and does withdrawing calendar entries also end transcript consent? |
-| R-DAT-18 | open | DAT | normal | reviewer | Which team and epic keeps the consent record, including what is kept after a withdrawal, given that nobody is yet recorded as building Consent and identity? |
-| R-DAT-19 | open | DAT | high | reviewer | Does the Summarizer run on the laptop or off it? If off it, does the pilot's sending of calendar entries wait on the CISO outcome of 4 December and on the data list? |
-| R-REG-13 | open | REG | high | reviewer | Should EPC-032's rollout notes list every gate on the February date (CISO outcome, registration review, works council, impact assessment, lawful basis), and which of them blocks switching Heron on? |
-| R-REG-14 | open | REG | high | reviewer | If a digest is a client record (UNK-064), may it be deleted on withdrawal, and what happens to data already read or sent on before the person withdrew? |
-| R-OPS-18 | open | OPS | high | reviewer | Which team builds and runs Consent and identity, so EPC-032 can depend on its epic? What does a person see at switch-on if it is slow or down, and how long does Heron wait before it treats a choice as not kept? |
+| R-FIN-01 | invalid (unknown) | Finance and liabilities | normal | a reviewer's question | Who funds and staffs the security review pack, the app-registration review, the impact assessment and the Intune and Jamf packaging, and is that budget agreed before January? |
+| R-DAT-01 | invalid (unknown) | Data and lawful basis | high | a reviewer's question | How will the digest be stopped from naming people who were only mentioned? Should the DPO's limit be written into 02-constraints.md? |
+| R-DAT-02 | invalid (unknown) | Data and lawful basis | normal | a reviewer's question | Does Client Delivery include anyone in Frankfurt, and how will their data be kept out of the pilot? |
+| R-DAT-03 | invalid (unknown) | Data and lawful basis | high | a reviewer's question | Who writes the full list of data Heron reads, and by when, so the council can read it before its December meeting? |
+| R-DAT-04 | invalid (unknown) | Data and lawful basis | normal | a reviewer's question | Do the other attendees of a transcribed meeting have a say in Heron reading it, and who decides whether to request tenant admin approval? |
+| R-DAT-05 | invalid (unknown) | Data and lawful basis | normal | a reviewer's question | What needs to follow a person between their devices, and where may it be stored under the CISO's rule? |
+| R-PTN-01 | invalid (unknown) | Partners and contracts | high | a reviewer's question | Is there or would there be a contract with a cloud or language-model vendor? Who would sign it, on what terms, and would it be allowed given the CISO's line? |
+| R-PTN-02 | invalid (assumed) | Partners and contracts | high | a reviewer's question | What agreement with the works council does the pilot need, who holds it, and how does a December meeting fit a January packaging date and a 2 February pilot? |
+| R-REG-01 | invalid (unknown) | Regulation and liability | high | a reviewer's question | What is the lawful basis for reading staff mail, meetings and documents, if opt-in consent does not hold? Who owns that answer: the DPO or the works council? |
+| R-REG-02 | invalid (unknown) | Regulation and liability | normal | a reviewer's question | Does Client Delivery include anyone in Frankfurt, and what is the gate sequence (CISO outcome, works council, DPO impact assessment) before 2 February 2027? |
+| R-OPS-01 | invalid (unknown) | Operations and people | high | a reviewer's question | Can packaging in January happen before the CISO outcome of 4 December and the council's December view? Who owns the pilot date and the order of the gates? |
+| R-OPS-02 | invalid (unknown) | Operations and people | high | a reviewer's question | Who writes the data list, the impact assessment and the security review pack, and by when, given the 10 November submission? |
+| R-OPS-03 | invalid (unknown) | Operations and people | normal | a reviewer's question | Who runs and supports Heron day to day (packaging, Intune and Jamf pushes, failed digests), and who handles problems early in the pilot? |
+| R-FIN-03 | invalid (unknown) | Finance and liabilities | high | a reviewer's question | Who carries the commitment and liability to the works council and the DPO for a data list that nothing checks against use, and does the product owner accept that? |
+| R-OPS-07 | invalid (answered) | Operations and people | normal | a reviewer's question | Who is Sam and which team is it? Is that team in the pilot, and what do they want from a thin note? |
+| R-DAT-15 | invalid (unknown) | Data and lawful basis | high | a reviewer's question | Should UNK-071 (lawful basis, DPO, ask by 10 November) and UNK-074 be recorded as blocking the February pilot? If the DPO names a basis other than consent, does the pilot's consent design change? |
+| R-PTN-11 | invalid (answered) | Partners and contracts | high | a reviewer's question | Does the February pilot read Teams transcripts at all? If it does, how can it do so without AC1 and AC2, given that transcripts need tenant admin approval and the endpoint lead and legal have not answered? If it does not, should AC3 to AC5 also wait? |
+| R-PTN-12 | invalid (unknown) | Partners and contracts | high | a reviewer's question | Does the calendar-only pilot still need the Graph app registration and its six-week review? If so, which date must the request go in by for the release to hold on 2 February, and who raises it with the identity team? |
+| R-REG-10 | invalid (answered) | Regulation and liability | high | a reviewer's question | If AC1 and AC2 are the controls for reading transcripts, can FR1 AC3 to AC5 ship in February without them? Or does the pilot need an explicit rule that no transcript is read until AC1 and AC2 land? |
+| R-REG-11 | invalid (answered) | Regulation and liability | high | a reviewer's question | If legal counsel (UNK-064) says a digest or transcript read breaches the client engagement terms, what is the fallback release content? Who is liable to the client, and should client-confidential calls be excluded until it is answered? |
+| R-PTN-13 | invalid (open) | Partners and contracts | normal | a reviewer's question | Is 2 February a fact, as CST-009 says by override, or an assumption, as the releases page says? Which page owns the date? |
+| R-PTN-14 | invalid (open) | Partners and contracts | high | a reviewer's question | Which works council, Frankfurt's or another, must agree to a London pilot? Does it vote or only note, which meeting date is the last one before 2 February, and who holds that agreement? |
+| R-PTN-15 | invalid (open) | Partners and contracts | high | a reviewer's question | Do the Zoom terms and the client engagement terms allow Heron to read calendar entries for, and write digests or prep notes about, Zoom and client meetings in the pilot? Who checks them and by when? |
+| R-PTN-16 | invalid (open) | Partners and contracts | normal | a reviewer's question | Who at Client Delivery gives the pilot sign-off, in what form, and by what date before 2 February? |
+| R-PTN-17 | invalid (open) | Partners and contracts | normal | a reviewer's question | What do people agree to for transcripts when none is read in the pilot, and does that consent still stand when transcript reading arrives under the DPO's notice wording or must it be asked again? |
+| R-REG-12 | invalid (open) | Regulation and liability | normal | a reviewer's question | Who asks the works council whether it votes in December, and what happens to the February pilot date if it declines or defers? |
+| R-OPS-15 | invalid (open) | Operations and people | high | a reviewer's question | Should the February pilot be recorded as blocked by UNK-051, UNK-056 and UNK-069, and who owns the order of those gates and the pilot date? |
+| R-OPS-16 | invalid (open) | Operations and people | normal | a reviewer's question | What supports the 70 percent Zoom figure, who confirms it, and does the pilot lead accept calendar-only notes as the expected case? |
+| R-OPS-17 | invalid (open) | Operations and people | normal | a reviewer's question | Does the February pilot include Macs as well as Windows PCs, and who checks that no Frankfurt staff are in the Client Delivery London group? |
+| R-DAT-16 | open | Data and lawful basis | high | a reviewer's question | Should the February pilot offer the transcripts choice at all? If it does, will a consent given then be valid for reading that starts in a later release under a notice that is not yet written? |
+| R-DAT-17 | open | Data and lawful basis | normal | a reviewer's question | Can a person withdraw one source only? If so, what happens to the other source, and does withdrawing calendar entries also end transcript consent? |
+| R-DAT-18 | open | Data and lawful basis | normal | a reviewer's question | Which team and epic keeps the consent record, including what is kept after a withdrawal, given that nobody is yet recorded as building Consent and identity? |
+| R-DAT-19 | open | Data and lawful basis | high | a reviewer's question | Does the Summarizer run on the laptop or off it? If off it, does the pilot's sending of calendar entries wait on the CISO outcome of 4 December and on the data list? |
+| R-REG-13 | open | Regulation and liability | high | a reviewer's question | Should EPC-032's rollout notes list every gate on the February date (CISO outcome, registration review, works council, impact assessment, lawful basis), and which of them blocks switching Heron on? |
+| R-REG-14 | open | Regulation and liability | high | a reviewer's question | If a digest is a client record (UNK-064), may it be deleted on withdrawal, and what happens to data already read or sent on before the person withdrew? |
+| R-OPS-18 | open | Operations and people | high | a reviewer's question | Which team builds and runs Consent and identity, so EPC-032 can depend on its epic? What does a person see at switch-on if it is slow or down, and how long does Heron wait before it treats a choice as not kept? |
 <!-- /generated:undisposed-questions -->
 
 | Copy | State | Evidence | By | Date |
