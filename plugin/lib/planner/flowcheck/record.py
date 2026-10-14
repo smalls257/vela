@@ -10,8 +10,9 @@ judged across the whole initiative.
 
 The store is one JSON file the CLI keeps at .planner/flowcheck-cache.json. It is advisory: a file that does not
 read is ignored with a warning and rebuilt, never trusted and never a reason to fail (`read_store`). It is also the
-record a reader asks for a slice's last result (`last_state`), so the dashboard and the handoff can show where a
-slice's check stood without running it, and "not fully checked" is kept as itself, never as a pass.
+record the dashboard and the handoff read for where a slice's check stands (`standing.standing`), without running
+it: a record whose fingerprint no longer matches says "not checked since", and "not fully checked" is kept as
+itself, never as a pass.
 """
 import dataclasses
 import hashlib
@@ -56,9 +57,12 @@ def fingerprint(prepared, max_states, max_seconds, version):
 
 # --- one slice's record ----------------------------------------------------------------------------------------------
 
-def to_record(result, explored, fingerprint_, checked):
-    """What is kept for one slice: the exploration to reuse, and the result as it stood on `checked`, for readers."""
-    return {"fingerprint": fingerprint_, "checked": checked, "name": result.name, "flows": list(result.flows),
+def to_record(result, explored, fingerprint_, checked, budget=None):
+    """What is kept for one slice: the exploration to reuse, and the result as it stood on `checked`, for readers.
+    `budget` is (max states, max seconds) it was explored with, so a reader can tell whether the record still holds
+    (`standing.standing`) without guessing the budget."""
+    return {"fingerprint": fingerprint_, "checked": checked, "budget": list(budget) if budget else None,
+            "name": result.name, "flows": list(result.flows),
             "status": result.status, "open": sorted({f.code for f in result.open}),
             "openTitles": sorted({_title(f.code) for f in result.open}), "limits": list(result.limits),
             "journeys": result.journeys,
@@ -117,13 +121,3 @@ def read_store(text):
 
 def dump_store(store):
     return json.dumps(store, indent=1, sort_keys=True) + "\n"
-
-
-def last_state(store, key):
-    """Where a slice's check stood when it was last recorded: {"status", "checked", "open", "limits"}, or None when it
-    was never recorded. A reader shows "not fully checked" as itself; nothing here turns it into a pass."""
-    record = (store.get("slices") or {}).get(key)
-    if not isinstance(record, dict) or "status" not in record:
-        return None
-    return {"status": record["status"], "checked": record.get("checked", ""), "open": list(record.get("openTitles", ())),
-            "limits": list(record.get("limits", ()))}

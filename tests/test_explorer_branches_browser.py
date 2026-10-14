@@ -83,11 +83,10 @@ def test_a_link_naming_a_branch_opens_it_with_its_marks_in_words(tmp_path, chrom
 @pytest.mark.browser
 def test_the_selftest_walks_every_branch_in_every_theme(tmp_path, chrome_path):  # noqa: F811
     page = staged(tmp_path)
+    # the lines each run already gives, checked at both windows, instead of a third run of the selftest at 1400x900
     for viewport in ("1600,1000", "800,600"):
-        _check_selftest_in_chrome(chrome_path, page, f"booking with a kiosk flow's branches at {viewport}", viewport)
-    out = dom(chrome_path, page, "map&selftest", budget=60000)
-    lines = html.unescape(re.search(r'data-selftest="([^"]*)"', out).group(1)).split(" || ")
-    for want in ('ok branches, FLO-009: "Show" in the header row', 'ok flows: no two contract pills overlap', "ok branches, FLO-009: every option says not fully checked",
-                 "ok branches, FLO-009: each of 3 redraws the one diagram", "ok branches: a link naming", "ok branches, FLO-001: one line",
-                 "ok branches: in Plain, every branch's header, summary and findings fit"):
-        assert any(line.startswith(want) for line in lines), want
+        lines = _check_selftest_in_chrome(chrome_path, page, f"booking with a kiosk flow's branches at {viewport}", viewport)
+        for want in ('ok branches, FLO-009: "Show" in the header row', 'ok flows: no two contract pills overlap', "ok branches, FLO-009: every option says not fully checked",
+                     "ok branches, FLO-009: each of 3 redraws the one diagram", "ok branches: a link naming", "ok branches, FLO-001: one line",
+                     "ok branches: in Plain, every branch's header, summary and findings fit"):
+            assert any(line.startswith(want) for line in lines), (viewport, want)

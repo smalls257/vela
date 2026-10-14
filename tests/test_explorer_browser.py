@@ -52,11 +52,7 @@ def test_plain_names_and_trace_rows_pass_the_selftest(tmp_path, chrome_path):
     cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     html_path = vault / "dashboard.html"
-    _check_selftest_in_chrome(chrome_path, html_path, "heron-desk/readable")
-    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000",
-                          "--virtual-time-budget=60000", "--dump-dom", f"file://{html_path}#map&selftest&trace"],
-                         timeout=180, capture_output=True, text=True).stdout
-    selftest = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1))
+    selftest = " || ".join(_check_selftest_in_chrome(chrome_path, html_path, "heron-desk/readable"))
     assert "ok trace rows:" in selftest and "ok plain names:" in selftest, selftest
 
 
@@ -295,6 +291,8 @@ def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600
     # a selftest that quietly skipped most of its checks still says OK, so a floor on how many ran guards it (E32)
     ran = int(re.match(r"SELFTEST OK: (\d+) checks passed", selftest_text).group(1))
     assert ran >= CHECKS_FLOOR, f"{vault_name}: only {ran} selftest checks ran, wanted at least {CHECKS_FLOOR}"
+    # every line, so a test that wants particular checks reads them from this run instead of running Chrome again
+    return selftest_text.split(" || ")
 
 
 @pytest.mark.browser
@@ -465,9 +463,10 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
                           f"file://{vault / 'dashboard.html'}#home"], timeout=180, capture_output=True, text=True).stdout
     tag = re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S)
     line, opening = html.unescape(tag.group(1)), html.unescape(tag.group(0).split(">", 1)[0])
-    # The sentence is for every reader (a date, no hash); the commit is for whoever maintains the plan, in the tooltip.
+    # The sentence is for every reader (a date, no hash); the commit is for whoever maintains the plan, in a data
+    # attribute, never in a tooltip a reader reads (E56: no commit hashes in reader text).
     assert line.startswith("Built ") and "commit" not in line and short not in line
-    assert f"from commit {short}" in opening and "hidden" not in opening
+    assert f'data-commit="{short}' in opening and "title=" not in opening and "hidden" not in opening
 
 
 def _explore_and_dump(chrome_path, source, tmp_path, today, route, viewport="1600,1000"):

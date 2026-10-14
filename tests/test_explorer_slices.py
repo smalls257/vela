@@ -76,6 +76,27 @@ def test_a_row_carries_its_flow_check_state_and_overrides_with_their_end_dates(t
     assert [(o["code"], o["item"], o["until"], o["ended"]) for o in check["overrides"]] == [("F8", "CON-020", "2026-10-01", True)]
 
 
+def test_a_row_says_the_last_full_check_as_recorded_and_never_a_pass_the_record_does_not_hold(tmp_path):
+    """The dashboard reads check-slice's record through flowcheck.standing: no record is "not checked", a record that
+    holds says its result and date, and a slice changed since says "not checked since"."""
+    from conftest import run
+    from test_slices import FLOWCHECK, page, write
+    vault = tmp_path / "v"
+    shutil.copytree(FLOWCHECK / "05-hold-never-released", vault)
+    write(vault, "SLC-001", page("SLC-001", "Hold and pay", "**Status:** planned", "**Flows:** [[FLO-005-05-hold-never-released|FLO-005]]"))
+    _, data = built(tmp_path, vault, "2026-10-13", "none")
+    assert data["slicePlan"]["list"][0]["recorded"]["state"] == "not checked"
+    assert run("check-slice", "SLC-001", "--vault", str(vault), "--today", "2026-10-13")[0] == 1
+    _, data = built(tmp_path, vault, "2026-10-13", "held")
+    said = data["slicePlan"]["list"][0]["recorded"]
+    assert (said["state"], said["words"], said["checked"], said["open"]) == ("findings", "1 finding", "2026-10-13", ["not final"])
+    flow = next((vault / "06-runtime" / "flows").glob("FLO-005-*.md"))
+    flow.write_text(flow.read_text(encoding="utf-8").replace("END declined", "END refused", 1), encoding="utf-8")
+    _, data = built(tmp_path, vault, "2026-10-14", "later")
+    said = data["slicePlan"]["list"][0]["recorded"]
+    assert said["state"] == "stale" and said["words"] == "not checked since 2026-10-13" and not said["passed"]
+
+
 def test_the_tracer_reads_from_the_tracer_slice_and_from_release_one_without_slice_pages(booking, tmp_path):  # noqa: F811
     _, data = booking
     assert data["releases"]["tracer"]["slice"] == "SLC-001" and data["releases"]["tracer"]["flows"] == ["FLO-001", "FLO-003"]

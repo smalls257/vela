@@ -1849,14 +1849,48 @@ const TextFit = (() => {
     }
     return bad;
   }
-  return { textFits, clippedText, bareLabels, KINDS };
+  /* Reader text names things; it never says where they are kept (the wording rule: no file paths or commit hashes in
+     reader text). A folder path, a file name or a commit hash in the panel's own words, a view's head, or a tooltip
+     there is builder text that leaked through. Words someone wrote, shown as written (a plan page, .r-text; a page's
+     prose, .prose-text; a team design's text, .authored), a reader's drafts (.dpage), which edit files by name, and
+     web addresses are theirs, so they are left out. */
+  const PATH_WORDS = /(?:^|[\s("'“`])(?:[\w.-]+\/)+[\w.-]*\.(?:md|ya?ml|json|html)\b|(?:^|[\s("'“`])[\w-]+\/(?=[\s"'”`.,;:)]|$)|\b[\w-]+\.(?:md|ya?ml|json)\b/;
+  const HASH_WORDS = /\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/;
+  const BUILDER_ROOTS = "#panel, .view-head, #built";
+  const leftOut = (el) => !!el.closest(".r-text, .prose-text, .authored, .dpage, script, style, [hidden], .sr-only");
+  function builderWords(root = document) {
+    const bad = [], seen = new Set();
+    const flag = (text, el, where) => {
+      const said = text.replace(/\b(?:https?|file):\/\/\S+/g, "");
+      const m = said.match(PATH_WORDS) || said.match(HASH_WORDS);
+      if (!m || seen.has(text)) return;
+      seen.add(text);
+      bad.push({ text: text.trim().slice(0, 50), cls: (classOf(el) || el.tagName.toLowerCase()) + where, why: `shows "${m[0].trim()}", a file path or commit hash, in reader text` });
+    };
+    const hosts = root.matches && root.matches(BUILDER_ROOTS) ? [root] : [...root.querySelectorAll(BUILDER_ROOTS)];
+    for (const host of hosts) {
+      const walk = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        const el = n.parentElement;
+        if (!el || !n.nodeValue.trim() || leftOut(el) || !visible(el)) continue;
+        flag(n.nodeValue, el, "");
+      }
+      for (const el of [host, ...host.querySelectorAll("[title], [aria-label]")]) {
+        if (leftOut(el)) continue;
+        for (const attr of ["title", "aria-label"]) if (el.getAttribute(attr)) flag(el.getAttribute(attr), el, ` (${attr})`);
+      }
+    }
+    return bad;
+  }
+  return { textFits, clippedText, bareLabels, builderWords, KINDS };
 })();
 
 (() => {
   const base = SelfTest.run;
   const found = new Map();  // "text (class)" -> { view, why, more }: the first view a label failed in, and how many others it failed in
   const note = (view, root) => {
-    for (const b of [...TextFit.textFits(root || document), ...TextFit.clippedText(root || document), ...TextFit.bareLabels(root || document)]) {
+    for (const b of [...TextFit.textFits(root || document), ...TextFit.clippedText(root || document), ...TextFit.bareLabels(root || document),
+      ...TextFit.builderWords(root || document)]) {
       const id = `"${b.text}" (${b.cls})`, seen = found.get(id);
       if (seen) seen.more++; else found.set(id, { view, why: b.why, more: 0 });
     }
@@ -1935,9 +1969,25 @@ const TextFit = (() => {
     ok(alone === 1 && more === 0 && clamp === 0 && seen === 1, "text fits: the sensor flags prose cut with no ellipsis and passes it with a Show more or a line-clamp", `text fits: the cut-prose sensor saw ${alone} of 1 cut, ${more} with Show more, ${clamp} clamped, ${seen} in the mixed set`);
     ok(codes.length === 1 && codes[0] === "CON-001 Consent check", "text fits: the sensor flags a title that is a code and passes the name with the code in a small tag", `text fits: the code sensor flagged ${JSON.stringify(codes)}`);
   }
+  /* The path sensor must see what it is for: a path in a view head's words and a commit in its tooltip are flagged; the
+     plan's own page text (.r-text), plain words, a date and "and/or" are not. */
+  function sensorSeesBuilderWords(ok) {
+    const host = h("div", { class: "view-head", style: "position:absolute;left:0;top:0" },
+      h("span", {}, "Page 06-runtime/06-flows.md"), h("span", { title: "Built from commit 6495b67" }, "Built 12 Oct."),
+      h("span", {}, "Flow pages live in flows/ and runtime pages in apps/."),
+      h("article", { class: "r-text" }, h("p", {}, "The page lives in 06-runtime/flows/FLO-001.md.")),
+      h("span", { title: "Open the page, as it is written" }, "Read it on 2026-10-12, calendar and/or transcripts."));
+    $("#main").append(host);
+    const seen = TextFit.builderWords(host).map((b) => b.text);
+    host.remove();
+    ok(seen.length === 3 && seen.every((t) => !t.includes("calendar") && !t.includes("FLO-001")),
+      "reader text: the sensor flags a file path, a folder and a commit hash, and passes plain words and the plan's own page text",
+      `reader text: the path sensor flagged ${JSON.stringify(seen)}`);
+  }
   async function checks(ok) {
     sensorSeesOverflow(ok);
     sensorSeesCutProseAndCodes(ok);
+    sensorSeesBuilderWords(ok);
     if (!D.map.apps.length) return;
     const was = Theme.id, fx = FX.on, themes = [...Theme.LIST.map((t) => [t.id, t.label, true]), [was, "Plain", false]];
     for (const [id, label, motion] of themes) {

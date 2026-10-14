@@ -188,10 +188,21 @@ KIND_WORDS = {"app": "app", "runtime": "how it runs", "provides": "interface it 
               "requirement": "requirement", "epic": "epic", "slice": "slice", "release": "release", "unknown": "open question"}
 
 
-def write(app_id, entries, commit, today, not_firm=(), title=""):
-    """The manifest file's text. `not_firm` is the sentences handoffwarn found, so the senior's copy says what was never decided."""
+CHECKS_HEADING = "## Flow checks when written"
+
+
+def check_lines(taking_part, standings):
+    """One bullet per slice the app takes part in, saying where its recorded flow check stood (`standing.Standing`):
+    passed, its findings, not fully checked, or not checked since a date, never a pass the record does not hold."""
+    return [f"- {s.label}: {standings[s.key].line()}" for s in taking_part if s.key in standings]
+
+
+def write(app_id, entries, commit, today, not_firm=(), title="", checks=()):
+    """The manifest file's text. `not_firm` is the sentences handoffwarn found, so the senior's copy says what was never
+    decided; `checks` is `check_lines`, so it says how far each slice's logic was proved. Neither is part of a hash."""
     rows = [f"| {e.id} | {e.kind} | {e.page} | {e.state or '-'} | {e.hash} |" for e in entries]
-    tail = ["", NOT_FIRM_HEADING, "", "The app's team accepts it knowing these are still open:", "", *not_firm, ""] if not_firm else [""]
+    tail = ["", CHECKS_HEADING, "", "Where each slice's flow check stood, as recorded by planner check-slice:", "", *checks] if checks else []
+    tail += ["", NOT_FIRM_HEADING, "", "The app's team accepts it knowing these are still open:", "", *not_firm, ""] if not_firm else [""]
     return "\n".join([
         f"# Handoff record: {title or app_id}", "",
         f"- **App:** {app_id}", f"- **Commit:** {commit}", f"- **Written:** {today}", f"- **Items:** {len(entries)}", "",

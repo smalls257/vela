@@ -35,6 +35,14 @@ def read_store(root):
         return None, f"{record.PATH} could not be read ({exc}), so every slice is checked afresh."
 
 
+def read_record(root):
+    """(store, warning): the record on disk as `record.read_store` reads it, for readers (the handoff, the dashboard).
+    A file that does not read is an empty store with a warning saying so, so every slice reads "not checked"."""
+    text, unreadable = read_store(root)
+    store, corrupt = record.read_store(text)
+    return store, unreadable or corrupt
+
+
 def write_store(root, text):
     """Write the record whole or not at all. Returns a warning when it could not be written, "" when it was."""
     path = pathlib.Path(root) / record.PATH

@@ -475,7 +475,7 @@ const Plan = (() => {
   function barOf(app, p, list) {
     const t = p.totals;
     const tickets = p.hasTickets ? openLink([Icons.el("docs"), "Tickets"], p.ticketsHref, p.ticketsVaultPath, "The tickets file written beside the plan", "btn quiet plan-tickets") : null;
-    const file = openLink([Icons.el("docs"), "Open the plan"], p.href, p.vaultPath, p.file);
+    const file = openLink([Icons.el("docs"), "Open the plan"], p.href, p.vaultPath, "The team's build plan, in a new tab");
     return h("div", { class: "plan-bar" },
       h("div", { class: "plan-kpis" }, ...[["stories", t.stories], ["tasks", t.tasks]].map(([w, n]) => h("div", { class: "plan-kpi", "data-kpi": w }, h("b", {}, n), h("span", {}, w)))),
       h("div", { class: "plan-acts" }, statusPill(p), problemsChip(p, list), file, tickets,

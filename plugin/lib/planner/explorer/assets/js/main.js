@@ -6,12 +6,13 @@ $("#brand-title").textContent = D.title || "Vault";
 $("#brand-sub").textContent = `Plan as of ${day(D.today)}`;
 $("#brand-title").title = $("#brand-title").textContent; $("#brand-sub").title = `${D.initiative ? D.initiative + ": " : ""}the plan as it stood on ${day(D.today)}`;  // both cut with an ellipsis when the sidebar is narrow
 /* A copy opened long after it was built says so, quietly, above everything: when it was built. The commit is for whoever
-maintains the plan, so it rides in the tooltip rather than in the sentence every reader reads. */
+maintains the plan, so it rides in a data attribute, never in text or a tooltip a reader reads (no commit hashes in
+reader text). */
 if (D.built) {
   const built = $("#built");
   const on = isDate(D.built.date) ? `${day(D.built.date)} ${D.built.date.slice(0, 4)}` : D.built.date;
   built.textContent = `Built ${on}. If the plan has changed since then, this page won't show it.`;
-  if (D.built.commit) built.title = `Built from commit ${D.built.commit}`;
+  if (D.built.commit) built.dataset.commit = D.built.commit;
   built.hidden = false;
 }
 $("#brand").addEventListener("click", () => Nav.home());

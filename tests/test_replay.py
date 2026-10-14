@@ -7,7 +7,7 @@ import pathlib
 
 import pytest
 from conftest import run
-from sharing import commit_snapshot, git
+from sharing import git, published_snapshot
 
 from planner import replay, untrusted
 
@@ -65,9 +65,8 @@ def open_into(source, workspace, today="2026-10-12", *extra):
 
 def make_world(tmp_path):
     """(owner repo, published v1, workspace after the reader's drafts). The owner has not yet changed anything."""
-    src = commit_snapshot(tmp_path)
-    v1, workspace = tmp_path / "v1", tmp_path / "workspace"
-    assert run("publish", "--vault", str(src), "--out", str(v1), "--today", "2026-10-11")[0] == 0
+    src, v1 = published_snapshot(tmp_path, "v1")
+    workspace = tmp_path / "workspace"
     assert open_into(v1, workspace)[0] == 0
     tweak(workspace / READER_ONLY, -1, "(reader note)")
     tweak(workspace / MERGE, 0, "(reader, top)")

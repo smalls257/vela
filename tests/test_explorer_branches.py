@@ -1,6 +1,7 @@
 """The Flows view's error cases (design 19, D8): each flow's branches as the picker shows them, read through the flow
 checker's own readers (branches_data.py). The browser draws them; these check what the build hands it."""
 import pathlib
+import shutil
 
 import pytest
 from test_explorer import booking  # noqa: F401  (booking is a fixture)
@@ -120,6 +121,34 @@ def test_every_branch_ends_with_its_ending_or_says_it_has_none():
     call = branches_data.step("call", 3, "hold a seat", **{"from": "W", "to": "B", "item": "CON-100"})
     tail = branches_data.played((call,), {}, {}, {}, ended=False)[-1]
     assert tail["short"] == branches_data.NO_ENDING and tail["differs"]
+
+
+def test_an_ending_reads_as_the_flow_page_says_it_else_as_its_states_mean_else_by_its_name(tmp_path):
+    """The band at a branch's end is a sentence, not an END outcome name turned into words: the flow page's
+    | Outcome | What the person sees | row first, then the meaning of the state the journey ends in, and only with
+    neither the outcome's own name."""
+    root = tmp_path / "vault"
+    shutil.copytree(FIXTURES / "20-provider-drawn", root)
+    flow_page = root / "06-runtime" / "flows" / "FLO-020-20-provider-drawn.md"
+    flow_page.write_text(flow_page.read_text(encoding="utf-8") + "\n| Outcome | What the person sees |\n|---|---|\n"
+                         "| `sold_out` | The website says the ferry is full. |\n", encoding="utf-8")
+    entity = root / "entities" / "booking.md"
+    entity.write_text(entity.read_text(encoding="utf-8") + "\n| State | Means | Not in it |\n|---|---|---|\n"
+                      "| none | no seat is held | |\n| held | the traveler has a seat held | |\n", encoding="utf-8")
+    vault = cli.load_vault(root)
+    flow = branches_data.extract(vault, record.Keys(vault), TODAY, cli.spec_texts(root))["FLO-020"]
+    assert flow["happy"]["steps"][-1]["short"] == "It ends here: the traveler has a seat held."  # SET booking held
+    assert option(flow, "CON-100.sold_out")["steps"][-1]["short"] == "It ends here: the website says the ferry is full."
+    assert option(flow, "CON-101.timeout")["steps"][-1]["short"] == "It ends here: unavailable."  # no row, no state set
+
+
+def test_an_ending_s_words_keep_names_and_join_every_state_it_leaves():
+    words = {"heron": {"not_kept": ("the agent says consent wasn't kept", "")}, "digest": {"none": ("no digest yet", "")}}
+    end = {"outcome": "told not kept", "outcome_key": "told_not_kept", "leaves": [("digest", "none")]}
+    assert branches_data.ending_words(end, {}, words, [("heron", "not_kept")]) == "no digest yet and the agent says consent wasn't kept"
+    assert branches_data.ending_words(end, {"told_not_kept": "Heron stays off."}, words, []) == "Heron stays off"
+    # one state with no words: the whole ending falls back to its name, never half a sentence
+    assert branches_data.ending_words(end, {}, words, [("heron", "on")]) == "told not kept"
 
 
 def test_a_broken_invariant_reads_in_the_states_own_words_when_the_entity_page_gives_them():

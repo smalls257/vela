@@ -3,14 +3,27 @@
 # The rules and their reasons live in the planner (plugin/lib/planner/guard.py); this hook only asks it, so the
 # list is never copied here. `planner close stage` already refuses those paths: this catches a commit typed by hand.
 # Turned on per clone with: git config core.hooksPath .githooks
-# The planner is found at PLANNER (a path to its launcher) or at .claude/skills/planner/scripts/planner.
+# The planner is the first of these that is set: PLANNER (a path to its launcher), this clone's
+# `git config planner.path` (a plugin installed from the marketplace lives under ~/.claude/plugins/, at a path
+# only the machine knows; `planner doctor` prints the one command that records it), or the vendored copy at
+# .claude/skills/planner/scripts/planner. The order is doctor.HOOK_ORDER; a test holds the two together.
 # If it cannot be found the commit is stopped, not waved through: a check that passes when it cannot run is no check.
 # To commit anyway, on purpose: git commit --no-verify
 root=$(git rev-parse --show-toplevel) || exit 2
-planner="${PLANNER:-$root/.claude/skills/planner/scripts/planner}"
+planner="$PLANNER"
+from="PLANNER"
+if [ -z "$planner" ]; then
+  planner=$(git config --get planner.path)
+  from="git config planner.path"
+fi
+if [ -z "$planner" ]; then
+  planner="$root/.claude/skills/planner/scripts/planner"
+  from="the vendored copy"
+fi
 if [ ! -f "$planner" ]; then
-  echo "pre-commit: the planner is not at $planner, so the staged files were not checked." >&2
-  echo "Install the plugin (README step 2) or set PLANNER to its launcher. To commit unchecked: git commit --no-verify" >&2
+  echo "pre-commit: the planner is not at $planner ($from), so the staged files were not checked." >&2
+  echo "Run planner doctor in this vault: it prints the one command that points this hook at the installed planner." >&2
+  echo "To commit unchecked: git commit --no-verify" >&2
   exit 1
 fi
 exec python3 "$planner" guard staged --vault "$root"

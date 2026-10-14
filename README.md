@@ -57,7 +57,7 @@ Run each one as `python3 .claude/skills/planner/scripts/planner <command>` from 
 | `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the app's handoff list: everything its team's lead accepts |
 | `planner handoff verify <APP-id>` | What changed in that slice since handoff. Exits 1 when something accepted changed |
 | `planner voicecheck <before> <after>` | Fails when a rewrite lost or moved an ID, number, date, link, code span, table cell or negation |
-| `planner doctor` | What this machine has for planner, one line per item: Python, the bundled PyYAML, git, and the optional node, `claude` and voice-scoring packages, each missing one with what it adds and the command that gets it. Also whether the folder is a vault, and the plugin version. Exit 0 when nothing required is missing |
+| `planner doctor` | What this machine has for planner, one line per item: Python, the bundled PyYAML, git, and the optional node, `claude` and voice-scoring packages, each missing one with what it adds and the command that gets it. Also whether the folder is a vault, whether the vault's pre-commit hook finds the installed planner (if not, the one command that wires it: `git config planner.path <launcher>`), and the plugin version. Exit 0 when nothing required is missing |
 | `planner voicescore <page>` | Optional: whether each prose paragraph sits inside or outside your own voice's range. See "Optional: voicescore" below |
 | `planner export jira-csv --out epics.csv` | One row per epic for Jira's CSV import. Export only: nothing is read back and no page carries a Jira field. A page's generic `links:` may point at its ticket, as at any other URL |
 
