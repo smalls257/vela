@@ -955,6 +955,8 @@ def cmd_check(args, out):
     items = gate_items(vault, args.gate, args.item)
     app = gate_app(vault, args.gate, args.app)
     findings = rules.check(vault, today, gate=args.gate, items=items, app=app) + vault_file_findings(root)
+    if not args.gate and not items:
+        findings += slice_findings(root, vault, today)
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     elapsed = time.perf_counter() - started
@@ -972,27 +974,60 @@ def cmd_check(args, out):
     return 1 if errors else 0
 
 
-FLOWCHECK_INPUTS = ("specs/*.yaml", "05-building-blocks/*.md", "entities/*.md", "06-runtime/flows/*.md", "04b-releases.md")
+SPEC_PATTERNS = ("specs/*.yaml", "specs/*.yml")
+# check runs each drawn slice on a small budget so it stays quick; past it, W391 says "not fully checked" and points
+# at check-slice, which has the full budget. Never a pass by budget (R0).
+CHECK_SLICE_STATES = 20_000
+
+
+def spec_texts(root):
+    """{vault-relative path: text} of the OpenAPI and AsyncAPI specs the flow checker reads. The edge: the checker
+    itself never touches the disk."""
+    out = {}
+    for pattern in SPEC_PATTERNS:
+        for path in sorted(root.glob(pattern)):
+            try:
+                out[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as exc:
+                raise ToolError(f"Cannot read {path}: {exc}") from exc
+    return out
+
+
+def slice_findings(root, vault, today):
+    """W391 for each slice with a drawn flow whose check does not pass: open findings, or not fully checked. A slice
+    none of whose flows has a sequence diagram yet is left to check-slice, which says so: nothing is drawn to judge,
+    and the boundary session is where it gets drawn."""
+    from planner import flowcheck
+    from planner.flowcheck import readers
+    catalog = readers.read_catalog(vault, spec_texts(root))
+    out = []
+    for found in catalog.slices:
+        if not any(catalog.flows[f].has_diagram for f in found.flows if f in catalog.flows):
+            continue
+        result = flowcheck.check_catalog(catalog, found.name, today, CHECK_SLICE_STATES)
+        if result.status == "passes":
+            continue
+        open_ = [f for f in result.findings if f.severity == "error"]
+        names = sorted({flowcheck.TITLES.get(f.code, f.code).lower() for f in open_})
+        out.append(model.Finding(found.path, found.line, "W391",
+                                 f"{found.name} {result.status}: {len(open_)} open finding{'' if len(open_) == 1 else 's'} "
+                                 f"({', '.join(names)}).",
+                                 f"Run planner check-slice \"{found.name}\" for the traces and owners, and fix or override each."))
+    return out
 
 
 def cmd_check_slice(args, out):
-    """Prove one slice's logic: read the files the flow checker reads, run it, print its findings in plain words.
+    """Prove one slice's logic: read the vault, run the checker, print its findings in plain words.
     Exit 0 only for a pass; findings or a slice not fully checked are 1 (R0: never a pass by default)."""
     from planner import flowcheck
+    from planner.flowcheck import readers
     root = pathlib.Path(args.vault).resolve()
-    load_config(root)
     today, _ = parse_today(args.today)
-    files = {}
-    for pattern in FLOWCHECK_INPUTS:
-        for path in sorted(root.glob(pattern)):
-            try:
-                files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError) as exc:
-                raise ToolError(f"check-slice: cannot read {path}: {exc}") from exc
     if args.max_states < 1 or args.max_seconds <= 0:
         raise ToolError("check-slice: --max-states and --max-seconds must be above zero.")
+    catalog = readers.read_catalog(load_vault(root), spec_texts(root))
     try:
-        result = flowcheck.check_slice(files, args.slice, today, args.max_states, args.max_seconds, time.perf_counter)
+        result = flowcheck.check_catalog(catalog, args.slice, today, args.max_states, args.max_seconds, time.perf_counter)
     except flowcheck.SliceNotFound as exc:
         raise ToolError(f"check-slice: {exc}") from exc
     print(result.format(), file=out)
@@ -2262,7 +2297,7 @@ def build_parser():
     check.set_defaults(func=cmd_check)
     slc = sub.add_parser("check-slice", help="prove one slice's logic (a release's flows, or one flow) from its specs, "
                                              "case tables, entities and strict sequence diagrams")
-    slc.add_argument("slice", help="a release, by the start of its heading (\"Release one\"), or a flow ID (FLO-001)")
+    slc.add_argument("slice", help="a slice, by the start of its release's heading (\"Release one\"), or a flow ID (FLO-001)")
     slc.add_argument("--vault", default=".", help="vault root (default: current directory)")
     slc.add_argument("--today", help="the date overrides' end dates are judged by, YYYY-MM-DD (default: system date)")
     slc.add_argument("--max-states", type=int, default=200_000, help="state budget; running out is 'not fully checked' (default 200000)")

@@ -1,0 +1,22 @@
+openapi: 3.1.0
+info: {title: Consent, version: "1"}
+paths:
+  /choices:
+    post:
+      x-vela-id: CON-318
+      summary: Record the choice
+      x-vela-timeout: true
+      x-vela-retries: {max: 2, on: [timeout]}
+      responses:
+        "200":
+          description: kept
+          content:
+            application/json:
+              examples:
+                kept: {value: {}}
+        "503":
+          description: not now
+          content:
+            application/json:
+              examples:
+                unavailable: {value: {}}

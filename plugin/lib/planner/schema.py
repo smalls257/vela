@@ -359,6 +359,7 @@ CODES = {
     "W387": "an app at handoff calls a provider nobody has designed",
     "W389": "prose leaves a matter for a Grill with no open question linked",
     "W390": "decided item records no Why",
+    "W391": "a drawn slice does not pass the flow check",
     "W388": "a handoff manifest pins a commit this repository does not have, or cannot be read",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",

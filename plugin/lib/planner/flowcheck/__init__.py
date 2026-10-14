@@ -18,7 +18,7 @@ a pass. With any F10, exploration does not run at all: a model with a hole in it
 import dataclasses
 
 from planner.flowcheck import build, explore, properties, readers, render, semantics
-from planner.flowcheck.findings import Finding, SliceResult
+from planner.flowcheck.findings import TITLES, Finding, SliceResult
 from planner.flowcheck.semantics import ALL_REDUCTIONS
 
 DEFAULT_MAX_STATES = 200_000

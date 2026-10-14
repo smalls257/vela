@@ -40,7 +40,7 @@ class Finding:
         lines = [head]
         lines += [f"  {n}. {sentence}" for n, sentence in enumerate(self.trace, 1)]
         if self.owners:
-            lines.append(f"  Owner of the decision: {', '.join(self.owners)}.")
+            lines.append(f"  {'Owner' if len(self.owners) == 1 else 'Owners'} of the decision: {', '.join(self.owners)}.")
         if self.items:
             lines.append(f"  IDs: {', '.join(self.items)}.")
         return "\n".join(lines)
@@ -68,7 +68,11 @@ class SliceResult:
         errors = sum(1 for f in self.findings if f.severity == "error")
         warnings = sum(1 for f in self.findings if f.severity == "warning")
         covered = sum(1 for f in self.findings if f.severity == "covered")
-        head = (f"planner check-slice: {self.name} ({', '.join(self.flows)}): {self.status}. {errors} errors, "
-                f"{warnings} warnings" + (f", {covered} covered by overrides" if covered else "") +
+        head = (f"planner check-slice: {self.name} ({', '.join(self.flows)}): {self.status}. {_count(errors, 'error')}, "
+                f"{_count(warnings, 'warning')}" + (f", {covered} covered by overrides" if covered else "") +
                 f". {self.states} states, {self.transitions} transitions, {self.seconds:.2f} s.")
         return "\n".join([head] + [f.format() for f in self.findings])
+
+
+def _count(n, word):
+    return f"{n} {word}{'' if n == 1 else 's'}"

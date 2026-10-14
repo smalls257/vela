@@ -360,3 +360,177 @@ def test_the_cli_exits_0_on_a_pass_1_on_findings_and_prints_plain_words():
     assert code == 1 and "F8 Not final" in out and "Billing has no retries left" in out
     code, out = run("check-slice", "Release one", "--vault", str(FIXTURES / "12-clean-tracer"), "--max-states", "5")
     assert code == 1 and "not fully checked" in out
+
+
+# --- design 19 revision 2: one fixture per changed item ---------------------------------------------------------------
+
+def test_r2_01_a_timed_out_call_may_have_been_answered_events_included():
+    """Item 1: an undrawn provider that timed out either did nothing or applied a case, its events included."""
+    case = "r2-01-timeout-published-anyway"
+    result = check(case)
+    assert errors(result) == ["F9", "F9"]
+    first = result.findings[0]
+    assert first.trace[0] == ('Shop asks Payments to take the payment, and the call times out, though Payments had in fact '
+                              'answered paid and published "payment taken".')
+    assert first.trace[-1] == "Warehouse sets Parcel 1 to shipped."
+    assert set(first.owners) == {"Shop", "Warehouse"}
+
+
+def test_r2_04_a_when_column_keeps_a_case_to_the_states_it_names():
+    """Item 4: with the When, already_gone is no answer to a held booking; without it the booking can be left held."""
+    case = "r2-04-when"
+    assert check(case).status == "passes"
+    files = files_of(case)
+    page = "05-building-blocks/booking-building-blocks.md"
+    files[page] = files[page].replace("| already_gone | booking is not held and booking is not paid |", "| already_gone | |")
+    f8 = one(flowcheck.check_slice(files, "FLO-304", TODAY), "F8")
+    assert f8.summary.startswith("Booking 1 is left held")
+
+
+def test_r2_05_a_change_with_no_row_for_the_current_state_is_illegal():
+    """Item 5: `ticket: open→closed` moves an open ticket only; closing a closed one has nowhere to go."""
+    f5 = one(check("r2-05-no-row-for-the-state"), "F5")
+    assert f5.summary == 'Ticket 1 is closed, and "Close the ticket" answering closed gives it nowhere to go from there.'
+    assert f5.owners == ("Agent desk", "Helpdesk")
+
+
+def test_r2_08_drawn_handling_can_answer_from_its_contract():
+    """Item 8: the marker lets drawn handling decide on the request's content; held only ever follows a reserved seat,
+    so the invariant holds, both answers are reachable, and a provider outside the vault gets no F12."""
+    case = "r2-08-answers-from-contract"
+    result = check(case)
+    assert result.status == "passes" and result.findings == [], result.format()
+    catalog = readers.read_vault(files_of(case))
+    program, _ = build.build(catalog, ("FLO-308",), TODAY)
+    graph = explore.explore(semantics.Semantics(program, (0,)), 1000, 10, flowcheck.frozen_clock)
+    table = program.contracts["CON-380"]
+    answered = {table.cases[label[6]].key for label in graph.label
+                if label and label[0] == "reply" and len(label) > 6 and label[6] >= 0}
+    assert answered == {"held", "sold_out"}
+
+
+def test_r2_08_answers_from_contract_outside_drawn_handling_is_unreadable():
+    files = files_of("r2-08-answers-from-contract")
+    page = flow_path("r2-08-answers-from-contract")
+    files[page] = files[page].replace("alt held\n", "alt held\n    Note over W: ANSWERS FROM CONTRACT\n")
+    assert flowcheck.check_slice(files, "FLO-308", TODAY).status == "not fully checked"
+
+
+def test_r2_10_a_timer_that_wins_the_race_leaves_the_late_event_nowhere_to_go():
+    """Item 10: the AWAIT and the timer race, the winner cancels the other, and the payment confirmation that comes
+    after the hold was released is a message nothing will take."""
+    f6 = one(check("r2-10-timer-race"), "F6")
+    assert f6.summary == ('"payment confirmed" is still on its way to Shop, and nothing will take it. '
+                          "From step 4 on it could no longer finish.")
+    assert f6.trace[2:4] == ("Shop starts the pay window timer (15m).", "The pay window timer fires.")
+    assert f6.owners == ("Shop", "Billing")
+
+
+def test_r2_10_an_await_branch_on_a_timer_it_never_armed_is_a_finding():
+    files = files_of("r2-10-timer-race")
+    page = flow_path("r2-10-timer-race")
+    files[page] = files[page].replace("else pay_window", "else hold_window")
+    assert "F2" in [f.code for f in flowcheck.check_slice(files, "FLO-310", TODAY).findings]
+
+
+def test_r2_13_an_invariant_with_or_and_parentheses():
+    f9 = one(check("r2-13-or-invariant"), "F9")
+    assert f9.summary == 'The invariant "not (order=shipped and (payment=none or payment=refunded))" of Order no longer holds.'
+    assert readers.parse_invariant("a=x or b=y and c=z")[0] == ("or", ("is", "a", "x"), ("and", ("is", "b", "y"), ("is", "c", "z")))
+
+
+def test_r2_18_unquoted_yaml_booleans_and_an_on_retry_key_are_refused():
+    """Item 18: YAML reads off as false and on: as true; the reader says so instead of reading them."""
+    result = check("r2-18-yaml-trap")
+    summaries = [f.summary for f in result.findings if f.code == "F10"]
+    assert any("x-vela-retries says on:" in s for s in summaries)
+    assert any("quote such a state" in s for s in summaries)
+    assert result.status.endswith("not fully checked") and result.states == 0
+
+
+# --- slices, overrides and the check warning --------------------------------------------------------------------------
+
+def test_a_later_release_names_its_slice_with_a_flows_bullet():
+    from planner import model, parse, slices
+    text = ("---\nid: releases\ntype: initiative-section\ntitle: Releases\n---\n\n# Releases\n\n## Release one: pilot\n\n"
+            "- **State:** assumption\n- **Tracer:** [[FLO-001-a|FLO-001]], thin\n\n## Release two: more\n\n"
+            "- **State:** assumption\n- **Flows:** [[FLO-002-b|FLO-002]], [[FLO-003-c|FLO-003]]\n\n## Release three\n\n"
+            "- **State:** inkling\n")
+    found = slices.read_slices(model.build([parse.parse_page("04b-releases.md", text)], {}))
+    assert [(s.name, s.flows, s.order) for s in found] == [("Release one: pilot", ("FLO-001",), 0),
+                                                          ("Release two: more", ("FLO-002", "FLO-003"), 1)]
+
+
+def _with_override(case, rule, until):
+    files = files_of(case)
+    page = flow_path(case)
+    files[page] += f'\n## History\n\n- **Override:** "{rule} until {until}" by @lead on 2026-10-13: the refund flow lands next sprint\n'
+    return files
+
+
+def test_an_override_covers_an_explored_finding_until_its_date_then_it_blocks_again():
+    """Item 21: scoped to flow, code, item and case; past its date the finding is an error and says when it ended."""
+    case = "05-hold-never-released"
+    covered = flowcheck.check_slice(_with_override(case, "F8 CON-020 declined", "2026-12-01"), "FLO-005", TODAY)
+    assert covered.status == "passes" and one(covered, "F8").severity == "covered"
+    expired = flowcheck.check_slice(_with_override(case, "F8 CON-020 declined", "2026-10-01"), "FLO-005", TODAY)
+    f8 = one(expired, "F8")
+    assert f8.severity == "error"
+    assert f8.summary.endswith("The override for it ended on 2026-10-01, so it blocks the slice again.")
+    other_case = flowcheck.check_slice(_with_override(case, "F8 CON-020 paid", "2026-12-01"), "FLO-005", TODAY)
+    assert one(other_case, "F8").severity == "error"
+
+
+def test_an_override_cannot_cover_not_fully_checked_and_a_misspelt_one_is_said():
+    result = flowcheck.check_slice(_with_override("10-unreadable-and-undeclared", "F10 EVT-010 delivery", "2026-12-01"),
+                                   "FLO-010", TODAY)
+    assert any("no override covers it" in f.summary for f in result.findings)
+    result = flowcheck.check_slice(_with_override("01-unhandled-409", "F1 CON-010", "2026-12-01"), "FLO-001", TODAY)
+    assert result.status == "fails, and is not fully checked"  # the F1 stands, and the typo is said
+    assert any('is not "<code> <ID> <case> until YYYY-MM-DD"' in f.summary for f in result.findings)
+
+
+def test_the_default_budget_is_200000_states_and_10_seconds_and_the_clock_is_frozen():
+    import inspect
+    defaults = inspect.signature(flowcheck.check_slice).parameters
+    assert defaults["max_states"].default == 200_000 and defaults["max_seconds"].default == 10.0
+    assert defaults["clock"].default is flowcheck.frozen_clock
+
+
+def test_check_warns_w391_for_a_drawn_slice_with_open_findings_and_stays_quiet_on_a_pass():
+    _, out = run("check", "--vault", str(FIXTURES / "05-hold-never-released"), "--today", TODAY)
+    lines = [line for line in out.splitlines() if " W391 " in line]
+    assert lines == ['04b-releases.md:13: W391 Release one: pilot fails: 1 open finding (not final). Fix: Run planner '
+                     'check-slice "Release one: pilot" for the traces and owners, and fix or override each.']
+    _, out = run("check", "--vault", str(FIXTURES / "12-clean-tracer"), "--today", TODAY)
+    assert " W391 " not in out
+
+
+def test_a_tracer_with_nothing_drawn_is_not_fully_checked_and_check_leaves_it_to_check_slice(tmp_path):
+    import shutil
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURES / "12-clean-tracer", vault)
+    flow = next((vault / "06-runtime" / "flows").glob("*.md"))
+    flow.write_text(flow.read_text(encoding="utf-8").split("```mermaid")[0], encoding="utf-8")
+    code, out = run("check-slice", "Release one", "--vault", str(vault))
+    assert code == 1 and "not fully checked" in out.splitlines()[0]
+    _, out = run("check", "--vault", str(vault), "--today", TODAY)
+    assert " W391 " not in out
+
+
+def test_the_conventions_worked_example_is_in_the_grammar_the_checker_reads():
+    """CONVENTIONS shows the flow-step grammar with a worked example; every line of it must read, so the two never drift."""
+    from planner.flowcheck import mermaid
+    text = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    section = text.split("\n## Flow check\n", 1)[1].split("\n## ", 1)[0]
+    block = section.split("```mermaid\n", 1)[1].split("```", 1)[0].split("\n")
+    problems = []
+    tokens = mermaid.tokenize(block, 1, "CONVENTIONS.md", "example", problems)
+    assert problems == [] and len(tokens) > 20
+    tree_problems = []
+    mermaid.parse_tree(readers.Flow("FLO-000", "example", "CONVENTIONS.md", tuple(tokens), (), True), tree_problems)
+    assert tree_problems == []
+    for line in [row.split("|")[1].strip().strip("`") for row in section.split("\n") if row.startswith("| `")]:
+        if "..." in line:
+            continue
+        assert mermaid._token(line, 1) is not None, line

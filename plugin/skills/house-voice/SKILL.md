@@ -46,6 +46,7 @@ A page's key is its `id` if the table lists it, and its `type` otherwise.
 | `decision` | decision |
 | `epic` | how-it-works |
 | `capability` | how-it-works |
+| `entity` | structured |
 
 `structured` means the page holds no voiced prose. Its content is tables, lists and fact bullets.
 

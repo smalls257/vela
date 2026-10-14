@@ -339,7 +339,7 @@ class Builder:
             self.report("F10", self.where(flow, node.handler_line), "A par block after a call: only a call an outside app makes "
                         "starts a handler. Draw the provider's steps between the call and its answer instead.", items=(cid,))
         if table.timeout is None:
-            self.report("F10", where, f"{cid} does not say whether it can time out (x-vela-timeout, or the Timeout column).", items=(cid,))
+            self.report("F10", where, f"{cid} does not say whether it can time out: add '- **Can time out:** yes' or no under its heading (x-vela-timeout in a spec).", items=(cid,))
             return
         drawn = node.handling is not None
         if drawn and provider_app is not None and provider_app.outside:
@@ -357,7 +357,7 @@ class Builder:
         outcomes = properties.outcomes(self, where, table, replies if drawn else None)
         ins = Ins("call", where, ctx.flow, self.display(ctx.flow, caller),
                   {"contract": cid, "provider": self.display(ctx.flow, provider_name), "drawn": None, "branches": {},
-                   "visible": outcomes, "emits": {}})
+                   "visible": outcomes, "emits": {}, "words": node.parts[3].strip()})
         pc = self.emit(ins)
         if drawn:
             jump = self.emit(Ins("goto", where, ctx.flow))

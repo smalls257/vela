@@ -68,7 +68,9 @@ class Renderer:
         if kind in ("ans", "tmo", "enter"):
             table = self.p.contracts[ins.data["contract"]]
             caller, provider = ins.actor, ins.data["provider"]
-            ask = f"{caller} asks {provider} to {lower_first(table.title)}"
+            # The call line's own words read as a verb ("place a hold"); a contract's title is often a noun ("Consent check").
+            said = ins.data.get("words")
+            ask = f"{caller} asks {provider} to {lower_first(said)}" if said else f"{caller} asks {provider} for \"{table.title}\""
             if kind == "enter":
                 return ask + "."
             if kind == "ans":
@@ -83,6 +85,9 @@ class Renderer:
             else:
                 case = table.cases[x]
                 text = ask + f", and the call times out, though {provider} had in fact answered {words(case.key)}"
+                emitted = [self.event_title(e) for e in case.emits if ins.data["emits"].get(case.key)]
+                if emitted:
+                    text += " and published " + ", ".join(f"\"{e}\"" for e in emitted)
             return text + self.retry_words(caller, table, attempt, flag) + "."
         if kind in ("reply", "rtmo"):
             call = self.p.code[x]
