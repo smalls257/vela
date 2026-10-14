@@ -222,12 +222,12 @@ Parties and stored value carry no `**State:**`. A stored value's `**Owner:**` is
 The person using the skills may override any rule in them: a grill gate, "only a Grill decides", a blocking open unknown, an absent owner, or any other skill rule. The lead may decide on others' behalf. An override is never refused and never hidden. It is written on the item it sets a rule aside for, where reviewers, `vela check`, `/vela:ask` and the progress views all read it.
 
 ```
-- **Override:** <rule>, <rule> by @handle on YYYY-MM-DD: <reason>
+- **Override:** <rule>, <rule> by @handle on YYYY-MM-DD until YYYY-MM-DD: <reason>
 - **Decided by:** @handle, on behalf of @owner
 - **Confirmed by:** @owner on YYYY-MM-DD
 ```
 
-- **Override.** One or more rules, separated by `, `, then ` by `, the handle of the person who chose to override, ` on `, the date, `: ` and the reason. Several `**Override:**` bullets may sit on one item. A rule is one of these names, spelled exactly:
+- **Override.** One or more rules, separated by `, `, then ` by `, the handle of the person who chose to override, ` on `, the date, ` until ` and the last day it covers when the rule is standing (see below), `: ` and the reason, in the lead's own words. Several `**Override:**` bullets may sit on one item. A rule is one of these names, spelled exactly:
 
   | Rule | Sets aside | Turns this error into this warning |
   |---|---|---|
@@ -238,6 +238,7 @@ The person using the skills may override any rule in them: a grill gate, "only a
   | `E805` | the epics gate's rule that high-severity questions are disposed | E805 to W805 |
   | `"<the rule's words>"`, in double quotes | a skill rule with no name above, for example `"Shape offers 2 or 3 options"` | none |
 
+- **Until.** Rules come in two kinds, because they end differently. A **standing** rule guards a condition that stays true until someone acts: `GATE-4`, `grill`, `E303`, `E304`, `E316`, `E317`, `E318`, `E805`, `"case table"` and the flow check's findings. Its override says the day it ends, `until YYYY-MM-DD`, because one with no end would cover the rule long after the reason for it stopped holding. An **event** rule was met or not at the moment of deciding: `GATE-1`, `GATE-2`, `GATE-3`, `GATE-5` and any other quoted rule. Its override has nothing to end and writes no `until`. When the lead has not said a date, the skill offers one, the next release `**Target:**` the item feeds, else 30 days from today, and writes it only once the lead agrees. A flow-check override keeps its end inside the quotes, `"F8 CON-020 declined until 2026-10-01"` (see Flow check). An override written before end dates, with no `until`, still reads and still covers.
 - **Where it sits.** Under an item's heading, or under `#### <ID>` in the page's `## History`, it covers that contract or functional requirement. At page level, which is directly under `## History`, it covers the page and its goal rows, not the items under its headings. A rule that belongs to no item, such as how a session ran, goes at page level in the session record. An override of `E805` goes at page level under `## Question ledger` on `11-unknowns-and-risks.md`, and covers every E805 there; each one still prints, as W805.
 - **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. Deciding on the owner's behalf is how a Grill passes GATE-5 with the owner absent, and it goes with `**Override:** GATE-5`. A bare handle, `- **Decided by:** @owner`, is the owner's own decision: it is what accepting a reader's proposal writes, and it needs no confirmation.
 - **Confirmed by.** The owner adds it later: their handle, ` on ` and the date. A team owner is confirmed by one of its people. A confirmation by the person who decided does not count.
@@ -246,9 +247,10 @@ The person using the skills may override any rule in them: a grill gate, "only a
 `vela check` reads them this way:
 
 - A well-formed override that names the rule an error enforces turns that error into its warning, and the warning quotes the override. Nothing else changes: the warning stays until the rule is met or the bullet goes.
-- A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
+- A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, an `until` that is not a real date or comes before the date it was written, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
 - W323: an override names a rule the check can test, and the item does not break it, so the override sets nothing aside. A rule only a gate tests, such as `E805`, is judged only when that gate runs, so a plain check never calls its override idle.
 - W324: an item carries `**Decided by:** ... on behalf of @owner` and no `**Confirmed by:**`, until the owner confirms.
+- E398: a standing override is past its `until`. It covers nothing, so the error it named prints as an error again. Fix the cause and delete the bullet, or renew it with a new `until` and why it moved.
 
 ## Pending approval
 
@@ -519,7 +521,7 @@ Run `python3 .claude/skills/vela/scripts/vela check` from the vault root. It rea
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=2d9542c0: do not edit, run vela render -->
+<!-- generated:check-codes sha=a891866e: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -617,7 +619,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W395 | a slice at building or later has flow-check findings no override covers |
 | W396 | a slice at journey passes or later records no readable Journey line |
 | W397 | a slice is at building or later while a slice it comes after has not passed its journey |
-| E398 | a flow-check override has passed its end date |
+| E398 | an override has passed its end date |
 | W399 | slices are still named on the releases page, not in slices/ |
 | W400 | a slice's journey due date has passed and no Journey line records the run, or the date does not read |
 | E401 | generated block was edited by hand |
