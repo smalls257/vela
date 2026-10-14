@@ -53,6 +53,7 @@ Write each answer into `docs/tech-design/<slug>.md` as the section it belongs to
 - An ADR only when a decision is hard to reverse, surprising without context and a real trade-off: `ADR-FORMAT.md`.
 - The vault's glossary owns its terms. `CONTEXT.md` holds only terms the app adds: `CONTEXT-FORMAT.md`.
 - A choice deliberately put off is a deferral (`D-XXX`); a question nobody can answer yet is an open question (`OQ-XXX`). `FRONTMATTER-FORMAT.md` says which is which.
+- In a mermaid diagram a `;` ends the statement, so a message or label never holds one: `R->>S: stop; cancel` stopped Heron's withdrawal flow from drawing. Write a comma or "then".
 
 ## 5. When the vault is wrong or silent
 
@@ -69,6 +70,8 @@ Tell the senior what the audit found as plain findings, the thing that is wrong 
 A gap the senior accepts goes into `gaps[]` in the same plain words, with the senior's handle in `acknowledged_by` (ask once if you don't know it). The status rules are in `FRONTMATTER-FORMAT.md`: `complete` needs a clean audit and no finding left open; anything accepted or left open makes it `complete-with-gaps`.
 
 ## 7. Finish
+
+Before the pull request, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Exit 1 names every diagram mermaid cannot draw, at its line: fix each and run it again. A W604 means Node.js is missing and nothing was checked; tell the senior so, and never call the diagrams checked.
 
 Push the branch and open the pull request when the design is `complete` or `complete-with-gaps`, after saying what will be sent and getting a yes. Its body holds the summary, the audit checklist and the open questions that challenge the vault. Never say a push or a pull request exists unless the tool printed it.
 

@@ -384,6 +384,8 @@ Mermaid only, as `flowchart` (or `graph`) or `sequenceDiagram`. A flowchart has 
 
 Four diagrams are generated blocks, drawn from the model: `context-map`, `system-context`, `app-context` and `capability-map`. Nothing in them is drawn by hand. A generated diagram keeps to the same budget. Over it, the diagram draws the app in focus first, then new and changed apps, then the other apps, then external providers, and lists every node it left out in a table under the diagram, with its contracts. The capability map first splits into one diagram per domain. Generated diagrams hold no `%%` directives and no frontmatter. Diagrams with no generator, such as an app's containers or a flow's swimlanes, are drawn by hand.
 
+Every mermaid block on a page and in any Markdown file under `docs/` (the team's designs, plans and tickets) must parse with the mermaid the plugin ships, or it shows as source instead of a drawing. `planner check` runs mermaid's own parser over all of them in one Node.js process and reports each block it rejects as E604, at the line mermaid stopped on. Without Node.js the diagrams are not checked, and check says so once as W604. `planner check-diagrams [file ...]` runs only this check, on the files named. A `;` ends a statement in mermaid, so a message such as `A->>B: stop; cancel` breaks the diagram: write a comma, or `#59;`.
+
 ## Sessions
 
 One record per session at `sessions/YYYY-MM-DD-<topic>.md`, with `date`, `modes`, `status` (`open` or `closed`) and `summary` in the frontmatter. The body has `## Captures` and `## Changes`. A session that ran a review checkpoint also has `## Reviews` after `## Captures`: per checkpoint, a `### <n>. <checkpoint>, <date>` heading, a `- **Coverage:**` line copied from `planner findings merge`, a `- **Dropped:**` line, and a table `| Finding | Area | Severity | Copy | Question | Quote |` with one row per kept finding, `F<n>.1` and on. Close may add `## Catalogue proposals`, a YAML block of new catalogue entries the user approved.
@@ -534,6 +536,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | E302 | unknown or risk is missing a required fact | E601 | flowchart over its element budget |
 | W705 | unknown is past its ask-by date | E602 | sequence diagram over its participant budget |
 | W704 | page not verified within stale_after_days | E603 | diagram type not supported |
+| E604 | diagram does not parse in mermaid, so it does not draw | W604 | diagrams not checked: no mermaid parser could run |
 | W711 | no session closed in the last 30 days | W716 | source row older than stale_after_days |
 | W501 | no epic delivers a capability that changes | E501 | no epic delivers a capability that changes |
 | W502 | no epic delivers a new or changed contract | E502 | no epic delivers a new or changed contract |

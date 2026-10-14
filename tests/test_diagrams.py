@@ -43,7 +43,7 @@ def test_sequence_over_budget(mini):
 def test_unsupported_diagram(mini):
     edit(mini / FLOW, "sequenceDiagram\n", "C4Context\n")
     _, out = check(mini)
-    assert findings(out) == [("E603", FLOW)]
+    assert sorted(findings(out)) == [("E603", FLOW), ("E604", FLOW)]  # its sequence lines are not C4 either
 
 
 @pytest.mark.parametrize("lines, expected", [

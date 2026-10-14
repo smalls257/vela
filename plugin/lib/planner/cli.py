@@ -23,8 +23,8 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, tickets, untrusted, viewer, voicecheck, voicescore
-from planner.edge import atomic, copies, replays, reviewgit, teamdocs, vaultgit
+from planner import allocation, capture, catalog, completeness, diagramcheck, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, tickets, untrusted, viewer, voicecheck, voicescore
+from planner.edge import atomic, copies, mermaidjs, replays, reviewgit, teamdocs, vaultgit
 from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
@@ -954,7 +954,8 @@ def cmd_check(args, out):
     vault = load_vault(root)
     items = gate_items(vault, args.gate, args.item)
     app = gate_app(vault, args.gate, args.app)
-    findings = rules.check(vault, today, gate=args.gate, items=items, app=app) + vault_file_findings(root)
+    drawn = DiagramCheck(root, vault)
+    findings = rules.check(vault, today, gate=args.gate, items=items, app=app) + vault_file_findings(root) + drawn.findings()
     if not args.gate and not items:
         findings += slice_findings(root, vault, today)
     errors = sum(1 for f in findings if f.is_error)
@@ -997,7 +998,65 @@ def everything_check_says(root, vault, today):
     """What a plain `planner check` reports, in one place: the vault's rules, the files around it, and the slices'
     flow check. The stamp, health, handoff and propose count from here, so an error only the flow check sees (an
     override past its date) blocks them as it blocks check, and no copy of the list drifts from another."""
-    return rules.check(vault, today) + vault_file_findings(root) + slice_findings(root, vault, today)
+    drawn = DiagramCheck(root, vault)
+    return rules.check(vault, today) + vault_file_findings(root) + slice_findings(root, vault, today) + drawn.findings()
+
+
+def read_for_diagrams(path, label):
+    try:
+        return parse.parse_page(label, path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ToolError(f"Cannot read {path}: {exc}") from exc
+
+
+def doc_pages(root):
+    """The Markdown under docs/ (the team's designs, plans and tickets), parsed for its diagrams: not pages, but drawn
+    by the explorer all the same."""
+    docs = root / "docs"
+    paths = sorted(docs.rglob("*.md")) if docs.is_dir() else []
+    return [read_for_diagrams(path, path.relative_to(root).as_posix()) for path in paths
+            if not any(part.startswith(".") for part in path.relative_to(root).parts[:-1])]
+
+
+class DiagramCheck:
+    """E604 for every mermaid block that mermaid's own parser rejects; W604, once, when no parser could run. Node
+    starts parsing when this is made, so check's other rules run while it works and the diagrams add next to nothing
+    to check's time. `pages` defaults to the vault's pages and everything under docs/."""
+
+    def __init__(self, root, vault=None, pages=None):
+        pages = list(vault.pages) + doc_pages(root) if pages is None else pages
+        self.blocks = diagramcheck.blocks(pages)
+        self.parse = mermaidjs.Parse(block.source for block in self.blocks)
+
+    def findings(self):
+        try:
+            verdicts = self.parse.verdicts()
+        except mermaidjs.Unavailable as exc:
+            return diagramcheck.unchecked(self.blocks, str(exc))
+        return diagramcheck.findings(self.blocks, verdicts)
+
+
+def cmd_check_diagrams(args, out):
+    """The diagram check alone, for the design skill to run on the doc it wrote. Named files need no vault around
+    them (a standalone design has none); with none named, the vault's pages and docs/."""
+    root = pathlib.Path(args.vault).resolve()
+    started = time.perf_counter()
+    if args.files:
+        named = [pathlib.Path(name) for name in args.files]
+        missing = [str(path) for path in named if not path.is_file()]
+        if missing:
+            raise ToolError(f"check-diagrams: {', '.join(missing)} is not a file.")
+        drawn = DiagramCheck(root, pages=[read_for_diagrams(path, path.as_posix()) for path in named])
+    else:
+        drawn = DiagramCheck(root, load_vault(root))
+    findings = drawn.findings()
+    errors = sum(1 for f in findings if f.is_error)
+    count = len(drawn.blocks)
+    print(f"planner check-diagrams: {count} diagram{'' if count == 1 else 's'}, {errors} that do not draw, "
+          f"{len(findings) - errors} warnings. Took {time.perf_counter() - started:.2f} s.", file=out)
+    for finding in findings:
+        print(finding.format(), file=out)
+    return 1 if errors else 0
 
 
 def slice_findings(root, vault, today):
@@ -2303,6 +2362,12 @@ def build_parser():
     slc.add_argument("--max-states", type=int, default=200_000, help="state budget; running out is 'not fully checked' (default 200000)")
     slc.add_argument("--max-seconds", type=float, default=10.0, help="time budget, after the state budget (default 10)")
     slc.set_defaults(func=cmd_check_slice)
+    dia = sub.add_parser("check-diagrams", help="check that every mermaid diagram on the vault's pages and under docs/ "
+                                                "parses with the pinned mermaid (E604), or only the files named")
+    dia.add_argument("files", nargs="*", help="Markdown files to check, as paths from here; they need no vault "
+                                              "(default: the vault's pages and docs/)")
+    dia.add_argument("--vault", default=".", help="vault root, when no files are named (default: current directory)")
+    dia.set_defaults(func=cmd_check_diagrams)
     rend = sub.add_parser("render", help="rewrite generated blocks")
     rend.add_argument("--vault", default=".", help="vault root (default: current directory)")
     rend.add_argument("--discard-edits", action="store_true", help="overwrite hand-edited blocks and print what was lost")
