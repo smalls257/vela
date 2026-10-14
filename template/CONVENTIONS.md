@@ -118,6 +118,7 @@ Every item has a state. `inkling` is a hunch. `assumption` is believed but not c
 - **A fact needs a source.** A `fact` page lists `sources`. A `fact` contract or functional requirement carries `- **Source:** SRC-nn`. A goal row at `fact` needs its page to list `sources`.
 - **What counts as a source.** A document describing what exists gives a fact. A document stating intent gives an assumption. A person's first-hand knowledge gives a fact. Claude's general knowledge is never a source.
 - **Sources live in the register.** `sources.md` has one row per document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists`, `intends` or `repo`. A `repo` source is a code repository read at a commit, with Location `<url>@<sha>`. Raw files stay in `.inbox/`; document text is never copied into the vault.
+- **Nothing is left for a Grill in prose.** A matter a session leaves for a Grill, or says is decided later, is an open unknown with an owner and an ask-by date, and the page links it. Close writes the unknown when a capture or a sentence defers; `planner check` warns W389 on page prose that says it is left for a Grill, or decided later, and links no open unknown in the same paragraph. Session records, History and generated blocks are not read, and nor is the unknowns page, where the question lives.
 - **Disputes are unknowns.** When two sources or two people disagree, write an unknown naming both. Do not pick one.
 - **State a value once.** The item that owns a value states it. Every other page links to it.
 
@@ -568,7 +569,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W382 | two cases of one contract share a key | W383 | a case emits an event the vault does not name |
 | W384 | a case sets an entity the vault does not name | W385 | decided contract has no error case |
 | W386 | an app at handoff has an item in its slice that is not decided | W387 | an app at handoff calls a provider nobody has designed |
-| W388 | a handoff manifest pins a commit this repository does not have, or cannot be read | | |
+| W388 | a handoff manifest pins a commit this repository does not have, or cannot be read | W389 | prose leaves a matter for a Grill with no open question linked |
 | E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
 | E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |

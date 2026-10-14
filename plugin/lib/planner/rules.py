@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, cases, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
+from planner import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -431,6 +431,18 @@ def handoff_rules(vault, today):
             elif gap.kind == "no-designer":
                 yield _f(gap.page, gap.line, "W387", f"{gap.sentence} {app.id} is at handoff.",
                          "Hand the provider's app over too, or tell the senior the calls are built against nothing yet.")
+
+
+def deferral_rules(vault, today):
+    """W389: prose that says a matter is left for a Grill, or decided later, with no open question to carry it. A session
+    record is exempt (it is the record of what was said), and so is the unknowns page, where the question lives."""
+    open_unknowns = {u.id for u in vault.unknowns if u.fact("State") == "open"}
+    for page in vault.pages:
+        if page.type == "session" or page.id == "unknowns-and-risks":
+            continue
+        for line, phrase in deferrals.deferrals(page, schema.HISTORY_HEADING, open_unknowns):
+            yield _f(page, line, "W389", f"This says '{phrase}', and no open question is linked, so nothing will ever ask.",
+                     "Write it as an unknown with an owner and an ask-by date, link it from this paragraph, and let the Grill answer it.")
 
 
 # ------------------------------------------------------------ unknowns, risks
@@ -1181,5 +1193,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)
