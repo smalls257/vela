@@ -86,7 +86,11 @@ def inline_html(text, keys, page, where=LISTED):
 
     def hold(match):
         link = parse_link(match.group(1), 0)
-        refs.append((link, keys.link(link, page), link_label(keys.vault, link, page), None))
+        label = link_label(keys.vault, link, page)
+        entry = keys.names.lookup(label) if label else None
+        # a link whose words are only a code (a generated table writes [[page|CON-002]]) reads as the thing's name, the code on hover
+        named = entry.id if entry is not None and entry.name != label else None
+        refs.append((link, keys.link(link, page), entry.name if named else label, named))
         return f"\x00{len(refs) - 1}\x00"
 
     def name_it(entry):

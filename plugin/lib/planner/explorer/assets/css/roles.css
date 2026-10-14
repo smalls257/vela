@@ -1,15 +1,15 @@
 /* ------------------------------------------------ front doors: one screen each */
-.door { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 14px 22px 16px; overflow: hidden; }
+.door { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 14px 22px 16px; overflow-y: auto; }
 .door-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
 .door-head h1 { margin: 0; font-size: 21px; font-weight: 600; }
 .door-switch { max-width: 100%; overflow-x: auto; scrollbar-width: none; display: inline-flex; gap: 2px; background: var(--room-2); border: 1px solid var(--rule-3); border-radius: 10px; padding: 3px; }
 .door-switch button { border: 0; background: transparent; color: var(--ink-3); padding: 5px 12px; border-radius: 7px; cursor: pointer; font-size: 13px; }
 .door-switch button[aria-selected="true"] { background: var(--ink); color: var(--room); font-weight: 600; }
-.door-grid { flex: 1; min-height: 0; display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+.door-grid { flex: none; display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; align-items: start; }
 .door-exec, .door-mgr { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, auto)); }
 .door-exec .door-card:last-child { grid-column: 1 / -1; }
 .door-mgr .door-card:nth-child(3) { grid-column: 1 / -1; }
-.door-card { background: var(--room-2); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 6px; }
+.door-card { background: var(--room-2); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
 .door-card header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; }
 .door-card h2 { margin: 0; font-size: 14px; font-weight: 600; }
 .door-card h3 { margin: 6px 0 0; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-4); font-weight: 600; }
@@ -17,7 +17,8 @@
 .door-list li { min-width: 0; }
 .door-list li > .lamp { margin-right: 7px; vertical-align: 0; }
 .door-list a { color: var(--ink); }
-.door-list a b { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-weight: 500; }
+.door-list a .id-tag { margin-left: 7px; }
+.door-card .prose { margin-top: 0; }
 .door-list .more { font-size: 12px; }
 .door-card .rule { font-size: 12px; margin: auto 0 0; padding-top: 4px; color: var(--rule-note); }
 .kpi-row { display: flex; gap: 22px; }
@@ -41,7 +42,7 @@ ol.mini-time small { color: var(--ink-4); }
 .ladder.inline { display: inline-flex; margin: 0 6px 0 8px; vertical-align: 1px; }
 .ladder.inline span { width: 14px; height: 7px; }
 .door-card { overflow: auto; scrollbar-width: thin; }
-.slice-id { font: 11.5px var(--mono); color: var(--ink-2); margin-right: 7px; }
+.slice-id { font-size: 12.5px; color: var(--ink-2); margin-right: 9px; }
 .slice-k { display: inline-block; min-width: 76px; }
 /* Under 900 px the main area is under 400 px wide: two columns of cards would be 100 px each, so the cards stack and the page scrolls. */
 @media (max-width: 900px) {

@@ -65,10 +65,10 @@ const Panel = (() => {
     return [held.size ? `held by ${plural(held.size, "question")}` : null, other[0] || null].filter(Boolean).join("; ");
   }
   function home() {
-    const lit = litSubjects(), dark = darkSubjects(), queue = Queue.items(), late = queue.filter((x) => x.level === "warning").length;
+    const lit = litSubjects(), dark = darkSubjects(), queue = Queue.items();
     const beside = App.section === "home" && App.view === "map";  // the queue is on the page, beside the map
     const lede = !queue.length && !lit.length ? "Nothing is lit. Every app, contract and flow has a recorded state, is settled, and no open question holds it."
-      : `${queue.length ? `${plural(queue.length, "question")} ${queue.length === 1 ? "is" : "are"} holding things up${late ? `, ${late} overdue` : ""}. ` : ""}${beside ? "They are listed with the map. Pick one there, or a box on the map, to read it here." : queue.length ? "Pick one to read it here." : ""}`;
+      : `${Queue.needsYou().n ? Queue.needsYouSays() + ". " : ""}${beside ? "They are listed with the map. Pick one there, or a box on the map, to read it here." : queue.length ? "Pick one to read it here." : ""}`;
     const out = [h("div", { class: "p-head" }, h("div", { class: "kind" }, `Lit from the record as of ${day(D.today)}`), h("h2", {}, "What needs you"),
       lede ? h("p", { class: "p-lede" }, lede) : null)];
     if (!beside && queue.length) out.push(section("Waiting on an answer", queue.length, Queue.block()));
@@ -124,13 +124,12 @@ const Panel = (() => {
       linkChips(e.key),
       actions.childNodes.length ? actions : null);
   }
+  /* A block of the panel's own prose: cut to a few lines, with Show more, so no sentence just stops. */
+  const foldedText = (text) => foldProse(h("div", { class: "prose" }, text), text);
   function prose(e) {
     if (!e.prose) return null;
     const text = h("div", { class: "prose-text", html: e.prose });
-    const box = h("div", { class: "prose" }, text);
-    const more = h("button", { class: "linkish", onclick: () => { box.classList.toggle("open"); more.textContent = box.classList.contains("open") ? "Show less" : "Show more"; } }, "Show more");
-    box.append(more);
-    requestAnimationFrame(() => { if (text.scrollHeight <= text.clientHeight + 4) { more.remove(); box.classList.add("open"); } });
+    const box = foldProse(h("div", { class: "prose" }, text), text);
     if (e.cut) box.append(h("div", { class: "cut" }, "The page goes on. Open it for the rest."));
     return box;
   }
@@ -232,7 +231,7 @@ const Panel = (() => {
     } else if (e.kind === "party" || e.kind === "external") {
       const provided = D.map.contracts.filter((c) => c.provider === k);
       const said = EXTERNAL[k] && EXTERNAL[k].said !== EXTERNAL[k].title ? EXTERNAL[k].said : "";
-      if (said) out.push(section("As the contract words it", null, h("div", { class: "prose-text" }, said),
+      if (said) out.push(section("As the contract words it", null, foldedText(h("div", { class: "prose-text" }, said)),
         h("div", { class: "p-note" }, "No outside party is recorded for this provider, so the map draws the first words. Add it under Outside parties in the context page and link it as the contract's Provider.")));
       out.push(prose(e), flowsSection(k));
       out.push(section("Contracts it provides", provided.length, provided.length ? h("ul", { class: "mini-list" }, provided.map((c) => contractRow(c.id, "out"))) : empty("No contract names it as provider.")));
@@ -246,10 +245,10 @@ const Panel = (() => {
       out.push(section("Ask by", null, h("div", {}, isDate(u.askBy) ? `${day(u.askBy)}, ${dueText(u.askBy)}` : dueText(u.askByText), u.opened ? h("span", { class: "muted" }, ` · opened ${day(u.opened)}`) : null)));
       out.push(section("What it holds up", u.blocks.length, chain(k)));
       out.push(flowsSection(k));
-      if (a.outcome) out.push(section("Answer", null, h("div", { class: "prose-text" }, a.outcome)));
+      if (a.outcome) out.push(section("Answer", null, foldedText(h("div", { class: "prose-text" }, a.outcome))));
       out.push(prose(e));
       const notes = (e.facts || []).filter((f) => f.label === "Notes");
-      out.push(section("Notes", notes.length, notes.map((n) => h("div", { class: "prose-text", html: "<p>" + n.html + "</p>" }))));
+      out.push(section("Notes", notes.length, notes.map((n) => foldedText(h("div", { class: "prose-text", html: "<p>" + n.html + "</p>" })))));
       out.push(section("Other facts", null, factsGrid(e.facts, ["Question", "Owner", "Ask by", "Opened", "Blocks", "Notes", "State", "Outcome", "Ask"])));
     } else if (e.kind === "epic") {
       const x = EPIC[k];

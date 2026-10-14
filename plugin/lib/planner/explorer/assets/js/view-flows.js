@@ -55,9 +55,9 @@ const Flows = (() => {
     canvas.addEventListener("mousemove", (e) => {
       const t = hitAt(e);
       canvas.style.cursor = t ? "pointer" : "default";
-      if (t && t.type === "unknown") { const q = ASK[t.id]; showTip(e, `<b>${esc(t.id)} ${esc(E[t.id] ? E[t.id].title : "")}</b>${esc(q.state === "open" ? q.question : "Settled: " + (q.outcome || q.question))}`); }
+      if (t && t.type === "unknown") { const q = ASK[t.id]; showTip(e, `<b>${esc(E[t.id] ? E[t.id].title : t.id)}</b>${esc(q.state === "open" ? q.question : "Settled: " + (q.outcome || q.question))}`); }
       else if (t && t.type === "lane") showTip(e, `<b>${esc(FlowKit.laneName(t.id))}</b>${FlowKit.touchedLanes(FlowKit.flowOf(p.key)).has(t.id) ? "in this flow" : "not in this flow; its lane keeps its place"}`);
-      else if (t && t.type === "contract") showTip(e, `<b>${esc(t.id)} ${esc(CONTRACT[t.id].title)}</b>${esc(CONTRACT[t.id].state || "no state")}; ${esc(LIGHT[levelOf(t.id)].word.toLowerCase())}`);
+      else if (t && t.type === "contract") showTip(e, `<b>${esc(CONTRACT[t.id].title)}</b>${esc(CONTRACT[t.id].state || "no state")}; ${esc(LIGHT[levelOf(t.id)].word.toLowerCase())}`);
       else hideTip();
     });
     canvas.addEventListener("mouseleave", hideTip);
@@ -167,7 +167,7 @@ const Flows = (() => {
     }
     const ends = stepEnds(stp), named = stp.named.filter((k) => !ends.has(k));
     if (named.length) facts.append(h("li", {}, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "Also named in the text, not linked: ", named.map((k) => refChip(k)))));
-    box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${stp.n}`), ` of ${f.steps.length}`), h("span", { class: "muted" }, `${E[st.key].id} ${E[st.key].title}`)),
+    box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${stp.n}`), ` of ${f.steps.length}`), h("span", { class: "muted" }, E[st.key].title)),
       h("div", { class: "cap-text", html: stp.html }), facts, ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
   }
   function buildTransport() {

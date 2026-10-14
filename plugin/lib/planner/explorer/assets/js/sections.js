@@ -60,7 +60,7 @@ const Sections = (() => {
   /* ------------------------------------------------------------ epics */
   const ep = { open: new Set() };
   function epics(main) {
-    main.append(head("Epics", "Each epic with its acceptance criteria and concern markers, the apps it touches and what it delivers. Criteria are read as trace.ac_markers reads them."));
+    main.append(head("Epics", "Each epic with its acceptance criteria and concern markers, the apps it touches and what it delivers. Criteria are the lines under Done when on each epic page."));
     const sc = h("div", { class: "scroll pages" });
     main.append(sc);
     if (!D.trace.epics.length) { sc.append(emptyState("No epics yet.", "There are no epic pages to show.", "/planner:epics")); return; }
@@ -70,7 +70,7 @@ const Sections = (() => {
       const markers = [...new Set(ac.flatMap((c) => c.markers))];
       grid.append(h("article", { class: "epic-card" + (App.focus === x.key ? " on" : ""), "data-key": x.key },
         h("button", { class: "ec-head", onclick: () => { ep.open.has(x.key) ? ep.open.delete(x.key) : ep.open.add(x.key); go(x.key, { reset: true }); rerender(); } },
-          h("span", { class: "p-id" }, e.id), h("b", {}, e.title), statePill(e.state), h("span", { class: "ct" }, plural(ac.length, "criterion", "criteria"))),
+          h("b", {}, e.title, idTag(e.id)), statePill(e.state), h("span", { class: "ct" }, plural(ac.length, "criterion", "criteria"))),
         h("div", { class: "ec-row" }, x.apps.map((id) => APP_BY_ID[id] ? refChip(APP_BY_ID[id].key) : h("span", { class: "ref-chip" }, id)), markers.map((m) => h("span", { class: "marker" }, m))),
         linkChips(x.key, { small: true }),
         open ? h("ol", { class: "ac-list" }, ac.map((c) => h("li", { class: c.struck ? "struck" : "", value: c.n }, c.heading ? h("b", { class: "ac-head" }, c.heading) : null, h("span", { html: c.html }), c.markers.map((m) => h("span", { class: "marker" }, m)), c.trace ? h("div", { class: "ac-trace", html: c.trace }) : null))) : null,

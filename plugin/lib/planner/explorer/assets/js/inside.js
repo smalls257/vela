@@ -519,7 +519,7 @@ const Inside = (() => {
     }
     const merged = {};
     for (const e of edges) { const m = merged[e.from + ">" + e.to] = merged[e.from + ">" + e.to] || { from: e.from, to: e.to, ids: [] }; if (!m.ids.includes(e.cid)) m.ids.push(e.cid); }
-    const all = Object.values(merged).map((m) => ({ from: m.from, to: m.to, label: m.ids.join(", "), title: m.ids.map((id) => `${id} ${CONTRACT[id].title}`).join("; "), lit: worstOf(m.ids), onpick: () => go(m.ids.length > 1 ? `bundle:${m.ids.join(",")}|${m.to.startsWith("v:") ? m.to.split(":").slice(2).join(":") : app}` : m.ids[0], { reset: true }) }));
+    const all = Object.values(merged).map((m) => ({ from: m.from, to: m.to, label: m.ids.length > 1 ? `${m.ids.length} contracts` : CONTRACT[m.ids[0]].title, title: m.ids.map((id) => `${id} ${CONTRACT[id].title}`).join("; "), lit: worstOf(m.ids), onpick: () => go(m.ids.length > 1 ? `bundle:${m.ids.join(",")}|${m.to.startsWith("v:") ? m.to.split(":").slice(2).join(":") : app}` : m.ids[0], { reset: true }) }));
     for (const e of c.edges) all.push({ from: "k:" + e.from, to: "k:" + e.to, soft: true, label: e.label, title: `${e.from} → ${e.to}, from the page's diagram (best effort)` });
     const room = holder.getBoundingClientRect();
     const lay = layered(nodes, all, { gapX: 150, gapY: 26, minColW: 176, dir: "auto", fit: { w: room.width, h: room.height } });

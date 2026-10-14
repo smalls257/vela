@@ -245,6 +245,25 @@ function ent(key) {
 const titleOf = (key) => { const e = ent(key); return e ? e.title : key; };
 // An ID worth showing beside a title: CON-004, UNK-069, FLO-002. An app page's "APP-coach" only repeats its name.
 const idOf = (key) => { const e = ent(key); return e && e.id && e.id !== e.title && /-\d/.test(e.id) ? e.id : ""; };
+/* A name first, its code after it in small type: what a person reads is the name, and the code is there to quote or search. */
+const idTag = (id) => (id ? h("span", { class: "id-tag" }, id) : null);
+/* A prose block that may be taller than its room: the cut line fades, and "Show more" opens it in place (a button, so the
+   keyboard reaches it). Nothing is cut without a way to the rest. The button goes away again if the text turns out to fit. */
+function foldProse(box, text) {
+  const more = h("button", { class: "linkish show-more", "data-more": "", "aria-expanded": "false", onclick: () => {
+    const open = box.classList.toggle("open");
+    more.textContent = open ? "Show less" : "Show more"; more.setAttribute("aria-expanded", String(open));
+  } }, "Show more");
+  box.append(more);
+  const fit = () => {
+    if (box.classList.contains("open")) return;
+    const cut = text.scrollHeight > text.clientHeight + 4;
+    text.classList.toggle("is-cut", cut); more.hidden = !cut;
+  };
+  requestAnimationFrame(fit);
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(fit).observe(text);
+  return box;
+}
 function keyForId(id) {
   if (E[id]) return id;
   const page = Object.values(E).find((x) => x.id === id && x.path);
@@ -262,7 +281,7 @@ function refChip(key, extra) {
   const lvl = challenged && (!own || own === "dark") ? "caution" : own;
   return h("a", { class: "ref-chip", "data-ref": key, title: (KIND_WORD[e.kind] || "") + (challenged && lvl === "caution" && own !== "caution" ? ": challenged by a team's design" : "") },
     lvl && lvl !== "dark" ? lampEl(lvl, challenged && own !== "caution" ? "Needs you: challenged by a team's design, not by attention.lights" : null) : null,
-    id ? h("span", { class: "rid" }, id) : null, e.title, extra || null);
+    e.title, id ? h("span", { class: "rid id-tag" }, id) : null, extra || null);
 }
 /* Where a thing's work lives outside the vault (planner's links.py: a page's links:, an item's **Links:**). Each chip
    is a plain link that opens in a new tab; the page never fetches it. Only http(s) reaches an href: a file:// link is a

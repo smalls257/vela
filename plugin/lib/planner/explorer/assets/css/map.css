@@ -25,7 +25,7 @@
 .cockpit .lit.warning .node-name, .cockpit .lit.warning .node-sub { fill: var(--warning-ink); }
 .cockpit .lit.unexamined .node-name, .cockpit .lit.unexamined .node-sub { fill: var(--unexamined-ink); }
 .cockpit .lit.override .node-name, .cockpit .lit.override .node-sub { fill: var(--override-ink); }
-.cockpit .lamp-text { font-size: 11px; fill: var(--node-name); font-family: var(--mono); }
+.cockpit .lamp-text { font-size: 11.5px; fill: var(--node-name); font-family: var(--ui); }
 .cockpit .lit .lamp-text { fill: var(--caution-ink); font-weight: 700; }
 g.hit { cursor: pointer; }
 g.hit:focus { outline: none; }
@@ -40,7 +40,7 @@ g.hit:focus-visible .face, g.hit.picked .face { stroke: var(--focus); stroke-wid
 .transit .station-name { font-size: 17px; font-weight: 600; fill: var(--ink); paint-order: stroke; stroke: var(--room); stroke-width: 6px; stroke-linejoin: round; }
 .transit .station-sub { font-size: 12.5px; fill: var(--ink-3); paint-order: stroke; stroke: var(--room); stroke-width: 5px; }
 .transit .station-sub.caution { fill: var(--caution-text); } .transit .station-sub.warning { fill: var(--warning-text); } .transit .station-sub.unexamined { fill: var(--unexamined-text); }
-.transit .track-label { font-size: 12.5px; fill: var(--ink-3); font-family: var(--mono); paint-order: stroke; stroke: var(--room); stroke-width: 5px; stroke-linejoin: round; cursor: pointer; }
+.transit .track-label { font-size: 12.5px; fill: var(--ink-3); font-family: var(--ui); paint-order: stroke; stroke: var(--room); stroke-width: 5px; stroke-linejoin: round; cursor: pointer; }
 .transit .track-label.lit { fill: var(--caution-text); }
 .transit g.station { cursor: pointer; transition: opacity .25s; }
 .transit g.station.picked .ring { stroke: var(--focus); stroke-width: 6; }

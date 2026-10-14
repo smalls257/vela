@@ -95,8 +95,8 @@ const Motion = (() => {
       });
     }
     const guessed = hops.filter((x) => x.inferred).length;
-    legend(FLOW[key] ? `Tracing ${E[key].id} ${E[key].title}: ${plural(drawn, "hop")}, numbered by step${guessed ? `; ${guessed} dashed where the step names no sender, so the direction is inferred from the contract` : ""}${inside ? `; ${plural(inside, "hop")} inside a closed cluster` : ""}.`
-      : `Tracing ${key}: from ${titleOf(CONTRACT[key].provider)} to ${plural(drawn, "consumer")}.`);
+    legend(FLOW[key] ? `Tracing ${E[key].title}: ${plural(drawn, "hop")}, numbered by step${guessed ? `; ${guessed} dashed where the step names no sender, so the direction is inferred from the contract` : ""}${inside ? `; ${plural(inside, "hop")} inside a closed cluster` : ""}.`
+      : `Tracing ${titleOf(key)}: from ${titleOf(CONTRACT[key].provider)} to ${plural(drawn, "consumer")}.`);
     return { hops: hops.length, drawn, inside };
   }
 

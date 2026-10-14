@@ -299,6 +299,16 @@ def test_inline_html_leaves_an_unknown_id_and_a_code_span_as_written():
     assert "NOPE-404" in shown and "<code>CON-001</code>" in shown and "idname" not in shown
 
 
+def test_a_link_whose_words_are_only_a_code_reads_as_the_name_with_the_code_on_hover():
+    """A generated table writes [[page|CON-001]]: the alias is a code. The dashboard shows the thing's name instead."""
+    vault = cli.load_vault(HERON)
+    keys = Keys(vault)
+    page = vault.page("EPC-001-calendar")
+    shown = inline_html("Gap on [[EPC-001-calendar|CON-001]] and on [[EPC-001-calendar|the calendar epic]].", keys, page)
+    assert 'class="ref idname"' in shown and 'title="CON-001"' in shown and ">Calendar entries<" in shown
+    assert not re.search(r">CON-001<", shown) and ">the calendar epic<" in shown  # a label someone wrote is left as written
+
+
 def test_the_offline_viewer_names_ids_and_folds_each_trace_row(tmp_path):
     vault_dir = vault_with(tmp_path, REWRITTEN)
     vault = cli.load_vault(vault_dir)

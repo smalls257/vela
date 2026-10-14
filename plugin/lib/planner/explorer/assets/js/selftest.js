@@ -199,11 +199,13 @@ const SelfTest = (() => {
     for (const [id] of Roles.ROLES.slice(1)) {
       Nav.role(id); await frames();
       const door = $(".door"), grid = $(".door-grid"), cards = $$(".door-card").length;
-      const fits = door && door.scrollHeight <= door.clientHeight + 2, cut = $$(".door-card").filter((c) => c.scrollHeight > c.clientHeight + 2).length;
-      lines.push(`${id} ${cards} cards${fits ? "" : " (overflows)"}${cut ? `, ${cut} scrolling inside` : ""}`);
+      // a door taller than the window scrolls as a whole; a card is never cut to make it fit
+      const scrolls = door && (door.scrollHeight <= door.clientHeight + 2 || /auto|scroll/.test(getComputedStyle(door).overflowY));
+      const cut = $$(".door-card").filter((c) => c.scrollHeight > c.clientHeight + 2 && /hidden|clip/.test(getComputedStyle(c).overflowY)).length;
+      lines.push(`${id} ${cards} cards${scrolls ? "" : " (overflows)"}${cut ? `, ${cut} cut` : ""}`);
       if (!door || !grid || cards < 3) { ok(false, "", `door ${id}: ${cards} cards`); return; }
     }
-    ok(!lines.some((l) => l.includes("overflows")), `front doors: ${lines.join(", ")}, each on one screen`, `front doors: ${lines.join(", ")}`);
+    ok(!lines.some((l) => l.includes("overflows") || l.includes(" cut")), `front doors: ${lines.join(", ")}, each card whole, the door scrolling when they are taller than the window`, `front doors: ${lines.join(", ")}`);
     Nav.role("eng"); await frames();
     ok(!!$(".door-pick .chip.on") || !D.map.apps.length, `engineering door: an app picked, its slice of ${(D.slices[Roles.st.app] || []).length} items from handoff.slice_of`, "engineering door has no app picked");
   }
@@ -971,8 +973,15 @@ const SelfTest = (() => {
     ok($$("#panel .q-row").length === 0 && $$("#panel .light-row").length === lit.length, `panel home: ${lit.length} lit things on the map, and none of the ${q.length} queued questions repeated beside the queue`, `panel home: ${$$("#panel .q-row").length} queue rows and ${$$("#panel .light-row").length} lit rows beside the queue`);
     Nav.open("goals"); go("lights", { reset: true }); await frames();
     ok($$("#panel .q-row").length === top, `panel home, away from the home page: carries the queue (${top} of ${q.length}) because the page does not`, `panel home on Goals: ${$$("#panel .q-row").length} queue rows`);
-    const counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
-    ok(Object.entries(masters).every(([lv, n]) => n === counts[lv]), `top bar: ${Object.entries(masters).map(([lv, n]) => `${n} ${lv}`).join(", ")}, each question counted once`, `top bar ${JSON.stringify(masters)} against ${JSON.stringify(counts)}`);
+    const need = Queue.needsYou(), counts = Queue.counts(), masters = Object.fromEntries($$("#masters .master").map((m) => [m.className.split(" ").find((c) => LEVELS.includes(c)), +$("b", m).textContent]));
+    ok(masters.caution === need.n && (masters.warning || 0) === need.late && Object.entries(masters).every(([lv, n]) => lv === "caution" || n === counts[lv]),
+      `top bar: ${need.n} need you, ${need.late} of them overdue; ${Object.entries(masters).filter(([lv]) => lv !== "caution" && lv !== "warning").map(([lv, n]) => `${n} ${lv}`).join(", ") || "nothing else lit"}`, `top bar ${JSON.stringify(masters)} against needs-you ${JSON.stringify(need)}`);
+    // one number for "needs you": the top bar, the side door, the waiting card and the panel's opening line agree, and each says what it counts
+    Nav.home(); go("lights", { reset: true }); await frames();
+    const door = $(".side-home .side-n"), words = Queue.needsYouSays(), qcount = $(".q-card .q-count"), lede = $("#panel .p-lede");
+    ok((need.n ? +door.textContent === need.n : !door) && (!need.n || (qcount && qcount.textContent === words)) && (!need.n || (lede && lede.textContent.startsWith(words))) && $("#masters .master.caution").title.startsWith(words),
+      `needs you: one count, ${need.n}, in the top bar, the side door, the waiting card and the panel, each saying what it is made of ("${words}")`,
+      `needs you: top bar ${masters.caution}, side door ${door && door.textContent}, card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 60)}", against ${need.n}`);
     Nav.home(); go("lights", { reset: true }); await frames();
   }
 
@@ -1561,14 +1570,66 @@ const TextFit = (() => {
     }
     return bad;
   }
-  return { textFits, KINDS };
+  /* Prose cut off mid-sentence. A box that hides what overflows it, with words under the cut, loses text without a word
+     said: the reader sees a sentence end at "It". Allowed: a line-clamp or ellipsis (the cut shows), a box that scrolls,
+     and a box with a "Show more" button beside it (the text is one click away). The page shell and drawings are not prose. */
+  const SHELL = new Set(["HTML", "BODY", "MAIN"]);
+  const hasMore = (el) => { for (let a = el; a && a !== document.body; a = a.parentElement) if (a.querySelector(":scope > [data-more]")) return true; return false; };
+  const ellipsised = (cs) => (cs.webkitLineClamp && cs.webkitLineClamp !== "none") || cs.textOverflow === "ellipsis";
+  /* Words inside a line-clamped or ellipsised child end in an ellipsis where the cut falls, so they are not lost. */
+  const underEllipsis = (n, el) => { for (let a = n.parentElement; a && a !== el; a = a.parentElement) if (ellipsised(getComputedStyle(a))) return true; return false; };
+  function cutWords(el) {
+    const box = el.getBoundingClientRect(), walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      if (!n.nodeValue.trim() || (n.parentElement && n.parentElement.closest("svg, [hidden], .sr-only, script, style")) || underEllipsis(n, el)) continue;
+      const r = document.createRange(); r.selectNodeContents(n);
+      for (const q of r.getClientRects()) if (q.height > 0 && q.bottom > box.bottom + 2) return n.nodeValue.trim().slice(0, 40);
+    }
+    return "";
+  }
+  function clippedText(root = document) {
+    const bad = [];
+    for (const el of root.querySelectorAll("*")) {
+      if (SHELL.has(el.tagName) || el.id === "main" || el instanceof SVGElement || el.scrollHeight <= el.clientHeight + 2 || !el.clientHeight) continue;
+      const cs = getComputedStyle(el);
+      if (!/hidden|clip/.test(cs.overflowY) || /scroll|auto/.test(cs.overflowY) || cs.display === "none" || !visible(el)) continue;
+      if (ellipsised(cs) || hasMore(el)) continue;
+      const lost = cutWords(el);
+      if (lost) bad.push({ text: lost, cls: classOf(el) || el.tagName.toLowerCase(), why: "cuts its text off at the bottom with no ellipsis and no Show more" });
+    }
+    return bad;
+  }
+  /* A label a person reads first, as plain words: never a bare ID, never an ID in front of the name. The ID may ride in a
+     small .id-tag, in the tooltip, or in the second line. Drawn nodes (the map's boxes) carry their label in the first <text>. */
+  const ID_FIRST = /^[A-Z][A-Z0-9]{1,6}-[A-Za-z0-9]+(?:[-.][A-Za-z0-9]+)*(?:\s|$|[:,])/;
+  const ID_ALONE = /^[A-Z][A-Z0-9]{1,6}-\d{1,4}(?:\.[A-Z0-9]+)*$/;
+  const LABELS = "h1, h2, h3, h4, .q-title, .light-row .what, .door-list li > a, .door-list li > button.linkish, .door-card header h2, .p-head h2, .dl-name";
+  const wordsOf = (el) => { const c = el.cloneNode(true); c.querySelectorAll(".id-tag, .idsuf, .sr-only, .lamp, .slice-k").forEach((x) => x.remove()); return (c.textContent || "").replace(/\s+/g, " ").trim(); };
+  const named = (id) => { const e = ent(keyForId(id)); return !!(e && e.title && e.title !== id); };
+  function bareLabels(root = document) {
+    const bad = [];
+    for (const el of root.querySelectorAll(LABELS)) {
+      if (!visible(el)) continue;
+      const t = wordsOf(el);
+      if (ID_ALONE.test(t) && !named(t)) continue;  // a code the vault holds no name for stays as the page wrote it
+      if (ID_FIRST.test(t) || ID_ALONE.test(t)) bad.push({ text: t.slice(0, 40), cls: classOf(el) || el.tagName.toLowerCase(), why: "is a code where a name belongs" });
+    }
+    for (const g of root.querySelectorAll("svg [data-key]")) {
+      const first = g.querySelector("text");
+      if (!first || !first.getClientRects().length) continue;
+      const t = (first.textContent || "").trim();
+      if (ID_ALONE.test(t) || ID_FIRST.test(t)) bad.push({ text: t.slice(0, 40), cls: "node label", why: "is a code where a name belongs" });
+    }
+    return bad;
+  }
+  return { textFits, clippedText, bareLabels, KINDS };
 })();
 
 (() => {
   const base = SelfTest.run;
   const found = new Map();  // "text (class)" -> { view, why, more }: the first view a label failed in, and how many others it failed in
   const note = (view, root) => {
-    for (const b of TextFit.textFits(root || document)) {
+    for (const b of [...TextFit.textFits(root || document), ...TextFit.clippedText(root || document), ...TextFit.bareLabels(root || document)]) {
       const id = `"${b.text}" (${b.cls})`, seen = found.get(id);
       if (seen) seen.more++; else found.set(id, { view, why: b.why, more: 0 });
     }
@@ -1623,16 +1684,35 @@ const TextFit = (() => {
     box.remove();
     ok(seen === 1 && fine === 0, "text fits: the sensor flags a pill that sticks out of its box and passes the same pill when it may wrap", `text fits: the sensor saw ${seen} of 1 planted overflows and ${fine} false alarms`);
   }
+  /* The two newer sensors must see what they are for. Prose in a short hidden-overflow box is cut mid-sentence; the same box
+     with a Show more beside it, or with a line-clamp, is not. A heading that opens with a code is a code where a name
+     belongs; the name with the code in a small tag is not. */
+  function sensorSeesCutProseAndCodes(ok) {
+    const words = "The agent keeps who agreed and what access was granted, and it answers the consent check on every read of the calendar. ".repeat(3);
+    const host = h("div", { style: "position:absolute;left:0;top:0;width:260px" }), box = (extra, ...kids) => h("div", { style: "height:36px;overflow:hidden;" + (extra || "") }, h("p", {}, words), ...kids);
+    const cut = box(), withMore = h("div", {}, box(), h("button", { "data-more": "" }, "Show more")), clamped = box("-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical");
+    host.append(cut, withMore, clamped); $("#main").append(host);
+    const seen = TextFit.clippedText(host).length;
+    host.replaceChildren(withMore); const more = TextFit.clippedText(host).length;
+    host.replaceChildren(clamped); const clamp = TextFit.clippedText(host).length;
+    host.replaceChildren(cut); const alone = TextFit.clippedText(host).length;
+    host.replaceChildren(h("h3", {}, "CON-001 Consent check"), h("h3", {}, "Consent check", h("span", { class: "id-tag" }, "CON-001")));
+    const codes = TextFit.bareLabels(host).map((b) => b.text);
+    host.remove();
+    ok(alone === 1 && more === 0 && clamp === 0 && seen === 1, "text fits: the sensor flags prose cut with no ellipsis and passes it with a Show more or a line-clamp", `text fits: the cut-prose sensor saw ${alone} of 1 cut, ${more} with Show more, ${clamp} clamped, ${seen} in the mixed set`);
+    ok(codes.length === 1 && codes[0] === "CON-001 Consent check", "text fits: the sensor flags a title that is a code and passes the name with the code in a small tag", `text fits: the code sensor flagged ${JSON.stringify(codes)}`);
+  }
   async function checks(ok) {
     sensorSeesOverflow(ok);
+    sensorSeesCutProseAndCodes(ok);
     if (!D.map.apps.length) return;
     const was = Theme.id, fx = FX.on, themes = [...Theme.LIST.map((t) => [t.id, t.label, true]), [was, "Plain", false]];
     for (const [id, label, motion] of themes) {
       found.clear(); Theme.set(id); FX.set(motion);
       try { await sweep(); } catch (e) { found.set(`the sweep threw: ${e.message} ${(e.stack || "").split("\n")[1]}`, { view: "sweep", why: "", more: 0 }); }
       const list = [...found].map(([id, f]) => `${f.view}: ${id} ${f.why}${f.more ? ` (and in ${plural(f.more, "other view")})` : ""}`);
-      ok(!list.length, `text fits: in ${label}, no label in any view runs past its box (window ${innerWidth}x${innerHeight})`,
-        `text fits in ${label} at ${innerWidth}x${innerHeight}: ${list.length} labels overflow, ${list.slice(0, 14).join(" | ")}`);
+      ok(!list.length, `text fits: in ${label}, no label in any view runs past its box, no prose is cut off without a Show more, no title is a bare ID (window ${innerWidth}x${innerHeight})`,
+        `text fits in ${label} at ${innerWidth}x${innerHeight}: ${list.length} problems, ${list.slice(0, 14).join(" | ")}`);
     }
     Theme.set(was); FX.set(fx);
   }

@@ -41,9 +41,11 @@ const Roles = (() => {
   }
   function qRow(u) {
     const a = ASK[u.id];
-    return h("li", {}, lamp(a.light.level), h("a", { "data-ref": u.id }, h("b", {}, u.id), " ", shorten(E[u.id] ? E[u.id].title : "", 54)),
+    return h("li", {}, lamp(a.light.level), h("a", { "data-ref": u.id, title: u.id }, shorten(E[u.id] ? E[u.id].title : "", 54), idTag(u.id)),
       h("span", { class: "muted small" }, ` ask ${a.ask.name}${a.ask.inferred ? " (guess)" : ""}, ${relDue(u.askBy)}`));
   }
+  /* A slice item by its name: a page's title, a requirement's own words; a code only where the vault holds nothing to name it by. */
+  const shortName = (id) => { const k = keyForId(id), e = ent(k); return e && e.title && e.title !== id ? shorten(e.title, 38) : id; };
   const holdsKinds = (u, kinds) => [...new Set([...u.blocks, ...u.holds])].some((k) => kinds.includes(kindOf(k)));
 
   /* ------------------------------------------------------------ exec */
@@ -51,18 +53,18 @@ const Roles = (() => {
     grid.append(card("Goals and where they stand", ["Goals", () => Nav.open("goals")], D.goals.length ? list(D.goals, 5, (g) => {
       const qs = [...new Set([...(D.blockedBy[g.id] || []).filter((u) => isOpen(UNKNOWN[u])), ...D.above.filter((a) => a.holds === g.id).map((a) => a.unknown)])];
       const lv = worst(qs.map(unknownLevel));
-      return h("li", {}, lamp(lv), h("span", {}, h("b", {}, g.id + " "), h("span", { html: g.goal })), " ", statePill(g.state), qs.length ? h("span", { class: "muted small" }, ` held by ${qs.join(", ")}`) : null);
+      return h("li", {}, lamp(lv), h("span", {}, h("span", { html: g.goal }), idTag(g.id)), " ", statePill(g.state), qs.length ? h("span", { class: "muted small" }, ` held by ${qs.map(titleOf).join(", ")}`) : null);
     }) : empty("No Goals table yet.")));
     const dec = Object.values(E).filter((e) => e.kind === "decision");
     const decided = dec.filter((e) => e.state === "decided"), proposed = dec.filter((e) => e.state === "proposed");
     grid.append(card("What is decided", ["Decisions", () => Nav.open("decisions")],
       h("div", { class: "kpi-row" }, h("div", {}, h("b", {}, decided.length), h("span", {}, "decisions recorded")), h("div", {}, h("b", {}, proposed.length), h("span", {}, "proposed")),
         h("div", {}, h("b", {}, D.progress.percent + "%"), h("span", {}, "complete, by planner's five measures"))),
-      list(decided, 4, (e) => h("li", {}, h("a", { "data-ref": e.key }, h("b", {}, e.id), " ", shorten(e.title, 60))))));
+      list(decided, 4, (e) => h("li", {}, h("a", { "data-ref": e.key, title: e.id }, shorten(e.title, 60), idTag(e.id))))));
     const risks = D.riskList;
     grid.append(card("Top risks", ["Unknowns and risks", () => Nav.open("unknowns")], risks.length ? list(risks, 4, (r) => {
       const f = r.facts, sev = f.Impact || f.Severity || f.Likelihood || "";
-      return h("li", {}, h("a", { "data-ref": r.id }, h("b", {}, r.id), " ", r.title), sev ? h("span", { class: "pill" }, sev) : null,
+      return h("li", {}, h("a", { "data-ref": r.id, title: r.id }, r.title, idTag(r.id)), sev ? h("span", { class: "pill" }, sev) : null,
         f.Mitigation ? h("div", { class: "muted small" }, shorten(f.Mitigation, 120)) : null);
     }) : empty("No risk (R-nn) is recorded."), risks.length ? rule("In the order the risks page lists them; the page records no ranking the explorer could use.") : null));
     // one line per question, in plain words, not one per thing it holds
@@ -82,7 +84,7 @@ const Roles = (() => {
     const T = D.trace;
     grid.append(card("Capabilities and requirements", ["Capabilities", () => Nav.open("capabilities")], T.capabilities.length ? list(T.capabilities, 6, (c) => {
       const reqs = T.requirements.filter((r) => r.capability === c.id), alloc = reqs.filter((r) => T.allocation.some((a) => a.requirement === r.id && a.state !== "inkling"));
-      return h("li", {}, h("a", { "data-ref": c.key }, h("b", {}, c.id), " ", E[c.key].title), " ", E[c.key].change ? h("span", { class: "pill" }, E[c.key].change) : null,
+      return h("li", {}, h("a", { "data-ref": c.key, title: c.id }, E[c.key].title, idTag(c.id)), " ", E[c.key].change ? h("span", { class: "pill" }, E[c.key].change) : null,
         h("span", { class: "muted small" }, reqs.length ? ` ${plural(reqs.length, "requirement")}, ${alloc.length} allocated` : " no requirements written"));
     }) : missing("No capability pages yet.", "", "/planner:boundary"), T.capabilities.length && !T.requirements.length ? missing("No requirement rows yet.", "No capability page has a CAP-nnn.FRn row, so none is counted as allocated.", ["/planner:requirements", "/planner:allocate"]) : null));
     grid.append(card("What each release delivers", ["Releases", () => Nav.open("releases")], D.releases.count ? list(Releases.STATES.slice(1), 4, (x) => h("li", {},
@@ -92,7 +94,7 @@ const Roles = (() => {
     const biz = openQs().filter((u) => holdsKinds(UNKNOWN[u.id], ["goal", "capability", "requirement", "flow"]) || D.above.some((a) => a.unknown === u.id));
     grid.append(card("Business questions", ["Who to ask", () => Nav.open("unknowns")], biz.length ? list(biz.sort((a, b) => cmp(a.askBy || "9", b.askBy || "9")), 5, (u) => qRow(UNKNOWN[u.id])) : empty("No open question holds a goal, capability, requirement or flow."),
       rule("Rule: open questions whose Blocks line reaches a goal, capability, requirement or flow, or that hold something no map draws.")));
-    grid.append(card("User flows", ["Flows", () => Nav.open("flows")], D.flows.length ? list(D.flows, 5, (f) => h("li", {}, lamp(levelOf(f.key)), h("a", { "data-ref": f.key, "data-reveal": "" }, h("b", {}, E[f.key].id), " ", E[f.key].title),
+    grid.append(card("User flows", ["Flows", () => Nav.open("flows")], D.flows.length ? list(D.flows, 5, (f) => h("li", {}, lamp(levelOf(f.key)), h("a", { "data-ref": f.key, "data-reveal": "", title: E[f.key].id }, E[f.key].title, idTag(E[f.key].id)),
       h("span", { class: "muted small" }, ` ${plural(f.steps.length, "step")}`), h("button", { class: "btn tiny", onclick: () => Flows.present(f.key, 0) }, "▶ Present"))) : missing("No flows yet.", "", "/planner:boundary")));
   }
 
@@ -101,12 +103,12 @@ const Roles = (() => {
     const epics = D.trace.epics;
     grid.append(card("Acceptance criteria by epic", ["Epics", () => Nav.open("epics")], epics.length ? list(epics, 6, (x) => {
       const ac = D.epicCriteria[x.key] || [], markers = [...new Set(ac.flatMap((c) => c.markers))];
-      return h("li", {}, h("a", { "data-ref": x.key }, h("b", {}, E[x.key].id), " ", shorten(E[x.key].title, 44)), h("span", { class: "muted small" }, ` ${plural(ac.length, "criterion", "criteria")} `), markers.map((m) => h("span", { class: "marker" }, m)),
+      return h("li", {}, h("a", { "data-ref": x.key, title: E[x.key].id }, shorten(E[x.key].title, 44), idTag(E[x.key].id)), h("span", { class: "muted small" }, ` ${plural(ac.length, "criterion", "criteria")} `), markers.map((m) => h("span", { class: "marker" }, m)),
         linkChips(x.key, { small: true }));
     }) : missing("No epics yet.", "Acceptance criteria live on epic pages.", "/planner:epics")));
     grid.append(card("Contracts and who tests each side", ["Apps", () => Nav.open("apps")], D.map.contracts.length ? list(D.map.contracts, 4, (c) => {
       const t = D.testedBy[c.id];
-      return h("li", {}, lamp(levelOf(c.id)), h("a", { "data-ref": c.id }, h("b", {}, c.id), " ", c.title), h("span", { class: "muted small" }, ` ${titleOf(c.provider)} → ${c.consumers.map(titleOf).join(", ")}`),
+      return h("li", {}, lamp(levelOf(c.id)), h("a", { "data-ref": c.id, title: c.id }, c.title, idTag(c.id)), h("span", { class: "muted small" }, ` ${titleOf(c.provider)} → ${c.consumers.map(titleOf).join(", ")}`),
         h("div", { class: t ? "small muted" : "small gap" }, t ? shorten(t, 96) : "No Tested by line."), linkChips(c.id, { small: true }));
     }) : empty("No contracts.")));
     grid.append(card("Failure behaviour per app", null, D.map.apps.length ? list(D.map.apps, 6, (a) => {
@@ -125,7 +127,7 @@ const Roles = (() => {
     root.insertBefore(h("div", { class: "door-pick" }, h("span", { class: "muted" }, "App "), apps.map((a) => h("button", { class: "chip" + (a.key === st.app ? " on" : ""), onclick: () => { st.app = a.key; Nav.syncHash(); rerender(); } }, lampEl(levelOf(a.key)), a.title))), grid);
     if (!st.app) { grid.append(empty("This vault has no apps.")); return; }
     const k = st.app, a = D.apps[k], e = E[k], row = D.progress.rows.find((r) => r.app === k), ho = row ? row.handoff : null;
-    grid.append(card("Boundary", ["Open the page", () => go(Reader.keyFor(k), {})], h("div", { class: "prose-text door-prose", html: e.prose || "<p>The page has no opening prose.</p>" }),
+    grid.append(card("Boundary", ["Open the page", () => go(Reader.keyFor(k), {})], (() => { const text = h("div", { class: "prose-text door-prose", html: e.prose || "<p>The page has no opening prose.</p>" }); return foldProse(h("div", { class: "prose" }, text), text); })(),
       h("div", { class: "chips" }, h("span", { class: "pill" }, e.change || "no change"), e.stage ? h("span", { class: "pill" }, "stage " + e.stage) : null, h("span", { class: "pill" }, D.domains[k])),
       linkChips(k), Inside.doorEntry(k)));
     grid.append(card("Build plan, every app", ["This app's plan", () => Inside.open(k, "plan")], list(apps, 12, (x) => {
@@ -134,20 +136,20 @@ const Roles = (() => {
         h("button", { class: "btn tiny", onclick: () => Inside.open(x.key, "plan") }, "Build plan"));
     }), rule("Readiness: no design (no tech design doc loaded), design only (a design, no work breakdown), plan complete or plan with gaps (the plan's own status). Counts are the plan's stories, tasks and points.")));
     // a contract from an outside party carries the party's own links too: its API spec is where the engineer starts
-    const con = (id, dir) => h("li", {}, lamp(levelOf(id)), h("a", { "data-ref": id }, h("b", {}, id), " ", CONTRACT[id].title), " ", statePill(CONTRACT[id].state),
+    const con = (id, dir) => h("li", {}, lamp(levelOf(id)), h("a", { "data-ref": id, title: id }, CONTRACT[id].title, idTag(id)), " ", statePill(CONTRACT[id].state),
       h("span", { class: "muted small" }, dir === "out" ? ` to ${CONTRACT[id].consumers.map(titleOf).join(", ")}` : ` from ${titleOf(CONTRACT[id].provider)}`),
       linkChips(id, { small: true }), dir === "in" && CONTRACT[id].providerKind === "party" ? linkChips(CONTRACT[id].provider, { small: true }) : null);
     grid.append(card("Contracts in and out", ["Focus on the map", () => Nav.focusApp(k)], h("h3", {}, "Provides"), a.provides.length ? list(a.provides, 4, (id) => con(id, "out")) : empty("Provides none."),
       h("h3", {}, "Consumes"), a.consumes.length ? list(a.consumes, 4, (id) => con(id, "in")) : empty("Consumes none.")));
     const flows = flowsFor(k);
-    grid.append(card("Flows and open questions", null, flows.length ? list(flows, 3, (r) => h("li", {}, h("a", { "data-ref": r.flow, "data-reveal": "" }, h("b", {}, E[r.flow].id), " ", E[r.flow].title),
+    grid.append(card("Flows and open questions", null, flows.length ? list(flows, 3, (r) => h("li", {}, h("a", { "data-ref": r.flow, "data-reveal": "", title: E[r.flow].id }, E[r.flow].title, idTag(E[r.flow].id)),
       h("button", { class: "btn tiny", onclick: () => Flows.present(r.flow, firstStepTouching(FLOW[r.flow], k)) }, "▶ Present"))) : empty("No flow crosses it."),
       h("h3", {}, "Open questions holding it"), a.questions.length ? list(a.questions.map((q) => UNKNOWN[q.id]).filter(Boolean), 4, qRow) : empty("None.")));
     const slice = D.slices[k] || [];
     grid.append(card("Handoff", null, h("div", { class: "small" }, ho && (ho.manifest || ho.handedOff) ? [ho.handedOff ? h("div", {}, "Handed off: ", ho.handedOff) : null,
       ho.manifest ? h("div", { class: ho.changed + ho.removed ? "gap" : "muted" }, ho.problem ? "Manifest unreadable: " + ho.problem : ho.changed + ho.removed ? `${ho.changed} changed and ${ho.removed} removed since the senior accepted it` : "Nothing the senior accepted has changed.") : h("div", { class: "muted" }, "No manifest in handoffs/.")] : h("div", { class: "muted" }, "Not handed off.")),
       h("h3", {}, `The slice, ${plural(slice.length, "item")}`),
-      h("ul", { class: "door-list" }, [...new Set(slice.map((x) => x.kind))].map((kind) => { const of = slice.filter((x) => x.kind === kind); return h("li", {}, h("span", { class: "muted small slice-k" }, kind + " "), of.slice(0, 6).map((x) => h("a", { class: "slice-id", "data-ref": keyForId(x.id), title: titleOf(keyForId(x.id)) }, x.id)), of.length > 6 ? h("span", { class: "muted small" }, ` +${of.length - 6}`) : null); })),
+      h("ul", { class: "door-list" }, [...new Set(slice.map((x) => x.kind))].map((kind) => { const of = slice.filter((x) => x.kind === kind); return h("li", {}, h("span", { class: "muted small slice-k" }, kind + " "), of.slice(0, 6).map((x) => h("a", { class: "slice-id", "data-ref": keyForId(x.id), title: x.id }, shortName(x.id))), of.length > 6 ? h("span", { class: "muted small" }, ` +${of.length - 6}`) : null); })),
       rule("The slice is handoff.slice_of: what a handoff manifest records for this app.")));
   }
 

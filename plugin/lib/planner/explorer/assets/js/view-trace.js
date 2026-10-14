@@ -41,7 +41,7 @@ const TraceView = (() => {
       const isOpenCard = st.open || st.expanded.has(c.key);
       sc.append(h("div", { class: "cap-card" + (hasGap ? " has-gap" : "") },
         h("div", { class: "cap-head", onclick: () => { go(c.key, { reset: true }); if (!st.open) { st.expanded.has(c.key) ? st.expanded.delete(c.key) : st.expanded.add(c.key); rerender(); } } },
-          h("span", { class: "muted" }, isOpenCard ? "▾" : "▸"), h("span", { class: "p-id" }, c.id), h("b", {}, e.title), e.change ? h("span", { class: "pill" }, e.change) : null, statePill(e.state),
+          h("span", { class: "muted" }, isOpenCard ? "▾" : "▸"), h("b", {}, e.title, idTag(c.id)), e.change ? h("span", { class: "pill" }, e.change) : null, statePill(e.state),
           c.domain ? h("span", { class: "muted small" }, c.domain) : null,
           h("span", { class: "ct" }, [reqs.length ? `${plural(reqs.length, "requirement")}${unallocated ? `, ${unallocated} not allocated` : ""}` : "", plural(epics.length, "epic")].filter(Boolean).join(" · "), hasGap ? h("span", { class: "gap" }, " · gap") : null)),
         isOpenCard ? body : null));
