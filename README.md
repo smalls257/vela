@@ -2,9 +2,19 @@
 
 Vela is a Claude Code toolkit for planning at the initiative level. It takes you from a one-line ask to fully specified epics, written in Markdown that every reader can follow. The plugin, its commands and this repo are still named `planner`.
 
+## Install
+
+Three steps, in Claude Code:
+
+1. Add the marketplace: `/plugin marketplace add smalls257/vela`
+2. Install the plugin: `/plugin install planner@proj-planner`
+3. Ask Claude to run `planner doctor`. It prints one line per item and ends with `planner doctor: ready.` when the machine has what planner needs. Anything optional that's missing says what it adds and the one command that gets it.
+
+The repo is private, so your colleague needs access to it on GitHub first, and git on their machine signed in to that account (`gh auth login` does it). There is nothing to pip install. Planner runs on Python 3.9 or later, which comes with a Mac's developer tools, and it brings its own copy of PyYAML.
+
 ## Start here tomorrow
 
-1. **Make a vault.** Copy `template/` into a new GitHub repo, then follow its `README.md` setup checklist, steps 1 to 12. Step 2 copies this repo's `plugin/` folder into the vault. You need Python 3.11+ and PyYAML: `python3 -m pip install pyyaml`. Your Mac's `python3` already has PyYAML 6.0.3. If pip refuses on another machine with "externally-managed-environment", install PyYAML into a venv (`python3 -m venv ~/.venvs/planner && ~/.venvs/planner/bin/pip install pyyaml`) and run planner with `~/.venvs/planner/bin/python3`.
+1. **Make a vault.** Copy `template/` into a new GitHub repo, then follow its `README.md` setup checklist, steps 1 to 12. Step 2 copies this repo's `plugin/` folder into the vault. Run `planner doctor` from the vault to check the machine and the vault together.
 2. **Start every session with `bin/claude-planner`**, from inside the vault. The skills only load through that launcher.
 3. **Run your first session:**
    - `/planner:dump` gets everything out of your head. Ideas, worries, unknowns and wild ones all count. Claude doesn't push back. After the pre-mortem it runs a review checkpoint and shows you the questions nobody has asked yet. Take the ones you want; the rest wait.
@@ -47,6 +57,7 @@ Run each one as `python3 .claude/skills/planner/scripts/planner <command>` from 
 | `planner handoff <APP-id>` | Writes `handoffs/<APP-id>.md`, the slice a senior accepts |
 | `planner handoff verify <APP-id>` | What changed in that slice since handoff. Exits 1 when something accepted changed |
 | `planner voicecheck <before> <after>` | Fails when a rewrite lost or moved an ID, number, date, link, code span, table cell or negation |
+| `planner doctor` | What this machine has for planner, one line per item: Python, the bundled PyYAML, git, and the optional node, `claude` and voice-scoring packages, each missing one with what it adds and the command that gets it. Also whether the folder is a vault, and the plugin version. Exit 0 when nothing required is missing |
 | `planner voicescore <page>` | Optional: whether each prose paragraph sits inside or outside your own voice's range. See "Optional: voicescore" below |
 | `planner export jira-csv --out epics.csv` | One row per epic for Jira's CSV import. Export only: nothing is read back and no page carries a Jira field. A page's generic `links:` may point at its ticket, as at any other URL |
 
@@ -105,7 +116,7 @@ v2 checks what you wrote. v3 also keeps track of what nobody has asked yet.
 | Path | What it is |
 |---|---|
 | `template/` | The vault you copy, including `CONVENTIONS.md`, the one written format |
-| `plugin/` | The `planner` CLI (`check`, `check-slice`, `check-diagrams`, `render`, `view`, `explore`, `status`, `next`, `tickets`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `next-id`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
+| `plugin/` | The `planner` CLI (`check`, `check-slice`, `check-diagrams`, `render`, `view`, `explore`, `status`, `next`, `tickets`, `capture`, `health`, `query`, `questions`, `findings`, `handoff`, `next-id`, `export`, `voicecheck`, `voicescore`, `ladder`, `style`, `upgrade`, `role`, `publish`, `freshness`, `open`, `propose`, `proposals`, `where`, `doctor`), the question catalogue in `catalog/questions.yaml`, the format the skills follow in `vault/CONVENTIONS.md`, the session skills (dump, discover, import, shape, requirements, boundary, allocate, releases, grill, epics, explore, close, ask, challenge, open, propose, proposals, where, voice-seed, house-voice), the `voice-reviewer` and `area-reviewer` agents, and START, MODES and REVIEW under `references/` |
 | `examples/unified-booking/` | A complete made-up vault: a ferry operator's Unified Booking initiative |
 | `integrations/` | Vault mode for `requirements-grill` and `tech-design-grill`, as patches |
 | `docs/` | Spec, design-session logs, research, plans |
