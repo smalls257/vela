@@ -337,7 +337,9 @@ def judge_graph(g, sem, renderer, flow_paths):
         if label[0] in ("ans", "tmo") and ins.kind == "call":
             table = sem.p.contracts[ins.data["contract"]]
             return ins.where, (table.cases[label[3]].key if label[0] == "ans" else TIMEOUT)
-        if label[0] in ("reply", "rtmo"):
+        if label[0] in ("ptmo", "pcarry"):
+            return ins.where, TIMEOUT
+        if label[0] in ("reply", "rtmo", "late"):
             if label[0] == "rtmo":
                 return sem.p.code[label[3]].where, TIMEOUT
             if ins.kind == "contract":
@@ -373,10 +375,12 @@ def judge_graph(g, sem, renderer, flow_paths):
     for sid in sorted(g.cut):
         _, slug, text, journey = g.cut[sid]
         label = g.label[sid]
-        key = ("F9", text, label_key(label) if label else None)
+        trail = steps(sid)
+        # One root cause: the same rule broken by the same answers, in whatever order they came. An answer that goes
+        # nowhere (its caller has moved on) decides nothing, so it is no part of the cause (ledger C40).
+        key = ("F9", text, frozenset(p for p in (pill(l) for l, _, _, _ in trail if l[0] != "late") if p[0]))
         if key in seen:
             continue
-        trail = steps(sid)
         entity = sem.p.entities[slug]
         call_line, case = _last_pill(trail, pill)
         named = [n for n in sorted(_atoms_of(next(e for t, _, e in entity.invariants if t == text))) if n in sem.p.entities]

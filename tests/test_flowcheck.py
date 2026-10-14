@@ -368,7 +368,8 @@ def test_r2_01_a_timed_out_call_may_have_been_answered_events_included():
     """Item 1: an undrawn provider that timed out either did nothing or applied a case, its events included."""
     case = "r2-01-timeout-published-anyway"
     result = check(case)
-    assert errors(result) == ["F9", "F9"]
+    # One finding: the same rule broken by the same answers, whether the parcel ships before or after the cancel.
+    assert errors(result) == ["F9"]
     first = result.findings[0]
     assert first.trace[0] == ('Shop asks Payments to take the payment, and the call times out, though Payments had in fact '
                               'answered paid and published "payment taken".')
@@ -446,6 +447,60 @@ def test_r2_18_unquoted_yaml_booleans_and_an_on_retry_key_are_refused():
     assert any("x-vela-retries says on:" in s for s in summaries)
     assert any("quote such a state" in s for s in summaries)
     assert result.status.endswith("not fully checked") and result.states == 0
+
+
+def test_c40_a_timeout_part_way_through_drawn_handling_leaves_what_the_provider_had_done():
+    """Ledger C40: Store sets the hold, then Shop's call times out before Store charges the card. Store stops there, the
+    hold stays held, and Shop cancels. Before part-way timeouts were modeled this slice showed only the late answer."""
+    case = "r2-40-timeout-part-way"
+    result = check(case)
+    f8 = one(result, "F8")
+    assert f8.summary.startswith("Hold 1 is left held, which is not one of its final states")
+    assert f8.trace == ("Shop asks Store to take the order.",
+                        "Store sets Hold 1 to held.",
+                        'Shop times out waiting for Store part-way through "Take the order": Store stops there, and what '
+                        "it has done so far stands.",
+                        "Shop sets Order 1 to canceled.",
+                        "The journey ends: canceled.")
+    assert (f8.call_line, f8.case) == (at(case, "CON-401"), "timeout")
+    assert f8.owners == ("Shop", "Store")
+    assert sorted(errors(result)) == ["F8", "F9"]
+
+
+def test_c40_a_provider_that_carries_on_after_its_caller_moved_on_races_the_callers_lookup():
+    """Shop looks the order up after a timeout, finds nothing yet, and cancels; Store, still going, then takes the card.
+    Only a provider that carries on alone finds it: before it acts and after it answers, the lookup agrees."""
+    case = "r2-40-timeout-late-answer"
+    f9 = one(check(case), "F9")
+    assert f9.summary == 'The invariant "not (order=canceled and hold=captured)" of Order no longer holds.'
+    assert f9.trace[2] == 'Shop times out waiting for Store part-way through "Take the order": Store carries on with it alone.'
+    assert f9.trace[3:] == ("Shop asks Store to look up the order, and is refused: not found (404).",
+                            "Shop sets Order 1 to canceled.", "Store sets Hold 1 to captured.")
+
+
+def test_c40_a_provider_that_changes_state_in_one_step_passes_however_the_timeout_falls():
+    result = check("r2-40-timeout-part-way-one-step")
+    assert result.status == "passes", result.format()
+    assert errors(result) == []
+
+
+def test_c40_an_answer_that_goes_nowhere_ends_the_provider_and_retries_reenter_its_handling():
+    """The semantics directly: a part-way timeout that is retried enters the drawn handling again; an answer to a caller
+    that moved on ends the provider's thread, and the slice can still finish."""
+    files = files_of("r2-40-timeout-part-way-one-step")
+    page = "05-building-blocks/store-building-blocks.md"
+    files[page] = files[page].replace("- **Can time out:** yes\n- **Retries:** none", "- **Can time out:** yes\n- **Retries:** 1 after timeout", 1)
+    flow = flow_path("r2-40-timeout-part-way-one-step")
+    files[flow] = files[flow].replace("else refused, timeout", "else refused, gave_up")
+    catalog = readers.read_vault(files)
+    program, _ = build.build(catalog, ("FLO-402",), TODAY)
+    sem = semantics.Semantics(program, (0,))
+    graph = explore.explore(sem, 10_000, 10, flowcheck.frozen_clock)
+    kinds = {label[0] for label in graph.label if label}
+    assert {"ptmo", "pcarry", "late"} <= kinds
+    assert any(label[0] == "ptmo" and label[5] == 1 for label in graph.label if label)  # tried again
+    assert any(label[0] == "ptmo" and label[5] == 2 for label in graph.label if label)  # gave up after the last
+    assert graph.complete and any(sem.finished(s) for s in graph.states)
 
 
 # --- slices, overrides and the check warning --------------------------------------------------------------------------
