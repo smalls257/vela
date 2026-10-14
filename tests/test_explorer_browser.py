@@ -465,9 +465,10 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
                           f"file://{vault / 'dashboard.html'}#home"], timeout=180, capture_output=True, text=True).stdout
     tag = re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S)
     line, opening = html.unescape(tag.group(1)), html.unescape(tag.group(0).split(">", 1)[0])
-    # The sentence is for every reader (a date, no hash); the commit is for whoever maintains the plan, in the tooltip.
+    # The sentence is for every reader (a date, no hash); the commit is for whoever maintains the plan, in a data
+    # attribute, never in a tooltip a reader reads (E56: no commit hashes in reader text).
     assert line.startswith("Built ") and "commit" not in line and short not in line
-    assert f"from commit {short}" in opening and "hidden" not in opening
+    assert f'data-commit="{short}' in opening and "title=" not in opening and "hidden" not in opening
 
 
 def _explore_and_dump(chrome_path, source, tmp_path, today, route, viewport="1600,1000"):
