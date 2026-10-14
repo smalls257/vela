@@ -139,7 +139,7 @@ Every link in that chain is checked. In the vault, `planner check` reports a req
 | `04-solution-strategy.md` | the chosen direction and the options rejected |
 | `04a-capability-delta.md`, `capabilities/` | the business capabilities that change, their requirements, and the allocation table |
 | `05-building-blocks/` | one page per app: what it does and doesn't do, its parts, its contracts, its share of each requirement |
-| `06-runtime/` | each app's failure behaviour, and the journeys through the apps |
+| `06-runtime/` | each app's failure behavior, and the journeys through the apps |
 | `08-concerns/` | security, data, cost, operations and so on, with one cell per app |
 | `09-decisions/` | a record for each decision that shapes the design |
 | `11-unknowns-and-risks.md` | every open question, with its owner and ask-by date; the risks; the question ledger |
@@ -176,8 +176,8 @@ Open questions are **unknowns**. Each has an owner, an ask-by date, and the item
 
 Two mechanisms make sure the important questions come up:
 
-- **A question catalogue** in `plugin/catalog/questions.yaml`. It holds about 30 questions, each tied to a kind of thing in the vault. When you record that the initiative holds money for customers, the catalogue owes "who carries that balance on the books?". When an app holds customer data, it owes "on what legal basis?".
-- **The reviewers** at each checkpoint, which raise questions the catalogue doesn't cover.
+- **A question catalog** in `plugin/catalog/questions.yaml`. It holds about 30 questions, each tied to a kind of thing in the vault. When you record that the initiative holds money for customers, the catalog owes "who carries that balance on the books?". When an app holds customer data, it owes "on what legal basis?".
+- **The reviewers** at each checkpoint, which raise questions the catalog doesn't cover.
 
 Every owed or raised question ends up in the question ledger on `11-unknowns-and-risks.md`, with how it was settled: answered with a source, a stated belief, an open unknown, or not applicable with a reason. `planner questions --digest` shows the open ones, ranked.
 

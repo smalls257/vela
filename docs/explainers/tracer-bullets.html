@@ -42,7 +42,7 @@
       <text x="410" y="22" font-weight="600">Tracer first</text>
       <!-- lanes, left -->
       <g>
-        <text x="20" y="62" class="small">Desktop agent</text><text x="20" y="112" class="small">Summariser</text><text x="20" y="162" class="small">Consent</text>
+        <text x="20" y="62" class="small">Desktop agent</text><text x="20" y="112" class="small">Summarizer</text><text x="20" y="162" class="small">Consent</text>
         <rect class="lane" x="110" y="45" width="270" height="34" rx="4"/><rect class="lane" x="110" y="95" width="270" height="34" rx="4"/><rect class="lane" x="110" y="145" width="270" height="34" rx="4"/>
         <rect x="112" y="47" width="88" height="30" rx="3" fill="currentColor" opacity="0.28"/>
         <rect x="202" y="97" width="88" height="30" rx="3" fill="currentColor" opacity="0.28"/>
@@ -53,7 +53,7 @@
       </g>
       <!-- lanes, right -->
       <g>
-        <text x="410" y="62" class="small">Desktop agent</text><text x="410" y="112" class="small">Summariser</text><text x="410" y="162" class="small">Consent</text>
+        <text x="410" y="62" class="small">Desktop agent</text><text x="410" y="112" class="small">Summarizer</text><text x="410" y="162" class="small">Consent</text>
         <rect class="lane" x="500" y="45" width="270" height="34" rx="4"/><rect class="lane" x="500" y="95" width="270" height="34" rx="4"/><rect class="lane" x="500" y="145" width="270" height="34" rx="4"/>
         <!-- thickening slices -->
         <rect x="502" y="47" width="64" height="30" rx="3" fill="var(--accent)" opacity="0.18"/><rect x="502" y="97" width="64" height="30" rx="3" fill="var(--accent)" opacity="0.18"/><rect x="502" y="147" width="64" height="30" rx="3" fill="var(--accent)" opacity="0.18"/>
@@ -71,15 +71,15 @@
   </figure>
 
   <h2>What it looks like for Heron</h2>
-  <p>This is an illustration built from the Heron example, not the plan in its vault. Heron has three apps: the Desktop agent on each laptop, the Summariser that writes the notes, and Consent and identity, which keeps who agreed to what.</p>
+  <p>This is an illustration built from the Heron example, not the plan in its vault. Heron has three apps: the Desktop agent on each laptop, the Summarizer that writes the notes, and Consent and identity, which keeps who agreed to what.</p>
   <p>The tracer is the thinnest version of one flow: a person who has switched Heron on gets a 7:30 digest written from their calendar alone. It's small, but it crosses all three apps and every contract between them. If the consent check or the note request is wrong, the tracer shows it in the first weeks, not in January.</p>
 
   <figure>
-    <svg viewBox="0 -26 780 276" role="img" aria-label="Heron's tracer: the Desktop agent asks Consent and identity whether the person agreed, reads the calendar, asks the Summariser for the digest and shows it at 7:30. Later slices add the prep note, late digests after a sleeping laptop, and transcripts once approved.">
+    <svg viewBox="0 -26 780 276" role="img" aria-label="Heron's tracer: the Desktop agent asks Consent and identity whether the person agreed, reads the calendar, asks the Summarizer for the digest and shows it at 7:30. Later slices add the prep note, late digests after a sleeping laptop, and transcripts once approved.">
       <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
       <rect x="20" y="30" width="170" height="56" rx="8" fill="none" stroke="currentColor"/><text x="105" y="54" text-anchor="middle" font-weight="600">Desktop agent</text><text x="105" y="72" text-anchor="middle" class="small">reads the calendar</text>
       <rect x="305" y="30" width="170" height="56" rx="8" fill="none" stroke="currentColor"/><text x="390" y="54" text-anchor="middle" font-weight="600">Consent and identity</text><text x="390" y="72" text-anchor="middle" class="small">has this person agreed?</text>
-      <rect x="590" y="30" width="170" height="56" rx="8" fill="none" stroke="currentColor"/><text x="675" y="54" text-anchor="middle" font-weight="600">Summariser</text><text x="675" y="72" text-anchor="middle" class="small">writes the digest</text>
+      <rect x="590" y="30" width="170" height="56" rx="8" fill="none" stroke="currentColor"/><text x="675" y="54" text-anchor="middle" font-weight="600">Summarizer</text><text x="675" y="72" text-anchor="middle" class="small">writes the digest</text>
       <g style="color:var(--accent)">
         <line x1="190" y1="50" x2="303" y2="50" stroke="currentColor" stroke-width="2.5" marker-end="url(#ah2)"/><text x="246" y="43" text-anchor="middle" class="small" style="fill:var(--accent)">1. asks</text>
         <line x1="303" y1="68" x2="192" y2="68" stroke="currentColor" stroke-width="2.5" marker-end="url(#ah2)"/><text x="246" y="84" text-anchor="middle" class="small" style="fill:var(--accent)">2. yes</text>
