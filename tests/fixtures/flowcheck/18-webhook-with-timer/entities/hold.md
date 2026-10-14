@@ -2,7 +2,7 @@
 id: ENT-018
 type: entity
 title: Hold
-owner: inventory
+app: APP-inventory
 shared: false
 initial: none
 final: [captured, expired]
@@ -14,4 +14,4 @@ final: [captured, expired]
 |---|---|---|
 | none | held | CON-010 placed |
 | held | captured | CON-011 captured |
-| held | expired | timer |
+| held | expired | CON-012 expired |

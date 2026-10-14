@@ -11,8 +11,10 @@ title: Shop
 ### CON-020 Take the payment
 
 - **Provider:** Tidepay
+- **Can time out:** yes
+- **Retries:** 1 after timeout
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| paid | 200 |  | charge=none->taken taken->taken_twice |  | yes | max 2 on timeout |
-| declined | 402 |  |  |  | yes | max 2 on timeout |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| paid |  | 200 | paid |  | charge: none→taken, taken→taken_twice |
+| declined |  | 402 | declined |  |  |

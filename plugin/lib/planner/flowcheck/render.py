@@ -43,9 +43,9 @@ class Renderer:
         return out
 
     def sentence(self, label, parity, before, after):
-        kind, journey, pc, x, attempt, flag = label
+        kind, journey, pc, x, attempt, flag = label[:6]
         head = self.prefix(journey, parity)
-        text, skip = self.describe(kind, journey, pc, x, attempt, flag, parity), ()
+        text, skip = self.describe(kind, journey, pc, x, attempt, flag, parity, label[6] if len(label) > 6 else -1), ()
         if kind == "set":
             ins = self.p.code[pc]
             skip = (self.sem.entity_index(ins.data["entity"], journey),)
@@ -54,7 +54,7 @@ class Renderer:
             text = text.rstrip(".") + "; " + ", ".join(extra) + "."
         return head + text[:1].upper() + text[1:]
 
-    def describe(self, kind, journey, pc, x, attempt, flag, parity):
+    def describe(self, kind, journey, pc, x, attempt, flag, parity, case_index=-1):
         if kind in ("dlv", "dlv2", "dup", "lost", "drop"):
             t = self.p.targets[x]
             return {"dlv": f"{t.subscriber_name} receives \"{t.title}\".",
@@ -63,8 +63,7 @@ class Renderer:
                     "lost": f"\"{t.title}\" is lost on its way to {t.subscriber_name}.",
                     "drop": f"The duplicate of \"{t.title}\" never arrives."}[kind]
         if kind == "timer":
-            slug = self.p.timers[x][0]
-            return f"The timer on {self.entity_name(self.sem.entity_index(slug, journey), parity)} fires."
+            return f"The {words(self.p.timers[x].name)} timer fires."
         ins = self.p.code[pc]
         if kind in ("ans", "tmo", "enter"):
             table = self.p.contracts[ins.data["contract"]]
@@ -74,7 +73,7 @@ class Renderer:
                 return ask + "."
             if kind == "ans":
                 case = table.cases[x]
-                text = ask + (f", and {provider} answers {words(case.key)} ({case.status})" if case.status < 400
+                text = ask + (f", and {provider} answers {words(case.key)} ({case.status})" if not case.is_error
                               else f", and is refused: {words(case.key)} ({case.status})")
                 emitted = [self.event_title(e) for e in case.emits if ins.data["emits"].get(case.key)]
                 if emitted:
@@ -88,7 +87,7 @@ class Renderer:
         if kind in ("reply", "rtmo"):
             call = self.p.code[x]
             table = self.p.contracts[call.data["contract"]]
-            case = next(c for c in table.cases if c.key == ins.data["case"])
+            case = table.cases[case_index] if ins.kind == "contract" else next(c for c in table.cases if c.key == ins.data["case"])
             text = f"{ins.actor} answers {call.actor}: {words(case.key)} ({case.status})"
             if kind == "rtmo":
                 text += f", but {call.actor} has already timed out"
@@ -104,8 +103,8 @@ class Renderer:
         if kind == "end":
             return self.end_words(ins, attempt, flag, journey, parity)
         if kind == "arm":
-            slug = self.p.timers[x][0]
-            return f"{ins.actor} starts a timer on {self.entity_name(self.sem.entity_index(slug, journey), parity)}."
+            timer = self.p.timers[x]
+            return f"{ins.actor} starts the {words(timer.name)} timer ({timer.band})."
         if kind == "human":
             return ins.data["words"].rstrip(".") + "."
         return kind
@@ -154,8 +153,6 @@ class Renderer:
                 found.append(self.p.code[x].data["contract"])
             elif kind == "set":
                 found.append(self.p.entities[self.p.code[pc].data["entity"]].id)
-            elif kind == "timer":
-                found.append(self.p.entities[self.p.timers[x][0]].id)
             out += [f for f in found if f and f not in out]
         return out
 

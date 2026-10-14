@@ -126,6 +126,8 @@ class Semantics:
             return self.call_steps(state, i, ins)
         if kind == "reply":
             return self.reply_steps(state, i, ins)
+        if kind == "contract":
+            return self.contract_steps(state, i, ins)
         if kind == "publish":
             msgs = self.publish(state[3], ins.data["target"], t[0])
             return [(("pub", t[0], t[3], ins.data["target"], 0, 0), self.with_thread(state, i, self.advance(t), msgs=msgs), None)]
@@ -201,27 +203,47 @@ class Semantics:
             return []  # no branch: F1 is reported statically, or an override covers it
         return [((kind, t[0], t[3], x, attempt, flag), self.with_thread(after, i, self.advance(t, target)), viol)]
 
-    def reply_steps(self, state, i, ins):
+    def contract_steps(self, state, i, ins):
+        """ANSWERS FROM CONTRACT: the provider answers with any listed case whose When holds, applying its effects, and
+        the answer goes back to the caller as a drawn reply would (it may still find the caller timed out)."""
+        t = state[0][i]
+        table = self.p.contracts[ins.data["contract"]]
+        out = []
+        for n in ins.data["cases"]:
+            case = table.cases[n]
+            if not self.guard(state[1], t[0], case):
+                continue
+            ents, touched, viol = self.apply(state[1], state[2], t[0], case.sets, (f"{table.id} {case.key}",), t[3])
+            msgs = state[3]
+            for target in ins.data["emits"].get(case.key, ()):
+                msgs = self.publish(msgs, target, t[0])
+            after = (state[0], ents, touched, msgs, state[4])
+            for label, nxt, _ in self.reply_steps(after, i, ins, case.key, n):
+                out.append((label, nxt, viol))
+        return out
+
+    def reply_steps(self, state, i, ins, case_key=None, case_index=-1):
         t = state[0][i]
         call_pc, attempt, applied = t[4][-1]
         call = self.code[call_pc]
         table = self.p.contracts[call.data["contract"]]
         caller = (t[0], t[1], t[2], call_pc, t[4][:-1], attempt, applied, t[7])
         out = []
-        for key, kind in ((ins.data["case"], "reply"), (TIMEOUT, "rtmo")):
+        case_key = ins.data["case"] if case_key is None else case_key
+        for key, kind in ((case_key, "reply"), (TIMEOUT, "rtmo")):
             if kind == "rtmo" and not table.timeout:
                 continue
             retries = table.retries
             if retries is not None and key in retries.on and attempt < retries.max:
                 frames = t[4][:-1] + ((call_pc, attempt + 1, applied),)
                 again = (t[0], t[1], t[2], self.settle(call.data["drawn"]), frames, 1, 0, t[7])
-                out.append(((kind, t[0], t[3], call_pc, attempt, 1), self.with_thread(state, i, again), None))
+                out.append(((kind, t[0], t[3], call_pc, attempt, 1, case_index), self.with_thread(state, i, again), None))
                 continue
             seen = GAVE_UP if retries is not None and key in retries.on else key
             target = call.data["branches"].get(seen)
             if target is None:
                 continue
-            out.append(((kind, t[0], t[3], call_pc, attempt, 2 if seen == GAVE_UP else 0),
+            out.append(((kind, t[0], t[3], call_pc, attempt, 2 if seen == GAVE_UP else 0, case_index),
                         self.with_thread(state, i, self.advance(caller, target)), None))
         return out
 
@@ -344,14 +366,11 @@ class Semantics:
         return (tuple(sorted(threads + (new,))), state[1], state[2], state[3], state[4])
 
     def timer_steps(self, state):
+        """An armed timer fires, once (revision 2, item 10). It wakes an AWAIT racing it into the AWAIT's timer branch,
+        and starts its par block's handler; whichever of the event and the timer comes first cancels the other."""
         out = []
         for armed in state[4]:
             journey, timer = armed
-            slug, start, to, _ = self.p.timers[timer]
-            idx = self.entity_index(slug, journey)
-            if self.names[idx][state[1][idx]] != start:
-                continue
-            ents, touched, viol = self.apply(state[1], state[2], journey, ((slug, to),), ("timer",), -1)
             timers = tuple(a for a in state[4] if a != armed)
             threads = state[0]
             for i, th in enumerate(threads):
@@ -360,7 +379,12 @@ class Semantics:
                         and ins.data["timer"] == timer:
                     threads = threads[:i] + ((th[0], th[1], th[2], self.settle(ins.data["timer_branch"]), th[4], 1, 0, th[7]),) + threads[i + 1:]
                     break
-            out.append((("timer", journey, -1, timer, 0, 0), (threads, ents, touched, state[3], timers), viol))
+            hid = self.p.timers[timer].hid
+            if hid is not None:
+                spawn = 1 + max((th[2] for th in threads if th[0] == journey and th[1] == hid), default=-1)
+                new = (journey, hid, spawn, self.settle(self.p.handlers[hid].body), (), 1, 0, 1)
+                threads = tuple(sorted(threads + (new,)))
+            out.append((("timer", journey, -1, timer, 0, 0), (threads, state[1], state[2], state[3], timers), None))
         return out
 
     # --- judging a state ------------------------------------------------------------------------------------------
@@ -386,6 +410,8 @@ class Semantics:
             return not self.holds(expr[1], ents, journey)
         if op == "and":
             return self.holds(expr[1], ents, journey) and self.holds(expr[2], ents, journey)
+        if op == "or":
+            return self.holds(expr[1], ents, journey) or self.holds(expr[2], ents, journey)
         return (not self.holds(expr[1], ents, journey)) or self.holds(expr[2], ents, journey)
 
     def not_final(self, state):
@@ -469,9 +495,7 @@ def _entities_of(ins, program):
         return {data["entity"]}
     if ins.kind == "end":
         return set(data["leaves"])
-    if ins.kind == "timer":
-        return {program.timers[data["timer"]][0]}
-    if ins.kind == "call":
+    if ins.kind in ("call", "contract"):
         table = program.contracts[data["contract"]]
         return {slug for c in table.cases for slug, _ in c.sets + c.when}
     if ins.kind == "publish":

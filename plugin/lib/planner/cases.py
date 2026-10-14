@@ -17,8 +17,15 @@ _VALUE = r"[A-Za-z0-9_.-]+"
 _CLAUSE = rf"{_NAME} (?:is|is not) {_VALUE}|{_NAME} in \[{_VALUE}(?:, ?{_VALUE})*\]"
 WHEN = re.compile(rf"^(?:{_CLAUSE})(?: and (?:{_CLAUSE}))*$")
 _STATE = r"[A-Za-z0-9_-]+"
-SETS_ENTRY = re.compile(rf"^(?P<entity>[^:;]+?):\s*(?:(?P<frm>{_STATE})\s*(?:→|->)\s*(?P<to>{_STATE})|(?P<state>{_STATE}))$")
-RETRIES = re.compile(r"^(?:none|\d+)$")
+_PAIR = rf"{_STATE}\s*(?:→|->)\s*{_STATE}"
+# `order: new→held`, `order: held`, or a change that depends on where it starts: `stock: one→zero, zero→minus_one`.
+SETS_ENTRY = re.compile(rf"^(?P<entity>[^:;]+?):\s*(?:(?P<pairs>{_PAIR}(?:\s*,\s*{_PAIR})*)|(?P<state>{_STATE}))$")
+PAIR = re.compile(rf"^(?P<frm>{_STATE})\s*(?:→|->)\s*(?P<to>{_STATE})$")
+_KEY = r"[a-z][a-z0-9]*(?:_[a-z0-9]+)*"
+# How many times the caller tries again, and after which answers: `2 after timeout, unavailable`. Which answers are
+# retried is required (design 19, revision 2, item 7): retrying a refusal is a bug, so nothing is assumed retried.
+RETRIES = re.compile(rf"^(?:none|(?P<count>\d+) after (?P<keys>{_KEY}(?:, ?{_KEY})*))$")
+YES_NO = ("yes", "no")
 ENTITY_HEADING = re.compile(r"^ENT-\d{3}\b")
 EVENT_HEADING = re.compile(r"^EVT-\d{3}\b")
 
@@ -112,21 +119,49 @@ def _row(contract_id, row, line):
         match = SETS_ENTRY.match(entry)
         if not match:
             return _bad(contract_id, line, f"a Sets it cannot read ('{entry}')",
-                        "Write '<entity>: <from>→<to>' or '<entity>: <state>', separated by ';'.")
-        changes.append((match["entity"].strip(), match["frm"] or "", match["to"] or match["state"]))
+                        "Write '<entity>: <from>→<to>' (several as '<from>→<to>, <from>→<to>') or '<entity>: <state>', separated by ';'.")
+        entity = match["entity"].strip()
+        if match["state"]:
+            changes.append((entity, "", match["state"]))
+            continue
+        starts = []
+        for pair in (PAIR.match(p.strip()) for p in match["pairs"].split(",")):
+            if pair["frm"] in starts:
+                return _bad(contract_id, line, f"two changes of {entity} from {pair['frm']}", "Give each starting state one change.")
+            starts.append(pair["frm"])
+            changes.append((entity, pair["frm"], pair["to"]))
     return Case(key, "" if when in BLANK else when, status, answer, event_ids, tuple(changes), line)
 
 
 def facts_problems(contract):
-    """(line, message, fix) for a Can time out or Retries bullet whose value is not one the checker can read."""
+    """(line, message, fix) for a Can time out, Retries or Idempotent bullet whose value is not one the checker can read."""
     out = []
-    bullet = contract.facts.get("Can time out")
-    if bullet and bullet.value.strip().lower() not in ("yes", "no"):
-        out.append((bullet.line, f"{contract.id} says it can time out: '{bullet.value.strip()}'.", "Write yes or no."))
+    for label, says in (("Can time out", "it can time out"), ("Idempotent", "it is idempotent")):
+        bullet = contract.facts.get(label)
+        if bullet and bullet.value.strip().lower() not in YES_NO:
+            out.append((bullet.line, f"{contract.id} says {says}: '{bullet.value.strip()}'.", "Write yes or no."))
     bullet = contract.facts.get("Retries")
     if bullet and not RETRIES.match(bullet.value.strip().lower()):
-        out.append((bullet.line, f"{contract.id} says its retries are '{bullet.value.strip()}'.", "Write a number, or none."))
+        out.append((bullet.line, f"{contract.id} says its retries are '{bullet.value.strip()}'.",
+                    "Write none, or how many times the caller tries again and after which answers: 2 after timeout, unavailable."))
     return out
+
+
+def yes_no(contract, label):
+    """True or False for a yes or no bullet; None when it is missing or unreadable (facts_problems says which)."""
+    bullet = contract.facts.get(label)
+    value = bullet.value.strip().lower() if bullet else ""
+    return {"yes": True, "no": False}.get(value)
+
+
+def retries(value):
+    """(tries again, (retried case keys, ...)) from a Retries value; (0, ()) for none; None when unreadable."""
+    match = RETRIES.match(value.strip().lower())
+    if not match:
+        return None
+    if not match["count"]:
+        return 0, ()
+    return int(match["count"]), tuple(k.strip() for k in match["keys"].split(","))
 
 
 def vault_events(vault):

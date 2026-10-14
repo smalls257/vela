@@ -2,7 +2,7 @@
 id: ENT-018
 type: entity
 title: Hold
-owner: inventory
+app: APP-inventory
 shared: false
 initial: none
 final: [captured, expired]

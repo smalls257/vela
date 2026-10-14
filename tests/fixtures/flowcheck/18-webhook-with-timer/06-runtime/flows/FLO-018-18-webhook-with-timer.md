@@ -26,7 +26,15 @@ alt placed
             Note over S: END refunded
         end
     end
-    Note over S: TIMER hold held -> expired
+    Note over S: TIMER hold_expiry 15m
+    par Shop lets the hold go when the customer does not pay
+        S->>I: CON-012 expire the hold
+        alt expired
+            Note over S: END expired
+        else already_settled
+            Note over S: END settled
+        end
+    end
     Note over S: END waiting
 else unavailable
     Note over S: END unavailable

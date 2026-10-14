@@ -194,7 +194,7 @@ def test_12_a_clean_three_app_tracer_passes_fast():
     assert result.status == "passes", result.format()
     assert result.name == "Release one: pilot" and result.flows == ("FLO-012",)
     assert time.perf_counter() - started < 1.0
-    assert {f.code for f in result.findings} <= {"F12"}  # Inventory answers from its contract: a warning, not a failure
+    assert result.findings == []  # Inventory answers from its contract and calls nobody, so no F12 (revision 2, item 8)
 
 
 # --- the review's golden tests --------------------------------------------------------------------------------------
@@ -281,7 +281,7 @@ def test_23_a_release_cut_leaves_a_state_the_next_release_must_start_from():
     assert flowcheck.check_slice(files, "Release one", TODAY).status == "passes"
     result = flowcheck.check_slice(files, "Release two", TODAY)
     f13 = one(result, "F13")
-    assert f13.summary == "FLO-232 starts from Hold paid, and no flow in this or an earlier release ends leaving it paid."
+    assert f13.summary == "FLO-232 starts from Hold paid, and no flow in this or an earlier slice ends leaving it paid."
     assert errors(result) == ["F13"]
 
 

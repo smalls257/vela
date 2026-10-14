@@ -11,17 +11,21 @@ title: Shop
 ### CON-020 Take the payment
 
 - **Provider:** Tidepay
+- **Can time out:** yes
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| paid | 200 |  | charge=taken |  | yes | none |
-| declined | 402 |  |  |  | yes | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| paid |  | 200 | paid |  | charge: taken |
+| declined |  | 402 | declined |  |  |
 
 ### CON-023 Look up the payment
 
 - **Provider:** Tidepay
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| found | 200 |  |  | charge=taken | no | none |
-| not_found | 404 |  |  | charge=none | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| found | charge is taken | 200 | found |  |  |
+| not_found | charge is none | 404 | not found |  |  |

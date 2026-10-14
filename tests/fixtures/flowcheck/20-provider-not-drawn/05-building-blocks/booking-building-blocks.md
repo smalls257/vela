@@ -10,18 +10,23 @@ title: Booking
 
 ### CON-100 Hold a seat
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| held | 200 |  |  |  | no | none |
-| sold_out | 409 |  |  |  | no | none |
-| unavailable | 503 |  |  |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| held |  | 200 | held |  |  |
+| sold_out |  | 409 | sold out |  |  |
+| unavailable |  | 503 | unavailable |  |  |
 
 ### CON-101 Reserve on the ferry
 
 - **Provider:** Ferrymaster
+- **Consumers:** [[booking-building-blocks|Booking]]
+- **Can time out:** yes
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| reserved | 200 |  | seat=reserved |  | yes | none |
-| full | 409 |  |  |  | yes | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| reserved |  | 200 | reserved |  | seat: reserved |
+| full |  | 409 | full |  |  |

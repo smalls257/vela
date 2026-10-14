@@ -2,7 +2,7 @@
 id: ENT-022
 type: entity
 title: Booking
-owner: booking
+app: APP-booking
 shared: true
 initial: held
 final: [confirmed, cancelled]

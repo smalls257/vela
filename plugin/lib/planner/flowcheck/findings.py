@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 TITLES = {
     "F1": "Unhandled case", "F2": "Invented answer", "F3": "Unconsumed event", "F3w": "Consumed outside the slice",
-    "F4": "Unused case", "F5": "Illegal transition", "F6": "Stuck", "F7": "Can't finish", "F8": "Not final",
+    "F4": "Unused case", "F5": "Illegal transition", "F6": "Can't finish", "F8": "Not final",
     "F9": "Invariant broken", "F10": "Unreadable or undeclared", "F11": "Not fully checked",
     "F12": "Unmodeled handling", "F13": "Loose end",
 }

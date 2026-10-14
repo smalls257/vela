@@ -17,12 +17,13 @@ par Billing handles order placed
     Note over B: END handled
 end
 Note over S: SET order waiting
-Note over S: TIMER order waiting -> expired
+Note over S: TIMER invoice_wait 2d
 Note over S: AWAIT EVT-009
 alt received
     Note over S: SET order invoiced
     Note over S: END invoiced
-else timer
+else invoice_wait
+    Note over S: SET order expired
     Note over S: END expired
 end
 ```

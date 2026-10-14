@@ -2,7 +2,7 @@
 id: ENT-004
 type: entity
 title: Order
-owner: order-service
+app: APP-order-service
 shared: false
 initial: new
 final: [completed, rejected]

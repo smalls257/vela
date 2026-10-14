@@ -58,6 +58,13 @@ PAGE_TYPES = {
         "optional": ("sources", "domain"),
         "states": ("inkling", "assumption", "decided"),
     },
+    # Something whose state the flow checker follows: an order, a hold, a consent (design 19). `app` is the APP-id that
+    # keeps it; `shared` says whether two journeys can touch the same one; `initial` and `final` name its states.
+    "entity": {
+        "required": ("id", "type", "title", "app", "shared", "initial", "final"),
+        "optional": ("owner", "sources"),
+        "states": None,
+    },
     "session": {
         "required": ("id", "type", "date", "modes", "status", "summary"),
         "optional": ("title",),
@@ -120,6 +127,7 @@ PAGE_ID_RE = {
     "epic": re.compile(r"^EPC-\d{3}$"),
     "capability": re.compile(r"^CAP-\d{3}$"),
     "session": re.compile(rf"^\d{{4}}-\d{{2}}-\d{{2}}-{SLUG}$"),
+    "entity": re.compile(r"^ENT-\d{3}$"),
     "sources": re.compile(r"^sources$"),
 }
 ITEM_ID_RE = re.compile(r"^(CON-\d{3}|UNK-\d{3}|R-\d{2,}|CAP-\d{3}\.FR\d+|PTY-\d{2,}|SV-\d{2,})$")
@@ -152,8 +160,9 @@ OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL = "Override", "Decided by",
 OVERRIDE_LABELS = (OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL)
 # A reader's decision or override, awaiting the owner's review. Not an override: it sets no rule aside.
 PENDING_LABEL = "Pending approval"
-# Auth, Can time out and Retries are what a stub and a flow check read beside the case table (cases.py).
-CONTRACT_BEHAVIOUR_LABELS = ("Auth", "Can time out", "Retries")
+# Auth, Can time out, Retries and Idempotent are what a stub and a flow check read beside the case table (cases.py).
+# Delivery and Order go on a contract an outside party calls (a webhook): the checker treats the call like an event.
+CONTRACT_BEHAVIOUR_LABELS = ("Auth", "Can time out", "Retries", "Idempotent", "Delivery", "Order")
 CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, LINKS_LABEL, PENDING_LABEL) \
     + CONTRACT_BEHAVIOUR_LABELS + OVERRIDE_LABELS
 CONTRACT_STATES = ("inkling", "assumption", "fact", "decided")
@@ -341,7 +350,7 @@ CODES = {
     "W370": "an epic criterion has no AC id on its Trace line, or two share one",
     "W371": "two or more openings above the first heading, over 150 words together",
     "W380": "contract has no case table",
-    "W381": "a case table row, or a Can time out or Retries line, cannot be read",
+    "W381": "a case table row, or a Can time out, Retries or Idempotent line, cannot be read",
     "W382": "two cases of one contract share a key",
     "W383": "a case emits an event the vault does not name",
     "W384": "a case sets an entity the vault does not name",

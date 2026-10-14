@@ -12,15 +12,19 @@ title: Shop
 
 - **Delivery:** may-be-lost
 - **Order:** any
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| received | 200 |  |  |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| received |  | 200 | received |  |  |
 
 ### CON-091 Refund the payment
 
 - **Provider:** Tidepay
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| refunded | 200 |  |  |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| refunded |  | 200 | refunded |  |  |

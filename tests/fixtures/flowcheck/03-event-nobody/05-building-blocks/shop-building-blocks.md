@@ -11,11 +11,13 @@ title: Shop
 ### CON-020 Take the payment
 
 - **Provider:** Tidepay
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| paid | 200 | EVT-020 |  |  | no | none |
-| declined | 402 |  |  |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| paid |  | 200 | paid | EVT-020 |  |
+| declined |  | 402 | declined |  |  |
 
 ### EVT-020 payment taken
 

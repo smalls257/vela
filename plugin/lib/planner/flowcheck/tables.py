@@ -29,10 +29,14 @@ class Retries:
 @dataclass(frozen=True)
 class Case:
     key: str
-    status: int
+    status: str  # "409", or "ok" / "error" for a contract that is not HTTP
     emits: tuple = ()  # event IDs the provider publishes when it answers this way
     sets: tuple = ()  # ((entity, target), ...); target is a state, or ((from, to), ...) for a change that depends on where it starts
-    when: tuple = ()  # ((entity, (state, ...)), ...): the provider answers this way only in these states
+    when: tuple = ()  # ((entity, "in" | "not in", (state, ...)), ...): the provider answers this way only then
+
+    @property
+    def is_error(self):
+        return self.status == "error" or (self.status.isdigit() and int(self.status) >= 400)
 
 
 @dataclass(frozen=True)
@@ -74,7 +78,7 @@ class Entity:
     id: str
     slug: str
     title: str
-    owner: object
+    owner: object  # the app key that keeps it
     shared: object  # True, False, or None when not written
     initial: object
     final: tuple
@@ -100,12 +104,14 @@ class FlowLine:
 
 @dataclass(frozen=True)
 class Override:
-    """`- **Override:** "F1 CON-012 timeout until 2026-12-01" by @lead on 2026-10-13: reason` on a flow page."""
-    contract: str
+    """`- **Override:** "F1 CON-012 timeout until 2026-12-01" by @lead on 2026-10-13: reason` on a flow page: it covers
+    that finding, about that contract (or event, or entity) and case, on that flow, until the date and no longer."""
+    code: str
+    item: str
     case: str
     until: str
     text: str
-    line: int
+    where: str
 
 
 @dataclass(frozen=True)
@@ -118,13 +124,6 @@ class Flow:
     has_diagram: bool
 
 
-@dataclass(frozen=True)
-class Release:
-    name: str
-    flows: tuple
-    line: int
-
-
 @dataclass
 class Catalog:
     """Everything the readers found, keyed by ID. Built once per run from the vault's files."""
@@ -133,7 +132,8 @@ class Catalog:
     events: dict = field(default_factory=dict)  # EVT id -> EventTable
     entities: dict = field(default_factory=dict)  # slug and id -> Entity
     flows: dict = field(default_factory=dict)  # FLO id -> Flow
-    releases: list = field(default_factory=list)
+    slices: list = field(default_factory=list)  # [slices.Slice], in order
+    callers: set = field(default_factory=set)  # app keys that call a contract of the vault: their handling can miss something
     problems: list = field(default_factory=list)
 
     def app_named(self, title):

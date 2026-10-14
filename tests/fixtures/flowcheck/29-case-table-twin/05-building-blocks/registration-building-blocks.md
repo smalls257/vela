@@ -10,11 +10,13 @@ title: Registration
 
 ### CON-030 Register the customer
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| created | 201 | EVT-003 |  |  | no | none |
-| rejected | 422 |  |  |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| created |  | 201 | created | EVT-003 |  |
+| rejected |  | 422 | rejected |  |  |
 
 ### EVT-003 registration created
 
@@ -23,4 +25,4 @@ title: Registration
 
 | Subscriber | Retries |
 |---|---|
-| Billing | max 2 on refused |
+| Billing | 1 after refused |

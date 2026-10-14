@@ -10,15 +10,19 @@ title: Inventory
 
 ### CON-020 Check the stock
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| in_stock | 200 |  |  | stock=one | no | none |
-| out_of_stock | 409 |  |  | stock=zero or minus_one | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| in_stock | stock is one | 200 | in stock |  |  |
+| out_of_stock | stock in [zero, minus_one] | 409 | out of stock |  |  |
 
 ### CON-021 Reserve the item
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| reserved | 200 |  | stock=one->zero zero->minus_one |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| reserved |  | 200 | reserved |  | stock: one→zero, zero→minus_one |

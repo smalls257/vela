@@ -1,4 +1,4 @@
-"""The strict Mermaid subset: lines to tokens, tokens to a tree. Pure.
+"""The strict sequence-diagram subset: lines to tokens, tokens to a tree. Pure.
 
 Only these lines are read; any other line is an unreadable-line problem (F10, R0):
 
@@ -6,12 +6,15 @@ Only these lines are read; any other line is an unreadable-line problem (F10, R0
     A->>B: CON-nnn <words>                 a call; B must be CON-nnn's provider
     B-->>A: <status> <case_key>            an answer: B's drawn reply, or the first line of A's branch
     A-)B: EVT-nnn <words>                  an event published for subscriber B
-    par [<words>] ... end                  right after an event line (or a call an outside app makes): B's handler thread
+    par [<words>] ... end                  right after an event line, a call an outside app makes, or a TIMER:
+                                           the handler that runs when it arrives, or when the timer fires
     alt <case>[, <case>...] / else <case>[, <case>...] / end   branches on the call (or AWAIT) just before
     Note over X: SET <entity> <state>
     Note over X: END <outcome> [leaves <entity>=<state>[, ...]]
     Note over X: AWAIT EVT-nnn             block this thread until the event reaches X
-    Note over X: TIMER <entity> <from> -> <to>
+    Note over X: TIMER <name> <band>       arm a timer (15m, 2d); it fires once per arming
+    Note over X: ANSWERS FROM CONTRACT [: <case>, <case>]
+                                           inside drawn handling: X answers its caller from its case table here
     Note over X: GIVEN <entity> <state>    a precondition; only before the flow's first step
     Note over X: HUMAN <words>             a person's step; changes nothing
     Note over X: ON <case>[, <case>...]: END <outcome> [leaves ...]   the same handling for every later call in this thread
@@ -27,7 +30,7 @@ from planner.flowcheck.tables import FlowLine, Problem
 NAME = r"[A-Za-z_][\w]*"
 LINE_PATTERNS = (
     ("participant", re.compile(rf"^participant\s+({NAME})(?:\s+as\s+(.+?))?\s*$")),
-    ("answer", re.compile(rf"^({NAME})-->>({NAME}):\s*(\d{{3}})\s+(\w+)\s*$")),
+    ("answer", re.compile(rf"^({NAME})-->>({NAME}):\s*(\d{{3}}|ok|error)\s+(\w+)\s*$")),
     ("call", re.compile(rf"^({NAME})->>({NAME}):\s*(CON-\d+)\b\s*(.*)$")),
     ("event", re.compile(rf"^({NAME})-\)({NAME}):\s*(EVT-\d+)\b\s*(.*)$")),
     ("alt", re.compile(r"^alt\s+(.+?)\s*$")),
@@ -42,7 +45,8 @@ NOTE_PATTERNS = (
     ("set", re.compile(r"^SET\s+(\S+)\s+(\w+)$")),
     ("finish", re.compile(rf"^END\s+({OUTCOME}){LEAVES}$")),
     ("await", re.compile(r"^AWAIT\s+((?:EVT|CON)-\d+)$")),
-    ("timer", re.compile(r"^TIMER\s+(\S+)\s+(\w+)\s*->\s*(\w+)$")),
+    ("timer", re.compile(r"^TIMER\s+([a-z][a-z0-9_]*)\s+(\d+\s?[a-z]+)$")),
+    ("contract", re.compile(r"^ANSWERS FROM CONTRACT(?:\s*:\s*(.+))?$")),
     ("given", re.compile(r"^GIVEN\s+(\S+)\s+(\w+)$")),
     ("human", re.compile(r"^HUMAN\s+(.+)$")),
     ("on", re.compile(rf"^ON\s+(.+?):\s*END\s+({OUTCOME}){LEAVES}$")),
@@ -104,6 +108,9 @@ def _note(actor, body, n):
         if kind == "on":
             keys = case_keys(groups[0])
             return FlowLine(n, kind, (actor, keys, groups[1], _leaves(groups[2]))) if keys else None
+        if kind == "contract":
+            keys = case_keys(groups[0]) if groups[0] else ()
+            return FlowLine(n, kind, (actor, keys)) if keys is not None else None
         return FlowLine(n, kind, (actor,) + groups)
     return None
 
@@ -120,13 +127,13 @@ class Branch:
 
 @dataclass
 class Node:
-    kind: str  # call | reply | publish | set | finish | await | timer | given | human | on
+    kind: str  # call | reply | contract | publish | set | finish | await | timer | given | human | on
     line: int
     actor: str
     parts: tuple
     handling: object = None  # call: the provider's drawn steps up to its reply (list), or None when not drawn
     branches: object = None  # call/await: [Branch], or None when no alt follows
-    handler: object = None  # publish, or a call an outside app makes: the par block's steps (list), or None
+    handler: object = None  # publish, a call an outside app makes, or a timer: the par block's steps (list), or None
     handler_line: int = 0
 
 
@@ -139,7 +146,7 @@ class Tree:
 def actor_of(token):
     if token.kind in ("call", "answer", "event"):
         return token.parts[0]
-    if token.kind in ("set", "finish", "await", "timer", "given", "human", "on"):
+    if token.kind in ("set", "finish", "await", "timer", "given", "human", "on", "contract"):
         return token.parts[0]
     return None
 
@@ -215,11 +222,11 @@ class _Parser:
             if self.peek() is not None and self.peek().kind == "par":
                 opener = self.take()
                 node.handler, node.handler_line = self.closed(opener, self.block({"end"}, opener)), opener.line
-        elif token.kind == "event":
+        elif token.kind in ("event", "timer"):
             if self.peek() is not None and self.peek().kind == "par":
                 opener = self.take()
                 node.handler, node.handler_line = self.closed(opener, self.block({"end"}, opener)), opener.line
-            if self.peek() is not None and self.peek().kind == "alt":
+            if token.kind == "event" and self.peek() is not None and self.peek().kind == "alt":
                 alt = self.take()
                 self.problem(alt.line, "A branch on a handler's outcome cannot sit in the producer's thread: the producer "
                                        "cannot see it. If it needs to know, AWAIT an event the handler publishes.")
@@ -240,6 +247,11 @@ class _Parser:
                 body.append(Node("reply", token.line, provider, token.parts))
                 call.handling = body
                 return []
+            if token.kind == "contract" and token.parts[0] == provider:
+                self.take()
+                body.append(Node("contract", token.line, provider, token.parts))
+                call.handling = body
+                return []
             if token.kind in ("alt", "else", "end", "par", "participant") or actor_of(token) != provider:
                 break
             body += self.statement()
@@ -251,7 +263,8 @@ class _Parser:
 
 def _replies(nodes, provider, caller):
     for node in nodes:
-        if node.kind == "reply" and node.parts[0] == provider and node.parts[1] == caller:
+        if (node.kind == "reply" and node.parts[0] == provider and node.parts[1] == caller) or \
+                (node.kind == "contract" and node.parts[0] == provider):
             return True
         for branch in node.branches or ():
             if _replies(branch.body, provider, caller):

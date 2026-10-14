@@ -2,7 +2,7 @@
 id: ENT-007
 type: entity
 title: Order
-owner: shop
+app: APP-shop
 shared: false
 initial: new
 final: [reserved, sold_out]

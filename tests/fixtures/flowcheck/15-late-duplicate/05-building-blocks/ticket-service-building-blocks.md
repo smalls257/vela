@@ -11,7 +11,9 @@ title: Ticket service
 ### CON-081 Toggle the ticket
 
 - **Provider:** Helpdesk
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| toggled | 200 |  | ticket=open->closed closed->open |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| toggled |  | 200 | toggled |  | ticket: open→closed, closed→open |

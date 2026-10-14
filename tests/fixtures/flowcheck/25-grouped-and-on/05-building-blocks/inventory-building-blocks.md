@@ -10,9 +10,11 @@ title: Inventory
 
 ### CON-010 Place a hold
 
+- **Can time out:** yes
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| placed | 200 |  |  |  | yes | none |
-| unavailable | 409 |  |  |  | yes | none |
-| blocked | 423 |  |  |  | yes | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| placed |  | 200 | placed |  |  |
+| unavailable |  | 409 | unavailable |  |  |
+| blocked |  | 423 | blocked |  |  |

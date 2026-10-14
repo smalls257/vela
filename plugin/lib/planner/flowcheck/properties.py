@@ -87,7 +87,7 @@ def check_branches(b, ctx, node, ins, table, visible):
 
 
 def check_decoration(b, flow, branch, reply, table):
-    status, key = int(reply.parts[2]), reply.parts[3]
+    status, key = reply.parts[2], reply.parts[3]
     case = next((c for c in table.cases if c.key == key), None)
     where = f"{flow.path}:{reply.line}"
     if key not in branch.keys:
@@ -100,7 +100,7 @@ def check_decoration(b, flow, branch, reply, table):
 
 
 def check_reply(b, where, node, table):
-    status, key = int(node.parts[2]), node.parts[3]
+    status, key = node.parts[2], node.parts[3]
     case = next((c for c in table.cases if c.key == key), None)
     if case is None:
         b.report("F2", where, f"{b.cat.apps[table.provider].title} answers {key}, which \"{table.title}\" does not declare "
@@ -111,7 +111,7 @@ def check_reply(b, where, node, table):
 
 
 def report_unhandled(b, flow, node, ins, table, missing):
-    """F1, one per missing outcome; an override naming the flow's call and case with a future end date covers it."""
+    """F1, one per missing outcome. An override covering one is applied with every other override, in `overrides`."""
     for key in missing:
         case = next((c for c in table.cases if c.key == key), None)
         if key == TIMEOUT:
@@ -120,12 +120,8 @@ def report_unhandled(b, flow, node, ins, table, missing):
             what = f"every one of its {table.retries.max} attempts fails"
         else:
             what = f"{ins.data['provider']} answers {words(key)} ({case.status})"
-        override = next((o for o in flow.overrides if o.contract == table.id and o.case == key), None)
-        covered = override.until if override is not None and override.until >= b.today else ""
         summary = f"No branch for {key}: {ins.actor} does not say what happens when {what} on \"{table.title}\"."
-        if override is not None and not covered:
-            summary += f" The override for it ended on {override.until}."
-        b.report("F1", ins.where, summary, items=(table.id,), owners=(ins.actor,), case=key, call_line=ins.where, covered=covered)
+        b.report("F1", ins.where, summary, items=(table.id,), owners=(ins.actor,), case=key, call_line=ins.where)
 
 
 # --- events ---------------------------------------------------------------------------------------------------------
@@ -205,11 +201,14 @@ def event_findings(b):
 def check_await(b, flow, node, ctx):
     where = f"{flow.path}:{node.line}"
     keys = [k for branch in node.branches or () for k in branch.keys]
+    timer = b.timers[ctx.last_timer].name if ctx.last_timer is not None else None
     for key in keys:
-        if key not in ("received", "timer"):
-            b.report("F2", where, f"An AWAIT can end received or timer, not {key}.", items=(node.parts[1],), case=key)
-    if "timer" in keys and ctx.last_timer is None:
-        b.report("F10", where, "This AWAIT branches on timer, and no TIMER comes before it in this thread.", items=(node.parts[1],))
+        if key != "received" and key != timer:
+            if timer is None:
+                b.report("F10", where, f"This AWAIT branches on {key}, and no TIMER comes before it in this thread.", items=(node.parts[1],))
+            else:
+                b.report("F2", where, f"An AWAIT here can end received or {timer} (the timer before it), not {key}.",
+                         items=(node.parts[1],), case=key)
     if keys and "received" not in keys:
         b.report("F1", where, f"No branch for received: the AWAIT does not say what happens when {node.parts[1]} arrives.",
                  items=(node.parts[1],), case="received")
@@ -252,11 +251,11 @@ def unused_cases(catalog, trees):
 
 
 def loose_ends(catalog, slice_index, flows):
-    """F13: a GIVEN that no earlier or same release's flow leaves, and that is neither the entity's initial nor a
+    """F13: a GIVEN that no flow of this or an earlier slice leaves, and that is neither the entity's initial nor a
     final state. The join between slices, checked statically (review 1.9)."""
     left = set()
-    for release in catalog.releases[:slice_index + 1] if slice_index is not None else catalog.releases:
-        for fid in release.flows:
+    for found in catalog.slices[:slice_index + 1] if slice_index is not None else catalog.slices:
+        for fid in found.flows:
             flow = catalog.flows.get(fid)
             for token in (flow.lines if flow else ()):
                 if token.kind in ("finish", "on"):
@@ -272,7 +271,7 @@ def loose_ends(catalog, slice_index, flows):
                 continue
             if (token.parts[1], state) not in left and (entity.slug, state) not in left:
                 out.append(Finding("F13", f"{flow.path}:{token.line}", f"{flow.id} starts from {entity.title} {words(state)}, "
-                                   f"and no flow in this or an earlier release ends leaving it {words(state)}.",
+                                   f"and no flow in this or an earlier slice ends leaving it {words(state)}.",
                                    items=(flow.id, entity.id)))
     return out
 
@@ -295,9 +294,9 @@ def label_key(label):
 
 
 def judge_graph(g, sem, renderer, flow_paths):
-    """F5, F6, F7, F8, F9 for one explored run, one finding per root cause, shortest trace first. With a budget stop
-    only what was actually reached is reported (F5, F8, F9, and stuck states); F7 never is, since unexplored states
-    cannot be counted as able to finish."""
+    """F5, F6, F8, F9 for one explored run, one finding per root cause, shortest trace first. With a budget stop only
+    what was actually reached is reported (F5, F8, F9, and stuck states), never a point of no return: unexplored
+    states cannot be counted as able to finish (revision 2, item 16)."""
     from planner.flowcheck.explore import can_finish, shortest_onward
     out, seen = [], set()
 
@@ -333,7 +332,11 @@ def judge_graph(g, sem, renderer, flow_paths):
             table = sem.p.contracts[ins.data["contract"]]
             return ins.where, (table.cases[label[3]].key if label[0] == "ans" else TIMEOUT)
         if label[0] in ("reply", "rtmo"):
-            return sem.p.code[label[3]].where, ins.data["case"] if label[0] == "reply" else TIMEOUT
+            if label[0] == "rtmo":
+                return sem.p.code[label[3]].where, TIMEOUT
+            if ins.kind == "contract":
+                return sem.p.code[label[3]].where, sem.p.contracts[ins.data["contract"]].cases[label[6]].key
+            return sem.p.code[label[3]].where, ins.data["case"]
         return "", ""
 
     def ids(trail, *more):
@@ -403,19 +406,21 @@ def judge_graph(g, sem, renderer, flow_paths):
             add(("F6", label_key(label) if label else None), _stuck_finding(sem, renderer, g, sid, trail, where_of(label, trail), None))
         return out
 
-    # Report F6/F7 at the frontier (review 1.12): a state that can no longer finish whose BFS parent still could. Its
-    # parent transition is the point of no return; every doomed state lies behind one.
+    # "Can't finish" (F6) at the frontier (revision 2, item 3): a state that can no longer finish whose BFS parent still
+    # could. Its parent transition is the point of no return; every doomed state lies behind one. With bounded retries,
+    # one duplicate and timers that fire once, the graph has no loops, so a state that cannot finish always reaches a
+    # stuck one; "stuck" and "can't finish" are one finding seen from its two ends.
     finishing = can_finish(g, finished | set(g.cut) | {src for src, _, _ in g.violations})
     for v in range(len(g.states)):
         if v in finishing or (v > 0 and g.parent[v] not in finishing):
             continue
         label = g.label[v]
-        key = ("F6/F7", label_key(label) if label else None)
+        key = ("F6", label_key(label) if label else None)
         if key in seen:
             continue
         onward = shortest_onward(g, v, stuck)
         if onward is None:
-            add(key, Finding("F7", where_of(label), "From here the journey can no longer finish, though no step is blocked: "
+            add(key, Finding("F6", where_of(label), "From here the journey can no longer finish, though no step is blocked: "
                              "it runs on without end.", trace=tuple(renderer.trace(steps(v)))))
             continue
         tail, parity = [], g.parity(v)
@@ -430,8 +435,8 @@ def judge_graph(g, sem, renderer, flow_paths):
 
 
 def _stuck_finding(sem, renderer, g, sid, trail, where, point, parity=None):
-    """F6: nothing can move and the journey has not finished: a thread awaits what cannot come, or a message waits
-    for a receiver that will never be there."""
+    """F6, can't finish: nothing can move and the journey has not finished. A thread awaits what cannot come, or a
+    message waits for a receiver that will never be there. `point` is the step from which it could no longer finish."""
     state = g.states[sid]
     parity = g.parity(sid) if parity is None else parity
     reasons, owners = [], []
@@ -480,7 +485,9 @@ def cause_words(program, cause):
     flow = next((f for f, _, _ in program.flows if f.id == head), None)
     if flow is not None:
         return f"the steps of \"{flow.title}\" outside any case"
-    return f"its {cause}" if cause == "timer" else cause
+    if head == "timer":
+        return f"the {words(rest)} timer firing" if rest else "a timer firing"
+    return cause
 
 
 def _last_pill(trail, pill):

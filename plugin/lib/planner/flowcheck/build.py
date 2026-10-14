@@ -54,12 +54,23 @@ class Handler:
 
 
 @dataclass
+class Timer:
+    """A `TIMER <name> <band>` step: fires once per arming (revision 2, item 10); what firing does is the par block
+    after it (a handler thread), the timer branch of an AWAIT racing it, or both."""
+    name: str
+    band: str
+    where: str
+    hid: object  # handler id of its par block, or None
+    owner: str  # display name of who armed it
+
+
+@dataclass
 class Program:
     code: list
     flows: list  # [(Flow, start pc, givens {entity slug: state})]
     handlers: list
     targets: list
-    timers: list  # [(entity slug, from, to, where)]
+    timers: list  # [Timer]
     entities: dict  # slug -> Entity, the ones the slice touches
     contracts: dict
     awaited: set  # {(item, subscriber app key)}
@@ -182,7 +193,8 @@ class Builder:
         found = self.cat.entity(name)
         where = self.where(flow, line)
         if found is None:
-            self.report("F10", where, f"'{name}' is not an entity: no entities/{name}.md.", items=(item,) if item else ())
+            self.report("F10", where, f"'{name}' is not an entity: no entity page has that ID, slug or title.",
+                        items=(item,) if item else ())
             return None
         if state is not None and state not in found.states:
             self.report("F10", where, f"{found.title} has no state '{state}' (its states: {', '.join(sorted(found.states))}).",
@@ -208,10 +220,17 @@ class Builder:
                 elif bad:
                     self.report("F10", table.source, f"{table.id} case {case.key} sets {entity.title} to '{bad[0]}', "
                                 f"which is not one of its states.", items=(table.id,))
-            for name, states in case.when:
+            for name, op, states in case.when:
                 entity = self.entity(flow, line, name, item=table.id)
-                if entity is not None:
-                    when.append((entity.slug, states))
+                if entity is None:
+                    continue
+                bad = [s for s in states if s not in entity.states]
+                if bad:
+                    self.report("F10", table.source, f"{table.id} case {case.key} answers only when {entity.title} is "
+                                f"'{bad[0]}', which is not one of its states.", items=(table.id,))
+                    continue
+                allowed = tuple(states) if op == "in" else tuple(sorted(entity.states - set(states)))
+                when.append((entity.slug, allowed))
             cases.append(dataclasses.replace(case, sets=tuple(sets), when=tuple(when)))
         resolved = dataclasses.replace(table, cases=tuple(cases))
         self.contracts[table.id] = resolved
@@ -254,7 +273,7 @@ class Builder:
         flow = self.trees[index][0]
         body = len(self.code)
         self.handlers[hid].body = body
-        ctx = Context(index, hid, (f"{cause_item} handled",))
+        ctx = Context(index, hid, (cause_item if cause_item.startswith("timer ") else f"{cause_item} handled",))
         self.seq(node.handler, ctx)
         self.emit(Ins("done", flow.path, index, data={"thread": "handler"}))
 
@@ -273,6 +292,8 @@ class Builder:
                 self.call(node, ctx)
             elif node.kind == "reply":
                 replied = self.reply(node, ctx)
+            elif node.kind == "contract":
+                replied = self.answer_from_contract(node, ctx)
             elif node.kind == "publish":
                 self.publish(node, ctx)
             elif node.kind == "set":
@@ -285,12 +306,7 @@ class Builder:
             elif node.kind == "await":
                 self.await_(node, ctx)
             elif node.kind == "timer":
-                entity = self.entity(flow, node.line, node.parts[1], node.parts[2]) and self.entity(flow, node.line, node.parts[1], node.parts[3])
-                if entity is not None:
-                    self.timers.append((entity.slug, node.parts[2], node.parts[3], self.where(flow, node.line)))
-                    ctx.last_timer = len(self.timers) - 1
-                    self.emit(Ins("timer", self.where(flow, node.line), ctx.flow, self.display(ctx.flow, node.actor),
-                                  {"timer": len(self.timers) - 1}))
+                self.timer(node, ctx)
             elif node.kind == "human":
                 self.emit(Ins("human", self.where(flow, node.line), ctx.flow, self.display(ctx.flow, node.actor),
                               {"words": node.parts[1]}))
@@ -330,13 +346,14 @@ class Builder:
             self.report("F10", where, f"{provider_app.title} is outside the vault, so it answers from its contract; its handling cannot be drawn.",
                         items=(cid,))
             return
-        if not drawn and provider_app is not None and not provider_app.outside:
+        if not drawn and provider_app is not None and not provider_app.outside and provider_app.key in self.cat.callers:
             key = (flow.id, provider_app.key, cid)
             if key not in self.f12_seen:
                 self.f12_seen.add(key)
-                self.report("F12", where, f"{provider_app.title} answers \"{table.title}\" from its contract alone in this flow; "
-                            "its own downstream calls are not checked here.", items=(cid,), owners=(provider_app.title,), call_line=where)
-        replies = _collect_replies(node.handling or (), provider_name, caller)
+                self.report("F12", where, f"{provider_app.title} answers \"{table.title}\" from its contract alone in this flow, "
+                            "though it calls other apps itself; what it does with them is not checked here.", items=(cid,),
+                            owners=(provider_app.title,), call_line=where)
+        replies = _collect_replies(node.handling or (), provider_name, caller, table)
         outcomes = properties.outcomes(self, where, table, replies if drawn else None)
         ins = Ins("call", where, ctx.flow, self.display(ctx.flow, caller),
                   {"contract": cid, "provider": self.display(ctx.flow, provider_name), "drawn": None, "branches": {},
@@ -420,6 +437,47 @@ class Builder:
         self.emit(Ins("reply", where, ctx.flow, self.display(ctx.flow, node.parts[0]), {"case": node.parts[3]}))
         return True
 
+    def answer_from_contract(self, node, ctx):
+        """`ANSWERS FROM CONTRACT` inside drawn handling: the provider answers its caller with any case of its table
+        (or the ones listed) whose When holds, its Sets and Emits included, as an undrawn provider would (item 8)."""
+        flow = self.trees[ctx.flow][0]
+        where = self.where(flow, node.line)
+        if not ctx.stack or ctx.stack[-1][0] != node.parts[0]:
+            self.report("F10", where, f"ANSWERS FROM CONTRACT over {node.parts[0]}, which is answering no call here: it goes "
+                        "inside a provider's drawn handling, where its reply would be.", items=(flow.id,))
+            return False
+        call_node = ctx.stack[-1][2]
+        table = self.resolve_table(flow, node.line, self.cat.contracts[call_node.parts[2]])
+        keys = node.parts[1] or tuple(c.key for c in table.cases)
+        for key in keys:
+            if not any(c.key == key for c in table.cases):
+                self.report("F2", where, f"{self.display(ctx.flow, node.parts[0])} answers {key} from its contract, which "
+                            f"\"{table.title}\" does not declare (it declares: {', '.join(c.key for c in table.cases)}).",
+                            items=(table.id,), case=key)
+        ins = Ins("contract", where, ctx.flow, self.display(ctx.flow, node.parts[0]),
+                  {"contract": table.id, "cases": tuple(n for n, c in enumerate(table.cases) if c.key in keys), "emits": {}})
+        self.emit(ins)
+        for key in keys:
+            self.emit_requests.append((ins, key, {}))
+        return True
+
+    def timer(self, node, ctx):
+        flow = self.trees[ctx.flow][0]
+        where = self.where(flow, node.line)
+        _, name, band = node.parts
+        if any(t.name == name for t in self.timers):
+            self.report("F10", where, f"A second timer called {name}: give each its own name.", items=(flow.id,))
+            return
+        hid = None
+        if node.handler is not None:
+            hid = len(self.handlers)
+            owner = self.display(ctx.flow, node.actor)
+            self.handlers.append(Handler(hid, f"timer {name}", f"the {name} timer", owner, -1, None, where))
+            self.pending_handlers.append((ctx.flow, hid, node, f"timer {name}", f"the {name} timer", owner, None, f"timer {name}"))
+        self.timers.append(Timer(name, band, where, hid, self.display(ctx.flow, node.actor)))
+        ctx.last_timer = len(self.timers) - 1
+        self.emit(Ins("timer", where, ctx.flow, self.display(ctx.flow, node.actor), {"timer": len(self.timers) - 1}))
+
     def publish(self, node, ctx):
         flow = self.trees[ctx.flow][0]
         where = self.where(flow, node.line)
@@ -500,9 +558,10 @@ class Builder:
         gotos = []
         for branch in node.branches or ():
             start = len(self.code)
+            timer = self.timers[ctx.last_timer].name if ctx.last_timer is not None else None
             for key in branch.keys:
                 ins.data["received" if key == "received" else "timer_branch"] = start
-            self.seq(branch.body, ctx.child(cause=(f"{item} received",) if "received" in branch.keys else ("timer",)))
+            self.seq(branch.body, ctx.child(cause=(f"{item} received",) if "received" in branch.keys else (f"timer {timer}",)))
             gotos.append(self.emit(Ins("goto", self.where(flow, branch.line), ctx.flow)))
         after = len(self.code)
         for g in gotos:
@@ -525,7 +584,7 @@ class Builder:
             if target.hid is not None:
                 first.setdefault((target.item, target.subscriber), t_index)
         for ins, key, _ in self.emit_requests:
-            table = self.contracts[ins.data["contract"]]
+            table = self.contracts.get(ins.data["contract"]) or self.cat.contracts[ins.data["contract"]]
             case = next((c for c in table.cases if c.key == key), None)
             if case is None:
                 continue
@@ -558,19 +617,25 @@ def _invariant_atoms(expr):
     return set().union(*(_invariant_atoms(e) for e in expr[1:]))
 
 
-def _collect_replies(nodes, provider, caller):
+def _collect_replies(nodes, provider, caller, table):
+    """(case key, status, line) for every answer the drawn handling can give: its replies, and the cases an ANSWERS
+    FROM CONTRACT step can answer with."""
     out = []
     for node in nodes:
         if node.kind == "reply" and node.parts[0] == provider and node.parts[1] == caller:
-            out.append((node.parts[3], int(node.parts[2]), node.line))
+            out.append((node.parts[3], node.parts[2], node.line))
+        if node.kind == "contract" and node.parts[0] == provider:
+            keys = node.parts[1] or tuple(c.key for c in table.cases)
+            out += [(c.key, c.status, node.line) for c in table.cases if c.key in keys]
         for branch in node.branches or ():
-            out += _collect_replies(branch.body, provider, caller)
+            out += _collect_replies(branch.body, provider, caller, table)
     return out
 
 
 def _always_replies(nodes, provider, caller):
     for node in nodes:
-        if node.kind == "reply" and node.parts[0] == provider and node.parts[1] == caller:
+        if (node.kind == "reply" and node.parts[0] == provider and node.parts[1] == caller) or \
+                (node.kind == "contract" and node.parts[0] == provider):
             return True
     last = next((n for n in reversed(nodes) if n.kind in ("call", "await")), None)
     if last is None or not last.branches:

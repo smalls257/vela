@@ -10,22 +10,28 @@ title: Inventory
 
 ### CON-010 Place a hold
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| placed | 200 |  | hold=held |  | no | none |
-| unavailable | 409 |  |  |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| placed |  | 200 | placed |  | hold: held |
+| unavailable |  | 409 | unavailable |  |  |
 
 ### CON-011 Capture the hold
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| captured | 200 |  | hold=captured |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| captured |  | 200 | captured |  | hold: captured |
 
 ### CON-012 Release the hold
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| released | 200 |  | hold=released |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| released |  | 200 | released |  | hold: released |

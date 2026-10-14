@@ -11,7 +11,9 @@ title: Shop
 ### CON-020 Take the payment
 
 - **Provider:** Tidepay
+- **Can time out:** yes
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| paid | 200 |  |  |  | yes | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| paid |  | 200 | paid |  |  |

@@ -10,7 +10,9 @@ title: Booking
 
 ### CON-120 Amend the booking
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| amended | 200 |  | booking=amended |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| amended |  | 200 | amended |  | booking: amended |

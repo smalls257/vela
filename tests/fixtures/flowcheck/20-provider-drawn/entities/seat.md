@@ -2,7 +2,7 @@
 id: ENT-020
 type: entity
 title: Seat
-owner: booking
+app: APP-booking
 shared: false
 initial: free
 final: [free, reserved]

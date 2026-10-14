@@ -2,7 +2,7 @@
 id: ENT-027
 type: entity
 title: Parcel
-owner: packing
+app: APP-packing
 shared: false
 initial: new
 final: [labelled]

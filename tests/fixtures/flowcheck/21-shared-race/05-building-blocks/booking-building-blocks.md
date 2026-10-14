@@ -10,14 +10,18 @@ title: Booking
 
 ### CON-110 Confirm the booking
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| confirmed | 200 |  | booking=held->confirmed |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| confirmed |  | 200 | confirmed |  | booking: held→confirmed |
 
 ### CON-111 Cancel the booking
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| cancelled | 200 |  | booking=held->cancelled |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| cancelled |  | 200 | cancelled |  | booking: held→cancelled |

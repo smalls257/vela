@@ -10,8 +10,10 @@ title: Order service
 
 ### CON-041 Complete the order
 
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| completed | 200 |  | order=completed | order=pending | no | none |
-| not_found | 409 |  |  | order=new | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| completed | order is pending | 200 | completed |  | order: completed |
+| not_found | order is new | 409 | not found |  |  |

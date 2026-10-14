@@ -2,7 +2,7 @@
 id: ENT-006
 type: entity
 title: Stock
-owner: inventory
+app: APP-inventory
 shared: true
 initial: one
 final: [one, zero]

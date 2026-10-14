@@ -2,7 +2,7 @@
 id: ENT-008
 type: entity
 title: Payment
-owner: billing
+app: APP-billing
 shared: false
 initial: none
 final: [charged]

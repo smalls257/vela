@@ -2,7 +2,7 @@
 id: ENT-015
 type: entity
 title: Ticket
-owner: ticket-service
+app: APP-ticket-service
 shared: false
 initial: open
 final: [closed]

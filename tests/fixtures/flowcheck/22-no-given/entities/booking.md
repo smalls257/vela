@@ -2,7 +2,7 @@
 id: ENT-023
 type: entity
 title: Booking
-owner: booking
+app: APP-booking
 shared: false
 initial: new
 final: [confirmed, amended]

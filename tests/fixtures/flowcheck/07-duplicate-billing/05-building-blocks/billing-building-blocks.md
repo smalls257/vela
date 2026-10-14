@@ -11,7 +11,9 @@ title: Billing
 ### CON-050 Charge the card
 
 - **Provider:** Cardco
+- **Can time out:** no
+- **Retries:** none
 
-| Case | Status | Emits | Sets | When | Timeout | Retries |
-|---|---|---|---|---|---|---|
-| charged | 200 |  | payment=none->charged charged->charged_twice |  | no | none |
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| charged |  | 200 | charged |  | payment: none→charged, charged→charged_twice |

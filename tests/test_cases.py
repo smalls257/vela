@@ -43,6 +43,22 @@ def test_a_malformed_row_is_a_problem_and_never_a_case(row):
     assert table.cases == () and [p.code for p in table.problems] == ["malformed"]
 
 
+def test_a_change_that_depends_on_where_it_starts_reads_as_one_row_per_start():
+    """Revision 2, item 5: stock running out needs 'one less', which an absolute state cannot say."""
+    table = table_of("| reserved | | 200 | held | | stock: one→zero, zero→minus_one; order: new->held |\n")
+    assert table.problems == ()
+    assert table.cases[0].sets == (("stock", "one", "zero"), ("stock", "zero", "minus_one"), ("order", "new", "held"))
+    twice = table_of("| reserved | | 200 | held | | stock: one→zero, one→minus_one |\n")
+    assert twice.cases == () and "two changes of stock from one" in twice.problems[0].message
+
+
+@pytest.mark.parametrize("value, parsed", [("none", (0, ())), ("2 after timeout, unavailable", (2, ("timeout", "unavailable"))),
+                                           ("3", None), ("2 on timeout", None)])
+def test_retries_say_how_many_and_after_which_answers(value, parsed):
+    """Revision 2, item 7: which answers are retried is required; a bare count is not readable."""
+    assert cases.retries(value) == parsed
+
+
 def test_a_repeated_key_is_a_duplicate():
     table = table_of("| a_case | | 200 | one | | |\n| a_case | | 404 | two | | |\n")
     assert [c.status for c in table.cases] == ["200"]
@@ -104,9 +120,18 @@ def test_w385_a_decided_contract_with_no_error_case(mini):
 
 
 def test_w381_a_timeout_or_retries_line_it_cannot_read(mini):
-    edit(mini / SHOP, "- **State:** decided\n", "- **State:** decided\n- **Can time out:** sometimes\n- **Retries:** 3\n")
+    edit(mini / SHOP, "- **State:** decided\n", "- **State:** decided\n- **Can time out:** sometimes\n- **Retries:** 3\n"
+                                            "- **Idempotent:** maybe\n")
     _, out = check(mini)
-    assert codes(out) == ["W381"]
+    assert codes(out) == ["W381", "W381", "W381"]
+    assert "after which answers" in out
+
+
+def test_retries_with_their_answers_and_an_idempotent_bullet_are_quiet(mini):
+    edit(mini / SHOP, "- **State:** decided\n", "- **State:** decided\n- **Can time out:** yes\n- **Retries:** 2 after timeout\n"
+                                            "- **Idempotent:** yes\n")
+    _, out = check(mini)
+    assert codes(out) == []
 
 
 def test_the_skills_put_the_case_table_where_it_is_written_and_decided():

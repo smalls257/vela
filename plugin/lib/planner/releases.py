@@ -53,6 +53,8 @@ class Release:
     tracer_words: str = ""  # the thin version in plain words
     tracer_none: str = ""  # the reason, when the lead chose no tracer; "no reason given" if the bullet says only none
     not_in_tracer: list = field(default_factory=list)  # [Left]
+    flows_line: int = 0
+    flows: tuple = ()  # a later release's slice: the flow ids its **Flows:** bullet links (slices.read_slices reads it)
 
 
 def page(vault):
@@ -125,8 +127,10 @@ def releases(vault):
             if m:
                 setattr(current, m.group(1).lower(), m.group(2).strip())
                 current.declared = True
-            m = re.match(r"^- \*\*(Tracer|Not in the tracer):\*\*\s*(.*)$", line)
-            if m and m.group(1) == "Tracer":
+            m = re.match(r"^- \*\*(Tracer|Not in the tracer|Flows):\*\*\s*(.*)$", line)
+            if m and m.group(1) == "Flows":
+                current.flows_line, current.flows = n, read_tracer(m.group(2))[0]
+            elif m and m.group(1) == "Tracer":
                 current.tracer_given, current.tracer_line = True, n
                 current.tracer_flows, current.tracer_words, current.tracer_none = read_tracer(m.group(2))
             elif m:

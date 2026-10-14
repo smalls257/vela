@@ -2,7 +2,7 @@
 id: ENT-014
 type: entity
 title: Charge
-owner: shop
+app: APP-shop
 shared: false
 initial: none
 final: [taken]
