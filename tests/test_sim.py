@@ -225,6 +225,9 @@ def test_every_persona_and_script_validates():
         persona = yaml.safe_load(persona_path.read_text(encoding="utf-8"))
         if persona.get("holdout") is True or persona.get("team_persona") is True:
             continue
+        if persona.get("outsider") is True:  # speaks only in the sessions that name it, so no script is written for it
+            assert sim.persona_problems(persona) == [], persona_path
+            continue
         assert sim.persona_problems(persona) == [], persona_path
         for script_path in sorted((SIM / "scripts").glob("*.yaml")):
             script = yaml.safe_load(script_path.read_text(encoding="utf-8"))
