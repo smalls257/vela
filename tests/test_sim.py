@@ -1028,6 +1028,21 @@ def test_the_full_heron_script_ends_with_the_explorer_the_tool_built_in_its_vaul
     assert any(e.get("event") == "explorer" for e in entries(arm))
 
 
+def test_the_vela_heron_script_uses_the_plugins_team_skills_and_leaves_the_tickets_to_the_tickets_session(tmp_path):
+    script = SIM / "scripts" / "heron-desk-vela.yaml"
+    data = yaml.safe_load(script.read_text(encoding="utf-8"))
+    assert "vault_skills" not in data
+    assert [s["mode"] for s in data["sessions"] if s["mode"] in sim.PLUGIN_TEAM_MODES] == ["design", "breakdown", "tickets"]
+    prompts = " ".join(s[arm] for s in data["sessions"] for arm in ("planner", "baseline"))
+    assert not re.search(r"\b(S, M|sized)\b", prompts)
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(script), "--arms", "planner",
+                           "--out", str(tmp_path / "results"), *MODELS, "--budget", "5"], capture_output=True, text=True, timeout=900)
+    assert done.returncode == 0, done.stderr
+    arm = sorted((tmp_path / "results").iterdir())[0] / "planner"
+    assert (arm / "vault" / "dashboard.html").is_file() and not (arm / "tickets").exists()
+    assert not any(e.get("event") == "tickets" for e in entries(arm))
+
+
 def test_a_pr_opened_through_the_gh_stub_is_merged_by_number_and_a_handoff_reaches_origin_main(tmp_path):
     persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
     arm_dir = tmp_path / "planner"

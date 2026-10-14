@@ -1093,7 +1093,7 @@ class Arm:
         if mode == "close" and self.merge_prs:
             for report in merge_closed(self.vault, self.dir):
                 self.transcript.add(speaker="driver", session=index, mode=mode, event="merge", text=report)
-        if mode == "breakdown":
+        if mode == "breakdown" and not session["planner"].startswith("/planner:"):  # the plugin's tickets session writes its own
             self.make_tickets(index, mode, self.repos[session["repo"]] if session.get("repo") else self.vault)
         return reason
 
