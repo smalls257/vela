@@ -173,7 +173,7 @@ class Builder:
                 if token.kind == "call" and token.parts[2] in self.cat.contracts:
                     for case in self.cat.contracts[token.parts[2]].cases:
                         ids |= set(case.emits)
-                        for name, _ in case.sets + case.when:
+                        for name in [s[0] for s in case.sets] + [w[0] for w in case.when]:
                             entity = self.cat.entity(name)
                             if entity is not None:
                                 ids |= {entity.id, entity.slug}

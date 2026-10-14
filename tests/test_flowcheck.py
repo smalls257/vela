@@ -353,12 +353,21 @@ def test_an_unknown_slice_names_the_releases():
         check("12-clean-tracer", "Release nine")
 
 
-def test_the_cli_exits_0_on_a_pass_1_on_findings_and_prints_plain_words():
-    code, out = run("check-slice", "Release one", "--vault", str(FIXTURES / "12-clean-tracer"))
+def copy_fixture(tmp_path, case):
+    """A copy to run the CLI on: check-slice records its result under the vault's .planner/."""
+    import shutil
+    target = tmp_path / case
+    shutil.copytree(FIXTURES / case, target)
+    return target
+
+
+def test_the_cli_exits_0_on_a_pass_1_on_findings_and_prints_plain_words(tmp_path):
+    clean, early = copy_fixture(tmp_path, "12-clean-tracer"), copy_fixture(tmp_path, "04-chain-early-billing")
+    code, out = run("check-slice", "Release one", "--vault", str(clean))
     assert code == 0 and "passes" in out.splitlines()[0]
-    code, out = run("check-slice", "FLO-004", "--vault", str(FIXTURES / "04-chain-early-billing"))
+    code, out = run("check-slice", "FLO-004", "--vault", str(early))
     assert code == 1 and "F8 Not final" in out and "Billing has no retries left" in out
-    code, out = run("check-slice", "Release one", "--vault", str(FIXTURES / "12-clean-tracer"), "--max-states", "5")
+    code, out = run("check-slice", "Release one", "--vault", str(clean), "--max-states", "5")
     assert code == 1 and "not fully checked" in out
 
 
@@ -386,6 +395,15 @@ def test_r2_04_a_when_column_keeps_a_case_to_the_states_it_names():
     files[page] = files[page].replace("| already_gone | booking is not held and booking is not paid |", "| already_gone | |")
     f8 = one(flowcheck.check_slice(files, "FLO-304", TODAY), "F8")
     assert f8.summary.startswith("Booking 1 is left held")
+
+
+def test_an_unreadable_bullet_on_a_contract_with_a_when_column_is_f10_not_a_crash():
+    """Ledger C47: a problem tied to an item made the builder unpack a When clause (three parts) as a Sets pair (two)."""
+    files = files_of("r2-04-when")
+    page = "05-building-blocks/booking-building-blocks.md"
+    files[page] = files[page].replace("- **Retries:** none", "- **Retries:** often", 1)
+    result = flowcheck.check_slice(files, "FLO-304", TODAY)
+    assert result.status == "not fully checked" and "F10" in [f.code for f in result.findings]
 
 
 def test_r2_05_a_change_with_no_row_for_the_current_state_is_illegal():
