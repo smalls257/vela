@@ -1,0 +1,37 @@
+/* ------------------------------------------------ error cases under the played flow (branches.js) */
+.br-note { flex: none; margin: 4px 20px 2px; font-size: 12.5px; color: var(--ink-3); }
+.br { flex: none; max-height: 44vh; overflow: auto; margin: 4px 14px 0 12px; padding: 6px 10px 8px; border: 1px solid var(--rule); border-radius: 10px; background: var(--room-2); }
+.br-sum { margin: 2px 0 6px; color: var(--ink-3); font-size: 13px; }
+.br-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0 4px; font-size: 13px; color: var(--ink-3); }
+.br-pick { font: inherit; font-size: 13.5px; max-width: 100%; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--rule-3); background: var(--room); color: var(--ink); }
+.br-pick:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.br-says { margin: 4px 0; font: 14px/1.45 var(--serif); color: var(--ink); max-width: 90ch; }
+.br-unchecked { margin: 4px 0; font-size: 12.5px; color: var(--pending-text); }
+.br-findings { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 6px; }
+.br-finding { font: inherit; font-size: 13.5px; text-align: left; padding: 7px 12px; border-radius: 0 6px 6px 0; border: 0; border-left: 3px solid var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); color: var(--ink-2); cursor: pointer; max-width: 90ch; white-space: normal; }
+.br-finding.warning { border-left-color: var(--caution); background: color-mix(in srgb, var(--caution) 12%, transparent); }
+.br-finding.covered { border-left-color: var(--override-edge); }
+.br-finding b { color: var(--ink); }
+.br-finding:hover { background: var(--deck); }
+.br-trace { margin: 0; padding-left: 18px; }
+.br-scroll { overflow-x: auto; }
+.br-svg { display: block; background: var(--board); border: 1px solid var(--rule); border-radius: 8px; }
+.br-lane { stroke: var(--rule-3); stroke-width: 1; stroke-dasharray: 2 4; }
+.br-party rect { fill: var(--deck-2); stroke: var(--rule-3); }
+.br-party text { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+.br-party { cursor: pointer; }
+.br-party:hover rect, .br-party:focus-visible rect { stroke: var(--ink-2); }
+.br-msg { stroke: var(--ink-3); stroke-width: 1.5; fill: none; }
+.br-msg.reply { stroke-dasharray: 4 3; }
+.br-head-fill { fill: var(--ink-3); }
+.br-head-fill.alt { fill: var(--caution); }
+.br-text { font-size: 11px; fill: var(--ink-2); }
+.br-band.plain { fill: color-mix(in srgb, var(--note-text) 14%, transparent); stroke: var(--note-text); stroke-width: .8; }
+.br-band.end { fill: var(--deck-2); stroke: var(--ink-2); stroke-width: 1.2; }
+.br-band.timeout { fill: none; stroke: var(--warning); stroke-width: 1.3; stroke-dasharray: 3 2; }
+.br-step { cursor: pointer; }
+.br-step.alt .br-msg { stroke: var(--caution); stroke-width: 2.2; }
+.br-step.alt .br-band { stroke: var(--caution); stroke-width: 1.8; }
+.br-step.alt .br-text { fill: var(--caution-text); font-weight: 600; }
+.br-step:focus-visible { outline: none; }
+.br-step:focus-visible .br-text { text-decoration: underline; }

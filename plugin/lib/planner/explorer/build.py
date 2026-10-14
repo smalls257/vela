@@ -34,7 +34,7 @@ from planner import search as planner_search
 from planner.edge import atomic
 from planner.parse import FENCE, closes_fence
 
-from . import (asks_data, assets_inline, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
+from . import (asks_data, assets_inline, branches_data, breakdown_find, design_data, design_find, draft_data, flows_data, icons_data, inside_data, pages_data,
                plan_data, roles_data, serve, slices_data)
 from . import pins as pinning
 from .record import (HANDLE, LABELED_LINE, PROSE_LIMIT, Keys, inline_html,
@@ -52,11 +52,11 @@ class ExplorerError(Exception):
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
-              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
+              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULE = "selftest"  # 120 KB of checks: bundled only when asked (`planner explore --selftest`), not shipped to every reader
+SELFTEST_MODULES = ("selftest", "selftest-branches")  # 120 KB of checks: bundled only when asked (`planner explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
-               "releases", "slices", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
+               "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -597,6 +597,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
     data["outgoing"] = pages_data.outgoing(vault, keys)
     data.update(roles_data.extract(vault, keys))
     data["slicePlan"] = slices_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)))
+    data["branches"] = branches_data.extract(vault, keys, today, cli.spec_texts(pathlib.Path(root)))
     data["containers"] = inside_data.containers(vault, keys)
     data["designs"] = inside_data.inside(vault, keys, designs or {})
     data["plans"] = plan_data.inside(vault, keys, plans or {}, data["designs"])
@@ -628,7 +629,7 @@ def render(data, assets=None, selftest=False):
     shell = (HERE / "assets" / "shell.html").read_text(encoding="utf-8")
     css = "\n".join((HERE / "assets" / "css" / f"{m}.css").read_text(encoding="utf-8") for m in CSS_MODULES)
     js = "\n".join(f"/* ---- {m}.js ---- */\n" + (HERE / "assets" / "js" / f"{m}.js").read_text(encoding="utf-8")
-                   for m in (*JS_MODULES[:-1], *((SELFTEST_MODULE,) if selftest else ()), JS_MODULES[-1]))
+                   for m in (*JS_MODULES[:-1], *(SELFTEST_MODULES if selftest else ()), JS_MODULES[-1]))
     if assets:
         resolver = assets["resolver"]
         if "</script" in resolver.lower():

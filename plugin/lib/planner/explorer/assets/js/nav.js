@@ -196,6 +196,7 @@ const Nav = (() => {
     if (App.view === "releases" || (App.view === "map" && MapView.lens() === "releases")) p.push("state=" + Releases.st.at);
     for (const keep of ["still", "fx", "selftest", "trace"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
     if (App.view === "slices" && typeof Slices !== "undefined") p.push(...Slices.hashParts());
+    if (App.view === "flows" && typeof Branches !== "undefined" && Flows.st.key) { const b = Branches.hashPart(Flows.st.key); if (b) p.push(b.slice(1)); }
     setHash("#" + p.join("&"), !!(opts && opts.replace));
   }
   function boot() {

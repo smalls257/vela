@@ -93,7 +93,7 @@ const Flows = (() => {
     const nodeList = flowNodes(st.key, () => player);
     const caption = h("section", { class: "caption", id: "caption", "aria-live": "polite" });
     const transport = h("footer", { class: "transport", id: "transport" });
-    main.append(stage, key.el(), nodeList, caption, transport);
+    main.append(stage, key.el(), ...[Branches.section(st.key)].filter(Boolean), nodeList, caption, transport);
     key.paint();
     player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); Minimap.refresh(); }, onPlay: paintTransport,
       onFlow: (p) => select(p.key, -1) });
@@ -210,7 +210,7 @@ const Flows = (() => {
     if (App.view !== "flows") { showView("flows"); }
     else if (changed || !player || !player.canvas.isConnected) rerender();
     else { player.pause(); player.go(st.cur, step >= 0); }
-    history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}`);
+    history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}${Branches.hashPart(key)}`);
   }
   function clipNote() { const fmt = FlowKit.clipFormat(); return fmt ? `Records a ${fmt.ext.toUpperCase()} clip, 1280 by 720${Sound.enabled ? ", with sound" : ""}, in the browser` : "Recording is not available in this browser"; }
   async function saveClip() {
