@@ -101,7 +101,7 @@ knows:
   - id: K12
     category: fact
     keywords: ["Teams transcripts", "OneDrive"]
-    fact: Teams can already write a transcript when the organiser turns it on, and the transcript lands in the organiser's OneDrive. Few organisers turn it on today.
+    fact: Teams can already write a transcript when the organizer turns it on, and the transcript lands in the organizer's OneDrive. Few organizers turn it on today.
     owner: IT endpoint lead
   - id: K13
     category: fact
@@ -110,7 +110,7 @@ knows:
     owner: Accessibility lead
   - id: K14
     category: fact
-    keywords: ["Copilot", "300 licences"]
+    keywords: ["Copilot", "300 licences", "300 licenses"]
     fact: Microsoft Copilot is licensed to about 300 executives only. The CFO would not fund it for everyone.
     owner: CIO
   - id: K15
@@ -184,8 +184,8 @@ unaware:
     why: Retention that deletes after 30 days may break a hold, and keeping it longer may breach the privacy limit.
   - id: U8
     category: fact
-    keywords: ["PPPC", "notarised", "code signing"]
-    gap: On a Mac, reading screens, audio or other apps needs privacy permissions granted by an MDM profile, and the installer must be signed and notarised. On Windows it needs a signed package that Intune can deploy.
+    keywords: ["PPPC", "notarised", "notarized", "code signing"]
+    gap: On a Mac, reading screens, audio or other apps needs privacy permissions granted by an MDM profile, and the installer must be signed and notarized. On Windows it needs a signed package that Intune can deploy.
     why: Two minutes of setup is limited by what the MDM can pre-approve, and the first packaging slot decides the date.
 
 conflicts:
@@ -196,7 +196,7 @@ conflicts:
     position: Wants everything done on the laptop, so no meeting or mail text goes to any cloud service at all.
   - id: C2
     category: stakeholder-conflict
-    keywords: ["cloud summarisation", "across devices"]
+    keywords: ["cloud summarisation", "cloud summarization", "across devices"]
     who: Product owner
     position: Wants the summaries written in the cloud, because the on-device model is weak and the digest should follow the person across devices.
   - id: C3
@@ -229,14 +229,14 @@ decisions:
   - id: D2
     category: legal-regulatory
     keywords: ["on-device first", "redacted text"]
-    question: Where is the text read and summarised?
+    question: Where is the text read and summarized?
     options:
       - on the laptop only
-      - read on the laptop, summarised in the cloud on redacted text
+      - read on the laptop, summarized in the cloud on redacted text
       - everything in the cloud
-    choice: read and ranked on the laptop, with cloud summarisation of redacted text only if the DPO clears it
+    choice: read and ranked on the laptop, with cloud summarization of redacted text only if the DPO clears it
     reason: it keeps the CISO's red line for release one and leaves the product owner a route
-    refuse_until: the DPO confirms in writing that cloud summarisation is lawful under the impact assessment
+    refuse_until: the DPO confirms in writing that cloud summarization is lawful under the impact assessment
   - id: D3
     category: legal-regulatory
     keywords: ["opt in per source", "off by default"]
@@ -339,7 +339,7 @@ docs:
 
       - One tenant, about 4,200 users. Devices: 3,100 Windows managed by Intune, 1,100 Macs managed by Jamf.
       - Staff cannot install software. Everything is pushed from Intune or Jamf.
-      - Teams transcripts exist only where the organiser turned them on, in the organiser's OneDrive.
+      - Teams transcripts exist only where the organizer turned them on, in the organizer's OneDrive.
       - A Graph app registration is raised through the identity team. Calendar and mail can be read with each user's own
         consent. Reading transcripts needs tenant admin approval.
       - Frankfurt (about 600 staff) has a works council.

@@ -12,7 +12,7 @@ authored: mixed
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=ba04cbc9: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=fbc178a8: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -68,7 +68,7 @@ authored: mixed
 | [[11-unknowns-and-risks#UNK-046 Households: DPO letter and the phone call\|UNK-046]] | @sim-lead (asking the Data Protection Officer) | 2026-10-13 | nothing |
 | [[11-unknowns-and-risks#UNK-047 Who the build team is\|UNK-047]] | @sim-lead (asking the CIO's office) | 2026-10-13 | nothing |
 | [[11-unknowns-and-risks#UNK-048 FERRYMASTER leavers and HR\|UNK-048]] | @sim-lead (asking Ferry Ops and HR) | 2026-10-13 | nothing |
-| [[11-unknowns-and-risks#UNK-049 Call centres in the room\|UNK-049]] | @sim-lead (asking the CIO's office) | 2026-10-13 | nothing |
+| [[11-unknowns-and-risks#UNK-049 Call centers in the room\|UNK-049]] | @sim-lead (asking the CIO's office) | 2026-10-13 | nothing |
 | [[11-unknowns-and-risks#UNK-050 Platform team commitment to link service\|UNK-050]] | @sim-lead (asking the Northway Platform team) | 2026-10-13 | [[05-building-blocks#Login with a link service\|Login with a link service]], [[account-link-service-building-blocks\|account-link-service-building-blocks]] |
 
 **Last session:** 2026-10-07

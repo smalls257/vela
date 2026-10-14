@@ -21,7 +21,7 @@ If Coach is down or slow, a screen the reader is already on shows a short messag
 TickerTalk takes part in these journeys, all at assumption.
 
 - [[FLO-001-reader-starts-learning|A reader starts learning]]
-- [[FLO-002-reader-practises-a-trade|A reader practises a trade]]
+- [[FLO-002-reader-practices-a-trade|A reader practices a trade]]
 - [[FLO-003-reader-passes-the-ready-track|A reader passes the ready track]]
 
 ## History

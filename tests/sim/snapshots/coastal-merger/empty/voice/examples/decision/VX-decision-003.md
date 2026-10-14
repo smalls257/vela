@@ -6,8 +6,8 @@ author: "Dirkjan Ochtman"
 work: "The Architecture of Open Source Applications, Volume 1"
 chapter: "Chapter 12, Mercurial, section 12.6. Lessons Learned"
 url: https://aosabook.org/en/v1/mercurial.html
-licence: CC BY 3.0
-licence_url: https://creativecommons.org/licenses/by/3.0/
+license: CC BY 3.0
+license_url: https://creativecommons.org/licenses/by/3.0/
 changes: none, the passage is quoted word for word
 state: active
 added: 2026-10-03

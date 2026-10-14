@@ -12,7 +12,7 @@ authored: mixed
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=4c22426b: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=e330c474: do not edit, run planner render -->
 **Apps on the ladder:** none
 
 **Open unknowns**
@@ -61,7 +61,7 @@ authored: mixed
 | [[11-unknowns-and-risks#UNK-046 Households: DPO letter and the phone call\|UNK-046]] | @sim-lead (asking the Data Protection Officer) | 2026-10-13 | nothing |
 | [[11-unknowns-and-risks#UNK-047 Who the build team is\|UNK-047]] | @sim-lead (asking the CIO's office) | 2026-10-13 | nothing |
 | [[11-unknowns-and-risks#UNK-048 FERRYMASTER leavers and HR\|UNK-048]] | @sim-lead (asking Ferry Ops and HR) | 2026-10-13 | nothing |
-| [[11-unknowns-and-risks#UNK-049 Call centres in the room\|UNK-049]] | @sim-lead (asking the CIO's office) | 2026-10-13 | nothing |
+| [[11-unknowns-and-risks#UNK-049 Call centers in the room\|UNK-049]] | @sim-lead (asking the CIO's office) | 2026-10-13 | nothing |
 
 **Last session:** 2026-10-07
 <!-- /generated:where-it-stands -->

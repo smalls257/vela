@@ -20,7 +20,7 @@ Coach teaches individual US-listed stocks through lessons and paper practice on 
 
 Coach prepares or places no real order: real orders are release two, and Brightwater keeps the execution (SRC-01). It teaches no ETFs and no options in release one, shows no trade ideas to customers (SRC-06) and holds no customer money, which Brightwater holds (SRC-01). Sign-in and the news stay with [[tickertalk-building-blocks|TickerTalk]]. Coach does not run Signal, whose place is not decided.
 
-<!-- generated:app-context sha=1ee14375: do not edit, run planner render -->
+<!-- generated:app-context sha=46363da4: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -36,7 +36,7 @@ flowchart LR
   class n_APP_coach focus
 ```
 
-Key: dark blue: the app this page is about · amber: changed by this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · amber: changed by this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Containers
@@ -69,7 +69,7 @@ Key: dark blue: the app this page is about · amber: changed by this initiative 
 - **Provider:** Quoteline ([[03-context-and-scope#PTY-02 Quoteline|PTY-02]])
 - **Crosses the boundary:** out, US equity quotes delayed by 15 minutes, for display in Kestrel's own apps (SRC-02). Practice trades fill at the delayed quote shown on screen; Coach stores only the user's own practice record and builds no quote history or model from it. Whether lessons and practice count as display under clause 9 is the lead's reading, not settled, and stays open, [[11-unknowns-and-risks#UNK-021 Clause 9 and the coach's lessons and practice|UNK-021]].
 - **Consumers:** [[coach-building-blocks|Coach]]
-- **Change policy:** not recorded; the notice a change to the licence needs is open (Q-PTN-06@PTY-02).
+- **Change policy:** not recorded; the notice a change to the license needs is open (Q-PTN-06@PTY-02).
 - **Change:** new consumers
 - **State:** decided
 - **Decision:** [[2026-10-08-coach-contracts-grill]]
@@ -77,8 +77,8 @@ Key: dark blue: the app this page is about · amber: changed by this initiative 
 - **Override:** GATE-4 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, open questions to the build team as named risks with owners
 - **Options considered:** Coach app behind TickerTalk (picked); Coach built into TickerTalk: rejected, "B drowns mobile, they're already maxed" (the product lead); Coach, a separate board-demo app and Signal as idea source: rejected, "C's too many apps before we know what Brightwater allows" (the product lead)
 
-<!-- generated:contracts-consumed sha=c28818c6: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=5c308f02: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
-| [[coach-building-blocks#CON-002 Delayed quotes\|CON-002 Delayed quotes]] | Quoteline ([[03-context-and-scope#PTY-02 Quoteline\|PTY-02]]) | not recorded; the notice a change to the licence needs is open (Q-PTN-06@PTY-02). | decided |
+| [[coach-building-blocks#CON-002 Delayed quotes\|CON-002 Delayed quotes]] | Quoteline ([[03-context-and-scope#PTY-02 Quoteline\|PTY-02]]) | not recorded; the notice a change to the license needs is open (Q-PTN-06@PTY-02). | decided |
 <!-- /generated:contracts-consumed -->

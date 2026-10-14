@@ -14,7 +14,7 @@ depends_on: []
 
 # Calendar
 
-This epic turns the [[heron-building-blocks#CON-001 Calendar entries|calendar entries]] Heron reads into the right note at the right time. A note is built for each client call and shown ten minutes before the call starts. When the entry moves, the note follows the new time, and when the entry is cancelled, the note is withdrawn. The people on the call are taken from the entry alone, and the past entries are read the same way so the last call with the same client can be found.
+This epic turns the [[heron-building-blocks#CON-001 Calendar entries|calendar entries]] Heron reads into the right note at the right time. A note is built for each client call and shown ten minutes before the call starts. When the entry moves, the note follows the new time, and when the entry is canceled, the note is withdrawn. The people on the call are taken from the entry alone, and the past entries are read the same way so the last call with the same client can be found.
 
 - **Owning team:** @agent-lead
 
@@ -25,7 +25,7 @@ This epic turns the [[heron-building-blocks#CON-001 Calendar entries|calendar en
 3. When CON-001 sends a move, the note is shown ten minutes before the call's new time and not the old one (FLO-001). From CAP-001.FR1.
 4. When CON-001 sends a cancellation, no note is shown for that call and a note already built for it is withdrawn (FLO-001). From CAP-001.FR1.
 5. The people listed on a client call come from that call's entry over CON-001 and nowhere else: everyone invited appears except those who have declined, someone who joins without being invited does not appear, and a list in the invitation is expanded only when the entry names its members (FLO-001). From CAP-001.FR2.
-6. Each person on the list is shown by name and organisation only (CON-001, FLO-001). From CAP-001.FR2. Whether the entry carries the organisation is open as UNK-026.
+6. Each person on the list is shown by name and organization only (CON-001, FLO-001). From CAP-001.FR2. Whether the entry carries the organization is open as UNK-026.
 7. Past calendar entries come over CON-001 with their attendees, as coming ones do, so the most recent earlier call with the same client can be found (FLO-001). From CAP-001.FR3.
 
 ## Traces to

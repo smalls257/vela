@@ -49,7 +49,7 @@ Ships first, so Coach can build against the contract. The coach screens that rea
 
 ## Out of scope
 
-- The coach screens and the release switch behaviour on the mobile side.
+- The coach screens and the release switch behavior on the mobile side.
 - What Coach does with a reader's record after withdrawal: UNK-054.
 
 ## History

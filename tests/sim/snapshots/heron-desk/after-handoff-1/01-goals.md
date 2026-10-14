@@ -14,7 +14,7 @@ The only goal on record is the CIO's own sentence, relayed by the solution lead:
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=6da43ed7: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=754b964d: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -52,7 +52,7 @@ The only goal on record is the CIO's own sentence, relayed by the solution lead:
 | [[11-unknowns-and-risks#UNK-023 Invitees and the DPO rule\|UNK-023]] | @solution-lead | 2026-10-23 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR2 Who is on the call\|who is on the call]], [[04b-releases#Release one: London pilot\|Release one: London pilot]] |
 | [[11-unknowns-and-risks#UNK-024 DPO rule across the whole note\|UNK-024]] | @solution-lead | 2026-10-23 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR3 Last time and what is open\|last time and what is open]], [[04b-releases#Release one: London pilot\|Release one: London pilot]] |
 | [[11-unknowns-and-risks#UNK-025 Reusing call records and client names\|UNK-025]] | @solution-lead | 2026-11-01 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR2 Who is on the call\|who is on the call]], [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR3 Last time and what is open\|last time and what is open]], [[04b-releases#Release one: London pilot\|Release one: London pilot]] |
-| [[11-unknowns-and-risks#UNK-026 Whether the calendar entry carries an attendee's organisation\|UNK-026]] | @solution-lead | 2026-10-16 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR2 Who is on the call\|who is on the call]], [[04b-releases#Release one: London pilot\|Release one: London pilot]] |
+| [[11-unknowns-and-risks#UNK-026 Whether the calendar entry carries an attendee's organization\|UNK-026]] | @solution-lead | 2026-10-16 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR2 Who is on the call\|who is on the call]], [[04b-releases#Release one: London pilot\|Release one: London pilot]] |
 | [[11-unknowns-and-risks#UNK-027 Pilot laptops and the note on time\|UNK-027]] | @solution-lead | 2026-10-23 | [[04b-releases#Release one: London pilot\|Release one: London pilot]] |
 | [[11-unknowns-and-risks#UNK-028 Where the CTO named @agent-lead\|UNK-028]] | @sim-lead | 2026-10-16 | [[11-unknowns-and-risks#UNK-010 Who owns Heron\|who owns Heron]] |
 

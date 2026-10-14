@@ -18,7 +18,7 @@ It does not hold the household, the link or the loyalty view. The link step belo
 
 - **Options considered:** Login with a link service (picked); Login only, no new app: rejected, it holds the link in two places, leaves the rail-side link with no owner and puts the link step on SeaBook, which Ferry Ops says is frozen; Ferry sign-in adapter: rejected, its adapter has no named owner and the link step still has no app
 
-<!-- generated:app-context sha=5faac5f3: do not edit, run planner render -->
+<!-- generated:app-context sha=c4c7967b: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]
@@ -41,7 +41,7 @@ flowchart LR
   class n_APP_railcore unchanged
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · amber: changed by this initiative · grey: stays as it is · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · amber: changed by this initiative · gray: stays as it is · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Containers
@@ -49,7 +49,7 @@ Key: dark blue: the app this page is about · green: new in this initiative · a
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
 | Sign-in | Where the customer proves who they are | [[#CON-004 Sign in and person key\|CON-004]] | claude | assumption |
-| Person directory | Holds each customer's login, unique email and person key | [[#CON-004 Sign in and person key\|CON-004]], [[#CON-005 Enrol a ferry customer\|CON-005]] | claude | assumption |
+| Person directory | Holds each customer's login, unique email and person key | [[#CON-004 Sign in and person key\|CON-004]], [[#CON-005 Enroll a ferry customer\|CON-005]] | claude | assumption |
 
 ## Contracts this app provides
 
@@ -62,7 +62,7 @@ Key: dark blue: the app this page is about · green: new in this initiative · a
 - **State:** assumption
 - **Options considered:** Login with a link service (picked); Login only, no new app: rejected, it holds the link in two places, leaves the rail-side link with no owner and puts the link step on SeaBook, which Ferry Ops says is frozen; Ferry sign-in adapter: rejected, its adapter has no named owner and the link step still has no app
 
-### CON-005 Enrol a ferry customer
+### CON-005 Enroll a ferry customer
 
 - **Crosses the boundary:** in, a ferry customer's details, with their agreement; out, a new Northway ID and its person key. It rests on [[11-unknowns-and-risks#UNK-037 Northway ID terms for ferry customers|UNK-037]] and UNK-031.
 - **Consumers:** [[seabook-building-blocks|SeaBook]]

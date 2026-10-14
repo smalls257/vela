@@ -18,5 +18,5 @@ What is measured, so a failure shows up without a debugger or a release.
 | App | State | Why |
 |---|---|---|
 | [[desktop-agent-building-blocks\|Desktop agent]] | unexamined | |
-| [[summariser-building-blocks\|Summariser]] | unexamined | |
+| [[summarizer-building-blocks\|Summarizer]] | unexamined | |
 | [[consent-and-identity-building-blocks\|Consent and identity]] | unexamined | |

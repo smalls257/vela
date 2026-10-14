@@ -5,7 +5,7 @@
 # Same shape and the same category set as coastal-merger.yaml; see the comments there for keywords and categories.
 holdout: true
 name: Priya Raman
-role: newly appointed programme lead for outpatient booking across the two trusts
+role: newly appointed program lead for outpatient booking across the two trusts
 org: Fenwick Valley Hospitals NHS Foundation Trust and Calder Reach University Hospitals NHS Trust, which agreed to merge their outpatient booking in the summer
 handle: "@sim-lead"
 style: >-
@@ -90,8 +90,8 @@ knows:
   - id: K13
     category: fact
     keywords: ["Joint Integration Committee", "joint committee"]
-    fact: A Joint Integration Committee of both boards approves the programme's big steps.
-    owner: Joint Programme Office
+    fact: A Joint Integration Committee of both boards approves the program's big steps.
+    owner: Joint Program Office
 
 wrong:
   - id: W1
@@ -128,9 +128,9 @@ unaware:
     why: One front door inherits the weaker of the two, and nobody has said which the mandate accepts.
   - id: U2
     category: third-party-contract
-    keywords: ["licence", "order form", "supplier contract"]
-    gap: The MyFenwick licence is priced per trust, and its supplier contract forbids use for another trust's patients without a new order form.
-    why: Opening MyFenwick to Calder patients without a contract change breaches the licence.
+    keywords: ["licence", "license", "order form", "supplier contract"]
+    gap: The MyFenwick license is priced per trust, and its supplier contract forbids use for another trust's patients without a new order form.
+    why: Opening MyFenwick to Calder patients without a contract change breaches the license.
   - id: U3
     category: unnamed-stakeholder
     keywords: ["clinic template", "slot type", "specialty leads", "clinical leads"]
@@ -205,7 +205,7 @@ decisions:
     keywords: ["separate business case", "single PAS decision", "after April"]
     question: When is the single-PAS question decided?
     options:
-      - inside this programme, before April
+      - inside this program, before April
       - after April, as a separate business case
       - never
     choice: after April, as a separate business case
@@ -252,7 +252,7 @@ docs:
     text: |
       # Joint board paper: one front door for outpatients
 
-      Owner: Joint Programme Office. Presented to the Joint Integration Committee, 2026-09-10.
+      Owner: Joint Program Office. Presented to the Joint Integration Committee, 2026-09-10.
 
       Both trusts now share a single patient administration platform, so one front door is largely a
       configuration exercise. MyFenwick will be extended to Calder patients. The Keystone contract runs to

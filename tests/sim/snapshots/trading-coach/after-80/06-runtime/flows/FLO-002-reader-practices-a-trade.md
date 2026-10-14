@@ -1,14 +1,14 @@
 ---
 id: FLO-002
 type: flow
-title: A reader practises a trade
+title: A reader practices a trade
 state: assumption
 owner: "@sim-lead"
 authored: authored
 sources: [SRC-16, SRC-08, 2026-10-09-coach-tickertalk-journeys]
 ---
 
-# A reader practises a trade
+# A reader practices a trade
 
 A reader who has opted in picks a stock from the list and places a paper order. [[tickertalk-building-blocks|TickerTalk]] draws the screens, [[coach-building-blocks|Coach]] keeps the paper record and sends the order to Brightwater's sandbox, and no real order or real money is involved. When the sandbox account is opened is [[11-unknowns-and-risks#UNK-050 When Coach opens a sandbox account|not decided]].
 

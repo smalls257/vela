@@ -100,7 +100,7 @@ CATEGORIES = ("cross-source-mismatch", "legal-regulatory", "finance-liability", 
               "unnamed-stakeholder", "data-identity", "stakeholder-conflict", "timeline", "fact")
 
 
-def normalise(text):
+def normalize(text):
     """Case, whitespace, quote marks and emphasis do not change what a turn says. Used for quotes and keywords alike."""
     return re.sub(r"\s+", " ", re.sub(r"[\"'“”‘’`*_]", "", str(text))).strip().lower()
 
@@ -108,8 +108,8 @@ def normalise(text):
 def mentions(text, keywords):
     """The keywords text holds, matched from the start of a word so that "partner hotel" finds "partner hotels" and
     "dpo" does not find "endpoint"."""
-    flat = normalise(text)
-    return [k for k in keywords if re.search(r"(?<![a-z0-9])" + re.escape(normalise(k)), flat)]
+    flat = normalize(text)
+    return [k for k in keywords if re.search(r"(?<![a-z0-9])" + re.escape(normalize(k)), flat)]
 
 
 def resolve(ref, folder):
@@ -171,16 +171,16 @@ def keyword_problems(kind, item_id, item, opening_text):
     words = item.get("keywords")
     if not isinstance(words, list) or not words:
         return [f"{kind} {item_id}: 'keywords' must be a non-empty list"]
-    if not all(isinstance(w, str) and normalise(w) for w in words):
+    if not all(isinstance(w, str) and normalize(w) for w in words):
         return [f"{kind} {item_id}: every keyword must be a non-empty string"]
     problems = []
     if not KEYWORD_COUNT[0] <= len(words) <= KEYWORD_COUNT[1]:
         problems.append(f"{kind} {item_id}: give {KEYWORD_COUNT[0]} to {KEYWORD_COUNT[1]} keywords, not {len(words)}")
-    if len({normalise(w) for w in words}) != len(words):
+    if len({normalize(w) for w in words}) != len(words):
         problems.append(f"{kind} {item_id}: a keyword is listed twice")
     # Every assistant turn may echo the opening, so a keyword it holds proves nothing. The one exception is a fact
     # that is itself the opening, such as the mandate, where writing it down is the capture.
-    own_text = normalise(" ".join(str(item.get(f, "")) for f in ITEM_FIELDS[kind]))
+    own_text = normalize(" ".join(str(item.get(f, "")) for f in ITEM_FIELDS[kind]))
     for word in words:
         if isinstance(opening_text, str) and mentions(opening_text, [word]) and not (kind == "knows" and mentions(own_text, [word])):
             problems.append(f"{kind} {item_id}: keyword {word!r} is in the opening, so every echo of it would match")
@@ -1558,7 +1558,7 @@ def tracer_evidence(pages, room):
 
 
 def turn_relevance(spoken, keywords):
-    """Per turn, how much it matters to a call: the keywords it holds, and half the best neighbour's, since the
+    """Per turn, how much it matters to a call: the keywords it holds, and half the best neighbor's, since the
     answer to a question about a fact is the next turn. A turn with neither scores 0 and is cut first."""
     own = [len(mentions(e["text"], keywords)) for e in spoken]
     near = [max(own[i - 1] if i else 0, own[i + 1] if i + 1 < len(own) else 0) / 2 for i in range(len(own))]
@@ -1622,7 +1622,7 @@ def relevant_chat(spoken, keywords, room):
     flush()
     left_out = [spoken[i]["turn"] for i in range(len(spoken)) if i not in kept]
     cut = (f"transcript: {len(kept)} of {len(spoken)} turns shown, each cut to {RELEVANT_TURN_CHARS} characters around its keyword, the turns "
-           f"that hold one of the category's keywords and their neighbours first; left out: {turn_runs(left_out) or 'none'}")
+           f"that hold one of the category's keywords and their neighbors first; left out: {turn_runs(left_out) or 'none'}")
     return "\n".join(lines).strip(), cut
 
 
@@ -1772,7 +1772,7 @@ def cited(row, turns):
     turn, quote = turn_number(row.get("turn")), row.get("quote")
     if turn is None or turn not in turns:
         return False
-    if isinstance(quote, str) and bool(normalise(quote)) and normalise(quote) in normalise(turns[turn]):
+    if isinstance(quote, str) and bool(normalize(quote)) and normalize(quote) in normalize(turns[turn]):
         row["turn"] = turn
         return True
     return False
@@ -1786,7 +1786,7 @@ def checked_tracer(row, pages, dropped):
     if row["answer"] in ("tracer", "none_with_reason"):
         where, quote = str(row.get("where") or ""), row.get("quote")
         page = pages.get(where)
-        if page is None or not (isinstance(quote, str) and normalise(quote) and normalise(quote) in normalise(page)):
+        if page is None or not (isinstance(quote, str) and normalize(quote) and normalize(quote) in normalize(page)):
             why = f"tracer: {where!r} does not hold the quote {short(quote, 80)!r}"
             row.update(answer="not_recorded", dropped=why)
             dropped.append(why)

@@ -26,13 +26,13 @@ A pilot team member gets one note about ten minutes before each client call. The
 
 - On a day with a client call, the person sees one note ten minutes before the call starts.
 - A call booked or moved to start inside ten minutes gets its note as soon as it can be built.
-- A call that is cancelled gets no note, and a note already built for it is withdrawn.
+- A call that is canceled gets no note, and a note already built for it is withdrawn.
 - A call moved to a new time is shown ten minutes before the new time, not the old one.
 - The note appears only for calls that count as client calls. How a call is marked as one is open as [[11-unknowns-and-risks#UNK-021 How a client call is marked|how a call is marked]].
 
 ### CAP-001.FR2 Who is on the call
 
-The note lists the people on the call, taken from the person's calendar entry for it and nowhere else. It shows each one's name and organisation, and no one who was not in the meeting.
+The note lists the people on the call, taken from the person's calendar entry for it and nowhere else. It shows each one's name and organization, and no one who was not in the meeting.
 
 - **State:** assumption
 - **Source:** [[2026-10-11-prep-note-requirements#^c05]]
@@ -41,7 +41,7 @@ The note lists the people on the call, taken from the person's calendar entry fo
 - A person who has declined does not appear.
 - A person who joins the call without being invited does not appear.
 - A list in the invitation is expanded only when the calendar entry names its members; otherwise it is not expanded.
-- Each person is shown by name and organisation only.
+- Each person is shown by name and organization only.
 
 ### CAP-001.FR3 Last time and what is open
 

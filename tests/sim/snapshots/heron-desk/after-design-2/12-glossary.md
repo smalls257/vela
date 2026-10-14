@@ -32,4 +32,4 @@ One paragraph per term: the term in bold, then what it means in this initiative.
 
 **Consent and identity:** the shared service that keeps a record of who agreed to what and who withdrew, and answers the Desktop agent's consent check. The works council can audit it.
 
-**Summariser:** the service that writes the digest and the prep note from the calendar entries and attendees the Desktop agent sends it.
+**Summarizer:** the service that writes the digest and the prep note from the calendar entries and attendees the Desktop agent sends it.

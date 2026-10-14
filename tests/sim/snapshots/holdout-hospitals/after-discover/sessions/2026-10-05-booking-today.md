@@ -20,9 +20,9 @@ summary: "Booking today: nine facts from the Fenwick services list and the Calde
 - [fact] (claude, from SRC-02) Calder runs Keystone PAS, hosted by the supplier. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c06
 - [fact] (claude, from SRC-02) Calder has no patient portal; letters go by post and reminders through TextRemind. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c07
 - [fact] (claude, from SRC-02) Each Calder specialty's medical secretaries book their own clinics. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c08
-- [unknown] (programme lead) "The board paper says March 2028 for Keystone, the register says September 2027. I'd heard 2028." → keep: [[11-unknowns-and-risks#UNK-006 Keystone contract end date|UNK-006]] (unknown) ^c09
+- [unknown] (program lead) "The board paper says March 2028 for Keystone, the register says September 2027. I'd heard 2028." → keep: [[11-unknowns-and-risks#UNK-006 Keystone contract end date|UNK-006]] (unknown) ^c09
 - [fact] (claude, from SRC-02) The Keystone contract ends on 30 September 2027 with a 9-month notice period, per the register. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c10
-- [thought] (programme lead) "Honestly not sure there's more to find until the CEO says what the front door is." → keep: [[11-unknowns-and-risks#UNK-001 What the front door means|UNK-001]] (unknown) ^c11
+- [thought] (program lead) "Honestly not sure there's more to find until the CEO says what the front door is." → keep: [[11-unknowns-and-risks#UNK-001 What the front door means|UNK-001]] (unknown) ^c11
 
 ## Changes
 

@@ -42,7 +42,7 @@ This epic holds the whole journey of [[FLO-001-prep-note-before-a-client-call|a 
 ## Depends on
 
 - [[EPC-001-calendar|Calendar]]: the list of who is on the call and the times come from the calendar entries.
-- [[EPC-002-chosen-folder|Chosen folder]]: the messages for a folder that is not set, missing or empty are part of the folder behaviour.
+- [[EPC-002-chosen-folder|Chosen folder]]: the messages for a folder that is not set, missing or empty are part of the folder behavior.
 - [[EPC-003-call-tool-records|Call tool records]]: the message for unreadable call tool records and the first-call case rest on the account of the last call.
 
 ## Rollout notes

@@ -216,7 +216,7 @@ def decided_lines(vault):
 
 def explicit_yes(lead_message, asked):
     """A decision counts as the lead's when the message that led to it says yes to a question the assistant put."""
-    return bool(asked) and bool(YES.search(sim.normalise(lead_message)))
+    return bool(asked) and bool(YES.search(sim.normalize(lead_message)))
 
 
 class ProbeLedger(sim.Ledger):
@@ -288,12 +288,12 @@ def units(text):
 
 
 def is_question(sentence):
-    flat = sim.normalise(sentence).rstrip(" )]")
+    flat = sim.normalize(sentence).rstrip(" )]")
     return flat.endswith("?") and not CONFIRM_TAIL.search(flat)
 
 
 def has_cue(text):
-    return bool(CUE.search(sim.normalise(text)))
+    return bool(CUE.search(sim.normalize(text)))
 
 
 def excerpt(text, keyword, limit=EXCERPT):
@@ -413,29 +413,29 @@ def option_blocks(text):
 
 
 def stakeholder_terms(persona):
-    terms = {sim.normalise(c["who"]) for c in persona.get("conflicts") or []}
+    terms = {sim.normalize(c["who"]) for c in persona.get("conflicts") or []}
     for item in persona.get("knows") or []:
         for part in re.split(r"[;,]", str(item.get("owner") or "")):
-            if len(sim.normalise(part)) >= 3 and "nobody" not in part:
-                terms.add(sim.normalise(part))
+            if len(sim.normalize(part)) >= 3 and "nobody" not in part:
+                terms.add(sim.normalize(part))
     return sorted(terms)
 
 
 def mechanical_parts(block, terms):
-    flat = sim.normalise(block)
+    flat = sim.normalize(block)
     return {"costs": bool(COST_CUE.search(flat)), "rules_out": bool(RULES_OUT_CUE.search(flat)),
             "stakeholder_or_unknown": bool(UNKNOWN_CUE.search(flat) or ROLE_CUE.search(flat)
                                            or any(t in flat for t in terms))}
 
 
 def options_turn(spoken):
-    """The first assistant turn with two or more labelled options, else the first that talks about options."""
+    """The first assistant turn with two or more labeled options, else the first that talks about options."""
     assistant = [e for e in spoken if e["speaker"] == "assistant"]
     for entry in assistant:
         if len(option_blocks(entry["text"])) >= 2:
             return entry, option_blocks(entry["text"])
     for entry in assistant:
-        if re.search(r"\boptions?\b", sim.normalise(entry["text"])):
+        if re.search(r"\boptions?\b", sim.normalize(entry["text"])):
             return entry, []
     return None, []
 
@@ -511,10 +511,10 @@ def ask_options_judge(run, entry, blocks):
 
 
 def quoted(quote, text):
-    return isinstance(quote, str) and bool(sim.normalise(quote)) and sim.normalise(quote) in sim.normalise(text)
+    return isinstance(quote, str) and bool(sim.normalize(quote)) and sim.normalize(quote) in sim.normalize(text)
 
 
-def analyse_options(run):
+def analyze_options(run):
     """The options the shape turn offered and, per option, which parts it names and how that was known."""
     if run.options is not None:
         return run.options
@@ -665,7 +665,7 @@ def categories_raised_first(run, criterion):
 
 @check("option-count", "between")
 def option_count(run, criterion):
-    found = analyse_options(run)
+    found = analyze_options(run)
     low, high = criterion["between"]
     n = len(found["options"])
     where = f" in T{found['turn']}" if found["turn"] else ""
@@ -677,7 +677,7 @@ def option_count(run, criterion):
 
 @check("option-parts", "parts")
 def option_parts(run, criterion):
-    found = analyse_options(run)
+    found = analyze_options(run)
     options = found["options"]
     counts = {p: sum(1 for o in options if o["parts"][p]) for p in criterion["parts"]}
     passed = bool(options) and all(c == len(options) for c in counts.values())
@@ -774,7 +774,7 @@ COVERAGE = re.compile(r"^- \*\*Coverage:\*\* (?P<line>.+)$", re.M)
 AREA_RESULT = re.compile(r"\b(?P<area>[A-Z]{3}) (?P<status>found \d+(?:, \d+ dropped)?|checked, none|did not run \([^)]*\))")
 
 
-def catalogue_areas():
+def catalog_areas():
     data = yaml.safe_load((sim.PLUGIN / "catalog" / "questions.yaml").read_text(encoding="utf-8"))
     return list(data["areas"])
 
@@ -783,7 +783,7 @@ def catalogue_areas():
 def area_coverage(run, criterion):
     """Every review checkpoint the session records gives each focus area one result: found N, checked,
     none, or did not run with its reason. `require: ran` also needs every area to have run."""
-    areas = catalogue_areas()
+    areas = catalog_areas()
     lines = [(rel, m["line"]) for rel, text in sim.vault_pages(run.vault) if rel.startswith("sessions/")
              for m in COVERAGE.finditer(text)]
     detail, good = [], 0

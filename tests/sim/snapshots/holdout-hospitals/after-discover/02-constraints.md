@@ -14,4 +14,4 @@ What this initiative cannot change.
 
 | ID | Constraint | Where it comes from | What it forces |
 |---|---|---|---|
-| CST-1 | "Fenwick freezes IT changes from December to February." | Programme lead, [[2026-10-05-front-door-meaning#^c11]] | Nothing non-urgent changes at Fenwick from December to February, the months just before the April date. |
+| CST-1 | "Fenwick freezes IT changes from December to February." | Program lead, [[2026-10-05-front-door-meaning#^c11]] | Nothing non-urgent changes at Fenwick from December to February, the months just before the April date. |

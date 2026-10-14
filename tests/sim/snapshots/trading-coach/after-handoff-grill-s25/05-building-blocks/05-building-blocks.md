@@ -10,7 +10,7 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=f01fd47c: do not edit, run planner render -->
+<!-- generated:context-map sha=84c35dd0: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -26,7 +26,7 @@ flowchart LR
   class n_APP_coach new
 ```
 
-Key: green: new in this initiative · amber: changed by this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: green: new in this initiative · amber: changed by this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:context-map -->
 
 ## Coach app behind TickerTalk

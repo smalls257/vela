@@ -1,7 +1,7 @@
 ---
-id: APP-summariser
+id: APP-summarizer
 type: app-building-blocks
-title: Summariser
+title: Summarizer
 state: assumption
 change: new
 stage: target
@@ -11,9 +11,9 @@ authored: authored
 sources: [SRC-011, SRC-012, 2026-10-12-first-release-boundary]
 ---
 
-# Summariser
+# Summarizer
 
-The Summariser writes the 7:30 digest and the prep note from the day's calendar entries and existing Teams transcripts that the Desktop agent hands it, and hands the note back. Where it runs depends on the text call: on the laptop in the agent's package, or in a shared service. The contract it offers is the same either way, so the call can land late without reopening the agent's boundary. Its part in each requirement is under Requirements allocated, all still assumptions, and [[11-unknowns-and-risks#UNK-067 How slow is too slow|how long it may take to answer]] is open.
+The Summarizer writes the 7:30 digest and the prep note from the day's calendar entries and existing Teams transcripts that the Desktop agent hands it, and hands the note back. Where it runs depends on the text call: on the laptop in the agent's package, or in a shared service. The contract it offers is the same either way, so the call can land late without reopening the agent's boundary. Its part in each requirement is under Requirements allocated, all still assumptions, and [[11-unknowns-and-risks#UNK-067 How slow is too slow|how long it may take to answer]] is open.
 
 It does not read calendar entries or transcripts, which the Desktop agent does. It shows nothing to the person, and it keeps no consent or sign-in, which Consent and identity does. It does not decide where it runs: [[11-unknowns-and-risks#UNK-051 Text call|the text call]] does. It checks [[sources#SRC-011|the data protection officer's naming rule]] on its own output only. Still open: who builds it, which depends on the text call, and [[11-unknowns-and-risks#UNK-056 On-device model quality|whether an on-device model writes a digest worth reading]].
 
@@ -22,14 +22,14 @@ It does not read calendar entries or transcripts, which the Desktop agent does. 
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
 | Note writer | Turns the day's items into a digest or a prep note. | Note request | claude | assumption |
-| Naming check | Keeps the digest to people who were in the meeting and leaves out remarks on mood, tone or performance, by validating what the Summariser writes. | Note request | claude, from solution lead | assumption |
+| Naming check | Keeps the digest to people who were in the meeting and leaves out remarks on mood, tone or performance, by validating what the Summarizer writes. | Note request | claude, from solution lead | assumption |
 | Model | The language model: on the laptop in the agent's package, or in a shared service, as the text call settles. | none | claude | assumption |
 
 ## Contracts this app provides
 
 ### CON-002 Note request
 
-The Desktop agent sends the Summariser one person's items and the kind of note wanted, and gets the finished note back. The contract is the same wherever the model runs; the only difference is whether the items leave the laptop, which the text call settles.
+The Desktop agent sends the Summarizer one person's items and the kind of note wanted, and gets the finished note back. The contract is the same wherever the model runs; the only difference is whether the items leave the laptop, which the text call settles.
 
 - **Crosses the boundary:** In: one person's day's items (calendar entries and transcript text) and whether it is a digest or a prep note. Out: the finished note, or nothing.
 - **Consumers:** [[desktop-agent-building-blocks|Desktop agent]]
@@ -59,19 +59,19 @@ None from another app in the first release. If the text call goes to cloud, a ho
 
 ## Where it fits
 
-<!-- generated:app-context sha=e60aad55: do not edit, run planner render -->
+<!-- generated:app-context sha=536aa169: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_desktop_agent["Desktop agent (new)"]
-  n_APP_summariser["Summariser (new)"]
-  n_APP_summariser -->|"CON-002"| n_APP_desktop_agent
+  n_APP_summarizer["Summarizer (new)"]
+  n_APP_summarizer -->|"CON-002"| n_APP_desktop_agent
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
-  class n_APP_summariser focus
+  class n_APP_summarizer focus
   class n_APP_desktop_agent new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 <!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->
@@ -80,8 +80,8 @@ none
 
 ## History
 
-- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarising inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
+- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarizing inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
 
 #### CON-002
 
-- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarising inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
+- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarizing inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January

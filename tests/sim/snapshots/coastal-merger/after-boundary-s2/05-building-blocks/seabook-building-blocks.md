@@ -12,13 +12,13 @@ sources: [SRC-02, SRC-06, 2026-10-07-login-owner-and-offer]
 
 # SeaBook
 
-SeaBook is the ferry web booking engine. It has an availability target of 99.9% from May to September and is on call round the clock (SRC-02). In this cut it also signs ferry customers in through Northway ID, enrols them, and shows their linked accounts. Those three jobs are proposals the lead agreed to when reading back this page.
+SeaBook is the ferry web booking engine. It has an availability target of 99.9% from May to September and is on call round the clock (SRC-02). In this cut it also signs ferry customers in through Northway ID, enrolls them, and shows their linked accounts. Those three jobs are proposals the lead agreed to when reading back this page.
 
 It does not own the login, which is [[northway-id-building-blocks|Northway ID]], or the link step, which is the [[account-link-service-building-blocks|Account link service]]. It does not keep rail records or hold the household or the loyalty balances. Card payments stay with Tidepay, and FERRYMASTER stays the ledger of record (SRC-02).
 
 - **Options considered:** Login with a link service (picked); Login only, no new app: rejected, it holds the link in two places, leaves the rail-side link with no owner and puts the link step on SeaBook, which Ferry Ops says is frozen; Ferry sign-in adapter: rejected, its adapter has no named owner and the link step still has no app
 
-<!-- generated:app-context sha=12eb78ad: do not edit, run planner render -->
+<!-- generated:app-context sha=d5faf148: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]
@@ -37,7 +37,7 @@ flowchart LR
   class n_APP_account_link_service new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · amber: changed by this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · amber: changed by this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Containers
@@ -47,7 +47,7 @@ What is inside SeaBook is not recorded: [[11-unknowns-and-risks#UNK-011 How ferr
 | Container | Job | Contracts served or used | Proposed by | State |
 |---|---|---|---|---|
 | Booking engine | Takes ferry bookings on the web (SRC-02) | none | SRC-02 | unchanged |
-| Sign-in | Signs a ferry customer in through Northway ID | [[northway-id-building-blocks#CON-004 Sign in and person key\|CON-004]], [[northway-id-building-blocks#CON-005 Enrol a ferry customer\|CON-005]] | claude | assumption |
+| Sign-in | Signs a ferry customer in through Northway ID | [[northway-id-building-blocks#CON-004 Sign in and person key\|CON-004]], [[northway-id-building-blocks#CON-005 Enroll a ferry customer\|CON-005]] | claude | assumption |
 
 ## Contracts this app provides
 
@@ -62,13 +62,13 @@ What is inside SeaBook is not recorded: [[11-unknowns-and-risks#UNK-011 How ferr
 
 ## Contracts this app consumes
 
-It relies on [[northway-id-building-blocks#CON-004 Sign in and person key|CON-004]] and [[northway-id-building-blocks#CON-005 Enrol a ferry customer|CON-005]] from Northway ID, and on [[account-link-service-building-blocks#CON-001 Link a customer|CON-001]] and [[account-link-service-building-blocks#CON-002 Look up linked records|CON-002]] from the Account link service. Tidepay is untouched.
+It relies on [[northway-id-building-blocks#CON-004 Sign in and person key|CON-004]] and [[northway-id-building-blocks#CON-005 Enroll a ferry customer|CON-005]] from Northway ID, and on [[account-link-service-building-blocks#CON-001 Link a customer|CON-001]] and [[account-link-service-building-blocks#CON-002 Look up linked records|CON-002]] from the Account link service. Tidepay is untouched.
 
-<!-- generated:contracts-consumed sha=1aa8cfcc: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=297f79e7: do not edit, run planner render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[account-link-service-building-blocks#CON-001 Link a customer\|CON-001 Link a customer]] | [[account-link-service-building-blocks\|Account link service]] | Not decided: the owner sets it with each consumer before build. | assumption |
 | [[account-link-service-building-blocks#CON-002 Look up linked records\|CON-002 Look up linked records]] | [[account-link-service-building-blocks\|Account link service]] | Not decided: the owner sets it with each consumer before build. | assumption |
 | [[northway-id-building-blocks#CON-004 Sign in and person key\|CON-004 Sign in and person key]] | [[northway-id-building-blocks\|Northway ID]] | Not decided: the owner sets it with each consumer before build. | assumption |
-| [[northway-id-building-blocks#CON-005 Enrol a ferry customer\|CON-005 Enrol a ferry customer]] | [[northway-id-building-blocks\|Northway ID]] | Not decided: the owner sets it with each consumer before build. | assumption |
+| [[northway-id-building-blocks#CON-005 Enroll a ferry customer\|CON-005 Enroll a ferry customer]] | [[northway-id-building-blocks\|Northway ID]] | Not decided: the owner sets it with each consumer before build. | assumption |
 <!-- /generated:contracts-consumed -->

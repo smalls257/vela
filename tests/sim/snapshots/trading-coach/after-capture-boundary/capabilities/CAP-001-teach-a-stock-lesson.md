@@ -39,7 +39,7 @@ The business remembers which lessons a reader has finished, so the reader can pi
 
 ### CAP-001.FR3 Label delayed prices
 
-Any price a reader sees in a lesson is labelled as delayed by 15 minutes. When the delayed price cannot be had, the lesson still shows and the price is replaced by a plain "price unavailable", so the reader is never shown an old price under a label that says it is current.
+Any price a reader sees in a lesson is labeled as delayed by 15 minutes. When the delayed price cannot be had, the lesson still shows and the price is replaced by a plain "price unavailable", so the reader is never shown an old price under a label that says it is current.
 
 - **State:** assumption
 - **Source:** [[2026-10-10-coach-tickertalk-requirements#^c04]]

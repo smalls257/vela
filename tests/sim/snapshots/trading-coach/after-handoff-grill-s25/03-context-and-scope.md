@@ -36,8 +36,8 @@ sources: [SRC-01, SRC-02, SRC-03, SRC-04, SRC-06, SRC-07]
 - **Signal, the result (fact, SRC-03):** the daily long-short portfolio returned 31% a year against 11% for the index. The size of the edge is disputed, see [[11-unknowns-and-risks#UNK-015 Size of Signal's edge|UNK-015]].
 - **Signal, the ML team's next step (assumption, SRC-03):** the ML team plans to train Signal on TickerTalk users' watchlists to improve its picks. Whether TickerTalk's terms allow that is open, see [[11-unknowns-and-risks#UNK-006 TickerTalk terms and privacy notice|UNK-006]].
 - **Signal, the CEO's view (assumption, SRC-04):** the CEO calls Signal the company's edge and says its backtest beats the market by 31% a year. The size of the edge is disputed, see [[11-unknowns-and-risks#UNK-015 Size of Signal's edge|UNK-015]].
-- **Quoteline, what the licence allows (fact, SRC-02):** US equity quotes delayed by 15 minutes may be shown in Kestrel's own apps. See [[#PTY-02 Quoteline]].
-- **Quoteline, options (fact, SRC-02):** the licence covers no options data.
+- **Quoteline, what the license allows (fact, SRC-02):** US equity quotes delayed by 15 minutes may be shown in Kestrel's own apps. See [[#PTY-02 Quoteline]].
+- **Quoteline, options (fact, SRC-02):** the license covers no options data.
 - **Quoteline, other uses (fact, SRC-02):** clause 9 bars any use that is not display, including models, algorithms and derived data, unless a separate addendum is signed. Whether Signal's price data came from Quoteline is open, see [[11-unknowns-and-risks#UNK-020 Source of Signal's price data and clause 9|UNK-020]].
 - **Compliance:** one consultant, two days a week, per the product lead.
 - **Brightwater:** not yet contacted about this ask, per the product lead.
@@ -49,7 +49,7 @@ sources: [SRC-01, SRC-02, SRC-03, SRC-04, SRC-06, SRC-07]
 
 ## After
 
-<!-- generated:system-context sha=7628f404: do not edit, run planner render -->
+<!-- generated:system-context sha=59269413: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]
@@ -65,7 +65,7 @@ flowchart LR
   class x_quoteline__pty_02_ external
 ```
 
-Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:system-context -->
 
 ## In scope
@@ -85,7 +85,7 @@ Key: blue outline: an app in the initiative · white, dashed: outside the initia
 ### PTY-02 Quoteline
 
 - **Relationship:** supplier
-- **Agreements:** the Quoteline market data licence, known only through a summary (SRC-02); the full text has not been fetched
+- **Agreements:** the Quoteline market data license, known only through a summary (SRC-02); the full text has not been fetched
 
 ## Value held for customers
 

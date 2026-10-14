@@ -16,7 +16,7 @@ TickerTalk is the news app readers already use, and it stays the news app. For t
 
 TickerTalk keeps no lessons, stock list or paper record, places no order, and does not talk to Brightwater or Quoteline for the coach. It changes no news feature and shows no options. What TickerTalk holds today, and what it uses to tell who a reader is, [[11-unknowns-and-risks#UNK-030 What identifies a reader|is not recorded]]; the containers table lists only what this release adds.
 
-<!-- generated:app-context sha=0528585a: do not edit, run planner render -->
+<!-- generated:app-context sha=8f5872f3: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -30,7 +30,7 @@ flowchart LR
   class n_APP_coach new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Containers
