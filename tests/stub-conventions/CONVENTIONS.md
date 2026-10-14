@@ -762,6 +762,8 @@ A flow page lists its journey under `## Steps`, one numbered line per step. A st
 
 `planner check-slice <slice>` proves a slice's logic before anyone builds it: every answer a provider can give is handled, every event is consumed, nothing is left half done, and the rules written as invariants hold, across every order the steps can happen in. It reads the plan, not the code, and runs in seconds with no apps running. A slice is a slice page's `**Flows:**` (see Slices), or, in a vault with no slice pages yet, release one's `**Tracer:**` flows or a later release's `**Flows:**`. `planner check-slice SLC-002` checks a slice by its ID, `planner check-slice "Release one"` by the start of its name, and `planner check-slice FLO-002` one flow on its own.
 
+`planner check-slice --changed` checks only the slices a change can touch: the working tree against the last commit, untracked files included, or a range (`--changed main..HEAD`, `--since-commit <commit>`). It compares what the check reads before and after, so an edit to a contract's prose touches nothing, and it follows the links the check follows: a contract to the flows that call it, an entity or event to the flows that use it, a flow to its slices, and a slice to the slices after it when its flows now leave different states. Each line names the slice, its result and why it was checked ("Record consent changed → A person switches Heron on → SLC-001"); a slice the change doesn't reach reuses its last result and says "unchanged since" the date. When it can't tell what changed (no git, a file that doesn't read), it checks every slice and says why. `--all` checks every slice afresh. Each result is recorded in `.planner/flowcheck-cache.json`, which nobody edits and which is rebuilt when it doesn't read. The exit code counts every slice reported, reused ones too.
+
 It reads four things, and never prose:
 
 - each contract's case table and its `**Can time out:**`, `**Retries:**` and `**Idempotent:**` bullets (see Fact bullets), or an OpenAPI spec in `specs/<app>.openapi.yaml` whose operations carry `x-vela-id: CON-nnn`, `x-vela-timeout`, `x-vela-retries: {max: 3, retried: [timeout]}` (`max` counts every attempt, the first included) and named examples as cases;
@@ -850,7 +852,9 @@ end
 
 Here the check finds the gap a reviewer would miss: when the timer wins, the hold is released, and the payment confirmation that arrives afterwards has nowhere to go.
 
-A provider whose handling is drawn answers as the drawing says. One that is not drawn answers with any case of its table whose When holds, Sets and Emits included. A timed-out call may still have been answered, so after a timeout the provider either did nothing or applied a case. A party outside the vault always answers from its contract.
+A provider whose handling is drawn answers as the drawing says. One that is not drawn answers with any case of its table whose When holds, Sets and Emits included. A timed-out call may still have been answered, so after a timeout the provider either did nothing or applied a case. A drawn provider can also time out part-way through its handling: it stops there, with what it has done so far standing, or it carries on alone and its answer goes nowhere. A party outside the vault always answers from its contract.
+
+Every result says what it rests on, in a `Limit:` line each: a flow touching a shared entity runs two journeys at once, not three (`--journeys 3` tries three, at more cost); a timer is taken to fire in the end, so an order in which it never fires isn't explored; and when the budget runs out, the runs it left unexplored are named.
 
 Findings, each with the step it sits on, a trace in plain words, the owners of the decision, and the IDs on a line of their own:
 
@@ -859,14 +863,14 @@ Findings, each with the step it sits on, a trace in plain words, the owners of t
 | F1 | an answer has no branch |
 | F2 | a branch or reply names an answer the contract does not have |
 | F3 | an event a case publishes has no subscriber (F3w, a warning: only one outside the slice) |
-| F4 | a warning: no flow anywhere reaches a case |
+| F4 | a warning: no flow anywhere reaches a case, said once every flow that crosses its contract is drawn |
 | F5 | an entity makes a move its table does not allow |
 | F6 | can't finish: from some step on, the journey can no longer end, with the step it became stuck at |
 | F8 | a journey ends with an entity in a state that is not final |
 | F9 | an invariant breaks |
 | F10 | a line, ID or property the check cannot read: the slice is not fully checked |
 | F11 | the budget ran out (200,000 states or 10 seconds by default; `--max-states`, `--max-seconds`): not fully checked |
-| F12 | a warning: a provider that calls other apps itself answers from its contract, so what it does with them is not checked |
+| F12 | a warning: a provider answers from its contract while it calls a contract no flow of the slice draws it calling, so what it does with those answers is not checked |
 | F13 | a flow starts from a state no flow of this or an earlier slice leaves |
 
 "Not fully checked" is never a pass, and `check-slice` exits 1 for it as for any finding. To accept a finding for now, put an override under the slice page's `## Overrides` (it covers the finding in any flow of that slice), or on the flow page (it covers it wherever the flow is checked), in the Overrides form with a quoted rule naming the code, the contract (or event or entity), the answer and an end date: `- **Override:** "F1 CON-010 unavailable until 2026-12-01" by @lead on 2026-10-13: the refund flow lands next sprint`. Past its date it covers nothing, the finding blocks the slice again, and check reports E398 until the override is renewed or removed. Nothing covers F10 or F11. `planner check` runs each slice that has a drawn flow on a small budget and warns W391 while it does not pass; a slice with nothing drawn yet is left to `check-slice` until it is `building`, when W395 says it is not fully checked. F13's "earlier slice" means a slice it comes after, through After all the way back.
