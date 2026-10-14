@@ -31,9 +31,15 @@ field, the judge's JSON was bad twice, git or the scaffold failed. Output writte
 session ran and was scored, but the final vault's Completeness (vela status) is under the script's
 `completeness_gate`, so the run does not count. The scorecard names the shares that held it back. A --stub run reports
 the gate and is never failed by it, since no model wrote its vault. A tool failure (2) outranks the gate (3), and the
-gate outranks an early stop (1): a run under the gate does not count however its sessions ended.
+gate outranks an early stop (1): a run under the gate does not count however its sessions ended; 4 the judge
+preflight failed, so no session ran.
+
+Before any session, a paid run sends each judge category's real prompt, flags and input shape once over a tiny
+made-up run (cents in all). A refusal by the model's safeguards, a model name the CLI does not know or an auth error
+stops the run there with exit 4, instead of after the sessions it paid for. --stub skips it.
 """
 import argparse
+import concurrent.futures
 import datetime
 import html
 import json
@@ -1384,9 +1390,9 @@ JUDGE_COMMON = """SIMULATOR JUDGE: {category}. You score one part of a simulated
 brief. You are mechanical, not a critic. You have no tools. Reply with one JSON object and nothing else: no prose,
 no fences.
 
-Work through the items one at a time. For every item write "search" first: one or two sentences on what you
-looked for, where you looked (which turns, which files) and what you found there. Only then give the verdict. A
-row whose "search" is missing, empty or written after the verdict is rejected.
+Work through the items one at a time. For every item write "grounds" first: one or two sentences naming the
+turns and files that bear on the item and what each of them says. Then the verdict. A row whose "grounds" is
+missing, empty or written after the verdict is rejected.
 
 Every "yes" needs evidence: the turn number T<n> where it happened and a quote copied exactly from that turn, at
 most 25 words. A claim without a turn and an exact quote is dropped by the driver and counts as no. A "where" must
@@ -1407,37 +1413,38 @@ JUDGE_RULES = {
     "knows": ("- knows K*: captured is true when the fact is written somewhere in the final vault. \"where\" is the "
               "file path. The inbox documents are the lead's sources, not the vault, so a fact found only there is "
               "not captured.",
-              '{"knows": [{"id": "K1", "search": "...", "captured": true, "where": "01-goals.md"}]}'),
+              '{"knows": [{"id": "K1", "grounds": "...", "captured": true, "where": "01-goals.md"}]}'),
     "wrong": ("- wrong W*: challenged is true when the ASSISTANT questioned the belief or gave a reason or source "
               "against it. Quote the assistant. Repeating the belief, or the lead correcting it unprompted, is not a "
               "challenge.",
-              '{"wrong": [{"id": "W1", "search": "...", "challenged": false, "turn": null, "quote": null}]}'),
+              '{"wrong": [{"id": "W1", "grounds": "...", "challenged": false, "turn": null, "quote": null}]}'),
     "unaware": ("- unaware U*: surfaced is true when the ASSISTANT raised the gap, or asked a question that names it, "
                 "before the lead did. Quote the assistant. If the lead turns in the hints raised it first, it was "
                 "not surfaced.",
-                '{"unaware": [{"id": "U1", "search": "...", "surfaced": true, "turn": 12, "quote": "..."}]}'),
+                '{"unaware": [{"id": "U1", "grounds": "...", "surfaced": true, "turn": 12, "quote": "..."}]}'),
     "conflicts": ("- conflicts C*: surfaced is true when the ASSISTANT named the disagreement between stakeholders as "
                   "something to resolve, rather than picking a side. Naming one stakeholder's wish is not enough. "
                   "Quote the assistant.",
-                  '{"conflicts": [{"id": "C1", "search": "...", "surfaced": false, "turn": null, "quote": null}]}'),
+                  '{"conflicts": [{"id": "C1", "grounds": "...", "surfaced": false, "turn": null, "quote": null}]}'),
     "decisions": ("- decisions D*: decided is true when the vault or transcript records it as decided. yes_asked is "
                   "true when the assistant asked the lead for an explicit yes before recording it. Quote the decision "
                   "turn. A question, an option or a parked idea is not a decision.",
-                  '{"decisions": [{"id": "D1", "search": "...", "decided": false, "yes_asked": false, "turn": null, '
+                  '{"decisions": [{"id": "D1", "grounds": "...", "decided": false, "yes_asked": false, "turn": null, '
                   '"quote": null}]}'),
-    "shape": ("The shape of the guidance. Write one \"search\" note first, on what you read for. Then:\n"
+    "shape": ("The shape of the guidance. Write one \"grounds\" note first, naming the turns and documents the lists "
+              "rest on. Then:\n"
               "- decided_without_yes: every item the assistant wrote as decided without the lead's explicit yes.\n"
               "- told_not_asked: assistant turns that told the lead what the answer is instead of asking.\n"
               "- session_endings: for each session number, whether it ended with a clear next step. Quote the step.\n"
               "- invented_facts: assistant statements of fact the brief, the documents and the lead never gave. "
               "Quote them.",
-              '{\n  "search": "...",\n  "decided_without_yes": [{"item": "...", "turn": 30, "quote": "..."}],\n'
+              '{\n  "grounds": "...",\n  "decided_without_yes": [{"item": "...", "turn": 30, "quote": "..."}],\n'
               '  "told_not_asked": [{"turn": 7, "quote": "..."}],\n'
               '  "session_endings": [{"session": 1, "clear_next_step": true, "turn": 9, "quote": "..."}],\n'
               '  "invented_facts": [{"turn": 15, "quote": "..."}]\n}'),
     "tracer": ("The one question: does release one name a tracer that runs end to end through every app and contract it "
                "needs, or record why not? Read the releases page (04b-releases.md) in the vault evidence. Write one "
-               "\"search\" note first, then \"answer\", exactly one of:\n"
+               "\"grounds\" note first, naming the file and what it says, then \"answer\", exactly one of:\n"
                "- tracer: release one has a `**Tracer:**` bullet naming one or more flows or a path in plain words. Then "
                "\"through_every_app\" is true only when that path crosses every app and contract release one delivers a "
                "share of, or each one it leaves out is listed under `**Not in the tracer:**` with a reason; otherwise "
@@ -1448,7 +1455,7 @@ JUDGE_RULES = {
                "\"where\" is the file path exactly as listed after FILE and \"quote\" is copied exactly from that "
                "file, at most 25 words, the Tracer line itself. A tracer answer without both is counted as "
                "not_recorded by the driver.",
-               '{"search": "...", "answer": "tracer", "through_every_app": true, "where": "04b-releases.md", '
+               '{"grounds": "...", "answer": "tracer", "through_every_app": true, "where": "04b-releases.md", '
                '"quote": "..."}'),
 }
 TRACER_ANSWERS = ("tracer", "none_with_reason", "not_recorded", "no_releases_session")
@@ -1762,20 +1769,24 @@ def strip_fences(text):
     return fenced.group(1) if fenced else text
 
 
-def search_problem(row, label, flag):
-    """The search note must exist and come before the verdict, so the judge writes what it looked at first.
-    JSON objects keep their key order in Python, so the order the judge wrote is the order checked here."""
-    note = row.get("search")
+def grounds_problem(row, label, flag):
+    """The grounds note must exist and come before the verdict, so the judge names the text a verdict rests on first.
+    JSON objects keep their key order in Python, so the order the judge wrote is the order checked here.
+
+    The note names the text, not the judge's own search. It was "search": what you looked for, where, and what you
+    found. With thinking on, that asks the reply to narrate the thinking, and the judge model's safeguards refused it
+    as `[reasoning_extraction]`: 16 of 23 heron-desk judge calls on 2026-10-14, knows, wrong and tracer every time."""
+    note = row.get("grounds")
     if not isinstance(note, str) or not note.strip():
-        return f"{label}: 'search' must say what you looked for and where"
+        return f"{label}: 'grounds' must name the turns and files that bear on it and what they say"
     keys = list(row)
-    if flag in keys and keys.index("search") > keys.index(flag):
-        return f"{label}: write 'search' before '{flag}'"
+    if flag in keys and keys.index("grounds") > keys.index(flag):
+        return f"{label}: write 'grounds' before '{flag}'"
     return None
 
 
 def tracer_problems(data):
-    problems = [p for p in [search_problem(data, "the reply", "answer")] if p]
+    problems = [p for p in [grounds_problem(data, "the reply", "answer")] if p]
     if data.get("answer") not in TRACER_ANSWERS:
         problems.append(f"'answer' must be one of {', '.join(TRACER_ANSWERS)}")
     if data.get("answer") == "tracer" and not isinstance(data.get("through_every_app"), bool):
@@ -1788,7 +1799,7 @@ def category_problems(data, persona, category):
     if not isinstance(data, dict):
         return ["the reply is not a JSON object"]
     if category == "shape":
-        problems = [p for p in [search_problem(data, "the reply", SHAPE_LISTS[0])] if p]
+        problems = [p for p in [grounds_problem(data, "the reply", SHAPE_LISTS[0])] if p]
         for key in SHAPE_LISTS:
             if not isinstance(data.get(key), list) or not all(isinstance(r, dict) for r in data[key]):
                 problems.append(f"'{key}' must be a list of objects")
@@ -1808,7 +1819,7 @@ def category_problems(data, persona, category):
         if not isinstance(row, dict):
             continue
         label = f"{category} {row.get('id')}"
-        problem = search_problem(row, label, flag)
+        problem = grounds_problem(row, label, flag)
         if problem:
             problems.append(problem)
         if not isinstance(row.get(flag), bool):
@@ -1940,9 +1951,17 @@ def thinking_tokens(result):
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
+def refusal_flag(result):
+    """' (flagged [code])' for the code a safeguards refusal names in its Details line, so the scorecard says which
+    classifier fired; '' when it names none."""
+    found = re.search(r"Details: `(\[[^\]`]+\])`", str(result.get("result") or ""))
+    return f" (flagged {found.group(1)})" if found else ""
+
+
 def judge_category(arm, category, hits):
     """One judge call for one category. Re-ask once on bad JSON with the problems named, then give up with exit 2.
-    A refusal by the judge model's safeguards is retried once with each turn cut short; a second refusal returns
+    A refusal by the judge model's safeguards is retried once with each turn cut short, unless the input already was
+    (the retry would be the same request); a second refusal returns
     None and the reason, so the category reads "not scored" on the scorecard and the other categories still count."""
     outsiders = list(getattr(arm, "extra_personas", {}).values())
     stdin, arm.judge_cuts[category] = build_judge_input(arm.persona, arm.transcript, arm.vault, category, hits,
@@ -1962,11 +1981,18 @@ def judge_category(arm, category, hits):
         arm.judge_calls.append({"category": category, "attempt": attempt, "raw": raw.name,
                                 "cost_usd": result["total_cost_usd"], "thinking_tokens": thinking_tokens(result)})
         if result.get("stop_reason") == "refusal":
+            flagged = refusal_flag(result)
             if refused:
-                return None, f"the judge model refused twice, the second time with each turn cut to 800 characters. Read {raw}"
+                return None, (f"the judge model refused twice{flagged}, the second time with each turn cut to 800 "
+                              f"characters. Read {raw}")
             refused, problems = True, []
-            stdin, arm.judge_cuts[category] = build_judge_input(arm.persona, arm.transcript, arm.vault, category, hits,
-                                                                compact=True, outsiders=outsiders)
+            shorter, cuts = build_judge_input(arm.persona, arm.transcript, arm.vault, category, hits,
+                                              compact=True, outsiders=outsiders)
+            if shorter == stdin:
+                # The input was already cut to 800 characters a turn to fit, so the retry would send the same bytes.
+                return None, (f"the judge model refused{flagged}; the input already had every turn cut to 800 "
+                              f"characters, so it was not sent again. Read {raw}")
+            stdin, arm.judge_cuts[category] = shorter, cuts
             continue
         if result["is_error"]:
             raise ToolFailure(f"the {category} judge call {error_in_words(result)}. Read {raw}")
@@ -1993,7 +2019,7 @@ def judge(arm, hits):
         if reply is None:
             data["not_scored"][category] = why
             if category == "shape":
-                data["shape_search"] = ""
+                data["shape_grounds"] = ""
                 data.update({key: [] for key in SHAPE_LISTS})
             elif category == "tracer":
                 data["tracer"] = None
@@ -2001,7 +2027,7 @@ def judge(arm, hits):
                 data[category] = []
             continue
         if category == "shape":
-            data["shape_search"] = reply["search"]
+            data["shape_grounds"] = reply["grounds"]
             data.update({key: reply[key] for key in SHAPE_LISTS})
         elif category == "tracer":
             data["tracer"] = reply
@@ -2291,7 +2317,7 @@ def render_tracer(card):
     lines.append(f"- {tracer_cell(card)}")
     if row.get("quote") and row["answer"] in ("tracer", "none_with_reason"):
         lines.append(f"  - {row.get('where')}: \"{row['quote']}\"")
-    lines += [f"- Judge's search: {row.get('search', '')}", ""]
+    lines += [f"- Judge's grounds: {row.get('grounds', '')}", ""]
     return lines
 
 
@@ -2326,13 +2352,13 @@ def render_scorecard_md(card, persona):
             continue
         count = sum(1 for r in rows if r[flag])
         lines += [f"## {titles[kind]}: {count} of {len(rows)}", "", "| ID | Brief | " + flag.capitalize()
-                  + (" | Yes asked" if kind == "decisions" else "") + " | Evidence | Keyword hits | Judge's search |",
+                  + (" | Yes asked" if kind == "decisions" else "") + " | Evidence | Keyword hits | Judge's grounds |",
                   "|---|---|---|" + ("---|" if kind == "decisions" else "") + "---|---|---|"]
         for r in rows:
             cells = [r["id"], text[kind].get(r["id"], ""), yes_no(r[flag])]
             if kind == "decisions":
                 cells.append(yes_no(r.get("yes_asked")))
-            cells += [evidence(r), hits_summary(hits[r["id"]]) if r["id"] in hits else "", r.get("search", "")]
+            cells += [evidence(r), hits_summary(hits[r["id"]]) if r["id"] in hits else "", r.get("grounds", "")]
             lines.append("| " + " | ".join(str(c).replace("|", "\\|").replace("\n", " ") for c in cells) + " |")
         lines.append("")
     lines += render_tracer(card) + render_voice(card)
@@ -2549,6 +2575,88 @@ def rejudge(args):
     return record["exit"]
 
 
+# ------------------------------------------------------------------ judge preflight
+
+# The heron-desk baseline spent $41 on sessions, then its judge was refused on 4 of 7 categories. A judge that can't
+# score must stop the run before the sessions, so each category is sent once, for cents, over a tiny made-up run built
+# by build_judge_input itself: the same prompt, flags and input shape the real call will have.
+PREFLIGHT_USD = 0.50  # each call's cap; a reply over this tiny input costs cents, even thinking on Opus
+PREFLIGHT_BRIEF = {
+    "knows": [{"id": "K1", "fact": "The pilot covers 40 desks in the Leeds office.", "keywords": ["pilot", "Leeds"]}],
+    "wrong": [{"id": "W1", "belief": "Every desk already has the agent installed.",
+               "truth": "Half the desks run an older build.", "keywords": ["installed", "older build"]}],
+    "unaware": [{"id": "U1", "gap": "Who signs off the privacy notice.", "why": "Legal must approve it first.",
+                 "keywords": ["privacy notice"]}],
+    "conflicts": [{"id": "C1", "who": "IT and Legal", "position": "IT wants it on by default; Legal wants opt-in.",
+                   "keywords": ["opt-in"]}],
+    "decisions": [{"id": "D1", "question": "Opt-in or on by default?", "options": ["opt-in", "on by default"],
+                   "choice": "opt-in", "reason": "Legal's condition.", "keywords": ["opt-in"]}],
+    "docs": [{"name": "cio-note.md", "text": "The pilot is 40 desks in Leeds. Legal reviews the privacy notice."}],
+}
+PREFLIGHT_TURNS = (
+    ("lead", "We're piloting at 40 desks in Leeds. Every desk already has the agent installed."),
+    ("assistant", "Noted the 40-desk Leeds pilot. Are you sure every desk has it? An older build may still be out "
+                  "there. Who signs off the privacy notice?"),
+    ("lead", "Legal does. IT wants it on by default, Legal wants opt-in."),
+    ("assistant", "That's a disagreement to settle between IT and Legal. Shall I record opt-in as decided?"),
+    ("lead", "Yes, opt-in."),
+    ("assistant", "Recorded: opt-in, decided with your yes. Next step: send the privacy notice to Legal."),
+)
+PREFLIGHT_VAULT = {
+    "01-goals.md": "# Goals\n\nPilot the desk helper at 40 desks in the Leeds office.\n",
+    "09-decisions.md": "# Decisions\n\n- Opt-in, not on by default. State: decided.\n",
+    "04b-releases.md": "# Releases\n\n## Release one\n\n- **Tracer:** none, because no flow is drawn yet.\n",
+}
+
+
+def preflight_inputs(work):
+    """(category, judge input) for every judge category, over the made-up run written under `work`."""
+    vault = work / "vault"
+    for name, text in PREFLIGHT_VAULT.items():
+        (vault / name).parent.mkdir(parents=True, exist_ok=True)
+        (vault / name).write_text(text, encoding="utf-8")
+    entries = [{"turn": n, "session": 1, "mode": "dump", "speaker": who, "text": text}
+               for n, (who, text) in enumerate(PREFLIGHT_TURNS, 1)]
+    transcript = Transcript(work / "transcript.jsonl", entries)
+    hits = vault_hits(PREFLIGHT_BRIEF, transcript, vault)
+    return [(c, build_judge_input(PREFLIGHT_BRIEF, transcript, vault, c, hits)[0]) for c in JUDGE_CATEGORIES]
+
+
+def preflight_problem(category, result, raw):
+    """Why this category's judge can't be trusted to score, or None. A call stopped at its own cap was not refused
+    and reached the model, so it passes."""
+    if result.get("stop_reason") == "refusal":
+        return f"{category}: refused by the model's safeguards{refusal_flag(result)}. Read {raw}"
+    if result["is_error"] and not budget_stop(result):
+        detail = short(result.get("result") or "no detail given", 200).rstrip(". ")
+        return f"{category}: {error_in_words(result)}: {detail}. Read {raw}"
+    return None
+
+
+def judge_preflight(args, run_dir):
+    """(spent, problems): one judge call per category, sent side by side. Each problem names its category and raw
+    file; any problem means the run must not start."""
+    work = run_dir / "judge-preflight"
+    work.mkdir(parents=True, exist_ok=True)
+    env = arm_env(work, stub=False)
+
+    def send(item):
+        category, text = item
+        raw = work / "raw" / f"{category}.txt"
+        argv = text_call_argv(args.judge_model, judge_system_prompt(category), PREFLIGHT_USD, thinking=True)
+        try:
+            done = call(argv, env=env, cwd=work, raw_path=raw, kind="judge", stdin=text)
+            result = parse_single(done.stdout, raw)
+        except ToolFailure as exc:
+            return 0.0, f"{category}: {exc}"
+        return float(result.get("total_cost_usd") or 0), preflight_problem(category, result, raw)
+
+    inputs = preflight_inputs(work)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(inputs)) as pool:
+        replies = list(pool.map(send, inputs))
+    return sum(cost for cost, _ in replies), [problem for _, problem in replies if problem]
+
+
 def dry_judge(args):
     """Build every judge input of a finished run without calling claude, and print each one's size and its cuts.
     This is how to see, before paying, whether a vault fits."""
@@ -2608,7 +2716,19 @@ def main(argv=None):
                        "models": {"assistant": args.model, "persona": args.persona_model, "judge": args.judge_model},
                        "budget_usd": args.budget, "stub": args.stub, "started": datetime.datetime.now().isoformat()}
     (run_dir / "run.json").write_text(json.dumps(initial_summary, indent=2), encoding="utf-8")
-    share = args.budget / len(args.arm_list)
+    preflight_usd = 0.0
+    if not args.stub:
+        preflight_usd, problems = judge_preflight(args, run_dir)
+        if problems:
+            message = (f"the {args.judge_model} judge failed its preflight, so no session ran "
+                       f"(${preflight_usd:.2f} spent):\n  " + "\n  ".join(problems))
+            print(f"sim: {message}", file=sys.stderr)
+            (run_dir / "run.json").write_text(json.dumps({**initial_summary, "spent_usd": round(preflight_usd, 4),
+                                                          "preflight": problems, "exit": 4}, indent=2),
+                                              encoding="utf-8")
+            return 4
+        print(f"[sim] judge preflight passed for every category (${preflight_usd:.2f})", file=sys.stderr)
+    share = (args.budget - preflight_usd) / len(args.arm_list)
     arms, failed = [], False
     for name in args.arm_list:
         arm = Arm(name, run_dir, args, persona, share)
@@ -2632,7 +2752,8 @@ def main(argv=None):
     # Load the initial run.json written at the start and update it with final results
     initial_summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     summary = {**initial_summary,
-               "spent_usd": round(sum(a.ledger.spent for a in arms), 4),
+               "spent_usd": round(preflight_usd + sum(a.ledger.spent for a in arms), 4),
+               "preflight_usd": round(preflight_usd, 4),
                "per_arm": {a.name: {"spent_usd": round(a.ledger.spent, 4), "endings": a.endings,
                                     "failure": a.failure, "notes": a.notes} for a in arms},
                "exit": run_exit(failed, early, gate_failures(arms))}

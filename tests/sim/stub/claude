@@ -6,14 +6,14 @@ It answers as one of three roles, told apart by the system prompt run.py passes:
   turn says the session is over. It runs `gh pr create` so tests can see which gh is on PATH.
 - persona ("SIMULATOR PERSONA"): JSON result. It replies "[END]" when the latest assistant message says the
   session is over, and otherwise a reply with a <script> tag in it, to test escaping.
-- judge ("SIMULATOR JUDGE: <category>"): that category's verdicts, each with a search note. Across the categories
+- judge ("SIMULATOR JUDGE: <category>"): that category's verdicts, each with a grounds note. Across the categories
   there is one valid citation (U1) and two the driver must drop (W1's turn, K2's page). The probe's "options"
   judge gets one row per "LABEL: <label>" line in its input, with every part answered "not present".
 
 Knobs, all environment variables:
   SIM_STUB_COST   total_cost_usd of every assistant and persona call (default 0.01); the judge costs 0.01
   SIM_STUB_DROP   a field to leave out of the assistant's result event, such as total_cost_usd
-  SIM_STUB_JUDGE  "bad" makes the judge reply with text that is not JSON; "nosearch" leaves out every search note;
+  SIM_STUB_JUDGE  "bad" makes the judge reply with text that is not JSON; "nogrounds" leaves out every grounds note;
                   "refuse:<category>" makes that category's judge call stop with stop_reason refusal, every time
                   "toolong:<category>" makes that category's judge call fail as the real CLI does when the prompt is over
                   the window: is_error true, subtype "success", terminal_reason "prompt_too_long"
@@ -125,10 +125,11 @@ def persona(stdin, argv):
 
 
 def judge(stdin, argv, category):
-    """One category's verdicts, each with its search note first, as run.py demands."""
+    """One category's verdicts, each with its grounds note first, as run.py demands."""
     mode = os.environ.get("SIM_STUB_JUDGE")
     if mode == f"refuse:{category}":
-        refusal = result("API Error: the safeguards flagged this message.", "judge", argv, cost=0.01)
+        text = "API Error: the safeguards flagged this message.\n\nDetails: `[reasoning_extraction]`"
+        refusal = result(text, "judge", argv, cost=0.01)
         print(json.dumps({**refusal, "stop_reason": "refusal"}))
         return
     if mode == f"toolong:{category}":
@@ -139,13 +140,13 @@ def judge(stdin, argv, category):
     if mode == "bad":
         print(json.dumps(result("I think the vela arm did well.", "judge", argv, cost=0.01)))
         return
-    note = {} if mode == "nosearch" else {"search": f"stub: read the {category} hints and the turns they name"}
+    note = {} if mode == "nogrounds" else {"grounds": f"stub: read the {category} hints and the turns they name"}
     if category == "options":
         absent = {"present": False, "quote": None}
         rows = [{"label": label.strip(), "search": "stub: read the option", "label_quote": None, "costs": absent,
                  "rules_out": absent, "stakeholder_or_unknown": absent}
                 for label in re.findall(r"^LABEL: (.+)$", stdin, re.M)]
-        print(json.dumps(result(json.dumps({**note, "options": rows}), "judge", argv, cost=0.01)))
+        print(json.dumps(result(json.dumps({"search": "stub: read the turn", "options": rows}), "judge", argv, cost=0.01)))
         return
     if category == "tracer":
         line = re.search(r"^- \*\*Tracer:\*\*.*$", stdin, re.M)
