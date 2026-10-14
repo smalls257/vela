@@ -1,9 +1,9 @@
 #!/bin/sh
-# Stops a commit that carries the inbox, the private voice folders or the vela's own working files.
-# The rules and their reasons live in the vela (plugin/lib/vela/guard.py); this hook only asks it, so the
+# Stops a commit that carries the inbox, the private voice folders or vela's own working files.
+# The rules and their reasons live in vela (plugin/lib/vela/guard.py); this hook only asks it, so the
 # list is never copied here. `vela close stage` already refuses those paths: this catches a commit typed by hand.
 # Turned on per clone with: git config core.hooksPath .githooks
-# The vela is the first of these that is set: VELA (a path to its launcher), this clone's
+# The hook runs the first vela launcher of these that is set: VELA (a path to it), this clone's
 # `git config vela.path` (a plugin installed from the marketplace lives under ~/.claude/plugins/, at a path
 # only the machine knows; `vela doctor` prints the one command that records it), or the vendored copy at
 # .claude/skills/vela/scripts/vela. The order is doctor.HOOK_ORDER; a test holds the two together.
@@ -21,8 +21,8 @@ if [ -z "$vela" ]; then
   from="the vendored copy"
 fi
 if [ ! -f "$vela" ]; then
-  echo "pre-commit: the vela is not at $vela ($from), so the staged files were not checked." >&2
-  echo "Run vela doctor in this vault: it prints the one command that points this hook at the installed vela." >&2
+  echo "pre-commit: the vela launcher is not at $vela ($from), so the staged files were not checked." >&2
+  echo "Run vela doctor in this vault: it prints the one command that points this hook at the installed plugin." >&2
   echo "To commit unchecked: git commit --no-verify" >&2
   exit 1
 fi

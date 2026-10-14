@@ -8,7 +8,7 @@ disallowed-tools: Write Edit NotebookEdit
 
 # Where is vela
 
-Run each of these and show the output unedited. They need no vela to be found, and say what the host expanded.
+Run each of these and show the output unedited. They work even when vela cannot be found, and say what the host expanded.
 
 !`echo "CLAUDE_PLUGIN_ROOT = ${CLAUDE_PLUGIN_ROOT}"; echo "CLAUDE_SKILL_DIR = ${CLAUDE_SKILL_DIR}"; echo "working folder = $(pwd)"; for p in "${CLAUDE_SKILL_DIR}/../../scripts/vela" "${CLAUDE_PLUGIN_ROOT}/scripts/vela" ".claude/skills/vela/scripts/vela"; do if [ -f "$p" ]; then echo "found:   $p"; else echo "missing: $p"; fi; done; if [ -f .vela/workspace.json ]; then echo "workspace.json: $(grep vela_path .vela/workspace.json)"; else echo "workspace.json: none"; fi; echo "python3: $(python3 --version 2>&1)"`
 

@@ -4,7 +4,7 @@ Read by explore when the user asks how the page works: where the files go, what 
 
 ## Where designs and plans live
 
-Both live in the vault: `docs/tech-design/<slug>.md` (with `docs/adr/` and `CONTEXT.md`) from `/vela:design` (or the user's own tech-design-grill) and `docs/plan/<slug>-breakdown.md` from `/vela:breakdown`, when the team runs them from the vault root. The build finds them with no flag. The design and the plan write their own `docs/` files in the vault and never edit a vela page, so say so if a senior asks. `vela check` does not read `docs/`.
+Both live in the vault: `docs/tech-design/<slug>.md` (with `docs/adr/` and `CONTEXT.md`) from `/vela:design` (or the user's own tech-design-grill) and `docs/plan/<slug>-breakdown.md` from `/vela:breakdown`, when the team runs them from the vault root. The build finds them with no flag. The design and the plan write their own `docs/` files in the vault and never edit a vault page, so say so if a senior asks. `vela check` does not read `docs/`.
 
 ## Where the files go
 
