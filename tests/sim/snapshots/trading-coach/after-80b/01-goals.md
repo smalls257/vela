@@ -21,7 +21,7 @@ The goals table now splits that goal in two, so the plan does not have to pick b
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=18c9f243: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=18c9f243: do not edit, run vela render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -82,7 +82,7 @@ The goals table now splits that goal in two, so the plan does not have to pick b
 
 ## Progress by app
 
-<!-- generated:progress-map sha=a56e25ed: do not edit, run planner render -->
+<!-- generated:progress-map sha=a56e25ed: do not edit, run vela render -->
 **As of:** 2026-10-09, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |

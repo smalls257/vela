@@ -667,26 +667,26 @@ news:
 sessions:
 - mode: discover
   cap: 20
-  planner: /planner:discover the open questions and concern cells that the answers gathered so far settle
+  vela: /vela:discover the open questions and concern cells that the answers gathered so far settle
   baseline: Settle the open questions and concern cells the answers gathered so far settle. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 22
-  planner: /planner:grill every concern cell for Coach and TickerTalk
+  vela: /vela:grill every concern cell for Coach and TickerTalk
   baseline: Take me through every concern cell for Coach and TickerTalk and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 22
-  planner: /planner:grill the TickerTalk page, its runtime page, the reader identity contract and the Coach runtime page
+  vela: /vela:grill the TickerTalk page, its runtime page, the reader identity contract and the Coach runtime page
   baseline: Take me through TickerTalk, its runtime page, the reader identity contract and the Coach runtime page. Follow
     CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

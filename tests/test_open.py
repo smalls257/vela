@@ -1,4 +1,4 @@
-"""planner open: a published copy becomes a private reader workspace with a pristine baseline, and the source is
+"""vela open: a published copy becomes a private reader workspace with a pristine baseline, and the source is
 never written. Also the refusals: a synced location, a tampered copy, a name that climbs out, a re-open."""
 import hashlib
 import json
@@ -35,7 +35,7 @@ def open_copy(source, into, *extra):
 
 def tree(root):
     return {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*")
-            if p.is_file() and ".planner" not in p.relative_to(root).parts}
+            if p.is_file() and ".vela" not in p.relative_to(root).parts}
 
 
 def test_folder_and_zip_give_the_same_workspace(tmp_path, published):
@@ -48,16 +48,16 @@ def test_folder_and_zip_give_the_same_workspace(tmp_path, published):
 
 def test_open_writes_baseline_workspace_json_and_the_explorer(tmp_path, published):
     folder, _ = published
-    stamp = json.loads((folder / ".planner" / "published.json").read_text(encoding="utf-8"))
+    stamp = json.loads((folder / ".vela" / "published.json").read_text(encoding="utf-8"))
     code, text = open_copy(folder, tmp_path / "ws")
     assert code == 0, text
     ws = tmp_path / "ws"
     without_dashboard = lambda files: {name: data for name, data in files.items() if name != "dashboard.html"}  # rebuilt here, so it differs from the published one
-    assert without_dashboard(tree(ws / ".planner" / "baseline")) == without_dashboard(tree(ws)) != {}
-    record = json.loads((ws / ".planner" / "workspace.json").read_text(encoding="utf-8"))
+    assert without_dashboard(tree(ws / ".vela" / "baseline")) == without_dashboard(tree(ws)) != {}
+    record = json.loads((ws / ".vela" / "workspace.json").read_text(encoding="utf-8"))
     assert record["role"] == "reader" and record["base_commit"] == stamp["commit"] and record["base_date"] == "2026-10-11"
     assert record["source_path"] == str(folder) and record["author"] == "Sam Okoye" and record["opened"] == "2026-10-12"
-    assert record["base_tree_hash"] == stamp["tree_hash"] and record["planner_path"].endswith("scripts/planner")
+    assert record["base_tree_hash"] == stamp["tree_hash"] and record["vela_path"].endswith("scripts/vela")
     assert not (ws / ".git").exists() and (ws / "dashboard.html").is_file()
     assert f"Opened {stamp['title']} at {stamp['short']}, published 2026-10-11 by Priya Nair" in text
     assert "Your copy is the latest published" in text
@@ -66,7 +66,7 @@ def test_open_writes_baseline_workspace_json_and_the_explorer(tmp_path, publishe
 def test_the_new_workspace_is_a_reader(tmp_path, published):
     open_copy(published[0], tmp_path / "ws")
     code, text = run("role", "--vault", str(tmp_path / "ws"))
-    assert code == 0 and text.startswith("planner role: reader")
+    assert code == 0 and text.startswith("vela role: reader")
 
 
 def test_the_source_is_never_written(tmp_path, published):
@@ -85,7 +85,7 @@ def test_a_workspace_inside_onedrive_is_refused_and_nothing_is_written(tmp_path,
 
 
 def test_the_default_location_and_the_env_override(tmp_path, published, monkeypatch):
-    monkeypatch.setenv("PLANNER_WORKSPACES", str(tmp_path / "mine"))
+    monkeypatch.setenv("VELA_WORKSPACES", str(tmp_path / "mine"))
     code, text = run("open", str(published[0]), "--author", "Sam Okoye")
     assert code == 0, text
     assert [p.name for p in (tmp_path / "mine").iterdir()] == ["trading-coach" if False else p.name for p in (tmp_path / "mine").iterdir()]
@@ -96,10 +96,10 @@ def test_where_the_workspace_goes_by_rule(tmp_path, monkeypatch):
     slug = "paper-orders"
     monkeypatch.setattr(pathlib.Path, "home", classmethod(lambda cls: tmp_path / "home"))
     monkeypatch.chdir(tmp_path)
-    assert cli.workspace_folder(slug, None, {}, False) == tmp_path / "home" / "PlannerWorkspaces" / slug
-    assert cli.workspace_folder(slug, None, {}, True) == tmp_path.resolve() / "planner-workspaces" / slug
-    assert cli.workspace_folder(slug, None, {"PLANNER_WORKSPACES": str(tmp_path / "w")}, True) == tmp_path / "w" / slug
-    assert cli.workspace_folder(slug, str(tmp_path / "x"), {"PLANNER_WORKSPACES": "/w"}, True) == tmp_path / "x"
+    assert cli.workspace_folder(slug, None, {}, False) == tmp_path / "home" / "VelaWorkspaces" / slug
+    assert cli.workspace_folder(slug, None, {}, True) == tmp_path.resolve() / "vela-workspaces" / slug
+    assert cli.workspace_folder(slug, None, {"VELA_WORKSPACES": str(tmp_path / "w")}, True) == tmp_path / "w" / slug
+    assert cli.workspace_folder(slug, str(tmp_path / "x"), {"VELA_WORKSPACES": "/w"}, True) == tmp_path / "x"
     monkeypatch.setattr(pathlib.Path, "home", classmethod(lambda cls: tmp_path / "OneDrive - Acme"))
     with pytest.raises(opening.OpenError, match="synced folder"):
         cli.workspace_folder(slug, None, {}, False)
@@ -121,7 +121,7 @@ def test_reopening_into_a_workspace_of_another_initiative_says_so(tmp_path, publ
     folder, _ = published
     ws = tmp_path / "ws"
     assert open_copy(folder, ws)[0] == 0
-    record_path = ws / ".planner" / "workspace.json"
+    record_path = ws / ".vela" / "workspace.json"
     record = json.loads(record_path.read_text(encoding="utf-8"))
     record["initiative"] = "INI-999"
     record_path.write_text(json.dumps(record), encoding="utf-8")

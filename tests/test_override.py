@@ -201,7 +201,7 @@ def test_on_behalf_unconfirmed_warns_until_confirmed(ub):
     assert code == 0 and findings(out) == [("W324", PRICING)]
     assert ("@hl-solution-lead decided" in out and "(CON-003) on @harborline/revenue-team's behalf, and "
             "@harborline/revenue-team hasn't confirmed it yet." in out)
-    assert "/planner:challenge" in out
+    assert "/vela:challenge" in out
     edit(ub / PRICING, "on behalf of @harborline/revenue-team\n", "on behalf of @harborline/revenue-team\n" + CONFIRMED)
     assert codes(ub) == []
 
@@ -299,7 +299,7 @@ def test_epics_close_challenge_and_ask_know_the_bullets():
     assert "on behalf of @owner" in challenge and "`decided_by`" in challenge
     assert '"decided by override: <rule>, by @x"' in ask and '"on behalf of @owner, not yet confirmed"' in ask
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
-    assert "## Overrides" in conventions and "raises `/planner:challenge` on the item" in conventions
+    assert "## Overrides" in conventions and "raises `/vela:challenge` on the item" in conventions
 
 
 # A refusal of the user's explicit instruction on rule grounds. The owner's own right to refuse, and git refusing a

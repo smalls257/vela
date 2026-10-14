@@ -59,7 +59,7 @@ None from another app in the first release. If the text call goes to cloud, a ho
 
 ## Where it fits
 
-<!-- generated:app-context sha=536aa169: do not edit, run planner render -->
+<!-- generated:app-context sha=536aa169: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_desktop_agent["Desktop agent (new)"]
@@ -74,7 +74,7 @@ flowchart LR
 Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
-<!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:contracts-consumed -->
 

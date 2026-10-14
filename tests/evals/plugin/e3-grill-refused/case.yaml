@@ -8,7 +8,7 @@ plugins:
 - ../../../../plugin
 runs: 3
 execution:
-  prompt: '/planner:grill CAP-021. I am the solution lead and I own it. This vault has no git remote and no gh, so fetch,
+  prompt: '/vela:grill CAP-021. I am the solution lead and I own it. This vault has no git remote and no gh, so fetch,
     push and gh will fail: say so and carry on. Do not wait for answers from me beyond what this message gives.'
   max_turns: 60
   timeout_seconds: 1200
@@ -26,7 +26,7 @@ graders:
 - name: plugin-loaded
   type: tool_used
   tool: Skill
-  input_match: planner
+  input_match: vela
   arm: with-only
 - name: no-page-edited
   type: tool_used
@@ -61,5 +61,5 @@ graders:
   pattern: UNK-001
 - name: offers-a-way-forward
   type: regex
-  pattern: (?:\b(Shape session|ask with|an ask to|research task|decide (?:it )?anyway|override)\b|/planner:shape)
+  pattern: (?:\b(Shape session|ask with|an ask to|research task|decide (?:it )?anyway|override)\b|/vela:shape)
   flags: i

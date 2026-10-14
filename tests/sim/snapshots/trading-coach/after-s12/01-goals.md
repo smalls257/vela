@@ -15,7 +15,7 @@ The one goal so far is the CEO's, as the product lead heard it in a meeting: a c
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=a127419b: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=a127419b: do not edit, run vela render -->
 **Apps on the ladder:** none
 
 **Open unknowns**
@@ -52,7 +52,7 @@ The one goal so far is the CEO's, as the product lead heard it in a meeting: a c
 
 ## Progress by app
 
-<!-- generated:progress-map sha=140bedbf: do not edit, run planner render -->
+<!-- generated:progress-map sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:progress-map -->
 

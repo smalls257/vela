@@ -1,4 +1,4 @@
-"""What `planner check` says about each slice from the flow checker's result. Pure: a Catalog and a date in.
+"""What `vela check` says about each slice from the flow checker's result. Pure: a Catalog and a date in.
 
 W391 for a slice with a drawn flow whose check does not pass, while it is not yet building. W395 once a slice is at
 building or later: by then its findings must each be fixed or covered by an override with an end date, and a slice
@@ -53,12 +53,12 @@ def findings(catalog, today, max_states):
             out.append(Finding(found.path, found.lines.get("Status", found.line), "W395",
                                f"{found.label} is {found.status}, but its flow check {_verb(result.status)}: {what}, "
                                "and no override with an end date covers them.",
-                               f"Run planner check-slice {target} for the traces and owners; fix each, or add an override "
+                               f"Run vela check-slice {target} for the traces and owners; fix each, or add an override "
                                "with an end date under the slice page's ## Overrides."))
         else:
             said = f"{found.label}: its flow check {_verb(result.status)}" if found.id else f"{found.name} {result.status}"
             out.append(Finding(found.path, found.line, "W391", f"{said}: {what}.",
-                               f"Run planner check-slice \"{target}\" for the traces and owners, and fix or override each."))
+                               f"Run vela check-slice \"{target}\" for the traces and owners, and fix or override each."))
     out += expired(catalog, today)
     return out
 

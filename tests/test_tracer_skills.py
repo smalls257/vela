@@ -59,7 +59,7 @@ def test_the_releases_example_matches_the_plans_bullet_format():
     block = text.split("```", 2)[1]
     assert block.index("**State:**") < block.index("**Slices:** SLC-001") < block.index("| Delivers")
     assert "`**Tracer:**`, `**Not in the tracer:**`" in text  # a vault still on the releases page keeps working
-    assert '`planner conventions "Slices"` gives' in text
+    assert '`vela conventions "Slices"` gives' in text
 
 
 def test_the_conversation_asks_for_names_not_codes():

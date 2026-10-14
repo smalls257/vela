@@ -12,7 +12,7 @@ authored: mixed
 
 Every capability this initiative changes. Each capability page holds what provides it today and after.
 
-<!-- generated:capability-map sha=e9305f84: do not edit, run planner render -->
+<!-- generated:capability-map sha=e9305f84: do not edit, run vela render -->
 ```mermaid
 flowchart TB
   subgraph d_capture["Capture"]
@@ -45,7 +45,7 @@ Key: green: new in this initiative.
 
 ## Allocation
 
-<!-- generated:allocation sha=bbc602d4: do not edit, run planner render -->
+<!-- generated:allocation sha=bbc602d4: do not edit, run vela render -->
 **Who does what:** 9 requirements are firm enough to split between the apps (assumed or later); none is waiting for an app.
 
 | Requirement | [[consent-and-identity-building-blocks\|Consent and identity]] | [[desktop-agent-building-blocks\|Desktop agent]] | [[summarizer-building-blocks\|Summarizer]] |

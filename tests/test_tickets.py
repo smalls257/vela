@@ -1,4 +1,4 @@
-"""/planner:tickets and the new build-plan format: the Heron plan re-shaped (tests/fixtures/team-skills/heron-plan) holds every
+"""/vela:tickets and the new build-plan format: the Heron plan re-shaped (tests/fixtures/team-skills/heron-plan) holds every
 story, task and size of the original, reads clean in the explorer, converts to the same tickets, and is held against the vault.
 
     python3 -m pytest tests/test_tickets.py
@@ -219,7 +219,7 @@ def test_write_csv_is_the_jira_import_with_its_readme(vault):
     assert [r["Issue Id"] for r in rows if r["Issue Type"] == "Story"] == ["S-01", "S-02", "S-03", "S-05", "S-06", "S-07a", "S-08", "S-09", "S-10"]
     assert sum(r["Issue Type"] == "Task" for r in rows) == 42
     readme = (vault / "out" / "README.md").read_text(encoding="utf-8")
-    assert "planner tickets" in readme and "## Not ticketed" in readme
+    assert "vela tickets" in readme and "## Not ticketed" in readme
 
 
 def test_a_plan_naming_no_app_of_the_vault_is_an_error_not_a_pass(vault):
@@ -229,17 +229,17 @@ def test_a_plan_naming_no_app_of_the_vault_is_an_error_not_a_pass(vault):
     assert code == 2 and "names no app of this vault" in said
 
 
-# ---- planner next
+# ---- vela next
 
 def test_next_suggests_breakdown_after_a_complete_design_and_tickets_after_a_complete_plan(tmp_path, vault):
     plan = vault / "docs" / "plan" / "desktop-agent-breakdown.md"
     kept = plan.read_text(encoding="utf-8")
     plan.unlink()
-    assert teamdocs.team_step(vault).startswith("the APP-desktop-agent team: their design is") and "/planner:breakdown" in teamdocs.team_step(vault)
+    assert teamdocs.team_step(vault).startswith("the APP-desktop-agent team: their design is") and "/vela:breakdown" in teamdocs.team_step(vault)
     code, said = run("next", "--vault", str(vault), "--today", "2026-11-20")
-    assert "planner next: for the Desktop agent team: their design is" in said
+    assert "vela next: for the Desktop agent team: their design is" in said
     plan.write_text(kept, encoding="utf-8")
-    assert teamdocs.team_step(vault).startswith("the APP-desktop-agent team: their build plan is") and "/planner:tickets" in teamdocs.team_step(vault)
+    assert teamdocs.team_step(vault).startswith("the APP-desktop-agent team: their build plan is") and "/vela:tickets" in teamdocs.team_step(vault)
     run("tickets", "write", "--vault", str(vault))
     assert teamdocs.team_step(vault) is None
 

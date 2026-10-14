@@ -10,7 +10,7 @@ while a story rests on no criterion in the vault, quotes one loosely, or waits o
 converter (breakdown.py) reads the plan alone; this module holds the plan against the vault, so the check runs before
 the people downstream get a ticket. It reads, never writes the vault, and creates nothing in any outside system.
 
-Pure, like the rest of the core: text in, text out. `tools/breakdown_to_tickets.py` and `planner tickets` both call
+Pure, like the rest of the core: text in, text out. `tools/breakdown_to_tickets.py` and `vela tickets` both call
 convert_text() and write what it returns, so the installed plugin and a repo checkout write the same files.
 """
 import difflib

@@ -18,7 +18,7 @@ It does not sign anyone in, which Northway ID keeps ([[04b-identity-provider#Log
 
 - **Options considered:** Login with a link service (picked); Login only, no new app: rejected, it holds the link in two places, leaves the rail-side link with no owner and puts the link step on SeaBook, which Ferry Ops says is frozen; Ferry sign-in adapter: rejected, its adapter has no named owner and the link step still has no app
 
-<!-- generated:app-context sha=04095ced: do not edit, run planner render -->
+<!-- generated:app-context sha=04095ced: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]
@@ -75,7 +75,7 @@ Key: dark blue: the app this page is about · amber: changed by this initiative 
 
 It relies on the person key and sign-in proof from Northway ID: [[northway-id-building-blocks#CON-004 Sign in and person key|CON-004]]. It relies on a ferry customer reference from SeaBook: [[seabook-building-blocks#CON-006 Ferry customer reference|CON-006]], which rests on [[11-unknowns-and-risks#UNK-033 Ferry customer key|UNK-033]]. It relies on a rail account reference from RailCore: [[railcore-building-blocks#CON-003 Rail account reference|CON-003]].
 
-<!-- generated:contracts-consumed sha=3fd719d9: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=3fd719d9: do not edit, run vela render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[railcore-building-blocks#CON-003 Rail account reference\|CON-003 Rail account reference]] | [[railcore-building-blocks\|RailCore]] | Not decided: RailCore is a vendor product, so any change is the vendor's to agree. | assumption |

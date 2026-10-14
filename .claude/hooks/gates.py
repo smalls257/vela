@@ -5,7 +5,7 @@
   gates.py guard-bash   PreToolUse on Bash: refuses commands that skip or disable the git hooks
   gates.py session-start SessionStart: warns when this clone has not set core.hooksPath to .githooks
   gates.py before-stop  Stop and SubagentStop: semgrep on every changed file, CONVENTIONS sync, and the
-                        tests named after changed planner modules (about 3 to 20 s)
+                        tests named after changed vela modules (about 3 to 20 s)
   gates.py scannable    for .githooks/pre-commit: filters NUL-separated paths to the ones the gates lint
 
 The decisions (what a command bypasses, which tests a change needs) are pure functions over strings, so
@@ -85,7 +85,7 @@ def bypass_reason(command):
 
 
 def tests_for(changed):
-    """The test files named after changed planner modules: plugin/lib/vela/releases.py -> tests/test_releases.py.
+    """The test files named after changed vela modules: plugin/lib/vela/releases.py -> tests/test_releases.py.
     A heuristic floor, not a coverage map; pre-push runs the suite. Pure."""
     out = []
     for path in changed:
@@ -151,7 +151,7 @@ def lint(root, files):
         if not shutil.which(tool):
             raise RuntimeError(f"{tool} is not installed, so the gate cannot run")
     problems = []
-    py = [f for f in files if f.endswith(".py") or f == "plugin/scripts/planner"]
+    py = [f for f in files if f.endswith(".py") or f == "plugin/scripts/vela"]
     if py:
         code, out = run(["ruff", "check", "--no-cache", "--quiet", "--output-format", "concise",
                          "--select", "E9,F63,F7,F82,E722,S506", "--extend-exclude", ".semgrep", *py], root, 30)
@@ -168,7 +168,7 @@ def scannable(root, paths):
     """The paths the gates lint: code files, minus what .semgrepignore names (generated pages, vendored and
     minified code, the rules' own fixtures)."""
     ignore = (root / ".semgrepignore").read_text().splitlines()
-    return [p for p in paths if (p.endswith(SCANNED) or p == "plugin/scripts/planner")
+    return [p for p in paths if (p.endswith(SCANNED) or p == "plugin/scripts/vela")
             and not semgrep_ignores(p, ignore) and (root / p).is_file()]
 
 

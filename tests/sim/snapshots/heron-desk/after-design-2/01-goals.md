@@ -14,7 +14,7 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=88984c1e: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=88984c1e: do not edit, run vela render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -64,7 +64,7 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Progress by app
 
-<!-- generated:progress-map sha=cd9e631a: do not edit, run planner render -->
+<!-- generated:progress-map sha=cd9e631a: do not edit, run vela render -->
 **As of:** 2026-10-12, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |

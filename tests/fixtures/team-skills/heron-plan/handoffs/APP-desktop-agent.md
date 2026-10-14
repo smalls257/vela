@@ -5,7 +5,7 @@
 - **Written:** 2026-10-12
 - **Items:** 29
 
-Written by `planner handoff APP-desktop-agent`. Do not edit it by hand. `planner handoff verify APP-desktop-agent` lists what changed since the senior accepted this slice.
+Written by `vela handoff APP-desktop-agent`. Do not edit it by hand. `vela handoff verify APP-desktop-agent` lists what changed since the senior accepted this slice.
 
 | ID | Kind | Page | State | Hash |
 |---|---|---|---|---|

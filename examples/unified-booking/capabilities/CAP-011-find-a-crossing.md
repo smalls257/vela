@@ -40,6 +40,6 @@ Lets a customer or an agent see which crossings run on a route and date, and how
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=140bedbf: do not edit, run planner render -->
+<!-- generated:delivered-by sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:delivered-by -->

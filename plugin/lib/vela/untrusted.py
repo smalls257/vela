@@ -9,7 +9,7 @@ Three verdicts for a path:
 - ok: a page, a source, the stamp, the pinned layout.
 - program: something a tool would run or obey (.claude/settings.json, .githooks/, .github/workflows, bin/, .mcp.json,
   .obsidian plugins). A reader has no use for it, so opening a copy leaves it out and says so; a proposal never carries it.
-- forbidden: git's own folder, the planner's private folders, a symlink, a name that escapes. Nothing is opened or applied
+- forbidden: git's own folder, vela's private folders, a symlink, a name that escapes. Nothing is opened or applied
   when one is present, and the message names the file.
 
 What the stamp's tree_hash does and does not do (Paper Tiger if read as security): it is a plain sha256 over the files,
@@ -31,7 +31,7 @@ MAX_PATCH_BYTES = 8 * 1024 * 1024
 OK, PROGRAM, FORBIDDEN = "ok", "program", "forbidden"
 
 # Hidden files a published copy legitimately carries and a reader's tools read.
-HIDDEN_OK = {".planner.yaml", ".gitignore", publish.STAMP_PATH, ".planner/explorer-pins.json"}
+HIDDEN_OK = {".vela.yaml", ".gitignore", publish.STAMP_PATH, ".vela/explorer-pins.json"}
 PROGRAM_FOLDERS = {"bin"}
 PROGRAM_SUFFIXES = (".sh", ".bash", ".zsh", ".command", ".bat", ".cmd", ".ps1", ".exe", ".dll", ".scr", ".vbs", ".jar", ".msi", ".app")
 CONTROL = re.compile(r"[\x00-\x1f\x7f]")
@@ -71,7 +71,7 @@ def verdict(path):
         return OK, ""
     private = next((prefix for prefix in publish.EXCLUDED if lowered == prefix.rstrip("/").casefold() or lowered.startswith(prefix.casefold())), None)
     if private:
-        return FORBIDDEN, f"a published copy never holds {private} (it is the planner's own, private or generated); this one was not made by planner publish"
+        return FORBIDDEN, f"a published copy never holds {private} (it is vela's own, private or generated); this one was not made by vela publish"
     if lowered in {name.casefold() for name in HIDDEN_OK}:
         return OK, ""
     if any(seg.startswith(".") for seg in segments):

@@ -3,7 +3,7 @@
 # is decided without an explicit yes, and Claude drafts no message for the lead to send.
 snapshot:
   coastal-merger: after-boundary-s2
-opening: "/planner:grill APP-northway-id"
+opening: "/vela:grill APP-northway-id"
 cap: 14
 close: 8
 criteria:

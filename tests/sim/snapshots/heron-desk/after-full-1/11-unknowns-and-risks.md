@@ -10,7 +10,7 @@ authored: mixed
 
 The desk helper starts from one sentence of the CIO's, and the notes read since then disagree on the basics. The open questions are who the helper is for, what data it reads, [[#UNK-012 Where Heron processes text|where it processes text]], whether it needs [[#UNK-013 Registration or sign-in|an app registration or only each person's sign-in]], and whether [[#UNK-014 Works councils and Heron|the works councils have anything to worry about]]. Others are how [[#UNK-015 Review timing|the CISO's review timing]] fits the pilot date, [[#UNK-016 Who holds the Microsoft agreement|who holds the Microsoft agreement]], [[#UNK-010 Who owns Heron|who owns Heron]], which holds up all four draft epics, and whether IT will package it. The epics are meant to go to @agent-lead, but the lead's belief that the CTO named them on 9 October has no source yet, and [[#UNK-028 Where the CTO named @agent-lead|where that naming was made]] is asked of the lead. The first release is leaning to a pre-call prep note, and it waits on [[#UNK-017 Client Zoom transcripts and engagement letters|what client Zoom calls leave behind]], [[#UNK-019 Daily folder habit|whether the pilot team will keep pointing Heron at a folder]] and [[#UNK-018 Filtering Frankfurt staff's data|how Frankfurt staff's data is filtered out]]. The requirements for the prep note are written, and they wait on [[#UNK-021 How a client call is marked|how the pilot team marks a client call]], [[#UNK-022 How an earlier call is matched to the same client|how an earlier call is matched to the same client]], the DPO's view on [[#UNK-023 Invitees and the DPO rule|listing invitees]] and on [[#UNK-024 DPO rule across the whole note|the reach of the name rule]], and Legal's view on [[#UNK-025 Reusing call records and client names|reusing call records and client names]]. Whether the calendar entry carries [[#UNK-026 Whether the calendar entry carries an attendee's organization|each attendee's organization]] is asked of the endpoint lead. Allocating the prep note to Heron left the reviewer questions about it waiting on these unknowns, each named in the question ledger. Whether Heron reading each person's calendar counts as text leaving the device is [[#UNK-020 Calendar read and the device line|still open]] with the CISO's office, and the Data and Security concerns wait on it. The security pack goes to the CISO's review by 10 November, and the solution lead is working through the pilot team's lead, the CISO's office and the works council to close the questions it needs. No risks are recorded yet.
 
-<!-- generated:unknowns-index sha=58119cfc: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=58119cfc: do not edit, run vela render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 Quietly watches\|UNK-001]] | Quietly watches | @solution-lead | open | 2026-10-18 |
@@ -372,7 +372,7 @@ The solution lead believes the CTO named @agent-lead on 9 October as the person 
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=dc1b9f0a: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=dc1b9f0a: do not edit, run vela render -->
 **Questions:** 32 owed, 4 undisposed, 15 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |

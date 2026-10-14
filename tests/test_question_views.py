@@ -98,7 +98,7 @@ def test_an_open_row_counts_as_undisposed_and_is_listed_as_open(ub):
 
 def test_the_block_is_allowed_only_on_the_unknowns_page(ub):
     edit(ub / "12-glossary.md", "# Glossary", "# Glossary\n\n<!-- generated:undisposed-questions sha=00000000: do not edit, "
-         "run planner render -->\n<!-- /generated:undisposed-questions -->")
+         "run vela render -->\n<!-- /generated:undisposed-questions -->")
     assert ("E403", "12-glossary.md") in findings(check(ub, TODAY)[1])
 
 
@@ -143,7 +143,7 @@ def test_the_digest_text_offers_one_answer_for_a_group(ub):
     drop(ub, OPS_KIOSKS, OPS_PRICING)
     code, out = run("questions", "--vault", str(ub), "--digest")
     assert code == 0
-    assert out.splitlines()[0] == ("planner questions --digest: 57 standard questions apply, 2 not dealt with yet, 1 asked but not "
+    assert out.splitlines()[0] == ("vela questions --digest: 57 standard questions apply, 2 not dealt with yet, 1 asked but not "
                                    "answered, 1 open reviewer question (question catalog v1). 3 questions to settle, most important first.")
     assert "1. [Finance and liabilities] normal: Who pays for the change" in out and "   (asked) Q-FIN-02@INI-002" in out
     assert "2. [Operations and people] normal, holds up APP-kiosks, APP-pricing: Who runs it" in out

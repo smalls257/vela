@@ -40,7 +40,7 @@ def world(tmp_path):
     shutil.copy(DEMO_DESIGNS / "pricing" / PRICING_DOC, team / PRICING_DOC)
     text = DEMO_PLAN.read_text(encoding="utf-8").replace("docs/tech-design/booking.md", PRICING_DOC)
     (team / PRICING_PLAN).write_text(text, encoding="utf-8")
-    with open(vault / ".planner.yaml", "a", encoding="utf-8") as config:
+    with open(vault / ".vela.yaml", "a", encoding="utf-8") as config:
         config.write(f"designs: {{APP-pricing: ../team/{PRICING_DOC}}}\n")
     return vault, team
 
@@ -104,13 +104,13 @@ def test_breakdown_on_the_app_page_wins_over_beside_the_design(world):
     assert data_of(vault)["plans"]["APP-pricing"]["file"] == "elsewhere-breakdown.md"
 
 
-def test_breakdowns_in_planner_yaml_names_a_plan_with_no_design_loaded(world):
+def test_breakdowns_in_vela_yaml_names_a_plan_with_no_design_loaded(world):
     vault, team = world
-    with open(vault / ".planner.yaml", "a", encoding="utf-8") as config:
+    with open(vault / ".vela.yaml", "a", encoding="utf-8") as config:
         config.write(f"breakdowns: {{APP-booking: ../team/{PRICING_PLAN}}}\n")
     code, said = explore(vault)
     assert code == 0, said
-    assert "(APP-booking): using the build plan" in said and "breakdowns: in .planner.yaml" in said, said
+    assert "(APP-booking): using the build plan" in said and "breakdowns: in .vela.yaml" in said, said
     assert plans_on_the_page(vault) == ["APP-booking", "APP-pricing"]
 
 

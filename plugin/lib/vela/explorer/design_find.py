@@ -1,4 +1,4 @@
-"""Find each app's team design doc when the build was not told where it is: `planner explore` with no `--design`.
+"""Find each app's team design doc when the build was not told where it is: `vela explore` with no `--design`.
 
     discover(vault, root, named) -> (["APP-x=<path>", ...], [report line, ...])
 
@@ -8,7 +8,7 @@ the vault says where each one is, in the order below. The first source that name
 named by `--design` is never looked up.
 
   1. `design: <path>` in the app page's frontmatter;
-  2. `designs: {APP-x: <path>}` in .planner.yaml;
+  2. `designs: {APP-x: <path>}` in .vela.yaml;
   3. the vault's own docs/tech-design/*.md, where tech-design-grill writes when run from the vault root (a design
      is a vault file, so a team needs nothing configured): the doc whose frontmatter `vault.app` is the app, else
      whose `prereqs` name the app's page, else whose file name is the app's slug (`booking` for APP-booking, or the
@@ -57,8 +57,8 @@ def discover(vault, root, named):
             missing.append((app, look.tried))
     if missing:
         said.append(f"no design yet for {', '.join(app_named(app) for app, _ in missing)}, so Inside this app shows only their containers. "
-                    f"To add one, the app's team runs /planner:design --app <app ID> from the plan's folder (it writes {VAULT_DOCS}/<slug>.md), "
-                    "or point to one with design: on the app page, designs: in .planner.yaml, or --design <app ID>=<path>.")
+                    f"To add one, the app's team runs /vela:design --app <app ID> from the plan's folder (it writes {VAULT_DOCS}/<slug>.md), "
+                    "or point to one with design: on the app page, designs: in .vela.yaml, or --design <app ID>=<path>.")
         said += [f"  {app_named(app)}: {'; '.join(tried)}" for app, tried in missing if tried]
     return found, said
 
@@ -97,12 +97,12 @@ def prereq_paths(meta):
 
 
 def configured_designs(config):
-    """({app ID: path} from .planner.yaml's `designs:`, the warnings about it)."""
+    """({app ID: path} from .vela.yaml's `designs:`, the warnings about it)."""
     raw = config.get("designs")
     if raw is None:
         return {}, []
     if not isinstance(raw, dict):
-        return {}, ["warning: .planner.yaml designs: is not a map of app ID to a design doc path, so none of it is used"]
+        return {}, ["warning: .vela.yaml designs: is not a map of app ID to a design doc path, so none of it is used"]
     return {str(app): value for app, value in raw.items()}, []
 
 
@@ -129,7 +129,7 @@ class Look:
     def config_entry(self, configured):
         if self.doc or self.app.id not in configured:
             return
-        self.from_path(configured[self.app.id], "from designs: in .planner.yaml")
+        self.from_path(configured[self.app.id], "from designs: in .vela.yaml")
 
     def from_path(self, value, where):
         doc = self.file_at(value, where)

@@ -8,7 +8,7 @@ plugins:
 - ../../../../plugin
 runs: 3
 execution:
-  prompt: '/planner:close I accept every mark you propose, except c07: drop it, we already know they can''t. For any unknown
+  prompt: '/vela:close I accept every mark you propose, except c07: drop it, we already know they can''t. For any unknown
     you keep use owner @hl-solution-lead and ask-by 2026-11-02. Accept your own summary. The session took 40 minutes. This
     vault has no git remote and no gh, so fetch, push and gh will fail: say so and carry on. Do not wait for answers from
     me beyond what this message gives.'
@@ -28,7 +28,7 @@ graders:
 - name: plugin-loaded
   type: tool_used
   tool: Skill
-  input_match: planner
+  input_match: vela
   arm: with-only
 - name: claude-lines-parked
   type: regex

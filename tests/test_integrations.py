@@ -50,15 +50,15 @@ def test_patched_skill_frontmatter_parses_and_mentions_vaults(folder):
     assert "vault" in meta["description"]
 
 
-# The planner reference each integration follows in vault mode. PREREQ-CHECK.md names both, because the
+# Vela reference each integration follows in vault mode. PREREQ-CHECK.md names both, because the
 # two grill skills share that file byte for byte; each skill depends only on its own.
 REFERENCE = {"requirements-grill": "REQUIREMENTS-IN-VAULT.md", "tech-design-grill": "TECH-DESIGN-FROM-VAULT.md"}
 
 
 @pytest.mark.parametrize("folder", INTEGRATIONS, ids=ids(INTEGRATIONS))
-def test_vault_mode_names_a_planner_reference_that_exists(folder):
+def test_vault_mode_names_a_vela_reference_that_exists(folder):
     name = REFERENCE[folder.name]
-    assert f".claude/skills/planner/references/{name}" in (folder / "skill" / "PREREQ-CHECK.md").read_text(encoding="utf-8")
+    assert f".claude/skills/vela/references/{name}" in (folder / "skill" / "PREREQ-CHECK.md").read_text(encoding="utf-8")
     assert (REPO / "plugin" / "references" / name).is_file(), f"the plugin has no references/{name}"
 
 
@@ -88,6 +88,11 @@ def test_reversing_the_patch_gives_the_upstream_skill(folder, tmp_path):
         if not backups:
             pytest.skip(f"{upstream} is the patched copy and no backup of the original is on this machine")
         upstream = backups[-1]
+    elif "## Vault mode" in ((upstream / "PREREQ-CHECK.md").read_text(encoding="utf-8")
+                             if (upstream / "PREREQ-CHECK.md").is_file() else ""):
+        # An install of an older vault-mode patch (the rename to vela changed the patch) is neither the
+        # original nor this patched copy, so there is nothing to compare with until the user re-applies it.
+        pytest.skip(f"{upstream} carries an older vault-mode patch than this one: re-apply it (INSTALL.md)")
     assert same_tree(work, upstream), f"reversing the patch does not give {upstream} file for file"
     for path in sorted(upstream.iterdir()):
         if path.is_file():

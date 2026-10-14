@@ -56,33 +56,33 @@ news:
 sessions:
   - mode: boundary
     cap: 24
-    planner: "/planner:boundary the decided login owner and offer"
+    vela: "/vela:boundary the decided login owner and offer"
     baseline: "Turn the decided login owner into apps: who owns what, their contracts and how they fail, following CONVENTIONS.md."
   - mode: close
     cap: 10
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
   - mode: grill
     cap: 22
-    planner: "/planner:grill the app pages and contracts the boundary session wrote"
+    vela: "/vela:grill the app pages and contracts the boundary session wrote"
     baseline: "Take me through the new app pages and contracts and record what I decide, following CONVENTIONS.md."
   - mode: close
     cap: 8
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
   - mode: epics
     cap: 20
-    planner: "/planner:epics Northway Platform team"
+    vela: "/vela:epics Northway Platform team"
     baseline: "Draft the epics for the Northway Platform team, following CONVENTIONS.md."
   - mode: close
     cap: 8
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
   - mode: grill
     cap: 16
-    planner: "/planner:grill handing the Platform team's app to the Northway Platform team"
+    vela: "/vela:grill handing the Platform team's app to the Northway Platform team"
     baseline: "Take me through handing the Platform team's app to the Northway Platform team and record it, following CONVENTIONS.md."
   - mode: close
     cap: 8
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."

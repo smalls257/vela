@@ -1,4 +1,4 @@
-"""git (and, in a reader copy, the folder) for `planner session open`: read the candidate session records and switch.
+"""git (and, in a reader copy, the folder) for `vela session open`: read the candidate session records and switch.
 
 The periphery for `sessions.py`, which decides. What is read, and why:
 
@@ -12,7 +12,7 @@ The periphery for `sessions.py`, which decides. What is read, and why:
   calls. For a candidate on origin whose local branch also exists, the local copy is read too, so `sessions.py` can
   prefer it (the local branch may already say `closed`).
 
-A reader copy (a published folder: `.planner/workspace.json`, no `.git`) has no branches. It is recognized from the
+A reader copy (a published folder: `.vela/workspace.json`, no `.git`) has no branches. It is recognized from the
 disk alone and its `sessions/*.md` are read in place; no git command runs there, so a machine with no git works, and a
 copy that sits inside some other repo never reads that repo's history.
 
@@ -29,9 +29,9 @@ PATTERNS = ("refs/heads/session/", "refs/remotes/origin/session/")
 
 
 def is_read_copy(root):
-    """True for a published copy, judged by the same access rule `planner role` uses, from the disk alone."""
+    """True for a published copy, judged by the same access rule `vela role` uses, from the disk alone."""
     root = pathlib.Path(root)
-    facts = roles.Facts(has_workspace=(root / ".planner" / "workspace.json").is_file(), git_here=(root / ".git").exists())
+    facts = roles.Facts(has_workspace=(root / ".vela" / "workspace.json").is_file(), git_here=(root / ".git").exists())
     return roles.decide(facts).role == roles.READER
 
 

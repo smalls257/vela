@@ -21,7 +21,7 @@ NO_ID = "Not tied to an ID"
 NO_REASON = "no reason given"
 NULL_SHA = "0" * 40
 FILE_MODE = "100644"
-MAGIC = "# planner proposal"
+MAGIC = "# vela proposal"
 NO_NEWLINE = "\\ No newline at end of file\n"
 UNUSUAL_PATH = re.compile(r'[\x00-\x1f"\\`]')  # git would quote these, and the reviewer reads them inside Markdown
 # A home folder on any system, whoever's it is: Unix and macOS homes, /root, macOS temp folders (they carry a per-login id),
@@ -306,7 +306,7 @@ def privacy_hits(texts, forbidden):
     """[(name, line number, line)] where a text holds a forbidden string or any home folder path.
 
     `forbidden` is exact strings this proposal must never carry: this user's home folder, the workspace, the
-    source it was opened from, the planner program. Empty strings are skipped, not matched everywhere.
+    source it was opened from, the vela program. Empty strings are skipped, not matched everywhere.
     """
     needles = [f for f in forbidden if f]
     hits = []

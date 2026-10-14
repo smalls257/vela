@@ -12,7 +12,7 @@ authored: mixed
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=9ca75c34: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=9ca75c34: do not edit, run vela render -->
 **Apps on the ladder:** none
 
 **Open unknowns**
@@ -62,7 +62,7 @@ authored: mixed
 
 ## Progress by app
 
-<!-- generated:progress-map sha=140bedbf: do not edit, run planner render -->
+<!-- generated:progress-map sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:progress-map -->
 

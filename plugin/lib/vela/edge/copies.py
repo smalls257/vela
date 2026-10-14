@@ -12,7 +12,7 @@ import zipfile
 
 from vela import opening, publish, replay, untrusted
 
-WORKSPACE = pathlib.Path(".planner") / "workspace.json"
+WORKSPACE = pathlib.Path(".vela") / "workspace.json"
 STAMP = pathlib.PurePosixPath(publish.STAMP_PATH)
 
 
@@ -44,7 +44,7 @@ def write_zip(data, out):
 
 
 def read_workspace(root):
-    """The reader workspace's .planner/workspace.json as a dict; SourceUnreadable names what is wrong with it."""
+    """The reader workspace's .vela/workspace.json as a dict; SourceUnreadable names what is wrong with it."""
     path = pathlib.Path(root) / WORKSPACE
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -82,7 +82,7 @@ def _zip_stamp(source):
         with zipfile.ZipFile(source) as archive:
             for name in archive.namelist():
                 parts = name.split("/")
-                if name.endswith(publish.STAMP_PATH) and len(parts) <= 3 and parts[-2:] == [".planner", "published.json"]:
+                if name.endswith(publish.STAMP_PATH) and len(parts) <= 3 and parts[-2:] == [".vela", "published.json"]:
                     return _stamp_from_text(archive.read(name).decode("utf-8"), f"{source}:{name}")
     except zipfile.BadZipFile as exc:
         raise SourceUnreadable(f"{source} is not a readable zip: {exc}") from exc
@@ -193,12 +193,12 @@ def read_published(source_path):
     return files, stamp
 
 
-BASELINE = pathlib.Path(".planner") / "baseline"
+BASELINE = pathlib.Path(".vela") / "baseline"
 
 
 def read_tree(folder, skip_published=False):
     """{vault-relative path: bytes} of every file under `folder`. With skip_published the generated and private
-    parts a publish leaves out (.planner/, .git/, voice/local/, the vendored plugin), OS junk and a replay's saved
+    parts a publish leaves out (.vela/, .git/, voice/local/, the vendored plugin), OS junk and a replay's saved
     sides of a conflict (`page.mine.md`) are skipped too,
     so a working copy is compared with its baseline on the same footing. An unreadable file raises OpenError."""
     folder = pathlib.Path(folder)
@@ -253,7 +253,7 @@ def write_workspace(folder, files, record):
         shutil.rmtree(staging)
     try:
         write_folder(files, staging)
-        write_folder(files, staging / ".planner" / "baseline")
+        write_folder(files, staging / ".vela" / "baseline")
         (staging / WORKSPACE).write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         if folder.exists():
             folder.rmdir()

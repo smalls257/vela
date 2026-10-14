@@ -18,7 +18,7 @@ It does not own the login, which is [[northway-id-building-blocks|Northway ID]],
 
 - **Options considered:** Login with a link service (picked); Login only, no new app: rejected, it holds the link in two places, leaves the rail-side link with no owner and puts the link step on SeaBook, which Ferry Ops says is frozen; Ferry sign-in adapter: rejected, its adapter has no named owner and the link step still has no app
 
-<!-- generated:app-context sha=d5faf148: do not edit, run planner render -->
+<!-- generated:app-context sha=d5faf148: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]
@@ -64,7 +64,7 @@ What is inside SeaBook is not recorded: [[11-unknowns-and-risks#UNK-011 How ferr
 
 It relies on [[northway-id-building-blocks#CON-004 Sign in and person key|CON-004]] and [[northway-id-building-blocks#CON-005 Enroll a ferry customer|CON-005]] from Northway ID, and on [[account-link-service-building-blocks#CON-001 Link a customer|CON-001]] and [[account-link-service-building-blocks#CON-002 Look up linked records|CON-002]] from the Account link service. Tidepay is untouched.
 
-<!-- generated:contracts-consumed sha=297f79e7: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=297f79e7: do not edit, run vela render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[account-link-service-building-blocks#CON-001 Link a customer\|CON-001 Link a customer]] | [[account-link-service-building-blocks\|Account link service]] | Not decided: the owner sets it with each consumer before build. | assumption |

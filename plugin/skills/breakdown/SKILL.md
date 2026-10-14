@@ -7,9 +7,9 @@ disable-model-invocation: true
 
 # Breakdown
 
-Turn a finished design into stories and tasks, and show that nothing was left out. The plan is the team's file: the explorer's Build plan draws it, and `/planner:tickets` turns it into tickets, so the format in `${CLAUDE_PLUGIN_ROOT}/skills/breakdown/PLAN-FORMAT.md` is exact and read by code. Read that file before the first story.
+Turn a finished design into stories and tasks, and show that nothing was left out. The plan is the team's file: the explorer's Build plan draws it, and `/vela:tickets` turns it into tickets, so the format in `${CLAUDE_PLUGIN_ROOT}/skills/breakdown/PLAN-FORMAT.md` is exact and read by code. Read that file before the first story.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The vault is the folder this runs in. The design, the plan and the tickets sit in its `docs/` folder, beside the pages they trace to.
+Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The vault is the folder this runs in. The design, the plan and the tickets sit in its `docs/` folder, beside the pages they trace to.
 
 ## 1. Start
 
@@ -19,9 +19,9 @@ A team session writes no session record. Work on the branch `design/<slug>` (cre
 
 Check the prerequisites:
 
-1. `docs/tech-design/<slug>.md` exists with `status: complete` or `complete-with-gaps`. If not, say in one sentence what is missing and offer `/planner:design`; stop there. A plan on an unfinished design is a plan for work that will change.
+1. `docs/tech-design/<slug>.md` exists with `status: complete` or `complete-with-gaps`. If not, say in one sentence what is missing and offer `/vela:design`; stop there. A plan on an unfinished design is a plan for work that will change.
 2. `docs/plan/<slug>-breakdown.md` may already exist. Read back its summary table, ask whether to continue it or start again, and say what you did not re-check. Stories already agreed stay as they are.
-3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff verify <APP-id>` as `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md` says. If the vault changed since the design, name what changed before the plan leans on it.
+3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id>` as `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md` says. If the vault changed since the design, name what changed before the plan leans on it.
 
 ## 2. Read what the plan stands on
 
@@ -29,7 +29,7 @@ Read in this order, and when a fact is missing look in this order before asking 
 
 - The design (`gaps` and `deferred` in its frontmatter, its Trace table, components, open questions) and its ADRs.
 - The app's page in the vault: its `## Requirements allocated` rows, the contracts it provides and consumes, and each epic that lists the app, with every acceptance criterion.
-- `slices/`: one page per slice, the unit of done. SLC-001 is the tracer; each names its flows, what it comes after and the joins it crosses. `planner handoff` lists the slices this app takes part in.
+- `slices/`: one page per slice, the unit of done. SLC-001 is the tracer; each names its flows, what it comes after and the joins it crosses. `vela handoff` lists the slices this app takes part in.
 - `04b-releases.md`: the release dates and what each delivers, and the slices each points at. In a vault with no slice pages, its first release section may name the initiative's tracer flow (`- **Tracer:**`).
 - `CONTEXT.md`, and the codebase if it exists, so tasks name real modules.
 
@@ -53,7 +53,7 @@ Group the work into stories. Read the list back as a short list in words: each s
 
 Then, for each agreed story, one question at a time with your recommendation and a one-line reason. Settle:
 
-- **Acceptance criteria.** Quote them word for word from the epic criterion or requirement the story traces to, one bullet each, and put every ID on the `Traces to:` line. A criterion that comes from the design or the team (a target, a failure rule) is written as the design states it. Quoting keeps the plan testable without a trip to the vault; the vault commit in the design's frontmatter shows when the words were taken, and `/planner:tickets` checks them again. A criterion the vault does not hold is never made up: it goes to the design as a question.
+- **Acceptance criteria.** Quote them word for word from the epic criterion or requirement the story traces to, one bullet each, and put every ID on the `Traces to:` line. A criterion that comes from the design or the team (a target, a failure rule) is written as the design states it. Quoting keeps the plan testable without a trip to the vault; the vault commit in the design's frontmatter shows when the words were taken, and `/vela:tickets` checks them again. A criterion the vault does not hold is never made up: it goes to the design as a question.
 - **Done when**: one plain sentence a tester could say aloud.
 - **Tasks**, each sized `S` (up to about 2 days), `M` (3 to 5 days) or `L` (1 to 2 weeks) for one engineer. A task over `L` is split. Sizes are for ordering.
 - **What it waits on**: another story, a design question or deferral, an outside party. `Blocked by:` starts with `none` when nothing blocks it; any note after that is kept.
@@ -77,11 +77,11 @@ Check, and fix before saying done:
 
 - Every allocated requirement, contract, epic criterion and component has a story, or a gap entry `PG-nnn` (plan gaps are `PG-`, never the design's `G-`) with who accepted it and why. Every `gaps[]` and `deferred[]` entry of the design is a story or sits under `## Not planned` with its ID.
 - Every story has tasks with sizes, a `Blocked by:` line and a `Release fit:` line; every story in the summary table is in the build order, and the reverse. The summary row's size total is a count ("3 M, 2 S").
-- Run `planner explore --breakdown APP-x=docs/plan/<slug>-breakdown.md` (or `planner tickets check`) and fix every line it could not read.
+- Run `vela explore --breakdown APP-x=docs/plan/<slug>-breakdown.md` (or `vela tickets check`) and fix every line it could not read.
 - Run the audit in `${CLAUDE_PLUGIN_ROOT}/references/NEG-AUDIT.md` against the plan. In particular Paper Tiger (do the stories add up to what the requirements need, not only to the components?) and Distributed Monolith (can each story ship without waiting on all the others? A tracer story waits for another team's piece by design; its waits are named and stubbed). Tell the person the findings in plain words ("Reading the calendar shows nothing a person can see; I'd merge it into the digest story") and keep the table in `docs/plan/<slug>-audit.md`. The plan carries one line: "Audited on <date> against `NEG-AUDIT.md`; the result is in `docs/plan/<slug>-audit.md`."
 
-Set `status: complete`, or `complete-with-gaps` with a `PG-nnn` entry for each target the person chose to leave uncovered or each audit finding they accepted. Then say the next step: `/planner:tickets`, and open the pull request if the team's rule asks for one.
+Set `status: complete`, or `complete-with-gaps` with a `PG-nnn` entry for each target the person chose to leave uncovered or each audit finding they accepted. Then say the next step: `/vela:tickets`, and open the pull request if the team's rule asks for one.
 
 ## What stays out of this session
 
-The plan never edits the design, the requirements or the vault pages. A gap goes back as an open question written "what we know / what would unblock / affects", with the vault ID it challenges, and the person raises it with `/planner:challenge`. Dates and people are the team's: the plan gives sizes, a rough fit from stated capacity, and names only people the design or vault names.
+The plan never edits the design, the requirements or the vault pages. A gap goes back as an open question written "what we know / what would unblock / affects", with the vault ID it challenges, and the person raises it with `/vela:challenge`. Dates and people are the team's: the plan gives sizes, a rough fit from stated capacity, and names only people the design or vault names.

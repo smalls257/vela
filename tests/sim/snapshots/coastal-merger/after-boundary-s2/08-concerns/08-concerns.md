@@ -10,7 +10,7 @@ authored: mixed
 
 One row per app, one column per concern.
 
-<!-- generated:concern-matrix sha=d6d00bf6: do not edit, run planner render -->
+<!-- generated:concern-matrix sha=d6d00bf6: do not edit, run vela render -->
 | App | [[concern-cost\|Cost]] | [[concern-data\|Data]] | [[concern-observability\|Observability]] | [[concern-operations\|Operations]] | [[concern-ownership\|Ownership]] | [[concern-rollout\|Rollout]] | [[concern-security\|Security]] | [[concern-testing\|Testing]] |
 |---|---|---|---|---|---|---|---|---|
 | [[account-link-service-building-blocks\|Account link service]] | unexamined | unknown | unexamined | unexamined | unknown | unexamined | unexamined | unexamined |

@@ -7,7 +7,7 @@ This costs money: every assistant turn, persona turn and judge call is a real `c
 
 Usage:
   python3 tests/sim/run.py <persona> --model <id> --persona-model <id> --judge-model <id> --budget <usd>
-                           [--arms planner,planner-seuss] [--script default] [--stub] [--out <dir>]
+                           [--arms vela,vela-seuss] [--script default] [--stub] [--out <dir>]
   python3 tests/sim/run.py --rejudge <run-dir> --judge-model <id> --budget <usd> [--stub]
 
 --rejudge scores a finished run again from its transcript.jsonl and vault/, without replaying any session. It
@@ -20,7 +20,7 @@ Beside each verdict the scorecard sets the driver's own keyword hits for the ite
 between the two under "Check these" at the top.
 
 <persona> is a name in tests/sim/personas/ (coastal-merger) or a path to a .yaml file. --script is a name in
-tests/sim/scripts/ or a path. Arms: planner, planner-seuss, baseline. baseline runs only when it is named.
+tests/sim/scripts/ or a path. Arms: vela, vela-seuss, baseline. baseline runs only when it is named.
 
 --budget is the ceiling for the whole run, split evenly over the arms. In each arm 15% is held back for the
 judge, so sessions stop at 85% of the arm's share. Spend is the sum of every call's total_cost_usd.
@@ -28,7 +28,7 @@ judge, so sessions stop at 85% of the arm's share. Spend is the sum of every cal
 Exit codes: 0 every session of every arm ran to its end and was scored; 1 the budget or a turn cap ended at
 least one session early (every output is still written); 2 a tool failed: claude was missing, its JSON lacked a
 field, the judge's JSON was bad twice, git or the scaffold failed. Output written before the failure is kept; 3 every
-session ran and was scored, but the final vault's Completeness (planner status) is under the script's
+session ran and was scored, but the final vault's Completeness (vela status) is under the script's
 `completeness_gate`, so the run does not count. The scorecard names the shares that held it back. A --stub run reports
 the gate and is never failed by it, since no model wrote its vault. A tool failure (2) outranks the gate (3), and the
 gate outranks an early stop (1): a run under the gate does not count however its sessions ended.
@@ -51,16 +51,16 @@ HERE = pathlib.Path(__file__).resolve().parent
 SNAPSHOTS = HERE / "snapshots"
 REPO = HERE.parent.parent
 PLUGIN = REPO / "plugin"
-PLANNER = PLUGIN / "scripts" / "planner"
+VELA = PLUGIN / "scripts" / "vela"
 SCAFFOLD = REPO / "tests" / "evals" / "scaffold.py"
 RESULTS = HERE / "results"
 STUB_DIR = HERE / "stub"
 SEUSS = HERE / "voices" / "seuss-style"
 
-ARMS = ("planner", "planner-seuss", "baseline")
-DEFAULT_ARMS = "planner,planner-seuss"
+ARMS = ("vela", "vela-seuss", "baseline")
+DEFAULT_ARMS = "vela,vela-seuss"
 MODES = ("dump", "close", "discover", "shape", "requirements", "boundary", "allocate", "releases", "grill", "epics")
-# Wide enough for every planner skill: START's git and planner calls, voice-seed's heredoc, cmp and awk checks,
+# Wide enough for every vela skill: START's git and vela calls, voice-seed's heredoc, cmp and awk checks,
 # close's mktemp and voicecheck. gh is allowed so its failure paths run against the stub, not a permission denial.
 # Agent lets close dispatch the voice reviewer and a review checkpoint dispatch the area reviewers.
 ALLOWED_TOOLS = ["Read", "Write", "Edit", "Glob", "Grep", "Bash(git *)", "Bash(python3 *)", "Bash(mkdir *)",
@@ -74,7 +74,7 @@ PR_LOG = "sim-prs.jsonl"  # in the arm's origin.git, the one place besides the v
 END = "[END]"
 TICKETS_TIMEOUT = 60
 # The team's sessions in a vault script run from the vault root. design, breakdown and tickets are the plugin's own skills
-# (/planner:design, /planner:breakdown, /planner:tickets), loaded like every other mode. The older path still works:
+# (/vela:design, /vela:breakdown, /vela:tickets), loaded like every other mode. The older path still works:
 # "tech-design-grill" (and a "breakdown" opened as /work-breakdown) run the user's own skills copied in by `vault_skills`.
 TEAM_MODES = ("design", "breakdown", "tickets", "tech-design-grill")
 PLUGIN_TEAM_MODES = ("design", "breakdown", "tickets")
@@ -193,8 +193,8 @@ def keyword_problems(kind, item_id, item, opening_text):
 
 
 def opening(session, arm, persona):
-    """The scripted first message of a session for an arm: the skill command for planner arms, plain words for baseline."""
-    template = session["baseline" if arm == "baseline" else "planner"]
+    """The scripted first message of a session for an arm: the skill command for vela arms, plain words for baseline."""
+    template = session["baseline" if arm == "baseline" else "vela"]
     return template.format(opening=persona["opening"].strip(), topics=persona.get("topics") or {})
 
 
@@ -278,25 +278,25 @@ def script_problems(data, persona):
             problems.append(f"session {n}: mode {session.get('mode')!r} is not one of {', '.join(MODES + TEAM_MODES)}")
         if not isinstance(session.get("cap"), int) or session["cap"] < 1:
             problems.append(f"session {n}: 'cap' must be a whole number of assistant turns, at least 1")
-        for arm_key in ("planner", "baseline"):
+        for arm_key in ("vela", "baseline"):
             if not isinstance(session.get(arm_key), str):
                 problems.append(f"session {n}: '{arm_key}' opening is missing")
         if any(problems):
             continue
-        for arm in ("planner", "baseline"):
+        for arm in ("vela", "baseline"):
             try:
                 text = opening(session, arm, speaker)
             except (KeyError, IndexError, ValueError) as exc:
                 problems.append(f"session {n}: the {arm} opening names {exc}, which the persona does not hold")
                 continue
-            if session.get("mode") in PLUGIN_TEAM_MODES and arm == "planner" and text.startswith("/planner:"):
-                if not text.startswith(f"/planner:{session['mode']}"):
-                    problems.append(f"session {n}: the planner opening must start with /planner:{session['mode']}")
+            if session.get("mode") in PLUGIN_TEAM_MODES and arm == "vela" and text.startswith("/vela:"):
+                if not text.startswith(f"/vela:{session['mode']}"):
+                    problems.append(f"session {n}: vela opening must start with /vela:{session['mode']}")
                 continue
             if session.get("repo") or session.get("mode") in TEAM_MODES:
                 continue  # a team session runs the team's own skills, or plain words, in the team's repo
-            if arm == "planner" and not text.startswith(f"/planner:{session['mode']}"):
-                problems.append(f"session {n}: the planner opening must start with /planner:{session['mode']}")
+            if arm == "vela" and not text.startswith(f"/vela:{session['mode']}"):
+                problems.append(f"session {n}: vela opening must start with /vela:{session['mode']}")
             if arm == "baseline" and text.startswith("/"):
                 problems.append(f"session {n}: the baseline opening must be plain words, not a slash command")
     return problems
@@ -735,10 +735,10 @@ def build_vault(arm_dir, arm, persona):
     notes = []
     if arm == "baseline":
         shutil.rmtree(vault / ".claude" / "skills")
-        notes.append("baseline: .claude/skills removed, so no planner skill or bin is in the vault")
-    if arm == "planner-seuss":
+        notes.append("baseline: .claude/skills removed, so no vela skill or bin is in the vault")
+    if arm == "vela-seuss":
         retire_seed(vault)
-        notes.append("planner-seuss: public seed examples retired; Seuss-style examples copied to voice/local: "
+        notes.append("vela-seuss: public seed examples retired; Seuss-style examples copied to voice/local: "
                      + ", ".join(copy_seuss(vault)))
     git("add", "-A", cwd=vault)
     git("commit", "-q", "--amend", "--no-edit", cwd=vault)
@@ -766,9 +766,9 @@ def build_vault_from(arm_dir, start, persona):
     skills = vault / ".claude" / "skills"
     if skills.exists():
         shutil.rmtree(skills)
-    shutil.copytree(PLUGIN, skills / "planner", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    shutil.copytree(PLUGIN, skills / "vela", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     inbox = vault / ".inbox"
-    # As planner upgrade would: a snapshot saved before the format changed starts with the plugin's own copy.
+    # As vela upgrade would: a snapshot saved before the format changed starts with the plugin's own copy.
     shutil.copyfile(PLUGIN / "vault" / "CONVENTIONS.md", vault / "CONVENTIONS.md")
     for doc in persona.get("docs") or []:
         inbox.mkdir(exist_ok=True)
@@ -900,9 +900,9 @@ def union_hunk(match, lost):
 
 
 def check_errors(clone):
-    """(error count, first line) of planner check in the clone; the count is None when check itself failed."""
-    planner = clone / ".claude" / "skills" / "planner" / "scripts" / "planner"
-    done = subprocess.run([sys.executable, str(planner), "check"], cwd=clone, capture_output=True, text=True, timeout=120)
+    """(error count, first line) of vela check in the clone; the count is None when check itself failed."""
+    vela = clone / ".claude" / "skills" / "vela" / "scripts" / "vela"
+    done = subprocess.run([sys.executable, str(vela), "check"], cwd=clone, capture_output=True, text=True, timeout=120)
     first = (done.stdout.splitlines() or [done.stderr.strip() or "no output"])[0]
     found = re.search(r"(\d+) errors", first) if done.returncode in (0, 1) else None
     return (int(found.group(1)) if found else None), first
@@ -912,17 +912,17 @@ def resolve_conflicts(clone, files, errors_before, lost):
     """Settle each conflicted file by union_hunk, rebuild the generated blocks, and keep the merge only if the vault
     has no more check errors than main had. Returns "" when it is committed, or why it was not."""
     if errors_before is None:
-        return "planner check failed on main before the merge, so a union could not be judged"
+        return "vela check failed on main before the merge, so a union could not be judged"
     for rel in files:
         path = clone / rel
         text = CONFLICT_HUNK.sub(lambda m: union_hunk(m, lost), path.read_text(encoding="utf-8"))
         if any(mark in text for mark in ("<<<<<<<", ">>>>>>>", "|||||||")):
             return f"{rel} still holds conflict markers after the union"
         path.write_text(text, encoding="utf-8")
-    planner = [sys.executable, str(clone / ".claude" / "skills" / "planner" / "scripts" / "planner")]
-    render = subprocess.run(planner + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True, timeout=120)
+    vela = [sys.executable, str(clone / ".claude" / "skills" / "vela" / "scripts" / "vela")]
+    render = subprocess.run(vela + ["render", "--discard-edits"], cwd=clone, capture_output=True, text=True, timeout=120)
     if render.returncode != 0:
-        return f"planner render failed after the union: {(render.stdout + render.stderr).strip()[:200]}"
+        return f"vela render failed after the union: {(render.stdout + render.stderr).strip()[:200]}"
     errors, first = check_errors(clone)
     if errors is None or errors > errors_before:
         return f"the union adds check errors, {errors_before} on main before: {first}"
@@ -1073,7 +1073,7 @@ class Arm:
         return parsed, result
 
     def check_plugin(self, init, message, raw):
-        """A planner arm whose plugin did not load would run as a second baseline and score as the planner, and a team
+        """A vela arm whose plugin did not load would run as a second baseline and score as vela, and a team
         session whose skill did not load would answer from nothing. Either is a tool failure."""
         if self.name == "baseline" or not message.startswith("/") or init is None:
             return
@@ -1145,7 +1145,7 @@ class Arm:
         if mode == "close" and self.merge_prs:
             for report in merge_closed(self.vault, self.dir):
                 self.transcript.add(speaker="driver", session=index, mode=mode, event="merge", text=report)
-        if mode == "breakdown" and not session["planner"].startswith("/planner:"):  # the plugin's tickets session writes its own
+        if mode == "breakdown" and not session["vela"].startswith("/vela:"):  # the plugin's tickets session writes its own
             self.make_tickets(index, mode, self.repos[session["repo"]] if session.get("repo") else self.vault)
         return reason
 
@@ -2026,7 +2026,7 @@ def score_arm(arm):
 
 
 # A drafted message opens with an email subject line or a salutation, often inside a blockquote or a code block.
-# "- **Subject:** SV-01" is a planner bullet, not a message, so a list item never counts.
+# "- **Subject:** SV-01" is a vela bullet, not a message, so a list item never counts.
 DRAFTED_MESSAGE = re.compile(r"^(?:>\s*)*(?:\*\*)?Subject:(?:\*\*)?\s|^(?:>\s*)*(?:Hi|Hello|Dear)\s+[^\n,]{1,40},\s*$", re.M)
 
 
@@ -2058,9 +2058,9 @@ def drafted_messages(transcript):
 
 def capture_of(arm):
     """What the final vault records for the explorer's domains, flow senders, releases, requirements and asks, read by
-    `planner capture`. A tool failure is written into the scorecard, since the counts are a sensor, not a verdict."""
+    `vela capture`. A tool failure is written into the scorecard, since the counts are a sensor, not a verdict."""
     expect = getattr(arm, "capture_expect", None) or {}
-    argv = [sys.executable, str(PLANNER), "capture", "--vault", str(arm.vault), "--json"]
+    argv = [sys.executable, str(VELA), "capture", "--vault", str(arm.vault), "--json"]
     if expect.get("release_date"):
         argv += ["--expect-release", str(expect["release_date"])]
     if expect.get("ask"):
@@ -2068,7 +2068,7 @@ def capture_of(arm):
     try:
         done = subprocess.run(argv, capture_output=True, text=True, timeout=120)
     except subprocess.TimeoutExpired as exc:
-        return {"error": f"planner capture timed out after 120s"}
+        return {"error": f"vela capture timed out after 120s"}
     if done.returncode != 0:
         return {"error": (done.stdout + done.stderr).strip()[:300]}
     return json.loads(done.stdout)
@@ -2079,16 +2079,16 @@ COMPLETENESS_SHARE = re.compile(r"(\d+) of (\d+) ([^,]+?)(?:,|$)")
 
 
 def completeness_of(vault):
-    """The Completeness line `planner status` prints for the final vault, as its percent and its five shares. A status
+    """The Completeness line `vela status` prints for the final vault, as its percent and its five shares. A status
     that fails or prints no such line is written as an error: the gate never reads a missing figure as a pass."""
-    argv = [sys.executable, str(PLANNER), "status", "--vault", str(vault)]
+    argv = [sys.executable, str(VELA), "status", "--vault", str(vault)]
     try:
         done = subprocess.run(argv, capture_output=True, text=True, timeout=120)
     except subprocess.TimeoutExpired:
-        return {"error": "planner status timed out after 120s"}
+        return {"error": "vela status timed out after 120s"}
     found = COMPLETENESS_LINE.search(done.stdout)
     if done.returncode != 0 or not found:
-        return {"error": f"planner status exit {done.returncode}, no Completeness line: "
+        return {"error": f"vela status exit {done.returncode}, no Completeness line: "
                          + (done.stdout + done.stderr).strip()[-300:]}
     return parse_completeness(found.group(0))
 
@@ -2221,7 +2221,7 @@ def render_capture(capture):
     if not capture:
         return []
     if capture.get("error"):
-        return ["## Recorded for the explorer", "", f"- planner capture failed: {capture['error']}", ""]
+        return ["## Recorded for the explorer", "", f"- vela capture failed: {capture['error']}", ""]
     counts = capture["counts"]
     lines = ["## Recorded for the explorer", "",
              f"- Apps with a domain: {counts['apps_with_domain']} of {counts['apps']}",
@@ -2237,7 +2237,7 @@ def render_completeness(card):
     found = card.get("completeness")
     if not found:
         return []
-    lines = ["## Completeness", "", f"- {found['line']}" if not found.get("error") else f"- planner status failed: {found['error']}"]
+    lines = ["## Completeness", "", f"- {found['line']}" if not found.get("error") else f"- vela status failed: {found['error']}"]
     verdict = card.get("completeness_gate")
     if verdict:
         word = "pass" if verdict["passed"] else "FAIL" if verdict["enforced"] else "under the gate, not enforced in a stub run"
@@ -2414,9 +2414,9 @@ def finish_arm(arm):
         return
     log = subprocess.run(["git", "log", "--oneline", "--all", "--decorate"], cwd=vault, capture_output=True, text=True, timeout=60)
     (arm.dir / "vault-git-log.txt").write_text(log.stdout + log.stderr, encoding="utf-8")
-    check = subprocess.run([sys.executable, str(PLANNER), "check", "--vault", str(vault)], capture_output=True, text=True, timeout=120)
+    check = subprocess.run([sys.executable, str(VELA), "check", "--vault", str(vault)], capture_output=True, text=True, timeout=120)
     (arm.dir / "vault-check.txt").write_text(f"exit {check.returncode}\n{check.stdout}{check.stderr}", encoding="utf-8")
-    view = subprocess.run([sys.executable, str(PLANNER), "view", "--vault", str(vault), "--out", str(arm.dir / "viewer.html")],
+    view = subprocess.run([sys.executable, str(VELA), "view", "--vault", str(vault), "--out", str(arm.dir / "viewer.html")],
                           capture_output=True, text=True, timeout=120)
     if view.returncode != 0:
         (arm.dir / "viewer-error.txt").write_text(f"exit {view.returncode}\n{view.stdout}{view.stderr}", encoding="utf-8")

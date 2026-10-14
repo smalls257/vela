@@ -8,7 +8,7 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=140bedbf: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:unknowns-index -->
 
@@ -18,7 +18,7 @@ none
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=425a48cb: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=425a48cb: do not edit, run vela render -->
 **Questions:** 12 owed, 12 undisposed, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |

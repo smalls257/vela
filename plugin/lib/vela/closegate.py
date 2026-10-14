@@ -1,4 +1,4 @@
-"""Whether a session is ready to finish: the wave-1 part of `planner close gate` (overhaul Task 10a). Pure.
+"""Whether a session is ready to finish: the wave-1 part of `vela close gate` (overhaul Task 10a). Pure.
 
 The Violation this exists to prevent is a Silent Fallback in the record. Writing `state: decided` with the Edit tool and
 never asking the lead looks exactly like a decision the lead gave: E303 catches only a decided page with no

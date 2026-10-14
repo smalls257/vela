@@ -1,4 +1,4 @@
-"""`planner questions`: the parser, moved out of cli.py (Task 2) so Task 20 (`questions --digest --session`) edits
+"""`vela questions`: the parser, moved out of cli.py (Task 2) so Task 20 (`questions --digest --session`) edits
 this file and not cli.py. The command itself is `cli.cmd_questions`."""
 
 

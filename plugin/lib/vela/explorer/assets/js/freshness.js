@@ -1,6 +1,6 @@
-/* Has anything changed since this copy was made? The build stamps the answer as of build time (planner freshness),
+/* Has anything changed since this copy was made? The build stamps the answer as of build time (vela freshness),
    and the page shows a quiet banner only when something has. A page opened as a file reads that stamp and nothing
-   else: it can touch neither the file system nor the network. Served from this machine (`planner explore --serve`),
+   else: it can touch neither the file system nor the network. Served from this machine (`vela explore --serve`),
    it also asks the helper's GET /freshness on load and again whenever the window regains focus. It reports and never
    updates: nothing here pulls, opens or replays anything. */
 const Freshness = (() => {

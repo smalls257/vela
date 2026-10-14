@@ -14,7 +14,7 @@ The only goal on record is the CIO's own sentence, relayed by the solution lead:
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=754b964d: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=754b964d: do not edit, run vela render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -65,7 +65,7 @@ The only goal on record is the CIO's own sentence, relayed by the solution lead:
 
 ## Progress by app
 
-<!-- generated:progress-map sha=8d1fca2b: do not edit, run planner render -->
+<!-- generated:progress-map sha=8d1fca2b: do not edit, run vela render -->
 **As of:** 2026-10-12, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |

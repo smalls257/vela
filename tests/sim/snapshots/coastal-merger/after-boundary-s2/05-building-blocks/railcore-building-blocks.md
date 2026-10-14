@@ -13,7 +13,7 @@ sources: [SRC-04, 2026-10-07-login-owner-and-offer]
 
 RailCore is the rail booking engine, hosted by its vendor (SRC-04, an assumption). It is a black box here: this initiative changes nothing inside it, and the Account link service only reads a rail account reference from it. Its vendor SLA and support hours are on [[03-context-and-scope#PTY-03 RailCore vendor|PTY-03]].
 
-<!-- generated:app-context sha=1343f81d: do not edit, run planner render -->
+<!-- generated:app-context sha=1343f81d: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]

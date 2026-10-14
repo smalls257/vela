@@ -46,12 +46,12 @@ def test_case_files(arm):
         assert script.rstrip().split()[-2] in VAULTS
 
 
-def test_plugin_arm_prompts_call_a_planner_skill_and_stub_prompts_do_not():
+def test_plugin_arm_prompts_call_a_vela_skill_and_stub_prompts_do_not():
     for name in cases("plugin"):
         plugin = yaml.safe_load((EVALS / "plugin" / name / "case.yaml").read_text(encoding="utf-8"))
         stub = yaml.safe_load((EVALS / "stub" / name / "case.yaml").read_text(encoding="utf-8"))
-        assert plugin["execution"]["prompt"].startswith("/planner:")
-        assert "/planner:" not in stub["execution"]["prompt"]
+        assert plugin["execution"]["prompt"].startswith("/vela:")
+        assert "/vela:" not in stub["execution"]["prompt"]
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
@@ -60,10 +60,10 @@ def test_plugin_arm_prompts_call_a_planner_skill_and_stub_prompts_do_not():
 def test_scaffold_builds_a_clean_vault(tmp_path, vault, arm):
     result = subprocess.run([sys.executable, str(EVALS / "scaffold.py"), vault, arm], cwd=tmp_path, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    installed = tmp_path / ".claude" / "skills" / "planner"
-    assert (installed / "scripts" / "planner").is_file()
+    installed = tmp_path / ".claude" / "skills" / "vela"
+    assert (installed / "scripts" / "vela").is_file()
     assert (installed / "skills").is_dir() == (arm == "plugin"), "the stub arm must see no skill text"
-    check = subprocess.run([sys.executable, str(installed / "scripts" / "planner"), "check", "--today", "2026-11-20"],
+    check = subprocess.run([sys.executable, str(installed / "scripts" / "vela"), "check", "--today", "2026-11-20"],
                            cwd=tmp_path, capture_output=True, text=True)
     assert check.returncode == 0, check.stdout
     status = subprocess.run(["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True)
@@ -73,7 +73,7 @@ def test_scaffold_builds_a_clean_vault(tmp_path, vault, arm):
 def test_find_workspaces_reads_only_the_printed_paths(tmp_path):
     kept = tmp_path / "run-1" / "work"
     kept.mkdir(parents=True)
-    (kept / ".planner.yaml").write_text("initiative: INI-001\ntitle: x\n", encoding="utf-8")
+    (kept / ".vela.yaml").write_text("initiative: INI-001\ntitle: x\n", encoding="utf-8")
     assert run.find_workspaces(f"kept: {kept}\nkept again {kept}.\nsome other line /no/such/dir\n") == [kept.resolve()]
     assert run.find_workspaces(f"kept: {tmp_path / 'run-1'}") == [], "a parent of the workspace is not a kept workspace"
     assert run.find_workspaces("nothing kept") == []
@@ -211,7 +211,7 @@ def kept_workspaces(tmp_path, count):
     for n in range(count):
         path = tmp_path / f"run-{n}"
         path.mkdir(exist_ok=True)
-        (path / ".planner.yaml").write_text("initiative: INI-001\ntitle: x\n", encoding="utf-8")
+        (path / ".vela.yaml").write_text("initiative: INI-001\ntitle: x\n", encoding="utf-8")
         paths.append(str(path))
     return "\n".join(f"kept: {p}" for p in paths)
 

@@ -53,7 +53,7 @@ def reader_report(workspace, stamp, unreachable, unreadable, checked_at):
     """
     have = {"commit": _short(workspace.get("base_commit")), "date": workspace.get("base_date") or ""}
     if not have["commit"]:
-        return Report("reader", UNKNOWN, checked_at, ".planner/workspace.json records no base_commit, so I cannot tell which "
+        return Report("reader", UNKNOWN, checked_at, ".vela/workspace.json records no base_commit, so I cannot tell which "
                       "publish this copy came from.", have=have)
     if unreachable:
         return Report("reader", UNREACHABLE, checked_at,
@@ -70,7 +70,7 @@ def reader_report(workspace, stamp, unreachable, unreadable, checked_at):
                       f"Your copy is the latest published ({have['commit']}, {have['date']}).", have=have, latest=latest)
     where = f"A newer copy was published {latest['date']} (commit {latest['commit']})" if latest["commit"] != have["commit"] else \
         f"The copy at the source was published again {latest['date']} at the same commit with different contents"
-    return Report("reader", NEWER, checked_at, f"{where}. Your drafts are kept. Run `/planner:open` on it to replay them.",
+    return Report("reader", NEWER, checked_at, f"{where}. Your drafts are kept. Run `/vela:open` on it to replay them.",
                   have=have, latest=latest)
 
 

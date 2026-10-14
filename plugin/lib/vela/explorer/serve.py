@@ -1,9 +1,9 @@
-"""`planner explore --serve`: the explorer page on a small local server, with an "Ask Claude" endpoint behind it.
+"""`vela explore --serve`: the explorer page on a small local server, with an "Ask Claude" endpoint behind it.
 
 The page stays an offline file by default. Served, it can also ask a question of the vault: POST /ask runs Claude Code
 headless (`claude -p`) in the vault with the read-only tools Read, Grep and Glob, and streams the answer back as
 Server-Sent Events. Asking writes nothing to the vault. The one thing the helper writes is the layout: POST /pins
-saves boxes the reader dragged to <vault>/.planner/explorer-pins.json (pins.py), and nothing else.
+saves boxes the reader dragged to <vault>/.vela/explorer-pins.json (pins.py), and nothing else.
 
 A vault is input from outside (a zip, a pulled branch, a proposal), so nothing in it is trusted to configure the child:
 the vault's own settings and hooks are not loaded, file tools cannot leave the vault, and a vault holding a symbolic link
@@ -17,7 +17,7 @@ Four things this module exists to prevent:
   is not the served origin is refused (DNS rebinding, cross-site POST). Any other web page the reader has open cannot
   spend their Claude quota or read their vault.
 - A forgeable header standing in for a secret: Host and Origin can be set by any program on the machine, so every request
-  also needs the key planner printed in the link it opened (a cookie the browser then sends). Another user on a shared
+  also needs the key vela printed in the link it opened (a cookie the browser then sends). Another user on a shared
   machine who finds the port gets a 403, not the reader's quota.
 - Infected Core: the argv, the prompt, the stream parser and the origin rule are pure functions, tested without a
   socket or a process. Only `stream_answer` and `Handler` touch the OS.
@@ -65,18 +65,18 @@ RULES = ("Answer only from the vault's pages.",
          "Be brief: a few sentences or a short list. The reader is mid-conversation. Write Markdown (bullets, a table when comparing), never raw HTML.",
          "Never create, edit or delete a file.")
 SYSTEM_PROMPT = ("You are answering a question on a live call about one planning vault: Markdown pages in the current folder.\n"
-                 "Search with Grep and Glob, read with Read. Ignore the .planner/ folder. You have read-only tools and no others.\n"
+                 "Search with Grep and Glob, read with Read. Ignore the .vela/ folder. You have read-only tools and no others.\n"
                  + "\n".join(f"- {rule}" for rule in RULES))
 
 
 def claude_settings(home):
     """What a vault question loads: no hooks at all, never the reader's global CLAUDE.md (it would steer every answer and
-    cost tokens), and no read of the planner's private folder or the explorer page (dashboard.html, here or in any folder:
+    cost tokens), and no read of vela's private folder or the explorer page (dashboard.html, here or in any folder:
     a 3 MB single line that would drown a search). The vault's own .claude/settings.json is not a source (see claude_argv)."""
     claude_dir = pathlib.Path(home) / ".claude"
     return {"claudeMdExcludes": [str(claude_dir / "CLAUDE.md"), str(claude_dir / "**" / "*.md")],
             "disableAllHooks": True,
-            "permissions": {"deny": ["Read(./.planner/**)", "Read(./dashboard.html)", "Read(./**/dashboard.html)"]}}
+            "permissions": {"deny": ["Read(./.vela/**)", "Read(./dashboard.html)", "Read(./**/dashboard.html)"]}}
 
 
 @functools.cache
@@ -130,7 +130,7 @@ def apply_pins(path, body):
         raise BadRequest('the body must be {"pins": {key: [column, row]}, "kinds": {key: "app" | "partner"}}')
     path = pathlib.Path(path)
     if not path.exists():
-        raise BadRequest("this vault has no pins file to save into; run planner explore once without --out outside the vault")
+        raise BadRequest("this vault has no pins file to save into; run vela explore once without --out outside the vault")
     try:
         current = pinning.read_pins(path)
         pins = pinning.validate(req["pins"], set(current))
@@ -219,7 +219,7 @@ def body_length(header):
 
 def cookie_name(port):
     """Cookies are shared across ports on one host, so the port is in the name: two helpers do not overwrite each other's key."""
-    return f"planner_key_{port}"
+    return f"vela_key_{port}"
 
 
 def key_allowed(cookie_header, port, key):
@@ -350,7 +350,7 @@ def stream_answer(vault, model_key, prompt, session_id, timeout=ASK_TIMEOUT, hom
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
-    """GET / is the page, GET /health says the helper is here, GET /freshness is `planner freshness --json` asked again
+    """GET / is the page, GET /health says the helper is here, GET /freshness is `vela freshness --json` asked again
     now (the page polls it on load and on window focus), GET /pins is the saved layout, GET /vault-file/<path> is one of the vault's own files (read-only), POST /ask streams an answer and
     POST /pins saves a dragged layout."""
 
@@ -379,7 +379,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return False
         if key_allowed(self.headers.get("Cookie"), self.server.server_port, self.server.key):
             return True
-        self.send_json(403, {"error": "this helper wants the link planner printed when it started; it carries a key. Open that link."})
+        self.send_json(403, {"error": "this helper wants the link vela printed when it started; it carries a key. Open that link."})
         return False
 
     def hand_over_key(self):
@@ -545,7 +545,7 @@ class Server(http.server.ThreadingHTTPServer):
         self.pins = pathlib.Path(pins) if pins else None  # the file POST /pins saves to
         self.pins_lock = threading.Lock()  # two saves at once must not interleave their writes
         self.asks = threading.BoundedSemaphore(MAX_CONCURRENT_ASKS)  # claude processes running at once
-        self.key = secrets.token_urlsafe(24)  # in the link planner prints; the browser keeps it as a cookie
+        self.key = secrets.token_urlsafe(24)  # in the link vela prints; the browser keeps it as a cookie
 
     @property
     def url(self):

@@ -1,0 +1,24 @@
+# Runs vela check on every pull request. Make the "vela-check" job a
+# required status check on main, so a red check blocks the merge.
+name: vela check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  vela-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: vela check
+        run: python .claude/skills/vela/scripts/vela check
+      - name: generated blocks are current
+        run: python .claude/skills/vela/scripts/vela render && git diff --exit-code

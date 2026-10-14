@@ -43,7 +43,7 @@ flowchart LR
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=feba3477: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=feba3477: do not edit, run vela render -->
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
 | [[stock-building-blocks#CON-002 Stock level\|Stock level (CON-002)]] | [[stock-building-blocks\|Stock]] | the existing read API, no change. | confirmed |

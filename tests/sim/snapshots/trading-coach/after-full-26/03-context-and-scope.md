@@ -19,7 +19,7 @@ The product lead says TickerTalk is the foundation: the app, the readers and a m
 
 ## After
 
-<!-- generated:system-context sha=bc841d11: do not edit, run planner render -->
+<!-- generated:system-context sha=bc841d11: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]

@@ -1,4 +1,4 @@
-"""The command registry (overhaul Task 2): new commands register from `planner/commands/`, and the moved parsers still
+"""The command registry (overhaul Task 2): new commands register from `vela/commands/`, and the moved parsers still
 take every call the skills and references write."""
 import re
 import shlex
@@ -8,7 +8,7 @@ import types
 from conftest import REPO
 from vela import cli, commands
 
-MOVED_CALL = re.compile(r"`(?:python3 [^`]*?scripts/planner|planner) (check|explore|handoff|questions|where)(?![\w-])([^`]*)`")
+MOVED_CALL = re.compile(r"`(?:python3 [^`]*?scripts/vela|vela) (check|explore|handoff|questions|where)(?![\w-])([^`]*)`")
 
 
 def test_every_group_module_registers_without_touching_cli(monkeypatch):
@@ -23,7 +23,7 @@ def test_every_group_module_registers_without_touching_cli(monkeypatch):
 
 
 def test_a_group_with_nothing_built_adds_no_command():
-    """`planner --help` never lists a command that does nothing: an unbuilt group registers no parser."""
+    """`vela --help` never lists a command that does nothing: an unbuilt group registers no parser."""
     names = set(cli.build_parser()._subparsers._group_actions[0].choices)
     for name in ("apply", "decide", "marks", "epics", "boundary"):
         assert name not in names, name
@@ -47,13 +47,13 @@ def test_moved_parsers_parse_every_existing_call():
     parser = cli.build_parser()
     seen = 0
     for path, command, rest in calls_in_docs():
-        if not rest.strip():  # the command named in prose ("`planner handoff` writes ..."), not a call
+        if not rest.strip():  # the command named in prose ("`vela handoff` writes ..."), not a call
             continue
         argv = [command] + words(rest)
         try:
             args, extras = parser.parse_known_args(argv)
         except SystemExit:
-            raise AssertionError(f"{path}: `planner {command}{rest}` no longer parses")
+            raise AssertionError(f"{path}: `vela {command}{rest}` no longer parses")
         assert not extras, (path, argv, extras)
         seen += 1
     assert seen >= 15, seen

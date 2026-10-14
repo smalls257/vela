@@ -1,7 +1,7 @@
 """The words a reader sees for the vault's own state, stage and cell values, in generated page text.
 
 The vault keeps short machine values (`assumption`, `boundaries`, `unexamined`) because the checker and the skills
-type and compare them. A product owner reading a generated table does not know them, so `planner render` shows these
+type and compare them. A product owner reading a generated table does not know them, so `vela render` shows these
 words instead (wording audit, 2026-10-14). One table, so every generated block says the same thing. A value with no
 entry is shown as it is: the checker reports a bad value elsewhere, and hiding it here would make it look settled.
 """

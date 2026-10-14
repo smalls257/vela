@@ -1,4 +1,4 @@
-"""`planner explore`: the command a vault's user runs to get the explorer page.
+"""`vela explore`: the command a vault's user runs to get the explorer page.
 
 The builder's own checks are in test_explorer.py. These check what the command promises a user who has only the
 plugin: the page and the pinned layout land in the vault, nothing lands in the plugin, the page carries no path of
@@ -20,7 +20,7 @@ from conftest import REPO, run
 
 SNAPSHOT = REPO / "tests/sim/snapshots/trading-coach/after-80b"
 PLUGIN = REPO / "plugin"
-PINS = ".planner/explorer-pins.json"
+PINS = ".vela/explorer-pins.json"
 PAGE = "dashboard.html"
 
 
@@ -68,7 +68,7 @@ def test_a_new_app_is_pinned_without_moving_the_others(vault):
 
 
 def test_a_pins_file_that_cannot_be_read_stops_the_build_instead_of_moving_every_app(vault):
-    (vault / ".planner").mkdir()
+    (vault / ".vela").mkdir()
     (vault / PINS).write_text("{not json", encoding="utf-8")
     code, said = explore(vault)
     assert code == 2 and "cannot read pins file" in said and PINS in said
@@ -103,7 +103,7 @@ def test_the_report_warns_when_the_vault_would_not_commit_the_page(vault):
     (vault / ".gitignore").write_text("voice/local/\ndashboard.html\n", encoding="utf-8")
     code, said = explore(vault)
     assert code == 0 and "lists dashboard.html" in said
-    (vault / ".gitignore").write_text("voice/local/\n.planner/*\n!.planner/explorer-pins.json\n", encoding="utf-8")
+    (vault / ".gitignore").write_text("voice/local/\n.vela/*\n!.vela/explorer-pins.json\n", encoding="utf-8")
     code, said = explore(vault)
     assert "lists dashboard.html" not in said
 
@@ -148,12 +148,12 @@ def tree(root):
 def test_it_runs_from_a_copy_of_the_plugin_alone(vault, tmp_path):
     # Nothing but plugin/ is copied: no prototypes/, no tests/, no repo layout above it. If the builder reached for
     # anything outside the plugin, this build fails where a user's install would.
-    alone = tmp_path / "installed" / "planner"
+    alone = tmp_path / "installed" / "vela"
     shutil.copytree(PLUGIN, alone, ignore=shutil.ignore_patterns("__pycache__"))
     before = tree(alone)
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     out = tmp_path / "page.html"
-    done = subprocess.run([sys.executable, str(alone / "scripts/planner"), "explore", str(vault), "-o", str(out),
+    done = subprocess.run([sys.executable, str(alone / "scripts/vela"), "explore", str(vault), "-o", str(out),
                            "--today", "2026-10-10"], capture_output=True, text=True, cwd=tmp_path, env=env, timeout=120)
     assert done.returncode == 0, done.stdout + done.stderr
     assert tree(alone) == before  # nothing is written into the plugin, not even a compiled cache
@@ -167,10 +167,10 @@ def test_it_runs_from_a_copy_of_the_plugin_alone(vault, tmp_path):
 
 
 def test_a_copy_of_the_plugin_alone_pins_a_first_build_in_the_vault(vault, tmp_path):
-    alone = tmp_path / "installed" / "planner"
+    alone = tmp_path / "installed" / "vela"
     shutil.copytree(PLUGIN, alone, ignore=shutil.ignore_patterns("__pycache__"))
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
-    done = subprocess.run([sys.executable, str(alone / "scripts/planner"), "explore", str(vault), "--today", "2026-10-10"],
+    done = subprocess.run([sys.executable, str(alone / "scripts/vela"), "explore", str(vault), "--today", "2026-10-10"],
                           capture_output=True, text=True, cwd=tmp_path, env=env, timeout=120)
     assert done.returncode == 0, done.stdout + done.stderr
     assert "first build" in done.stdout and (vault / PINS).is_file() and (vault / PAGE).is_file()

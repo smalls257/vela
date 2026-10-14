@@ -76,7 +76,7 @@ def test_verdicts_that_do_not_line_up_are_a_tool_failure():
         diagramcheck.findings([diagramcheck.Block(DESIGN, 3, GOOD_FLOW)], [])
 
 
-# ------------------------------------------------------------------ planner check, end to end
+# ------------------------------------------------------------------ vela check, end to end
 
 @needs_node
 def test_check_reports_a_broken_design_diagram_with_its_line(mini):
@@ -110,14 +110,14 @@ def test_check_diagrams_needs_no_vault_for_a_named_file(tmp_path, monkeypatch):
     write_design(tmp_path, GOOD_FLOW, BROKEN_FLOW)
     monkeypatch.chdir(tmp_path)
     code, out = run("check-diagrams", DESIGN)
-    assert code == 1 and out.startswith("planner check-diagrams: 2 diagrams, 1 that do not draw"), out
+    assert code == 1 and out.startswith("vela check-diagrams: 2 diagrams, 1 that do not draw"), out
     assert findings(out) == [("E604", DESIGN)]
 
 
 @pytest.mark.parametrize("named", ["/no/such/node", ""])
 def test_check_without_node_warns_once(mini, monkeypatch, named):
     write_design(mini, BROKEN_FLOW)
-    monkeypatch.setenv("PLANNER_NODE", named)
+    monkeypatch.setenv("VELA_NODE", named)
     code, out = check(mini)
     warned = [line for line in out.splitlines() if " W604 " in line]
     assert len(warned) == 1 and "not a program that runs" in warned[0], out
@@ -129,7 +129,7 @@ def test_a_parser_that_crashes_is_a_warning_not_a_pass(mini, monkeypatch, tmp_pa
     broken = tmp_path / "node"
     broken.write_text("#!/bin/sh\necho boom >&2\nexit 3\n")
     broken.chmod(0o755)
-    monkeypatch.setenv("PLANNER_NODE", str(broken))
+    monkeypatch.setenv("VELA_NODE", str(broken))
     _, out = check(mini)
     assert [l for l in out.splitlines() if " W604 " in l and "exit 3 (boom)" in l], out
 

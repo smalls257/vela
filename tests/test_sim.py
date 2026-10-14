@@ -19,11 +19,11 @@ spec.loader.exec_module(sim)
 
 MODELS = ["--model", "test-model", "--persona-model", "test-persona", "--judge-model", "test-judge"]
 TWO_SESSIONS = {"name": "two", "sessions": [
-    {"mode": "dump", "cap": 3, "planner": "/planner:dump {opening}", "baseline": "Let's dump what we know. {opening}"},
-    {"mode": "close", "cap": 3, "planner": "/planner:close", "baseline": "Close out this session."}]}
+    {"mode": "dump", "cap": 3, "vela": "/vela:dump {opening}", "baseline": "Let's dump what we know. {opening}"},
+    {"mode": "close", "cap": 3, "vela": "/vela:close", "baseline": "Close out this session."}]}
 
 
-def simulate(tmp_path, *extra, env=None, arms="planner"):
+def simulate(tmp_path, *extra, env=None, arms="vela"):
     """One stub run. Returns (exit code, stderr, run folder or None, stub call log)."""
     script = tmp_path / "two.yaml"
     script.write_text(yaml.safe_dump(TWO_SESSIONS), encoding="utf-8")
@@ -52,7 +52,7 @@ def full_run(tmp_path_factory):
     """All three arms over the two-session script, with the repo's state taken before and after."""
     tmp = tmp_path_factory.mktemp("sim")
     before = repo_state()
-    code, err, run_dir, calls = simulate(tmp, "--budget", "5", arms="planner,planner-seuss,baseline")
+    code, err, run_dir, calls = simulate(tmp, "--budget", "5", arms="vela,vela-seuss,baseline")
     return {"code": code, "err": err, "run": run_dir, "calls": calls, "tmp": tmp, "before": before, "after": repo_state()}
 
 
@@ -60,21 +60,21 @@ def test_full_run_exits_0_and_writes_every_output(full_run):
     assert full_run["code"] == 0, full_run["err"]
     run_dir = full_run["run"]
     assert (run_dir / "compare.html").is_file() and (run_dir / "run.json").is_file()
-    for arm in ("planner", "planner-seuss", "baseline"):
+    for arm in ("vela", "vela-seuss", "baseline"):
         for name in ("transcript.jsonl", "transcript.html", "viewer.html", "scorecard.json", "scorecard.md",
                      "vault-git-log.txt", "vault-check.txt"):
             assert (run_dir / arm / name).is_file(), f"{arm}/{name}"
         assert (run_dir / arm / "vault" / ".git").is_dir()
     compare = (run_dir / "compare.html").read_text(encoding="utf-8")
-    assert "planner-seuss/transcript.html" in compare and "baseline/viewer.html" in compare
+    assert "vela-seuss/transcript.html" in compare and "baseline/viewer.html" in compare
 
 
 def test_transcript_records_both_sessions_turn_by_turn(full_run):
-    log = entries(full_run["run"] / "planner")
+    log = entries(full_run["run"] / "vela")
     spoken = [e for e in log if e["speaker"] in ("lead", "assistant")]
     assert [e["turn"] for e in spoken] == list(range(1, len(spoken) + 1))
     assert {e["session"] for e in spoken} == {1, 2}
-    assert spoken[0]["scripted"] and spoken[0]["text"].startswith("/planner:dump The CIO's mandate")
+    assert spoken[0]["scripted"] and spoken[0]["text"].startswith("/vela:dump The CIO's mandate")
     assistant = [e for e in spoken if e["speaker"] == "assistant"]
     assert all(e["cost_usd"] == 0.01 and e["tool_calls"][0]["name"] == "Bash" for e in assistant)
     ends = [e for e in log if e.get("event") == "session-end"]
@@ -83,7 +83,7 @@ def test_transcript_records_both_sessions_turn_by_turn(full_run):
 
 
 def test_transcript_html_escapes_every_turn_and_holds_no_script(full_run):
-    page = (full_run["run"] / "planner" / "transcript.html").read_text(encoding="utf-8")
+    page = (full_run["run"] / "vela" / "transcript.html").read_text(encoding="utf-8")
     assert "&lt;script&gt;alert(" in page
     assert "<script" not in page.lower()
     assert "<details><summary>1 tool calls</summary>" in page
@@ -91,12 +91,12 @@ def test_transcript_html_escapes_every_turn_and_holds_no_script(full_run):
 
 
 def test_resume_is_used_from_the_second_turn_of_each_session(full_run):
-    calls = [c["argv"] for c in full_run["calls"] if c["role"] == "assistant" and "planner" in c["cwd"].split(os.sep)]
+    calls = [c["argv"] for c in full_run["calls"] if c["role"] == "assistant" and "vela" in c["cwd"].split(os.sep)]
     assert len(calls) == 4
     for first, second in (calls[0:2], calls[2:4]):
         assert "--resume" not in first
         assert "--resume" in second
-    log = entries(full_run["run"] / "planner")
+    log = entries(full_run["run"] / "vela")
     ids = [e["session_id"] for e in log if e["speaker"] == "assistant"]
     assert calls[1][calls[1].index("--resume") + 1] == ids[0]
 
@@ -116,15 +116,15 @@ def test_the_gh_stub_is_first_on_path_records_a_pr_and_fails_everything_else(ful
     for call in full_run["calls"]:
         arm_dir = full_run["run"] / call["cwd"].split(str(full_run["run"]) + os.sep, 1)[1].split(os.sep)[0]
         assert call["gh"] == str(arm_dir / "bin" / "gh")
-    assistant = [e for e in entries(full_run["run"] / "planner") if e["speaker"] == "assistant"]
+    assistant = [e for e in entries(full_run["run"] / "vela") if e["speaker"] == "assistant"]
     assert "https://github.invalid/sim/heron/pull/1" in assistant[0]["text"]
-    gh = full_run["run"] / "planner" / "bin" / "gh"
+    gh = full_run["run"] / "vela" / "bin" / "gh"
     other = subprocess.run([str(gh), "pr", "list"], capture_output=True, text=True, timeout=30)
     assert other.returncode == 1 and sim.GH_MESSAGE in other.stderr
 
 
 def test_seuss_examples_reach_voice_local_only_in_the_seuss_arm(full_run):
-    seuss, plain = full_run["run"] / "planner-seuss" / "vault", full_run["run"] / "planner" / "vault"
+    seuss, plain = full_run["run"] / "vela-seuss" / "vault", full_run["run"] / "vela" / "vault"
     sources = sorted(p.relative_to(SIM / "voices" / "seuss-style") for p in (SIM / "voices" / "seuss-style").glob("*/*.md"))
     copied = sorted(p.relative_to(seuss / "voice" / "local") for p in (seuss / "voice" / "local").glob("*/*.md"))
     assert copied == sources and len(sources) == 6
@@ -149,7 +149,7 @@ def test_house_voice_reads_local_owner_examples_first():
 def test_baseline_vault_has_no_skills_and_no_plugin(full_run):
     vault = full_run["run"] / "baseline" / "vault"
     assert not (vault / ".claude" / "skills").exists()
-    assert (full_run["run"] / "planner" / "vault" / ".claude" / "skills" / "planner" / "scripts" / "planner").is_file()
+    assert (full_run["run"] / "vela" / "vault" / ".claude" / "skills" / "vela" / "scripts" / "vela").is_file()
     for call in full_run["calls"]:
         if call["role"] != "assistant":
             continue
@@ -160,13 +160,13 @@ def test_baseline_vault_has_no_skills_and_no_plugin(full_run):
 
 
 def test_scorecard_drops_claims_without_a_valid_citation(full_run):
-    card = json.loads((full_run["run"] / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((full_run["run"] / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert card["unaware"][0]["surfaced"] is True
     assert card["wrong"][0]["challenged"] is False and "dropped" in card["wrong"][0]
     assert card["knows"][0]["captured"] is True and card["knows"][1]["captured"] is False
     assert len(card["dropped"]) == 2
     assert card["max_questions_in_one_turn"]["count"] == 1
-    md = (full_run["run"] / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    md = (full_run["run"] / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert "## Dropped claims" in md and "no-such-page.md" in md
 
 
@@ -182,9 +182,9 @@ def test_budget_stop_exits_1_and_still_writes_the_scorecard(tmp_path):
     code, err, run_dir, calls = simulate(tmp_path, "--budget", "1", env={"SIM_STUB_COST": "0.5"})
     assert code == 1, err
     summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-    assert [e["reason"] for e in summary["per_arm"]["planner"]["endings"]] == ["budget", "not run: budget"]
+    assert [e["reason"] for e in summary["per_arm"]["vela"]["endings"]] == ["budget", "not run: budget"]
     assert summary["spent_usd"] <= 1.0
-    assert (run_dir / "planner" / "scorecard.md").is_file() and (run_dir / "planner" / "transcript.html").is_file()
+    assert (run_dir / "vela" / "scorecard.md").is_file() and (run_dir / "vela" / "transcript.html").is_file()
     assert [c["category"] for c in calls if c["role"] == "judge"] == list(sim.JUDGE_CATEGORIES)
 
 
@@ -192,8 +192,8 @@ def test_a_missing_json_field_is_a_tool_failure(tmp_path):
     code, err, run_dir, _ = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_DROP": "total_cost_usd"})
     assert code == 2
     assert "total_cost_usd" in err and "CLI output changed" in err
-    assert (run_dir / "planner" / "transcript.html").is_file()
-    assert not (run_dir / "planner" / "scorecard.json").exists()
+    assert (run_dir / "vela" / "transcript.html").is_file()
+    assert not (run_dir / "vela" / "scorecard.json").exists()
 
 
 def test_bad_judge_json_is_asked_again_once_then_exits_2(tmp_path):
@@ -213,10 +213,10 @@ def test_budget_and_every_model_are_required(missing):
     assert exc.value.code == 2
 
 
-def test_default_arms_are_planner_and_seuss_and_unknown_arms_are_refused():
-    assert sim.parse_args(["x", "--budget", "1", *MODELS]).arm_list == ["planner", "planner-seuss"]
+def test_default_arms_are_vela_and_seuss_and_unknown_arms_are_refused():
+    assert sim.parse_args(["x", "--budget", "1", *MODELS]).arm_list == ["vela", "vela-seuss"]
     with pytest.raises(SystemExit):
-        sim.parse_args(["x", "--budget", "1", "--arms", "planner,plain", *MODELS])
+        sim.parse_args(["x", "--budget", "1", "--arms", "vela,plain", *MODELS])
 
 
 def test_every_persona_and_script_validates():
@@ -292,9 +292,9 @@ def test_seuss_style_voice_files_are_original_pastiche_in_the_example_format():
 
 def test_a_closed_session_branch_is_merged_into_origin_main_and_an_open_one_is_not(tmp_path):
     persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
-    arm_dir = tmp_path / "planner"
+    arm_dir = tmp_path / "vela"
     arm_dir.mkdir()
-    vault, _ = sim.build_vault(arm_dir, "planner", persona)
+    vault, _ = sim.build_vault(arm_dir, "vela", persona)
     assert sorted(p.name for p in (vault / ".inbox").iterdir()) == sorted(d["name"] for d in persona["docs"])
     for branch, status in (("session/2026-10-05-closed", "closed"), ("session/2026-10-05-open", "open")):
         sim.git("switch", "-q", "-c", branch, "main", cwd=vault)
@@ -313,7 +313,7 @@ def test_a_closed_session_branch_is_merged_into_origin_main_and_an_open_one_is_n
 
 def test_assistant_calls_run_sandboxed_with_only_the_vault_and_origin_writable(tmp_path):
     import json as _json
-    argv = sim.assistant_argv("hi", "m", None, 1.0, "planner", tmp_path / "origin.git")
+    argv = sim.assistant_argv("hi", "m", None, 1.0, "vela", tmp_path / "origin.git")
     settings = _json.loads(argv[argv.index("--settings") + 1])
     assert settings["sandbox"] == {"enabled": True, "autoAllowBashIfSandboxed": True, "allowUnsandboxedCommands": False}
     assert settings["permissions"]["allow"] == ["Bash", f"Edit(/{(tmp_path / 'origin.git').resolve()}/**)"]
@@ -390,7 +390,7 @@ def test_disagreements_lead_the_scorecard_under_check_these():
     assert checks == ["K4: judge: no; vault mentions FERRYMASTER in 01-goals.md",
                       "K2: judge: yes; no vault page holds any of its keywords (SeaBook)"]
     card.update(hits=hits, check_these=checks, judge_calls=[], max_questions_in_one_turn={"count": 0, "turn": None},
-                endings=[], spent_usd=0, judge_usd=0, arm="planner", dropped=[], told_not_asked=[],
+                endings=[], spent_usd=0, judge_usd=0, arm="vela", dropped=[], told_not_asked=[],
                 decided_without_yes=[], invented_facts=[], session_endings=[],
                 models={"assistant": "a", "persona": "p", "judge": "j"})
     md = sim.render_scorecard_md(card, persona)
@@ -400,25 +400,25 @@ def test_disagreements_lead_the_scorecard_under_check_these():
 
 
 def test_the_full_run_scorecard_sets_hits_beside_the_verdicts(full_run):
-    card = json.loads((full_run["run"] / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((full_run["run"] / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     # The stub assistant echoes the opening, so K1's keywords are in T2 but in no vault page.
     assert card["hits"]["K1"]["assistant_turns"][0]["turn"] == 2 and card["hits"]["K1"]["vault_files"] == []
     assert any(c.startswith("K1: judge: yes; no vault page holds") for c in card["check_these"])
     assert any(c.startswith("U1: judge: yes; no assistant turn holds") for c in card["check_these"])
     assert all(row["search"].startswith("stub: read") for kind in sim.SCORE_LISTS for row in card[kind])
-    md = (full_run["run"] / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    md = (full_run["run"] / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert md.index("## Check these") < md.index("## Gaps surfaced")
     assert "keyword hits" in (full_run["run"] / "compare.html").read_text(encoding="utf-8")
 
 
 def test_the_scorecard_reports_what_the_vault_records_for_the_explorer(full_run):
-    card = json.loads((full_run["run"] / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((full_run["run"] / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert card["capture"]["counts"]["apps"] == 0 and card["capture"]["checks"][0]["check"] == "every app has a domain"
-    assert "## Recorded for the explorer" in (full_run["run"] / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "## Recorded for the explorer" in (full_run["run"] / "vela" / "scorecard.md").read_text(encoding="utf-8")
 
 
 def test_the_judge_is_called_once_per_category_and_asked_to_think(full_run):
-    for arm in ("planner", "planner-seuss", "baseline"):
+    for arm in ("vela", "vela-seuss", "baseline"):
         calls = [c for c in full_run["calls"] if c["role"] == "judge" and f"{os.sep}{arm}{os.sep}" in c["cwd"] + os.sep]
         assert [c["category"] for c in calls] == list(sim.JUDGE_CATEGORIES), arm
         for call in calls:
@@ -427,14 +427,14 @@ def test_the_judge_is_called_once_per_category_and_asked_to_think(full_run):
             assert json.loads(argv[argv.index("--settings") + 1])["alwaysThinkingEnabled"] is True
     for call in (c["argv"] for c in full_run["calls"] if c["role"] == "persona"):
         assert "--effort" not in call and "alwaysThinkingEnabled" not in call[call.index("--settings") + 1]
-    raws = sorted(p.name for p in (full_run["run"] / "planner" / "raw").glob("*-judge-*.txt"))
+    raws = sorted(p.name for p in (full_run["run"] / "vela" / "raw").glob("*-judge-*.txt"))
     assert [r.split("-judge-")[1] for r in raws] == [f"{c}.txt" for c in sim.JUDGE_CATEGORIES]
 
 
 def test_each_call_holds_only_its_own_items_and_the_hints_say_a_hint_is_not_proof(full_run):
     persona = coastal()
-    transcript = sim.Transcript.load(full_run["run"] / "planner" / "transcript.jsonl")
-    vault = full_run["run"] / "planner" / "vault"
+    transcript = sim.Transcript.load(full_run["run"] / "vela" / "transcript.jsonl")
+    vault = full_run["run"] / "vela" / "vault"
     hits = sim.vault_hits(persona, transcript, vault)
     knows = sim.judge_input(persona, transcript, vault, "knows", hits)
     assert "IDS knows: K1, K2" in knows and "U1" not in knows and "THE FINAL VAULT" in knows
@@ -475,9 +475,9 @@ def test_rejudge_scores_a_finished_run_again_without_replaying_it(full_run, tmp_
     import shutil
     run_dir = tmp_path / full_run["run"].name
     shutil.copytree(full_run["run"], run_dir, symlinks=True)
-    transcripts = {arm: (run_dir / arm / "transcript.jsonl").read_bytes() for arm in ("planner", "baseline")}
+    transcripts = {arm: (run_dir / arm / "transcript.jsonl").read_bytes() for arm in ("vela", "baseline")}
     run_json = (run_dir / "run.json").read_bytes()
-    old_raws = sorted(p.name for p in (run_dir / "planner" / "raw").iterdir())
+    old_raws = sorted(p.name for p in (run_dir / "vela" / "raw").iterdir())
     log = tmp_path / "rejudge-log.jsonl"
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "--rejudge", str(run_dir), "--stub",
                            "--judge-model", "other-judge", "--budget", "1"],
@@ -490,12 +490,12 @@ def test_rejudge_scores_a_finished_run_again_without_replaying_it(full_run, tmp_
     for arm, before in transcripts.items():
         assert (run_dir / arm / "transcript.jsonl").read_bytes() == before, "the transcript is read, never rewritten"
     assert (run_dir / "run.json").read_bytes() == run_json
-    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert card["rejudged"] and card["models"] == {"assistant": "test-model", "persona": "test-persona", "judge": "other-judge"}
-    assert card["endings"] == json.loads(run_json)["per_arm"]["planner"]["endings"]
-    new_raws = sorted(p.name for p in (run_dir / "planner" / "raw").iterdir())
+    assert card["endings"] == json.loads(run_json)["per_arm"]["vela"]["endings"]
+    new_raws = sorted(p.name for p in (run_dir / "vela" / "raw").iterdir())
     assert new_raws[:len(old_raws)] == old_raws and len(new_raws) == len(old_raws) + len(sim.JUDGE_CATEGORIES)
-    assert "Rejudged" in (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "Rejudged" in (run_dir / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert "other-judge" in (run_dir / "rejudge.json").read_text(encoding="utf-8")
     assert "keyword hits" in (run_dir / "compare.html").read_text(encoding="utf-8")
 
@@ -518,7 +518,7 @@ def test_a_resumed_session_adds_only_the_increase_in_its_running_cost(monkeypatc
     import types
     arm = sim.Arm.__new__(sim.Arm)
     arm.ledger = sim.Ledger(10.0)
-    arm.session_costs, arm.calls, arm.name, arm.dir, arm.vault, arm.env = {}, 0, "planner", sim.pathlib.Path("/tmp"), None, {}
+    arm.session_costs, arm.calls, arm.name, arm.dir, arm.vault, arm.env = {}, 0, "vela", sim.pathlib.Path("/tmp"), None, {}
     arm.args = types.SimpleNamespace(model="m")
     arm.check_plugin = lambda *a: None
     arm.raw = lambda kind: sim.pathlib.Path("/tmp/x")
@@ -558,7 +558,7 @@ def test_news_adds_facts_and_inbox_documents_without_touching_the_persona():
 
 def test_a_script_with_bad_news_or_a_missing_start_is_refused():
     persona = {"opening": "x", "topics": {}}
-    session = [{"mode": "dump", "cap": 1, "planner": "/planner:dump", "baseline": "go"}]
+    session = [{"mode": "dump", "cap": 1, "vela": "/vela:dump", "baseline": "go"}]
     assert sim.script_problems({"sessions": session, "news": {"knows": [{"fact": "no id"}]}}, persona)
     assert sim.script_problems({"sessions": session, "news": {"rumors": []}}, persona)
     assert sim.script_problems({"sessions": session, "start": "no-such-snapshot"}, persona)
@@ -566,8 +566,8 @@ def test_a_script_with_bad_news_or_a_missing_start_is_refused():
 
 def test_a_vault_built_from_a_snapshot_gets_the_current_plugin_and_the_news_documents(tmp_path, monkeypatch):
     snapshots = tmp_path / "snapshots"
-    (snapshots / "s" / ".claude" / "skills" / "planner").mkdir(parents=True)
-    (snapshots / "s" / ".claude" / "skills" / "planner" / "STALE").write_text("old", encoding="utf-8")
+    (snapshots / "s" / ".claude" / "skills" / "vela").mkdir(parents=True)
+    (snapshots / "s" / ".claude" / "skills" / "vela" / "STALE").write_text("old", encoding="utf-8")
     (snapshots / "s" / "01-goals.md").write_text("# Goals\n", encoding="utf-8")
     monkeypatch.setattr(sim, "SNAPSHOTS", snapshots)
     arm = tmp_path / "arm"
@@ -575,8 +575,8 @@ def test_a_vault_built_from_a_snapshot_gets_the_current_plugin_and_the_news_docu
     persona = {"docs": [{"name": "cio-reply.md", "text": "Link, don't merge."}]}
     vault, notes = sim.build_vault_from(arm, "s", persona)
     assert (vault / "01-goals.md").exists() and (vault / ".inbox" / "cio-reply.md").exists()
-    assert not (vault / ".claude" / "skills" / "planner" / "STALE").exists()
-    assert (vault / ".claude" / "skills" / "planner" / "skills").is_dir()
+    assert not (vault / ".claude" / "skills" / "vela" / "STALE").exists()
+    assert (vault / ".claude" / "skills" / "vela" / "skills").is_dir()
     log = subprocess.run(["git", "log", "--oneline", "origin/main"], cwd=vault, capture_output=True, text=True)
     assert "Vault from snapshot s" in log.stdout
 
@@ -593,19 +593,19 @@ def test_a_judge_refusal_is_retried_once_cut_short_then_that_category_reads_not_
     code, err, run_dir, calls = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "refuse:wrong"})
     assert code == 0, err
     assert [c["category"] for c in calls if c["role"] == "judge"].count("wrong") == 2
-    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert list(card["not_scored"]) == ["wrong"] and card["wrong"] == []
     assert any(c.startswith("judge: wrong not scored: the judge model refused twice") for c in card["check_these"])
-    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    md = (run_dir / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert "## Wrong beliefs challenged (W): not scored" in md
     assert "## Facts captured (K):" in md  # the other categories still count
 
 
 def test_two_closed_sessions_that_clash_are_merged_by_union_keeping_mains_state(tmp_path):
     persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
-    arm_dir = tmp_path / "planner"
+    arm_dir = tmp_path / "vela"
     arm_dir.mkdir()
-    vault, _ = sim.build_vault(arm_dir, "planner", persona)
+    vault, _ = sim.build_vault(arm_dir, "vela", persona)
     page = "12-glossary.md"
     base = (vault / page).read_text(encoding="utf-8")
     for name, line in (("2026-10-05-first", "- **Term A:** first session's line"),
@@ -644,7 +644,7 @@ def test_a_message_drafted_for_the_lead_is_counted_by_code(tmp_path):
     assert sim.drafted_messages(t) == [2]
 
 
-def test_the_drafted_message_detector_counts_salutations_and_skips_planner_bullets(tmp_path):
+def test_the_drafted_message_detector_counts_salutations_and_skips_vela_bullets(tmp_path):
     t = sim.Transcript(tmp_path / "t.jsonl")
     t.add(session=1, mode="grill", speaker="assistant", text="> Hi Priya,\n> Can your team run it?", turn=2)
     t.add(session=1, mode="grill", speaker="assistant", text="- **Subject:** SV-01 Tidemiles", turn=4)
@@ -675,10 +675,10 @@ def test_news_can_arrive_after_a_given_session(tmp_path):
     path.write_text(yaml.safe_dump(script), encoding="utf-8")
     out, log = tmp_path / "results", tmp_path / "stub-log.jsonl"
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(path),
-                           "--arms", "planner", "--out", str(out), *MODELS, "--budget", "5"],
+                           "--arms", "vela", "--out", str(out), *MODELS, "--budget", "5"],
                           capture_output=True, text=True, env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
     assert done.returncode == 0, done.stderr
-    arm = sorted(out.iterdir())[0] / "planner"
+    arm = sorted(out.iterdir())[0] / "vela"
     news = [e for e in entries(arm) if e.get("event") == "news"]
     assert len(news) == 1 and news[0]["session"] == 2 and "K90" in news[0]["text"]
     assert (arm / "vault" / ".inbox" / "counsel-reply.md").is_file()
@@ -744,17 +744,17 @@ def test_a_team_session_runs_in_the_team_repo_with_copies_of_the_named_skills(tm
     script = {"name": "team", "persona": "coastal-merger",
               "team_repos": {"x": {"title": "X", "skills": ["requirements-grill"]}},
               "sessions": [{"mode": "requirements-grill", "cap": 2, "repo": "x", "persona": "coach-lead",
-                            "planner": "/requirements-grill x", "baseline": "/requirements-grill x"}]}
+                            "vela": "/requirements-grill x", "baseline": "/requirements-grill x"}]}
     if not (sim.USER_SKILLS / "requirements-grill" / "SKILL.md").is_file():
         pytest.skip("the user's requirements-grill skill is not installed on this machine")
     path = tmp_path / "team.yaml"
     path.write_text(yaml.safe_dump(script), encoding="utf-8")
     out, log = tmp_path / "results", tmp_path / "stub-log.jsonl"
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(path),
-                           "--arms", "planner", "--out", str(out), *MODELS, "--budget", "2"],
+                           "--arms", "vela", "--out", str(out), *MODELS, "--budget", "2"],
                           capture_output=True, text=True, env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
     assert done.returncode == 0, done.stderr
-    arm = sorted(out.iterdir())[0] / "planner"
+    arm = sorted(out.iterdir())[0] / "vela"
     assert (arm / "team-x" / ".claude" / "skills" / "requirements-grill" / "SKILL.md").is_file()
     calls = [json.loads(l) for l in log.read_text().splitlines()]
     assert any(c["role"] == "assistant" and c["cwd"].endswith("team-x") for c in calls)
@@ -830,22 +830,22 @@ def test_a_cut_judge_input_is_named_in_check_these_on_the_scorecard(full_run, tm
     persona = coastal()
     big = padded_vault(tmp_path, persona)
     for page in big.glob("*.md"):
-        shutil.copy(page, run_dir / "planner" / "vault" / page.name)
-    for arm in ("planner-seuss", "baseline"):
+        shutil.copy(page, run_dir / "vela" / "vault" / page.name)
+    for arm in ("vela-seuss", "baseline"):
         shutil.rmtree(run_dir / arm)
     summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-    summary["per_arm"] = {"planner": summary["per_arm"]["planner"]}
-    summary["arms"] = ["planner"]
+    summary["per_arm"] = {"vela": summary["per_arm"]["vela"]}
+    summary["arms"] = ["vela"]
     (run_dir / "run.json").write_text(json.dumps(summary), encoding="utf-8")
     log = tmp_path / "rejudge-log.jsonl"
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "--rejudge", str(run_dir), "--stub",
                            "--judge-model", "j", "--budget", "1"],
                           capture_output=True, text=True, env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
     assert done.returncode == 0, done.stderr
-    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert set(card["judge_cuts"]) >= {"knows", "decisions"}
     assert any(c.startswith("judge input (knows) was cut to fit") for c in card["check_these"])
-    assert "judge input (knows) was cut to fit" in (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    assert "judge input (knows) was cut to fit" in (run_dir / "vela" / "scorecard.md").read_text(encoding="utf-8")
     sizes = [json.loads(line)["stdin_chars"] for line in log.read_text(encoding="utf-8").splitlines()]
     assert len(sizes) == len(sim.JUDGE_CATEGORIES) and max(sizes) <= sim.JUDGE_INPUT_CHARS
 
@@ -861,8 +861,8 @@ def test_dry_judge_reports_every_input_size_without_calling_claude(full_run):
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "--dry-judge", str(full_run["run"])],
                           capture_output=True, text=True, timeout=600)
     assert done.returncode == 0, done.stderr
-    assert "[planner] knows: " in done.stdout and f"of {sim.JUDGE_INPUT_CHARS}" in done.stdout
-    assert done.stdout.count("[planner] ") == len(sim.JUDGE_CATEGORIES)
+    assert "[vela] knows: " in done.stdout and f"of {sim.JUDGE_INPUT_CHARS}" in done.stdout
+    assert done.stdout.count("[vela] ") == len(sim.JUDGE_CATEGORIES)
 
 
 def long_run_transcript(tmp_path, persona, sessions=23, per_session=30, size=2_000):
@@ -912,20 +912,20 @@ def test_rejudge_scores_a_synthetic_run_far_over_the_cap_with_the_stub(full_run,
     import shutil
     run_dir = tmp_path / full_run["run"].name
     shutil.copytree(full_run["run"], run_dir, symlinks=True)
-    for arm in ("planner-seuss", "baseline"):
+    for arm in ("vela-seuss", "baseline"):
         shutil.rmtree(run_dir / arm)
     summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-    summary["per_arm"] = {"planner": summary["per_arm"]["planner"]}
-    summary["arms"] = ["planner"]
+    summary["per_arm"] = {"vela": summary["per_arm"]["vela"]}
+    summary["arms"] = ["vela"]
     (run_dir / "run.json").write_text(json.dumps(summary), encoding="utf-8")
     big = long_run_transcript(tmp_path, coastal())
-    (run_dir / "planner" / "transcript.jsonl").write_text(big.path.read_text(encoding="utf-8"), encoding="utf-8")
+    (run_dir / "vela" / "transcript.jsonl").write_text(big.path.read_text(encoding="utf-8"), encoding="utf-8")
     log = tmp_path / "long-log.jsonl"
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "--rejudge", str(run_dir), "--stub", "--judge-model", "j",
                            "--budget", "1"], capture_output=True, text=True,
                           env={**os.environ, "SIM_STUB_LOG": str(log)}, timeout=600)
     assert done.returncode == 0, done.stderr
-    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert any("left out: T" in c for c in card["check_these"] + sum(card["judge_cuts"].values(), []))
     sizes = [json.loads(line)["stdin_chars"] for line in log.read_text(encoding="utf-8").splitlines()]
     assert max(sizes) <= sim.JUDGE_INPUT_CHARS
@@ -937,16 +937,16 @@ def breakdown_run(tmp_path, written):
         pytest.skip("the user's work-breakdown skill is not installed on this machine")
     script = {"name": "team", "persona": "coastal-merger", "team_repos": {"x": {"title": "X", "skills": ["work-breakdown"]}},
               "sessions": [{"mode": "breakdown", "cap": 3, "repo": "x", "persona": "coach-lead",
-                            "planner": "/work-breakdown x", "baseline": "break it down"}]}
+                            "vela": "/work-breakdown x", "baseline": "break it down"}]}
     path = tmp_path / "team.yaml"
     path.write_text(yaml.safe_dump(script), encoding="utf-8")
     env = {**os.environ}
     if written is not None:
         env["SIM_STUB_WRITE"] = f"docs/plan/x-breakdown.md::{written}"
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(path),
-                           "--arms", "planner", "--out", str(tmp_path / "results"), *MODELS, "--budget", "2"],
+                           "--arms", "vela", "--out", str(tmp_path / "results"), *MODELS, "--budget", "2"],
                           capture_output=True, text=True, env=env, timeout=600)
-    return done, sorted((tmp_path / "results").iterdir())[0] / "planner"
+    return done, sorted((tmp_path / "results").iterdir())[0] / "vela"
 
 
 def test_the_breakdown_session_is_followed_by_tickets_from_the_breakdown_not_a_model(tmp_path):
@@ -973,25 +973,25 @@ EXPLORER_DATA = re.compile(r'<script type="application/json" id="data">(.*?)</sc
 
 def team_in_vault_run(tmp_path, write):
     """A stub run from the trading snapshot (APP-coach is in it): the team's two sessions and a closing close, all from the vault
-    root. The stub's close runs the plugin's `planner explore`, as the close skill's last step does; `write` is what the stub's
+    root. The stub's close runs the plugin's `vela explore`, as the close skill's last step does; `write` is what the stub's
     first turns create under docs/ (a JSON object of path to text), or None."""
     for skill in ("tech-design-grill", "work-breakdown"):
         if not (sim.USER_SKILLS / skill / "SKILL.md").is_file():
             pytest.skip(f"the user's {skill} skill is not installed on this machine")
     script = {"name": "team", "persona": "trading-coach", "start": "trading-coach/after-final",
               "vault_skills": ["tech-design-grill", "work-breakdown"],
-              "sessions": [{"mode": "tech-design-grill", "cap": 2, "persona": "coach-lead", "planner": "/tech-design-grill coach", "baseline": "design it"},
-                           {"mode": "breakdown", "cap": 2, "persona": "coach-lead", "planner": "/work-breakdown coach", "baseline": "plan it"},
-                           {"mode": "close", "cap": 2, "planner": "/planner:close", "baseline": "Close out."}]}
+              "sessions": [{"mode": "tech-design-grill", "cap": 2, "persona": "coach-lead", "vela": "/tech-design-grill coach", "baseline": "design it"},
+                           {"mode": "breakdown", "cap": 2, "persona": "coach-lead", "vela": "/work-breakdown coach", "baseline": "plan it"},
+                           {"mode": "close", "cap": 2, "vela": "/vela:close", "baseline": "Close out."}]}
     path = tmp_path / "team.yaml"
     path.write_text(yaml.safe_dump(script), encoding="utf-8")
     env = {**os.environ}
     if write is not None:
         env["SIM_STUB_WRITE"] = json.dumps(write)
-    done = subprocess.run([sys.executable, str(SIM / "run.py"), "trading-coach", "--stub", "--script", str(path), "--arms", "planner",
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "trading-coach", "--stub", "--script", str(path), "--arms", "vela",
                            "--out", str(tmp_path / "results"), *MODELS, "--budget", "2"],
                           capture_output=True, text=True, env=env, timeout=600)
-    return done, sorted((tmp_path / "results").iterdir())[0] / "planner"
+    return done, sorted((tmp_path / "results").iterdir())[0] / "vela"
 
 
 def page_data(arm):
@@ -1022,10 +1022,10 @@ def test_the_full_heron_script_ends_with_the_explorer_the_tool_built_in_its_vaul
         if not (sim.USER_SKILLS / skill / "SKILL.md").is_file():
             pytest.skip(f"the user's {skill} skill is not installed on this machine")
     script = SIM / "scripts" / "heron-desk-full.yaml"
-    done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(script), "--arms", "planner",
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(script), "--arms", "vela",
                            "--out", str(tmp_path / "results"), *MODELS, "--budget", "5"], capture_output=True, text=True, timeout=900)
     assert done.returncode == 0, done.stderr
-    arm = sorted((tmp_path / "results").iterdir())[0] / "planner"
+    arm = sorted((tmp_path / "results").iterdir())[0] / "vela"
     assert (arm / "vault" / "dashboard.html").is_file()
     assert (arm / "vault" / ".claude" / "skills" / "tech-design-grill" / "SKILL.md").is_file() and not (arm / "team-agent").exists()
     assert any(e.get("event") == "explorer" for e in entries(arm))
@@ -1036,21 +1036,21 @@ def test_the_vela_heron_script_uses_the_plugins_team_skills_and_leaves_the_ticke
     data = yaml.safe_load(script.read_text(encoding="utf-8"))
     assert "vault_skills" not in data
     assert [s["mode"] for s in data["sessions"] if s["mode"] in sim.PLUGIN_TEAM_MODES] == ["design", "breakdown", "tickets"]
-    prompts = " ".join(s[arm] for s in data["sessions"] for arm in ("planner", "baseline"))
+    prompts = " ".join(s[arm] for s in data["sessions"] for arm in ("vela", "baseline"))
     assert not re.search(r"\b(S, M|sized)\b", prompts)
-    done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(script), "--arms", "planner",
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(script), "--arms", "vela",
                            "--out", str(tmp_path / "results"), *MODELS, "--budget", "5"], capture_output=True, text=True, timeout=900)
     assert done.returncode == 0, done.stderr
-    arm = sorted((tmp_path / "results").iterdir())[0] / "planner"
+    arm = sorted((tmp_path / "results").iterdir())[0] / "vela"
     assert (arm / "vault" / "dashboard.html").is_file() and not (arm / "tickets").exists()
     assert not any(e.get("event") == "tickets" for e in entries(arm))
 
 
 def test_a_pr_opened_through_the_gh_stub_is_merged_by_number_and_a_handoff_reaches_origin_main(tmp_path):
     persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
-    arm_dir = tmp_path / "planner"
+    arm_dir = tmp_path / "vela"
     arm_dir.mkdir()
-    vault, _ = sim.build_vault(arm_dir, "planner", persona)
+    vault, _ = sim.build_vault(arm_dir, "vela", persona)
     sim.write_gh_stub(arm_dir / "bin", arm_dir / "origin.git")
     branch = "session/2026-10-05-handoff"
     sim.git("switch", "-q", "-c", branch, "main", cwd=vault)
@@ -1119,14 +1119,14 @@ def test_the_teams_sessions_can_run_the_plugins_own_skills_and_the_old_user_skil
     persona = {"opening": "x", "topics": {}}
 
     def sessions(*pairs):
-        return [{"mode": mode, "cap": 1, "persona": "coach-lead", "planner": opening, "baseline": "go"} for mode, opening in pairs]
+        return [{"mode": mode, "cap": 1, "persona": "coach-lead", "vela": opening, "baseline": "go"} for mode, opening in pairs]
 
-    plugin = sessions(("design", "/planner:design coach"), ("breakdown", "/planner:breakdown coach"), ("tickets", "/planner:tickets coach"))
+    plugin = sessions(("design", "/vela:design coach"), ("breakdown", "/vela:breakdown coach"), ("tickets", "/vela:tickets coach"))
     assert sim.script_problems({"sessions": plugin}, persona) == []
     legacy = sessions(("tech-design-grill", "/tech-design-grill coach"), ("breakdown", "/work-breakdown coach"))
     assert sim.script_problems({"sessions": legacy, "vault_skills": ["tech-design-grill", "work-breakdown"]}, persona) == []
-    wrong = sessions(("tickets", "/planner:breakdown coach"))
-    assert any("must start with /planner:tickets" in p for p in sim.script_problems({"sessions": wrong}, persona))
+    wrong = sessions(("tickets", "/vela:breakdown coach"))
+    assert any("must start with /vela:tickets" in p for p in sim.script_problems({"sessions": wrong}, persona))
     assert set(sim.PLUGIN_TEAM_MODES) <= set(sim.TEAM_MODES) and "tech-design-grill" in sim.TEAM_MODES
 
 
@@ -1140,7 +1140,7 @@ def test_the_judge_has_one_tracer_question_that_reads_the_releases_page(full_run
     prompt = sim.judge_system_prompt("tracer")
     assert "through every app and contract it needs" in prompt and "Tracer:** none" in prompt
     persona = coastal()
-    run = full_run["run"] / "planner"
+    run = full_run["run"] / "vela"
     transcript = sim.Transcript.load(run / "transcript.jsonl")
     hits = sim.vault_hits(persona, transcript, run / "vault")
     text = sim.judge_input(persona, transcript, run / "vault", "tracer", hits)
@@ -1184,9 +1184,9 @@ def test_the_scorecard_scores_the_tracer_question_from_the_releases_page(tmp_pat
     env = {"SIM_STUB_WRITE": f"04b-releases.md::\n{TRACER_LINE}\n"}
     code, err, run_dir, _ = simulate(tmp_path, "--budget", "5", env=env)
     assert code == 0, err
-    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert card["tracer"]["answer"] == "tracer" and card["tracer"]["ok"] and card["tracer"]["where"] == "04b-releases.md"
-    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    md = (run_dir / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert "## Tracer in release one" in md and "yes: a tracer is named, through every app and contract it needs" in md
     assert "Tracer in release one" in (run_dir / "compare.html").read_text(encoding="utf-8")
 
@@ -1194,18 +1194,18 @@ def test_the_scorecard_scores_the_tracer_question_from_the_releases_page(tmp_pat
 def test_a_release_page_with_no_tracer_scores_no(tmp_path):
     code, err, run_dir, _ = simulate(tmp_path, "--budget", "5")
     assert code == 0, err
-    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert card["tracer"]["answer"] == "not_recorded" and not card["tracer"]["ok"]
-    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    md = (run_dir / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert "no: release one records neither a tracer nor why not" in md
 
 
 def test_a_refused_tracer_call_reads_not_scored_and_the_rest_still_count(tmp_path):
     code, err, run_dir, _ = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "refuse:tracer"})
     assert code == 0, err
-    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert list(card["not_scored"]) == ["tracer"] and card["tracer"] is None
-    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    md = (run_dir / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert "## Tracer in release one" in md and "## Facts captured (K):" in md
 
 
@@ -1235,7 +1235,7 @@ def test_codes_are_counted_in_what_the_assistant_says_to_the_lead(tmp_path):
 
 
 def test_tool_output_and_subagent_text_are_not_what_a_person_reads(tmp_path):
-    tool = [{"name": "Bash", "input": "planner check -> W343 at UNK-004 under GATE-2"}]
+    tool = [{"name": "Bash", "input": "vela check -> W343 at UNK-004 under GATE-2"}]
     t = voice_transcript(tmp_path, [("assistant", "All clear. Want the next item?", {"tool_calls": tool, "subagent_text": "E316 CON-001 CAP-002"})])
     voice = sim.codes_in_conversation(t)
     assert voice["codes"] == 0 and voice["score"] == 100 and voice["flagged"] == []
@@ -1259,13 +1259,13 @@ def test_the_scorecard_and_the_shape_judge_carry_the_voice_count(tmp_path):
     reply.write_text("It trips W343, E316 and UNK-004. Want to fix it?", encoding="utf-8")
     code, err, run_dir, _ = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_REPLY": str(reply)})
     assert code == 0, err
-    card = json.loads((run_dir / "planner" / "scorecard.json").read_text(encoding="utf-8"))
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert card["voice"]["turns_with_codes"] >= 1 and card["voice"]["score"] < 100
     assert any(c.startswith("voice: T") and "W343" in c for c in card["check_these"])
-    md = (run_dir / "planner" / "scorecard.md").read_text(encoding="utf-8")
+    md = (run_dir / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert "## Voice: codes the lead reads" in md and f"Voice score {card['voice']['score']} of 100" in md
     persona = coastal()
-    transcript = sim.Transcript.load(run_dir / "planner" / "transcript.jsonl")
-    hits = sim.vault_hits(persona, transcript, run_dir / "planner" / "vault")
-    shape = sim.judge_input(persona, transcript, run_dir / "planner" / "vault", "shape", hits)
+    transcript = sim.Transcript.load(run_dir / "vela" / "transcript.jsonl")
+    hits = sim.vault_hits(persona, transcript, run_dir / "vela" / "vault")
+    shape = sim.judge_input(persona, transcript, run_dir / "vela" / "vault", "shape", hits)
     assert f"voice score {card['voice']['score']} of 100" in shape and "Do not count codes yourself" in shape

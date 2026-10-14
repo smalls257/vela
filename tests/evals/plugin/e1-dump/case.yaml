@@ -8,7 +8,7 @@ plugins:
 - ../../../../plugin
 runs: 3
 execution:
-  prompt: '/planner:dump We need to stop the mainframe breaking booking. Every time the mainframe team changes a screen, the
+  prompt: '/vela:dump We need to stop the mainframe breaking booking. Every time the mainframe team changes a screen, the
     website, the call center and the kiosks all break. The call center fixes failed bookings by hand every morning. Nobody
     knows whether the mainframe team has time in Q1. This vault has no git remote and no gh, so fetch, push and gh will fail:
     say so and carry on. Do not wait for answers from me beyond what this message gives.'
@@ -28,7 +28,7 @@ graders:
 - name: plugin-loaded
   type: tool_used
   tool: Skill
-  input_match: planner
+  input_match: vela
   arm: with-only
 - name: writes-a-session-record
   type: tool_used

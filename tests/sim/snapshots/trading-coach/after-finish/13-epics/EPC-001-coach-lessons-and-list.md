@@ -28,7 +28,7 @@ This epic builds the lesson side of Coach, the part that is meant to ship for th
 
 ## Traces to
 
-<!-- generated:traces-to sha=cc250ab3: do not edit, run planner render -->
+<!-- generated:traces-to sha=cc250ab3: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[coach-building-blocks\|Coach]] |

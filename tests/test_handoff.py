@@ -1,4 +1,4 @@
-"""planner handoff: the manifest of what a senior accepted, and verify against it. Plus the
+"""vela handoff: the manifest of what a senior accepted, and verify against it. Plus the
 reopened epic state a senior's challenge leads to."""
 from conftest import check, edit, findings, run
 from vela import viewer
@@ -18,7 +18,7 @@ def verify(mini):
 def test_manifest_lists_the_slice_with_states_and_hashes(mini):
     code, out = hand_off(mini)
     assert code == 0, out
-    assert out == "planner handoff: wrote the handoff record for Shop (APP-shop), handoffs/APP-shop.md: 3 things its team takes on, as of commit abc1234.\n"
+    assert out == "vela handoff: wrote the handoff record for Shop (APP-shop), handoffs/APP-shop.md: 3 things its team takes on, as of commit abc1234.\n"
     text = (mini / MANIFEST).read_text(encoding="utf-8")
     assert text.startswith("# Handoff record: Shop\n\n- **App:** APP-shop\n- **Commit:** abc1234\n- **Written:** 2026-01-15\n")
     rows = [line for line in text.splitlines() if line.startswith("| ") and "---" not in line][1:]
@@ -38,7 +38,7 @@ def test_verify_is_clean_right_after_and_exits_0(mini):
     hand_off(mini)
     code, out = verify(mini)
     assert code == 0
-    assert out == "planner handoff verify APP-shop: since Shop was handed off on 2026-01-15 at abc1234, 0 things changed, 0 added and 0 removed.\n"
+    assert out == "vela handoff verify APP-shop: since Shop was handed off on 2026-01-15 at abc1234, 0 things changed, 0 added and 0 removed.\n"
 
 
 def test_a_changed_contract_is_listed_and_exits_1(mini):
@@ -179,7 +179,7 @@ def test_two_writes_give_the_same_bytes(mini):
 def test_a_vault_with_errors_is_not_handed_off(mini):
     edit(mini / "README.md", "authored: authored", "authored: by hand")
     code, out = hand_off(mini)
-    assert code == 1 and "didn't write the handoff record: planner check found 1 errors" in out
+    assert code == 1 and "didn't write the handoff record: vela check found 1 errors" in out
     assert not (mini / "handoffs").exists()
 
 
@@ -240,7 +240,7 @@ def test_a_reopened_epic_trips_neither_e316_nor_e303(mini):
 def test_a_generated_block_inside_an_items_section_does_not_change_its_hash(mini):
     hand_off(mini)
     edit(mini / SHOP, "- **Change policy:** versioned.\n",
-         "- **Change policy:** versioned.\n<!-- generated:demo sha=0123abcd: do not edit, run planner render -->\nrendered words\n<!-- /generated:demo -->\n")
+         "- **Change policy:** versioned.\n<!-- generated:demo sha=0123abcd: do not edit, run vela render -->\nrendered words\n<!-- /generated:demo -->\n")
     code, out = verify(mini)
     assert "(CON-001):" not in out
 

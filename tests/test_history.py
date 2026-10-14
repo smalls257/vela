@@ -46,7 +46,7 @@ PAGE_TEXT = """# Coach
 
 Coach teaches one stock at a time (SRC-02; [[04-solution-strategy#First instruments|First instruments]], decided).
 
-<!-- generated:app-context sha=12345678: do not edit, run planner render -->
+<!-- generated:app-context sha=12345678: do not edit, run vela render -->
 diagram
 <!-- /generated:app-context -->
 
@@ -134,7 +134,7 @@ def test_only_template_pages_at_inkling_are_hidden():
     assert reading.not_started("# Glossary\n\nTerms.\n", "initiative-section", "inkling")
 
 
-def test_planner_style_prints_each_problem_with_its_file_line(tmp_path):
+def test_vela_style_prints_each_problem_with_its_file_line(tmp_path):
     vault = moved(tmp_path)
     code, out = run("style", "05-building-blocks/booking-building-blocks.md", "--vault", str(vault))
     lines = (vault / PAGE).read_text(encoding="utf-8").splitlines()
@@ -142,7 +142,7 @@ def test_planner_style_prints_each_problem_with_its_file_line(tmp_path):
         n = int(row.split(":")[1])
         if "bullet sits above" in row:
             assert lines[n - 1].lstrip().startswith("- **"), row
-    assert code in (0, 1) and out.startswith("planner style:")
+    assert code in (0, 1) and out.startswith("vela style:")
     assert run("style", "no-such-page", "--vault", str(vault))[0] == 2
 
 

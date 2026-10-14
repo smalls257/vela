@@ -12,7 +12,7 @@ authored: mixed
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=fbc178a8: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=fbc178a8: do not edit, run vela render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -76,7 +76,7 @@ authored: mixed
 
 ## Progress by app
 
-<!-- generated:progress-map sha=a8d5e291: do not edit, run planner render -->
+<!-- generated:progress-map sha=a8d5e291: do not edit, run vela render -->
 **As of:** 2026-10-07, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |

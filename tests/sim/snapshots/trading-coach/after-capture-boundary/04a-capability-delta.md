@@ -12,7 +12,7 @@ authored: mixed
 
 The first release adds five capabilities, all new. [[coach-building-blocks|Coach]] provides four: teaching a stock lesson, paper-trading a stock, passing the ready track and keeping the stock list. [[tickertalk-building-blocks|TickerTalk]] provides the fifth, opting in to the coach. Each capability page says what provides it.
 
-<!-- generated:capability-map sha=21ef4230: do not edit, run planner render -->
+<!-- generated:capability-map sha=21ef4230: do not edit, run vela render -->
 ```mermaid
 flowchart TB
   subgraph d_learning["Learning"]
@@ -43,7 +43,7 @@ Key: green: new in this initiative.
 
 ## Allocation
 
-<!-- generated:allocation sha=550480b1: do not edit, run planner render -->
+<!-- generated:allocation sha=550480b1: do not edit, run vela render -->
 **Allocation:** 7 requirements at assumption or later, 0 not allocated.
 
 | Requirement | [[coach-building-blocks\|Coach]] | [[tickertalk-building-blocks\|TickerTalk]] |

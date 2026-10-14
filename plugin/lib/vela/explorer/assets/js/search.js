@@ -127,12 +127,12 @@ const Search = (() => {
     for (const x of hits) {
       if (!ent(x.r.key)) continue;
       let g = groupOf(x.r.key);
-      // A flow leads when it holds every word or is planner's own top hit; a flow matching only some words waits lower.
+      // A flow leads when it holds every word or is vela's own top hit; a flow matching only some words waits lower.
       if (g === "flow" && x.matched.length < wanted.length && x.score < hits[0].score) g = "flow-part";
       (byGroup[g] = byGroup[g] || []).push({ key: x.r.key, snip: x.r.snip, heading: x.r.heading, flows: x.r.flows });
     }
     const noFlows = /\bhow\b/.test(q.toLowerCase()) && !D.flows.length;  // "how does X" is a flow's question; say so rather than return nothing
-    if (noFlows) box.append(emptyState("No flows yet.", "A \"how does ...\" question is answered by a flow, and the plan has none yet.", "/planner:boundary", "small"));
+    if (noFlows) box.append(emptyState("No flows yet.", "A \"how does ...\" question is answered by a flow, and the plan has none yet.", "/vela:boundary", "small"));
     if (!hits.length && !links.length && !exact.length) {
       if (noFlows) { box.hidden = false; return; }
       box.append(h("div", { class: "r-more" }, wanted.length ? `No matches for ${wanted.join(", ")}. Search looks in titles, headings and page text; try a more specific word.`

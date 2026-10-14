@@ -1,4 +1,4 @@
-"""planner ladder: the stage an app's pages reach, against its hand-typed stage. Read-only, and never a prompt."""
+"""vela ladder: the stage an app's pages reach, against its hand-typed stage. Read-only, and never a prompt."""
 from conftest import REPO, run, skill_text
 
 FIXTURE = REPO / "examples" / "unified-booking"
@@ -13,7 +13,7 @@ def test_the_example_vault_reaches_every_stage_it_types():
 
 
 def write_app(vault, state, extra="", stage="target"):
-    (vault / ".planner.yaml").write_text("initiative: INI-001\ntitle: T\n", encoding="utf-8")
+    (vault / ".vela.yaml").write_text("initiative: INI-001\ntitle: T\n", encoding="utf-8")
     (vault / "05-building-blocks").mkdir(exist_ok=True)
     (vault / "05-building-blocks" / "coach-building-blocks.md").write_text(
         f"---\nid: APP-coach\ntype: app-building-blocks\ntitle: Coach\nstate: {state}\nchange: new\nstage: {stage}\n"
@@ -38,7 +38,7 @@ def test_status_says_nothing_when_the_pages_reach_no_further_than_the_stage(tmp_
 
 def test_close_reports_the_stage_as_a_line_and_never_asks():
     close = skill_text("close")
-    assert "**Stage:** run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner ladder`" in close
+    assert "**Stage:** run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela ladder`" in close
     assert "never a question" in close
 
 

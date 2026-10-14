@@ -43,7 +43,7 @@ def test_a_reader_page_carries_the_role_and_the_draft_against_the_baseline(reade
     assert (changed["added"], changed["removed"]) == (2, 1) and ["add", "- **Pending approval:** @sam, 2026-10-12"] in changed["lines"]
     added = by_path["reader-notes.md"]
     assert added["status"] == "added" and added["removed"] == 0 and added["added"] == 3 and added["key"] == "page:reader-notes"
-    assert not any(p["path"].startswith(".planner/") for p in draft["pages"])
+    assert not any(p["path"].startswith(".vela/") for p in draft["pages"])
 
 
 def test_a_removed_page_and_a_binary_file_are_listed_without_a_diff(reader):
@@ -109,13 +109,13 @@ def test_a_folder_that_is_neither_gets_no_role_no_draft_and_no_stamp(tmp_path):
 
 def test_a_reader_workspace_with_no_baseline_says_why_instead_of_showing_no_changes(reader):
     _, _, workspace = reader
-    shutil.rmtree(workspace / ".planner" / "baseline")
+    shutil.rmtree(workspace / ".vela" / "baseline")
     said = explore(workspace)
     draft = page_data(workspace)[0]["draft"]
     assert draft["count"] == 0 and "baseline" in draft["problem"] and "cannot compare" in said
 
 
-def test_the_helpers_freshness_answer_is_the_same_report_planner_freshness_prints(reader):
+def test_the_helpers_freshness_answer_is_the_same_report_vela_freshness_prints(reader):
     _, _, workspace = reader
     found = cli.detect_role(workspace)
     live = cli.live_freshness(workspace, found, "2026-10-12", RuntimeError)
@@ -132,7 +132,7 @@ def test_compare_reports_added_removed_and_changed_by_path():
 
 
 def test_a_generated_block_that_only_re_rendered_is_not_a_change_and_one_with_an_edit_beside_it_collapses():
-    block = "<!-- generated:trace sha={sha}: do not edit, run planner render -->\n{body}\n<!-- /generated:trace -->\n"
+    block = "<!-- generated:trace sha={sha}: do not edit, run vela render -->\n{body}\n<!-- /generated:trace -->\n"
     old = ("Intro\n" + block.format(sha="aaaaaaaa", body="row 1")).encode()
     churn = ("Intro\n" + block.format(sha="bbbbbbbb", body="row 1\nrow 2")).encode()
     assert drafts.compare({"p.md": old}, {"p.md": churn}) == []

@@ -28,7 +28,7 @@ This epic holds the whole journey of [[FLO-001-prep-note-before-a-client-call|a 
 
 ## Traces to
 
-<!-- generated:traces-to sha=6571f4c2: do not edit, run planner render -->
+<!-- generated:traces-to sha=6571f4c2: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[heron-building-blocks\|Heron]] |
@@ -51,7 +51,7 @@ This epic holds the whole journey of [[FLO-001-prep-note-before-a-client-call|a 
 
 ## Out of scope
 
-- A message when the calendar entries themselves cannot be read is not held by any requirement. The runtime page says Heron then shows no note and says why, but no CAP-001 requirement states it, so no criterion is written until one does (`/planner:requirements` on CAP-001, then `/planner:allocate`).
+- A message when the calendar entries themselves cannot be read is not held by any requirement. The runtime page says Heron then shows no note and says why, but no CAP-001 requirement states it, so no criterion is written until one does (`/vela:requirements` on CAP-001, then `/vela:allocate`).
 
 ## History
 

@@ -490,13 +490,13 @@ news:
 sessions:
 - mode: requirements
   cap: 10
-  planner: /planner:requirements the capabilities Coach and TickerTalk change
+  vela: /vela:requirements the capabilities Coach and TickerTalk change
   baseline: Write the functional requirements for the capabilities Coach and TickerTalk change. Follow CONVENTIONS.md.
 - mode: allocate
   cap: 10
-  planner: /planner:allocate every requirement
+  vela: /vela:allocate every requirement
   baseline: Divide every requirement among the apps and contracts that carry it. Follow CONVENTIONS.md.
 - mode: releases
   cap: 10
-  planner: /planner:releases
+  vela: /vela:releases
   baseline: Write the releases, each with its date and the requirements it delivers. Follow CONVENTIONS.md.

@@ -113,7 +113,7 @@ sequenceDiagram
 - **Scale:** <scaling axis, limits>
 
 ## Trace
-<one line: the vault commit read, and what `planner handoff verify` said>
+<one line: the vault commit read, and what `vela handoff verify` said>
 
 | Target | Component |
 |--------|-----------|

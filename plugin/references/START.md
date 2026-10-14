@@ -1,35 +1,35 @@
 # Starting a session
 
-Contents: where the planner runs from; owner or reader; plain names and a page a person can hold; shell on a Mac and on Linux; the user may override any rule; steps 1 to 6 (the clone, open sessions, review comments, overdue unknowns, the record, how to talk); answer a challenge; closing a session; captures.
+Contents: where vela runs from; owner or reader; plain names and a page a person can hold; shell on a Mac and on Linux; the user may override any rule; steps 1 to 6 (the clone, open sessions, review comments, overdue unknowns, the record, how to talk); answer a challenge; closing a session; captures.
 
-Every mode skill runs these steps before its own. The vault root is the current directory. The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (see "Where the planner runs from" below), and the format is in `CONVENTIONS.md`, read one section at a time with `planner conventions "<section>"` (`--list` names them all), never the whole file. Every command in the skills is written with that prefix.
+Every mode skill runs these steps before its own. The vault root is the current directory. Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (see "Where vela runs from" below), and the format is in `CONVENTIONS.md`, read one section at a time with `vela conventions "<section>"` (`--list` names them all), never the whole file. Every command in the skills is written with that prefix.
 
-## Where the planner runs from
+## Where vela runs from
 
-The skills write the planner as `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`. The host may or may not replace that variable. Pick the program once, at the start, by the first of these that works, and use it for every `planner` command in the session:
+The skills write vela as `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. The host may or may not replace that variable. Pick the program once, at the start, by the first of these that works, and use it for every `vela` command in the session:
 
-1. `${CLAUDE_SKILL_DIR}/../../scripts/planner`, if the variable was expanded (no literal `${` is left in the text you were given) and the file exists. The skill's own folder sits two levels under the plugin root. It comes first where the host expands it; Cowork's own run left it empty.
-2. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`, on the same terms. Claude Code expands it; Cowork left it empty.
-3. An installed copy in the plugins folder: run `ls -t "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/synced/*/planner/scripts/planner "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/cache/*/planner/*/scripts/planner 2>/dev/null | head -1` and use the path it prints. Cowork leaves both variables empty and keeps the plugin under `synced/`; a marketplace install keeps it under `cache/`. `ls -t` lists the newest first.
-4. `.claude/skills/planner/scripts/planner`, if it exists. That is the copy a vendored vault carries.
-5. The `planner_path` recorded in `.planner/workspace.json`, in a reader copy.
-6. None: stop and say "I cannot find the planner program. Run `/planner:where` and send me what it prints." Do not guess a path.
+1. `${CLAUDE_SKILL_DIR}/../../scripts/vela`, if the variable was expanded (no literal `${` is left in the text you were given) and the file exists. The skill's own folder sits two levels under the plugin root. It comes first where the host expands it; Cowork's own run left it empty.
+2. `${CLAUDE_PLUGIN_ROOT}/scripts/vela`, on the same terms. Claude Code expands it; Cowork left it empty.
+3. An installed copy in the plugins folder: run `ls -t "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/synced/*/vela/scripts/vela "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/cache/*/vela/*/scripts/vela 2>/dev/null | head -1` and use the path it prints. Cowork leaves both variables empty and keeps the plugin under `synced/`; a marketplace install keeps it under `cache/`. `ls -t` lists the newest first.
+4. `.claude/skills/vela/scripts/vela`, if it exists. That is the copy a vendored vault carries.
+5. The `vela_path` recorded in `.vela/workspace.json`, in a reader copy.
+6. None: stop and say "I cannot find the vela program. Run `/vela:where` and send me what it prints." Do not guess a path.
 
-Do not say which one you picked unless you could not find one. The installed plugin wins over a vendored copy, because two versions answering one vault is how a vault gets rules its skills no longer follow. Other files the skills name as `${CLAUDE_PLUGIN_ROOT}/...` (this file, `MODES.md`, `REVIEW.md`, the catalog) live in the same plugin root as `scripts/`. When the variable was not expanded, the root is the folder that holds the `scripts/planner` you picked, so a vendored vault's `.claude/skills/planner/`.
+Do not say which one you picked unless you could not find one. The installed plugin wins over a vendored copy, because two versions answering one vault is how a vault gets rules its skills no longer follow. Other files the skills name as `${CLAUDE_PLUGIN_ROOT}/...` (this file, `MODES.md`, `REVIEW.md`, the catalog) live in the same plugin root as `scripts/`. When the variable was not expanded, the root is the folder that holds the `scripts/vela` you picked, so a vendored vault's `.claude/skills/vela/`.
 
 ## Owner or reader
 
-Run `planner role`. Access decides, never a title. An **owner** works in the vault's git work tree and can commit: follow every step below as written. A **reader** has a published copy with no `.git` (the folder holds `.planner/workspace.json`). A reader's session differs in these ways, and the steps below say so where they apply:
+Run `vela role`. Access decides, never a title. An **owner** works in the vault's git work tree and can commit: follow every step below as written. A **reader** has a published copy with no `.git` (the folder holds `.vela/workspace.json`). A reader's session differs in these ways, and the steps below say so where they apply:
 
 - **No git or `gh`, anywhere.** Never run `git switch`, `git pull`, `git fetch`, `git commit`, `git push`, `git status` or `gh`, and skip every step in any skill that stages, commits, checkpoints, pushes or opens a PR. Say so once, plainly: "This is a read copy, so I will not use git: your work stays in this folder and nothing is committed or sent."
 - **Session records are still written**, in place, to `sessions/<id>.md`, and kept up to date by hand as captures arrive.
-- **Decisions and overrides are pending.** A reader may record `decided`, but beside every item they decide or override, write `- **Pending approval:** @<their handle>, <today>` (where `planner conventions "Pending approval"` says). The handle is a short lower-case name, asked once and reused; their full name is `author` in `.planner/workspace.json`. Owner decisions never carry the marker. Tell the reader why: the owner sees it before it counts.
-- **Owner-only, so not open to a reader:** handoff, publish, `planner upgrade` and `/planner:challenge`. Name the owner as the CLI does (`published.json` has `owner`): "That is <name>'s call. Send a proposal (`/planner:propose`) and they decide."
-- If `planner role` says `none`, stop and show its message.
+- **Decisions and overrides are pending.** A reader may record `decided`, but beside every item they decide or override, write `- **Pending approval:** @<their handle>, <today>` (where `vela conventions "Pending approval"` says). The handle is a short lower-case name, asked once and reused; their full name is `author` in `.vela/workspace.json`. Owner decisions never carry the marker. Tell the reader why: the owner sees it before it counts.
+- **Owner-only, so not open to a reader:** handoff, publish, `vela upgrade` and `/vela:challenge`. Name the owner as the CLI does (`published.json` has `owner`): "That is <name>'s call. Send a proposal (`/vela:propose`) and they decide."
+- If `vela role` says `none`, stop and show its message.
 
 ## Plain names and a page a person can hold
 
-The people who read this vault hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so what you say and what you write are sized to that. `planner conventions "Pages"` says what the files follow; in a session:
+The people who read this vault hold about four to seven things in mind at once (Cowan 2001; Miller 1956), so what you say and what you write are sized to that. `vela conventions "Pages"` says what the files follow; in a session:
 
 - **The lead reads names, never codes.** Every kind of ID and code stays out of what the lead reads: unknowns, capabilities and requirements, contracts, flows, epics, apps, parties, runs, copy and finding IDs, capture numbers, check codes, gate names and numbers, and rule names in capitals. Say the thing's name, or what the code means in the lead's words: "the pilot date is a plan, not a fact yet", not a check code; "the strategy page is ready to decide", not a gate; "the calendar entries", "the prep-note flow", not a contract or flow ID. IDs go in files, the pull request body, `- Trace:` lines and the `**Override:**` bullet, where the check reads them. If the lead asks for an ID, give it. Spell an abbreviation out the first time you use it.
 - **A line is written after a yes to that line.** A yes that covers a group you read out ("yes to these five") counts for every line in it, so read sheets, criteria and rows back in groups of about five, not one by one. Silence or "ok" is not a yes: ask once more in different words, then park the line as an open question. The reason: a decided or assumed line should carry the lead's own word, and a yes to a long list is not consent to each line in it.
@@ -38,13 +38,13 @@ The people who read this vault hold about four to seven things in mind at once (
 - **Write a line at once.** The state a mode writes is marked on its capture at once (see "Captures during the session" below); a skill names only the state it writes.
 - Tool trouble you fix yourself (a failed shell command, a retry, a reviewer still running) is not news. Mention it only if you cannot get past it.
 - In a page, the IDs a sentence would have carried go on a `- Trace: CAP-001.FR1, CON-001, FLO-001` line under it. Never delete a Trace line, and never turn one into prose.
-- A link with a label, written inside a table cell, escapes its pipe: `[[page#Heading\|label]]`. A bare `|` splits the cell and `planner check` warns (W329). Outside a table the pipe is plain: `[[page#Heading|label]]`.
+- A link with a label, written inside a table cell, escapes its pipe: `[[page#Heading\|label]]`. A bare `|` splits the cell and `vela check` warns (W329). Outside a table the pipe is plain: `[[page#Heading|label]]`.
 - Offer a few things at a time. A list of more than about seven items is shown in groups of about five, the ones that matter first and the rest counted. A page opens with two or three plain sentences: what it says and what is still open.
-- `planner check` warns with W360 to W364 when a page drifts back. Each warning's fix line says how to write it in plain words.
+- `vela check` warns with W360 to W364 when a page drifts back. Each warning's fix line says how to write it in plain words.
 
 ## Shell that runs on a Mac and on Linux
 
-Owners work on macOS (BSD tools) as often as on Linux (GNU tools). Edit a file with the Edit tool, or with a `planner` command when one exists. Never edit in place from the shell: no `sed -i`, which takes a different argument on each, and no `\n`, `\+` or `\|` in a `sed` replacement. To read a line range, `sed -n '<first>,<last>p' <file>` works on both. Anything longer is `python3 -c` or a script, not a `sed` chain. If a shell edit fails, check the file before you retry, because part of it may have been written.
+Owners work on macOS (BSD tools) as often as on Linux (GNU tools). Edit a file with the Edit tool, or with a `vela` command when one exists. Never edit in place from the shell: no `sed -i`, which takes a different argument on each, and no `\n`, `\+` or `\|` in a `sed` replacement. To read a line range, `sed -n '<first>,<last>p' <file>` works on both. Anything longer is `python3 -c` or a script, not a `sed` chain. If a shell edit fails, check the file before you retry, because part of it may have been written.
 
 ## The user may override any rule
 
@@ -52,10 +52,10 @@ The user may override any rule in these skills. Say once, in one plain sentence 
 
 This holds in every skill, whichever steps of this file it runs, and it covers the grill gates, "only a Grill decides", an open unknown that blocks an item, an absent owner, and every "never" and "must not" in the skills and in `MODES.md`. The lead may decide on others' behalf.
 
-- History bullets (Override, Decision, Decided by, Confirmed by, Options considered, Dissent) go under the page's `## History`, as `planner conventions "Pages"` says: page level directly under it, an item's under `#### <ID>`. Add the section at the end of the page if it is missing.
-- Write the bullet in the grammar of `planner conventions "Overrides"`: `- **Override:** <rule> by @<user's handle> on <today>: <their reason, in their words>`, under the item's heading or at page level. Name the rule as the skills do: `GATE-1` to `GATE-5`, `grill`, a check code such as `E316`, or the rule's own words in double quotes (the file needs the name; the lead does not hear it). If no rule was set aside, write no `**Override:**` bullet: something the lead wishes, such as who may reopen an item, is a Notes line. The handle comes from `gh api user -q .login`; if `gh` fails, read it from the first line of `.planner/handle`, and if that is missing ask once and write it there (`.planner/` is not committed). In a reader copy, do not run `gh`: read or ask for a short handle the same way, once, and never again in any skill.
+- History bullets (Override, Decision, Decided by, Confirmed by, Options considered, Dissent) go under the page's `## History`, as `vela conventions "Pages"` says: page level directly under it, an item's under `#### <ID>`. Add the section at the end of the page if it is missing.
+- Write the bullet in the grammar of `vela conventions "Overrides"`: `- **Override:** <rule> by @<user's handle> on <today>: <their reason, in their words>`, under the item's heading or at page level. Name the rule as the skills do: `GATE-1` to `GATE-5`, `grill`, a check code such as `E316`, or the rule's own words in double quotes (the file needs the name; the lead does not hear it). If no rule was set aside, write no `**Override:**` bullet: something the lead wishes, such as who may reopen an item, is a Notes line. The handle comes from `gh api user -q .login`; if `gh` fails, read it from the first line of `.vela/handle`, and if that is missing ask once and write it there (`.vela/` is not committed). In a reader copy, do not run `gh`: read or ask for a short handle the same way, once, and never again in any skill.
 - The "session's note" is that same bullet at page level in the session record, for a rule that belongs to no item, such as batching writes. Also capture the user's instruction verbatim, with them as origin, so the record holds what they said.
-- When the user decides for an owner who is not there, add `- **Decided by:** @<user>, on behalf of @<owner>`. The owner later adds `- **Confirmed by:** @<owner> on <date>`, or raises `/planner:challenge` if they disagree. Until then `planner check` warns with W324.
+- When the user decides for an owner who is not there, add `- **Decided by:** @<user>, on behalf of @<owner>`. The owner later adds `- **Confirmed by:** @<owner> on <date>`, or raises `/vela:challenge` if they disagree. Until then `vela check` warns with W324.
 - If they give no reason, ask for one once. If they still give none, write `reason not given`.
 
 Hard stops are not process rules, and no override reaches them. Say which one applies and offer what you can do instead:
@@ -67,11 +67,11 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 
 ## 1. Show the state of the clone
 
-**Reader copy:** skip every git command in steps 1 to 3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner freshness` and tell the user what it prints in its own words: whether a newer copy was published, or that the folder they opened this from is out of reach. It reports and never updates. There is nothing to pull. Then go to step 2.
+**Reader copy:** skip every git command in steps 1 to 3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela freshness` and tell the user what it prints in its own words: whether a newer copy was published, or that the folder they opened this from is out of reach. It reports and never updates. There is nothing to pull. Then go to step 2.
 
-**Owner:** run `git status --short --branch` and read it; do not paste it to the lead. If a page of the vault is changed or untracked, carry it into the session unstaged and say so in one clause ("your edit to the strategy page comes with us, unstaged"). Ask only when two reasonable choices would lose work, for example when the pull cannot run over the change. The one exception is untracked output the planner itself writes under `.planner/` (`findings/`, `owed/`, `pr-body*.md`, `handle`): leave it unstaged and go on, and never stage it. `.planner/explorer-pins.json` is different: it is the shared map layout, committed, so stage it by exact path when it changed. Files under `docs/` and `CONTEXT.md` are a team's design files and are not a reason to stop either. A changed `dashboard.html` is the exception to the exception: it is the rebuilt explorer page and it is tracked, so it is not a reason to stop (close commits it). 
+**Owner:** run `git status --short --branch` and read it; do not paste it to the lead. If a page of the vault is changed or untracked, carry it into the session unstaged and say so in one clause ("your edit to the strategy page comes with us, unstaged"). Ask only when two reasonable choices would lose work, for example when the pull cannot run over the change. The one exception is untracked output vela itself writes under `.vela/` (`findings/`, `owed/`, `pr-body*.md`, `handle`): leave it unstaged and go on, and never stage it. `.vela/explorer-pins.json` is different: it is the shared map layout, committed, so stage it by exact path when it changed. Files under `docs/` and `CONTEXT.md` are a team's design files and are not a reason to stop either. A changed `dashboard.html` is the exception to the exception: it is the rebuilt explorer page and it is tracked, so it is not a reason to stop (close commits it). 
 
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner freshness` and tell the user only if the clone is behind, or origin could not be reached and this is the local state. Say nothing when it is in step. It fetches with a short timeout and never pulls or changes anything; if it says origin is unreachable, say so and never describe the clone as up to date. If it fails, show its message.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela freshness` and tell the user only if the clone is behind, or origin could not be reached and this is the local state. Say nothing when it is in step. It fetches with a short timeout and never pulls or changes anything; if it says origin is unreachable, say so and never describe the clone as up to date. If it fails, show its message.
 
 If the user names a challenge to answer, by its PR number or the challenged ID, take the path "Answer a challenge" below instead of the rest of this step. Otherwise run `git switch main` and `git pull --ff-only`. If any of them fails, show the error and say the session would start from an old `main`. Ask whether to go on. Never start from an old `main` without saying so.
 
@@ -83,7 +83,7 @@ An open record lives on its own `session/<id>` branch until its PR merges, so `m
 
 - Say its id, its date and how many captures it has.
 - If its date is more than 14 days ago, say so.
-- Offer three choices: resume it, close it now with `/planner:close`, or leave it open and start a new one.
+- Offer three choices: resume it, close it now with `/vela:close`, or leave it open and start a new one.
 - A branch whose only record is a closed `Challenge:` record is not an open session: it waits for the solution lead. Name it as "challenge waiting for an answer" and offer the "Answer a challenge" path instead of the three choices.
 
 To resume, run `git switch session/<id>`, read the record, and carry on from the last capture. For a Grill, carry on from the `## Agenda` section of the record: take the first item whose status is `open`. Never close a session the user has not asked to close; "Closing a session" below says what asking looks like.
@@ -104,9 +104,9 @@ If `gh` fails, say: "gh could not list merged PRs (<the error>), so review comme
 
 ## 4. Offer the overdue unknowns and the next step
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check` and read its first line, which says which date it used. For each `W705` line, name the unknown, its owner and its ask-by date. Ask the user whether they know the answer now, and how, as `MODES.md` says under "Unknowns". If they do not, offer to turn the question into a research task Claude does now with a source. Never draft an ask for the user to send, and never offer to. A research answer becomes a capture with the source named. It never becomes a `fact` without a row in `sources.md`.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check` and read its first line, which says which date it used. For each `W705` line, name the unknown, its owner and its ask-by date. Ask the user whether they know the answer now, and how, as `MODES.md` says under "Unknowns". If they do not, offer to turn the question into a research task Claude does now with a source. Never draft an ask for the user to send, and never offer to. A research answer becomes a capture with the source named. It never becomes a `fact` without a row in `sources.md`.
 
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner next` and show its line. If the user has not said what this session is for, offer that app and mode first. It is a suggestion from the rules in `planner conventions "Progress and next step"`, never a decision.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela next` and show its line. If the user has not said what this session is for, offer that app and mode first. It is a suggestion from the rules in `vela conventions "Progress and next step"`, never a decision.
 
 ## 5. Open the record and the branch
 
@@ -143,7 +143,7 @@ A session that runs a second mode adds that mode to `modes`. It never opens a se
 
 Then say in one sentence how much there is and how far you expect to get: "Six capabilities, two or three requirements each; we'll do two or three today." When you have done about two thirds of what you said, say so, and ask whether to push on or stop and close. If the conversation is cut off, the record holds the resume point; on resume, say in one line where you stopped.
 
-**Name the initiative, once.** The template ships `title: New initiative` in `.planner.yaml`, and that title heads the dashboard and every copy a reader gets. If the title is still that (`planner check` says W718), ask the lead before the first question of the session: "What short name should this initiative go by? A few words, as you would say it to a colleague." Write their answer as `title:` in `.planner.yaml`, commit it with the message `Name the initiative`, and never ask again; a title that is already something else is theirs, so leave it alone. If they decline, say once that the dashboard will read "New initiative" until they give one, and go on. **Reader copy:** do not edit the file; say the owner names the initiative.
+**Name the initiative, once.** The template ships `title: New initiative` in `.vela.yaml`, and that title heads the dashboard and every copy a reader gets. If the title is still that (`vela check` says W718), ask the lead before the first question of the session: "What short name should this initiative go by? A few words, as you would say it to a colleague." Write their answer as `title:` in `.vela.yaml`, commit it with the message `Name the initiative`, and never ask again; a title that is already something else is theirs, so leave it alone. If they decline, say once that the dashboard will read "New initiative" until they give one, and go on. **Reader copy:** do not edit the file; say the owner names the initiative.
 
 ## 6. Read how to talk
 
@@ -160,13 +160,13 @@ Close is a skill you may start, and only on the lead's word. That word is any pl
 - **They said close, or something equal to it.** That is the yes. Say in one line what will happen ("I'll file your notes, write the pages and send the branch for review"), and run the `close` skill in this conversation.
 - **They only sounded finished** ("I think that's it", a long pause after the last answer). Ask once, "Shall I close this out now?", and wait. Do not start it on a guess.
 - **Never start close** because the work looks complete, a turn limit is near, or a gate stopped you. The lead decides when the session ends.
-- **One confirmation stays, before anything leaves the machine.** Close pushes the branch and opens a pull request. Before it does, close says what will be sent and waits for a yes, unless the lead typed `/planner:close` themselves or said "push" or "open the PR" in so many words. A "close" alone is not consent to push company material; it is consent to file.
-- **A switch.** After closing for a switch, say the one line the lead types to start the next mode ("Type `/planner:requirements CAP-005`"). Modes start on the lead's word and are not started by you.
-- **If close cannot be started from where you are,** say only: "Type `/planner:close` and I'll take it from there." Say nothing about why, and give no lecture.
+- **One confirmation stays, before anything leaves the machine.** Close pushes the branch and opens a pull request. Before it does, close says what will be sent and waits for a yes, unless the lead typed `/vela:close` themselves or said "push" or "open the PR" in so many words. A "close" alone is not consent to push company material; it is consent to file.
+- **A switch.** After closing for a switch, say the one line the lead types to start the next mode ("Type `/vela:requirements CAP-005`"). Modes start on the lead's word and are not started by you.
+- **If close cannot be started from where you are,** say only: "Type `/vela:close` and I'll take it from there." Say nothing about why, and give no lecture.
 
 ## Captures during the session
 
-Write each point as a capture line in `## Captures`, in the form `planner conventions "Sessions"` gives. Leave the mark off until close, except in a mode whose skill says its captures are marked at once. Those are a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`; a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)`; and Boundary, Requirements, Allocate and Releases, which mark the capture of each line they write `→ keep: [[<page>#<heading>|<ID>]] (assumption)`. Close leaves a mark already written alone.
+Write each point as a capture line in `## Captures`, in the form `vela conventions "Sessions"` gives. Leave the mark off until close, except in a mode whose skill says its captures are marked at once. Those are a Grill, which marks the deciding capture `→ keep: [[<page>#<heading>|<ID>]] (decided)` as soon as it writes the item `decided`; a Discover, which marks the capture of each fact it writes `→ keep: [[<page>#<heading>|<ID>]] (fact)`; and Boundary, Requirements, Allocate and Releases, which mark the capture of each line they write `→ keep: [[<page>#<heading>|<ID>]] (assumption)`. Close leaves a mark already written alone.
 
 - A person's words are quoted verbatim, with their name, role or handle as the origin.
 - Claude's own idea has origin `claude`.

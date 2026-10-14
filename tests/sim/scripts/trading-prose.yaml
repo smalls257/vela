@@ -1,5 +1,5 @@
 # A short check of the reading-as-current-state skills: one grill on the TickerTalk pages, then close, which must
-# rewrite the opening prose of each page it changed, put history under ## History, and pass planner style.
+# rewrite the opening prose of each page it changed, put history under ## History, and pass vela style.
 name: trading-prose
 persona: trading-coach
 start: trading-coach/after-handoff-grill-s25
@@ -72,9 +72,9 @@ news:
 sessions:
 - mode: grill
   cap: 16
-  planner: /planner:grill the TickerTalk page and its runtime page
+  vela: /vela:grill the TickerTalk page and its runtime page
   baseline: Take me through the TickerTalk page and its runtime page and record what I decide, following CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

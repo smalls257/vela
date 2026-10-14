@@ -1,7 +1,7 @@
 # trading-complete plus the three sessions that feed what the explorer draws: requirements, allocate and releases,
 # between the journeys and the epics. The news holds what only this lead knows and no skill may invent: the date the
 # board sees the first release, the names the business uses for its areas, and one answer only outside counsel holds.
-# The scorecard's "Recorded for the explorer" section is read from the final vault (planner capture): every app has a
+# The scorecard's "Recorded for the explorer" section is read from the final vault (vela capture): every app has a
 # domain, at least 80% of the flow steps that cross a contract name a sender, the 2027-01-15 release is present, and an
 # Ask names outside counsel. This costs money to run; tests/test_sim.py checks the file shapes with --stub only.
 name: trading-complete-v2
@@ -494,81 +494,81 @@ news:
 sessions:
 - mode: discover
   cap: 18
-  planner: /planner:discover the answers gathered by 9 October
+  vela: /vela:discover the answers gathered by 9 October
   baseline: Read the answers gathered by 9 October and record what they settle. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 20
-  planner: /planner:grill the Coach containers, its runtime page and its concern cells
+  vela: /vela:grill the Coach containers, its runtime page and its concern cells
   baseline: Take me through the Coach containers, runtime page and concerns and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 20
-  planner: /planner:grill the TickerTalk page, its runtime page, the reader identity contract and its concern cells
+  vela: /vela:grill the TickerTalk page, its runtime page, the reader identity contract and its concern cells
   baseline: Take me through TickerTalk, its runtime, the reader identity contract and its concerns. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: boundary
   cap: 16
-  planner: /planner:boundary the journeys through Coach and TickerTalk
+  vela: /vela:boundary the journeys through Coach and TickerTalk
   baseline: Write the journeys through Coach and TickerTalk. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 14
-  planner: /planner:grill the journeys through Coach and TickerTalk
+  vela: /vela:grill the journeys through Coach and TickerTalk
   baseline: Take me through the journeys and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: requirements
   cap: 22
-  planner: /planner:requirements the capabilities Coach and TickerTalk change
+  vela: /vela:requirements the capabilities Coach and TickerTalk change
   baseline: Write the functional requirements for the capabilities Coach and TickerTalk change. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: allocate
   cap: 22
-  planner: /planner:allocate every requirement
+  vela: /vela:allocate every requirement
   baseline: Divide every requirement among the apps and contracts that carry it. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: releases
   cap: 18
-  planner: /planner:releases
+  vela: /vela:releases
   baseline: Write the releases, each with its date and the requirements it delivers. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: epics
   cap: 20
-  planner: /planner:epics the Coach team and the mobile team
+  vela: /vela:epics the Coach team and the mobile team
   baseline: Draft and decide the epics for the Coach team and the mobile team. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 16
-  planner: /planner:grill handing the coach app to @coach-lead again, with the changes since the first handoff
+  vela: /vela:grill handing the coach app to @coach-lead again, with the changes since the first handoff
   baseline: Take me through the handoff again and record it. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

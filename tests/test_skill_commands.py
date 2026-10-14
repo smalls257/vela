@@ -1,4 +1,4 @@
-"""Skill text that names the v2 commands: planner next at start, the Options considered
+"""Skill text that names the v2 commands: vela next at start, the Options considered
 bullet Shape leaves and next reads, and the handoff manifest close writes."""
 import re
 
@@ -14,17 +14,17 @@ def text(rel):
     return (PLUGIN / rel).read_text(encoding="utf-8")
 
 
-def test_start_offers_planner_next_as_a_suggestion():
+def test_start_offers_vela_next_as_a_suggestion():
     start = text("references/START.md")
     assert "## 4. Offer the overdue unknowns and the next step" in start
-    assert "Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner next` and show its line." in start
+    assert "Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela next` and show its line." in start
     assert "never a decision" in start
 
 
 def test_modes_says_where_to_start():
     modes = text("references/MODES.md")
     assert "## Where to start" in modes
-    assert "`planner next` names the one app and mode" in modes and "`planner status` shows every app's stage" in modes
+    assert "`vela next` names the one app and mode" in modes and "`vela status` shows every app's stage" in modes
 
 
 def test_options_considered_is_one_bullet_in_every_skill():
@@ -39,10 +39,10 @@ def test_options_considered_is_one_bullet_in_every_skill():
 
 def test_close_writes_the_handoff_manifest_when_a_senior_takes_an_app():
     close = skill_text("close")
-    assert "If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff <APP-id>` only now, after that commit" in close
+    assert "If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff <APP-id>` only now, after that commit" in close
     assert "run it with `--replace` only once they say so in this session" in close
     # S34: the manifest is written after the session's commit, so it records a clean commit, and is committed alone.
-    assert close.index("planner close stage --close --session <id>") < close.index("handoff <APP-id>` only now")
+    assert close.index("vela close stage --close --session <id>") < close.index("handoff <APP-id>` only now")
     assert "Handoff manifest for <APP-id>" in close
 
 
@@ -75,7 +75,7 @@ def suggestion(options):
     return row.mode, row.subject
 
 
-def test_the_bullet_close_writes_is_what_planner_next_reads():
+def test_the_bullet_close_writes_is_what_vela_next_reads():
     form = re.search(r"`(- \*\*Options considered:\*\* [^`]+)`", skill_text("close")).group(1)
     filled = (form.replace("<picked option>", "versioned API").replace("<option>", "one shared schema")
               .replace("<reason>", "kiosks lag six months").replace("; ...", ""))

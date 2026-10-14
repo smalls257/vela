@@ -8,7 +8,7 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=77cf3a1d: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=77cf3a1d: do not edit, run vela render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 Meaning of trades for them\|UNK-001]] | Meaning of trades for them | @sim-lead (product lead), answer from the CEO | resolved |  |
@@ -404,7 +404,7 @@ authored: mixed
 
 - **Override:** E805 by @sim-lead on 2026-10-08: the Brightwater agreement is the gate on every one of these; once the lead has read it tomorrow we know what sticks, and data, stored value and Quoteline terms cannot be answered until then
 
-<!-- generated:undisposed-questions sha=0ccae2f1: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=0ccae2f1: do not edit, run vela render -->
 **Questions:** 33 owed, 17 undisposed, 53 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |

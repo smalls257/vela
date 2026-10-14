@@ -16,7 +16,7 @@ FINDING = re.compile(r"^(?P<path>[^:\n]+):(?P<line>\d+): (?P<code>[EW]\d{3}) ")
 
 
 def run(*argv):
-    """Run the planner CLI in-process. Returns (exit code, output text)."""
+    """Run the vela CLI in-process. Returns (exit code, output text)."""
     from vela import cli
     out = io.StringIO()
     code = cli.main(list(argv), out=out)
@@ -102,6 +102,6 @@ def skill_text(name):
 
 @pytest.fixture(autouse=True)
 def _no_installed_plugins(tmp_path_factory, monkeypatch):
-    """No test may find a planner installed on the machine that runs it (~/.claude/plugins): point the plugins root at
+    """No test may find a vela installed on the machine that runs it (~/.claude/plugins): point the plugins root at
     an empty folder. A test that wants an installed copy sets CLAUDE_CODE_PLUGIN_CACHE_DIR itself."""
     monkeypatch.setenv("CLAUDE_CODE_PLUGIN_CACHE_DIR", str(tmp_path_factory.mktemp("no-plugins")))

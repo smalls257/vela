@@ -1,5 +1,5 @@
 rules:
-  # Distributed Monolith. plugin/ ships alone into a vault's .claude/skills/planner; prototypes/ and tests/
+  # Distributed Monolith. plugin/ ships alone into a vault's .claude/skills/vela; prototypes/ and tests/
   # do not ship. An import across that line works in this repo and breaks in every installed vault.
   - id: plugin-imports-only-plugin
     languages: [python]
@@ -18,7 +18,7 @@ rules:
               metavariable: $MOD
               regex: ^(tests|conftest|prototypes|sim|evals|probe|record|pins|build|comfy|jobs)(\.|$)
       - patterns:
-          # plugin/scripts/planner puts its own lib/ on the path; nothing else in plugin/ may extend sys.path.
+          # plugin/scripts/vela puts its own lib/ on the path; nothing else in plugin/ may extend sys.path.
           - pattern-either:
               - pattern: sys.path.insert(..., $P)
               - pattern: sys.path.append($P)

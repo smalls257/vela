@@ -1,4 +1,4 @@
-"""`planner close gate` (overhaul Task 10a) against a real vault repo: a decision since the branch point needs the
+"""`vela close gate` (overhaul Task 10a) against a real vault repo: a decision since the branch point needs the
 lead's quoted yes in the record, main must have been brought in, and `--consent-block` quotes the lead verbatim."""
 import shutil
 
@@ -110,8 +110,8 @@ def test_reader_copy_checks_every_changes_row(tmp_path):
     vault = session(tmp_path)
     decide_stock(vault, ["- [thought] (claude) decide it ^c01"], [f"| CON-002 | fact | decided | [[{RECORD}#^c01]] |"])
     shutil.rmtree(vault / ".git")
-    (vault / ".planner").mkdir(exist_ok=True)
-    (vault / ".planner" / "workspace.json").write_text('{"author": "Sam"}', encoding="utf-8")
+    (vault / ".vela").mkdir(exist_ok=True)
+    (vault / ".vela" / "workspace.json").write_text('{"author": "Sam"}', encoding="utf-8")
     code, out = gate(vault)
     assert code == 1 and "on my suggestion" in out
 

@@ -34,49 +34,49 @@ gaps:
     what: "OQ-001 open: Mac in the first release (UNK-054)"
     acknowledged_by: team lead
     why: "Challenges a vault item only the senior can settle; the design carries on with the branches it does not touch"
-    revisit: "When the senior's /planner:challenge on the item is answered"
+    revisit: "When the senior's /vela:challenge on the item is answered"
     oq: OQ-001
   - id: G-004
     what: "OQ-002 open: staleness bound for moved or canceled meetings (EPC-034.AC4)"
     acknowledged_by: team lead
     why: "Challenges a vault item only the senior can settle; the design carries on with the branches it does not touch"
-    revisit: "When the senior's /planner:challenge on the item is answered"
+    revisit: "When the senior's /vela:challenge on the item is answered"
     oq: OQ-002
   - id: G-005
     what: "OQ-003 open: whether mail is read in the first release (CAP-001.FR2)"
     acknowledged_by: team lead
     why: "Challenges a vault item only the senior can settle; the design carries on with the branches it does not touch"
-    revisit: "When the senior's /planner:challenge on the item is answered"
+    revisit: "When the senior's /vela:challenge on the item is answered"
     oq: OQ-003
   - id: G-006
     what: "OQ-005 open: telling the person when Consent and identity is down or sign-in expired (EPC-033)"
     acknowledged_by: team lead
     why: "Challenges a vault item only the senior can settle; the design carries on with the branches it does not touch"
-    revisit: "When the senior's /planner:challenge on the item is answered"
+    revisit: "When the senior's /vela:challenge on the item is answered"
     oq: OQ-005
   - id: G-007
     what: "OQ-006 open: whether shown digests are reviewable later (CAP-002.FR1)"
     acknowledged_by: team lead
     why: "Challenges a vault item only the senior can settle; the design carries on with the branches it does not touch"
-    revisit: "When the senior's /planner:challenge on the item is answered"
+    revisit: "When the senior's /vela:challenge on the item is answered"
     oq: OQ-006
   - id: G-008
     what: "OQ-007 open: what the Summarizer keeps, logs and trains on (CON-002)"
     acknowledged_by: team lead
     why: "Challenges a vault item only the senior can settle; the design carries on with the branches it does not touch"
-    revisit: "When the senior's /planner:challenge on the item is answered"
+    revisit: "When the senior's /vela:challenge on the item is answered"
     oq: OQ-007
   - id: G-009
     what: "OQ-008 open: lawful basis for other attendees in an entry (UNK-071)"
     acknowledged_by: team lead
     why: "Challenges a vault item only the senior can settle; the design carries on with the branches it does not touch"
-    revisit: "When the senior's /planner:challenge on the item is answered"
+    revisit: "When the senior's /vela:challenge on the item is answered"
     oq: OQ-008
   - id: G-010
     what: "OQ-009 open: rings, recall and signing-key holders (CST-010)"
     acknowledged_by: team lead
     why: "Challenges a vault item only the senior can settle; the design carries on with the branches it does not touch"
-    revisit: "When the senior's /planner:challenge on the item is answered"
+    revisit: "When the senior's /vela:challenge on the item is answered"
     oq: OQ-009
   - id: G-011
     what: "OQ-010 open: what 'purged' means on disk after withdrawal (free pages, journal)"
@@ -97,7 +97,7 @@ vault:
 
 # Tech Design — Desktop agent
 
-Vault read at INI-001 @ 051d15a. `planner handoff verify APP-desktop-agent`: 0 changed, 0 added, 0 removed. The vault clone has no changes to planner pages (only untracked `.planner/`).
+Vault read at INI-001 @ 051d15a. `vela handoff verify APP-desktop-agent`: 0 changed, 0 added, 0 removed. The vault clone has no changes to vela pages (only untracked `.vela/`).
 
 ## Architecture overview
 One signed per-user process on the laptop, built with Tauri: a Rust core owns the local store, the Microsoft Graph pull (CON-001) and the calls to Consent and identity (CON-003, CON-004) and the Summarizer (CON-002); the Tauri webview shows the Note view. One codebase ships as a signed Mac pkg (Jamf) and a Windows MSIX (Intune) by the pilot (CST-007, CST-010). The three vault containers (Source reader, Note view, Schedule) are modules inside this one process.

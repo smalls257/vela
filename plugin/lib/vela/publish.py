@@ -14,17 +14,17 @@ import posixpath
 import re
 import zipfile
 
-STAMP_PATH = ".planner/published.json"
+STAMP_PATH = ".vela/published.json"
 STAMP_FORMAT = 1
 # The built explorer, at the vault root so a colleague finds it in git or OneDrive without building anything. A view of the
 # pages, not a page: a publish rebuilds it from the published content, and a reader's drafts never count it as a change.
 DASHBOARD_PATH = "dashboard.html"
 # Generated output, a person's private voice material, and the vendored plugin (the reader's own plugin runs).
-EXCLUDED = (".git/", ".planner/", "voice/local/", ".claude/skills/planner/", DASHBOARD_PATH)
+EXCLUDED = (".git/", ".vela/", "voice/local/", ".claude/skills/vela/", DASHBOARD_PATH)
 # The files a team commits that sit under EXCLUDED: the pinned layout (the vault .gitignore un-ignores it), so a reader's map is
 # laid out like the owner's, and the dashboard. Still "excluded" as far as a reader's drafts go: neither is a page, so comparing
 # a workspace with its baseline skips them.
-KEPT = (".planner/explorer-pins.json", DASHBOARD_PATH)
+KEPT = (".vela/explorer-pins.json", DASHBOARD_PATH)
 ZIP_TIME = (1980, 1, 1, 0, 0, 0)
 # Files a sync client or an operating system adds to a folder; none is part of a published copy. Publish and open both
 # leave them out, so the set that was hashed is the set that is verified.
@@ -80,14 +80,14 @@ def copy_name(title, short):
 
 
 def owner_contact(config, git_name, git_email, name_flag="", contact_flag=""):
-    """{"name", "contact"} for the stamp: the flags, else .planner.yaml owner_contact, else git config.
+    """{"name", "contact"} for the stamp: the flags, else .vela.yaml owner_contact, else git config.
 
     A published copy with no one to write to leaves a reader stuck, so nothing resolving is an error.
     """
     contact = contact_flag or str(config.get("owner_contact") or "") or git_email
     name = name_flag or git_name or contact
     if not contact:
-        raise PublishError("I do not know who a reader should write to. Set owner_contact in .planner.yaml, "
+        raise PublishError("I do not know who a reader should write to. Set owner_contact in .vela.yaml, "
                            "set git user.email, or pass --owner-contact.")
     return {"name": name, "contact": contact}
 

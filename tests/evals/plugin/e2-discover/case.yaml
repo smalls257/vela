@@ -8,7 +8,7 @@ plugins:
 - ../../../../plugin
 runs: 3
 execution:
-  prompt: '/planner:discover what exists today around booking and the mainframe. The three documents are in .inbox/. Read
+  prompt: '/vela:discover what exists today around booking and the mainframe. The three documents are in .inbox/. Read
     all three. I say yes to every line you show me; write it up. This vault has no git remote and no gh, so fetch, push and
     gh will fail: say so and carry on. Do not wait for answers from me beyond what this message gives.'
   max_turns: 60
@@ -27,7 +27,7 @@ graders:
 - name: plugin-loaded
   type: tool_used
   tool: Skill
-  input_match: planner
+  input_match: vela
   arm: with-only
 - name: registers-sources
   type: regex

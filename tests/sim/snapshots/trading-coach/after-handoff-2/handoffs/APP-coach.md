@@ -5,11 +5,11 @@
 - **Written:** 2026-10-09
 - **Items:** 15
 
-Written by `planner handoff APP-coach`. Do not edit it by hand. `planner handoff verify APP-coach` lists what changed since the senior accepted this slice.
+Written by `vela handoff APP-coach`. Do not edit it by hand. `vela handoff verify APP-coach` lists what changed since the senior accepted this slice.
 
 | ID | Kind | Page | State | Hash |
 |---|---|---|---|---|
-| APP-coach | app | 05-building-blocks/coach-building-blocks.md | decided | 069ea38bacf5 |
+| APP-coach | app | 05-building-blocks/coach-building-blocks.md | decided | 0c9ca89db3ea |
 | RUN-coach | runtime | 06-runtime/apps/coach-runtime.md | assumption | e0258358ad78 |
 | CON-001 | provides | 05-building-blocks/coach-building-blocks.md | decided | 6cdcf46eae24 |
 | CON-002 | provides | 05-building-blocks/coach-building-blocks.md | decided | db04dd67bfb6 |

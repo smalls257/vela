@@ -3,14 +3,14 @@ name: propose
 description: Turn what you drafted in a read copy into a proposal folder for the owner, with your reasons. Use when you have changes to send and no git.
 argument-hint: "[a few words naming the proposal]"
 disable-model-invocation: true
-allowed-tools: Read Bash(python3 *scripts/planner *)
+allowed-tools: Read Bash(python3 *scripts/vela *)
 ---
 
 # Propose your changes to the owner
 
 A reader has no git, so a change reaches the vault as a proposal the owner reviews, never as an edited file. This skill turns what you drafted since you opened the copy into a folder holding `proposal.md` (the note the owner reads) and `changes.patch` (the changes themselves). It sends nothing: you send the folder, however you normally send files.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). Run it from the workspace folder.
+Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Run it from the workspace folder.
 
 ## Proposing
 
@@ -18,8 +18,8 @@ $ARGUMENTS
 
 ## Steps
 
-1. Run `planner role`. If it says `owner`, stop: "You work in this vault's git repo, so you decide directly. A proposal is how someone without git sends changes." Offer a normal session instead. If it says neither owner nor reader, show what it printed and stop.
-2. Run `planner propose --groups --json`. If it says you have changed nothing, say so and stop. Otherwise tell the user how many things they changed, in plain words, pending decisions first. A pending decision is a decision they recorded that the owner has not yet approved; say that the owner decides it, not them.
+1. Run `vela role`. If it says `owner`, stop: "You work in this vault's git repo, so you decide directly. A proposal is how someone without git sends changes." Offer a normal session instead. If it says neither owner nor reader, show what it printed and stop.
+2. Run `vela propose --groups --json`. If it says you have changed nothing, say so and stop. Otherwise tell the user how many things they changed, in plain words, pending decisions first. A pending decision is a decision they recorded that the owner has not yet approved; say that the owner decides it, not them.
 3. For each group, one at a time, in the order the tool gave:
    - Read the page text around the change (the `path` and `hunk` say where) so you can say what changed in a sentence.
    - Ask why they changed it, and offer a draft reason in plain language that they can correct (for example, "Finance said anything else fails audit"). The reason is theirs: use their words once they accept the draft. When several groups are one change in the reader's mind, offer their reasons together, so twelve groups are not twelve questions.
@@ -29,7 +29,7 @@ $ARGUMENTS
 6. Run the command with the reasons on standard input, so quotes and symbols in their words need no escaping:
 
 ```
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner propose --title "<title>" --whys - [--zip] <<'JSON'
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela propose --title "<title>" --whys - [--zip] <<'JSON'
 {"CON-001": "<their reason>", "CON-002": "<their reason>"}
 JSON
 ```

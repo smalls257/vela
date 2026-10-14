@@ -17,7 +17,7 @@ A later note from the CEO, dated 13 October, narrows the plan. [[sources#SRC-09|
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=4d9a8cf8: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=4d9a8cf8: do not edit, run vela render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -75,7 +75,7 @@ A later note from the CEO, dated 13 October, narrows the plan. [[sources#SRC-09|
 
 ## Progress by app
 
-<!-- generated:progress-map sha=c5b8c4a0: do not edit, run planner render -->
+<!-- generated:progress-map sha=c5b8c4a0: do not edit, run vela render -->
 **As of:** 2026-10-09, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |

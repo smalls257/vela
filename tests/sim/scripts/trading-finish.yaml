@@ -669,33 +669,33 @@ news:
 sessions:
 - mode: discover
   cap: 20
-  planner: /planner:discover every open unknown that the answers gathered so far settle
+  vela: /vela:discover every open unknown that the answers gathered so far settle
   baseline: Resolve every open unknown the answers gathered so far settle. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 22
-  planner: /planner:grill every concern cell for Coach and TickerTalk
+  vela: /vela:grill every concern cell for Coach and TickerTalk
   baseline: Take me through every concern cell for Coach and TickerTalk and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: epics
   cap: 20
-  planner: /planner:epics the Coach team and the mobile team
+  vela: /vela:epics the Coach team and the mobile team
   baseline: Draft and decide the epics for the Coach team and the mobile team. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 18
-  planner: /planner:grill handing the coach app to @coach-lead again, with the changes since the first handoff
+  vela: /vela:grill handing the coach app to @coach-lead again, with the changes since the first handoff
   baseline: Take me through the handoff again and record it. Follow CONVENTIONS.md.
 - mode: close
   cap: 14
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

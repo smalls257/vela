@@ -27,7 +27,7 @@ def test_ordinary_commands_pass(command):
     assert gates.bypass_reason(command) is None
 
 
-def test_a_changed_planner_module_needs_its_test_file_and_cli_needs_none():
+def test_a_changed_vela_module_needs_its_test_file_and_cli_needs_none():
     changed = ["plugin/lib/vela/releases.py", "plugin/lib/vela/cli.py", "tests/test_search.py", "README.md"]
     assert gates.tests_for(changed) == ["tests/test_releases.py", "tests/test_search.py"]
 

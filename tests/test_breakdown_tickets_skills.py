@@ -1,4 +1,4 @@
-"""The text of /planner:breakdown and /planner:tickets: each kept item and each built-in rule is there, nothing points at a file that is
+"""The text of /vela:breakdown and /vela:tickets: each kept item and each built-in rule is there, nothing points at a file that is
 not, and the plan format's own example is something the reader reads clean.
 
     python3 -m pytest tests/test_breakdown_tickets_skills.py
@@ -56,7 +56,7 @@ def test_the_voices_are_read_through_start_and_the_conversation_voice_file():
 
 def test_the_tickets_skill_checks_asks_creates_nothing_without_a_yes_and_stops():
     body = text(TICKETS / "SKILL.md")
-    for phrase in ("planner tickets check", "Markdown ticket list", "CSV for Jira import", "an MCP server or a command-line tool",
+    for phrase in ("vela tickets check", "Markdown ticket list", "CSV for Jira import", "an MCP server or a command-line tool",
                    "never guess a project key", "Nothing is created in any outside system without an explicit yes",
                    "Write no script to create tickets", "stop with one short summary", "9 stories, 42 tasks, 3 flagged"):
         assert phrase in body, phrase

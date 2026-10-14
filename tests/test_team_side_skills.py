@@ -9,7 +9,7 @@ def text(rel):
 
 def test_tech_design_never_reads_a_missing_program_as_no_manifest():
     ref = text("references/TECH-DESIGN-FROM-VAULT.md")
-    assert "Where the planner runs from" in ref and "A missing program is never \"no manifest\"." in ref
+    assert "Where vela runs from" in ref and "A missing program is never \"no manifest\"." in ref
     assert 'message "does not exist"' in ref and "Any other exit 2" in ref
 
 

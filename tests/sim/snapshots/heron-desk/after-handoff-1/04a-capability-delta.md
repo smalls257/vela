@@ -14,7 +14,7 @@ Every capability this initiative changes. Each capability page holds what provid
 
 - [[CAP-001-prepare-a-client-for-a-call|Prepare a client for a call]]
 
-<!-- generated:capability-map sha=bdde3c6b: do not edit, run planner render -->
+<!-- generated:capability-map sha=bdde3c6b: do not edit, run vela render -->
 ```mermaid
 flowchart TB
   subgraph d_capture["Capture"]
@@ -29,7 +29,7 @@ Key: green: new in this initiative.
 
 ## Allocation
 
-<!-- generated:allocation sha=822e7765: do not edit, run planner render -->
+<!-- generated:allocation sha=822e7765: do not edit, run vela render -->
 **Allocation:** 5 requirements at assumption or later, 0 not allocated.
 
 | Requirement | [[heron-building-blocks\|Heron]] |

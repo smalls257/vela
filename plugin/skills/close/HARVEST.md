@@ -2,9 +2,9 @@
 
 Read by close in section 4, after the voice review. Harvest does not depend on the review.
 
-Only the vault's owner harvests, and only their own edits. The owner is the `author` of the `source: owner` examples in `voice/examples/` and `voice/local/`. If there are none, say "No owner examples yet, so nothing to harvest. `/planner:voice-seed` adds them." and go on to section 5, Read back decided wording. Harvest does not depend on the voice review: run it even when the review did not run.
+Only the vault's owner harvests, and only their own edits. The owner is the `author` of the `source: owner` examples in `voice/examples/` and `voice/local/`. If there are none, say "No owner examples yet, so nothing to harvest. `/vela:voice-seed` adds them." and go on to section 5, Read back decided wording. Harvest does not depend on the voice review: run it even when the review did not run.
 
-Each command runs in its own shell call, and no shell variable survives from one call to the next. So each paragraph's text is kept in a file with a fixed path every later step names: `.planner/harvest/<pr>-<n>.txt`, where `<pr>` is the PR number and `<n>` is the paragraph's order in this harvest, from 1. It sits in `.planner/`, which is gitignored, so it never shows in `git status` and is never staged. When harvest ends, by any route, run `rm -rf .planner/harvest`.
+Each command runs in its own shell call, and no shell variable survives from one call to the next. So each paragraph's text is kept in a file with a fixed path every later step names: `.vela/harvest/<pr>-<n>.txt`, where `<pr>` is the PR number and `<n>` is the paragraph's order in this harvest, from 1. It sits in `.vela/`, which is gitignored, so it never shows in `git status` and is never staged. When harvest ends, by any route, run `rm -rf .vela/harvest`.
 
 Every `gh` or `git` call below can fail. When one does, say which call failed and what it left unchecked. Never read a failure as "no edits found". Say "no edits found" only when every merged PR was checked.
 
@@ -19,19 +19,19 @@ Every `gh` or `git` call below can fail. When one does, say which call failed an
    - Extract the merged paragraph into its file, and hash it, in one call:
 
      ```
-     mkdir -p .planner/harvest
-     git show FETCH_HEAD:<page> | sed -n '<first>,<last>p' > .planner/harvest/<pr>-<n>.txt
-     shasum < .planner/harvest/<pr>-<n>.txt | cut -c1-12
+     mkdir -p .vela/harvest
+     git show FETCH_HEAD:<page> | sed -n '<first>,<last>p' > .vela/harvest/<pr>-<n>.txt
+     shasum < .vela/harvest/<pr>-<n>.txt | cut -c1-12
      ```
 
-   - Skip a paragraph that is already saved or declined, and run `rm -f .planner/harvest/<pr>-<n>.txt`. It is saved when an example in either folder has the same `page`, a `harvested_from` equal to the baseline's full hash, and a body equal to the merged paragraph. It is declined when `grep -rh '^Harvest declined: ' sessions/` has its line: `Harvest declined: PR <number> <page> <hash>`.
-5. Offer each remaining paragraph, one at a time. Show the draft paragraph, the file `.planner/harvest/<pr>-<n>.txt` and the voice type from house-voice's table, so the text is never retyped. Harvest offers and never saves by itself. Ask "Did you write this change?" The owner's answer is the check that the edit is theirs. If the answer is unclear, ask once more. If it is no, or still unclear, record a decline, run `rm -f .planner/harvest/<pr>-<n>.txt`, and do not ask the save question. Otherwise ask "Save the merged paragraph as a <type> example?" Save it only on an explicit yes. On any other answer, record a decline and run `rm -f .planner/harvest/<pr>-<n>.txt`. To record a decline, insert one bare line `Harvest declined: PR <number> <page> <hash>` directly under `## Captures` in the session record. It is never a bullet.
+   - Skip a paragraph that is already saved or declined, and run `rm -f .vela/harvest/<pr>-<n>.txt`. It is saved when an example in either folder has the same `page`, a `harvested_from` equal to the baseline's full hash, and a body equal to the merged paragraph. It is declined when `grep -rh '^Harvest declined: ' sessions/` has its line: `Harvest declined: PR <number> <page> <hash>`.
+5. Offer each remaining paragraph, one at a time. Show the draft paragraph, the file `.vela/harvest/<pr>-<n>.txt` and the voice type from house-voice's table, so the text is never retyped. Harvest offers and never saves by itself. Ask "Did you write this change?" The owner's answer is the check that the edit is theirs. If the answer is unclear, ask once more. If it is no, or still unclear, record a decline, run `rm -f .vela/harvest/<pr>-<n>.txt`, and do not ask the save question. Otherwise ask "Save the merged paragraph as a <type> example?" Save it only on an explicit yes. On any other answer, record a decline and run `rm -f .vela/harvest/<pr>-<n>.txt`. To record a decline, insert one bare line `Harvest declined: PR <number> <page> <hash>` directly under `## Captures` in the session record. It is never a bullet.
 6. Ask where it goes, and say plainly that a committed example is pushed in this PR, where everyone with access to the repository can read it:
    - committed: `voice/examples/<type>/`. Ask "May this text be committed to the vault?" and wait for an explicit yes.
    - local only: `voice/local/<type>/`. It stays on this machine and no step below stages it.
 
-   If the owner's employer owns the text, or the owner is not sure, recommend local only. If the answer is not an explicit choice, do not save, and run `rm -f .planner/harvest/<pr>-<n>.txt`.
-7. Plan the room before you save, and change no example yet. A type keeps at most 5 active examples. Count both folders together, with the new one. If that makes 6, plan to retire one: the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`, by `added` and then file name. A local example never retires a committed seed, and in a local-only save only local examples may retire. If the cap blocks a local-only save, store nothing, run `rm -f .planner/harvest/<pr>-<n>.txt`, and say "The cap blocks a local save: <type> holds 5 active examples and none in voice/local/ may retire." Show the owner each planned retirement and ask. If they refuse, store nothing for that type, and run `rm -f .planner/harvest/<pr>-<n>.txt`.
+   If the owner's employer owns the text, or the owner is not sure, recommend local only. If the answer is not an explicit choice, do not save, and run `rm -f .vela/harvest/<pr>-<n>.txt`.
+7. Plan the room before you save, and change no example yet. A type keeps at most 5 active examples. Count both folders together, with the new one. If that makes 6, plan to retire one: the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`, by `added` and then file name. A local example never retires a committed seed, and in a local-only save only local examples may retire. If the cap blocks a local-only save, store nothing, run `rm -f .vela/harvest/<pr>-<n>.txt`, and say "The cap blocks a local save: <type> holds 5 active examples and none in voice/local/ may retire." Show the owner each planned retirement and ask. If they refuse, store nothing for that type, and run `rm -f .vela/harvest/<pr>-<n>.txt`.
 8. Save the merged paragraph word for word as `<folder>/<type>/VX-<type>-NNN.md`, NNN one higher than the highest in that type in both folders, retired files included. First write the frontmatter with the Write tool, quoting every free value, ending with the closing `---` and one blank line:
 
    ```
@@ -51,8 +51,8 @@ Every `gh` or `git` call below can fail. When one does, say which call failed an
    Then append the paragraph's file and compare it with the stored body, with a tool, in one call. The block removes the file whatever `cmp` finds:
 
    ```
-   cat .planner/harvest/<pr>-<n>.txt >> <file>
-   awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - .planner/harvest/<pr>-<n>.txt; code=$?; rm -f .planner/harvest/<pr>-<n>.txt; (exit $code)
+   cat .vela/harvest/<pr>-<n>.txt >> <file>
+   awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - .vela/harvest/<pr>-<n>.txt; code=$?; rm -f .vela/harvest/<pr>-<n>.txt; (exit $code)
    ```
 
-   If `cmp` reports a difference, stop, tell the owner, and do not repair the file. Then re-read the frontmatter and confirm it parses as YAML and that `page` and `harvested_from` hold the text you gave. Only now apply the retirements you planned in step 7, changing only each `state:` line. If the save made a folder's active `owner` and `owner-edit` examples of the type 2 or more, retire that folder's active `public-seed` examples of the type the same way, as `/planner:voice-seed` does. A local save retires only local seeds. Retire by editing `state:` and never delete an example.
+   If `cmp` reports a difference, stop, tell the owner, and do not repair the file. Then re-read the frontmatter and confirm it parses as YAML and that `page` and `harvested_from` hold the text you gave. Only now apply the retirements you planned in step 7, changing only each `state:` line. If the save made a folder's active `owner` and `owner-edit` examples of the type 2 or more, retire that folder's active `public-seed` examples of the type the same way, as `/vela:voice-seed` does. A local save retires only local seeds. Retire by editing `state:` and never delete an example.

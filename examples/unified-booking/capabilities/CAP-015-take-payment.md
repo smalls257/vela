@@ -37,7 +37,7 @@ Takes a customer's card payment for a crossing by card without Harborline ever h
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=140bedbf: do not edit, run planner render -->
+<!-- generated:delivered-by sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:delivered-by -->
 

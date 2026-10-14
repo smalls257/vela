@@ -1,6 +1,6 @@
 # The build plan file
 
-`docs/plan/<slug>-breakdown.md`. The explorer's Build plan, `planner tickets` and `/planner:tickets` all read it with one reader (`planner/breakdown.py`), so a line it cannot place is reported, never guessed. Write the lines as shown.
+`docs/plan/<slug>-breakdown.md`. The explorer's Build plan, `vela tickets` and `/vela:tickets` all read it with one reader (`vela/breakdown.py`), so a line it cannot place is reported, never guessed. Write the lines as shown.
 
 ## Frontmatter
 
@@ -62,7 +62,7 @@ Release fit: cannot tell for 2027-02-02. Sizes add to at most 14 days for one en
 
 - `Traces to:` holds IDs only, one per target, each from the vault (`CAP-nnn.FRn@APP-x`, `CON-nnn`, `EPC-nnn.ACn`, `CST-nnn`). A story that rests on the design alone says `design only:` and names the design section. The quoted criteria come first, in the order of the IDs; criteria from the design or the team follow, written as the design states them.
 - `- **Tracer:** yes` marks the team's tracer story; `Slice:` starts with `tracer`, `vertical` or `layer`, then any reason. A layer is flagged and folded into the slice that needs it, or says why it stays apart.
-- The vault slice a story is part of goes on the same line, by ID: `Slice: vertical, SLC-002 The digest reaches a pilot user`. `planner tickets check` flags an ID the vault has no slice page for, or a slice this app takes part in nowhere; a story naming the tracer slice counts as a tracer story. Tickets come out grouped by it, the tracer first.
+- The vault slice a story is part of goes on the same line, by ID: `Slice: vertical, SLC-002 The digest reaches a pilot user`. `vela tickets check` flags an ID the vault has no slice page for, or a slice this app takes part in nowhere; a story naming the tracer slice counts as a tracer story. Tickets come out grouped by it, the tracer first.
 - `Release fit:` starts with the release date from `04b-releases.md` when the story's requirements are on a release, and says `cannot tell` with the missing number, or a rough sum "from your numbers". A story on no release names no date.
 - `Blocked by:` is `none` (with an optional note after it), or story IDs, design questions (`OQ-nnn`), deferrals (`D-nnn`), vault unknowns (`UNK-nnn`) and outside parties.
 - `Status:` is absent for a story that will be built. `Status: deferred (date). reason` keeps every other field, with tasks when they were sized. `Status: held` keeps tasks and appears in Ticket waves. `Status: merged into S-05 on <date>. reason` is the whole section of a story folded into another; its ID is retired, not reused. A split story is `S-07a` and `S-07b`, each with its own fields, in the summary and the order.

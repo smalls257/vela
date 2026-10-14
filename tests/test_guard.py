@@ -9,16 +9,16 @@ from conftest import REPO, run
 from vela import guard
 
 HOOK = REPO / "template" / ".githooks" / "pre-commit"
-LAUNCHER = REPO / "plugin" / "scripts" / "planner"
+LAUNCHER = REPO / "plugin" / "scripts" / "vela"
 
 
 def test_guard_path_verdicts(tmp_path):
     never = {".inbox/call.md": "inbox", "notes/.inbox/call.md": "inbox", ".Inbox/Call.md": "inbox",
              "voice/local/mine.md": "voice-local", "voice/corpus/essay.txt": "voice-corpus",
-             "Voice/Corpus/essay.txt": "voice-corpus", ".planner/session.json": "tool-state",
-             "./.planner/workspace.json": "tool-state", "a/../.inbox/x.md": "inbox"}
-    allowed = (".planner/explorer-pins.json", "voice/examples/decision/one.md", "01-goals.md", "sources.md",
-               ".planner.yaml", "inbox/not-hidden.md", "voice/localish.md", "README.md")
+             "Voice/Corpus/essay.txt": "voice-corpus", ".vela/session.json": "tool-state",
+             "./.vela/workspace.json": "tool-state", "a/../.inbox/x.md": "inbox"}
+    allowed = (".vela/explorer-pins.json", "voice/examples/decision/one.md", "01-goals.md", "sources.md",
+               ".vela.yaml", "inbox/not-hidden.md", "voice/localish.md", "README.md")
     for path, key in never.items():
         code, out = run("guard", "path", path, "--vault", str(tmp_path), "--json")
         assert code == 1, (path, out)
@@ -32,9 +32,9 @@ def test_guard_path_verdicts(tmp_path):
 
 def test_the_plan_sorts_each_path_once_and_never_rules_win():
     changed = ["01-goals.md", "sessions/s1.md", "sessions/s0.md", ".inbox/a.md", "handoffs/APP-x.md",
-               "dashboard.html", "scratch.txt", ".planner/explorer-pins.json", "voice/examples/x/y.md"]
+               "dashboard.html", "scratch.txt", ".vela/explorer-pins.json", "voice/examples/x/y.md"]
     plan = guard.plan(changed, {"01-goals.md", "sessions/s1.md", "sessions/s0.md", ".inbox/a.md"}, "s1")
-    assert plan.stage == ("01-goals.md", "sessions/s1.md", ".planner/explorer-pins.json", "voice/examples/x/y.md")
+    assert plan.stage == ("01-goals.md", "sessions/s1.md", ".vela/explorer-pins.json", "voice/examples/x/y.md")
     assert [p for p, _ in plan.never] == [".inbox/a.md"]
     assert dict(plan.left) == {"sessions/s0.md": guard.OTHER_SESSION, "handoffs/APP-x.md": guard.HANDOFF,
                                "dashboard.html": guard.DASHBOARD, "scratch.txt": guard.OTHER}
@@ -53,7 +53,7 @@ def test_pre_commit_rejects_inbox(tmp_path):
     git(repo, "init", "-q")
     for key, value in (("user.name", "Test Lead"), ("user.email", "lead@example.com"), ("core.hooksPath", ".githooks")):
         git(repo, "config", key, value)
-    env = {"PLANNER": str(LAUNCHER)}
+    env = {"VELA": str(LAUNCHER)}
     (repo / "01-goals.md").write_text("goals\n", encoding="utf-8")
     git(repo, "add", "--", "01-goals.md")
     first = git(repo, "commit", "-q", "-m", "goals", env=env)
@@ -68,5 +68,5 @@ def test_pre_commit_rejects_inbox(tmp_path):
     assert "The meeting notes in the inbox stay on this machine" in said and ".inbox/call notes.md" in said
     assert git(repo, "rev-list", "--count", "HEAD").stdout.strip() == "1"
 
-    missing = git(repo, "commit", "-q", "-m", "oops", env={"PLANNER": str(tmp_path / "nowhere")})
+    missing = git(repo, "commit", "-q", "-m", "oops", env={"VELA": str(tmp_path / "nowhere")})
     assert missing.returncode != 0 and "were not checked" in missing.stderr, "a hook that cannot run must not pass"

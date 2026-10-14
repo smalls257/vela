@@ -115,7 +115,7 @@ def test_house_voice_reads_only_active_examples():
     assert "Read every example of that type whose frontmatter says `state: active`, in file-name order" in voice
     assert "Skip every `state: retired` example." in voice
     assert "If the type has fewer than two active examples" in voice
-    assert "`/planner:voice-seed`" in voice
+    assert "`/vela:voice-seed`" in voice
 
 
 def test_voice_seed_stores_the_owner_words_and_never_rewrites_them():
@@ -163,8 +163,8 @@ def test_the_example_voice_seed_writes_has_only_documented_fields():
 def test_voice_seed_writes_verbatim_with_a_quoted_heredoc_and_compares():
     seed = skill_text("voice-seed")
     assert "write the frontmatter with the Write tool" in seed
-    assert "cat >> <file> <<'PLANNER_EOF'" in seed
-    assert "If the passage contains a line `PLANNER_EOF`, pick another delimiter" in seed
+    assert "cat >> <file> <<'VELA_EOF'" in seed
+    assert "If the passage contains a line `VELA_EOF`, pick another delimiter" in seed
     assert "Compare the two with `cmp`" in seed
     assert "If `cmp` reports a difference, stop. Tell the owner and do not repair the file." in seed
     assert "A heredoc always ends its text with a newline, so a paste that had no final newline gains one" in seed
@@ -221,7 +221,7 @@ def test_voice_seed_quotes_from_and_runs_a_final_check(tmp_path):
     assert "Write `from` in single-quoted YAML, and double any `'` inside it" in seed
     assert "re-read the frontmatter and confirm it parses as YAML" in seed
     block = seed.split("## Final check (section 6)", 1)[1].split("```\n", 2)[1]  # the count lives in WRITE.md
-    script = block.split("<<'PLANNER_EOF'\n", 1)[1].rsplit("PLANNER_EOF", 1)[0]
+    script = block.split("<<'VELA_EOF'\n", 1)[1].rsplit("VELA_EOF", 1)[0]
     vault = tmp_path
     for folder, n in (("voice/examples", 3), ("voice/local", 3)):
         (vault / folder / "decision").mkdir(parents=True)

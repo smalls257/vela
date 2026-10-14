@@ -122,5 +122,5 @@ def unchecked(blocks, reason):
     first = blocks[0]
     return [Finding(first.path, first.line, "W604",
                     f"{len(blocks)} mermaid diagram{'' if len(blocks) == 1 else 's'} not checked: {reason}.",
-                    "Install Node.js (node on the PATH, or PLANNER_NODE naming it) and run the check again; "
+                    "Install Node.js (node on the PATH, or VELA_NODE naming it) and run the check again; "
                     "a diagram mermaid cannot read shows as source, not a drawing.")]

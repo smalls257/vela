@@ -1,6 +1,6 @@
 """Where each app stands, and the mode to run next. Pure: the caller passes the date.
 
-One computation feeds `planner status`, `planner next`, `planner query status` and
+One computation feeds `vela status`, `vela next`, `vela query status` and
 the `progress-map` block, so they never disagree. The rules are in CONVENTIONS.md
 under "Progress and next step", in the order they are tried.
 """
@@ -204,7 +204,7 @@ def decided_text(row):
 
 
 def best(rows):
-    """The single frontier `planner next` names: the lowest rule number, then the earliest stage,
+    """The single frontier `vela next` names: the lowest rule number, then the earliest stage,
     then the app ID. None when every app's mode is none."""
     open_rows = [r for r in rows if r.mode != "none"]
     if not open_rows:

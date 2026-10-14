@@ -8,7 +8,7 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=e6d6563b: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=e6d6563b: do not edit, run vela render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 Meaning of the mandate\|UNK-001]] | Meaning of the mandate | @solution-lead (asking CIO office) | open | 2026-10-09 |
@@ -462,7 +462,7 @@ authored: mixed
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=0c762586: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=0c762586: do not edit, run vela render -->
 **Questions:** 34 owed, 30 undisposed, 40 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |

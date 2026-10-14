@@ -9,8 +9,8 @@ diff -ruN a/requirements-grill/PREREQ-CHECK.md b/requirements-grill/PREREQ-CHECK
 +
 +Check this first. When vault mode is on, it replaces the prereq and output-file steps below.
 +
-+- **requirements-grill.** If `.planner.yaml` exists at the repo root, vault mode is on. A `CAP-NNN` scope is required instead of a slug; if the user gave none, ask for one. Read `.claude/skills/planner/references/REQUIREMENTS-IN-VAULT.md` and follow it. If that file is missing, stop: *"This repo is an initiative vault, but the planner plugin is not installed at `.claude/skills/planner`. Install it before running requirements-grill here."*
-+- **tech-design-grill.** If the user passed `--vault <path> --app <APP-id>`, vault mode is on. The prereq is the app's building-blocks page in `<path>` carrying a `handed_off:` field, instead of `docs/requirements/<slug>.md`. If the page or the field is missing, stop: *"`<APP-id>` has no `handed_off` field in that vault, so its pages are not handed over yet. Ask the solution lead to hand it off first."* Then read `<path>/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md` and follow it. If that file is missing, stop and say the planner plugin in that vault is too old.
++- **requirements-grill.** If `.vela.yaml` exists at the repo root, vault mode is on. A `CAP-NNN` scope is required instead of a slug; if the user gave none, ask for one. Read `.claude/skills/vela/references/REQUIREMENTS-IN-VAULT.md` and follow it. If that file is missing, stop: *"This repo is an initiative vault, but the vela plugin is not installed at `.claude/skills/vela`. Install it before running requirements-grill here."*
++- **tech-design-grill.** If the user passed `--vault <path> --app <APP-id>`, vault mode is on. The prereq is the app's building-blocks page in `<path>` carrying a `handed_off:` field, instead of `docs/requirements/<slug>.md`. If the page or the field is missing, stop: *"`<APP-id>` has no `handed_off` field in that vault, so its pages are not handed over yet. Ask the solution lead to hand it off first."* Then read `<path>/.claude/skills/vela/references/TECH-DESIGN-FROM-VAULT.md` and follow it. If that file is missing, stop and say the vela plugin in that vault is too old.
 +
 +Without either, run the steps below as written.
 +
@@ -37,7 +37,7 @@ diff -ruN a/requirements-grill/SKILL.md b/requirements-grill/SKILL.md
  ---
  name: requirements-grill
 -description: Use when stress-testing or eliciting pure functional requirements for a product or feature. Drives the *what*, not the *how*. Refuses to discuss tech stack, architecture, or non-functional requirements. Triggers include "grill requirements", "what should this do", "define the what", "elicit requirements", "PRD interview".
-+description: Use when stress-testing or eliciting pure functional requirements for a product or feature. Drives the *what*, not the *how*. Refuses to discuss tech stack, architecture, or non-functional requirements. Triggers include "grill requirements", "what should this do", "define the what", "elicit requirements", "PRD interview". Also runs in initiative vaults. In a repo with `.planner.yaml` at its root it is scoped to one capability (CAP-NNN) and writes onto that capability's page.
++description: Use when stress-testing or eliciting pure functional requirements for a product or feature. Drives the *what*, not the *how*. Refuses to discuss tech stack, architecture, or non-functional requirements. Triggers include "grill requirements", "what should this do", "define the what", "elicit requirements", "PRD interview". Also runs in initiative vaults. In a repo with `.vela.yaml` at its root it is scoped to one capability (CAP-NNN) and writes onto that capability's page.
  ---
  
  <what-to-do>
@@ -73,7 +73,7 @@ diff -ruN a/requirements-grill/SKILL.md b/requirements-grill/SKILL.md
  
  Flip `status: complete` only if neg-audit passes. Otherwise stay in-progress and surface what's blocking.
 +
-+In vault mode, run `NEG-AUDIT.md` the same way, then do not flip any status. Tell the user to run `/planner:close`, which marks the captures, checks the vault and opens the PR. The vault's session record takes the place of the frontmatter.
++In vault mode, run `NEG-AUDIT.md` the same way, then do not flip any status. Tell the user to run `/vela:close`, which marks the captures, checks the vault and opens the PR. The vault's session record takes the place of the frontmatter.
  
  ## Hard rule
  

@@ -1,5 +1,5 @@
-"""The only part of planner that touches the disk, the clock, git or the network.
-The network is touched by one command alone, `planner voicescore setup`.
+"""The only part of vela that touches the disk, the clock, git or the network.
+The network is touched by one command alone, `vela voicescore setup`.
 
 Exit codes: 0 clean, 1 findings, 2 the tool itself failed.
 """
@@ -42,20 +42,20 @@ class ToolError(Exception):
 
 
 def load_config(root):
-    path = root / ".planner.yaml"
+    path = root / ".vela.yaml"
     if not path.is_file():
-        raise ToolError(f"{root} has no .planner.yaml, so it is not a vault. Run planner from the vault root or pass --vault.")
+        raise ToolError(f"{root} has no .vela.yaml, so it is not a vault. Run vela from the vault root or pass --vault.")
     try:
         config = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
-        raise ToolError(f".planner.yaml is not valid YAML: {exc}") from exc
+        raise ToolError(f".vela.yaml is not valid YAML: {exc}") from exc
     if not isinstance(config, dict) or not schema.INITIATIVE_RE.match(str(config.get("initiative", ""))):
-        raise ToolError(".planner.yaml needs 'initiative: INI-nnn' and 'title: ...'.")
+        raise ToolError(".vela.yaml needs 'initiative: INI-nnn' and 'title: ...'.")
     if not config.get("title"):
-        raise ToolError(".planner.yaml needs 'title: ...'.")
+        raise ToolError(".vela.yaml needs 'title: ...'.")
     days = config.get("stale_after_days", schema.STALE_AFTER_DAYS)
     if isinstance(days, bool) or not isinstance(days, int) or days < 1:
-        raise ToolError(f".planner.yaml has stale_after_days: {days!r}. Write a whole number of days, such as 60.")
+        raise ToolError(f".vela.yaml has stale_after_days: {days!r}. Write a whole number of days, such as 60.")
     return config
 
 
@@ -64,7 +64,7 @@ def load_catalog(path=None):
     catalog: an empty one would make every vault look as if it owed no questions."""
     path = pathlib.Path(path or CATALOG)
     if not path.is_file():
-        raise ToolError(f"{path} is missing, so planner cannot work out which questions are owed. "
+        raise ToolError(f"{path} is missing, so vela cannot work out which questions are owed. "
                         "Restore it from the toolkit repo.")
     try:
         data = catalog.load_yaml(path.read_text(encoding="utf-8"))
@@ -86,7 +86,7 @@ def load_template_lines(path=None):
         try:
             text = one.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
-            raise ToolError(f"{one} cannot be read ({exc}), so planner cannot tell a template opening from a written "
+            raise ToolError(f"{one} cannot be read ({exc}), so vela cannot tell a template opening from a written "
                             "one. Restore it from the toolkit repo.") from exc
         lines += [line for line in text.split("\n") if line.strip() and line not in lines]
     return lines
@@ -159,28 +159,28 @@ def conventions_findings(root):
     return [model.Finding("CONVENTIONS.md", 1, "W717",
                           "The vault's rule book (CONVENTIONS.md) differs from the one the installed Vela ships, so the "
                           "sessions may follow rules it doesn't state.",
-                          "Run planner upgrade, check the changes (git diff CONVENTIONS.md), and commit them.")]
+                          "Run vela upgrade, check the changes (git diff CONVENTIONS.md), and commit them.")]
 
 
 def title_line(root):
-    """The line of `title:` in .planner.yaml, or 1."""
-    for number, line in enumerate((root / ".planner.yaml").read_text(encoding="utf-8").splitlines(), 1):
+    """The line of `title:` in .vela.yaml, or 1."""
+    for number, line in enumerate((root / ".vela.yaml").read_text(encoding="utf-8").splitlines(), 1):
         if line.startswith("title:"):
             return number
     return 1
 
 
 def config_findings(root):
-    """W718 when .planner.yaml still has the title the template ships once a session has been opened. The first session
+    """W718 when .vela.yaml still has the title the template ships once a session has been opened. The first session
     asks for the name, so a fresh vault with no session record is not behind on anything; after one, the title heads the
     dashboard and every reader's copy, and a vault nobody named reads as 'New initiative' to the people it is for."""
     config = load_config(root)
     if str(config.get("title", "")).strip() != schema.PLACEHOLDER_TITLE or not any((root / "sessions").glob("*.md")):
         return []
-    return [model.Finding(".planner.yaml", title_line(root), "W718",
+    return [model.Finding(".vela.yaml", title_line(root), "W718",
                           f"The initiative's title is still the template's '{schema.PLACEHOLDER_TITLE}', so the dashboard "
                           "and every reader's copy show that.",
-                          "Ask the lead for a short name for the initiative and write it as title: in .planner.yaml.")]
+                          "Ask the lead for a short name for the initiative and write it as title: in .vela.yaml.")]
 
 
 MANIFEST_COMMIT = re.compile(r"^- \*\*Commit:\*\* ([0-9a-f]{7,40})\b", re.MULTILINE)
@@ -205,7 +205,7 @@ def manifest_findings(root):
         except (OSError, UnicodeDecodeError) as exc:
             found.append(model.Finding(f"{schema.HANDOFF_DIR}/{path.name}", 1, "W388",
                                        f"This handoff record can't be read ({exc}), so the commit it points at can't be checked.",
-                                       f"Restore the file, or write it again with planner handoff {path.stem} --replace."))
+                                       f"Restore the file, or write it again with vela handoff {path.stem} --replace."))
             continue
         pinned = MANIFEST_COMMIT.search(text)
         if pinned and not commit_exists(root, pinned.group(1)):
@@ -213,7 +213,7 @@ def manifest_findings(root):
             found.append(model.Finding(f"{schema.HANDOFF_DIR}/{path.name}", line, "W388",
                                        f"This handoff record points at commit {pinned.group(1)}, which this repository doesn't have, so nobody "
                                        "can see the version the app's team accepted.",
-                                       f"Commit your changes, then run planner handoff {path.stem} --replace; or restore the commit."))
+                                       f"Commit your changes, then run vela handoff {path.stem} --replace; or restore the commit."))
     return found
 
 
@@ -230,13 +230,13 @@ def cmd_upgrade(args, out):
     mine = root / "CONVENTIONS.md"
     new = PLUGIN_CONVENTIONS.read_bytes()
     if mine.is_file() and same_text(mine, PLUGIN_CONVENTIONS):
-        print("planner upgrade: CONVENTIONS.md is already the plugin's copy. Nothing changed.", file=out)
+        print("vela upgrade: CONVENTIONS.md is already the plugin's copy. Nothing changed.", file=out)
         return 0
     old_lines = mine.read_text(encoding="utf-8").splitlines() if mine.is_file() else []
     mine.write_bytes(new)
     changed = sum(1 for line in difflib.unified_diff(old_lines, new.decode("utf-8").splitlines(), lineterm="")
                   if line[:1] in "+-" and not line.startswith(("+++", "---")))
-    print(f"planner upgrade: CONVENTIONS.md replaced with the plugin's copy, {changed} lines changed. "
+    print(f"vela upgrade: CONVENTIONS.md replaced with the plugin's copy, {changed} lines changed. "
           "Review it with git diff CONVENTIONS.md, then commit it.", file=out)
     return 0
 
@@ -247,7 +247,7 @@ def detect_role(root):
 
 
 def print_role(found, out):
-    print(f"planner role: {found.role}. {found.reason[0].upper()}{found.reason[1:]}.", file=out)
+    print(f"vela role: {found.role}. {found.reason[0].upper()}{found.reason[1:]}.", file=out)
     for note in found.notes:
         print(f"  Note: {note}.", file=out)
     for warning in found.warnings:
@@ -283,7 +283,7 @@ def refuse_if_reader(root, action):
 
 
 def check_counts(files, today):
-    """(errors, warnings) of planner check on exactly these committed files."""
+    """(errors, warnings) of vela check on exactly these committed files."""
     with tempfile.TemporaryDirectory() as folder:
         copies.write_folder(files, folder + "/vault")
         root = pathlib.Path(folder) / "vault"
@@ -327,10 +327,10 @@ def cmd_publish(args, out):
         git_name, git_email = vaultgit.user_identity(root)
         files = publish.selected(files)
         secret_notes = check_secrets(files, args.allow_secrets)
-        if ".planner.yaml" not in files:
-            raise ToolError("HEAD has no .planner.yaml, so there is no initiative to publish. Commit it first.")
+        if ".vela.yaml" not in files:
+            raise ToolError("HEAD has no .vela.yaml, so there is no initiative to publish. Commit it first.")
         files[publish.DASHBOARD_PATH] = publish_dashboard(files, {"date": vaultgit.commit_date(root, "HEAD") or today, "commit": short}, today)
-        config = load_config_text(files[".planner.yaml"])
+        config = load_config_text(files[".vela.yaml"])
         owner = publish.owner_contact(config, git_name, git_email, args.owner_name or "", args.owner_contact or "")
         counts = check_counts(files, today)
         stamp = publish.build_stamp(config, commit, short, today, bool(dirty_files), owner, counts, files)
@@ -346,7 +346,7 @@ def cmd_publish(args, out):
         raise ToolError(str(exc)) from exc
     except OSError as exc:
         raise ToolError(f"cannot write {target}: {exc.strerror or exc}") from exc
-    print(f"planner publish: wrote {target.name} ({len(stamped)} files) at {short}, {counts[0]} errors and {counts[1]} warnings "
+    print(f"vela publish: wrote {target.name} ({len(stamped)} files) at {short}, {counts[0]} errors and {counts[1]} warnings "
           f"at publish. Contact: {owner['name']} <{owner['contact']}>.", file=out)
     for line in secret_notes:
         print(f"  {line}", file=out)
@@ -370,9 +370,9 @@ def check_secrets(files, allowed):
 
 
 def load_config_text(data):
-    """.planner.yaml read from committed bytes, with the same rules as load_config."""
+    """.vela.yaml read from committed bytes, with the same rules as load_config."""
     with tempfile.TemporaryDirectory() as folder:
-        (pathlib.Path(folder) / ".planner.yaml").write_bytes(data)
+        (pathlib.Path(folder) / ".vela.yaml").write_bytes(data)
         return load_config(pathlib.Path(folder))
 
 
@@ -412,7 +412,7 @@ def reader_freshness(root, checked_at):
 
 
 def freshness_report(root, found, timeout, today, checked_at=None):
-    """The freshness.Report for a folder whose role is `found`. `planner freshness`, `explore` and the helper's
+    """The freshness.Report for a folder whose role is `found`. `vela freshness`, `explore` and the helper's
     /freshness all ask here, so the three can never disagree."""
     checked_at = checked_at or f"{today}T{time.strftime('%H:%M:%S')}"
     if found.role == roles.OWNER:
@@ -456,11 +456,11 @@ def cmd_freshness(args, out):
     if args.json:
         print(json.dumps(report.as_dict(), indent=2), file=out)
     else:
-        print(f"planner freshness: {report.message}", file=out)
+        print(f"vela freshness: {report.message}", file=out)
     return 0
 
 
-VELA_PROGRAM = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts" / "planner"
+VELA_PROGRAM = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts" / "vela"
 
 
 def reader_author(flag, root):
@@ -481,15 +481,15 @@ def environment_notes(env):
     notes = []
     if not shutil.which("claude"):
         notes.append("`claude` is not on PATH, so --serve and the Ask Claude helper will not work here; the page still opens as a file.")
-    if not env.get("PLANNER_WORKSPACES") and not pathlib.Path.home().exists():
+    if not env.get("VELA_WORKSPACES") and not pathlib.Path.home().exists():
         notes.append("there is no home folder to keep the workspace in; pass --into.")
     return notes
 
 
 def workspace_folder(slug, into, env, in_cowork):
     """The absolute workspace folder by the rule opening.location_rule picks; a synced location is refused."""
-    rule = opening.location_rule(into, env.get("PLANNER_WORKSPACES"), in_cowork)
-    base = {"into": lambda: pathlib.Path(into or ""), "env": lambda: pathlib.Path(env.get("PLANNER_WORKSPACES", "")) / slug,
+    rule = opening.location_rule(into, env.get("VELA_WORKSPACES"), in_cowork)
+    base = {"into": lambda: pathlib.Path(into or ""), "env": lambda: pathlib.Path(env.get("VELA_WORKSPACES", "")) / slug,
             "cowork": lambda: pathlib.Path.cwd() / opening.COWORK_FOLDER / slug,
             "home": lambda: pathlib.Path.home() / opening.DEFAULT_FOLDER / slug}[rule]()
     folder = pathlib.Path(os.path.abspath(base.expanduser()))
@@ -503,7 +503,7 @@ def cmd_open(args, out):
         files, stamp = copies.read_published(args.source)
         opening.verify_tree(files, stamp)
         admitted, left_out = opening.admit(files)
-        in_cowork = bool(env.get("PLANNER_COWORK") or env.get("CLAUDE_COWORK"))
+        in_cowork = bool(env.get("VELA_COWORK") or env.get("CLAUDE_COWORK"))
         folder = workspace_folder(publish.slug(stamp["title"]), args.into, env, in_cowork)
         existing = copies.read_existing_workspace(folder)
         today, _ = parse_today(args.today)
@@ -522,7 +522,7 @@ def cmd_open(args, out):
         print(f"  {untrusted.left_out_line(left_out)}", file=out)
     explore_workspace(folder, today, out)
     checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
-    print(f"planner open: {reader_freshness(folder, checked_at).message}", file=out)
+    print(f"vela open: {reader_freshness(folder, checked_at).message}", file=out)
     for note in environment_notes(env):
         print(f"  Note: {note}", file=out)
     print(f"  Work from that folder: cd {folder}", file=out)
@@ -530,7 +530,7 @@ def cmd_open(args, out):
 
 
 def reopen_workspace(folder, existing, published, source, flags, today, out):
-    """`planner open <newer copy> --into <workspace>`: the reader's drafts replayed onto the newer copy (design session 15
+    """`vela open <newer copy> --into <workspace>`: the reader's drafts replayed onto the newer copy (design session 15
     section 8). Pure planning in replay.py; edge/replays.py writes it in an order that leaves the old baseline until the end."""
     files, stamp = published
     author_flag, confirmed_newer = flags
@@ -539,7 +539,7 @@ def reopen_workspace(folder, existing, published, source, flags, today, out):
     if refusal:
         raise opening.OpenError(refusal)
     if verdict == opening.SAME:
-        print(f"planner open: this workspace is already on {stamp['short']} (published {stamp['date']}); there is nothing to replay and nothing was changed.", file=out)
+        print(f"vela open: this workspace is already on {stamp['short']} (published {stamp['date']}); there is nothing to replay and nothing was changed.", file=out)
         return 0
     baseline_dir = folder / copies.BASELINE
     if not baseline_dir.is_dir():
@@ -554,14 +554,14 @@ def reopen_workspace(folder, existing, published, source, flags, today, out):
     record = opening.workspace_record_after_replay(existing, stamp, source[0], source[1], today, author_flag or "")
     journal = replays.record_json({"commit": old[0], "date": old[1]}, {"commit": new[0], "date": new[1]}, result, carried, today)
     replays.apply(folder, result, new_files | {publish.STAMP_PATH: files[publish.STAMP_PATH]}, journal, record, f"{today}-{stamp['short']}")
-    print(f"planner open: {folder}", file=out)
+    print(f"vela open: {folder}", file=out)
     for line in replay.report(result, old, new, replay.stale_lines(stale, old[0])):
         print(line, file=out)
     for name, why in unreadable:
         print(f"  Could not read the proposal {name}, so I do not know whether it is stale: {why}", file=out)
     explore_workspace(folder, today, out)
     checked_at = f"{today}T{time.strftime('%H:%M:%S')}"
-    print(f"planner open: {reader_freshness(folder, checked_at).message}", file=out)
+    print(f"vela open: {reader_freshness(folder, checked_at).message}", file=out)
     return 0
 
 
@@ -576,13 +576,13 @@ def explore_workspace(folder, today, out):
     except explorer.ExplorerError as exc:
         raise ToolError(f"the workspace was written at {folder}, but the explorer page could not be built: {exc}") from exc
     for line in lines:
-        print(f"planner explore: {line}", file=out)
+        print(f"vela explore: {line}", file=out)
 
 
 # ------------------------------------------------------------------ propose (a reader) and proposals (an owner)
 
 def vault_findings(root, today):
-    """Every finding `planner check` would print for the vault at `root`."""
+    """Every finding `vela check` would print for the vault at `root`."""
     return everything_check_says(root, load_vault(root), today)
 
 
@@ -594,7 +594,7 @@ def check_summary(root, baseline_dir, today):
     fresh = [f for f in found if (f.code, f.path, f.message) not in before and f.code != pending.WARNING]
     shown = [f"{f.code} in {f.path}" for f in fresh[:5]] + ([f"and {len(fresh) - 5} more"] if len(fresh) > 5 else [])
     return {"errors": len(errors), "warnings": len(found) - len(errors), "new": shown,
-            "error_lines": [f.format() for f in errors[:10]] + ([f"and {len(errors) - 10} more errors; run planner check"] if len(errors) > 10 else [])}
+            "error_lines": [f.format() for f in errors[:10]] + ([f"and {len(errors) - 10} more errors; run vela check"] if len(errors) > 10 else [])}
 
 
 def heading_for(page, item_id):
@@ -648,7 +648,7 @@ def private_strings(root, workspace):
     """Exact strings no proposal may carry: where this person's files live and where the copy came from."""
     home = str(pathlib.Path.home())
     return [home, os.path.expanduser("~"), str(root), os.path.abspath(str(root)), str(workspace.get("source_path") or ""),
-            str(workspace.get("planner_path") or ""), str(VELA_PROGRAM)]
+            str(workspace.get("vela_path") or ""), str(VELA_PROGRAM)]
 
 
 def text_with_home_hidden(files, home):
@@ -709,7 +709,7 @@ def cmd_propose(args, out):
     groups = proposal.groups(built.files, set(waiting))
     if args.groups:
         if not args.json:
-            print(f"planner propose: {len(groups)} group(s) of change; each needs a reason from you.", file=out)
+            print(f"vela propose: {len(groups)} group(s) of change; each needs a reason from you.", file=out)
         print_groups(groups, args.json, out)
         return 0
     if not args.title:
@@ -730,7 +730,7 @@ def cmd_propose(args, out):
     except proposal_files.ProposalIOError as exc:
         raise ToolError(str(exc)) from exc
     contact = (stamp.get("owner") or {}).get("contact") or "the owner"
-    print(f"planner propose: wrote {target} ({len(built.files)} text files patched, {len(built.binaries)} binary listed, {len(waiting)} pending decision(s) first).", file=out)
+    print(f"vela propose: wrote {target} ({len(built.files)} text files patched, {len(built.binaries)} binary listed, {len(waiting)} pending decision(s) first).", file=out)
     print(f"  Check on this copy: {proposal.check_phrase(note['check'])}." + (" The errors are listed first in the proposal; they did not stop it." if note["check"]["errors"] else ""), file=out)
     print(f"  Send {'that file' if args.zip else 'that folder'} to {note['base']['owner']} ({contact}). Nothing was sent from here.", file=out)
     return 0
@@ -742,9 +742,9 @@ def worktree_vault(args):
     try:
         top, branch = reviewgit.toplevel(vault), reviewgit.branch_name(vault)
     except vaultgit.GitUnavailable as exc:
-        raise ToolError(f"{vault} is not a git work tree ({exc}). Run this inside the proposal's worktree, the folder `planner proposals review` printed.") from exc
+        raise ToolError(f"{vault} is not a git work tree ({exc}). Run this inside the proposal's worktree, the folder `vela proposals review` printed.") from exc
     if not branch.startswith("proposal/"):
-        raise ToolError(f"{vault} is on branch '{branch}', not a proposal/ branch. This changes files and commits, so it only runs in the worktree `planner proposals review` made.")
+        raise ToolError(f"{vault} is on branch '{branch}', not a proposal/ branch. This changes files and commits, so it only runs in the worktree `vela proposals review` made.")
     return top, vault, branch
 
 
@@ -798,7 +798,7 @@ def run_render_and_check(vault_dir, worktree, today):
 
 def print_review(state, out):
     who = f" from {state['author']}" if state["author"] else ""
-    print(f"planner proposals review: \"{state['title'] or 'changes.patch'}\"{who}", file=out)
+    print(f"vela proposals review: \"{state['title'] or 'changes.patch'}\"{who}", file=out)
     moved = f"; the vault has moved {state['behind']} commit(s) since" if state["behind"] else ""
     print(f"  Base {state['base'][:7]}{moved}. Branch {state['branch']} in {state['worktree']}.", file=out)
     if state["applied"]:
@@ -891,7 +891,7 @@ def cmd_proposals_accept(args, out):
         raise ToolError(str(exc)) from exc
     except vaultgit.GitUnavailable as exc:
         raise ToolError(f"git stopped the accept: {exc}") from exc
-    print(f"planner proposals accept: {item} is now {args.by}'s decision, crediting {by} ({date}); committed {commit} on {branch}.", file=out)
+    print(f"vela proposals accept: {item} is now {args.by}'s decision, crediting {by} ({date}); committed {commit} on {branch}.", file=out)
     return 0
 
 
@@ -914,7 +914,7 @@ def cmd_proposals_reject(args, out):
         raise ToolError(str(exc)) from exc
     except vaultgit.GitUnavailable as exc:
         raise ToolError(f"git stopped the reject: {exc}") from exc
-    print(f"planner proposals reject: took {group.key} back out ({len(group.hunks)} change(s)); committed {commit} on {branch}.", file=out)
+    print(f"vela proposals reject: took {group.key} back out ({len(group.hunks)} change(s)); committed {commit} on {branch}.", file=out)
     return 0
 
 
@@ -943,16 +943,16 @@ def cmd_proposals_answer(args, out):
         target = proposal_files.write_answer(loaded.answer_to, text)
     except proposal_files.ProposalIOError as exc:
         raise ToolError(str(exc)) from exc
-    print(f"planner proposals answer: wrote {target} ({len(refs)} group(s) answered). Send it to {note.author if note and note.author else 'the reader'}. Merging {branch} is your normal git step; nothing was pushed.", file=out)
+    print(f"vela proposals answer: wrote {target} ({len(refs)} group(s) answered). Send it to {note.author if note and note.author else 'the reader'}. Merging {branch} is your normal git step; nothing was pushed.", file=out)
     return 0
 
 
 def cmd_terms(args, out):
-    """The kept working words and what each means, for a reader meeting them cold (`planner terms`, or one word)."""
+    """The kept working words and what each means, for a reader meeting them cold (`vela terms`, or one word)."""
     words = [args.word.lower().rstrip("s")] if args.word else sorted(terms.TERMS)
     unknown = [w for w in words if w not in terms.TERMS]
     if unknown:
-        print(f"planner terms: no definition for {unknown[0]!r}; the kept words are {', '.join(sorted(terms.TERMS))}.", file=out)
+        print(f"vela terms: no definition for {unknown[0]!r}; the kept words are {', '.join(sorted(terms.TERMS))}.", file=out)
         return 2
     for note in term_notes(words):
         print(note, file=out)
@@ -960,10 +960,10 @@ def cmd_terms(args, out):
 
 
 def cmd_doctor(args, out):
-    """Whether this machine has what planner needs, one line per item. The folder need not be a vault."""
+    """Whether this machine has what vela needs, one line per item. The folder need not be a vault."""
     root = pathlib.Path(args.vault).resolve()
-    if not (root / ".planner.yaml").is_file():
-        vault = doctor.Vault(str(root), problem="there is no .planner.yaml here.")
+    if not (root / ".vela.yaml").is_file():
+        vault = doctor.Vault(str(root), problem="there is no .vela.yaml here.")
     else:
         try:
             config = load_config(root)
@@ -989,12 +989,12 @@ def installed_velas():
 
 
 def cmd_where(args, out):
-    """Which program a skill would run, and why each earlier rule was passed over. For /planner:where and for bug reports."""
+    """Which program a skill would run, and why each earlier rule was passed over. For /vela:where and for bug reports."""
     vault = pathlib.Path(args.vault)
     recorded = ""
     if (vault / copies.WORKSPACE).is_file():  # an owner's vault has none, and the rule is simply not applicable
         try:
-            recorded = copies.read_workspace(vault).get("planner_path") or ""
+            recorded = copies.read_workspace(vault).get("vela_path") or ""
         except copies.SourceUnreadable as exc:
             raise ToolError(str(exc)) from exc
     chosen, tried = pluginroot.resolve(args.plugin_root, args.skill_dir, str(vault), recorded, lambda path: pathlib.Path(path).is_file(),
@@ -1004,7 +1004,7 @@ def cmd_where(args, out):
     if chosen is None:
         print(pluginroot.NOT_FOUND, file=out)
         return 1
-    print(f"planner where: run python3 {chosen.path}", file=out)
+    print(f"vela where: run python3 {chosen.path}", file=out)
     return 0
 
 
@@ -1024,7 +1024,7 @@ def cmd_check(args, out):
     if getattr(args, "for_lead", False):
         return check_for_lead(vault, findings, errors, out)
     elapsed = time.perf_counter() - started
-    print(f"planner check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
+    print(f"vela check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
           f"Took {elapsed:.2f} s." + (f" {GATE_WORDS[args.gate]}" if args.gate else "")
           + (f" Items: {', '.join(vault.named(i) for i in items)}." if items else "")
           + (f" App: {vault.named(app.id)}." if app is not None else ""), file=out)
@@ -1071,7 +1071,7 @@ TERM_WORD = re.compile(r"\b(grill|slice|tracer)s?\b", re.IGNORECASE)
 def term_notes(texts):
     """One definition line for each kept word (slice, tracer, grill) the given lines use, in first-use order.
     The user ruled the words stay and are defined on first use. Routine output (check, next, status) doesn't print
-    these: a definition repeated on every run is noise readers learn to skip. They're printed by `planner terms`,
+    these: a definition repeated on every run is noise readers learn to skip. They're printed by `vela terms`,
     shown as dashboard tooltips, and given by the skills the first time a session uses the word."""
     seen = []
     for text_value in texts:
@@ -1102,7 +1102,7 @@ def spec_texts(root):
 
 
 def everything_check_says(root, vault, today):
-    """What a plain `planner check` reports, in one place: the vault's rules, the files around it, and the slices'
+    """What a plain `vela check` reports, in one place: the vault's rules, the files around it, and the slices'
     flow check. The stamp, health, handoff and propose count from here, so an error only the flow check sees (an
     override past its date) blocks them as it blocks check, and no copy of the list drifts from another."""
     drawn = DiagramCheck(root, vault)
@@ -1159,7 +1159,7 @@ def cmd_check_diagrams(args, out):
     findings = drawn.findings()
     errors = sum(1 for f in findings if f.is_error)
     count = len(drawn.blocks)
-    print(f"planner check-diagrams: {count} diagram{'' if count == 1 else 's'}, {errors} that do not draw, "
+    print(f"vela check-diagrams: {count} diagram{'' if count == 1 else 's'}, {errors} that do not draw, "
           f"{len(findings) - errors} warnings. Took {time.perf_counter() - started:.2f} s.", file=out)
     for finding in findings:
         print(finding.format(), file=out)
@@ -1177,7 +1177,7 @@ def slice_findings(root, vault, today):
 
 def cmd_check_slice(args, out):
     """Prove one slice's logic, or every slice a change can touch (--changed) or all of them (--all): read the vault,
-    run the checker, print the findings in plain words, and record each result in .planner/flowcheck-cache.json for the
+    run the checker, print the findings in plain words, and record each result in .vela/flowcheck-cache.json for the
     next --changed and for readers. Exit 0 only when every slice reported passes; findings or a slice not fully
     checked are 1 (R0: never a pass by default)."""
     from vela import flowcheck
@@ -1262,8 +1262,8 @@ def changes_walk(root, vault, specs, catalog, before):
     """impact.walk from the vault as it was before (`before`: {path: old text or None}) to the vault now. The earlier
     vault is today's pages with the changed ones swapped for their old text, so both are read by the one reader."""
     from vela.flowcheck import impact, readers
-    if ".planner.yaml" in before:
-        return impact.everything(catalog, ".planner.yaml changed")
+    if ".vela.yaml" in before:
+        return impact.everything(catalog, ".vela.yaml changed")
     read = {path: text for path, text in before.items() if flowcheck_reads(path)}
     pages = [page for page in vault.pages if page.path not in read]
     pages += [parse.parse_page(path, text) for path, text in sorted(read.items()) if text is not None and path.endswith(".md")]
@@ -1307,7 +1307,7 @@ def cmd_render(args, out):
     vault = load_vault(root)
     texts, changed, discarded, refusals = render.render_vault(vault, args.discard_edits)
     if refusals:
-        print(f"planner render: wrote nothing, {len(refusals)} problems.", file=out)
+        print(f"vela render: wrote nothing, {len(refusals)} problems.", file=out)
         for finding in refusals:
             print(finding.format(), file=out)
         return 1
@@ -1327,12 +1327,12 @@ def cmd_render(args, out):
         def names(paths):
             return ", ".join(p.relative_to(root).as_posix() for p in paths) or "none"
         raise ToolError(f"render could not finish: {exc}. Written: {names(exc.written)}. Not written: {names(exc.unwritten)}. "
-                        "Fix the cause and run planner render again; it only rewrites blocks that are out of date.") from exc
+                        "Fix the cause and run vela render again; it only rewrites blocks that are out of date.") from exc
     for path, name, old in discarded:
         print(f"{path}: discarded a hand edit in '{name}':", file=out)
         for line in old.split("\n"):
             print(f"  - {line}", file=out)
-    print(f"planner render: {len(changed)} blocks changed.", file=out)
+    print(f"vela render: {len(changed)} blocks changed.", file=out)
     for path, name in changed:
         print(f"  {path}: {name}", file=out)
     return 0
@@ -1451,7 +1451,7 @@ def cmd_view(args, out):
     }
     html, problems = viewer.build(vault, read_asset("marked.min.js"), read_asset("mermaid.min.js"), stamp)
     if problems:
-        print(f"planner view: wrote nothing, {len(problems)} links would break in the viewer.", file=out)
+        print(f"vela view: wrote nothing, {len(problems)} links would break in the viewer.", file=out)
         for problem in problems:
             print(f"  {problem}", file=out)
         return 1
@@ -1460,14 +1460,14 @@ def cmd_view(args, out):
         atomic.write_atomic(target, html)
     except atomic.WriteFailed as exc:
         raise ToolError(f"cannot write {target}: {exc}") from exc
-    print(f"planner view: wrote {target} ({len(viewer.bundled(vault))} pages). "
+    print(f"vela view: wrote {target} ({len(viewer.bundled(vault))} pages). "
           f"Built from {stamp['commit']} on {stamp['date']}. "
           f"Check at build time: {errors} errors, {stamp['warnings']} warnings.", file=out)
     return 0
 
 
 # What a vault's .gitignore says when it keeps the tool's own files out of commits (the template's does).
-# `.planner/*` is the template's form: it lets `!.planner/explorer-pins.json` keep the shared layout in git.
+# `.vela/*` is the template's form: it lets `!.vela/explorer-pins.json` keep the shared layout in git.
 IGNORES_DASHBOARD = (publish.DASHBOARD_PATH, f"/{publish.DASHBOARD_PATH}", "*.html", "/*.html", "**/*.html")
 
 
@@ -1480,7 +1480,7 @@ def ignores_dashboard(root):
 
 
 def live_freshness(root, found, today, unavailable):
-    """The helper's answer to GET /freshness: the same report `planner freshness --json` prints, asked again now."""
+    """The helper's answer to GET /freshness: the same report `vela freshness --json` prints, asked again now."""
     try:
         return freshness_report(root, found, vaultgit.FETCH_TIMEOUT, today).as_dict()
     except ToolError as exc:
@@ -1489,7 +1489,7 @@ def live_freshness(root, found, today, unavailable):
 
 def cmd_explore(args, out):
     """Build the explorer page: dashboard.html at the vault root unless --out says otherwise, so it travels with the vault
-    in git or OneDrive. The pinned layout goes in .planner/; nothing is written beside the plugin."""
+    in git or OneDrive. The pinned layout goes in .vela/; nothing is written beside the plugin."""
     from vela.explorer import build as explorer, pins as explorer_pins, serve as explorer_serve  # lazy: the explorer imports this module
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
@@ -1497,7 +1497,7 @@ def cmd_explore(args, out):
     found = detect_role(root)
     advice = explorer.vault_id_advice(root, found.role)
     if advice:
-        print(f"planner explore: {advice}.", file=out)
+        print(f"vela explore: {advice}.", file=out)
     try:
         lines = explorer.generate(root, target, today, pins_path=root / explorer_pins.PINS_FILE,
                                   assets_config=args.assets, design_args=args.design, theme=args.theme,
@@ -1506,9 +1506,9 @@ def cmd_explore(args, out):
     except explorer.ExplorerError as exc:
         raise ToolError(str(exc)) from exc
     for line in lines:
-        print(f"planner explore: {line}", file=out)
+        print(f"vela explore: {line}", file=out)
     if ignores_dashboard(root):
-        print(f"planner explore: this vault's .gitignore lists {publish.DASHBOARD_PATH}, so colleagues who pull the repo will not get the page. "
+        print(f"vela explore: this vault's .gitignore lists {publish.DASHBOARD_PATH}, so colleagues who pull the repo will not get the page. "
               f"Remove that line from .gitignore, or build with --out somewhere else.", file=out)
     if args.serve:
         if args.port is not None and not 0 <= args.port <= 65535:
@@ -1516,7 +1516,7 @@ def cmd_explore(args, out):
         link = copies.first_symlink(root)
         if link:
             raise ToolError(f"I will not serve Ask Claude for this vault: {untrusted.link_refusal(link)}")
-        say = lambda line: print(f"planner explore: {line}", file=out, flush=True)  # noqa: E731
+        say = lambda line: print(f"vela explore: {line}", file=out, flush=True)  # noqa: E731
         port = args.port if args.port is not None else explorer_serve.preferred_port(explorer.vault_id_for(root))
         serve_page = lambda p: explorer_serve.serve(root, target, p, args.model, not args.no_open, say,  # noqa: E731
                                                     freshness=lambda: live_freshness(root, found, today, explorer_serve.FreshnessUnavailable),
@@ -1577,10 +1577,10 @@ def print_search(answer, out):
     """Hits as a reader scans them: where, the heading, one line of what it says, and the flows that cross it."""
     if answer.get("not_found"):
         meant = ", ".join(answer["terms"]) or "nothing but common words"
-        print(f"planner query search: nothing holds enough of: {meant}. Try the vault's own words; 12-glossary.md has them.",
+        print(f"vela query search: nothing holds enough of: {meant}. Try the vault's own words; 12-glossary.md has them.",
               file=out)
         return
-    print(f"planner query search: {len(answer['hits'])} places for {', '.join(answer['terms'])}"
+    print(f"vela query search: {len(answer['hits'])} places for {', '.join(answer['terms'])}"
           + (f"; {answer['more']} more aren't shown (add --limit {len(answer['hits']) + answer['more']} to see them all)" if answer["more"] else "") + ".", file=out)
     for n, hit in enumerate(answer["hits"], 1):
         where = hit["page"] + (f" › {hit['heading']}" if hit["heading"] else "")
@@ -1599,7 +1599,7 @@ def cmd_query(args, out):
         answer = query.refs(vault, args.id)
     elif args.what == "find":
         if not any(w.strip() for w in args.words):
-            raise ToolError("planner query find needs at least one word that is not blank.")
+            raise ToolError("vela query find needs at least one word that is not blank.")
         answer = query.find(vault, args.words)
     elif args.what == "search":
         answer = search.search(vault, args.words, limit=args.limit)
@@ -1622,7 +1622,7 @@ def cmd_questions(args, out):
     if args.subject is not None and questions.subject(vault, args.subject) is None:
         answer = {"subject": args.subject, "not_found": True}
         print(json.dumps(answer, indent=2) if args.json else
-              f"planner questions: {args.subject} is not a subject in this vault: an initiative, app, contract, "
+              f"vela questions: {args.subject} is not a subject in this vault: an initiative, app, contract, "
               "capability, party or stored value ID.", file=out)
         return 1
     if args.all and not args.digest:
@@ -1669,7 +1669,7 @@ def questions_header(answer, args):
     kept = [f"area {args.area}" if args.area else "", f"subject {args.subject}" if args.subject else "",
             "open only" if args.open else ""]
     where = ", ".join(k for k in kept if k)
-    line = f"planner questions: {said_coverage(answer)}." + (f" Showing {where}." if where else "")
+    line = f"vela questions: {said_coverage(answer)}." + (f" Showing {where}." if where else "")
     if answer["reviewer_questions"]:
         count = answer["reviewer_questions"]
         line += f" {count} reviewer question{'' if count == 1 else 's'}, {answer['reviewer_open']} open."
@@ -1697,7 +1697,7 @@ def print_digest(answer, out, area_codes, args, area_names=None):
     lines = f"{len(groups)} question{'' if len(groups) == 1 else 's'} to settle, most important first"
     if rest:
         lines += f": {len(full)} in full, {len(rest)} more counted by area"
-    print(f"planner questions --digest: {said_coverage(answer)}. {lines}.", file=out)
+    print(f"vela questions --digest: {said_coverage(answer)}. {lines}.", file=out)
     for n, group in enumerate(full, start=1):
         print_digest_line(n, group, out, area_names)
     if not rest:
@@ -1706,9 +1706,9 @@ def print_digest(answer, out, area_codes, args, area_names=None):
     for code in area_codes:
         count = sum(1 for g in rest if g["area"] == code)
         if count:
-            print(f"{area_names.get(code, code)} ({code}): {count} more of normal priority. List them: planner questions --open --digest --all"
+            print(f"{area_names.get(code, code)} ({code}): {count} more of normal priority. List them: vela questions --open --digest --all"
                   f"{narrow if args.area else narrow + ' --area ' + code}", file=out)
-    print(f"Every line in full: planner questions --open --digest --all{narrow}", file=out)
+    print(f"Every line in full: vela questions --open --digest --all{narrow}", file=out)
 
 
 def print_digest_line(n, group, out, area_names=None):
@@ -1730,7 +1730,7 @@ def digest_label(label):
 
 
 def print_stats(answer, out):
-    print(f"planner questions --stats: how each standard question (catalog v{answer['catalog']}) ended in this plan. "
+    print(f"vela questions --stats: how each standard question (catalog v{answer['catalog']}) ended in this plan. "
           "One that is nearly always ruled out is one to prune or tighten; that is your call.", file=out)
     for entry in answer["entries"]:
         states = ", ".join(f"{k} {v}" for k, v in entry["states"].items()) or "applied nowhere"
@@ -1836,7 +1836,7 @@ def cmd_findings(args, out):
         print(json.dumps(result.as_dict(vault.catalog.version), indent=2, ensure_ascii=False), file=out)
         return 0 if result.clean else 1
     ran = sum(1 for a in result.areas if a.ran)
-    print(f"planner findings merge: {len(result.kept)} kept, {len(result.duplicates)} "
+    print(f"vela findings merge: {len(result.kept)} kept, {len(result.duplicates)} "
           f"duplicate{'' if len(result.duplicates) == 1 else 's'}, "
           f"{len(result.dropped)} dropped, from {ran} of {len(result.areas)} areas.", file=out)
     print(result.coverage, file=out)
@@ -1898,7 +1898,7 @@ def cmd_handoff(args, out):
     if len(args.words) == 2 and args.words[0] == "verify":
         return handoff_verify(root, args.words[1], out)
     if len(args.words) != 1 or args.words[0] == "verify":
-        raise ToolError("Write planner handoff <APP-id>, or planner handoff verify <APP-id>.")
+        raise ToolError("Write vela handoff <APP-id>, or vela handoff verify <APP-id>.")
     refuse_if_reader(root, "Handing off an app")
     app_id = args.words[0]
     today, _ = parse_today(args.today)
@@ -1906,15 +1906,15 @@ def cmd_handoff(args, out):
     app = handoff_app(vault, app_id)
     errors = [f for f in everything_check_says(root, vault, today) if f.is_error]
     if errors:
-        print(f"planner handoff: didn't write the handoff record: planner check found {len(errors)} errors. Fix them, then try again.", file=out)
+        print(f"vela handoff: didn't write the handoff record: vela check found {len(errors)} errors. Fix them, then try again.", file=out)
         for finding in errors:
             print(finding.format(), file=out)
         return 1
     target = root / schema.HANDOFF_DIR / f"{app_id}.md"
     if target.exists() and not args.replace:
-        print(f"planner handoff: didn't write anything: {vault.named(app_id)} already has a handoff record "
+        print(f"vela handoff: didn't write anything: {vault.named(app_id)} already has a handoff record "
               f"({target.relative_to(root).as_posix()}), the one its team accepted. To see what changed since, run "
-              f"planner handoff verify {app_id}. Once the team agrees to the changes, run it again with --replace.", file=out)
+              f"vela handoff verify {app_id}. Once the team agrees to the changes, run it again with --replace.", file=out)
         return 1
     entries = handoff.handoff_list(vault, app)
     commit = stamp_commit(root, args.commit)
@@ -1928,7 +1928,7 @@ def cmd_handoff(args, out):
     except OSError as exc:
         raise ToolError(f"cannot write {target.relative_to(root).as_posix()}: {exc.strerror or exc}. "
                         f"{schema.HANDOFF_DIR}/ must be a folder and {app_id}.md a file.") from exc
-    print(f"planner handoff: wrote the handoff record for {vault.named(app_id)}, {target.relative_to(root).as_posix()}: "
+    print(f"vela handoff: wrote the handoff record for {vault.named(app_id)}, {target.relative_to(root).as_posix()}: "
           f"{len(entries)} things its team takes on, as of commit {commit}.", file=out)
     if taking_part and slices.on_pages(vault):
         print(f"{vault.name_of(app_id)} is part of {len(taking_part)} slice{'' if len(taking_part) == 1 else 's'}: "
@@ -1964,7 +1964,7 @@ def handoff_verify(root, app_id, out):
     if path.is_dir():
         raise ToolError(f"{path.relative_to(root).as_posix()} is a folder, not a handoff record.")
     if not path.is_file():
-        raise ToolError(f"{path.relative_to(root).as_posix()} doesn't exist. Run planner handoff {app_id} when the app's team accepts it.")
+        raise ToolError(f"{path.relative_to(root).as_posix()} doesn't exist. Run vela handoff {app_id} when the app's team accepts it.")
     try:
         facts, accepted = handoff.read(path.read_text(encoding="utf-8"))
         handoff.check_manifest(app_id, facts, accepted)
@@ -1973,7 +1973,7 @@ def handoff_verify(root, app_id, out):
     diff = handoff.verify(accepted, handoff.handoff_list(vault, app), vault)
     commit = facts.get('Commit', 'an unrecorded commit')
     rough = " (that commit had changes not yet committed, so the comparison may be rough)" if "uncommitted" in commit else ""
-    print(f"planner handoff verify {app_id}: since {vault.name_of(app_id)} was handed off on {facts.get('Written', 'an unrecorded date')} "
+    print(f"vela handoff verify {app_id}: since {vault.name_of(app_id)} was handed off on {facts.get('Written', 'an unrecorded date')} "
           f"at {commit.split(' with ')[0]}, {plural_things(len(diff.changed))} changed, {len(diff.added)} added and "
           f"{len(diff.removed)} removed{rough}.", file=out)
     for old, new in diff.changed:
@@ -2015,7 +2015,7 @@ def cmd_export(args, out):
         atomic.write_atomic(target, export.to_csv(table))
     except (OSError, ValueError) as exc:
         raise ToolError(f"Cannot write {target}: {exc}") from exc
-    print(f"planner export: wrote {len(table)} epics to {target}.", file=out)
+    print(f"vela export: wrote {len(table)} epics to {target}.", file=out)
     if remote and not base:
         print("  Vela couldn't make web links from this repository's address, so links show file paths.", file=out)
     if not (base and commit):
@@ -2031,7 +2031,7 @@ def cmd_export(args, out):
                                                for e in sorted(open_epics, key=lambda e: e.id or e.path)) + ".", file=out)
     skipped = export.unloaded(vault)
     for path in skipped:
-        print(f"  Not exported (fix with planner check): {path}", file=out)
+        print(f"  Not exported (fix with vela check): {path}", file=out)
     return 1 if skipped else 0
 
 
@@ -2091,7 +2091,7 @@ def show(root, ref, path):
 
 def cmd_voicecheck(args, out):
     if bool(args.range) == bool(args.files):
-        raise ToolError("Give two files, planner voicecheck <before> <after>, or a ref range, planner voicecheck --range A..B.")
+        raise ToolError("Give two files, vela voicecheck <before> <after>, or a ref range, vela voicecheck --range A..B.")
     if args.files:
         if len(args.files) != 2:
             raise ToolError("Give exactly two files: the text before the rewrite and the text after.")
@@ -2106,7 +2106,7 @@ def cmd_voicecheck(args, out):
             raise ToolError(f"{path}: {exc}") from exc
         if not result.same:
             failed.append((path, result))
-    print(f"planner voicecheck: {len(pairs)} files compared, {len(failed)} with protected tokens changed.", file=out)
+    print(f"vela voicecheck: {len(pairs)} files compared, {len(failed)} with protected tokens changed.", file=out)
     for sentence in args.redundant or ():
         print(f"removed as redundant, named by the reviewer: {sentence}", file=out)
     for path, result in failed:
@@ -2117,12 +2117,12 @@ def cmd_voicecheck(args, out):
 
 # --- voicescore: optional, needs sentence-transformers and a one-off model download ----------
 
-MODEL_MARKER = ".planner-complete"  # written last, so a half-finished download never reads as present
+MODEL_MARKER = ".vela-complete"  # written last, so a half-finished download never reads as present
 
 
 def voicescore_home():
     """Where the pinned model lives. Outside the vault, so a 0.5 GB model is never committed."""
-    return pathlib.Path(os.environ.get("PLANNER_VOICESCORE_HOME") or pathlib.Path.home() / ".cache" / "planner-voicescore")
+    return pathlib.Path(os.environ.get("VELA_VOICESCORE_HOME") or pathlib.Path.home() / ".cache" / "vela-voicescore")
 
 
 def model_dir():
@@ -2143,13 +2143,13 @@ def require_dependencies():
     missing = missing_dependencies()
     if missing:
         raise VoiceScoreUnavailable(f"{' and '.join(missing)} not installed. voicescore is optional. "
-                                    f"To use it: {voicescore.INSTALL_HINT}, then run planner voicescore setup once.")
+                                    f"To use it: {voicescore.INSTALL_HINT}, then run vela voicescore setup once.")
 
 
 def require_model():
     if not (model_dir() / MODEL_MARKER).is_file():
         raise VoiceScoreUnavailable(f"the {voicescore.MODEL_ID} model is not downloaded yet ({model_dir()}). "
-                                    f"Run planner voicescore setup once; it is the only step that uses the network.")
+                                    f"Run vela voicescore setup once; it is the only step that uses the network.")
 
 
 def load_styledistance(path):
@@ -2195,12 +2195,12 @@ def cached(embed, folder):
 
 
 def cache_folder(root):
-    """.git/planner-voicescore/ of the vault's repo, so the cache is never staged, or None outside git."""
+    """.git/vela-voicescore/ of the vault's repo, so the cache is never staged, or None outside git."""
     try:
         git_dir = git(root, "rev-parse", "--absolute-git-dir")
     except vaultgit.GitUnavailable as exc:
         raise ToolError(f"cannot place the voice-score cache inside the repository: {exc}") from exc
-    return pathlib.Path(git_dir) / "planner-voicescore" if git_dir else None
+    return pathlib.Path(git_dir) / "vela-voicescore" if git_dir else None
 
 
 def voice_examples(root):
@@ -2223,8 +2223,8 @@ def voicescore_setup(args, out):
         return {"ran": True, "downloaded": False, "path": str(target),
                 "message": f"{voicescore.MODEL_ID} at {voicescore.MODEL_REVISION[:12]} is already in {target}. Nothing downloaded."}
     if not args.json:
-        print(f"planner voicescore setup: this downloads {voicescore.MODEL_ID} at revision {voicescore.MODEL_REVISION[:12]} "
-              f"({voicescore.MODEL_SIZE}) from huggingface.co into {target}. It is the only planner command that uses "
+        print(f"vela voicescore setup: this downloads {voicescore.MODEL_ID} at revision {voicescore.MODEL_REVISION[:12]} "
+              f"({voicescore.MODEL_SIZE}) from huggingface.co into {target}. It is the only vela command that uses "
               f"the network. Scoring runs offline afterwards, and your text never leaves this machine.", file=out, flush=True)
     try:
         download_styledistance(target)
@@ -2261,10 +2261,10 @@ def voicescore_reference(root, against):
 def voicescore_run(args, root):
     if args.rank:
         if len(args.words) < 2:
-            raise ToolError("Give at least two candidate files: planner voicescore --rank <a> <b> [...].")
+            raise ToolError("Give at least two candidate files: vela voicescore --rank <a> <b> [...].")
         candidates = [(name, read_text_file(name)) for name in args.words]
     elif len(args.words) != 1:
-        raise ToolError("Give one file: planner voicescore <file>, or planner voicescore --rank <a> <b>, or planner voicescore setup.")
+        raise ToolError("Give one file: vela voicescore <file>, or vela voicescore --rank <a> <b>, or vela voicescore setup.")
     else:
         text = read_text_file(args.words[0])
     require_dependencies()  # the machine's reasons come first: they hold for every vault
@@ -2289,12 +2289,12 @@ def voicescore_run(args, root):
 
 def print_voicescore(answer, out):
     if "ranked" in answer:
-        print(f"planner voicescore --rank: {len(answer['ranked'])} candidates against {answer['reference']}, closest first.", file=out)
+        print(f"vela voicescore --rank: {len(answer['ranked'])} candidates against {answer['reference']}, closest first.", file=out)
     elif "paragraphs" in answer:
-        print(f"planner voicescore: {len(answer['paragraphs'])} paragraphs in {answer['file']} against {answer['reference']}.",
+        print(f"vela voicescore: {len(answer['paragraphs'])} paragraphs in {answer['file']} against {answer['reference']}.",
               file=out)
     else:
-        print(f"planner voicescore setup: {answer['message']}", file=out)
+        print(f"vela voicescore setup: {answer['message']}", file=out)
         return
     if answer["warning"]:
         print(answer["warning"], file=out)
@@ -2320,7 +2320,7 @@ def cmd_voicescore(args, out):
         if args.json:
             print(json.dumps({"ran": False, "reason": str(exc)}, indent=2, ensure_ascii=False), file=out)
         else:
-            print(f"planner voicescore: not run: {exc}", file=out)
+            print(f"vela voicescore: not run: {exc}", file=out)
         return 2
     if args.json:
         print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
@@ -2373,13 +2373,13 @@ def status_line(row, today, vault=None):
 
 
 def load_lint_words(path=None):
-    """The word list `planner style` and the voice reviewer share. Missing is a tool failure: an empty list would make
+    """The word list `vela style` and the voice reviewer share. Missing is a tool failure: an empty list would make
     every page look as if it passed the lint."""
     path = pathlib.Path(path or LINT_WORDS)
     try:
         return reading.lint_words(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError) as exc:
-        raise ToolError(f"{path} cannot be read ({exc}), so planner style cannot lint words. Restore it from the toolkit repo.") from exc
+        raise ToolError(f"{path} cannot be read ({exc}), so vela style cannot lint words. Restore it from the toolkit repo.") from exc
 
 
 def cmd_style(args, out):
@@ -2399,7 +2399,7 @@ def cmd_style(args, out):
         body = "\n".join(page.text.replace("\r\n", "\n").split("\n")[body_start - 1:])
         offset[page.path] = body_start - 1
         found += [(page, n, why) for n, why in reading.style_problems(body, page.type, parse.KNOWN_LABELS.values(), lint)]
-    print(f"planner style: {len(found)} to fix in {len(pages)} pages.", file=out)
+    print(f"vela style: {len(found)} to fix in {len(pages)} pages.", file=out)
     for page, n, why in found:
         print(f"{page.path}:{n + offset[page.path]}: {why}", file=out)
     return 1 if found else 0
@@ -2410,7 +2410,7 @@ def cmd_ladder(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
     apps = [a for a in vault.apps if a.meta.get("change") in schema.LADDERED_CHANGES]
-    print(f"planner ladder: {len(apps)} apps being built or changed, each with the stage it is marked at and the stage its pages meet.", file=out)
+    print(f"vela ladder: {len(apps)} apps being built or changed, each with the stage it is marked at and the stage its pages meet.", file=out)
     for app in apps:
         reached, gaps = ladder.allows(vault, app)
         typed = app.meta.get("stage") or "none"
@@ -2427,7 +2427,7 @@ def cmd_status(args, out):
     today, origin = parse_today(args.today)
     vault = load_vault(root)
     rows = progress.grid(vault, today)
-    print(f"planner status: {len(rows)} apps, as of {today} ({origin}).", file=out)
+    print(f"vela status: {len(rows)} apps, as of {today} ({origin}).", file=out)
     for row in rows:
         print(status_line(row, today, vault), file=out)
     print(completeness.line(vault), file=out)
@@ -2448,17 +2448,17 @@ def initiative_step(vault, row):
         return None
     loose = allocation.unallocated(vault)
     if loose:
-        return (f"for the whole plan: decide which app owns {vault.named(loose[0].id)}, with /planner:allocate. "
+        return (f"for the whole plan: decide which app owns {vault.named(loose[0].id)}, with /vela:allocate. "
                 f"It {handoffwarn.state_phrase(loose[0].fact('State'))} and no app has taken it, so no team owns it yet.")
     if allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic"):
-        return ("for the whole plan: date the releases, with /planner:releases. Every requirement has an app, but no release "
+        return ("for the whole plan: date the releases, with /vela:releases. Every requirement has an app, but no release "
                 "says when anyone gets any of it, so date them before the epics are written.")
     have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
     bare = [c for c in sorted(vault.of_type("capability"), key=lambda p: p.id)
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
             and c.id not in have]
     if bare and (not vault.of_type("epic") or not have):
-        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /planner:requirements. "
+        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /vela:requirements. "
                 f"The capability is {bare[0].meta['change']} and has no requirements yet, so there's nothing to divide among the apps for it.")
     return None
 
@@ -2468,13 +2468,13 @@ def first_step(vault):
     and only a Boundary session turns it into apps; before that, the work is still finding out and shaping."""
     strategy = vault.page("04-solution-strategy")
     if strategy is not None and strategy.meta.get("state") == "decided" and not allocation.requirements(vault):
-        return ("for the whole plan: write the requirements, with /planner:requirements. The solution strategy is decided "
+        return ("for the whole plan: write the requirements, with /vela:requirements. The solution strategy is decided "
                 "and no capability has requirements yet, so write them before the boundary session splits the work into apps.")
     if strategy is not None and strategy.meta.get("state") == "decided":
-        return ("for the whole plan: run a boundary session, with /planner:boundary. The solution strategy is decided and "
+        return ("for the whole plan: run a boundary session, with /vela:boundary. The solution strategy is decided and "
                 "no app page exists yet, so split the work into apps.")
     return ("for the whole plan: no app page exists yet, so start by getting everything known written down "
-            "(/planner:dump, a brainstorm), or by reading the existing sources (/planner:discover).")
+            "(/vela:dump, a brainstorm), or by reading the existing sources (/vela:discover).")
 
 
 def cmd_capture(args, out):
@@ -2485,7 +2485,7 @@ def cmd_capture(args, out):
         print(json.dumps({"counts": found, "checks": [{"check": n, "passed": ok, "detail": d} for n, ok, d in checks]},
                          indent=2), file=out)
         return 0
-    print(f"planner capture: {found['apps_with_domain']} of {found['apps']} apps have a business area (domain); "
+    print(f"vela capture: {found['apps_with_domain']} of {found['apps']} apps have a business area (domain); "
           f"{found['flow_steps_with_sender']} of {found['flow_steps_crossing']} flow steps between apps say who sends; "
           f"{found['releases']} release{'' if found['releases'] == 1 else 's'}; {found['requirements']} requirements; "
           f"{found['allocation_rows']} requirement-to-app assignments; "
@@ -2510,29 +2510,29 @@ def cmd_next(args, out):
     when = f"As of {today} ({origin})."
     lines = []
     if not vault.apps:
-        line = f"planner next: {first_step(vault)} {when}"
+        line = f"vela next: {first_step(vault)} {when}"
         print(line, file=out)
         return 0
     row = progress.best(progress.grid(vault, today))
     step = initiative_step(vault, row)
     if step:
-        lines.append(f"planner next: {step} {when}")
+        lines.append(f"vela next: {step} {when}")
     elif row is None:
-        lines.append(f"planner next: nothing to do. Every app's decisions are made and its epics agreed. {when}")
+        lines.append(f"vela next: nothing to do. Every app's decisions are made and its epics agreed. {when}")
     else:
         subject = vault.named(row.subject)
         reason = without_subject(row.reason, subject)
-        lines.append(f"planner next: {vault.name_of(row.app.id)}: {NEXT_MODE_WORDS.get(row.mode, row.mode)} "
+        lines.append(f"vela next: {vault.name_of(row.app.id)}: {NEXT_MODE_WORDS.get(row.mode, row.mode)} "
                      f"{subject}. {reason} {when}")
     slice_step = slices.next_step(slices.read_slices(vault)) if slices.on_pages(vault) else ""
     if slice_step:
-        lines.append(f"planner next: for the slices: {slice_step}")
+        lines.append(f"vela next: for the slices: {slice_step}")
     # The team's next step is another person's work, so it is a line of its own beside the lead's, never instead of it.
     lines += handoff_steps(vault)
     lines += design_steps(vault, root)
     team = teamdocs.team_step(root, vault.name_of)
     if team:
-        lines.append(f"planner next: for {team}")
+        lines.append(f"vela next: for {team}")
     for line in lines:
         print(line, file=out)
     return 0
@@ -2547,7 +2547,7 @@ def find_plan(root):
 
 
 def cmd_tickets(args, out):
-    """`planner tickets check|write`: hold a build plan against the vault, then write the ticket list a person chose.
+    """`vela tickets check|write`: hold a build plan against the vault, then write the ticket list a person chose.
     Nothing here creates anything in an outside system; it reads the vault and the plan and writes files under --out."""
     root = pathlib.Path(args.vault).resolve()
     action = args.action
@@ -2570,7 +2570,7 @@ def cmd_tickets(args, out):
             atomic.write_atomic(target / "tickets.md", tickets.markdown_text(text, plan_path.name, load_vault(root)))
             written = [target / "tickets.md"]
         else:
-            csv_body, readme, _ = tickets.convert_text(text, plan_path.name, tool="planner tickets")
+            csv_body, readme, _ = tickets.convert_text(text, plan_path.name, tool="vela tickets")
             atomic.write_atomic(target / "tickets.csv", csv_body)
             atomic.write_atomic(target / "README.md", readme)
             written = [target / "tickets.csv", target / "README.md"]
@@ -2593,7 +2593,7 @@ def handoff_steps(vault):
         if not found:
             continue
         state = "has been handed to its team" if app.meta.get("handed_off") else "is ready to hand to its team"
-        out.append(f"planner next: {vault.name_of(app.id)} {state}, but {len(found)} thing{'s' if len(found) != 1 else ''} "
+        out.append(f"vela next: {vault.name_of(app.id)} {state}, but {len(found)} thing{'s' if len(found) != 1 else ''} "
                    f"on its handoff list {'are' if len(found) != 1 else 'is'} not settled yet:")
         out.extend(f"  {line}" for line in handoffwarn.lines(found))
     return out
@@ -2605,14 +2605,14 @@ def design_steps(vault, root):
     from vela.explorer import design_find
     found, _ = design_find.discover(vault, root, [])
     designed = {arg.split("=", 1)[0] for arg in found}
-    return [f"planner next: for the {vault.name_of(app.id)} team: the app is handed over but has no technical design "
-            f"yet. They start it with /planner:design --app {app.id}."
+    return [f"vela next: for the {vault.name_of(app.id)} team: the app is handed over but has no technical design "
+            f"yet. They start it with /vela:design --app {app.id}."
             for app in vault.apps if app.meta.get("handed_off") and app.id not in designed]
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(prog="planner", description="Check and render an initiative vault.")
-    parser.add_argument("--version", action="version", version="Vela planner (run `planner --version` on its own)",
+    parser = argparse.ArgumentParser(prog="vela", description="Check and render an initiative vault.")
+    parser.add_argument("--version", action="version", version="Vela (run `vela --version` on its own)",
                         help="print Vela's version and exit")
     sub = parser.add_subparsers(dest="command", required=True)
     commands.register(sub, "check")
@@ -2664,7 +2664,7 @@ def build_parser():
     pub.add_argument("--out", required=True, help="a new folder, or a path ending in .zip")
     pub.add_argument("--today", help="the date to stamp, YYYY-MM-DD (default: system date)")
     pub.add_argument("--owner-name", help="who readers write to (default: git user.name)")
-    pub.add_argument("--owner-contact", help="how readers reach the owner (default: owner_contact in .planner.yaml, else git user.email)")
+    pub.add_argument("--owner-contact", help="how readers reach the owner (default: owner_contact in .vela.yaml, else git user.email)")
     pub.add_argument("--allow-secrets", action="store_true", help="publish although the scan found text that looks like a password, token or key (it is named, never printed)")
     pub.set_defaults(func=cmd_publish)
     fresh = sub.add_parser("freshness", help="whether anything changed since this clone or copy was made; reports, never updates")
@@ -2675,7 +2675,7 @@ def build_parser():
     fresh.set_defaults(func=cmd_freshness)
     opn = sub.add_parser("open", help="make a private reader workspace from a published folder or zip; the source is never written")
     opn.add_argument("source", help="the published folder or .zip")
-    opn.add_argument("--into", help="the workspace folder (default: $PLANNER_WORKSPACES/<slug>, else ~/PlannerWorkspaces/<slug>); folders OneDrive, SharePoint, Dropbox, iCloud Drive, Google Drive or Box sync are refused")
+    opn.add_argument("--into", help="the workspace folder (default: $VELA_WORKSPACES/<slug>, else ~/VelaWorkspaces/<slug>); folders OneDrive, SharePoint, Dropbox, iCloud Drive, Google Drive or Box sync are refused")
     opn.add_argument("--author", help="your name for the drafts (default: git user.name)")
     opn.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
     opn.add_argument("--newer", action="store_true", help="when reopening: treat this copy as the newer of two published the same day (copies record a date, not a time)")
@@ -2699,7 +2699,7 @@ def build_parser():
     rev.add_argument("--slug", help="branch name after proposal/ (default: from the proposal's title)")
     rev.add_argument("--worktree", help="where to put the worktree (default: beside the vault)")
     rev.add_argument("--json", action="store_true", help="print the review state as JSON")
-    rev.add_argument("--today", help="the date for planner check, YYYY-MM-DD (default: system date)")
+    rev.add_argument("--today", help="the date for vela check, YYYY-MM-DD (default: system date)")
     rev.set_defaults(func=cmd_proposals_review)
     acc = pshared.add_parser("accept", help="clear a pending decision in the proposal's worktree: the owner decides it, the reader is credited")
     acc.add_argument("--vault", default=".", help="the proposal's worktree (default: current directory)")
@@ -2709,7 +2709,7 @@ def build_parser():
     rej = pshared.add_parser("reject", help="take one group of a proposal back out of the worktree and commit that")
     rej.add_argument("proposal", help="the proposal folder, .zip or changes.patch")
     rej.add_argument("--vault", default=".", help="the proposal's worktree (default: current directory)")
-    rej.add_argument("--group", required=True, help="the group key, as `planner proposals review` listed it")
+    rej.add_argument("--group", required=True, help="the group key, as `vela proposals review` listed it")
     rej.add_argument("--reason", required=True, help="why, in the owner's words; the reader reads it")
     rej.set_defaults(func=cmd_proposals_reject)
     ans = pshared.add_parser("answer", help="write answer.md for the reader from the owner's decision on each group")
@@ -2721,7 +2721,7 @@ def build_parser():
     trm = sub.add_parser("terms", help="what the kept working words (slice, tracer, grill) mean")
     trm.add_argument("word", nargs="?", help="one word to define")
     trm.set_defaults(func=cmd_terms)
-    doc = sub.add_parser("doctor", help="whether this machine has what planner needs; each missing piece says what it adds and how to get it")
+    doc = sub.add_parser("doctor", help="whether this machine has what vela needs; each missing piece says what it adds and how to get it")
     doc.add_argument("--vault", default=".", help="folder to check as a vault too (default: current directory)")
     doc.set_defaults(func=cmd_doctor)
     commands.register(sub, "where")
@@ -2758,7 +2758,7 @@ def build_parser():
     for name, helptext in (("get", "an ID's page, heading, state, owner, sources and decision"),
                            ("refs", "every page that links to an ID"), ("find", "page titles and item headings with these words"),
                            ("search", "plain-word search, ranked, with the flows that cross each place"),
-                           ("status", "the planner status grid")):
+                           ("status", "the vela status grid")):
         one = asks.add_parser(name, help=helptext)
         if name in ("get", "refs"):
             one.add_argument("id", help="an ID, for example CON-001 or APP-booking")
@@ -2829,9 +2829,9 @@ def unrecognized_message(args, extras):
     command = getattr(args, "command", "")
     first = extras[0]
     if "vault" in args and pathlib.Path(first).is_dir():
-        return (f"planner: {first} is not an argument of '{command}'. It takes the vault as an option: "
-                f"planner {command} --vault {first}")
-    return f"planner: unrecognized arguments: {' '.join(extras)}"
+        return (f"vela: {first} is not an argument of '{command}'. It takes the vault as an option: "
+                f"vela {command} --vault {first}")
+    return f"vela: unrecognized arguments: {' '.join(extras)}"
 
 
 PLUGIN_JSON =pathlib.Path(__file__).resolve().parent.parent.parent / ".claude-plugin" / "plugin.json"
@@ -2847,18 +2847,18 @@ def plugin_version(path=PLUGIN_JSON):
 
 
 def main(argv=None, out=None):
-    """Run one planner command and return its exit code. Every command means the same by each code:
+    """Run one vela command and return its exit code. Every command means the same by each code:
 
     0  done.
     1  refused, or findings to fix, with a plain reason (`check`: errors).
-    2  the tool failed: bad arguments, an unreadable vault, a git or gh failure, or a planner bug, such as a line
+    2  the tool failed: bad arguments, an unreadable vault, a git or gh failure, or a vela bug, such as a line
        meant for the lead that still held an ID (`say.LeadLeak`).
     3  needs the lead: nothing changed, the choices are printed, and `--json` carries the `needs_lead` list.
        `check` never exits 3.
     """
     out = out or sys.stdout
     if list(argv if argv is not None else sys.argv[1:]) == ["--version"]:
-        print(f"Vela planner {plugin_version()}", file=out)
+        print(f"Vela {plugin_version()}", file=out)
         return 0
     try:
         args, extras = build_parser().parse_known_args(argv)
@@ -2870,12 +2870,12 @@ def main(argv=None, out=None):
     try:
         return args.func(args, out)
     except ToolError as exc:
-        print(f"planner: {exc}", file=out)
+        print(f"vela: {exc}", file=out)
         return 2
     except say.LeadLeak as exc:  # a leak fails loudly at its source, never reaches the lead as a quiet code
         print(str(exc), file=out)
         return 2
     except Exception as exc:  # the tool failed; never report this as a vault finding
-        print(f"planner: internal error: {exc!r}. This is a bug in planner, not in the vault.", file=out)
+        print(f"vela: internal error: {exc!r}. This is a bug in vela, not in the vault.", file=out)
         traceback.print_exc(file=out)
         return 2

@@ -49,7 +49,7 @@ sources: [SRC-01, SRC-02, SRC-03, SRC-04, SRC-06, SRC-07]
 
 ## After
 
-<!-- generated:system-context sha=59269413: do not edit, run planner render -->
+<!-- generated:system-context sha=59269413: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]

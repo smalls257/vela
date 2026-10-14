@@ -9,7 +9,7 @@ __pycache__/
 .pytest_cache/
 tests/evals/.results/
 tests/sim/results/
-**/.planner/
+**/.vela/
 
 # The explorer with generated art inlined: about 13 MB, rebuilt on demand (see prototypes/explorer/README.md)
 prototypes/explorer/out/*-art.html

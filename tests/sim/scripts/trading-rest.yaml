@@ -175,57 +175,57 @@ events:
 sessions:
 - mode: discover
   cap: 14
-  planner: /planner:discover the replies from counsel, the CEO, Quoteline and Partnerships
+  vela: /vela:discover the replies from counsel, the CEO, Quoteline and Partnerships
   baseline: Read outside counsel's reply and record what it settles. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: grill
   cap: 16
-  planner: /planner:grill {topics[grill_2]}
+  vela: /vela:grill {topics[grill_2]}
   baseline: Take me through which instruments come first and where Signal sits, and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: boundary
   cap: 24
-  planner: /planner:boundary {topics[boundary]}
+  vela: /vela:boundary {topics[boundary]}
   baseline: 'Turn the decided first release into apps: who owns what, their contracts and how they fail. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: discover
   cap: 14
-  planner: /planner:discover {topics[discover_4]}
+  vela: /vela:discover {topics[discover_4]}
   baseline: Read Brightwater's written reply and record what it settles. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: grill
   cap: 22
-  planner: /planner:grill {topics[grill_3]}
+  vela: /vela:grill {topics[grill_3]}
   baseline: Take me through the coach app's page and contracts and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: epics
   cap: 20
-  planner: /planner:epics {topics[epics]}
+  vela: /vela:epics {topics[epics]}
   baseline: Draft the epics for the Coach team. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: grill
   cap: 16
-  planner: /planner:grill {topics[grill_4]}
+  vela: /vela:grill {topics[grill_4]}
   baseline: Take me through handing the coach app to the Coach team and record it. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'

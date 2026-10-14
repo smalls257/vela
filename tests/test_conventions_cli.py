@@ -1,4 +1,4 @@
-"""`planner conventions "<section>"` prints one section of CONVENTIONS.md, and the check-codes table there is the one
+"""`vela conventions "<section>"` prints one section of CONVENTIONS.md, and the check-codes table there is the one
 `schema.CODES` holds (overhaul Task 30)."""
 import json
 import shutil
@@ -101,7 +101,7 @@ def test_vault_without_conventions_reads_the_plugin_copy_and_says_so(tmp_path):
 
 
 def test_render_and_check_leave_the_codes_block_alone(tmp_path):
-    """CONVENTIONS.md is not a vault page, so `planner render` never rewrites its block nor `check` judges it."""
+    """CONVENTIONS.md is not a vault page, so `vela render` never rewrites its block nor `check` judges it."""
     vault = tmp_path / "vault"
     shutil.copytree(TEMPLATE, vault)
     before = (vault / "CONVENTIONS.md").read_bytes()
@@ -112,13 +112,13 @@ def test_render_and_check_leave_the_codes_block_alone(tmp_path):
     assert code == 0 and "CONVENTIONS.md:" not in out
 
 
-def test_every_planner_conventions_call_in_the_skills_resolves_exactly():
-    """Task 30, skill lines: skills name a section through `planner conventions "<section>"` instead of telling the
+def test_every_vela_conventions_call_in_the_skills_resolves_exactly():
+    """Task 30, skill lines: skills name a section through `vela conventions "<section>"` instead of telling the
     model to read the whole file; each name they use must be a section the command prints."""
     import re
     texts = [p.read_text(encoding="utf-8") for p in (REPO / "plugin" / "skills").rglob("*.md")]
     texts += [p.read_text(encoding="utf-8") for p in (REPO / "plugin" / "references").glob("*.md")]
-    names = {n for t in texts for n in re.findall(r'`planner conventions "([^"<]+)"`', t)}
+    names = {n for t in texts for n in re.findall(r'`vela conventions "([^"<]+)"`', t)}
     assert len(names) >= 15, names
     for name in sorted(names):
         code, out = run("conventions", name, "--vault", str(REPO / "template"))

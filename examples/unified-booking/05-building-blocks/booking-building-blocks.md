@@ -28,7 +28,7 @@ Booking does not own fares, capacity, customer records, card payments or the led
 |---|---|
 | New ([[ADR-0001-one-booking-context\|ADR-0001]]) | Booking team (new) |
 
-<!-- generated:app-context sha=f8f26c9f: do not edit, run planner render -->
+<!-- generated:app-context sha=f8f26c9f: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -161,7 +161,7 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=d38c8e7b: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=d38c8e7b: do not edit, run vela render -->
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
 | [[pricing-building-blocks#CON-003 Quote a fare\|Quote a fare (CON-003)]] | [[pricing-building-blocks\|Pricing]] | the existing API, unchanged. Only the list of callers narrows. | decided |
@@ -173,7 +173,7 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ## Epics
 
-<!-- generated:epics-for-app sha=f4a1d9b1: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=f4a1d9b1: do not edit, run vela render -->
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harborline/booking-team | decided |

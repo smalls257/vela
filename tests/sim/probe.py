@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Probe one capability of the planner skills in a single simulated session, from a saved vault snapshot, and
+"""Probe one capability of the vela skills in a single simulated session, from a saved vault snapshot, and
 check it with mostly mechanical criteria. A full run.py run is 12 sessions and about $36 to $55; a probe is one
 session and about $1 to $3, so a controller can edit a skill, probe it, and read the result in a loop.
 
@@ -97,10 +97,10 @@ def case_problems(case):
             if not (SNAPSHOTS / str(persona) / str(name)).is_dir():
                 problems.append(f"snapshot {persona}/{name} is not a folder in {SNAPSHOTS}")
     problems += sim.news_problems(case.get("news"))
-    if not isinstance(case.get("opening"), str) or not case["opening"].startswith("/planner:"):
-        problems.append("'opening' must be a /planner: command")
+    if not isinstance(case.get("opening"), str) or not case["opening"].startswith("/vela:"):
+        problems.append("'opening' must be a /vela: command")
     elif case["opening"].split()[0].split(":", 1)[1] not in sim.MODES:
-        problems.append(f"'opening' must start with one of /planner:{', /planner:'.join(sim.MODES)}")
+        problems.append(f"'opening' must start with one of /vela:{', /vela:'.join(sim.MODES)}")
     if not isinstance(case.get("cap"), int) or case["cap"] < 1:
         problems.append("'cap' must be a whole number of assistant turns, at least 1")
     if "close" in case and not (isinstance(case["close"], int) and not isinstance(case["close"], bool) and case["close"] >= 1):
@@ -171,9 +171,9 @@ def build_probe_vault(run_dir, snapshot, persona):
     if skills.exists():
         shutil.rmtree(skills)
         notes.append("the snapshot held .claude/skills; it was removed")
-    shutil.copytree(sim.PLUGIN, skills / "planner", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    notes.append("current plugin/ installed at .claude/skills/planner")
-    # As planner upgrade would: a snapshot saved before the format changed starts with the plugin's own copy.
+    shutil.copytree(sim.PLUGIN, skills / "vela", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    notes.append("current plugin/ installed at .claude/skills/vela")
+    # As vela upgrade would: a snapshot saved before the format changed starts with the plugin's own copy.
     shutil.copyfile(sim.PLUGIN / "vault" / "CONVENTIONS.md", vault / "CONVENTIONS.md")
     stale = inbox_problems(vault, persona)
     if stale:
@@ -186,10 +186,10 @@ def build_probe_vault(run_dir, snapshot, persona):
     sim.git("init", "-q", "--bare", "-b", "main", str(origin), cwd=run_dir)
     sim.git("remote", "add", "origin", str(origin), cwd=vault)
     sim.git("push", "-q", "-u", "origin", "main", cwd=vault)
-    check = subprocess.run([sys.executable, str(sim.PLANNER), "check", "--vault", str(vault)],
+    check = subprocess.run([sys.executable, str(sim.VELA), "check", "--vault", str(vault)],
                            capture_output=True, text=True, timeout=120)
     (run_dir / "start-check.txt").write_text(f"exit {check.returncode}\n{check.stdout}{check.stderr}", encoding="utf-8")
-    notes.append(f"planner check on the starting vault: exit {check.returncode}")
+    notes.append(f"vela check on the starting vault: exit {check.returncode}")
     return vault, notes
 
 
@@ -694,26 +694,26 @@ def option_parts(run, criterion):
 LEDGER_FLAGS = re.compile(r": (E801|E802|E803) ")
 
 
-def planner_output(vault, *argv):
-    """The output of the current plugin's planner on the final vault. A tool failure (exit 2) stops the probe."""
-    done = subprocess.run([sys.executable, str(sim.PLANNER), *argv, "--vault", str(vault)], capture_output=True, text=True, timeout=120)
+def vela_output(vault, *argv):
+    """The output of the current plugin's vela on the final vault. A tool failure (exit 2) stops the probe."""
+    done = subprocess.run([sys.executable, str(sim.VELA), *argv, "--vault", str(vault)], capture_output=True, text=True, timeout=120)
     if done.returncode == 2:
-        raise ToolFailure(f"planner {argv[0]} failed on the final vault: {done.stdout.strip().splitlines()[:1]}")
+        raise ToolFailure(f"vela {argv[0]} failed on the final vault: {done.stdout.strip().splitlines()[:1]}")
     return done.stdout
 
 
 @check("owed-copies-disposed", "severity")
 def owed_copies_disposed(run, criterion):
     """Every owed copy of the severity (`high`, or `any`) has a ledger row that says more than open, and
-    planner check flags no ledger row (E801, E802, E803): every owed copy has a valid disposition."""
-    answer = json.loads(planner_output(run.vault, "questions", "--json"))
+    vela check flags no ledger row (E801, E802, E803): every owed copy has a valid disposition."""
+    answer = json.loads(vela_output(run.vault, "questions", "--json"))
     severity = criterion["severity"]
     wanted = [c for c in answer["copies"] if severity == "any" or c["severity"] == severity]
     undisposed = [c for c in wanted if c["state"] in ("no row", "open")]
-    flagged = [line for line in planner_output(run.vault, "check").splitlines() if LEDGER_FLAGS.search(line)]
+    flagged = [line for line in vela_output(run.vault, "check").splitlines() if LEDGER_FLAGS.search(line)]
     passed = bool(wanted) and not undisposed and not flagged
     summary = (f"owed copies ({severity}) with a disposition: {len(wanted) - len(undisposed)} of {len(wanted)}; "
-               f"ledger rows planner check flags: {len(flagged)} (need every copy disposed and no flagged row)")
+               f"ledger rows vela check flags: {len(flagged)} (need every copy disposed and no flagged row)")
     detail = [f"- {c['id']}: {c['state']}" for c in undisposed] + [f"- {line}" for line in flagged]
     return passed, summary, detail
 
@@ -755,7 +755,7 @@ def _take_problem(answer, taken, findings):
 def taken_copies_recorded(run, criterion):
     """Every copy or finding the lead took in a capture (its words start with the copy ID or the finding ID)
     has a valid row that says more than open. Copies the lead never took are not counted: they may stay open."""
-    answer = json.loads(planner_output(run.vault, "questions", "--json"))
+    answer = json.loads(vela_output(run.vault, "questions", "--json"))
     detail, total = [], 0
     for rel, text in sim.vault_pages(run.vault):
         if not rel.startswith("sessions/"):
@@ -811,7 +811,7 @@ def drafted_messages(run, criterion):
 
 @check("merge-scoped")
 def merge_scoped(run, criterion):
-    """Every planner findings merge the session ran names --changed, so a new question can only be about what this
+    """Every vela findings merge the session ran names --changed, so a new question can only be about what this
     session changed. A session that merged nothing fails: its checkpoint never ran."""
     merges = [(e["turn"], str(t.get("input", ""))) for e in run.transcript.entries if e.get("speaker") == "assistant"
               for t in e.get("tool_calls") or [] if "findings merge" in str(t.get("input", ""))]
@@ -885,14 +885,14 @@ def run_once(case, persona, persona_name, args, n, stamp, share):
                    snapshot_dir(case, persona_name), reserve)
     run.rows, run.failure = [], None
     text = opening_text(case, persona)
-    session = {"mode": case["mode"], "cap": case["cap"], "planner": text.replace("{", "{{").replace("}", "}}"),
+    session = {"mode": case["mode"], "cap": case["cap"], "vela": text.replace("{", "{{").replace("}", "}}"),
                "baseline": text.replace("{", "{{").replace("}", "}}")}
     try:
         run.start()
         run.run_session(1, session)
         if case.get("close"):  # the ledger is written at close, so a case that reads it closes the session first
-            run.run_session(2, {"mode": "close", "cap": case["close"], "planner": "/planner:close",
-                                "baseline": "/planner:close"})
+            run.run_session(2, {"mode": "close", "cap": case["close"], "vela": "/vela:close",
+                                "baseline": "/vela:close"})
         run.rows = score(run, case)
     except ToolFailure as exc:
         run.failure = str(exc)

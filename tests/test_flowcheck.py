@@ -354,7 +354,7 @@ def test_an_unknown_slice_names_the_releases():
 
 
 def copy_fixture(tmp_path, case):
-    """A copy to run the CLI on: check-slice records its result under the vault's .planner/."""
+    """A copy to run the CLI on: check-slice records its result under the vault's .vela/."""
     import shutil
     target = tmp_path / case
     shutil.copytree(FIXTURES / case, target)
@@ -696,7 +696,7 @@ def test_the_default_budget_is_200000_states_and_10_seconds_and_the_clock_is_fro
 def test_check_warns_w391_for_a_drawn_slice_with_open_findings_and_stays_quiet_on_a_pass():
     _, out = run("check", "--vault", str(FIXTURES / "05-hold-never-released"), "--today", TODAY)
     lines = [line for line in out.splitlines() if " W391 " in line]
-    assert lines == ['04b-releases.md:13: W391 Release one: pilot fails: 1 open finding (not final). Fix: Run planner '
+    assert lines == ['04b-releases.md:13: W391 Release one: pilot fails: 1 open finding (not final). Fix: Run vela '
                      'check-slice "Release one: pilot" for the traces and owners, and fix or override each.']
     _, out = run("check", "--vault", str(FIXTURES / "12-clean-tracer"), "--today", TODAY)
     assert " W391 " not in out

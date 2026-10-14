@@ -10,7 +10,7 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=46c029ce: do not edit, run planner render -->
+<!-- generated:context-map sha=46c029ce: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_heron["Heron (new)"]

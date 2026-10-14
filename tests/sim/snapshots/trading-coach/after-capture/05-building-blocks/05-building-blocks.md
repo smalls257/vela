@@ -20,7 +20,7 @@ The picked cut for the first release. The coach is a new service, Coach, that ho
 
 - **Options considered:** A Coach service behind TickerTalk (picked); Coach inside TickerTalk: rejected, the product lead says "news app stays news"; Coach plus a paper-trading gateway: rejected, two new services for a January demo and a seam that only pays off once real orders exist (Claude's reason, the product lead gave none)
 
-<!-- generated:context-map sha=4932ac0c: do not edit, run planner render -->
+<!-- generated:context-map sha=4932ac0c: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]

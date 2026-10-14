@@ -71,7 +71,7 @@ class SliceResult:
         errors = sum(1 for f in self.findings if f.severity == "error")
         warnings = sum(1 for f in self.findings if f.severity == "warning")
         covered = sum(1 for f in self.findings if f.severity == "covered")
-        head = (f"planner check-slice: {self.name} ({', '.join(self.flows)}): {self.status}. {_count(errors, 'error')}, "
+        head = (f"vela check-slice: {self.name} ({', '.join(self.flows)}): {self.status}. {_count(errors, 'error')}, "
                 f"{_count(warnings, 'warning')}" + (f", {covered} covered by overrides" if covered else "") +
                 f". {self.states} states, {self.transitions} transitions, {self.seconds:.2f} s.")
         return "\n".join([head] + [f"Limit: {limit}" for limit in self.limits] + [f.format() for f in self.findings])

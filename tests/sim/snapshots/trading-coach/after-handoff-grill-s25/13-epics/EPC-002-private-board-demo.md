@@ -29,7 +29,7 @@ This epic builds the private January board demo, which opens through [[coach-bui
 
 ## Traces to
 
-<!-- generated:traces-to sha=312728ff: do not edit, run planner render -->
+<!-- generated:traces-to sha=312728ff: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[coach-building-blocks\|Coach]] |

@@ -1,4 +1,4 @@
-"""`planner close sync-main` against real repos: a bare origin, the lead's clone on a session branch, and a second clone
+"""`vela close sync-main` against real repos: a bare origin, the lead's clone on a session branch, and a second clone
 that moves main. The first caller is the CLI itself, through conftest's `run`."""
 import json
 import subprocess
@@ -20,7 +20,7 @@ def git(cwd, *args):
 
 
 def block(content, sha="aaaaaaaa", name="summary"):
-    return [f"<!-- generated:{name} sha={sha}: do not edit, run planner render -->", *content,
+    return [f"<!-- generated:{name} sha={sha}: do not edit, run vela render -->", *content,
             f"<!-- /generated:{name} -->"]
 
 
@@ -67,7 +67,7 @@ def sync(lead, *flags):
 
 
 def state(lead, key="session__x"):
-    return json.loads((lead / ".planner" / "close" / f"{key}.json").read_text(encoding="utf-8"))
+    return json.loads((lead / ".vela" / "close" / f"{key}.json").read_text(encoding="utf-8"))
 
 
 def test_up_to_date(repos):
@@ -162,7 +162,7 @@ def test_dirty_tracked_files_exit_3_and_change_nothing(repos):
     (lead / "01-goals.md").write_text(page(intro="Unsaved edit."), encoding="utf-8")
     head = git(lead, "rev-parse", "HEAD")
     code, out = sync(lead)
-    assert code == 3 and "planner close stage --checkpoint" in out, out
+    assert code == 3 and "vela close stage --checkpoint" in out, out
     assert git(lead, "rev-parse", "HEAD") == head and not mergegit.merging(lead)
     assert "Unsaved edit." in (lead / "01-goals.md").read_text(encoding="utf-8")
     assert (lead / "notes.md").read_text(encoding="utf-8") == "notes\n"
@@ -181,15 +181,15 @@ def test_accept_not_compared_is_recorded(repos, tmp_path):
 
 def test_reader_copy_runs_no_git(tmp_path, monkeypatch):
     copy = tmp_path / "copy"
-    (copy / ".planner").mkdir(parents=True)
-    (copy / ".planner" / "workspace.json").write_text("{}", encoding="utf-8")
+    (copy / ".vela").mkdir(parents=True)
+    (copy / ".vela" / "workspace.json").write_text("{}", encoding="utf-8")
 
     def no_git(*args, **kwargs):
         raise AssertionError(f"a read copy ran git: {args}")
     monkeypatch.setattr(vaultgit, "run_git", no_git)
     code, out = run("close", "sync-main", "--vault", str(copy), "--today", TODAY, "--for-lead")
     assert code == 0 and out.strip() == "This is a read copy, so there is no main to bring in.", out
-    rec = json.loads((copy / ".planner" / "close" / f"{closestate.READER_KEY}.json").read_text(encoding="utf-8"))
+    rec = json.loads((copy / ".vela" / "close" / f"{closestate.READER_KEY}.json").read_text(encoding="utf-8"))
     assert rec["status"] == closestate.READER
     assert not mergegit.sync_verdict(copy).blocks
 

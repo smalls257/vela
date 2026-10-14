@@ -187,7 +187,7 @@ def test_c18_a_share_with_nothing_to_count_stays_out_of_the_mean():
 def test_c18_an_untouched_template_is_not_43_percent(tmp_path):
     vault = tmp_path / "t"
     shutil.copytree(REPO / "template", vault)
-    (vault / ".planner.yaml").write_text("initiative: INI-001\ntitle: New\n", encoding="utf-8")
+    (vault / ".vela.yaml").write_text("initiative: INI-001\ntitle: New\n", encoding="utf-8")
     percent, _ = completeness.measure(load_vault(vault))
     assert percent < 20
 

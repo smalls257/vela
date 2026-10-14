@@ -1,4 +1,4 @@
-"""American spelling for vault prose: the British forms planner warns on (W372), and the word to write instead.
+"""American spelling for vault prose: the British forms vela warns on (W372), and the word to write instead.
 
 Pure: a line of text in, the British words in it out. The house voice writes American English, so a page that says
 "colour" beside one that says "color" reads as two authors, and a search for one misses the other. A spelling never

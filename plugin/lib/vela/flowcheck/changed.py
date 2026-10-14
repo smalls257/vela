@@ -68,7 +68,7 @@ class Report:
 
     def format(self, mode="--changed"):
         n, k = len(self.lines), len(self.checked)
-        head = f"planner check-slice {mode}: checked {k} of {n} slice{'' if n == 1 else 's'}"
+        head = f"vela check-slice {mode}: checked {k} of {n} slice{'' if n == 1 else 's'}"
         if self.everything:
             head += f", every one, because {self.everything}"
         if n - k:

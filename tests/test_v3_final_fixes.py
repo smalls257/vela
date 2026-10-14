@@ -313,13 +313,13 @@ def readme_section(title):
 
 def test_the_readme_has_a_v3_section_a_returning_user_can_follow():
     v3 = readme_section("What v3 adds: the questions the plan owes")
-    for said in ("29 entries", "per subject", "generic", "`planner questions`", "`--digest`", "`--open`", "`--stats`",
+    for said in ("29 entries", "per subject", "generic", "`vela questions`", "`--digest`", "`--open`", "`--stats`",
                  "`11-unknowns-and-risks.md`", "`open`", "`asked`", "`answered`", "`assumed`", "`unknown`",
-                 "`not-applicable`", "evidence", "five", "area-reviewer", "time and tokens", "`planner findings merge`",
+                 "`not-applicable`", "evidence", "five", "area-reviewer", "time and tokens", "`vela findings merge`",
                  "`## Reviews`", "catalog entries", "W806", "W807", "E805", "override", "voicescore"):
         assert said in v3, said
     for mode in ("dump", "discover", "shape", "grill"):
-        assert f"/planner:{mode}" in v3, mode
+        assert f"/vela:{mode}" in v3, mode
     import yaml
     data = yaml.safe_load((PLUGIN / "catalog" / "questions.yaml").read_text(encoding="utf-8"))
     assert f"{len(data['entries'])} entries" in v3
@@ -328,12 +328,12 @@ def test_the_readme_has_a_v3_section_a_returning_user_can_follow():
 def test_start_here_tomorrow_agrees_with_v3():
     start = readme_section("Start here tomorrow")
     assert "review checkpoint" in start and "question ledger" in start
-    assert "planner questions --digest" in start
+    assert "vela questions --digest" in start
 
 
 def test_the_template_checklist_renders_after_the_initiative_and_points_at_the_digest():
     checklist = (REPO / "template" / "README.md").read_text(encoding="utf-8").split("## Setup checklist", 1)[1]
     steps = [l for l in checklist.splitlines() if l[:1].isdigit()]
     initiative = next(i for i, l in enumerate(steps) if "set `initiative`" in l)
-    assert "planner render" in steps[initiative + 1]
-    assert sum("planner questions --digest" in l for l in steps) == 1
+    assert "vela render" in steps[initiative + 1]
+    assert sum("vela questions --digest" in l for l in steps) == 1

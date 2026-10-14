@@ -53,15 +53,15 @@ def advance_remote(tmp_path, bare, text="more\n"):
 
 def make_workspace(tmp_path, source, name="workspace"):
     """A reader workspace as design session 15 section 2 lays it out: the published files, a pristine baseline,
-    and .planner/workspace.json recording the source it was opened from. Works from a published folder."""
+    and .vela/workspace.json recording the source it was opened from. Works from a published folder."""
     source = pathlib.Path(source)
-    stamp = json.loads((source / ".planner" / "published.json").read_text(encoding="utf-8"))
+    stamp = json.loads((source / ".vela" / "published.json").read_text(encoding="utf-8"))
     root = tmp_path / name
     shutil.copytree(source, root)
-    shutil.copytree(source, root / ".planner" / "baseline")
+    shutil.copytree(source, root / ".vela" / "baseline")
     workspace = {"role": "reader", "source": source.name, "source_path": str(source), "base_commit": stamp["commit"],
                  "base_date": stamp["date"], "opened": "2026-10-12", "author": "Sam Okoye"}
-    (root / ".planner" / "workspace.json").write_text(json.dumps(workspace, indent=2), encoding="utf-8")
+    (root / ".vela" / "workspace.json").write_text(json.dumps(workspace, indent=2), encoding="utf-8")
     return root
 
 
@@ -70,7 +70,7 @@ HOSTILE = "a reader's cap is a <b>must</b> & never a may, </script><img src=x on
 
 
 def commit_snapshot(tmp_path, name="src"):
-    """The trading-coach snapshot committed in its own repo (it carries .planner.yaml, so it can be published)."""
+    """The trading-coach snapshot committed in its own repo (it carries .vela.yaml, so it can be published)."""
     root = tmp_path / name
     shutil.copytree(SNAPSHOT, root)
     git(tmp_path, "init", "-q", "-b", "main", str(root))
@@ -86,13 +86,13 @@ _PUBLISHED = {}  # per process: the committed snapshot and its published copy, b
 
 def published_snapshot(tmp_path, out="published"):
     """(source repo, published folder) in `tmp_path`: the trading-coach snapshot committed in its own repo and
-    `planner publish`ed on 2026-10-11. Publishing reads the whole vault (about a second and a half, forty-odd tests a
+    `vela publish`ed on 2026-10-11. Publishing reads the whole vault (about a second and a half, forty-odd tests a
     run), and its output names no path and depends only on the commit, so it is built once per worker and each test
     gets its own copy of both, repo history included."""
     import tempfile
     from conftest import run
     if "root" not in _PUBLISHED:
-        cache = pathlib.Path(tempfile.mkdtemp(prefix="planner-published-"))
+        cache = pathlib.Path(tempfile.mkdtemp(prefix="vela-published-"))
         src = commit_snapshot(cache)
         assert run("publish", "--vault", str(src), "--out", str(cache / "published"), "--today", "2026-10-11")[0] == 0
         _PUBLISHED["root"] = cache

@@ -30,12 +30,12 @@ def explore(root, *extra):
 
 # ------------------------------------------------------------------ item 1: where the page is written
 
-def test_explore_writes_dashboard_html_at_the_vault_root_and_nothing_under_planner_but_the_pins(tmp_path):
+def test_explore_writes_dashboard_html_at_the_vault_root_and_nothing_under_vela_but_the_pins(tmp_path):
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOT, vault)
     explore(vault)
     assert (vault / "dashboard.html").is_file()
-    assert not (vault / ".planner" / "explorer.html").exists()
+    assert not (vault / ".vela" / "explorer.html").exists()
 
 
 def test_open_the_file_links_resolve_from_the_vault_root(tmp_path):
@@ -176,7 +176,7 @@ def test_two_publishes_of_one_commit_on_different_days_carry_the_same_tree_hash(
     for day in ("2026-10-11", "2026-10-12"):
         out = tmp_path / f"copy-{day}"
         assert run("publish", "--vault", str(vault), "--out", str(out), "--today", day)[0] == 0
-        stamps.append(json.loads((out / ".planner/published.json").read_text(encoding="utf-8"))["tree_hash"])
+        stamps.append(json.loads((out / ".vela/published.json").read_text(encoding="utf-8"))["tree_hash"])
     assert stamps[0] == stamps[1], "a reader's freshness check would call a same-commit republish different content"
 
 

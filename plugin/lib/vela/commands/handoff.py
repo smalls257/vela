@@ -1,4 +1,4 @@
-"""`planner handoff`: the parser, moved out of cli.py (Task 2) so Task 21h (`handoff preview`) edits this file and
+"""`vela handoff`: the parser, moved out of cli.py (Task 2) so Task 21h (`handoff preview`) edits this file and
 not cli.py. The command itself is `cli.cmd_handoff`."""
 
 

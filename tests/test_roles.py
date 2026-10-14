@@ -1,5 +1,5 @@
 """Role by access: an owner works in the vault's git work tree and can commit; a reader has a published copy with no
-.git; .planner.yaml can only give authority up. Authority never comes from a file that ships in the copy."""
+.git; .vela.yaml can only give authority up. Authority never comes from a file that ships in the copy."""
 import json
 
 from conftest import edit, run
@@ -114,19 +114,19 @@ def test_a_published_copy_that_was_not_opened_is_neither(tmp_path):
     assert roles.decide(vaultgit.role_facts(published)).role == roles.NONE
 
 
-def test_planner_yaml_cannot_promote_a_reader_workspace(tmp_path):
+def test_vela_yaml_cannot_promote_a_reader_workspace(tmp_path):
     root = make_vault(tmp_path)
     published = tmp_path / "published"
     run("publish", "--vault", str(root), "--out", str(published))
     workspace = make_workspace(tmp_path, published)
-    edit(workspace / ".planner.yaml", "title:", "role: owner\ntitle:")
+    edit(workspace / ".vela.yaml", "title:", "role: owner\ntitle:")
     found = roles.decide(vaultgit.role_facts(workspace))
     assert found.role == roles.READER and "ignored" in found.warnings[0]
 
 
-def test_planner_yaml_role_reader_downgrades_a_real_owner(tmp_path):
+def test_vela_yaml_role_reader_downgrades_a_real_owner(tmp_path):
     root = make_vault(tmp_path)
-    edit(root / ".planner.yaml", "title:", "role: reader\ntitle:")
+    edit(root / ".vela.yaml", "title:", "role: reader\ntitle:")
     assert roles.decide(vaultgit.role_facts(root)).role == roles.READER
 
 
@@ -138,7 +138,7 @@ def test_a_plain_folder_is_neither(tmp_path):
 def test_role_command_prints_the_role_and_exits_1_for_neither(tmp_path):
     root = make_vault(tmp_path)
     code, out = run("role", "--vault", str(root))
-    assert code == 0 and out.startswith("planner role: owner.")
+    assert code == 0 and out.startswith("vela role: owner.")
     (tmp_path / "plain").mkdir()
     code, out = run("role", "--vault", str(tmp_path / "plain"))
     assert code == 1 and "neither a vault repo nor a published copy" in out

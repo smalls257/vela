@@ -1,9 +1,9 @@
 # Do the focused reviewers run, does the lead hear each area's result, and does every owed question end with a
 # valid disposition once the session closes? The session is a Discover from a vault that already holds a first
 # read of the documents, so the review checkpoint after the read-back has subjects to work on. The ledger is
-# written at close, so the case runs /planner:close after the Discover and reads the final vault.
+# written at close, so the case runs /vela:close after the Discover and reads the final vault.
 # area-coverage reads each "- **Coverage:**" line the checkpoints wrote into the session record.
-# owed-copies-disposed runs planner questions and planner check on the final vault. It asks only the high-severity
+# owed-copies-disposed runs vela questions and vela check on the final vault. It asks only the high-severity
 # copies to be disposed: those hold the epics gate. Asking every copy rewarded a close that marked them all
 # not-applicable to pass. Copies the lead did not take may stay open by design: the lead sets the pace, and the
 # undisposed-questions block keeps them visible.
@@ -12,7 +12,7 @@
 snapshot:
   coastal-merger: after-s4
   holdout-hospitals: after-discover
-opening: "/planner:discover {topics[discover_2]}"
+opening: "/vela:discover {topics[discover_2]}"
 cap: 14
 close: 10
 criteria:

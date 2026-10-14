@@ -77,7 +77,7 @@ Each bullet is an `assumption`, source SRC-06, because the reply states what the
 - **Shared account service** (assumption, SRC-06): the Northway Platform team owns it. Who owns Northway ID itself is still open: [[11-unknowns-and-risks#UNK-012 Northway ID ownership|UNK-012]].
 - **Live date** (assumption, SRC-06): live by 1 June 2027, which is what the CIO means by next summer. [[11-unknowns-and-risks#UNK-002 Meaning of next summer|UNK-002]] stays open until the CIO's office confirms it.
 
-<!-- generated:system-context sha=140bedbf: do not edit, run planner render -->
+<!-- generated:system-context sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:system-context -->
 

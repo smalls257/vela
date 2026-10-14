@@ -45,7 +45,7 @@ def names():
 
 @pytest.mark.parametrize("name", names())
 def test_conventions_explain_every_name(name):
-    assert name in CONVENTIONS, f"{name} is used by planner but CONVENTIONS.md never mentions it"
+    assert name in CONVENTIONS, f"{name} is used by vela but CONVENTIONS.md never mentions it"
 
 
 def test_conventions_finding_table_matches_codes():

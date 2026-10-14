@@ -1,9 +1,9 @@
 """What the team has written in a vault's docs/ folder, and the next team-side step it implies. Reads local files only.
 
-    team_step(root, name) -> "the <app> team: ... (/planner:breakdown)." or "... (/planner:tickets)." or None
+    team_step(root, name) -> "the <app> team: ... (/vela:breakdown)." or "... (/vela:tickets)." or None
 
 The Violation this exists to prevent is a Black Box in the handover: a senior finishes a design or a build plan and
-nothing in `planner next` says the next skill exists, so the plan waits for someone to remember it. The team sessions
+nothing in `vela next` says the next skill exists, so the plan waits for someone to remember it. The team sessions
 leave their work in docs/tech-design/, docs/plan/ and docs/work/, so those folders are the only sensor needed.
 """
 import pathlib
@@ -55,8 +55,8 @@ def team_step(root, name=lambda app: app):
         mine = [meta for meta in plans.values() if named_in_prereqs(meta, design_name)]
         if not mine:
             steps.append((1, app, f"the {name(app)} team: their design is {STATUS_WORDS.get(status, status)} and there's no build plan yet, "
-                                  f"so break the work into stories and tasks (/planner:breakdown)."))
+                                  f"so break the work into stories and tasks (/vela:breakdown)."))
         elif not ticketed and any(meta.get("status") in DONE for meta in mine):
             steps.append((0, app, f"the {name(app)} team: their build plan is {STATUS_WORDS.get(mine[0].get('status'), mine[0].get('status'))} "
-                                  f"and no tickets have been made from it yet, so write them (/planner:tickets)."))
+                                  f"and no tickets have been made from it yet, so write them (/vela:tickets)."))
     return min(steps)[2] if steps else None

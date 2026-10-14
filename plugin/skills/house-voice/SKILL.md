@@ -17,7 +17,7 @@ If the vault has `voice/VOICE.md`, read it first. It holds the owner's own rules
 
 The examples are `voice/examples/<voice type>/*.md` in the vault, and `voice/local/<voice type>/*.md` when that gitignored folder exists on this machine. For the page you are drafting, find its voice type in the table below. Read every example of that type whose frontmatter says `state: active`, in file-name order, local `owner` and `owner-edit` examples first, then `voice/examples/`, then any other local example, before you write a word. Skip every `state: retired` example. The order is fixed so two drafts of the same page start from the same context.
 
-An example with `source: owner` or `source: owner-edit` is the owner's own writing. When `/planner:voice-seed` adds the owner's examples of a type, it retires that type's public seed, so the owner's voice is what you read.
+An example with `source: owner` or `source: owner-edit` is the owner's own writing. When `/vela:voice-seed` adds the owner's examples of a type, it retires that type's public seed, so the owner's voice is what you read.
 
 If the type has fewer than two active examples across both folders, say "No examples for <type>: drafted without examples" in the PR body, and draft from the defaults at the end of this file.
 
@@ -61,7 +61,7 @@ These keep the exact words they were written in. Do not restyle them:
 - `**Decision:**` and `**Dissent:**` lines;
 - generated blocks;
 - a person's words lifted from a capture;
-- a sentence another page quotes as evidence: a reviewer question's `quote:` or a `source:` quote names its page, and `planner check` looks for those exact words there. Leave the sentence as it is, or rewrite it and change the quote in the same edit to the new words, which must carry the same fact. E802 from `planner check` means a quote lost its words.
+- a sentence another page quotes as evidence: a reviewer question's `quote:` or a `source:` quote names its page, and `vela check` looks for those exact words there. Leave the sentence as it is, or rewrite it and change the quote in the same edit to the new words, which must carry the same fact. E802 from `vela check` means a quote lost its words.
 
 ## Prose that is already merged
 
@@ -84,7 +84,7 @@ The examples are what to match. These rules are what to do where they are thin. 
 11. **Keep the owner's words and the record's facts.** Who said what, and every state word, number, date and negation, stay as the record has them, even when a smoother sentence is tempting. A merged paragraph changes only the fact that changed; voicecheck says so when one is gone.
 12. **Spell in American English.** Behavior, organization, color, license, canceled. The owner may override it in `voice/VOICE.md`.
 
-Write paragraphs where the page asks for prose: a run of bullets that are not fact bullets is a paragraph waiting to be written. Name things in the sentence and keep their IDs on a `- Trace:` line. Facts come from somewhere. Every number, date and ID in a draft comes from a capture, a source or a page; where you cannot point to it, leave it out. Spell an abbreviation out at its first use on the page, put a link on the words that rely on a source or point at an item, and link every ID as `planner conventions "Pages"` says. A paragraph says what is true now; how a decision was reached is the page's `## History`.
+Write paragraphs where the page asks for prose: a run of bullets that are not fact bullets is a paragraph waiting to be written. Name things in the sentence and keep their IDs on a `- Trace:` line. Facts come from somewhere. Every number, date and ID in a draft comes from a capture, a source or a page; where you cannot point to it, leave it out. Spell an abbreviation out at its first use on the page, put a link on the words that rely on a source or point at an item, and link every ID as `vela conventions "Pages"` says. A paragraph says what is true now; how a decision was reached is the page's `## History`.
 
 ## Pages that are mostly a list
 

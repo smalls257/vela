@@ -5,7 +5,7 @@
     raises Unavailable(reason) when there is no node, or the parser could not run
 
 One process for every block: loading the 3 MB bundle is most of the cost (about 0.1 s), so the cost does not grow
-with the number of diagrams. `PLANNER_NODE` names the node to use; without it, node on the PATH.
+with the number of diagrams. `VELA_NODE` names the node to use; without it, node on the PATH.
 """
 import json
 import os
@@ -24,10 +24,10 @@ class Unavailable(Exception):
 
 
 def find_node():
-    named = os.environ.get("PLANNER_NODE")
+    named = os.environ.get("VELA_NODE")
     if named is not None:
         if not (pathlib.Path(named).is_file() and os.access(named, os.X_OK)):
-            raise Unavailable(f"PLANNER_NODE names {named or '(nothing)'}, which is not a program that runs")
+            raise Unavailable(f"VELA_NODE names {named or '(nothing)'}, which is not a program that runs")
         return named
     found = shutil.which("node")
     if not found:

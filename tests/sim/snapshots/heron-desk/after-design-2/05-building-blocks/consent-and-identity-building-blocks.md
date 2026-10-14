@@ -79,7 +79,7 @@ Consent and identity asks Microsoft 365 who signed in, so each record belongs to
 
 ## Where it fits
 
-<!-- generated:app-context sha=9a121243: do not edit, run planner render -->
+<!-- generated:app-context sha=9a121243: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
@@ -99,7 +99,7 @@ flowchart LR
 Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
-<!-- generated:contracts-consumed sha=a859dfe7: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=a859dfe7: do not edit, run vela render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[consent-and-identity-building-blocks#CON-005 Microsoft sign-in\|CON-005 Microsoft sign-in]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not recorded. Microsoft runs the interface, and no agreement with Microsoft is registered. | assumption |

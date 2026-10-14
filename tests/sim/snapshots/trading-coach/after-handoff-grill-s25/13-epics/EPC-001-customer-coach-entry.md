@@ -31,7 +31,7 @@ This epic builds the provider side of [[coach-building-blocks#CON-001 Coach entr
 
 ## Traces to
 
-<!-- generated:traces-to sha=00f2055d: do not edit, run planner render -->
+<!-- generated:traces-to sha=00f2055d: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[coach-building-blocks\|Coach]], [[tickertalk-building-blocks\|TickerTalk]] |

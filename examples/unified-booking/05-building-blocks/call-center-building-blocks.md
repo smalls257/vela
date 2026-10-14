@@ -27,7 +27,7 @@ The desktop no longer decides whether a booking is confirmed and no longer cache
 |---|---|
 | Changed: Booking API client and new amend and cancel screens. Terminal adapter and manual fix queue retired. | Contact Center Systems team |
 
-<!-- generated:app-context sha=e4c63e95: do not edit, run planner render -->
+<!-- generated:app-context sha=e4c63e95: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -77,7 +77,7 @@ None. The desktop only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=0e14b175: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=0e14b175: do not edit, run vela render -->
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
 | [[booking-building-blocks#CON-001 Booking API\|Booking API (CON-001)]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
@@ -85,7 +85,7 @@ None. The desktop only consumes.
 
 ## Epics
 
-<!-- generated:epics-for-app sha=e556a87b: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=e556a87b: do not edit, run vela render -->
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-034-call-center-to-booking\|EPC-034 Call center moves to Booking]] | @harborline/contact-center-systems | decided |

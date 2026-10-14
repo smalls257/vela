@@ -11,11 +11,11 @@ Contents: 1 start; 2 the gate, per item; 3 the questions; acceptance; handing an
 
 A Grill is the only session that makes an item `decided`. It decides items that are ready, or that the user chooses to decide anyway on an override, asks one question at a time, and writes each decision the moment its branch closes.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format is in `CONVENTIONS.md`; read the section a step names with `planner conventions "<section>"` (`--list` names them all), never the whole file.
+Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is in `CONVENTIONS.md`; read the section a step names with `vela conventions "<section>"` (`--list` names them all), never the whole file.
 
 What a Grill is for is section 3, the questions: one at a time, each with your recommended answer, kept under pushback. Sections 1 and 2 only decide what goes on the agenda, and section 4 is how a decision is written.
 
-In a reader copy (`planner role` says `reader`), a Grill may still decide, but beside every item it decides write `- **Pending approval:** @<handle>, <today>`, and say that the owner sees it before it counts.
+In a reader copy (`vela role` says `reader`), a Grill may still decide, but beside every item it decides write `- **Pending approval:** @<handle>, <today>`, and say that the owner sees it before it counts.
 
 ## 1. Start
 
@@ -30,16 +30,16 @@ For each item the user named, check all five before it goes on the agenda. Never
 | Gate | Passes when | If it fails, offer |
 |---|---|---|
 | GATE-1 | For an app's item, the app's `stage` is `target` or later. Initiative-level items pass. | Discover |
-| GATE-2 | The item is at `assumption`, with a preferred option. An epic is at `draft` or `reopened`, with its chosen cut. A concern cell passes when the user states what the initiative does for the app under that concern, as `planner conventions "Concern cells and waivers"` says; one the user says is `unchanged` or `n/a` is not grilled at all, but written as they say. Where there was a real choice, the rejected options and their reasons are written down in its `**Options considered:**` bullet. | Shape |
+| GATE-2 | The item is at `assumption`, with a preferred option. An epic is at `draft` or `reopened`, with its chosen cut. A concern cell passes when the user states what the initiative does for the app under that concern, as `vela conventions "Concern cells and waivers"` says; one the user says is `unchanged` or `n/a` is not grilled at all, but written as they say. Where there was a real choice, the rejected options and their reasons are written down in its `**Options considered:**` bullet. | Shape |
 | GATE-3 | You showed the agenda, with the open questions under each item, and the user confirmed it with an explicit yes (see Acceptance). | show it again |
-| GATE-4 | No open unknown lists the item in its `**Blocks:**`. Search `11-unknowns-and-risks.md` for open unknowns whose `**Blocks:**` links the item's page or heading. An open unknown that links a page blocks every item on that page, as `planner check` does. | ask the user whether they know the answer now; the unknown's owner and ask-by date, or a research task |
+| GATE-4 | No open unknown lists the item in its `**Blocks:**`. Search `11-unknowns-and-risks.md` for open unknowns whose `**Blocks:**` links the item's page or heading. An open unknown that links a page blocks every item on that page, as `vela check` does. | ask the user whether they know the answer now; the unknown's owner and ask-by date, or a research task |
 | GATE-5 | The item's owner is present and says yes in person, or their async answer is quoted in a capture with them as origin, naming the channel and the date. The user deciding on the owner's behalf also passes it, recorded as below. | reschedule, collect an async answer first, or decide on the owner's behalf |
 
-A contract has a further condition: it is not decided without its case table, the rows for every way the provider can answer, an error case among them (`planner conventions "Fact bullets"`). Without one, the contract is not ready: say so in plain words ("Nobody has written down what Stock says back when the item is unknown") and offer to write the table here, one open case at a time with your recommendation, or to go back to Boundary. If the lead decides it anyway, record an override named `"case table"`, as for any gate, and the item goes on the agenda.
+A contract has a further condition: it is not decided without its case table, the rows for every way the provider can answer, an error case among them (`vela conventions "Fact bullets"`). Without one, the contract is not ready: say so in plain words ("Nobody has written down what Stock says back when the item is unknown") and offer to write the table here, one open case at a time with your recommendation, or to go back to Boundary. If the lead decides it anyway, record an override named `"case table"`, as for any gate, and the item goes on the agenda.
 
-A flow, or a release that names its flows, is not ready while `planner check-slice` reports a finding on it, and "not fully checked" is a finding too. Read each one out with its owners and settle it, or, if the lead accepts it for now, write the dated override `planner conventions "Flow check"` shows.
+A flow, or a release that names its flows, is not ready while `vela check-slice` reports a finding on it, and "not fully checked" is a finding too. Read each one out with its owners and settle it, or, if the lead accepts it for now, write the dated override `vela conventions "Flow check"` shows.
 
-A slice (`SLC-nnn`) is planned, not decided. It moves to `planned` only when every flow it names has the case tables of the contracts it calls, and `planner check-slice SLC-nnn` passes or each finding is covered by an override with an end date under the slice page's `## Overrides`. Say what is missing in plain words ("Record consent has no case table yet, so nobody knows what the agent shows when it times out"). When it is ready and the lead says yes, set `- **Status:** planned` and add `- <today>: planned by @<lead>, in [[<session id>]]` under its `## History`. The later statuses are the teams' to set, as `planner conventions "Slices"` says; a Grill never sets them.
+A slice (`SLC-nnn`) is planned, not decided. It moves to `planned` only when every flow it names has the case tables of the contracts it calls, and `vela check-slice SLC-nnn` passes or each finding is covered by an override with an end date under the slice page's `## Overrides`. Say what is missing in plain words ("Record consent has no case table yet, so nobody knows what the agent shows when it times out"). When it is ready and the lead says yes, set `- **Status:** planned` and add `- <today>: planned by @<lead>, in [[<session id>]]` under its `## History`. The later statuses are the teams' to set, as `vela conventions "Slices"` says; a Grill never sets them.
 
 If the user names an item that is already `decided`, say so. Offer to reopen it only if the user wants that, and say that reopening records the change of mind in the Changes table.
 
@@ -48,19 +48,19 @@ An item that is not ready is said so in one sentence ("The Summarizer can't be d
 When the user decides an item anyway, the item goes on the agenda and the rest of the Grill runs as normal: the agenda and its explicit yes (GATE-3), one question at a time, the read-back and the explicit yes before `decided`. When the item is written `decided` in section 4, also write, under its heading or at page level:
 
 - `- **Override:** GATE-n by @<user's handle> on <today>: <their reason>`, one rule per failed gate, several in one bullet as `GATE-4, GATE-5`. Overriding GATE-3 itself means the user waives the agenda's explicit yes.
-- When the owner is not the user and is not present: `- **Decided by:** @<user's handle>, on behalf of @<owner>`, with `GATE-5` in the Override. This is how GATE-5 passes with the owner away. Tell the user the owner confirms later with `- **Confirmed by:** @<owner> on <date>`, or raises `/planner:challenge` if they disagree, and that the check keeps warning until they do (name the warning code in the file, not to the lead).
-- A `GATE-4` override keeps the open unknown open. `planner check` reports W316 instead of E316 for the item, quoting the override, until the unknown is resolved.
+- When the owner is not the user and is not present: `- **Decided by:** @<user's handle>, on behalf of @<owner>`, with `GATE-5` in the Override. This is how GATE-5 passes with the owner away. Tell the user the owner confirms later with `- **Confirmed by:** @<owner> on <date>`, or raises `/vela:challenge` if they disagree, and that the check keeps warning until they do (name the warning code in the file, not to the lead).
+- A `GATE-4` override keeps the open unknown open. `vela check` reports W316 instead of E316 for the item, quoting the override, until the unknown is resolved.
 
 Before you show the agenda for GATE-3, find the open questions under each item, in two ways:
 
-- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate grill --item <ID>`. Repeat `--item` once per item on the agenda. An ID that is not in the vault exits 2. Each W807 is an owed question, still open, asked or with no ledger row, that blocks that item. W807 can be stale for an answer captured this session, because close writes its row later: skip a W807 the session record already answers.
+- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check --gate grill --item <ID>`. Repeat `--item` once per item on the agenda. An ID that is not in the vault exits 2. Each W807 is an owed question, still open, asked or with no ledger row, that blocks that item. W807 can be stale for an answer captured this session, because close writes its row later: skip a W807 the session record already answers.
 - Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "on the agenda" and the agenda items as its focus.
 
 Route both lists through the digest in REVIEW section 5 (at most three questions at a time, the ones that block the agenda's items first). The Grill asks the ones the lead takes before the item is decided. An owed question that blocks an item is a question to ask, not a gate. The user may decide the item with it still open. Then capture "decided with <copy IDs> open (W807)" with the user as origin, and add a note to that item's `## Changes` row. W807 prints only under `--gate grill --item`, so a plain check and CI never show it again: the capture is the record that the question was open when the item was decided.
 
 After the gate check, write the agenda into the session record as an `## Agenda` section, one line per item: `- <ID>: GATE-3 confirmed yes|no, status open|decided|off-agenda: UNK-xxx|off-agenda: GATE-n`. An item that fails a gate other than GATE-4 carries `off-agenda: GATE-n` with the gate's number. An item the user chose to decide anyway carries `override: GATE-n` and a status, for example `- CON-003: GATE-3 confirmed yes, status open, override: GATE-5`. Update the line as the item changes. START's resume rule reads this section.
 
-GATE-4 is also a check rule: `planner check` fails an item that is `decided` while an open unknown blocks it, with E316, unless an `**Override:**` on the item names `GATE-4`.
+GATE-4 is also a check rule: `vela check` fails an item that is `decided` while an open unknown blocks it, with E316, unless an `**Override:**` on the item names `GATE-4`.
 
 ## 3. The questions
 
@@ -81,7 +81,7 @@ Capture each answer. The user's own words take their name as origin. When the us
 
 ## Handing an app over
 
-When the user grills an app's handoff, or `planner ladder` shows an app's pages reach `handoff`: in a reader copy, stop here and say "Handing an app to a senior is the owner's call: it stamps their commit. Name the owner from `.planner/published.json` and send a proposal." Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/grill/HANDOFF.md` and follow it.
+When the user grills an app's handoff, or `vela ladder` shows an app's pages reach `handoff`: in a reader copy, stop here and say "Handing an app to a senior is the owner's call: it stamps their commit. Name the owner from `.vela/published.json` and send a proposal." Otherwise read `${CLAUDE_PLUGIN_ROOT}/skills/grill/HANDOFF.md` and follow it.
 
 ## 4. Write each decision as its branch closes
 
@@ -89,7 +89,7 @@ When an item's branch closes, write it at once, before the next question:
 
 - Set its state to `decided`: the page's `state:` field, or the contract's `**State:**` bullet. A Grill on an app page also takes its `## Requirements allocated` rows: read each row back as part of the app's agenda, as `CAP-nnn.FRn@APP-<slug>`, and set each row the user confirms to `decided` in its State cell. The page's `**Decision:**` answers for them, as it does for goal rows.
 - Add `- **Decision:** [[<session id>]]` under the page's `## History`: directly under it for the page, under `#### <ID>` for a contract.
-- Ask the lead why, once, in a sentence of your own that names the item: "Why this one, in your words?" Write the answer word for word as `- **Why:** <the lead's words>` beside the Decision bullet. Do not tidy it, do not supply a reason they did not give, and do not accept your own recommendation as theirs: if they say "as you suggested", ask what in it persuaded them. A reason they decline to give is not written, and the check keeps warning, which is the honest record. If the decision shapes the whole design (the strategy, an app, a flow), also offer a decision record: say it is optional, and on a yes write a stub `09-decisions/ADR-nnnn-<slug>.md` (`planner next-id ADR`) with `state: proposed` and the Why as its Context, which close fills in.
+- Ask the lead why, once, in a sentence of your own that names the item: "Why this one, in your words?" Write the answer word for word as `- **Why:** <the lead's words>` beside the Decision bullet. Do not tidy it, do not supply a reason they did not give, and do not accept your own recommendation as theirs: if they say "as you suggested", ask what in it persuaded them. A reason they decline to give is not written, and the check keeps warning, which is the honest record. If the decision shapes the whole design (the strategy, an app, a flow), also offer a decision record: say it is optional, and on a yes write a stub `09-decisions/ADR-nnnn-<slug>.md` (`vela next-id ADR`) with `state: proposed` and the Why as its Context, which close fills in.
 - For a contract, record where the provider stands as well as each consumer, as a capture: present, async with channel and date, asked in the PR, or "not consulted: <reason>".
 - If anyone disagrees, add `- **Dissent:** <name>, <date>: <reason>`. The item can still be decided.
 - If the user overrode a gate for it, add the `**Override:**` bullet, and `**Decided by:**` when the owner is not the user, as section 2 says.
@@ -101,7 +101,7 @@ A functional requirement is a `### CAP-nnn.FRn <what the capability does>` headi
 
 A release is a `## <name>` section on `04b-releases.md`, with no ID. A Grill decides it by setting that section's `**State:**` to `decided` and adding `- **Decision:** [[<session id>]]` directly under the page's `## History`. Without that Decision, check reports E303 on the release's heading.
 
-Write fact bullets (the Why among them) and table cells only. Prose waits for close. Any `- Trace:` line on an item or a criterion is the planner's: leave it exactly as it is.
+Write fact bullets (the Why among them) and table cells only. Prose waits for close. Any `- Trace:` line on an item or a criterion is vela's: leave it exactly as it is.
 
 ## 5. A new unknown mid-grill
 

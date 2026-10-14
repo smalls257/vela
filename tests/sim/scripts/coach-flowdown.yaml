@@ -690,29 +690,29 @@ team_repos:
 sessions:
 - mode: requirements
   cap: 24
-  planner: /planner:requirements
+  vela: /vela:requirements
   baseline: 'Write the functional requirements for each capability the decided strategy needs, naming no app, with acceptance criteria. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: allocate
   cap: 20
-  planner: /planner:allocate
+  vela: /vela:allocate
   baseline: 'Divide each functional requirement among the apps and contracts that deliver it. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: tech-design-grill
   cap: 26
   repo: coach
   persona: coach-lead
-  planner: /tech-design-grill coach --vault ../vault --app APP-coach
+  vela: /tech-design-grill coach --vault ../vault --app APP-coach
   baseline: /tech-design-grill coach --vault ../vault --app APP-coach
 - mode: work-breakdown
   cap: 12
   repo: coach
   persona: coach-lead
-  planner: /work-breakdown coach --vault ../vault --app APP-coach
+  vela: /work-breakdown coach --vault ../vault --app APP-coach
   baseline: /work-breakdown coach --vault ../vault --app APP-coach

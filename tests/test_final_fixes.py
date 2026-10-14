@@ -5,7 +5,7 @@ import sys
 
 from conftest import REPO, check, edit, findings, skill_text
 
-BIN = REPO / "plugin" / "scripts" / "planner"
+BIN = REPO / "plugin" / "scripts" / "vela"
 CAP = "capabilities/CAP-001-sell.md"
 GOALS = "01-goals.md"
 SESSION = "sessions/2026-01-10-shop-api.md"
@@ -63,7 +63,7 @@ def test_running_the_bin_writes_no_pycache(tmp_path):
     shutil.copytree(REPO / "plugin", plugin, ignore=shutil.ignore_patterns("__pycache__"))
     vault = tmp_path / "vault"
     shutil.copytree(REPO / "tests" / "fixtures" / "mini", vault)
-    result = subprocess.run([sys.executable, str(plugin / "scripts" / "planner"), "check"], cwd=vault,
+    result = subprocess.run([sys.executable, str(plugin / "scripts" / "vela"), "check"], cwd=vault,
                             capture_output=True, text=True, env={k: v for k, v in os.environ.items() if k != "PYTHONDONTWRITEBYTECODE"}, timeout=120)
     assert result.returncode in (0, 1), result.stderr
     assert not list(plugin.rglob("*.pyc"))
@@ -217,19 +217,19 @@ def read(*parts):
 
 def test_close_and_epics_stage_what_render_rewrote():
     close, epics, modes = skill_text("close"), read("plugin/skills/epics/SKILL.md"), read("plugin/references/MODES.md")
-    # close stages through `planner close stage`, whose allow-list includes what render rewrote
+    # close stages through `vela close stage`, whose allow-list includes what render rewrote
     # (tests/test_close_stage.py); epics still stages by hand until its rewrite
-    assert "planner close stage --close" in close and "what render rewrote" in close
-    assert "Stage every file `planner render` reported" in epics
-    assert "Close runs `planner render` for those." not in modes and "so does `epics`" in modes
+    assert "vela close stage --close" in close and "what render rewrote" in close
+    assert "Stage every file `vela render` reported" in epics
+    assert "Close runs `vela render` for those." not in modes and "so does `epics`" in modes
 
 
 def test_pr_workflow_fails_a_stale_generated_block():
     import yaml
-    workflow = yaml.safe_load(read("template/.github/workflows/planner-check.yml"))
-    commands = [s.get("run", "") for s in workflow["jobs"]["planner-check"]["steps"]]
-    assert "python .claude/skills/planner/scripts/planner render && git diff --exit-code" in commands
-    assert commands.index("python .claude/skills/planner/scripts/planner check") < commands.index(commands[-1])
+    workflow = yaml.safe_load(read("template/.github/workflows/vela-check.yml"))
+    commands = [s.get("run", "") for s in workflow["jobs"]["vela-check"]["steps"]]
+    assert "python .claude/skills/vela/scripts/vela render && git diff --exit-code" in commands
+    assert commands.index("python .claude/skills/vela/scripts/vela check") < commands.index(commands[-1])
 
 
 def test_epics_writes_owning_team_and_close_leaves_it():
@@ -239,11 +239,11 @@ def test_epics_writes_owning_team_and_close_leaves_it():
 
 
 def test_close_checks_remote_session_records_before_taking_an_id():
-    """Close numbers through `planner next-id`, which reads every local and remote session branch itself (Task 1 of
+    """Close numbers through `vela next-id`, which reads every local and remote session branch itself (Task 1 of
     the overhaul dropped the grep recipe; `tests/test_next_id.py` pins what the command counts)."""
     close = skill_text("close")
     step3 = close.split("## 3.")[1].split("## 4.")[0]
-    assert "planner next-id <its prefix>" in step3 and "every session branch" in step3
+    assert "vela next-id <its prefix>" in step3 and "every session branch" in step3
     cli = read("plugin/lib/vela/cli.py")
     assert '"refs/heads/session/", "refs/remotes/origin/session/"' in cli
 
@@ -263,8 +263,8 @@ def test_requirements_called_from_another_mode_joins_the_open_session():
 
 
 def test_template_wrapper_readme_and_claude_md():
-    assert 'cd "$root" && exec claude' in read("template/bin/claude-planner")
-    assert "`/ask`" not in read("template/CLAUDE.md") and "`/planner:ask`" in read("template/CLAUDE.md")
+    assert 'cd "$root" && exec claude' in read("template/bin/claude-vela")
+    assert "`/ask`" not in read("template/CLAUDE.md") and "`/vela:ask`" in read("template/CLAUDE.md")
     readme = read("template/README.md")
     assert "Python 3.9" in readme and "Nothing to pip install" in readme and "pip install pyyaml" not in readme
-    assert "python3 .claude/skills/planner/scripts/planner view --out ~/Desktop/<name>.html" in readme
+    assert "python3 .claude/skills/vela/scripts/vela view --out ~/Desktop/<name>.html" in readme

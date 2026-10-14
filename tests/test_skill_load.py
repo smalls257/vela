@@ -14,7 +14,7 @@ def test_skill_load_counts_start_modes_review_and_skill():
 
 
 def test_a_grill_reads_conventions_by_section_not_whole():
-    """Task 30: once every cite goes through `planner conventions`, a grill no longer loads the whole rule book."""
+    """Task 30: once every cite goes through `vela conventions`, a grill no longer loads the whole rule book."""
     found = skill_load.measure("grill")
     whole = len((REPO / skill_load.CONVENTIONS).read_text(encoding="utf-8").split())
     assert "sections" in found["conventions_how"] and found["conventions"] < whole / 2

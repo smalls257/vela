@@ -329,9 +329,9 @@ def test_the_digest_shows_consequential_lines_in_full_and_counts_the_rest_by_are
     assert code == 0
     assert lines[0].endswith("11 questions to settle, most important first: 1 in full, 10 more counted by area.")
     assert lines[1] == "1. [Regulation and liability] high: High question about points?"
-    assert "Finance and liabilities (FIN): 8 more of normal priority. List them: planner questions --open --digest --all --area FIN" in lines
-    assert "Operations and people (OPS): 2 more of normal priority. List them: planner questions --open --digest --all --area OPS" in lines
-    assert lines[-1] == "Every line in full: planner questions --open --digest --all"
+    assert "Finance and liabilities (FIN): 8 more of normal priority. List them: vela questions --open --digest --all --area FIN" in lines
+    assert "Operations and people (OPS): 2 more of normal priority. List them: vela questions --open --digest --all --area OPS" in lines
+    assert lines[-1] == "Every line in full: vela questions --open --digest --all"
 
 
 def test_digest_all_prints_every_line_in_full(tmp_path):

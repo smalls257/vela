@@ -28,7 +28,7 @@ This epic turns what the call tools leave behind, read through the [[heron-build
 
 ## Traces to
 
-<!-- generated:traces-to sha=04776c27: do not edit, run planner render -->
+<!-- generated:traces-to sha=04776c27: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[heron-building-blocks\|Heron]] |

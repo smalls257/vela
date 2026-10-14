@@ -19,7 +19,7 @@ def test_moved_recipes_are_gone_from_close():
 
 def test_close_names_only_commands_that_exist():
     parser = cli.build_parser()
-    calls = re.findall(r"`planner ((?:close|session|guard|conventions|check-slice) [^`]*)`", CLOSE)
+    calls = re.findall(r"`vela ((?:close|session|guard|conventions|check-slice) [^`]*)`", CLOSE)
     assert len(calls) >= 6, calls
     for call in calls:
         argv = shlex.split(re.sub(r"<[^>]*>", "X", call))
@@ -36,10 +36,10 @@ def test_the_moved_rules_keep_their_reasons_in_code():
 
 def test_close_gate_runs_before_the_close_commit_and_its_consent_block_goes_in_the_pr():
     seven = CLOSE.split("## 7. Finish the record", 1)[1].split("## 8.", 1)[0]
-    assert seven.index("planner close gate --for-lead") < seven.index("planner close stage --close")
-    assert seven.index("planner check-slice --changed") < seven.index("planner close stage --close")
+    assert seven.index("vela close gate --for-lead") < seven.index("vela close stage --close")
+    assert seven.index("vela check-slice --changed") < seven.index("vela close stage --close")
     eight = CLOSE.split("## 8. Open the PR", 1)[1].split("## What you tell", 1)[0]
-    assert "planner close gate --consent-block" in eight
+    assert "vela close gate --consent-block" in eight
 
 
 def test_a_command_that_cant_do_it_is_a_stop_not_a_recipe():

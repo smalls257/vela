@@ -1,6 +1,6 @@
 """The vault's own pages, readable inside the explorer, and the sidebar that lists them in the vault's section order.
 
-A page is shown in planner's reading order (`reading.arrange`, the same the planner viewer uses: what is true now
+A page is shown in vela's reading order (`reading.arrange`, the same vela viewer uses: what is true now
 first, history folded at the end, generated blocks under plain headings). This module renders that Markdown to HTML
 itself, escaping every character of vault text, so no page can add markup of its own. The only tags it writes are
 fixed ones: headings, paragraphs, lists, tables, quotes, code, details and sup. Wikilinks become `data-ref` links,
@@ -211,7 +211,7 @@ class Renderer:
 
 
 def page_reader(page, keys):
-    """{"html", "toc"} for one page in planner's reading order."""
+    """{"html", "toc"} for one page in vela's reading order."""
     r = Renderer(page, keys)
     body = r.render(reading.arrange(body_of(page)))
     return {"html": body, "toc": r.toc}

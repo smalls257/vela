@@ -1,6 +1,6 @@
 """The viewer's reading order for a page: what is true now first, its history folded at the end. Pure: text in, text out.
 
-The files keep their IDs, fact bullets and history where `planner check` reads them. A reader wants none of that up
+The files keep their IDs, fact bullets and history where `vela check` reads them. A reader wants none of that up
 top. So, for display only:
 - history bullets (Decision, Override, Decided by, Confirmed by, Options considered, Dissent), and the page's own
   "## History" section, move into one folded "History" at the end, grouped by the item they belong to;
@@ -290,7 +290,7 @@ def not_started(markdown, page_type="", state=""):
     return rows == 0 and prose <= 1
 
 
-# ------------------------------------------------------------------ planner style
+# ------------------------------------------------------------------ vela style
 
 PROSE_PAGE_TYPES = ("app-building-blocks", "app-runtime", "initiative-section", "capability", "epic", "concern", "flow")
 # The vault's own ID kinds, so ISO-8601, UTF-8 or SHA-256 in a sentence is not taken for one.
@@ -331,8 +331,8 @@ def lint_pattern(entry):
 
 
 def style_problems(markdown, page_type, known_labels=(), lint=()):
-    """(line, problem) for each place a page reads as a list or a log rather than a document. Read by `planner
-    style`. `known_labels` are the fact-bullet labels `planner check` reads; any other bold label is prose dressed up
+    """(line, problem) for each place a page reads as a list or a log rather than a document. Read by `vela
+    style`. `known_labels` are the fact-bullet labels `vela check` reads; any other bold label is prose dressed up
     as data. `lint` is the word list, as lint_words reads it: each word on the page is one problem, with the count."""
     known = {label.lower() for label in known_labels}
     patterns, hits = {entry: lint_pattern(entry) for entry in lint}, {}
@@ -377,7 +377,7 @@ def style_problems(markdown, page_type, known_labels=(), lint=()):
         if item_line and not item_said and not stripped.startswith(("-", "*", "|")):
             item_said = True
         if labeled and not HISTORY_BULLET.match(line) and labeled.group(1).strip().lower() not in known and not in_history:
-            problems.append((n, f"'{labeled.group(1).strip()}' is not a fact bullet planner check reads; write it as "
+            problems.append((n, f"'{labeled.group(1).strip()}' is not a fact bullet vela check reads; write it as "
                                 "prose"))
             continue
         if HISTORY_BULLET.match(line) and not in_history:

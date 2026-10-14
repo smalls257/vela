@@ -4,7 +4,7 @@ Spatial memory is the point (research note, 2026-10-10-visualizing-dependencies-
 Coach is top right, and every view, the cockpit, the line map, the minimap, the flow lanes, keeps it there. A
 position never comes from a force layout or from the screen size.
 
-    <vault>/.planner/explorer-pins.json   {node key: [col, row]}
+    <vault>/.vela/explorer-pins.json   {node key: [col, row]}
 
 A position is a pair of numbers, fractional where a reader dropped a box between cells: a box stays where it is put.
 The one rule (check_move, and layout.js in the page) is that no box is drawn over another: two boxes, as drawn, keep
@@ -20,7 +20,7 @@ import itertools
 import json
 import pathlib
 
-PINS_FILE = ".planner/explorer-pins.json"
+PINS_FILE = ".vela/explorer-pins.json"
 GROUP_PREFIX = "grp:"
 # How a cell is drawn on the cockpit, the minimap and the releases view (they share this frame, so a box clear of its
 # neighbors on one is clear on all): pixels per column and per row, and how far below its row an outside party is

@@ -1,5 +1,5 @@
 /* #selftest: the page checks itself, as a person would use it, and writes the report to the console and to
-   <body data-selftest>. Search must rank exactly as `planner query search` does (the CLI's answers are embedded at
+   <body data-selftest>. Search must rank exactly as `vela query search` does (the CLI's answers are embedded at
    build time); the two live-call paths are run for real and their clicks counted; every view is rendered and
    checked against the data; every light drawn must be attention.py's. Any failure line starts with FAIL. */
 const SelfTest = (() => {
@@ -870,7 +870,7 @@ const SelfTest = (() => {
     Releases.st.compare = false; Releases.st.at = 0;
   }
   /* What a real vault lacks (no domains, releases, requirement rows, flows, Ask lines) is said where the reader looks,
-     with the planner step that writes it; and a flow of inferred arrows says so once. */
+     with vela step that writes it; and a flow of inferred arrows says so once. */
   /* A vault that gains a vault_id keeps what the browser saved under its old id (E18), against a fake store. */
   /* Keys the page owns must leave fields and controls alone (E34, E35). */
   /* The page's Content-Security-Policy stops an inline handler from vault text (E38). */
@@ -951,7 +951,7 @@ const SelfTest = (() => {
     const doorHas = async (role, text) => { Nav.role(role); await frames(); return has($(".door"), text); };
     if (D.map.apps.length) {
       Nav.home(); MapView.st.lens = "cockpit"; MapView.st.focus = null; MapView.st.group = "none"; rerender(); await frames();
-      for (const [id, key, writer] of [["domain", "domain", "/planner:boundary"], ["capability", "capability", "/planner:requirements"]]) {
+      for (const [id, key, writer] of [["domain", "domain", "/vela:boundary"], ["capability", "capability", "/vela:requirements"]]) {
         const btn = $(`#main button[data-group="${id}"]`), off = !D.grouping[key];
         ok(!!btn && btn.disabled === off && (!off || /nothing to group by/.test(btn.title)), `group by ${id}: ${off ? "disabled, the tooltip says there is nothing to group by yet" : "offered"}`, `group by ${id}: ${btn ? `disabled ${btn.disabled}` : "no button"}, title "${btn ? btn.title : ""}", wanted ${off ? "off" : "on"}`);
       }
@@ -967,13 +967,13 @@ const SelfTest = (() => {
       Nav.role("exec"); await frames();
       ok(D.releases.count || has($(".door"), "No releases recorded yet."), "exec door: release timeline says no releases are recorded", "exec door: no releases and no empty state");
       ok(D.releases.count || await doorHas("product", "No releases recorded yet."), "product door: what each release delivers names 04b-releases.md", "product door: no empty state for releases");
-      if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirement rows yet."), "product door: the requirement cards name /planner:requirements and /planner:allocate", "product door: no empty state for requirements");
-      if (!D.trace.epics.length) ok(await doorHas("qa", "No epics yet."), "QA door: criteria cards name /planner:epics", "QA door: no empty state for epics");
+      if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirement rows yet."), "product door: the requirement cards name /vela:requirements and /vela:allocate", "product door: no empty state for requirements");
+      if (!D.trace.epics.length) ok(await doorHas("qa", "No epics yet."), "QA door: criteria cards name /vela:epics", "QA door: no empty state for epics");
     }
     if (!D.trace.requirements.length) { showView("trace"); await frames(); ok(has($("#main"), "No requirements written yet.") && /allocate/.test($("#main .empty-state").textContent), "trace: requirement level says no requirements are written and which steps write them", "trace: no empty state for missing requirement rows"); }
     if (!D.flows.length) {
       showView("flows"); await frames();
-      ok(has($("#main"), "No flows yet.") && $("#main .es-writer").textContent.includes("/planner:boundary"), "flows view: 'No flows yet', written by /planner:boundary", "flows view: no empty state");
+      ok(has($("#main"), "No flows yet.") && $("#main .es-writer").textContent.includes("/vela:boundary"), "flows view: 'No flows yet', written by /vela:boundary", "flows view: no empty state");
       Search.type("how does it work"); await frames();
       ok(has($("#results"), "No flows yet.") && !$("#results").hidden, "search 'how does ...': says there are no flows rather than return nothing", "search 'how does': nothing said about missing flows"); Search.type("");
     } else {
@@ -1008,8 +1008,8 @@ const SelfTest = (() => {
       window.fetch = realFetch;
       ok(Ask.st.mode === "file" && real.fetches === 0 && !seen.length && !Ask.served() && document.documentElement.dataset.ask === "file",
         "ask on a file: the helper is not looked for, no request is made, Enter asks nothing", `ask on a file: mode ${Ask.st.mode}, ${real.fetches} fetches at boot, ${seen.length} during, served ${Ask.served()}`);
-      ok(/Copy as a Claude Code prompt/.test(rowText) && /\/planner:explore/.test(rowText) && !$("#results .ask-btn b").textContent.includes("Ask Claude"),
-        "ask on a file: the box offers Copy as a Claude Code prompt and says to run /planner:explore, with no Ask button", `ask on a file: row says "${rowText}"`);
+      ok(/Copy as a Claude Code prompt/.test(rowText) && /\/vela:explore/.test(rowText) && !$("#results .ask-btn b").textContent.includes("Ask Claude"),
+        "ask on a file: the box offers Copy as a Claude Code prompt and says to run /vela:explore, with no Ask button", `ask on a file: row says "${rowText}"`);
       const prompt = Ask.promptFor("What does the demo deliver?");
       ok(prompt.startsWith("What does the demo deliver?") && prompt.includes("[[ID]]") && prompt.includes("Never create, edit or delete"),
         "ask on a file: the copied prompt is the question plus the citation rules", `ask on a file: prompt "${prompt.slice(0, 80)}"`);
@@ -1279,7 +1279,7 @@ const SelfTest = (() => {
   async function run() {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
-    out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
+    out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as vela query search`);
     try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await panning(); await effects(); await panelRoom(); await sideRoom(); await sliceChecks(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
@@ -1333,7 +1333,7 @@ const SelfTest = (() => {
         ok(/hasn't shared a design yet/.test(say) && say.includes("--design"), `inside ${name}, components: no design, so the chip says how to load one with --design`, `inside ${name}, components: no design and no chip ("${say.slice(0, 60)}")`);
         continue;
       }
-      if (d.summary && d.summary.text) {  // a summary-first design (/planner:design) opens its panel on the summary, then the walking skeleton
+      if (d.summary && d.summary.text) {  // a summary-first design (/vela:design) opens its panel on the summary, then the walking skeleton
         const body = h("div", {}, ...Inside.panel(Inside.designKey())), first = $(".p-body > *", body), skel = [...$$(".p-body *", body)].some((x) => x.textContent.trim() === "Walking skeleton");
         const wantSkel = !!(d.walking_skeleton && Object.keys(d.walking_skeleton.fields || {}).length);
         ok(!!first && first.classList.contains("in-summary") && skel === wantSkel, `inside ${name}: the design panel opens on its summary${wantSkel ? ", with the walking skeleton below" : ""}`,
@@ -1630,8 +1630,8 @@ const SelfTest = (() => {
       ok(location.hash.startsWith("#drafts") && cards.length === D.draft.pages.length && rows.every((n, i) => n === expect[i]) && /changed/.test($("#main h1").textContent),
         `drafts view: #drafts lists ${plural(cards.length, "changed page")} with ${rows.reduce((a, b) => a + b, 0)} diff lines, each page linked`, `drafts view: hash ${location.hash}, ${cards.length} cards for ${D.draft.pages.length}, rows ${rows} vs ${expect}`);
       const hint = $("#propose-hint");
-      ok(!!hint && /\/planner:propose/.test(hint.textContent) && !!hint.querySelector("code") && /Nothing is sent from this page/.test(hint.textContent),
-        "drafts view: a hint names /planner:propose as the way to send the changes, and says the page sends nothing", `drafts view: hint ${hint ? hint.textContent : "missing"}`);
+      ok(!!hint && /\/vela:propose/.test(hint.textContent) && !!hint.querySelector("code") && /Nothing is sent from this page/.test(hint.textContent),
+        "drafts view: a hint names /vela:propose as the way to send the changes, and says the page sends nothing", `drafts view: hint ${hint ? hint.textContent : "missing"}`);
       Nav.home(); await frames();
     }
     ok(rank("pending") < rank("caution") && rank("pending") > rank("unexamined") && rank("pending") > rank("dark"),

@@ -54,7 +54,7 @@ def test_viewer_builds_offline_from_the_fixture(tmp_path):
     # the stamp repeats what check says of the vault; the example leaves open on purpose its decided items' Why (W390) and
     # the flow check of slices whose flows predate the strict form (W391)
     checked = run("check", "--vault", str(vault), "--today", "2026-11-20")[1]
-    counts = re.search(r"planner check: (\d+) errors, (\d+) warnings", checked)
+    counts = re.search(r"vela check: (\d+) errors, (\d+) warnings", checked)
     assert counts, checked
     assert data["stamp"] == {"commit": "abc1234", "date": "2026-11-20",
                              "repo": "https://github.example/harborline/unified-booking",
@@ -266,7 +266,7 @@ def test_code_and_diagrams_are_left_as_written(tmp_path):
 
 def test_generated_markers_survive_neutralizing():
     from vela import viewer
-    marker = "<!-- generated:where-it-stands sha=0a1b2c3d: do not edit, run planner render -->"
+    marker = "<!-- generated:where-it-stands sha=0a1b2c3d: do not edit, run vela render -->"
     end = "<!-- /generated:where-it-stands -->"
     assert viewer.neutralize(f"{marker}\ntext <b>\n{end}") == f"{marker}\ntext &lt;b>\n{end}"
     assert viewer.neutralize("<!-- anything else -->") == "&lt;!-- anything else -->"

@@ -201,13 +201,13 @@ def write(app_id, entries, commit, today, not_firm=(), title="", checks=()):
     """The manifest file's text. `not_firm` is the sentences handoffwarn found, so the senior's copy says what was never
     decided; `checks` is `check_lines`, so it says how far each slice's logic was proved. Neither is part of a hash."""
     rows = [f"| {e.id} | {e.kind} | {e.page} | {e.state or '-'} | {e.hash} |" for e in entries]
-    tail = ["", CHECKS_HEADING, "", "Where each slice's flow check stood, as recorded by planner check-slice:", "", *checks] if checks else []
+    tail = ["", CHECKS_HEADING, "", "Where each slice's flow check stood, as recorded by vela check-slice:", "", *checks] if checks else []
     tail += ["", NOT_FIRM_HEADING, "", "The app's team accepts it knowing these are still open:", "", *not_firm, ""] if not_firm else [""]
     return "\n".join([
         f"# Handoff record: {title or app_id}", "",
         f"- **App:** {app_id}", f"- **Commit:** {commit}", f"- **Written:** {today}", f"- **Items:** {len(entries)}", "",
-        f"Made by `planner handoff {app_id}`; don't edit it by hand. To see what changed since the app's team accepted it, "
-        f"run `planner handoff verify {app_id}`. The Hash column is a fingerprint of each item's text, used to spot changes.", "",
+        f"Made by `vela handoff {app_id}`; don't edit it by hand. To see what changed since the app's team accepted it, "
+        f"run `vela handoff verify {app_id}`. The Hash column is a fingerprint of each item's text, used to spot changes.", "",
         "| " + " | ".join(HEADER) + " |", "|---|---|---|---|---|", *rows, *tail])
 
 

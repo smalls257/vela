@@ -30,11 +30,11 @@ def test_render_is_a_no_op_on_the_template(tmp_path):
 
 
 def test_config_files():
-    config = yaml.safe_load((TEMPLATE / ".planner.yaml").read_text(encoding="utf-8"))
+    config = yaml.safe_load((TEMPLATE / ".vela.yaml").read_text(encoding="utf-8"))
     assert set(config) == {"initiative", "title", "stale_after_days"}
     assert config["stale_after_days"] == 60
     ignored = (TEMPLATE / ".gitignore").read_text(encoding="utf-8").split()
-    assert ignored == [".inbox/", "voice/corpus/", "voice/local/", ".obsidian/workspace*.json", ".obsidian/cache", "__pycache__/", "*.pyc", ".planner/*", "!.planner/explorer-pins.json"]
+    assert ignored == [".inbox/", "voice/corpus/", "voice/local/", ".obsidian/workspace*.json", ".obsidian/cache", "__pycache__/", "*.pyc", ".vela/*", "!.vela/explorer-pins.json"]
     assert json.loads((TEMPLATE / ".obsidian" / "app.json").read_text(encoding="utf-8")) == {"alwaysUpdateLinks": False}
     assert json.loads((TEMPLATE / ".claude" / "settings.json").read_text(encoding="utf-8")) == {"autoMemoryEnabled": False}
 
@@ -56,13 +56,13 @@ def test_eight_concern_pages():
                      "concern-ownership", "concern-rollout", "concern-security", "concern-testing"]
 
 
-def test_pr_check_workflow_runs_planner_check():
-    workflow = yaml.safe_load((TEMPLATE / ".github" / "workflows" / "planner-check.yml").read_text(encoding="utf-8"))
+def test_pr_check_workflow_runs_vela_check():
+    workflow = yaml.safe_load((TEMPLATE / ".github" / "workflows" / "vela-check.yml").read_text(encoding="utf-8"))
     triggers = workflow.get("on", workflow.get(True))  # YAML 1.1 reads a bare "on" key as True
     assert "pull_request" in triggers
-    steps = workflow["jobs"]["planner-check"]["steps"]
+    steps = workflow["jobs"]["vela-check"]["steps"]
     commands = [s.get("run", "") for s in steps]
-    assert "python .claude/skills/planner/scripts/planner check" in commands
+    assert "python .claude/skills/vela/scripts/vela check" in commands
     assert not any("pyyaml" in c for c in commands)  # the plugin brings its own
 
 
@@ -78,11 +78,11 @@ def test_installed_plugin_checks_the_vault(tmp_path):
     """The documented install: copy the plugin into the vault, run it from the vault root."""
     vault = tmp_path / "vault"
     shutil.copytree(TEMPLATE, vault)
-    shutil.copytree(REPO / "plugin", vault / ".claude" / "skills" / "planner")
-    result = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "check"],
+    shutil.copytree(REPO / "plugin", vault / ".claude" / "skills" / "vela")
+    result = subprocess.run([sys.executable, ".claude/skills/vela/scripts/vela", "check"],
                             cwd=vault, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.startswith("planner check: 0 errors, 0 warnings in 23 pages, judged as of ")
+    assert result.stdout.startswith("vela check: 0 errors, 0 warnings in 23 pages, judged as of ")
 
 
 def test_readme_install_step_works_on_a_fresh_copy(tmp_path):
@@ -95,21 +95,21 @@ def test_readme_install_step_works_on_a_fresh_copy(tmp_path):
     install = subprocess.run(command.replace("<toolkit>", str(REPO)), shell=True, cwd=vault,
                              capture_output=True, text=True)
     assert install.returncode == 0, install.stderr
-    result = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "check"],
+    result = subprocess.run([sys.executable, ".claude/skills/vela/scripts/vela", "check"],
                             cwd=vault, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_wrapper_loads_the_copied_plugin():
-    """Claude Code does not discover skills under .claude/skills/planner; only --plugin-dir loads them."""
-    wrapper = TEMPLATE / "bin" / "claude-planner"
+    """Claude Code does not discover skills under .claude/skills/vela; only --plugin-dir loads them."""
+    wrapper = TEMPLATE / "bin" / "claude-vela"
     assert wrapper.exists() and os.access(wrapper, os.X_OK)
     assert "--plugin-dir" in wrapper.read_text(encoding="utf-8")
-    assert "bin/claude-planner" in (TEMPLATE / "README.md").read_text(encoding="utf-8")
+    assert "bin/claude-vela" in (TEMPLATE / "README.md").read_text(encoding="utf-8")
 
 
 def test_a_fresh_vault_tracks_the_map_pins_and_ignores_the_rest_of_the_tool_folder(tmp_path):
-    """The pins are the one .planner/ file a team shares; a reader's workspace and the built page stay out of commits."""
+    """The pins are the one .vela/ file a team shares; a reader's workspace and the built page stay out of commits."""
     vault = tmp_path / "vault"
     shutil.copytree(TEMPLATE, vault)
     subprocess.run(["git", "init", "-q", str(vault)], check=True, timeout=60)
@@ -118,8 +118,8 @@ def test_a_fresh_vault_tracks_the_map_pins_and_ignores_the_rest_of_the_tool_fold
         done = subprocess.run(["git", "-C", str(vault), "check-ignore", "-q", path], timeout=60)
         return done.returncode == 0
 
-    assert not ignored(".planner/explorer-pins.json")
+    assert not ignored(".vela/explorer-pins.json")
     assert not ignored("dashboard.html"), "colleagues must get the built page from git"
-    for path in (".planner/workspace.json", ".planner/baseline/01-goals.md",
-                 ".planner/replay-backup/x.md", ".planner/findings/a.md"):
+    for path in (".vela/workspace.json", ".vela/baseline/01-goals.md",
+                 ".vela/replay-backup/x.md", ".vela/findings/a.md"):
         assert ignored(path), path

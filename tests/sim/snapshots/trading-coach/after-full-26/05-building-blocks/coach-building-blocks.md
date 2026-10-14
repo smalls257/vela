@@ -16,7 +16,7 @@ Coach is the new service behind TickerTalk's coach screens. It teaches one stock
 
 Coach places no real order and trades nothing for a reader, because [[sources#SRC-08|Outside Counsel's reply]] bars it in the first release. It covers no options, gives no trade idea for a particular reader, holds no money, which stays with Brightwater, and draws no screens, which stay in TickerTalk. It does not use Signal in release one. It does not write the lessons: [[11-unknowns-and-risks#UNK-018 Who writes the lessons and defines ready|who writes them]] is open. Where it runs is open too, see [[11-unknowns-and-risks#UNK-028 Where a Coach service can run|the question on a backend]]. Whether Coach or the sandbox is the record of a reader's paper trades is not decided, and the data concern has not been examined.
 
-<!-- generated:app-context sha=681ffadc: do not edit, run planner render -->
+<!-- generated:app-context sha=681ffadc: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -100,7 +100,7 @@ Quoteline's delayed US equity quotes. [[sources#SRC-10|Quoteline's reply]] says 
 
 ## Contracts consumed
 
-<!-- generated:contracts-consumed sha=6f7a0ee5: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=6f7a0ee5: do not edit, run vela render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[coach-building-blocks#CON-003 Brightwater sandbox\|CON-003 Brightwater sandbox]] | [[03-context-and-scope#PTY-01 Brightwater\|Brightwater]] | set by the Brightwater agreement; either side may leave with 90 days' notice; Coach treats the notice as the trigger to freeze, showing each reader's last known positions and balance marked frozen with new paper orders switched off, which holds only if Coach is the record ([[11-unknowns-and-risks#UNK-029 Where the paper record lives\|where the paper record lives]]) | decided |

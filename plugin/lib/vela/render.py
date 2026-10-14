@@ -330,7 +330,7 @@ def capability_map(vault, page):
 
 # ------------------------------------------------------------------ progress
 
-# The session `planner next` suggests, as the Next session column says it; "probe" is a mode name, not a reader's word.
+# The session `vela next` suggests, as the Next session column says it; "probe" is a mode name, not a reader's word.
 MODE_WORDS = {"probe": "Chase the answer to", "discover": "Discover", "shape": "Shape", "grill": "Grill",
               "boundary": "Boundary", "epics": "Epics"}
 
@@ -452,7 +452,7 @@ def render_page(vault, page, discard_edits=False):
             if edited:
                 refusals.append(Finding(page.path, block.start, "E401",
                                         f"Someone edited the '{block.name}' block by hand, so render left the page alone.",
-                                        "Undo the edit and change the source pages instead, or run planner render --discard-edits."))
+                                        "Undo the edit and change the source pages instead, or run vela render --discard-edits."))
             out.extend(lines[block.start - 1:block.end])
         else:
             if edited:

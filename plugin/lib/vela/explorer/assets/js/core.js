@@ -1,5 +1,5 @@
 "use strict";
-/* Vault explorer, shared core. Every fact on this page comes from the JSON build.py wrote from the planner's own
+/* Vault explorer, shared core. Every fact on this page comes from the JSON build.py wrote from vela's own
    model; the lights are attention.lights, the one rule for what needs the lead. This script arranges and draws. */
 window.__errors = [];
 window.addEventListener("error", (ev) => window.__errors.push(String(ev.message)));
@@ -34,7 +34,7 @@ function h(tag, attrs, ...kids) {
   }
   return node;
 }
-/* The one empty state. A view with nothing to draw says what is missing, in plain words, and which planner step
+/* The one empty state. A view with nothing to draw says what is missing, in plain words, and which vela step
    writes it, so a reader on a live call can tell "not recorded yet" from "broken". `writer` is a slash command, or a list of them.
    Every view uses this; none writes its own "nothing here" block. */
 function emptyState(missing, detail, writer, extraClass) {
@@ -70,7 +70,7 @@ function openLink(kids, relative, inVault, title, cls = "btn quiet") {
    generated pages and this page say the same thing. An unknown word throws rather than showing an undefined term. */
 function termEl(word, shown) {
   const text = (D.terms || {})[word];
-  if (!text) throw new Error(`termEl: no definition for "${word}" in planner/terms.py`);
+  if (!text) throw new Error(`termEl: no definition for "${word}" in vela/terms.py`);
   return h("span", { class: "term", title: text, tabindex: "0", "aria-label": `${shown || word}: ${text}` }, shown || word);
 }
 const termTip = (word) => { const text = (D.terms || {})[word]; if (!text) throw new Error(`termTip: no definition for "${word}"`); return text; };
@@ -114,7 +114,7 @@ const Settings = {
   },
   write(k, v) { try { localStorage.setItem(k, v); } catch (e) { console.warn("[settings] this browser keeps no settings:", e.message); } },
 };
-/* A vault that gains a vault_id in .planner.yaml (E18) keeps what this browser saved under the id it had before: the
+/* A vault that gains a vault_id in .vela.yaml (E18) keeps what this browser saved under the id it had before: the
    asks board, the layout, the Ask conversations and the rehearsals are copied to the new id once, never moved or
    overwritten, so going back to an older page still finds them. Returns the keys it copied. */
 function migrateSaved(legacy, current, store = localStorage) {
@@ -294,7 +294,7 @@ function refChip(key, extra) {
     lvl && lvl !== "dark" ? lampEl(lvl, challenged && own !== "caution" ? "Needs you: a team's design questions it" : null) : null,
     e.title, id ? h("span", { class: "rid id-tag" }, id) : null, extra || null);
 }
-/* Where a thing's work lives outside the vault (planner's links.py: a page's links:, an item's **Links:**). Each chip
+/* Where a thing's work lives outside the vault (vela's links.py: a page's links:, an item's **Links:**). Each chip
    is a plain link that opens in a new tab; the page never fetches it. Only http(s) reaches an href: a file:// link is a
    local clone, read at build time for the team's design (design_find.py), and draws no chip. */
 const linksOf = (key) => ((E[key] || {}).links || []).filter((l) => /^https?:\/\//i.test(l.url));

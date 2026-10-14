@@ -1,7 +1,7 @@
 """Input readers: a vault's files in, normalized tables out. Pure: they take {path: text}, never the disk.
 
 One reader per format, and the vault's own readers wherever the vault already has one, so the checker can never
-read a page differently from `planner check`:
+read a page differently from `vela check`:
 - Markdown pages go through `parse.parse_page` and `model.build`, like every other command;
 - a contract's case table and its Can time out, Retries and Idempotent bullets go through `cases` (the same parser
   W380 to W385 use);
@@ -34,14 +34,14 @@ _CLAUSE = re.compile(r"^(?P<entity>[a-z][a-z0-9_.]*) (?:(?P<op>is not|is) (?P<st
 
 def read_vault(files):
     """A Catalog from the vault's files: {posix path relative to the vault root: text}. Markdown is parsed the way
-    every planner command parses it; specs are read here."""
+    every vela command parses it; specs are read here."""
     pages = [parse.parse_page(path, files[path]) for path in sorted(files) if path.endswith(".md")]
     specs = {path: files[path] for path in sorted(files) if path.startswith("specs/") and path.endswith((".yaml", ".yml"))}
     return read_catalog(model.build(pages, {}), specs)
 
 
 def read_catalog(vault, specs):
-    """A Catalog from a vault model and the spec files' texts. `planner check` calls this with the vault it has
+    """A Catalog from a vault model and the spec files' texts. `vela check` calls this with the vault it has
     already built, so W391 costs no second parse."""
     cat = Catalog()
     channel_views = []

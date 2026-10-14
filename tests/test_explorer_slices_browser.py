@@ -31,7 +31,7 @@ def dom(chrome_path, page, hash_):  # noqa: F811
 @pytest.mark.browser
 def test_a_link_with_filters_opens_the_same_filtered_slices(tmp_path, chrome_path):  # noqa: F811
     vault = staged(tmp_path)
-    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(vault), "--today", "2026-11-20"]
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", str(vault), "--today", "2026-11-20"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     page = vault / "dashboard.html"
     out = dom(chrome_path, page, "s=slices&sl-status=building&sl-status=planned&still")
@@ -51,7 +51,7 @@ def test_a_link_with_filters_opens_the_same_filtered_slices(tmp_path, chrome_pat
 @pytest.mark.browser
 def test_the_selftest_walks_the_slices_view_with_a_journey_past_due(tmp_path, chrome_path):  # noqa: F811
     vault = staged(tmp_path)
-    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-11-20"]
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-11-20"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     runs = {viewport: _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", f"booking with slices moving at {viewport}", viewport)
             for viewport in ("1600,1000", "800,600")}

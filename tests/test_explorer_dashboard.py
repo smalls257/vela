@@ -124,7 +124,7 @@ def test_e18_two_vaults_with_the_same_initiative_and_title_get_different_ids_onc
     for name, vault_id in (("a", "v-11111111111111"), ("b", "v-22222222222222")):
         copy = tmp_path / name
         shutil.copytree(HERON, copy)
-        config = copy / ".planner.yaml"
+        config = copy / ".vela.yaml"
         config.write_text(config.read_text(encoding="utf-8") + f"vault_id: {vault_id}\n", encoding="utf-8")
         vault = cli.load_vault(copy)
         ids.append(build.extract(vault, copy, "2026-10-12")["vaultId"])
@@ -137,7 +137,7 @@ def test_e18_the_page_carries_the_old_id_so_the_browser_can_move_what_it_saved(t
     shutil.copytree(HERON, copy)
     before = build.extract(cli.load_vault(copy), copy, "2026-10-12")
     assert before["legacyVaultId"] == ""
-    config = copy / ".planner.yaml"
+    config = copy / ".vela.yaml"
     config.write_text(config.read_text(encoding="utf-8") + "vault_id: v-11111111111111\n", encoding="utf-8")
     after = build.extract(cli.load_vault(copy), copy, "2026-10-12")
     assert after["vaultId"] == "v-11111111111111" and after["legacyVaultId"] == before["vaultId"]
@@ -149,7 +149,7 @@ def test_e18_a_vault_id_that_cannot_scope_a_key_is_refused_not_ignored(tmp_path)
     from vela.explorer import build
     copy = tmp_path / "v"
     shutil.copytree(HERON, copy)
-    config = copy / ".planner.yaml"
+    config = copy / ".vela.yaml"
     config.write_text(config.read_text(encoding="utf-8") + "vault_id: 'a b:c'\n", encoding="utf-8")
     with pytest.raises(build.ExplorerError, match="vault_id"):
         build.extract(cli.load_vault(copy), copy, "2026-10-12")
@@ -159,12 +159,12 @@ def test_e18_an_owner_without_a_vault_id_is_told_to_add_one_and_the_build_edits_
     from conftest import run
     from sharing import commit_snapshot
     root = commit_snapshot(tmp_path)
-    before = (root / ".planner.yaml").read_text(encoding="utf-8")
+    before = (root / ".vela.yaml").read_text(encoding="utf-8")
     code, said = run("explore", str(root), "--today", "2026-10-12")
     assert code == 0, said
     assert re.search(r"`vault_id: v-[0-9a-f]{14}`", said), said
-    assert (root / ".planner.yaml").read_text(encoding="utf-8") == before, "a build must not leave an uncommitted change or make two folders differ"
-    (root / ".planner.yaml").write_text(before + "vault_id: v-11111111111111\n", encoding="utf-8")
+    assert (root / ".vela.yaml").read_text(encoding="utf-8") == before, "a build must not leave an uncommitted change or make two folders differ"
+    (root / ".vela.yaml").write_text(before + "vault_id: v-11111111111111\n", encoding="utf-8")
     code, said = run("explore", str(root), "--today", "2026-10-12")
     assert code == 0 and "vault_id" not in said
 
@@ -173,10 +173,10 @@ def test_e18_a_readers_workspace_is_never_edited_by_explore(tmp_path):
     from conftest import run
     from sharing import draft_workspace
     _, _, workspace = draft_workspace(tmp_path)
-    before = (workspace / ".planner.yaml").read_text(encoding="utf-8")
+    before = (workspace / ".vela.yaml").read_text(encoding="utf-8")
     code, said = run("explore", str(workspace), "--today", "2026-10-12")
     assert code == 0, said
-    assert (workspace / ".planner.yaml").read_text(encoding="utf-8") == before
+    assert (workspace / ".vela.yaml").read_text(encoding="utf-8") == before
 
 
 # ------------------------------------------------------------ E38: the page's own Content-Security-Policy

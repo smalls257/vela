@@ -166,9 +166,9 @@ news:
 sessions:
 - mode: grill
   cap: 18
-  planner: /planner:grill handing the coach app to the Coach team lead, @coach-lead
+  vela: /vela:grill handing the coach app to the Coach team lead, @coach-lead
   baseline: Take me through handing the coach app to the Coach team lead, @coach-lead, and record it, following CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

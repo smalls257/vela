@@ -1,7 +1,7 @@
 """Slices: the unit of done. Which flows each slice proves, what it comes after, which joins it crosses and where it
 stands. Pure: a vault in, slices out.
 
-This is the one place that reads a slice. check-slice, check's slice rules, the handoff, planner next and the dashboard
+This is the one place that reads a slice. check-slice, check's slice rules, the handoff, vela next and the dashboard
 all ask it, and nothing else reads the bullets behind it: a Shield against the Distributed Monolith in which every
 caller parses slice pages (or the releases page) its own way, and one reader's idea of "the tracer" drifts from another's.
 
@@ -10,7 +10,7 @@ as bullets under the title. The joins it crosses are not written on the page: th
 (`flows.steps`), which already name each contract with its sender and receiver, so a hand-written list cannot drift from
 the flows. A page that still has the old `**Joins:**` bullet is told so by check (W405), never quietly obeyed. A vault with no slice pages yet is read the old way, so nothing breaks while a
 lead moves over: release one's `**Tracer:**` flows are the tracer slice, and a later release's `**Flows:**` bullet names
-its own, each after the one before. `planner check` says, once, that the vault is still on the old way (W399): the
+its own, each after the one before. `vela check` says, once, that the vault is still on the old way (W399): the
 fallback is never silent.
 """
 import re
@@ -279,7 +279,7 @@ def taking_part(vault, found):
     """{slice key: [app id]}: the apps each slice takes part in, in vault order. An app takes part when a flow of the
     slice has a step to or from it, or the slice joins a contract it provides. Consuming a joined contract is not
     enough: three channels consume one booking API, and only the channel a slice moves takes part in it. The one rule
-    behind the handoff, the dashboard's team filter and planner next."""
+    behind the handoff, the dashboard's team filter and vela next."""
     from vela import flows, progress
     provided = {app.id: {c.id for c in progress.provided(vault, app) if not c.fact("Provider")} for app in vault.apps}
     out = {}
@@ -295,9 +295,9 @@ def for_app(vault, found, app):
     return [s for s in found if app.id in part[s.key]]
 
 
-# What moves a slice on from each status, in words for `planner next`. Vela plans and records; the teams run things.
+# What moves a slice on from each status, in words for `vela next`. Vela plans and records; the teams run things.
 NEXT = {
-    "": "is not planned yet: draw its flows, write their case tables and run planner check-slice {id} until it passes "
+    "": "is not planned yet: draw its flows, write their case tables and run vela check-slice {id} until it passes "
         "(or each finding has an override with an end date), then plan it in a Grill",
     "planned": "is planned: hand its apps over so each team accepts its part, then set it to building",
     "building": "is building: run its journey in the shared environment and record the result as "

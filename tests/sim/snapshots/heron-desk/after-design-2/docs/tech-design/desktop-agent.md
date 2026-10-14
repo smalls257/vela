@@ -31,7 +31,7 @@ vault:
 
 # Tech Design — Desktop agent
 
-Vault read at INI-001 @ 29753ab. `planner handoff verify APP-desktop-agent`: 0 changed, 0 added, 0 removed. The vault clone has no changes to planner pages (only untracked `.planner/`).
+Vault read at INI-001 @ 29753ab. `vela handoff verify APP-desktop-agent`: 0 changed, 0 added, 0 removed. The vault clone has no changes to vela pages (only untracked `.vela/`).
 
 ## Architecture overview
 One signed per-user process on the laptop, built with Tauri: a Rust core owns the local store, the Microsoft Graph pull (CON-001) and the calls to Consent and identity (CON-003, CON-004) and the Summarizer (CON-002); the Tauri webview shows the Note view. One codebase ships as a signed Mac pkg (Jamf) and a Windows MSIX (Intune) by the pilot (CST-007, CST-010). The three vault containers (Source reader, Note view, Schedule) are modules inside this one process.

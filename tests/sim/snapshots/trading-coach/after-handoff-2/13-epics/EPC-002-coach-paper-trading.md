@@ -30,7 +30,7 @@ This epic builds the paper-trading side of Coach. It lets a reader place simulat
 
 ## Traces to
 
-<!-- generated:traces-to sha=3abb9a95: do not edit, run planner render -->
+<!-- generated:traces-to sha=3abb9a95: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[coach-building-blocks\|Coach]] |

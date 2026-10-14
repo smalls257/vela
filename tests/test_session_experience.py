@@ -45,7 +45,7 @@ def test_a_mode_hands_the_lead_to_start_not_to_a_slash_command_they_must_type(mo
     body = text(f"skills/{mode}/SKILL.md")
     assert "Closing a session" in body, f"{mode} must say how its session ends"
     assert "Do not run close yourself" not in body
-    assert not re.search(r'[Tt]ell the user: "Run `/planner:close`', body)
+    assert not re.search(r'[Tt]ell the user: "Run `/vela:close`', body)
 
 
 # --- S26 and S43: the review digest is small, plain, once
@@ -112,8 +112,8 @@ def test_close_never_asks_for_minutes_handles_or_the_late_gap():
 
 def test_the_handle_is_asked_once_and_kept():
     start = text("references/START.md")
-    assert ".planner/handle" in start and "never again in any skill" in start
-    assert ".planner/*" in (REPO / "template" / ".gitignore").read_text(encoding="utf-8")  # so the file is never committed
+    assert ".vela/handle" in start and "never again in any skill" in start
+    assert ".vela/*" in (REPO / "template" / ".gitignore").read_text(encoding="utf-8")  # so the file is never committed
 
 
 # --- S29 and S30: handoff and epics no longer wait on each other

@@ -179,7 +179,7 @@ const Releases = (() => {
     DRAWN = [];
     KEY = Legend.open("releases", { root: () => box, probes: LOOKS() });
     if (!R.count) box.append(emptyState("No releases recorded yet.", "Until the plan names its releases, this shows today against the end state, worked out from what each app and contract is set to change.", null, "inline rel-none"));
-    if (!D.nodes.length) { box.append(emptyState("No apps yet.", "There is no system to show before and after until the plan names its apps.", "/planner:boundary")); return; }
+    if (!D.nodes.length) { box.append(emptyState("No apps yet.", "There is no system to show before and after until the plan names its apps.", "/vela:boundary")); return; }
     let map = null;
     const controls = h("div", { class: "rel-controls" });
     const pick = (j, animate = true) => {

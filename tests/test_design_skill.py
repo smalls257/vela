@@ -1,4 +1,4 @@
-"""/planner:design (P13, S48, S52): the plugin's design skill, the summary-first doc it writes, and the Heron fixture.
+"""/vela:design (P13, S48, S52): the plugin's design skill, the summary-first doc it writes, and the Heron fixture.
 
     python3 -m pytest tests/test_design_skill.py
 
@@ -110,7 +110,7 @@ def test_the_summary_and_walking_skeleton_are_read_and_never_required(tmp_path):
 def test_the_missing_design_line_names_the_design_command(tmp_path):
     vault = cli.load_vault(HERON)
     _, said = design_find.discover(vault, tmp_path, [])
-    assert any("/planner:design --app <app ID>" in line for line in said), said
+    assert any("/vela:design --app <app ID>" in line for line in said), said
 
 
 # --- hard requirement 1: as detailed as before -------------------------------------------------------------------
@@ -211,7 +211,7 @@ def test_the_summary_comes_first_and_stays_short(new):
 # --- hard requirement 2: the explorer reads it --------------------------------------------------------------------
 
 def built(root):
-    """(data, report lines) as `planner explore` builds them, without writing the page."""
+    """(data, report lines) as `vela explore` builds them, without writing the page."""
     vault = cli.load_vault(root)
     found, said = design_find.discover(vault, root, [])
     plans, plan_said = breakdown_find.discover(vault, root, [], found)
@@ -268,7 +268,7 @@ def test_the_fixture_page_opens_the_design_on_its_summary(tmp_path):
     chrome = find_chrome()
     vault = tmp_path / "vault"
     shutil.copytree(HERON, vault)
-    cmd = [sys.executable, str(PLUGIN / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-12"]
+    cmd = [sys.executable, str(PLUGIN / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-10-12"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     lines = _check_selftest_in_chrome(chrome, vault / "dashboard.html", "team-skills/heron")
     assert any("the design panel opens on its summary, with the walking skeleton below" in line for line in lines)
@@ -276,29 +276,29 @@ def test_the_fixture_page_opens_the_design_on_its_summary(tmp_path):
 
 # --- design as a known mode ---------------------------------------------------------------------------------------
 
-def test_planner_next_offers_the_design_for_a_handed_off_app_with_none(tmp_path):
+def test_vela_next_offers_the_design_for_a_handed_off_app_with_none(tmp_path):
     from conftest import run
     vault = tmp_path / "vault"
     shutil.copytree(HERON, vault)
     code, out = run("next", "--vault", str(vault), "--today", "2026-10-12")
     assert code == 0 and ", design." not in out, out  # the design is there, so no design step is named
-    assert out.splitlines()[0].startswith("planner next: Consent and identity: grill"), out  # the lead's step stays first
-    assert "planner next: for the Desktop agent team: their design is" in out and "/planner:breakdown" in out, out  # the team's own next step
+    assert out.splitlines()[0].startswith("vela next: Consent and identity: grill"), out  # the lead's step stays first
+    assert "vela next: for the Desktop agent team: their design is" in out and "/vela:breakdown" in out, out  # the team's own next step
     shutil.rmtree(vault / "docs" / "tech-design")
     code, out = run("next", "--vault", str(vault), "--today", "2026-10-12")
     # what is not firm at handoff is its own line and an indented list; the lead's step and the team's step are the two others
     lines = [l for l in out.splitlines() if not l.startswith(("  ", 'What "')) and "not settled yet:" not in l]
-    assert code == 0 and len(lines) == 2 and lines[0].startswith("planner next: Consent and identity: grill"), out
-    assert lines[1] == ("planner next: for the Desktop agent team: the app is handed over but has no technical design "
-                        f"yet. They start it with /planner:design --app {APP}."), out
+    assert code == 0 and len(lines) == 2 and lines[0].startswith("vela next: Consent and identity: grill"), out
+    assert lines[1] == ("vela next: for the Desktop agent team: the app is handed over but has no technical design "
+                        f"yet. They start it with /vela:design --app {APP}."), out
 
 
 def test_design_is_named_where_the_modes_are_listed():
     modes = (PLUGIN / "references" / "MODES.md").read_text(encoding="utf-8")
     team = section(modes, "Team-side sessions")
-    assert "`/planner:design --app APP-x`" in team and "`docs/tech-design/<slug>.md`" in team
+    assert "`/vela:design --app APP-x`" in team and "`docs/tech-design/<slug>.md`" in team
     explore = (PLUGIN / "skills" / "explore" / "ABOUT.md").read_text(encoding="utf-8")  # where designs live is product notes, read on request
-    assert "from `/planner:design`" in explore
+    assert "from `/vela:design`" in explore
 
 
 # --- hard requirement 3: the skill text ---------------------------------------------------------------------------
@@ -331,8 +331,8 @@ def test_the_self_audit_is_the_users_own_but_its_header():
 def test_the_built_in_rules_are_in_the_skill():
     skill = skill_text()
     assert "--app APP-x" in skill and "the folder this runs in" in skill
-    assert "references/TECH-DESIGN-FROM-VAULT.md" in skill and "`planner handoff verify`" in skill
-    assert '"Where the planner runs from"' in skill  # the planner found as START.md says, so a marketplace install works
+    assert "references/TECH-DESIGN-FROM-VAULT.md" in skill and "`vela handoff verify`" in skill
+    assert '"Where vela runs from"' in skill  # vela found as START.md says, so a marketplace install works
     assert "CONVERSATION-VOICE.md" in skill and "`voice/VOICE.md`" in skill and "skills/house-voice/SKILL.md" in skill
     assert "names, not codes" in skill
     walking = section(skill, "2. Start from the walking skeleton")
@@ -350,7 +350,7 @@ def test_the_stop_rule_is_one_rule():
     text = all_skill_text()
     assert "Hard rule" not in text and "stop the session" not in text.lower()
     vault = section(skill_text(), "5. When the vault is wrong or silent")
-    assert "carry on with every branch it doesn't touch" in vault and "`/planner:challenge <vault ID>`" in vault
+    assert "carry on with every branch it doesn't touch" in vault and "`/vela:challenge <vault ID>`" in vault
     assert "carry on with the branches it doesn't touch" in skill_text("STANDALONE.md")
 
 
@@ -358,7 +358,7 @@ def test_the_skill_names_no_dead_file_and_no_vendored_path():
     pending = {"CONVERSATION-VOICE.md"}  # being written by the conversation-voice batch; START.md will name it
     for path in SKILL.glob("*.md"):
         body = path.read_text(encoding="utf-8")
-        assert ".claude/skills/planner" not in body and "to-issues" not in body and "skill 1" not in body, path.name
+        assert ".claude/skills/vela" not in body and "to-issues" not in body and "skill 1" not in body, path.name
         for name in re.findall(r"`([A-Z][A-Z0-9-]*\.md)`", body):
             assert ((SKILL / name).exists() or (PLUGIN / "references" / name).exists() or name in {"SKILL.md", "CONTEXT.md", "AGENTS.md"}  # files of the repo the design runs in
                     or name in pending), f"{path.name} names {name}"
@@ -380,7 +380,7 @@ def test_the_skill_is_written_for_current_models():
 
 def test_the_vault_reference_and_the_skill_agree():
     ref = (PLUGIN / "references" / "TECH-DESIGN-FROM-VAULT.md").read_text(encoding="utf-8")
-    assert "`/planner:design --app <APP-id>`" in ref and "design/<slug>" in ref
+    assert "`/vela:design --app <APP-id>`" in ref and "design/<slug>" in ref
     assert "- **Tracer:**" in ref and "| The glossary |" in ref and "| The voices |" in ref
 
 

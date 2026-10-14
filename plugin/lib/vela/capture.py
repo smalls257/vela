@@ -1,7 +1,7 @@
 """What a vault records of the things the explorer draws, as counts. Pure.
 
 The explorer's domains, flow directions, releases, requirements, allocation rows and asks were fed only by demo data
-until the skills learned to ask for them. These counts are the sensor for that: `planner capture` prints them, and
+until the skills learned to ask for them. These counts are the sensor for that: `vela capture` prints them, and
 the session simulator reads them from the final vault, so a skill that stops asking shows up as a number, not as an
 empty box someone finds on a live call.
 """

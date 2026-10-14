@@ -2,13 +2,13 @@
 # requirements, allocate, releases, epics and a handoff of the desktop agent, each with its close, with one extra grill
 # after releases that plans the tracer slice. The lead's sessions leave slice pages in slices/ (releases cuts them, the
 # tracer SLC-001 first) and case tables on the contracts (boundary and grill write them). Then three sessions of the Desk
-# Agent team, run from the vault root with the plugin's own skills: /planner:design and /planner:breakdown write the
-# design and the plan under docs/, and /planner:tickets writes the tickets as Markdown (docs/work/tickets.md). The
+# Agent team, run from the vault root with the plugin's own skills: /vela:design and /vela:breakdown write the
+# design and the plan under docs/, and /vela:tickets writes the tickets as Markdown (docs/work/tickets.md). The
 # vault carries no copy of the user's skills, and the harness does not run tools/breakdown_to_tickets.py for these
 # sessions: the tickets come from the skill. No prompt asks for S, M or L sizes.
 # The news holds what only this lead knows and no skill may invent: the dates of the pilot and general availability,
 # the names the business uses for its areas, the DPO's answer on who a digest may name, and the question only Legal can
-# answer. The scorecard's "Recorded for the explorer" section reads the final vault (planner capture): every app has a
+# answer. The scorecard's "Recorded for the explorer" section reads the final vault (vela capture): every app has a
 # domain, at least 80% of the flow steps that cross a contract name a sender, the 2027-02-02 pilot release is present,
 # and an Ask names the DPO. The team sessions are not scored by the brief; their files are in vault/docs/ for reading.
 # This costs money to run; tests/test_sim.py checks the file shapes with --stub.
@@ -205,108 +205,108 @@ start: heron-desk/empty
 sessions:
 - mode: dump
   cap: 16
-  planner: '/planner:dump {opening}'
+  vela: '/vela:dump {opening}'
   baseline: 'I have a new initiative and nothing written down yet. Let us dump everything we know about it into this vault, following CONVENTIONS.md. {opening}'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: discover
   cap: 16
-  planner: '/planner:discover {topics[discover_1]}'
+  vela: '/vela:discover {topics[discover_1]}'
   baseline: 'Find out {topics[discover_1]} from the documents in .inbox/ and record what is really there. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: shape
   cap: 18
-  planner: '/planner:shape {topics[shape_1]}'
+  vela: '/vela:shape {topics[shape_1]}'
   baseline: 'Shape {topics[shape_1]}. Give me options to react to, following CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: boundary
   cap: 20
-  planner: '/planner:boundary {topics[boundary]}: the domains, who sends each step of the flows, the links between the apps, and the case table of each contract'
+  vela: '/vela:boundary {topics[boundary]}: the domains, who sends each step of the flows, the links between the apps, and the case table of each contract'
   baseline: 'Draw the boundary for {topics[boundary]}: the apps, their domains, who sends each flow step and the contracts between them. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 22
-  planner: '/planner:grill {topics[grill]}'
+  vela: '/vela:grill {topics[grill]}'
   baseline: 'Take me through {topics[grill]} and record what I decide. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: requirements
   cap: 20
-  planner: '/planner:requirements {topics[requirements]}'
+  vela: '/vela:requirements {topics[requirements]}'
   baseline: 'Write the functional requirements for {topics[requirements]}. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: allocate
   cap: 16
-  planner: /planner:allocate every requirement
+  vela: /vela:allocate every requirement
   baseline: Divide every requirement among the apps and contracts that carry it. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: releases
   cap: 14
-  planner: /planner:releases
+  vela: /vela:releases
   baseline: Write the releases, each with its date and the requirements it delivers. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: epics
   cap: 18
-  planner: /planner:epics the Desk Agent team
+  vela: /vela:epics the Desk Agent team
   baseline: Draft and decide the epics for the Desk Agent team. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 22
-  planner: '/planner:grill handing {topics[handoff]} to @agent-lead'
+  vela: '/vela:grill handing {topics[handoff]} to @agent-lead'
   baseline: 'Take me through handing {topics[handoff]} to @agent-lead and record it. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 18
-  planner: '/planner:grill the tracer slice SLC-001, the first thin path through the apps'
+  vela: '/vela:grill the tracer slice SLC-001, the first thin path through the apps'
   baseline: 'Take me through the first slice, the tracer, and record what I decide. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: design
   cap: 22
   persona: heron-agent-lead
-  planner: '/planner:design --app the desktop agent''s APP id (find it in 05-building-blocks) desktop-agent'
+  vela: '/vela:design --app the desktop agent''s APP id (find it in 05-building-blocks) desktop-agent'
   baseline: 'Design the desktop agent in this initiative vault (the current folder): read its pages and write the design to docs/tech-design/desktop-agent.md.'
 - mode: breakdown
   cap: 18
   persona: heron-agent-lead
-  planner: /planner:breakdown desktop-agent
+  vela: /vela:breakdown desktop-agent
   baseline: 'Break the desktop agent design into a work plan in docs/plan/desktop-agent-breakdown.md: stories traced to the allocated requirement rows and epic criteria in this vault and to the design components, and the order to build in with what blocks what.'
 - mode: tickets
   cap: 8
   persona: heron-agent-lead
-  planner: '/planner:tickets desktop-agent. Write them as Markdown.'
+  vela: '/vela:tickets desktop-agent. Write them as Markdown.'
   baseline: 'Turn the desktop agent plan in docs/plan into a Markdown ticket list in docs/work/tickets.md.'
 - mode: close
   cap: 4
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

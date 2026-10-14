@@ -35,7 +35,7 @@ Three channels, three adapters, three opinions about what state a booking is in.
 
 ## After
 
-<!-- generated:system-context sha=934b781a: do not edit, run planner render -->
+<!-- generated:system-context sha=934b781a: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   subgraph scope["Unified Booking"]

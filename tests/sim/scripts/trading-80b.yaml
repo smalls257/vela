@@ -681,25 +681,25 @@ news:
 sessions:
 - mode: shape
   cap: 12
-  planner: /planner:shape the goals
+  vela: /vela:shape the goals
   baseline: Give me options for the goals and their measures. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 14
-  planner: /planner:grill the goals
+  vela: /vela:grill the goals
   baseline: Take me through the goals and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: discover
   cap: 16
-  planner: /planner:discover the constraints and the context and scope against their sources
+  vela: /vela:discover the constraints and the context and scope against their sources
   baseline: Check the constraints and context against their sources and record what is fact. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

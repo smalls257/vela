@@ -72,7 +72,7 @@ The Desktop agent reads the signed-in person's calendar entries and existing Tea
 
 ## Where it fits
 
-<!-- generated:app-context sha=9a59b12f: do not edit, run planner render -->
+<!-- generated:app-context sha=9a59b12f: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
@@ -94,7 +94,7 @@ flowchart LR
 Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside this initiative (another company or system) · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
-<!-- generated:contracts-consumed sha=089120f8: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=089120f8: do not edit, run vela render -->
 | Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
 | [[desktop-agent-building-blocks#CON-001 Calendar and Teams transcripts\|Calendar and Teams transcripts (CON-001)]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not recorded. Microsoft runs the interface, and no agreement with Microsoft is registered. | assumed |

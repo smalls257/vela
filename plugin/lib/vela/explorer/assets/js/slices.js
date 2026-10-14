@@ -300,7 +300,7 @@ const Slices = (() => {
   function body(box) {
     box.replaceChildren();
     if (!LIST.length) {
-      box.append(emptyState("No slices yet.", `${termTip("slice")} The releases session plans them, the tracer first.`, "/planner:releases"));
+      box.append(emptyState("No slices yet.", `${termTip("slice")} The releases session plans them, the tracer first.`, "/vela:releases"));
       return;
     }
     if (!P.onPages) box.append(h("p", { class: "note sl-old" }, "These slices are still named on the releases page. Each will get a page of its own, with its status and what comes before it."));

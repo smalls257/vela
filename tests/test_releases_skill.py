@@ -1,4 +1,4 @@
-"""/planner:releases writes the page releases.py reads; planner next offers it after allocation and before epics."""
+"""/vela:releases writes the page releases.py reads; vela next offers it after allocation and before epics."""
 import re
 
 from conftest import REPO, run

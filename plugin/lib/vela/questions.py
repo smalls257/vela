@@ -242,7 +242,7 @@ class Disposition:
     @property
     def undisposed(self):
         """No row says anything about it yet, its row says `open`, or its row is broken. A row that
-        fails its checks is not a record of anything, so `planner questions` agrees with `planner check`."""
+        fails its checks is not a record of anything, so `vela questions` agrees with `vela check`."""
         return self.row is None or self.state == "open" or not self.valid
 
     @property
@@ -620,19 +620,19 @@ def _row_findings(vault):
 
 
 def _page_findings(vault):
-    """E801 for ledger tables and headings planner cannot read as the ledger."""
+    """E801 for ledger tables and headings vela cannot read as the ledger."""
     page = ledger_page(vault)
     for other in vault.pages:
         if other is not page:
             for table in ledger.ledger_tables(other):
                 yield Finding(other.path, table.line, "E801", "A question ledger table belongs on 11-unknowns-and-risks.md, "
-                              "so planner never reads this one.", "Move its rows under ## Question ledger on 11-unknowns-and-risks.md.")
+                              "so vela never reads this one.", "Move its rows under ## Question ledger on 11-unknowns-and-risks.md.")
     if page is None:
         return
     for table in ledger.lookalike_tables(page):
         yield Finding(page.path, table.line, "E801",
                       f"The table under ## {ledger.HEADING} is headed '{' | '.join(table.header)}', not exactly "
-                      f"'{' | '.join(ledger.HEADER)}', so planner does not read its rows.",
+                      f"'{' | '.join(ledger.HEADER)}', so vela does not read its rows.",
                       f"Make the header exactly | {' | '.join(ledger.HEADER)} |.")
     for table in ledger.misplaced_tables(page):
         yield Finding(page.path, table.line, "E801", f"A ledger table must sit under ## {ledger.HEADING}, and this one does not.",
@@ -667,7 +667,7 @@ def ledger_findings(vault, today=None):
                      "Correct the date, or leave it if the decision is booked ahead.")
 
 
-# ------------------------------------------------------------------ planner questions
+# ------------------------------------------------------------------ vela questions
 
 def copy_answer(vault, d):
     c = d.copy
@@ -687,7 +687,7 @@ def reviewer_answer(vault, row):
 
 
 def listing(vault, area=None, open_only=False, subject_id=None):
-    """What `planner questions` reports, as data json.dumps can write. The counts cover the copies the
+    """What `vela questions` reports, as data json.dumps can write. The counts cover the copies the
     area and subject filters keep; --open then keeps only the pending ones in the list: undisposed, or asked
     and still waiting, because both hold the gates. A row with an error counts as undisposed, the same as
     check says."""

@@ -16,7 +16,7 @@ title: Shop
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=00000000: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=00000000: do not edit, run vela render -->
 - **State:** inside a block, ignored
 <!-- /generated:contracts-consumed -->
 """

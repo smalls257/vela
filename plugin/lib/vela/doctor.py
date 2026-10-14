@@ -1,4 +1,4 @@
-"""planner doctor: what this machine has for planner, one plain line per item, and whether it is enough.
+"""vela doctor: what this machine has for vela, one plain line per item, and whether it is enough.
 
 A missing optional piece is said here, once, with what it adds and the one command that gets it. Without this a
 colleague meets it later as a feature that quietly does less (the diagram check skipped, Ask offering a prompt to
@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 
 from vela import voicescore
 
-# The oldest Python planner runs on: what a Mac's /usr/bin/python3 ships. scripts/planner checks it before any import.
+# The oldest Python vela runs on: what a Mac's /usr/bin/python3 ships. scripts/vela checks it before any import.
 FLOOR = (3, 9)
 PINNED_YAML = "6.0.3"  # lib/yaml/__init__.py says the same; tests hold the two together
 
@@ -39,7 +39,7 @@ class Vault:
 
 @dataclass(frozen=True)
 class Line:
-    status: str  # "ok", "missing" (planner cannot run without it), "optional" (planner runs; one feature does not), "info"
+    status: str  # "ok", "missing" (vela cannot run without it), "optional" (vela runs; one feature does not), "info"
     text: str
 
 
@@ -48,15 +48,15 @@ class Hook:
     """What edge/machine.py found about the vault's pre-commit hook (template/.githooks/pre-commit)."""
     hook_file: bool  # .githooks/pre-commit is in the vault
     hooks_on: bool  # core.hooksPath points git at .githooks
-    env_vela: str  # PLANNER in doctor's environment ("" when unset); the hook reads it first
-    config_path: str  # git config planner.path ("" when unset); the hook reads it second
+    env_vela: str  # VELA in doctor's environment ("" when unset); the hook reads it first
+    config_path: str  # git config vela.path ("" when unset); the hook reads it second
     vendored: str  # the vendored launcher's path in the vault; the hook reads it last
-    launcher: str  # the installed planner launcher doctor found ("" when none)
+    launcher: str  # the installed vela launcher doctor found ("" when none)
 
 
 # The hook's own order (template/.githooks/pre-commit), kept here so doctor says what the hook will do; a test runs the
 # hook against each case and holds the two together.
-HOOK_ORDER = ("PLANNER", "git config planner.path", "the vendored copy in the vault")
+HOOK_ORDER = ("VELA", "git config vela.path", "the vendored copy in the vault")
 
 
 def hook_finds(hook, is_file):
@@ -72,7 +72,7 @@ def wire_command(hook, found):
     records the launcher when the hook would not find it."""
     steps = [] if hook.hooks_on else ["git config core.hooksPath .githooks"]
     if found != hook.launcher:
-        steps.append(f"git config planner.path {shell_quote(hook.launcher)}")
+        steps.append(f"git config vela.path {shell_quote(hook.launcher)}")
     return " && ".join(steps)
 
 
@@ -81,25 +81,25 @@ def shell_quote(path):
 
 
 def hook_line(hook, is_file):
-    """Whether a commit typed by hand in this vault is checked by the planner it was installed with. The hook stops a
-    commit when it cannot find the planner (it never waves one through), so a hook that finds nothing is a vault where
+    """Whether a commit typed by hand in this vault is checked by vela it was installed with. The hook stops a
+    commit when it cannot find vela (it never waves one through), so a hook that finds nothing is a vault where
     every hand commit stops; doctor names the one command that fixes it."""
     if hook is None:
         return None
     if not hook.hook_file:
         return Line("info", "this vault has no .githooks/pre-commit, so a commit typed by hand isn't checked for files "
-                            "that must stay on this machine. Copy .githooks/ from the planner's template folder.")
+                            "that must stay on this machine. Copy .githooks/ from vela's template folder.")
     source, found = hook_finds(hook, is_file)
-    fix = f" Wire it: {wire_command(hook, found)}" if hook.launcher else " Install the plugin, then run planner doctor again."
+    fix = f" Wire it: {wire_command(hook, found)}" if hook.launcher else " Install the plugin, then run vela doctor again."
     if not hook.hooks_on:
         return Line("optional", "the vault's pre-commit hook is off, so a commit typed by hand isn't checked." + fix)
     if not found:
         return Line("optional", f"the vault's pre-commit hook stops every commit typed by hand: {source} names a "
                                 f"launcher that isn't there.{fix}")
     if hook.launcher and found != hook.launcher:
-        return Line("optional", f"the vault's pre-commit hook runs the planner at {found} (from {source}), not the "
+        return Line("optional", f"the vault's pre-commit hook runs vela at {found} (from {source}), not the "
                                 f"installed one at {hook.launcher}, so two versions answer this vault.{fix}")
-    return Line("ok", f"the vault's pre-commit hook checks hand commits with the planner at {found}")
+    return Line("ok", f"the vault's pre-commit hook checks hand commits with vela at {found}")
 
 
 def report(machine, vault, plugin_version, hook=None, is_file=None):
@@ -107,13 +107,13 @@ def report(machine, vault, plugin_version, hook=None, is_file=None):
     lines = [python_line(machine), yaml_line(machine), git_line(machine), node_line(machine), claude_line(machine),
              voice_line(machine), vault_line(vault)]
     found = hook_line(hook, is_file or (lambda _: False)) if hook is not None else None
-    return lines + ([found] if found else []) + [Line("info", f"planner plugin {plugin_version}")]
+    return lines + ([found] if found else []) + [Line("info", f"vela plugin {plugin_version}")]
 
 
 def python_line(machine):
     shown = ".".join(str(n) for n in machine.python)
     if machine.python[:2] < FLOOR:
-        return Line("missing", f"Python {shown} at {machine.python_path} is too old; planner needs "
+        return Line("missing", f"Python {shown} at {machine.python_path} is too old; vela needs "
                                f"{FLOOR[0]}.{FLOOR[1]} or later. On a Mac: brew install python@3.12")
     return Line("ok", f"Python {shown} ({machine.python_path})")
 
@@ -136,9 +136,9 @@ def git_line(machine):
 
 def node_line(machine):
     if machine.node is None:
-        return Line("optional", "node is not installed, or did not answer node --version. With it, planner check "
+        return Line("optional", "node is not installed, or did not answer node --version. With it, vela check "
                                 "parses every diagram the way the explorer draws it. Get it: brew install node")
-    return Line("ok", f"node {machine.node}: planner check parses the diagrams")
+    return Line("ok", f"node {machine.node}: vela check parses the diagrams")
 
 
 def claude_line(machine):
@@ -150,11 +150,11 @@ def claude_line(machine):
 
 def voice_line(machine):
     if machine.voice_missing:
-        # This Python's own pip: on a Mac, `python3` on the PATH is often not the interpreter running planner.
-        return Line("optional", f"voice scoring needs {' and '.join(machine.voice_missing)}. With it, planner voicescore "
+        # This Python's own pip: on a Mac, `python3` on the PATH is often not the interpreter running vela.
+        return Line("optional", f"voice scoring needs {' and '.join(machine.voice_missing)}. With it, vela voicescore "
                                 f"says how close a draft is to your own writing. Get it: {machine.python_path} -m pip "
                                 f"install sentence-transformers ({voicescore.DEPENDENCY_SIZE})")
-    return Line("ok", "sentence-transformers and torch: planner voicescore works")
+    return Line("ok", "sentence-transformers and torch: vela voicescore works")
 
 
 def vault_line(vault):
@@ -164,7 +164,7 @@ def vault_line(vault):
 
 
 def exit_code(lines):
-    """0 when everything planner needs is there; optional pieces never fail it."""
+    """0 when everything vela needs is there; optional pieces never fail it."""
     return 1 if any(line.status == "missing" for line in lines) else 0
 
 
@@ -172,7 +172,7 @@ def render(lines):
     width = max(len(line.status) for line in lines)
     body = [f"{line.status.ljust(width)}  {line.text}" for line in lines]
     if exit_code(lines):
-        body.append("planner doctor: something planner needs is missing; the line marked missing says how to get it.")
+        body.append("vela doctor: something vela needs is missing; the line marked missing says how to get it.")
     else:
-        body.append("planner doctor: ready.")
+        body.append("vela doctor: ready.")
     return "\n".join(body)

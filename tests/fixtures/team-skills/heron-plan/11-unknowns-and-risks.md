@@ -10,7 +10,7 @@ authored: mixed
 
 The plan rests on one open call, [[11-unknowns-and-risks#UNK-051 Text call|who settles whether meeting text may leave the laptop]], and most of the other unknowns and risks wait on it. The security review pack, the impact assessment and the full data list each have an owner and an ask-by date but no author yet. Five more unknowns came from the desks session: who calls the lock, whether any design or trial exists, how Heron would read Zoom, whether a digest is a client record, and whether Client Delivery knows what Heron surfaces about them. The requirements session added three more, each holding up a requirement it wrote: how many organizers turn transcripts on, which decides how often a note is calendar-only; whether a digest held until first login is acceptable; and whether accepted invitees count as being in a meeting. It also added the risk that thin calendar-only notes pile up. The allocation session added one more, [[11-unknowns-and-risks#UNK-075 Acceptance in the calendar read|whether the calendar read carries each invitee's response]]. The newest is [[11-unknowns-and-risks#UNK-076 Council vote on the pilot|whether the works council votes on the pilot]]; if it does vote, that is a further gate on the pilot, on top of the unknowns that list the February pilot under what they block. The rows under Question ledger show how each owed question ended; most now wait on the text call, on [[11-unknowns-and-risks#UNK-071 Lawful basis for each source|the lawful basis for each source]] or on [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity|who builds Consent and identity]].
 
-<!-- generated:unknowns-index sha=dc83b915: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=dc83b915: do not edit, run vela render -->
 **Questions**
 
 | Question | Who answers | Status | Answer needed by |
@@ -405,7 +405,7 @@ If few organizers turn transcripts on, most notes are written from the calendar 
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=f2703b0e: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=f2703b0e: do not edit, run vela render -->
 **Questions:** 45 owed, 0 undisposed, 36 open reviewer questions, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |

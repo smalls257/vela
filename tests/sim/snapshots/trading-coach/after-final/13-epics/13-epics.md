@@ -11,7 +11,7 @@ Coach has two epics, and both are decided: [[EPC-001-coach-lessons-and-list|the 
 
 ## Traceability
 
-<!-- generated:traceability sha=b317a260: do not edit, run planner render -->
+<!-- generated:traceability sha=b317a260: do not edit, run vela render -->
 **Traceability:** 3 gaps. 11 checks pass.
 
 | Rule | Item | Gap |

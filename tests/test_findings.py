@@ -1,4 +1,4 @@
-"""`planner findings merge`: the focused reviewers' findings combined by code, not by the session.
+"""`vela findings merge`: the focused reviewers' findings combined by code, not by the session.
 
 Union, then remove exact duplicates. Never vote. A finding whose quote is not on the page it cites
 is dropped and listed. An area that failed says "did not run" and why, so it never reads as
@@ -140,7 +140,7 @@ def test_the_text_report(tmp_path):
     code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE))
     lines = out.splitlines()
     assert code == 1
-    assert lines[0] == "planner findings merge: 1 kept, 0 duplicates, 1 dropped, from 4 of 5 areas."
+    assert lines[0] == "vela findings merge: 1 kept, 0 duplicates, 1 dropped, from 4 of 5 areas."
     assert lines[1] == ("coverage: FIN found 1, 1 dropped; DAT checked, none; PTN checked, none; REG checked, none; "
                         "OPS did not run (no findings file)")
     assert lines[3] == f'1. [FIN] high, Q-FIN-03@SV-01: Who takes the points back when a booking is canceled? | "{QUOTE}" in 04a-capability-delta.md'

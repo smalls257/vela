@@ -1,4 +1,4 @@
-"""A contract's case table: the parser reads it, `planner check` warns when it is missing or cannot be trusted."""
+"""A contract's case table: the parser reads it, `vela check` warns when it is missing or cannot be trusted."""
 import re
 
 import pytest

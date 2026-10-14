@@ -4,7 +4,7 @@
 # coastal-merger.yaml. The on-device ruling, the MDM route and the Graph scopes below are the same facts the solution
 # lead holds, seen from the agent's side.
 name: Dev Rao
-team_persona: true  # speaks only in team sessions, never opens a planner script
+team_persona: true  # speaks only in team sessions, never opens a vela script
 role: lead of the Desk Agent team at Marlowe & Finch, who took the desktop agent at handoff
 org: Marlowe & Finch, a 4,200-person professional-services firm on one Microsoft 365 tenant, with Windows laptops under Intune and Macs under Jamf
 handle: "@agent-lead"

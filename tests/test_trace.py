@@ -113,7 +113,7 @@ def test_markers_ignore_wikilinks_fences_blocks_and_bullets():
         "2. Reaches [[concern-testing]]",
         "3. Ends with a link [[01-goals|G1]]",
         "```", "4. In a fence. [cost]", "```",
-        "<!-- generated:traces-to sha=00000000: do not edit, run planner render -->",
+        "<!-- generated:traces-to sha=00000000: do not edit, run vela render -->",
         "5. In a block. [rollout]",
         "<!-- /generated:traces-to -->",
         "- Not numbered. [operations]",

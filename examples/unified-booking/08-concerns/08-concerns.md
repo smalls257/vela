@@ -19,7 +19,7 @@ A concern is something every app has to answer for, such as testing or rollback.
 - **unknown**: an open unknown has to be answered first. The cell links it.
 - **unexamined**: nobody has looked yet. An app with no cell on a concern page shows as `unexamined (no row)`.
 
-<!-- generated:concern-matrix sha=43161652: do not edit, run planner render -->
+<!-- generated:concern-matrix sha=43161652: do not edit, run vela render -->
 | App | [[concern-cost\|Cost]] | [[concern-data\|Data]] | [[concern-observability\|Observability]] | [[concern-operations\|Operations]] | [[concern-ownership\|Ownership]] | [[concern-rollout\|Rollout]] | [[concern-security\|Security]] | [[concern-testing\|Testing]] |
 |---|---|---|---|---|---|---|---|---|
 | [[booking-building-blocks\|Booking]] | covered | covered | covered | covered | covered | covered | covered | covered |

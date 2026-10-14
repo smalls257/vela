@@ -92,16 +92,16 @@ const Roles = (() => {
       const reqs = T.requirements.filter((r) => r.capability === c.id), alloc = reqs.filter((r) => T.allocation.some((a) => a.requirement === r.id && a.state !== "inkling"));
       return h("li", {}, h("a", { "data-ref": c.key, title: c.id }, E[c.key].title, idTag(c.id)), " ", E[c.key].change ? h("span", { class: "pill" }, E[c.key].change) : null,
         h("span", { class: "muted small" }, reqs.length ? ` ${plural(reqs.length, "requirement")}, ${reqs.length > 1 && alloc.length === reqs.length ? "all" : alloc.length} assigned to an app` : " no requirements written"));
-    }) : missing("No capability pages yet.", "", "/planner:boundary"), T.capabilities.length && !T.requirements.length ? missing("No requirement rows yet.", "No requirements are written yet, so none is assigned to an app.", ["/planner:requirements", "/planner:allocate"]) : null));
+    }) : missing("No capability pages yet.", "", "/vela:boundary"), T.capabilities.length && !T.requirements.length ? missing("No requirement rows yet.", "No requirements are written yet, so none is assigned to an app.", ["/vela:requirements", "/vela:allocate"]) : null));
     grid.append(card("What each release delivers", ["Releases", () => Nav.open("releases")], D.releases.count ? list(Releases.STATES.slice(1), 4, (x) => h("li", {},
       h("b", {}, `Release ${Releases.STATES.indexOf(x)}: `), shorten((x.heading || x.name).replace(/^[^:]*:\s*/, ""), 40), h("span", { class: "muted small" }, x.target ? ` · ${day(x.target)}` : ""),
       h("div", { class: "chips" }, (x.rows || []).map((r) => refChip(r.requirement, r.criteria.length ? h("span", { class: "rid", title: r.criteria.map((n) => "AC" + n).join(", ") }, (r.criteria.length === 1 ? "criterion " : "criteria ") + r.criteria.join(", ")) : null)))))
-      : missing("No releases recorded yet.", "Once releases are planned, each one lists the requirements it delivers.", ["/planner:requirements", "/planner:allocate"])));
+      : missing("No releases recorded yet.", "Once releases are planned, each one lists the requirements it delivers.", ["/vela:requirements", "/vela:allocate"])));
     const biz = openQs().filter((u) => holdsKinds(UNKNOWN[u.id], ["goal", "capability", "requirement", "flow"]) || D.above.some((a) => a.unknown === u.id));
     grid.append(card("Business questions", ["Who to ask", () => Nav.open("unknowns")], biz.length ? list(biz.sort((a, b) => cmp(a.askBy || "9", b.askBy || "9")), 5, (u) => qRow(UNKNOWN[u.id])) : empty("No open question is blocking a goal, capability, requirement or flow."),
       rule("Shown here: open questions that block a goal, capability, requirement or flow, directly or through something they hold up.")));
     grid.append(card("User flows", ["Flows", () => Nav.open("flows")], D.flows.length ? list(D.flows, 5, (f) => h("li", {}, lamp(levelOf(f.key)), h("a", { "data-ref": f.key, "data-reveal": "", title: E[f.key].id }, E[f.key].title, idTag(E[f.key].id)),
-      h("span", { class: "muted small" }, ` ${plural(f.steps.length, "step")}`), h("button", { class: "btn tiny", onclick: () => Flows.present(f.key, 0) }, "▶ Present"))) : missing("No flows yet.", "", "/planner:boundary")));
+      h("span", { class: "muted small" }, ` ${plural(f.steps.length, "step")}`), h("button", { class: "btn tiny", onclick: () => Flows.present(f.key, 0) }, "▶ Present"))) : missing("No flows yet.", "", "/vela:boundary")));
   }
 
   /* ------------------------------------------------------------ QA */
@@ -111,7 +111,7 @@ const Roles = (() => {
       const ac = D.epicCriteria[x.key] || [], markers = [...new Set(ac.flatMap((c) => c.markers))];
       return h("li", {}, h("a", { "data-ref": x.key, title: E[x.key].id }, shorten(E[x.key].title, 44), idTag(E[x.key].id)), h("span", { class: "muted small" }, ` ${plural(ac.length, "criterion", "criteria")} `), markers.map((m) => h("span", { class: "marker" }, m)),
         linkChips(x.key, { small: true }));
-    }) : missing("No epics yet.", "Acceptance criteria live on epic pages.", "/planner:epics")));
+    }) : missing("No epics yet.", "Acceptance criteria live on epic pages.", "/vela:epics")));
     grid.append(card("Contracts and who tests each side", ["Apps", () => Nav.open("apps")], D.map.contracts.length ? list(D.map.contracts, 4, (c) => {
       const t = D.testedBy[c.id];
       return h("li", {}, lamp(levelOf(c.id)), h("a", { "data-ref": c.id, title: c.id }, c.title, idTag(c.id)), h("span", { class: "muted small" }, ` ${titleOf(c.provider)} → ${c.consumers.map(titleOf).join(", ")}`),

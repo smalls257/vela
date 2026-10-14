@@ -2,8 +2,8 @@
 
 Usage: python3 scaffold.py <vault> <arm>
   vault: template | discover-docs | close-dump | fixture | grill-refused | epics-empty
-  arm:   plugin (the full plugin is installed at .claude/skills/planner)
-         stub   (only bin/, lib/ and catalog/ are installed, so the baseline arm can run planner but sees no skill text)
+  arm:   plugin (the full plugin is installed at .claude/skills/vela)
+         stub   (only bin/, lib/ and catalog/ are installed, so the baseline arm can run vela but sees no skill text)
 
 The workspace ends as a git repository on main with one commit, as a real vault would be.
 Any failure exits non-zero, which plugin eval reports as "scaffold failed".
@@ -136,19 +136,19 @@ def main():
         grill_refused()
     if vault == "epics-empty":
         epics_empty()
-    target = HERE / ".claude" / "skills" / "planner"
+    target = HERE / ".claude" / "skills" / "vela"
     if arm == "plugin":
         copy_tree(REPO / "plugin", target)
     else:
         copy_tree(REPO / "plugin" / "scripts", target / "scripts")
         copy_tree(REPO / "plugin" / "lib", target / "lib")
         copy_tree(REPO / "plugin" / "catalog", target / "catalog")
-    planner = [sys.executable, str(target / "scripts" / "planner")]
+    vela = [sys.executable, str(target / "scripts" / "vela")]
     # epics-empty rewrote links inside generated blocks too; render puts those blocks back.
     extra = ["--discard-edits"] if vault == "epics-empty" else []
-    render = subprocess.run(planner + ["render"] + extra, capture_output=True, text=True, timeout=120)
+    render = subprocess.run(vela + ["render"] + extra, capture_output=True, text=True, timeout=120)
     if render.returncode != 0:
-        fail("planner render failed:\n" + render.stdout + render.stderr)
+        fail("vela render failed:\n" + render.stdout + render.stderr)
     git = ["git", "-c", "user.name=Eval", "-c", "user.email=eval@example.invalid"]
     for args in (["init", "-q", "-b", "main"], ["add", "-A"], ["commit", "-q", "-m", "Vault before the eval run"]):
         result = subprocess.run(git + args, capture_output=True, text=True, timeout=60)

@@ -40,12 +40,12 @@ def snapshot(vault):
 
 def test_fixture_is_clean_and_fast():
     cpu_before = resource.getrusage(resource.RUSAGE_CHILDREN)
-    result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "check",
+    result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "check",
                              "--vault", str(FIXTURE), "--today", TODAY], capture_output=True, text=True, timeout=120)
     cpu_after = resource.getrusage(resource.RUSAGE_CHILDREN)
     cpu = (cpu_after.ru_utime + cpu_after.ru_stime) - (cpu_before.ru_utime + cpu_before.ru_stime)
     assert result.returncode == 0, result.stdout
-    assert result.stdout.startswith("planner check: 0 errors, ")
+    assert result.stdout.startswith("vela check: 0 errors, ")
     assert findings(result.stdout) == []
     # what the example leaves open on purpose is its decided items' Why, which it carries for none (conftest.OPEN_IN_THE_EXAMPLE)
     assert all(code in OPEN_IN_THE_EXAMPLE for code, _ in findings(result.stdout, keep_open=True))
@@ -280,4 +280,4 @@ def test_capabilities_carry_a_domain_and_the_delta_page_draws_them():
 def test_booking_handoff_manifest_matches_the_vault():
     code, out = run("handoff", "verify", "APP-booking", "--vault", str(FIXTURE))
     assert code == 0, out
-    assert out.startswith("planner handoff verify APP-booking: since Booking was handed off on 2026-11-20 at example, 0 things changed, 0 added and 0 removed.")
+    assert out.startswith("vela handoff verify APP-booking: since Booking was handed off on 2026-11-20 at example, 0 things changed, 0 added and 0 removed.")

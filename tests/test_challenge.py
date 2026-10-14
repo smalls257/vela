@@ -1,4 +1,4 @@
-"""/planner:challenge: a senior's challenge after handoff becomes an open unknown they own,
+"""/vela:challenge: a senior's challenge after handoff becomes an open unknown they own,
 which blocks the item, and a Dissent line on it. The item keeps its state and text."""
 import json
 import shutil
@@ -35,10 +35,10 @@ def test_challenge_never_changes_the_item_and_never_decides():
 
 def test_challenge_resolves_the_id_and_shows_what_changed_since_handoff():
     text = skill_text()
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query get <ID> --json" in text
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json" in text
     assert "If it says `not_found`, stop" in text and "Do not guess another ID." in text
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff verify <APP-id>" in text
-    assert "Never cite an ID that `planner query get` reports `not_found`." in text
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id>" in text
+    assert "Never cite an ID that `vela query get` reports `not_found`." in text
 
 
 def test_challenge_writes_an_unknown_the_senior_owns():
@@ -47,7 +47,7 @@ def test_challenge_writes_an_unknown_the_senior_owns():
     assert "- **Blocks:** [[<page>#<heading>|<ID>]]" in text
     assert "- **Dissent:** <senior handle>, <today>: <the reason in a few words>" in text
     assert "Never name anyone but the senior as the unknown's owner." in text
-    assert "planner next-id UNK" in text and "counts `main` and every open session branch" in text  # the command counts; the skill does not
+    assert "vela next-id UNK" in text and "counts `main` and every open session branch" in text  # the command counts; the skill does not
 
 
 def test_challenge_asks_the_solution_lead_in_a_pr():
@@ -59,7 +59,7 @@ def test_challenge_asks_the_solution_lead_in_a_pr():
 
 def test_tech_design_points_the_senior_at_challenge():
     ref = (PLUGIN / "references" / "TECH-DESIGN-FROM-VAULT.md").read_text(encoding="utf-8")
-    assert "`/planner:challenge <vault ID>`" in ref
+    assert "`/vela:challenge <vault ID>`" in ref
     assert "handoff verify <APP-id> --vault <vault>" in ref
 
 
@@ -127,7 +127,7 @@ def test_what_a_challenge_writes_turns_the_check_red_and_verify_names_it(tmp_pat
 def test_the_pr_says_the_red_check_is_deliberate_and_blocks_the_merge():
     text = skill_text()
     assert "E316 is deliberate." in text
-    assert "blocks the merge wherever planner-check is a required check" in text
+    assert "blocks the merge wherever vela-check is a required check" in text
     assert "either by resolving `UNK-nnn` with a Grill or by setting the item back" in text
     assert "For an epic, setting it back means `reopened`." in text
     conv = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
@@ -144,7 +144,7 @@ def test_handoff_verify_exit_2_has_two_cases_and_the_skill_shows_the_message():
 def test_the_next_unknown_number_is_highest_plus_one_and_the_session_id_names_the_item():
     text = skill_text()
     assert "use exactly what it prints" in text and "a number is never handed out twice" in text
-    assert "highest `UNK-nnn` in use plus one" not in text  # a dead hand method: planner next-id does it
+    assert "highest `UNK-nnn` in use plus one" not in text  # a dead hand method: vela next-id does it
     assert "at the end of `## Unknowns`, before `## Risks`" in text.replace("Add the entry at", "at")
     assert "`<date>-challenge-<id-lowercased>`" in text
     assert "E316 fires once per unit" in text

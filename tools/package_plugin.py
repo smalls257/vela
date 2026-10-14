@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Build the planner plugin zip for claude.ai / Claude Cowork from the committed tree.
+"""Build the vela plugin zip for claude.ai / Claude Cowork from the committed tree.
 
 claude.ai-hosted plugins may not ship a top-level bin/ (it lands on PATH without appearing on the admin
 approval surface). This lives in tools/, not in the plugin's CLI, because it needs the repo's git history
 and a vendored copy inside a vault has neither. It reads git, never the working tree, so edits in
 progress cannot ship.
 
-    python3 tools/package_plugin.py --out ~/Desktop/planner-plugin.zip
+    python3 tools/package_plugin.py --out ~/Desktop/vela-plugin.zip
 """
 import argparse
 import io

@@ -8,7 +8,7 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=7d44f84b: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=7d44f84b: do not edit, run vela render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 What the front door means\|UNK-001]] | What the front door means | @joint-ceo (Joint CEO) | open | 2026-10-19 |

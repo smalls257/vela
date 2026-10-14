@@ -1,6 +1,6 @@
 /* A reader's draft, and the decisions waiting for an owner. The top bar carries two quiet chips, "Draft: N pages
    changed" (readers only) and the pending-approval count; either opens this view (#drafts). The diff is computed at
-   build time from the pristine baseline (planner's drafts.py), and every line of it is drawn with textContent,
+   build time from the pristine baseline (vela's drafts.py), and every line of it is drawn with textContent,
    never as HTML: a page can hold any text. Additions and removals carry a symbol as well as a color. */
 const Drafts = (() => {
   const st = { from: null };
@@ -59,7 +59,7 @@ const Drafts = (() => {
   /* How a draft reaches the owner. The page only names the command: it has no network and sends nothing. */
   function proposeHint() {
     if (!reader()) return null;
-    return h("p", { class: "p-note propose-hint", id: "propose-hint" }, "To send these to the owner, ask Claude Code to propose them (", h("code", {}, "/planner:propose"),
+    return h("p", { class: "p-note propose-hint", id: "propose-hint" }, "To send these to the owner, ask Claude Code to propose them (", h("code", {}, "/vela:propose"),
       ") from this folder. It asks you why for each change and writes a proposal folder you send yourself. Nothing is sent from this page.");
   }
   function changes() {

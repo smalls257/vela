@@ -18,7 +18,7 @@ MODEL_MAY_START = {"close"}
 # Files a reference may name that live outside references/: vault files, and files of the user's grill skills.
 OTHER_FILES = {"CONVENTIONS.md", "CLAUDE.md", "SKILL.md", "CONTEXT.md", "NEG-AUDIT.md", "PREREQ-CHECK.md", "GRILL-LOOP.md",
                "REQUIREMENTS-FORMAT.md", "TECH-DESIGN-FORMAT.md", "REVIEW-CHECKPOINT.md"}
-INSTALLED = re.compile(r"(?:\.claude/skills/planner|\$\{CLAUDE_PLUGIN_ROOT\})/([A-Za-z0-9_./-]+)")
+INSTALLED = re.compile(r"(?:\.claude/skills/vela|\$\{CLAUDE_PLUGIN_ROOT\})/([A-Za-z0-9_./-]+)")
 SIBLING = re.compile(r"`([A-Z][A-Z0-9-]*\.md)`")
 
 
@@ -65,7 +65,7 @@ def test_every_file_a_skill_or_reference_names_exists(folder):
         body = path.read_text(encoding="utf-8")
         for rel in INSTALLED.findall(body):
             rel = rel.rstrip(".")
-            assert (PLUGIN / rel).exists(), f"{path.name} names .claude/skills/planner/{rel}, which the plugin lacks"
+            assert (PLUGIN / rel).exists(), f"{path.name} names .claude/skills/vela/{rel}, which the plugin lacks"
         if folder.name == "references":
             for name in SIBLING.findall(body):
                 assert name in OTHER_FILES or (folder / name).exists(), f"{path.name} names {name}, which is not in references/"
@@ -117,7 +117,7 @@ def test_open_sessions_are_found_on_their_branches_and_ids_do_not_collide():
     start, close = text("references/START.md"), skill_text("close")
     assert "git branch --list 'session/*'" in start and "git branch -r --list 'origin/session/*'" in start
     assert "add `-2`, then `-3`" in start
-    assert "planner session open --switch" in close and "--id <the one they picked>" in close
+    assert "vela session open --switch" in close and "--id <the one they picked>" in close
     assert "If there is none yet, skip the merged-PR search" in start
     assert "pulls/<number>/reviews" in start
     assert "<Mode name>" in start and "Dump & Diverge" in start
@@ -130,7 +130,7 @@ def test_close_parks_every_claude_origin_and_never_decides_its_unknowns():
     assert "Claude never decides it alone" in close and "This rule wins over the park default" in close
     assert "A person's `wild` line is parked, never dropped." in close
     assert "every item kept or promoted from a capture whose origin starts with `claude`" in close
-    assert "planner next-id <its prefix>" in close
+    assert "vela next-id <its prefix>" in close
 
 
 def test_close_pr_body_reviewers_and_staging():
@@ -138,7 +138,7 @@ def test_close_pr_body_reviewers_and_staging():
     assert "**Prose drafted:**" in close and "**Decided wording not yet read back:**" in close
     assert "gh api user -q .login" in close and "Strip the leading `@`" in close
     assert "If nobody remains, leave out `--reviewer`." in close
-    assert "git add -A" not in close and "planner close stage --close" in close  # only the CLI stages
+    assert "git add -A" not in close and "vela close stage --close" in close  # only the CLI stages
 
 
 # grill (V1-10)
@@ -210,7 +210,7 @@ def test_discover_fix_round_guesses_never_become_facts():
 def test_shape_and_close_fix_round():
     shape, close = text("skills/shape/SKILL.md"), skill_text("close")
     assert "`claude, from <name>`" in shape
-    assert "After close, run `/planner:grill <ID>`" in shape
+    assert "After close, run `/vela:grill <ID>`" in shape
     assert "never an `inkling`" in close and "`**Options considered:**` bullet" in close
     assert "grill to confirm" in close and "GATE-2" in close
     assert "Discover already wrote its facts" in close
@@ -265,7 +265,7 @@ def test_ask_header_works_with_no_origin_and_no_claude_md(tmp_path):
 def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
     ask = text("skills/ask/SKILL.md")
     assert "Never redirect output (`>`, `>>`)." in ask
-    for banned in ("`tee`", "`sed -i`", "`git commit`", "`git checkout`", "`git log --output`", "`planner render`"):
+    for banned in ("`tee`", "`sed -i`", "`git commit`", "`git checkout`", "`git log --output`", "`vela render`"):
         assert banned in ask
     assert "writes a file or changes git state" in ask
     assert "Every claim rests on a page in the `Sources:` list or is labeled `Not from the vault:`. There is no third choice." in ask
@@ -293,7 +293,7 @@ def test_house_voice_rules():
     assert "acceptance criteria, and the `- Trace:` line under each;" in voice and "`**Decision:**` and `**Dissent:**` lines;" in voice
 
 
-# requirements-grill vault mode (V1-12): the vault rules live in the planner, not in the user's skill.
+# requirements-grill vault mode (V1-12): the vault rules live in vela, not in the user's skill.
 
 def test_requirements_in_vault_caps_certainty_and_moves_the_output():
     ref = text("references/REQUIREMENTS-IN-VAULT.md")
@@ -301,9 +301,9 @@ def test_requirements_in_vault_caps_certainty_and_moves_the_output():
     assert "It never writes `fact`." in ref
     assert "there is no `docs/requirements/<slug>.md`" in ref
     assert "### CAP-NNN.FRn <short name>" in ref
-    assert "Offer `/planner:grill CAP-NNN.FRn`." in ref
+    assert "Offer `/vela:grill CAP-NNN.FRn`." in ref
     assert "E316" in ref
-    assert "/planner:close" in ref
+    assert "/vela:close" in ref
 
 
 # epics (V1-17): the check finds the frontier, only the lead's confirmation decides, the gate closes.
@@ -314,7 +314,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
     assert "4 to 7 criteria" in epics and "## Done when" in epics
     assert "`[testing]`" in epics
-    assert "offer `/planner:requirements` on that `CAP-nnn`, then `/planner:allocate`" in epics and "Never write the requirement into the epic." in epics
+    assert "offer `/vela:requirements` on that `CAP-nnn`, then `/vela:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
     assert "in groups of about five" in epics and "while any criterion lacks a yes (its own or its group's)" in epics
     assert "every criterion has a yes, its own or its group's" in epics
@@ -358,7 +358,7 @@ def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
     assert "Every page this session writes is an `assumption`, never `decided`" in b and "never `addressed`" in b
     assert "→ keep: [[<page>#<heading>|<ID>]] (assumption)" in b
     assert 'the checkpoint "after the pages are written"' in b and "questions --subject <ID>" in b
-    assert "/planner:grill <APP-id>" in b
+    assert "/vela:grill <APP-id>" in b
     assert "| Boundary (`boundary`) |" in modes and "| `boundary` |" in modes
     assert "Boundary already wrote its app, contract and runtime pages" in close
 
@@ -402,14 +402,14 @@ def test_every_flag_the_explore_skill_names_is_one_the_command_accepts():
     assert named and named <= accepted, named - accepted
 
 
-EXPLORER_LINE = "The dashboard is up to date: dashboard.html — open it, or run /planner:explore to ask Claude from it"
+EXPLORER_LINE = "The dashboard is up to date: dashboard.html — open it, or run /vela:explore to ask Claude from it"
 
 
 def test_close_ends_by_rebuilding_the_static_explorer_and_a_failed_build_never_blocks_it():
     close = skill_text("close")
     last = close.split("\n## ")[-1]
     assert last.startswith("9. Rebuild the explorer")
-    assert "scripts/planner explore` from the vault root, without `--serve`" in last
+    assert "scripts/vela explore` from the vault root, without `--serve`" in last
     assert EXPLORER_LINE in last
     assert "A failed build never undoes or blocks the close" in last
     assert "never say the dashboard is up to date unless the command exited 0" in last
@@ -428,7 +428,7 @@ def test_open_and_import_also_say_where_the_explorer_is_and_never_stop_on_a_fail
 def test_explore_and_the_vault_reference_say_designs_and_plans_live_in_the_vault_docs_folder():
     explore, ref = skill_text("explore"), text("references/TECH-DESIGN-FROM-VAULT.md")
     assert "`docs/tech-design/<slug>.md` (with `docs/adr/`" in explore and "team_repos" not in explore
-    assert "write their own `docs/` files in the vault and never edit a planner page" in explore
+    assert "write their own `docs/` files in the vault and never edit a vela page" in explore
     assert 'says "never edit the vault"' not in explore  # an outside skill's words go stale; say what is true here
     assert "in the vault" in ref and "team_repos" not in ref
 
@@ -439,7 +439,7 @@ def test_the_static_build_close_runs_writes_the_page_and_names_it_on_its_last_li
     code, said = run("explore", str(vault), "--today", "2026-10-10")
     assert code == 0, said
     assert (vault / "dashboard.html").is_file()
-    assert said.strip().splitlines()[-1].startswith("planner explore: wrote ") and "serving" not in said
+    assert said.strip().splitlines()[-1].startswith("vela explore: wrote ") and "serving" not in said
 
 
 def test_a_build_that_fails_exits_2_says_why_and_leaves_no_new_page(tmp_path):
@@ -463,7 +463,7 @@ def test_no_skill_or_reference_tells_the_session_to_edit_in_place_with_sed():
 def test_epics_skill_disposes_of_e805_by_answer_defer_or_override_and_never_leaves_it_unplaced():
     """S11: the heron run offered "leave the gate failing", the lead took it, and the question had no owner."""
     epics = text("skills/epics/SKILL.md")
-    assert "Defer it to whoever can answer" in epics and "planner next-id UNK" in epics
+    assert "Defer it to whoever can answer" in epics and "vela next-id UNK" in epics
     assert "- Leave the gate failing." not in epics
     assert "is not a route" in epics and "do not loop" in epics
 

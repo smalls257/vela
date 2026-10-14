@@ -19,7 +19,7 @@ The product lead says TickerTalk is the foundation: the app, the readers and a m
 
 ## After
 
-<!-- generated:system-context sha=140bedbf: do not edit, run planner render -->
+<!-- generated:system-context sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:system-context -->
 

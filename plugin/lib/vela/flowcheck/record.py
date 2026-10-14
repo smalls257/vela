@@ -8,7 +8,7 @@ Overrides and today's date are left out on purpose: they are applied fresh on ev
 override that ends tomorrow ends tomorrow whether or not the slice was reused. F4 is recomputed too, since it is
 judged across the whole initiative.
 
-The store is one JSON file the CLI keeps at .planner/flowcheck-cache.json. It is advisory: a file that does not
+The store is one JSON file the CLI keeps at .vela/flowcheck-cache.json. It is advisory: a file that does not
 read is ignored with a warning and rebuilt, never trusted and never a reason to fail (`read_store`). It is also the
 record the dashboard and the handoff read for where a slice's check stands (`standing.standing`), without running
 it: a record whose fingerprint no longer matches says "not checked since", and "not fully checked" is kept as
@@ -23,7 +23,7 @@ from vela.flowcheck.findings import Finding
 from vela.flowcheck.tables import Flow
 
 FORMAT = 1
-PATH = ".planner/flowcheck-cache.json"
+PATH = ".vela/flowcheck-cache.json"
 
 
 def canonical(value):
@@ -115,7 +115,7 @@ def read_store(text):
         return empty, f"{PATH} is not JSON ({exc}), so it was ignored and every slice is checked afresh."
     if not isinstance(data, dict) or data.get("format") != FORMAT or not isinstance(data.get("slices"), dict) or \
             not all(isinstance(r, dict) for r in data["slices"].values()):
-        return empty, f"{PATH} is not a flow-check record this planner reads, so it was ignored and every slice is checked afresh."
+        return empty, f"{PATH} is not a flow-check record this vela reads, so it was ignored and every slice is checked afresh."
     return data, ""
 
 

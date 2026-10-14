@@ -5,7 +5,7 @@
 - **Written:** 2026-10-12
 - **Items:** 23
 
-Written by `planner handoff APP-heron`. Do not edit it by hand. `planner handoff verify APP-heron` lists what changed since the senior accepted this slice.
+Written by `vela handoff APP-heron`. Do not edit it by hand. `vela handoff verify APP-heron` lists what changed since the senior accepted this slice.
 
 | ID | Kind | Page | State | Hash |
 |---|---|---|---|---|
@@ -22,7 +22,7 @@ Written by `planner handoff APP-heron`. Do not edit it by hand. `planner handoff
 | EPC-001 | epic | 13-epics/EPC-001-calendar.md | draft | a83776707907 |
 | EPC-002 | epic | 13-epics/EPC-002-chosen-folder.md | draft | 07c206de5f2d |
 | EPC-003 | epic | 13-epics/EPC-003-call-tool-records.md | draft | 9a9deb165cf6 |
-| EPC-004 | epic | 13-epics/EPC-004-note-or-reason.md | draft | ad5538b081f6 |
+| EPC-004 | epic | 13-epics/EPC-004-note-or-reason.md | draft | 57f5b0f88d60 |
 | UNK-008 | unknown | 11-unknowns-and-risks.md | open | 61cef740d6c0 |
 | UNK-010 | unknown | 11-unknowns-and-risks.md | open | 67ca3a5f39b0 |
 | UNK-020 | unknown | 11-unknowns-and-risks.md | open | 34ae5ef5fcc9 |

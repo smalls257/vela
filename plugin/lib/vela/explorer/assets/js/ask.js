@@ -1,4 +1,4 @@
-/* Ask Claude. The search box answers instantly from the page's own index; when `planner explore --serve` is running
+/* Ask Claude. The search box answers instantly from the page's own index; when `vela explore --serve` is running
    it can also put the question to Claude, which reads the vault's pages and answers with citations.
    Opened as a file, the page makes no network request at all: it never fetches, and offers the question as a prompt
    to copy into Claude Code instead. Served, it asks /health on its own origin once to learn the helper is there.
@@ -138,7 +138,7 @@ const Ask = (() => {
     }
     return h("div", { class: "r-ask" }, h("button", { class: "ask-btn", type: "button", onmousedown: (ev) => { ev.preventDefault(); copyPrompt(q); } },
       h("b", {}, "Copy as a Claude Code prompt"), h("span", { class: "ask-q" }, shorten(q, 60))),
-    h("div", { class: "r-more" }, st.mode === "file" ? "Search only: this page was opened as a file. To ask Claude, open it with /planner:explore." : "Search only: Claude couldn't be reached. To ask Claude, open the page with /planner:explore."));
+    h("div", { class: "r-more" }, st.mode === "file" ? "Search only: this page was opened as a file. To ask Claude, open it with /vela:explore." : "Search only: Claude couldn't be reached. To ask Claude, open the page with /vela:explore."));
   }
   function closeSearch() { const q = $("#q"); q.value = ""; q.dispatchEvent(new Event("input")); q.blur(); }
   const enterAsks = (q) => served() && !!q.trim();
@@ -384,7 +384,7 @@ const Ask = (() => {
   function emptyLog() {
     if (served()) return h("div", { class: "ask-empty" }, h("b", {}, "Ask the vault in plain words."), " Claude reads its pages and answers with citations. Click a citation to read the source in the panel beside this conversation.");
     return emptyState("Claude is not reachable from this page.", st.mode === "file" ? "A page opened as a file asks nothing of the network." : st.mode === "pending" ? "Looking for the local Claude connection." : "The local Claude connection didn't answer.",
-      "/planner:explore", "ask-empty");
+      "/vela:explore", "ask-empty");
   }
   function renderView(main) {
     const conv = st.cur;

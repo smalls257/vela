@@ -1,6 +1,6 @@
-"""`planner explore` with no --design: where each app's team design doc comes from (explorer/design_find.py).
+"""`vela explore` with no --design: where each app's team design doc comes from (explorer/design_find.py).
 
-Lookup order: --design, `design:` on the app page, `designs:` in .planner.yaml, then a local GitHub/Code link whose
+Lookup order: --design, `design:` on the app page, `designs:` in .vela.yaml, then a local GitHub/Code link whose
 repository holds docs/tech-design/*.md with `vault.app` naming the app. Local files only; a bad path is a warning
 in the build report, never a failed build.
 """
@@ -43,13 +43,13 @@ def say_vault_app(doc, app):
     edit(doc, "prereqs:\n", f"vault:\n  app: {app}\n  initiative: INI-002\nprereqs:\n")
 
 
-def test_a_design_named_in_planner_yaml_is_found(world):
+def test_a_design_named_in_vela_yaml_is_found(world):
     vault, _ = world
-    with open(vault / ".planner.yaml", "a", encoding="utf-8") as config:
+    with open(vault / ".vela.yaml", "a", encoding="utf-8") as config:
         config.write(f"designs: {{APP-pricing: ../team/{PRICING_DOC}}}\n")
     code, said = explore(vault)
     assert code == 0, said
-    assert "(APP-pricing): using the design" in said and "designs: in .planner.yaml" in said, said
+    assert "(APP-pricing): using the design" in said and "designs: in .vela.yaml" in said, said
     assert designs_on_the_page(vault) == ["APP-pricing"]
 
 
@@ -73,7 +73,7 @@ def test_a_local_repo_link_finds_the_doc_whose_vault_app_names_the_app(world, ho
     code, said = explore(vault)
     assert code == 0, said
     assert "(APP-pricing): using the design" in said and "because it names this app" in said, said
-    if how == "a file:// URL":  # a local clone is a link planner check accepts; a bare path is not a link
+    if how == "a file:// URL":  # a local clone is a link vela check accepts; a bare path is not a link
         assert run("check", "--vault", str(vault), "--today", "2026-11-20")[0] == 0
     assert designs_on_the_page(vault) == ["APP-pricing"]
 
@@ -110,7 +110,7 @@ def test_a_bad_path_is_a_visible_warning_and_the_page_still_builds(world, where)
     if where == "page":
         edit(vault / PRICING_PAGE, "id: APP-pricing\n", "id: APP-pricing\ndesign: ../nowhere/pricing.md\n")
     elif where == "config":
-        with open(vault / ".planner.yaml", "a", encoding="utf-8") as config:
+        with open(vault / ".vela.yaml", "a", encoding="utf-8") as config:
             config.write("designs: {APP-pricing: ../nowhere/pricing.md}\n")
     else:
         edit(vault / PRICING_PAGE, "id: APP-pricing\n", "id: APP-pricing\nlinks: {GitHub: \"file:///nowhere/at/all\"}\n")
@@ -131,7 +131,7 @@ def test_a_design_flag_wins_and_the_app_is_not_looked_up(world):
 
 def test_designs_that_is_not_a_map_is_a_warning(world):
     vault, _ = world
-    with open(vault / ".planner.yaml", "a", encoding="utf-8") as config:
+    with open(vault / ".vela.yaml", "a", encoding="utf-8") as config:
         config.write("designs: ../team/docs/tech-design/pricing.md\n")
     code, said = explore(vault)
     assert code == 0 and "designs: is not a map" in said, said

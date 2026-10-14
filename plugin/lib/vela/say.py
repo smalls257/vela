@@ -7,13 +7,13 @@ code" sentences to the skills did not stop it. So the interface itself carries t
 - default mode prints lines with codes and IDs, for files, the PR body and CI;
 - `--json` prints the structured result the skill reasons over;
 - `--for-lead` prints plain lines with every ID resolved to its name first, and then *checks every line it prints*
-  against `LEAD_PATTERNS`. A match raises `LeadLeak`, which `cli.main` turns into exit 2, "planner bug: a line meant
+  against `LEAD_PATTERNS`. A match raises `LeadLeak`, which `cli.main` turns into exit 2, "vela bug: a line meant
   for the lead held an ID", naming the command. A leak fails loudly at its source (Sensor) instead of being counted in
   a paid run months later.
 
 Exit codes (one meaning each, so no command author reinvents them; `cli.main`'s docstring says the same):
 0 done; 1 refused or findings, with a plain reason; 2 the tool failed; 3 needs the lead: nothing changed, the choices
-are printed, and `--json` carries the `needs_lead` list. `planner check` keeps 0/1/2.
+are printed, and `--json` carries the `needs_lead` list. `vela check` keeps 0/1/2.
 
 Pure: no disk, git or clock. The resolver is handed a built vault model (or nothing) by its caller.
 """
@@ -58,11 +58,11 @@ _TOKEN = re.compile(r"[\w][\w.-]*[\w]")
 
 
 class LeadLeak(Exception):
-    """A line meant for the lead still held a code or an ID after resolution. Always a planner bug, never the vault's."""
+    """A line meant for the lead still held a code or an ID after resolution. Always a vela bug, never the vault's."""
 
     def __init__(self, command, kind, line):
         self.command, self.kind, self.line = command, kind, line
-        super().__init__(f"planner bug: a line meant for the lead held an ID ({kind}) in `planner {command}`. "
+        super().__init__(f"vela bug: a line meant for the lead held an ID ({kind}) in `vela {command}`. "
                          f"The line was: {line}")
 
 
@@ -196,7 +196,7 @@ class Refusal:
 @dataclass
 class Result:
     """What a command found or did. `wrote` lists the paths it changed; exit 3 promises nothing changed, so a Result
-    with exit 3 and anything in `wrote` is refused by `emit` as a planner bug."""
+    with exit 3 and anything in `wrote` is refused by `emit` as a vela bug."""
     command: str
     exit: int = DONE
     lines: list = field(default_factory=list)
@@ -225,10 +225,10 @@ def lead_lines(result, resolver):
 def check_contract(result):
     """The exit-code promises, held in one place."""
     if result.exit == NEEDS_LEAD and result.wrote:
-        raise ValueError(f"planner bug: `planner {result.command}` exited 3 (needs the lead, nothing changed) "
+        raise ValueError(f"vela bug: `vela {result.command}` exited 3 (needs the lead, nothing changed) "
                          f"after writing {', '.join(result.wrote)}")
     if result.exit == NEEDS_LEAD and not result.needs_lead:
-        raise ValueError(f"planner bug: `planner {result.command}` exited 3 without saying what the lead must choose")
+        raise ValueError(f"vela bug: `vela {result.command}` exited 3 without saying what the lead must choose")
 
 
 def render(result, mode, resolver=None):

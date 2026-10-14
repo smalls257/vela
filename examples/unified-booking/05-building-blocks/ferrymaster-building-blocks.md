@@ -24,7 +24,7 @@ FERRYMASTER is not responsible for holds during payment or for telling channels 
 |---|---|
 | Integrated, unchanged. The vendor contract ends in 2028 and the code cannot change (CST-1). | Mainframe team (2 people) |
 
-<!-- generated:app-context sha=b4d53bed: do not edit, run planner render -->
+<!-- generated:app-context sha=b4d53bed: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -60,7 +60,7 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:contracts-consumed -->
 
@@ -68,7 +68,7 @@ The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns
 
 ## Epics
 
-<!-- generated:epics-for-app sha=8078719e: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=8078719e: do not edit, run vela render -->
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] | @harborline/booking-team | decided |

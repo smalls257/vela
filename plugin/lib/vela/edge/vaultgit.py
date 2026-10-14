@@ -140,7 +140,7 @@ def behind_ahead(root, upstream_ref):
 
 
 def role_facts(root):
-    """roles.Facts for a directory: what git, the disk and .planner.yaml say about access."""
+    """roles.Facts for a directory: what git, the disk and .vela.yaml say about access."""
     root = pathlib.Path(root)
     git_error, in_tree, has_origin, can_commit, why = "", False, False, False, ""
     try:
@@ -153,7 +153,7 @@ def role_facts(root):
     except GitUnavailable as exc:
         git_error = str(exc)
     config_role, config_error = None, ""
-    config = root / ".planner.yaml"
+    config = root / ".vela.yaml"
     if config.is_file():
         try:
             data = yaml.safe_load(config.read_text(encoding="utf-8")) or {}
@@ -162,5 +162,5 @@ def role_facts(root):
             config_error = str(exc).splitlines()[0] if str(exc) else type(exc).__name__
     return roles.Facts(in_work_tree=in_tree, git_here=(root / ".git").exists(), has_origin=has_origin,
                        can_commit=can_commit, commit_problem=why,
-                       has_workspace=(root / ".planner" / "workspace.json").is_file(),
+                       has_workspace=(root / ".vela" / "workspace.json").is_file(),
                        git_error=git_error, config_role=config_role, config_error=config_error)

@@ -1,6 +1,6 @@
 # Conventions
 
-This file is the vault's one written format. Every page follows it, and `planner check` enforces the parts a script can see. If a rule here and the check disagree, the check has a bug. Search this file for any field, label or code to find the rule behind it.
+This file is the vault's one written format. Every page follows it, and `vela check` enforces the parts a script can see. If a rule here and the check disagree, the check has a bug. Search this file for any field, label or code to find the rule behind it.
 
 ## Layout
 
@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.planner.yaml` | `initiative` (`INI-nnn`), `title`, and `stale_after_days` (default 60) |
+| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, and `stale_after_days` (default 60) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -27,10 +27,10 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
 | `voice/examples/` | House-voice passages. Never a source. Committed. |
 | `voice/local/` | The owner's passages that stay on one machine, same format as `voice/examples/`. Gitignored, never committed. `voice/corpus/` is gitignored too. |
-| `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `planner handoff` writes. Never edited by hand. |
+| `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `vela handoff` writes. Never edited by hand. |
 | `.inbox/` | Documents dropped for Discover. Gitignored, never parsed. |
 
-`planner check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, anything under `voice/` or `handoffs/`, and anything under a folder whose name starts with a dot.
+`vela check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, anything under `voice/` or `handoffs/`, and anything under a folder whose name starts with a dot.
 
 ## Areas and stages
 
@@ -73,7 +73,7 @@ Field values:
 
 - `authored`: `authored` (people wrote it), `generated` (only blocks), `mixed` (both).
 - `owner`: a GitHub handle or team, `"@handle"` or `"@org/team"`. Several owners are separated by spaces, as in CODEOWNERS. Close uses it to request reviews and to mention owners.
-- `initiative`: if present, it must equal `.planner.yaml`.
+- `initiative`: if present, it must equal `.vela.yaml`.
 - `c4`: `landscape`, `context` or `container`. `arc42`: the section, for example `"§5"`.
 - `sources`: a list. Use `SRC-nn` IDs for documents. Free text, such as a session name, is allowed as a summary.
 - `change` on an app page: `new`, `changed`, `integrated`, `unchanged` or `retired`.
@@ -83,7 +83,7 @@ Field values:
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
-- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
+- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/vela:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
 
 ## IDs
 
@@ -91,7 +91,7 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 
 | Kind | Pattern | Where it lives | File name |
 |---|---|---|---|
-| Initiative | `INI-001` | `.planner.yaml` | |
+| Initiative | `INI-001` | `.vela.yaml` | |
 | App | `APP-booking` | app page `id` | `booking-building-blocks.md` |
 | Runtime page | `RUN-booking` | runtime page `id` | `booking-runtime.md` |
 | Capability, flow, epic | `CAP-013`, `FLO-001`, `EPC-031` | page `id` | starts with the ID, then `-<slug>` |
@@ -169,7 +169,7 @@ Parties and stored value carry no `**State:**`. A stored value's `**Owner:**` is
 
 ## Overrides
 
-The person using the skills may override any rule in them: a grill gate, "only a Grill decides", a blocking open unknown, an absent owner, or any other skill rule. The lead may decide on others' behalf. An override is never refused and never hidden. It is written on the item it sets a rule aside for, where reviewers, `planner check`, `/planner:ask` and the progress views all read it.
+The person using the skills may override any rule in them: a grill gate, "only a Grill decides", a blocking open unknown, an absent owner, or any other skill rule. The lead may decide on others' behalf. An override is never refused and never hidden. It is written on the item it sets a rule aside for, where reviewers, `vela check`, `/vela:ask` and the progress views all read it.
 
 ```
 - **Override:** <rule>, <rule> by @handle on YYYY-MM-DD: <reason>
@@ -191,9 +191,9 @@ The person using the skills may override any rule in them: a grill gate, "only a
 - **Where it sits.** Under an item's heading, it covers that contract or functional requirement. At page level, it covers the page and its goal rows, not the items under its headings. A rule that belongs to no item, such as how a session ran, goes at page level in the session record. An override of `E805` goes at page level under `## Question ledger` on `11-unknowns-and-risks.md`, and covers every E805 there; each one still prints, as W805.
 - **Decided by.** When someone other than the item's owner decided it: the decider's handle, `, on behalf of ` and the owner's handle or handles. Deciding on the owner's behalf is how a Grill passes GATE-5 with the owner absent, and it goes with `**Override:** GATE-5`.
 - **Confirmed by.** The owner adds it later: their handle, ` on ` and the date. A team owner is confirmed by one of its people. A confirmation by the person who decided does not count.
-- **An owner who disagrees** with a decision made on their behalf raises `/planner:challenge` on the item, as a senior does after handoff. Confirming and challenging are the only two answers.
+- **An owner who disagrees** with a decision made on their behalf raises `/vela:challenge` on the item, as a senior does after handoff. Confirming and challenging are the only two answers.
 
-`planner check` reads them this way:
+`vela check` reads them this way:
 
 - A well-formed override that names the rule an error enforces turns that error into its warning, and the warning quotes the override. Nothing else changes: the warning stays until the rule is met or the bullet goes.
 - A malformed override is E321: no rule, an unknown rule name, no handle, no date, a date that is not real, or no reason. A malformed `**Decided by:**` or `**Confirmed by:**` is E322. So is a label one typo away from one of the three, such as `**Overide:**`. A typo never silently fails to override.
@@ -230,11 +230,11 @@ A waiver records that an `addressed` cell needs no epic work. The cell text star
 
 Code decides which questions the vault owes. The skills decide only how to ask them, and the ledger records how each one ended.
 
-**The catalog.** `.claude/skills/planner/catalog/questions.yaml` ships with the plugin and carries a `version`. Each entry has an `id` such as `Q-FIN-01`, a focus `area`, a `scope`, a `trigger`, the `question`, a `why` (the regulation, practice or simulation miss that earned it a place) and a `severity`, `high` or `normal`. `blocks` lists the kinds of unit an open copy holds up: `app`, `contract`, `requirement`, `capability`, `decision` and `epic`. An initiative-scope entry may say which subject a yes `creates`, `party` or `stored-value`, and list the words that suggest that subject in `mentions`. Each mention is a group of forms such as `license/licenses`, and `mention_why` gives each group its reason. `mention_except` lists phrases such as `credit card*` that use the word for something else and are not read as the subject; a `*` ends a word at any suffix. The five focus areas are `FIN` Finance and liabilities, `DAT` Data and lawful basis, `PTN` Partners and contracts, `REG` Regulation and liability and `OPS` Operations and people. They are labels for readers, and they are not the areas of "Areas and stages".
+**The catalog.** `.claude/skills/vela/catalog/questions.yaml` ships with the plugin and carries a `version`. Each entry has an `id` such as `Q-FIN-01`, a focus `area`, a `scope`, a `trigger`, the `question`, a `why` (the regulation, practice or simulation miss that earned it a place) and a `severity`, `high` or `normal`. `blocks` lists the kinds of unit an open copy holds up: `app`, `contract`, `requirement`, `capability`, `decision` and `epic`. An initiative-scope entry may say which subject a yes `creates`, `party` or `stored-value`, and list the words that suggest that subject in `mentions`. Each mention is a group of forms such as `license/licenses`, and `mention_why` gives each group its reason. `mention_except` lists phrases such as `credit card*` that use the word for something else and are not read as the subject; a `*` ends a word at any suffix. The five focus areas are `FIN` Finance and liabilities, `DAT` Data and lawful basis, `PTN` Partners and contracts, `REG` Regulation and liability and `OPS` Operations and people. They are labels for readers, and they are not the areas of "Areas and stages".
 
-**Subjects and copies.** A scope names the kind of subject an entry applies to: `initiative` (the initiative in `.planner.yaml`), `app`, `contract`, `capability`, `party` or `stored-value`. A trigger is `exists`, or conditions joined by ` and `, each `<field>: <value>` or `<field> in [<value>, <value>]`. An app has the fields `change`, `state` and `stage`. A contract has `change`, `state` and `provider`, which is `external` when the contract has a `**Provider:**` bullet and `app` otherwise. A capability has `change`, `state`, `origin` and `domain`, and a party has `relationship`. The initiative and a stored value have none, so their entries use `exists`. Values are compared in lower case, and a missing field never matches. Code reads a trigger; it never runs one.
+**Subjects and copies.** A scope names the kind of subject an entry applies to: `initiative` (the initiative in `.vela.yaml`), `app`, `contract`, `capability`, `party` or `stored-value`. A trigger is `exists`, or conditions joined by ` and `, each `<field>: <value>` or `<field> in [<value>, <value>]`. An app has the fields `change`, `state` and `stage`. A contract has `change`, `state` and `provider`, which is `external` when the contract has a `**Provider:**` bullet and `app` otherwise. A capability has `change`, `state`, `origin` and `domain`, and a party has `relationship`. The initiative and a stored value have none, so their entries use `exists`. Values are compared in lower case, and a missing field never matches. Code reads a trigger; it never runs one.
 
-`planner questions` applies each entry once to each subject of its scope that its trigger matches. Each result is a copy, with the ID `<entry>@<subject>`, for example `Q-DAT-02@APP-booking`. The ID follows the subject's ID, so renaming a file keeps it. A subject that is removed takes its copies with it, and a ledger row for one of them is reported as orphaned, never dropped.
+`vela questions` applies each entry once to each subject of its scope that its trigger matches. Each result is a copy, with the ID `<entry>@<subject>`, for example `Q-DAT-02@APP-booking`. The ID follows the subject's ID, so renaming a file keeps it. A subject that is removed takes its copies with it, and a ledger row for one of them is reported as orphaned, never dropped.
 
 **The ledger.** The record is one table under `## Question ledger` on `11-unknowns-and-risks.md`, headed `| Copy | State | Evidence | By | Date |`, spelled exactly, below the `undisposed-questions` block. Every owed copy and every reviewer question ends in a row.
 
@@ -253,28 +253,28 @@ Code decides which questions the vault owes. The skills decide only how to ask t
 
 A copy's own row wins. Then the wildcard with the longest prefix, then an initiative row. An initiative row answers a lower scope at initiative level: `Q-OPS-03@INI-002` with `covers: capability` answers every `Q-OPS-03` copy for a capability, until one has its own row. Exceptions to a wildcard or an initiative row take their own row. A reviewer question carries `question:` with the question, `quote: "<the words>" in [[<page>]]`, and `severity: high` when it is one; without it, it is `normal`.
 
-A quote, whether a `source:` or a reviewer question's `quote:`, names its page, and `planner check` looks for the words in that page's hand-written text: not its frontmatter, a generated block, an HTML comment, on `11-unknowns-and-risks.md` the ledger section, or in a session record the `## Reviews` section. `## Reviews` holds the reviewers' own words and the quotes a merge dropped, so neither can come back as evidence. Case, spacing, curly quotes and Markdown emphasis do not count, so the words may be copied as the page shows them. A quote needs at least four words. A quote with no page, a page that is not in the vault, too few words, or words that are not on the page is E802, so a quote is never taken on trust. A `source:` that mixes a quote and an `SRC-nn`, or adds anything else, is E802 too. A key that belongs to another state, such as `reason:` on an `answered` row, is E802. The `answer:` text is free text, and `planner check` does not compare it with the quote or the item.
+A quote, whether a `source:` or a reviewer question's `quote:`, names its page, and `vela check` looks for the words in that page's hand-written text: not its frontmatter, a generated block, an HTML comment, on `11-unknowns-and-risks.md` the ledger section, or in a session record the `## Reviews` section. `## Reviews` holds the reviewers' own words and the quotes a merge dropped, so neither can come back as evidence. Case, spacing, curly quotes and Markdown emphasis do not count, so the words may be copied as the page shows them. A quote needs at least four words. A quote with no page, a page that is not in the vault, too few words, or words that are not on the page is E802, so a quote is never taken on trust. A `source:` that mixes a quote and an `SRC-nn`, or adds anything else, is E802 too. A key that belongs to another state, such as `reason:` on an `answered` row, is E802. The `answer:` text is free text, and `vela check` does not compare it with the quote or the item.
 
-`planner check` reads the ledger. A malformed row, two rows for one copy, any table directly under `## Question ledger` whose header is not exactly the ledger's, a ledger table that is not under the first `## Question ledger`, or a second `## Question ledger` heading is E801. A row with any error, and any row of a misplaced ledger table, disposes of nothing: `planner questions` shows it as `invalid` and counts the copy as undisposed. A state without the evidence it needs is E802. A row that names an entry the catalog lacks, a subject that does not fit the entry's scope, or a reviewer area the catalog lacks is E803. A row whose subject is gone, or whose subject no longer matches the trigger, is W804: it stays as a record. A wildcard that no copy uses, because each has a row of its own or a longer wildcard, and a wildcard on an initiative entry are W804 too. A row dated after today is W812. A `11-unknowns-and-risks.md` with no `## Question ledger` heading is W813 while any copy is owed, because every answer would have nowhere to be recorded. A copy with no row, or an `open` row, is never a finding in a plain check. The lead sets the pace.
+`vela check` reads the ledger. A malformed row, two rows for one copy, any table directly under `## Question ledger` whose header is not exactly the ledger's, a ledger table that is not under the first `## Question ledger`, or a second `## Question ledger` heading is E801. A row with any error, and any row of a misplaced ledger table, disposes of nothing: `vela questions` shows it as `invalid` and counts the copy as undisposed. A state without the evidence it needs is E802. A row that names an entry the catalog lacks, a subject that does not fit the entry's scope, or a reviewer area the catalog lacks is E803. A row whose subject is gone, or whose subject no longer matches the trigger, is W804: it stays as a record. A wildcard that no copy uses, because each has a row of its own or a longer wildcard, and a wildcard on an initiative entry are W804 too. A row dated after today is W812. A `11-unknowns-and-risks.md` with no `## Question ledger` heading is W813 while any copy is owed, because every answer would have nowhere to be recorded. A copy with no row, or an `open` row, is never a finding in a plain check. The lead sets the pace.
 
 Three gates read it too. Each names a moment, and a skill runs it then:
 
 | Gate | When | What it reports |
 |---|---|---|
-| `planner check --gate shape` | the end of a Shape | W806 for each row still `assumed`. An assumption clears into a decision, a requirement or a constraint before Shape closes. |
-| `planner check --gate grill --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open`, `asked` or invalid row, that blocks the item. A warning: the lead may decide anyway. An item no catalog question can block gets one W807 saying so. |
-| `planner check --gate epics` | before epics are called complete | E805 for each high-severity copy or reviewer question with no row, or an `open`, `asked` or invalid row. An `asked` question is still waiting for its answer. A gate that passes while `assumed` rows with `load-bearing: yes` dispose of high-severity questions prints one note naming them. |
+| `vela check --gate shape` | the end of a Shape | W806 for each row still `assumed`. An assumption clears into a decision, a requirement or a constraint before Shape closes. |
+| `vela check --gate grill --item <ID>` | a Grill, once per agenda item | W807 for each copy with no row, or an `open`, `asked` or invalid row, that blocks the item. A warning: the lead may decide anyway. An item no catalog question can block gets one W807 saying so. |
+| `vela check --gate epics` | before epics are called complete | E805 for each high-severity copy or reviewer question with no row, or an `open`, `asked` or invalid row. An `asked` question is still waiting for its answer. A gate that passes while `assumed` rows with `load-bearing: yes` dispose of high-severity questions prints one note naming them. |
 
 `--item` repeats, once per agenda item, and goes only with `--gate grill`, which needs at least one. An ID the vault does not hold exits 2.
 
 A question only fires on a subject someone typed. So W809 warns, "possibly an untyped subject", where a fact bullet or a table row says one of the words an existence question lists in `mentions` (points, balances, credits, vouchers or deposits for stored value; a clause or a license for a party), the page neither holds nor links a subject of that kind, and that existence question has no row yet or an `open` one. It warns once per page and question. Prose, session records, `sources.md` (a source's title names a document, not a subject), generated blocks and the ledger are not read for it. Type the subject and link it, or answer the existence question, and the warning goes.
 
 
-`planner questions` lists every owed copy with its focus area, severity, state, subject, what it blocks while it is open or asked, and the question, then the reviewer questions. `--json` prints the same as data, `--area FIN` keeps one focus area, `--subject APP-booking` one subject, and `--open` lists only the copies with no row, an `open` row, an invalid row or an `asked` row, and the reviewer questions that are open, invalid or asked. An `asked` question is not undisposed, but it still holds the gates, so every list of what is pending shows it, labeled `asked`. Its first line is the coverage: "57 owed, 3 undisposed, against catalog v1", with ", 2 asked" after the undisposed count when any copy or reviewer question is `asked`. It never says complete, because the catalog finds only what is written into it. An unknown `--area` exits 2, and a `--subject` that names no subject exits 1.
+`vela questions` lists every owed copy with its focus area, severity, state, subject, what it blocks while it is open or asked, and the question, then the reviewer questions. `--json` prints the same as data, `--area FIN` keeps one focus area, `--subject APP-booking` one subject, and `--open` lists only the copies with no row, an `open` row, an invalid row or an `asked` row, and the reviewer questions that are open, invalid or asked. An `asked` question is not undisposed, but it still holds the gates, so every list of what is pending shows it, labeled `asked`. Its first line is the coverage: "57 owed, 3 undisposed, against catalog v1", with ", 2 asked" after the undisposed count when any copy or reviewer question is `asked`. It never says complete, because the catalog finds only what is written into it. An unknown `--area` exits 2, and a `--subject` that names no subject exits 1.
 
-`planner questions --digest` is what a session shows the lead. It groups the undisposed and asked copies by entry, so one answer can serve many, adds the open, invalid and asked reviewer questions, and ranks them: high severity that blocks something first, then high severity, then the rest, by entry ID within each. It leaves nothing out. `planner questions --stats` counts, for each entry, how its copies ended in this vault and how often they ended `not-applicable`. An entry that nearly always ends `not-applicable` is one to prune or tighten, and that is the user's call. Neither writes anything.
+`vela questions --digest` is what a session shows the lead. It groups the undisposed and asked copies by entry, so one answer can serve many, adds the open, invalid and asked reviewer questions, and ranks them: high severity that blocks something first, then high severity, then the rest, by entry ID within each. It leaves nothing out. `vela questions --stats` counts, for each entry, how its copies ended in this vault and how often they ended `not-applicable`. An entry that nearly always ends `not-applicable` is one to prune or tighten, and that is the user's call. Neither writes anything.
 
-**Focused reviewers.** At a few checkpoints a session runs one read-only reviewer per focus area, each in a fresh context, given the written pages and its area's owed copies and nothing of the conversation. Each returns its findings as JSON, which the session saves as `<folder>/<AREA>.json`, such as `FIN.json`: `{"area": "FIN", "findings": [...]}`, or `{"area": "FIN", "error": "<why>"}` when the reviewer could not finish. Each finding has `finding`, `quote` (words copied from the page), `page`, `copy` (an owed copy ID, or `new` for a question of the reviewer's own), `severity` (`high` or `normal`) and `question`, the question for the lead. `planner findings merge <folder>` keeps the union, removes exact duplicates (the same copy and the same question, ignoring case, spacing and punctuation), and drops each finding whose quote is not in the hand-written text of the page it cites (the same check a ledger row's quote gets, so a quote needs 4 or more words), or that names a copy the vault does not owe, with the reason. It never votes. Its coverage line gives each focus area one of three results: `found N` (with `, M dropped` when some were), `checked, none`, or `did not run (<reason>)`. A reply that is one fenced code block is read without its fence. A missing file, a file that is not JSON, or a reviewer's error is `did not run`, never `checked, none`. It exits 0 when every area ran and nothing was dropped or ignored, 1 otherwise, and 2 when the folder does not exist.
+**Focused reviewers.** At a few checkpoints a session runs one read-only reviewer per focus area, each in a fresh context, given the written pages and its area's owed copies and nothing of the conversation. Each returns its findings as JSON, which the session saves as `<folder>/<AREA>.json`, such as `FIN.json`: `{"area": "FIN", "findings": [...]}`, or `{"area": "FIN", "error": "<why>"}` when the reviewer could not finish. Each finding has `finding`, `quote` (words copied from the page), `page`, `copy` (an owed copy ID, or `new` for a question of the reviewer's own), `severity` (`high` or `normal`) and `question`, the question for the lead. `vela findings merge <folder>` keeps the union, removes exact duplicates (the same copy and the same question, ignoring case, spacing and punctuation), and drops each finding whose quote is not in the hand-written text of the page it cites (the same check a ledger row's quote gets, so a quote needs 4 or more words), or that names a copy the vault does not owe, with the reason. It never votes. Its coverage line gives each focus area one of three results: `found N` (with `, M dropped` when some were), `checked, none`, or `did not run (<reason>)`. A reply that is one fenced code block is read without its fence. A missing file, a file that is not JSON, or a reviewer's error is `did not run`, never `checked, none`. It exits 0 when every area ran and nothing was dropped or ignored, 1 otherwise, and 2 when the folder does not exist.
 
 ## Pages
 
@@ -301,7 +301,7 @@ Four diagrams are generated blocks, drawn from the model: `context-map`, `system
 
 ## Sessions
 
-One record per session at `sessions/YYYY-MM-DD-<topic>.md`, with `date`, `modes`, `status` (`open` or `closed`) and `summary` in the frontmatter. The body has `## Captures` and `## Changes`. A session that ran a review checkpoint also has `## Reviews` after `## Captures`: per checkpoint, a `### <n>. <checkpoint>, <date>` heading, a `- **Coverage:**` line copied from `planner findings merge`, a `- **Dropped:**` line, and a table `| Finding | Area | Severity | Copy | Question | Quote |` with one row per kept finding, `F<n>.1` and on. Close may add `## Catalog proposals`, a YAML block of new catalog entries the user approved.
+One record per session at `sessions/YYYY-MM-DD-<topic>.md`, with `date`, `modes`, `status` (`open` or `closed`) and `summary` in the frontmatter. The body has `## Captures` and `## Changes`. A session that ran a review checkpoint also has `## Reviews` after `## Captures`: per checkpoint, a `### <n>. <checkpoint>, <date>` heading, a `- **Coverage:**` line copied from `vela findings merge`, a `- **Dropped:**` line, and a table `| Finding | Area | Severity | Copy | Question | Quote |` with one row per kept finding, `F<n>.1` and on. Close may add `## Catalog proposals`, a YAML block of new catalog entries the user approved.
 
 A capture line:
 
@@ -319,13 +319,13 @@ A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, di
 
 ## Voice examples
 
-House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works`. `planner check` never reads `voice/`.
+House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works`. `vela check` never reads `voice/`.
 
 | Field | Rule |
 |---|---|
 | `id` | `VX-<voice type>-NNN`, the file name |
 | `voice_type` | the folder's voice type |
-| `source` | `public-seed` (a licensed passage that ships with the template), `owner` (the owner's own writing, added by `/planner:voice-seed`) or `owner-edit` (a drafted paragraph the owner edited, harvested at close) |
+| `source` | `public-seed` (a licensed passage that ships with the template), `owner` (the owner's own writing, added by `/vela:voice-seed`) or `owner-edit` (a drafted paragraph the owner edited, harvested at close) |
 | `state` | `active` (house-voice reads it) or `retired` (kept for its attribution, never read) |
 | `added` | `YYYY-MM-DD` |
 | `author` | who wrote it: a name for `public-seed`, `"@handle"` for `owner` and `owner-edit` |
@@ -335,23 +335,23 @@ House-voice passages live in `voice/examples/<voice type>/`, one per file named 
 
 A voice type holds at most 5 `active` examples, counting `voice/examples/` and `voice/local/` together. When a sixth becomes active, one retires: the `public-seed` examples first, then the `owner-edit`, then the `owner`, the oldest `added` first within each. The owner may refuse a retirement. Then nothing new is stored for that type. Once a type has 2 `active` examples with `source: owner` or `owner-edit` in the same folder as a `public-seed` example, counted after the run, that seed retires, so drafts follow the owner. A local example never retires a committed seed, so every clone keeps its seed. An owner's words are stored as written and never rewritten. Nothing is ever deleted.
 
-`voice/local/<voice type>/VX-<voice type>-NNN.md` holds examples in the same format that stay on one machine, for text the owner may not publish. `/planner:voice-seed` writes there when the owner picks local only. House-voice reads both folders, and on that machine reads local `owner` and `owner-edit` examples ahead of the committed ones.
+`voice/local/<voice type>/VX-<voice type>-NNN.md` holds examples in the same format that stay on one machine, for text the owner may not publish. `/vela:voice-seed` writes there when the owner picks local only. House-voice reads both folders, and on that machine reads local `owner` and `owner-edit` examples ahead of the committed ones.
 
-`planner voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite. The kinds are `id`, `number` (with its unit and currency symbol), `date`, `version`, `link` (wikilinks, Markdown link URLs and bare URLs), `code`, `cell` (table cells), `frontmatter` (every line, compared exactly) and `negation` (the count of negation words in the prose of each file, outside frontmatter, table rows, code spans, links and URLs: not, no, never, cannot, without, nobody, nothing, none, nor, neither, nowhere, and any word ending in n't. The count is per file, so splitting, merging or moving paragraphs does not change it). `planner voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
+`vela voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite. The kinds are `id`, `number` (with its unit and currency symbol), `date`, `version`, `link` (wikilinks, Markdown link URLs and bare URLs), `code`, `cell` (table cells), `frontmatter` (every line, compared exactly) and `negation` (the count of negation words in the prose of each file, outside frontmatter, table rows, code spans, links and URLs: not, no, never, cannot, without, nobody, nothing, none, nor, neither, nowhere, and any word ending in n't. The count is per file, so splitting, merging or moving paragraphs does not change it). `vela voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
 
-`planner voicescore <file>` is optional. It needs `sentence-transformers` and a one-off `planner voicescore setup`, and the rest of planner never does. It embeds each prose paragraph of a file with the StyleDistance style model and says whether it sits inside or outside the owner's range: how far each active `owner` and `owner-edit` example sits from the others. Below 5 such examples it says the score is unreliable. It uses the public seed only when asked with `--against seed`, and says so. `--rank <a> <b>` orders drafts of one paragraph. It is a hint and never a gate: it always exits 0 when it scored, and 2 when it could not. Its vectors are cached in `.git/planner-voicescore/`, which is never committed.
+`vela voicescore <file>` is optional. It needs `sentence-transformers` and a one-off `vela voicescore setup`, and the rest of vela never does. It embeds each prose paragraph of a file with the StyleDistance style model and says whether it sits inside or outside the owner's range: how far each active `owner` and `owner-edit` example sits from the others. Below 5 such examples it says the score is unreliable. It uses the public seed only when asked with `--against seed`, and says so. `--rank <a> <b>` orders drafts of one paragraph. It is a hint and never a gate: it always exits 0 when it scored, and 2 when it could not. Its vectors are cached in `.git/vela-voicescore/`, which is never committed.
 
 ## Generated blocks
 
-A generated block sits between two markers and is written only by `planner render`:
+A generated block sits between two markers and is written only by `vela render`:
 
 ```
-<!-- generated:unknowns-index sha=1f3a9c0e: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=1f3a9c0e: do not edit, run vela render -->
 ...
 <!-- /generated:unknowns-index -->
 ```
 
-The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trailing spaces and blank edge lines removed. A text that no longer matches its `sha` was edited by hand. To add a block, write both markers with `sha=00000000` and nothing between them, then run `planner render`. Blocks hold links and numbers and dates, never ages or prose.
+The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trailing spaces and blank edge lines removed. A text that no longer matches its `sha` was edited by hand. To add a block, write both markers with `sha=00000000` and nothing between them, then run `vela render`. Blocks hold links and numbers and dates, never ages or prose.
 
 | Block | Page | What it shows |
 |---|---|---|
@@ -374,9 +374,9 @@ A view with no generator is a list of links to where the data lives, never a cop
 
 ## Progress and next step
 
-`planner status` prints one line per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, with "(n by override)" after the decided count when n of them carry an `**Override:**`, the oldest open unknown that blocks it with its age, and its next mode with the reason. An app's items are its building-blocks page, its runtime page and the contracts on its page. `planner next` prints the one app and mode to work on next. Both judge overdue unknowns by `--today YYYY-MM-DD`, or the system date, and say which. The `progress-map` block holds the same grid, judged as of the last session's date.
+`vela status` prints one line per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, with "(n by override)" after the decided count when n of them carry an `**Override:**`, the oldest open unknown that blocks it with its age, and its next mode with the reason. An app's items are its building-blocks page, its runtime page and the contracts on its page. `vela next` prints the one app and mode to work on next. Both judge overdue unknowns by `--today YYYY-MM-DD`, or the system date, and say which. The `progress-map` block holds the same grid, judged as of the last session's date.
 
-For each app the first rule that matches picks the mode. `planner next` takes the app whose rule has the lowest number, then the earliest stage, then the lowest app ID, and skips apps whose mode is `none`.
+For each app the first rule that matches picks the mode. `vela next` takes the app whose rule has the lowest number, then the earliest stage, then the lowest app ID, and skips apps whose mode is `none`.
 
 | Rule | Mode | Matches when |
 |---|---|---|
@@ -392,32 +392,32 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 
 ## Keeping the vault fresh
 
-`stale_after_days` in `.planner.yaml` sets how old a check may be before it is stale. The default is 60. Three warnings follow from it, and none of them blocks a PR:
+`stale_after_days` in `.vela.yaml` sets how old a check may be before it is stale. The default is 60. Three warnings follow from it, and none of them blocks a PR:
 
 - W704: a page's `last_verified` is more than `stale_after_days` before today.
 - W716: a `sources.md` row's `Date` is more than `stale_after_days` before today, or is not a date.
 - W711: the last session with `status: closed` is more than 30 days before today. A vault with no closed session yet is not judged.
 
-A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: W704, W716 or W711 says it is "dated in the future (<date>); check for a typo." `planner health` marks the row the same way.
+A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: W704, W716 or W711 says it is "dated in the future (<date>); check for a typo." `vela health` marks the row the same way.
 
-`planner health` prints the same signals as one Markdown report: stale pages, stale sources, overdue unknowns with their owners @-mentioned, the days since the last closed session, and how many pages were never verified. The weekly workflow `.github/workflows/planner-weekly.yml` posts it as the one open issue titled "Vault health", creating it the first time and editing it after that.
+`vela health` prints the same signals as one Markdown report: stale pages, stale sources, overdue unknowns with their owners @-mentioned, the days since the last closed session, and how many pages were never verified. The weekly workflow `.github/workflows/vela-weekly.yml` posts it as the one open issue titled "Vault health", creating it the first time and editing it after that.
 
-## planner query
+## vela query
 
-`planner query` answers questions about IDs and never writes. Add `--json` for JSON.
+`vela query` answers questions about IDs and never writes. Add `--json` for JSON.
 
-- `planner query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, the wikilink to cite it by, and its overrides: `override` (each `**Override:**` bullet, its rules, handle, date and reason, or `malformed` with the problem), `decided_by` (who decided on whose behalf, and whether it is `confirmed`) and `confirmed_by`.
-- `planner query refs <ID>`: every page line that links to the ID, every list in page properties that names it, and every other line that holds the ID as a whole token (`via: mention`). The line that defines the ID is left out.
-- `planner query find <words>`: page titles, item headings and goal, constraint and source rows that hold every word, in any case. Put `--` before a word that starts with `-`.
-- `planner query status`: the `planner status` grid as data.
+- `vela query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, the wikilink to cite it by, and its overrides: `override` (each `**Override:**` bullet, its rules, handle, date and reason, or `malformed` with the problem), `decided_by` (who decided on whose behalf, and whether it is `confirmed`) and `confirmed_by`.
+- `vela query refs <ID>`: every page line that links to the ID, every list in page properties that names it, and every other line that holds the ID as a whole token (`via: mention`). The line that defines the ID is left out.
+- `vela query find <words>`: page titles, item headings and goal, constraint and source rows that hold every word, in any case. Put `--` before a word that starts with `-`.
+- `vela query status`: the `vela status` grid as data.
 
 An ID the vault does not hold comes back as `not_found` and exits 1. An ID is matched exactly, so `con-001` is not `CON-001`.
 
-## planner check and planner render
+## vela check and vela render
 
-Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It reads, never writes, and never stops at the first problem. `--today YYYY-MM-DD` sets the date for overdue unknowns; without it the system date is used, and the first line of output says which. Exit code 0 means no errors (warnings may print), 1 means errors, 2 means the tool itself failed.
+Run `python3 .claude/skills/vela/bin/vela check` from the vault root. It reads, never writes, and never stops at the first problem. `--today YYYY-MM-DD` sets the date for overdue unknowns; without it the system date is used, and the first line of output says which. Exit code 0 means no errors (warnings may print), 1 means errors, 2 means the tool itself failed.
 
-`planner render` rewrites generated blocks only. It writes nothing if any page fails to parse or any block was edited by hand. `--discard-edits` overwrites hand-edited blocks and prints what it threw away.
+`vela render` rewrites generated blocks only. It writes nothing if any page fails to parse or any block was edited by hand. `--discard-edits` overwrites hand-edited blocks and prints what it threw away.
 
 | Code | Finding | Code | Finding |
 |---|---|---|---|
@@ -465,7 +465,7 @@ An epic page holds a description, the owning team, 4 to 7 numbered acceptance cr
 
 A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
 
-Four trace rules run once the vault holds an epic. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger).
+Four trace rules run once the vault holds an epic. They are warnings in `vela check` and errors under `vela check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger).
 
 | Rule | Passes when | Codes |
 |---|---|---|
@@ -488,10 +488,10 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 - The runtime page says how the app behaves when something fails.
 - Every open unknown that blocks the app has an owner and an ask-by date.
 
-Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `planner check --gate epics` exits 0.
+Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `vela check --gate epics` exits 0.
 
-In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
+In the PR that sets `handed_off`, run `vela handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `vela handoff` writes nothing while `vela check` has errors, and never overwrites a manifest unless given `--replace`.
 
-`planner handoff verify <APP-id>` lists every item changed, added or removed since. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
+`vela handoff verify <APP-id>` lists every item changed, added or removed since. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
 
-A senior who disputes a boundary or contract after handoff, or an owner who disputes a decision made on their behalf, raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: it blocks the merge wherever planner-check is a required check, so a challenge cannot merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.
+A senior who disputes a boundary or contract after handoff, or an owner who disputes a decision made on their behalf, raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: it blocks the merge wherever vela-check is a required check, so a challenge cannot merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.

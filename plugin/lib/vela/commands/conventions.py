@@ -1,8 +1,8 @@
-"""`planner conventions "<section>"`: print one section of CONVENTIONS.md (CLI/skill overhaul, Task 30).
+"""`vela conventions "<section>"`: print one section of CONVENTIONS.md (CLI/skill overhaul, Task 30).
 
 Why: skills told the model to read CONVENTIONS.md, a 21,000-word file, for one rule at a time. Reading one section is
 what the skills meant. The load a session carries before its first question drops, and code stays the enforcer:
-`planner check` holds the rules, CONVENTIONS is the format guide a person reads.
+`vela check` holds the rules, CONVENTIONS is the format guide a person reads.
 
 - An exact heading (case ignored, a leading `## ` ignored) prints that section and its subsections, exit 0.
 - No exact heading: exit 1, "No section called X", and up to five near headings. Never the whole file: a reader who
@@ -54,7 +54,7 @@ def cmd_conventions(args, out):
         result.lines = [say.Line(said)] + [say.Line(f"{'  ' * (s.level - 1)}{s.title} ({s.words} words)") for s in found]
     elif not args.section.strip():
         result.exit = say.REFUSED
-        result.lines = [say.Line('Name a section, like planner conventions "Overrides", or run planner conventions --list.')]
+        result.lines = [say.Line('Name a section, like vela conventions "Overrides", or run vela conventions --list.')]
     else:
         result = answer(result, found, args.section, said)
     return emit(result, args, out)
@@ -74,6 +74,6 @@ def answer(result, found, name, said):
         lines += ["Near matches:"] + [f"- {title}" for title in close]
     else:
         lines.append("No heading is close.")
-    lines.append("planner conventions --list shows every section.")
+    lines.append("vela conventions --list shows every section.")
     result.lines = [say.Line(line) for line in lines]
     return result

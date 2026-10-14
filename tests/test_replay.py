@@ -1,4 +1,4 @@
-"""Keeping up: `planner open <newer copy>` on a workspace that already has drafts replays them onto the new pages
+"""Keeping up: `vela open <newer copy>` on a workspace that already has drafts replays them onto the new pages
 (design session 15 section 8). Run end to end: publish v1, open, the reader drafts, the owner commits and publishes v2,
 the reader re-opens. Each page lands in exactly one of: kept, took the owner's, merged, or conflict with the reader's
 version beside it. Nothing the reader wrote is dropped."""
@@ -56,7 +56,7 @@ def read(path):
 
 
 def tree(root):
-    return {p.relative_to(root).as_posix(): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file() and ".planner" not in p.relative_to(root).parts}
+    return {p.relative_to(root).as_posix(): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file() and ".vela" not in p.relative_to(root).parts}
 
 
 def open_into(source, workspace, today="2026-10-12", *extra):
@@ -134,7 +134,7 @@ def test_both_changing_different_lines_merges_and_keeps_both(replayed):
     merged = read(workspace / MERGE)
     assert "(reader, top)" in merged and "(owner, bottom)" in merged
     assert merged != read(v2 / MERGE) and "Merged" in text and MERGE in text
-    backup = list((workspace / ".planner" / "replay-backup").rglob(MERGE))
+    backup = list((workspace / ".vela" / "replay-backup").rglob(MERGE))
     assert len(backup) == 1 and "(owner, bottom)" not in read(backup[0]) and "(reader, top)" in read(backup[0])
 
 
@@ -172,7 +172,7 @@ def test_a_pending_decision_travels_with_its_page(replayed):
 
 def test_nothing_the_reader_wrote_is_lost(replayed):
     _, _, workspace, before, _ = replayed
-    everything = "\n".join(read(p) for p in workspace.rglob("*.md") if ".planner" not in p.relative_to(workspace).parts)
+    everything = "\n".join(read(p) for p in workspace.rglob("*.md") if ".vela" not in p.relative_to(workspace).parts)
     for tag in ("(reader note)", "(reader, top)", "(reader wording)", "Sam's own term.", "Sam's notes."):
         assert tag in everything
 
@@ -181,15 +181,15 @@ def test_nothing_the_reader_wrote_is_lost(replayed):
 
 def test_the_baseline_becomes_the_new_copy_and_the_record_moves(replayed):
     _, v2, workspace, _, _ = replayed
-    stamp = json.loads(read(v2 / ".planner" / "published.json"))
+    stamp = json.loads(read(v2 / ".vela" / "published.json"))
     published = {p.relative_to(v2).as_posix(): p.read_bytes() for p in v2.rglob("*") if p.is_file() and p.name != "dashboard.html"}
     published = {path: data for path, data in published.items() if untrusted.verdict(path)[0] == untrusted.OK}  # tool settings and hooks are left out of a reader copy
-    assert {p.relative_to(workspace / ".planner" / "baseline").as_posix(): p.read_bytes() for p in (workspace / ".planner" / "baseline").rglob("*") if p.is_file()} == published
-    record = json.loads(read(workspace / ".planner" / "workspace.json"))
+    assert {p.relative_to(workspace / ".vela" / "baseline").as_posix(): p.read_bytes() for p in (workspace / ".vela" / "baseline").rglob("*") if p.is_file()} == published
+    record = json.loads(read(workspace / ".vela" / "workspace.json"))
     assert record["base_commit"] == stamp["commit"] and record["base_date"] == V2_DAY and record["base_tree_hash"] == stamp["tree_hash"]
     assert record["source_path"] == str(v2) and record["opened"] == "2026-10-12" and record["author"] == "Sam Okoye" and record["replayed"] == V2_DAY
-    assert json.loads(read(workspace / ".planner" / "published.json")) == stamp
-    assert not (workspace / ".planner" / "baseline.next").exists() and not (workspace / ".planner" / "baseline.previous").exists()
+    assert json.loads(read(workspace / ".vela" / "published.json")) == stamp
+    assert not (workspace / ".vela" / "baseline.next").exists() and not (workspace / ".vela" / "baseline.previous").exists()
     assert not (workspace / ".git").exists()
 
 
@@ -243,7 +243,7 @@ def test_a_proposal_written_against_the_old_copy_is_called_stale_and_how_to_redo
     assert code == 0, text
     v2 = owner_publishes_v2(src, tmp_path)
     code, text = open_into(v2, workspace, V2_DAY)
-    assert code == 0 and "Stale proposal" in text and "2026-10-14-early-thoughts" in text and "planner propose" in text
+    assert code == 0 and "Stale proposal" in text and "2026-10-14-early-thoughts" in text and "vela propose" in text
     assert (tmp_path / "proposals" / "2026-10-14-early-thoughts" / "changes.patch").is_file()
 
 
@@ -347,11 +347,11 @@ def test_a_replay_that_cannot_write_leaves_the_old_baseline_standing(world, tmp_
     src, _, workspace = world
     v2 = owner_publishes_v2(src, tmp_path)
     from vela.edge import copies
-    before = tree(workspace / ".planner" / "baseline")
+    before = tree(workspace / ".vela" / "baseline")
     real = copies.write_folder
     monkeypatch.setattr(copies, "write_folder", lambda *a, **k: (_ for _ in ()).throw(OSError(28, "No space left on device")))
     code, text = open_into(v2, workspace, V2_DAY)
     monkeypatch.setattr(copies, "write_folder", real)
     assert code == 2 and "stopped while writing the new baseline" in text and "No space left" in text
-    assert tree(workspace / ".planner" / "baseline") == before
-    assert json.loads(read(workspace / ".planner" / "workspace.json"))["base_date"] == "2026-10-11"
+    assert tree(workspace / ".vela" / "baseline") == before
+    assert json.loads(read(workspace / ".vela" / "workspace.json"))["base_date"] == "2026-10-11"

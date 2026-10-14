@@ -5,7 +5,7 @@
 - **Written:** 2026-10-09
 - **Items:** 15
 
-Written by `planner handoff APP-coach`. Do not edit it by hand. `planner handoff verify APP-coach` lists what changed since the senior accepted this slice.
+Written by `vela handoff APP-coach`. Do not edit it by hand. `vela handoff verify APP-coach` lists what changed since the senior accepted this slice.
 
 | ID | Kind | Page | State | Hash |
 |---|---|---|---|---|

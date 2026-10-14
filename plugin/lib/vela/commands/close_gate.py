@@ -1,4 +1,4 @@
-"""`planner close gate [--consent-block] [--json|--for-lead]`: is this session ready to finish? (overhaul Task 10a)
+"""`vela close gate [--consent-block] [--json|--for-lead]`: is this session ready to finish? (overhaul Task 10a)
 
 The wave-1 gate holds two things, each a Sensor for a failure that used to be silent:
 
@@ -73,7 +73,7 @@ def run(args, out):
     try:
         return judge_session(args, out)
     except (vaultgit.GitUnavailable, mergegit.MergeGitFailed, closestate.StateUnreadable) as exc:
-        print(f"planner close gate: could not judge the session: {exc}", file=out)
+        print(f"vela close gate: could not judge the session: {exc}", file=out)
         return say.FAILED
 
 

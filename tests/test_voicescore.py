@@ -1,4 +1,4 @@
-"""planner voicescore: an optional style-embedding reading of each prose paragraph against the
+"""vela voicescore: an optional style-embedding reading of each prose paragraph against the
 owner's own range. Free: a fake embedder stands in for StyleDistance, so no test needs torch,
 a model download or the network."""
 import json
@@ -44,7 +44,7 @@ PAGE = textwrap.dedent("""\
     code that looks like prose
     ```
 
-    <!-- generated:where-it-stands sha=0a1bc540: do not edit, run planner render -->
+    <!-- generated:where-it-stands sha=0a1bc540: do not edit, run vela render -->
     Generated prose that render writes.
     <!-- /generated:where-it-stands -->
 
@@ -99,7 +99,7 @@ def vault(tmp_path):
 def scorer(monkeypatch, tmp_path):
     """The optional half installed and downloaded, with the fake embedder in place of the model."""
     home = tmp_path / "models"
-    monkeypatch.setenv("PLANNER_VOICESCORE_HOME", str(home))
+    monkeypatch.setenv("VELA_VOICESCORE_HOME", str(home))
     monkeypatch.setattr(cli, "missing_dependencies", lambda: [])
     fake = FakeEmbedder()
     monkeypatch.setattr(cli, "load_styledistance", lambda path: fake)
@@ -142,7 +142,7 @@ def test_a_page_with_no_prose_is_not_scored(vault, scorer, tmp_path):
     path.write_text("# Only a heading\n\n| a |\n|---|\n| 1 |\n", encoding="utf-8")
     code, out = run("voicescore", str(path), "--vault", str(vault))
     assert code == 2
-    assert out.startswith("planner voicescore: not run: the file holds no prose paragraph")
+    assert out.startswith("vela voicescore: not run: the file holds no prose paragraph")
 
 
 # --- the owner's range ----------------------------------------------------------------------
@@ -215,7 +215,7 @@ def test_the_seed_is_never_used_when_owner_examples_are_missing(vault, scorer, t
             path.unlink()
     code, out = run("voicescore", page(tmp_path, "Near the owner."), "--vault", str(vault))
     assert code == 2
-    assert out.startswith("planner voicescore: not run: 0 active owner examples")
+    assert out.startswith("vela voicescore: not run: 0 active owner examples")
     assert "`--against seed` scores against the public seed instead, labeled as such." in out
     assert scorer.calls == []  # nothing was embedded, so no seed vector stood in for the owner
 
@@ -252,7 +252,7 @@ def test_rank_puts_the_draft_closest_to_the_owner_first(vault, scorer, tmp_path)
     code, out = run("voicescore", "--rank", far, mid, near, "--vault", str(vault))
     assert code == 0
     lines = out.splitlines()
-    assert lines[0] == "planner voicescore --rank: 3 candidates against your voice (5 owner examples), closest first."
+    assert lines[0] == "vela voicescore --rank: 3 candidates against your voice (5 owner examples), closest first."
     assert lines[1] == f"1. {near}: inside your range"
     assert lines[2].startswith(f"2. {mid}: outside your range (p")
     assert lines[3] == f"3. {far}: outside your range (p100+)"
@@ -272,22 +272,22 @@ def test_missing_dependency_exits_2_with_the_install_hint_and_size(vault, monkey
     for argv in (["voicescore", page(tmp_path, "Near the owner."), "--vault", str(vault)], ["voicescore", "setup"]):
         code, out = run(*argv)
         assert code == 2
-        assert out.startswith("planner voicescore: not run: sentence-transformers and torch not installed.")
+        assert out.startswith("vela voicescore: not run: sentence-transformers and torch not installed.")
         assert "pip install sentence-transformers" in out and "about 1–2 GB" in out
 
 
 def test_missing_model_exits_2_and_suggests_setup(vault, monkeypatch, tmp_path):
-    monkeypatch.setenv("PLANNER_VOICESCORE_HOME", str(tmp_path / "empty"))
+    monkeypatch.setenv("VELA_VOICESCORE_HOME", str(tmp_path / "empty"))
     monkeypatch.setattr(cli, "missing_dependencies", lambda: [])
     code, out = run("voicescore", page(tmp_path, "Near the owner."), "--vault", str(vault))
     assert code == 2
-    assert "model is not downloaded yet" in out and "Run planner voicescore setup once" in out
+    assert "model is not downloaded yet" in out and "Run vela voicescore setup once" in out
     code, out = run("voicescore", page(tmp_path, "Near the owner."), "--vault", str(vault), "--json")
     assert json.loads(out)["ran"] is False
 
 
 def test_setup_says_it_uses_the_network_before_it_downloads(monkeypatch, tmp_path):
-    monkeypatch.setenv("PLANNER_VOICESCORE_HOME", str(tmp_path / "models"))
+    monkeypatch.setenv("VELA_VOICESCORE_HOME", str(tmp_path / "models"))
     monkeypatch.setattr(cli, "missing_dependencies", lambda: [])
     seen = []
 
@@ -306,7 +306,7 @@ def test_setup_says_it_uses_the_network_before_it_downloads(monkeypatch, tmp_pat
     code = cli.main(["voicescore", "setup"], out=Out())
     assert code == 0 and seen == [cli.model_dir()]
     announced = "".join(t for n, t in out_lines if n == 0)
-    assert "the only planner command that uses the network" in announced
+    assert "the only vela command that uses the network" in announced
     assert voicescore.MODEL_ID in announced and voicescore.MODEL_REVISION[:12] in announced
     assert (cli.model_dir() / cli.MODEL_MARKER).is_file()
     code, out = run("voicescore", "setup", "--json")
@@ -314,7 +314,7 @@ def test_setup_says_it_uses_the_network_before_it_downloads(monkeypatch, tmp_pat
 
 
 def test_a_failed_download_leaves_the_model_missing(monkeypatch, tmp_path):
-    monkeypatch.setenv("PLANNER_VOICESCORE_HOME", str(tmp_path / "models"))
+    monkeypatch.setenv("VELA_VOICESCORE_HOME", str(tmp_path / "models"))
     monkeypatch.setattr(cli, "missing_dependencies", lambda: [])
 
     def download(target):
@@ -367,7 +367,7 @@ def test_vectors_are_cached_under_dot_git_and_reused(vault, scorer, tmp_path):
     git_init(vault)
     path = page(tmp_path, "Near the owner.")
     assert run("voicescore", path, "--vault", str(vault))[0] == 0
-    folder = vault / ".git" / "planner-voicescore"
+    folder = vault / ".git" / "vela-voicescore"
     assert (folder / f"{voicescore.cache_key('Near the owner.')}.json").is_file()
     assert len(list(folder.glob("*.json"))) == 6
     first = len(scorer.calls)
@@ -375,7 +375,7 @@ def test_vectors_are_cached_under_dot_git_and_reused(vault, scorer, tmp_path):
     assert code == 0 and len(scorer.calls) == first  # every vector came from the cache
     assert f"cache: {folder.resolve()}" in out
     status = subprocess.run(["git", "-C", str(vault), "status", "--porcelain", "--ignored"], capture_output=True, text=True, timeout=60).stdout
-    assert "planner-voicescore" not in status
+    assert "vela-voicescore" not in status
 
 
 def test_a_fully_cached_run_never_loads_the_model(vault, scorer, monkeypatch, tmp_path):
@@ -392,7 +392,7 @@ def test_a_corrupt_cache_file_is_embedded_again(vault, scorer, tmp_path):
     git_init(vault)
     path = page(tmp_path, "Near the owner.")
     run("voicescore", path, "--vault", str(vault))
-    bad = vault / ".git" / "planner-voicescore" / f"{voicescore.cache_key('Near the owner.')}.json"
+    bad = vault / ".git" / "vela-voicescore" / f"{voicescore.cache_key('Near the owner.')}.json"
     bad.write_text("{not json", encoding="utf-8")
     calls = len(scorer.calls)
     assert run("voicescore", path, "--vault", str(vault))[0] == 0
@@ -444,7 +444,7 @@ def voice_review():
 
 def test_close_scores_drafts_only_when_available_and_never_gates_on_it():
     part = voice_review()
-    assert "planner voicescore" in part
+    assert "vela voicescore" in part
     assert "at least 5 active `owner` and `owner-edit` examples" in part
     assert "information, not a gate" in part
     assert "Never block, rewrite or skip a paragraph because of its voicescore" in part
@@ -454,7 +454,7 @@ def test_close_scores_drafts_only_when_available_and_never_gates_on_it():
 
 def test_close_still_runs_the_voicecheck_fact_guard_unchanged():
     part = voice_review()
-    assert 'python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)' in part
+    assert 'python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)' in part
     assert "Never commit a rewrite voicecheck could not check." in part
 
 
@@ -478,12 +478,12 @@ def test_conventions_say_voicescore_is_optional_in_every_copy():
     texts = {p.read_bytes() for p in copies}
     assert len(texts) == 1
     text = copies[0].read_text(encoding="utf-8")
-    assert "`planner voicescore" in text and "optional" in text.split("`planner voicescore", 1)[1].split("\n", 1)[0]
+    assert "`vela voicescore" in text and "optional" in text.split("`vela voicescore", 1)[1].split("\n", 1)[0]
 
 
 def test_readme_explains_install_setup_offline_and_privacy():
     readme = (REPO / "README.md").read_text(encoding="utf-8")
     section = readme.split("## Optional: voicescore", 1)[1].split("\n## ", 1)[0]
-    for words in ("pip install sentence-transformers", "1–2 GB", "planner voicescore setup", "one-off download",
+    for words in ("pip install sentence-transformers", "1–2 GB", "vela voicescore setup", "one-off download",
                   "offline", "never leaves this machine", "not a gate"):
         assert words in section, words

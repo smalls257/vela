@@ -66,10 +66,10 @@ def stub_writes(setting):
 
 
 def close_rebuilds_the_explorer(argv):
-    """What the real close skill ends with: `planner explore` from the vault root, without --serve. The stub runs the
+    """What the real close skill ends with: `vela explore` from the vault root, without --serve. The stub runs the
     plugin's own command so the page it leaves is the tool's, and says what the command said."""
     plugin = pathlib.Path(argv[argv.index("--plugin-dir") + 1])
-    done = subprocess.run([sys.executable, str(plugin / "scripts" / "planner"), "explore"], capture_output=True, text=True, timeout=120)
+    done = subprocess.run([sys.executable, str(plugin / "scripts" / "vela"), "explore"], capture_output=True, text=True, timeout=120)
     if done.returncode != 0:
         return f"The explorer could not be built: {(done.stdout + done.stderr).strip()}"
     return "The dashboard is up to date: dashboard.html"
@@ -97,12 +97,12 @@ def assistant(argv):
             os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
             with open(path, "a", encoding="utf-8") as out:
                 out.write(written + "\n")
-    if not resumed and prompt.startswith("/planner:close"):
+    if not resumed and prompt.startswith("/vela:close"):
         text += "\n\n" + close_rebuilds_the_explorer(argv)
     # The plugin's own skills, read from the --plugin-dir it was given, as the CLI lists them: a hand-kept list fell
     # behind when requirements, allocate and releases were added, and a stub run then failed on them.
     plugin = pathlib.Path(argv[argv.index("--plugin-dir") + 1]) if "--plugin-dir" in argv else None
-    commands = sorted(f"planner:{d.name}" for d in (plugin / "skills").iterdir() if (d / "SKILL.md").is_file()) if plugin else []
+    commands = sorted(f"vela:{d.name}" for d in (plugin / "skills").iterdir() if (d / "SKILL.md").is_file()) if plugin else []
     skills = pathlib.Path.cwd() / ".claude" / "skills"
     commands += sorted(d.name for d in skills.iterdir() if (d / "SKILL.md").is_file()) if skills.is_dir() else []  # project skills, as the CLI lists them
     events = [{"type": "system", "subtype": "init", "session_id": session_id, "slash_commands": commands},
@@ -137,7 +137,7 @@ def judge(stdin, argv, category):
                           "result": "Prompt is too long: the request is ~341431 tokens (limit 200000)."}))
         return
     if mode == "bad":
-        print(json.dumps(result("I think the planner arm did well.", "judge", argv, cost=0.01)))
+        print(json.dumps(result("I think the vela arm did well.", "judge", argv, cost=0.01)))
         return
     note = {} if mode == "nosearch" else {"search": f"stub: read the {category} hints and the turns they name"}
     if category == "options":

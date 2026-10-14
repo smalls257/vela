@@ -38,7 +38,7 @@ None. Nothing else relies on Heron in the first release.
 
 Each of these comes from outside the initiative, so it sits here with its provider.
 
-<!-- generated:contracts-consumed sha=19beb556: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=19beb556: do not edit, run vela render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[heron-building-blocks#CON-001 Calendar entries\|CON-001 Calendar entries]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not agreed with Microsoft; whether a registration is needed is open as [[11-unknowns-and-risks#UNK-013 Registration or sign-in\|registration or sign-in]]. | assumption |
@@ -79,7 +79,7 @@ Heron reads what each call tool leaves behind about a call, such as notes or a t
 - **Change:** new
 - **State:** assumption
 
-<!-- generated:app-context sha=a722d99f: do not edit, run planner render -->
+<!-- generated:app-context sha=a722d99f: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_heron["Heron (new)"]

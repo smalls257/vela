@@ -2,7 +2,7 @@
 
 The Violation this exists to prevent is a Silent Fallback at the hinge of the product: an override on someone's behalf,
 and the senior accepts an app without knowing that half its handoff list was never decided. One reader here feeds the grill's
-read-back, close's manifest, `planner next` and `planner check`, so none of them can tell the senior less than another.
+read-back, close's manifest, `vela next` and `vela check`, so none of them can tell the senior less than another.
 """
 from dataclasses import dataclass
 

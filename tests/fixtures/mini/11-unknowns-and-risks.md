@@ -8,7 +8,7 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=228602bc: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=228602bc: do not edit, run vela render -->
 **Questions**
 
 | Question | Who answers | Status | Answer needed by |

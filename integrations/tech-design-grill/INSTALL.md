@@ -8,7 +8,7 @@ This folder adds a vault mode to your `tech-design-grill` skill, so a senior can
 ## The edits
 
 1. `SKILL.md` description: it mentions starting from an initiative vault.
-2. `PREREQ-CHECK.md`: the "Vault mode" section, byte for byte the one in the requirements-grill integration. Given `--vault <path> --app <APP-id>`, the prereq is that app's page carrying `handed_off`, not `docs/requirements/<slug>.md`, and the skill follows `<path>/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md`.
+2. `PREREQ-CHECK.md`: the "Vault mode" section, byte for byte the one in the requirements-grill integration. Given `--vault <path> --app <APP-id>`, the prereq is that app's page carrying `handed_off`, not `docs/requirements/<slug>.md`, and the skill follows `<path>/.claude/skills/vela/references/TECH-DESIGN-FROM-VAULT.md`.
 3. `SKILL.md` what-to-do, Inputs and Boot step 1: in vault mode the "what" is the handed-off app's pages, and the trace targets come from that reference.
 4. `SKILL.md` hard rule: in vault mode a functional gap becomes an `OQ-XXX` that challenges a vault ID, and the session goes on.
 

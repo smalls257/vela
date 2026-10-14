@@ -11,6 +11,6 @@ One page per epic, named `EPC-nnn-<slug>.md`.
 
 ## Traceability
 
-<!-- generated:traceability sha=a26b73ab: do not edit, run planner render -->
+<!-- generated:traceability sha=a26b73ab: do not edit, run vela render -->
 **Traceability:** no gaps. 13 checks pass.
 <!-- /generated:traceability -->

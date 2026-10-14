@@ -681,33 +681,33 @@ news:
 sessions:
 - mode: discover
   cap: 20
-  planner: /planner:discover Quoteline's valuation reply and the open questions the answers gathered so far settle
+  vela: /vela:discover Quoteline's valuation reply and the open questions the answers gathered so far settle
   baseline: Read Quoteline's reply and settle the open questions the answers settle. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 20
-  planner: /planner:grill the goals, the context and scope, and the constraints
+  vela: /vela:grill the goals, the context and scope, and the constraints
   baseline: Take me through the goals, context and constraints and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 14
-  planner: /planner:grill the Coach runtime page
+  vela: /vela:grill the Coach runtime page
   baseline: Take me through the Coach runtime page and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
 - mode: epics
   cap: 18
-  planner: /planner:epics the mobile team, for TickerTalk
+  vela: /vela:epics the mobile team, for TickerTalk
   baseline: Draft and decide the mobile team's epics for TickerTalk. Follow CONVENTIONS.md.
 - mode: close
   cap: 16
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

@@ -15,7 +15,7 @@ gaps:
     what: S-11 follows the design and drops excluded invitees from the people list, which contradicts EPC-001.AC5 ("everyone invited appears except those who declined")
     acknowledged_by: Dev Rao, 2026-10-12
     why: the policy is open as OQ-008 under UNK-018; the story is written from the design and the conflict goes upstream
-    revisit: /planner:challenge EPC-001.AC5 and the CISO and DPO answer to UNK-018 (G-008)
+    revisit: /vela:challenge EPC-001.AC5 and the CISO and DPO answer to UNK-018 (G-008)
   - id: G-102
     what: EPC-003.AC1 is met only as excerpts until S-12 lands and the product owner accepts excerpts as the "short account"
     acknowledged_by: Dev Rao, 2026-10-12
@@ -30,7 +30,7 @@ gaps:
     what: S-14 and S-15 trace to no requirement row and no epic criterion, only to the design's packaging and release tests
     acknowledged_by: Dev Rao, 2026-10-12
     why: packaging, signing and release tests are the design's, not the vault's; S-13 traces to EPC-004.AC1 only in part
-    revisit: if the senior wants a requirement or criterion for them, raise it with /planner:challenge
+    revisit: if the senior wants a requirement or criterion for them, raise it with /vela:challenge
 last_session: 2026-10-12T00:00:00Z
 prereqs:
   - path: docs/tech-design/desktop-agent.md
@@ -522,7 +522,7 @@ Gaps of the design. A gap that is a ruling or an answer from an outside party ha
 | ID | Treatment |
 |----|-----------|
 | G-001 (OQ-001) | Story S-01. |
-| G-002 (OQ-002) | No story: no requirement exists for what the person sees when the calendar cannot be read. Needs `/planner:challenge CAP-001`. S-03 and S-05 build the mechanism and wait on the wording. |
+| G-002 (OQ-002) | No story: no requirement exists for what the person sees when the calendar cannot be read. Needs `/vela:challenge CAP-001`. S-03 and S-05 build the mechanism and wait on the wording. |
 | G-003 (OQ-003) | The measurement is the first task of S-12; the product owner's ruling on excerpts is outside the plan (G-102). |
 | G-004 (OQ-004) | Rulings by the DPO, Legal and the works council; carried as a blocker on S-13, S-14 and S-15. |
 | G-005 (OQ-005) | The endpoint lead's commitments on settings delivery, times and an emergency route; carried on S-02, S-05, S-14 and S-15. |
@@ -537,7 +537,7 @@ Gaps of the design. A gap that is a ruling or an answer from an outside party ha
 | G-015 (OQ-015) | The model, runtime and license choice, and Legal's license check, are outside the plan; S-12 measures what is chosen. |
 | G-016 (OQ-016) | S-07 builds the online-only detection; the test against the firm's sync client needs laptops and the CISO's reading, and is not a separate task. |
 
-Questions this session raised, for `tech-design-grill` or `/planner:challenge`:
+Questions this session raised, for `tech-design-grill` or `/vela:challenge`:
 
 | Question | Where it came from |
 |----------|--------------------|
@@ -546,7 +546,7 @@ Questions this session raised, for `tech-design-grill` or `/planner:challenge`:
 | Whether a stored row with no entry after a full resync means a canceled call. | S-05 |
 | Whether "a change to how names are detected is a rebuild" means a new app build or rebuilding unshown notes. | S-09 |
 | Who owns the public-mail list, and whether it should be a managed setting and not a build constant. | S-08 |
-| EPC-001.AC5 against the exclusion of Frankfurt staff from the people list. Raise with `/planner:challenge EPC-001.AC5` (G-101). | S-11 |
+| EPC-001.AC5 against the exclusion of Frankfurt staff from the people list. Raise with `/vela:challenge EPC-001.AC5` (G-101). | S-11 |
 | What happens if one operating system passes its gate for the 18 January slot and the other does not. Ask the endpoint lead (OQ-005); the plan keeps S-14 and S-15 independent. | S-14, S-15 |
 | An answer to UNK-021 or UNK-022 outside the shipped rule kinds is a matcher change and a new build, which the design records no emergency route for. | S-02, S-08 |
 | Call tool adapters, one per tool, until UNK-008 (ask by 2026-10-18) and UNK-017 (2026-11-01) name the tools (G-103). | S-10 |

@@ -10,7 +10,7 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=abdda6d5: do not edit, run planner render -->
+<!-- generated:context-map sha=abdda6d5: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]

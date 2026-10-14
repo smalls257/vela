@@ -153,7 +153,7 @@ def test_grill_gate_arguments_that_cannot_work_exit_2(argv, said):
 def test_a_vault_with_no_ledger_page_still_fails_the_epics_gate_loudly(tmp_path):
     vault = tmp_path / "bare"
     vault.mkdir()
-    (vault / ".planner.yaml").write_text("initiative: INI-777\ntitle: Bare\n", encoding="utf-8")
+    (vault / ".vela.yaml").write_text("initiative: INI-777\ntitle: Bare\n", encoding="utf-8")
     (vault / "README.md").write_text("---\nid: readme\ntype: index\ntitle: Bare\nauthored: authored\n---\n\n# Bare\n",
                                      encoding="utf-8")
     code, out = run("check", "--vault", str(vault), "--today", TODAY, "--gate", "epics")
@@ -190,7 +190,7 @@ def test_an_override_reaches_e805_at_line_1_when_the_ledger_heading_is_missing(u
 def test_the_epics_gate_says_plainly_when_the_vault_has_no_ledger_page(tmp_path):
     vault = tmp_path / "bare"
     vault.mkdir()
-    (vault / ".planner.yaml").write_text("initiative: INI-777\ntitle: Bare\n", encoding="utf-8")
+    (vault / ".vela.yaml").write_text("initiative: INI-777\ntitle: Bare\n", encoding="utf-8")
     code, out = run("check", "--vault", str(vault), "--today", TODAY, "--gate", "epics")
     assert code == 1
     assert "The vault has no 11-unknowns-and-risks.md ledger page." in out

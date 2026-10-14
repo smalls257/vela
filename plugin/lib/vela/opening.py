@@ -22,9 +22,9 @@ SYNCED = (("OneDrive", re.compile(r"^onedrive( - .+)?$", re.IGNORECASE)),
           ("iCloud Drive", re.compile(r"^(icloud ?drive|mobile documents|com~apple~clouddocs)$", re.IGNORECASE)),
           ("Box", re.compile(r"^box( sync)?$", re.IGNORECASE)))
 OS_JUNK, OS_JUNK_DIRS = publish.OS_JUNK, publish.OS_JUNK_DIRS
-DEFAULT_FOLDER = "PlannerWorkspaces"
-COWORK_FOLDER = "planner-workspaces"
-LAYOUT = (".planner/baseline", ".planner/workspace.json")
+DEFAULT_FOLDER = "VelaWorkspaces"
+COWORK_FOLDER = "vela-workspaces"
+LAYOUT = (".vela/baseline", ".vela/workspace.json")
 
 
 class OpenError(Exception):
@@ -37,11 +37,11 @@ def refuse_synced(parts, shown):
         for tool, pattern in SYNCED:
             if pattern.search(part):
                 raise OpenError(f"{shown} is inside a synced folder ('{part}', which {tool} syncs). A synced workspace is the corruption this design avoids. "
-                                "Pass --into with a folder that is not synced, or set PLANNER_WORKSPACES to one.")
+                                "Pass --into with a folder that is not synced, or set VELA_WORKSPACES to one.")
 
 
 def location_rule(into, workspaces_env, in_cowork):
-    """Which rule picks the workspace folder: --into, then $PLANNER_WORKSPACES, then Cowork's working folder, then the home default."""
+    """Which rule picks the workspace folder: --into, then $VELA_WORKSPACES, then Cowork's working folder, then the home default."""
     if into:
         return "into"
     if workspaces_env:
@@ -54,7 +54,7 @@ is_junk = publish.is_junk
 
 def check_names(names):
     """Every name in a source passes untrusted.py before anything is extracted: vault-relative, nothing in git's folder
-    or the planner's private ones. A refusal names the file."""
+    or vela's private ones. A refusal names the file."""
     for name in names:
         kind, why = untrusted.verdict(name)
         if kind == untrusted.FORBIDDEN:
@@ -94,11 +94,11 @@ def verify_tree(files, stamp):
                         "The check cannot tell you who sent a copy, so open only copies that came from the owner.")
 
 
-def workspace_record(stamp, source, source_path, opened, author, planner_path):
-    """The .planner/workspace.json content. `source_path` serves freshness only and never enters a proposal."""
+def workspace_record(stamp, source, source_path, opened, author, vela_path):
+    """The .vela/workspace.json content. `source_path` serves freshness only and never enters a proposal."""
     return {"role": "reader", "initiative": stamp["initiative"], "source": source, "source_path": source_path,
             "base_commit": stamp["commit"], "base_date": stamp["date"], "base_tree_hash": stamp.get("tree_hash", ""),
-            "opened": opened, "author": author, "planner_path": planner_path}
+            "opened": opened, "author": author, "vela_path": vela_path}
 
 
 def opened_message(stamp, folder):

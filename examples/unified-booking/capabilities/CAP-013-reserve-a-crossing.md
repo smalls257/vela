@@ -43,7 +43,7 @@ Lets a customer turn a chosen crossing into a confirmed booking that every sales
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=cb6c5c25: do not edit, run planner render -->
+<!-- generated:delivered-by sha=cb6c5c25: do not edit, run vela render -->
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harborline/booking-team | decided |

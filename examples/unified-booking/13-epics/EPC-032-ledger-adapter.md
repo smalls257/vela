@@ -70,7 +70,7 @@ Booking's contract tests run against the ledger simulator with no connection to 
 
 ## Traces to
 
-<!-- generated:traces-to sha=32c664bb: do not edit, run planner render -->
+<!-- generated:traces-to sha=32c664bb: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[booking-building-blocks\|Booking]], [[ferrymaster-building-blocks\|FERRYMASTER]] |

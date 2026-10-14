@@ -18,7 +18,7 @@ verified_by: "@hl-solution-lead"
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=970d4f76: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=970d4f76: do not edit, run vela render -->
 **Where each app has got to**
 
 | App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
@@ -48,7 +48,7 @@ verified_by: "@hl-solution-lead"
 
 ## Progress by app
 
-<!-- generated:progress-map sha=231431df: do not edit, run planner render -->
+<!-- generated:progress-map sha=231431df: do not edit, run vela render -->
 **How sure each app's items are,** as of 2026-11-19 (the last session)
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |

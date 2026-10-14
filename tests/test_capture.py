@@ -1,4 +1,4 @@
-"""planner capture counts what a vault records for the explorer; the v2 sim script asks the sessions that fill it."""
+"""vela capture counts what a vault records for the explorer; the v2 sim script asks the sessions that fill it."""
 import json
 import shutil
 
@@ -42,7 +42,7 @@ def test_domains_pairs_and_asks_are_counted_and_the_verdict_reads_them(tmp_path)
 
 def test_the_command_prints_a_line_and_the_json_the_simulator_reads():
     code, said = run("capture", "--vault", str(FIXTURE))
-    assert code == 0 and said.startswith("planner capture: 0 of 9 apps have a business area (domain)")
+    assert code == 0 and said.startswith("vela capture: 0 of 9 apps have a business area (domain)")
     code, said = run("capture", "--vault", str(FIXTURE), "--json", "--expect-ask", "outside counsel")
     data = json.loads(said)
     assert data["counts"]["apps"] == 9 and data["checks"][-1]["check"] == "an Ask names 'outside counsel'"

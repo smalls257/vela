@@ -19,7 +19,7 @@ Every capability this initiative changes, which software provides it before and 
 
 Each capability page holds the change, what provides it today and after, its flows and its epics.
 
-<!-- generated:capability-map sha=3a8c0e2e: do not edit, run planner render -->
+<!-- generated:capability-map sha=3a8c0e2e: do not edit, run vela render -->
 ```mermaid
 flowchart TB
   subgraph d_booking["Booking"]
@@ -74,6 +74,6 @@ Key: green: new in this initiative · amber: changed by this initiative · gray:
 
 What each app carries of each functional requirement.
 
-<!-- generated:allocation sha=12251505: do not edit, run planner render -->
+<!-- generated:allocation sha=12251505: do not edit, run vela render -->
 **Who does what:** no requirement is firm enough to split between the apps yet.
 <!-- /generated:allocation -->

@@ -4,7 +4,7 @@
 snapshot:
   coastal-merger: after-v3-s8
   holdout-hospitals: after-discover
-opening: "/planner:epics {topics[epics]}"
+opening: "/vela:epics {topics[epics]}"
 cap: 10
 close: 8
 criteria:

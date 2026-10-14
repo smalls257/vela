@@ -1,6 +1,6 @@
-"""Build the vault explorer: one static HTML page drawn from a planner vault. `planner explore` runs it.
+"""Build the vault explorer: one static HTML page drawn from a vela vault. `vela explore` runs it.
 
-Every node, edge, light and number on the page comes from the planner's own parser and model: `cli.load_vault`,
+Every node, edge, light and number on the page comes from vela's own parser and model: `cli.load_vault`,
 `model`, `attention`, `progress`, `completeness`, `allocation`, `trace`, `ladder`, `override`, `handoff` and
 `search`. The lights on every map and view are `attention.lights`, the one rule for what needs the lead.
 
@@ -9,7 +9,7 @@ Three things are heuristic, and the page labels each one where it shows:
 - an app or party named in a step's text without a link;
 - who holds an answer when the unknown has no **Ask:** line, guessed from its **Owner:** line (asks_data.py).
 
-Positions are pinned in the vault, <vault>/.planner/explorer-pins.json (pins.py), so an app never moves between
+Positions are pinned in the vault, <vault>/.vela/explorer-pins.json (pins.py), so an app never moves between
 views or builds. The page needs no network: it draws with its own SVG, canvas and Web Audio. Generated art is
 optional (assets_inline.py).
 
@@ -54,7 +54,7 @@ class ExplorerError(Exception):
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "layout", "pan", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
               "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "branches", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
-SELFTEST_MODULES = ("selftest", "selftest-branches")  # 120 KB of checks: bundled only when asked (`planner explore --selftest`), not shipped to every reader
+SELFTEST_MODULES = ("selftest", "selftest-branches")  # 120 KB of checks: bundled only when asked (`vela explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
                "releases", "slices", "branches", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
@@ -74,7 +74,7 @@ VAULT_ID_OK = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 
 
 def legacy_vault_id(initiative, title):
-    """The id every vault had before .planner.yaml could name one: a hash of its initiative ID and title, never of where
+    """The id every vault had before .vela.yaml could name one: a hash of its initiative ID and title, never of where
     the folder sits (a path in the key would give every clone a different page, so a committed dashboard.html would
     change on each machine's build). Two vaults left at the template's INI-001 / New initiative share it, and retitling
     changes it, which is why a vault_id is better."""
@@ -83,12 +83,12 @@ def legacy_vault_id(initiative, title):
 
 def vault_id(initiative, title, configured=None):
     """The short, stable identifier that scopes this vault's localStorage keys (board marks, layout, Ask conversations,
-    rehearsals), so vaults and copies do not mix their state. The `vault_id:` line in .planner.yaml when there is one:
+    rehearsals), so vaults and copies do not mix their state. The `vault_id:` line in .vela.yaml when there is one:
     it survives a retitle and tells two vaults apart. Else the legacy hash. A value that cannot scope a key is refused."""
     if configured is None:
         return legacy_vault_id(initiative, title)
     if not isinstance(configured, str) or not VAULT_ID_OK.match(configured):
-        raise ExplorerError(f".planner.yaml's {VAULT_ID_KEY} is {configured!r}; write 8 to 64 letters, digits or dashes, such as {mint_vault_id()}")
+        raise ExplorerError(f".vela.yaml's {VAULT_ID_KEY} is {configured!r}; write 8 to 64 letters, digits or dashes, such as {mint_vault_id()}")
     return configured
 
 
@@ -104,12 +104,12 @@ def mint_vault_id():
 
 
 def vault_id_advice(root, role):
-    """What to tell an owner whose .planner.yaml has no vault_id, or None. The build never edits .planner.yaml: two
+    """What to tell an owner whose .vela.yaml has no vault_id, or None. The build never edits .vela.yaml: two
     folders of one vault must build the same page, and a build must not leave the vault with an uncommitted change.
     So the owner adds the line; the page then moves what the browser saved under the old id to the new one."""
     if role != roles.OWNER or VAULT_ID_KEY in cli.load_config(pathlib.Path(root)):
         return None
-    return (f"this vault has no {VAULT_ID_KEY} in .planner.yaml, so the browser keeps its saved marks, layout and Ask conversations under a name made "
+    return (f"this vault has no {VAULT_ID_KEY} in .vela.yaml, so the browser keeps its saved marks, layout and Ask conversations under a name made "
             f"from the initiative and title: another vault with the same two shares them, and a new title loses them. Add the line "
             f"`{VAULT_ID_KEY}: {mint_vault_id()}` and commit it; what was saved before moves over once")
 
@@ -460,7 +460,7 @@ CHECK_QUERIES = ("paper order", "how does coach talk to brightwater", "how does 
 
 
 def search_index(vault, keys):
-    """vela.search's own sections and stems, so the page ranks exactly as `planner query search` does.
+    """vela.search's own sections and stems, so the page ranks exactly as `vela query search` does.
     The page's script ports only the scoring; the parity block lets it check itself against the CLI."""
     pages = [p for p in vault.pages if vela_search.searchable(p)]
     flows = [(p, {l for s in vela_search.sections(p) for l in s.links}) for p in pages if p.type == "flow"]
@@ -617,7 +617,7 @@ def pending_list(vault, keys):
 
 
 def link_problems(vault):
-    """Every link planner could not read, so the build says which were left out instead of dropping them quietly."""
+    """Every link vela could not read, so the build says which were left out instead of dropping them quietly."""
     out = [f"{p.path}: {msg}" for p in vault.pages if p.meta for msg in links.of_page(p, vault.config)[1]]
     out += [f"{i[0].page.path}: {msg}" for i in vault.items.values() for msg in links.of_item(i[0])[1]]
     return out
@@ -824,7 +824,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     there is none). Nothing in the page comes from the clock, so the same vault, `today` and `built` write the same bytes.
 
     `pins_path` is the file that keeps every app's cell (None computes the layout and keeps nothing); `seed` is a
-    pins file to start from when that one does not exist yet. `freshness` is the report (a dict) `planner freshness`
+    pins file to start from when that one does not exist yet. `freshness` is the report (a dict) `vela freshness`
     gave at build time, or None; the build stamps it into the page, and never asks for it itself, so a build makes
     no network call."""
     root, out = pathlib.Path(root).resolve(), pathlib.Path(out)
@@ -867,7 +867,7 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     said += asset_lines(assets)
     said += [f"{key} asks for icon: {asked}, which is not in the built-in set; it is drawn by keyword instead"
              for key, asked in data["iconsUnknown"]]
-    said += [f"a link was left out, {problem} (planner check reports it as E105)" for problem in data["linkProblems"]]
+    said += [f"a link was left out, {problem} (vela check reports it as E105)" for problem in data["linkProblems"]]
     said += find_lines
     said += design_lines(data["designs"])
     said += plan_find_lines

@@ -4,7 +4,7 @@
 snapshot:
   coastal-merger: after-v3-s8
   holdout-hospitals: after-discover
-opening: "/planner:grill {topics[grill]}"
+opening: "/vela:grill {topics[grill]}"
 cap: 16
 close: 10
 criteria:

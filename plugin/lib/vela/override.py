@@ -309,7 +309,7 @@ def apply(vault, findings, gate=None):
             out.append(_f(page, behalf.line, "W324",
                           f"{behalf.by} decided {vault.named(where)} on {owners}'s behalf, and {owners} hasn't confirmed it yet.",
                           f"Ask {owners} to confirm (add - **Confirmed by:** {CONFIRMED_BY_GRAMMAR}), "
-                          f"or to challenge it with /planner:challenge if they disagree."))
+                          f"or to challenge it with /vela:challenge if they disagree."))
     out.extend(grammar_findings(vault))
     out.extend(label_findings(vault))
     return out

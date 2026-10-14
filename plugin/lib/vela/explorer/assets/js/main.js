@@ -62,6 +62,6 @@ if (HASH.has("clip") && App.view === "flows") {
   Flows.saveClip().then(() => document.body.setAttribute("data-clip", JSON.stringify(window.__clipResult || { ok: false })));
 }
 else if (HASH.has("selftest")) {
-  if (typeof SelfTest === "undefined") { console.warn("[selftest] this page was built without its checks; rebuild with planner explore --selftest"); document.body.setAttribute("data-selftest", "SELFTEST FAIL: this page was built without its checks (planner explore --selftest)"); }
+  if (typeof SelfTest === "undefined") { console.warn("[selftest] this page was built without its checks; rebuild with vela explore --selftest"); document.body.setAttribute("data-selftest", "SELFTEST FAIL: this page was built without its checks (vela explore --selftest)"); }
   else setTimeout(() => SelfTest.run(), 60);
 }

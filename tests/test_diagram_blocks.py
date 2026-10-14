@@ -21,7 +21,7 @@ authored: generated
 
 # Building blocks
 
-<!-- generated:context-map sha=00000000: do not edit, run planner render -->
+<!-- generated:context-map sha=00000000: do not edit, run vela render -->
 <!-- /generated:context-map -->
 """
 
@@ -200,7 +200,7 @@ def test_generated_diagram_over_budget_never_trips_e601(mini):
 
 def test_context_map_is_refused_on_another_page(mini):
     edit(mini / "01-goals.md", "## Goals\n", "## Goals\n\n<!-- generated:context-map sha=00000000: do not edit, "
-         "run planner render -->\n<!-- /generated:context-map -->\n")
+         "run vela render -->\n<!-- /generated:context-map -->\n")
     _, out = check(mini)
     assert ("E403", "01-goals.md") in findings(out)
 

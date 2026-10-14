@@ -96,7 +96,7 @@ def test_capability_map_renders_on_the_delta_page(mini):
     (mini / "04a-capability-delta.md").write_text(
         "---\nid: capability-delta\ntype: initiative-section\ntitle: Capability delta\nstate: assumption\n"
         "owner: \"@mini-lead\"\nauthored: mixed\n---\n\n# Capability delta\n\n"
-        "<!-- generated:capability-map sha=00000000: do not edit, run planner render -->\n"
+        "<!-- generated:capability-map sha=00000000: do not edit, run vela render -->\n"
         "<!-- /generated:capability-map -->\n", encoding="utf-8")
     code, out = run("render", "--vault", str(mini))
     assert code == 0 and "04a-capability-delta.md: capability-map" in out, out

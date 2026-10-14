@@ -19,7 +19,7 @@ def copy_in(repo, skill):
     shutil.copytree(USER_SKILLS / skill, repo / ".claude" / "skills" / skill)
 
 def install(src):
-    target = pathlib.Path.home() / ".claude" / "skills" / "planner"
+    target = pathlib.Path.home() / ".claude" / "skills" / "vela"
     # ruleid: no-write-under-home-claude
     shutil.copytree(src, target)
     # ruleid: no-write-under-home-claude

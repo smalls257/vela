@@ -102,14 +102,14 @@ def test_concern_markers_on_the_trace_line_count_for_the_trace_rules():
     assert trace.ac_markers(page_of(HEADED)) == {"testing", "data"}
 
 
-def test_planner_check_reads_the_headed_epic_with_no_error_and_no_reading_load_warning(tmp_path):
+def test_vela_check_reads_the_headed_epic_with_no_error_and_no_reading_load_warning(tmp_path):
     code, out = check(vault_with(tmp_path, HEADED), "2026-10-12")
     assert code == 0, out
     mine = [line for line in out.splitlines() if line.startswith(EPIC_PATH)]
     assert not [line for line in mine if re.search(r" (E\d+|W36\d|W370) ", line)], mine
 
 
-def test_planner_check_reads_the_numbered_epic_as_before(tmp_path):
+def test_vela_check_reads_the_numbered_epic_as_before(tmp_path):
     code, out = check(vault_with(tmp_path, NUMBERED), "2026-10-12")
     assert code == 0, out
     assert not [c for c, p in findings(out) if p == EPIC_PATH and c in ("W364", "W370")]

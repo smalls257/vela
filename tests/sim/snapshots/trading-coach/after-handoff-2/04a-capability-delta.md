@@ -12,7 +12,7 @@ authored: mixed
 
 The first release adds four capabilities, all new and all provided by [[coach-building-blocks|Coach]]: teaching a stock lesson, paper-trading a stock, passing the ready track and keeping the stock list. Each capability page says what provides it.
 
-<!-- generated:capability-map sha=53f8548d: do not edit, run planner render -->
+<!-- generated:capability-map sha=53f8548d: do not edit, run vela render -->
 ```mermaid
 flowchart TB
   subgraph d_coach["Coach"]

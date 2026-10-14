@@ -57,23 +57,23 @@ def plugin_files(root):
 def test_the_probe_vault_gets_the_current_plugin_never_the_snapshots(tmp_path):
     snapshot = tmp_path / "snap"
     shutil.copytree(SIM / "snapshots" / "coastal-merger" / "after-s2", snapshot)
-    stale = snapshot / ".claude" / "skills" / "planner" / "skills" / "dump" / "SKILL.md"
+    stale = snapshot / ".claude" / "skills" / "vela" / "skills" / "dump" / "SKILL.md"
     stale.parent.mkdir(parents=True)
     stale.write_text("STALE SKILL FROM A SNAPSHOT\n", encoding="utf-8")
     (snapshot / ".claude" / "skills" / "other").mkdir()
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     vault, notes = probe.build_probe_vault(run_dir, snapshot, persona("coastal-merger"))
-    installed = vault / ".claude" / "skills" / "planner"
+    installed = vault / ".claude" / "skills" / "vela"
     assert plugin_files(installed) == plugin_files(sim.PLUGIN)
     assert (installed / "skills" / "dump" / "SKILL.md").read_bytes() == (sim.PLUGIN / "skills" / "dump" / "SKILL.md").read_bytes()
-    assert sorted(p.name for p in (vault / ".claude" / "skills").iterdir()) == ["planner"]
+    assert sorted(p.name for p in (vault / ".claude" / "skills").iterdir()) == ["vela"]
     assert any("held .claude/skills; it was removed" in n for n in notes)
     log = sim.git("log", "--oneline", "main", cwd=vault).stdout.splitlines()
     assert len(log) == 1
     assert sim.git("ls-remote", "origin", "main", cwd=vault).stdout.strip(), "main is pushed to the bare origin"
     tracked = sim.git("ls-files", cwd=vault).stdout.split()
-    assert ".claude/skills/planner/skills/dump/SKILL.md" in tracked and not any(p.startswith(".inbox/") for p in tracked)
+    assert ".claude/skills/vela/skills/dump/SKILL.md" in tracked and not any(p.startswith(".inbox/") for p in tracked)
     assert sorted(p.name for p in (vault / ".inbox").iterdir()) == sorted(d["name"] for d in persona("coastal-merger")["docs"])
     assert (run_dir / "start-check.txt").read_text(encoding="utf-8").startswith("exit 0")
 
@@ -108,10 +108,10 @@ def test_every_snapshot_is_a_clean_vault_with_its_personas_inbox(snapshot):
     assert not (snapshot / ".git").exists()
     stale = probe.inbox_problems(snapshot, persona(snapshot.parent.name))
     assert len(stale) == 0
-    check = subprocess.run([sys.executable, str(sim.PLANNER), "check", "--vault", str(snapshot)],
+    check = subprocess.run([sys.executable, str(sim.VELA), "check", "--vault", str(snapshot)],
                            capture_output=True, text=True, timeout=120)
     assert check.returncode == 0
-    assert re.search(r"planner check: 0 errors,", check.stdout) is not None
+    assert re.search(r"vela check: 0 errors,", check.stdout) is not None
 
 
 def test_the_snapshot_inboxes_are_in_git_although_a_vault_ignores_them():
@@ -428,7 +428,7 @@ def test_exit_2_on_a_bad_case_persona_or_ledger(tmp_path):
 
 
 def test_a_case_is_refused_with_every_problem_named():
-    problems = probe.case_problems({"snapshot": {"coastal-merger": "nope"}, "opening": "/planner:fly", "cap": 0,
+    problems = probe.case_problems({"snapshot": {"coastal-merger": "nope"}, "opening": "/vela:fly", "cap": 0,
                                     "criteria": [{"check": "vibes"}, {"check": "flagged-share", "category": "x"}]})
     assert "snapshot coastal-merger/nope is not a folder in " + str(probe.SNAPSHOTS) in problems
     assert any(p.startswith("'opening' must start with one of") for p in problems)
@@ -455,10 +455,10 @@ def test_every_case_opens_with_its_mode_and_fills_in_from_both_personas():
         case = probe.load_case(str(case_path))
         for name in ("coastal-merger", "holdout-hospitals"):
             text = probe.opening_text(case, persona(name))
-            assert text.startswith(f"/planner:{case['mode']}") and "{" not in text
+            assert text.startswith(f"/vela:{case['mode']}") and "{" not in text
     shape = probe.load_case("shape-options")
     assert probe.opening_text(shape, persona("coastal-merger")) == \
-        '/planner:shape What does "one account" mean for the first release?'
+        '/vela:shape What does "one account" mean for the first release?'
 
 
 @pytest.mark.parametrize("name", ["coastal-merger", "holdout-hospitals"])
@@ -485,7 +485,7 @@ def test_owed_copies_disposed_passes_when_every_copy_has_a_valid_row(tmp_path):
     shutil.copytree(FIXTURE, vault)
     passed, summary, detail = probe.owed_copies_disposed(fake_run(vault), {"severity": "any"})
     assert passed and detail == []
-    assert summary == ("owed copies (any) with a disposition: 57 of 57; ledger rows planner check flags: 0 "
+    assert summary == ("owed copies (any) with a disposition: 57 of 57; ledger rows vela check flags: 0 "
                        "(need every copy disposed and no flagged row)")
 
 
@@ -499,7 +499,7 @@ def test_owed_copies_disposed_fails_on_an_undisposed_copy_or_a_flagged_row(tmp_p
                       encoding="utf-8")
     passed, summary, detail = probe.owed_copies_disposed(fake_run(vault), {"severity": "any"})
     assert not passed
-    assert "with a disposition: 56 of 57; ledger rows planner check flags: 2" in summary
+    assert "with a disposition: 56 of 57; ledger rows vela check flags: 2" in summary
     assert "- Q-REG-01@INI-002: open" in detail and any(" E801 " in line for line in detail)
     assert probe.owed_copies_disposed(fake_run(vault), {"severity": "high"})[1].startswith(
         "owed copies (high) with a disposition: 15 of 15")
@@ -539,7 +539,7 @@ def test_a_case_with_close_runs_the_close_session_and_reads_the_ledger_after_it(
     assert "PASS taken-copies-recorded: copies and findings the lead took in a capture with a valid row: 0 of 0" in out
     turns = [json.loads(line) for line in (runs[0] / "transcript.jsonl").read_text(encoding="utf-8").splitlines()]
     assert {t["session"] for t in turns if t.get("speaker") == "assistant"} == {1, 2}
-    assert any(t.get("speaker") == "lead" and t.get("text") == "/planner:close" for t in turns)
+    assert any(t.get("speaker") == "lead" and t.get("text") == "/vela:close" for t in turns)
 
 
 def test_close_must_be_a_turn_cap():

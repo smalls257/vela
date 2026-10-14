@@ -1,7 +1,7 @@
 """Reading the record: one key per page and item, and vault text made safe to show.
 
 Shared by every part of the build, so a link means the same thing in a panel, a flow step and a strip.
-Every value here comes from the planner's own parser (vela.parse, vela.reading)."""
+Every value here comes from vela's own parser (vela.parse, vela.reading)."""
 import html
 import re
 

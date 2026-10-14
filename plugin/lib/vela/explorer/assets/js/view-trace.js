@@ -10,7 +10,7 @@ const TraceView = (() => {
       h("div", { class: "spacer" }),
       h("button", { class: "chip" + (st.open ? " on" : ""), onclick: () => { st.open = !st.open; rerender(); } }, st.open ? "Collapse all" : "Expand all"),
       h("button", { class: "chip" + (st.gaps ? " on" : ""), onclick: () => { st.gaps = !st.gaps; rerender(); } }, "Only those with a missing link")), sc);
-    if (!hasFR) sc.append(emptyState("No requirements written yet.", "So this shows each capability straight to its epics. Once requirements are written and assigned to apps, it shows capability, requirement, what each app does, and the epic that builds it.", ["/planner:requirements", "/planner:allocate"], "inline"));
+    if (!hasFR) sc.append(emptyState("No requirements written yet.", "So this shows each capability straight to its epics. Once requirements are written and assigned to apps, it shows capability, requirement, what each app does, and the epic that builds it.", ["/vela:requirements", "/vela:allocate"], "inline"));
     if (st.open === null) st.open = T.capabilities.length <= 8;
     const gapsT1 = new Set(T.gaps.filter((g) => g.rule === "T1").map((g) => g.subject));
     let hidden = 0;

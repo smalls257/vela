@@ -28,7 +28,7 @@ This epic makes TickerTalk send Coach each opted-in reader's opaque reader ID, t
 
 ## Traces to
 
-<!-- generated:traces-to sha=3eec9c8e: do not edit, run planner render -->
+<!-- generated:traces-to sha=3eec9c8e: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[tickertalk-building-blocks\|TickerTalk]] |

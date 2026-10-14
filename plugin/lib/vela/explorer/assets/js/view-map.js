@@ -104,7 +104,7 @@ const MapView = (() => {
     const tools = toolbar();
     if (tools) above.append(tools);  // Element.append writes a null as the text "null"
     above.append(countLine());
-    if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No capability requirements recorded yet.", "No app has a requirement or an epic tied to a capability, so there is nothing to group the apps by.", "/planner:requirements", "inline"));
+    if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No capability requirements recorded yet.", "No app has a requirement or an epic tied to a capability, so there is nothing to group the apps by.", "/vela:requirements", "inline"));
     const board = h("div", { class: "board board-" + (lens() === "cockpit" && mode !== "cockpit" ? "cockpit board-" + mode : lens()), id: "board" });
     // The matrix's key sits beside (or, in a narrow window, under) the scrolling board and not inside it, so nothing
     // after the table adds scroll room and pushes the frozen head and row names out with the table's edge.
@@ -113,7 +113,7 @@ const MapView = (() => {
     col.append(stage || board);
     if (KEY) col.append(KEY.el());
     if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, above, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
-    if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map appears once the plan names its apps.", "/planner:boundary")); return; }
+    if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map appears once the plan names its apps.", "/vela:boundary")); return; }
     if (lens() === "releases") { Releases.mapLens(board); return; }  // the releases drawing keeps its own key
     if (lens() === "matrix") drawn(() => { const m = matrix(); board.append(m.table); stage.append(m.key); });
     else if (lens() === "transit") { drawn(() => transit(board)); highlight(App.focus); }

@@ -149,7 +149,7 @@ const Inside = (() => {
   /* ------------------------------------------------------------ the view */
   function render(main) {
     const app = st.app && APPS[st.app] ? st.app : (D.map.apps[0] || {}).key;
-    if (!app) { main.append(emptyState("This plan has no apps yet.", "There is nothing to go inside.", "/planner:boundary")); return; }
+    if (!app) { main.append(emptyState("This plan has no apps yet.", "There is nothing to go inside.", "/vela:boundary")); return; }
     st.app = app;
     const d = design(app);
     MapView.resetPulses(); if (typeof Motion !== "undefined") Motion.clear();
@@ -576,7 +576,7 @@ const Inside = (() => {
   function components(stage, app, d) {
     if (!d) {
       stage.append(chipCard("docs", `The ${appTitle(app)} team hasn't shared a design yet.`, h("span", {}, "Once they do, it shows here. Context and Containers still draw from the plan. ",
-        h("details", { class: "in-howto" }, h("summary", {}, "How to add one"), "The team writes it with ", h("code", {}, "/planner:design"), " from the plan's folder, or you build with ",
+        h("details", { class: "in-howto" }, h("summary", {}, "How to add one"), "The team writes it with ", h("code", {}, "/vela:design"), " from the plan's folder, or you build with ",
           h("code", {}, `--design ${D.map.apps.find((a) => a.key === app).id}=<path to the design doc>`), ", or set ", h("code", {}, "design:"), " on the app's page to its path.")),
         h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => open(app, "containers") }, "Containers, from the plan"), linkChips(app))));
       stage.dataset.design = "none";
@@ -989,7 +989,7 @@ const Inside = (() => {
     if (!d.resolved.untraced.length) return `All ${n} requirements, contracts and criteria for this app are covered by a component${how}.`;
     return `${n - d.resolved.untraced.length} of ${n} requirements, contracts and criteria for this app are covered by a component${how}; ${ack ? `${ack} not covered, with the reason given` : ""}${ack && missed ? ", " : ""}${missed ? `${missed} not covered, with no reason given` : ""}.`;
   }
-  /* The walking skeleton a /planner:design doc names: the release-one path through the components, and what is stubbed. */
+  /* The walking skeleton a /vela:design doc names: the release-one path through the components, and what is stubbed. */
   function skeletonSection(d) {
     const w = d.walking_skeleton;
     if (!w || (!w.text && !Object.keys(w.fields || {}).length)) return null;
@@ -1067,7 +1067,7 @@ const Inside = (() => {
     return sec("Questioned by an app team", list.length, list.map((c) => h("div", { class: "in-challenge" }, lampEl("caution", "Needs you: an app team questions this in its design"), " ",
       h("a", { onclick: () => go(key(c.app, "", ""), {}) }, `The ${appTitle(c.app)} team asks`), `: ${c.title}`, idTag(c.oq), c.scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(c.scenario)) : null,
       c.affects.length ? h("div", { class: "ml-sub" }, "Affects ", c.affects.map((id) => idChip(id))) : null)),
-    h("div", { class: "p-note" }, "This warning comes from the team's design, not from the plan. It stays until the plan records the team's question (/planner:challenge)."));
+    h("div", { class: "p-note" }, "This warning comes from the team's design, not from the plan. It stays until the plan records the team's question (/vela:challenge)."));
   }
   function homeSection() {
     const all = Object.values(CHALLENGED).flat();

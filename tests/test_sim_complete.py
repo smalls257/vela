@@ -42,7 +42,7 @@ def test_the_gate_passes_a_vault_at_80_percent():
 
 
 def test_a_missing_completeness_figure_fails_the_gate_rather_than_passing_it():
-    verdict = sim.completeness_verdict(sim.parse_completeness("planner status: 3 apps"), 80)
+    verdict = sim.completeness_verdict(sim.parse_completeness("vela status: 3 apps"), 80)
     assert verdict["passed"] is False and verdict["fails_run"] and verdict["held_back"][0].startswith("no figure")
 
 
@@ -58,7 +58,7 @@ def test_under_the_gate_exits_3_and_a_tool_failure_still_outranks_it():
     assert sim.run_exit(False, True, []) == 1 and sim.run_exit(False, False, []) == 0
 
 
-def test_the_scorecard_reads_the_completeness_line_planner_status_prints_for_the_vault(tmp_path):
+def test_the_scorecard_reads_the_completeness_line_vela_status_prints_for_the_vault(tmp_path):
     vault = tmp_path / "vault"
     shutil.copytree(SIM / "snapshots" / "heron-desk" / "after-design-2", vault)
     found = sim.completeness_of(vault)
@@ -143,7 +143,7 @@ def test_the_script_brings_each_outsider_in_and_keeps_vela_unchanged():
 
 
 def test_a_session_naming_a_persona_that_is_not_there_is_refused_before_any_call():
-    script = {"sessions": [{"mode": "grill", "cap": 2, "persona": "heron-nobody", "planner": "/planner:grill x",
+    script = {"sessions": [{"mode": "grill", "cap": 2, "persona": "heron-nobody", "vela": "/vela:grill x",
                             "baseline": "Take me through x."}]}
     assert any("heron-nobody" in p for p in sim.script_problems(script, persona("heron-desk")))
 
@@ -152,9 +152,9 @@ def test_a_session_naming_a_persona_that_is_not_there_is_refused_before_any_call
 def complete_run(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("complete")
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(SCRIPT),
-                           "--arms", "planner", "--out", str(tmp / "results"), *MODELS, "--budget", "20"],
+                           "--arms", "vela", "--out", str(tmp / "results"), *MODELS, "--budget", "20"],
                           capture_output=True, text=True, timeout=1800)
-    return done, sorted((tmp / "results").iterdir())[0] / "planner"
+    return done, sorted((tmp / "results").iterdir())[0] / "vela"
 
 
 def test_the_stub_run_passes_with_every_outsider_session(complete_run):
@@ -163,7 +163,7 @@ def test_the_stub_run_passes_with_every_outsider_session(complete_run):
     rows = [json.loads(line) for line in (arm / "transcript.jsonl").read_text(encoding="utf-8").splitlines()]
     spoke = {r.get("persona") for r in rows if r.get("speaker") == "lead" and r.get("persona")}
     assert {s["persona"] for s in complete_script()["sessions"] if s.get("persona")} <= spoke
-    endings = json.loads((arm.parent / "run.json").read_text(encoding="utf-8"))["per_arm"]["planner"]["endings"]
+    endings = json.loads((arm.parent / "run.json").read_text(encoding="utf-8"))["per_arm"]["vela"]["endings"]
     assert len(endings) == len(complete_script()["sessions"]) and all(e["reason"] == "persona-end" for e in endings)
 
 

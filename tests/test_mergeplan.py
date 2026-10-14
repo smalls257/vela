@@ -4,7 +4,7 @@ import pytest
 
 from vela import mergeplan
 
-OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
+OPEN = "<!-- generated:{name} sha={sha}: do not edit, run vela render -->"
 CLOSE = "<!-- /generated:{name} -->"
 
 

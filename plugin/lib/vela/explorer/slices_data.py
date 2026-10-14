@@ -1,5 +1,5 @@
 """The Slices view's data, from `slices.read_slices` and nothing else: one reader of a slice, so the dashboard can never
-show a slice differently from check, check-slice, the handoff and planner next.
+show a slice differently from check, check-slice, the handoff and vela next.
 
 Each slice carries its status (one of the five, or "" for not planned yet), the flows it proves (with the key that opens
 each flow), the joins its flows cross with both sides (with the key that opens each contract), what it comes after, the

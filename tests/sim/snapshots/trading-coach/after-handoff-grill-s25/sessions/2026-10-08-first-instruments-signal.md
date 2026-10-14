@@ -40,7 +40,7 @@ summary: "Grill: First instruments decided on lessons and paper for release one,
 - [thought] (product lead) "UNK-001 done." Resolves UNK-001 on the CEO's words in ^c19. → keep: [[11-unknowns-and-risks#UNK-001 Meaning of trades for them|UNK-001]] (resolved) ^c26
 - [thought] (product lead) UNK-002: "I'll confirm March 2027 with the CEO." A belief, no source, that live trading is March 2027. Not confirmed; UNK-002 stays open. → keep: [[11-unknowns-and-risks#UNK-002 Which March|UNK-002]] (open) ^c27
 - [thought] (product lead) "Signal later." Signal's placement is not taken up in this session. → drop: process request, Signal is taken up later ^c28
-- [thought] (product lead) "/planner:close". Asks to close the session. → drop: process request ^c29
+- [thought] (product lead) "/vela:close". Asks to close the session. → drop: process request ^c29
 
 ## Reviews
 

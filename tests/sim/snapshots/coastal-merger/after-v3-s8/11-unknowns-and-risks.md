@@ -8,7 +8,7 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=f910e175: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=f910e175: do not edit, run vela render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 One customer\|UNK-001]] | One customer | @solution-lead (Solution lead) | open | 2026-10-20 |
@@ -264,7 +264,7 @@ authored: mixed
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=fb3a1f03: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=fb3a1f03: do not edit, run vela render -->
 **Questions:** 34 owed, 20 undisposed, 25 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |

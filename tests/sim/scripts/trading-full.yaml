@@ -1,114 +1,114 @@
 # Idea to handoff for the trading coach, in one run from an empty vault. News arrives while the work goes on:
 # counsel's reply after the first grill closes (session 12), Brightwater's reply and the Coach team after the
 # boundary session closes (session 18). Each brings the override a lead would then give once, with the reason.
-# close's cap is 12: it now rewrites the prose of every page it changed and runs planner style until clean.
+# close's cap is 12: it now rewrites the prose of every page it changed and runs vela style until clean.
 name: trading-full
 persona: trading-coach
 sessions:
 - mode: dump
   cap: 14
-  planner: /planner:dump {opening}
+  vela: /vela:dump {opening}
   baseline: I have a new initiative and nothing written down yet. Let's dump everything we know about it into this vault,
     following CONVENTIONS.md. {opening}
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: discover
   cap: 14
-  planner: /planner:discover {topics[discover_1]}
+  vela: /vela:discover {topics[discover_1]}
   baseline: Read what exists today and record it. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: shape
   cap: 12
-  planner: /planner:shape {topics[shape_1]}
+  vela: /vela:shape {topics[shape_1]}
   baseline: Give me options for what the first release does. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: discover
   cap: 14
-  planner: /planner:discover {topics[discover_2]}
+  vela: /vela:discover {topics[discover_2]}
   baseline: Read about the Signal model, its data and its backtest, and record what exists. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: shape
   cap: 12
-  planner: /planner:shape {topics[shape_2]}
+  vela: /vela:shape {topics[shape_2]}
   baseline: Give me options for which instruments the coach teaches first. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: grill
   cap: 16
-  planner: /planner:grill {topics[grill]}
+  vela: /vela:grill {topics[grill]}
   baseline: Take me through what the first release does and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: discover
   cap: 14
-  planner: /planner:discover {topics[discover_3]}
+  vela: /vela:discover {topics[discover_3]}
   baseline: Read outside counsel's reply and record what it settles. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: grill
   cap: 16
-  planner: /planner:grill {topics[grill_2]}
+  vela: /vela:grill {topics[grill_2]}
   baseline: Take me through which instruments come first and where Signal sits, and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: boundary
   cap: 24
-  planner: /planner:boundary {topics[boundary]}
+  vela: /vela:boundary {topics[boundary]}
   baseline: 'Turn the decided first release into apps: who owns what, their contracts and how they fail. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: discover
   cap: 14
-  planner: /planner:discover {topics[discover_4]}
+  vela: /vela:discover {topics[discover_4]}
   baseline: Read Brightwater's written reply and record what it settles. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: grill
   cap: 22
-  planner: /planner:grill {topics[grill_3]}
+  vela: /vela:grill {topics[grill_3]}
   baseline: Take me through the coach app's page and contracts and record what I decide. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: epics
   cap: 20
-  planner: /planner:epics {topics[epics]}
+  vela: /vela:epics {topics[epics]}
   baseline: Draft the epics for the Coach team. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 - mode: grill
   cap: 16
-  planner: /planner:grill {topics[grill_4]}
+  vela: /vela:grill {topics[grill_4]}
   baseline: Take me through handing the coach app to the Coach team and record it. Follow CONVENTIONS.md.
 - mode: close
   cap: 12
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'
 events:
 - after: 12

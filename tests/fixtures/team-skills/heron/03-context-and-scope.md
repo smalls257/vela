@@ -23,7 +23,7 @@ Any new app registration on the tenant needs the CISO's security review first, w
 
 ## After
 
-<!-- generated:system-context sha=2a63fb11: do not edit, run planner render -->
+<!-- generated:system-context sha=2a63fb11: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]

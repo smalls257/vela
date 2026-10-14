@@ -1,4 +1,4 @@
-"""Find each app's work-breakdown plan when the build was not told where it is: `planner explore` with no `--breakdown`.
+"""Find each app's work-breakdown plan when the build was not told where it is: `vela explore` with no `--breakdown`.
 
     discover(vault, root, named, design_args) -> (["APP-x=<path>", ...], [report line, ...])
 
@@ -7,7 +7,7 @@ writes it after tech design), so the lookup mirrors design_find.py, in this orde
 readable file wins, and an app named by `--breakdown` is never looked up.
 
   1. `breakdown: <path>` in the app page's frontmatter;
-  2. `breakdowns: {APP-x: <path>}` in .planner.yaml;
+  2. `breakdowns: {APP-x: <path>}` in .vela.yaml;
   3. beside the app's design: the same repository's docs/plan/*-breakdown.md whose frontmatter `prereqs` name that
      design doc (by its file name). Two plans naming one design is a warning, and the first is used.
 
@@ -45,18 +45,18 @@ def discover(vault, root, named, design_args):
             missing.append((app, look.tried))
     if missing:
         said.append(f"no build plan yet for {', '.join(app_named(app) for app, _ in missing)}; their Build plan level says so. "
-                    "Point to one with breakdown: on the app page, breakdowns: in .planner.yaml, or --breakdown <app ID>=<path>.")
+                    "Point to one with breakdown: on the app page, breakdowns: in .vela.yaml, or --breakdown <app ID>=<path>.")
         said += [f"  {app_named(app)}: {'; '.join(tried)}" for app, tried in missing if tried]
     return found, said
 
 
 def configured_breakdowns(config):
-    """({app ID: path} from .planner.yaml's `breakdowns:`, the warnings about it)."""
+    """({app ID: path} from .vela.yaml's `breakdowns:`, the warnings about it)."""
     raw = config.get("breakdowns")
     if raw is None:
         return {}, []
     if not isinstance(raw, dict):
-        return {}, ["warning: .planner.yaml breakdowns: is not a map of app ID to a breakdown path, so none of it is used"]
+        return {}, ["warning: .vela.yaml breakdowns: is not a map of app ID to a breakdown path, so none of it is used"]
     return {str(app): value for app, value in raw.items()}, []
 
 
@@ -78,7 +78,7 @@ class Look:
     def config_entry(self, configured):
         if self.plan or self.app.id not in configured:
             return
-        self.from_path(configured[self.app.id], "from breakdowns: in .planner.yaml")
+        self.from_path(configured[self.app.id], "from breakdowns: in .vela.yaml")
 
     def from_path(self, value, where):
         said = where.removeprefix("from ")

@@ -13,7 +13,7 @@ sources: [SRC-04]
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=af777136: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=af777136: do not edit, run vela render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -68,7 +68,7 @@ sources: [SRC-04]
 
 ## Progress by app
 
-<!-- generated:progress-map sha=98af553a: do not edit, run planner render -->
+<!-- generated:progress-map sha=98af553a: do not edit, run vela render -->
 **As of:** 2026-10-08, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |

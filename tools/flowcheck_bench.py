@@ -36,7 +36,7 @@ def synthetic_slice(apps, events, entities, delivery, retries, timeout, shared):
         subscriber = callees[(j + 1) % len(callees)] if len(callees) > 1 else 0
         emitted.setdefault(producer, []).append((j, subscriber))
     states = {k: ["new"] + [f"s{j}" for j in range(events) if j % entities == k] for k in range(entities)}
-    files = {".planner.yaml": "initiative: INI-900\ntitle: Synthetic\n",
+    files = {".vela.yaml": "initiative: INI-900\ntitle: Synthetic\n",
              "04b-releases.md": "---\nid: releases\ntype: initiative-section\ntitle: Releases\n---\n\n# Releases\n\n"
                                 "## Release one\n\n- **Target:** 2027-01-01\n- **Tracer:** [[FLO-900-synthetic|FLO-900]], synthetic\n"}
     for i in range(apps):

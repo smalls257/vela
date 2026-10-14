@@ -25,11 +25,11 @@ delivers: [CON-001, G1]
 
 ## Traces to
 
-<!-- generated:traces-to sha=00000000: do not edit, run planner render -->
+<!-- generated:traces-to sha=00000000: do not edit, run vela render -->
 <!-- /generated:traces-to -->
 """
 SHOP = "05-building-blocks/shop-building-blocks.md"
-NEW_BLOCK = "<!-- generated:{0} sha=00000000: do not edit, run planner render -->\n<!-- /generated:{0} -->\n"
+NEW_BLOCK = "<!-- generated:{0} sha=00000000: do not edit, run vela render -->\n<!-- /generated:{0} -->\n"
 
 
 def render(vault):

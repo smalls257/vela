@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rewrite the `check-codes` block in all four CONVENTIONS.md copies from `schema.CODES`, so the table a person reads
-is the table `planner check` uses. Run it after adding or rewording a code; `tests/test_conventions_cli.py` fails until
-you do. `planner render` never touches CONVENTIONS.md (it is not a vault page), so this script is the block's renderer.
+is the table `vela check` uses. Run it after adding or rewording a code; `tests/test_conventions_cli.py` fails until
+you do. `vela render` never touches CONVENTIONS.md (it is not a vault page), so this script is the block's renderer.
 
     python3 tools/conventions_codes.py          # rewrite the copies
     python3 tools/conventions_codes.py --check  # exit 1 if any copy is out of date, write nothing
@@ -30,7 +30,7 @@ def main(argv):
             new = conventions.with_codes_table(text)
         except conventions.NoCodesBlock as exc:
             print(f"conventions_codes: {path.relative_to(REPO)} has {exc}; add the markers under "
-                  "\"## planner check and planner render\".", file=sys.stderr)
+                  "\"## vela check and vela render\".", file=sys.stderr)
             return 2
         if new == text:
             continue

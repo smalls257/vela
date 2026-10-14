@@ -26,7 +26,7 @@ delivers: [CON-001]
 TAIL = """
 ## Traces to
 
-<!-- generated:traces-to sha=00000000: do not edit, run planner render -->
+<!-- generated:traces-to sha=00000000: do not edit, run vela render -->
 <!-- /generated:traces-to -->
 """
 

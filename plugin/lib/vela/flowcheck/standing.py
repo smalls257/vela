@@ -1,5 +1,5 @@
 """Where each slice's recorded flow check stands now, in a reader's words. Pure: the catalog, the record as read
-(`record.read_store`, the one reader of .planner/flowcheck-cache.json), the date and the checker's version in.
+(`record.read_store`, the one reader of .vela/flowcheck-cache.json), the date and the checker's version in.
 
 What it exists to prevent: a Silent Fallback, where a slice with no record, or a record of a slice that has changed
 since, reads as passed because nothing said otherwise (R0: never a pass by default); and a second reader of the

@@ -59,8 +59,8 @@ diff -ruN a/tech-design-grill/PREREQ-CHECK.md b/tech-design-grill/PREREQ-CHECK.m
 +
 +Check this first. When vault mode is on, it replaces the prereq and output-file steps below.
 +
-+- **requirements-grill.** If `.planner.yaml` exists at the repo root, vault mode is on. A `CAP-NNN` scope is required instead of a slug; if the user gave none, ask for one. Read `.claude/skills/planner/references/REQUIREMENTS-IN-VAULT.md` and follow it. If that file is missing, stop: *"This repo is an initiative vault, but the planner plugin is not installed at `.claude/skills/planner`. Install it before running requirements-grill here."*
-+- **tech-design-grill.** If the user passed `--vault <path> --app <APP-id>`, vault mode is on. The prereq is the app's building-blocks page in `<path>` carrying a `handed_off:` field, instead of `docs/requirements/<slug>.md`. If the page or the field is missing, stop: *"`<APP-id>` has no `handed_off` field in that vault, so its pages are not handed over yet. Ask the solution lead to hand it off first."* Then read `<path>/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md` and follow it. If that file is missing, stop and say the planner plugin in that vault is too old.
++- **requirements-grill.** If `.vela.yaml` exists at the repo root, vault mode is on. A `CAP-NNN` scope is required instead of a slug; if the user gave none, ask for one. Read `.claude/skills/vela/references/REQUIREMENTS-IN-VAULT.md` and follow it. If that file is missing, stop: *"This repo is an initiative vault, but the vela plugin is not installed at `.claude/skills/vela`. Install it before running requirements-grill here."*
++- **tech-design-grill.** If the user passed `--vault <path> --app <APP-id>`, vault mode is on. The prereq is the app's building-blocks page in `<path>` carrying a `handed_off:` field, instead of `docs/requirements/<slug>.md`. If the page or the field is missing, stop: *"`<APP-id>` has no `handed_off` field in that vault, so its pages are not handed over yet. Ask the solution lead to hand it off first."* Then read `<path>/.claude/skills/vela/references/TECH-DESIGN-FROM-VAULT.md` and follow it. If that file is missing, stop and say the vela plugin in that vault is too old.
 +
 +Without either, run the steps below as written.
 +
@@ -127,7 +127,7 @@ diff -ruN a/tech-design-grill/SKILL.md b/tech-design-grill/SKILL.md
  ---
  name: tech-design-grill
 -description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
-+description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc, or, in vault mode (`--vault <path> --app <APP-id>`), an app handed off from a planner initiative vault. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
++description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc, or, in vault mode (`--vault <path> --app <APP-id>`), an app handed off from a vela initiative vault. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
  ---
  
  <what-to-do>
@@ -160,11 +160,11 @@ diff -ruN a/tech-design-grill/SKILL.md b/tech-design-grill/SKILL.md
  
 +## Vault mode
 +
-+Given `--vault <path> --app <APP-id>`, the design is for one app of a planner initiative vault.
++Given `--vault <path> --app <APP-id>`, the design is for one app of a vela initiative vault.
 +
-+- `PREREQ-CHECK.md` checks the app is handed off, then you read `<vault>/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md` and follow it. It replaces the requirements-doc prereq, says what to read in the vault and in what order, and how to link back.
++- `PREREQ-CHECK.md` checks the app is handed off, then you read `<vault>/.claude/skills/vela/references/TECH-DESIGN-FROM-VAULT.md` and follow it. It replaces the requirements-doc prereq, says what to read in the vault and in what order, and how to link back.
 +- The app's requirements are the rows of its `## Requirements allocated` table: its share of each functional requirement, and the contracts that carry the part that crosses to another app. Each row is a trace target, as `CAP-nnn.FRn@APP-<slug>`, alongside the contracts it provides and consumes and its epics' acceptance criteria.
-+- Never edit the vault. A gap or a disputed vault answer is an `OQ-XXX` with `challenges: <vault ID>`; tell the senior to raise it with `/planner:challenge`.
++- Never edit the vault. A gap or a disputed vault answer is an `OQ-XXX` with `challenges: <vault ID>`; tell the senior to raise it with `/vela:challenge`.
 +- Requirements are not written in the team's repository: there is no `docs/requirements/<slug>.md` in vault mode. If the design shows a requirement is missing, that is a challenge, not a draft.
 +
  ## Boot sequence
@@ -196,7 +196,7 @@ diff -ruN a/tech-design-grill/SKILL.md b/tech-design-grill/SKILL.md
  
  Do **not** open functional-requirement questions. If gaps surface, stop the session and tell the user to revisit `requirements-grill`. Don't paper over.
  
-+In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with `/planner:challenge`, and carry on with the branches it does not touch.
++In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with `/vela:challenge`, and carry on with the branches it does not touch.
 +
  ## References
  

@@ -73,9 +73,9 @@ news:
 sessions:
 - mode: grill
   cap: 18
-  planner: /planner:grill handing the Coach service to the Coach lead, @coach-lead
+  vela: /vela:grill handing the Coach service to the Coach lead, @coach-lead
   baseline: Take me through handing the Coach service to the Coach lead, @coach-lead, and record it, following CONVENTIONS.md.
 - mode: close
   cap: 10
-  planner: /planner:close
+  vela: /vela:close
   baseline: 'Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md.'

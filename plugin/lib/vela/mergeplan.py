@@ -1,4 +1,4 @@
-"""Which conflict hunks `planner close sync-main` may settle by itself, and which only the lead may. Pure: text in, hunks out.
+"""Which conflict hunks `vela close sync-main` may settle by itself, and which only the lead may. Pure: text in, hunks out.
 
 The Violation this module exists to prevent is a Silent Fallback in the merge: a "resolve the conflict" step that
 quietly takes one side and drops the other side's writing. The close skill used to carry the recipe as prose ("read

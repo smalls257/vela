@@ -8,7 +8,7 @@ plugins:
 - ../../../../plugin
 runs: 3
 execution:
-  prompt: '/planner:shape how kiosks could amend and cancel bookings after the March 2027 image. I like your second option
+  prompt: '/vela:shape how kiosks could amend and cancel bookings after the March 2027 image. I like your second option
     best. That''s decided. This vault has no git remote and no gh, so fetch, push and gh will fail: say so and carry on. Do
     not wait for answers from me beyond what this message gives.'
   max_turns: 60
@@ -27,7 +27,7 @@ graders:
 - name: plugin-loaded
   type: tool_used
   tool: Skill
-  input_match: planner
+  input_match: vela
   arm: with-only
 - name: no-decided-edit
   type: tool_used

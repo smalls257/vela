@@ -169,7 +169,7 @@ def _t7(vault, all_epics):
     gaps = [Gap("T7", r.id, r.page, r.line, "", r.heading,
                 f"{named(r.name, r.id)} is {plainwords.state_word(r.fact('State'))}, but no app has taken it on "
                 "(no Requirements allocated row), so no team owns it.",
-                f"Run /planner:allocate {r.id.split('.')[0]}, or add a row for {r.id} to the app page that delivers it.",
+                f"Run /vela:allocate {r.id.split('.')[0]}, or add a row for {r.id} to the app page that delivers it.",
                 named(r.name, r.id))
             for r in allocation.unallocated(vault)]
     return gaps, len(allocation.due(vault))

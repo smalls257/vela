@@ -1,6 +1,6 @@
 ---
 name: tech-design-grill
-description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc, or, in vault mode (`--vault <path> --app <APP-id>`), an app handed off from a planner initiative vault. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
+description: Use when designing a system after requirements are settled. Drives architecture, components, data model, API contracts, NFRs, and ADRs out of the room. Requires a complete requirements doc, or, in vault mode (`--vault <path> --app <APP-id>`), an app handed off from a vela initiative vault. Triggers include "tech design", "design the system", "how should we build this", "architecture session".
 ---
 
 <what-to-do>
@@ -37,11 +37,11 @@ Use `D-XXX` for explicit deferrals (logged in frontmatter `deferred[]`). Offer a
 
 ## Vault mode
 
-Given `--vault <path> --app <APP-id>`, the design is for one app of a planner initiative vault.
+Given `--vault <path> --app <APP-id>`, the design is for one app of a vela initiative vault.
 
-- `PREREQ-CHECK.md` checks the app is handed off, then you read `<vault>/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md` and follow it. It replaces the requirements-doc prereq, says what to read in the vault and in what order, and how to link back.
+- `PREREQ-CHECK.md` checks the app is handed off, then you read `<vault>/.claude/skills/vela/references/TECH-DESIGN-FROM-VAULT.md` and follow it. It replaces the requirements-doc prereq, says what to read in the vault and in what order, and how to link back.
 - The app's requirements are the rows of its `## Requirements allocated` table: its share of each functional requirement, and the contracts that carry the part that crosses to another app. Each row is a trace target, as `CAP-nnn.FRn@APP-<slug>`, alongside the contracts it provides and consumes and its epics' acceptance criteria.
-- Never edit the vault. A gap or a disputed vault answer is an `OQ-XXX` with `challenges: <vault ID>`; tell the senior to raise it with `/planner:challenge`.
+- Never edit the vault. A gap or a disputed vault answer is an `OQ-XXX` with `challenges: <vault ID>`; tell the senior to raise it with `/vela:challenge`.
 - Requirements are not written in the team's repository: there is no `docs/requirements/<slug>.md` in vault mode. If the design shows a requirement is missing, that is a challenge, not a draft.
 
 ## Boot sequence
@@ -94,7 +94,7 @@ Flip `status: complete` only if neg-audit passes and no review finding is left o
 
 Do **not** open functional-requirement questions. If gaps surface, stop the session and tell the user to revisit `requirements-grill`. Don't paper over.
 
-In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with `/planner:challenge`, and carry on with the branches it does not touch.
+In vault mode, do not stop the session. Record the gap as an `OQ-XXX` with `challenges: <vault ID>` and the scenario that shows it, tell the senior to raise it with `/vela:challenge`, and carry on with the branches it does not touch.
 
 ## References
 

@@ -48,16 +48,16 @@ def test_start_answers_a_challenge_on_its_own_branch():
 def test_start_and_close_find_an_answer_record_on_a_shared_branch():
     command = "git grep -l '^status: open' <branch> -- sessions/"
     assert command in read("plugin", "references", "START.md")
-    # close finds it through `planner session open`, which reads every record on a shared branch
+    # close finds it through `vela session open`, which reads every record on a shared branch
     # (tests/test_session_open.py::test_two_records_on_one_branch_finds_the_open_one)
-    assert "planner session open --switch" in section(skill_text("close"), "## 1.", "## 2.")
+    assert "vela session open --switch" in section(skill_text("close"), "## 1.", "## 2.")
 
 
 def test_grill_and_challenge_send_the_lead_to_the_answer_path():
     grill = read("plugin", "skills", "grill", "SKILL.md")
     assert "take its \"Answer a challenge\" path" in section(grill, "## 1.", "## 2.")
     challenge = read("plugin", "skills", "challenge", "SKILL.md")
-    assert "Run `/planner:grill` and name this PR or <ID>" in challenge
+    assert "Run `/vela:grill` and name this PR or <ID>" in challenge
     assert "opens an answer session on this branch" in challenge
 
 

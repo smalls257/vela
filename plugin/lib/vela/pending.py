@@ -6,7 +6,7 @@ item stays `decided` and carries a bullet beside its Override and Decided by:
 
     - **Pending approval:** @handle, YYYY-MM-DD
 
-`planner check` lists every such item in one warning, never an error, so a reader's copy stays green
+`vela check` lists every such item in one warning, never an error, so a reader's copy stays green
 and an owner's main shows a review that skipped one. A malformed bullet is E322, because a typo must
 not leave a reader's decision looking like an owner's.
 """

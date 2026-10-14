@@ -1,6 +1,6 @@
 ---
 name: requirements-grill
-description: Use when stress-testing or eliciting pure functional requirements for a product or feature. Drives the *what*, not the *how*. Refuses to discuss tech stack, architecture, or non-functional requirements. Triggers include "grill requirements", "what should this do", "define the what", "elicit requirements", "PRD interview". Also runs in initiative vaults. In a repo with `.planner.yaml` at its root it is scoped to one capability (CAP-NNN) and writes onto that capability's page.
+description: Use when stress-testing or eliciting pure functional requirements for a product or feature. Drives the *what*, not the *how*. Refuses to discuss tech stack, architecture, or non-functional requirements. Triggers include "grill requirements", "what should this do", "define the what", "elicit requirements", "PRD interview". Also runs in initiative vaults. In a repo with `.vela.yaml` at its root it is scoped to one capability (CAP-NNN) and writes onto that capability's page.
 ---
 
 <what-to-do>
@@ -63,7 +63,7 @@ When every section has content and every conversation branch is closed (resolved
 
 Flip `status: complete` only if neg-audit passes. Otherwise stay in-progress and surface what's blocking.
 
-In vault mode, run `NEG-AUDIT.md` the same way, then do not flip any status. Tell the user to run `/planner:close`, which marks the captures, checks the vault and opens the PR. The vault's session record takes the place of the frontmatter.
+In vault mode, run `NEG-AUDIT.md` the same way, then do not flip any status. Tell the user to run `/vela:close`, which marks the captures, checks the vault and opens the PR. The vault's session record takes the place of the frontmatter.
 
 ## Hard rule
 

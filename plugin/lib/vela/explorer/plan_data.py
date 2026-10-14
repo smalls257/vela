@@ -4,7 +4,7 @@
     inside(vault, keys, plans, designs) -> {app key: plan, with what the page draws from it}
 
 Level 4 of "Inside this app" (DESIGN-INSIDE.md). The file is docs/plan/<slug>-breakdown.md, written by the
-work-breakdown skill and read by planner/breakdown.py, the same reader tools/breakdown_to_tickets.py uses. This module
+work-breakdown skill and read by vela/breakdown.py, the same reader tools/breakdown_to_tickets.py uses. This module
 adds what only the page needs, and each is worked out here so it can be tested without a browser:
 
 - what blocks a story: another story, an open vault question (the page lights the story with that question's lamp),

@@ -121,7 +121,7 @@ Risks: R-01 mainframe knowledge sits with two people (mitigation: MQ mapping doc
 
 ## Question ledger (catalog v1)
 
-The ledger on `11-unknowns-and-risks.md` disposes every one of the 57 copies catalog v1 owes, so `planner check --gate epics` passes. Its rows show every state. Who pays Booking's running cost (Q-FIN-02) was asked of the finance business partner on 2026-11-19 and has no answer yet. That customers amend online once they can (Q-OPS-07) is a load-bearing assumption, with the online share of amendments as its signpost. Pricing is an exception to the data question, because it holds fare rules only. Where the vault does not say (lawful basis for customer data, who owns each capability, who runs unchanged apps out of hours) the row is an assumption with a signpost, never an answer. One reviewer question, R-FIN-01, on points and canceled bookings, is open.
+The ledger on `11-unknowns-and-risks.md` disposes every one of the 57 copies catalog v1 owes, so `vela check --gate epics` passes. Its rows show every state. Who pays Booking's running cost (Q-FIN-02) was asked of the finance business partner on 2026-11-19 and has no answer yet. That customers amend online once they can (Q-OPS-07) is a load-bearing assumption, with the online share of amendments as its signpost. Pricing is an exception to the data question, because it holds fare rules only. Where the vault does not say (lawful basis for customer data, who owns each capability, who runs unchanged apps out of hours) the row is an assumption with a signpost, never an answer. One reviewer question, R-FIN-01, on points and canceled bookings, is open.
 
 ## Concerns (all eight addressed or N/A)
 

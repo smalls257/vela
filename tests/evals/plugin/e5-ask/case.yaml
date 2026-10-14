@@ -8,7 +8,7 @@ plugins:
 - ../../../../plugin
 runs: 3
 execution:
-  prompt: /planner:ask Who tests CON-001 from each side, and what is the Booking API's rate limit?
+  prompt: /vela:ask Who tests CON-001 from each side, and what is the Booking API's rate limit?
   max_turns: 60
   timeout_seconds: 1200
   allowed_tools:
@@ -25,7 +25,7 @@ graders:
 - name: plugin-loaded
   type: tool_used
   tool: Skill
-  input_match: planner
+  input_match: vela
   arm: with-only
 - name: no-write
   type: tool_used
@@ -55,5 +55,5 @@ graders:
 - name: query-before-citing
   type: tool_used
   tool: Bash
-  input_match: planner query
+  input_match: vela query
   arm: with-only

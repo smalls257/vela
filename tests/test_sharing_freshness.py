@@ -1,4 +1,4 @@
-"""planner freshness: an owner's bounded git fetch and a reader's comparison with the source they opened from.
+"""vela freshness: an owner's bounded git fetch and a reader's comparison with the source they opened from.
 It reports; it never pulls, updates or fails because a source is out of reach."""
 import hashlib
 import json
@@ -182,7 +182,7 @@ def test_a_republish_to_the_same_source_is_newer_and_the_workspace_is_untouched(
     assert report["state"] == "newer"
     assert report["latest"] == {"commit": git(vault, "rev-parse", "--short", "HEAD"), "date": "2026-10-20"}
     assert report["have"]["date"] == "2026-10-11"
-    assert "A newer copy was published 2026-10-20" in report["message"] and "/planner:open" in report["message"]
+    assert "A newer copy was published 2026-10-20" in report["message"] and "/vela:open" in report["message"]
     assert "Your drafts are kept" in report["message"]
     assert tree_digest(workspace) == before
 
@@ -195,7 +195,7 @@ def test_a_zip_source_is_read_from_its_stamp_only(tmp_path):
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "v2")
     publish_to(vault, tmp_path / "later.zip", "2026-10-20")
-    workspace_json = workspace / ".planner" / "workspace.json"
+    workspace_json = workspace / ".vela" / "workspace.json"
     data = json.loads(workspace_json.read_text(encoding="utf-8"))
     data["source_path"] = str(tmp_path / "later.zip")
     workspace_json.write_text(json.dumps(data), encoding="utf-8")
@@ -228,7 +228,7 @@ def test_a_workspace_with_no_recorded_commit_is_unknown(tmp_path):
     vault = make_vault(tmp_path)
     publish_to(vault, tmp_path / "source", "2026-10-11")
     workspace = make_workspace(tmp_path, tmp_path / "source")
-    path = workspace / ".planner" / "workspace.json"
+    path = workspace / ".vela" / "workspace.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     del data["base_commit"]
     path.write_text(json.dumps(data), encoding="utf-8")

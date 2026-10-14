@@ -1,9 +1,9 @@
-"""The close state record: what `planner close sync-main` found, kept so `planner close gate` can say it. Pure: no disk.
+"""The close state record: what `vela close sync-main` found, kept so `vela close gate` can say it. Pure: no disk.
 
 The Violation this exists to prevent is a Black Box between two close steps. Sync-main and the gate are separate
 commands (one capability each), so without a record the gate cannot tell "main was brought in" from "nobody tried"
-from "the shared copy could not be reached". Each outcome is written as one JSON file, `.planner/close/<key>.json`
-(`.planner/` is never committed), and the gate reads it through `verdict`, the one place that says which statuses
+from "the shared copy could not be reached". Each outcome is written as one JSON file, `.vela/close/<key>.json`
+(`.vela/` is never committed), and the gate reads it through `verdict`, the one place that says which statuses
 let a close go on. A missing or unreadable record is never read as a pass (Silent Fallback): `verdict(None)` blocks.
 
 Shape (version 1):
@@ -28,7 +28,7 @@ FETCH_FAILED, UNCOMMITTED, GIT_FAILED = "fetch-failed", "uncommitted-edits", "gi
 
 # A reader copy has no git, so no branch to key by; a git that failed before naming the branch has none either.
 READER_KEY, UNKNOWN_KEY = "reader-copy", "unknown-branch"
-FOLDER = ".planner/close"
+FOLDER = ".vela/close"
 
 
 class StateUnreadable(ValueError):
@@ -47,7 +47,7 @@ def record(status, branch, main="", head="", date="", reason="", files=()):
     """A close state record. Raises ValueError for a status this version does not know, so a typo is a bug, not a
     record the gate cannot read."""
     if status not in STATUSES:
-        raise ValueError(f"planner bug: unknown close state status {status!r}")
+        raise ValueError(f"vela bug: unknown close state status {status!r}")
     return {"version": VERSION, "branch": branch or "", "status": status, "reason": reason, "main": main or "",
             "head": head or "", "date": date, "files": [dict(f) for f in files]}
 
@@ -63,7 +63,7 @@ def parse(text):
     except ValueError as exc:
         raise StateUnreadable(f"the close state is not JSON ({exc})") from exc
     if not isinstance(rec, dict) or rec.get("version") != VERSION or rec.get("status") not in STATUSES:
-        raise StateUnreadable("the close state is not a record this planner wrote")
+        raise StateUnreadable("the close state is not a record this vela wrote")
     return rec
 
 

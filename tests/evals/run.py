@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run plugin-eval cases by hand in both arms, then grade every kept workspace with planner check.
+"""Run plugin-eval cases by hand in both arms, then grade every kept workspace with vela check.
 
 This costs money: each run is a real Claude session on your account. Run it before a skill ships,
 after a SKILL.md or reference change, and when the default model changes.
@@ -28,7 +28,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parent.parent
-PLANNER = REPO / "plugin" / "scripts" / "planner"
+VELA = REPO / "plugin" / "scripts" / "vela"
 RESULTS = HERE / ".results"
 ARMS = ("plugin", "stub")
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
@@ -38,7 +38,7 @@ from vela import schema  # noqa: E402  (the ID patterns live there; a copy here 
 # git-clean ("readonly"), and file checks on the kept workspace. "expect" patterns must match in some file
 # the glob names; "forbid" patterns must match in none. "may_decide" is how many pages the run may move to
 # decided (default 0: only a Grill writes decided). "check_codes" / "check_never" are finding codes that
-# `planner check` must, and must not, report on the kept workspace. Checks read the files, never the transcript, because
+# `vela check` must, and must not, report on the kept workspace. Checks read the files, never the transcript, because
 # a transcript holds the skill's own text and would pass on the instructions alone.
 OVERRIDE_BULLET = r"^- \*\*Override:\*\*"
 CAP_021 = "capabilities/CAP-021-*.md"
@@ -84,11 +84,11 @@ class EvalError(Exception):
 
 
 def find_workspaces(log):
-    """Kept workspaces the eval printed: a printed directory that itself holds .planner.yaml. No parent is searched."""
+    """Kept workspaces the eval printed: a printed directory that itself holds .vela.yaml. No parent is searched."""
     found = []
     for raw in PATH.findall(log):
         path = pathlib.Path(raw.rstrip("."))
-        if (path / ".planner.yaml").is_file() and path.resolve() not in found:
+        if (path / ".vela.yaml").is_file() and path.resolve() not in found:
             found.append(path.resolve())
     return found
 
@@ -175,7 +175,7 @@ def invented_ids(workspace):
         for item, kind in sorted(ids_in(name, text) - known):
             new += 1
             if not any(p.match(item) for p in ID_PATTERNS):
-                problems.append(f"FAIL: invented ID {item} in {name}: not a planner ID pattern")
+                problems.append(f"FAIL: invented ID {item} in {name}: not a vela ID pattern")
             elif schema.SOURCE_ID_RE.match(item):
                 if name != "sources.md":
                     problems.append(f"FAIL: invented ID {item} in {name}: SRC IDs belong only in sources.md")
@@ -201,7 +201,7 @@ def decided_growth(workspace, allowed=0):
 
 
 def check_code_lines(output, wanted, never):
-    """Grades on the finding codes in `planner check` output. A code the case needs must appear; a code it
+    """Grades on the finding codes in `vela check` output. A code the case needs must appear; a code it
     forbids must not. This is how a case proves an override turned an error into its warning."""
     seen = set(re.findall(r"^\S+?:\d+: ([EW]\d{3}) ", output, re.M))
     return [f"{'pass' if code in seen else 'FAIL'}: check reports {code}" for code in wanted] + \
@@ -210,7 +210,7 @@ def check_code_lines(output, wanted, never):
 
 def grade(workspace, spec):
     """Mechanical grades for one kept workspace, as Markdown lines. A failure line starts '- FAIL'."""
-    argv = [sys.executable, str(PLANNER), "check", "--vault", str(workspace), "--today", spec["today"]]
+    argv = [sys.executable, str(VELA), "check", "--vault", str(workspace), "--today", spec["today"]]
     if spec["gate"]:
         argv += ["--gate", "epics"]
     check = subprocess.run(argv, capture_output=True, text=True, timeout=120)

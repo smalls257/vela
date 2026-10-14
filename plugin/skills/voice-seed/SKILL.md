@@ -11,9 +11,9 @@ Contents: 1 start clean; 2 who the owner is; 3 collect the passages (the convers
 
 The vault's prose is drafted from `voice/examples/` and `voice/local/`. This skill puts the owner's own writing there, so drafts sound like the owner instead of the public seed. It stores the owner's words exactly as pasted. It never rewrites them.
 
-An example's format is in `planner conventions "Voice examples"`.
+An example's format is in `vela conventions "Voice examples"`.
 
-There are two voices. The page voice (`diagnosis`, `decision`, `how-it-works`) is what the tool writes; `house-voice` reads those examples. The conversation voice (`conversation`) is how sessions talk to the lead; `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` reads those. `/planner:voice-seed conversation` runs the conversation type alone. A run with no type named does the three page types, and offers conversation and `voice/VOICE.md` at the end.
+There are two voices. The page voice (`diagnosis`, `decision`, `how-it-works`) is what the tool writes; `house-voice` reads those examples. The conversation voice (`conversation`) is how sessions talk to the lead; `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` reads those. `/vela:voice-seed conversation` runs the conversation type alone. A run with no type named does the three page types, and offers conversation and `voice/VOICE.md` at the end.
 
 ## 1. Start clean
 

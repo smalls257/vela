@@ -57,41 +57,41 @@ news:
 sessions:
   - mode: discover
     cap: 14
-    planner: "/planner:discover the CIO's and the Data Protection Officer's replies"
+    vela: "/vela:discover the CIO's and the Data Protection Officer's replies"
     baseline: "Read the CIO's and the Data Protection Officer's replies and record what they settle, following CONVENTIONS.md."
   - mode: close
     cap: 8
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
   - mode: grill
     cap: 18
-    planner: "/planner:grill what one account means, which app owns the one login, and what it offers"
+    vela: "/vela:grill what one account means, which app owns the one login, and what it offers"
     baseline: "Take me through what one account means, which app owns the one login and what it offers, and record what I decide, following CONVENTIONS.md."
   - mode: close
     cap: 8
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
   - mode: grill
     cap: 20
-    planner: "/planner:grill the Group Account app's boundary, contracts and failure behavior"
+    vela: "/vela:grill the Group Account app's boundary, contracts and failure behavior"
     baseline: "Take me through the Group Account boundary, contracts and failure behavior and record what I decide, following CONVENTIONS.md."
   - mode: close
     cap: 8
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
   - mode: epics
     cap: 20
-    planner: "/planner:epics Northway Platform team, for Group Account"
+    vela: "/vela:epics Northway Platform team, for Group Account"
     baseline: "Draft the epics for Group Account for the Northway Platform team, following CONVENTIONS.md."
   - mode: close
     cap: 8
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
   - mode: grill
     cap: 16
-    planner: "/planner:grill handing Group Account to the Northway Platform team"
+    vela: "/vela:grill handing Group Account to the Northway Platform team"
     baseline: "Take me through handing Group Account to the Northway Platform team and record it, following CONVENTIONS.md."
   - mode: close
     cap: 8
-    planner: "/planner:close"
+    vela: "/vela:close"
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."

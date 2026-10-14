@@ -33,9 +33,9 @@ def test_publish_carries_the_vault_and_nothing_from_the_rest_of_the_repo(monorep
     code, text = run("publish", "--vault", str(vault), "--out", str(out), "--today", "2026-10-11")
     assert code == 0, text
     names = sorted(p.relative_to(out).as_posix() for p in out.rglob("*") if p.is_file())
-    assert ".planner.yaml" in names and PAGE in names and ".planner/published.json" in names
+    assert ".vela.yaml" in names and PAGE in names and ".vela/published.json" in names
     assert not [n for n in names if n.startswith("teams/") or n == "ROOT-ONLY.md"]
-    stamp = json.loads((out / ".planner" / "published.json").read_text(encoding="utf-8"))
+    stamp = json.loads((out / ".vela" / "published.json").read_text(encoding="utf-8"))
     assert stamp["commit"] == git(repo, "rev-parse", "HEAD") and f"({len(names)} files)" in text
 
 

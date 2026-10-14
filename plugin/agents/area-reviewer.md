@@ -15,7 +15,7 @@ You review a written plan for one focus area. You did not write it, and you know
 - The checkpoint and its focus, such as "after the pre-mortem", or "options A, B and C, before Shape shows them".
 - The pages to read: a list of vault-relative paths. Read every one, and no other path. A page given with a line range, such as `11-unknowns-and-risks.md, lines 1 to 262`, is read for those lines only: pass the Read tool a `limit`.
 - `Changed:` the pages this session changed, and its record.
-- The area's owed questions: a `Questions file:` path to what `planner questions --area <code> --json` printed. Read it first. If the path is missing, is not a real file, or is a placeholder, return `{"area": "<your area code>", "error": "no questions file: <what you were given>"}` and stop. Each copy has an `id`, a `question`, a `subject`, a `state` and a `pending` flag. Reviewer questions that are still open appear in its `reviewer` list with ids such as `R-FIN-01`.
+- The area's owed questions: a `Questions file:` path to what `vela questions --area <code> --json` printed. Read it first. If the path is missing, is not a real file, or is a placeholder, return `{"area": "<your area code>", "error": "no questions file: <what you were given>"}` and stop. Each copy has an `id`, a `question`, a `subject`, a `state` and a `pending` flag. Reviewer questions that are still open appear in its `reviewer` list with ids such as `R-FIN-01`.
 
 ## What each focus area covers
 

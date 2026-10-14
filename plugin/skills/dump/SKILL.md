@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Dump & Diverge
 
-The user has a hunch, a one-liner or nothing yet. Collect everything as captures. Push back on nothing. The plan pages change only at `/planner:close`.
+The user has a hunch, a one-liner or nothing yet. Collect everything as captures. Push back on nothing. The plan pages change only at `/vela:close`.
 
 Shared files live in `${CLAUDE_PLUGIN_ROOT}/references/`. Read them when a step names them.
 

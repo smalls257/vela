@@ -18,7 +18,7 @@ TickerTalk keeps sign-in and the news, as it does today (the product lead, no so
 
 TickerTalk holds no lessons, practice, quotes or progress; Coach keeps them. It prepares or places no order and holds no customer money, which Brightwater holds (SRC-01). It shows no way into the board demo and no trade ideas to customers.
 
-<!-- generated:app-context sha=c123efaf: do not edit, run planner render -->
+<!-- generated:app-context sha=c123efaf: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -45,7 +45,7 @@ TickerTalk's existing containers are not recorded; the mobile team holds them, s
 
 None. Sign-in crosses to Coach through CON-001.
 
-<!-- generated:contracts-consumed sha=5e416dcd: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=5e416dcd: do not edit, run vela render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[coach-building-blocks#CON-001 Coach entry\|CON-001 Coach entry]] | [[coach-building-blocks\|Coach]] | the Coach and TickerTalk owners agree any change to what crosses; the Coach owner approves before any change to the user ID ships. | decided |

@@ -38,7 +38,7 @@ Gives a customer or an agent the price of a crossing before they commit to it.
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=d2445171: do not edit, run planner render -->
+<!-- generated:delivered-by sha=d2445171: do not edit, run vela render -->
 | Epic | Owner | State |
 |---|---|---|
 | [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harborline/revenue-team | decided |

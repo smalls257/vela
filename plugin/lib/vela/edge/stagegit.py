@@ -1,4 +1,4 @@
-"""The git calls `planner close stage` and `planner guard staged` make: what changed, what is staged, staging by exact
+"""The git calls `vela close stage` and `vela guard staged` make: what changed, what is staged, staging by exact
 path, and a commit of exactly those paths.
 
 This is the periphery (Buffer): `guard.py` decides from paths and never sees git. Every call goes through

@@ -58,7 +58,7 @@ Before the restriction goes on, the gateway shows no direct quote requests from 
 
 ## Traces to
 
-<!-- generated:traces-to sha=a37dbe15: do not edit, run planner render -->
+<!-- generated:traces-to sha=a37dbe15: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[pricing-building-blocks\|Pricing]], [[booking-building-blocks\|Booking]] |

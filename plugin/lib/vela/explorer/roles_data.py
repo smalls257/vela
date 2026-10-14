@@ -1,4 +1,4 @@
-"""What the front doors, the map's groupings and the release timeline need, read from the planner's own modules.
+"""What the front doors, the map's groupings and the release timeline need, read from vela's own modules.
 
 - Releases: `releases.releases` and `releases.snapshots` (Today, then cumulative after each release). What a
   release touches is the apps and contracts that carry a share of what it delivers, from `allocation.carried`.

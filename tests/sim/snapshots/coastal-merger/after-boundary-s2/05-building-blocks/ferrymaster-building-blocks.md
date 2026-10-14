@@ -18,7 +18,7 @@ It does not own the login or the link. It does not hold the household or the loy
 
 - **Options considered:** Login with a link service (picked); Login only, no new app: rejected, it holds the link in two places, leaves the rail-side link with no owner and puts the link step on SeaBook, which Ferry Ops says is frozen; Ferry sign-in adapter: rejected, its adapter has no named owner and the link step still has no app
 
-<!-- generated:app-context sha=a635fdf1: do not edit, run planner render -->
+<!-- generated:app-context sha=a635fdf1: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_account_link_service["Account link service (new)"]
@@ -53,7 +53,7 @@ None yet. Whether the link needs to read from or write to FERRYMASTER is open: [
 
 It relies on [[northway-id-building-blocks#CON-004 Sign in and person key|CON-004]] from Northway ID and [[account-link-service-building-blocks#CON-002 Look up linked records|CON-002]] from the Account link service.
 
-<!-- generated:contracts-consumed sha=633f4ed4: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=633f4ed4: do not edit, run vela render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[account-link-service-building-blocks#CON-002 Look up linked records\|CON-002 Look up linked records]] | [[account-link-service-building-blocks\|Account link service]] | Not decided: the owner sets it with each consumer before build. | assumption |

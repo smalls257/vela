@@ -75,7 +75,7 @@ const Flows = (() => {
 
   /* ------------------------------------------------------------ the view */
   function render(main) {
-    if (!D.flows.length) { main.append(emptyState("No flows yet.", "Once the plan writes a flow with its steps, it plays here, step by step across the apps.", "/planner:boundary")); return; }
+    if (!D.flows.length) { main.append(emptyState("No flows yet.", "Once the plan writes a flow with its steps, it plays here, step by step across the apps.", "/vela:boundary")); return; }
     const f = FlowKit.flowOf(st.key);
     const picker = FlowPicker.make({ current: () => st.key, onPick: (key) => select(key, -1) });
     const actions = h("div", { class: "flow-actions" },

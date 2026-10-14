@@ -1,4 +1,4 @@
-"""The git and disk side of `planner close sync-main`: fetch, compare, merge, abort, and the close state file.
+"""The git and disk side of `vela close sync-main`: fetch, compare, merge, abort, and the close state file.
 
 This is the periphery (Buffer): `mergeplan` decides which hunks are safe from text alone, `closestate` says what a
 record means, and this module only runs git and reads or writes files. Every git call goes through
@@ -144,10 +144,10 @@ def read_state(root, key):
 
 
 def is_reader_copy(root):
-    """True for a published read copy: `.planner/workspace.json` and no `.git`. Decided without running git, because a
+    """True for a published read copy: `.vela/workspace.json` and no `.git`. Decided without running git, because a
     read copy must run no git at all."""
     root = pathlib.Path(root)
-    facts = roles.Facts(git_here=(root / ".git").exists(), has_workspace=(root / ".planner" / "workspace.json").is_file())
+    facts = roles.Facts(git_here=(root / ".git").exists(), has_workspace=(root / ".vela" / "workspace.json").is_file())
     return roles.decide(facts).role == roles.READER
 
 

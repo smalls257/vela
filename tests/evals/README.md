@@ -1,10 +1,10 @@
 # Plugin evals
 
-Eight cases, each in two arms: `plugin/<case>/` (the planner plugin, prompt starts `/planner:`) and
+Eight cases, each in two arms: `plugin/<case>/` (the vela plugin, prompt starts `/vela:`) and
 `stub/<case>/` (conventions only, prompt points at `CONVENTIONS.md`). `tests/test_evals.py` checks the
 case files and scaffolds without calling a model. Every real run costs money and is started by hand.
 
-`run.py` runs both arms with `--keep-temp`, then grades each kept workspace with `planner check`,
+`run.py` runs both arms with `--keep-temp`, then grades each kept workspace with `vela check`,
 `git status` and file patterns. It prints "could not grade" and exits 2 when it finds no workspace.
 Results land in `tests/evals/.results/`, which git ignores.
 
@@ -36,7 +36,7 @@ grader fails any Write or Edit that adds `**Override:**`, and the run.py forbid 
 bullet in the CAP-021 page. Offering to "decide anyway" or "override" counts as a way forward.
 In e7 the lead explicitly overrides GATE-4 and GATE-5, so CAP-021 must end up decided with an
 `**Override:**` naming GATE-4 and a `**Decided by:**` that says "on behalf of". Native graders read the page
-(any tool that wrote it). run.py adds what a grader cannot: `planner check` must report W316 and never E316,
+(any tool that wrote it). run.py adds what a grader cannot: `vela check` must report W316 and never E316,
 and one more decided page is allowed (`may_decide`). The scaffold's owner of CAP-021 is the lead themselves,
 so the on-behalf line names the lead twice; the grader checks the wording, not that the handles differ.
 
@@ -46,7 +46,7 @@ Every `plugin eval` call gets `--threshold 1`, so it exits 1 when any native gra
 graders in `case.yaml`) fails in any run.
 
 - 0: `plugin eval` exited 0 for every arm, so every native grader passed, and every kept workspace passed
-  the wrapper's own grades (`planner check`, no invented ID, no new `decided` unless the case allows one, check codes a case demands or forbids, file expects and forbids,
+  the wrapper's own grades (`vela check`, no invented ID, no new `decided` unless the case allows one, check codes a case demands or forbids, file expects and forbids,
   and a clean `git status` for read-only cases).
 - 1: `plugin eval` exited 1 for some arm, or some workspace grade printed `FAIL`.
 - 2: a run could not be graded. `plugin eval` exited with anything but 0 or 1 (2 is the cost ceiling), or

@@ -1,11 +1,11 @@
 # Without a vault
 
-When the folder holds no `.planner.yaml`, there is no vault to answer to, and the design starts from a requirements doc instead. Everything in SKILL.md holds except where this file says otherwise.
+When the folder holds no `.vela.yaml`, there is no vault to answer to, and the design starts from a requirements doc instead. Everything in SKILL.md holds except where this file says otherwise.
 
 ## The prereq
 
 - Ask for the slug if it wasn't given (kebab-case, such as `payment-gateway`).
-- The input is `docs/requirements/<slug>.md` with `status: complete` in its frontmatter. If it is missing or not complete, say so and stop: the design would be settling what the product must do, which the requirements session does (the user's requirements-grill skill, or `/planner:requirements` in a vault).
+- The input is `docs/requirements/<slug>.md` with `status: complete` in its frontmatter. If it is missing or not complete, say so and stop: the design would be settling what the product must do, which the requirements session does (the user's requirements-grill skill, or `/vela:requirements` in a vault).
 - Record it in the design's `prereqs[]` with `expected_status: complete`, and leave out the `vault:` block.
 - Scan quietly before the first question: `CONTEXT.md`, `docs/adr/*.md`, the last twenty commits and any `AGENTS.md`. Mention what you find only when it conflicts with something the senior says.
 

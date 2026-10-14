@@ -21,7 +21,7 @@ The desk helper is meant first for a pilot with the Client Delivery team in Lond
 
 [[sources#SRC-02|The CIO's brief]] expects staff to install Heron themselves in two minutes, and expects it to run on the PC so that the data never leaves the machine and nothing is left for privacy or the works councils to worry about. It expects that staff choosing to install covers consent, that Heron needs only each person's own Microsoft 365 sign-in, and that it is in use firm-wide by the summer. [[sources#SRC-04|The product one-pager]] expects Heron to read Teams, Zoom, Outlook and documents, and to write a 7:30 digest each morning and a prep note ten minutes before each meeting. It expects the agent on the laptop to collect, with a cloud service writing the summaries using a hosted language model, and a pilot starting on 2 February 2027 with Client Delivery. These are plans, and they are assumptions until a Grill decides them.
 
-<!-- generated:system-context sha=cd22b00a: do not edit, run planner render -->
+<!-- generated:system-context sha=cd22b00a: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]

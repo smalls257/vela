@@ -10,7 +10,7 @@ authored: mixed
 
 This page holds what the plan does not yet know and what could go wrong. The product lead owns most unknowns and every risk for now, because the compliance holder is not yet named. The partnerships manager owns the questions that only Brightwater or Quoteline can answer. Two questions weigh most: [[11-unknowns-and-risks#UNK-004 No live trading and broker orders|whether compliance's ban covers orders placed through a partner broker]], and [[11-unknowns-and-risks#UNK-012 Options coverage|whether Brightwater's agreement covers options]]. The product lead believes that if both answers are no, [[11-unknowns-and-risks#R-09 No demo and no March|there is no January demo and no March launch]]. Three more questions come from picking a short list of US stocks to teach on: [[11-unknowns-and-risks#UNK-021 Legal clearance of the stock list|counsel's clearance of the list]] comes first, then [[11-unknowns-and-risks#UNK-022 Owner and budget for the stock list|who owns it and pays for it]] and [[11-unknowns-and-risks#UNK-023 Coverage of every stock on the list|whether Brightwater and Quoteline cover every stock]]. Quoteline has since said that showing delayed quotes in lessons is display use, which its license allows. The replies also raised three new questions: [[11-unknowns-and-risks#UNK-025 Options lessons in release one|whether options lessons are in release one]], [[11-unknowns-and-risks#UNK-026 Counsel and lesson content|whether counsel reads the lessons themselves]] and [[11-unknowns-and-risks#UNK-027 Brightwater as the supervisor|whether Brightwater will supervise trade ideas]]. Brightwater's written reply adds a ten-business-day content review of every lesson and screen shown to its customers. The product lead believes [[11-unknowns-and-risks#R-11 The content review may cost January|the review may cost January]], and the open questions are who runs it, whether it can move, whether it reaches an internal demo and what happens when it rejects a lesson. Three questions wait on the mobile lead for 14 October: [[11-unknowns-and-risks#UNK-047 Is the reader ID stable across email and device changes|whether a reader keeps the same ID]], [[11-unknowns-and-risks#UNK-048 Does mobile's plan cover sending the ID only for opted-in readers|whether mobile's plan covers sending it only for opted-in readers]] and [[11-unknowns-and-risks#UNK-049 Who covers TickerTalk out of hours|who covers TickerTalk out of hours]]. The question ledger at the foot of the page records how each question ended.
 
-<!-- generated:unknowns-index sha=37551262: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=37551262: do not edit, run vela render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 What the CEO means\|UNK-001]] | What the CEO means | @sim-lead (product lead) | open | 2026-11-13 |
@@ -830,7 +830,7 @@ Whether the coach, Brightwater and Quoteline together make a product sold or pro
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=1a44c568: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=1a44c568: do not edit, run vela render -->
 **Questions:** 51 owed, 36 undisposed, 53 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |

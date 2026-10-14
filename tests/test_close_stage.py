@@ -1,4 +1,4 @@
-"""`planner close stage` (overhaul Task 9): an allow-list by exact path, never a sweep, and the close skill's commits."""
+"""`vela close stage` (overhaul Task 9): an allow-list by exact path, never a sweep, and the close skill's commits."""
 import json
 import shutil
 import subprocess
@@ -67,7 +67,7 @@ def stage(root, *flags):
 def test_inbox_voice_local_corpus_never_staged(vault):
     (vault / ".gitignore").unlink()  # a vault whose ignore file was lost still keeps them out
     git(vault, "commit", "-q", "-am", "drop ignore")
-    for rel in (".inbox/call.md", "voice/local/mine.md", "voice/corpus/essay.txt", ".planner/session.json"):
+    for rel in (".inbox/call.md", "voice/local/mine.md", "voice/corpus/essay.txt", ".vela/session.json"):
         change(vault, rel)
     change(vault, "01-goals.md")
     code, out = stage(vault, "--json")
@@ -80,20 +80,20 @@ def test_inbox_voice_local_corpus_never_staged(vault):
 
 
 def test_pins_file_is_staged(vault):
-    change(vault, ".planner/explorer-pins.json", "{}\n")
-    change(vault, ".planner/workspace-notes.json", "{}\n")  # ignored by the template, so git never offers it
+    change(vault, ".vela/explorer-pins.json", "{}\n")
+    change(vault, ".vela/workspace-notes.json", "{}\n")  # ignored by the template, so git never offers it
     code, out = stage(vault)
     assert code == 0, out
-    assert staged(vault) == [".planner/explorer-pins.json", f"sessions/{SESSION}.md"]
+    assert staged(vault) == [".vela/explorer-pins.json", f"sessions/{SESSION}.md"]
 
 
 def test_only_allow_listed_paths_are_staged(vault):
-    for rel in ("01-goals.md", "voice/examples/decision/new.md", ".planner.yaml", "sources.md", "CONVENTIONS.md",
+    for rel in ("01-goals.md", "voice/examples/decision/new.md", ".vela.yaml", "sources.md", "CONVENTIONS.md",
                 "scratch.txt", "handoffs/APP-till.md", "dashboard.html"):
         change(vault, rel)
     code, out = stage(vault)
     assert code == 1, out
-    assert staged(vault) == sorted([".planner.yaml", "01-goals.md", f"sessions/{SESSION}.md", "sources.md",
+    assert staged(vault) == sorted([".vela.yaml", "01-goals.md", f"sessions/{SESSION}.md", "sources.md",
                                     "voice/examples/decision/new.md"])
     for rel in ("CONVENTIONS.md", "scratch.txt", "handoffs/APP-till.md", "dashboard.html"):
         assert f"left out: {rel} (" in out, rel
@@ -162,8 +162,8 @@ def test_paths_from_render_refuses_a_stale_render(vault):
 def test_reader_copy_stages_nothing_and_runs_no_git(tmp_path, monkeypatch):
     copy = tmp_path / "copy"
     shutil.copytree(TEMPLATE, copy)
-    (copy / ".planner").mkdir()
-    (copy / ".planner" / "workspace.json").write_text("{}", encoding="utf-8")
+    (copy / ".vela").mkdir()
+    (copy / ".vela" / "workspace.json").write_text("{}", encoding="utf-8")
 
     def no_git(*args, **kwargs):
         raise AssertionError(f"git ran in a reader copy: {args}")
@@ -182,7 +182,7 @@ def test_for_lead_lines_pass_the_leak_check(vault):
     git(vault, "add", "-f", "--", ".inbox/call.md")
     code, out = stage(vault, "--for-lead", "--checkpoint")
     assert code == 1, out
-    assert "planner bug" not in out
+    assert "vela bug" not in out
     for line in out.splitlines():
         assert say.leak_in(line) is None, line
     assert out.splitlines()[-2].startswith("I've committed 2 changed pages and the session record.")

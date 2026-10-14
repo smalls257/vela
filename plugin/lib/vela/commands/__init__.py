@@ -1,13 +1,13 @@
-"""Where `planner` subcommands are wired to argparse, one module per command group (CLI/skill overhaul, Task 2).
+"""Where `vela` subcommands are wired to argparse, one module per command group (CLI/skill overhaul, Task 2).
 
 The Violation this layout prevents is a Distributed Monolith in the repo itself: with every parser in `cli.py`, every
 task that adds or extends a command edits the same file, and parallel work collides there. So:
 
 - `MOVED` are the existing parsers later tasks extend (`check`, `explore`, `handoff`, `questions`, `where`). Their
   command functions stay in `cli.py`; only the argparse wiring lives in `commands/<name>.py`. `cli.build_parser`
-  registers each where it used to sit, so `planner --help` keeps its order.
+  registers each where it used to sit, so `vela --help` keeps its order.
 - `GROUPS` are the new command groups. Each module has a `register(sub)`; one that has nothing to offer yet adds no
-  parser, so `planner --help` never lists a command that does nothing. A task adds its group's subcommands inside its
+  parser, so `vela --help` never lists a command that does nothing. A task adds its group's subcommands inside its
   own module and never touches `cli.py`.
 
 Each command module prints through `emit`, the one place output reaches stdout for `say.Result`s, because the core

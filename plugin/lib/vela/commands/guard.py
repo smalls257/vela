@@ -1,8 +1,8 @@
-"""`planner guard staged` and `planner guard path P`: the never-staged rules of `guard.py`, for hooks.
+"""`vela guard staged` and `vela guard path P`: the never-staged rules of `guard.py`, for hooks.
 
 `guard staged` is what the vault's pre-commit hook (`template/.githooks/pre-commit`) runs, so a commit typed by hand or
-by a model cannot carry `.inbox/`, `voice/local/`, `voice/corpus/` or `.planner/` (except the pins file). `guard path`
-judges one path for the Claude Code hooks a later task adds. Neither is the real gate: `planner close stage` already
+by a model cannot carry `.inbox/`, `voice/local/`, `voice/corpus/` or `.vela/` (except the pins file). `guard path`
+judges one path for the Claude Code hooks a later task adds. Neither is the real gate: `vela close stage` already
 refuses those paths, so a hook that never fires costs earlier feedback, never correctness (plan section 1, Silent
 Fallback). Only the never-staged rules apply here; the allow-list is the close's business, so an owner's own commit of
 the README still goes through.
@@ -55,7 +55,7 @@ def cmd_guard_staged(args, out):
         refuse(result, found)
     else:
         result.data = {"forbidden": []}
-        result.lines.append(say.Line(f"planner guard staged: {len(staged)} staged paths, none forbidden.",
+        result.lines.append(say.Line(f"vela guard staged: {len(staged)} staged paths, none forbidden.",
                                      "Nothing staged has to stay on this machine."))
     return commands.emit(result, args, out)
 
@@ -79,7 +79,7 @@ def cmd_guard_path(args, out):
     rule = guard.never_rule(path)
     result = say.Result("guard path", data={"path": path, "allowed": rule is None, "rule": rule.key if rule else None})
     if rule is None:
-        result.lines.append(say.Line(f"planner guard path: {path} may be staged.", "That file may be shared."))
+        result.lines.append(say.Line(f"vela guard path: {path} may be staged.", "That file may be shared."))
     else:
         result.exit = say.REFUSED
         result.refusals.append(say.Refusal(rule.key, rule.plain, rule.fix))

@@ -1,5 +1,5 @@
-"""planner doctor, the bundled PyYAML and the Python 3.9 floor: install is add the marketplace, install the plugin,
-run planner doctor, and nothing else."""
+"""vela doctor, the bundled PyYAML and the Python 3.9 floor: install is add the marketplace, install the plugin,
+run vela doctor, and nothing else."""
 import os
 import pathlib
 import re
@@ -12,7 +12,7 @@ import pytest
 from conftest import REPO, run
 from vela import doctor
 
-LAUNCHER = REPO / "plugin" / "scripts" / "planner"
+LAUNCHER = REPO / "plugin" / "scripts" / "vela"
 VENDORED = REPO / "plugin" / "lib" / "yaml"
 
 EVERYTHING = doctor.Machine(python=(3, 9, 6), python_path="/usr/bin/python3", yaml_version=doctor.PINNED_YAML,
@@ -36,9 +36,9 @@ def test_one_line_per_item_and_ready_when_all_there():
     assert [line.status for line in lines] == ["ok"] * 6 + ["info", "info"]
     assert doctor.exit_code(lines) == 0
     text = doctor.render(lines)
-    assert len(text.splitlines()) == 9 and text.endswith("planner doctor: ready.")
+    assert len(text.splitlines()) == 9 and text.endswith("vela doctor: ready.")
     for words in ("Python 3.9.6", "PyYAML 6.0.3, bundled with the plugin", "git version 2.50.1", "node v22.1.0",
-                  "Ask Claude", "voicescore works", "/v is a vault: INI-001 Heron", "planner plugin 0.3.0"):
+                  "Ask Claude", "voicescore works", "/v is a vault: INI-001 Heron", "vela plugin 0.3.0"):
         assert words in text
 
 
@@ -65,13 +65,13 @@ def test_a_missing_required_piece_exits_1_and_says_the_fix(fields, words):
     lines = lines_for(changed(**fields))
     assert doctor.exit_code(lines) == 1
     assert [line.text for line in lines if line.status == "missing"][0].count(words) == 1
-    assert "something planner needs is missing" in doctor.render(lines)
+    assert "something vela needs is missing" in doctor.render(lines)
 
 
 def test_not_being_in_a_vault_is_information_not_a_failure():
-    lines = lines_for(vault=doctor.Vault("/home/me", problem="there is no .planner.yaml here."))
+    lines = lines_for(vault=doctor.Vault("/home/me", problem="there is no .vela.yaml here."))
     assert doctor.exit_code(lines) == 0
-    assert "/home/me is not a vault: there is no .planner.yaml here." in doctor.render(lines)
+    assert "/home/me is not a vault: there is no .vela.yaml here." in doctor.render(lines)
 
 
 # --- the command, on this machine ---------------------------------------------------------------------------------
@@ -83,10 +83,10 @@ def test_doctor_in_a_vault_names_it(mini):
     assert code == (1 if shutil.which("git") is None else 0)
 
 
-def test_doctor_names_a_broken_planner_yaml(tmp_path):
-    (tmp_path / ".planner.yaml").write_text("title: x\n", encoding="utf-8")
+def test_doctor_names_a_broken_vela_yaml(tmp_path):
+    (tmp_path / ".vela.yaml").write_text("title: x\n", encoding="utf-8")
     code, out = run("doctor", "--vault", str(tmp_path))
-    assert "is not a vault: .planner.yaml needs 'initiative: INI-nnn'" in out
+    assert "is not a vault: .vela.yaml needs 'initiative: INI-nnn'" in out
 
 
 # --- the bundled PyYAML -------------------------------------------------------------------------------------------

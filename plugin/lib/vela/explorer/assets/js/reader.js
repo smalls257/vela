@@ -1,4 +1,4 @@
-/* The vault's own pages, readable here. build.py renders each page in planner's reading order (reading.arrange)
+/* The vault's own pages, readable here. build.py renders each page in vela's reading order (reading.arrange)
    and escapes all of its text, so the HTML holds only the renderer's own tags. Here a page is placed, its links
    open inside the explorer, and an ID the prose names in plain text (CST-3, UNK-006) becomes a link too when the
    vault holds it. Anchors are item IDs (CON-001) or heading slugs, so "Open the page" lands on the item. */

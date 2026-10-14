@@ -35,7 +35,7 @@ flowchart LR
 
 A capture line ^c01
 
-<!-- generated:contracts-consumed sha=00000000: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=00000000: do not edit, run vela render -->
 | Contract | State |
 |---|---|
 | x | y |
@@ -112,7 +112,7 @@ def test_old_style_marker_is_e404():
 
 
 def test_unclosed_block_is_e404():
-    text = "---\nid: x\n---\n<!-- generated:concern-matrix sha=00000000: do not edit, run planner render -->\nrow\n"
+    text = "---\nid: x\n---\n<!-- generated:concern-matrix sha=00000000: do not edit, run vela render -->\nrow\n"
     page = parse_page("x.md", text)
     assert [e.code for e in page.errors] == ["E404"]
     assert page.blocks == []

@@ -23,7 +23,7 @@ sources: ["2026-01-10-shop-api"]
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=0fdf8dcb: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=0fdf8dcb: do not edit, run vela render -->
 **Where each app has got to**
 
 | App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |

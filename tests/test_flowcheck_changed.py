@@ -167,7 +167,7 @@ def test_first_run_checks_everything_and_the_second_reuses_everything():
     assert {w for _, _, w in statuses(first)} == {"Checked because it has no recorded result yet."}
     second = changed.check_slices(catalog, TODAY, first.store, impact.Walk())
     assert [r for _, r, _ in statuses(second)] == [True, True, True] and second.exit_code == 0
-    assert second.format().split("\n")[0] == ("planner check-slice --changed: checked 0 of 3 slices. The other 3 are unchanged "
+    assert second.format().split("\n")[0] == ("vela check-slice --changed: checked 0 of 3 slices. The other 3 are unchanged "
                                               "since their last check.")
     assert second.lines[0].words() == f"SLC-001 Hold an item: unchanged since {TODAY}, passes."
 
@@ -182,7 +182,7 @@ def test_only_the_slices_the_walk_reaches_are_checked():
     assert [(k, r) for k, r, _ in statuses(report)] == [("SLC-001", True), ("SLC-002", False), ("SLC-003", True)]
     assert report.lines[1].words() == ("SLC-002 Pay for it: passes. Checked because Take the payment changed → A customer pays "
                                        "for the held item → SLC-002 Pay for it.")
-    assert report.format().split("\n")[0] == ("planner check-slice --changed: checked 1 of 3 slices. The other 2 are unchanged "
+    assert report.format().split("\n")[0] == ("vela check-slice --changed: checked 1 of 3 slices. The other 2 are unchanged "
                                               "since their last check.")
 
 
@@ -234,7 +234,7 @@ def test_all_explores_every_slice_and_reuses_nothing():
     store = changed.check_slices(catalog, TODAY, {}, impact.Walk()).store
     report = changed.check_slices(catalog, TODAY, store, everything=True)
     assert not any(line.reused for line in report.lines)
-    assert report.format("--all").split("\n")[0] == "planner check-slice --all: checked 3 of 3 slices, every one, because --all asks for every one."
+    assert report.format("--all").split("\n")[0] == "vela check-slice --all: checked 3 of 3 slices, every one, because --all asks for every one."
 
 
 def test_an_unreadable_record_of_one_slice_is_checked_afresh_with_a_warning():
@@ -259,7 +259,7 @@ def git(root, *args):
 def repo(tmp_path):
     root = tmp_path / "vault"
     shutil.copytree(FIXTURES / WALK, root)
-    (root / ".gitignore").write_text(".planner/*\n", encoding="utf-8")
+    (root / ".gitignore").write_text(".vela/*\n", encoding="utf-8")
     git(root, "init", "-q")
     git(root, "add", "-A")
     git(root, "commit", "-qm", "the plan")
@@ -279,13 +279,13 @@ def changed_run(root, *extra):
 
 def test_cli_changed_checks_all_once_then_only_what_a_change_reaches(repo):
     code, out = changed_run(repo, "--changed")
-    assert code == 0 and out.startswith("planner check-slice --changed: checked 3 of 3 slices.")
-    assert (repo / ".planner" / "flowcheck-cache.json").is_file()
+    assert code == 0 and out.startswith("vela check-slice --changed: checked 3 of 3 slices.")
+    assert (repo / ".vela" / "flowcheck-cache.json").is_file()
     edit(repo, BILLING, "| declined |  | 402 |", "| declined |  | 403 |")
     code, out = changed_run(repo, "--changed")
     assert code == 0
     assert out.split("\n")[:4] == [
-        "planner check-slice --changed: checked 1 of 3 slices. The other 2 are unchanged since their last check.",
+        "vela check-slice --changed: checked 1 of 3 slices. The other 2 are unchanged since their last check.",
         f"SLC-001 Hold an item: unchanged since {TODAY}, passes.",
         "SLC-002 Pay for it: passes. Checked because Take the payment changed → A customer pays for the held item → SLC-002 Pay for it.",
         f"SLC-003 Look up the stock: unchanged since {TODAY}, passes."]
@@ -309,16 +309,16 @@ def test_cli_changed_outside_git_checks_every_slice_and_says_why(tmp_path):
     shutil.copytree(FIXTURES / WALK, root)
     code, out = changed_run(root, "--changed")
     assert code == 0 and out.split("\n")[0].startswith(
-        "planner check-slice --changed: checked 3 of 3 slices, every one, because the walk cannot tell what changed: git cannot say")
+        "vela check-slice --changed: checked 3 of 3 slices, every one, because the walk cannot tell what changed: git cannot say")
 
 
 def test_cli_a_corrupt_record_warns_and_checks_afresh(repo):
     changed_run(repo, "--changed")
-    (repo / ".planner" / "flowcheck-cache.json").write_text("{half", encoding="utf-8")
+    (repo / ".vela" / "flowcheck-cache.json").write_text("{half", encoding="utf-8")
     code, out = changed_run(repo, "--changed")
     assert code == 0 and "checked 3 of 3 slices" in out.split("\n")[0]
-    assert "Warning: .planner/flowcheck-cache.json is not JSON" in out
-    assert json.loads((repo / ".planner" / "flowcheck-cache.json").read_text(encoding="utf-8"))["format"] == 1
+    assert "Warning: .vela/flowcheck-cache.json is not JSON" in out
+    assert json.loads((repo / ".vela" / "flowcheck-cache.json").read_text(encoding="utf-8"))["format"] == 1
 
 
 def test_cli_exits_1_on_an_open_finding_and_on_not_fully_checked(repo):
@@ -334,7 +334,7 @@ def test_cli_exits_1_on_an_open_finding_and_on_not_fully_checked(repo):
 def test_cli_a_single_check_is_recorded_for_the_next_changed(repo):
     code, _ = run("check-slice", "SLC-001", "--vault", str(repo), "--today", TODAY)
     assert code == 0
-    kept = json.loads((repo / ".planner" / "flowcheck-cache.json").read_text(encoding="utf-8"))
+    kept = json.loads((repo / ".vela" / "flowcheck-cache.json").read_text(encoding="utf-8"))
     assert list(kept["slices"]) == ["SLC-001"] and kept["slices"]["SLC-001"]["status"] == "passes"
     code, out = changed_run(repo, "--changed")
     assert f"SLC-001 Hold an item: unchanged since {TODAY}, passes." in out

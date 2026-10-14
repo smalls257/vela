@@ -5,7 +5,7 @@
 snapshot:
   coastal-merger: after-s4
   holdout-hospitals: after-discover
-opening: "/planner:shape {first_decision}"
+opening: "/vela:shape {first_decision}"
 cap: 8
 criteria:
   - check: option-count

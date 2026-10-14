@@ -8,7 +8,7 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=cb7a4b89: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=cb7a4b89: do not edit, run vela render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 Meaning of the mandate\|UNK-001]] | Meaning of the mandate | @solution-lead (asking CIO office) | open | 2026-10-09 |
@@ -473,7 +473,7 @@ authored: mixed
 - **Blocks:** [[04-solution-strategy]]
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-07
-- **Notes:** The lead holds this is a blocker. Two sides, neither picked: the strategy page owns the household option, and SRC-07 owns the DPO's request. The strategy was decided on the solution lead's behalf and is not yet confirmed. Two readings of the DPO's request, neither picked. Reading 1: any household is out of release one. Reading 2: a household is acceptable if each adult links and consents on their own. The reply says a household needs each adult's own consent and then asks, "please", to keep households out, so it supports both. Matching across the companies is not the clash, because the strategy links only when the person does it. The clash is how a household forms: the strategy page says one household is made at ferry login for each shared family email, while the lead's corrected recall of the call is that people link themselves ([[#UNK-009 Family email clash|UNK-009]]). The question to put to the DPO: if each adult links themselves and consents on their own, is a household acceptable in release one, or is any household out? The lead is putting it to her. If Reading 1 holds, release one is close to the rejected Option A, which is a decision for a Grill or `/planner:challenge` and not this session. The lead wants Central IT on a call before more is built on the household option, and links the CFO's funding question to this unknown, because the scope the CFO funded changes if households drop ([[#Question ledger|R-FIN-16]]). From [[2026-10-07-cio-dpo-replies#^c11]], [[2026-10-07-cio-dpo-replies#^c15]].
+- **Notes:** The lead holds this is a blocker. Two sides, neither picked: the strategy page owns the household option, and SRC-07 owns the DPO's request. The strategy was decided on the solution lead's behalf and is not yet confirmed. Two readings of the DPO's request, neither picked. Reading 1: any household is out of release one. Reading 2: a household is acceptable if each adult links and consents on their own. The reply says a household needs each adult's own consent and then asks, "please", to keep households out, so it supports both. Matching across the companies is not the clash, because the strategy links only when the person does it. The clash is how a household forms: the strategy page says one household is made at ferry login for each shared family email, while the lead's corrected recall of the call is that people link themselves ([[#UNK-009 Family email clash|UNK-009]]). The question to put to the DPO: if each adult links themselves and consents on their own, is a household acceptable in release one, or is any household out? The lead is putting it to her. If Reading 1 holds, release one is close to the rejected Option A, which is a decision for a Grill or `/vela:challenge` and not this session. The lead wants Central IT on a call before more is built on the household option, and links the CFO's funding question to this unknown, because the scope the CFO funded changes if households drop ([[#Question ledger|R-FIN-16]]). From [[2026-10-07-cio-dpo-replies#^c11]], [[2026-10-07-cio-dpo-replies#^c15]].
 
 ### UNK-045 One sign-in or one identity
 
@@ -535,7 +535,7 @@ authored: mixed
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=85764078: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=85764078: do not edit, run vela render -->
 **Questions:** 34 owed, 30 undisposed, 46 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |

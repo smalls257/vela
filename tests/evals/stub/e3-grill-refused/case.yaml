@@ -57,5 +57,5 @@ graders:
   pattern: UNK-001
 - name: offers-a-way-forward
   type: regex
-  pattern: (?:\b(Shape session|ask with|an ask to|research task|decide (?:it )?anyway|override)\b|/planner:shape)
+  pattern: (?:\b(Shape session|ask with|an ask to|research task|decide (?:it )?anyway|override)\b|/vela:shape)
   flags: i

@@ -23,9 +23,9 @@ def repo(tmp_path):
     (root / "plugin" / "bin").mkdir()
     (root / "plugin" / "scripts").mkdir()
     (root / "plugin" / "lib" / "__pycache__").mkdir(parents=True)
-    (root / "plugin" / ".claude-plugin" / "plugin.json").write_text('{"name": "planner"}')
-    (root / "plugin" / "bin" / "planner").write_text("#!/bin/sh\n")
-    (root / "plugin" / "scripts" / "planner").write_text("#!/usr/bin/env python3\n")
+    (root / "plugin" / ".claude-plugin" / "plugin.json").write_text('{"name": "vela"}')
+    (root / "plugin" / "bin" / "vela").write_text("#!/bin/sh\n")
+    (root / "plugin" / "scripts" / "vela").write_text("#!/usr/bin/env python3\n")
     (root / "plugin" / "lib" / "mod.py").write_text("x = 1\n")
     (root / "plugin" / "lib" / "__pycache__" / "mod.cpython-311.pyc").write_bytes(b"\0")
     git(root.parent, "init", str(root))
@@ -42,7 +42,7 @@ def names(path):
 def test_zip_has_manifest_at_root_and_no_bin_or_caches(repo, tmp_path):
     out = tmp_path / "p.zip"
     count = package_plugin.package(out, repo=repo, say=lambda _: None)
-    assert sorted(names(out)) == [".claude-plugin/", ".claude-plugin/plugin.json", "lib/", "lib/mod.py", "scripts/", "scripts/planner"]
+    assert sorted(names(out)) == [".claude-plugin/", ".claude-plugin/plugin.json", "lib/", "lib/mod.py", "scripts/", "scripts/vela"]
     assert count == 6  # folder entries first: Cowork's upload warned about the manifest on a files-only zip
 
 
@@ -57,13 +57,13 @@ def test_uncommitted_edits_do_not_ship(repo, tmp_path):
 
 
 def test_scripts_keep_their_executable_bit(repo, tmp_path):
-    (repo / "plugin" / "scripts" / "planner").chmod(0o755)
+    (repo / "plugin" / "scripts" / "vela").chmod(0o755)
     git(repo, "add", "-A")
     git(repo, "commit", "-m", "exec")
     out = tmp_path / "p.zip"
     package_plugin.package(out, repo=repo, say=lambda _: None)
     with zipfile.ZipFile(out) as archive:
-        assert archive.getinfo("scripts/planner").external_attr >> 16 & 0o111
+        assert archive.getinfo("scripts/vela").external_attr >> 16 & 0o111
 
 
 def test_missing_manifest_is_refused(repo, tmp_path):

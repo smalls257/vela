@@ -1,5 +1,5 @@
-/* Progress: where each app stands on the stage ladder, how complete the design is by the planner's five measures,
-   what is due when, and what still waits on someone. These are the numbers planner status and planner next compute
+/* Progress: where each app stands on the stage ladder, how complete the design is by vela's five measures,
+   what is due when, and what still waits on someone. These are the numbers vela status and vela next compute
    (progress.grid, progress.best, completeness.measure, override, handoff); the page only draws them. */
 const ProgressView = (() => {
   const MIX = ["inkling", "assumption", "fact", "decided"].map((s) => [s, `var(--mix-${s})`]);
@@ -14,7 +14,7 @@ const ProgressView = (() => {
   for (const [state, color] of MIX) Legend.define("pg.mix." + state, [{ k: "box", y: 5, height: 6, rx: 2, fill: `mix-${state}` }], `${stateWord(state)}: ${MIX_SAY[state]}`);
   /* The next step Vela suggests, in words; the command it would run rides in the tooltip. */
   const MODE_SAY = { probe: "chase an answer:", boundary: "read back the boundary of", discover: "gather sources for", shape: "lay out the options for", epics: "write epics for", none: "nothing to run" };
-  const modeEl = (mode) => (mode === "grill" ? h("span", {}, "hold a ", termEl("grill"), " on") : h("span", { title: mode === "none" ? null : `/planner:${mode}` }, MODE_SAY[mode] || mode));
+  const modeEl = (mode) => (mode === "grill" ? h("span", {}, "hold a ", termEl("grill"), " on") : h("span", { title: mode === "none" ? null : `/vela:${mode}` }, MODE_SAY[mode] || mode));
   Legend.define("pg.fade", [bx({ fill: "caution", opacity: 0.4, x: 11, y: 2, width: 12, height: 12, rx: 3 })], "Paler bar: the most urgent question is some way off; bars strengthen as they fall due");
   function render(main) {
     const P = D.progress, sc = h("div", { class: "scroll pages" });

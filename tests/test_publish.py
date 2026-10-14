@@ -1,4 +1,4 @@
-"""planner publish: a read copy of the committed files at HEAD, stamped, with no .git and nothing local to the owner."""
+"""vela publish: a read copy of the committed files at HEAD, stamped, with no .git and nothing local to the owner."""
 import json
 import os
 import zipfile
@@ -17,7 +17,7 @@ TODAY = "2026-10-11"
 def vault(tmp_path):
     root = make_vault(tmp_path)
     # Things a read copy must not carry, committed on purpose (force-added past the ignore rules).
-    for name in (".claude/skills/planner/scripts/planner", "voice/local/mine.md", ".planner/explorer.html", ".planner/explorer-pins.json"):
+    for name in (".claude/skills/vela/scripts/vela", "voice/local/mine.md", ".vela/explorer.html", ".vela/explorer-pins.json"):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{}\n" if name.endswith("-pins.json") else "owner only\n", encoding="utf-8")  # the pins are read when the dashboard is rebuilt
@@ -44,16 +44,16 @@ def test_a_folder_copy_has_no_git_no_vendored_plugin_and_no_local_voice(vault, t
     code, text = publish_to(vault, out)
     assert code == 0, text
     names = folder_files(out)
-    assert ".planner.yaml" in names and "01-goals.md" in names
-    assert not [n for n in names if n.startswith((".git/", ".claude/skills/planner/", "voice/local/"))]
+    assert ".vela.yaml" in names and "01-goals.md" in names
+    assert not [n for n in names if n.startswith((".git/", ".claude/skills/vela/", "voice/local/"))]
     assert not (out / ".git").exists()
-    assert [n for n in names if n.startswith(".planner/")] == [".planner/explorer-pins.json", ".planner/published.json"]
+    assert [n for n in names if n.startswith(".vela/")] == [".vela/explorer-pins.json", ".vela/published.json"]
 
 
 def test_the_stamp_is_complete_and_names_the_head_commit(vault, tmp_path):
     out = tmp_path / "copy"
     publish_to(vault, out)
-    stamp = json.loads((out / ".planner" / "published.json").read_text(encoding="utf-8"))
+    stamp = json.loads((out / ".vela" / "published.json").read_text(encoding="utf-8"))
     head = git(vault, "rev-parse", "HEAD")
     assert stamp["format"] == 1 and stamp["initiative"] == "INI-900" and stamp["title"] == "Mini shop"
     assert stamp["commit"] == head and stamp["short"] == head[:7]
@@ -65,20 +65,20 @@ def test_the_stamp_is_complete_and_names_the_head_commit(vault, tmp_path):
 def test_tree_hash_is_the_hash_of_the_sorted_files_without_the_stamp(vault, tmp_path):
     out = tmp_path / "copy"
     publish_to(vault, out)
-    stamp = json.loads((out / ".planner" / "published.json").read_text(encoding="utf-8"))
-    files = {n: (out / n).read_bytes() for n in folder_files(out) if n != ".planner/published.json"}
+    stamp = json.loads((out / ".vela" / "published.json").read_text(encoding="utf-8"))
+    files = {n: (out / n).read_bytes() for n in folder_files(out) if n != ".vela/published.json"}
     assert stamp["tree_hash"] == publish.tree_hash(files)
     (out / "01-goals.md").write_text("tampered\n", encoding="utf-8")
     files["01-goals.md"] = b"tampered\n"
     assert stamp["tree_hash"] != publish.tree_hash(files)
 
 
-def test_owner_contact_from_planner_yaml_beats_git_config(vault, tmp_path):
-    text = (vault / ".planner.yaml").read_text(encoding="utf-8")
-    (vault / ".planner.yaml").write_text(text + "owner_contact: priya@corp.example\n", encoding="utf-8")
+def test_owner_contact_from_vela_yaml_beats_git_config(vault, tmp_path):
+    text = (vault / ".vela.yaml").read_text(encoding="utf-8")
+    (vault / ".vela.yaml").write_text(text + "owner_contact: priya@corp.example\n", encoding="utf-8")
     git(vault, "commit", "-q", "-am", "contact")
     publish_to(vault, tmp_path / "copy")
-    stamp = json.loads((tmp_path / "copy" / ".planner" / "published.json").read_text(encoding="utf-8"))
+    stamp = json.loads((tmp_path / "copy" / ".vela" / "published.json").read_text(encoding="utf-8"))
     assert stamp["owner"]["contact"] == "priya@corp.example" and stamp["owner"]["name"] == "Priya Nair"
 
 
@@ -88,7 +88,7 @@ def test_the_copy_is_built_from_head_so_a_dirty_vault_is_stamped_and_not_publish
     code, text = publish_to(vault, tmp_path / "copy")
     assert code == 0
     assert f"Published HEAD {git(vault, 'rev-parse', '--short', 'HEAD')}; your 2 uncommitted files are not in it." in text
-    stamp = json.loads((tmp_path / "copy" / ".planner" / "published.json").read_text(encoding="utf-8"))
+    stamp = json.loads((tmp_path / "copy" / ".vela" / "published.json").read_text(encoding="utf-8"))
     assert stamp["dirty"] is True
     assert "an edit nobody committed" not in (tmp_path / "copy" / "01-goals.md").read_text(encoding="utf-8")
     assert not (tmp_path / "copy" / "draft.md").exists()
@@ -102,8 +102,8 @@ def test_a_zip_has_one_top_folder_forward_slashes_and_no_absolute_paths(vault, t
     short = git(vault, "rev-parse", "--short", "HEAD")
     assert {n.split("/")[0] for n in names} == {f"mini-shop-{short}"}
     assert not [n for n in names if n.startswith("/") or "\\" in n or ".." in n.split("/")]
-    assert f"mini-shop-{short}/.planner/published.json" in names
-    assert not [n for n in names if "/.git/" in n or "voice/local" in n or ".claude/skills/planner" in n]
+    assert f"mini-shop-{short}/.vela/published.json" in names
+    assert not [n for n in names if "/.git/" in n or "voice/local" in n or ".claude/skills/vela" in n]
 
 
 def test_two_zips_of_the_same_commit_are_byte_identical(vault, tmp_path):
@@ -148,7 +148,7 @@ def test_check_errors_are_counted_and_do_not_stop_publish(vault, tmp_path):
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "a broken page")
     code, text = publish_to(vault, tmp_path / "copy")
-    stamp = json.loads((tmp_path / "copy" / ".planner" / "published.json").read_text(encoding="utf-8"))
+    stamp = json.loads((tmp_path / "copy" / ".vela" / "published.json").read_text(encoding="utf-8"))
     assert code == 0 and stamp["check"]["errors"] >= 1
     assert f"{stamp['check']['errors']} errors" in text
 
@@ -196,15 +196,15 @@ def test_the_same_content_hashes_the_same_whatever_the_order():
 
 def test_the_pins_travel_in_a_copy_but_are_not_a_page_a_reader_changed():
     """A reader's explore adds pins; comparing the workspace with its baseline must not count that as a draft."""
-    pins = ".planner/explorer-pins.json"
-    assert pins in publish.selected({pins: b"{}", ".planner/explorer.html": b"x", "01-goals.md": b"g"})
-    assert ".planner/explorer.html" not in publish.selected({".planner/explorer.html": b"x"})
+    pins = ".vela/explorer-pins.json"
+    assert pins in publish.selected({pins: b"{}", ".vela/explorer.html": b"x", "01-goals.md": b"g"})
+    assert ".vela/explorer.html" not in publish.selected({".vela/explorer.html": b"x"})
     assert publish.is_excluded(pins)
 
 
 def test_a_read_copy_carries_the_teams_docs_folder_and_context_like_any_other_file():
     from vela import opening, publish
-    files = {"docs/tech-design/x.md": b"d", "docs/plan/x-breakdown.md": b"p", "CONTEXT.md": b"c", ".planner/explorer.html": b"h", "01-goals.md": b"g"}
+    files = {"docs/tech-design/x.md": b"d", "docs/plan/x-breakdown.md": b"p", "CONTEXT.md": b"c", ".vela/explorer.html": b"h", "01-goals.md": b"g"}
     kept = publish.selected(files)
     assert sorted(kept) == ["01-goals.md", "CONTEXT.md", "docs/plan/x-breakdown.md", "docs/tech-design/x.md"]
     assert sorted(opening.content_files(kept)) == sorted(kept)

@@ -52,7 +52,7 @@ def staged(tmp_path):
     vault = tmp_path / "vault"
     shutil.copytree(BOOKING, vault)
     (vault / "06-runtime" / "flows" / "FLO-009-a-kiosk-holds-a-seat.md").write_text(KIOSK_FLOW, encoding="utf-8")
-    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-11-20"]
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-11-20"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     return vault / "dashboard.html"
 

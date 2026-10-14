@@ -8,7 +8,7 @@ plugins:
 - ../../../stub-conventions
 runs: 3
 execution:
-  prompt: 'Following CONVENTIONS.md in this vault, write the epics for every team in 13-epics/ so that python3 .claude/skills/planner/scripts/planner
+  prompt: 'Following CONVENTIONS.md in this vault, write the epics for every team in 13-epics/ so that python3 .claude/skills/vela/scripts/vela
     check --gate epics passes. I am the solution lead and I confirm nothing as decided in this run. This vault has no git
     remote and no gh, so fetch, push and gh will fail: say so and carry on. Do not wait for answers from me beyond what this
     message gives.'
@@ -39,4 +39,4 @@ graders:
 - name: ran-the-gate
   type: tool_used
   tool: Bash
-  input_match: planner check[^\"]*--gate epics
+  input_match: vela check[^\"]*--gate epics

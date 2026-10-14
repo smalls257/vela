@@ -1,6 +1,6 @@
 # Conventions
 
-This file is the vault's one written format. Every page follows it, and `planner check` enforces the parts a script can see. If a rule here and the check disagree, the check has a bug. Search this file for any field, label or code to find the rule behind it.
+This file is the vault's one written format. Every page follows it, and `vela check` enforces the parts a script can see. If a rule here and the check disagree, the check has a bug. Search this file for any field, label or code to find the rule behind it.
 
 ## Layout
 
@@ -10,7 +10,7 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 |---|---|
 | `README.md` | Home page: layout, reading paths, setup checklist |
 | `CLAUDE.md` | How Claude answers questions from this vault. A person writes it. |
-| `.planner.yaml` | `initiative` (`INI-nnn`), `title`, and `stale_after_days` (default 60) |
+| `.vela.yaml` | `initiative` (`INI-nnn`), `title`, and `stale_after_days` (default 60) |
 | `01-goals.md` | Goals table, and the `where-it-stands` and `progress-map` blocks |
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
@@ -27,10 +27,10 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `sessions/` | One record per session, `YYYY-MM-DD-<topic>.md` |
 | `voice/examples/` | House-voice passages. Never a source. Committed. |
 | `voice/local/` | The owner's passages that stay on one machine, same format as `voice/examples/`. Gitignored, never committed. `voice/corpus/` is gitignored too. |
-| `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `planner handoff` writes. Never edited by hand. |
+| `handoffs/` | `<APP-id>.md` per handed-off app: the manifest `vela handoff` writes. Never edited by hand. |
 | `.inbox/` | Documents dropped for Discover. Gitignored, never parsed. |
 
-`planner check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, anything under `voice/` or `handoffs/`, and anything under a folder whose name starts with a dot.
+`vela check` reads every `.md` file except `CLAUDE.md`, `CONVENTIONS.md`, anything under `voice/` or `handoffs/`, and anything under a folder whose name starts with a dot.
 
 ## Areas and stages
 
@@ -73,7 +73,7 @@ Field values:
 
 - `authored`: `authored` (people wrote it), `generated` (only blocks), `mixed` (both).
 - `owner`: a GitHub handle or team, `"@handle"` or `"@org/team"`. Several owners are separated by spaces, as in CODEOWNERS. Close uses it to request reviews and to mention owners.
-- `initiative`: if present, it must equal `.planner.yaml`.
+- `initiative`: if present, it must equal `.vela.yaml`.
 - `c4`: `landscape`, `context` or `container`. `arc42`: the section, for example `"§5"`.
 - `sources`: a list. Use `SRC-nn` IDs for documents. Free text, such as a session name, is allowed as a summary.
 - `change` on an app page: `new`, `changed`, `integrated`, `unchanged` or `retired`.
@@ -83,7 +83,7 @@ Field values:
 - `change` on a capability page: `new`, `extend`, `replace`, `narrow`, `retire` or `unchanged`. `origin`: `proposed` or `imported`. Proposed capabilities keep their IDs and are mapped to an official map later, never renamed.
 - `domain` on a capability page: a short name for the business area it belongs to, such as `Booking`. The `capability-map` block groups capabilities by it. A capability with no `domain` is drawn under "No domain".
 - Epic lists, all of IDs: `apps` (the `APP-` pages it touches), `delivers` (what it builds or changes: capabilities, contracts on the provider side, goals), `consumes` (contracts it builds a client for), `flows`, `depends_on` (other epics). A contract relied on unchanged goes in neither `delivers` nor `consumes`.
-- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/planner:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
+- `modes` on a session: a list of `dump`, `discover`, `shape`, `grill`, `requirements`, `epics`, `challenge`, `answer`. A `challenge` session is a senior's challenge after handoff, written by `/vela:challenge`. An `answer` session is the solution lead's answer to one, opened by START on the challenge's own branch. Like every mode but `grill`, neither can decide: an answer that decides adds `grill` to its `modes`.
 
 ## IDs
 
@@ -91,7 +91,7 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 
 | Kind | Pattern | Where it lives | File name |
 |---|---|---|---|
-| Initiative | `INI-001` | `.planner.yaml` | |
+| Initiative | `INI-001` | `.vela.yaml` | |
 | App | `APP-booking` | app page `id` | `booking-building-blocks.md` |
 | Runtime page | `RUN-booking` | runtime page `id` | `booking-runtime.md` |
 | Capability, flow, epic | `CAP-013`, `FLO-001`, `EPC-031` | page `id` | starts with the ID, then `-<slug>` |
@@ -221,13 +221,13 @@ A harvest decline is one bare line, `Harvest declined: PR <n> <page> <hash>`, di
 
 ## Voice examples
 
-House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works`. `planner check` never reads `voice/`.
+House-voice passages live in `voice/examples/<voice type>/`, one per file named `VX-<voice type>-NNN.md`. The voice types are `diagnosis`, `decision` and `how-it-works`. `vela check` never reads `voice/`.
 
 | Field | Rule |
 |---|---|
 | `id` | `VX-<voice type>-NNN`, the file name |
 | `voice_type` | the folder's voice type |
-| `source` | `public-seed` (a licensed passage that ships with the template), `owner` (the owner's own writing, added by `/planner:voice-seed`) or `owner-edit` (a drafted paragraph the owner edited, harvested at close) |
+| `source` | `public-seed` (a licensed passage that ships with the template), `owner` (the owner's own writing, added by `/vela:voice-seed`) or `owner-edit` (a drafted paragraph the owner edited, harvested at close) |
 | `state` | `active` (house-voice reads it) or `retired` (kept for its attribution, never read) |
 | `added` | `YYYY-MM-DD` |
 | `author` | who wrote it: a name for `public-seed`, `"@handle"` for `owner` and `owner-edit` |
@@ -237,21 +237,21 @@ House-voice passages live in `voice/examples/<voice type>/`, one per file named 
 
 A voice type holds at most 5 `active` examples, counting `voice/examples/` and `voice/local/` together. When a sixth becomes active, one retires: the `public-seed` examples first, then the `owner-edit`, then the `owner`, the oldest `added` first within each. The owner may refuse a retirement. Then nothing new is stored for that type. Once a type has 2 `active` examples with `source: owner` or `owner-edit` in the same folder as a `public-seed` example, counted after the run, that seed retires, so drafts follow the owner. A local example never retires a committed seed, so every clone keeps its seed. An owner's words are stored as written and never rewritten. Nothing is ever deleted.
 
-`voice/local/<voice type>/VX-<voice type>-NNN.md` holds examples in the same format that stay on one machine, for text the owner may not publish. `/planner:voice-seed` writes there when the owner picks local only. House-voice reads both folders, and on that machine reads local `owner` and `owner-edit` examples ahead of the committed ones.
+`voice/local/<voice type>/VX-<voice type>-NNN.md` holds examples in the same format that stay on one machine, for text the owner may not publish. `/vela:voice-seed` writes there when the owner picks local only. House-voice reads both folders, and on that machine reads local `owner` and `owner-edit` examples ahead of the committed ones.
 
-`planner voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite. The kinds are `id`, `number` (with its unit and currency symbol), `date`, `version`, `link` (wikilinks, Markdown link URLs and bare URLs), `code`, `cell` (table cells), `frontmatter` (every line, compared exactly) and `negation` (the count of negation words in the prose of each file, outside frontmatter, table rows, code spans, links and URLs: not, no, never, cannot, without, nobody, nothing, none, nor, neither, nowhere, and any word ending in n't. The count is per file, so splitting, merging or moving paragraphs does not change it). `planner voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
+`vela voicecheck <before> <after>` compares the protected tokens of a text before and after a rewrite. The kinds are `id`, `number` (with its unit and currency symbol), `date`, `version`, `link` (wikilinks, Markdown link URLs and bare URLs), `code`, `cell` (table cells), `frontmatter` (every line, compared exactly) and `negation` (the count of negation words in the prose of each file, outside frontmatter, table rows, code spans, links and URLs: not, no, never, cannot, without, nobody, nothing, none, nor, neither, nowhere, and any word ending in n't. The count is per file, so splitting, merging or moving paragraphs does not change it). `vela voicecheck --range A..B` does the same for every `.md` file two commits changed, and `--range A` compares commit A with the working tree. It exits 1 if a token is missing, added or moved, and names each one with its line, and 2 if it cannot read a file or a commit.
 
 ## Generated blocks
 
-A generated block sits between two markers and is written only by `planner render`:
+A generated block sits between two markers and is written only by `vela render`:
 
 ```
-<!-- generated:unknowns-index sha=1f3a9c0e: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=1f3a9c0e: do not edit, run vela render -->
 ...
 <!-- /generated:unknowns-index -->
 ```
 
-The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trailing spaces and blank edge lines removed. A text that no longer matches its `sha` was edited by hand. To add a block, write both markers with `sha=00000000` and nothing between them, then run `planner render`. Blocks hold links and numbers and dates, never ages or prose.
+The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trailing spaces and blank edge lines removed. A text that no longer matches its `sha` was edited by hand. To add a block, write both markers with `sha=00000000` and nothing between them, then run `vela render`. Blocks hold links and numbers and dates, never ages or prose.
 
 | Block | Page | What it shows |
 |---|---|---|
@@ -273,9 +273,9 @@ A view with no generator is a list of links to where the data lives, never a cop
 
 ## Progress and next step
 
-`planner status` prints one line per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, the oldest open unknown that blocks it with its age, and its next mode with the reason. An app's items are its building-blocks page, its runtime page and the contracts on its page. `planner next` prints the one app and mode to work on next. Both judge overdue unknowns by `--today YYYY-MM-DD`, or the system date, and say which. The `progress-map` block holds the same grid, judged as of the last session's date.
+`vela status` prints one line per app: its stage, how many of its items are at `inkling`, `assumption`, `fact` and `decided`, the oldest open unknown that blocks it with its age, and its next mode with the reason. An app's items are its building-blocks page, its runtime page and the contracts on its page. `vela next` prints the one app and mode to work on next. Both judge overdue unknowns by `--today YYYY-MM-DD`, or the system date, and say which. The `progress-map` block holds the same grid, judged as of the last session's date.
 
-For each app the first rule that matches picks the mode. `planner next` takes the app whose rule has the lowest number, then the earliest stage, then the lowest app ID, and skips apps whose mode is `none`.
+For each app the first rule that matches picks the mode. `vela next` takes the app whose rule has the lowest number, then the earliest stage, then the lowest app ID, and skips apps whose mode is `none`.
 
 | Rule | Mode | Matches when |
 |---|---|---|
@@ -291,32 +291,32 @@ For each app the first rule that matches picks the mode. `planner next` takes th
 
 ## Keeping the vault fresh
 
-`stale_after_days` in `.planner.yaml` sets how old a check may be before it is stale. The default is 60. Three warnings follow from it, and none of them blocks a PR:
+`stale_after_days` in `.vela.yaml` sets how old a check may be before it is stale. The default is 60. Three warnings follow from it, and none of them blocks a PR:
 
 - W704: a page's `last_verified` is more than `stale_after_days` before today.
 - W716: a `sources.md` row's `Date` is more than `stale_after_days` before today, or is not a date.
 - W711: the last session with `status: closed` is more than 30 days before today. A vault with no closed session yet is not judged.
 
-A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: W704, W716 or W711 says it is "dated in the future (<date>); check for a typo." `planner health` marks the row the same way.
+A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: W704, W716 or W711 says it is "dated in the future (<date>); check for a typo." `vela health` marks the row the same way.
 
-`planner health` prints the same signals as one Markdown report: stale pages, stale sources, overdue unknowns with their owners @-mentioned, the days since the last closed session, and how many pages were never verified. The weekly workflow `.github/workflows/planner-weekly.yml` posts it as the one open issue titled "Vault health", creating it the first time and editing it after that.
+`vela health` prints the same signals as one Markdown report: stale pages, stale sources, overdue unknowns with their owners @-mentioned, the days since the last closed session, and how many pages were never verified. The weekly workflow `.github/workflows/vela-weekly.yml` posts it as the one open issue titled "Vault health", creating it the first time and editing it after that.
 
-## planner query
+## vela query
 
-`planner query` answers questions about IDs and never writes. Add `--json` for JSON.
+`vela query` answers questions about IDs and never writes. Add `--json` for JSON.
 
-- `planner query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, and the wikilink to cite it by.
-- `planner query refs <ID>`: every page line that links to the ID, every list in page properties that names it, and every other line that holds the ID as a whole token (`via: mention`). The line that defines the ID is left out.
-- `planner query find <words>`: page titles, item headings and goal, constraint and source rows that hold every word, in any case. Put `--` before a word that starts with `-`.
-- `planner query status`: the `planner status` grid as data.
+- `vela query get <ID>`: the item's page, heading, state, owner, sources, deciding session, dissent, the open unknowns that block it, and the wikilink to cite it by.
+- `vela query refs <ID>`: every page line that links to the ID, every list in page properties that names it, and every other line that holds the ID as a whole token (`via: mention`). The line that defines the ID is left out.
+- `vela query find <words>`: page titles, item headings and goal, constraint and source rows that hold every word, in any case. Put `--` before a word that starts with `-`.
+- `vela query status`: the `vela status` grid as data.
 
 An ID the vault does not hold comes back as `not_found` and exits 1. An ID is matched exactly, so `con-001` is not `CON-001`.
 
-## planner check and planner render
+## vela check and vela render
 
-Run `python3 .claude/skills/planner/bin/planner check` from the vault root. It reads, never writes, and never stops at the first problem. `--today YYYY-MM-DD` sets the date for overdue unknowns; without it the system date is used, and the first line of output says which. Exit code 0 means no errors (warnings may print), 1 means errors, 2 means the tool itself failed.
+Run `python3 .claude/skills/vela/bin/vela check` from the vault root. It reads, never writes, and never stops at the first problem. `--today YYYY-MM-DD` sets the date for overdue unknowns; without it the system date is used, and the first line of output says which. Exit code 0 means no errors (warnings may print), 1 means errors, 2 means the tool itself failed.
 
-`planner render` rewrites generated blocks only. It writes nothing if any page fails to parse or any block was edited by hand. `--discard-edits` overwrites hand-edited blocks and prints what it threw away.
+`vela render` rewrites generated blocks only. It writes nothing if any page fails to parse or any block was edited by hand. `--discard-edits` overwrites hand-edited blocks and prints what it threw away.
 
 | Code | Finding | Code | Finding |
 |---|---|---|---|
@@ -351,7 +351,7 @@ An epic page holds a description, the owning team, 4 to 7 numbered acceptance cr
 
 A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
 
-Four trace rules run once the vault holds an epic. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete.
+Four trace rules run once the vault holds an epic. They are warnings in `vela check` and errors under `vela check --gate epics`, which is run before anyone calls an app's epics complete.
 
 | Rule | Passes when | Codes |
 |---|---|---|
@@ -374,10 +374,10 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 - The runtime page says how the app behaves when something fails.
 - Every open unknown that blocks the app has an owner and an ask-by date.
 
-Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `planner check --gate epics` exits 0.
+Then the acceptance-criteria list: every epic the app's team owns is `decided`, and `vela check --gate epics` exits 0.
 
-In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks and the `last_verified`, `verified_by` and `handed_off` lines, so rendering or rereading a page changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
+In the PR that sets `handed_off`, run `vela handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the epics whose `apps` lists it, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks and the `last_verified`, `verified_by` and `handed_off` lines, so rendering or rereading a page changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `vela handoff` writes nothing while `vela check` has errors, and never overwrites a manifest unless given `--replace`.
 
-`planner handoff verify <APP-id>` lists every item changed, added or removed since. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
+`vela handoff verify <APP-id>` lists every item changed, added or removed since. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
 
-A senior who disputes a boundary or contract after handoff raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: it blocks the merge wherever planner-check is a required check, so a challenge cannot merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.
+A senior who disputes a boundary or contract after handoff raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: it blocks the merge wherever vela-check is a required check, so a challenge cannot merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.

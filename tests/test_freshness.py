@@ -45,13 +45,13 @@ def test_a_bad_last_verified_or_verified_by_is_an_error(mini):
 
 def test_stale_after_days_sets_the_window(mini):
     verify(mini, "2025-11-01")
-    edit(mini / ".planner.yaml", "title: Mini shop\n", "title: Mini shop\nstale_after_days: 90\n")
+    edit(mini / ".vela.yaml", "title: Mini shop\n", "title: Mini shop\nstale_after_days: 90\n")
     assert findings(check(mini)[1]) == []
 
 
 def test_a_bad_stale_after_days_is_a_tool_failure(mini):
     for bad in ("sixty", "0", "true", "[60]"):
-        (mini / ".planner.yaml").write_text(f"initiative: INI-900\ntitle: Mini shop\nstale_after_days: {bad}\n", encoding="utf-8")
+        (mini / ".vela.yaml").write_text(f"initiative: INI-900\ntitle: Mini shop\nstale_after_days: {bad}\n", encoding="utf-8")
         code, out = check(mini)
         assert code == 2 and "stale_after_days" in out, bad
 
@@ -94,7 +94,7 @@ def test_a_vault_with_no_closed_session_is_not_judged(mini):
 def test_the_fixture_is_clean_with_its_window_and_stale_with_the_default(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    edit(vault / ".planner.yaml", "stale_after_days: 180\n", "")
+    edit(vault / ".vela.yaml", "stale_after_days: 180\n", "")
     code, out = check(vault, today="2026-11-20")
     assert code == 0
     assert {c for c, _ in findings(out)} == {"W716"}

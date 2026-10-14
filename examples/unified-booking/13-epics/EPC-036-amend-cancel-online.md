@@ -64,7 +64,7 @@ The share of amendments made online is reported each month from go-live, so G3 c
 
 ## Traces to
 
-<!-- generated:traces-to sha=0a8a663a: do not edit, run planner render -->
+<!-- generated:traces-to sha=0a8a663a: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[booking-building-blocks\|Booking]], [[website-building-blocks\|Public website]] |

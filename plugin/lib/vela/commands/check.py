@@ -1,4 +1,4 @@
-"""`planner check`: the parser, moved out of cli.py (Task 2) so tasks that extend it (13: `--for-lead` verdicts on
+"""`vela check`: the parser, moved out of cli.py (Task 2) so tasks that extend it (13: `--for-lead` verdicts on
 `--gate grill`; 21b: `--fix W326`) edit this file and not cli.py. The command itself is `cli.cmd_check`."""
 from vela import schema
 

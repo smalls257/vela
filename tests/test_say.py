@@ -15,7 +15,7 @@ HERON = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 def test_for_lead_never_prints_a_code_or_id():
     code, out = run("check", "--vault", str(HERON), "--today", "2026-10-14", "--for-lead")
     assert code in (0, 1), out
-    assert "planner bug" not in out
+    assert "vela bug" not in out
     for kind, pattern in say.LEAD_PATTERNS.items():
         assert not pattern.search(out), (kind, pattern.search(out).group(0))
     assert not re.search(r"\b[EWT]\d{3}\b|\bUNK-\d|\bCON-\d|\bFLO-\d|Fix:", out)
@@ -23,11 +23,11 @@ def test_for_lead_never_prints_a_code_or_id():
 
 
 def test_for_lead_formatter_raises_on_a_leak(monkeypatch):
-    """A leak is a planner bug: exit 2, naming the command, never a quiet code in front of the lead."""
+    """A leak is a vela bug: exit 2, naming the command, never a quiet code in front of the lead."""
     monkeypatch.setattr(cli, "check_lead_header", lambda *a: "E316 is open on UNK-001")
     code, out = run("check", "--vault", str(HERON), "--today", "2026-10-14", "--for-lead")
     assert code == 2
-    assert "planner bug: a line meant for the lead held an ID" in out and "`planner check --for-lead`" in out
+    assert "vela bug: a line meant for the lead held an ID" in out and "`vela check --for-lead`" in out
 
 
 def test_emit_raises_on_an_explicit_plain_line_that_leaks():
@@ -55,12 +55,12 @@ def test_ids_with_no_name_are_said_by_their_kind_and_captures_by_what_they_are()
 
 def test_refusal_carries_plain_fix_and_override_and_for_lead_prints_only_plain():
     refusal = say.Refusal("GATE-4", "Nobody has said who owns the consent records yet.", "Ask the lead.",
-                          "planner apply ... (rule GATE-4)")
+                          "vela apply ... (rule GATE-4)")
     result = say.Result("demo", exit=say.REFUSED, refusals=[refusal])
     assert refusal.as_json() == {"refused": True, "rule": "GATE-4", "plain": refusal.plain, "fix": "Ask the lead.",
-                                 "override": "planner apply ... (rule GATE-4)"}
+                                 "override": "vela apply ... (rule GATE-4)"}
     assert say.render(result, "for-lead") == "Nobody has said who owns the consent records yet."
-    assert "Override: planner apply" in say.render(result, "default")
+    assert "Override: vela apply" in say.render(result, "default")
 
 
 def test_exit_3_means_nothing_changed():

@@ -14,7 +14,7 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=bb242694: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=bb242694: do not edit, run vela render -->
 **Where each app has got to**
 
 | App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
@@ -64,7 +64,7 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Progress by app
 
-<!-- generated:progress-map sha=ecc72250: do not edit, run planner render -->
+<!-- generated:progress-map sha=ecc72250: do not edit, run vela render -->
 **How sure each app's items are,** as of 2026-10-12 (the last session)
 
 | App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |

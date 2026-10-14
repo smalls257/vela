@@ -2,7 +2,7 @@
 # Fictional, like the trading-coach persona whose vault this design starts from. The persona prompt gets knows,
 # wrong, conflicts and decisions; it never sees unaware. Keywords follow the rules in coastal-merger.yaml.
 name: Sam Ito
-team_persona: true  # speaks only in team sessions, never opens a planner script
+team_persona: true  # speaks only in team sessions, never opens a vela script
 role: lead of the Coach team at Kestrel Markets, who took the Coach service at handoff
 org: Kestrel Markets, a 60-person fintech that runs TickerTalk, a market-news app, on AWS
 handle: "@coach-lead"

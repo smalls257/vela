@@ -85,7 +85,7 @@ PAGE_TYPES = {
 }
 
 # Any page but a session record may say when someone last checked it against its sources, and where its work lives
-# outside the vault (links.py): `links:`, label to URL, or label to key with .planner.yaml's link_templates.
+# outside the vault (links.py): `links:`, label to URL, or label to key with .vela.yaml's link_templates.
 VERIFY_FIELDS = ("last_verified", "verified_by")
 LINKS_FIELD, LINKS_LABEL, LINK_TEMPLATES_KEY = "links", "Links", "link_templates"
 for _type, _spec in PAGE_TYPES.items():
@@ -94,7 +94,7 @@ for _type, _spec in PAGE_TYPES.items():
 # An app page may name the picture views draw for it, as one short word, such as `icon: payments`.
 ICON_FIELD = "icon"
 ICON_RE = re.compile(r"^[a-z][a-z0-9-]{0,23}$")
-DESIGN_FIELD = "design"  # an app page's path to its team's tech design doc, for `planner explore` (explorer/design_find.py)
+DESIGN_FIELD = "design"  # an app page's path to its team's tech design doc, for `vela explore` (explorer/design_find.py)
 PAGE_TYPES["app-building-blocks"]["optional"] += (ICON_FIELD, DESIGN_FIELD)
 
 # Field value rules shared by every type.
@@ -179,7 +179,7 @@ CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
 UNKNOWN_REQUIRED = ("Question", "Owner", "State", "Blocks")
 UNKNOWN_OPEN_REQUIRED = ("Ask by",)
 UNKNOWN_RESOLVED_REQUIRED = ("Outcome", "Resolved in")
-# Ask is who holds the answer when that is not the owner. It must be a known label: planner style tells a session to
+# Ask is who holds the answer when that is not the owner. It must be a known label: vela style tells a session to
 # turn every unknown label into prose, and close then deletes the Ask line the views that group by who to ask read.
 UNKNOWN_OPTIONAL = ("Opened", "Notes", "Ask")
 UNKNOWN_STATES = ("open", "resolved")
@@ -200,8 +200,8 @@ SLICE_DIR = "slices"
 PAGE_LABELS = ("Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team", "Tracer", "Not in the tracer",
                "Slices") + SLICE_LABELS + RETIRED_SLICE_LABELS + OVERRIDE_LABELS
 
-# `- Trace: CAP-001.FR1, CON-001` under a criterion or bullet holds the IDs its sentence no longer shows. The planner
-# reads it, so `planner style` must never call it prose, and close must never delete it.
+# `- Trace: CAP-001.FR1, CON-001` under a criterion or bullet holds the IDs its sentence no longer shows. Vela
+# reads it, so `vela style` must never call it prose, and close must never delete it.
 TRACE_LABEL = "Trace"
 READING_LABELS = (TRACE_LABEL,)
 
@@ -251,7 +251,7 @@ ALLOCATION_HEADER = ("Requirement", "Share", "Through", "State")
 # it holds an item's history. HISTORY_LABELS are the bullets that belong there.
 HISTORY_HEADING = "History"
 HISTORY_LABELS = ("Decision", WHY_LABEL, "Override", "Decided by", "Confirmed by", "Options considered", "Dissent")
-# The line a Boundary writes under a stub app page's title; planner next sends such a page back to Boundary.
+# The line a Boundary writes under a stub app page's title; vela next sends such a page back to Boundary.
 BOUNDARY_STUB_LINE = "Its boundary sheet is still to be read back."
 CONTAINER_STATES = ("assumption", "confirmed", "unchanged", "retired")
 CELLS_HEADER = ("App", "State")
@@ -288,13 +288,13 @@ DIAGRAM_KINDS = ("flowchart", "graph", "sequenceDiagram")
 
 # ------------------------------------------------------------ freshness
 
-PLACEHOLDER_TITLE = "New initiative"  # what template/.planner.yaml ships; W718 while a vault keeps it
-STALE_AFTER_DAYS = 60  # default for .planner.yaml's stale_after_days
+PLACEHOLDER_TITLE = "New initiative"  # what template/.vela.yaml ships; W718 while a vault keeps it
+STALE_AFTER_DAYS = 60  # default for .vela.yaml's stale_after_days
 SESSION_GAP_DAYS = 30  # W711 when no session has closed for longer than this
 
 # ------------------------------------------------------------ progress
 
-# What `planner status`, `planner next` and the progress-map block may suggest.
+# What `vela status`, `vela next` and the progress-map block may suggest.
 NEXT_MODES = ("probe", "discover", "shape", "requirements", "boundary", "allocate", "releases", "grill", "epics", "dump", "none")
 
 # ------------------------------------------------------------- finding codes
@@ -335,7 +335,7 @@ CODES = {
     "W327": "reader's decisions pending approval",
     "W329": "a table row's link label pipe is not escaped as `\\|`",
     "W717": "CONVENTIONS.md is not the copy the plugin ships",
-    "W718": "the initiative's title in .planner.yaml is still the template's placeholder",
+    "W718": "the initiative's title in .vela.yaml is still the template's placeholder",
     "W334": "prose calls an answered question open",
     "E340": "release row names no functional requirement",
     "E341": "release row names a criterion the requirement does not have",
@@ -489,4 +489,4 @@ VOICE_ACTIVE_MAX = 5
 SKIP_FILES = ("CLAUDE.md", "CONVENTIONS.md", "CONTEXT.md")
 # docs/ holds the team's tech designs, build plans and ADRs (tech-design-grill and work-breakdown write there when run from the vault root).
 SKIP_DIRS = ("voice", "handoffs", "docs")
-HANDOFF_DIR = "handoffs"  # planner handoff writes <APP-id>.md here; it is a record, not a page
+HANDOFF_DIR = "handoffs"  # vela handoff writes <APP-id>.md here; it is a record, not a page

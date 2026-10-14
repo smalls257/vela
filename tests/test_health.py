@@ -1,4 +1,4 @@
-"""planner health and the weekly workflow that posts it as the "Vault health" issue."""
+"""vela health and the weekly workflow that posts it as the "Vault health" issue."""
 import os
 import re
 import subprocess
@@ -7,7 +7,7 @@ import yaml
 
 from conftest import REPO, check, edit, findings, run
 
-WORKFLOW = REPO / "template" / ".github" / "workflows" / "planner-weekly.yml"
+WORKFLOW = REPO / "template" / ".github" / "workflows" / "vela-weekly.yml"
 
 
 def stale(mini):
@@ -18,8 +18,8 @@ def test_report_lists_what_check_found_and_exits_0(mini):
     stale(mini)
     code, out = run("health", "--vault", str(mini), "--today", "2026-03-10")
     assert code == 0, out
-    assert out.startswith("# Vault health\n\nMade by `planner health` on 2026-03-10, from ")
-    assert "`planner check` found 0 errors and 4 warnings." in out
+    assert out.startswith("# Vault health\n\nMade by `vela health` on 2026-03-10, from ")
+    assert "`vela check` found 0 errors and 4 warnings." in out
     assert "| UNK-001 Till test rig | @mini-qa | 2026-02-01 |" in out
     assert "| 01-goals.md | 2025-11-01 | @\u200dmini-lead | @mini-lead |" in out
     assert "| SRC-01 | Stock read API documentation | 2026-01-02 | @stock-team |" in out
@@ -93,7 +93,7 @@ def test_findings_that_map_to_no_row_are_counted_not_dropped():
         pages, unknowns, sessions = [], [], []
     found = [type("F", (), {"path": "gone.md", "line": 3, "code": "W704", "is_error": False})()]
     out = health.report(V, found, "2026-03-10", "abc")
-    assert "1 findings not shown; run `planner check`." in out
+    assert "1 findings not shown; run `vela check`." in out
 
 
 def test_bad_date_is_a_tool_failure(mini):
@@ -112,7 +112,7 @@ def test_workflow_runs_weekly_with_issue_permission_only():
     assert triggers["schedule"] == [{"cron": "0 7 * * 1"}] and "workflow_dispatch" in triggers
     assert data["permissions"] == {"contents": "read", "issues": "write"}
     steps = data["jobs"]["vault-health"]["steps"]
-    assert "python .claude/skills/planner/scripts/planner health > vault-health.md" in [s.get("run") for s in steps]
+    assert "python .claude/skills/vela/scripts/vela health > vault-health.md" in [s.get("run") for s in steps]
     assert steps[-1]["env"] == {"GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
 
 

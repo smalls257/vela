@@ -6,7 +6,7 @@
 # skill wrote in the vault, so every ticket traces to the grilling and none is invented (see tests/sim/README.md).
 # The news holds what only this lead knows and no skill may invent: the dates of the pilot and general availability,
 # the names the business uses for its areas, the DPO's answer on who a digest may name, and the question only Legal can
-# answer. The scorecard's "Recorded for the explorer" section reads the final vault (planner capture): every app has a
+# answer. The scorecard's "Recorded for the explorer" section reads the final vault (vela capture): every app has a
 # domain, at least 80% of the flow steps that cross a contract name a sender, the 2027-02-02 pilot release is present,
 # and an Ask names the DPO. The team sessions use the user's copies of tech-design-grill and work-breakdown, so they
 # are not scored by the brief; their files are in vault/docs/ for reading. This costs money to run; tests/test_sim.py
@@ -208,14 +208,14 @@ sessions:
 - mode: tech-design-grill
   cap: 30
   persona: heron-agent-lead
-  planner: '/tech-design-grill desktop-agent --vault . --app APP-heron. The design in docs/tech-design/desktop-agent.md is
+  vela: '/tech-design-grill desktop-agent --vault . --app APP-heron. The design in docs/tech-design/desktop-agent.md is
     in progress: carry on from where it stopped and take it to complete, or complete-with-gaps with each gap recorded.'
   baseline: '/tech-design-grill desktop-agent --vault . --app APP-heron. The design in docs/tech-design/desktop-agent.md is
     in progress: carry on from where it stopped and take it to complete, or complete-with-gaps with each gap recorded.'
 - mode: breakdown
   cap: 18
   persona: heron-agent-lead
-  planner: '/work-breakdown desktop-agent. Use the design in docs/tech-design and this initiative vault with --vault . --app
+  vela: '/work-breakdown desktop-agent. Use the design in docs/tech-design and this initiative vault with --vault . --app
     the desktop agent''s APP id: stories traced to the allocated requirement rows and epic criteria, tasks sized S, M or L,
     and the order to build in with what blocks what. Write it to docs/plan/desktop-agent-breakdown.md.'
   baseline: 'Break the desktop agent design into a work plan in docs/plan/desktop-agent-breakdown.md: stories traced to the
@@ -223,5 +223,5 @@ sessions:
     order to build in with what blocks what.'
 - mode: close
   cap: 4
-  planner: /planner:close
+  vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.

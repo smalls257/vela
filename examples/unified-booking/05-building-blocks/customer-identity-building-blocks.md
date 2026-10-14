@@ -24,7 +24,7 @@ Customer identity does not know about bookings. Booking holds the link from book
 |---|---|
 | Unchanged. Booking becomes a new caller of the existing read API. | Platform team |
 
-<!-- generated:app-context sha=94ece26a: do not edit, run planner render -->
+<!-- generated:app-context sha=94ece26a: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]

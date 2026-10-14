@@ -10,7 +10,7 @@ news:
   decisions:
     - id: D1
       override_if_blocked: ""
-opening: "/planner:grill APP-account-link-service and its contracts"
+opening: "/vela:grill APP-account-link-service and its contracts"
 cap: 12
 close: 8
 criteria:

@@ -279,8 +279,8 @@ def test_the_installed_plugin_finds_its_catalog(tmp_path):
     import sys
     vault = tmp_path / "vault"
     shutil.copytree(REPO / "template", vault)
-    shutil.copytree(REPO / "plugin", vault / ".claude" / "skills" / "planner")
-    assert (vault / ".claude" / "skills" / "planner" / "catalog" / "questions.yaml").is_file()
-    result = subprocess.run([sys.executable, ".claude/skills/planner/scripts/planner", "check"], cwd=vault,
+    shutil.copytree(REPO / "plugin", vault / ".claude" / "skills" / "vela")
+    assert (vault / ".claude" / "skills" / "vela" / "catalog" / "questions.yaml").is_file()
+    result = subprocess.run([sys.executable, ".claude/skills/vela/scripts/vela", "check"], cwd=vault,
                             capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr

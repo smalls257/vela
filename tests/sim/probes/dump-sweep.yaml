@@ -5,7 +5,7 @@
 snapshot:
   coastal-merger: empty
   holdout-hospitals: empty
-opening: "/planner:dump {opening}"
+opening: "/vela:dump {opening}"
 cap: 12
 criteria:
   - check: categories-raised-first

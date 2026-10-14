@@ -1,4 +1,4 @@
-"""`planner explore`: the parser, moved out of cli.py (Task 2) so Task 21c (`explore --for-lead`) edits this file and
+"""`vela explore`: the parser, moved out of cli.py (Task 2) so Task 21c (`explore --for-lead`) edits this file and
 not cli.py. The command itself is `cli.cmd_explore`."""
 
 

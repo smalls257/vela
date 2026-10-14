@@ -1,5 +1,5 @@
 rules:
-  # Infected Core. Every planner module except cli.py and edge/ is pure: no files, no clock, no network,
+  # Infected Core. Every vela module except cli.py and edge/ is pure: no files, no clock, no network,
   # no process. cli.py is the one shell. edge/ is the explicit I/O boundary. Keep it that way so the core
   # passes the Airplane Test.
   # Known debt (C36 in docs/FIX-LEDGER.md): explorer/design_data.py, draft_data.py and plan_data.py still read
@@ -9,7 +9,7 @@ rules:
     languages: [python]
     severity: ERROR
     message: >-
-      planner's core modules take text and dates as arguments; only cli.py and edge/ touch the OS.
+      vela's core modules take text and dates as arguments; only cli.py and edge/ touch the OS.
       Import '$MOD' in cli.py and pass the result in (Infected Core).
     paths:
       include: ["/plugin/lib/vela/*.py", "/plugin/lib/vela/explorer/*_data.py"]

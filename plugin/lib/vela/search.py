@@ -143,7 +143,7 @@ def flows_crossing(flows, page, heading):
 
 
 def view_link(vault, hit):
-    """The hit's address in `planner view`'s HTML, to append to the viewer file's path."""
+    """The hit's address in `vela view`'s HTML, to append to the viewer file's path."""
     name = next(p.name for p in vault.pages if p.path == hit.page)
     return f"#/{name}" + (f"::{hit.heading}" if hit.heading else "")
 

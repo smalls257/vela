@@ -59,7 +59,7 @@ What the CIO has asked for. Each bullet is an `assumption`, source SRC-01, becau
 - **One identity** (assumption, SRC-01): Northway ID becomes the single identity for every group customer by next summer. What that means is open: [[11-unknowns-and-risks#UNK-001 Meaning of the mandate|UNK-001]].
 - **One loyalty scheme** (assumption, SRC-01): Tidemiles and Northway Plus are combined. The marketing draft that promises one-for-one points is not recorded here: [[11-unknowns-and-risks#UNK-022 Loyalty points one for one|UNK-022]].
 
-<!-- generated:system-context sha=140bedbf: do not edit, run planner render -->
+<!-- generated:system-context sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:system-context -->
 

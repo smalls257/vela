@@ -2,11 +2,11 @@
 
     python3 -m pytest tests/test_explorer.py
 
-The builder is the plugin's (plugin/lib/vela/explorer, run by `planner explore`). These tests drive it through
+The builder is the plugin's (plugin/lib/vela/explorer, run by `vela explore`). These tests drive it through
 prototypes/explorer/build.py, the wrapper that keeps the README's commands and pins in pins/, so both stay working;
 tests/test_explore_cli.py covers the command a vault's user runs.
 
-The page's own #selftest checks it in a browser; these check the build: the facts come from the planner's
+The page's own #selftest checks it in a browser; these check the build: the facts come from vela's
 modules (the lights are attention.lights, the flows' messages and pins come from the record), the page holds no
 unescaped vault text, and assets load only through the resolver's slot contract.
 """
@@ -184,9 +184,9 @@ def demo(tmp_path_factory):
     return root / "vault", built(root, root / "vault", "2026-11-20", "booking-demo")
 
 
-def test_demo_vault_passes_planner_check(demo):
+def test_demo_vault_passes_vela_check(demo):
     vault, _ = demo
-    done = subprocess.run([sys.executable, str(REPO / "plugin/scripts/planner"), "check", "--vault", str(vault), "--today", "2026-11-20"],
+    done = subprocess.run([sys.executable, str(REPO / "plugin/scripts/vela"), "check", "--vault", str(vault), "--today", "2026-11-20"],
                           capture_output=True, text=True)
     assert done.returncode == 0 and " 0 errors" in done.stdout, done.stdout + done.stderr
     loaded = cli.load_vault(vault)
@@ -222,7 +222,7 @@ def test_sidebar_follows_the_vault_order(demo):
     assert all(s["page"] for s in data["sections"] if s["id"] != "slices")  # the demo vault has every section's page; slices have none, each slice is one
 
 
-def test_releases_are_planner_snapshots(demo):
+def test_releases_are_vela_snapshots(demo):
     vault, (_, data) = demo
     snaps = releases.snapshots(cli.load_vault(vault))
     states = data["releases"]["states"]
@@ -380,7 +380,7 @@ def test_icons_are_chosen_the_same_way_every_time():
     assert first == icons_data.choose("Qwerty") and first[0] in icons_data.FALLBACKS
 
 
-def test_links_reach_the_page_from_planner(demo):
+def test_links_reach_the_page_from_vela(demo):
     _, (page, data) = demo
     E = data["entities"]
     assert E["EPC-031"]["links"] == [{"label": "Jira", "url": "https://jira.example.com/browse/BOOK-31", "kind": "tracker"}]
@@ -397,7 +397,7 @@ def test_links_reach_the_page_from_planner(demo):
     assert all(E[k]["links"] for k in epics + apps + [p["key"] for p in data["map"]["parties"]] + ["CON-006", "CON-007"])
 
 
-def test_a_link_planner_cannot_read_is_reported_not_dropped(tmp_path, capsys):
+def test_a_link_vela_cannot_read_is_reported_not_dropped(tmp_path, capsys):
     vault = tmp_path / "vault"
     shutil.copytree(BOOKING, vault, ignore=shutil.ignore_patterns("sessions", "voice"))
     epic = vault / "13-epics/EPC-031-holds-and-confirms.md"
@@ -510,7 +510,7 @@ def test_garden_reads_decisions_anywhere(tmp_path):
     root.mkdir()
     # Create a vault where a decision appears outside History
     (root / "00-goals.md").write_text("# Goals\n- **Options considered:** A (picked); B: rejected", encoding="utf-8")
-    (root / ".planner.yaml").write_text("initiative: INI-001\ntitle: Test\n", encoding="utf-8")
+    (root / ".vela.yaml").write_text("initiative: INI-001\ntitle: Test\n", encoding="utf-8")
     page, data = built(tmp_path, root, "2026-10-10", "test-garden")
     assert len(data["garden"]["trees"]) > 0, "Garden should have trees even for decisions outside History"
 

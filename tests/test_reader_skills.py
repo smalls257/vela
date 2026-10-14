@@ -1,5 +1,5 @@
 """Reader mode in the skill text: no git in a read copy, owner-only skills refuse, a reader's decisions are pending,
-and every skill finds the installed planner by the one order START.md states."""
+and every skill finds the installed vela by the one order START.md states."""
 import re
 
 import pytest
@@ -9,7 +9,7 @@ from sharing import make_vault
 
 PLUGIN = REPO / "plugin"
 SKILLS = sorted((PLUGIN / "skills").glob("*/SKILL.md"))
-VENDORED_PROGRAM = "python3 .claude/skills/planner/scripts/planner"
+VENDORED_PROGRAM = "python3 .claude/skills/vela/scripts/vela"
 
 
 def text(rel):
@@ -26,20 +26,20 @@ def test_no_skill_hard_codes_the_vendored_program(path):
 
 
 @pytest.mark.parametrize("path", SKILLS, ids=lambda p: p.parent.name)
-def test_every_planner_permission_is_the_one_loose_pattern(path):
+def test_every_vela_permission_is_the_one_loose_pattern(path):
     allowed = meta(path).get("allowed-tools", "")
-    assert re.findall(r"Bash\(python3 [^)]*planner[^)]*\)", allowed) in ([], ["Bash(python3 *scripts/planner *)"]), path
+    assert re.findall(r"Bash\(python3 [^)]*vela[^)]*\)", allowed) in ([], ["Bash(python3 *scripts/vela *)"]), path
 
 
 def test_the_resolution_order_is_stated_once_in_start():
     start = text("references/START.md")
-    assert start.count("## Where the planner runs from") == 1
-    order = start.split("## Where the planner runs from")[1].split("## ")[0]
-    positions = [order.index(m) for m in ("1. `${CLAUDE_SKILL_DIR}/../../scripts/planner`", "2. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`",
-                                          "3. An installed copy in the plugins folder", "/synced/*/planner/scripts/planner",
-                                          "4. `.claude/skills/planner/scripts/planner`", "planner_path")]
+    assert start.count("## Where vela runs from") == 1
+    order = start.split("## Where vela runs from")[1].split("## ")[0]
+    positions = [order.index(m) for m in ("1. `${CLAUDE_SKILL_DIR}/../../scripts/vela`", "2. `${CLAUDE_PLUGIN_ROOT}/scripts/vela`",
+                                          "3. An installed copy in the plugins folder", "/synced/*/vela/scripts/vela",
+                                          "4. `.claude/skills/vela/scripts/vela`", "vela_path")]
     assert positions == sorted(positions)
-    assert "I cannot find the planner program. Run `/planner:where` and send me what it prints." in order
+    assert "I cannot find the vela program. Run `/vela:where` and send me what it prints." in order
 
 
 def test_start_skips_git_for_a_reader_and_still_writes_the_record():
@@ -55,7 +55,7 @@ def test_close_has_a_reader_section_that_commits_and_pushes_nothing():
     close = skill_text("close")
     pointer = close.split("## Reader copy: no git, no PR")[1].split("## 1. Find the session")[0]
     assert "skills/close/READER.md" in pointer and "Never say a PR exists" in pointer
-    section = text("skills/close/READER.md")  # read only when `planner role` says reader
+    section = text("skills/close/READER.md")  # read only when `vela role` says reader
     assert "Nothing is committed, pushed or sent" in section and "Never say a PR exists" in section
     assert "Pending approval" in section and "Never write a handoff manifest" in section
     assert "grep -l '^status: open' sessions/*.md" in section
@@ -75,15 +75,15 @@ def test_grill_marks_a_readers_decisions_pending():
     assert "- **Pending approval:** @<handle>, <today>" in text("skills/grill/SKILL.md")
 
 
-def test_the_open_skill_runs_planner_open_and_never_git_init():
+def test_the_open_skill_runs_vela_open_and_never_git_init():
     skill = text("skills/open/SKILL.md")
-    assert "scripts/planner open" in skill and "Never run `git init`" in skill and "never writes to the folder" in skill.lower()
-    assert "--into planner-workspaces/" in skill
+    assert "scripts/vela open" in skill and "Never run `git init`" in skill and "never writes to the folder" in skill.lower()
+    assert "--into vela-workspaces/" in skill
 
 
-def test_the_where_skill_needs_no_planner_to_start():
+def test_the_where_skill_needs_no_vela_to_start():
     skill = text("skills/where/SKILL.md")
-    assert "CLAUDE_PLUGIN_ROOT = " in skill and "CLAUDE_SKILL_DIR = " in skill and ".claude/skills/planner/scripts/planner" in skill
+    assert "CLAUDE_PLUGIN_ROOT = " in skill and "CLAUDE_SKILL_DIR = " in skill and ".claude/skills/vela/scripts/vela" in skill
 
 
 @pytest.fixture
@@ -106,7 +106,7 @@ def test_a_reader_may_still_verify_a_handoff_read_only(reader_copy):
 
 
 def test_where_reports_whether_injection_ran():
-    """Wave 1, step 0: the user's /planner:where in Cowork answers whether `!` injection runs there. The skill must say
+    """Wave 1, step 0: the user's /vela:where in Cowork answers whether `!` injection runs there. The skill must say
     which happened, and still produce the values when the host left the line unrun."""
     skill = text("skills/where/SKILL.md")
     assert "`injection: yes`" in skill and "`injection: no`" in skill

@@ -1,4 +1,4 @@
-"""planner query: get, refs, find and status. Read-only, JSON or text, and an explicit not_found."""
+"""vela query: get, refs, find and status. Read-only, JSON or text, and an explicit not_found."""
 import json
 
 from conftest import edit, run
@@ -96,7 +96,7 @@ def test_find_survives_a_title_that_is_not_text(mini):
     assert "UNK-001" in [m["id"] for m in answer["matches"]]
 
 
-def test_status_is_the_planner_status_grid(mini):
+def test_status_is_the_vela_status_grid(mini):
     code, answer = ask(mini, "status", "--today", "2026-01-15")
     assert code == 0
     assert answer["today"] == "2026-01-15"

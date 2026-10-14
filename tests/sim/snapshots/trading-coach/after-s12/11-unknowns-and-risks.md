@@ -10,7 +10,7 @@ authored: mixed
 
 This page holds what the plan does not yet know and what could go wrong. The product lead owns every unknown and risk for now, because the people who hold the answers, such as the partnerships manager and the compliance holder, are not yet named. Two questions weigh most: [[11-unknowns-and-risks#UNK-004 No live trading and broker orders|whether compliance's ban covers orders placed through a partner broker]], and [[11-unknowns-and-risks#UNK-012 Options coverage|whether Brightwater's agreement covers options]]. The product lead believes that if both answers are no, [[11-unknowns-and-risks#R-09 No demo and no March|there is no January demo and no March launch]]. Four more questions come from picking a short list of US stocks to teach on: [[11-unknowns-and-risks#UNK-021 Legal clearance of the stock list|counsel's clearance of the list]] comes first, then [[11-unknowns-and-risks#UNK-022 Owner and budget for the stock list|who owns it and pays for it]], [[11-unknowns-and-risks#UNK-023 Coverage of every stock on the list|whether Brightwater and Quoteline cover every stock]] and [[11-unknowns-and-risks#UNK-024 Quoteline and teaching use|whether Quoteline counts teaching as non-display use]]. The question ledger at the foot of the page records how each question ended.
 
-<!-- generated:unknowns-index sha=0d02aed3: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=0d02aed3: do not edit, run vela render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 What the CEO means\|UNK-001]] | What the CEO means | @sim-lead (product lead) | open | 2026-11-13 |
@@ -396,7 +396,7 @@ If Brightwater does not cover options and compliance bans orders placed through 
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=687d1276: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=687d1276: do not edit, run vela render -->
 **Questions:** 25 owed, 18 undisposed, 22 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |

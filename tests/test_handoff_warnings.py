@@ -52,7 +52,7 @@ def test_an_app_not_at_handoff_draws_no_handoff_warning(heron):
 
 def test_next_prints_what_is_not_firm(heron):
     _, out = run("next", "--vault", str(heron), "--today", TODAY)
-    assert "planner next: Desktop agent has been handed to its team, but" in out and "not settled yet:" in out
+    assert "vela next: Desktop agent has been handed to its team, but" in out and "not settled yet:" in out
     assert "  - Consent check (CON-003) is not decided yet" in out
 
 
@@ -86,7 +86,7 @@ def test_a_manifest_must_pin_a_commit_that_exists(heron):
 def test_the_guide_and_conventions_agree_that_epics_follow_handoff():
     guide = (REPO / "docs" / "GUIDE.md").read_text(encoding="utf-8")
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
-    assert 'H --> J["handoff' in guide and 'J --> I["/planner:epics' in guide
+    assert 'H --> J["handoff' in guide and 'J --> I["/vela:epics' in guide
     assert "Epics come after handoff" in guide and "Epics come after handoff" in conventions
 
 

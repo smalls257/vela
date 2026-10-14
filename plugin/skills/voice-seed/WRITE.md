@@ -24,20 +24,20 @@ added: <today>
 Second, append the pasted text exactly as given, with a quoted heredoc so nothing expands:
 
 ```
-cat >> <file> <<'PLANNER_EOF'
+cat >> <file> <<'VELA_EOF'
 <the passage, exactly as pasted>
-PLANNER_EOF
+VELA_EOF
 ```
 
-If the passage contains a line `PLANNER_EOF`, pick another delimiter and use it in both places.
+If the passage contains a line `VELA_EOF`, pick another delimiter and use it in both places.
 
 Third, compare the stored body with the pasted text, with a tool. Write the pasted text to a temp file with a second quoted heredoc. Extract the stored body, which is everything after the closing frontmatter `---` line and its one blank line. Compare the two with `cmp`:
 
 ```
 tmp=$(mktemp)
-cat > "$tmp" <<'PLANNER_EOF'
+cat > "$tmp" <<'VELA_EOF'
 <the passage, exactly as pasted>
-PLANNER_EOF
+VELA_EOF
 awk 'body { if (first && $0 == "") { first = 0; next } first = 0; print; next } $0 == "---" && ++n == 2 { body = 1; first = 1 }' <file> | cmp - "$tmp"; code=$?; rm -f "$tmp"; (exit $code)
 ```
 
@@ -50,7 +50,7 @@ Then re-read the frontmatter and confirm it parses as YAML and that `from` is th
 Re-read every file you wrote or changed. Confirm each frontmatter parses, then run this from the vault root. It prints a count per type and exits 1 if a type has more than 5 active examples or a file does not parse:
 
 ```
-python3 - "${CLAUDE_PLUGIN_ROOT}/lib" <<'PLANNER_EOF'
+python3 - "${CLAUDE_PLUGIN_ROOT}/lib" <<'VELA_EOF'
 import glob, sys
 sys.path.insert(0, sys.argv[1])  # the plugin's own PyYAML, so nothing needs installing
 import yaml
@@ -64,7 +64,7 @@ for path in glob.glob("voice/examples/*/*.md") + glob.glob("voice/local/*/*.md")
         bad.append(f"{path}: {err}")
 print(active, bad)
 sys.exit(1 if bad or any(n > 5 for n in active.values()) else 0)
-PLANNER_EOF
+VELA_EOF
 ```
 
 If it fails, say what failed and stop.

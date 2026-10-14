@@ -1,8 +1,8 @@
-"""Where the planner program is, found the same way by every skill. Pure: callers pass the strings they were given
+"""Where the vela program is, found the same way by every skill. Pure: callers pass the strings they were given
 and a file test, so each case runs in a fake environment.
 
 The Violation to prevent is a Distributed Monolith in miniature: every vault carrying its own vendored copy of the
-plugin means two versions answer one vault. A skill must run the INSTALLED planner when there is one. But the
+plugin means two versions answer one vault. A skill must run the INSTALLED vela when there is one. But the
 variables that say where it is are expanded by the host, and whether Cowork expands them is unverified, so a
 literal `${CLAUDE_PLUGIN_ROOT}` must be recognized as "not expanded" and skipped, not run as a path.
 
@@ -10,19 +10,19 @@ Order (design session 15, "Plugin path", revised 2026-10-14 by the CLI/skill ove
 Cowork probe): the skill's own directory, the plugin root, an installed copy in the documented plugin folders, the
 vendored copy in the vault, and last the path a reader workspace recorded when it was opened. Cowork's run showed
 both variables empty and the skill loaded from /mnt/skills with nothing beside it, while the plugin itself sat in
-~/.claude/plugins/synced/<id>/planner/, the folder the Claude Code docs name for plugins synced from claude.ai; a
-marketplace install sits in ~/.claude/plugins/cache/<marketplace>/planner/<version>/. The caller finds those copies
+~/.claude/plugins/synced/<id>/vela/, the folder the Claude Code docs name for plugins synced from claude.ai; a
+marketplace install sits in ~/.claude/plugins/cache/<marketplace>/vela/<version>/. The caller finds those copies
 (INSTALLED_GLOBS, newest first) and passes them in, so this module stays pure. START.md lists the same order.
 """
 import posixpath
 from dataclasses import dataclass
 
-PROGRAM = "scripts/planner"
-VENDORED = ".claude/skills/planner/scripts/planner"
+PROGRAM = "scripts/vela"
+VENDORED = ".claude/skills/vela/scripts/vela"
 # Under the plugins root (CLAUDE_CODE_PLUGIN_CACHE_DIR, else ~/.claude/plugins): synced from claude.ai (Cowork), then
 # installed from a marketplace. The plugin name is the folder name.
-INSTALLED_GLOBS = ("synced/*/planner/" + PROGRAM, "cache/*/planner/*/" + PROGRAM)
-NOT_FOUND = "I cannot find the planner program. Run `/planner:where` and send me what it prints."
+INSTALLED_GLOBS = ("synced/*/vela/" + PROGRAM, "cache/*/vela/*/" + PROGRAM)
+NOT_FOUND = "I cannot find the vela program. Run `/vela:where` and send me what it prints."
 
 
 @dataclass(frozen=True)
@@ -64,7 +64,7 @@ def candidates(plugin_root, skill_dir, vault, workspace_path, installed=()):
         _from_variable("${CLAUDE_PLUGIN_ROOT}", plugin_root, PROGRAM),
         _installed(list(installed)),
         Candidate("the vendored copy in the vault", posixpath.join(vault.rstrip("/") or ".", VENDORED), ""),
-        Candidate("planner_path in .planner/workspace.json", workspace_path, "" if workspace_path else "is not recorded"),
+        Candidate("vela_path in .vela/workspace.json", workspace_path, "" if workspace_path else "is not recorded"),
     ]
 
 

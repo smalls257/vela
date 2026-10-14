@@ -1,4 +1,4 @@
-"""`planner close stage`: stage a close's files from the allow-list, by exact path, and optionally commit them.
+"""`vela close stage`: stage a close's files from the allow-list, by exact path, and optionally commit them.
 
 Why it is a command and not a skill sentence: "never `git add -A`" sat in the close skill four times and still could
 not stop a model that typed `git add .`. A deny-list of spellings misses the next spelling (Paper Tiger), so the
@@ -17,7 +17,7 @@ The commit flags carry the close skill's own messages:
 - `--checkpoint`: `Checkpoint <id>`, because a merge refuses to run over uncommitted edits (`close sync-main` says when).
 - `--close`: `Close session <id>`, after the record says `status: closed`.
 
-A reader copy (`.planner/workspace.json`, no `.git`) has no git, so nothing is run at all: the record is the reader's
+A reader copy (`.vela/workspace.json`, no `.git`) has no git, so nothing is run at all: the record is the reader's
 work, and it reaches the owner through a proposal.
 """
 import pathlib
@@ -48,7 +48,7 @@ def register_close(steps):
 
 def is_reader_copy(root):
     """Decided from the disk alone, by the same rule `roles` applies, so a reader copy runs no git at all."""
-    facts = roles.Facts(git_here=(root / ".git").exists(), has_workspace=(root / ".planner" / "workspace.json").is_file())
+    facts = roles.Facts(git_here=(root / ".git").exists(), has_workspace=(root / ".vela" / "workspace.json").is_file())
     return facts.has_workspace and not facts.git_here and roles.decide(facts).role == roles.READER
 
 
@@ -77,12 +77,12 @@ def session_id(args, root, result):
     result.exit = say.NEEDS_LEAD
     if records:
         result.needs_lead = records
-        result.lines.append(say.Line(f"planner close stage: {len(records)} records are open: {', '.join(records)}. "
+        result.lines.append(say.Line(f"vela close stage: {len(records)} records are open: {', '.join(records)}. "
                                      "Run again with --session <id>. Nothing was staged.",
                                      "More than one session is open here, so I need to know which one to file."))
     else:
         result.needs_lead = ["--session <id>"]
-        result.lines.append(say.Line("planner close stage: no record in sessions/ says status: open. Run again with "
+        result.lines.append(say.Line("vela close stage: no record in sessions/ says status: open. Run again with "
                                      "--session <id>. Nothing was staged.",
                                      "I couldn't find an open session here, so I haven't staged anything."))
     return None
@@ -101,11 +101,11 @@ def stale_render(root):
 
 def render_refusal(stale, problems):
     if problems:
-        detail = f"render cannot run: {problems} problems (run planner render to see them)"
+        detail = f"render cannot run: {problems} problems (run vela render to see them)"
     else:
         detail = "render would still rewrite " + ", ".join(stale)
     return say.Refusal("render-current", "Some generated tables are out of date, so I haven't staged anything yet.",
-                       f"Run planner render, then close stage again. ({detail})")
+                       f"Run vela render, then close stage again. ({detail})")
 
 
 def vault_pages(paths):
@@ -151,7 +151,7 @@ def report(result, plan, commit_line, committed, mode):
                                              f"{'aren' if len(names) != 1 else 'isn'}'t part of this session, so I've "
                                              f"left {'them' if len(names) != 1 else 'it'} out: {', '.join(names)}."))
         return
-    result.lines.append(say.Line(f"planner close stage: staged {len(plan.stage)}, left out {len(plan.left)}, "
+    result.lines.append(say.Line(f"vela close stage: staged {len(plan.stage)}, left out {len(plan.left)}, "
                                  f"never staged {len(plan.never)}."))
     result.lines += [say.Line(f"  staged: {p}") for p in plan.stage]
     result.lines += [say.Line(f"  left out: {p} ({why})") for p, why in plan.left]
@@ -165,7 +165,7 @@ def cmd_close_stage(args, out):
     mode = say.mode_of(args)
     result = say.Result("close stage")
     if is_reader_copy(root):
-        result.lines.append(say.Line("planner close stage: this is a read copy, so nothing is staged or committed.",
+        result.lines.append(say.Line("vela close stage: this is a read copy, so nothing is staged or committed.",
                                      "This is a read copy, so nothing is staged or committed here."))
         return cli_emit(result, args, out)
     try:

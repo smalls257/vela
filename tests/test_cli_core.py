@@ -8,7 +8,7 @@ from vela import cli
 
 def test_c28_version_prints_the_plugin_json_version():
     declared = json.loads((REPO / "plugin" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))["version"]
-    assert run("--version") == (0, f"Vela planner {declared}\n")
+    assert run("--version") == (0, f"Vela {declared}\n")
 
 
 def test_c28_a_missing_plugin_json_is_said_not_hidden(tmp_path):
@@ -41,7 +41,7 @@ def test_c33_a_number_used_on_a_merged_and_deleted_branch_is_not_handed_out_agai
 def test_c35_a_folder_given_without_vault_says_to_use_vault(mini):
     code, out = run("check", str(mini))
     assert code == 2
-    assert f"planner check --vault {mini}" in out
+    assert f"vela check --vault {mini}" in out
 
 
 def test_c13_view_does_not_stamp_a_token_from_the_remote_url(mini, tmp_path):

@@ -1,4 +1,4 @@
-"""`planner session open` (overhaul Task 6a): the open record and its branch, found by the tool instead of a git recipe
+"""`vela session open` (overhaul Task 6a): the open record and its branch, found by the tool instead of a git recipe
 the close skill ran by hand. Real repos in tmp_path, with a bare origin where a test needs one."""
 import datetime
 import json
@@ -157,8 +157,8 @@ def test_for_lead_names_an_item_in_a_title_by_its_name(tmp_path):
 def test_reader_copy_uses_no_git(tmp_path, monkeypatch):
     copy = tmp_path / "copy"
     shutil.copytree(MINI, copy)
-    (copy / ".planner").mkdir()
-    (copy / ".planner" / "workspace.json").write_text('{"role": "reader"}', encoding="utf-8")
+    (copy / ".vela").mkdir()
+    (copy / ".vela" / "workspace.json").write_text('{"role": "reader"}', encoding="utf-8")
     (copy / "sessions" / "2026-10-14-reading.md").write_text(record("2026-10-14-reading", ["discover"]),
                                                             encoding="utf-8")
     shims, called = tmp_path / "shims", tmp_path / "git-was-called"

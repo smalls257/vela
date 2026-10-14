@@ -1,6 +1,6 @@
 """Vault health as one Markdown report, for the weekly "Vault health" issue. Pure.
 
-The report is built from `planner check`'s own findings (W704, W705, W711, W716),
+The report is built from `vela check`'s own findings (W704, W705, W711, W716),
 so the issue and the check never disagree about what is stale or overdue.
 """
 import datetime
@@ -93,7 +93,7 @@ def section(title, header, rows, found):
     lines = ["", f"## {title}", ""]
     lines += table(header, rows) if rows or not found else []
     if len(rows) < len(found):
-        lines += ["", f"{len(found) - len(rows)} findings not shown; run `planner check`."]
+        lines += ["", f"{len(found) - len(rows)} findings not shown; run `vela check`."]
     return lines
 
 
@@ -105,7 +105,7 @@ def report(vault, findings, today, commit):
     errors = sum(1 for f in findings if f.is_error)
     out = ["# Vault health",
            "",
-           f"Made by `planner health` on {today}, from {commit}. `planner check` found {errors} errors and "
+           f"Made by `vela health` on {today}, from {commit}. `vela check` found {errors} errors and "
            f"{len(findings) - errors} warnings."]
     for title, header, rower, code in (
             ("Overdue open questions", ("Open question", "Owner", "Ask by"), overdue_rows, "W705"),

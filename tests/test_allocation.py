@@ -62,7 +62,7 @@ def test_the_allocation_block_shows_each_requirement_against_each_app(tmp_path):
 def test_next_suggests_allocate_before_epics_while_a_requirement_is_unallocated(tmp_path):
     vault = vault_with(tmp_path)
     out = run("next", "--vault", str(vault), "--today", "2026-11-20")[1]
-    assert out.startswith("planner next: for the whole plan: decide which app owns Hold a seat while paying (CAP-014.FR1)"), out
+    assert out.startswith("vela next: for the whole plan: decide which app owns Hold a seat while paying (CAP-014.FR1)"), out
     carried = vault_with(tmp_path / "b", {"share": "holds the seat", "through": "CON-001", "state": "assumption"})
     assert "allocate" not in run("next", "--vault", str(carried), "--today", "2026-11-20")[1]
 
@@ -143,4 +143,4 @@ def test_next_suggests_requirements_for_a_changing_capability_before_the_first_e
     shutil.copytree(FIXTURE, vault)
     shutil.rmtree(vault / "13-epics")
     out = run("next", "--vault", str(vault), "--today", "2026-11-20")[1]
-    assert out.startswith("planner next: for the whole plan: write the requirements for ") and "(CAP-" in out, out
+    assert out.startswith("vela next: for the whole plan: write the requirements for ") and "(CAP-" in out, out

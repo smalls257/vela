@@ -8,9 +8,9 @@ This folder adds a vault mode to your `requirements-grill` skill. Nothing in the
 ## The four edits
 
 1. `SKILL.md` description: it mentions initiative vaults, so Claude picks the skill there.
-2. `PREREQ-CHECK.md`: a "Vault mode" section. When `.planner.yaml` is at the repo root, vault mode is on, a `CAP-NNN` scope is required, and the skill follows `.claude/skills/planner/references/REQUIREMENTS-IN-VAULT.md` from the vault's planner plugin.
+2. `PREREQ-CHECK.md`: a "Vault mode" section. When `.vela.yaml` is at the repo root, vault mode is on, a `CAP-NNN` scope is required, and the skill follows `.claude/skills/vela/references/REQUIREMENTS-IN-VAULT.md` from the vault's vela plugin.
 3. `SKILL.md` "Capture answers inline", Output and "Capture inline": in vault mode, write where that reference says, never under `docs/requirements/`.
-4. `SKILL.md` completion gate: in vault mode, run `NEG-AUDIT.md`, then hand over to `/planner:close` instead of flipping `status: complete`.
+4. `SKILL.md` completion gate: in vault mode, run `NEG-AUDIT.md`, then hand over to `/vela:close` instead of flipping `status: complete`.
 
 ## Install
 
@@ -38,8 +38,8 @@ If a hunk fails, your skill changed after the copy was made. Make the four edits
 
 ## Check it
 
-1. In a vault with the planner plugin at `.claude/skills/planner`, run requirements-grill scoped to one capability. It writes `### CAP-NNN.FRn` items at `assumption`, each with a `**Source:**` capture link, and no file under `docs/requirements/`. "Decide FR1" is refused and a Grill is offered. Then `python3 .claude/skills/planner/scripts/planner check` exits 0.
-2. In a repository with no `.planner.yaml`, run it as before. It writes `docs/requirements/<slug>.md` with the same sections as before the patch.
+1. In a vault with the vela plugin at `.claude/skills/vela`, run requirements-grill scoped to one capability. It writes `### CAP-NNN.FRn` items at `assumption`, each with a `**Source:**` capture link, and no file under `docs/requirements/`. "Decide FR1" is refused and a Grill is offered. Then `python3 .claude/skills/vela/scripts/vela check` exits 0.
+2. In a repository with no `.vela.yaml`, run it as before. It writes `docs/requirements/<slug>.md` with the same sections as before the patch.
 
 ## Undo
 

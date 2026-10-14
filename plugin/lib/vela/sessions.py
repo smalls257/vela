@@ -1,4 +1,4 @@
-"""Which session record is open, and on which branch: the pure half of `planner session open` (overhaul Task 6a).
+"""Which session record is open, and on which branch: the pure half of `vela session open` (overhaul Task 6a).
 
 The close skill used to carry this as a git recipe the model ran by hand: list `session/*` branches local and on
 origin, `git show` each record, look for `status: open`, remember that a branch can hold more than one record. Each

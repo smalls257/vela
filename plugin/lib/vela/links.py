@@ -1,12 +1,12 @@
 """Links out of the vault: where a page's or an item's work lives elsewhere, such as its ticket, its wiki
 space, its GitHub repo or a partner's API spec.
 
-A page holds them in its frontmatter as `links:`, a map of label to URL. A label that .planner.yaml's
+A page holds them in its frontmatter as `links:`, a map of label to URL. A label that .vela.yaml's
 `link_templates` names may hold a key instead of a URL, and the template's `{key}` is filled from it, so an epic
 writes `links: {Tracker: BOOK-12}` and the vault says once where the tracker lives. An item (a contract, an outside party)
 holds them in a **Links:** bullet of Markdown links, `[API spec](https://...)`.
 
-Planner reads and checks links; it never fetches one. Each reader returns the links it could read and a problem
+Vela reads and checks links; it never fetches one. Each reader returns the links it could read and a problem
 sentence for each it could not, so a check reports a bad link and a viewer still shows the good ones.
 """
 import re
@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from vela import schema
 
-URL_RE = re.compile(r"^(?:https?://|file:///)[^\s<>\"']+$")  # file:// is a local clone: `planner explore` reads a team design from one
+URL_RE = re.compile(r"^(?:https?://|file:///)[^\s<>\"']+$")  # file:// is a local clone: `vela explore` reads a team design from one
 # One level of balanced parentheses stays in the URL, as Wikipedia and SharePoint links need: .../Foo_(bar).
 MD_LINK = re.compile(r"\[([^\]\n]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)")
 KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
@@ -27,16 +27,16 @@ class Link:
 
 
 def templates(config):
-    """(label -> template, problems) from .planner.yaml's link_templates. A template is an http(s) URL with {key}."""
+    """(label -> template, problems) from .vela.yaml's link_templates. A template is an http(s) URL with {key}."""
     found, problems = {}, []
     raw = config.get(schema.LINK_TEMPLATES_KEY)
     if raw is None:
         return found, problems
     if not isinstance(raw, dict):
-        return found, [f".planner.yaml's {schema.LINK_TEMPLATES_KEY} is not a map of label to URL"]
+        return found, [f".vela.yaml's {schema.LINK_TEMPLATES_KEY} is not a map of label to URL"]
     for label, template in raw.items():
         if not (isinstance(template, str) and "{key}" in template and URL_RE.match(template.replace("{key}", "KEY"))):
-            problems.append(f".planner.yaml's {schema.LINK_TEMPLATES_KEY} {label} is not an http(s) URL with {{key}} in it")
+            problems.append(f".vela.yaml's {schema.LINK_TEMPLATES_KEY} {label} is not an http(s) URL with {{key}} in it")
             continue
         found[str(label)] = template
     return found, problems
@@ -62,7 +62,7 @@ def of_page(page, config):
         elif label in known:
             problems.append(f"link '{label}: {value}' is not a key the {label} template can take")
         else:
-            problems.append(f"link '{label}: {value}' is not an http(s) or file:// URL, and .planner.yaml has no "
+            problems.append(f"link '{label}: {value}' is not an http(s) or file:// URL, and .vela.yaml has no "
                             f"{schema.LINK_TEMPLATES_KEY} entry for {label}")
     return out, problems
 

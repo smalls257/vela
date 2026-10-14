@@ -128,7 +128,7 @@ def reference(examples, against="owner"):
                           key=lambda e: (e.folder != "local", e.id)))
     who = "owner" if against == "owner" else "public-seed"
     if len(chosen) < MIN_TO_SCORE:
-        hint = (" `/planner:voice-seed` adds them. `--against seed` scores against the public seed instead, labeled as such."
+        hint = (" `/vela:voice-seed` adds them. `--against seed` scores against the public seed instead, labeled as such."
                 if against == "owner" else "")
         raise NotScorable(f"{len(chosen)} active {who} examples in voice/examples/ and voice/local/; "
                           f"at least {MIN_TO_SCORE} are needed to score and {MIN_RELIABLE} to trust it.{hint}")

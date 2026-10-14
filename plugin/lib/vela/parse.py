@@ -20,7 +20,7 @@ BLOCK_ID = re.compile(r"\s\^([A-Za-z0-9-]+)\s*$")
 TABLE_SEPARATOR = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
 # The one copy of the marker's words. render.OPEN writes it, MARKER_OPEN reads it, and conventions and viewer match it:
 # a writer and a reader holding two copies would drift apart silently, and every block would stop being a block.
-MARKER_TEXT = "do not edit, run planner render"
+MARKER_TEXT = "do not edit, run vela render"
 MARKER_OPEN = re.compile(r"^<!-- generated:([a-z0-9-]+) sha=([0-9a-f]{8}): " + re.escape(MARKER_TEXT) + r" -->$")
 MARKER_CLOSE = re.compile(r"^<!-- /generated:([a-z0-9-]+) -->$")
 MARKER_ANY = re.compile(r"^\s*<!--\s*/?generated")
@@ -369,5 +369,5 @@ def _marker(page, line, n, open_block):
         return open_block
     page.errors.append(ParseError("E404", n, "This generated-block marker is not in the current format.",
                                   f"Use <!-- generated:NAME sha=00000000: {MARKER_TEXT} --> "
-                                  "and <!-- /generated:NAME -->, then run planner render."))
+                                  "and <!-- /generated:NAME -->, then run vela render."))
     return open_block

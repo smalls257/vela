@@ -14,7 +14,7 @@ from test_proposals import GROUPS, TODAY, review_it, whys, world, wt_of  # noqa:
 from vela import cli, opening, proposal, publish, review, secretscan, untrusted
 from vela.edge import replays
 
-FSMONITOR = b"[core]\n\tfsmonitor = touch /tmp/planner-pwned #\n"
+FSMONITOR = b"[core]\n\tfsmonitor = touch /tmp/vela-pwned #\n"
 
 
 @pytest.fixture
@@ -63,12 +63,12 @@ def test_open_refuses_a_zip_carrying_git_internals_and_writes_nothing(tmp_path, 
     assert not (tmp_path / "ws").exists()
 
 
-def test_open_refuses_a_zip_that_plants_the_planners_own_state(tmp_path, published):
-    """A planted .planner/workspace.json would make a copy report itself as an owner's vault."""
+def test_open_refuses_a_zip_that_plants_the_velas_own_state(tmp_path, published):
+    """A planted .vela/workspace.json would make a copy report itself as an owner's vault."""
     _, archive = published
-    evil = forged(archive, tmp_path / "evil.zip", extra={".planner/workspace.json": b'{"role": "owner"}', ".claude/skills/planner/scripts/planner": b"#!/bin/sh\n"})
+    evil = forged(archive, tmp_path / "evil.zip", extra={".vela/workspace.json": b'{"role": "owner"}', ".claude/skills/vela/scripts/vela": b"#!/bin/sh\n"})
     code, text = open_into(evil, tmp_path / "ws")
-    assert code == 2 and ".planner/workspace.json" in text or ".claude/skills/planner" in text
+    assert code == 2 and ".vela/workspace.json" in text or ".claude/skills/vela" in text
     assert not (tmp_path / "ws").exists()
 
 
@@ -111,8 +111,8 @@ def test_open_leaves_out_programs_and_settings_and_says_so(tmp_path, published):
     assert "Left out of your copy" in text
     for name in hostile:
         assert not (tmp_path / "ws" / name).exists(), name
-        assert not (tmp_path / "ws" / ".planner" / "baseline" / name).exists(), name
-    assert (tmp_path / "ws" / ".planner.yaml").is_file()
+        assert not (tmp_path / "ws" / ".vela" / "baseline" / name).exists(), name
+    assert (tmp_path / "ws" / ".vela.yaml").is_file()
 
 
 def test_a_forged_hash_verifies_which_is_why_the_hash_is_not_the_defense(tmp_path, published):
@@ -210,7 +210,7 @@ def test_an_older_copy_that_hashed_its_junk_still_opens(tmp_path, published):
 
 def test_a_proposal_build_refuses_programs_and_settings_naming_the_file(world):
     _, workspace = world
-    for name in (".githooks/pre-commit", ".claude/settings.json", "bin/claude-planner", ".github/workflows/ci.yml", ".planner.yaml"):
+    for name in (".githooks/pre-commit", ".claude/settings.json", "bin/claude-vela", ".github/workflows/ci.yml", ".vela.yaml"):
         target = workspace / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("x\n", encoding="utf-8")
@@ -254,7 +254,7 @@ def test_review_refuses_an_extended_patch_header_before_git_sees_it(world, tmp_p
 
 def test_a_rename_into_githooks_cannot_get_through_parse_patch():
     base = "a" * 40
-    patch = (f"# planner proposal\n# base: {base}\n# initiative: INI-001\ndiff --git a/a.md b/a.md\n"
+    patch = (f"# vela proposal\n# base: {base}\n# initiative: INI-001\ndiff --git a/a.md b/a.md\n"
              "rename from a.md\nrename to .githooks/pre-commit\n")
     with pytest.raises(review.ReviewError, match="rename"):
         review.parse_patch(patch.encode())
@@ -320,13 +320,13 @@ def test_a_received_vault_page_that_is_a_symlink_is_not_read(tmp_path):
 # ------------------------------------------------------------------ the rule table
 
 @pytest.mark.parametrize("path, kind", [
-    ("01-goals.md", untrusted.OK), ("sessions/2026-10-09-x.md", untrusted.OK), (".planner.yaml", untrusted.OK), (".gitignore", untrusted.OK),
-    (".planner/explorer-pins.json", untrusted.OK), (".planner/published.json", untrusted.OK), ("dashboard.html", untrusted.OK),
+    ("01-goals.md", untrusted.OK), ("sessions/2026-10-09-x.md", untrusted.OK), (".vela.yaml", untrusted.OK), (".gitignore", untrusted.OK),
+    (".vela/explorer-pins.json", untrusted.OK), (".vela/published.json", untrusted.OK), ("dashboard.html", untrusted.OK),
     (".git/config", untrusted.FORBIDDEN), (".Git/config", untrusted.FORBIDDEN), ("a/.git/HEAD", untrusted.FORBIDDEN), ("GIT~1/config", untrusted.FORBIDDEN),
-    (".planner/workspace.json", untrusted.FORBIDDEN), (".claude/skills/planner/scripts/planner", untrusted.FORBIDDEN), ("voice/local/me.md", untrusted.FORBIDDEN),
+    (".vela/workspace.json", untrusted.FORBIDDEN), (".claude/skills/vela/scripts/vela", untrusted.FORBIDDEN), ("voice/local/me.md", untrusted.FORBIDDEN),
     ("../x", untrusted.FORBIDDEN), ("/etc/x", untrusted.FORBIDDEN), ("a\\b", untrusted.FORBIDDEN), ("a//b", untrusted.FORBIDDEN), ("a\x00b", untrusted.FORBIDDEN),
     (".claude/settings.json", untrusted.PROGRAM), (".githooks/pre-commit", untrusted.PROGRAM), (".github/workflows/ci.yml", untrusted.PROGRAM),
-    (".husky/pre-commit", untrusted.PROGRAM), (".mcp.json", untrusted.PROGRAM), ("bin/claude-planner", untrusted.PROGRAM), ("x/run.ps1", untrusted.PROGRAM),
+    (".husky/pre-commit", untrusted.PROGRAM), (".mcp.json", untrusted.PROGRAM), ("bin/claude-vela", untrusted.PROGRAM), ("x/run.ps1", untrusted.PROGRAM),
     (".obsidian/plugins/a/main.js", untrusted.PROGRAM), (".gitattributes", untrusted.PROGRAM), (".gitmodules", untrusted.PROGRAM),
 ])
 def test_the_one_list_of_forbidden_paths(path, kind):

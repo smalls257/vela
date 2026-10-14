@@ -20,7 +20,7 @@ from conftest import REPO, run
 from vela.explorer import build, pins, serve
 
 HERON = REPO / "tests/sim/snapshots/heron-desk/after-full-1"
-PINS = ".planner/explorer-pins.json"
+PINS = ".vela/explorer-pins.json"
 DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
 
 
@@ -167,7 +167,7 @@ def test_the_helper_keeps_a_position_between_cells_as_it_was_sent():
 @pytest.fixture
 def helper(tmp_path):
     vault = tmp_path / "vault"
-    (vault / ".planner").mkdir(parents=True)
+    (vault / ".vela").mkdir(parents=True)
     (vault / PINS).write_text(json.dumps({"APP-a": [0, 0], "APP-b": [1, 0], "PTY-01": [0, 1]}), encoding="utf-8")
     page = tmp_path / "page.html"
     page.write_text("<!doctype html><title>x</title>", encoding="utf-8")
@@ -205,7 +205,7 @@ def test_a_dragged_layout_is_saved_to_the_vaults_pins_file_and_read_back(helper)
     assert json.loads((vault / PINS).read_text(encoding="utf-8"))["APP-a"] == [4, 0]
     assert call(server, "GET", "/pins", origin=None)[1]["pins"]["APP-a"] == [4, 0]
     assert any("layout saved" in line for line in lines), lines
-    assert not list(vault.glob(".planner/*.tmp")), "the scratch file was left behind"
+    assert not list(vault.glob(".vela/*.tmp")), "the scratch file was left behind"
 
 
 def test_a_box_dropped_between_cells_is_saved_where_it_was_dropped(helper):

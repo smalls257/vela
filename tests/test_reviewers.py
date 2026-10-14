@@ -57,7 +57,7 @@ def test_the_area_reviewer_covers_the_five_areas_by_label_only():
 
 def test_review_dispatches_one_fresh_reviewer_per_area_with_a_fallback():
     review = text("references/REVIEW.md")
-    assert "`planner:area-reviewer`" in review and "all five in one message" in review
+    assert "`vela:area-reviewer`" in review and "all five in one message" in review
     assert "general-purpose subagent" in review and "${CLAUDE_PLUGIN_ROOT}/agents/area-reviewer.md" in review
     assert "Give no conversation" in review
     assert 'If you changed a file, return `{"area": "<your area code>", "error": "changed <path>"}` instead.' in review
@@ -67,7 +67,7 @@ def test_review_dispatches_one_fresh_reviewer_per_area_with_a_fallback():
 
 def test_review_merges_in_code_and_never_reads_a_failure_as_clean():
     review = text("references/REVIEW.md")
-    assert "planner findings merge .planner/findings/<session id>/<n>" in review
+    assert "vela findings merge .vela/findings/<session id>/<n>" in review
     assert '{"area": "<AREA>", "error": "<what happened>"}' in review
     assert "Never write an empty findings list for a reviewer that did not finish" in review
     assert "An area that did not run is never reported as clean." in review
@@ -82,8 +82,8 @@ def test_review_tells_the_session_to_swap_inner_quotes_like_the_merge():
 def test_review_clears_stale_findings_and_numbers_from_the_record():
     review = text("references/REVIEW.md")
     assert "1 plus the number of `### ` headings under `## Reviews`" in review
-    assert review.count("rm -rf .planner/findings/<session id>/<n>") == 2
-    assert review.index("rm -rf .planner/findings/<session id>/<n> .planner/findings/<session id>/<n>-questions\nmkdir") < review.index("Save each reply")
+    assert review.count("rm -rf .vela/findings/<session id>/<n>") == 2
+    assert review.index("rm -rf .vela/findings/<session id>/<n> .vela/findings/<session id>/<n>-questions\nmkdir") < review.index("Save each reply")
     assert "no variables" in review
 
 
@@ -108,7 +108,7 @@ def test_review_covers_the_minor_gaps():
 
 def test_review_puts_no_cap_on_the_digest():
     review = text("references/REVIEW.md")
-    assert "planner questions --open --digest" in review
+    assert "vela questions --open --digest" in review
     # S26: the lead is shown at most three questions, once; nothing is dropped from the ledger.
     assert "no question is dropped, only held back from the conversation" in review
     assert "At most three questions" in review and "Once per session" in review
@@ -153,7 +153,7 @@ def test_discover_runs_the_checkpoint_after_the_read_back_and_the_implications_l
     assert "references/REVIEW.md" in discover and '"after the read-back"' in discover
     assert "What these sources imply" not in discover
     assert "### PTY-nn <name>" in discover and "### SV-nn <name>" in discover
-    assert "planner questions --subject <ID>" in discover
+    assert "vela questions --subject <ID>" in discover
 
 
 def test_modes_has_no_question_cap_and_no_sweep():
@@ -179,7 +179,7 @@ def test_the_checks_every_area_makes_live_in_the_agent_and_not_in_the_skills():
 def test_round_two_fixes_in_dump_discover_and_the_reviewer():
     dump, disc = text("skills/dump/SKILL.md"), text("skills/discover/SKILL.md")
     agent = text("agents/area-reviewer.md")
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>" in disc
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --subject <ID>" in disc
     assert "is not a verdict on any idea" in dump
     assert "Never present the checkpoint's digest as a verdict" in dump
     assert "say aloud any pair of lines" in disc and "never two facts" in disc
@@ -194,12 +194,12 @@ def test_shape_runs_the_checkpoint_before_options_with_what_must_be_true():
     assert "references/REVIEW.md" in shape and '"before options"' in shape
     assert shape.index("run the review checkpoint") < shape.index("Show the options.")
     assert '"what must be true" set' in shape and "`assumed` ledger row" in shape
-    assert "planner check --gate shape" in shape
+    assert "vela check --gate shape" in shape
 
 
 def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agenda():
     grill = text("skills/grill/SKILL.md")
-    assert "planner check --gate grill --item <ID>" in grill and "W807" in grill
+    assert "vela check --gate grill --item <ID>" in grill and "W807" in grill
     assert "references/REVIEW.md" in grill and '"on the agenda"' in grill
     assert grill.index("--gate grill") < grill.index("write the agenda into the session record")
 
@@ -218,7 +218,7 @@ def test_shape_shows_the_top_conditions_and_sends_the_rest_through_the_digest():
 
 def test_grill_records_a_decision_over_an_open_blocking_question():
     grill = text("skills/grill/SKILL.md")
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check --gate grill --item <ID>" in grill
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check --gate grill --item <ID>" in grill
     assert "Repeat `--item`" in grill and "exits 2" in grill and "can be stale" in grill
     assert "REVIEW section 5" in grill and "at most three questions" in grill
     assert "decided with <copy IDs> open (W807)" in grill and "`## Changes` row" in grill
@@ -228,7 +228,7 @@ def test_epics_offers_the_e805_override_with_its_exact_bullet():
     epics = text("skills/epics/SKILL.md")
     assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
     assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --open --digest" in epics
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --open --digest" in epics
     assert "Defer it to whoever can answer" in epics and "--gate epics --app <APP-id>" in epics
     assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
     assert "the override is the only way to a clean `--gate epics`" in epics
@@ -241,7 +241,7 @@ def test_close_writes_a_ledger_row_for_every_copy_taken_and_every_finding():
     assert "### The question ledger" in close
     assert "`R-<AREA>-nn`" in close and "Its state is `open` unless the lead took it." in close
     assert "Never write `answered` without an item link and a source" in close
-    assert "<!-- generated:undisposed-questions sha=00000000: do not edit, run planner render -->" in close
+    assert "<!-- generated:undisposed-questions sha=00000000: do not edit, run vela render -->" in close
 
 
 def test_close_proposes_catalog_entries_and_never_edits_the_catalog():
@@ -249,7 +249,7 @@ def test_close_proposes_catalog_entries_and_never_edits_the_catalog():
     assert "### Gaps the catalog missed" in close
     assert "Never ask the lead whether a gap turned up late" in close  # S25: the answer was no, 11 times in 11
     assert "Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`" in close
-    assert "planner questions --stats" in close and "Pruning is the maintainer's call." in close
+    assert "vela questions --stats" in close and "Pruning is the maintainer's call." in close
 
 
 def test_close_reports_questions_and_reviews_in_the_pr_body():
@@ -257,7 +257,7 @@ def test_close_reports_questions_and_reviews_in_the_pr_body():
     for label in ("**Questions:**", "**Reviews:**", "**Catalog proposals:**"):
         assert label in close
     assert "Never write that the questions are complete." in close
-    assert "planner check --gate shape" in close
+    assert "vela check --gate shape" in close
 
 
 def test_start_keeps_its_override_rule():
@@ -309,9 +309,9 @@ def test_close_keeps_the_grill_record_of_a_decision_over_open_questions():
 def test_close_keeps_its_existing_guards():
     close = skill_text("close")
     for kept in ("### Voice review", "**Voicescore, optional.**", "### Harvest the owner's edits",
-                 "planner close sync-main", "never stages the inbox, `voice/local/` or `voice/corpus/`",
-                 "gh pr comment <number> --body-file <file>", "planner handoff <APP-id>",
-                 "planner voicecheck"):
+                 "vela close sync-main", "never stages the inbox, `voice/local/` or `voice/corpus/`",
+                 "gh pr comment <number> --body-file <file>", "vela handoff <APP-id>",
+                 "vela voicecheck"):
         assert kept in close, kept
     assert len(close.splitlines()) < 500
 
@@ -747,10 +747,10 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
 
 def test_review_hands_each_reviewer_a_real_questions_file_and_the_reviewer_refuses_a_placeholder():
     review, agent = text("references/REVIEW.md"), text("agents/area-reviewer.md")
-    assert "--json > .planner/findings/<session id>/<n>-questions/<AREA>.json" in review
-    assert "`Questions file: .planner/findings/<session id>/<n>-questions/<AREA>.json`" in review
+    assert "--json > .vela/findings/<session id>/<n>-questions/<AREA>.json" in review
+    assert "`Questions file: .vela/findings/<session id>/<n>-questions/<AREA>.json`" in review
     assert "Never send a placeholder" in review
-    assert review.index("-questions/<AREA>.json`. They sit") < review.index("Dispatch the `planner:area-reviewer`")
+    assert review.index("-questions/<AREA>.json`. They sit") < review.index("Dispatch the `vela:area-reviewer`")
     assert "a placeholder" in agent and "no questions file" in agent
 
 

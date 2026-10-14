@@ -9,17 +9,17 @@ disable-model-invocation: true
 
 The vault already says what the app must do: its pages, its share of each requirement, the contracts it provides and consumes, its epics and their criteria, its releases and its open questions. This session settles how the team builds it, and writes that where the team's review and the explorer find it. The vault is the folder this runs in; `--app APP-x` names the app.
 
-The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`. If the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, find it the way `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Where the planner runs from". Every file this skill names sits beside this one.
+Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. If the host leaves `${CLAUDE_PLUGIN_ROOT}` unexpanded, find it the way `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Where vela runs from". Every file this skill names sits beside this one.
 
 ## 1. Start
 
-A design opens no session record and touches no planner page, so START's numbered steps don't apply. Its shared rules do: read START.md and follow "Where the planner runs from", "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule", with its hard stops.
+A design opens no session record and touches no vela page, so START's numbered steps don't apply. Its shared rules do: read START.md and follow "Where vela runs from", "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule", with its hard stops.
 
 Then the two voices. For the conversation, read the conversation voice START.md points to (`references/CONVERSATION-VOICE.md` in the plugin root) and the vault's `voice/VOICE.md` when there is one; the vault owner's own rules there come first. For the pages, read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and the vault's `voice/examples/`. Read house-voice as a file: only a person can start it as a skill.
 
 In conversation the senior hears names, not codes. Say "the calendar entries", "the consent check", "the question about mail"; the IDs go in the files, on Trace lines and in the pull request.
 
-Then follow `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md`. It checks the app is handed off, runs `planner handoff verify`, records the vault commit, opens the `design/<slug>` branch, and says what to read and in what order. It replaces a requirements doc: in a vault the app's allocated rows, its contracts and its epic criteria are what the design answers for.
+Then follow `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md`. It checks the app is handed off, runs `vela handoff verify`, records the vault commit, opens the `design/<slug>` branch, and says what to read and in what order. It replaces a requirements doc: in a vault the app's allocated rows, its contracts and its epic criteria are what the design answers for.
 
 If `docs/tech-design/<slug>.md` already exists, say in one line where it stands and offer the choices that fit:
 
@@ -31,7 +31,7 @@ No vault in the folder: follow `STANDALONE.md` instead, which starts from a requ
 
 ## 2. Start from the walking skeleton
 
-The tracer is a thin flow that runs end to end through every app, built first and kept. Before the first question, find this app's piece of it. In a vault with slice pages it is `slices/SLC-001-*.md`: its `**Flows:**` link one or more flows, and its `## Not in this slice` says what it leaves out and why; `planner handoff` lists every slice this app takes part in. A vault without slice pages names it on release one in `04b-releases.md`, on a `- **Tracer:**` bullet, as links to one or more flows and, after a comma, the thin version in plain words; a `- **Not in the tracer:**` bullet says what release one leaves out and why. The walking skeleton is the smallest path through this app's components that carries those flows, with the other apps' sides stubbed at their contracts until their pieces land.
+The tracer is a thin flow that runs end to end through every app, built first and kept. Before the first question, find this app's piece of it. In a vault with slice pages it is `slices/SLC-001-*.md`: its `**Flows:**` link one or more flows, and its `## Not in this slice` says what it leaves out and why; `vela handoff` lists every slice this app takes part in. A vault without slice pages names it on release one in `04b-releases.md`, on a `- **Tracer:**` bullet, as links to one or more flows and, after a comma, the thin version in plain words; a `- **Not in the tracer:**` bullet says what release one leaves out and why. The walking skeleton is the smallest path through this app's components that carries those flows, with the other apps' sides stubbed at their contracts until their pieces land.
 
 Propose it in a sentence or two and ask whether it's right.
 
@@ -57,7 +57,7 @@ Write each answer into `docs/tech-design/<slug>.md` as the section it belongs to
 
 ## 5. When the vault is wrong or silent
 
-The design settles how, and the vault settles what. When the work shows a missing requirement, a contract that can't carry what's asked of it, or a vault answer the senior disputes, write it as an open question with `**Challenges:**` naming the vault ID and the scenario that shows the problem. Tell the senior in plain words, and that `/planner:challenge <vault ID>` raises it with the solution lead. Then carry on with every branch it doesn't touch. The design never edits planner pages; its own files under `docs/` and `CONTEXT.md` are its to write.
+The design settles how, and the vault settles what. When the work shows a missing requirement, a contract that can't carry what's asked of it, or a vault answer the senior disputes, write it as an open question with `**Challenges:**` naming the vault ID and the scenario that shows the problem. Tell the senior in plain words, and that `/vela:challenge <vault ID>` raises it with the solution lead. Then carry on with every branch it doesn't touch. The design never edits vela pages; its own files under `docs/` and `CONTEXT.md` are its to write.
 
 If nothing is left that the gap doesn't touch, say so, leave the doc at `in-progress`, and say which challenge it waits on.
 
@@ -71,10 +71,10 @@ A gap the senior accepts goes into `gaps[]` in the same plain words, with the se
 
 ## 7. Finish
 
-Before the pull request, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Exit 1 names every diagram mermaid cannot draw, at its line: fix each and run it again. A W604 means Node.js is missing and nothing was checked; tell the senior so, and never call the diagrams checked.
+Before the pull request, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check-diagrams docs/tech-design/<slug>.md` with each ADR that has a diagram. Exit 1 names every diagram mermaid cannot draw, at its line: fix each and run it again. A W604 means Node.js is missing and nothing was checked; tell the senior so, and never call the diagrams checked.
 
 Push the branch and open the pull request when the design is `complete` or `complete-with-gaps`, after saying what will be sent and getting a yes. Its body holds the summary, the audit checklist and the open questions that challenge the vault. Never say a push or a pull request exists unless the tool printed it.
 
-When the design challenges vault items, offer a handover note for the senior at `docs/handover-<slug>-challenges.md`: one entry per challenge, most urgent first, each with the one `/planner:challenge <ID>` command that raises it and the open question's text as the design has it. Then say the next step in one line: `/planner:breakdown` plans the build from this design.
+When the design challenges vault items, offer a handover note for the senior at `docs/handover-<slug>-challenges.md`: one entry per challenge, most urgent first, each with the one `/vela:challenge <ID>` command that raises it and the open question's text as the design has it. Then say the next step in one line: `/vela:breakdown` plans the build from this design.
 
 If the session runs out of room first, `TECH-DESIGN-FROM-VAULT.md` says how to leave it.

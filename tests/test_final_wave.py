@@ -25,10 +25,10 @@ def close_section(start, end):
 
 def test_readme_names_every_v2_command_a_returning_user_looks_for():
     readme = read("README.md")
-    for command in ("planner status", "planner next", "planner health", "planner query", "planner handoff",
-                    "planner handoff verify", "planner voicecheck", "planner export jira-csv"):
+    for command in ("vela status", "vela next", "vela health", "vela query", "vela handoff",
+                    "vela handoff verify", "vela voicecheck", "vela export jira-csv"):
         assert f"`{command}" in readme, command
-    for skill in ("/planner:voice-seed", "/planner:challenge", "/planner:ask", "/planner:epics"):
+    for skill in ("/vela:voice-seed", "/vela:challenge", "/vela:ask", "/vela:epics"):
         assert skill in readme, skill
 
 
@@ -43,7 +43,7 @@ def test_readme_explains_voice_seed_review_harvest_and_challenge():
 def test_readme_is_honest_about_the_weekly_workflow_and_names_generated_diagrams():
     readme = read("README.md")
     assert '"Vault health"' in readme and "Issues enabled" in readme and "not been tested live" in readme
-    assert "generated diagrams" in readme and "`planner render`" in readme
+    assert "generated diagrams" in readme and "`vela render`" in readme
 
 
 def test_readme_checklist_count_matches_the_template_checklist():
@@ -55,7 +55,7 @@ def test_readme_checklist_count_matches_the_template_checklist():
 
 def test_readme_plugin_row_lists_every_cli_command():
     row = next(line for line in read("README.md").splitlines() if line.startswith("| `plugin/` |"))
-    help_text = subprocess.run(["python3", str(PLUGIN / "scripts" / "planner"), "--help"], capture_output=True, text=True, timeout=120).stdout
+    help_text = subprocess.run(["python3", str(PLUGIN / "scripts" / "vela"), "--help"], capture_output=True, text=True, timeout=120).stdout
     commands = re.search(r"\{([a-z,-]+)\}", help_text).group(1).split(",")
     for command in commands:
         assert f"`{command}`" in row, command
@@ -65,11 +65,11 @@ def test_readme_plugin_row_lists_every_cli_command():
 # M1: a stale session branch merges main before render
 
 def test_close_merges_a_moved_main_before_render():
-    # The merge recipe moved into `planner close sync-main` (tests/test_sync_main.py pins its behavior); the skill
+    # The merge recipe moved into `vela close sync-main` (tests/test_sync_main.py pins its behavior); the skill
     # runs it before render and checkpoints through `close stage`.
     step = close_section("## 6. Render and check", "## 7.")
-    assert step.index("planner close sync-main") < step.index("planner render`, then")
-    assert "planner close stage --checkpoint" in step
+    assert step.index("vela close sync-main") < step.index("vela render`, then")
+    assert "vela close stage --checkpoint" in step
     assert "git merge" not in step and "-X ours" not in step and "--theirs" not in step
     assert "long-lived PR" in read("README.md") and "merge `origin/main`" in read("README.md")
 
@@ -82,7 +82,7 @@ def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
         return done
     page = tmp_path / "01-goals.md"
     lines = ["# Goals", "", "| G3 | Hold seats | 60% |", "", "filler"] + [""] * 6 + [
-        "<!-- generated:progress-map sha=aaa: do not edit, run planner render -->", "old block",
+        "<!-- generated:progress-map sha=aaa: do not edit, run vela render -->", "old block",
         "<!-- /generated:progress-map -->", ""]
     page.write_text("\n".join(lines), encoding="utf-8")
     git("init", "-q", "-b", "main"); git("config", "user.email", "t@t"); git("config", "user.name", "t")

@@ -225,7 +225,7 @@ const Decisions = (() => {
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, Nav.title("Decisions")),
       h("p", {}, "Every decision the plan records: what was chosen, what was turned down and why, who decided and when, and which open questions it still waits on. Pick one to read it as a decision record.")),
       h("div", { class: "spacer" }), Nav.pageActions()));
-    if (!trees.length) { main.append(emptyState("No decision records its options yet.", "An Options considered line, or a decision record with an Alternatives considered table, is listed here.", "/planner:shape")); return; }
+    if (!trees.length) { main.append(emptyState("No decision records its options yet.", "An Options considered line, or a decision record with an Alternatives considered table, is listed here.", "/vela:shape")); return; }
     main.append(h("div", { class: "dl-wrap" }, h("div", { class: "dl-barhost" }, bar()), h("p", { class: "dl-count", id: "dl-count", "aria-live": "polite" }), stage));
     paint();
   }

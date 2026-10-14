@@ -36,7 +36,7 @@ delivers: [CON-001]
 EPIC_TAIL = """
 ## Traces to
 
-<!-- generated:traces-to sha=00000000: do not edit, run planner render -->
+<!-- generated:traces-to sha=00000000: do not edit, run vela render -->
 <!-- /generated:traces-to -->
 """
 SUMMARY = "The till sends each basket to the shop and gets a receipt back. Still open: how long a sale may wait.\n"

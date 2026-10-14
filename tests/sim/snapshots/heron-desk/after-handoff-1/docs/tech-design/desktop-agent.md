@@ -132,8 +132,8 @@ erDiagram
 
 ## Vault readout (before the first question)
 
-- Handoff was waived by override (APP-heron History, GATE-5 / E805): contracts, RUN-heron and the four epics are not accepted pages. `planner handoff verify APP-heron` exits 0.
-- Vault clone: only `.planner/explorer-pins.json` is modified; no planner page is.
+- Handoff was waived by override (APP-heron History, GATE-5 / E805): contracts, RUN-heron and the four epics are not accepted pages. `vela handoff verify APP-heron` exits 0.
+- Vault clone: only `.vela/explorer-pins.json` is modified; no vela page is.
 - Allocation table is present, so the split of each CAP-001 requirement between apps is the vault's, not this design's.
 - Trace targets: 11 allocated rows (CAP-001.FR1..FR5 @ APP-heron), CON-001..003 consumed, no contract provided, 23 epic criteria (EPC-001.AC1..7, EPC-002.AC1..6, EPC-003.AC1..5, EPC-004.AC1..5).
 
@@ -355,7 +355,7 @@ sequenceDiagram
 **What we know:** The rule choice, the firm's domains, the lead window and term-list additions are meant to arrive as an Intune policy and a Jamf profile. Nobody has asked IT. Heron fails closed without them, so a laptop without the policy builds no notes: this is a hard dependency of the pilot.
 **What would unblock:** The endpoint lead commits to both channels and a delivery date before the 2027-01-18 slot.
 **Affects:** CallClassifier, ClientMatcher, ManagedSettings, EPC-001.AC1, EPC-002.AC5
-**Challenges:** UNK-011. The vault is silent on how settings reach laptops. Scenario: the app is packaged on 18 January but the policy is not, so every pilot laptop shows no notes on 2 February. Raise with `/planner:challenge UNK-011`.
+**Challenges:** UNK-011. The vault is silent on how settings reach laptops. Scenario: the app is packaged on 18 January but the policy is not, so every pilot laptop shows no notes on 2 February. Raise with `/vela:challenge UNK-011`.
 
 ### OQ-006: Who maintains the mood, tone and performance term list, and does a word list satisfy the DPO?
 **What we know:** A word list is incomplete by nature. The DPO's rule is CST-6. The vault names no owner for Heron (UNK-010, UNK-028). Real records need a lawful basis to test on (UNK-025).
@@ -376,7 +376,7 @@ sequenceDiagram
 **What we know:** CST-4: a new registration needs about six weeks of review; CST-5: the outcome of the November review is due 4 December. If the registration review starts after that, it ends about mid-January, near the 18 January packaging slot and the 2 February pilot. The design has no fallback. One candidate, reading the installed Outlook client locally, is unverified and would change CON-001's provider.
 **What would unblock:** The CISO's office says whether the registration review is separate from the November one (UNK-015) and when it starts; a decision on the 8 January tripwire; whether a local calendar read is possible at all.
 **Affects:** CalendarSource, SignIn, CON-001, EPC-001.AC1, EPC-001.AC7
-**Challenges:** UNK-015. Scenario: the registration review closes after 8 January, so sign-in cannot be tested before packaging on 18 January. Raise with `/planner:challenge UNK-015`.
+**Challenges:** UNK-015. Scenario: the registration review closes after 8 January, so sign-in cannot be tested before packaging on 18 January. Raise with `/vela:challenge UNK-015`.
 
 ### OQ-010: Who owns Heron, and so holds the signing keys and operates the pilot?
 **What we know:** The owner holds the Mac and Windows signing certificates, can ship an emergency patch outside the 18 January slot, operates the kill switch, supports the pilot team, maintains the term list (OQ-006) and pays. The vault says @agent-lead has not confirmed (UNK-010) and the source of the CTO's naming is not known (UNK-028).
@@ -387,4 +387,4 @@ sequenceDiagram
 **What we know:** RUN-heron says Heron then shows no note and says why; EPC-004 names the gap as out of scope because no CAP-001 requirement holds it.
 **What would unblock:** A requirement on CAP-001, then allocation to APP-heron.
 **Affects:** Note view, CAP-001.FR5
-**Challenges:** CAP-001. Scenario: sign-in expires overnight, the 09:50 client call has no note and no message. Raise with `/planner:challenge CAP-001`.
+**Challenges:** CAP-001. Scenario: sign-in expires overnight, the 09:50 client call has no note and no message. Raise with `/vela:challenge CAP-001`.

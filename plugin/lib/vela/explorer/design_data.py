@@ -58,7 +58,7 @@ SECTIONS = {
     "adrs": ("adrs", "architecture decision records"),
     "operations": ("operations",),
     # not required: OQ-XXX is defined in FRONTMATTER-FORMAT.md, Trace is read when present, and Summary and Walking
-    # skeleton open a doc written by /planner:design (plugin/skills/design/TECH-DESIGN-FORMAT.md); older docs lack them
+    # skeleton open a doc written by /vela:design (plugin/skills/design/TECH-DESIGN-FORMAT.md); older docs lack them
     "open_questions": ("open questions",),
     "trace": ("trace", "traceability"),
     "summary": ("summary",),

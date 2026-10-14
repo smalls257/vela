@@ -1,4 +1,4 @@
-"""planner propose and planner proposals: a reader's changes become a patch an owner can apply, and the owner's answer
+"""vela propose and vela proposals: a reader's changes become a patch an owner can apply, and the owner's answer
 comes back. Run end to end against a real git repo: publish, open, edit as a reader, propose, review as the owner."""
 import io
 import json
@@ -81,7 +81,7 @@ def test_the_proposal_folder_holds_the_note_and_a_patch_git_accepts(proposed):
     assert sorted(p.name for p in folder.iterdir()) == ["changes.patch", "proposal.md"]
     patch = read(folder / "changes.patch")
     base = git(src, "rev-parse", "HEAD")
-    assert patch.startswith(f"# planner proposal\n# base: {base}\n# initiative: INI-001\ndiff --git ")
+    assert patch.startswith(f"# vela proposal\n# base: {base}\n# initiative: INI-001\ndiff --git ")
     assert "new file mode 100644\nindex " in patch and "--- /dev/null\n+++ b/reader-notes.md" in patch
     assert f"deleted file mode 100644\nindex " in patch and f"+++ /dev/null" in patch
     assert "+- **Pending approval:** @sam, 2026-10-18\n" in patch
@@ -122,8 +122,8 @@ def test_the_groups_listing_names_what_needs_a_reason_and_writes_nothing(world, 
 
 def test_nothing_private_leaks_into_either_file(proposed, tmp_path):
     src, workspace, folder = proposed
-    record = json.loads(read(workspace / ".planner" / "workspace.json"))
-    secrets = {str(tmp_path), str(tmp_path.resolve()), str(pathlib.Path.home()), record["source_path"], record["planner_path"], str(workspace)}
+    record = json.loads(read(workspace / ".vela" / "workspace.json"))
+    secrets = {str(tmp_path), str(tmp_path.resolve()), str(pathlib.Path.home()), record["source_path"], record["vela_path"], str(workspace)}
     for name in ("proposal.md", "changes.patch"):
         text = read(folder / name)
         assert not [s for s in secrets if s and s in text], name
@@ -185,7 +185,7 @@ def test_a_reason_for_a_group_that_does_not_exist_is_an_error_not_a_lost_reason(
 def test_the_proposal_and_the_drafts_chip_count_the_same_files(world):
     _, workspace = world
     from vela.edge import copies
-    shown = drafts.compare(copies.read_tree(workspace / ".planner" / "baseline", skip_published=True), copies.read_tree(workspace, skip_published=True))
+    shown = drafts.compare(copies.read_tree(workspace / ".vela" / "baseline", skip_published=True), copies.read_tree(workspace, skip_published=True))
     code, text = run("propose", "--vault", str(workspace), "--groups", "--json")
     assert len(shown) == 3 and {p for g in json.loads(text) for p in (c["path"] for c in g["changes"])} == {c["path"] for c in shown}
 
@@ -266,7 +266,7 @@ def test_binary_files_appear_in_the_note_as_not_included(world, tmp_path):
     assert "binary file added: sources/contract.pdf, not included" in note and "binary files not included" in note
 
 
-@pytest.mark.parametrize("path", ["../x.md", "/etc/x.md", ".git/config", ".planner/baseline/x.md", "voice/local/me.md", "C:/x.md", "a\\b.md"])
+@pytest.mark.parametrize("path", ["../x.md", "/etc/x.md", ".git/config", ".vela/baseline/x.md", "voice/local/me.md", "C:/x.md", "a\\b.md"])
 def test_paths_that_escape_or_belong_to_git_are_refused_when_writing(path):
     with pytest.raises(proposal.ProposalError):
         proposal.check_path(path)
@@ -579,7 +579,7 @@ def option_strings():
 
 @pytest.mark.parametrize("name", ["propose", "proposals"])
 def test_every_flag_a_skill_tells_claude_to_run_exists(name):
-    flags = {flag for line in skill(name).splitlines() if "planner" in line and ("propos" in line) for flag in re.findall(r"--[a-z][a-z-]*", line)}
+    flags = {flag for line in skill(name).splitlines() if "vela" in line and ("propos" in line) for flag in re.findall(r"--[a-z][a-z-]*", line)}
     assert flags and flags <= option_strings(), flags - option_strings()
 
 
@@ -588,13 +588,13 @@ def test_propose_never_invents_a_reason_or_sends_anything():
     for rule in ("no reason given", "Never invent a reason", "Never send, email, upload or share the proposal", "never run `git` or `gh`",
                  "Never add that flag without their yes", "A skipped question, \"not sure\", or silence is fine"):
         assert rule in text, rule
-    assert "planner role" in text and "you decide directly" in text and "--whys -" in text
+    assert "vela role" in text and "you decide directly" in text and "--whys -" in text
 
 
 def test_review_leaves_every_decision_to_the_owner_and_never_pushes():
     text = skill("proposals")
     for rule in ("pending decisions first", "The owner always decides", "Never write the owner's reason for them", "**Never push, and never open a PR yourself.**",
-                 "Never block it, never hide it", "E316", "git worktree remove", "planner proposals accept", "planner proposals reject", "planner proposals answer"):
+                 "Never block it, never hide it", "E316", "git worktree remove", "vela proposals accept", "vela proposals reject", "vela proposals answer"):
         assert rule in text, rule
 
 
@@ -602,5 +602,5 @@ def test_the_readers_drafts_view_names_the_propose_command_and_the_page_stays_of
     _, workspace = world
     assert run("explore", str(workspace), "--today", "2026-10-12")[0] == 0
     page = read(workspace / "dashboard.html")
-    assert "/planner:propose" in page and "Nothing is sent from this page." in page
+    assert "/vela:propose" in page and "Nothing is sent from this page." in page
     assert str(pathlib.Path.home()) not in page

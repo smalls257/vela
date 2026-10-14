@@ -1,4 +1,4 @@
-"""`planner close sync-main` (Task 8): bring in what changed on main before render and check, so they see what will merge.
+"""`vela close sync-main` (Task 8): bring in what changed on main before render and check, so they see what will merge.
 
 This replaces the six-step merge recipe the close skill carried in prose (fetch, is-ancestor, checkpoint, merge,
 classify hunks, abort, `-X ours`). It was the riskiest prose in the plugin: one wrong `--theirs` loses the owner's
@@ -10,7 +10,7 @@ must choose.
 - origin/main already in HEAD: up to date, exit 0.
 - Tracked files with uncommitted edits: exit 3, nothing changed. A merge over uncommitted edits can mix them into a
   conflict nobody can untangle. This command never stages or commits the session's files (one capability per
-  subcommand): `planner close stage --checkpoint` does that.
+  subcommand): `vela close stage --checkpoint` does that.
 - A clean merge: exit 0.
 - Conflicts: `mergeplan` reads every hunk. Any hunk outside a generated block: the merge is aborted and the files and
   lines are listed, exit 1; main changed writing this branch changed too, and only the lead may choose between them.
@@ -19,8 +19,8 @@ must choose.
   so every clean edit on either side is kept. Never `git checkout --ours/--theirs` on a file: that drops the other
   side's edits to the whole file.
 
-Every outcome writes `.planner/close/<branch key>.json` (see `closestate`), so the gate can tell "brought in" from
-"never tried". That file is the planner's own untracked state, not a change to the lead's copy, so it is reported as
+Every outcome writes `.vela/close/<branch key>.json` (see `closestate`), so the gate can tell "brought in" from
+"never tried". That file is vela's own untracked state, not a change to the lead's copy, so it is reported as
 `state_file` and not in `wrote` (which an exit 3 promises is empty). A reader copy runs no git at all.
 """
 import pathlib
@@ -29,8 +29,8 @@ from vela import closestate, commands, mergeplan, say
 from vela.edge import mergegit
 
 COMMAND = "close sync-main"
-CHECKPOINT = "planner close stage --checkpoint"
-ACCEPT = "planner close sync-main --accept-not-compared"
+CHECKPOINT = "vela close stage --checkpoint"
+ACCEPT = "vela close sync-main --accept-not-compared"
 
 
 def register_close(steps):
@@ -125,7 +125,7 @@ def _merge(run):
     files = [{"path": p.path, "lines": [h.lines() for h in p.hunks]} for p in plans]
     return _merged(run, before, closestate.MERGED_GENERATED, files, say.Line(
         f"sync-main: merged origin/main {run.main[:7]} into {run.branch}; every conflict was inside a generated block "
-        f"({', '.join(p.path for p in plans)}), settled with -X ours. Run planner render to rebuild them.",
+        f"({', '.join(p.path for p in plans)}), settled with -X ours. Run vela render to rebuild them.",
         "I brought in what changed on main. The only overlaps were in generated summaries, which the render rebuilds, "
         "so nobody's writing was lost."))
 
@@ -166,13 +166,13 @@ def _conflict(run, plans):
     refusal = say.Refusal(
         rule="sync-main conflict",
         plain="Main changed writing this branch changed too, so I stopped the merge. Nothing in your copy changed.",
-        fix="Show the lead both sides of each listed line range; the lead resolves; rerun planner close sync-main.",
+        fix="Show the lead both sides of each listed line range; the lead resolves; rerun vela close sync-main.",
         override=f"{ACCEPT} (go on without main; close gate lists it)")
     return run.finish(closestate.CONFLICT, say.REFUSED, lines, files=files, refusals=[refusal])
 
 
 def _fetch_failed(run, why):
-    choices = [{"choice": "retry", "plain": "Try again", "run": "planner close sync-main"},
+    choices = [{"choice": "retry", "plain": "Try again", "run": "vela close sync-main"},
                {"choice": "go-on", "plain": "Go on without main", "run": ACCEPT}]
     return run.finish(closestate.NOT_COMPARED, say.NEEDS_LEAD, [say.Line(
         f"sync-main: not compared: git fetch origin failed: {why}. Retry, or record the lead's go-on with {ACCEPT}.",
@@ -194,5 +194,5 @@ def _uncommitted(run, dirty):
 def _git_failed(run, error):
     return run.finish(closestate.NOT_COMPARED, say.FAILED, [say.Line(
         f"sync-main: git failed, nothing was merged: {error}",
-        "Git failed while I was comparing with main, so nothing was merged. The error is in the planner's output.")],
+        "Git failed while I was comparing with main, so nothing was merged. The error is in vela's output.")],
         reason=closestate.GIT_FAILED)

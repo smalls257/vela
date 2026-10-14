@@ -491,5 +491,5 @@ news:
 sessions:
 - mode: boundary
   cap: 14
-  planner: /planner:boundary record each app's domain and who sends each step of the journeys through Coach and TickerTalk
+  vela: /vela:boundary record each app's domain and who sends each step of the journeys through Coach and TickerTalk
   baseline: Record each app's domain and who sends each step of the journeys. Follow CONVENTIONS.md.

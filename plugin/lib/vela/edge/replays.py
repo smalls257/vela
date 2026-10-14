@@ -4,13 +4,13 @@ The Violation to prevent is a replay that fails half-way and leaves the reader u
 their work is where. So the order is fixed, and the one record that says a replay finished is written last:
 
   1. the new baseline is built beside the old one (`baseline.next`);
-  2. the reader's version of every page the replay changes is kept in `.planner/replay-backup/`;
+  2. the reader's version of every page the replay changes is kept in `.vela/replay-backup/`;
   3. the reader's side of each conflict is written beside its page;
-  4. `.planner/replay.json` lists the conflicts, so they are listed even if the next step fails;
+  4. `.vela/replay.json` lists the conflicts, so they are listed even if the next step fails;
   5. the working pages are changed;
   6. the baseline is swapped, then the stamp and `workspace.json`, which is what freshness reads.
 
-Until step 6 the old baseline stands and the same `planner open` can be run again. If the swap itself stops half-way,
+Until step 6 the old baseline stands and the same `vela open` can be run again. If the swap itself stops half-way,
 the old baseline is moved back at once, and a run that starts to find it still parked as `baseline.previous` (the move
 back failed too) restores it before it cleans anything: the only copy of the old baseline is never what a retry deletes.
 Every failure names the path.
@@ -23,8 +23,8 @@ import shutil
 from vela import opening, publish, replay
 from vela.edge import copies
 
-REPLAY = pathlib.Path(".planner") / "replay.json"
-BACKUP = pathlib.Path(".planner") / "replay-backup"
+REPLAY = pathlib.Path(".vela") / "replay.json"
+BACKUP = pathlib.Path(".vela") / "replay-backup"
 FORMAT = 1
 
 
@@ -75,7 +75,7 @@ def existing_mine(root):
     """Vault-relative paths of every saved side already in the workspace, so a new conflict never overwrites one."""
     root = pathlib.Path(root)
     found = (p.relative_to(root).as_posix() for p in sorted(root.rglob("*")) if p.is_file())
-    return {rel for rel in found if not rel.startswith(".planner/") and replay.is_mine_file(rel)}
+    return {rel for rel in found if not rel.startswith(".vela/") and replay.is_mine_file(rel)}
 
 
 def record_json(old, new, result, carried, today):
@@ -103,7 +103,7 @@ def swap_baseline(baseline, staging, previous):
             restore_parked_baseline(baseline, previous)
         except OSError as back:
             raise OSError(exc.errno, f"{exc.strerror or exc}; your old baseline is at {previous} and could not be moved back ({back.strerror or back}). "
-                                     "Move it back to baseline yourself, then run planner open again", exc.filename) from exc
+                                     "Move it back to baseline yourself, then run vela open again", exc.filename) from exc
         raise
 
 
@@ -126,7 +126,7 @@ def apply(root, result, files, replay_record, workspace_record, backup_name):
         step = "your side of each conflict"
         for rel, data in result.mine.items():
             _write(root, rel, data)
-        step = ".planner/replay.json"
+        step = ".vela/replay.json"
         _write(root, REPLAY.as_posix(), (json.dumps(replay_record, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
         step = "your pages"
         for rel, data in result.write.items():
@@ -142,5 +142,5 @@ def apply(root, result, files, replay_record, workspace_record, backup_name):
         _write(root, copies.WORKSPACE.as_posix(), (json.dumps(workspace_record, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     except OSError as exc:
         raise opening.OpenError(f"the re-open stopped while writing {step}: {exc.strerror or exc} ({getattr(exc, 'filename', '') or root}). "
-                                "Your old baseline stands until the swap, so run the same planner open again once that is fixed; "
+                                "Your old baseline stands until the swap, so run the same vela open again once that is fixed; "
                                 f"your own version of each page it changed is in {root / BACKUP}.") from exc

@@ -488,7 +488,7 @@ const Plan = (() => {
     if (!p) {
       stage.dataset.plan = "none";
       stage.append(K.chipCard("docs", "No build plan yet.", h("span", {}, `The ${titleOf(app)} team hasn't shared a build plan yet. Once they do, it shows here; Context, Containers and Components still draw. `,
-        h("details", { class: "in-howto" }, h("summary", {}, "How to add one"), "The team writes it with ", h("code", {}, "/planner:breakdown"), " after the design, as ", h("code", {}, "docs/plan/<slug>-breakdown.md"),
+        h("details", { class: "in-howto" }, h("summary", {}, "How to add one"), "The team writes it with ", h("code", {}, "/vela:breakdown"), " after the design, as ", h("code", {}, "docs/plan/<slug>-breakdown.md"),
           ", or you build with ", h("code", {}, `--breakdown ${D.map.apps.find((a) => a.key === app).id}=<path to the plan>`), ", or set ", h("code", {}, "breakdown:"), " on the app's page.")),
         h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => K.open(app, "components") }, "Components, from the team's design"))));
       return;

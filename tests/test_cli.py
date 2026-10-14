@@ -8,7 +8,7 @@ def test_mini_vault_is_clean(mini):
     code, out = check(mini)
     assert code == 0, out
     assert findings(out) == []
-    assert out.splitlines()[0].startswith("planner check: 0 errors, 0 warnings in 12 pages, judged as of 2026-01-15 (the date you gave).")
+    assert out.splitlines()[0].startswith("vela check: 0 errors, 0 warnings in 12 pages, judged as of 2026-01-15 (the date you gave).")
 
 
 def test_system_date_is_printed_when_no_today_given(mini):
@@ -28,7 +28,7 @@ def test_findings_exit_1_and_name_a_fix(mini):
 def test_no_config_is_tool_failure(tmp_path):
     code, out = run("check", "--vault", str(tmp_path))
     assert code == 2
-    assert "no .planner.yaml" in out
+    assert "no .vela.yaml" in out
 
 
 def test_bad_today_is_tool_failure(mini):
@@ -50,11 +50,11 @@ def test_check_writes_nothing(mini):
     assert before == after
 
 
-def test_bin_planner_runs_without_install():
-    result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "check",
+def test_bin_vela_runs_without_install():
+    result = subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "check",
                              "--vault", str(MINI), "--today", "2026-01-15"], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout.startswith("planner check: 0 errors")
+    assert result.stdout.startswith("vela check: 0 errors")
 
 
 def test_internal_error_is_exit_2_with_traceback(mini, monkeypatch):

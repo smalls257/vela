@@ -1,11 +1,11 @@
-"""Progress and next step: the grid behind planner status, planner next and the progress-map block."""
+"""Progress and next step: the grid behind vela status, vela next and the progress-map block."""
 from conftest import check, edit, findings, run
 from vela import progress, render
 from vela.model import build
 from vela.parse import parse_page
 
 CONFIG = {"initiative": "INI-900", "title": "Mini shop"}
-NEW_BLOCK = "<!-- generated:progress-map sha=00000000: do not edit, run planner render -->\n<!-- /generated:progress-map -->\n"
+NEW_BLOCK = "<!-- generated:progress-map sha=00000000: do not edit, run vela render -->\n<!-- /generated:progress-map -->\n"
 
 
 def app_page(name, state="assumption", stage="target", sources="[SRC-01]", body="", change="changed"):

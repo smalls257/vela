@@ -6,7 +6,7 @@
 A mode session reads START, MODES, CONVERSATION-VOICE, REVIEW and its own SKILL.md before it asks anything. Each of
 those that cites CONVENTIONS.md the old way ("as `CONVENTIONS.md` says under ...", "The format is `CONVENTIONS.md`")
 sends the model to the whole 21,000-word file, so it is counted whole, once. A cite through
-`planner conventions "<section>"` costs only that section. The number must not rise across a skill rewrite; a thinner
+`vela conventions "<section>"` costs only that section. The number must not rise across a skill rewrite; a thinner
 session makes it fall too, so this is a sensor for load, not for detail (the paid run measures detail).
 """
 import argparse
@@ -23,7 +23,7 @@ SHARED = ("plugin/references/START.md", "plugin/references/MODES.md", "plugin/re
 CONVENTIONS = "plugin/vault/CONVENTIONS.md"
 OLD_CITE = re.compile(r'`CONVENTIONS\.md`(?: (?:says|defines it|gives|shows))? under "|`CONVENTIONS\.md`, "|'
                       r'" in `CONVENTIONS\.md`|The (?:page )?formats? (?:is|are) `CONVENTIONS\.md`')
-NEW_CITE = re.compile(r'`planner conventions "([^"<]+)"`')
+NEW_CITE = re.compile(r'`vela conventions "([^"<]+)"`')
 
 
 def read(path, rev):

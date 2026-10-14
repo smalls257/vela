@@ -1,6 +1,6 @@
 /* The layout: where each box stands, and how a reader moves one.
 
-   The vault's pins file is the layout (pins.py, <vault>/.planner/explorer-pins.json, tracked in git). This module
+   The vault's pins file is the layout (pins.py, <vault>/.vela/explorer-pins.json, tracked in git). This module
    holds those pins, the moves a reader makes on top of them, and the one rule that keeps a move from drawing a box
    over another. A box stays where it is dropped, between cells if that is where the pointer let go. The only rule is
    pins.check_move's, written again here because a drop is placed before any request is made: two boxes, as drawn,
@@ -10,7 +10,7 @@
    and the page's status line says so.
 
    Where a move goes depends on how the page was opened:
-   - served (`planner explore --serve`) by the vault's owner: the move is saved to the vault at once, by POST /pins
+   - served (`vela explore --serve`) by the vault's owner: the move is saved to the vault at once, by POST /pins
      on the helper (serve.py), and the page says "Layout saved to the vault";
    - a file, or a reader's copy: the move stays in this browser (localStorage, scoped by vault id) and the page
      offers "Copy layout" and "Download pins", the JSON the owner commits. A reader's move changes nothing in the

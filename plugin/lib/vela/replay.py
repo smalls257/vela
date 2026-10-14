@@ -253,7 +253,7 @@ def report(result, old, new, stale):
             shown = ", ".join(o.path for o in found[:5]) + (f" and {len(found) - 5} more" if len(found) > 5 else "")
             lines.append(f"  {words}, {len(found)}: {shown}.")
     if result.backups:
-        lines.append("  Your version of each page the merge changed, as it was before, is kept in .planner/replay-backup/.")
+        lines.append("  Your version of each page the merge changed, as it was before, is kept in .vela/replay-backup/.")
     lines += stale
     if not result.outcomes:
         lines.append("  Nothing in your copy and the new one differed, so there was nothing to replay.")
@@ -267,6 +267,6 @@ def stale_lines(paths, old_short):
     names = ", ".join(paths[:3]) + (f" and {len(paths) - 3} more" if len(paths) > 3 else "")
     return [f"  Stale proposal{'s' if len(paths) > 1 else ''}, {len(paths)}: {names}. "
             f"{'They were' if len(paths) > 1 else 'It was'} written against {old_short}, which is no longer the copy you work on. "
-            "If you have not sent it, do not: run /planner:propose again (planner propose) for a fresh one from your drafts as they stand now. "
+            "If you have not sent it, do not: run /vela:propose again (vela propose) for a fresh one from your drafts as they stand now. "
             "One you already sent is the owner's to apply against the old commit; nothing here deleted it."]
 

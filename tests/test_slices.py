@@ -291,7 +291,7 @@ def test_w391_on_a_planned_slice_and_w395_once_it_is_building(tmp_path):
     assert lines(vault, "W391", "2026-10-13") == []
     found = lines(vault, "W395", "2026-10-13")
     assert len(found) == 1 and "SLC-001 Hold and pay is building, but its flow check fails: 1 open finding (not final)" in found[0]
-    assert "planner check-slice SLC-001" in found[0]
+    assert "vela check-slice SLC-001" in found[0]
 
 
 def test_w395_a_building_slice_with_nothing_drawn_is_not_fully_checked(tmp_path):
@@ -340,7 +340,7 @@ def test_f13_reads_earlier_as_what_the_slice_comes_after():
 def test_check_slice_finds_a_slice_by_its_id(tmp_path):
     vault = checked_vault(tmp_path, "**Status:** planned")
     code, out = run("check-slice", "SLC-001", "--vault", str(vault), "--today", "2026-10-13")
-    assert code == 1 and out.startswith("planner check-slice: Hold and pay (FLO-005): fails.")
+    assert code == 1 and out.startswith("vela check-slice: Hold and pay (FLO-005): fails.")
 
 
 def test_w347_on_a_slice_a_release_lists_and_not_in_this_slice_answers_it(tmp_path):
@@ -366,7 +366,7 @@ def test_the_handoff_lists_the_slices_an_app_takes_part_in_and_verify_sees_a_cha
     code, out = run("handoff", "APP-kiosks", "--vault", str(example), "--today", TODAY, "--commit", "abc1234", "--replace")
     assert code == 0, out
     assert "Port kiosks is part of 1 slice: SLC-003 Kiosks book through Booking in the March image (not planned yet)." in out
-    assert 'What "slice" means' not in out  # definitions come from `planner terms`, not every run
+    assert 'What "slice" means' not in out  # definitions come from `vela terms`, not every run
     manifest = (example / "handoffs" / "APP-kiosks.md").read_text(encoding="utf-8")
     assert "| SLC-003 | slice | slices/SLC-003-kiosks-book-in-the-march-image.md |" in manifest and "TRACER-1" not in manifest
     verify = ("handoff", "verify", "APP-kiosks", "--vault", str(example))
@@ -382,7 +382,7 @@ def test_the_handoff_lists_the_slices_an_app_takes_part_in_and_verify_sees_a_cha
     assert code == 1 and "changed: slice Kiosks book through Booking in the March image (SLC-003)" in out  # the join changed in the flow, and the slice it is part of says so
 
 
-# --- planner next -------------------------------------------------------------------------------------------------
+# --- vela next -------------------------------------------------------------------------------------------------
 
 def test_next_suggests_the_step_for_the_first_slice_that_can_move():
     v = vault_of(("SLC-001", page("SLC-001", "Tracer", "**Status:** journey passes", "**Flows:** FLO-001",
@@ -400,6 +400,6 @@ def test_next_suggests_the_step_for_the_first_slice_that_can_move():
     assert slices.next_step([]) == ""
 
 
-def test_planner_next_prints_the_slice_step_on_a_line_of_its_own():
+def test_vela_next_prints_the_slice_step_on_a_line_of_its_own():
     out = run("next", "--vault", str(EXAMPLE), "--today", TODAY)[1]
-    assert "planner next: for the slices: SLC-001 A customer books on the website through Booking is not planned yet" in out
+    assert "vela next: for the slices: SLC-001 A customer books on the website through Booking is not planned yet" in out

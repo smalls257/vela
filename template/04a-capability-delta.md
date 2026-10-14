@@ -12,7 +12,7 @@ authored: mixed
 
 Every capability this initiative changes. Each capability page holds what provides it today and after.
 
-<!-- generated:capability-map sha=140bedbf: do not edit, run planner render -->
+<!-- generated:capability-map sha=140bedbf: do not edit, run vela render -->
 none
 <!-- /generated:capability-map -->
 
@@ -20,6 +20,6 @@ none
 
 What each app carries of each functional requirement.
 
-<!-- generated:allocation sha=12251505: do not edit, run planner render -->
+<!-- generated:allocation sha=12251505: do not edit, run vela render -->
 **Who does what:** no requirement is firm enough to split between the apps yet.
 <!-- /generated:allocation -->

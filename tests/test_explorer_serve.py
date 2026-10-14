@@ -1,4 +1,4 @@
-"""`planner explore --serve`: the helper behind Ask Claude. A fake `claude` on PATH stands in for the model, so
+"""`vela explore --serve`: the helper behind Ask Claude. A fake `claude` on PATH stands in for the model, so
 no test here spends anything. They check what the helper promises: it listens on loopback only, it refuses a request
 from another origin, it gives Claude read-only tools in the vault, it streams the answer and ends with cost and
 session, a follow-up resumes that session, and every way a question can fail reaches the page as a visible error."""
@@ -323,10 +323,10 @@ def test_ask_is_confined_to_the_vault_when_claude_can_be(helper, stub_log):
 
 
 def test_the_settings_deny_the_exact_explorer_page_the_helper_writes():
-    """E25. dashboard.html is what `planner explore` writes at the vault root, and the docstring promised no read of it."""
+    """E25. dashboard.html is what `vela explore` writes at the vault root, and the docstring promised no read of it."""
     from vela import publish
     deny = serve.claude_settings("/h")["permissions"]["deny"]
-    assert f"Read(./{publish.DASHBOARD_PATH})" in deny and f"Read(./**/{publish.DASHBOARD_PATH})" in deny and "Read(./.planner/**)" in deny
+    assert f"Read(./{publish.DASHBOARD_PATH})" in deny and f"Read(./**/{publish.DASHBOARD_PATH})" in deny and "Read(./.vela/**)" in deny
 
 
 def test_a_request_without_the_key_is_refused_even_with_the_right_host_and_origin(helper, stub_log):
@@ -419,15 +419,15 @@ def test_e17_the_helper_serves_a_vault_file_as_text_and_nothing_outside_the_vaul
     (vault / "docs").mkdir()
     (vault / "docs" / "Q&A #2.md").write_text("# hello\n", encoding="utf-8")
     (vault / "page.html").write_text("<script>alert(1)</script>", encoding="utf-8")
-    (vault / ".planner").mkdir()
-    (vault / ".planner" / "explorer-pins.json").write_text("{}", encoding="utf-8")
+    (vault / ".vela").mkdir()
+    (vault / ".vela" / "explorer-pins.json").write_text("{}", encoding="utf-8")
     (tmp_path / "secret.txt").write_text("TOPSECRET-4471", encoding="utf-8")
     (vault / "link.txt").symlink_to(tmp_path / "secret.txt")
     status, headers, body = get(server, "/vault-file/docs/Q%26A%20%232.md")
     assert (status, body) == (200, b"# hello\n") and headers["Content-Type"].startswith("text/plain")
     status, headers, _ = get(server, "/vault-file/page.html")
     assert status == 200 and headers["Content-Type"].startswith("text/plain") and headers["X-Content-Type-Options"] == "nosniff"
-    for refused in ("/vault-file/.planner/explorer-pins.json", "/vault-file/../secret.txt", "/vault-file/%2e%2e/secret.txt",
+    for refused in ("/vault-file/.vela/explorer-pins.json", "/vault-file/../secret.txt", "/vault-file/%2e%2e/secret.txt",
                     "/vault-file/link.txt", "/vault-file/docs", "/vault-file/missing.md", "/vault-file/"):
         status, _, body = get(server, refused)
         assert status in (400, 403, 404), refused
@@ -454,7 +454,7 @@ def test_e27_explore_serve_without_a_port_uses_the_vaults_port_or_says_why_it_di
     import sys
     root = tmp_path / "vault"
     shutil.copytree(SNAPSHOT, root)
-    command = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", str(root), "--today", "2026-10-12", "--serve", "--no-open"]
+    command = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", str(root), "--today", "2026-10-12", "--serve", "--no-open"]
 
     def started():
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)

@@ -13,7 +13,7 @@ sources: ["session 2026-07-14 Discover"]
 
 This page keeps every question nobody could answer when it was asked, and every risk the team watches. The table says which are still open and who must answer; each unknown and risk then has its own section.
 
-<!-- generated:unknowns-index sha=c3b1e888: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=c3b1e888: do not edit, run vela render -->
 **Questions**
 
 | Question | Who answers | Status | Answer needed by |
@@ -139,7 +139,7 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 Catalog v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
-<!-- generated:undisposed-questions sha=89cc3278: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=89cc3278: do not edit, run vela render -->
 **Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |

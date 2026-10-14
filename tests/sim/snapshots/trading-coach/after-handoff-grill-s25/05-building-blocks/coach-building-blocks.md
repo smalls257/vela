@@ -20,7 +20,7 @@ Coach teaches individual US-listed stocks through lessons and paper practice on 
 
 Coach prepares or places no real order: real orders are release two, and Brightwater keeps the execution (SRC-01). It teaches no ETFs and no options in release one, shows no trade ideas to customers (SRC-06) and holds no customer money, which Brightwater holds (SRC-01). Sign-in and the news stay with [[tickertalk-building-blocks|TickerTalk]]. Coach does not run Signal, whose place is not decided.
 
-<!-- generated:app-context sha=46363da4: do not edit, run planner render -->
+<!-- generated:app-context sha=46363da4: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -77,7 +77,7 @@ Key: dark blue: the app this page is about · amber: changed by this initiative 
 - **Override:** GATE-4 by @sim-lead on 2026-10-08: CEO wants the January demo, counsel cleared lessons and paper, open questions to the build team as named risks with owners
 - **Options considered:** Coach app behind TickerTalk (picked); Coach built into TickerTalk: rejected, "B drowns mobile, they're already maxed" (the product lead); Coach, a separate board-demo app and Signal as idea source: rejected, "C's too many apps before we know what Brightwater allows" (the product lead)
 
-<!-- generated:contracts-consumed sha=5c308f02: do not edit, run planner render -->
+<!-- generated:contracts-consumed sha=5c308f02: do not edit, run vela render -->
 | Contract | Provider | Change policy | State |
 |---|---|---|---|
 | [[coach-building-blocks#CON-002 Delayed quotes\|CON-002 Delayed quotes]] | Quoteline ([[03-context-and-scope#PTY-02 Quoteline\|PTY-02]]) | not recorded; the notice a change to the license needs is open (Q-PTN-06@PTY-02). | decided |

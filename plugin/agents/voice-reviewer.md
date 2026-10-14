@@ -29,7 +29,7 @@ An entry may also carry a voicescore hint, such as `outside your range (p96)`. A
 
 ## The lint list
 
-The words to look for are in one file, `references/lint-words.txt` in the plugin (the caller gives you its path). Read it when you start, and use it as the list in step 3. It is the same file `planner style` reads, so the lint and you say the same words. The drafter never sees it.
+The words to look for are in one file, `references/lint-words.txt` in the plugin (the caller gives you its path). Read it when you start, and use it as the list in step 3. It is the same file `vela style` reads, so the lint and you say the same words. The drafter never sees it.
 
 ## Redundant sentences
 

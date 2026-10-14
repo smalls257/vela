@@ -1,5 +1,5 @@
 """The question ledger: row grammar, evidence per state, wildcards and initiative rows, and
-`planner questions`.
+`vela questions`.
 
 Each broken-copy test edits one row of the fixture ledger, renders, and expects exactly one
 finding, so a rule that fires on the wrong thing shows up as an extra finding."""
@@ -280,13 +280,13 @@ def test_the_longest_wildcard_wins_and_an_own_row_beats_both(ub):
     assert via["Q-DAT-02@APP-booking"] == "Q-DAT-02@APP-book*" and via["Q-DAT-02@APP-kiosks"] == "Q-DAT-02@APP-*"
 
 
-# ------------------------------------------------------------------ planner questions
+# ------------------------------------------------------------------ vela questions
 
-def test_planner_questions_prints_the_coverage_line_and_one_line_per_copy():
+def test_vela_questions_prints_the_coverage_line_and_one_line_per_copy():
     code, out = run("questions", "--vault", str(FIXTURE))
     lines = out.splitlines()
     assert code == 0
-    assert lines[0] == ("planner questions: 57 standard questions apply, 0 not dealt with yet, 1 asked but not answered, "
+    assert lines[0] == ("vela questions: 57 standard questions apply, 0 not dealt with yet, 1 asked but not answered, "
                         "1 open reviewer question (question catalog v1). 1 reviewer question, 1 open.")
     assert "complete" not in out.lower()
     assert len(lines) == 59
@@ -294,7 +294,7 @@ def test_planner_questions_prints_the_coverage_line_and_one_line_per_copy():
     assert lines[-1].startswith("R-FIN-01 | FIN | normal | open | reviewer | not linked to an item yet | Points are earned")
 
 
-def test_planner_questions_filters_by_area_and_subject():
+def test_vela_questions_filters_by_area_and_subject():
     code, answer = ask(FIXTURE, "--area", "PTN")
     assert code == 0 and {c["area"] for c in answer["copies"]} == {"PTN"} and answer["owed"] == 9
     assert answer["reviewer"] == []
@@ -303,7 +303,7 @@ def test_planner_questions_filters_by_area_and_subject():
     assert answer["coverage"] == "5 owed, 0 undisposed, against catalog v1"
 
 
-def test_planner_questions_json_holds_every_field():
+def test_vela_questions_json_holds_every_field():
     _, answer = ask(FIXTURE)
     copy = next(c for c in answer["copies"] if c["id"] == "Q-PTN-02@PTY-02")
     assert copy == {"id": "Q-PTN-02@PTY-02", "entry": "Q-PTN-02", "area": "PTN", "severity": "high",
@@ -322,7 +322,7 @@ def test_an_unknown_area_exits_2_and_an_unknown_subject_exits_1():
     assert json.loads(out) == {"subject": "APP-nope", "not_found": True}
 
 
-def test_planner_questions_writes_nothing(ub):
+def test_vela_questions_writes_nothing(ub):
     before = {p: p.read_bytes() for p in ub.rglob("*") if p.is_file()}
     run("questions", "--vault", str(ub))
     run("questions", "--vault", str(ub), "--json", "--open")

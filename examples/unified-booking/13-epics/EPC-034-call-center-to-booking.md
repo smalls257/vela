@@ -74,7 +74,7 @@ After those 4 weeks the terminal adapter and the manual fix screens are removed 
 
 ## Traces to
 
-<!-- generated:traces-to sha=32d551d3: do not edit, run planner render -->
+<!-- generated:traces-to sha=32d551d3: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[call-center-building-blocks\|Call center desktop]], [[booking-building-blocks\|Booking]] |

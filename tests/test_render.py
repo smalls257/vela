@@ -77,7 +77,7 @@ def test_missing_cell_renders_unexamined_no_row(mini):
 
 def test_new_empty_block_is_filled(mini):
     edit(mini / "05-building-blocks/stock-building-blocks.md", "### CON-002 Stock level",
-         "## Contracts this app consumes\n\n<!-- generated:contracts-consumed sha=00000000: do not edit, run planner render -->\n"
+         "## Contracts this app consumes\n\n<!-- generated:contracts-consumed sha=00000000: do not edit, run vela render -->\n"
          "<!-- /generated:contracts-consumed -->\n\n## Contracts this app provides\n\n### CON-002 Stock level")
     _, out = check(mini)
     assert findings(out) == [("W402", "05-building-blocks/stock-building-blocks.md")]
@@ -87,14 +87,14 @@ def test_new_empty_block_is_filled(mini):
 
 
 def test_block_on_the_wrong_page(mini):
-    edit(mini / "README.md", "# Mini shop vault\n", "# Mini shop vault\n\n<!-- generated:concern-matrix sha=00000000: do not edit, run planner render -->\n"
+    edit(mini / "README.md", "# Mini shop vault\n", "# Mini shop vault\n\n<!-- generated:concern-matrix sha=00000000: do not edit, run vela render -->\n"
          "<!-- /generated:concern-matrix -->\n")
     _, out = check(mini)
     assert findings(out) == [("E403", "README.md")]
 
 
 def test_unknown_block_name(mini):
-    edit(mini / "README.md", "# Mini shop vault\n", "# Mini shop vault\n\n<!-- generated:traceability sha=00000000: do not edit, run planner render -->\n"
+    edit(mini / "README.md", "# Mini shop vault\n", "# Mini shop vault\n\n<!-- generated:traceability sha=00000000: do not edit, run vela render -->\n"
          "<!-- /generated:traceability -->\n")
     _, out = check(mini)
     assert findings(out) == [("E403", "README.md")]

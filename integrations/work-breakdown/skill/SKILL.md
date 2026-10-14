@@ -11,7 +11,7 @@ Pure *plan*. Assumes the *what* and the *how* are settled: `docs/tech-design/<sl
 
 Every story traces to at least one requirement and at least one design component. Every requirement and every component is covered by at least one story. Reject the plan while either is not true.
 
-Do not reopen design or requirement questions. A gap becomes an open question in the plan and a note for the user to take back to `tech-design-grill` (or, in vault mode, `/planner:challenge`).
+Do not reopen design or requirement questions. A gap becomes an open question in the plan and a note for the user to take back to `tech-design-grill` (or, in vault mode, `/vela:challenge`).
 
 Write the plan to `docs/plan/<slug>-breakdown.md` as stories are agreed. Do not batch.
 

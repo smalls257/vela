@@ -5,7 +5,7 @@ and only through the slot contract (art/slots.json): the page asks resolve.js fo
 or texture.cockpit and never names a file or a provider.
 
 The slot contract, the builtin hand-drawn art and the resolver ship in art/ beside this file, and this is the only
-copy: the gallery reads it from here. Provider art (ComfyUI renders) does not ship: `planner explore --assets
+copy: the gallery reads it from here. Provider art (ComfyUI renders) does not ship: `vela explore --assets
 <assets.config.json>` reads the config and the provider's folder (<provider>/manifest.json and its files) from the
 config's own folder (the gallery's prototypes/gallery/assets is one). Each slot's file is picked the way resolve.js
 does (the provider's when it has one and the file exists, otherwise builtin, with the reason logged, never
@@ -39,7 +39,7 @@ def bundle(today, config_path=None):
     root = DEFAULT_ROOT
     if not (root / "slots.json").exists() or not (root / "resolve.js").exists():
         raise AssetError(f"{root} is missing slots.json or resolve.js, so the builtin art cannot load. "
-                         "Reinstall the planner plugin.")
+                         "Reinstall the vela plugin.")
     if config_path is None:
         provider_root = root
         config = {"provider": "builtin"}

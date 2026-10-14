@@ -154,7 +154,7 @@ def _enum_findings(vault, page, page_type, spec):
     initiative = vault.config.get("initiative")
     if "initiative" in meta and meta["initiative"] != initiative:
         yield _f(page, meta_line(page, "initiative"), "E105",
-                 f"'initiative: {meta['initiative']}' differs from .planner.yaml ({initiative}).",
+                 f"'initiative: {meta['initiative']}' differs from .vela.yaml ({initiative}).",
                  f"Set initiative: {initiative}, or remove the field.")
     if page_type == "session":
         modes = meta.get("modes")
@@ -212,7 +212,7 @@ def duplicate_rules(vault, today):
                  "Give each goal, constraint and source its own ID.")
 
 
-# A History keeps every decision and override; Notes is free text sessions add to; Trace lines are the planner's.
+# A History keeps every decision and override; Notes is free text sessions add to; Trace lines are vela's.
 FACTS_MAY_REPEAT = set(schema.HISTORY_LABELS) | {schema.PENDING_LABEL, "Notes", schema.TRACE_LABEL}
 
 
@@ -615,7 +615,7 @@ STATE_ORDER = ("inkling", "assumption", "fact", "decided")
 def page_state_rules(vault, today):
     """W326: a page whose rows are all further along than the page says. A goals page whose every goal is decided,
     or a constraints page whose every constraint cites its source, still reads inkling until someone types its state,
-    and the page then looks unsettled to every reader and to planner status."""
+    and the page then looks unsettled to every reader and to vela status."""
     for page in vault.pages:
         state = page.meta.get("state")
         if page.type != "initiative-section" or state not in STATE_ORDER:
@@ -717,7 +717,7 @@ def stale_mention_rules(vault, today):
                 seen.add((link.line, m.group(1)))
                 yield _f(page, link.line, "W334", f"This sentence says '{found.group(0)}' of {m.group(1)}, which is resolved: "
                          f"{(items[0].fact('Outcome') or 'see its Outcome')[:120]}",
-                         f"Rewrite the sentence to say what was answered, or run planner query refs {m.group(1)} to find every mention.")
+                         f"Rewrite the sentence to say what was answered, or run vela query refs {m.group(1)} to find every mention.")
 
 
 def reading_load_rules(vault, today):
@@ -812,7 +812,7 @@ def short_of(vault, flow_ids, release):
 def slice_rules(vault, today):
     """The slice pages' own rules (W345, W347, E346, W348, W392 to W394, W396, W397, W400, W405, W406), or W399 once
     while a vault still names its slices on the releases page. Those that need the flow checker's result (W391, W395,
-    E398) run in `planner check` beside it, from the same reader."""
+    E398) run in `vela check` beside it, from the same reader."""
     found = slices.read_slices(vault)
     if not slices.on_pages(vault):
         yield from _slices_still_on_releases(vault, found)
@@ -1028,13 +1028,13 @@ def requirement_coverage_rules(vault, today):
     """W356 and W357. Once a vault has written any requirement, a changing capability left with none leaves the
     explorer's requirement door looking finished; a requirement with no acceptance criteria gives a release no AC to cite."""
     written = allocation.requirements(vault)
-    if vault.apps and written:  # a vault that never ran Requirements is reported by planner next and planner capture
+    if vault.apps and written:  # a vault that never ran Requirements is reported by vela next and vela capture
         have = {r.id.split(".")[0] for r in written}
         for cap in sorted(vault.of_type("capability"), key=lambda p: p.id):
             change = cap.meta.get("change")
             if change in schema.ENUMS["change@capability"] and change != "unchanged" and cap.id not in have:
                 yield _f(cap, meta_line(cap, "change"), "W356", f"{cap.id} is {change} but has no functional requirements.",
-                         "Run /planner:requirements on it, or set change: unchanged if nothing changes.")
+                         "Run /vela:requirements on it, or set change: unchanged if nothing changes.")
     for req in allocation.requirements(vault):
         if releases.criteria_count(req) == 0:
             yield _f(req.page, req.line, "W357", f"{req.id} lists no acceptance criteria, so a release cannot say which it delivers.",
@@ -1226,13 +1226,13 @@ def block_rules(vault, today):
             current = render.normalize(block.content)
             if current and render.block_hash(current) != block.sha:
                 yield _f(page, block.start, "E401", f"Someone edited the '{block.name}' block by hand. The next render would overwrite it.",
-                         "Undo the edit and change the source pages instead, or run planner render --discard-edits.")
+                         "Undo the edit and change the source pages instead, or run vela render --discard-edits.")
                 continue
             if unreadable:
                 continue  # a page the model cannot read would make every staleness verdict a guess
             if current != render.block_content(vault, page, block.name):
                 yield _f(page, block.start, "W402", f"The generated {block.name.replace('-', ' ')} section on this page is out of date.",
-                         "Run planner render to write it again.")
+                         "Run vela render to write it again.")
 
 
 # ----------------------------------------------------------------- freshness
@@ -1318,7 +1318,7 @@ def trace_rules(vault, today):
 
 
 def link_field_rules(vault, today):
-    """E105 for a `links:` map, a **Links:** bullet or an `icon:` planner cannot read. Links are never fetched."""
+    """E105 for a `links:` map, a **Links:** bullet or an `icon:` vela cannot read. Links are never fetched."""
     _, broken = links.templates(vault.config)
     for problem in broken:
         page = next((p for p in vault.pages if p.meta.get(schema.LINKS_FIELD)), None)
@@ -1330,7 +1330,7 @@ def link_field_rules(vault, today):
             continue
         for problem in links.of_page(page, vault.config)[1]:
             yield _f(page, meta_line(page, schema.LINKS_FIELD), "E105", problem[0].upper() + problem[1:] + ".",
-                     "Write each link as Label: https://..., or add a link_templates entry for the label to .planner.yaml.")
+                     "Write each link as Label: https://..., or add a link_templates entry for the label to .vela.yaml.")
         icon = page.meta.get(schema.ICON_FIELD)
         if icon is not None and not (isinstance(icon, str) and schema.ICON_RE.match(icon)):
             yield _f(page, meta_line(page, schema.ICON_FIELD), "E105", f"'icon: {icon}' is not one short lower-case word.",
@@ -1351,7 +1351,7 @@ BARE_LINK_PIPE = re.compile(r"\[\[[^\[\]\n|]*(?<!\\)\|[^\[\]\n]*\]\]")
 
 def link_pipe_rules(vault, today):
     """W329: a [[link|label]] in a table row written with a bare |. Obsidian, GitHub and other Markdown readers take it
-    as a column break and the row falls apart; the planner reads it as the link's, so nothing is lost here."""
+    as a column break and the row falls apart; vela reads it as the link's, so nothing is lost here."""
     for page in vault.pages:
         lines = parse.lines_of(page.text)
         for table in page.tables:

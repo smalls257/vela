@@ -15,13 +15,13 @@ files=()
 # the rules' fixtures) here. A temp file, not a pipe, so a failing filter stops the commit instead of scanning nothing.
 listed=$(mktemp) || exit 1
 trap 'rm -f "$listed"' EXIT
-git diff --cached --name-only --diff-filter=ACMR -z -- '*.py' '*.js' '*.html' plugin/scripts/planner \
+git diff --cached --name-only --diff-filter=ACMR -z -- '*.py' '*.js' '*.html' plugin/scripts/vela \
   | python3 .claude/hooks/gates.py scannable > "$listed" || { echo "pre-commit: could not list the files to check." >&2; exit 1; }
 while IFS= read -r -d '' f || [ -n "$f" ]; do files+=("$f"); done < "$listed"
 [ ${#files[@]} -eq 0 ] && exit 0
 status=0
 py=()
-for f in "${files[@]}"; do case "$f" in *.py|plugin/scripts/planner) py+=("$f");; esac; done
+for f in "${files[@]}"; do case "$f" in *.py|plugin/scripts/vela) py+=("$f");; esac; done
 if [ ${#py[@]} -gt 0 ]; then
   ruff check --no-cache --quiet --select E9,F63,F7,F82,E722,S506 --extend-exclude .semgrep "${py[@]}" || status=1
 fi

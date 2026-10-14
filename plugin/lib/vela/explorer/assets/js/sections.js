@@ -39,7 +39,7 @@ const Sections = (() => {
     main.append(sc);
     const conc = (D.sections.find((x) => x.id === "concerns") || { children: [] }).children;
     const apps = [...new Set(D.cells.map((c) => c.app))].filter((k) => APPS[k]).sort((a, b) => (NODE[a] && NODE[b] ? (NODE[a].col - NODE[b].col) || (NODE[a].row - NODE[b].row) : 0) || cmp(a, b));
-    if (!conc.length || !apps.length) { sc.append(emptyState("No concerns recorded yet.", "No concerns have been recorded for any app yet.", "/planner:boundary")); return; }
+    if (!conc.length || !apps.length) { sc.append(emptyState("No concerns recorded yet.", "No concerns have been recorded for any app yet.", "/vela:boundary")); return; }
     const table = h("table", { class: "cmx" }, h("tr", {}, h("th", { class: "corner" }, "concerns down, apps across"), apps.map((k) => h("th", { class: "col" }, h("a", { "data-ref": k }, h("span", {}, titleOf(k)))))));
     for (const ck of conc) {
       const row = h("tr", { "data-concern": ck }, h("th", { class: "row" }, h("a", { "data-ref": ck }, titleOf(ck))));
@@ -64,7 +64,7 @@ const Sections = (() => {
     main.append(head("Epics", "Each epic with its acceptance criteria and concern markers, the apps it touches and what it delivers."));
     const sc = h("div", { class: "scroll pages" });
     main.append(sc);
-    if (!D.trace.epics.length) { sc.append(emptyState("No epics yet.", "There are no epic pages to show.", "/planner:epics")); return; }
+    if (!D.trace.epics.length) { sc.append(emptyState("No epics yet.", "There are no epic pages to show.", "/vela:epics")); return; }
     const grid = h("div", { class: "epic-grid" });
     for (const x of D.trace.epics) {
       const e = E[x.key], ac = D.epicCriteria[x.key] || [], open = ep.open.has(x.key) || App.focus === x.key || D.trace.epics.length <= 4;

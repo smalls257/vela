@@ -1,4 +1,4 @@
-"""planner export jira-csv: one row per epic, export only, nothing read back."""
+"""vela export jira-csv: one row per epic, export only, nothing read back."""
 import csv
 import io
 import shutil
@@ -22,7 +22,7 @@ def exported(tmp_path, *extra, vault=None):
 def test_one_row_per_epic_with_the_five_columns(tmp_path):
     code, text, rows = exported(tmp_path, "--repo-url", "git@github.com:harborline/unified-booking.git", "--commit", "3f9c2a1")
     assert code == 0, text
-    assert text == f"planner export: wrote 9 epics to {tmp_path / 'epics.csv'}.\n"
+    assert text == f"vela export: wrote 9 epics to {tmp_path / 'epics.csv'}.\n"
     assert rows[0] == ["Summary", "Description", "Epic Name", "Owner team", "Vault link"]
     assert [r[2] for r in rows[1:]] == [f"EPC-0{n}" for n in range(31, 40)]
     summary, description, name, owner, link = rows[1]
@@ -134,7 +134,7 @@ def test_an_epic_that_does_not_parse_is_named_and_the_rest_still_export(tmp_path
     edit(broken, "id: EPC-032\n", "id: [EPC-032\n")
     code, text, rows = exported(tmp_path, vault=vault)
     assert code == 1 and len(rows) == 9
-    assert "Not exported (fix with planner check): 13-epics/EPC-032-ledger-adapter.md" in text
+    assert "Not exported (fix with vela check): 13-epics/EPC-032-ledger-adapter.md" in text
 
 
 def test_credentials_in_a_remote_never_reach_the_file(tmp_path):

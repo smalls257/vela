@@ -6,7 +6,7 @@
 snapshot:
   coastal-merger: after-s2
   holdout-hospitals: after-dump
-opening: "/planner:discover {topics[discover_1]}"
+opening: "/vela:discover {topics[discover_1]}"
 cap: 12
 criteria:
   - check: flagged-share

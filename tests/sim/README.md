@@ -4,7 +4,7 @@ A simulated solution lead runs real multi-turn Claude Code sessions in a scratch
 gets the same persona and the same script. Every run leaves transcripts you can read and a scorecard measured
 against the lead's hidden brief. The design is `docs/design-sessions/08-session-simulator.md`.
 
-It answers one question. When a lead starts from a vague idea, do the planner skills guide them to figure
+It answers one question. When a lead starts from a vague idea, do the vela skills guide them to figure
 things out better than plain Claude Code does?
 
 ## Run it
@@ -25,7 +25,7 @@ python3 tests/sim/run.py coastal-merger --model claude-sonnet-5-5 --persona-mode
 The model IDs are suggestions. Edit them to the IDs you pin. Every model flag and `--budget` is required, and
 none has a default.
 
-- `--arms` defaults to `planner,planner-seuss`. `baseline` runs only when you name it, as `--arms planner,baseline`.
+- `--arms` defaults to `vela,vela-seuss`. `baseline` runs only when you name it, as `--arms vela,baseline`.
 - `--script` takes a name in `scripts/` or a path. `default` runs dump → close → discover → close → shape →
   close → discover → close → shape → close → grill → close.
 - `--stub` swaps `claude` for the scripted fake in `stub/`. It costs nothing, and it is what the tests use.
@@ -47,8 +47,8 @@ run gave the lead.
 
 | Arm | Vault | Plugin | Voice |
 |---|---|---|---|
-| `planner` | `template/`, plugin copied to `.claude/skills/planner` | `--plugin-dir plugin` | the AOSA public seed |
-| `planner-seuss` | the same | `--plugin-dir plugin` | `voices/seuss-style/` in `voice/local/`, public seed retired |
+| `vela` | `template/`, plugin copied to `.claude/skills/vela` | `--plugin-dir plugin` | the AOSA public seed |
+| `vela-seuss` | the same | `--plugin-dir plugin` | `voices/seuss-style/` in `voice/local/`, public seed retired |
 | `baseline` | `template/` with no `.claude/skills` | none | none: the vault's `CONVENTIONS.md` and `CLAUDE.md` only |
 
 ### Exit codes
@@ -58,7 +58,7 @@ run gave the lead.
 - 2: a tool failed. `claude` was missing, its JSON lacked a field, a call errored, the judge's JSON was bad
   twice, or git or the scaffold failed. The run stops at that arm. What was written before the failure stays,
   and `run.json` names the failure. The raw output of every call is in `<arm>/raw/`.
-- 3: every session ran and was scored, but the final vault's Completeness (the line `planner status` prints) is under
+- 3: every session ran and was scored, but the final vault's Completeness (the line `vela status` prints) is under
   the script's `completeness_gate`, so the run does not count. The scorecard's Completeness section names the shares
   that held it back, weakest first. A `--stub` run reports the gate and is never failed by it. 2 outranks 3, and 3
   outranks 1.
@@ -111,8 +111,8 @@ Each run gets `results/<date-time>-<persona>/`:
 | `<arm>/transcript.jsonl` | One line per turn: turn number, session, mode, speaker, text, cost, tool calls (name and a short input), session id. Driver events have no turn number. |
 | `<arm>/vault/` | The final scratch vault, with its own git history. `origin.git` beside it is the bare remote its pushes go to. |
 | `<arm>/vault-git-log.txt` | `git log --oneline --all --decorate` of the final vault. |
-| `<arm>/vault-check.txt` | `planner check` on the final vault, with its exit code. |
-| `<arm>/viewer.html` | `planner view` of the final vault. If the vault does not parse, `viewer-error.txt` says why instead. |
+| `<arm>/vault-check.txt` | `vela check` on the final vault, with its exit code. |
+| `<arm>/viewer.html` | `vela view` of the final vault. If the vault does not parse, `viewer-error.txt` says why instead. |
 | `<arm>/scorecard.json`, `scorecard.md` | The judge's scorecard after the driver checked every citation. |
 | `<arm>/tickets/` | Only for a script with a team `breakdown` session. `tickets.csv` in Jira's CSV import shape and a `README.md` on importing it, made by `tools/breakdown_to_tickets.py` from the breakdown the arm wrote, with no model, so each ticket is one story or task of the breakdown. Lines it could not map are listed as problems in that README. |
 | `<arm>/raw/` | The raw stdout and stderr of every `claude` call, numbered in order. Read these when a run exits 2. |
@@ -187,7 +187,7 @@ Then follow the log with `tail -f`.
   one that conflicts, is not merged, and the transcript says so. Set `merge_prs: false` at the top of a script to
   turn this off; it defaults to `true`.
 - **It retires the seed for the Seuss arm.** CONVENTIONS says a local example never retires a committed seed,
-  so house-voice would read the public seed after the local examples. The scratch vault for `planner-seuss`
+  so house-voice would read the public seed after the local examples. The scratch vault for `vela-seuss`
   starts as if the owner had seeded their voice. The six public-seed examples are set to `retired` in the
   first commit, and the six Seuss-style examples sit in the gitignored `voice/local/`. house-voice reads local
   owner examples first, and two per type is enough, so the Seuss voice is the only voice it reads.
@@ -222,7 +222,7 @@ wrong, rather than producing a quietly wrong score.
 2. **Whether `total_cost_usd` on a `--resume` call is that call's cost or the session's running total.** The
    driver adds them up as per-call costs. If they are running totals, it overcounts and stops early, which is
    the safe direction. Compare the per-turn costs in `transcript.jsonl` after the smoke run.
-3. **The plugin loads, and a slash command passed after `--` runs the skill.** For planner arms, the driver
+3. **The plugin loads, and a slash command passed after `--` runs the skill.** For vela arms, the driver
    checks that the init event's `slash_commands` lists the command and exits 2 if it does not. If the init
    event has no `slash_commands` at all, `run.json` notes "plugin load not verified".
 4. **The budget stop.** The driver treats a result with subtype `error_max_budget_usd` as a budget stop and any
@@ -282,18 +282,18 @@ criteria. The opening may use `{opening}`, `{topics[...]}` and `{first_decision}
 
 | Case | Starts from | Opening | Cap | Passes when |
 |---|---|---|---|---|
-| `discover-implications` | coastal `after-s2`, holdout `after-dump` | `/planner:discover {topics[discover_1]}` | 12 | at least 75% of the `cross-source-mismatch` items FLAGGED; 0 decided without a yes; at most 3 questions in any turn |
-| `dump-sweep` | `empty` | `/planner:dump {opening}` | 12 | at least 3 of legal-regulatory, finance-liability, third-party-contract and unnamed-stakeholder raised first by the assistant; at most 3 questions in any turn; no decisions |
-| `shape-options` | coastal `after-s4`, holdout `after-discover` | `/planner:shape {first_decision}` | 8 | 2 to 4 options, each naming its costs, what it rules out, and a stakeholder or unknown; no decisions |
-| `discover-reviewers` | coastal `after-s4`, holdout `after-discover` | `/planner:discover {topics[discover_2]}`, then `/planner:close` | 14, then 10 | every review checkpoint gives all five focus areas a result and every area ran; every owed copy has a valid disposition; 0 decided without a yes |
+| `discover-implications` | coastal `after-s2`, holdout `after-dump` | `/vela:discover {topics[discover_1]}` | 12 | at least 75% of the `cross-source-mismatch` items FLAGGED; 0 decided without a yes; at most 3 questions in any turn |
+| `dump-sweep` | `empty` | `/vela:dump {opening}` | 12 | at least 3 of legal-regulatory, finance-liability, third-party-contract and unnamed-stakeholder raised first by the assistant; at most 3 questions in any turn; no decisions |
+| `shape-options` | coastal `after-s4`, holdout `after-discover` | `/vela:shape {first_decision}` | 8 | 2 to 4 options, each naming its costs, what it rules out, and a stakeholder or unknown; no decisions |
+| `discover-reviewers` | coastal `after-s4`, holdout `after-discover` | `/vela:discover {topics[discover_2]}`, then `/vela:close` | 14, then 10 | every review checkpoint gives all five focus areas a result and every area ran; every owed copy has a valid disposition; 0 decided without a yes |
 
-A case with `close: <cap>` runs `/planner:close` as a second session after the first, with that cap, and its
+A case with `close: <cap>` runs `/vela:close` as a second session after the first, with that cap, and its
 criteria read the vault after the close. The question ledger is written at close, so a criterion on the ledger
 needs it.
 
 How each criterion is measured:
 
-- **Owed copies disposed.** The current plugin's `planner questions --json` and `planner check` run on the final
+- **Owed copies disposed.** The current plugin's `vela questions --json` and `vela check` run on the final
   vault. It passes when every owed copy of the case's `severity` (`high`, or `any`) has a ledger row whose state is
   not `open`, through its own row, a wildcard or an initiative row, and check flags no ledger row (E801, E802,
   E803). The summary gives counts only.
@@ -331,18 +331,18 @@ How each criterion is measured:
 | Snapshot | What it is |
 |---|---|
 | `coastal-merger/empty` | `template/` as `tests/evals/scaffold.py` builds it for a run, without `.claude/skills` |
-| `coastal-merger/after-s2` | the planner arm of `results/2026-10-05-124823-coastal-merger` after its dump and close: `git archive 4185442` |
+| `coastal-merger/after-s2` | the vela arm of `results/2026-10-05-124823-coastal-merger` after its dump and close: `git archive 4185442` |
 | `coastal-merger/after-s4` | the same run after its first discover and close: `git archive 0ed88c7` |
-| `holdout-hospitals/empty`, `after-dump`, `after-discover` | written by hand as a dump and close, then a discover and close, would leave them; each passes `planner check` with 0 errors |
+| `holdout-hospitals/empty`, `after-dump`, `after-discover` | written by hand as a dump and close, then a discover and close, would leave them; each passes `vela check` with 0 errors |
 
 Each snapshot holds the persona's documents in `.inbox/`, exactly as `run.py` writes them. A vault's `.gitignore`
 ignores `.inbox/`, and git honors that file inside the snapshot too, so they are committed with `git add -f`. A
 probe whose snapshot inbox has drifted from the persona's docs stops with exit 2.
 
 A probe copies the snapshot into its run folder, removes any `.claude/skills` it holds, installs the current
-`plugin/` at `.claude/skills/planner`, and runs `git init`, the first commit, the bare origin and the push as
+`plugin/` at `.claude/skills/vela`, and runs `git init`, the first commit, the bare origin and the push as
 `run.py` does. Assistant calls pass `--plugin-dir plugin` too. So a skill edit takes effect on the next probe,
-and no snapshot can carry an old copy of a skill. `start-check.txt` holds `planner check` on the starting vault.
+and no snapshot can carry an old copy of a skill. `start-check.txt` holds `vela check` on the starting vault.
 
 ### Blind runs and the holdout
 
@@ -401,7 +401,7 @@ turns excluded for U), Check these, one judge call per category with thinking as
 `--rejudge` on a copy of a stub run without an assistant or persona call. It costs nothing.
 
 `tests/test_probe.py` runs `probe.py` against the same stub: the snapshot copy with the current plugin installed
-over the snapshot's, every snapshot passing `planner check` with its persona's inbox, category validation, flag
+over the snapshot's, every snapshot passing `vela check` with its persona's inbox, category validation, flag
 detection (a question, a cue, an unknown, a read-back list counted as listed), decisions pinned to a turn, the
 options and the judge's quotes, blind output holding no ID, keyword or brief text, the holdout always blind, the
 ledger refusing to start, and every exit code. Holdout tests assert on counts only. It costs nothing.

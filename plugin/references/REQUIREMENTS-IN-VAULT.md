@@ -1,8 +1,8 @@
 # requirements-grill in an initiative vault
 
-In a vault, `/planner:requirements` is the way to write a capability's requirements: it runs after the strategy is decided, and `/planner:allocate` then divides them among the apps. This file is for a team that still runs its own `requirements-grill` against a vault; it writes in the same format, so either way the requirements land on the capability page.
+In a vault, `/vela:requirements` is the way to write a capability's requirements: it runs after the strategy is decided, and `/vela:allocate` then divides them among the apps. This file is for a team that still runs its own `requirements-grill` against a vault; it writes in the same format, so either way the requirements land on the capability page.
 
-The user's `requirements-grill` skill reads this file when it runs in a repository with `.planner.yaml` at its root. It keeps its own interview: one question at a time, a recommended answer with each, edge-case scenarios, and keeping to the "what" rather than the "how". This file changes only where the answers go and what certainty they carry.
+The user's `requirements-grill` skill reads this file when it runs in a repository with `.vela.yaml` at its root. It keeps its own interview: one question at a time, a recommended answer with each, edge-case scenarios, and keeping to the "what" rather than the "how". This file changes only where the answers go and what certainty they carry.
 
 ## Scope
 
@@ -41,16 +41,16 @@ An unknown that blocks an FR links the FR's heading:
 - **Blocks:** [[CAP-021-amend-or-cancel#CAP-021.FR2 Partial cancel|CAP-021.FR2]]
 ```
 
-FR numbers are never reused. When the lead drops an FR, never strike its heading through, because that breaks every link to it: run `planner query refs <ID>`, take it out of every row that names it in the same checkpoint, delete it, and keep the reason in the session record as a `→ drop` capture. `/planner:requirements` does the same.
+FR numbers are never reused. When the lead drops an FR, never strike its heading through, because that breaks every link to it: run `vela query refs <ID>`, take it out of every row that names it in the same checkpoint, delete it, and keep the reason in the session record as a `→ drop` capture. `/vela:requirements` does the same.
 
 ## Certainty
 
 - Vault mode is a Shape, not a Grill. It writes at most `assumption`.
 - It never writes `fact`. Requirements state intent.
-- If the user says "decide FR1", say once: "Requirements are recorded as assumptions, so a Grill can test them before anyone builds to them." Offer `/planner:grill CAP-NNN.FRn`. If they still want it decided here, that is an override of `grill`: write it `decided`, with `- **Decision:** [[<session id>]]` and `- **Override:** grill by @<handle> on <today>: <their reason>` under its heading, as `START.md` says. The check then reports W317 instead of E317 for it.
+- If the user says "decide FR1", say once: "Requirements are recorded as assumptions, so a Grill can test them before anyone builds to them." Offer `/vela:grill CAP-NNN.FRn`. If they still want it decided here, that is an override of `grill`: write it `decided`, with `- **Decision:** [[<session id>]]` and `- **Override:** grill by @<handle> on <today>: <their reason>` under its heading, as `START.md` says. The check then reports W317 instead of E317 for it.
 - The check enforces this: a session whose `modes` include only `requirements` cannot be the `**Decision:**` behind a `decided` item.
 - If the capability page is already `decided`, an open unknown that blocks one of its FRs makes the check fail with E316, because the capability was decided before the question was answered. Say so before writing the unknown, and let the user choose: keep the unknown and take the capability back to `assumption` in a Grill, or record the question as not blocking (`**Blocks:** nothing`) with the reason in `**Notes:**`.
 
 ## Completion
 
-When every section has content and every branch is closed or is an unknown, run `${CLAUDE_PLUGIN_ROOT}/references/NEG-AUDIT.md` (the copy the plugin ships; a vendored vault carries it beside this file). Then do not set any `status: complete`. Tell the user: "Run `/planner:close` to mark the captures, check the vault and open the PR."
+When every section has content and every branch is closed or is an unknown, run `${CLAUDE_PLUGIN_ROOT}/references/NEG-AUDIT.md` (the copy the plugin ships; a vendored vault carries it beside this file). Then do not set any `status: complete`. Tell the user: "Run `/vela:close` to mark the captures, check the vault and open the PR."

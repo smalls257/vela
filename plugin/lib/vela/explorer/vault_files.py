@@ -35,7 +35,7 @@ def resolve(vault, url_path):
     if not segments or any(not s or s in (".", "..") or "/" in s or "\\" in s or "\x00" in s for s in segments):
         raise Refused(400, "that is not a path inside the vault")
     if any(s.startswith(".") for s in segments):
-        raise Refused(403, "hidden files and folders (.git, .planner, .claude) are not served")
+        raise Refused(403, "hidden files and folders (.git, .vela, .claude) are not served")
     root = pathlib.Path(vault).resolve()
     target = (root.joinpath(*segments)).resolve()
     if root != target and root not in target.parents:

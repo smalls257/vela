@@ -1,4 +1,4 @@
-"""planner voicecheck: a voice rewrite may change words, never the IDs, numbers, dates,
+"""vela voicecheck: a voice rewrite may change words, never the IDs, numbers, dates,
 wikilinks, code spans or table cells they carry."""
 import pathlib
 import shutil
@@ -190,11 +190,11 @@ def test_two_files(tmp_path):
     before, after = tmp_path / "before.md", tmp_path / "after.md"
     before.write_text(DRAFT, encoding="utf-8")
     after.write_text(DRAFT.replace("It calls", "Booking calls"), encoding="utf-8")
-    assert run("voicecheck", str(before), str(after)) == (0, "planner voicecheck: 1 files compared, 0 with protected tokens changed.\n")
+    assert run("voicecheck", str(before), str(after)) == (0, "vela voicecheck: 1 files compared, 0 with protected tokens changed.\n")
     after.write_text(DRAFT.replace("2026-11-20", "20 November"), encoding="utf-8")
     code, out = run("voicecheck", str(before), str(after))
     assert code == 1
-    assert out.splitlines() == ["planner voicecheck: 1 files compared, 1 with protected tokens changed.",
+    assert out.splitlines() == ["vela voicecheck: 1 files compared, 1 with protected tokens changed.",
                                 f"{after}: missing: 2026-11-20 (date), before line 1", f"{after}: added: 20 (number), after line 1"]
 
 
@@ -219,7 +219,7 @@ def test_range_against_the_working_tree(repo):
     (repo / "page.md").write_text(DRAFT.replace("10 minutes", "ten minutes"), encoding="utf-8")
     code, out = run("voicecheck", "--range", "HEAD", "--vault", str(repo))
     assert code == 1
-    assert out.splitlines() == ["planner voicecheck: 1 files compared, 1 with protected tokens changed.",
+    assert out.splitlines() == ["vela voicecheck: 1 files compared, 1 with protected tokens changed.",
                                 "page.md: missing: 10 minutes (number), before line 1"]
 
 
@@ -244,7 +244,7 @@ def test_range_reads_non_ascii_and_spaced_names(repo):
     (repo / "with space.md").write_text("Hold ten minutes.\n", encoding="utf-8")
     code, out = run("voicecheck", "--range", "HEAD", "--vault", str(repo))
     assert code == 1
-    assert out.splitlines() == ["planner voicecheck: 2 files compared, 2 with protected tokens changed.",
+    assert out.splitlines() == ["vela voicecheck: 2 files compared, 2 with protected tokens changed.",
                                 "café.md: missing: 10 minutes (number), before line 1",
                                 "with space.md: missing: 10 minutes (number), before line 1"]
 
@@ -258,7 +258,7 @@ def test_range_compares_a_renamed_file_with_its_old_self(repo):
     commit_all(repo, "rename and rewrite")
     code, out = run("voicecheck", "--range", "HEAD~1..HEAD", "--vault", str(repo))
     assert code == 1
-    assert out.splitlines() == ["planner voicecheck: 1 files compared, 1 with protected tokens changed.",
+    assert out.splitlines() == ["vela voicecheck: 1 files compared, 1 with protected tokens changed.",
                                 "renamed.md: missing: 10 minutes (number), before line 1"]
 
 
@@ -268,7 +268,7 @@ def test_range_counts_a_new_and_a_deleted_file(repo):
     commit_all(repo, "add and remove")
     code, out = run("voicecheck", "--range", "HEAD~1..HEAD", "--vault", str(repo))
     assert code == 1 and "new.md: added: 5 (number), after line 1" in out
-    assert out.splitlines()[0] == "planner voicecheck: 2 files compared, 2 with protected tokens changed."  # a deleted file loses its "Nothing"
+    assert out.splitlines()[0] == "vela voicecheck: 2 files compared, 2 with protected tokens changed."  # a deleted file loses its "Nothing"
 
 
 def test_show_tells_a_missing_path_from_a_git_failure(repo):

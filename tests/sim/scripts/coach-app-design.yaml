@@ -691,23 +691,23 @@ sessions:
   cap: 18
   repo: coach
   persona: coach-lead
-  planner: '/requirements-grill coach. The requirements come from the initiative vault at ../vault, not from a docs/requirements
-    file: read ../vault/.claude/skills/planner/references/REQUIREMENTS-IN-VAULT.md first, then the pages it names for APP-coach.'
+  vela: '/requirements-grill coach. The requirements come from the initiative vault at ../vault, not from a docs/requirements
+    file: read ../vault/.claude/skills/vela/references/REQUIREMENTS-IN-VAULT.md first, then the pages it names for APP-coach.'
   baseline: '/requirements-grill coach. The requirements come from the initiative vault at ../vault, not from a docs/requirements
-    file: read ../vault/.claude/skills/planner/references/REQUIREMENTS-IN-VAULT.md first, then the pages it names for APP-coach.'
+    file: read ../vault/.claude/skills/vela/references/REQUIREMENTS-IN-VAULT.md first, then the pages it names for APP-coach.'
 - mode: tech-design-grill
   cap: 26
   repo: coach
   persona: coach-lead
-  planner: '/tech-design-grill coach. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
+  vela: '/tech-design-grill coach. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/vela/references/TECH-DESIGN-FROM-VAULT.md
     first, with --vault ../vault --app APP-coach, and read docs/requirements/coach.md.'
-  baseline: '/tech-design-grill coach. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/planner/references/TECH-DESIGN-FROM-VAULT.md
+  baseline: '/tech-design-grill coach. The app was handed off from the initiative vault at ../vault: read ../vault/.claude/skills/vela/references/TECH-DESIGN-FROM-VAULT.md
     first, with --vault ../vault --app APP-coach, and read docs/requirements/coach.md.'
 - mode: breakdown
   cap: 12
   repo: coach
   persona: coach-lead
-  planner: 'Break the Coach design into a work plan in docs/plan/coach-breakdown.md. For each epic in ../vault/13-epics that
+  vela: 'Break the Coach design into a work plan in docs/plan/coach-breakdown.md. For each epic in ../vault/13-epics that
     lists APP-coach: the stories it needs, each with acceptance criteria traced to the epic''s criteria (EPC-nnn.ACn) and
     to the design''s components in docs/tech-design/coach.md, and the tasks under each story with a size of S, M or L. End
     with the order to build in and what blocks what. Write it as a document a team lead can plan from.'

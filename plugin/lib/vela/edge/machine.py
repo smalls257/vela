@@ -1,4 +1,4 @@
-"""The facts planner doctor reports: this Python, the YAML reader it loaded, and the programs on the PATH.
+"""The facts vela doctor reports: this Python, the YAML reader it loaded, and the programs on the PATH.
 
 Periphery (Buffer): doctor.py decides what each fact means; this only looks. A program that is on the PATH but
 will not answer `--version` within the timeout counts as not installed, with no guess at a version.
@@ -30,20 +30,20 @@ def survey():
                             if importlib.util.find_spec(module) is None))
 
 
-VENDORED = ".claude/skills/planner/scripts/planner"
-RUNNING = LIB.parent / "scripts" / "planner"  # the launcher of the planner running doctor
+VENDORED = ".claude/skills/vela/scripts/vela"
+RUNNING = LIB.parent / "scripts" / "vela"  # the launcher of the vela running doctor
 
 
 def hook_facts(root, environ=None, home=None):
     """doctor.Hook for the vault at `root`, or None when it is not a vault in git."""
     environ = os.environ if environ is None else environ
     root = pathlib.Path(root)
-    if not (root / ".planner.yaml").is_file() or git_config(root, "--git-dir") is None:
+    if not (root / ".vela.yaml").is_file() or git_config(root, "--git-dir") is None:
         return None
     hooks = git_config(root, "core.hooksPath") or ""
     on = bool(hooks) and (root / hooks).resolve() == (root / ".githooks").resolve()
     return doctor.Hook(hook_file=(root / ".githooks" / "pre-commit").is_file(), hooks_on=on,
-                       env_vela=environ.get("PLANNER", ""), config_path=git_config(root, "planner.path") or "",
+                       env_vela=environ.get("VELA", ""), config_path=git_config(root, "vela.path") or "",
                        vendored=str(root / VENDORED), launcher=installed_launcher(environ, home))
 
 
@@ -58,8 +58,8 @@ def git_config(root, key):
 
 
 def installed_launcher(environ=None, home=None):
-    """The planner launcher Claude Code installed from a marketplace (its plugin registry,
-    <config dir>/plugins/installed_plugins.json, entry planner@<marketplace>), else the launcher running doctor."""
+    """The vela launcher Claude Code installed from a marketplace (its plugin registry,
+    <config dir>/plugins/installed_plugins.json, entry vela@<marketplace>), else the launcher running doctor."""
     environ = os.environ if environ is None else environ
     config = pathlib.Path(environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path(home or pathlib.Path.home()) / ".claude")
     try:
@@ -68,17 +68,17 @@ def installed_launcher(environ=None, home=None):
         registry = {}
     plugins = registry.get("plugins") if isinstance(registry, dict) else None
     for name, installs in sorted((plugins or {}).items()):
-        if not name.startswith("planner@") or not isinstance(installs, list):
+        if not name.startswith("vela@") or not isinstance(installs, list):
             continue
         for install in installs:
-            path = pathlib.Path(str((install or {}).get("installPath", ""))) / "scripts" / "planner"
+            path = pathlib.Path(str((install or {}).get("installPath", ""))) / "scripts" / "vela"
             if (install or {}).get("installPath") and path.is_file():
                 return str(path)
     return str(RUNNING) if RUNNING.is_file() else ""
 
 
 def node_path():
-    """The node the diagram check would use, PLANNER_NODE included, or None."""
+    """The node the diagram check would use, VELA_NODE included, or None."""
     try:
         return mermaidjs.find_node()
     except mermaidjs.Unavailable:

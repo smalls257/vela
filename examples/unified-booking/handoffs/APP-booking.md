@@ -5,7 +5,7 @@
 - **Written:** 2026-11-20
 - **Items:** 18
 
-Written by `planner handoff APP-booking`. Do not edit it by hand. `planner handoff verify APP-booking` lists what changed since the senior accepted this app.
+Written by `vela handoff APP-booking`. Do not edit it by hand. `vela handoff verify APP-booking` lists what changed since the senior accepted this app.
 
 | ID | Kind | Page | State | Hash |
 |---|---|---|---|---|

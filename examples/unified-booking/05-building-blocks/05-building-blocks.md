@@ -16,7 +16,7 @@ Each application in scope has two pages: its building blocks and contracts (§5)
 
 ## Who owns what, and how they relate
 
-<!-- generated:context-map sha=6c4ce130: do not edit, run planner render -->
+<!-- generated:context-map sha=6c4ce130: do not edit, run vela render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]

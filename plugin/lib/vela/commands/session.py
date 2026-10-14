@@ -1,9 +1,9 @@
-"""`planner session`: the session's own lifecycle commands (CLI/skill overhaul, Task 6). Task 6a builds `open`;
+"""`vela session`: the session's own lifecycle commands (CLI/skill overhaul, Task 6). Task 6a builds `open`;
 Task 6b adds `start` and `brief` to the same group here.
 
 `session open [--switch] [--id ID]` finds the open session record and the branch it sits on, so close and START no
 longer run a git recipe by hand. The rules (why two records share a branch, why origin's branches count) are in
-`planner/sessions.py`; the reads in `planner/edge/sessiongit.py`. Exit codes:
+`vela/sessions.py`; the reads in `vela/edge/sessiongit.py`. Exit codes:
 
 0  exactly one open record (with `--switch`, now on its branch);
 1  none open: "No session is open." (close then takes its no-session path), or `--id` names no open record;
@@ -126,6 +126,6 @@ def switch_to(result, record, root, reader):
 
 def git_failed(why):
     return say.Result(NAME, exit=say.FAILED, lines=[
-        say.Line(f"planner: {why}", plain="Git couldn't read the session branches, so I can't tell which session is "
+        say.Line(f"vela: {why}", plain="Git couldn't read the session branches, so I can't tell which session is "
                                           "open.")])
 

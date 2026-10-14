@@ -168,7 +168,7 @@ const Asks = (() => {
     const wrap = h("div", { class: "board-wrap", id: "asks-wrap" }, h("div", { class: "strip-board", id: "strip-board", html: list.map(bayHtml).join("") }));
     main.append(wrap, tray());
     renderTray();
-    if (!D.asks.length) wrap.append(emptyState("This plan has no open questions yet.", "Nobody is waiting to be asked anything.", "/planner:grill"));
+    if (!D.asks.length) wrap.append(emptyState("This plan has no open questions yet.", "Nobody is waiting to be asked anything.", "/vela:grill"));
     const tex = Assets.texture("strip-board");
     if (tex) wrap.style.setProperty("--texture", `url("${tex}")`);
   }
@@ -192,8 +192,8 @@ const Asks = (() => {
       h("div", { class: "tray-actions" }, h("button", { class: "btn", onclick: copy, title: "Copy the changes as lines to paste into the plan" }, "Copy the changes as text"), h("button", { class: "btn", onclick: () => { marks = fresh(); save(); repaint(); toast("Undid every change on the board."); } }, "Undo all")));
     return box;
   }
-  /* The lines a change proposes. Who to ask is the planner's own **Ask:** field; the rest are session notes, because
-     the planner has no field for "critical" or "asked in a meeting" (yet). */
+  /* The lines a change proposes. Who to ask is vela's own **Ask:** field; the rest are session notes, because
+     vela has no field for "critical" or "asked in a meeting" (yet). */
   function trayLines() {
     const out = [];
     for (const [id, key] of Object.entries(marks.moved)) { const u = U(id); if (u) out.push({ text: `<code>${id}</code> add <code>- **Ask:** ${esc(key)}</code> <span class="muted">(${u.ask.inferred ? "was a guess" : "the record said"}: ${esc(u.ask.name)})</span>`, raw: `${id}: - **Ask:** ${key}` }); }

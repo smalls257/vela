@@ -64,7 +64,7 @@ Four weeks after cutover the FERRYMASTER screen adapter is removed, and FERRYMAS
 
 ## Traces to
 
-<!-- generated:traces-to sha=92566812: do not edit, run planner render -->
+<!-- generated:traces-to sha=92566812: do not edit, run vela render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[website-building-blocks\|Public website]], [[booking-building-blocks\|Booking]] |

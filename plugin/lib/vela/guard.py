@@ -4,8 +4,8 @@ Two Violations shape this module.
 
 **Silent Fallback (hooks as the only gate).** If a hook were the only thing between `.inbox/` and a commit, a hook that
 did not fire (Cowork, a clone without `core.hooksPath`) would look exactly like one that passed. So the rule lives
-here, and the CLI applies it first: `planner close stage` never stages a forbidden path, and `planner guard staged`
-(the vault's pre-commit hook) and `planner guard path` (later Claude Code hooks) only catch earlier what the CLI
+here, and the CLI applies it first: `vela close stage` never stages a forbidden path, and `vela guard staged`
+(the vault's pre-commit hook) and `vela guard path` (later Claude Code hooks) only catch earlier what the CLI
 already refuses.
 
 **Paper Tiger (a deny-list of `git add` spellings).** Blocking `git add -A`, `.` and `--all` passes its own test and
@@ -22,20 +22,20 @@ so `.Inbox/` is `.inbox/`), matching the template's `.gitignore`:
   saved.
 - `voice/corpus/` is reading material the voice is learned from, often other people's writing; it never leaves the
   machine and never enters a draft.
-- `.planner/` is the tool's working state on this machine (a reader's workspace stamp, replay backups, review packets,
-  the session marker). The one exception is `.planner/explorer-pins.json`, the explorer's pinned layout, which the
+- `.vela/` is the tool's working state on this machine (a reader's workspace stamp, replay backups, review packets,
+  the session marker). The one exception is `.vela/explorer-pins.json`, the explorer's pinned layout, which the
   team shares on purpose.
 
 Staged by a close (the allow-list):
 
 - **Changed vault pages**: every Markdown file the vault parses as a page (the caller passes them, as
-  `cli.page_kind` decides). `planner render` only ever rewrites vault pages, so render's files are always inside this
+  `cli.page_kind` decides). `vela render` only ever rewrites vault pages, so render's files are always inside this
   rule; `close stage --paths-from-render` adds the proof that they are render's latest output, which is why a page
   left out of the commit used to fail CI's render check.
 - **The open session record** `sessions/<id>.md`. Another session's record is left out: a close files one session,
   and a change to another record is someone else's work.
 - **Harvested voice examples** under `voice/examples/`, which the owner agreed to share when they were saved.
-- **The pins file** `.planner/explorer-pins.json`, **`.planner.yaml`** (the initiative's settings) and
+- **The pins file** `.vela/explorer-pins.json`, **`.vela.yaml`** (the initiative's settings) and
   **`sources.md`**.
 
 Left out on purpose, though they belong to the vault:
@@ -50,8 +50,8 @@ Left out on purpose, though they belong to the vault:
 import posixpath
 from dataclasses import dataclass
 
-PINS = ".planner/explorer-pins.json"
-SETTINGS = (".planner.yaml", "sources.md")
+PINS = ".vela/explorer-pins.json"
+SETTINGS = (".vela.yaml", "sources.md")
 EXAMPLES = "voice/examples/"
 SESSIONS = "sessions/"
 
@@ -70,8 +70,8 @@ VOICE_LOCAL = Rule("voice-local", "Your private voice examples stay on this mach
                    "Nothing to do; never stage `voice/local/`.")
 VOICE_CORPUS = Rule("voice-corpus", "The writing the voice learns from stays on this machine; I've left it out.",
                     "Nothing to do; never stage `voice/corpus/`.")
-TOOL_STATE = Rule("tool-state", "The planner's own working files stay on this machine; I've left them out.",
-                  "Nothing to do; only `.planner/explorer-pins.json` is shared from `.planner/`.")
+TOOL_STATE = Rule("tool-state", "Vela's own working files stay on this machine; I've left them out.",
+                  "Nothing to do; only `.vela/explorer-pins.json` is shared from `.vela/`.")
 RULES = (INBOX, VOICE_LOCAL, VOICE_CORPUS, TOOL_STATE)
 
 # Why an allowed-looking file is still left out. Every other leftover gets OTHER.
@@ -108,7 +108,7 @@ def never_rule(path):
         return VOICE_LOCAL
     if folded.startswith("voice/corpus/"):
         return VOICE_CORPUS
-    if folded.startswith(".planner/") and folded != PINS:
+    if folded.startswith(".vela/") and folded != PINS:
         return TOOL_STATE
     return None
 
