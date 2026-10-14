@@ -695,7 +695,7 @@ LEDGER_FLAGS = re.compile(r": (E801|E802|E803) ")
 
 
 def vela_output(vault, *argv):
-    """The output of the current plugin's vela on the final vault. A tool failure (exit 2) stops the probe."""
+    """What the current plugin's `vela` prints for the final vault. A tool failure (exit 2) stops the probe."""
     done = subprocess.run([sys.executable, str(sim.VELA), *argv, "--vault", str(vault)], capture_output=True, text=True, timeout=120)
     if done.returncode == 2:
         raise ToolFailure(f"vela {argv[0]} failed on the final vault: {done.stdout.strip().splitlines()[:1]}")
@@ -811,7 +811,7 @@ def drafted_messages(run, criterion):
 
 @check("merge-scoped")
 def merge_scoped(run, criterion):
-    """Every vela findings merge the session ran names --changed, so a new question can only be about what this
+    """Every `vela findings merge` the session ran names --changed, so a new question can only be about what this
     session changed. A session that merged nothing fails: its checkpoint never ran."""
     merges = [(e["turn"], str(t.get("input", ""))) for e in run.transcript.entries if e.get("speaker") == "assistant"
               for t in e.get("tool_calls") or [] if "findings merge" in str(t.get("input", ""))]

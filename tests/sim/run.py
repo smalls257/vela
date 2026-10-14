@@ -2026,7 +2026,7 @@ def score_arm(arm):
 
 
 # A drafted message opens with an email subject line or a salutation, often inside a blockquote or a code block.
-# "- **Subject:** SV-01" is a vela bullet, not a message, so a list item never counts.
+# "- **Subject:** SV-01" is a bullet vela writes, not a message, so a list item never counts.
 DRAFTED_MESSAGE = re.compile(r"^(?:>\s*)*(?:\*\*)?Subject:(?:\*\*)?\s|^(?:>\s*)*(?:Hi|Hello|Dear)\s+[^\n,]{1,40},\s*$", re.M)
 
 

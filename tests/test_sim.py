@@ -500,6 +500,32 @@ def test_rejudge_scores_a_finished_run_again_without_replaying_it(full_run, tmp_
     assert "keyword hits" in (run_dir / "compare.html").read_text(encoding="utf-8")
 
 
+def test_a_run_recorded_before_the_rename_rejudges_and_compares_as_it_is(full_run, tmp_path):
+    """Runs recorded before the rename keep their old arm folder. --rejudge reads arm names from run.json and never
+    checks them against ARMS, so such a run is scored again as it is; the comparison pairs it with today's arm."""
+    import shutil
+    spec_c = importlib.util.spec_from_file_location("sim_compare", SIM / "compare.py")
+    compare = importlib.util.module_from_spec(spec_c)
+    spec_c.loader.exec_module(compare)
+    old_name = {new: old for old, new in compare.LEGACY_NAMES.items()}["vela"]
+    run_dir = tmp_path / "old-run"
+    shutil.copytree(full_run["run"], run_dir, symlinks=True)
+    (run_dir / "vela").rename(run_dir / old_name)
+    summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    summary["arms"] = [old_name if a == "vela" else a for a in summary["arms"]]
+    summary["per_arm"] = {old_name if a == "vela" else a: v for a, v in summary["per_arm"].items()}
+    (run_dir / "run.json").write_text(json.dumps(summary), encoding="utf-8")
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "--rejudge", str(run_dir), "--stub",
+                           "--judge-model", "other-judge", "--budget", "1"],
+                          capture_output=True, text=True, timeout=600)
+    assert done.returncode == 0, done.stderr
+    card = json.loads((run_dir / old_name / "scorecard.json").read_text(encoding="utf-8"))
+    assert card["rejudged"] and card["arm"] == old_name
+    result = compare.compare(run_dir, full_run["run"])
+    assert set(result["pairs"]) == {"vela", "vela-seuss", "baseline"} and result["pairs"]["vela"]["old"]["stored_as"] == old_name
+    assert result["pairs"]["vela"]["old"]["lead_facing"] == result["pairs"]["vela"]["new"]["lead_facing"]
+
+
 def test_rejudge_refuses_an_empty_transcript_and_flags_it_does_not_need(tmp_path):
     empty = tmp_path / "transcript.jsonl"
     empty.write_text("", encoding="utf-8")
