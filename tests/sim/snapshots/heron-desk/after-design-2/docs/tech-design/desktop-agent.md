@@ -185,7 +185,7 @@ sequenceDiagram
   P->>V: switch Heron off
   V->>R: withdraw()
   R->>L: write withdrawal to outbox
-  R->>S: stop; cancel reads and requests in flight
+  R->>S: stop, then cancel reads and requests in flight
   R->>L: purgeAll (notes, delta token)
   V-->>P: not yet recorded, still sending
   loop until confirmed (CON-004)

@@ -402,6 +402,8 @@ CODES = {
     "E601": "flowchart over its element budget",
     "E602": "sequence diagram over its participant budget",
     "E603": "diagram type not supported",
+    "E604": "diagram does not parse in mermaid, so it does not draw",
+    "W604": "diagrams not checked: no mermaid parser could run",
     "W704": "page not verified within stale_after_days",
     "W705": "unknown is past its ask-by date",
     "W711": "no session closed in the last 30 days",
