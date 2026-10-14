@@ -239,3 +239,4 @@ g.hit[data-movable] { cursor: grab; touch-action: none; }
 .layout-say { color: var(--ink-2, inherit); font-weight: 500; }
 .cockpit .drop-mark { stroke: var(--focus); stroke-width: 4; stroke-linecap: round; }
 .cockpit .cluster[data-movable] .cluster-frame, g.cluster-lamp[data-movable] { cursor: grab; }
+button.cell > span { max-width: calc(100% - 6px); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
