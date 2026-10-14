@@ -23,9 +23,15 @@ def run(*argv):
     return code, out.getvalue()
 
 
-def findings(output):
-    """[(code, path)] for every finding line in check output."""
-    return [(m["code"], m["path"]) for m in map(FINDING.match, output.splitlines()) if m]
+# Findings about the example's own content that no rule under test is about: its decided items record no Why yet
+# (design 20: the example carries no reasons in the lead's words, and none are invented for it).
+OPEN_IN_THE_EXAMPLE = ("W390",)
+
+
+def findings(output, keep_open=False):
+    """[(code, path)] for every finding line in check output, except those the example leaves open on purpose."""
+    found = [(m["code"], m["path"]) for m in map(FINDING.match, output.splitlines()) if m]
+    return found if keep_open else [f for f in found if f[0] not in OPEN_IN_THE_EXAMPLE]
 
 
 def edit(path, old, new):

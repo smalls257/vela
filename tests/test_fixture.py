@@ -43,8 +43,10 @@ def test_fixture_is_clean_and_fast():
                              "--vault", str(FIXTURE), "--today", TODAY], capture_output=True, text=True, timeout=120)
     elapsed = time.perf_counter() - started
     assert result.returncode == 0, result.stdout
-    assert result.stdout.startswith("planner check: 0 errors, 0 warnings in ")
+    assert result.stdout.startswith("planner check: 0 errors, ")
     assert findings(result.stdout) == []
+    # what the example leaves open on purpose is its decided items' Why, which it carries for none (conftest.OPEN_IN_THE_EXAMPLE)
+    assert all(code == "W390" for code, _ in findings(result.stdout, keep_open=True))
     assert elapsed < 1.0, f"check took {elapsed:.2f} s"
 
 

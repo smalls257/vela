@@ -445,6 +445,26 @@ def deferral_rules(vault, today):
                      "Write it as an unknown with an owner and an ask-by date, link it from this paragraph, and let the Grill answer it.")
 
 
+def why_rules(vault, today):
+    """W390: a decided item whose reasons are not written down. The Grill asks the lead why while the reason is freshest;
+    an item decided without the answer is Forensic Coding for whoever reopens it, so the warning names the item. A decision
+    record is the why itself and is left alone. Pages and their rows share the page-level bullet, so each page warns once."""
+    seen = set()
+    for unit, page, line, _ in decided_units(vault):
+        item = vault.item(unit) if schema.ITEM_ID_RE.match(unit) else None
+        if item is not None and item.page is page:
+            has_why = bool(item.fact(schema.WHY_LABEL))
+        elif page.type == "decision" or page.path in seen:
+            continue
+        else:
+            seen.add(page.path)
+            has_why = bool(page.page_bullets(schema.WHY_LABEL))
+        if not has_why:
+            yield _f(page, line, "W390", f"{unit} is decided and records no reason: the lead's own words on why are not written down.",
+                     f"Add '- **{schema.WHY_LABEL}:** <the lead's words>' under the item's heading, or under its entry in History "
+                     "(directly under History for a page).")
+
+
 # ------------------------------------------------------------ unknowns, risks
 
 def unknown_rules(vault, today):
@@ -1193,5 +1213,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)

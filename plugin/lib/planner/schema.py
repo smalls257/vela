@@ -145,6 +145,7 @@ def expected_basename(page_type, page_id):
 # ------------------------------------------------------------- fact bullets
 
 CONTRACT_REQUIRED = ("Crosses the boundary", "Consumers", "Change policy", "Change", "State")
+WHY_LABEL = "Why"  # the lead's own reasons for a decision, written by the Grill that made it
 OPTIONS_LABEL = "Options considered"  # what Shape recorded: the picked option, and each rejected one with its reason
 # The user's word over a rule, and a decision made on an absent owner's behalf. Allowed on any item or page.
 OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL = "Override", "Decided by", "Confirmed by"
@@ -153,7 +154,7 @@ OVERRIDE_LABELS = (OVERRIDE_LABEL, DECIDED_BY_LABEL, CONFIRMED_BY_LABEL)
 PENDING_LABEL = "Pending approval"
 # Auth, Can time out and Retries are what a stub and a flow check read beside the case table (cases.py).
 CONTRACT_BEHAVIOUR_LABELS = ("Auth", "Can time out", "Retries")
-CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", "Dissent", OPTIONS_LABEL, LINKS_LABEL, PENDING_LABEL) \
+CONTRACT_OPTIONAL = ("Provider", "Tested by", "Source", "Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, LINKS_LABEL, PENDING_LABEL) \
     + CONTRACT_BEHAVIOUR_LABELS + OVERRIDE_LABELS
 CONTRACT_STATES = ("inkling", "assumption", "fact", "decided")
 CONTRACT_CHANGES = ("new", "changed", "new consumers", "unchanged")
@@ -172,7 +173,7 @@ RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
 # Target is a release's date and Owning team an epic's receiving team; both are read or required, so style must not
 # call them prose.
-PAGE_LABELS = ("Decision", "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team", "Tracer", "Not in the tracer") + OVERRIDE_LABELS
+PAGE_LABELS = ("Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team", "Tracer", "Not in the tracer") + OVERRIDE_LABELS
 
 # `- Trace: CAP-001.FR1, CON-001` under a criterion or bullet holds the IDs its sentence no longer shows. The planner
 # reads it, so `planner style` must never call it prose, and close must never delete it.
@@ -224,7 +225,7 @@ ALLOCATION_HEADER = ("Requirement", "Share", "Through", "State")
 # A page's history sits at its end under this heading, so the page opens with what is true now. "#### <ID>" under
 # it holds an item's history. HISTORY_LABELS are the bullets that belong there.
 HISTORY_HEADING = "History"
-HISTORY_LABELS = ("Decision", "Override", "Decided by", "Confirmed by", "Options considered", "Dissent")
+HISTORY_LABELS = ("Decision", WHY_LABEL, "Override", "Decided by", "Confirmed by", "Options considered", "Dissent")
 # The line a Boundary writes under a stub app page's title; planner next sends such a page back to Boundary.
 BOUNDARY_STUB_LINE = "Its boundary sheet is still to be read back."
 CONTAINER_STATES = ("assumption", "confirmed", "unchanged", "retired")
@@ -348,6 +349,7 @@ CODES = {
     "W386": "an app at handoff has an item in its slice that is not decided",
     "W387": "an app at handoff calls a provider nobody has designed",
     "W389": "prose leaves a matter for a Grill with no open question linked",
+    "W390": "decided item records no Why",
     "W388": "a handoff manifest pins a commit this repository does not have, or cannot be read",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",

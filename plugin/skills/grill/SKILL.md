@@ -85,6 +85,7 @@ When an item's branch closes, write it at once, before the next question:
 
 - Set its state to `decided`: the page's `state:` field, or the contract's `**State:**` bullet. A Grill on an app page also takes its `## Requirements allocated` rows: read each row back as part of the app's agenda, as `CAP-nnn.FRn@APP-<slug>`, and set each row the user confirms to `decided` in its State cell. The page's `**Decision:**` answers for them, as it does for goal rows.
 - Add `- **Decision:** [[<session id>]]` under the page's `## History`: directly under it for the page, under `#### <ID>` for a contract.
+- Ask the lead why, once, in a sentence of your own that names the item: "Why this one, in your words?" Write the answer word for word as `- **Why:** <the lead's words>` beside the Decision bullet. Do not tidy it, do not supply a reason they did not give, and do not accept your own recommendation as theirs: if they say "as you suggested", ask what in it persuaded them. A reason they decline to give is not written, and the check keeps warning, which is the honest record. If the decision shapes the whole design (the strategy, an app, a flow), also offer a decision record: say it is optional, and on a yes write a stub `09-decisions/ADR-nnnn-<slug>.md` (`planner next-id ADR`) with `state: proposed` and the Why as its Context, which close fills in.
 - For a contract, record where the provider stands as well as each consumer, as a capture: present, async with channel and date, asked in the PR, or "not consulted: <reason>".
 - If anyone disagrees, add `- **Dissent:** <name>, <date>: <reason>`. The item can still be decided.
 - If the user overrode a gate for it, add the `**Override:**` bullet, and `**Decided by:**` when the owner is not the user, as section 2 says.
@@ -96,7 +97,7 @@ A functional requirement is a `### CAP-nnn.FRn <what the capability does>` headi
 
 A release is a `## <name>` section on `04b-releases.md`, with no ID. A Grill decides it by setting that section's `**State:**` to `decided` and adding `- **Decision:** [[<session id>]]` directly under the page's `## History`. Without that Decision, check reports E303 on the release's heading.
 
-Write fact bullets and table cells only. Prose waits for close. Any `- Trace:` line on an item or a criterion is the planner's: leave it exactly as it is.
+Write fact bullets (the Why among them) and table cells only. Prose waits for close. Any `- Trace:` line on an item or a criterion is the planner's: leave it exactly as it is.
 
 ## 5. A new unknown mid-grill
 
