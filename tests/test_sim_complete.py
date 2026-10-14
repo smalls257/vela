@@ -68,3 +68,123 @@ def test_the_scorecard_reads_the_completeness_line_planner_status_prints_for_the
     md = "\n".join(sim.render_completeness({"completeness": found,
                                             "completeness_gate": sim.completeness_verdict(found, arm.completeness_gate)}))
     assert "## Completeness" in md and "Gate 80%: FAIL" in md and "held back by open questions answered" in md
+
+
+SCRIPT = SIM / "scripts" / "heron-desk-complete.yaml"
+SNAPSHOT_RUNS = ("after-full-1", "after-handoff-1", "after-design-2")
+
+
+def complete_script():
+    return yaml.safe_load(SCRIPT.read_text(encoding="utf-8"))
+
+
+def persona(name):
+    return yaml.safe_load((SIM / "personas" / f"{name}.yaml").read_text(encoding="utf-8"))
+
+
+def snapshot_unknowns():
+    found = set()
+    for run in SNAPSHOT_RUNS:
+        page = SIM / "snapshots" / "heron-desk" / run / "11-unknowns-and-risks.md"
+        found |= set(re.findall(r"^### (UNK-\d+ .+?)\s*$", page.read_text(encoding="utf-8"), re.M))
+    return found
+
+
+def news_facts(script):
+    items = list((script.get("news") or {}).get("knows") or [])
+    for event in script.get("events") or []:
+        items += event.get("knows") or []
+    return {k["id"]: k for k in items}
+
+
+def test_every_outsider_answer_is_in_a_persona_news():
+    """Every open unknown of the earlier Heron runs has an answer in some persona's facts, with the fact's owner, and
+    every outsider who answers is one a session brings in. An answer nobody holds would have to be invented."""
+    script = complete_script()
+    table = {row["unknown"]: row["by"] for row in script["answers"]}
+    missing = sorted(snapshot_unknowns() - set(table))
+    assert not missing, f"unknowns with no answer in the table: {missing}"
+    brought_in = {s["persona"] for s in script["sessions"] if s.get("persona")}
+    news = news_facts(script)
+    for unknown, refs in table.items():
+        assert refs, unknown
+        for ref in refs:
+            source, item_id = ref.split(":")
+            if source == "news":
+                fact = news.get(item_id)
+            else:
+                assert source == "heron-desk" or source in brought_in, f"{unknown}: {source} is never brought into a session"
+                fact = next((k for k in persona(source)["knows"] if k["id"] == item_id), None)
+            assert fact and fact.get("owner"), f"{unknown}: {ref} is not a fact with an owner"
+
+
+def test_the_outsiders_cannot_hand_over_the_leads_gaps_or_correct_its_beliefs():
+    lead = persona("heron-desk")
+    guarded = [k for kind in ("unaware", "wrong") for item in lead[kind] for k in item["keywords"]]
+    for name in {s["persona"] for s in complete_script()["sessions"] if s.get("persona")} - {"heron-agent-lead"}:
+        outsider = persona(name)
+        assert outsider.get("outsider") is True and sim.persona_problems(outsider) == [], name
+        for fact in outsider["knows"]:
+            assert fact.get("owner"), (name, fact["id"])
+            assert not sim.mentions(fact["fact"], guarded), (name, fact["id"], sim.mentions(fact["fact"], guarded))
+
+
+def test_the_script_brings_each_outsider_in_and_keeps_vela_unchanged():
+    script = complete_script()
+    named = [s["persona"] for s in script["sessions"] if s.get("persona")]
+    for outsider in ("heron-ciso", "heron-dpo", "heron-legal", "heron-identity", "heron-vendor", "heron-pilot-lead",
+                     "heron-works-council"):
+        assert outsider in named
+    assert script["completeness_gate"] == 80 and script["start"] == "heron-desk/empty"
+    vela = yaml.safe_load((SIM / "scripts" / "heron-desk-vela.yaml").read_text(encoding="utf-8"))
+    assert "completeness_gate" not in vela
+    assert {s.get("persona") for s in vela["sessions"]} <= {None, "heron-agent-lead"}
+    assert sim.script_problems(script, persona("heron-desk")) == []
+
+
+def test_a_session_naming_a_persona_that_is_not_there_is_refused_before_any_call():
+    script = {"sessions": [{"mode": "grill", "cap": 2, "persona": "heron-nobody", "planner": "/planner:grill x",
+                            "baseline": "Take me through x."}]}
+    assert any("heron-nobody" in p for p in sim.script_problems(script, persona("heron-desk")))
+
+
+@pytest.fixture(scope="module")
+def complete_run(tmp_path_factory):
+    tmp = tmp_path_factory.mktemp("complete")
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(SCRIPT),
+                           "--arms", "planner", "--out", str(tmp / "results"), *MODELS, "--budget", "20"],
+                          capture_output=True, text=True, timeout=1800)
+    return done, sorted((tmp / "results").iterdir())[0] / "planner"
+
+
+def test_the_stub_run_passes_with_every_outsider_session(complete_run):
+    done, arm = complete_run
+    assert done.returncode == 0, done.stderr[-3000:]
+    rows = [json.loads(line) for line in (arm / "transcript.jsonl").read_text(encoding="utf-8").splitlines()]
+    spoke = {r.get("persona") for r in rows if r.get("speaker") == "lead" and r.get("persona")}
+    assert {s["persona"] for s in complete_script()["sessions"] if s.get("persona")} <= spoke
+    endings = json.loads((arm.parent / "run.json").read_text(encoding="utf-8"))["per_arm"]["planner"]["endings"]
+    assert len(endings) == len(complete_script()["sessions"]) and all(e["reason"] == "persona-end" for e in endings)
+
+
+def test_the_stub_scorecard_reports_completeness_and_the_gate_it_does_not_enforce(complete_run):
+    _, arm = complete_run
+    card = json.loads((arm / "scorecard.json").read_text(encoding="utf-8"))
+    assert "error" not in card["completeness"], card["completeness"]
+    verdict = card["completeness_gate"]
+    assert verdict["gate"] == 80 and verdict["enforced"] is False and verdict["fails_run"] is False
+    md = (arm / "scorecard.md").read_text(encoding="utf-8")
+    assert "## Completeness" in md and card["completeness"]["line"] in md
+
+
+def test_the_invented_facts_judge_reads_what_each_outsider_could_say(complete_run):
+    _, arm = complete_run
+    transcript = sim.Transcript.load(arm / "transcript.jsonl")
+    script = complete_script()
+    lead = sim.final_brief(persona("heron-desk"), script)
+    outsiders = list(sim.outsiders_of(script).values())
+    hits = sim.vault_hits(lead, transcript, arm / "vault")
+    shape, _ = sim.build_judge_input(lead, transcript, arm / "vault", "shape", hits, outsiders=outsiders)
+    assert "Helen Achterberg" in shape and "only review" in shape and "K55" in shape
+    knows, _ = sim.build_judge_input(lead, transcript, arm / "vault", "knows", hits, outsiders=outsiders)
+    assert "Helen Achterberg" not in knows, "only the whole-brief call reads the outsiders; the K list is the lead's own"

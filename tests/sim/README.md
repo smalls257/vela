@@ -41,7 +41,9 @@ It reads each arm's `transcript.jsonl` and `vault/`, and the persona, models and
 rewrites `scorecard.json`, `scorecard.md` and `compare.html`, writes what it cost to `rejudge.json`, and never
 writes the transcript, the vault or `run.json`. New raw judge files are numbered after the run's own. It takes no
 persona, `--model`, `--persona-model`, `--script` or `--arms`, because the run already fixed them. It exits 0 when
-every arm was scored and 2 on a tool failure, such as a transcript with no turns.
+every arm was scored, 2 on a tool failure, such as a transcript with no turns, and 3 when a final vault is under the
+script's completeness gate. It reads the script `run.json` names, so the judge reads the same news and outsiders the
+run gave the lead.
 
 | Arm | Vault | Plugin | Voice |
 |---|---|---|---|
@@ -56,6 +58,15 @@ every arm was scored and 2 on a tool failure, such as a transcript with no turns
 - 2: a tool failed. `claude` was missing, its JSON lacked a field, a call errored, the judge's JSON was bad
   twice, or git or the scaffold failed. The run stops at that arm. What was written before the failure stays,
   and `run.json` names the failure. The raw output of every call is in `<arm>/raw/`.
+- 3: every session ran and was scored, but the final vault's Completeness (the line `planner status` prints) is under
+  the script's `completeness_gate`, so the run does not count. The scorecard's Completeness section names the shares
+  that held it back, weakest first. A `--stub` run reports the gate and is never failed by it. 2 outranks 3, and 3
+  outranks 1.
+
+A session's `persona:` names the person who speaks in it instead of the lead: a team's senior, or an outsider the
+lead brings in (`outsider: true`, such as `heron-dpo`), who answers only what is theirs. Every session persona is
+checked before the first call. The judge's invented-facts call reads each outsider's facts, so what an outsider said
+in the room is given, not invented.
 
 ## Cost
 

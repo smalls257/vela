@@ -1,0 +1,685 @@
+# Heron from an empty vault to a near-complete plan (Task 29 of docs/plans/2026-10-14-cli-skill-overhaul.md). It is
+# heron-desk-vela's run, which stays unchanged for the baseline and the mid-point runs, with what that run lacked to
+# settle its plan: the people who hold the answers, and the sessions that decide.
+#
+# Sessions 1 to 16 are vela's lead sessions, dump to releases, with shorter closes. Then the lead brings seven
+# outsiders in, one session each, the way a real lead books half an hour with each owner: the CISO, the DPO, legal
+# counsel, the identity team lead, Microsoft's account contact, the pilot team lead and the works council's rep
+# (tests/sim/personas/heron-<outsider>.yaml, named by each session's `persona:`). Each speaks for themselves and holds
+# only the answers that are theirs. Then the deciding sessions: a sweep that resolves the unknowns the answers settle,
+# a grill per app (its page, runtime and contracts to decided), a boundary that writes every slice's case tables and
+# draws each flow strictly with planner check-slice, a grill over what check-slice still reports and the tracer, a pass
+# over the unexamined concern cells, and one over the standard questions and unwritten pages. Last come vela's epics,
+# handoff and the Desk Agent team's design, breakdown and tickets.
+#
+# Every answer comes from some persona's facts, each with its owner: the lead's news (vela's K16 to K34, plus what comes
+# back after the releases, K35 to K54: the CIO's ruling, the product owner's dates, the endpoint lead's rings), two
+# written rulings that reach the lead after the DPO's and Legal's sessions and lift the lead's refusals on D2 and D6,
+# and the outsiders' own facts. `answers:` below maps every open unknown of the earlier Heron runs to the facts that
+# answer it. The judge reads the outsiders' facts, so a fact one gave in the room is not counted as invented, and it
+# still fails any fact nobody gave. Completeness is earned, not planted.
+#
+# The scorecard reads `planner status` on the final vault: its Completeness line, with the shares that held it back.
+# `completeness_gate: 80` fails the run (exit 3) below 80%, the user's gate; the sessions aim at about 100%. A --stub run
+# reports the gate and is never failed by it, since no model wrote its vault. The capture checks are vela's.
+#
+# Cost, for a Sonnet assistant at about $0.30 an assistant turn and a Haiku lead at about $0.02: the caps allow 612
+# assistant turns over 54 sessions; sessions usually end by themselves at about 60% of the cap, so about 367 turns,
+# $110 plus $7 of lead turns, against $117 of session spend: a budget of about $140 (less 15% for the judge). That is
+# over the $80 U3 names. At $80 ($68 of sessions) the run stops in the first deciding sessions, about session 33, with
+# the outsiders heard and little decided, so it would fail its own gate: run it at $140 or not at all. Every cap
+# reached would need about $230. This costs money to run; tests/test_sim_complete.py runs it with --stub for nothing.
+name: heron-desk-complete
+persona: heron-desk
+capture:
+  release_date: '2027-02-02'
+  ask: DPO
+news:
+  knows:
+  - id: K16
+    category: legal-regulatory
+    keywords:
+    - review slot
+    - 4 December
+    fact: 'The CISO booked a security review slot for the week of 16 November 2026, with the outcome due on 4 December. The
+      pack must be submitted by 10 November, and no meeting text may leave a laptop until it passes.'
+    owner: CISO
+  - id: K17
+    category: legal-regulatory
+    keywords:
+    - only people in the meeting
+    - no sentiment
+    fact: 'The DPO answered on 7 October: a digest may name only people who were in the meeting, never people merely mentioned,
+      and it may carry no remark about anyone''s mood, tone or performance. This is the DPO''s answer, not the product owner''s.'
+    owner: DPO
+  - id: K18
+    category: timeline
+    keywords:
+    - pilot starts
+    - 1 June
+    fact: 'The pilot starts on Tuesday 2 February 2027 for the 60 people in Client Delivery London. General availability is
+      1 June 2027 for everyone except Frankfurt, if the review of the pilot on 15 April 2027 passes.'
+    owner: CIO
+  - id: K19
+    category: fact
+    keywords:
+    - we call these areas
+    - Capture, Insight and Trust
+    fact: At Marlowe the areas of the work are called Capture, Insight and Trust. Everything that runs on the laptop and reads
+      sources is Capture, everything that works out and delivers what matters is Insight, and consent, identity and admin
+      are Trust. Nobody says Compliance.
+    owner: CIO
+  - id: K20
+    category: fact
+    keywords:
+    - '@pilot-lead'
+    - from client calls
+    fact: 'The pilot team lead is Sam Hadley, @pilot-lead. Sam says about 70 percent of the team''s actions come out of client
+      calls, and that the team would use Heron only if it worked on those.'
+    owner: Pilot team lead
+  - id: K21
+    category: fact
+    keywords:
+    - packaging slot
+    - 18 January
+    fact: The IT endpoint lead, @endpoint-lead, says anything installed goes through Intune or Jamf. He will not allow a download
+      from a website. His first packaging slot is 18 January 2027, for both platforms.
+    owner: IT endpoint lead
+  - id: K22
+    category: legal-regulatory
+    keywords:
+    - December meeting
+    - data list
+    fact: The works council rep, @works-council, said on 5 October that the council will take Heron at its December meeting
+      and will not agree before it has read the full list of data Heron reads. Frankfurt is out of the pilot.
+    owner: Works council rep
+  - id: K23
+    category: finance-liability
+    keywords:
+    - GA review
+    - 15 April
+    fact: The CFO released money only to the end of June 2027. The GA review on 15 April 2027 decides whether the rest of the
+      1.4 million is released.
+    owner: CFO
+  - id: K24
+    category: fact
+    keywords:
+    - three weeks
+    - app registration request
+    fact: The identity team needs an app registration request three weeks ahead, and will not raise it until the security
+      review has passed. The tenant admin approval is theirs to give.
+    owner: Identity team lead
+  - id: K25
+    category: third-party-contract
+    keywords:
+    - Voxwell
+    - shortlisted
+    fact: Procurement has shortlisted Voxwell as the transcription vendor for any meeting without a Teams transcript. Nothing
+      is signed, and Voxwell's test report has been asked for.
+    owner: Procurement lead
+  - id: K26
+    category: third-party-contract
+    keywords:
+    - Corvid
+    - zero retention
+    fact: Procurement is negotiating with Corvid Models as the language model provider. Their offer includes processing in
+      the EU and zero retention, with a 12-month commitment. Nothing is signed, and the product owner is testing on their
+      sandbox.
+    owner: Procurement lead
+  - id: K27
+    category: fact
+    keywords:
+    - '7:30'
+    - prep note
+    fact: The product owner, @product-owner, wants the digest at 7:30 local time each weekday and a prep note ten minutes before
+      each meeting.
+    owner: Product owner
+  - id: K28
+    category: fact
+    keywords:
+    - accessibility lead
+    - 22 January
+    fact: The accessibility lead requires the agent window and the digest to pass WCAG 2.2 AA with NVDA, JAWS and VoiceOver
+      before the pilot, with sign-off by 22 January 2027.
+    owner: Accessibility lead
+  - id: K29
+    category: legal-regulatory
+    keywords:
+    - engagement letters
+    - client record
+    fact: Whether a summary of a client call is a client record under the firm's engagement letters is a question only Legal,
+      @legal-counsel, can answer. The lead has not asked and does not know.
+    owner: Legal counsel
+  - id: K30
+    category: fact
+    keywords:
+    - '@agent-lead'
+    - Desk Agent team
+    fact: 'The CTO''s office named the Desk Agent team lead on 9 October: @agent-lead, with four engineers. They will take
+      the desktop agent at handoff and own its runtime, its support and its epics.'
+    owner: CTO
+  - id: K31
+    category: fact
+    keywords:
+    - queues locally
+    - last digest
+    fact: The product owner and the CISO agreed that offline the agent queues what it has read locally, shows the last digest
+      with its age, never invents an item, and catches up when the laptop is back online.
+    owner: Product owner
+  - id: K32
+    category: fact
+    keywords:
+    - owe someone
+    - three working days
+    fact: 'The pilot team lead''s test for "important": I owe someone something, or someone is waiting on me, or a date falls
+      inside three working days.'
+    owner: Pilot team lead
+  - id: K33
+    category: fact
+    keywords:
+    - rated useful
+    - three wrong items
+    fact: The product owner's target is that 80 percent of surfaced items are rated useful by pilot users. The pilot team lead
+      says more than three wrong items in a day and her team stop reading.
+    owner: Product owner
+  - id: K34
+    category: fact
+    keywords:
+    - owns the admin console
+    - audit log
+    fact: The service desk owns the admin console. It shows who has opted in and which sources, and an audit log of changes,
+      but no per-person content and no usage figures.
+    owner: IT endpoint lead
+  docs:
+  - name: dpo-answer.md
+    text: '# From the DPO, 7 October
+
+
+      A digest may name only people who were in the meeting. It may not name people who were merely mentioned, and it may
+      carry no remark about anyone''s mood, tone or performance. The rest of my view waits for the impact assessment.'
+  - name: ciso-review-booking.md
+    text: '# From the CISO, 6 October
+
+
+      Security review booked for the week of 16 November, outcome due 4 December. Submit the pack by 10 November. Until it
+      passes, no meeting text leaves a laptop.'
+  - name: works-council-note.md
+    text: '# From the works council rep, 5 October
+
+
+      The council will take Heron at its December meeting. We will not agree before we have read the full list of data
+      Heron reads. Frankfurt stays out of the pilot.'
+start: heron-desk/empty
+completeness_gate: 80
+events:
+# What comes back to the lead once the releases are written: the rulings, dates and answers a real lead would have
+# chased by then from the CIO, the product owner, the endpoint lead and the CTO. Each fact names its owner.
+- after: 16
+  knows:
+  - id: K35
+    category: legal-regulatory
+    keywords:
+    - steering group
+    - release two question
+    fact: 'The CIO ruled at the steering group on 13 October: release one keeps all meeting text on the laptop, as the CISO
+      requires. Cloud summarization of redacted text is a release two question, open only if the DPO clears it and the CISO
+      reviews it as a new step. The CIO settles this call as budget holder, and has settled it.'
+    owner: CIO
+  - id: K36
+    category: stakeholder-conflict
+    keywords:
+    - copied the CIO
+    - read it before
+    fact: The CISO's note of 6 October was copied to the CIO the same day, and the CIO read it before the steering group.
+    owner: CIO
+  - id: K37
+    category: fact
+    keywords:
+    - five pilot laptops
+    - 90 seconds
+    fact: 'The product owner ran the on-device trial on 12 October on five pilot laptops, 8 GB and no GPU: the small model
+      wrote a digest in about 90 seconds and a prep note in about 40. Sam''s team rated 6 in 10 items useful, against the
+      8 in 10 target. That trial and the staff survey are the only research there is; there is no design yet.'
+    owner: Product owner
+  - id: K38
+    category: fact
+    keywords:
+    - no pop-ups
+    - never records audio
+    fact: The CIO told the lead on 13 October that "quietly" means Heron reads in the background with no pop-ups or prompts
+      during meetings, and never records audio.
+    owner: CIO
+  - id: K39
+    category: stakeholder-conflict
+    keywords:
+    - for the person alone
+    - firm-wide totals
+    fact: The CIO agreed on 13 October that the digest is for the person alone. Adoption is reported to the executive
+      committee only as firm-wide totals of people who switched Heron on, never by team or by person.
+    owner: CIO
+  - id: K42
+    category: unnamed-stakeholder
+    keywords:
+    - who has a say
+    - procurement lead
+    fact: 'Who has a say in Heron: the CIO (sponsor and budget), the product owner, the CISO, the DPO, legal counsel, the
+      Frankfurt works council, the identity team lead, the IT endpoint lead, the pilot team lead, the accessibility lead,
+      the procurement lead, the CFO and the Desk Agent team lead. The CIO holds the meaning of the mandate.'
+    owner: CIO
+  - id: K43
+    category: fact
+    keywords:
+    - July 2026 offsite
+    - asked the CIO
+    fact: The executive committee asked the CIO for Heron at its July 2026 offsite, after the staff survey on missed
+      follow-ups.
+    owner: CIO
+  - id: K44
+    category: fact
+    keywords:
+    - first open
+    - overnight
+    fact: The endpoint lead says the two minutes are the person's own. Intune or Jamf installs Heron overnight, and on first
+      open the person signs in and picks their sources in under two minutes.
+    owner: IT endpoint lead
+  - id: K45
+    category: legal-regulatory
+    keywords:
+    - 27 November
+    - no team dashboard
+    fact: 'The product owner agreed on 13 October to write the full list of data Heron reads, stand behind it to the works
+      council and the DPO, and send it by 27 November. Release one reads calendar entries (subject, time, attendees and
+      their responses) and Teams transcripts that already exist, and nothing else: no mail, no documents and no team
+      dashboard.'
+    owner: Product owner
+  - id: K46
+    category: fact
+    keywords:
+    - Windows-only pilot
+    - both in the pilot
+    fact: The product owner wants Mac and Windows both in the pilot, and will not run a Windows-only pilot.
+    owner: Product owner
+  - id: K47
+    category: fact
+    keywords:
+    - four minutes
+    - without a summary
+    fact: The product owner says a prep note must be on screen ten minutes before the meeting. If the summary has not come
+      back four minutes after it was asked for, the agent shows the calendar-only note marked as without a summary, and
+      drops the summary if it comes later.
+    owner: Product owner
+  - id: K48
+    category: fact
+    keywords:
+    - not a hard time
+    - marked late
+    fact: The product owner says 7:30 is a target, not a hard time. A digest held until the person's first login and marked
+      late is fine, and after 12:00 the product owner wants no digest, only the day's items.
+    owner: Product owner
+  - id: K50
+    category: fact
+    keywords:
+    - technology leadership channel
+    - pinned
+    fact: The CTO named @agent-lead in a note in the technology leadership channel in Teams on 9 October, and it is pinned
+      there.
+    owner: CTO
+  - id: K51
+    category: fact
+    keywords:
+    - two rings
+    - pulled back
+    fact: The endpoint lead rolls Heron out in two rings, five pilot users from 2 February and the other 55 from 9 February.
+      A ring can be pulled back within an hour, and every update goes the same way.
+    owner: IT endpoint lead
+  - id: K52
+    category: finance-liability
+    keywords:
+    - nothing per use
+    - 200,000
+    fact: The CFO's condition is that release one spends nothing per use. Model and transcription spend start only with
+      release two, capped at 200,000 pounds a year.
+    owner: CFO
+  - id: K53
+    category: fact
+    keywords:
+    - second line
+    - on call
+    fact: The CTO says the Desk Agent team is second line for the agent during UK hours, behind the service desk. Nobody is
+      on call at night for the pilot.
+    owner: CTO
+  - id: K54
+    category: fact
+    keywords:
+    - owns the summary model
+    - laptop side
+    fact: The CTO says @agent-lead's team owns everything on the laptop side, including the summary model, and the identity
+      team owns Consent and identity.
+    owner: CTO
+# The DPO's ruling, given in the session the lead brought her into, reaches the lead's own notes, so the lead now
+# decides where the text is read.
+- after: 20
+  knows:
+  - id: K55
+    category: legal-regulatory
+    keywords:
+    - DPO put in writing
+    - names taken out
+    fact: The DPO put in writing, in the session the lead brought her into, that release one runs on the laptop so no cloud
+      question arises, and that cloud summarization of redacted text in release two is acceptable once the names of people
+      who were not in the meeting are taken out before it leaves.
+    owner: DPO
+  decisions:
+  - id: D2
+    refuse_until: ''
+# Legal's written answer on the records policy, from the session with legal counsel.
+- after: 22
+  knows:
+  - id: K56
+    category: legal-regulatory
+    keywords:
+    - Legal answered in writing
+    - working notes
+    fact: Legal answered in writing, in the session the lead brought legal counsel into, that 30 days for items and 14 for
+      digests fit the records policy for working notes, and that the agent stops deleting for anyone a preservation notice
+      names until it is lifted.
+    owner: Legal counsel
+  decisions:
+  - id: D6
+    refuse_until: ''
+# Which persona's facts answer each open unknown two earlier Heron runs left: the snapshots after-full-1 and
+# after-handoff-1 (UNK-001 to 028), after-design-2 (UNK-051 to 076), and the review vault of 14 October (UNK-077 and
+# 078). `news:K..` is a fact in this script's news or events, `heron-desk:K..` one the lead held from the start, and
+# `heron-<outsider>:K..` one an outsider holds and tells the assistant in the session that brings them in. A paid run
+# mints its own unknowns, so this is the evidence the brief can answer what a Heron run asks, not a list the run is
+# held to. tests/test_sim_complete.py checks every snapshot unknown is here and every answer is a real fact.
+answers:
+- {unknown: UNK-001 Quietly watches, seen_in: after-full-1, by: [news:K38]}
+- {unknown: UNK-002 Two-minute setup, seen_in: after-full-1, by: [news:K44, news:K21]}
+- {unknown: UNK-003 Who the morning note is for, seen_in: after-full-1, by: [news:K39]}
+- {unknown: UNK-004 Stakeholders, seen_in: after-full-1, by: [news:K42]}
+- {unknown: UNK-005 Who asked the CIO, seen_in: after-full-1, by: [news:K43]}
+- {unknown: UNK-006 What data Heron reads, seen_in: after-full-1, by: [news:K45]}
+- {unknown: UNK-007 CISO security pack requirements, seen_in: after-full-1, by: [heron-ciso:K3, heron-ciso:K2]}
+- {unknown: UNK-008 Call tools in use, seen_in: after-full-1, by: [heron-pilot-lead:K2]}
+- {unknown: UNK-009 Basis of the 70 percent figure, seen_in: after-full-1, by: [heron-pilot-lead:K1]}
+- {unknown: UNK-010 Who owns Heron, seen_in: after-full-1, by: [heron-desk:K41, heron-desk:K40, news:K30, news:K54]}
+- {unknown: UNK-011 IT packaging, seen_in: after-full-1, by: [news:K21]}
+- {unknown: UNK-012 Where Heron processes text, seen_in: after-full-1, by: [news:K35]}
+- {unknown: UNK-013 Registration or sign-in, seen_in: after-full-1, by: [heron-identity:K1]}
+- {unknown: UNK-014 Works councils and Heron, seen_in: after-full-1, by: [heron-works-council:K1, heron-works-council:K3]}
+- {unknown: UNK-015 Review timing, seen_in: after-full-1, by: [heron-ciso:K1]}
+- {unknown: UNK-016 Who holds the Microsoft agreement, seen_in: after-full-1, by: [heron-vendor:K1]}
+- {unknown: UNK-017 Client Zoom transcripts and engagement letters, seen_in: after-full-1, by: [heron-legal:K2, heron-legal:K6, heron-vendor:K6]}
+- {unknown: UNK-018 Filtering Frankfurt staff's data, seen_in: after-full-1, by: [heron-dpo:K7, heron-identity:K7, heron-ciso:K7]}
+- {unknown: UNK-019 Daily folder habit, seen_in: after-full-1, by: [heron-pilot-lead:K5]}
+- {unknown: UNK-020 Calendar read and the device line, seen_in: after-full-1, by: [heron-ciso:K4]}
+- {unknown: UNK-021 How a client call is marked, seen_in: after-full-1, by: [heron-pilot-lead:K4]}
+- {unknown: UNK-022 How an earlier call is matched to the same client, seen_in: after-full-1, by: [heron-pilot-lead:K4]}
+- {unknown: UNK-023 Invitees and the DPO rule, seen_in: after-full-1, by: [heron-dpo:K3]}
+- {unknown: UNK-024 DPO rule across the whole note, seen_in: after-full-1, by: [heron-dpo:K4]}
+- {unknown: UNK-025 Reusing call records and client names, seen_in: after-full-1, by: [heron-dpo:K2, heron-dpo:K5, heron-legal:K5]}
+- {unknown: UNK-026 Whether the calendar entry carries an attendee's organization, seen_in: after-full-1, by: [heron-vendor:K3]}
+- {unknown: UNK-027 Pilot laptops and the note on time, seen_in: after-full-1, by: [news:K37, heron-desk:K10, news:K53, heron-pilot-lead:K8]}
+- {unknown: UNK-028 Where the CTO named @agent-lead, seen_in: after-full-1, by: [news:K50]}
+- {unknown: UNK-051 Text call, seen_in: after-design-2, by: [news:K35]}
+- {unknown: UNK-052 CISO line reaching the CIO, seen_in: after-design-2, by: [news:K36]}
+- {unknown: UNK-053 Install or push, seen_in: after-design-2, by: [heron-desk:K4, news:K21, news:K44]}
+- {unknown: UNK-054 Mac in the first release, seen_in: after-design-2, by: [news:K46, heron-pilot-lead:K7]}
+- {unknown: UNK-055 Frankfurt in Client Delivery, seen_in: after-design-2, by: [heron-pilot-lead:K3]}
+- {unknown: UNK-056 On-device model quality, seen_in: after-design-2, by: [news:K37]}
+- {unknown: UNK-057 Full list of data Heron reads, seen_in: after-design-2, by: [news:K45, heron-works-council:K2, heron-works-council:K3, heron-legal:K3]}
+- {unknown: UNK-058 Security review pack, seen_in: after-design-2, by: [heron-ciso:K1, heron-ciso:K2]}
+- {unknown: UNK-059 Transcripts and admin approval, seen_in: after-design-2, by: [heron-identity:K1, heron-vendor:K4]}
+- {unknown: UNK-060 Impact assessment, seen_in: after-design-2, by: [heron-dpo:K1]}
+- {unknown: UNK-061 Who settles the lock, seen_in: after-design-2, by: [news:K35]}
+- {unknown: 'UNK-062 Design, research and trial', seen_in: after-design-2, by: [news:K37]}
+- {unknown: UNK-063 Heron on Zoom, seen_in: after-design-2, by: [heron-pilot-lead:K2, heron-vendor:K4, heron-legal:K6]}
+- {unknown: UNK-064 Digest as client record, seen_in: after-design-2, by: [heron-legal:K1]}
+- {unknown: UNK-065 Client Delivery told what Heron surfaces, seen_in: after-design-2, by: [heron-pilot-lead:K6]}
+- {unknown: UNK-066 Consent sees what agent read, seen_in: after-design-2, by: [heron-dpo:K6, heron-works-council:K4]}
+- {unknown: UNK-067 How slow is too slow, seen_in: after-design-2, by: [news:K47]}
+- {unknown: UNK-068 Who builds Consent and identity, seen_in: after-design-2, by: [heron-identity:K4, news:K54]}
+- {unknown: UNK-069 When the registration request goes in, seen_in: after-design-2, by: [heron-identity:K2]}
+- {unknown: UNK-070 Who stands behind the data list, seen_in: after-design-2, by: [news:K45]}
+- {unknown: UNK-071 Lawful basis for each source, seen_in: after-design-2, by: [heron-dpo:K2]}
+- {unknown: UNK-072 How many organizers turn transcripts on, seen_in: after-design-2, by: [heron-identity:K6]}
+- {unknown: UNK-073 Digest held until first login, seen_in: after-design-2, by: [news:K48]}
+- {unknown: UNK-074 Accepted invitees and the digest, seen_in: after-design-2, by: [heron-dpo:K3]}
+- {unknown: UNK-075 Acceptance in the calendar read, seen_in: after-design-2, by: [heron-vendor:K3]}
+- {unknown: UNK-076 Council vote on the pilot, seen_in: after-design-2, by: [heron-works-council:K1]}
+- {unknown: UNK-077 Retrying a withdrawal, seen_in: review vault 2026-10-14, by: [heron-identity:K5]}
+- {unknown: UNK-078 What the registration request carries, seen_in: review vault 2026-10-14, by: [heron-identity:K3]}
+sessions:
+# The lead's first pass, as heron-desk-vela runs it, with shorter closes.
+- mode: dump
+  cap: 16
+  planner: '/planner:dump {opening}'
+  baseline: 'I have a new initiative and nothing written down yet. Let us dump everything we know about it into this vault, following CONVENTIONS.md. {opening}'
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: discover
+  cap: 16
+  planner: '/planner:discover {topics[discover_1]}'
+  baseline: 'Find out {topics[discover_1]} from the documents in .inbox/ and record what is really there. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: shape
+  cap: 18
+  planner: '/planner:shape {topics[shape_1]}'
+  baseline: 'Shape {topics[shape_1]}. Give me options to react to, following CONVENTIONS.md.'
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: boundary
+  cap: 20
+  planner: '/planner:boundary {topics[boundary]}: the domains, who sends each step of the flows, the links between the apps, and the case table of each contract'
+  baseline: 'Draw the boundary for {topics[boundary]}: the apps, their domains, who sends each flow step and the contracts between them. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 22
+  planner: '/planner:grill {topics[grill]}'
+  baseline: 'Take me through {topics[grill]} and record what I decide. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: requirements
+  cap: 20
+  planner: '/planner:requirements {topics[requirements]}'
+  baseline: 'Write the functional requirements for {topics[requirements]}. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: allocate
+  cap: 16
+  planner: /planner:allocate every requirement
+  baseline: Divide every requirement among the apps and contracts that carry it. Follow CONVENTIONS.md.
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: releases
+  cap: 14
+  planner: /planner:releases
+  baseline: Write the releases, each with its date and the requirements it delivers. Follow CONVENTIONS.md.
+- mode: close
+  cap: 8
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+# The lead brings each outsider in, as a real lead books half an hour with each owner: the outsider speaks in the
+# session (its own persona) and answers only what is theirs. Each session's close is the lead's.
+- mode: grill
+  cap: 12
+  persona: heron-ciso
+  planner: '/planner:grill {topics[grill]}. {opening}'
+  baseline: 'Take me through {topics[grill]} and record what I rule. Follow CONVENTIONS.md. {opening}'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 12
+  persona: heron-dpo
+  planner: '/planner:grill {topics[grill]}. {opening}'
+  baseline: 'Take me through {topics[grill]} and record what I rule. Follow CONVENTIONS.md. {opening}'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 12
+  persona: heron-legal
+  planner: '/planner:grill {topics[grill]}. {opening}'
+  baseline: 'Take me through {topics[grill]} and record what I rule. Follow CONVENTIONS.md. {opening}'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 12
+  persona: heron-identity
+  planner: '/planner:grill {topics[grill]}. {opening}'
+  baseline: 'Take me through {topics[grill]} and record what I answer. Follow CONVENTIONS.md. {opening}'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 10
+  persona: heron-vendor
+  planner: '/planner:grill {topics[grill]}. {opening}'
+  baseline: 'Take me through {topics[grill]} and record what I answer. Follow CONVENTIONS.md. {opening}'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 10
+  persona: heron-pilot-lead
+  planner: '/planner:grill {topics[grill]}. {opening}'
+  baseline: 'Take me through {topics[grill]} and record what I answer. Follow CONVENTIONS.md. {opening}'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 10
+  persona: heron-works-council
+  planner: '/planner:grill {topics[grill]}. {opening}'
+  baseline: 'Take me through {topics[grill]} and record what the council has agreed. Follow CONVENTIONS.md. {opening}'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+# The deciding sessions: the lead settles what the answers now allow, app by app, then every slice strictly, then the
+# concern cells and the standard questions nobody has dealt with.
+- mode: grill
+  cap: 16
+  planner: '/planner:grill every open question in 11-unknowns-and-risks.md that an answer now in the vault, or one I can give, settles: each one resolved with its outcome and where the answer came from, and who would know for any still open'
+  baseline: 'Go through every open question in 11-unknowns-and-risks.md and settle each one an answer now in the vault, or one I can give, settles; say who would know for the rest. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 18
+  planner: '/planner:grill the app that runs on the laptop, page by page: its app page, its runtime page and every contract it provides, each to decided where I say yes'
+  baseline: 'Take me through the app that runs on the laptop, its runtime and every contract it provides, and record each one I decide. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 18
+  planner: '/planner:grill the app that holds consent and the Microsoft grants, page by page: its app page, its runtime page and every contract it provides, each to decided where I say yes'
+  baseline: 'Take me through the app that holds consent and the Microsoft grants, its runtime and every contract it provides, and record each one I decide. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 18
+  planner: '/planner:grill every other app in 05-building-blocks that is not decided yet, page by page: its app page, its runtime page and every contract it provides, each to decided where I say yes'
+  baseline: 'Take me through every other app that is not decided yet, its runtime and every contract it provides, and record each one I decide. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: boundary
+  cap: 20
+  planner: '/planner:boundary every slice in slices/, strictly: for each flow a slice runs, the case table of every contract it crosses confirmed row by row, the flow drawn as the strict sequence diagram, and planner check-slice run on it until it reports nothing I have not settled'
+  baseline: 'For every slice in slices/, confirm the case table of each contract its flows cross, draw each flow as a strict sequence diagram, and check that each slice runs end to end with no dead ends. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 16
+  planner: '/planner:grill what planner check-slice still reports for each slice, and the tracer slice SLC-001, the first thin path through the apps, end to end'
+  baseline: 'Take me through what is still unsettled in each slice, and the first slice, the tracer, end to end, and record what I decide. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 18
+  planner: '/planner:grill the cross-cutting concern cells still unexamined: for each app being built, each concern page with no row for it yet, one cell at a time'
+  baseline: 'For each app, go through each cross-cutting concern (security, data, cost, operations, observability, ownership, rollout, testing) that has not been looked at for it, and record what I say. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 16
+  planner: '/planner:grill the standard questions planner questions still lists as open, and any initiative section or page not yet written'
+  baseline: 'Go through the standard planning questions this plan has not dealt with yet, and any section still unwritten, and record what I say. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+# The handoff and the team's sessions, as heron-desk-vela runs them.
+- mode: epics
+  cap: 16
+  planner: /planner:epics the Desk Agent team
+  baseline: Draft and decide the epics for the Desk Agent team. Follow CONVENTIONS.md.
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: grill
+  cap: 18
+  planner: '/planner:grill handing {topics[handoff]} to @agent-lead'
+  baseline: 'Take me through handing {topics[handoff]} to @agent-lead and record it. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 6
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: design
+  cap: 22
+  persona: heron-agent-lead
+  planner: '/planner:design --app the desktop agent''s APP id (find it in 05-building-blocks) desktop-agent'
+  baseline: 'Design the desktop agent in this initiative vault (the current folder): read its pages and write the design to docs/tech-design/desktop-agent.md.'
+- mode: breakdown
+  cap: 18
+  persona: heron-agent-lead
+  planner: /planner:breakdown desktop-agent
+  baseline: 'Break the desktop agent design into a work plan in docs/plan/desktop-agent-breakdown.md: stories traced to the allocated requirement rows and epic criteria in this vault and to the design components, and the order to build in with what blocks what.'
+- mode: tickets
+  cap: 8
+  persona: heron-agent-lead
+  planner: '/planner:tickets desktop-agent. Write them as Markdown.'
+  baseline: 'Turn the desktop agent plan in docs/plan into a Markdown ticket list in docs/work/tickets.md.'
+- mode: close
+  cap: 4
+  planner: /planner:close
+  baseline: Close out this session, following CONVENTIONS.md.
