@@ -11,6 +11,7 @@ progress cannot ship.
 import argparse
 import io
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -59,7 +60,33 @@ def verify_layout(out):
     forbidden = [n for n in names if excluded(n)]
     if forbidden:
         raise PackageError(f"archive holds entries claude.ai rejects: {forbidden[:3]}")
+    tagged = tagged_descriptions(out, names)
+    if tagged:
+        raise PackageError("claude.ai rejects a skill description with anything that looks like an XML tag: "
+                           + "; ".join(f"{name} has {tag}" for name, tag in tagged))
     return len(names)
+
+
+DESCRIPTION = re.compile(r"^description:\s*(.*?)(?=^[A-Za-z][\w-]*:|\Z)", re.S | re.M)
+TAG = re.compile(r"<[^<>\n]*>")
+
+
+def tagged_descriptions(out, names):
+    """[(SKILL.md path, first tag)] for each skill whose frontmatter description holds an angle-bracket span.
+    claude.ai and Cowork read `<slug>` as an XML tag and refuse the whole upload, and claude plugin validate
+    doesn't catch it, so the packager does."""
+    found = []
+    with zipfile.ZipFile(out) as archive:
+        for name in names:
+            if not name.endswith("SKILL.md"):
+                continue
+            text = archive.read(name).decode("utf-8", errors="replace")
+            front = text.split("---", 2)[1] if text.startswith("---") else ""
+            match = DESCRIPTION.search(front)
+            tag = TAG.search(match.group(1)) if match else None
+            if tag:
+                found.append((name, tag.group(0)))
+    return found
 
 
 def validate_with_claude(out, say):

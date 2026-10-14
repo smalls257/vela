@@ -86,3 +86,20 @@ def test_real_plugin_packages_without_bin(tmp_path):
     listed = names(out)
     assert ".claude-plugin/plugin.json" in listed
     assert not any(n.startswith("bin/") for n in listed)
+
+
+def test_a_tag_in_a_skill_description_is_refused(tmp_path):
+    """claude.ai and Cowork reject the whole upload when a description holds `<slug>`; validate doesn't catch it."""
+    out = tmp_path / "p.zip"
+    with zipfile.ZipFile(out, "w") as archive:
+        archive.writestr(".claude-plugin/plugin.json", "{}")
+        archive.writestr("skills/x/SKILL.md", "---\nname: x\ndescription: Writes docs/plan/<slug>.md.\n---\nbody <slug> is fine here\n")
+    with pytest.raises(package_plugin.PackageError, match=r"skills/x/SKILL.md has <slug>"):
+        package_plugin.verify_layout(out)
+
+
+def test_no_shipped_skill_description_holds_a_tag():
+    for path in sorted((REPO / "plugin" / "skills").glob("*/SKILL.md")):
+        front = path.read_text(encoding="utf-8").split("---", 2)[1]
+        match = package_plugin.DESCRIPTION.search(front)
+        assert not (match and package_plugin.TAG.search(match.group(1))), path

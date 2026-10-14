@@ -1,6 +1,6 @@
 ---
 name: breakdown
-description: Break a finished app design into stories and tasks a team can build in order, from the vault the team works in. Every story quotes its acceptance criteria word for word from the vault, names the design components that deliver it, and says whether it fits before the next release date. The first story is the team's piece of the initiative's tracer flow. Use after the app's design is complete or complete-with-gaps, when someone says "break down the work", "stories and tasks" or "plan the build". Writes docs/plan/<slug>-breakdown.md.
+description: Break a finished app design into stories and tasks a team can build in order, from the vault the team works in. Every story quotes its acceptance criteria word for word from the vault, names the design components that deliver it, and says whether it fits before the next release date. The first story is the team's piece of the initiative's tracer flow. Use after the app's design is complete or complete-with-gaps, when someone says "break down the work", "stories and tasks" or "plan the build". Writes the plan to docs/plan/, named after the app.
 argument-hint: "<app slug or APP-id>"
 disable-model-invocation: true
 ---
