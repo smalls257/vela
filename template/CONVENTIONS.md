@@ -517,86 +517,151 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 
 `planner render` rewrites generated blocks only. It writes nothing if any page fails to parse or any block was edited by hand. `--discard-edits` overwrites hand-edited blocks and prints what it threw away.
 
-| Code | Finding | Code | Finding |
-|---|---|---|---|
-| E101 | page has no frontmatter | E303 | decided without a Grill decision |
-| E102 | frontmatter is not a valid YAML mapping | E304 | fact without a source |
-| E103 | required field missing | E306 | fact table row is not valid |
-| E104 | unknown page type | E311 | consumers name no app |
-| E105 | value not allowed | E315 | app has no cell on a concern page |
-| E106 | not a YYYY-MM-DD date | E316 | decided while an open unknown blocks it |
-| E107 | id does not fit its type or file name | E317 | a requirements session cannot decide |
-| E108 | two pages share an id | E318 | decided contract has no Tested by |
-| E201 | link to a page that does not exist | E319 | stage does not fit the app's change |
-| E202 | link anchor matches no heading | E320 | contract is missing a required fact |
-| E204 | two files share a basename | E401 | generated block was edited by hand |
-| E207 | ID reference resolves to nothing | W402 | generated block is out of date |
-| E208 | item ID used by two headings | E403 | generated block not allowed here |
-| E301 | concern cell is not valid | E404 | generated block markers are broken |
-| E302 | unknown or risk is missing a required fact | E601 | flowchart over its element budget |
-| W705 | unknown is past its ask-by date | E602 | sequence diagram over its participant budget |
-| W704 | page not verified within stale_after_days | E603 | diagram type not supported |
-| E604 | diagram does not parse in mermaid, so it does not draw | W604 | diagrams not checked: no mermaid parser could run |
-| W711 | no session closed in the last 30 days | W716 | source row older than stale_after_days |
-| W501 | no epic delivers a capability that changes | E501 | no epic delivers a capability that changes |
-| W502 | no epic delivers a new or changed contract | E502 | no epic delivers a new or changed contract |
-| W503 | no epic covers a concern cell with work | E503 | no epic covers a concern cell with work |
-| W504 | epic delivers nothing | E504 | epic delivers nothing |
-| W505 | no app carries a functional requirement | E505 | no app carries a functional requirement |
-| E330 | allocation row names no functional requirement | E331 | allocation row goes through no such contract |
-| E332 | allocation row has no valid state | E333 | allocation row is a fact on a page with no sources |
-| W334 | prose calls an answered question open | | |
-| E344 | release target is not a YYYY-MM-DD date | E350 | flow step names a sender or receiver its contract does not join |
-| W351 | flow step links a contract but names no sender and receiver | W352 | app has no domain though other apps in a large initiative do |
-| W353 | two domains differ only by case or a trailing s | W355 | unknown asks the person who owns it |
-| W356 | changing capability has no functional requirements | W357 | functional requirement lists no acceptance criteria |
-| W358 | flow names no capability though the initiative has capability pages | E359 | flow names a capability that is not a capability page |
-| E340 | release row names no functional requirement | E341 | release row names a criterion the requirement does not have |
-| E342 | release has no valid state | W343 | no release delivers a functional requirement |
-| W345 | release one has no Tracer bullet | W347 | the tracer passes through an app or contract release one delivers no share of |
-| E321 | override is malformed | W303 | decided without a Grill, by override |
-| E322 | decided-by or confirmed-by is malformed | W304 | fact without a source, by override |
-| W316 | decided while an open unknown blocks it, by override | W317 | decided by a requirements session, by override |
-| W318 | decided contract has no Tested by, by override | W323 | override not needed |
-| W324 | decided on the owner's behalf, not yet confirmed | W327 | reader's decisions pending approval |
-| W329 | a table row's link label pipe is not escaped as `\|` | | |
-| E801 | question ledger row is malformed | E802 | ledger state lacks the evidence it needs |
-| E803 | ledger row names nothing the catalog owes | W804 | ledger row is orphaned or no longer owed |
-| E805 | high-severity question not disposed at the epics gate | W805 | high-severity question not disposed, by override |
-| W806 | assumed question not resolved at the end of shape | W807 | open question blocks the grilled item |
-| E808 | party or stored value is missing a required fact | W809 | possibly an untyped subject |
-| E810 | heading looks like an item or subject ID but is not one | | |
-| W811 | subject defined off its page | | |
-| W812 | ledger row is dated in the future | W813 | ledger page has no question ledger heading |
-| W360 | one sentence holds three or more IDs | W361 | an ID in prose, outside a link and not followed by its name |
-| W362 | a list of more than nine items with no subheadings | W363 | a long page with no opening summary |
-| W364 | an epic lists more than nine acceptance criteria | W365 | a paragraph over 150 words or 3 links, or an opening over 90 words or 3 links |
-| W366 | a table cell over 40 words | W367 | a phrase of three or more words repeated across pages |
-| W368 | the opening is a line the template wrote | W369 | an abbreviation not spelled out on the page |
-| W370 | an epic criterion has no AC id on its Trace line, or two share one | | |
-| W371 | two or more openings above the first heading, over 150 words together | | |
-| W372 | a British spelling in the page's own words | | |
-| W380 | contract has no case table | W381 | a case table row, or a Can time out, Retries or Idempotent line, cannot be read |
-| W382 | two cases of one contract share a key | W383 | a case emits an event the vault does not name |
-| W384 | a case sets an entity the vault does not name | W385 | decided contract has no error case |
-| W386 | an app at handoff has an item in its handoff list that is not decided | W387 | an app at handoff calls a provider nobody has designed |
-| W388 | a handoff manifest pins a commit this repository does not have, or cannot be read | W389 | prose leaves a matter for a Grill with no open question linked |
-| W390 | decided item records no Why | W391 | a drawn slice does not pass the flow check |
-| W392 | a slice names no flows | W393 | a slice's Flows or After names nothing in the vault |
-| E394 | slices come after each other in a circle | W395 | a slice at building or later has flow-check findings no override covers |
-| W396 | a slice at journey passes or later records no readable Journey line | W397 | a slice is at building or later while a slice it comes after has not passed its journey |
-| E398 | a flow-check override has passed its end date | W399 | slices are still named on the releases page, not in slices/ |
-| E346 | slice status is not one of the five | W348 | a release's Slices names no slice page, or a slice's Milestone names a release that does not list it |
-| W400 | a slice's journey due date has passed and no Journey line records the run, or the date does not read | W405 | a slice page still has a Joins line, which is no longer read: joins come from its flows |
-| W406 | two or more slices name no After, or none does: the tracer is the one slice with no After | | |
-| E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
-| E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
-| W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
-| W718 | the initiative's title in .planner.yaml is still the template's placeholder | | |
+The table is generated from the codes `planner check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `planner upgrade` brings a vault's copy up to date.
 
-W360 to W364 are the reading-load warnings. They are warnings only, and each fix line says how to write it in plain words. W360 fires on a sentence with three or more IDs, W361 on an ID written in prose that is neither inside a link nor followed by its name (tables, headings, code, History and `- Trace:` lines are the machine's and are left alone), W362 on more than nine list items under one heading, W363 on a page of more than about 900 words with no paragraph between its title and its first `##` heading, and W364 on an epic with more than nine numbered acceptance criteria. The conventions above aim lower (about seven) so a page at the edge is not nagged.
-
-W370 belongs with the epic template: it fires on a headed criterion whose Trace line carries no `AC<n>` and on two criteria that share one. W365 to W369 are the second five, for what a reader meets word by word. All are warnings, with a fix line, and every limit is in `schema.py`. W365 fires on a prose paragraph of more than 150 words or more than 3 links, and on a page's opening (its first paragraph before the first `##`) of more than 90 words or 3 links, because the opening is the part most readers read; lists, tables, quotes, fact bullets, Trace lines and History are not paragraphs. W366 fires on a table cell of more than 40 words (two sentences), outside generated blocks, History and the question ledger. W367 is vault-level and reported once, with the pages: a phrase of three or more words that sits in prose on more than 5 pages, or more than 10 times in the vault. It skips History, tables, fact bullets, `**Label:**` lines, the `Still open:` label (what follows it counts), generated blocks, and phrases that are only the name of a page or a heading. Phrases built from a state word ("is still open") are counted: they are the finding, and the fix is where the state sits, never a synonym. W368 fires when a page someone has written in still opens with a line the template wrote (`plugin/catalog/template-lines.txt` lists them; an untouched page and an index are left alone). W369 fires once per page on a capitalized abbreviation of two to five letters that is not spelled out on that page; a short list of abbreviations everyone reads (IT, API, QA, SMS) is exempt.
+<!-- generated:check-codes sha=3f17a8b5: do not edit, run planner render -->
+| Code | Finding |
+|---|---|
+| E101 | page has no frontmatter |
+| E102 | frontmatter is not a valid YAML mapping |
+| E103 | required field missing |
+| E104 | unknown page type |
+| E105 | value not allowed |
+| E106 | not a YYYY-MM-DD date |
+| E107 | id does not fit its type or file name |
+| E108 | two pages share an id |
+| E201 | link to a page that does not exist |
+| E202 | link anchor matches no heading |
+| E204 | two files share a basename |
+| E207 | ID reference resolves to nothing |
+| E208 | item ID used by two headings |
+| E209 | a fact label is written twice under one heading |
+| E210 | two rows claim one ID, or one app on a concern page |
+| E301 | concern cell is not valid |
+| E302 | unknown or risk is missing a required fact |
+| E303 | decided without a Grill decision |
+| W303 | decided without a Grill, by override |
+| E304 | fact without a source |
+| W304 | fact without a source, by override |
+| E306 | fact table row is not valid |
+| E311 | consumers name no app |
+| E315 | app has no cell on a concern page |
+| E316 | decided while an open unknown blocks it |
+| W316 | decided while an open unknown blocks it, by override |
+| E317 | a requirements session cannot decide |
+| W317 | decided by a requirements session, by override |
+| E318 | decided contract has no Tested by |
+| W318 | decided contract has no Tested by, by override |
+| E319 | stage does not fit the app's change |
+| E320 | contract is missing a required fact |
+| E321 | override is malformed |
+| E322 | decided-by or confirmed-by is malformed |
+| E323 | a History heading names no item on its page |
+| W323 | override not needed |
+| W324 | decided on the owner's behalf, not yet confirmed |
+| W325 | app is handed off but its PR number is not recorded |
+| W326 | page is less settled than its rows |
+| W327 | reader's decisions pending approval |
+| W329 | a table row's link label pipe is not escaped as `\|` |
+| E330 | allocation row names no functional requirement |
+| E331 | allocation row goes through no such contract |
+| E332 | allocation row has no valid state |
+| E333 | allocation row is a fact on a page with no sources |
+| W334 | prose calls an answered question open |
+| E340 | release row names no functional requirement |
+| E341 | release row names a criterion the requirement does not have |
+| E342 | release has no valid state |
+| W343 | no release delivers a functional requirement |
+| E344 | release target is not a YYYY-MM-DD date |
+| W345 | release one has no Tracer bullet |
+| E346 | slice status is not one of the five |
+| W347 | the tracer passes through an app or contract release one delivers no share of |
+| W348 | a release's Slices names no slice page, or a slice's Milestone names a release that does not list it |
+| E350 | flow step names a sender or receiver its contract does not join |
+| W351 | flow step links a contract but names no sender and receiver |
+| W352 | app has no domain though other apps in a large initiative do |
+| W353 | two domains differ only by case or a trailing s |
+| W355 | unknown asks the person who owns it |
+| W356 | changing capability has no functional requirements |
+| W357 | functional requirement lists no acceptance criteria |
+| W358 | flow names no capability though the initiative has capability pages |
+| E359 | flow names a capability that is not a capability page |
+| W360 | one sentence holds three or more IDs |
+| W361 | an ID in prose, outside a link and not followed by its name |
+| W362 | a list of more than nine items with no subheadings |
+| W363 | a long page with no opening summary |
+| W364 | an epic lists more than nine acceptance criteria |
+| W365 | a paragraph over 150 words or 3 links, or an opening over 90 words or 3 links |
+| W366 | a table cell over 40 words |
+| W367 | a phrase of three or more words repeated across pages |
+| W368 | the opening is a line the template wrote |
+| W369 | an abbreviation not spelled out on the page |
+| W370 | an epic criterion has no AC id on its Trace line, or two share one |
+| W371 | two or more openings above the first heading, over 150 words together |
+| W372 | a British spelling in the page's own words |
+| W380 | contract has no case table |
+| W381 | a case table row, or a Can time out, Retries or Idempotent line, cannot be read |
+| W382 | two cases of one contract share a key |
+| W383 | a case emits an event the vault does not name |
+| W384 | a case sets an entity the vault does not name |
+| W385 | decided contract has no error case |
+| W386 | an app at handoff has an item in its handoff list that is not decided |
+| W387 | an app at handoff calls a provider nobody has designed |
+| W388 | a handoff manifest pins a commit this repository does not have, or cannot be read |
+| W389 | prose leaves a matter for a Grill with no open question linked |
+| W390 | decided item records no Why |
+| W391 | a drawn slice does not pass the flow check |
+| W392 | a slice names no flows |
+| W393 | a slice's Flows or After names nothing in the vault |
+| E394 | slices come after each other in a circle |
+| W395 | a slice at building or later has flow-check findings no override covers |
+| W396 | a slice at journey passes or later records no readable Journey line |
+| W397 | a slice is at building or later while a slice it comes after has not passed its journey |
+| E398 | a flow-check override has passed its end date |
+| W399 | slices are still named on the releases page, not in slices/ |
+| W400 | a slice's journey due date has passed and no Journey line records the run, or the date does not read |
+| E401 | generated block was edited by hand |
+| W402 | generated block is out of date |
+| E403 | generated block not allowed here |
+| E404 | generated block markers are broken |
+| W405 | a slice page still has a Joins line, which is no longer read: joins come from its flows |
+| W406 | two or more slices name no After, or none does: the tracer is the one slice with no After |
+| E501 | no epic delivers a capability that changes |
+| W501 | no epic delivers a capability that changes |
+| E502 | no epic delivers a new or changed contract |
+| W502 | no epic delivers a new or changed contract |
+| E503 | no epic covers a concern cell with work |
+| W503 | no epic covers a concern cell with work |
+| E504 | epic delivers nothing |
+| W504 | epic delivers nothing |
+| E505 | no app carries a functional requirement |
+| W505 | no app carries a functional requirement |
+| E601 | flowchart over its element budget |
+| E602 | sequence diagram over its participant budget |
+| E603 | diagram type not supported |
+| E604 | diagram does not parse in mermaid, so it does not draw |
+| W604 | diagrams not checked: no mermaid parser could run |
+| W704 | page not verified within stale_after_days |
+| W705 | unknown is past its ask-by date |
+| W711 | no session closed in the last 30 days |
+| W716 | source row older than stale_after_days |
+| W717 | CONVENTIONS.md is not the copy the plugin ships |
+| W718 | the initiative's title in .planner.yaml is still the template's placeholder |
+| E801 | question ledger row is malformed |
+| E802 | ledger state lacks the evidence it needs |
+| E803 | ledger row names nothing the catalog owes |
+| W804 | ledger row is orphaned or no longer owed |
+| E805 | high-severity question not disposed at the epics gate |
+| W805 | high-severity question not disposed, by override |
+| W806 | assumed question not resolved at the end of shape |
+| W807 | open question blocks the grilled item |
+| E808 | party or stored value is missing a required fact |
+| W809 | possibly an untyped subject |
+| E810 | heading looks like an item or subject ID but is not one |
+| W811 | subject defined off its page |
+| W812 | ledger row is dated in the future |
+| W813 | ledger page has no question ledger heading |
+<!-- /generated:check-codes -->
 
 W371 fires on a page that keeps two or more separate openings: two or more prose paragraphs of real words above the first `##` heading whose words together run past 150, the most one body paragraph may hold (W365). A page has one opening. A later session that rewrites it replaces it, so a second opening is a second account of the same page, and the two can disagree. Two paragraphs inside the limit, such as what a page does and what it does not own, are an ordinary opening and are left alone, as are lists, tables and `**Label:**` lines between them. An index and the glossary are exempt: one describes its folder, the other is a paragraph per term. The fix is to keep one opening and move anything the others add under a heading.
 
