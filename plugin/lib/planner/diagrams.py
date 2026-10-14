@@ -72,7 +72,7 @@ def page_title(page):
 
 
 def app_node(page, style=None, show_change=True):
-    """A node for an app page. Its label says the change in words, so colour is never the only cue."""
+    """A node for an app page. Its label says the change in words, so color is never the only cue."""
     change = page.meta.get("change")
     change = change if isinstance(change, str) and change in APP_STYLE else ""
     name = page.id or page.name
@@ -169,7 +169,7 @@ def context_graph(vault, after=False):
 
 
 def app_graph(vault, app):
-    """The app and its direct neighbours by contract, provided or consumed."""
+    """The app and its direct neighbors by contract, provided or consumed."""
     focus = app_node(app, "focus")
     nodes, edges, skipped = [focus], [], []
     for contract in vault.contracts:
@@ -264,18 +264,18 @@ STYLE_WORDS = {
     "app": "blue outline: an app in the initiative",
     "new": "green: new in this initiative",
     "changed": "amber: changed by this initiative",
-    "unchanged": "grey: stays as it is",
+    "unchanged": "gray: stays as it is",
     "retired": "red, dashed: retired by this initiative",
     "external": "white, dashed: outside the initiative (a party or provider)",
 }
 
 
 def key_line(graph):
-    """One plain line under a diagram saying what its colours, dashes and arrows mean, for the styles it drew only."""
+    """One plain line under a diagram saying what its colors, dashes and arrows mean, for the styles it drew only."""
     if not graph.nodes:
         return ""
     used = [STYLE_WORDS[s] for s in sorted({n.style for n in graph.nodes}, key=lambda s: list(STYLE_WORDS).index(s)) if s in STYLE_WORDS]
-    arrows = ["an arrow is a contract, labelled with its ID"] if graph.edges else []
+    arrows = ["an arrow is a contract, labeled with its ID"] if graph.edges else []
     return "Key: " + " · ".join(used + arrows) + "."
 
 

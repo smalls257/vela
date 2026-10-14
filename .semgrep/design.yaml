@@ -20,7 +20,7 @@ rules:
           metavariable: $Y
           regex: ^(True|False)$
   # Infected Core, the shell side. cli.py reads the system date in exactly one place, parse_today, so every
-  # command honours --today and the tests can pin the date.
+  # command honors --today and the tests can pin the date.
   - id: cli-reads-clock-once
     languages: [python]
     severity: ERROR

@@ -1,6 +1,6 @@
 """What needs the lead, as one light per app, contract and flow. Pure: the caller passes the date.
 
-The explorer's map, the gallery's cockpit and transit maps, and later the viewer and the digest all colour the
+The explorer's map, the gallery's cockpit and transit maps, and later the viewer and the digest all color the
 same things by the same rule, so this is the rule. It follows the early-warning scores used on hospital wards:
 a subject's light is its single worst sign, never an average, because one overdue answer matters however calm
 the rest is. Levels, most urgent first:
@@ -83,7 +83,7 @@ def hold(light, unknown, as_of, via=""):
 
 def question_light(unknown, as_of):
     """The light one open question gives whatever it holds: warning past its ask-by date, caution before.
-    Views that draw the questions themselves (strips, markers, buds) colour them by this."""
+    Views that draw the questions themselves (strips, markers, buds) color them by this."""
     light = Light()
     hold(light, unknown, as_of)
     return light

@@ -1,10 +1,10 @@
-# The question catalogue. Code reads it to work out which questions a vault owes: `planner questions`
+# The question catalog. Code reads it to work out which questions a vault owes: `planner questions`
 # applies each entry once per subject its trigger matches, and `planner check` reads the answers in the
 # ledger on 11-unknowns-and-risks.md. The model only decides how to ask. The format is in CONVENTIONS.md
 # under "Questions and the ledger".
 #
 # Every entry cites the `why` that earned it a place: a regulation, a practice, or a miss in a simulated
-# session. The research is in docs/research/2026-10-06-deterministic-elicitation.md. Keep the catalogue
+# session. The research is in docs/research/2026-10-06-deterministic-elicitation.md. Keep the catalog
 # small. Add an entry when a gap was found late or by luck, and prune one that nearly always ends
 # not-applicable (`planner questions --stats` counts them). Bump `version` when entries change meaning.
 version: 1
@@ -52,7 +52,7 @@ entries:
     scope: stored-value
     trigger: exists
     question: Who carries these balances on the books as money owed to customers?
-    why: Loyalty credit is deferred revenue, and breakage is recognised only when redemption becomes remote (RSM UK on IFRS 15). The simulated runs missed this liability every time.
+    why: Loyalty credit is deferred revenue, and breakage is recognized only when redemption becomes remote (RSM UK on IFRS 15). The simulated runs missed this liability every time.
     severity: high
     blocks: [decision, capability, epic]
 
@@ -70,7 +70,7 @@ entries:
     scope: stored-value
     trigger: exists
     question: What happens to a balance at expiry or closure?
-    why: Breakage is recognised only when redemption becomes remote (RSM UK on IFRS 15), so the rule for expiry and closure decides when a liability leaves the books.
+    why: Breakage is recognized only when redemption becomes remote (RSM UK on IFRS 15), so the rule for expiry and closure decides when a liability leaves the books.
     severity: normal
     blocks: [decision]
 
@@ -219,8 +219,8 @@ entries:
     creates: party
     mentions: [licence/licences, license/licenses/licensed/licensing]
     mention_why:
-      licence: A licence names a regulator or a licensor, and that body is a party.
-      license: The same word in US spelling, and the verb forms, such as a licensed activity or a product being licensed.
+      licence: The British spelling of license; both are matched.
+      license: A license names a regulator or a licensor, and that body is a party. The verb forms count too, such as a licensed activity or a product being licensed.
 
   - id: Q-REG-03
     area: REG
@@ -254,7 +254,7 @@ entries:
     scope: contract
     trigger: change in [new, changed, new consumers]
     question: What happens to each consumer when the provider is down or slow?
-    why: Volere asks about each neighbour on the context diagram; a contract is an edge to one, and its consumers depend on it.
+    why: Volere asks about each neighbor on the context diagram; a contract is an edge to one, and its consumers depend on it.
     severity: normal
     blocks: [contract]
 

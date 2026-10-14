@@ -149,7 +149,7 @@ _INDEX = re.compile(rf"^index {_SHA}\.\.{_SHA}(?: 100644)?$")
 
 
 def check_patch_head(path, head_lines):
-    """Refuse any header a proposal patch should not carry. git honours more than the `diff --git` line: rename, copy,
+    """Refuse any header a proposal patch should not carry. git honors more than the `diff --git` line: rename, copy,
     mode and symlink headers move or create files the path check never saw. Only what this tool writes is allowed."""
     allowed_exact = {f"diff --git a/{path} b/{path}", "new file mode 100644", "deleted file mode 100644"}
     named = {f"--- a/{path}", f"+++ b/{path}", "--- /dev/null", "+++ /dev/null"}

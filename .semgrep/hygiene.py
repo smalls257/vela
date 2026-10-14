@@ -2,7 +2,7 @@ import subprocess, yaml  # noqa: F401 - semgrep rule example
 # ruleid: todo-needs-owner-and-reason
 # TODO fix this
 # ok: todo-needs-owner-and-reason
-# TODO(jason): drop after the v4 catalogue lands; see #41
+# TODO(jason): drop after the v4 catalog lands; see #41
 def run(root):
     # ruleid: subprocess-needs-timeout
     subprocess.run(["git", "-C", root, "status"], capture_output=True)

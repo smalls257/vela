@@ -1,6 +1,6 @@
 # Vendored libraries
 
-The offline viewer inlines these two files, so it needs no network. The vault explorer inlines `marked.min.js` (not mermaid) into its page, with its copyright header intact, so Ask Claude can show an answer as Markdown offline. Both are MIT licensed; the licence travels with each project.
+The offline viewer inlines these two files, so it needs no network. The vault explorer inlines `marked.min.js` (not mermaid) into its page, with its copyright header intact, so Ask Claude can show an answer as Markdown offline. Both are MIT licensed; the license travels with each project.
 
 | File | Project | Version | Source | SHA-256 |
 |---|---|---|---|---|

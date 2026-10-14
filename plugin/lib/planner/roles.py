@@ -58,7 +58,7 @@ def _config_warnings(facts):
         return ()
     if facts.config_role == "owner":
         return ("`role: owner` in .planner.yaml is ignored: the file ships in published copies, so access decides",)
-    return (f"`role: {facts.config_role}` in .planner.yaml is not understood; only `role: reader` is honoured",)
+    return (f"`role: {facts.config_role}` in .planner.yaml is not understood; only `role: reader` is honored",)
 
 
 def decide(facts):

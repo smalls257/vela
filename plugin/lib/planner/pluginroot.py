@@ -4,7 +4,7 @@ and a file test, so each case runs in a fake environment.
 The Violation to prevent is a Distributed Monolith in miniature: every vault carrying its own vendored copy of the
 plugin means two versions answer one vault. A skill must run the INSTALLED planner when there is one. But the
 variables that say where it is are expanded by the host, and whether Cowork expands them is unverified, so a
-literal `${CLAUDE_PLUGIN_ROOT}` must be recognised as "not expanded" and skipped, not run as a path.
+literal `${CLAUDE_PLUGIN_ROOT}` must be recognized as "not expanded" and skipped, not run as a path.
 
 Order (design session 15, "Plugin path"): the plugin root, the skill's own directory, the vendored copy in the
 vault, and last the path a reader workspace recorded when it was opened.

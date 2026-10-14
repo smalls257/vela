@@ -1,7 +1,10 @@
 """Pages to a vault model, built once. Pure: no disk, clock or network."""
 from dataclasses import dataclass, field
 
-from planner import catalog, schema
+from planner import schema
+# Imported under its own name: the Vault field and the build() argument are both called `catalog`, and a bare
+# `catalog.EMPTY` inside build() would read the argument, not the module.
+from planner.catalog import EMPTY as EMPTY_CATALOG
 from planner.parse import links_in
 
 
@@ -59,7 +62,7 @@ class Vault:
     row_ids: dict = field(default_factory=dict)  # goal/constraint/source id -> (Page, line) of the first row
     row_repeats: list = field(default_factory=list)  # (id, (Page, line) kept, (Page, line) ignored) for each later row
     cells: list = field(default_factory=list)
-    catalogue: object = catalog.EMPTY  # the question catalogue; the CLI loads plugin/catalog/questions.yaml
+    catalog: object = EMPTY_CATALOG  # the question catalog; the CLI loads plugin/catalog/questions.yaml
     cache: dict = field(default_factory=dict)  # results computed once per vault, such as the owed questions
     template_lines: frozenset = frozenset()  # prose lines the template pages write, for W368; the CLI loads them
 
@@ -129,9 +132,9 @@ class Vault:
 ITEM_KINDS = {"CON": "contract", "UNK": "unknown", "R": "risk", "CAP": "requirement", "PTY": "party", "SV": "stored-value"}
 
 
-def build(pages, config, other_names=(), catalogue=None, template_lines=()):
+def build(pages, config, other_names=(), catalog=None, template_lines=()):
     vault = Vault(config=config, pages=list(pages), other_names={n.lower() for n in other_names},
-                  catalogue=catalogue if catalogue is not None else catalog.EMPTY, template_lines=frozenset(template_lines))
+                  catalog=catalog if catalog is not None else EMPTY_CATALOG, template_lines=frozenset(template_lines))
     for page in vault.pages:
         vault.by_name.setdefault(page.name.lower(), []).append(page)
         if page.id:

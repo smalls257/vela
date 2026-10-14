@@ -5,7 +5,7 @@ words, what they have altered, so a proposal (or a forgotten edit) surprises the
 difference between the pristine baseline and the working pages, per page, as lines a person can read.
 
 Two choices shape the data. Lines carry a kind ("add", "del", "ctx", "hunk") and the page draws the symbol as well
-as the colour, so nothing rests on colour alone. And a generated block (the tables `planner render` writes) is
+as the color, so nothing rests on color alone. And a generated block (the tables `planner render` writes) is
 collapsed to one line on both sides, because its churn is not the reader's edit and would bury it.
 
 edge/copies.py reads the two folders; explorer/draft_data.py gives each change its page key.

@@ -13,7 +13,7 @@ OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
 CLOSE = "<!-- /generated:{name} -->"
 
 
-def normalise(content):
+def normalize(content):
     lines = [line.rstrip() for line in content.replace("\r\n", "\n").split("\n")]
     while lines and not lines[0]:
         lines.pop(0)
@@ -23,7 +23,7 @@ def normalise(content):
 
 
 def block_hash(content):
-    return hashlib.sha256(normalise(content).encode("utf-8")).hexdigest()[:8]
+    return hashlib.sha256(normalize(content).encode("utf-8")).hexdigest()[:8]
 
 
 def block_allowed(page, name):
@@ -59,7 +59,7 @@ def title(page):
 # --------------------------------------------------------------- the blocks
 
 def block_content(vault, page, name):
-    return normalise(GENERATORS[name](vault, page))
+    return normalize(GENERATORS[name](vault, page))
 
 
 def contracts_consumed(vault, page):
@@ -424,7 +424,7 @@ def render_page(vault, page, discard_edits=False):
     cursor = 0
     for block in sorted(page.blocks, key=lambda b: b.start):
         out.extend(lines[cursor:block.start - 1])
-        current = normalise(block.content)
+        current = normalize(block.content)
         new = block_content(vault, page, block.name) if block_allowed(page, block.name) else None
         edited = bool(current) and block_hash(current) != block.sha
         if new is None or (edited and not discard_edits):

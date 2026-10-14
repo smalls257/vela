@@ -1,7 +1,7 @@
 """A reader's changes as a patch an owner can apply, and the note that explains them. Pure: no disk, clock, git or network.
 
 Two failures decide the shape. A patch that only looks like a patch (no base commit, binary bytes mangled, line
-endings normalised) fails on the owner's side with nothing to say why, so the writer is exact: the text is split on
+endings normalized) fails on the owner's side with nothing to say why, so the writer is exact: the text is split on
 newlines alone, CRLF and a missing final newline survive, every file carries the blob hashes `git apply --3way`
 needs, and a file that is not UTF-8 text is listed and never patched. And an invented reason is a Silent Fallback:
 a change the reader did not explain reads "no reason given", not a sentence the tool made up.

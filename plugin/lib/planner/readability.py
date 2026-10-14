@@ -187,16 +187,16 @@ def _outside_code(text):
     return URL.sub(" ", CODE_SPAN.sub(" ", text))
 
 
-CAPITALISED_NAME = re.compile(r"\s+[A-Z][a-z]")
+CAPITALIZED_NAME = re.compile(r"\s+[A-Z][a-z]")
 
 
 def _bare_without_name(text, names):
     """The IDs written in the open with no name beside them. An ID the vault holds no name for (an initiative
-    elsewhere, a constraint row) counts as named when a capitalised name follows it, as in "INI-005 Mainframe Exit"."""
+    elsewhere, a constraint row) counts as named when a capitalized name follows it, as in "INI-005 Mainframe Exit"."""
     bare = []
     for found in BARE_VAULT_ID.finditer(text):
         name = names.name(found.group(0))
-        named = _says_its_name(text, found.end(), name) if name else CAPITALISED_NAME.match(text, found.end())
+        named = _says_its_name(text, found.end(), name) if name else CAPITALIZED_NAME.match(text, found.end())
         if not named:
             bare.append(found.group(0))
     return bare

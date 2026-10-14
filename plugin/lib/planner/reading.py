@@ -5,11 +5,11 @@ top. So, for display only:
 - history bullets (Decision, Override, Decided by, Confirmed by, Options considered, Dissent), and the page's own
   "## History" section, move into one folded "History" at the end, grouped by the item they belong to;
 - generated blocks move after the page's own text, each under a plain heading, with no box and no banner;
-- an item heading shows its name without its ID, and a link labelled with a bare ID shows the name it points at;
+- an item heading shows its name without its ID, and a link labeled with a bare ID shows the name it points at;
 - a bracket of citations in prose, such as "(SRC-02; [[x|First instruments]], decided)", becomes a small superscript
   of links, so the sentence reads on.
 
-It runs after viewer.neutralise, so the only raw HTML it adds is its own fixed tags.
+It runs after viewer.neutralize, so the only raw HTML it adds is its own fixed tags.
 """
 import re
 
@@ -310,7 +310,7 @@ def visible(line):
                   lambda m: m.group(3) if m.group(3) is not None else (m.group(2) or m.group(1)), line)
 
 
-LABELLED = re.compile(r"^\s*[-*]\s+\*\*([^*]+?):\*\*")
+LABELED = re.compile(r"^\s*[-*]\s+\*\*([^*]+?):\*\*")
 ASIDE = re.compile(r"\(([^()]*\b(?:no source|fact|assumption|inkling|decided|SRC-\d+|says|said)\b[^()]*)\)", re.I)
 ID_LABEL = re.compile(rf"\[\[[^\]|]*\|\s*{VAULT_ID}\s*\]\]")
 
@@ -371,19 +371,19 @@ def style_problems(markdown, page_type, known_labels=(), lint=()):
         if not stripped:
             continue
         if ID_LABEL.search(line) and not in_history:
-            problems.append((n, f"a link labelled {ID_LABEL.search(line).group(0).split('|')[-1].rstrip(']')}; "
+            problems.append((n, f"a link labeled {ID_LABEL.search(line).group(0).split('|')[-1].rstrip(']')}; "
                                 "label it with the thing's name"))
-        labelled = LABELLED.match(line)
+        labeled = LABELED.match(line)
         if item_line and not item_said and not stripped.startswith(("-", "*", "|")):
             item_said = True
-        if labelled and not HISTORY_BULLET.match(line) and labelled.group(1).strip().lower() not in known and not in_history:
-            problems.append((n, f"'{labelled.group(1).strip()}' is not a fact bullet planner check reads; write it as "
+        if labeled and not HISTORY_BULLET.match(line) and labeled.group(1).strip().lower() not in known and not in_history:
+            problems.append((n, f"'{labeled.group(1).strip()}' is not a fact bullet planner check reads; write it as "
                                 "prose"))
             continue
         if HISTORY_BULLET.match(line) and not in_history:
             problems.append((n, f"{HISTORY_BULLET.match(line).group(1)} bullet sits above ## History; move it there"))
             continue
-        listed = (stripped.startswith(("-", "*")) or re.match(r"\d+\.", stripped)) and not labelled
+        listed = (stripped.startswith(("-", "*")) or re.match(r"\d+\.", stripped)) and not labeled
         if listed and not in_history and not TRACE_LINE.match(line) and BARE_ID.search(visible(stripped)):
             problems.append((n, f"an ID ({BARE_ID.search(visible(stripped)).group(0)}) in a list item; name the thing, "
                                 "and put the ID on a '- Trace:' line under it"))

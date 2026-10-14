@@ -5,7 +5,7 @@ No release is planned yet. Each release will be a section here that lists the fu
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 Flow pages live in `flows/` and app runtime pages in `apps/`.
 One row per app, one column per concern.
-Running cost, licences and shared budgets such as mainframe processing.
+Running cost, licenses and shared budgets such as mainframe processing.
 What each app stores, which app is the record, and what moves during the change.
 What is measured, so a failure shows up without a debugger or a release.
 Who is on call, and the runbooks for the failures that hurt customers.

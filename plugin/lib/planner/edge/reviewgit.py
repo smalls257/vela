@@ -78,7 +78,7 @@ def discard_worktree(root, folder, branch):
 
 def changed_entries(worktree):
     """[(status, new mode, path)] for everything the applied patch changed, as git itself reports it (renames shown as a
-    delete plus an add). The patch parser is one defence; what git really did is the one that counts."""
+    delete plus an add). The patch parser is one defense; what git really did is the one that counts."""
     out = git_out(worktree, "diff", "HEAD", "--raw", "-z", "--no-renames", "--no-abbrev")
     fields = [f for f in out.split("\0") if f]
     return [(meta.split()[-1][0], meta.split()[1], path) for meta, path in zip(fields[0::2], fields[1::2])]
