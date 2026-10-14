@@ -14,9 +14,9 @@ const Nav = (() => {
   // section -> its visuals, the first being the default; [] means its page is read full width
   const VISUALS = {
     goals: [["goals", "Goals"]], constraints: [], context: [["context", "Today and after"]], strategy: [],
-    capabilities: [["map", "Capability map"], ["trace", "Trace"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
-    apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Played"]], concerns: [["concerns", "Concern cells"]],
-    decisions: [["decisions", "Log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Trace"]],
+    capabilities: [["map", "Capability map"], ["trace", "Requirements to epics"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
+    apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Step through"]], concerns: [["concerns", "By app"]],
+    decisions: [["decisions", "Log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Requirements to epics"]],
   };
   const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); } };
@@ -41,7 +41,7 @@ const Nav = (() => {
   }
   /* The page that sits beside the visual in the panel: none when the page itself fills the main area. */
   function pageBeside() { return textLed(App.section) || App.view === "doc" ? "" : sectionPage(); }
-  function missingPage() { const s = sec(); return s ? `This vault has no ${s.path} yet, so there is no ${s.label.toLowerCase()} page to read.` : "No page."; }
+  function missingPage() { const s = sec(); return s ? `The ${s.label.toLowerCase()} page isn't written yet, so there is nothing to read here.` : "No page."; }
   /* The section's own controls on every view head: its visuals, and the page to read. */
   function pageActions(opts = {}) {
     const s = sec();
@@ -51,9 +51,9 @@ const Nav = (() => {
     if (vis.length > 1 || (opts.reading && vis.length)) box.append(h("div", { class: "seg", role: "group", "aria-label": "Visual" }, vis.map(([v, label]) =>
       h("button", { "aria-pressed": String(App.view === v), onclick: () => { Sections.doc.page = ""; showView(v); } }, label))));
     const pk = sectionPage();
-    if (s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside") box.append(h("button", { class: "btn inside-btn", title: "Its context, its main containers, the team's components and its build plan", onclick: () => Inside.open(st.child, "containers") }, "Inside this app"));
-    if (pk && App.view !== "doc") box.append(h("button", { class: "btn", title: "Read the section's page full width", onclick: () => readWide(pk) }, "Read the page"));
-    const file = pk ? openLink(["Open the file"], D.vault ? D.vault + "/" + E[pk].path : "", E[pk].path, E[pk].path) : null;
+    if (s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside") box.append(h("button", { class: "btn inside-btn", title: "How this app is built, and the team's plan for building it", onclick: () => Inside.open(st.child, "containers") }, "Inside this app"));
+    if (pk && App.view !== "doc") box.append(h("button", { class: "btn", title: "Read this section's page across the whole width", onclick: () => readWide(pk) }, "Read full page"));
+    const file = pk ? openLink(["Open source file"], D.vault ? D.vault + "/" + E[pk].path : "", E[pk].path, E[pk].path) : null;
     if (file) box.append(file);  // openLink is null when the page is opened from a file; Element.append would print the word "null"
     return box;
   }
@@ -240,8 +240,8 @@ const Nav = (() => {
     const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length);  // slices have no index page: each slice is one
     const row = h("div", { class: "side-row" + (here && !st.child ? " on" : here ? " in" : "") + (missing ? " missing" : "") },
       has ? h("button", { class: "side-caret", "aria-expanded": String(openList), "aria-label": `${openList ? "Hide" : "Show"} the ${s.label.toLowerCase()}`, onclick: () => { openList ? st.expanded.delete(s.id) : st.expanded.add(s.id); write(OPEN_KEY, [...st.expanded]); refresh(); } }, openList ? "▾" : "▸") : h("span", { class: "side-caret blank" }),
-      h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, title: missing ? `No ${s.path} in this vault yet` : s.title, onclick: () => open(s.id) },
-        h("span", { class: "side-label" }, s.label), lv !== "dark" ? lampEl(lv) : null, h("span", { class: "side-n" }, count(s))));
+      h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, title: missing ? `The ${s.label.toLowerCase()} page isn't written yet` : s.id === "slices" ? `${s.title}. ${termTip("slice")}` : s.title, onclick: () => open(s.id) },
+        h("span", { class: "side-label" }, s.label), lv !== "dark" ? lampEl(lv) : null, h("span", { class: "side-n", title: count(s) ? `${count(s)} ${s.id === "unknowns" ? "open" : "in"} ${s.label.toLowerCase()}` : null }, count(s))));
     const out = [row];
     if (has && openList) out.push(h("div", { class: "side-kids" }, s.children.map((k) => {
       const lvk = levelOf(k), cur = here && st.child === k;
@@ -256,17 +256,17 @@ const Nav = (() => {
     if (!side) return;
     side.innerHTML = "";
     const lit = Queue.total();
-    side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Front doors"),
+    side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Start here"),
       h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, title: Queue.needsYouSays(), onclick: home },
         h("span", { class: "side-label" }, "What needs you"), lit ? h("span", { class: "side-n lit " + (litSubjects()[0] ? litSubjects()[0].light.level : "caution") }, lit) : null),
-      typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the vault", onclick: () => Ask.open() },
+      typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the plan", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null,
-      h("div", { class: "side-roles", role: "tablist", "aria-label": "Front doors by audience" }, Roles.ROLES.slice(1).map(([id, label, say]) =>
+      h("div", { class: "side-roles", role: "tablist", "aria-label": "Views by role" }, Roles.ROLES.slice(1).map(([id, label, say]) =>
         h("button", { role: "tab", "aria-selected": String(App.section === "role:" + id), title: say, onclick: () => role(id) }, label)))));
-    const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "The vault"));
+    const vault = h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Plan pages"));
     for (const s of D.sections) vault.append(...item(s));
     side.append(vault);
-    side.append(h("div", { class: "side-foot" }, h("span", { class: "muted" }, `${D.initiative} · ${Object.keys(D.reader).length} pages`)));
+    side.append(h("div", { class: "side-foot" }, h("span", { class: "muted", title: D.initiative ? `Initiative ${D.initiative}` : null }, `${plural(Object.keys(D.reader).length, "plan page")} in all`)));
   }
   return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();

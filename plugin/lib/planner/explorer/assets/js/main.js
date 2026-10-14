@@ -2,12 +2,16 @@
    Deep links: #map, #flows&open=FLO-002&step=2, #present=FLO-001&step=3, #asks&open=UNK-065, #map&q=paper%20order,
    #decisions&open=ADR-0002 (the old #garden still works), #map&lens=transit; add &still for screenshots (no transitions), &selftest to run the checks. */
 $("#brand-title").textContent = D.title || "Vault";
-$("#brand-sub").textContent = `${D.initiative} · as of ${day(D.today)}`;
-$("#brand-title").title = $("#brand-title").textContent; $("#brand-sub").title = $("#brand-sub").textContent;  // both cut with an ellipsis when the sidebar is narrow
-/* A copy opened long after it was built says so, quietly, above everything: when it was built and from which commit. */
+/* The initiative's ID is a tag, not a name: it rides in the tooltip, and the line under the title says what date the plan is read at. */
+$("#brand-sub").textContent = `Plan as of ${day(D.today)}`;
+$("#brand-title").title = $("#brand-title").textContent; $("#brand-sub").title = `${D.initiative ? D.initiative + ": " : ""}the plan as it stood on ${day(D.today)}`;  // both cut with an ellipsis when the sidebar is narrow
+/* A copy opened long after it was built says so, quietly, above everything: when it was built. The commit is for whoever
+maintains the plan, so it rides in the tooltip rather than in the sentence every reader reads. */
 if (D.built) {
   const built = $("#built");
-  built.textContent = `Built ${D.built.date}${D.built.commit ? ` from commit ${D.built.commit}` : ""}. An older copy may be behind the vault.`;
+  const on = isDate(D.built.date) ? `${day(D.built.date)} ${D.built.date.slice(0, 4)}` : D.built.date;
+  built.textContent = `Built ${on}. If the plan has changed since then, this page won't show it.`;
+  if (D.built.commit) built.title = `Built from commit ${D.built.commit}`;
   built.hidden = false;
 }
 $("#brand").addEventListener("click", () => Nav.home());
@@ -17,10 +21,10 @@ function renderMasters() {
   const box = $("#masters"), counts = Queue.counts();  // a question counts once however many things it holds
   const need = Queue.needsYou(), count = (lv) => (lv === "caution" ? need.n : counts[lv] || 0);  // "need you" is the one count the side door and the panel give; overdue is the part of it that is late
   box.innerHTML = "";
-  for (const [lv, word] of [["warning", "overdue"], ["caution", "need you"], ["unexamined", "unexamined"]]) {
+  for (const [lv, word] of [["warning", "overdue"], ["caution", "need you"], ["unexamined", "not reviewed"]]) {
     const n = count(lv);
     if (lv === "unexamined" && !n) continue;
-    box.append(h("button", { class: `master ${lv}${n ? " on" : ""}`, title: lv === "caution" ? `${Queue.needsYouSays()}. ${LIGHT[lv].say}` : `${n} ${LIGHT[lv].word.toLowerCase()}: ${LIGHT[lv].say}`, onclick: () => { if (App.section !== "home") Nav.home(); go("lights", { reset: true }); } },
+    box.append(h("button", { class: `master ${lv}${n ? " on" : ""}`, title: lv === "caution" ? `${Queue.needsYouSays()}. Something needs you when it is ${LIGHT[lv].say}.` : lv === "warning" ? `${n ? n + " overdue" : "Nothing overdue"}. Something is overdue when ${LIGHT[lv].say}.` : `${n} not reviewed: ${LIGHT[lv].say}.`, onclick: () => { if (App.section !== "home") Nav.home(); go("lights", { reset: true }); } },
       h("b", {}, n), h("span", {}, word)));
   }
 }

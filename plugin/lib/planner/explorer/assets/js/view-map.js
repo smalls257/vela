@@ -17,19 +17,19 @@ const MapView = (() => {
   const hasCapabilities = () => D.grouping.capability;
   const manyApps = () => D.map.apps.length > CLUSTER_PAST;
   const lens = () => st.lens || (big() && !hasDomains() ? "matrix" : "cockpit");
-  const GROUP_OFF = { domain: "No app page names a domain yet; /planner:boundary records one when you name it",
-    capability: "No app carries capability requirements or epics yet; /planner:requirements and /planner:allocate write the requirements, /planner:epics the epics" };
+  const GROUP_OFF = { domain: "No app has a business area yet, so there is nothing to group by",
+    capability: "No app has requirements or epics tied to a capability yet, so there is nothing to group by" };
   const groupOff = (id) => (id === "domain" && !hasDomains()) || (id === "capability" && !hasCapabilities());
   const group = () => { const g = st.group || (App.section === "capabilities" ? "capability" : manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
   let pulses = [], trains = [], gPulses = null, LAY = null, stripEl = null;
   const LEDE = {
-    cockpit: "Every app, outside party and contract, where they always sit. Gray is settled; a lamp is lit only where something needs you.",
-    home: "What is waiting on an answer, beside the system it holds up. Gray is settled; a lamp is lit only where something needs you.",
-    domain: "Apps grouped by the domain on their page. A closed cluster shows its apps' worst light and its counts; open it in place.",
-    capability: "Capabilities as regions, with the apps that carry their requirements inside. An app in several is drawn once, with a tab saying how many more; the others list it under \"Also carried by\".",
-    focus: "One app and its direct neighbors only: who uses it on the left, what it uses on the right, outside parties below.",
-    transit: "Each flow is a line and each app a station; contracts are the track. Pick a line to read its steps.",
-    matrix: "Who provides (rows) to whom (columns). Each cell is lit as its contracts are lit; a cell above the diagonal runs backwards, from an app further right to one further left.",
+    cockpit: "Every app, outside service and contract, always in the same place. Gray means decided; color marks what needs you.",
+    home: "Open questions on the left, and the system they are blocking on the right. Gray means decided; color marks what needs you.",
+    domain: "Apps grouped by business area. A closed group shows its most urgent status and its counts; open it in place.",
+    capability: "Each capability is a box holding the apps that deliver it. An app in several is drawn once, with a tab saying how many more; the others list it under \"Also in\".",
+    focus: "One app and the apps it connects to directly: who uses it on the left, what it uses on the right, outside services below.",
+    transit: "Each flow is a colored line through the apps it passes; contracts are what the line runs over. Pick a flow to read its steps.",
+    matrix: "Rows provide to columns. A cell's color is its contracts' status. A shaded cell means an app depends on one listed after it.",
     releases: "The system today and after each release, worked out from the requirements each one delivers.",
   };
 
@@ -37,26 +37,26 @@ const MapView = (() => {
   const { ln, bx } = Legend;
   const KIND_LOOK = { app: "kind.app", partner: "kind.party", contract: "kind.contract", flow: "kind.flow" };
   Legend.define("kind.app", [bx({ fill: "unlit", stroke: "rule-3", rx: 6, w: 1.4 })], "Rounded box: one of our apps");
-  Legend.define("kind.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Clipped corners: an outside party or provider");
-  Legend.define("kind.contract", [bx({ fill: "unlit", stroke: "rule-3", y: 4.5, height: 7, rx: 2, w: 1.2 })], "Small tag with an ID: a contract, on the link between the boxes that share it");
-  Legend.define("kind.count", [{ k: "dot", fill: "unlit", stroke: "rule-3", r: 6, w: 1.4 }, { k: "text", t: "3", fill: "ink-2", y: 11 }], "Round count: that many contracts on one short link");
-  Legend.define("kind.flow", [bx({ fill: "unlit", stroke: "rule-3", y: 3.5, height: 9, rx: 2, w: 1.2 })], "Wide card in the Flow pages row: a flow");
-  Legend.define("link", [ln({ stroke: "duct", w: 4.5 })], "Dark line: a link between two boxes; its contracts are tagged on it");
-  Legend.define("link.lit", [ln({ stroke: "caution", w: 2, dash: "1.5 4.5" })], "Dotted color on a link: the worst light among its contracts");
-  Legend.define("link.leader", [ln({ stroke: "ink-4", w: 1.2, dash: "2 3" })], "Thin dotted line: ties a contract tag to its link");
+  Legend.define("kind.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Clipped corners: an outside service");
+  Legend.define("kind.contract", [bx({ fill: "unlit", stroke: "rule-3", y: 4.5, height: 7, rx: 2, w: 1.2 })], "Small label: a contract, the agreed interface between the two boxes it sits between");
+  Legend.define("kind.count", [{ k: "dot", fill: "unlit", stroke: "rule-3", r: 6, w: 1.4 }, { k: "text", t: "3", fill: "ink-2", y: 11 }], "Round number: that many contracts on one short line");
+  Legend.define("kind.flow", [bx({ fill: "unlit", stroke: "rule-3", y: 3.5, height: 9, rx: 2, w: 1.2 })], "Wide card in the Flows row: a flow");
+  Legend.define("link", [ln({ stroke: "duct", w: 4.5 })], "Dark line: a connection between two boxes; its contracts are labeled on it");
+  Legend.define("link.lit", [ln({ stroke: "caution", w: 2, dash: "1.5 4.5" })], "Dotted color on a line: the most urgent status among its contracts");
+  Legend.define("link.leader", [ln({ stroke: "ink-4", w: 1.2, dash: "2 3" })], "Thin dotted line: ties a contract label to its line");
   Legend.define("lane", [ln({ stroke: "line-gray", w: 4 })], "Colored line: one flow, each in its own color");
-  Legend.define("lane.hollow", [ln({ stroke: "line-gray", w: 4.5 }), ln({ stroke: "room", w: 1.6 })], "Hollow line: the flow is not decided yet (an assumption or an inkling)");
-  Legend.define("siding", [ln({ stroke: "siding", w: 3, dash: "1 6" })], "Dotted gray track: no flow runs over this contract");
-  Legend.define("works", [bx({ stroke: "caution", dash: "3 2", w: 2, width: 19, y: 5, height: 8, rx: 1.5 }), { k: "dot", fill: "caution", x: 27, y: 4.5, r: 4.5 }], "Hatched board with a count: open questions hold it up, in the color of the most urgent");
-  Legend.define("station.app", [bx({ fill: "room", stroke: "ink", w: 2.4, rx: 7 })], "Round-ended station: one of our apps, its state in words under the name");
-  Legend.define("station.party", [bx({ fill: "room", stroke: "ink-3", w: 2.4, rx: 3 }), bx({ stroke: "ink-3", w: 1, x: 6, y: 5.5, width: 22, height: 5, rx: 1 })], "Double frame: an outside party");
-  Legend.define("lit.words", [{ k: "text", t: "Aa", fill: "caution-text", size: 12 }], "Colored words: something here needs someone, and the word says what");
-  Legend.define("dim", [bx({ fill: "unlit", opacity: 0.25, stroke: "rule-3", w: 1 })], "Faded: not on the line you picked");
-  Legend.define("train", [bx({ fill: "line-gray", stroke: "room", x: 8, y: 4.5, width: 18, height: 7, rx: 3.5, w: 1.4 })], "Small moving block: a train running that flow's journey");
-  Legend.define("matrix.upper", [bx({ fill: "cell-upper", stroke: "cell-upper-edge", w: 1 })], "Shaded cell: above the diagonal, where a contract would run backwards");
-  Legend.define("matrix.backwards", [bx({ fill: "unlit", w: 1 }), { k: "text", t: "◤", x: 9, y: 9, fill: "ink", size: 10 }], "Corner mark: this contract runs backwards, from right to left");
-  Legend.define("matrix.holds", [bx({ fill: "unlit", stroke: "rule-3", w: 1, width: 20 }), { k: "dot", fill: "caution", x: 26, y: 4, r: 4.5 }, { k: "text", t: "2", fill: "caution-ink", x: 26, y: 7, size: 7 }], "Number badge: open questions holding the cell");
-  Legend.define("matrix.diag", [bx({ fill: "deck-3", stroke: "rule-3", w: 1 })], "Dark cell with a name: the app against itself, nothing to read");
+  Legend.define("lane.hollow", [ln({ stroke: "line-gray", w: 4.5 }), ln({ stroke: "room", w: 1.6 })], "Hollow line: the flow is not decided yet");
+  Legend.define("siding", [ln({ stroke: "siding", w: 3, dash: "1 6" })], "Dotted gray line: no flow uses this contract");
+  Legend.define("works", [bx({ stroke: "caution", dash: "3 2", w: 2, width: 19, y: 5, height: 8, rx: 1.5 }), { k: "dot", fill: "caution", x: 27, y: 4.5, r: 4.5 }], "Striped badge with a number: open questions blocking it, in the color of the most urgent");
+  Legend.define("station.app", [bx({ fill: "room", stroke: "ink", w: 2.4, rx: 7 })], "Round-ended box: one of our apps, its status in words under the name");
+  Legend.define("station.party", [bx({ fill: "room", stroke: "ink-3", w: 2.4, rx: 3 }), bx({ stroke: "ink-3", w: 1, x: 6, y: 5.5, width: 22, height: 5, rx: 1 })], "Double frame: an outside service");
+  Legend.define("lit.words", [{ k: "text", t: "Aa", fill: "caution-text", size: 12 }], "Colored words: this needs you; the words say why");
+  Legend.define("dim", [bx({ fill: "unlit", opacity: 0.25, stroke: "rule-3", w: 1 })], "Faded: not on the flow you picked");
+  Legend.define("train", [bx({ fill: "line-gray", stroke: "room", x: 8, y: 4.5, width: 18, height: 7, rx: 3.5, w: 1.4 })], "Small moving marker: runs along the flow, step by step");
+  Legend.define("matrix.upper", [bx({ fill: "cell-upper", stroke: "cell-upper-edge", w: 1 })], "Shaded cell: an app that depends on one listed after it");
+  Legend.define("matrix.backwards", [bx({ fill: "unlit", w: 1 }), { k: "text", t: "◤", x: 9, y: 9, fill: "ink", size: 10 }], "Corner mark: this contract points backwards, to an app listed earlier");
+  Legend.define("matrix.holds", [bx({ fill: "unlit", stroke: "rule-3", w: 1, width: 20 }), { k: "dot", fill: "caution", x: 26, y: 4, r: 4.5 }, { k: "text", t: "2", fill: "caution-ink", x: 26, y: 7, size: 7 }], "Number badge: open questions blocking the cell's contracts");
+  Legend.define("matrix.diag", [bx({ fill: "deck-3", stroke: "rule-3", w: 1 })], "Dark cell with a name: the app itself (empty)");
   const COCKPIT_LOOKS = () => ({
     ...Legend.lampProbes((lv) => (lv === "dark" ? "g.hit.dark" : `g.hit.lit.${lv}`)),
     "kind.app": 'g.hit[data-kind="app"]', "kind.party": 'g.hit[data-kind="partner"]', "kind.contract": 'g.hit[data-kind="contract"]:not(.count-badge)',
@@ -93,7 +93,7 @@ const MapView = (() => {
     const queued = App.section === "home" && typeof Queue !== "undefined";
     const lede = LEDE[queued && mode === "cockpit" ? "home" : mode];
     const head = h("div", { class: "view-head" },
-      h("div", {}, h("h1", {}, st.focus && lens() === "cockpit" ? `Focus: ${titleOf(st.focus)}` : title), h("p", { class: "lede", title: lede }, lede)),
+      h("div", {}, h("h1", {}, st.focus && lens() === "cockpit" ? `${titleOf(st.focus)} and its neighbors` : title), h("p", { class: "lede", title: lede }, lede)),
       h("div", { class: "spacer" }),
       typeof Nav !== "undefined" ? Nav.pageActions() : null);
     main.append(head);
@@ -104,7 +104,7 @@ const MapView = (() => {
     const tools = toolbar();
     if (tools) above.append(tools);  // Element.append writes a null as the text "null"
     above.append(countLine());
-    if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No capability requirements recorded yet.", "No app carries one, and no epic lists an app against a capability, so there is nothing to group the apps by.", "/planner:requirements", "inline"));
+    if (App.section === "capabilities" && !hasCapabilities()) col.append(emptyState("No capability requirements recorded yet.", "No app has a requirement or an epic tied to a capability, so there is nothing to group the apps by.", "/planner:requirements", "inline"));
     const board = h("div", { class: "board board-" + (lens() === "cockpit" && mode !== "cockpit" ? "cockpit board-" + mode : lens()), id: "board" });
     // The matrix's key sits beside (or, in a narrow window, under) the scrolling board and not inside it, so nothing
     // after the table adds scroll room and pushes the frozen head and row names out with the table's edge.
@@ -113,7 +113,7 @@ const MapView = (() => {
     col.append(stage || board);
     if (KEY) col.append(KEY.el());
     if (queued) { const width = main.clientWidth; main.append(h("div", { class: "home-wrap" }, above, h("div", { class: "home-stage" + (Queue.folded(width) ? " stacked" : "") }, Queue.card(width), col))); }
-    if (!D.nodes.length) { board.append(emptyState("This vault has no apps yet.", "There is no map to draw.", "/planner:boundary")); return; }
+    if (!D.nodes.length) { board.append(emptyState("No apps yet.", "The map appears once the plan names its apps.", "/planner:boundary")); return; }
     if (lens() === "releases") { Releases.mapLens(board); return; }  // the releases drawing keeps its own key
     if (lens() === "matrix") drawn(() => { const m = matrix(); board.append(m.table); stage.append(m.key); });
     else if (lens() === "transit") { drawn(() => transit(board)); highlight(App.focus); }
@@ -127,25 +127,25 @@ const MapView = (() => {
   /* The second row: grouping, focus and motion, for the lenses they apply to. */
   function toolbar() {
     const bar = h("div", { class: "map-tools" });
-    bar.append(h("div", { class: "seg small", role: "group", "aria-label": "Lens" }, [["cockpit", "Cockpit"], ["transit", "Line map"], ["matrix", "Matrix"], ["releases", "Releases"]].map(([id, label]) =>
+    bar.append(h("div", { class: "seg small", role: "group", "aria-label": "Lens" }, [["cockpit", "System map"], ["transit", "Flow lines"], ["matrix", "Who uses whom"], ["releases", "Before and after"]].map(([id, label]) =>
       h("button", { "aria-pressed": String(lens() === id), "data-lens": id, onclick: () => { st.lens = id; if (id === "transit" && FX.motion !== "trains") FX.setMotion("trains"); if (id === "cockpit" && FX.motion === "trains") FX.setMotion("trace"); rerender(); } }, label))));
     if (lens() === "cockpit") {
-      bar.append(h("span", { class: "tool-label sep" }, "Group"), h("div", { class: "seg small", role: "group", "aria-label": "Group the apps" },
-        [["none", "None"], ["domain", "Domain"], ["capability", "Capability"]].map(([id, label]) => h("button", { "aria-pressed": String(!st.focus && group() === id), "data-group": id,
+      bar.append(h("span", { class: "tool-label sep" }, "Group by"), h("div", { class: "seg small", role: "group", "aria-label": "Group the apps by" },
+        [["none", "Nothing"], ["domain", "Business area"], ["capability", "Capability"]].map(([id, label]) => h("button", { "aria-pressed": String(!st.focus && group() === id), "data-group": id,
           disabled: groupOff(id) ? true : null, title: groupOff(id) ? GROUP_OFF[id] : "",
           onclick: () => { st.group = id; st.focus = null; rerender(); } }, label))));
       if (!st.focus && group() !== "none") bar.append(h("button", { class: "chip", onclick: () => { MapGroups.all(true); rerender(); } }, "Open all"), h("button", { class: "chip", onclick: () => { MapGroups.all(false); rerender(); } }, "Close all"));
       const app = st.focus || (App.focus && APPS[App.focus] ? App.focus : null);
-      if (st.focus) bar.append(h("button", { class: "chip on", onclick: () => { st.focus = null; rerender(); } }, `Leave focus on ${titleOf(st.focus)}`));
-      else bar.append(h("button", { class: "chip", disabled: app ? null : true, title: app ? "" : "Pick an app first", onclick: () => { st.focus = app; rerender(); } }, app ? `Focus on ${titleOf(app)}` : "Focus on an app"));
+      if (st.focus) bar.append(h("button", { class: "chip on", onclick: () => { st.focus = null; rerender(); } }, "Back to the whole map"));
+      else bar.append(h("button", { class: "chip", disabled: app ? null : true, title: app ? "Show this app and the apps it connects to" : "Pick an app on the map first", onclick: () => { st.focus = app; rerender(); } }, app ? `Show ${titleOf(app)} and its neighbors` : "Show one app and its neighbors"));
     }
     if (lens() === "cockpit" || lens() === "transit") {
       const say = FX.MOTIONS.find(([id]) => id === FX.motion)[2];
-      bar.append(h("span", { class: "tool-unit" }, h("span", { class: "tool-label sep" }, "Motion"), h("div", { class: "seg small", role: "group", "aria-label": "Motion" },
+      bar.append(h("span", { class: "tool-unit" }, h("span", { class: "tool-label sep" }, "Highlight"), h("div", { class: "seg small", role: "group", "aria-label": "Highlight" },
         FX.MOTIONS.map(([id, label, say]) => h("button", { "aria-pressed": String(FX.motion === id), "data-motion": id, title: say,
           onclick: () => { FX.setMotion(id); st.lens = id === "trains" ? "transit" : "cockpit"; rerender(); } }, label))),
-        h("span", { class: "tool-hint" }, FX.on ? say : say.replace(/ hop by hop| ring by ring/, "") + "; Plain shows it at once")));
-      if (lens() === "transit" && FX.motion === "trains" && FX.on) bar.append(h("button", { class: "chip", onclick: (ev) => { st.running = !st.running; ev.currentTarget.textContent = st.running ? "Pause trains" : "Run trains"; } }, st.running ? "Pause trains" : "Run trains"));
+        h("span", { class: "tool-hint" }, FX.on ? say : say.replace(/, step by step|, spreading outward/, "") + " (shown all at once while animation is off)")));
+      if (lens() === "transit" && FX.motion === "trains" && FX.on) bar.append(h("button", { class: "chip", onclick: (ev) => { st.running = !st.running; ev.currentTarget.textContent = st.running ? "Pause" : "Play"; } }, st.running ? "Pause" : "Play"));
     }
     if (lens() === "cockpit" && !st.focus) bar.append(Layout.tools(group() === "none" ? "box" : "cluster"));
     return bar.childNodes.length ? bar : null;
@@ -157,12 +157,13 @@ const MapView = (() => {
     const cons = D.map.contracts.length, litCons = D.map.contracts.filter((c) => levelOf(c.id) !== "dark").length;
     const quiet = D.map.parties.filter((p) => !NODE[p.key]).length;
     const notes = [];
-    if (quiet) notes.push(`${plural(quiet, "outside party", "outside parties")} with no contract ${quiet === 1 ? "is" : "are"} not drawn: ${D.map.parties.filter((p) => !NODE[p.key]).map((p) => p.title).join(", ")}`);
-    if (lens() === "cockpit" && !st.lens && big() && hasDomains() && group() === "domain") notes.push(`${plural(D.nodes.length, "box", "boxes")} is past what one drawing carries, so the apps open grouped by domain, ${manyApps() ? "each cluster closed" : "every cluster open"}; the matrix shows the full picture`);
-    if (lens() === "matrix" && !st.lens) notes.push(`${plural(D.nodes.length, "box", "boxes")} and ${plural(lines(), "line")} is past what a drawing carries, so the matrix opens first; the cockpit and line map keep every app in the same place`);
-    if (lens() === "transit") { const idle = D.map.contracts.filter((c) => !flowsFor(c.id).length).length; if (idle) notes.push(`${plural(idle, "contract")} no flow runs over ${idle === 1 ? "is" : "are"} drawn as dotted siding`); }
-    return h("div", { class: "countline", title: `${litApps} of ${plural(apps, "app")} and ${litCons} of ${plural(cons, "contract")} lit. ${notes.join(". ")}` }, h("b", {}, `${litApps} of ${plural(apps, "app")}`), " and ", h("b", {}, `${litCons} of ${plural(cons, "contract")}`), " lit. ",
-      notes.length ? h("span", { class: "hidden-note" }, notes.join(". ") + ".") : "Nothing hidden.");
+    if (quiet) notes.push(`${plural(quiet, "outside service")} with no contract ${quiet === 1 ? "isn't" : "aren't"} drawn: ${D.map.parties.filter((p) => !NODE[p.key]).map((p) => p.title).join(", ")}`);
+    if (lens() === "cockpit" && !st.lens && big() && hasDomains() && group() === "domain") notes.push(`Too many apps to draw at once (${D.nodes.length}), so they are grouped by business area, ${manyApps() ? "each group closed" : "every group open"}; Who uses whom shows them all`);
+    if (lens() === "matrix" && !st.lens) notes.push(`Too many apps and connections to draw clearly (${D.nodes.length} and ${lines()}), so Who uses whom opens first; the system map and flow lines keep every app in the same place`);
+    if (lens() === "transit") { const idle = D.map.contracts.filter((c) => !flowsFor(c.id).length).length; if (idle) notes.push(`${plural(idle, "contract")} ${idle === 1 ? "isn't" : "aren't"} used by any flow, drawn as a dotted line`); }
+    const ofAll = (n, all, one) => (n === all && all > 1 ? `All ${plural(all, one)}` : `${n} of ${plural(all, one)}`);
+    return h("div", { class: "countline", title: `${ofAll(litApps, apps, "app")} and ${ofAll(litCons, cons, "contract").toLowerCase()} need you. ${notes.join(". ")}` }, h("b", {}, ofAll(litApps, apps, "app")), " and ", h("b", {}, ofAll(litCons, cons, "contract").toLowerCase()), " need you. ",
+      notes.length ? h("span", { class: "hidden-note" }, notes.join(". ") + ".") : "Everything is drawn.");
   }
 
   /* ------------------------------------------------------------ cockpit */
@@ -203,7 +204,7 @@ const MapView = (() => {
     const taken = Object.values(L.stations).map((stn) => ({ x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H }));  // what a lamp bank must stay clear of
     if (L.zoneY !== null) {
       s("line", { x1: left, x2: right, y1: L.zoneY, y2: L.zoneY, class: "zone" }, gDucts);
-      for (const [text, y] of [["Our apps", L.zoneY - 12], ["Outside parties", L.zoneY + 24]]) {
+      for (const [text, y] of [["Our apps", L.zoneY - 12], ["Outside services", L.zoneY + 24]]) {
         const caption = s("text", { x: right - 20, y, "text-anchor": "end", class: "zone-text" }, gDucts);
         caption.textContent = text;
         taken.push(MapGroups.drawnBox(caption, { x: right - 130, y: y - 14, w: 110, h: 18 }));
@@ -234,12 +235,12 @@ const MapView = (() => {
       taken.push(spot.r);
       cor.contracts.forEach((cid, i) => {
         const y = spot.at.y + (i - (cor.contracts.length - 1) / 2) * (lh + gap);
-        lamp(gLamps, { key: cid, x: spot.at.x - lw / 2, y: y - lh / 2, w: lw, h: lh, rx: 3, label: CONTRACT[cid].title, kind: "contract", title: `${cid} ${CONTRACT[cid].title}` });
+        lamp(gLamps, { key: cid, x: spot.at.x - lw / 2, y: y - lh / 2, w: lw, h: lh, rx: 3, label: CONTRACT[cid].title, kind: "contract", title: `${CONTRACT[cid].title} (${cid})` });
       });
     }
     for (const stn of Object.values(L.stations)) {
       const n = stn.node, light = lightOf(n.key);
-      const sub = n.kind !== "app" ? (n.external ? "outside provider" : "outside party") : !light || light.level === "dark" ? "settled" : shortWhy(light);
+      const sub = n.kind !== "app" ? "outside service" : !light || light.level === "dark" ? "decided" : shortWhy(light);
       const said = n.external && EXTERNAL[n.key] ? EXTERNAL[n.key].said : n.title;  // the contract's own words, on hover
       const el = lamp(gNodes, { key: n.key, x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, title: said, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(n.key) });
       Scene.node(n.key, { x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H, el });
@@ -249,11 +250,11 @@ const MapView = (() => {
     if (D.flows.length) {
       const gx = 16, fh = 50, fw = Math.min(260, (right - left - 80 - (flowCols - 1) * gx) / flowCols);
       const x0 = (b.x0 + b.x1) / 2 - (flowCols * fw + (flowCols - 1) * gx) / 2;
-      s("text", { x: x0, y: flowsY - 14, class: "engrave" }, gNodes).textContent = "Flow pages";
+      s("text", { x: x0, y: flowsY - 14, class: "engrave" }, gNodes).textContent = "Flows";
       D.flows.forEach((f, i) => {
         const light = lightOf(f.key);
         lamp(gNodes, { key: f.key, x: x0 + (i % flowCols) * (fw + gx), y: flowsY + Math.floor(i / flowCols) * (fh + 16), w: fw, h: fh, rx: 6, label: E[f.key].title, kind: "flow", small: true,
-          sub: `${E[f.key].id}, ${!light || light.level === "dark" ? "settled" : light.reasons.some((r) => r.kind === "stale") ? "page out of date" : shortWhy(light)}` });
+          sub: !light || light.level === "dark" ? "decided" : light.reasons.some((r) => r.kind === "stale") ? "page out of date" : shortWhy(light), title: `${E[f.key].title} (${E[f.key].id})` });
       });
     }
     Pan.attach(board, { key: "cockpit", svg: () => $("svg.cockpit", board) });  // drag the background to pan (pan.js)
@@ -339,12 +340,12 @@ const MapView = (() => {
   function shortWhy(light) {
     const held = light.reasons.filter((r) => r.kind === "held");
     if (light.level === "override") return "overridden";
-    if (light.level === "unexamined") return "never examined";
+    if (light.level === "unexamined") return "not reviewed";
     if (light.level === "pending") return "◷ pending approval";
     const qs = [...new Set(held.map((r) => r.unknown))];
     if (qs.length) {
       const dates = qs.map((id) => ASK[id] && ASK[id].askBy).filter(isDate).sort();
-      return `${plural(qs.length, "question")}${dates.length ? ", " + day(dates[0]) : ""}`;
+      return `${plural(qs.length, "question")}${dates.length ? ", due " + day(dates[0]) : ""}`;
     }
     const state = light.reasons.find((r) => r.kind === "state");
     if (light.reasons.some((r) => r.kind === "stale")) return "page out of date";
@@ -379,10 +380,10 @@ const MapView = (() => {
       if (o.kind === "cluster") { t.setAttribute("y", o.y + 40); t.style.fontSize = "17px"; }
       if (o.sub) s("text", { x: tx, y: o.kind === "cluster" ? o.y + 62 : o.y + o.h / 2 + 15, "text-anchor": "middle", class: "node-sub" }, grp).textContent = shorten(o.sub, o.kind === "cluster" ? 40 : 34);
     }
-    s("title", {}, grp).textContent = `${o.title || o.label}: ${light ? LIGHT[level].word : "outside party, no light of its own"}`;
+    s("title", {}, grp).textContent = light ? `${o.title || o.label}: ${LIGHT[level].word}` : `${o.title || o.label} (outside service). Its status shows on the contracts that connect to it.`;
     const pick = o.onpick || (() => { go(o.key, { reset: true }); if (o.kind === "app" || o.kind === "partner") Assets.theme(o.label); });
-    Nodes.wire(grp, { label: o.title || o.label || o.key, aria: o.aria || `${o.title || o.label}: ${light ? LIGHT[level].word : "no light of its own"}. ${o.sub || ""}`, open: pick, guard: () => !justDropped() });
-    grp.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(o.title || o.label)}</b>${light ? esc(LIGHT[level].word) + (light.reasons[0] ? ": " + esc(reasonText(light.reasons[0])) : "") : "No light of its own"}`));
+    Nodes.wire(grp, { label: o.title || o.label || o.key, aria: o.aria || `${o.title || o.label}: ${light ? LIGHT[level].word : "outside service, no status of its own"}. ${o.sub || ""}`, open: pick, guard: () => !justDropped() });
+    grp.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(o.title || o.label)}</b>${light ? esc(LIGHT[level].word) + (light.reasons[0] ? ": " + esc(reasonText(light.reasons[0])) : "") : "Outside service: its status shows on the contracts that connect to it"}`));
     grp.addEventListener("mouseleave", hideTip);
     return grp;
   }
@@ -469,7 +470,7 @@ const MapView = (() => {
     if (lit) Legend.saw("lit.words");
     t.textContent = short;
     Nodes.wire(t, { label: ids.length > 1 ? `${ids.length} contracts: ${ids.map((id) => CONTRACT[id].title).join(", ")}` : CONTRACT[ids[0]].title, key: ids.length > 1 ? `bundle:${ids.join(",")}|${titleOf(cor.b)}` : ids[0] });
-    t.addEventListener("mousemove", (e) => showTip(e, ids.map((id) => `<b>${esc(CONTRACT[id].title)}</b>${esc(CONTRACT[id].state || "no state")}, ${esc(LIGHT[levelOf(id)].word.toLowerCase())}`).join("")));
+    t.addEventListener("mousemove", (e) => showTip(e, ids.map((id) => `<b>${esc(CONTRACT[id].title)}</b>${esc(stateWord(CONTRACT[id].state) || "status not recorded")}, ${esc(LIGHT[levelOf(id)].word.toLowerCase())}`).join("")));
     t.addEventListener("mouseleave", hideTip);
     const total = Geo.length(pts), off = cor.width / 2 + 10;
     const spot = (f, flip) => {
@@ -510,7 +511,7 @@ const MapView = (() => {
     const lv = levelOf(n.key);
     if (["warning", "caution", "unexamined"].includes(lv)) Legend.saw("lit.words");
     const sub = s("text", { class: "station-sub" + (lv !== "dark" ? " " + lv : "") }, grp);
-    sub.textContent = n.kind !== "app" ? "outside party" : lv !== "dark" ? LIGHT[lv].word.toLowerCase() : (APPS[n.key].change || "change not recorded");
+    sub.textContent = n.kind !== "app" ? "outside service" : lv !== "dark" ? LIGHT[lv].word.toLowerCase() : (APPS[n.key].change ? stateWord(APPS[n.key].change).toLowerCase() : "change not recorded");
     // The name takes the first free side whose words touch no other station and no name placed before it: boxes
     // dropped between cells can stand closer than a column, and a name on the near side would run into the neighbor.
     const put = (side) => {
@@ -570,19 +571,19 @@ const MapView = (() => {
       s("rect", { x, y, width: 30, height: 16, rx: 2, fill: "url(#works-hatch)", stroke: Theme.c("face-drop"), "stroke-width": 1.5 }, grp);
       s("circle", { cx: x + 34, cy: y, r: 9, fill: LIGHT[worst] ? LIGHT[worst].color : LIGHT.caution.color }, grp);
       s("text", { x: x + 34, y: y + 4, "text-anchor": "middle", fill: LIGHT[worst] ? LIGHT[worst].ink : LIGHT.caution.ink, "font-size": 11.5, "font-weight": 700 }, grp).textContent = m.held.length;
-      Nodes.wire(grp, { label: `Works on ${titleOf(m.key)}: ${plural(m.held.length, "open question")}`, key: m.key, stop: true });
-      grp.addEventListener("mousemove", (e) => showTip(e, m.held.map((u) => `<b>${esc(u)} ${esc(E[u] ? E[u].title : "")}</b>ask by ${esc(day(ASK[u].askBy))}`).join("")));
+      Nodes.wire(grp, { label: `Blocking ${titleOf(m.key)}: ${plural(m.held.length, "open question")}`, key: m.key, stop: true });
+      grp.addEventListener("mousemove", (e) => showTip(e, m.held.map((u) => `<b>${esc(E[u] ? E[u].title : u)}</b>answer needed by ${esc(day(ASK[u].askBy))}`).join("")));
       grp.addEventListener("mouseleave", hideTip);
     }
   }
   function legend(board) {
-    const box = h("div", { class: "line-legend" }, h("h3", {}, "Lines"));
+    const box = h("div", { class: "line-legend" }, h("h3", {}, "Flows"));
     if (D.flows.length) {
-      linePicker = FlowPicker.make({ current: () => st.line, onPick: (key) => selectLine(key), none: "Every line", label: "Line",
+      linePicker = FlowPicker.make({ current: () => st.line, onPick: (key) => selectLine(key), none: "All flows", label: "Show flow",
         swatch: (key) => Geo.flowColor(Geo.FLOW_ORDER[key]) });
       box.append(linePicker);
     }
-    if (!D.flows.length) box.append(h("p", { class: "muted" }, "No flow pages, so no lines."));
+    if (!D.flows.length) box.append(h("p", { class: "muted" }, "No flows written yet, so there are no lines to draw."));
     board.append(box);
   }
   function selectLine(fid) {
@@ -602,11 +603,11 @@ const MapView = (() => {
     const f = FLOW[fid], i = Geo.FLOW_ORDER[fid];
     stripEl.style.setProperty("--c", Geo.flowColor(i));
     stripEl.innerHTML = "";
-    stripEl.append(h("header", {}, h("b", {}, E[fid].title), h("span", {}, `${E[fid].id}, ${plural(f.steps.length, "step")}`),
+    stripEl.append(h("header", {}, h("b", {}, E[fid].title), h("span", {}, idTag(E[fid].id), ` ${plural(f.steps.length, "step")}`),
       h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => { showView("flows"); Flows.select(fid, -1); } }, "Play it"),
       h("button", { class: "btn primary", onclick: () => Flows.present(fid, 0) }, "▶ Present"), h("button", { class: "btn", onclick: () => selectLine(null) }, "Close")),
       h("ol", {}, f.steps.map((stp) => h("li", { "data-step": stp.n, class: stp.contracts.length ? "" : "unlinked" },
-        h("b", {}, `Step ${stp.n}${stp.contracts.length ? ", " + stp.contracts.join(", ") : ""}`), h("span", { class: "text" }, stp.short)))));
+        h("b", { title: stp.contracts.join(", ") || null }, `Step ${stp.n}${stp.contracts.length ? ", over " + stp.contracts.map((id) => (CONTRACT[id] ? CONTRACT[id].title : id)).join(", ") : ""}`), h("span", { class: "text" }, stp.short)))));
     stripEl.classList.add("open");
     go(fid, { reset: true });
   }
@@ -687,12 +688,12 @@ const MapView = (() => {
     // still says whose it is. The head is as tall as the longest name it shows needs.
     const NAME_W = 168, longest = Math.min(NAME_W, Math.max(...apps.map((k) => titleOf(k).length * 7.4), 40));
     const table = h("table", { class: "dsm angled" + (small ? " small" : ""), style: `--cell:${size}px;--head:${Math.round(longest * 0.72 + 26)}px;--name-w:${NAME_W}px` });
-    const thead = h("thead", {}, h("tr", {}, h("th", { class: "corner" }, "provides ↓", h("br"), "uses →"),
+    const thead = h("thead", {}, h("tr", {}, h("th", { class: "corner" }, "rows provide", h("br"), "to columns"),
       // each name leans over its right-hand neighbors, so a column sits above the next one and its backdrop never hides it
       apps.map((k, i) => h("th", { class: "col" + (focus.has(k) ? " sel" : ""), "data-c": k, style: `z-index:${4 + n - i}` }, h("a", { "data-ref": k, title: titleOf(k) }, h("span", {}, titleOf(k)))))));
     const tbody = h("tbody");
     table.append(thead, tbody);
-    const row = (p, isPartner) => h("tr", {}, h("th", { class: "row" + (focus.has(p) ? " sel" : ""), "data-r": p }, h("a", { "data-ref": p, title: titleOf(p) }, titleOf(p)), h("small", {}, isPartner ? "outside party" : (APPS[p].change || ""))),
+    const row = (p, isPartner) => h("tr", {}, h("th", { class: "row" + (focus.has(p) ? " sel" : ""), "data-r": p }, h("a", { "data-ref": p, title: titleOf(p) }, titleOf(p)), h("small", {}, isPartner ? "outside service" : stateWord(APPS[p].change) || "")),
       apps.map((k) => {
         if (k === p) { Legend.saw("matrix.diag"); return h("td", { class: "diag", "data-r": p, "data-c": k }, small ? "" : titleOf(k)); }
         const list = cells[`${p}|${k}`], upper = !isPartner && order[p] < order[k];
@@ -707,18 +708,18 @@ const MapView = (() => {
         if (sel) Legend.saw("picked");
         const btn = h("button", { class: `cell ${lv}${upper ? " backwards" : ""}`, "aria-label": `${titleOf(p)} provides ${ids.map((id) => CONTRACT[id].title).join(", ")} to ${titleOf(k)}: ${LIGHT[lv].word}`,
           onclick: () => go(ids.length > 1 ? `bundle:${ids.join(",")}|${k}` : ids[0], { reset: true }),
-          onmouseenter: (e) => showTip(e, list.map((c) => `<b>${esc(c.title)}</b>${esc(c.state || "no state")}, ${esc(LIGHT[levelOf(c.id)].word.toLowerCase())}`).join("")), onmouseleave: hideTip },
+          onmouseenter: (e) => showTip(e, list.map((c) => `<b>${esc(c.title)}</b>${esc(stateWord(c.state) || "status not recorded")}, ${esc(LIGHT[levelOf(c.id)].word.toLowerCase())}`).join("")), onmouseleave: hideTip },
           ids.length === 1 ? h("span", { title: ids[0] }, shorten(CONTRACT[ids[0]].title, small ? 8 : 13)) : h("span", { title: ids.map((id) => CONTRACT[id].title).join(", ") }, small ? `${ids.length}×` : `${ids.length} contracts`));
         return h("td", { class: (upper ? "upper" : "") + (sel ? " sel" : ""), "data-r": p, "data-c": k }, btn, held.length ? h("span", { class: "holds " + held.map(unknownLevel).sort((x, y) => rank(y) - rank(x))[0] }, held.length) : null);
       }));
     apps.forEach((k) => tbody.append(row(k, false)));
-    if (partners.length) { tbody.append(h("tr", { class: "grouprow" }, h("th", { class: "group" }, "Outside parties"), apps.map(() => h("td")))); partners.forEach((k) => tbody.append(row(k, true))); }
+    if (partners.length) { tbody.append(h("tr", { class: "grouprow" }, h("th", { class: "group" }, "Outside services"), apps.map(() => h("td")))); partners.forEach((k) => tbody.append(row(k, true))); }
     const backwards = Object.keys(cells).filter((k) => { const [p, c] = k.split("|"); return p in order && order[p] < order[c]; });
     const coupled = Object.keys(cells).filter((k) => { const [p, c] = k.split("|"); return p < c && cells[`${c}|${p}`]; });
     const roomy = !matchMedia("(max-width: 1100px)").matches;
     return { table: h("div", { class: "matrix-wrap" }, h("div", { class: "grid-wrap" }, table)), key:
       h("details", { class: "matrix-side", open: roomy ? "" : null }, h("summary", {}, "The counts, and the flows"), h("h3", {}, "Counts"),
-        h("p", { class: "p-note" }, `${plural(D.map.contracts.length, "contract")}; ${plural(backwards.length, "cell")} ${backwards.length === 1 ? "runs" : "run"} backwards.`,
+        h("p", { class: "p-note" }, `${plural(D.map.contracts.length, "contract")}; ${backwards.length ? `${backwards.length} ${backwards.length === 1 ? "points" : "point"} backwards, to an app listed earlier` : "none pointing backwards"}.`,
           coupled.length ? ` ${coupled.slice(0, 3).map((k) => k.split("|").map(titleOf).join(" and ")).join("; ")}${coupled.length > 3 ? ` and ${plural(coupled.length - 3, "other pair")}` : ""} provide to each other, so they cannot be designed apart.` : ""),
         h("h3", {}, "Flows"), D.flows.map((f, i) => h("button", { class: "line-btn", onmouseenter: () => flowCells(f.key, i, true), onmouseleave: () => flowCells(f.key, i, false), onclick: () => go(f.key, { reset: true, reveal: true }) },
           h("span", { class: "swatch", style: `--c:${Geo.flowColor(i)}` }), h("span", {}, E[f.key].title, h("small", { class: "id-tag" }, E[f.key].id))))) };

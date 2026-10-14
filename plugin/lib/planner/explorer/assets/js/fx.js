@@ -4,9 +4,9 @@
    ripple of impact, or trains on the line map) is remembered the same way. */
 const FX = (() => {
   const KEY = "explorer.effects", MOTION_KEY = "explorer.motion";
-  const MOTIONS = [["trace", "Trace", "Pick a flow or contract: its path lights hop by hop"],
-    ["ripple", "Ripple", "Pick an app or decision: a ripple spreads, ring by ring, to what depends on it"],
-    ["trains", "Trains", "The line map, with a train running each flow's journey"]];
+  const MOTIONS = [["trace", "Path", "Pick a flow or contract to see the route it takes, step by step"],
+    ["ripple", "Impact", "Pick an app or decision to see what depends on it, spreading outward"],
+    ["trains", "Animate flows", "The line map, with a moving marker running along each flow"]];
   const read = Settings.read, write = Settings.write;
   const fromHash = HASH.get("fx");
   let on = fromHash ? fromHash !== "plain" : read(KEY) !== "plain";
@@ -17,8 +17,8 @@ const FX = (() => {
     const b = $("#fx");
     if (b) {
       b.setAttribute("aria-pressed", String(on));
-      b.title = on ? "Effects on: motion and glow that carry meaning. Switch to Plain for a still page with the same colors."
-        : "Plain: no motion, glow or pulsing; every color keeps its meaning. Switch effects back on.";
+      b.title = on ? "Animation on: motion and glow show what is urgent. Switch it off for a still page; the colors keep their meaning."
+        : "Animation off: nothing moves, glows or pulses, and every color keeps its meaning. Switch it back on.";
       $$("button", b).forEach((x) => x.setAttribute("aria-current", String((x.dataset.fx === "on") === on)));
     }
   }

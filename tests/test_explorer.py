@@ -604,7 +604,7 @@ def test_domain_less_vault_disables_domain_grouping(tmp_path):
     assert data["map"]["apps"] and all(not a["domain"] for a in data["map"]["apps"])
     assert data["grouping"]["domain"] is False and data["grouping"]["noDomain"] == len(data["map"]["apps"])
     assert "disabled: groupOff(id) ? true : null" in page
-    assert "No app page names a domain yet; /planner:boundary records one when you name it" in page
+    assert "No app has a business area yet, so there is nothing to group by" in page
 
 
 def test_grouping_flags_follow_the_data(demo):

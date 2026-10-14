@@ -12,19 +12,19 @@
   <button class="side-toggle" id="side-toggle" aria-controls="side" aria-expanded="true" title="Show or hide the sections ([)">
     <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
   </button>
-  <button class="brand" id="brand" title="What needs you"><span class="brand-title" id="brand-title"></span><span class="brand-sub" id="brand-sub"></span></button>
+  <button class="brand" id="brand" title="Back to what needs you"><span class="brand-title" id="brand-title"></span><span class="brand-sub" id="brand-sub"></span></button>
   <div class="search">
     <svg class="search-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="results" autocomplete="off" spellcheck="false" placeholder="Search by name: an app, a contract, a flow, a question" aria-label="Search the vault">
+    <input id="q" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="results" autocomplete="off" spellcheck="false" placeholder="Search by name: an app, a contract, a flow, a question" aria-label="Search the plan">
     <kbd class="search-key">/</kbd>
     <div id="results" role="listbox" aria-label="Search results" hidden></div>
     <div id="results-status" class="sr-only" role="status" aria-live="polite"></div>
   </div>
   <div class="masters" id="masters" aria-live="polite"></div>
   <div class="flags" id="flags" hidden></div>
-  <div class="fx" id="fx" role="group" aria-label="Effects" aria-pressed="true"><span class="fx-label">Effects</span><button data-fx="on">On</button><button data-fx="plain">Plain</button></div>
-  <label class="theme-pick" title="Theme: the room's colors; every lamp keeps its meaning"><span class="fx-label">Theme</span><select id="theme" aria-label="Theme"></select></label>
-  <button class="sound-btn" id="sound" aria-pressed="false" title="Sound: each app has its own note (S)">
+  <div class="fx" id="fx" role="group" aria-label="Animation" aria-pressed="true"><span class="fx-label">Animation</span><button data-fx="on">On</button><button data-fx="plain">Off</button></div>
+  <label class="theme-pick" title="Theme: changes the colors, not what they mean"><span class="fx-label">Theme</span><select id="theme" aria-label="Theme"></select></label>
+  <button class="sound-btn" id="sound" aria-pressed="false" title="Sound: plays a tone for each app as the map animates (shortcut S)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path id="sound-waves" d="M17 9l4 6M21 9l-4 6"/></svg><span>Sound off</span>
   </button>
 </header>

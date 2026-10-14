@@ -11,10 +11,10 @@ const Sections = (() => {
 
   /* ------------------------------------------------------------ goals */
   function goals(main) {
-    main.append(head("Goals", "Each goal from the Goals table: its state, what holds it, and the epics that deliver it."));
+    main.append(head("Goals", "Each goal: how settled it is, what is blocking it, and the epics that deliver it."));
     const sc = h("div", { class: "scroll pages" });
     main.append(sc);
-    if (!D.goals.length) { sc.append(emptyState("No goals recorded yet.", "The goals page has no Goals table (ID | Goal | Measure | State).")); return; }
+    if (!D.goals.length) { sc.append(emptyState("No goals recorded yet.", "No goals have been written down yet.")); return; }
     const grid = h("div", { class: "goal-grid" });
     for (const g of D.goals) {
       const held = (D.blockedBy[g.id] || []).filter((u) => isOpen(UNKNOWN[u]));
@@ -22,24 +22,25 @@ const Sections = (() => {
       const qs = [...new Set([...held, ...above])], lv = worst(qs.map(unknownLevel));
       const epics = D.trace.epics.filter((x) => x.delivers.includes(g.id));
       grid.append(h("article", { class: "goal-card" + (lv !== "dark" ? " lit " + lv : "") },
-        h("div", { class: "gc-top" }, h("span", { class: "gc-id" }, g.id), statePill(g.state), qs.length ? levelPill(lv, plural(qs.length, "open question")) : h("span", { class: "muted small" }, "nothing holds it")),
+        h("div", { class: "gc-top" }, h("span", { class: "gc-id id-tag" }, g.id), statePill(g.state), qs.length ? levelPill(lv, plural(qs.length, "open question")) : h("span", { class: "muted small" }, "nothing blocking it")),
         h("div", { class: "gc-goal", html: g.goal }), h("div", { class: "gc-measure" }, h("span", { class: "muted" }, "Measure "), h("span", { html: g.measure })),
         qs.length ? h("div", { class: "gc-row" }, qs.map((u) => refChip(u))) : null,
-        h("div", { class: "gc-row" }, h("span", { class: "muted small" }, epics.length ? "Delivered by " : "No epic delivers it"), epics.map((x) => refChip(x.key)))));
+        h("div", { class: "gc-row" }, h("span", { class: "muted small" }, epics.length ? "Delivered by " : "No epic delivers it yet"), epics.map((x) => refChip(x.key)))));
     }
     sc.append(grid);
   }
 
   /* ------------------------------------------------------------ concerns: concern by app */
-  const CELL_WORD = (s) => s || "no state";
+  /* A concern cell's state in words: "unexamined" means nobody has looked; "unknown" means someone looked and could not say. */
+  const CELL_WORD = (s) => (!s ? "not recorded" : s === "unexamined" ? "not reviewed" : s === "unknown" ? "not known yet" : stateWord(s));
   function concerns(main) {
-    main.append(head("Concerns", "Every concern cell, concern by app, as the concern pages record it. Blue is never examined: dark has to be earned."));
+    main.append(head("Concerns", "Each cross-cutting concern (security, cost, privacy, ...) for each app. Blue means nobody has reviewed it yet; it only turns gray once someone has. \"Not known yet\" means someone looked and the answer is still open."));
     const sc = h("div", { class: "scroll pages" });
     main.append(sc);
     const conc = (D.sections.find((x) => x.id === "concerns") || { children: [] }).children;
     const apps = [...new Set(D.cells.map((c) => c.app))].filter((k) => APPS[k]).sort((a, b) => (NODE[a] && NODE[b] ? (NODE[a].col - NODE[b].col) || (NODE[a].row - NODE[b].row) : 0) || cmp(a, b));
-    if (!conc.length || !apps.length) { sc.append(emptyState("No concern cells recorded yet.", "No concern page has a cell table of apps.", "/planner:boundary")); return; }
-    const table = h("table", { class: "cmx" }, h("tr", {}, h("th", { class: "corner" }, "concern ↓  app →"), apps.map((k) => h("th", { class: "col" }, h("a", { "data-ref": k }, h("span", {}, titleOf(k)))))));
+    if (!conc.length || !apps.length) { sc.append(emptyState("No concerns recorded yet.", "No concerns have been recorded for any app yet.", "/planner:boundary")); return; }
+    const table = h("table", { class: "cmx" }, h("tr", {}, h("th", { class: "corner" }, "concerns down, apps across"), apps.map((k) => h("th", { class: "col" }, h("a", { "data-ref": k }, h("span", {}, titleOf(k)))))));
     for (const ck of conc) {
       const row = h("tr", { "data-concern": ck }, h("th", { class: "row" }, h("a", { "data-ref": ck }, titleOf(ck))));
       for (const a of apps) {
@@ -52,7 +53,7 @@ const Sections = (() => {
       table.append(row);
     }
     const counts = {};
-    D.cells.forEach((c) => { counts[c.state || "no state"] = (counts[c.state || "no state"] || 0) + 1; });
+    D.cells.forEach((c) => { const w = CELL_WORD(c.state); counts[w] = (counts[w] || 0) + 1; });
     sc.append(h("section", { class: "card" }, h("div", { class: "grid-wrap" }, table),
       h("p", { class: "p-note" }, Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${k}`).join(" · "))));
   }
@@ -60,7 +61,7 @@ const Sections = (() => {
   /* ------------------------------------------------------------ epics */
   const ep = { open: new Set() };
   function epics(main) {
-    main.append(head("Epics", "Each epic with its acceptance criteria and concern markers, the apps it touches and what it delivers. Criteria are the lines under Done when on each epic page."));
+    main.append(head("Epics", "Each epic with its acceptance criteria and concern markers, the apps it touches and what it delivers."));
     const sc = h("div", { class: "scroll pages" });
     main.append(sc);
     if (!D.trace.epics.length) { sc.append(emptyState("No epics yet.", "There are no epic pages to show.", "/planner:epics")); return; }
@@ -81,7 +82,7 @@ const Sections = (() => {
 
   /* ------------------------------------------------------------ context and scope: today beside after */
   function context(main) {
-    main.append(head("Context and scope", "The system today beside the system after, worked out by planner.releases. The page itself, with the outside parties, sits beside."));
+    main.append(head("Context and scope", "Today's system next to the system after the planned releases. The page itself, with the outside services, sits beside."));
     const S = Releases.STATES, last = S.length - 1;
     const two = h("div", { class: "ctx-two" });
     const pane = (i, label) => { const box = h("div", { class: "rel-pane" }); two.append(h("div", { class: "ctx-pane" }, h("h3", {}, label), box)); return box; };
@@ -90,7 +91,7 @@ const Sections = (() => {
     Releases.drawMap(a, 0, { max: 0.8 });
     if (last > 0) Releases.drawMap(b, last, { max: 0.8 });
     const parties = D.map.parties;
-    main.append(h("div", { class: "ctx-parties" }, h("span", { class: "muted" }, `${plural(parties.length, "outside party", "outside parties")}: `), parties.map((p) => refChip(p.key, p.hasContract ? null : h("span", { class: "rid" }, "no contract")))));
+    main.append(h("div", { class: "ctx-parties" }, h("span", { class: "muted" }, `${plural(parties.length, "outside service")}: `), parties.map((p) => refChip(p.key, p.hasContract ? null : h("span", { class: "rid" }, "not connected")))));
   }
 
   /* ------------------------------------------------------------ a page read full width */
@@ -115,7 +116,7 @@ const Sections = (() => {
     for (const c of D.trace.capabilities) { const ch = E[c.key].change || "not set"; (by[ch] = by[ch] || []).push(c.key); }
     return h("aside", { class: "doc-aside" }, h("h3", {}, "What the strategy changes"),
       Object.entries(by).map(([ch, keys]) => h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, ch), h("span", {}, keys.map((k) => refChip(k))))),
-      h("p", { class: "p-note" }, "Each capability page's change, the move the strategy makes."));
+      h("p", { class: "p-note" }, "What the strategy changes in each capability."));
   }
   return { goals, concerns, epics, context, readWide, doc };
 })();
