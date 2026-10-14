@@ -206,9 +206,9 @@ def story_entry(story, summary, order_of, known, problems, tracer_slice=""):
         if breakdown.size_counts(row["size"]) != breakdown.size_counts(entry["size"]):
             problems.append(f"{story.id}: the summary table says its size is {row['size']!r}, but its tasks add up to {entry['size']}")
         if not {base(t) for t in traced_ids(row["traces"])} <= {base(t) for t in entry["traces"]}:  # the table abbreviates ("FR1 and FR4 shares"); it must not name a target the section does not
-            problems.append(f"{story.id}: the summary table's Traces to differs from the story section's")
+            problems.append(f"{story.id}: the summary table and the story section disagree on what it delivers (Traces to)")
         if not set(breakdown.story_refs(row["blocked"])) <= set(breakdown.story_refs(story.blocked)):
-            problems.append(f"{story.id}: the summary table's Blocked by names different stories than the story section")
+            problems.append(f"{story.id}: the summary table and the story section disagree on what it waits for (Blocked by)")
     return entry
 
 

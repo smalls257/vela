@@ -101,7 +101,7 @@ def test_who_to_ask_marks_a_guess(trading):
     for u in data["asks"]:
         assert u["ask"]["key"], u["id"]
         if u["ask"]["inferred"]:
-            assert u["ask"]["rule"].startswith("a guess"), u["id"]
+            assert u["ask"]["rule"].startswith("our guess"), u["id"]
         if u["state"] == "open":
             assert u["light"]["level"] in ("warning", "caution"), u["id"]
 
@@ -438,10 +438,10 @@ def test_designs_are_embedded_and_checked_against_the_vault(designed):
     assert "minute 12" in booking["challenges"][0]["scenario"]
     # each Integration point meets the component that cites its contract, and names the boxes it reaches on the map
     stubs = {s["system"]: s for s in booking["stubs"]}
-    assert stubs["FERRYMASTER"]["component"] == "Ledger adapter" and stubs["FERRYMASTER"]["how"] == "cites CON-006"
+    assert stubs["FERRYMASTER"]["component"] == "Ledger adapter" and stubs["FERRYMASTER"]["how"] == "it delivers CON-006"
     assert set(stubs["Channels via Platform gateway"]["nodes"]) == {"APP-website", "APP-call-center", "APP-kiosks"}
-    assert next(s for s in D["APP-pricing"]["stubs"] if s["system"] == "Fare rules store")["how"] == "its matrix row reads from it"
-    assert [s["how"] for s in D["APP-notifications"]["stubs"]] == ["depends on it; it is not an integration point"]
+    assert next(s for s in D["APP-pricing"]["stubs"] if s["system"] == "Fare rules store")["how"] == "the design's data table says it reads from it"
+    assert [s["how"] for s in D["APP-notifications"]["stubs"]] == ["it depends on it, though the design doesn't list it as an outside system"]
     edge = next(e for e in booking["depends"] if e["from"] == "Booking lifecycle" and e["to"] == "Hold keeper")
     assert edge["label"] == "reserve(), extend(), release()"
     assert "<" not in DATA.search(page).group(1)
@@ -604,7 +604,7 @@ def test_domain_less_vault_disables_domain_grouping(tmp_path):
     assert data["map"]["apps"] and all(not a["domain"] for a in data["map"]["apps"])
     assert data["grouping"]["domain"] is False and data["grouping"]["noDomain"] == len(data["map"]["apps"])
     assert "disabled: groupOff(id) ? true : null" in page
-    assert "No app page names a domain yet; /planner:boundary records one when you name it" in page
+    assert "No app has a business area yet, so there is nothing to group by" in page
 
 
 def test_grouping_flags_follow_the_data(demo):

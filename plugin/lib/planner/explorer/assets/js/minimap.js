@@ -3,11 +3,11 @@
    map's orientation and is never rotated to the current page (Levine's you-are-here maps). "Here" is what the
    panel shows, or what the current view is about (the step being played, the strip being read). */
 const Minimap = (() => {
-  Legend.define("mini.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Square-cornered box: an outside party");
-  Legend.define("mini.link", [Legend.ln({ stroke: "track", w: 3 })], "Gray line: a link between two boxes");
-  Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Colored line: a link whose contracts need someone, in the color of the worst");
-  Legend.define("mini.link.hot", [Legend.ln({ stroke: "focus", w: 4.5 })], "White line: a link to what you picked");
-  Legend.define("mini.here", [Legend.bx({ stroke: "focus", w: 2.4, rx: 6 })], "White ring: where you are, the thing the panel is showing");
+  Legend.define("mini.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Square-cornered box: an outside service");
+  Legend.define("mini.link", [Legend.ln({ stroke: "track", w: 3 })], "Gray line: a connection between two boxes");
+  Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Colored line: a connection with a contract that needs you, in its most urgent color");
+  Legend.define("mini.link.hot", [Legend.ln({ stroke: "focus", w: 4.5 })], "White line: a connection to what you picked");
+  Legend.define("mini.here", [Legend.bx({ stroke: "focus", w: 2.4, rx: 6 })], "White ring: what the panel is showing now");
   const MINI = Layout.FRAME;  // the cockpit's frame, the one the overlap rule measures in: a box clear on the big map is clear here
   const pulses = [];
   function here() {
@@ -29,7 +29,7 @@ const Minimap = (() => {
     const label = at.size ? `You are here: ${[...at].filter((k) => NODE[k]).map(titleOf).join(", ") || [...at].join(", ")}` : "The whole map; pick something to see where it sits";
     const lg = Legend.open("minimap", { root: () => box, open: false, quiet: true, probes: { ...Legend.lampProbes((lv) => `g.mini-node[data-level="${lv}"]`), "mini.party": 'g.mini-node[data-kind="party"]',
       "mini.link": "path.mini-link:not(.lit):not(.hot)", "mini.link.lit": "path.mini-link.lit", "mini.link.hot": "path.mini-link.hot", "mini.here": ".mini-ring" } });
-    box.append(h("div", { class: "mini-head" }, h("span", {}, "Map"), h("span", { class: "mini-here" }, label)));
+    box.append(h("div", { class: "mini-head" }, h("span", {}, "Overview"), h("span", { class: "mini-here" }, label)));
     const root = s("svg", { viewBox: vb.join(" "), role: "img", "aria-label": label }, box);
     const defs = s("defs", {}, root);
     s("feGaussianBlur", { stdDeviation: 14 }, s("filter", { id: "mini-glow", x: "-80%", y: "-80%", width: "260%", height: "260%" }, defs));

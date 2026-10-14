@@ -16,7 +16,7 @@ Each application in scope has two pages: its building blocks and contracts (§5)
 
 ## Who owns what, and how they relate
 
-<!-- generated:context-map sha=1a813b69: do not edit, run planner render -->
+<!-- generated:context-map sha=6c4ce130: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -29,15 +29,15 @@ flowchart LR
   n_APP_vessel_schedule["Vessel schedule (unchanged)"]
   n_APP_website["Public website (changed)"]
   x_tidepay__external_["Tidepay (external)"]
-  n_APP_booking -->|"CON-001"| n_APP_call_center
-  n_APP_booking -->|"CON-001"| n_APP_kiosks
-  n_APP_booking -->|"CON-001"| n_APP_website
-  n_APP_booking -->|"CON-002"| n_APP_notifications
-  n_APP_pricing -->|"CON-003"| n_APP_booking
-  n_APP_vessel_schedule -->|"CON-004"| n_APP_booking
-  n_APP_customer_identity -->|"CON-005"| n_APP_booking
-  n_APP_ferrymaster -->|"CON-006"| n_APP_booking
-  x_tidepay__external_ -->|"CON-007"| n_APP_booking
+  n_APP_booking -->|"Booking API"| n_APP_call_center
+  n_APP_booking -->|"Booking API"| n_APP_kiosks
+  n_APP_booking -->|"Booking API"| n_APP_website
+  n_APP_booking -->|"Booking state changed"| n_APP_notifications
+  n_APP_vessel_schedule -->|"Capacity check"| n_APP_booking
+  n_APP_customer_identity -->|"Customer lookup"| n_APP_booking
+  n_APP_ferrymaster -->|"Ledger transactions"| n_APP_booking
+  n_APP_pricing -->|"Quote a fare"| n_APP_booking
+  x_tidepay__external_ -->|"Tidepay payment outcome"| n_APP_booking
   classDef changed fill:#fdf0d5,stroke:#a06400,color:#3a2600
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
@@ -48,7 +48,7 @@ flowchart LR
   class n_APP_customer_identity,n_APP_ferrymaster,n_APP_vessel_schedule unchanged
 ```
 
-Key: green: new in this initiative · amber: changed by this initiative · gray: stays as it is · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
+Key: green: new in this initiative · amber: changed by this initiative · gray: stays as it is · white, dashed: outside this initiative (another company or system) · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:context-map -->
 
 Each arrow is a contract, drawn from its provider to each consumer. Each contract lives on the provider's page.

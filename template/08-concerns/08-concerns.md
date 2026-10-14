@@ -8,7 +8,7 @@ authored: mixed
 
 # Concerns
 
-One row per app, one column per concern.
+One row per app, one column per topic every app must cover, such as security or cost.
 
 <!-- generated:concern-matrix sha=140bedbf: do not edit, run planner render -->
 none

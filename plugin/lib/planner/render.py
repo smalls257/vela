@@ -6,7 +6,7 @@ holds links and numbers, dates and never ages, so two runs give equal bytes.
 import hashlib
 import re
 
-from planner import allocation, diagrams, progress, questions, schema, trace
+from planner import allocation, diagrams, plainwords, progress, questions, schema, trace
 from planner.model import Finding, blocking_unknowns
 
 OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
@@ -68,11 +68,11 @@ def contracts_consumed(vault, page):
         if page not in vault.consumers(contract):
             continue
         provider = cell(contract.fact("Provider")) or link(contract.page.name, title(contract.page))
-        rows.append(row(link(contract.page.name, contract.heading, contract.heading), provider,
-                        cell(contract.fact("Change policy")), contract.fact("State")))
+        rows.append(row(link(contract.page.name, trace.named(contract.name, contract.id), contract.heading), provider,
+                        cell(contract.fact("Change policy")), plainwords.state_word(contract.fact("State"))))
     if not rows:
         return "none"
-    return "\n".join(["| Contract | Provider | Change policy | State |", "|---|---|---|---|"] + rows)
+    return "\n".join(["| Contract | Provided by | Who can change it, and how | How sure |", "|---|---|---|---|"] + rows)
 
 
 def _here(item, page):
@@ -81,16 +81,18 @@ def _here(item, page):
 
 
 def unknowns_index(vault, page):
-    rows = []
-    for unknown in vault.unknowns:
-        rows.append(row(link(_here(unknown, page), unknown.id, unknown.heading), cell(unknown.name),
-                        cell(unknown.fact("Owner")), unknown.fact("State"), unknown.fact("Ask by")))
-    for risk in vault.risks:
-        rows.append(row(link(_here(risk, page), risk.id, risk.heading), cell(risk.name),
-                        cell(risk.fact("Owner")), risk.fact("State"), ""))
-    if not rows:
-        return "none"
-    return "\n".join(["| ID | Name | Owner | State | Ask by |", "|---|---|---|---|---|"] + rows)
+    """Questions and risks in two tables: an unknown is a question someone has to answer, a risk is something that may
+    go wrong, and a reader treats the two differently. Each row leads with the name; the ID is the link's tag."""
+    out = []
+    asked = [row(link(_here(u, page), trace.named(u.name, u.id), u.heading), cell(u.fact("Owner")),
+                 plainwords.state_word(u.fact("State")), u.fact("Ask by")) for u in vault.unknowns]
+    if asked:
+        out += ["**Questions**", "", "| Question | Who answers | Status | Answer needed by |", "|---|---|---|---|"] + asked
+    risks = [row(link(_here(r, page), trace.named(r.name, r.id), r.heading), cell(r.fact("Owner")),
+                 plainwords.state_word(r.fact("State"))) for r in vault.risks]
+    if risks:
+        out += ([""] if out else []) + ["**Risks**", "", "| Risk | Owner | Status |", "|---|---|---|"] + risks
+    return "\n".join(out) if out else "none"
 
 
 def cell_state(vault, concern, app):
@@ -108,7 +110,7 @@ def concern_matrix(vault, page):
     header = row("App", *(link(c.name, title(c)) for c in concerns))
     lines = [header, "|---|" + "---|" * len(concerns)]
     for app in apps:
-        states = [cell_state(vault, c, app) for c in concerns]
+        states = [plainwords.cell_word(cell_state(vault, c, app)) for c in concerns]
         lines.append(row(link(app.name, title(app)), *states))
     return "\n".join(lines)
 
@@ -134,30 +136,30 @@ def where_it_stands(vault, page):
     laddered.sort(key=lambda a: (_stage_rank(a, order), a.id))
     out = []
     if laddered:
-        out += ["**Apps on the ladder**", "",
-                "| App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |",
+        out += ["**Where each app has got to**", "",
+                "| App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |",
                 "|---|---|---|---|---|"]
         for app in laddered:
             done, total = settled_contracts(vault, app)
-            out.append(row(link(app.name, title(app)), str(app.meta.get("stage", "")), str(len(blocking_unknowns(vault, app))),
-                           str(unexamined_cells(vault, app)), f"{done} of {total}"))
+            out.append(row(link(app.name, title(app)), plainwords.stage_word(app.meta.get("stage", "")),
+                           str(len(blocking_unknowns(vault, app))), str(unexamined_cells(vault, app)), f"{done} of {total}"))
     else:
-        out.append("**Apps on the ladder:** none")
+        out.append("**Where each app has got to:** no app is being built or changed yet")
     handed = [a for a in vault.apps if schema.HANDED_OFF_RE.match(str(a.meta.get("handed_off", "")))]
     if handed:
-        out += ["", "**Handed off:** " + "; ".join(f"{plain_link(a.name, title(a))} ({a.meta['handed_off']})" for a in handed)]
+        out += ["", "**Handed to its team:** " + "; ".join(f"{plain_link(a.name, title(a))} ({a.meta['handed_off']})" for a in handed)]
     out.append("")
     open_unknowns = [u for u in vault.unknowns if u.fact("State") == "open"]
     if open_unknowns:
-        out += ["**Open unknowns**", "", "| Unknown | Owner | Ask by | Blocks |", "|---|---|---|---|"]
+        out += ["**Open questions**", "", "| Question | Who answers | Answer needed by | Holds up |", "|---|---|---|---|"]
         for unknown in open_unknowns:
             blocks = unknown.facts.get("Blocks")
             targets = [link(l.target or unknown.page.name, l.label or l.anchor or l.target, l.anchor)
                        for l in (blocks.links if blocks else ())]
-            out.append(row(link(unknown.page.name, unknown.id, unknown.heading), cell(unknown.fact("Owner")),
-                           unknown.fact("Ask by"), ", ".join(targets) or "nothing"))
+            out.append(row(link(unknown.page.name, trace.named(unknown.name, unknown.id), unknown.heading),
+                           cell(unknown.fact("Owner")), unknown.fact("Ask by"), ", ".join(targets) or "nothing yet"))
     else:
-        out.append("**Open unknowns:** none")
+        out.append("**Open questions:** none")
     out.append("")
     dates = sorted(str(s.meta.get("date", "")) for s in vault.sessions if s.meta.get("date"))
     out.append(f"**Last session:** {dates[-1] if dates else 'none recorded'}")
@@ -166,9 +168,9 @@ def where_it_stands(vault, page):
         index = vault.by_id.get("epics")
         where = f", listed on {plain_link(index[0].name, title(index[0]))}" if index else ""
         out.append("")
-        out.append(f"**Coverage gaps:** {gaps}{where}")
+        out.append(f"**Gaps in the planned work:** {gaps}{where}")
         out.append("")
-        out.append("**Delivery status:** not tracked in this vault")
+        out.append("**Build progress:** tracked in each team's tickets, not in this vault")
     return "\n".join(out)
 
 
@@ -228,15 +230,15 @@ def traces_to(vault, page):
 def traceability(vault, page):
     result = trace.report(vault)
     if not result.checked:
-        return "**Traceability:** nothing to trace yet."
+        return "**Gaps in the planned work:** nothing to check yet."
     passes = f"{result.passed} {'check passes' if result.passed == 1 else 'checks pass'}"
     if not result.gaps:
-        return f"**Traceability:** no gaps. {passes}."
+        return f"**Gaps in the planned work:** none. {passes}."
     count = len(result.gaps)
-    lines = [f"**Traceability:** {count} {'gap' if count == 1 else 'gaps'}. {passes}.", "",
-             "| Rule | Item | Gap |", "|---|---|---|"]
+    lines = [f"**Gaps in the planned work:** {count}. {passes}.", "",
+             "| Item | What is missing | Check |", "|---|---|---|"]
     for gap in result.gaps:
-        lines.append(row(gap.rule, link(gap.page.name, cell(gap.subject), gap.anchor), cell(gap.message)))
+        lines.append(row(link(gap.page.name, cell(gap.label or gap.subject), gap.anchor), cell(gap.message), gap.rule))
     return "\n".join(lines)
 
 
@@ -257,7 +259,7 @@ def left_out_table(count, header, rows):
     """The table under a diagram that lists what the budget kept out of it."""
     if not rows:
         return []
-    return ["", f"**Not drawn, over the {schema.FLOWCHART_BUDGET}-element budget:** {count}", "",
+    return ["", f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes):** {count}", "",
             f"| Not drawn | {header} |", "|---|---|", *rows]
 
 
@@ -328,18 +330,35 @@ def capability_map(vault, page):
 
 # ------------------------------------------------------------------ progress
 
-def next_cell(entry):
-    """What the Next column says for one progress.Row."""
+# The session `planner next` suggests, as the Next session column says it; "probe" is a mode name, not a reader's word.
+MODE_WORDS = {"probe": "Chase the answer to", "discover": "Discover", "shape": "Shape", "grill": "Grill",
+              "boundary": "Boundary", "epics": "Epics"}
+
+
+def subject_name(vault, item_id):
+    """What a reader calls the thing an ID names, with the ID as a tag; the bare ID when it names nothing."""
+    pages = vault.by_id.get(item_id)
+    if pages:
+        return trace.named(title(pages[0]), item_id)
+    item = vault.item(item_id)
+    return trace.named(item.name, item_id) if item is not None else item_id
+
+
+def next_cell(vault, entry):
+    """What the Next session column says for one progress.Row."""
     if entry.rule == 7:
-        return f"waits on {entry.subject}"
-    return f"{entry.mode} {entry.subject}".strip() if entry.mode != "none" else "none"
+        return f"waits on {cell(subject_name(vault, entry.subject))}"
+    if entry.mode == "none":
+        return "none"
+    word = MODE_WORDS.get(entry.mode, entry.mode)
+    return f"{word}: {cell(subject_name(vault, entry.subject))}" if entry.subject else word
 
 
 def unknown_cell(entry):
     if entry.oldest is None:
         return "none"
-    target = link(entry.oldest.page.name, entry.oldest.id, entry.oldest.heading)
-    return f"{target} opened {entry.opened}" if entry.opened else f"{target} opened: not recorded"
+    target = link(entry.oldest.page.name, trace.named(entry.oldest.name, entry.oldest.id), entry.oldest.heading)
+    return f"{target}, open since {entry.opened}" if entry.opened else f"{target}, open since: not recorded"
 
 
 def progress_map(vault, page):
@@ -347,12 +366,13 @@ def progress_map(vault, page):
     rows = progress.grid(vault, as_of)
     if not rows:
         return "none"
-    when = f"**As of:** {as_of}, the last session" if as_of else "**As of:** no session yet, so no unknown counts as overdue"
-    out = [when, "", "| App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |",
+    when = (f"**How sure each app's items are,** as of {as_of} (the last session)" if as_of
+            else "**How sure each app's items are:** no session yet, so no question counts as overdue")
+    out = [when, "", "| App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |",
            "|---|---|---|---|---|---|---|---|"]
     for r in rows:
-        out.append(row(link(r.app.name, cell(title(r.app))), r.stage or "-", *(str(n) for n in r.mix[:3]),
-                       progress.decided_text(r), unknown_cell(r), next_cell(r)))
+        out.append(row(link(r.app.name, cell(title(r.app))), plainwords.stage_word(r.stage) if r.stage else "-",
+                       *(str(n) for n in r.mix[:3]), progress.decided_text(r), unknown_cell(r), next_cell(vault, r)))
     return "\n".join(out)
 
 
@@ -363,20 +383,20 @@ def undisposed_questions(vault, page):
     the to-do list above the record. The line counts exactly the rows the table lists."""
     found = questions.dispositions(vault)
     copies = [d for d in found if d.pending]
-    lines = [row(d.copy.id, d.label, d.copy.entry.area, d.copy.entry.severity, id_link(vault, d.copy.subject.id),
+    lines = [row(d.copy.id, d.label, vault.catalog.area_label(d.copy.entry.area), d.copy.entry.severity, id_link(vault, d.copy.subject.id),
                  cell(d.copy.entry.question)) for d in copies]
     reviewers = questions.reviewer_rows(vault)
     for r in reviewers:
         answer = questions.reviewer_answer(vault, r)
         if questions.reviewer_pending(vault, r):
-            lines.append(row(r.copy, questions.state_label(r.state, answer["valid"]), r.area, answer["severity"],
-                             "reviewer", cell(answer["question"] or "")))
+            lines.append(row(r.copy, questions.state_label(r.state, answer["valid"]), vault.catalog.area_label(r.area),
+                             answer["severity"], "a reviewer's question", cell(answer["question"] or "")))
     opened = sum(1 for r in reviewers if questions.reviewer_open(vault, r))
     line = questions.coverage_line(vault, len(found), sum(1 for d in found if d.undisposed), opened,
                                    questions.asked_count(vault, found, reviewers))
     out = [f"**Questions:** {line}."]
     if lines:
-        out += ["", "| Copy | State | Area | Severity | Subject | Question |", "|---|---|---|---|---|---|"] + lines
+        out += ["", "| Ref | Status | Area | How serious | About | Question |", "|---|---|---|---|---|---|"] + lines
     return "\n".join(out)
 
 
@@ -385,14 +405,15 @@ def allocation_block(vault, page):
     with the contracts it goes through. A blank row is a requirement nobody owns yet."""
     apps, lines = allocation.matrix(vault)
     if not lines:
-        return "**Allocation:** no functional requirements at assumption or later yet."
+        return "**Who does what:** no requirement is firm enough to split between the apps yet."
     open_ = sum(1 for _, shares in lines if not shares)
-    noun = "requirement" if len(lines) == 1 else "requirements"
-    head = f"**Allocation:** {len(lines)} {noun} at assumption or later, {open_} not allocated."
+    noun = "requirement is" if len(lines) == 1 else "requirements are"
+    left = "none is waiting for an app" if not open_ else f"{open_} still {'has' if open_ == 1 else 'have'} no app"
+    head = f"**Who does what:** {len(lines)} {noun} firm enough to split between the apps (assumed or later); {left}."
     out = [head, "", row("Requirement", *[link(a.name, cell(title(a))) for a in apps]) if apps else row("Requirement"),
            "|" + "---|" * (len(apps) + 1)]
     for req, shares in lines:
-        out.append(row(link(req.page.name, cell(req.id), req.heading), *[cell(shares.get(a.id, "")) for a in apps]))
+        out.append(row(link(req.page.name, cell(trace.named(req.name, req.id)), req.heading), *[cell(shares.get(a.id, "")) for a in apps]))
     return "\n".join(out)
 
 

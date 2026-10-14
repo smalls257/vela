@@ -29,7 +29,7 @@ import re
 import uuid
 
 from planner import (allocation, attention, cli, completeness, handoff, ladder, links, model, override, pending, progress,
-                     reading, roles, schema, trace)
+                     reading, roles, schema, terms, trace)
 from planner import search as planner_search
 from planner.edge import atomic
 from planner.parse import FENCE, closes_fence
@@ -60,10 +60,11 @@ CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "ask
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
-THEMES = (("console", "Console", "the dark instrument room"),
-          ("graphite", "Graphite", "neutral gray with brighter type, for projectors"),
-          ("daylight", "Daylight", "light, for screen-sharing and print"),
-          ("vaporwave", "Vaporwave", "a 1990s sunset over a grid"))
+# The ids are what a browser remembers, so they stay; the labels and hints are what a reader picks from.
+THEMES = (("console", "Dark", "dark, the default"),
+          ("graphite", "Gray", "neutral gray with brighter type, for projectors"),
+          ("daylight", "Light", "light, for screen-sharing and print"),
+          ("vaporwave", "Sunset", "purple and pink, for fun"))
 THEME_IDS = tuple(t[0] for t in THEMES)
 
 # --------------------------------------------------------------------------- vault identity
@@ -576,6 +577,7 @@ def extract(vault, root, today, pins_path=None, designs=None, seed=None, plans=N
         "blockedBy": {k: [u.id for u in v] for k, v in blocked.items()},
         "progress": progress_data(vault, root, keys, today), "trace": trace_data(vault, keys),
         "backlinks": backlinks(vault, keys), "search": search_index(vault, keys), "ask": {"rules": list(serve.RULES)},
+        "terms": dict(terms.TERMS),
     }
     data["pending"] = pending_list(vault, keys)
     data["owners"] = owners(entities)

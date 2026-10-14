@@ -79,7 +79,7 @@ def test_where_it_stands_lists_unk_006_and_holds_no_prose():
     text = (FIXTURE / "01-goals.md").read_text(encoding="utf-8")
     block = text[text.index("<!-- generated:where-it-stands"):text.index("<!-- /generated:where-it-stands -->")]
     lines = block.splitlines()[1:]
-    assert "| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\\|UNK-006]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing |" in lines
+    assert "| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\\|Finance on Booking events (UNK-006)]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing yet |" in lines
     for line in lines:
         assert line == "" or line.startswith("|") or re.match(r"^\*\*[A-Za-z ]+(:\*\* .+|\*\*)$", line), line
 
@@ -167,7 +167,7 @@ def test_missing_concern_cell(ub):
     assert broken(ub) == [("E315", "08-concerns/concern-security.md")]
     matrix = (ub / "08-concerns" / "08-concerns.md").read_text(encoding="utf-8")
     row = next(l for l in matrix.splitlines() if l.startswith("| [[website-building-blocks"))
-    assert "unexamined (no row)" in row
+    assert "not looked at yet (no line for this app)" in row
 
 
 def test_contract_with_no_tested_by(ub):
@@ -177,7 +177,7 @@ def test_contract_with_no_tested_by(ub):
 
 
 def test_hand_edit_inside_a_generated_block(ub):
-    edit(ub / "11-unknowns-and-risks.md", "| Event bus readiness |", "| Event bus ready |")
+    edit(ub / "11-unknowns-and-risks.md", "|Event bus readiness (UNK-005)]]", "|Event bus ready (UNK-005)]]")
     assert findings(check(ub, TODAY)[1]) == [("E401", "11-unknowns-and-risks.md")]
 
 
@@ -240,15 +240,15 @@ def test_traceability_block_lists_a_gap_in_full(ub):
     edit(ub / "13-epics" / "EPC-031-holds-and-confirms.md", "delivers: [CAP-013, CAP-014, CON-001", "delivers: [CAP-013, CON-001")
     broken(ub)
     text = (ub / "13-epics" / "13-epics.md").read_text(encoding="utf-8")
-    assert "**Traceability:** 1 gap. 56 checks pass." in text
-    assert "| T1 | [[CAP-014-hold-a-seat\\|CAP-014]] | No epic delivers CAP-014 (new), so nobody is planned to build it. |" in text
+    assert "**Gaps in the planned work:** 1. 56 checks pass." in text
+    assert "| [[CAP-014-hold-a-seat\\|Hold a seat during payment (CAP-014)]] | No epic delivers Hold a seat during payment (CAP-014), which this initiative adds, so nobody is planned to build it. | T1 |" in text
     goals = (ub / "01-goals.md").read_text(encoding="utf-8")
-    assert "**Coverage gaps:** 1, listed on [[13-epics|Epics]]" in goals
+    assert "**Gaps in the planned work:** 1, listed on [[13-epics|Epics]]" in goals
 
 
 def test_booking_is_handed_off_on_the_goals_page():
     text = (FIXTURE / "01-goals.md").read_text(encoding="utf-8")
-    assert "**Handed off:** [[booking-building-blocks|Booking]] (Booking senior, 2026-11-10, PR #23)" in text
+    assert "**Handed to its team:** [[booking-building-blocks|Booking]] (Booking senior, 2026-11-10, PR #23)" in text
 
 
 def test_no_hand_kept_trace_lists_remain():

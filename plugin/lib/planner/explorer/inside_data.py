@@ -136,7 +136,7 @@ def integration_stubs(design, vault, keys, app):
             ids = CON.findall(name)
             stubs.append({"system": re.sub(r"\s*\(.*?\)\s*", " ", name).strip(), "direction": "out", "protocol": "",
                           "auth": "", "contracts": ids, "nodes": nodes_for(name, ids), "component": c["name"],
-                          "how": "depends on it; it is not an integration point", "line": c["line"]})
+                          "how": "it depends on it, though the design doesn't list it as an outside system", "line": c["line"]})
     return stubs
 
 
@@ -145,7 +145,7 @@ def attach(design, system, ids):
     for cid in ids:
         owner = next((name for name, entries in design["trace"].items() if any(e["id"] == cid for e in entries)), None)
         if owner and owner != "Operations":
-            return owner, f"cites {cid}"
+            return owner, f"it delivers {cid}"
     name = _bare(system)
     for row in design["matrix"]:
         for column, say in (("reads_from", "reads from"), ("writes_to", "writes to")):
@@ -153,11 +153,11 @@ def attach(design, system, ids):
                 component = next((c["name"] for c in design["components"]
                                   if c["name"].lower() == row.get("component", "").lower()), None)
                 if component:
-                    return component, f"its matrix row {say} it"
+                    return component, f"the design's data table says it {say} it"
     for c in design["components"]:
         if any(_bare(x) == name for x in c.get("depends_on_other", [])):
-            return c["name"], "its Depends on names it"
-    return None, "no component cites it, reads from it, writes to it or depends on it"
+            return c["name"], "the design says it depends on it"
+    return None, "no component in the design connects to it"
 
 
 def depends_edges(design):

@@ -12,10 +12,10 @@ authored: mixed
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=871e7f94: do not edit, run planner render -->
-**Apps on the ladder:** none
+<!-- generated:where-it-stands sha=d70b02c2: do not edit, run planner render -->
+**Where each app has got to:** no app is being built or changed yet
 
-**Open unknowns:** none
+**Open questions:** none
 
 **Last session:** none recorded
 <!-- /generated:where-it-stands -->

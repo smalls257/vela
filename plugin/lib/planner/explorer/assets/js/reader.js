@@ -41,7 +41,7 @@ const Reader = (() => {
   function body(pk, opts = {}) {
     const r = D.reader[pk];
     const box = h("div", { class: "reader" + (opts.wide ? " wide" : "") });
-    if (!r) { box.append(h("p", { class: "muted" }, "This page is not in the reader.")); return box; }
+    if (!r) { box.append(h("p", { class: "muted" }, "This page isn't available here.")); return box; }
     const text = h("article", { class: "r-text", html: r.html });
     linkify(text);
     $$("a.ref", text).forEach((a) => { if (!ent(a.dataset.ref)) a.classList.add("ref-dead"); });

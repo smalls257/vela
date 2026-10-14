@@ -27,13 +27,13 @@ const Rehearse = (() => {
     root = $("#overlay"); root.hidden = false; root.className = "rehearse"; root.innerHTML = "";
     const e = E[key];
     root.append(
-      h("header", { class: "rh-bar" }, h("div", {}, h("div", { class: "pt-kicker" }, `${e.id}, from memory`), h("h1", {}, `Rehearse: ${e.title}`)),
+      h("header", { class: "rh-bar" }, h("div", {}, h("div", { class: "pt-kicker" }, "Practice from memory"), h("h1", {}, `Rehearse: ${e.title}`)),
         h("span", { class: "spacer" }),
         h("button", { class: "btn", onclick: () => { close(); Flows.select(key, -1); } }, "Watch it played"),
         h("button", { class: "btn", onclick: close }, "Close (Esc)")),
       h("main", { class: "rh-main" }, h("div", { class: "rh-board", id: "rh-board" }, h("div", { class: "rh-rail", id: "rh-rail" }), s("svg", { class: "rh-overlay", id: "rh-svg" }), h("div", { class: "rh-rows", id: "rh-rows" })),
         h("aside", { class: "rh-side", id: "rh-side" })),
-      h("footer", { class: "rh-tray" }, h("h3", {}, "Apps and partners"), h("div", { class: "shelf", id: "rh-tiles" }), h("h3", {}, "Contracts"), h("div", { class: "shelf", id: "rh-cables" })));
+      h("footer", { class: "rh-tray" }, h("h3", {}, "Apps and outside companies"), h("div", { class: "shelf", id: "rh-tiles" }), h("h3", {}, "Contracts"), h("div", { class: "shelf", id: "rh-cables" })));
     reset(false);
     new ResizeObserver(() => root && root.classList.contains("rehearse") && renderBoard()).observe(q("#rh-board"));
     cancelAnimationFrame(raf); raf = requestAnimationFrame(swing);
@@ -50,7 +50,7 @@ const Rehearse = (() => {
     if (url) return `<span class="em" style="background:${color}"><img alt="" src="${url}"></span>`;
     return `<span class="em ${lane.kind}" style="background:${color};border-color:${color};color:${lane.kind === "partner" ? color : Theme.c("room")}">${esc(lane.name[0])}</span>`;
   }
-  const tileHtml = (lane, extra = "") => `<div class="tile ${extra}" data-lane="${esc(lane.id)}" tabindex="0" title="${esc(lane.name)}">${emblem(lane)}<span>${esc(lane.name)}<small>${lane.kind === "app" ? "app" : "outside party"}</small></span></div>`;
+  const tileHtml = (lane, extra = "") => `<div class="tile ${extra}" data-lane="${esc(lane.id)}" tabindex="0" title="${esc(lane.name)}">${emblem(lane)}<span>${esc(lane.name)}<small>${lane.kind === "app" ? "app" : "outside company"}</small></span></div>`;
   function railGeom() {
     const rail = q("#rh-rail"), board = q("#rh-board"), rb = board.getBoundingClientRect();
     const slots = [...rail.children].map((el) => { const r = el.getBoundingClientRect(); return { x: r.left - rb.left + board.scrollLeft + r.width / 2, w: r.width, top: r.top - rb.top + board.scrollTop, bottom: r.bottom - rb.top + board.scrollTop }; });
@@ -188,8 +188,8 @@ const Rehearse = (() => {
     if (st.revealed) { side.innerHTML = resultHtml(); bindResult(); return; }
     const lanesDone = st.slots.some(Boolean), stepsDone = st.steps.length > 0, hist = tries(f.id);
     side.innerHTML = `<p class="lede">Rebuild it before you look. Getting it wrong first and then seeing the real flow fixes it better than reading it twice.</p>
-      <ol class="how"><li class="${lanesDone ? "done" : ""}">Put the apps and partners this flow touches into lanes.</li>
-        <li class="${stepsDone ? "done" : ""}">Plug contracts between lanes, one step at a time, in order.</li><li>Reveal the real flow over yours.</li></ol>
+      <ol class="how"><li class="${lanesDone ? "done" : ""}">Put the apps and outside companies this flow touches into lanes.</li>
+        <li class="${stepsDone ? "done" : ""}">Connect the lanes in the order they talk to each other: drag a contract from one lane to another, one step at a time.</li><li>Reveal the real flow over yours.</li></ol>
       <button class="reveal" id="rh-reveal" ${stepsDone ? "" : "disabled"}>Reveal the real flow<span>${plural(st.steps.length, "step")} so far</span></button>
       <div class="row-actions"><button class="btn" id="rh-undo" ${stepsDone ? "" : "disabled"}>Undo last step</button><button class="btn" id="rh-clear">Start over</button></div>
       ${hist.length ? `<div class="hist-row"><div class="history">${hist.slice(-8).map((x) => `<i style="height:${Math.max(4, (x.got / Math.max(1, x.of)) * 34)}px" title="${x.got} of ${x.of}"></i>`).join("")}</div><span>Your tries on this flow. Last: ${hist[hist.length - 1].got} of ${hist[hist.length - 1].of}.</span></div>` : ""}
@@ -206,7 +206,7 @@ const Rehearse = (() => {
       const fd = new FormData(e.target), from = fd.get("from"), to = fd.get("to"), what = fd.get("what");
       if (!from) return toast("Put an app into a lane first.");
       if (what === "self") addStep({ self: from });
-      else if (from === to) toast("A contract joins two different lanes. Pick another receiver, or use inside the app.");
+      else if (from === to) toast("A contract connects two different lanes. Pick another one to receive it, or use “inside the app”.");
       else addStep({ from, to, contract: what });
     };
   }
@@ -227,7 +227,7 @@ const Rehearse = (() => {
       moveGhost(e);
     } else if (cable) {
       e.preventDefault();
-      if (!st.slots.some(Boolean)) { cable.classList.add("shake"); setTimeout(() => cable.classList.remove("shake"), 400); return toast("Put the apps into lanes first, then plug contracts between them."); }
+      if (!st.slots.some(Boolean)) { cable.classList.add("shake"); setTimeout(() => cable.classList.remove("shake"), 400); return toast("Put the apps into lanes first, then connect them with contracts."); }
       st.carry = cable.dataset.self ? { self: true } : { contract: cable.dataset.contract };
       root.querySelectorAll(".cable").forEach((c) => c.classList.toggle("carrying", c === cable));
       const ghost = h("div", { class: "tile ghost cable-ghost", html: cable.dataset.self ? "Inside one app" : `<b>${esc(cable.dataset.contract)}</b>` });
@@ -284,7 +284,7 @@ const Rehearse = (() => {
   function plugReceiver(e) {
     const lane = laneAt(e.clientX, e.clientY);
     if (!lane) return;
-    if (lane === st.carry.from) { toast("A contract joins two different lanes. Click the lane that receives."); return; }
+    if (lane === st.carry.from) { toast("A contract connects two different lanes. Click the lane that receives it."); return; }
     addStep({ from: st.carry.from, to: lane, contract: st.carry.contract });
   }
   document.addEventListener("click", (e) => {
@@ -333,7 +333,7 @@ const Rehearse = (() => {
       return [1, "near", `Right contract, between ${laneOf(r.from).name} and ${laneOf(r.to).name}.`];
     }
     const same = (a.from === r.from && a.to === r.to) || (a.from === r.to && a.to === r.from);
-    return same ? [1, "near", `Right lanes, but over ${r.contract} ${CONTRACT[r.contract].title}.`] : [0, null];
+    return same ? [1, "near", `Right lanes, but over “${CONTRACT[r.contract].title}”.`] : [0, null];
   }
   /* Global alignment that keeps both orders: steps recalled in the wrong order lose credit for the order. */
   function align(att, real) {
@@ -418,7 +418,7 @@ const Rehearse = (() => {
     const by = (v) => R.pairs.filter((p) => p.verdict === v);
     const frac = R.scored ? R.got / R.scored : 0, Cc = 2 * Math.PI * 38, got = Number.isInteger(R.got) ? R.got : R.got.toFixed(1);
     const line = (p) => {
-      const link = p.r && p.r.kind === "msg" ? `${laneOf(p.r.from).name} to ${laneOf(p.r.to).name} over ${p.r.contract} ${CONTRACT[p.r.contract].title}.` : p.r && p.r.kind === "self" ? `Inside ${laneOf(p.r.lane).name}.` : "";
+      const link = p.r && p.r.kind === "msg" ? `${laneOf(p.r.from).name} to ${laneOf(p.r.to).name} over “${CONTRACT[p.r.contract].title}”.` : p.r && p.r.kind === "self" ? `Inside ${laneOf(p.r.lane).name}.` : "";
       const what = p.r ? `<span class="t">Step ${p.r.n}. ${esc(p.r.short)}<small>${esc(link)}${p.note ? " " + esc(p.note) : ""}</small></span>`
         : `<span class="t">${p.a.self ? `Inside ${esc(laneOf(p.a.self).name)}` : `${esc(laneOf(p.a.from).name)} to ${esc(laneOf(p.a.to).name)} over ${esc(p.a.contract)}`}<small>The real flow has no step like this.</small></span>`;
       return `<li><span class="v ${p.verdict}">${{ right: "Right", near: "Nearly", missed: "Missed", extra: "Extra" }[p.verdict]}</span>${what}</li>`;

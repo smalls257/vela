@@ -287,8 +287,8 @@ const SelfTest = (() => {
       const line = $("[data-tracer-line]");
       if (!want.length) { ok(!line && !$(".tracer-tag"), `tracer, ${label}: the Releases lens shows nothing of a tracer`, `tracer, ${label}: a tracer line shows with none recorded`); return; }
       const text = line ? line.textContent : "";
-      ok(!!line && !!line.closest('.rel-card[data-state="1"]') && want.every((id) => text.includes(E[keys.find((k) => idOf(k) === id)].title)) && (!t.words || text.includes(t.words)) && t.notIn.every((x) => text.includes(x.text)) && text.includes("not in it") === !!t.notIn.length,
-        `tracer, ${label}: release one's card carries the line naming the flows, the thin version and what is not in it`, `tracer, ${label}: the line reads "${text}"`);
+      ok(!!line && !!line.closest('.rel-card[data-state="1"]') && want.every((id) => text.includes(E[keys.find((k) => idOf(k) === id)].title)) && (!t.words || text.includes(t.words)) && t.notIn.every((x) => text.includes(x.text)) && text.includes("left out") === !!t.notIn.length,
+        `tracer, ${label}: release one's card carries the line naming the flows, the thin version and what is left out`, `tracer, ${label}: the line reads "${text}"`);
     };
     await check("none recorded", null);
     await check("two flows, one item left out", { given: true, flows: [idOf(keys[keys.length - 1]), idOf(keys[0])].filter((v, i, a) => a.indexOf(v) === i), words: "a thin path", none: "", notIn: [{ text: "Big thing (CAP-009.FR1): waits on approval", ids: ["CAP-009.FR1"], reason: "waits on approval" }] });
@@ -483,7 +483,7 @@ const SelfTest = (() => {
     // where the move went: this browser, or the vault by POST /pins
     const served = Layout.canSave();
     if (served) {
-      ok(posts.length >= 1 && JSON.stringify(posts[posts.length - 1].pins[mover.key]) === JSON.stringify(now) && /Layout saved to the vault/.test(Layout.note), "served: the drop is POSTed to /pins and the page says Layout saved to the vault", `served: ${posts.length} POSTs, note "${Layout.note}"`);
+      ok(posts.length >= 1 && JSON.stringify(posts[posts.length - 1].pins[mover.key]) === JSON.stringify(now) && /Layout saved to the plan/.test(Layout.note), "served: the drop is POSTed to /pins and the page says Layout saved to the plan", `served: ${posts.length} POSTs, note "${Layout.note}"`);
     } else {
       const kept = JSON.parse(Settings.read(`explorer.layout.${D.vaultId}`) || "{}").pins || {};
       ok(JSON.stringify(kept[mover.key]) === JSON.stringify(now) && !posts.length && !!$('[data-layout="copy"]') && !!$('[data-layout="download"]'), "on a file: the move is kept in this browser under the vault's id, nothing is posted, and Copy layout and Download pins are offered", `on a file: kept ${JSON.stringify(kept)}, ${posts.length} POSTs`);
@@ -568,8 +568,8 @@ const SelfTest = (() => {
       const role = D.role, key = mover.key, spot = [farCol + 0.5, mover.row];
       D.role = "owner";  // a reader's page is the other case, below
       Layout.move(key, spot); await flush();
-      ok(posts.length === 1 && JSON.stringify(posts[0].pins[key]) === JSON.stringify(spot) && posts[0].kinds[key] === Layout.KIND(key) && /Layout saved to the vault/.test(Layout.note),
-        "served, as the owner: a move is POSTed to /pins with the boxes' kinds, and the page says Layout saved to the vault", `served move: ${posts.length} POSTs, note "${Layout.note}"`);
+      ok(posts.length === 1 && JSON.stringify(posts[0].pins[key]) === JSON.stringify(spot) && posts[0].kinds[key] === Layout.KIND(key) && /Layout saved to the plan/.test(Layout.note),
+        "served, as the owner: a move is POSTed to /pins with the boxes' kinds, and the page says Layout saved to the plan", `served move: ${posts.length} POSTs, note "${Layout.note}"`);
       D.role = "reader"; posts.length = 0;
       const was = Layout.cell(key).slice(), reading = !Layout.canSave();
       Layout.move(key, [was[0] + 1, was[1]]); await flush();
@@ -796,7 +796,7 @@ const SelfTest = (() => {
     $(".sl-c-status", r0).click(); await frames();
     const openClick = r0.getAttribute("aria-expanded") === "true" && !more().hidden;
     const labels = $$(".sl-l", more()).map((l) => l.textContent);
-    ok(openEnter && foldSpace && openClick && ["Flows", "Joins", "Journey", "Flow check"].every((w) => labels.includes(w)),
+    ok(openEnter && foldSpace && openClick && ["Flows", "Contracts it uses", "Journey", "Flow check"].every((w) => labels.includes(w)),
       `slices table: Enter opens a row, Space folds it, a click opens it, and the open row shows ${labels.join(", ")}`, `slices table: Enter ${openEnter}, Space ${foldSpace}, click ${openClick}, lines ${labels.join(", ")}`);
     go("lights", { reset: true }); await frames();
     $(".sl-name", r0).click(); await frames();
@@ -953,14 +953,14 @@ const SelfTest = (() => {
       Nav.home(); MapView.st.lens = "cockpit"; MapView.st.focus = null; MapView.st.group = "none"; rerender(); await frames();
       for (const [id, key, writer] of [["domain", "domain", "/planner:boundary"], ["capability", "capability", "/planner:requirements"]]) {
         const btn = $(`#main button[data-group="${id}"]`), off = !D.grouping[key];
-        ok(!!btn && btn.disabled === off && (!off || btn.title.includes(writer)), `group by ${id}: ${off ? `disabled, the tooltip names ${writer}` : "offered"}`, `group by ${id}: ${btn ? `disabled ${btn.disabled}` : "no button"}, title "${btn ? btn.title : ""}", wanted ${off ? "off" : "on"}`);
+        ok(!!btn && btn.disabled === off && (!off || /nothing to group by/.test(btn.title)), `group by ${id}: ${off ? "disabled, the tooltip says there is nothing to group by yet" : "offered"}`, `group by ${id}: ${btn ? `disabled ${btn.disabled}` : "no button"}, title "${btn ? btn.title : ""}", wanted ${off ? "off" : "on"}`);
       }
       MapView.st.group = null; rerender();
     } else out.push("skip group buttons: vault has no apps");
     if (!D.releases.count) {
       Nav.open("releases"); await frames();
-      ok(has($("#main"), "No releases recorded yet.") && /04b-releases\.md/.test($("#main").textContent) && (!D.nodes.length || !!$("#main .rel-grid")),
-        "releases: the empty state names 04b-releases.md and the Today against end-state comparison renders under it", "releases: no empty state, or no comparison under it");
+      ok(has($("#main"), "No releases recorded yet.") && !/04b-releases\.md/.test($("#main").textContent) && (!D.nodes.length || !!$("#main .rel-grid")),
+        "releases: the empty state says none are recorded, names no file, and the Today against end-state comparison renders under it", "releases: no empty state, or no comparison under it");
       if (D.map.apps.length) { MapView.st.lens = "releases"; showView("map"); rerender(); await frames(); ok(has($("#board"), "No releases recorded yet."), "map Releases lens: the same empty state above the comparison", "map Releases lens has no empty state"); MapView.st.lens = null; }
     } else out.push("skip releases empty state: the vault records releases");
     if (D.map.apps.length) {
@@ -970,7 +970,7 @@ const SelfTest = (() => {
       if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirement rows yet."), "product door: the requirement cards name /planner:requirements and /planner:allocate", "product door: no empty state for requirements");
       if (!D.trace.epics.length) ok(await doorHas("qa", "No epics yet."), "QA door: criteria cards name /planner:epics", "QA door: no empty state for epics");
     }
-    if (!D.trace.requirements.length) { showView("trace"); await frames(); ok(has($("#main"), "No requirement rows yet.") && /allocate/.test($("#main .empty-state").textContent), "trace: requirement level says no requirement rows exist and which steps write them", "trace: no empty state for missing requirement rows"); }
+    if (!D.trace.requirements.length) { showView("trace"); await frames(); ok(has($("#main"), "No requirements written yet.") && /allocate/.test($("#main .empty-state").textContent), "trace: requirement level says no requirements are written and which steps write them", "trace: no empty state for missing requirement rows"); }
     if (!D.flows.length) {
       showView("flows"); await frames();
       ok(has($("#main"), "No flows yet.") && $("#main .es-writer").textContent.includes("/planner:boundary"), "flows view: 'No flows yet', written by /planner:boundary", "flows view: no empty state");
@@ -1166,7 +1166,7 @@ const SelfTest = (() => {
     ok(held.size === q.length && [...held].every((u) => q.some((x) => x.id === u)), `queue: every open question that holds something is listed once (${held.size}), not once per thing it holds (${D.above.length} held above the map)`, `queue: ${q.length} listed for ${held.size} holding questions`);
     ok(rows().length === top && rows().every((r) => !/^[A-Z]+-\d+/.test($(".q-title", r).textContent) && !/\b(UNK|CAP|EPC|CON|APP)-\d/.test(r.textContent) && r.title.startsWith(r.dataset.ref)),
       `queue: the top ${top} show in plain words, with what each holds up and who to ask; the ID is in the tooltip only`, "queue: a row shows an ID or lacks its tooltip");
-    ok(rows().every((r) => /Holds /.test($(".q-sub", r).textContent) && /Ask /.test($(".q-ask", r).textContent) && $(".q-when b", r).textContent.trim()), "queue: each row says what it holds up, who to ask and by when", "queue: a row lacks what it holds, who to ask or when");
+    ok(rows().every((r) => /^Blocks /.test($(".q-sub", r).textContent) && /^Ask: /.test($(".q-ask", r).textContent) && $(".q-when b", r).textContent.trim()), "queue: each row says what it holds up, who to ask and by when", "queue: a row lacks what it holds, who to ask or when");
     ok(rows().every((r, i) => $(".lamp", r).classList.contains(q[i].level)) && $$(".home-stage .q-row .lamp").length === rows().length, "queue: a small lamp, not a painted row, carries the level", "queue: a row's lamp is not its level");
     const card = $(".q-card"), map = $(".home-map"), a = card.getBoundingClientRect(), b = map.getBoundingClientRect();
     const apart = a.right <= b.left + 1 || a.bottom <= b.top + 1;  // beside the map, or folded above it
@@ -1330,7 +1330,7 @@ const SelfTest = (() => {
       Inside.open(k, "components");
       if (!d) {
         const say = ($("#inside-stage .inside-chip-card") || { textContent: "" }).textContent;
-        ok(/design is not loaded/.test(say) && say.includes("--design"), `inside ${name}, components: no design, so the chip says how to load one with --design`, `inside ${name}, components: no design and no chip ("${say.slice(0, 60)}")`);
+        ok(/hasn't shared a design yet/.test(say) && say.includes("--design"), `inside ${name}, components: no design, so the chip says how to load one with --design`, `inside ${name}, components: no design and no chip ("${say.slice(0, 60)}")`);
         continue;
       }
       if (d.summary && d.summary.text) {  // a summary-first design (/planner:design) opens its panel on the summary, then the walking skeleton
@@ -1405,7 +1405,7 @@ const SelfTest = (() => {
     }
     // the vault and the design, both ways: owned, acknowledged and missed, each on the vault item's own panel
     const owned = Object.keys(Inside.OWNERS).find((id) => /^CAP-\d{3}\.FR\d+$/.test(id) && E[id]);
-    if (owned) { go(owned, { reset: true }); ok($$("#panel .in-owner").some((x) => /Owned by/.test(x.textContent)), `reverse trace: ${owned}'s panel says "Owned by ${Inside.OWNERS[owned][0].component} (${titleOf(Inside.OWNERS[owned][0].app)} design)"`, `reverse trace: ${owned} shows no owner`); }
+    if (owned) { go(owned, { reset: true }); ok($$("#panel .in-owner").some((x) => /Delivered by/.test(x.textContent)), `reverse trace: ${owned}'s panel says "Delivered by ${Inside.OWNERS[owned][0].component} (${titleOf(Inside.OWNERS[owned][0].app)} design)"`, `reverse trace: ${owned} shows no owner`); }
     for (const kind of ["ack", "missed"]) {
       const id = Object.keys(Inside.UNTRACED).find((x) => Inside.UNTRACED[x].some((u) => !!u.gap === (kind === "ack")) && (CONTRACT[x] || E[x] || /^EPC-\d{3}\.AC\d+$/.test(x)));
       if (!id) { out.push(`skip reverse trace, ${kind}: no such untraced target in these designs`); continue; }
@@ -1519,7 +1519,7 @@ const SelfTest = (() => {
       ok(copied === p.csv && copied.split("\r\n").length - 1 === p.totals.built + p.totals.tasks + 1,
         `inside ${name}, build plan: "Copy as Jira CSV" hands over the build's CSV, ${p.totals.built + p.totals.tasks} rows (stories it builds, and their tasks) and a header`, `inside ${name}, build plan: copied ${copied === null ? "nothing" : copied.length + " characters, not the CSV"}`);
       const built = Object.keys(Plan_BUILT_KEYS(k)).find((id) => E[id]);
-      if (built) { go(built, { reset: true }); ok($$("#panel .in-owner.built").some((x) => /Built by S-\d+/.test(x.textContent)), `reverse trace: ${built}'s panel says "Built by ${Plan.built(built)[0].story} (${Plan.planWord(k)})"`, `reverse trace: ${built} shows no Built by`); }
+      if (built) { go(built, { reset: true }); ok($$("#panel .in-owner.built").some((x) => /Built by .*S-\d+/.test(x.textContent)), `reverse trace: ${built}'s panel says "Built by ${Plan.built(built)[0].story} (${Plan.planWord(k)})"`, `reverse trace: ${built} shows no Built by`); }
     }
     if (bare) {
       Inside.open(bare, "plan");
@@ -1558,7 +1558,7 @@ const SelfTest = (() => {
       ok(dead === p.unresolved.length && $$("#inside-stage .plan-traces .ref-chip:not(.ref-dead)").every((c) => !!c.dataset.ref && !!ent(c.dataset.ref)),
         `inside ${name}, build plan (${layout}): every trace chip resolves into the vault (${dead} named by the build as not in it)`, `inside ${name}, build plan (${layout}): ${dead} dead chips, the build names ${p.unresolved.length}`);
       const row = tasked.length ? $(`#inside-stage .plan-card[data-story="${tasked[0].id}"]`) : null, waits = row ? $(".plan-waits", row) || $(`#inside-stage .plan-pane[data-pane="${tasked[0].id}"] .plan-waits`) : null, listed = $$("#inside-stage .plan-task").length;
-      ok(!tasked.length || (!!waits && /^Waits on: /.test(waits.textContent) && !$(".ref-chip", waits) && listed === p.stories.reduce((n, x) => n + x.tasks.length, 0)),
+      ok(!tasked.length || (!!waits && /^(Waits on: |Can start now)/.test(waits.textContent) && !$(".ref-chip", waits) && listed === p.stories.reduce((n, x) => n + x.tasks.length, 0)),
         `inside ${name}, build plan (${layout}): each story says what it waits on in words, and all ${p.stories.reduce((n, x) => n + x.tasks.length, 0)} tasks are listed, deferred ones under Not now`, `inside ${name}, build plan (${layout}): waits "${waits ? waits.textContent : "missing"}", ${listed} tasks listed of ${p.stories.reduce((n, x) => n + x.tasks.length, 0)}`);
       const sizes = $$("#plan-page .plan-size, #plan-page .plan-total, #plan-page .plan-by-size, #plan-page [data-kpi=points]").length, text = $("#plan-page").textContent;
       ok(!sizes && !/\b[SML] ?\+ ?[SML]\b/.test(text), `inside ${name}, build plan (${layout}): no size chip anywhere`, `inside ${name}, build plan (${layout}): ${sizes} size chips or a size run in the text`);
@@ -1579,11 +1579,11 @@ const SelfTest = (() => {
     const added = !p.problems.length;
     if (added) { p.problems.push("selftest: a line this page could not read"); Inside.open(k, "plan"); }
     const list = $("#inside-stage #plan-problems"), chip = $("#inside-stage .d-problems"), first = $("#plan-page").firstElementChild;
-    ok(!!list && list.hidden && !!chip && +chip.dataset.problems === p.problems.length && chip.getAttribute("aria-expanded") === "false" && /could not read — show$/.test(chip.textContent) && first !== list,
+    ok(!!list && list.hidden && !!chip && +chip.dataset.problems === p.problems.length && chip.getAttribute("aria-expanded") === "false" && /couldn't be read: show$/.test(chip.textContent) && first !== list,
       `inside ${name}, build plan: ${plural(p.problems.length, "unreadable line")} counted on the chip, the list collapsed and not the first thing on the page`, `inside ${name}, build plan: list ${list ? (list.hidden ? "hidden" : "OPEN") : "missing"}, chip "${chip ? chip.textContent : "missing"}"`);
     if (chip) {
       chip.click();
-      ok(!list.hidden && list.querySelectorAll("li").length === p.problems.length + p.unresolved.length && /— hide$/.test(chip.textContent), `inside ${name}, build plan: the chip opens the list`, `inside ${name}, build plan: the chip did not open the list`);
+      ok(!list.hidden && list.querySelectorAll("li").length === p.problems.length + p.unresolved.length && /: hide$/.test(chip.textContent), `inside ${name}, build plan: the chip opens the list`, `inside ${name}, build plan: the chip did not open the list`);
     }
     if (added) { p.problems.pop(); Inside.open(k, "plan"); }
   }
@@ -1653,10 +1653,10 @@ const SelfTest = (() => {
     // freshness: the banner follows the stamped report, shown only when something changed
     const newer = { role: "reader", state: "newer", latest: { date: "2026-10-20", commit: "4d1e8a0" }, have: {}, checked_at: "2026-10-18T09:12:00" };
     const owner = { role: "owner", state: "newer", behind: 2, ahead: 0, uncommitted: 1, checked_at: "2026-10-18T09:12:00" };
-    ok(/^A newer copy was published on 2026-10-20; reopen it to update/.test(Freshness.words(newer)) && /your drafts carry over/.test(Freshness.words(newer))
+    ok(/^A newer copy was published on 20 Oct 2026; reopen it to update/.test(Freshness.words(newer)) && /your drafts carry over/.test(Freshness.words(newer))
       && Freshness.words({ ...newer, state: "current" }) === "" && Freshness.words({ ...newer, state: "unreachable" }) === "" && Freshness.words(null) === ""
-      && Freshness.words(owner) === "2 commits behind upstream; 1 file uncommitted." && Freshness.words({ ...owner, behind: 0, uncommitted: 0, state: "current" }) === "",
-      "freshness: the banner words say a newer copy was published, or commits behind and files uncommitted, and nothing otherwise", "freshness: Freshness.words gave " + JSON.stringify([Freshness.words(newer), Freshness.words(owner)]));
+      && Freshness.words(owner) === "2 updates on the shared copy aren't in yours yet; 1 changed file isn't shared yet." && Freshness.words({ ...owner, behind: 0, uncommitted: 0, state: "current" }) === "",
+      "freshness: the banner words say a newer copy was published, or updates not pulled and changes not shared, and nothing otherwise", "freshness: Freshness.words gave " + JSON.stringify([Freshness.words(newer), Freshness.words(owner)]));
     const kept = { report: Freshness.st.report, live: Freshness.st.live };
     ok($("#fresh").hidden === !Freshness.words(Freshness.st.report), `freshness: this page's banner is ${$("#fresh").hidden ? "hidden" : "shown"} to match its stamp`, "freshness: the banner does not match the stamped report");
     Freshness.st.report = newer; Freshness.st.live = false; Freshness.render();
@@ -1689,7 +1689,7 @@ const SelfTest = (() => {
     console.warn = warn;
     const said = $("#fresh").textContent;
     Object.assign(Freshness.st, saved); broken(); Freshness.render();
-    ok(/could not check just now; as of 2026-10-18 09:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
+    ok(/couldn't check just now; this is as of 2026-10-18 09:12/.test(said) && !/checked just now/.test(said), "freshness: after a failed live check the banner says it could not check, and when it was built", `freshness: after a failed check the banner says "${said}"`);
   }
   SelfTest.run = async () => {
     const report = await base(), lines = [], errors = window.__errors.length;

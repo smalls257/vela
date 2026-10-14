@@ -19,9 +19,9 @@ const Releases = (() => {
   Legend.define("rel.changes", [bx({ fill: "deck-3", stroke: "ink", w: 2.6, rx: 5 })], "Heavy outline: an app that is changing, or has changed");
   Legend.define("rel.exists", [bx({ fill: "deck-3", stroke: "rl-edge", w: 1.4, rx: 5 })], "Plain box: an app that stays as it is");
   Legend.define("rel.absent", [bx({ stroke: "ink-4", w: 1.4, rx: 5, dash: "3.5 3", opacity: 0.6 })], "Dashed, faded box: an app not there yet, or retired");
-  Legend.define("rel.party", [bx({ fill: "rl-party", stroke: "rl-edge", w: 1.4, rx: 2, dash: "1.5 3" })], "Dotted outline: an outside party");
-  Legend.define("rel.touched", [bx({ fill: "ink", width: 13, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "Δ", fill: "room", x: 16.5, y: 11, size: 8 }], "Tag (Δ or NEW): this release's work touches the app");
-  Legend.define("rel.lamp", [bx({ fill: "caution", width: 8, height: 8, x: 13, y: 4, rx: 2 })], "Small colored square: the app's light today, as on the map");
+  Legend.define("rel.party", [bx({ fill: "rl-party", stroke: "rl-edge", w: 1.4, rx: 2, dash: "1.5 3" })], "Dotted outline: an outside service");
+  Legend.define("rel.touched", [bx({ fill: "ink", width: 13, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "Δ", fill: "room", x: 16.5, y: 11, size: 8 }], "Tag NEW, or Δ for changed: this release adds or changes the app");
+  Legend.define("rel.lamp", [bx({ fill: "caution", width: 8, height: 8, x: 13, y: 4, rx: 2 })], "Small colored square: the app's status today, as on the map");
   Legend.define("rel.cor.exists", [ln({ stroke: "track", w: 3.5 })], "Gray line: a contract that already exists");
   Legend.define("rel.cor.new", [ln({ stroke: "rl-name", w: 3.5 })], "Bright line: a contract that appears in this state");
   Legend.define("rel.cor.through", [ln({ stroke: "focus", w: 4.5 })], "White line: a contract this release's work goes through");
@@ -38,7 +38,7 @@ const Releases = (() => {
     const now = STATES[i].apps[k] || "exists", prev = i > 0 ? STATES[i - 1].apps[k] || "exists" : null;
     if (STATES[i].fromChange) return { exists: "unchanged", changes: "changed", new: "new", absent: "retired" }[now];
     if (now === "absent") return prev === "exists" || prev === "changes" ? "gone" : later(i, k) ? "not built yet" : "not there";
-    if (now === "new") return prev === "absent" ? "arrives" : "new";
+    if (now === "new") return prev === "absent" ? "added" : "new";
     if (now === "changes") return (STATES[i].touched || []).includes(k) ? (prev === "exists" ? "starts to change" : "changes again") : "changed";
     return i === 0 ? "today" : "unchanged";
   }
@@ -61,9 +61,9 @@ const Releases = (() => {
     const cors = Object.values(L.corridors).map((cor) => {
       const d = Geo.roundedPath(Geo.route({ x: L.stations[cor.a].x, y: L.stations[cor.a].y }, { x: L.stations[cor.b].x, y: L.stations[cor.b].y }, cor.sideA), 30);
       const el = s("path", { d, class: "rl-cor", "data-contracts": cor.contracts.join(",") }, gCor);
-      el.appendChild(document.createElementNS(SVGNS, "title")).textContent = cor.contracts.map((c) => `${c} ${CONTRACT[c].title}`).join("; ");
+      el.appendChild(document.createElementNS(SVGNS, "title")).textContent = cor.contracts.map((c) => `${CONTRACT[c].title} (${c})`).join("; ");
       const many = cor.contracts.length > 1;
-      Nodes.wire(el, { label: many ? `${cor.contracts.length} contracts: ${cor.contracts.join(", ")}` : `${cor.contracts[0]} ${CONTRACT[cor.contracts[0]].title}`, key: many ? `bundle:${cor.contracts.join(",")}|${titleOf(cor.b)}` : cor.contracts[0] });
+      Nodes.wire(el, { label: many ? `${cor.contracts.length} contracts: ${cor.contracts.map((c) => CONTRACT[c].title).join(", ")}` : CONTRACT[cor.contracts[0]].title, key: many ? `bundle:${cor.contracts.join(",")}|${titleOf(cor.b)}` : cor.contracts[0] });
       return { cor, el };
     });
     const nodes = Object.values(L.stations).map((stn) => {
@@ -78,7 +78,7 @@ const Releases = (() => {
       const tagText = s("text", { x: stn.x + W / 2 - 17, y: stn.y - H / 2 + 4, "text-anchor": "middle" }, tag);
       const lv = levelOf(n.key);
       if (lv !== "dark" && n.kind === "app") { s("rect", { x: stn.x - W / 2 + 8, y: stn.y - H / 2 + 8, width: 8, height: 8, rx: 2, fill: LIGHT[lv].color, class: "rl-lamp" }, g)
-        .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${LIGHT[lv].word} today (attention.lights)`; looks.add("rel.lamp"); }
+        .appendChild(document.createElementNS(SVGNS, "title")).textContent = `${LIGHT[lv].word} today`; looks.add("rel.lamp"); }
       Nodes.wire(g, { label: n.title, key: n.key });
       return { n, g, sub, tagText };
     });
@@ -86,7 +86,7 @@ const Releases = (() => {
       const S = STATES[j], prev = j > 0 ? STATES[j - 1] : null, morph = animate && !reducedMotion();
       for (const id of [...looks]) if (id !== "rel.lamp") looks.delete(id);
       for (const { n, g, sub, tagText } of nodes) {
-        const status = n.kind === "app" ? S.apps[n.key] || "exists" : "exists", word = n.kind === "app" ? appWord(j, n.key) : "outside party";
+        const status = n.kind === "app" ? S.apps[n.key] || "exists" : "exists", word = n.kind === "app" ? appWord(j, n.key) : "outside service";
         const was = prev && n.kind === "app" ? prev.apps[n.key] || "exists" : status;
         const touched = (S.touched || []).includes(n.key);
         g.setAttribute("class", `rl-node s-${status}${touched ? " touched" : ""}${n.kind !== "app" ? " party" : ""}`);
@@ -94,7 +94,7 @@ const Releases = (() => {
         looks.add(n.kind !== "app" ? "rel.party" : "rel." + status);
         if (touched) looks.add("rel.touched");
         sub.textContent = word;
-        tagText.textContent = word === "arrives" ? "NEW" : touched ? "Δ" : "";
+        tagText.textContent = word === "added" ? "NEW" : touched ? "Δ" : "";
         if (morph && was !== status) {
           if (status === "new" && was === "absent") g.animate([{ transform: "scale(.6)", opacity: 0 }, { transform: "scale(1.06)", opacity: 1, offset: 0.7 }, { transform: "scale(1)", opacity: 1 }], { duration: 700, easing: "ease-out" });
           else if (status === "absent") g.animate([{ opacity: 1 }, { opacity: 0.32 }], { duration: 700 });
@@ -119,8 +119,7 @@ const Releases = (() => {
   }
 
   /* ------------------------------------------------------------ release one's tracer, as the flow views and the card show it */
-  const TRACER_TIP = "release one's thin path through every app, built first";
-  const tracer = () => (R.tracer && R.tracer.flows.length ? R.tracer : null);
+    const tracer = () => (R.tracer && R.tracer.flows.length ? R.tracer : null);
   /* { n, of } for a flow the tracer runs, n counting from 1 in the order the record gives; null for any other flow, or no tracer. */
   function tracerPlace(flowKey) {
     const t = tracer(), at = t && E[flowKey] ? t.flows.indexOf(E[flowKey].id) : -1;
@@ -129,16 +128,16 @@ const Releases = (() => {
   const tracerPlaceWords = (pl) => `${pl.n} of ${pl.of}`;
   function tracerTag(flowKey) {
     const pl = tracerPlace(flowKey);
-    return pl ? h("span", { class: "tracer-tag", "data-tracer-tag": flowKey, title: `${TRACER_TIP} (${tracerPlaceWords(pl)})` }, "tracer") : null;
+    return pl ? h("span", { class: "tracer-tag", "data-tracer-tag": flowKey, title: `${termTip("tracer")} This flow is ${tracerPlaceWords(pl)} in it.` }, "tracer") : null;
   }
   const flowKeyOf = (id) => (D.flows.find((f) => E[f.key].id === id) || {}).key;
   function tracerLine() {
     const t = tracer();
     if (!t) return null;
-    const kids = ["Tracer: "];
+    const kids = [termEl("tracer", "The tracer"), " runs "];
     t.flows.forEach((id, i) => { const k = flowKeyOf(id); kids.push(i ? " and " : "", k ? h("a", { onclick: () => Nav.open("flows", k) }, E[k].title) : id); });
     if (t.words) kids.push(`, ${t.words}`);
-    if (t.notIn.length) kids.push(`; not in it: ${t.notIn.map((x) => x.text).join("; ")}`);
+    if (t.notIn.length) kids.push(`; left out: ${t.notIn.map((x) => x.text).join("; ")}`);
     return h("p", { class: "rel-tracer", "data-tracer-line": "" }, ...kids.filter((x) => x !== ""));
   }
 
@@ -152,16 +151,16 @@ const Releases = (() => {
     const appear = Object.keys(S.contracts).filter((c) => S.contracts[c] !== "absent" && P.contracts[c] === "absent");
     return { arrive, gone, change, appear };
   }
-  function criteriaText(r) { return !r.criteria.length ? "all criteria" : `${r.criteria.map((n) => "AC" + n).join(", ")} of ${r.of}`; }
+  function criteriaText(r) { return !r.criteria.length ? "all its acceptance criteria" : `acceptance criteria ${r.criteria.join(", ")} of ${r.of}`; }
   function card(j, onPick) {
     const S = STATES[j], c = changes(j), cur = j === st.at;
     const row = (label, keys, chip) => keys.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, label), h("span", {}, keys.map(chip))) : null;
     return h("section", { class: "rel-card" + (cur ? " on" : ""), "data-state": j },
-      h("button", { class: "rc-head", onclick: () => onPick(j) }, h("span", { class: "rc-n" }, S.fromChange ? "End" : `R${j}`), h("span", { class: "rc-t" }, S.fromChange ? "End state, from each app's change" : S.heading || S.name),
-        h("span", { class: "rc-m" }, S.target ? day(S.target) + (S.target.slice(0, 4) !== D.today.slice(0, 4) ? " " + S.target.slice(0, 4) : "") : "", S.state ? h("span", { class: "pill" }, S.state) : null)),
+      h("button", { class: "rc-head", onclick: () => onPick(j) }, h("span", { class: "rc-n", title: S.fromChange ? "The end state" : `Release ${j}` }, S.fromChange ? "End" : String(j)), h("span", { class: "rc-t" }, S.fromChange ? "End state, from each app's change" : S.heading || S.name),
+        h("span", { class: "rc-m" }, S.target ? day(S.target) + (S.target.slice(0, 4) !== D.today.slice(0, 4) ? " " + S.target.slice(0, 4) : "") : "", S.state ? h("span", { class: "pill" }, stateWord(S.state)) : null)),
       j === 1 ? tracerLine() : null,
-      row("Arrive", c.arrive, (k) => refChip(k)), row("Change", c.change, (k) => refChip(k)), row("Retire", c.gone, (k) => refChip(k)), row("Contracts appear", c.appear, (k) => refChip(k)),
-      S.rows ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivers"), h("ul", { class: "rc-reqs" }, S.rows.map((r) => h("li", {}, r.requirement ? refChip(r.requirement) : h("span", { class: "gap" }, "a row naming no requirement"),
+      row("New apps", c.arrive, (k) => refChip(k)), row("Changed apps", c.change, (k) => refChip(k)), row("Retired apps", c.gone, (k) => refChip(k)), row("New contracts", c.appear, (k) => refChip(k)),
+      S.rows ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivers"), h("ul", { class: "rc-reqs" }, S.rows.map((r) => h("li", {}, r.requirement ? refChip(r.requirement) : h("span", { class: "gap" }, "a line that names no requirement"),
         h("span", { class: "muted small" }, " " + criteriaText(r)), r.note ? h("div", { class: "muted small" }, r.note) : null)))) : null,
       !c.arrive.length && !c.change.length && !c.appear.length && !(S.rows || []).length ? h("div", { class: "muted small" }, "Nothing changes.") : null);
   }
@@ -170,7 +169,7 @@ const Releases = (() => {
   function timeline(onPick) {
     const bar = h("div", { class: "rel-timeline", role: "group", "aria-label": "States" });
     STATES.forEach((S, j) => bar.append(h("button", { class: "rel-stop" + (j === st.at ? " on" : "") + (j < st.at ? " past" : ""), "data-state": j, onclick: () => onPick(j), title: S.name },
-      h("i"), h("b", {}, j === 0 ? "Today" : S.fromChange ? "End state" : `R${j}`), h("small", {}, j === 0 ? day(D.today) : S.target ? day(S.target) : S.fromChange ? "from change" : ""))));
+      h("i"), h("b", {}, j === 0 ? "Today" : S.fromChange ? "End state" : `Release ${j}`), h("small", {}, j === 0 ? day(D.today) : S.target ? day(S.target) : S.fromChange ? "from change" : ""))));
     const range = h("input", { type: "range", min: 0, max: STATES.length - 1, step: 1, value: st.at, class: "rel-range", "aria-label": "Release" });
     range.addEventListener("input", () => onPick(+range.value));
     return h("div", { class: "rel-time" }, bar, range);
@@ -179,8 +178,8 @@ const Releases = (() => {
     box.innerHTML = "";
     DRAWN = [];
     KEY = Legend.open("releases", { root: () => box, probes: LOOKS() });
-    if (!R.count) box.append(emptyState("No releases recorded yet.", `They go in 04b-releases.md${R.page ? ", which lists none yet" : ""}. Until then this shows only today against the end state, worked out from each app's change and each contract's Change line.`, null, "inline rel-none"));
-    if (!D.nodes.length) { box.append(emptyState("This vault has no apps yet.", "There is no system to show before and after.", "/planner:boundary")); return; }
+    if (!R.count) box.append(emptyState("No releases recorded yet.", "Until the plan names its releases, this shows today against the end state, worked out from what each app and contract is set to change.", null, "inline rel-none"));
+    if (!D.nodes.length) { box.append(emptyState("No apps yet.", "There is no system to show before and after until the plan names its apps.", "/planner:boundary")); return; }
     let map = null;
     const controls = h("div", { class: "rel-controls" });
     const pick = (j, animate = true) => {
@@ -193,9 +192,9 @@ const Releases = (() => {
       const cap = $(".rel-caption", box); if (cap) cap.textContent = caption(st.at);
       if (typeof Nav !== "undefined") Nav.syncHash();
     };
-    const play = h("button", { class: "btn", onclick: () => playAll(pick, play), disabled: STATES.length < 2 ? true : null }, "▶ Play the releases");
+    const play = h("button", { class: "btn", onclick: () => playAll(pick, play), disabled: STATES.length < 2 ? true : null }, "▶ Step through releases");
     controls.append(timeline((j) => pick(j)), play,
-      h("button", { class: "chip" + (st.compare ? " on" : ""), onclick: () => { st.compare = !st.compare; body(box, opts); } }, "Compare two states"));
+      h("button", { class: "chip" + (st.compare ? " on" : ""), onclick: () => { st.compare = !st.compare; body(box, opts); } }, "Compare two releases"));
     box.append(controls);
     if (st.compare) { const c = compare(); box.append(c); c.drawMaps(); return; }
     const grid = h("div", { class: "rel-grid" + (D.map.apps.length > 12 ? " big" : "") });  // past 12 apps the map takes the room
@@ -209,20 +208,24 @@ const Releases = (() => {
   }
   function caption(j) {
     const S = STATES[j];
-    if (j === 0) return `Today, ${day(D.today)}: what exists before the initiative. ${Object.values(S.apps).filter((x) => x === "absent").length} of ${Object.keys(S.apps).length} apps are not built yet.`;
+    if (j === 0) {
+      const none = Object.values(S.apps).filter((x) => x === "absent").length, all = Object.keys(S.apps).length;
+      const built = none === 0 ? "Every app is built." : none === all ? (all === 1 ? "The app isn't built yet." : `None of the ${all} apps is built yet.`) : `${none} of ${plural(all, "app")} ${none === 1 ? "isn't" : "aren't"} built yet.`;
+      return `Today, ${day(D.today)}, before this project. ${built}`;
+    }
     const c = changes(j);
-    return `${S.fromChange ? "The end state" : `After ${S.heading || S.name}`}: ${[c.arrive.length ? `${plural(c.arrive.length, "app")} ${c.arrive.length === 1 ? "arrives" : "arrive"}` : "", c.change.length ? `${plural(c.change.length, "app")} ${S.fromChange ? "changed" : "touched"}` : "", c.appear.length ? `${plural(c.appear.length, "contract")} ${c.appear.length === 1 ? "appears" : "appear"}` : "", c.gone.length ? `${c.gone.length} retired` : ""].filter(Boolean).join(", ") || "nothing new"}.`;
+    return `${S.fromChange ? "The end state" : `After ${S.heading || S.name}`}: ${[c.arrive.length ? `${plural(c.arrive.length, "app")} added` : "", c.change.length ? `${plural(c.change.length, "app")} changed` : "", c.appear.length ? `${plural(c.appear.length, "new contract")}` : "", c.gone.length ? `${c.gone.length} retired` : ""].filter(Boolean).join(", ") || "nothing new"}.`;
   }
   function playAll(pick, btn) {
-    if (st.playing) { clearInterval(st.playing); st.playing = 0; btn.textContent = "▶ Play the releases"; return; }
+    if (st.playing) { clearInterval(st.playing); st.playing = 0; btn.textContent = "▶ Step through releases"; return; }
     if (reducedMotion()) { pick(STATES.length - 1, false); return; }
     let j = 0; pick(0, false); btn.textContent = "❚❚ Pause";
-    st.playing = setInterval(() => { j++; if (j >= STATES.length || !btn.isConnected) { clearInterval(st.playing); st.playing = 0; btn.textContent = "▶ Play the releases"; return; } pick(j); }, 1900);
+    st.playing = setInterval(() => { j++; if (j >= STATES.length || !btn.isConnected) { clearInterval(st.playing); st.playing = 0; btn.textContent = "▶ Step through releases"; return; } pick(j); }, 1900);
   }
   function compare() {
     const wrap = h("div", { class: "rel-compare" });
-    const select = (which) => h("select", { class: "rel-select", "aria-label": which === "a" ? "First state" : "Second state", onchange: (ev) => { st[which] = +ev.target.value; const box = wrap.parentNode; body(box); } },
-      STATES.map((S, j) => h("option", { value: j, selected: st[which] === j ? true : null }, j === 0 ? "Today" : S.fromChange ? "End state" : `R${j} ${short(S) === S.name ? "" : ""}${S.heading ? S.heading.replace(/^[^:]*:\s*/, "") : S.name}`)));
+    const select = (which) => h("select", { class: "rel-select", "aria-label": which === "a" ? "First release" : "Second release", onchange: (ev) => { st[which] = +ev.target.value; const box = wrap.parentNode; body(box); } },
+      STATES.map((S, j) => h("option", { value: j, selected: st[which] === j ? true : null }, j === 0 ? "Today" : S.fromChange ? "End state" : `Release ${j}: ${S.heading ? S.heading.replace(/^[^:]*:\s*/, "") : S.name}`)));
     const pane = (which) => { const box = h("div", { class: "rel-pane" }); return { box, head: h("div", { class: "rel-pane-h" }, select(which)) }; };
     const A = pane("a"), B = pane("b");
     wrap.append(h("div", { class: "rel-two" }, h("div", {}, A.head, A.box), h("div", {}, B.head, B.box)));
@@ -231,9 +234,9 @@ const Releases = (() => {
     const apps = Object.keys(SB.apps).filter((k) => (SA.apps[k] || "exists") !== (SB.apps[k] || "exists"));
     const cons = Object.keys(SB.contracts).filter((c) => SA.contracts[c] !== SB.contracts[c]);
     const delivered = SB.delivers.filter((r) => !SA.delivers.includes(r));
-    diff.append(h("h3", {}, `From ${st.a === 0 ? "Today" : SA.fromChange ? "the end state" : "R" + st.a} to ${st.b === 0 ? "Today" : SB.fromChange ? "the end state" : "R" + st.b}`),
+    diff.append(h("h3", {}, `From ${st.a === 0 ? "today" : SA.fromChange ? "the end state" : "release " + st.a} to ${st.b === 0 ? "today" : SB.fromChange ? "the end state" : "release " + st.b}`),
       apps.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Apps"), h("span", {}, apps.map((k) => refChip(k, h("span", { class: "rid" }, `${STATUS_WORD[SA.apps[k] || "exists"]} → ${STATUS_WORD[SB.apps[k] || "exists"]}`))))) : h("div", { class: "muted small" }, "No app's status differs."),
-      cons.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Contracts"), h("span", {}, cons.map((c) => refChip(c, h("span", { class: "rid" }, `${SA.contracts[c]} → ${SB.contracts[c]}`))))) : null,
+      cons.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Contracts"), h("span", {}, cons.map((c) => refChip(c, h("span", { class: "rid" }, `${STATUS_WORD[SA.contracts[c]] || SA.contracts[c]} → ${STATUS_WORD[SB.contracts[c]] || SB.contracts[c]}`))))) : null,
       delivered.length ? h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, "Delivered between"), h("span", {}, delivered.map((r) => refChip(r)))) : null);
     wrap.append(KEY.el(), diff);
     wrap.drawMaps = () => { drawMap(A.box, st.a, { max: 0.8 }); drawMap(B.box, st.b, { max: 0.8 }); };
@@ -244,7 +247,7 @@ const Releases = (() => {
   function render(main) {
     const title = typeof Nav !== "undefined" ? Nav.title("Releases") : "Releases";
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, title),
-      h("p", {}, R.count ? `${plural(R.count, "release")} planned on the releases page. Move along the timeline to see the system after each one; each release lists what it delivers.` : "Today and the end state.")),
+      h("p", {}, R.count ? `${plural(R.count, "release")} planned. Move along the timeline to see the system after each one; each release lists what it delivers.` : "Today and the end state.")),
       h("div", { class: "spacer" }), typeof Nav !== "undefined" ? Nav.pageActions() : null));
     const box = h("div", { class: "rel-body", id: "board" });
     main.append(box);

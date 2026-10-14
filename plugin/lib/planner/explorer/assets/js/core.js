@@ -40,7 +40,7 @@ function h(tag, attrs, ...kids) {
 function emptyState(missing, detail, writer, extraClass) {
   return h("div", { class: "empty-state" + (extraClass ? " " + extraClass : ""), "data-empty": missing },
     h("b", {}, missing), detail ? " " + detail : "",
-    writer ? h("div", { class: "es-writer" }, "Written by ", [].concat(writer).flatMap((w, i) => [i ? " and " : "", h("code", {}, w)]), ".") : null);
+    writer ? h("div", { class: "es-writer" }, "The plan's lead adds this with ", [].concat(writer).flatMap((w, i) => [i ? " and " : "", h("code", {}, w)]), ".") : null);
 }
 const SVGNS = "http://www.w3.org/2000/svg";
 function s(tag, attrs, parent) {
@@ -63,8 +63,17 @@ function openLink(kids, relative, inVault, title, cls = "btn quiet") {
   const href = openHref(relative, inVault);
   if (href) return h("a", { class: cls, href, target: "_blank", title }, ...kids);
   if (!SERVED_HERE) return null;
-  return h("span", { class: cls + " off", "aria-disabled": "true", title: "This helper opens only files inside the vault, and this one is outside it. Open it from your editor, or open the page as a file." }, ...kids, " (outside the vault)");
+  return h("span", { class: cls + " off", "aria-disabled": "true", title: "This page can only open files that are part of the plan, and this one isn't. Open it from your editor, or open the page as a file." }, ...kids, " (outside the plan)");
 }
+/* Slice, tracer and grill are the only working words the page keeps (the user's ruling); each carries its one-line
+   definition as a tooltip wherever it shows. The text comes from planner/terms.py through the data, so the CLI, the
+   generated pages and this page say the same thing. An unknown word throws rather than showing an undefined term. */
+function termEl(word, shown) {
+  const text = (D.terms || {})[word];
+  if (!text) throw new Error(`termEl: no definition for "${word}" in planner/terms.py`);
+  return h("span", { class: "term", title: text, tabindex: "0", "aria-label": `${shown || word}: ${text}` }, shown || word);
+}
+const termTip = (word) => { const text = (D.terms || {})[word]; if (!text) throw new Error(`termTip: no definition for "${word}"`); return text; };
 const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + "s")}`;
 const shorten = (t, n) => { t = t || ""; return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -122,18 +131,20 @@ function migrateSaved(legacy, current, store = localStorage) {
   return moves.map(([, to]) => to);
 }
 migrateSaved(D.legacyVaultId, D.vaultId);
+/* How far off a date is: "in 17 d" where a cell is narrow (the asks strip), "in 17 days" where there is room to say it. */
 const relDue = (iso) => { if (!isDate(iso)) return "no date"; const d = dayNum(iso) - TODAY; return d < 0 ? `${-d} d late` : d === 0 ? "today" : `in ${d} d`; };
+const relDueWords = (iso) => { if (!isDate(iso)) return "no date"; const d = dayNum(iso) - TODAY; return d < 0 ? `${plural(-d, "day")} late` : d === 0 ? "today" : `in ${plural(d, "day")}`; };
 
-/* ------------------------------------------------------------------ the lamp vocabulary: attention.py's levels */
+/* ------------------------------------------------------------------ the status vocabulary: attention.py's levels */
 // Color is never the only signal: each level has a word, and the maps add shape and motion. The colors here are
 // Console's; theme.js re-reads them from the theme's --warning, --caution, ... so a lamp means the same in every room.
 const LIGHT = {
-  warning: { color: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "an open question holding it is past its ask-by date" },
-  caution: { color: "#ffb21e", ink: "#2b1a00", word: "Needs you", say: "not decided yet, or held by an open question" },
-  pending: { color: "#b79cff", ink: "#150c33", word: "Pending approval", say: "a reader decided this and the owner has not reviewed it: it looks settled and is not" },
-  unexamined: { color: "#52c8ff", ink: "#04202e", word: "Never examined", say: "no state recorded, or a concern nobody has looked at: dark has to be earned" },
-  override: { color: "#f2f1e8", ink: "#1d1d18", word: "Overridden", say: "a rule was set aside by the lead: visible, not an alarm" },
-  dark: { color: "#2a3236", ink: "#9aa7ad", word: "Settled", say: "settled, and nothing holds it" },
+  warning: { color: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "an open question blocking it has passed the date it needed an answer by" },
+  caution: { color: "#ffb21e", ink: "#2b1a00", word: "Needs you", say: "not decided yet, or blocked by an open question" },
+  pending: { color: "#b79cff", ink: "#150c33", word: "Pending approval", say: "someone decided this for the owner, and the owner hasn't confirmed it yet, so it isn't settled" },
+  unexamined: { color: "#52c8ff", ink: "#04202e", word: "Not reviewed", say: "nobody has looked at this yet; it only turns gray once someone has" },
+  override: { color: "#f2f1e8", ink: "#1d1d18", word: "Overridden", say: "the plan's lead chose to skip a rule here; shown for the record, not a problem" },
+  dark: { color: "#2a3236", ink: "#9aa7ad", word: "Decided", say: "decided, and nothing is blocking it" },
 };
 const LEVELS = D.levels;  // most urgent first, from attention.LEVELS
 const rank = (level) => LEVELS.length - LEVELS.indexOf(level);
@@ -144,23 +155,23 @@ const pulsePeriod = (urgency) => Math.round(5200 - 3400 * clamp(urgency || 0, 0,
 const ASK = Object.fromEntries(D.asks.map((u) => [u.id, u]));
 const unknownLevel = (id) => { const u = ASK[id]; if (!u) return "dark"; return u.state === "open" ? u.light.level : "resolved"; };
 /* The pending-approval mark in words: a clock glyph and the text, with who and when on hover, so color is never alone. */
-const pendingPill = (p) => h("span", { class: "pill pending", title: p ? `Decided by ${p.by} on ${p.date}; the owner has not reviewed it` : LIGHT.pending.say }, "◷ Pending approval");
+const pendingPill = (p) => h("span", { class: "pill pending", title: p ? `Decided by ${p.by} on ${p.date}; the owner hasn't confirmed it yet` : LIGHT.pending.say }, "◷ Pending approval");
 function lampEl(level, title) { return h("span", { class: "lamp " + level, title: title || (LIGHT[level] ? LIGHT[level].word : level) }); }
 function reasonText(r) {
   if (r.kind === "held" && r.unknown && ASK[r.unknown]) {
     const u = ASK[r.unknown], e = E[r.unknown];
     const who = r.ask || u.ask.name;
     const via = r.via || [];
-    return `${r.unknown} ${e ? e.title : ""}: ask ${who} by ${day(u.askBy)}${via.length ? ", through " + (via.length > 1 ? via.slice(0, -1).join(", ") + " and " + via[via.length - 1] : via[0]) : ""}`;
+    return `${e ? e.title : r.unknown}: ask ${who} by ${day(u.askBy)}${via.length ? ", through " + (via.length > 1 ? via.slice(0, -1).join(", ") + " and " + via[via.length - 1] : via[0]) : ""}`;
   }
   return r.text;
 }
 
 /* ------------------------------------------------------------------ the record, indexed */
-const KIND_WORD = { app: "App", runtime: "Runtime page", contract: "Contract", party: "Outside party", external: "Outside provider",
+const KIND_WORD = { app: "App", runtime: "How it runs", contract: "Contract", party: "Outside service", external: "Outside service",
   unknown: "Open question", risk: "Risk", epic: "Epic", capability: "Capability", flow: "Flow", requirement: "Requirement",
-  decision: "Decision", concern: "Concern", session: "Session", section: "Initiative section", page: "Page", slice: "Slice",
-  "stored-value": "Value held", owner: "Person", bundle: "Contracts", lights: "Lights", inside: "Inside this app" };
+  decision: "Decision", concern: "Concern", session: "Session", section: "Plan section", page: "Page", slice: "Slice",
+  "stored-value": "Stored data", owner: "Person", bundle: "Contracts", lights: "Needs you", inside: "Inside this app" };
 const CONTRACT = Object.fromEntries(D.map.contracts.map((c) => [c.id, c]));
 const UNKNOWN = Object.fromEntries(D.unknowns.map((u) => [u.id, u]));
 const APPS = Object.fromEntries(D.map.apps.map((a) => [a.key, a]));
@@ -199,7 +210,7 @@ const Nodes = (() => {
   const line = (r) => h("li", {}, isKey(r) ? refChip(r) : r);
   function panel(k) {
     const n = notes[k];
-    if (!n) return [h("div", { class: "p-empty" }, "That part of the drawing is not held any more. Pick it again.")];
+    if (!n) return [h("div", { class: "p-empty" }, "That part of the drawing isn't there any more. Pick it again.")];
     const stands = n.stands.filter(isKey), relates = n.relates.filter(Boolean);
     const bare = !n.text && !n.facts.length && !stands.length && !relates.length;
     return [h("div", { class: "p-head" }, h("div", { class: "kind" }, n.kind, h("span", { class: "p-id" }, n.diagram)), h("h2", {}, n.name)),
@@ -208,7 +219,7 @@ const Nodes = (() => {
         n.facts.length ? h("div", { class: "facts" }, n.facts.flatMap(([label, v]) => [h("div", { class: "fl" }, label), h("div", {}, v)])) : null,
         stands.length ? Panel.section("Stands for", stands.length, h("ul", { class: "mini-list" }, stands.map(line))) : null,
         relates.length ? Panel.section("Relates to", relates.length, h("ul", { class: "mini-list" }, relates.map(line))) : null,
-        bare ? h("div", { class: "p-note" }, `Part of the ${n.diagram} drawing. The vault says nothing more about it.`) : null)];
+        bare ? h("div", { class: "p-note" }, `Part of the ${n.diagram} drawing. The plan says nothing more about it.`) : null)];
   }
   /* Makes `el` a node: focusable, named, opened by click, Enter and Space. `guard` returns false to swallow a click (a
      box just dropped after a drag). `nested` leaves a small part inside a focusable parent out of the tab order (a
@@ -275,12 +286,12 @@ function levelForKey(key) {
 }
 function refChip(key, extra) {
   const e = ent(key);
-  if (!e) return h("span", { class: "ref-chip ref-dead", title: "Not a page or item in this vault" }, key);
+  if (!e) return h("span", { class: "ref-chip ref-dead", title: "Not a page or item in this plan" }, key);
   // a team's design question that challenges the item lights it "needs you" (inside.js), where attention leaves it dark
   const id = idOf(key), own = levelForKey(key), challenged = typeof Inside !== "undefined" && Inside.challenge(key);
   const lvl = challenged && (!own || own === "dark") ? "caution" : own;
   return h("a", { class: "ref-chip", "data-ref": key, title: (KIND_WORD[e.kind] || "") + (challenged && lvl === "caution" && own !== "caution" ? ": challenged by a team's design" : "") },
-    lvl && lvl !== "dark" ? lampEl(lvl, challenged && own !== "caution" ? "Needs you: challenged by a team's design, not by attention.lights" : null) : null,
+    lvl && lvl !== "dark" ? lampEl(lvl, challenged && own !== "caution" ? "Needs you: a team's design questions it" : null) : null,
     e.title, id ? h("span", { class: "rid id-tag" }, id) : null, extra || null);
 }
 /* Where a thing's work lives outside the vault (planner's links.py: a page's links:, an item's **Links:**). Each chip
@@ -300,7 +311,13 @@ function gapsTag(gaps) {
   if (gaps.length > 3) return h("b", {}, ` · ${gaps.length} gaps`);
   return h("b", {}, gaps.map((g) => h("span", { class: "nowrap" }, " " + g)));
 }
-function statePill(state) { return state ? h("span", { class: "pill" }, state) : null; }
+/* A recorded state in plain words: the vault's values (inkling, assumption, fact, ...) are field values, not reader words.
+   An unknown value shows as written, so a new state is never hidden. */
+const STATE_WORD = { inkling: "Early idea", assumption: "Assumed", fact: "Confirmed", decided: "Decided", open: "Open", resolved: "Answered",
+  draft: "Draft", "in-progress": "In progress", complete: "Done", "complete-with-gaps": "Done, with gaps", new: "New app", changed: "Changed",
+  unchanged: "Unchanged", retired: "Retired", superseded: "Replaced", accepted: "Accepted", proposed: "Proposed" };
+const stateWord = (state) => STATE_WORD[String(state || "").toLowerCase()] || state;
+function statePill(state) { return state ? h("span", { class: "pill" }, stateWord(state)) : null; }
 function levelPill(level, text) { return level === "pending" && !text ? pendingPill(null) : h("span", { class: "pill " + level }, text || LIGHT[level].word); }
 
 /* ------------------------------------------------------------------ flows that cross each thing */
@@ -541,7 +558,7 @@ const Legend = (() => {
   const lampPicture = (lv) => lv === "dark" ? [bx({ fill: "unlit", stroke: "rule-3", w: 1 })]
     : lv === "pending" ? [bx({ stroke: "pending", w: 2.2 })] : lv === "override" ? [bx({ fill: "override", stroke: "override-edge", w: 1 })] : [bx({ fill: lv })];
   for (const lv of LAMPS) {
-    define("lamp." + lv, lampPicture(lv), lv === "dark" ? "Gray: settled, and nothing holds it" : `${LIGHT[lv].word}: ${LIGHT[lv].say}`);
+    define("lamp." + lv, lampPicture(lv), lv === "dark" ? "Gray: decided, and nothing is blocking it" : `${LIGHT[lv].word}: ${LIGHT[lv].say}`);
   }
   define("picked", [bx({ fill: "deck-2", stroke: "focus", w: 2.2 })], "White outline: what you picked, or what it touches");
   const lampProbes = (selector) => Object.fromEntries(LAMPS.map((lv) => ["lamp." + lv, selector(lv)]));
@@ -579,7 +596,7 @@ const Legend = (() => {
     host.replaceChildren();
     host.hidden = !ids.length;
     if (!ids.length) return;
-    host.append(h("summary", {}, "Key", h("span", { class: "lg-n" }, String(ids.length))),
+    host.append(h("summary", {}, "Key"),
       h("ul", { class: "lg-items" }, ids.map((id) => {
         const text = textOf(lg, id), at = text.indexOf(": "), entry = CATALOG.get(id);
         return h("li", { "data-lg": id }, entry ? picture(entry.parts) : null, h("span", {}, at > 0 ? [h("b", {}, text.slice(0, at)), text.slice(at)] : text));

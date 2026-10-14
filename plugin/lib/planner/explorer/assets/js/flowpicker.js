@@ -20,7 +20,7 @@
 
    The grouping and filtering are plain functions over the record (arrange); the widget only draws what they return. */
 const FlowPicker = (() => {
-  Legend.define("list.swatch", [Legend.ln({ stroke: "line-gray", w: 4 })], "Colored bar: the color this flow has on the line map");
+  Legend.define("list.swatch", [Legend.ln({ stroke: "line-gray", w: 4 })], "Colored bar: the color this flow has on the flow lines map");
   const TEN_FLOWS = 10;
   let uid = 0, pendingFocus = null;  // choosing redraws the whole view; the new button takes the focus the old one held
 
@@ -67,7 +67,7 @@ const FlowPicker = (() => {
     if (grouped && e.caps.length > 1) bits.push(`also serves ${e.caps.slice(1).join(", ")}`);
     return bits.join(" · ");
   };
-  const headingText = (g) => (g.kind === "domain" ? `${g.name} (domain)` : g.kind === "guessed" ? `${g.name} (guessed from the flow's steps)` : g.name);
+  const headingText = (g) => (g.kind === "domain" ? `${g.name} (business area)` : g.kind === "guessed" ? `${g.name} (guessed from the flow's steps)` : g.name);
 
   /* make({ current, onPick, none, swatch })
        current  () => the chosen flow key, or null

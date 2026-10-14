@@ -181,7 +181,7 @@ def test_the_digest_and_the_block_show_asked_copies_labeled_asked(tmp_path):
     run("render", "--vault", str(vault))
     page = (vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8")
     assert "**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1." in page
-    assert f"| {ASKED} | asked | FIN | normal | INI-002 |" in page
+    assert f"| {ASKED} | asked | Finance and liabilities | normal | INI-002 |" in page
 
 
 def test_the_coverage_line_says_nothing_of_asked_when_none_are():

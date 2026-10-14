@@ -63,7 +63,7 @@ const Icons = (() => {
     s("path", { d: G[glyph] || G[FALLBACK] }, svg);
     return svg;
   }
-  const forKey = (key, cls) => { const node = el(name(key), cls); const t = why(key); if (t) node.appendChild(document.createElementNS(SVGNS, "title")).textContent = `Icon: ${t}`; return node; };
+  const forKey = (key, cls) => { const node = el(name(key), cls); const t = why(key); if (t) node.appendChild(document.createElementNS(SVGNS, "title")).textContent = `Icon for ${titleOf(key)}`; return node; };
   /* SVG: a glyph of `size` centered on (cx, cy), in the current text color of its parent. */
   function put(parent, glyph, cx, cy, size, cls) {
     const k = size / 24;

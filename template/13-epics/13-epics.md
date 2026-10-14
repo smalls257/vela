@@ -7,10 +7,10 @@ authored: mixed
 
 # Epics
 
-One page per epic, named `EPC-nnn-<slug>.md`.
+Each epic is one team's block of work, with the checks that say when it is done.
 
 ## Traceability
 
-<!-- generated:traceability sha=d805a26d: do not edit, run planner render -->
-**Traceability:** nothing to trace yet.
+<!-- generated:traceability sha=2a6defe7: do not edit, run planner render -->
+**Gaps in the planned work:** nothing to check yet.
 <!-- /generated:traceability -->

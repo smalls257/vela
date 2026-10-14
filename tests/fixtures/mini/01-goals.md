@@ -23,19 +23,19 @@ sources: ["2026-01-10-shop-api"]
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=96fdccae: do not edit, run planner render -->
-**Apps on the ladder**
+<!-- generated:where-it-stands sha=0fdf8dcb: do not edit, run planner render -->
+**Where each app has got to**
 
-| App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
+| App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
 |---|---|---|---|---|
-| [[till-building-blocks\|Till]] | baseline | 0 | 0 | 1 of 1 |
-| [[shop-building-blocks\|Shop]] | contracts | 0 | 0 | 2 of 2 |
+| [[till-building-blocks\|Till]] | named in scope | 0 | 0 | 1 of 1 |
+| [[shop-building-blocks\|Shop]] | agreeing contracts | 0 | 0 | 2 of 2 |
 
-**Open unknowns**
+**Open questions**
 
-| Unknown | Owner | Ask by | Blocks |
+| Question | Who answers | Answer needed by | Holds up |
 |---|---|---|---|
-| [[11-unknowns-and-risks#UNK-001 Till test rig\|UNK-001]] | @mini-qa | 2026-02-01 | nothing |
+| [[11-unknowns-and-risks#UNK-001 Till test rig\|Till test rig (UNK-001)]] | @mini-qa | 2026-02-01 | nothing yet |
 
 **Last session:** 2026-01-10
 <!-- /generated:where-it-stands -->

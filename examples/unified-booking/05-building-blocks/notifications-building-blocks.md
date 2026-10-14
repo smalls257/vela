@@ -27,19 +27,19 @@ Notifications does not decide what state a booking is in. It reports what Bookin
 |---|---|
 | Changed: a new Booking event consumer. The existing email and SMS sender is reused. | Platform team |
 
-<!-- generated:app-context sha=a46ef5b5: do not edit, run planner render -->
+<!-- generated:app-context sha=9ef33887: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
   n_APP_notifications["Notifications (changed)"]
-  n_APP_booking -->|"CON-002"| n_APP_notifications
+  n_APP_booking -->|"Booking state changed"| n_APP_notifications
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
   class n_APP_notifications focus
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
 ## Inside Notifications: main containers
@@ -69,10 +69,10 @@ None. Notifications only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=7099072d: do not edit, run planner render -->
-| Contract | Provider | Change policy | State |
+<!-- generated:contracts-consumed sha=4ea6ddb0: do not edit, run planner render -->
+| Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
-| [[booking-building-blocks#CON-002 Booking state changed\|CON-002 Booking state changed]] | [[booking-building-blocks\|Booking]] | additive changes only. | decided |
+| [[booking-building-blocks#CON-002 Booking state changed\|Booking state changed (CON-002)]] | [[booking-building-blocks\|Booking]] | additive changes only. | decided |
 <!-- /generated:contracts-consumed -->
 
 ## Epics

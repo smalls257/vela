@@ -98,18 +98,18 @@ const Queue = (() => {
   function needsYouSays() {
     const c = needsYou();
     if (!c.n) return "Nothing needs you";
-    const parts = [c.questions ? `${plural(c.questions, "question")} holding things up` : null, c.other ? `${plural(c.other, "other thing")} lit` : null].filter(Boolean);
-    return `${c.n} need you: ${parts.join(" and ")}${c.late ? `, ${c.late} overdue` : ""}`;
+    const parts = [c.questions ? `${plural(c.questions, "open question")} blocking work` : null, c.other ? `${plural(c.other, "other item")} not decided yet` : null].filter(Boolean);
+    return `${c.n} need you: ${parts.join(", and ")}${c.late ? ` (${c.late} overdue)` : ""}`;
   }
   const total = () => needsYou().n;
 
   function row(it) {
-    const late = it.level === "warning", when = isDate(it.askBy) ? relDue(it.askBy) : "no date";
+    const late = it.level === "warning", when = isDate(it.askBy) ? relDueWords(it.askBy) : "no date";
     return h("li", {}, h("button", { class: "q-row" + (App.focus === it.id ? " on" : ""), "data-ref": it.id, title: `${it.id}: ${it.question}` },
       lampEl(it.level),
       h("span", { class: "q-main" }, h("span", { class: "q-title" }, it.title),
-        h("span", { class: "q-sub" }, `Holds ${it.says}`),
-        h("span", { class: "q-ask" }, `Ask ${it.who}${it.guess ? " (a guess)" : ""}`)),
+        h("span", { class: "q-sub" }, `Blocks ${it.says}`),
+        h("span", { class: "q-ask" }, `Ask: ${it.who}${it.guess ? " (a guess)" : ""}`)),
       h("span", { class: "q-when" + (late ? " late" : "") }, h("b", {}, day(it.askBy)), h("i", {}, when))));
   }
   function grouped(list) {
@@ -125,7 +125,7 @@ const Queue = (() => {
   function block() {
     const list = items(), box = h("div", { class: "q-block" });
     if (!list.length) {
-      box.append(h("p", { class: "q-none" }, "No open question holds anything up. Nothing waits on an answer."));
+      box.append(h("p", { class: "q-none" }, "No open question is blocking anything."));
     } else {
       box.append(...(st.all ? grouped(list) : [h("ul", { class: "q-list" }, list.slice(0, TOP).map(row))]));
       if (list.length > TOP) {
@@ -136,7 +136,7 @@ const Queue = (() => {
       }
     }
     const quiet = holdless();
-    if (quiet) box.append(h("p", { class: "q-quiet" }, `${plural(quiet, "more open question")} hold nothing yet. `, h("button", { class: "linkish", onclick: () => Nav.open("unknowns") }, "Who to ask")));
+    if (quiet) box.append(h("p", { class: "q-quiet" }, `${plural(quiet, "more open question")} ${quiet === 1 ? "isn't" : "aren't"} blocking anything yet. `, h("button", { class: "linkish", onclick: () => Nav.open("unknowns") }, "See them all")));
     return box;
   }
   /* The card beside the map. In a narrow window it folds to its heading, so the map keeps the screen. */
@@ -149,7 +149,7 @@ const Queue = (() => {
     const say1 = needsYou().n ? needsYouSays() : "Nothing is waiting on an answer";
     const el = h("section", { class: "q-card" + (fold ? "" : " open"), "aria-label": "What is waiting on an answer" },
       h("div", { class: "q-head" }, h("span", { class: "q-kicker" }, "Waiting on an answer"), h("span", { class: "q-count" }, say1),
-        h("button", { class: "q-fold", "aria-expanded": String(!fold), title: "Fold the list to give the map the whole width", onclick: (ev) => {
+        h("button", { class: "q-fold", "aria-expanded": String(!fold), title: "Hide the list so the map gets the full width", onclick: (ev) => {
           const open = !el.classList.contains("open");
           if (width >= NARROW) { Settings.write(FOLD_KEY, open ? "0" : "1"); rerender(); return; }  // the map refits to the room the fold gave or took
           el.classList.toggle("open", open);  // a narrow window only shows or hides the list; the map keeps its place

@@ -19,18 +19,18 @@ A concern is something every app has to answer for, such as testing or rollback.
 - **unknown**: an open unknown has to be answered first. The cell links it.
 - **unexamined**: nobody has looked yet. An app with no cell on a concern page shows as `unexamined (no row)`.
 
-<!-- generated:concern-matrix sha=4ee86a62: do not edit, run planner render -->
+<!-- generated:concern-matrix sha=43161652: do not edit, run planner render -->
 | App | [[concern-cost\|Cost]] | [[concern-data\|Data]] | [[concern-observability\|Observability]] | [[concern-operations\|Operations]] | [[concern-ownership\|Ownership]] | [[concern-rollout\|Rollout]] | [[concern-security\|Security]] | [[concern-testing\|Testing]] |
 |---|---|---|---|---|---|---|---|---|
-| [[booking-building-blocks\|Booking]] | addressed | addressed | addressed | addressed | addressed | addressed | addressed | addressed |
-| [[call-center-building-blocks\|Call center desktop]] | unchanged | addressed | addressed | addressed | addressed | addressed | addressed | addressed |
-| [[customer-identity-building-blocks\|Customer identity]] | unchanged | unchanged | unchanged | unchanged | unchanged | n/a | unchanged | unchanged |
-| [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | addressed | n/a | addressed | unchanged | n/a | unchanged | addressed |
-| [[kiosks-building-blocks\|Port kiosks]] | unchanged | addressed | addressed | unchanged | addressed | addressed | addressed | addressed |
-| [[notifications-building-blocks\|Notifications]] | unchanged | addressed | unchanged | addressed | addressed | addressed | unchanged | addressed |
-| [[pricing-building-blocks\|Pricing]] | unchanged | unchanged | unchanged | unchanged | unchanged | addressed | addressed | addressed |
-| [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | unchanged | unchanged | unchanged | unchanged | n/a | unchanged | unchanged |
-| [[website-building-blocks\|Public website]] | unchanged | addressed | addressed | unchanged | addressed | addressed | addressed | addressed |
+| [[booking-building-blocks\|Booking]] | covered | covered | covered | covered | covered | covered | covered | covered |
+| [[call-center-building-blocks\|Call center desktop]] | unchanged | covered | covered | covered | covered | covered | covered | covered |
+| [[customer-identity-building-blocks\|Customer identity]] | unchanged | unchanged | unchanged | unchanged | unchanged | doesn't apply | unchanged | unchanged |
+| [[ferrymaster-building-blocks\|FERRYMASTER]] | covered | covered | doesn't apply | covered | unchanged | doesn't apply | unchanged | covered |
+| [[kiosks-building-blocks\|Port kiosks]] | unchanged | covered | covered | unchanged | covered | covered | covered | covered |
+| [[notifications-building-blocks\|Notifications]] | unchanged | covered | unchanged | covered | covered | covered | unchanged | covered |
+| [[pricing-building-blocks\|Pricing]] | unchanged | unchanged | unchanged | unchanged | unchanged | covered | covered | covered |
+| [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | unchanged | unchanged | unchanged | unchanged | doesn't apply | unchanged | unchanged |
+| [[website-building-blocks\|Public website]] | unchanged | covered | covered | unchanged | covered | covered | covered | covered |
 <!-- /generated:concern-matrix -->
 
 ## Concern pages

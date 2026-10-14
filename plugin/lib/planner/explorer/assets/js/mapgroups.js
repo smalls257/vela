@@ -30,11 +30,11 @@ const MapGroups = (() => {
   /* What the grouped map and the focus drawing add to the cockpit's key (view-map.js has the rest). */
   const { bx } = Legend;
   Legend.define("cluster.open", [bx({ stroke: "rule", w: 1.4, rx: 5 })], "Faint frame: a group, with its apps drawn inside it");
-  Legend.define("cluster.outside", [bx({ stroke: "ink-4", w: 1.4, rx: 5, dash: "3 3.5" })], "Dashed frame: the outside parties, kept apart from our apps");
-  Legend.define("cluster.closed", [bx({ fill: "unlit", stroke: "rule-3", w: 1.2, rx: 4 }), bx({ fill: "caution", x: 3, y: 4, width: 3, height: 8, rx: 1.5 })], "Card with a colored edge: a closed group, in its worst light; click to open");
-  Legend.define("cluster.mini", [bx({ fill: "caution", x: 5, y: 6, width: 6, height: 4, rx: 1 }), bx({ fill: "unlit", x: 13, y: 6, width: 6, height: 4, rx: 1 }), bx({ fill: "warning", x: 21, y: 6, width: 6, height: 4, rx: 1 })], "Row of small lamps: one per app in a closed group, each in its light");
-  Legend.define("cluster.also-tab", [bx({ fill: "deck-3", stroke: "rule-3", w: 1, height: 8, y: 4, rx: 4 }), { k: "text", t: "+2", fill: "ink-2", y: 11, size: 8 }], "Small tab above a box: the app carries other capabilities too");
-  Legend.define("cluster.also-chip", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.2, dash: "3 2.5", height: 8, y: 4, rx: 4 })], "Dashed chip: an app drawn in another region that carries this one too");
+  Legend.define("cluster.outside", [bx({ stroke: "ink-4", w: 1.4, rx: 5, dash: "3 3.5" })], "Dashed frame: the outside services, kept apart from our apps");
+  Legend.define("cluster.closed", [bx({ fill: "unlit", stroke: "rule-3", w: 1.2, rx: 4 }), bx({ fill: "caution", x: 3, y: 4, width: 3, height: 8, rx: 1.5 })], "Card with a colored edge: a closed group, in its most urgent status; click to open");
+  Legend.define("cluster.mini", [bx({ fill: "caution", x: 5, y: 6, width: 6, height: 4, rx: 1 }), bx({ fill: "unlit", x: 13, y: 6, width: 6, height: 4, rx: 1 }), bx({ fill: "warning", x: 21, y: 6, width: 6, height: 4, rx: 1 })], "Row of small marks: one per app in a closed group, each in its status color");
+  Legend.define("cluster.also-tab", [bx({ fill: "deck-3", stroke: "rule-3", w: 1, height: 8, y: 4, rx: 4 }), { k: "text", t: "+2", fill: "ink-2", y: 11, size: 8 }], "Small tab above a box: the app delivers other capabilities too");
+  Legend.define("cluster.also-chip", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.2, dash: "3 2.5", height: 8, y: 4, rx: 4 })], "Dashed chip: an app drawn in another box that delivers this capability too");
   const LOOKS = {
     "cluster.open": ".cluster-frame:not(.outside)", "cluster.outside": ".cluster-frame.outside", "cluster.closed": "g.cluster-lamp", "cluster.mini": "rect.mini-lamp",
     "cluster.also-tab": "g.also-tab", "cluster.also-chip": "g.also-chip",
@@ -51,7 +51,7 @@ const MapGroups = (() => {
       out = Object.entries(by).map(([label, members]) => ({ key: "grp:" + label, label, members: members.sort(byPin), ghosts: [], sub: "domain" }));
       const meanCol = (g) => g.members.reduce((n, k) => n + NODE[k].col, 0) / g.members.length;
       out.sort((a, b) => (a.label === "No domain") - (b.label === "No domain") || meanCol(a) - meanCol(b) || cmp(a.label, b.label));
-      for (const g of out) if (g.label === "No domain") g.label = `No domain yet (${plural(g.members.length, "app")})`;
+      for (const g of out) if (g.label === "No domain") g.label = `No business area yet (${plural(g.members.length, "app")})`;
     } else {
       const regions = {};
       const region = (cap) => regions[cap] || (regions[cap] = { key: "cap:" + cap, cap, label: cap, members: [], ghosts: [], sub: "capability" });
@@ -66,7 +66,7 @@ const MapGroups = (() => {
         return Object.assign(g, { label: g.cap ? (e && e.title) || g.cap : `No capability yet (${plural(g.members.length, "app")})`, page: e ? e.key : "", members: g.members.sort(byPin), ghosts: g.ghosts.sort(byPin) });
       }).sort((a, b) => (a.cap === "") - (b.cap === "") || cmp(a.cap, b.cap));
     }
-    if (partners.length) out.push({ key: PARTIES, label: "Outside parties", members: partners.sort(byPin), ghosts: [], sub: "outside", outside: true });
+    if (partners.length) out.push({ key: PARTIES, label: "Outside services", members: partners.sort(byPin), ghosts: [], sub: "outside", outside: true });
     return out;
   }
   const isOpen = (g) => st.open.has(g.key) || (!st.shut.has(g.key) && D.map.apps.length <= MapView.CLUSTER_PAST);
@@ -87,7 +87,7 @@ const MapGroups = (() => {
   }
   function chipLines(keys, width) {
     const lines = [];
-    let line = [], x = measure("Also carried by", 11.5, 500) + 10;
+    let line = [], x = measure("Also in", 11.5, 500) + 10;
     for (const k of keys) {
       const w = Math.min(width, measure(shorten(titleOf(k), 26), 12, 500) + 34);
       if (line.length && x + w > width) { lines.push(line); line = []; x = 0; }
@@ -262,7 +262,7 @@ const MapGroups = (() => {
       obs.push(spot.r);
       const at = spot.at;
       MapView.lamp(gLamps, { key: one ? ids[0] : ids[0], x: at.x - lw / 2, y: at.y - 11, w: lw, h: 22, rx: 3, kind: "contract",
-        label: one ? CONTRACT[ids[0]].title : `${ids.length} contracts`, title: ids.map((id) => `${id} ${CONTRACT[id].title}`).join("; "),
+        label: one ? CONTRACT[ids[0]].title : `${ids.length} contracts`, title: ids.map((id) => `${CONTRACT[id].title} (${id})`).join("; "),
         level: lv, onpick: () => go(one ? ids[0] : bundle, { reset: true }) });
     }
   }
@@ -274,8 +274,8 @@ const MapGroups = (() => {
     const grp = s("g", { class: `hit count-badge ${lv === "dark" ? "dark" : "lit " + lv}`, "data-key": ids[0], "data-agg": "1", "data-crowded": crowded ? "1" : null }, g);
     s("circle", { cx: at.x, cy: at.y, r: 14, fill: lv === "dark" ? LIGHT.dark.color : LIGHT[lv].color, stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" }, grp);
     s("text", { x: at.x, y: at.y + 4.5, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = ids.length;
-    s("title", {}, grp).textContent = ids.map((id) => `${id} ${CONTRACT[id].title}`).join("; ");
-    Nodes.wire(grp, { label: `${plural(ids.length, "contract")}: ${ids.join(", ")}`, key: ids.length === 1 ? ids[0] : bundle });
+    s("title", {}, grp).textContent = ids.map((id) => `${CONTRACT[id].title} (${id})`).join("; ");
+    Nodes.wire(grp, { label: `${plural(ids.length, "contract")}: ${ids.map((id) => CONTRACT[id].title).join(", ")}`, key: ids.length === 1 ? ids[0] : bundle });
   }
 
   /* ------------------------------------------------------------ moving a cluster */
@@ -377,7 +377,7 @@ const MapGroups = (() => {
       if (b.group && !b.group.isOpen) continue;
       obs.push(b);
       const n = NODE[k], light = lightOf(k);
-      const sub = n.kind !== "app" ? (n.external ? "outside provider" : "outside party") : !light || light.level === "dark" ? "settled" : MapView.shortWhy(light);
+      const sub = n.kind !== "app" ? "outside service" : !light || light.level === "dark" ? "decided" : MapView.shortWhy(light);
       const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: b.w, h: b.h, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(k) });
       Scene.node(k, { x: b.x, y: b.y, w: b.w, h: b.h, el });
       if (mode === "capability") alsoTab(gNames, k, b, obs);
@@ -399,14 +399,14 @@ const MapGroups = (() => {
   }
   /* A cluster has no page of its own: its panel entry says what it stands for, app by app. */
   function groupNote(g, say) {
-    return Nodes.note({ diagram: "Map", name: g.label, kind: g.outside ? "Group of outside parties" : "Group of apps", text: say + ".", stands: g.members, relates: g.page ? [g.page] : [] });
+    return Nodes.note({ diagram: "Map", name: g.label, kind: g.outside ? "Group of outside services" : "Group of apps", text: say + ".", stands: g.members, relates: g.page ? [g.page] : [] });
   }
   /* A cluster: open, a frame with its apps inside; closed, one lamp with its counts and a small lamp per app. */
   function frame(g, gFrames, gNodes, mode, gNames, obs, list, root) {
     const levels = g.members.map(levelOf), lv = worst(levels.slice()), lit = levels.filter((l) => l !== "dark").length;
     const counts = LEVELS.filter((l) => l !== "dark").map((l) => [l, levels.filter((x) => x === l).length]).filter(([, n]) => n);
-    const what = g.outside ? plural(g.members.length, "party", "parties") : plural(g.members.length, "app");
-    const say = `${what}${lit ? ", " + counts.map(([l, n]) => `${n} ${LIGHT[l].word.toLowerCase()}`).join(", ") : ", all settled"}${g.ghosts.length ? `; ${plural(g.ghosts.length, "app")} drawn elsewhere also carry it` : ""}`;
+    const what = g.outside ? plural(g.members.length, "outside service") : plural(g.members.length, "app");
+    const say = `${what}${lit ? ", " + counts.map(([l, n]) => `${n} ${LIGHT[l].word.toLowerCase()}`).join(", ") : ", all decided"}${g.ghosts.length ? `; ${plural(g.ghosts.length, "app")} drawn elsewhere also ${g.ghosts.length === 1 ? "delivers" : "deliver"} it` : ""}`;
     if (g.isOpen) {
       const grp = s("g", { class: "cluster open", "data-group": g.key }, gFrames);
       s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, class: "cluster-frame" + (g.outside ? " outside" : ""), "data-cap": g.cap || null }, grp);
@@ -479,7 +479,7 @@ const MapGroups = (() => {
   /* A region's apps drawn elsewhere: one row of small chips under its name, part of the region's own size. */
   function alsoRow(g, gNames, obs) {
     const y0 = g.y + HEAD - 6;
-    s("text", { x: g.x + PAD, y: y0 + 14, class: "also-label" }, gNames).textContent = "Also carried by";
+    s("text", { x: g.x + PAD, y: y0 + 14, class: "also-label" }, gNames).textContent = "Also in";
     g.alsoLines.forEach((line, row) => line.forEach(({ k, x, w }) => {
       const cx = g.x + PAD + x, cy = y0 + row * (CHIP_H + CHIP_GAP);
       Legend.saw("cluster.also-chip");
@@ -493,7 +493,7 @@ const MapGroups = (() => {
       const pick = () => { go(k, { reset: true }); const real = $(`#board g.hit[data-key="${CSS.escape(k)}"]`); if (real && !reducedMotion()) real.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 500, iterations: 2 }); };
       Nodes.wire(chip, { label: titleOf(k), aria: `${titleOf(k)}, drawn in another region`, role: "link", open: pick });
     }));
-    obs.push({ x: g.x + PAD, y: y0, w: measure("Also carried by", 11.5, 500), h: CHIP_H });
+    obs.push({ x: g.x + PAD, y: y0, w: measure("Also in", 11.5, 500), h: CHIP_H });
   }
   /* "+2 capabilities" on an app that carries more than its region's: hover it to light the other regions. */
   function alsoTab(gNames, k, b, obs) {
@@ -504,11 +504,11 @@ const MapGroups = (() => {
     const tab = s("g", { class: "also-tab", "data-key": k }, gNames);
     s("rect", { x: b.x + b.w - w - 6, y: b.y - 22, width: w, height: 18, rx: 9 }, tab);
     s("text", { x: b.x + b.w - w / 2 - 6, y: b.y - 9, "text-anchor": "middle" }, tab).textContent = text;
-    s("title", {}, tab).textContent = `${titleOf(k)} also carries ${caps.slice(1).map((c) => `${c} ${ent(keyForId(c)) ? ent(keyForId(c)).title : ""}`.trim()).join("; ")}`;
+    s("title", {}, tab).textContent = `${titleOf(k)} also delivers ${caps.slice(1).map((c) => (ent(keyForId(c)) ? ent(keyForId(c)).title : c)).join("; ")}`;
     obs.push({ x: b.x + b.w - w - 6, y: b.y - 22, w, h: 18 });
     tab.addEventListener("mouseenter", () => lightAlso(k, true));
     tab.addEventListener("mouseleave", () => lightAlso(App.focus === k ? k : null, true));
-    Nodes.wire(tab, { label: `${titleOf(k)} also carries ${caps.slice(1).join(", ")}`, key: k });
+    Nodes.wire(tab, { label: `${titleOf(k)} also delivers ${caps.slice(1).map((c) => (ent(keyForId(c)) ? ent(keyForId(c)).title : c)).join(", ")}`, key: k });
   }
   function lightAlso(k) {
     const caps = new Set(k ? (D.appCaps[k] || { caps: [] }).caps.slice(1) : []);
@@ -541,7 +541,7 @@ const MapGroups = (() => {
     Object.values(boxes).forEach((b) => { b.w = W; b.h = H; });
     const xs = Object.values(boxes).flatMap((b) => [b.x, b.x + W]), ys = Object.values(boxes).flatMap((b) => [b.y, b.y + H]);
     const x0 = Math.min(...xs) - 120, x1 = Math.max(...xs) + 120, y0 = Math.min(...ys) - 70, y1 = Math.max(...ys) + 60;
-    const root = s("svg", { viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, class: "cockpit focus", role: "img", "aria-label": `${titleOf(key)} and its direct neighbors` }, board);
+    const root = s("svg", { viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, class: "cockpit focus", role: "img", "aria-label": `${titleOf(key)} and the apps it connects to directly` }, board);
     MapView.fitSvg(root, board, x1 - x0, y1 - y0, 1.1);
     Pan.attach(board, { key: "focus", svg: () => $("svg.cockpit.focus", board) });
     defs(root);
@@ -551,10 +551,10 @@ const MapGroups = (() => {
     if (left.length) label(-470, Math.min(...left.map((k) => boxes[k].y)) - 18, "Uses it");
     if (right.length) label(470, Math.min(...right.map((k) => boxes[k].y)) - 18, "It uses");
     if (both.length) label(0, Math.min(...both.map((k) => boxes[k].y)) - 18, "Both ways");
-    if (below.length) label(0, Math.min(...below.map((k) => boxes[k].y)) - 18, "Outside parties");
+    if (below.length) label(0, Math.min(...below.map((k) => boxes[k].y)) - 18, "Outside services");
     for (const [k, b] of Object.entries(boxes)) {
       const n = NODE[k], light = lightOf(k);
-      const sub = n.kind !== "app" ? (n.external ? "outside provider" : "outside party") : !light || light.level === "dark" ? "settled" : MapView.shortWhy(light);
+      const sub = n.kind !== "app" ? "outside service" : !light || light.level === "dark" ? "decided" : MapView.shortWhy(light);
       const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(k),
         onpick: k === key ? (onCenter ? () => { go(k, { reset: true }); onCenter(el); } : null) : () => go(k, { reset: true }) });
       if (k === key) { el.classList.add("focus-center"); Legend.saw("picked", "White outline: the app in focus, and what you pick"); }
@@ -577,7 +577,7 @@ const MapGroups = (() => {
       ids.forEach((id, i) => MapView.lamp(gLamps, { key: id, x: at.x - 60, y: at.y - 11 + (i - (ids.length - 1) / 2) * 27, w: 120, h: 22, rx: 3, label: CONTRACT[id].title, kind: "contract", title: `${id} ${CONTRACT[id].title}` }));
     }
     const hidden = D.nodes.length - Object.keys(boxes).length;
-    board.append(h("div", { class: "focus-note" }, `${titleOf(key)} and ${plural(Object.keys(boxes).length - 1, "direct neighbor")}. `, hidden ? `${plural(hidden, "box", "boxes")} with no contract to it ${hidden === 1 ? "is" : "are"} not drawn.` : "Nothing else is hidden."));
+    board.append(h("div", { class: "focus-note" }, `${titleOf(key)} and the ${plural(Object.keys(boxes).length - 1, "app")} it connects to directly. `, hidden ? `${plural(hidden, "box", "boxes")} with no contract to it ${hidden === 1 ? "isn't" : "aren't"} drawn.` : "Every connection is drawn."));
     MapView.startBreathing();
     board.dataset.shown = Object.keys(boxes).length;
   }

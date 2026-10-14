@@ -8,7 +8,7 @@ authored: mixed
 
 # Building blocks
 
-One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
+One page per app: what it does, its main parts, and the contracts (agreed interfaces) it offers other apps. Each contract sits on the page of the app that provides it.
 
 <!-- generated:context-map sha=140bedbf: do not edit, run planner render -->
 none

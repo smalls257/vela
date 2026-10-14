@@ -118,6 +118,12 @@ def _unique_keys(nodes):
     return final
 
 
+def edge_label(contract):
+    """An arrow is labeled with the contract's name ("Consent check"), not its ID: a reader looking at the drawing knows
+    what crosses, and the ID stays on the page the arrow's contract lives on. The ID when the contract has no name."""
+    return safe_label(contract.name or contract.id, contract.id)
+
+
 def _graph(nodes, edges, skipped=()):
     """`edges` is [(provider Node, consumer Node, contract id)], so keys can be settled before edges use them."""
     final = _unique_keys(list(nodes) + [n for e in edges for n in e[:2]])
@@ -164,7 +170,7 @@ def context_graph(vault, after=False):
             if consumer in retired:
                 skipped.append((contract.id, f"consumer {consumer.id or consumer.name} is retired"))
             else:
-                edges.append((source, app_node(consumer, "app", False) if after else app_node(consumer), contract.id))
+                edges.append((source, app_node(consumer, "app", False) if after else app_node(consumer), edge_label(contract)))
     return _graph(nodes, edges, skipped)
 
 
@@ -186,7 +192,7 @@ def app_graph(vault, app):
         for target in consumers if provides else [app]:
             node = focus if target is app else app_node(target)
             nodes.append(node)
-            edges.append((source, node, contract.id))
+            edges.append((source, node, edge_label(contract)))
     return _graph(nodes, edges, skipped)
 
 
@@ -266,7 +272,7 @@ STYLE_WORDS = {
     "changed": "amber: changed by this initiative",
     "unchanged": "gray: stays as it is",
     "retired": "red, dashed: retired by this initiative",
-    "external": "white, dashed: outside the initiative (a party or provider)",
+    "external": "white, dashed: outside this initiative (another company or system)",
 }
 
 
@@ -275,12 +281,13 @@ def key_line(graph):
     if not graph.nodes:
         return ""
     used = [STYLE_WORDS[s] for s in sorted({n.style for n in graph.nodes}, key=lambda s: list(STYLE_WORDS).index(s)) if s in STYLE_WORDS]
-    arrows = ["an arrow is a contract, labeled with its ID"] if graph.edges else []
+    arrows = (["an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that "
+               "provides it to the app that uses it"] if graph.edges else [])
     return "Key: " + " · ".join(used + arrows) + "."
 
 
 def overflow_contracts(graph, node):
-    """The contracts that touch a node left out of a diagram, as "CON-001 from A to B"."""
-    names = {n.key: safe_label(n.ref, n.key) for n in graph.nodes}
+    """The contracts that touch a node left out of a diagram, as "Seat hold from Booking to Till"."""
+    names = {n.key: safe_label(page_title(n.page) if n.page is not None else n.ref, n.key) for n in graph.nodes}
     return [f"{e.label} from {names.get(e.source, e.source)} to {names.get(e.target, e.target)}"
             for e in graph.edges if node.key in (e.source, e.target)]

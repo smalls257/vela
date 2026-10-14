@@ -23,7 +23,7 @@ Any new app registration on the tenant needs the CISO's security review first, w
 
 ## After
 
-<!-- generated:system-context sha=78408140: do not edit, run planner render -->
+<!-- generated:system-context sha=2a63fb11: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]
@@ -32,18 +32,18 @@ flowchart LR
     n_APP_summarizer["Summarizer"]
   end
   x_microsoft["Microsoft"]
-  x_microsoft -->|"CON-001"| n_APP_desktop_agent
-  n_APP_summarizer -->|"CON-002"| n_APP_desktop_agent
-  n_APP_consent_and_identity -->|"CON-003"| n_APP_desktop_agent
-  n_APP_consent_and_identity -->|"CON-004"| n_APP_desktop_agent
-  x_microsoft -->|"CON-005"| n_APP_consent_and_identity
+  x_microsoft -->|"Calendar and Teams transcripts"| n_APP_desktop_agent
+  n_APP_consent_and_identity -->|"Consent check"| n_APP_desktop_agent
+  x_microsoft -->|"Microsoft sign-in"| n_APP_consent_and_identity
+  n_APP_summarizer -->|"Note request"| n_APP_desktop_agent
+  n_APP_consent_and_identity -->|"Record consent"| n_APP_desktop_agent
   classDef app fill:#eef1f5,stroke:#2448b8,color:#19212d
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   class n_APP_consent_and_identity,n_APP_desktop_agent,n_APP_summarizer app
   class x_microsoft external
 ```
 
-Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
+Key: blue outline: an app in the initiative · white, dashed: outside this initiative (another company or system) · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:system-context -->
 
 ## In scope

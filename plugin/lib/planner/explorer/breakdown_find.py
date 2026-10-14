@@ -19,7 +19,7 @@ reader who sees "No build plan yet" can find out why.
 import pathlib
 
 from . import design_data
-from .design_find import FRONTMATTER_LIMIT, frontmatter, local_path, not_a_doc, shown
+from .design_find import FRONTMATTER_LIMIT, frontmatter, local_path, app_named, not_a_doc, shown
 
 PLAN_GLOB = "*-breakdown.md"
 
@@ -40,13 +40,13 @@ def discover(vault, root, named, design_args):
         look.beside_design(designs.get(app.id))
         if look.plan:
             found.append(f"{app.id}={look.plan}")
-            said.append(f"{app.id} build plan found at {shown(look.plan, root)}, from {look.how}")
+            said.append(f"{app_named(app)}: using the build plan {shown(look.plan, root)}, found {look.how}")
         elif app.id in designs:
-            missing.append((app.id, look.tried))
+            missing.append((app, look.tried))
     if missing:
-        said.append(f"no build plan found for {', '.join(app for app, _ in missing)}; their Build plan level says so. "
-                    "Point to one with breakdown: on the app page, breakdowns: in .planner.yaml, or --breakdown APP-x=<path>.")
-        said += [f"  {app}: {'; '.join(tried)}" for app, tried in missing if tried]
+        said.append(f"no build plan yet for {', '.join(app_named(app) for app, _ in missing)}; their Build plan level says so. "
+                    "Point to one with breakdown: on the app page, breakdowns: in .planner.yaml, or --breakdown <app ID>=<path>.")
+        said += [f"  {app_named(app)}: {'; '.join(tried)}" for app, tried in missing if tried]
     return found, said
 
 
@@ -68,29 +68,30 @@ class Look:
         self.plan, self.how, self.tried = None, "", []
 
     def warn(self, text):
-        self.said.append(f"warning: {self.app.id}: {text}")
+        self.said.append(f"warning: {app_named(self.app)}: {text}")
 
     def page_field(self):
         value = self.app.meta.get("breakdown")
         if value is not None:
-            self.from_path(value, "breakdown: on its page")
+            self.from_path(value, "from breakdown: on its page")
 
     def config_entry(self, configured):
         if self.plan or self.app.id not in configured:
             return
-        self.from_path(configured[self.app.id], "breakdowns: in .planner.yaml")
+        self.from_path(configured[self.app.id], "from breakdowns: in .planner.yaml")
 
     def from_path(self, value, where):
+        said = where.removeprefix("from ")
         if not isinstance(value, str) or not value.strip():
-            self.warn(f"{where} is not a path to a breakdown ({value!r})")
+            self.warn(f"{said} is not a path to a build plan ({value!r})")
             return
         path = local_path(value.strip(), self.root)
         if path is None:
-            self.warn(f"{where} is {value}, a web address; it is never fetched, so use the path of a local clone")
+            self.warn(f"{said} is a web address ({value}); Vela never fetches one, so point it to a local copy of the repo instead")
         elif not path.is_file():
-            self.warn(f"{where} is {value}, which is not a file ({path})")
+            self.warn(f"{said} is {value}, which is not a file ({path})")
         elif not_a_doc(path, "plan"):
-            self.warn(f"{where} is {value}, which {not_a_doc(path, 'plan')}, so it is not read")
+            self.warn(f"{said} is {value}, which {not_a_doc(path, 'plan')}, so it isn't read")
         else:
             self.plan, self.how = path, where
 
@@ -104,11 +105,11 @@ class Look:
             return
         names = [plan for plan in plans if self.names_design(plan, design.name)]
         if not names:
-            self.tried.append(f"{len(plans)} plan{'s' if len(plans) != 1 else ''} in {folder}, none whose prereqs name {design.name}")
+            self.tried.append(f"{len(plans)} plan{'s' if len(plans) != 1 else ''} in {folder}, but none of them is for the {design.name} design")
             return
         if len(names) > 1:
             self.warn(f"{len(names)} plans name {design.name} in their prereqs ({', '.join(p.name for p in names)}); using {names[0].name}")
-        self.plan, self.how = names[0], f"beside its design, by the prereqs naming {design.name}"
+        self.plan, self.how = names[0], f"beside its design, because it points to {design.name}"
 
     def names_design(self, plan, design_name):
         try:

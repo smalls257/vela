@@ -28,7 +28,7 @@ Booking does not own fares, capacity, customer records, card payments or the led
 |---|---|
 | New ([[ADR-0001-one-booking-context\|ADR-0001]]) | Booking team (new) |
 
-<!-- generated:app-context sha=8006e1c8: do not edit, run planner render -->
+<!-- generated:app-context sha=f8f26c9f: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -41,15 +41,15 @@ flowchart LR
   n_APP_vessel_schedule["Vessel schedule (unchanged)"]
   n_APP_website["Public website (changed)"]
   x_tidepay__external_["Tidepay (external)"]
-  n_APP_booking -->|"CON-001"| n_APP_call_center
-  n_APP_booking -->|"CON-001"| n_APP_kiosks
-  n_APP_booking -->|"CON-001"| n_APP_website
-  n_APP_booking -->|"CON-002"| n_APP_notifications
-  n_APP_pricing -->|"CON-003"| n_APP_booking
-  n_APP_vessel_schedule -->|"CON-004"| n_APP_booking
-  n_APP_customer_identity -->|"CON-005"| n_APP_booking
-  n_APP_ferrymaster -->|"CON-006"| n_APP_booking
-  x_tidepay__external_ -->|"CON-007"| n_APP_booking
+  n_APP_booking -->|"Booking API"| n_APP_call_center
+  n_APP_booking -->|"Booking API"| n_APP_kiosks
+  n_APP_booking -->|"Booking API"| n_APP_website
+  n_APP_booking -->|"Booking state changed"| n_APP_notifications
+  n_APP_vessel_schedule -->|"Capacity check"| n_APP_booking
+  n_APP_customer_identity -->|"Customer lookup"| n_APP_booking
+  n_APP_ferrymaster -->|"Ledger transactions"| n_APP_booking
+  n_APP_pricing -->|"Quote a fare"| n_APP_booking
+  x_tidepay__external_ -->|"Tidepay payment outcome"| n_APP_booking
   classDef changed fill:#fdf0d5,stroke:#a06400,color:#3a2600
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
@@ -60,7 +60,7 @@ flowchart LR
   class n_APP_customer_identity,n_APP_ferrymaster,n_APP_vessel_schedule unchanged
 ```
 
-Key: dark blue: the app this page is about · amber: changed by this initiative · gray: stays as it is · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
+Key: dark blue: the app this page is about · amber: changed by this initiative · gray: stays as it is · white, dashed: outside this initiative (another company or system) · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
 ## Inside Booking: main containers
@@ -161,14 +161,14 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=8e343386: do not edit, run planner render -->
-| Contract | Provider | Change policy | State |
+<!-- generated:contracts-consumed sha=d38c8e7b: do not edit, run planner render -->
+| Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
-| [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]] | [[pricing-building-blocks\|Pricing]] | the existing API, unchanged. Only the list of callers narrows. | decided |
-| [[vessel-schedule-building-blocks#CON-004 Capacity check\|CON-004 Capacity check]] | [[vessel-schedule-building-blocks\|Vessel schedule]] | the existing read API, no change. | fact |
-| [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005 Customer lookup]] | [[customer-identity-building-blocks\|Customer identity]] | the existing read API, no change. | fact |
-| [[ferrymaster-building-blocks#CON-006 Ledger transactions\|CON-006 Ledger transactions]] | [[ferrymaster-building-blocks\|FERRYMASTER]] | FERRYMASTER cannot change. The mainframe team announces any MQ change 8 weeks ahead. | fact |
-| [[booking-building-blocks#CON-007 Tidepay payment outcome\|CON-007 Tidepay payment outcome]] | Tidepay (external) | Tidepay's published API, versioned by Tidepay. | fact |
+| [[pricing-building-blocks#CON-003 Quote a fare\|Quote a fare (CON-003)]] | [[pricing-building-blocks\|Pricing]] | the existing API, unchanged. Only the list of callers narrows. | decided |
+| [[vessel-schedule-building-blocks#CON-004 Capacity check\|Capacity check (CON-004)]] | [[vessel-schedule-building-blocks\|Vessel schedule]] | the existing read API, no change. | confirmed |
+| [[customer-identity-building-blocks#CON-005 Customer lookup\|Customer lookup (CON-005)]] | [[customer-identity-building-blocks\|Customer identity]] | the existing read API, no change. | confirmed |
+| [[ferrymaster-building-blocks#CON-006 Ledger transactions\|Ledger transactions (CON-006)]] | [[ferrymaster-building-blocks\|FERRYMASTER]] | FERRYMASTER cannot change. The mainframe team announces any MQ change 8 weeks ahead. | confirmed |
+| [[booking-building-blocks#CON-007 Tidepay payment outcome\|Tidepay payment outcome (CON-007)]] | Tidepay (external) | Tidepay's published API, versioned by Tidepay. | confirmed |
 <!-- /generated:contracts-consumed -->
 
 ## Epics

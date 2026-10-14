@@ -147,7 +147,7 @@ def read_design(path, adr_dir=None, context=None):
     }
     for key in TEMPLATE_SECTIONS:
         if key not in sections:
-            _problem(problems, None, TITLES[key], f"missing section: ## {TITLES[key]}")
+            _problem(problems, None, TITLES[key], f"the design has no '{TITLES[key]}' section (## {TITLES[key]})")
     design["components"] = _components(sections.get("components"), problems)
     _check_components(design, problems)
     design["trace"], design["trace_source"] = _trace(design, sections.get("trace"), problems)
@@ -366,8 +366,8 @@ def _vault_link(meta, text, problems):
                 "building_blocks": building_blocks, "commits": [str(recorded["commit"])] if recorded.get("commit")
                 else cited, "initiative": recorded.get("initiative")}
     if not cited:
-        _problem(problems, None, "vault link", "no vault citation names a commit (INI-nnn ... @ <sha>), "
-                                               "so links back to the vault cannot be pinned")
+        _problem(problems, None, "vault link", "the design doesn't say which version of the plan it used (cite it as INI-nnn ... @ <commit>), "
+                                               "so its links back to the plan can't be pinned to that version")
     elif len(cited) > 1:
         _problem(problems, None, "vault link", f"the doc cites more than one vault commit: {', '.join(cited)}")
     return {"mode": "vault", "source": "inferred", "app": app, "vault_path": vault_path,

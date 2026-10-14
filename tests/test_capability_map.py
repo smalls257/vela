@@ -69,7 +69,7 @@ def test_one_domain_over_budget_lists_the_rest():
     text = render.capability_map(vault_of(*pages), None)
     first = fences(text)[0]
     assert flowchart_elements(first) == schema.FLOWCHART_BUDGET
-    assert f"**Not drawn, over the {schema.FLOWCHART_BUDGET}-element budget:** 6" in text
+    assert f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes):** 6" in text
     assert "| Not drawn | Change |" in text
     for i in range(1, 26):
         assert f"c_CAP_{i:03d}[" in text or f"[[CAP-{i:03d}-thing\\|" in text, f"CAP-{i:03d} was dropped"

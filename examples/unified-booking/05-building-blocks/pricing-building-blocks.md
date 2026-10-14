@@ -27,19 +27,19 @@ Pricing does not hold seats or know if a booking is confirmed. Booking does that
 |---|---|
 | Changed: callers narrowed from the three front ends to Booking only | Revenue team |
 
-<!-- generated:app-context sha=b584fb63: do not edit, run planner render -->
+<!-- generated:app-context sha=203d1f99: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
   n_APP_pricing["Pricing (changed)"]
-  n_APP_pricing -->|"CON-003"| n_APP_booking
+  n_APP_pricing -->|"Quote a fare"| n_APP_booking
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
   class n_APP_pricing focus
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
 ## Inside Pricing: main containers

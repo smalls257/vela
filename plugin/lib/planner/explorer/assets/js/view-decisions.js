@@ -10,7 +10,7 @@ const Decisions = (() => {
   const ISO = /\d{4}-\d{2}-\d{2}/;
   const STATES = [["decided", "Decided"], ["proposed", "Proposed"], ["pending", "Pending approval"], ["overridden", "Overridden"]];
   const STATE_ORDER = { pending: 0, proposed: 1, overridden: 2, decided: 3 };  // what a lead should look at first
-  const STATE_SAY = { decided: "Decided and nothing set aside", proposed: "Written down, not decided", pending: "A reader decided this and the owner has not reviewed it", overridden: "Decided past a gate the lead set aside, and nobody has confirmed it since" };
+  const STATE_SAY = { decided: "Decided, with the usual checks done", proposed: "Written down, not decided", pending: "Someone reading the plan decided this, and the owner hasn't reviewed it yet", overridden: "Decided before the usual checks were done, and nobody has confirmed it since" };
   const SORTS = [["state", "State"], ["name", "Name"], ["date", "Decided"], ["waits", "Open questions"]];
   const st = { sort: "state", flip: false, q: "", state: "", waiting: false, bare: false, mode: "log", open: "" };
   const sessionTitle = (id) => (D.sessions[id] && D.sessions[id].title) || id;
@@ -122,15 +122,15 @@ const Decisions = (() => {
       onclick: open, onkeydown: (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } } },
       h("div", { class: "dl-c dl-state", role: "cell", "data-label": "State" }, stateMark(e)),
       h("div", { class: "dl-c dl-what", role: "cell", "data-label": "Decision" }, h("b", { class: "dl-name" }, e.name),
-        e.chosen.said ? h("span", { class: "dl-chosen" }, e.chosen.said) : null, e.recordedIn && e.recordedIn !== e.name ? h("span", { class: "dl-in" }, `Recorded in ${e.recordedIn}`) : null),
+        e.chosen.said ? h("span", { class: "dl-chosen" }, e.chosen.said) : null, e.recordedIn && e.recordedIn !== e.name ? h("span", { class: "dl-in" }, `Written down in ${e.recordedIn}`) : null),
       h("div", { class: "dl-c dl-not", role: "cell", "data-label": "Turned down" }, rejectedList(e, 2)),
       h("div", { class: "dl-c dl-when", role: "cell", "data-label": "Decided" }, h("span", {}, e.date ? longDate(e.date) : "No date recorded"), h("span", { class: "muted" }, whoSaid(e))),
-      h("div", { class: "dl-c dl-fx", role: "cell", "data-label": "Affects and waits" }, h("span", {}, e.affects.length ? `Affects ${e.affects.slice(0, 2).map((a) => a.label).join(", ")}${e.affects.length > 2 ? ` and ${e.affects.length - 2} more` : ""}` : "Affects nothing recorded"), waitsLine(e)));
+      h("div", { class: "dl-c dl-fx", role: "cell", "data-label": "What it affects and waits on" }, h("span", {}, e.affects.length ? `Affects ${e.affects.slice(0, 2).map((a) => a.label).join(", ")}${e.affects.length > 2 ? ` and ${e.affects.length - 2} more` : ""}` : "Affects nothing recorded"), waitsLine(e)));
   }
   function head() {
     const col = (id, label) => h("button", { class: "dl-th" + (st.sort === id ? " on" : ""), role: "columnheader", "aria-sort": st.sort === id ? (st.flip ? "descending" : "ascending") : "none", "data-sort": id,
       onclick: () => { if (st.sort === id) st.flip = !st.flip; else { st.sort = id; st.flip = false; } refresh(); } }, label, st.sort === id ? h("span", { "aria-hidden": "true" }, st.flip ? " ↑" : " ↓") : null);
-    return h("div", { class: "dl-head", role: "row" }, col("state", "State"), col("name", "Decision"), h("span", { class: "dl-th plain", role: "columnheader" }, "Turned down, and why"), col("date", "Decided"), col("waits", "Affects and waits"));
+    return h("div", { class: "dl-head", role: "row" }, col("state", "State"), col("name", "Decision"), h("span", { class: "dl-th plain", role: "columnheader" }, "Turned down, and why"), col("date", "Decided"), col("waits", "What it affects and waits on"));
   }
   function log(list) {
     const box = h("div", { class: "dl-log", role: "table", "aria-label": "Decisions" }, head());
@@ -193,9 +193,9 @@ const Decisions = (() => {
       sec("Consequences", consequences, e.affects.length ? h("div", { class: "dl-fx-row" }, h("span", { class: "dl-l" }, "What it affects"), chips(e.affects.map((a) => a.key))) : null,
         e.waits.length ? h("div", { class: "dl-fx-row" }, h("span", { class: "dl-l" }, "Still waits on"), chips(e.waits)) : null,
         e.answered.length ? h("div", { class: "dl-fx-row" }, h("span", { class: "dl-l" }, "Answered"), chips(e.answered)) : null,
-        !consequences && !e.affects.length && !e.waits.length && !e.answered.length ? h("p", { class: "muted" }, "The record names nothing it changes, and no question waits on it.") : null),
+        !consequences && !e.affects.length && !e.waits.length && !e.answered.length ? h("p", { class: "muted" }, "The record doesn't name anything it changes, and no question waits on it.") : null),
       sec("History", hist),
-      h("p", { class: "dl-trace", title: "How this decision is named in the vault" }, "Trace ", trace.map((x) => h("code", {}, x)), h("code", {}, e.t.id)));
+      h("p", { class: "dl-trace", title: "How this decision is named in the plan, to find it again" }, "Plan reference: ", trace.map((x) => h("code", {}, x)), h("code", {}, e.t.id)));
   }
 
   /* ------------------------------------------------------------ the page */
@@ -208,8 +208,8 @@ const Decisions = (() => {
       search,
       h("div", { class: "seg small", role: "group", "aria-label": "State" }, seg("", "All", all.length), STATES.map(([id, label]) => seg(id, label, all.filter((e) => e.state === id).length))),
       h("button", { class: "chip" + (st.waiting ? " on" : ""), "aria-pressed": String(st.waiting), "data-filter": "waiting", title: "Only decisions an open question still waits on", onclick: () => { st.waiting = !st.waiting; refresh(); } }, "Waiting on a question"),
-      bareOnes.length ? h("button", { class: "chip" + (st.bare ? " on" : ""), "aria-pressed": String(st.bare), "data-filter": "bare", title: "Pages that say they were decided but record no options", onclick: () => { st.bare = !st.bare; refresh(); } },
-        `${st.bare ? "Hide" : "Include"} ${plural(bareOnes.length, "decided page")} with no options`) : null,
+      bareOnes.length ? h("button", { class: "chip" + (st.bare ? " on" : ""), "aria-pressed": String(st.bare), "data-filter": "bare", title: "Decisions with no options written down", onclick: () => { st.bare = !st.bare; refresh(); } },
+        `${st.bare ? "Hide" : "Include"} ${plural(bareOnes.length, "decision")} with no options written down`) : null,
       h("span", { class: "spacer" }),
       h("label", { class: "dl-sort" }, "Sort ", h("select", { "aria-label": "Sort the decisions", onchange: (ev) => { st.sort = ev.target.value; st.flip = false; refresh(); } },
         SORTS.map(([id, label]) => h("option", { value: id, selected: st.sort === id ? true : null }, label)))),
@@ -218,12 +218,12 @@ const Decisions = (() => {
   }
   function summary(list) {
     const waiting = new Set(list.flatMap((e) => e.waits)).size, turned = list.reduce((n, e) => n + e.rejected.length, 0);
-    return `${list.length} of ${plural(pool().length, "decision")}, ${plural(turned, "option")} turned down, ${plural(waiting, "open question")} still held by them.`;
+    return `${list.length === pool().length ? plural(list.length, "decision") : `${list.length} of ${plural(pool().length, "decision")}`}, ${plural(turned, "option")} turned down, ${waiting ? `${plural(waiting, "open question")} still to answer before they're final` : "no open question still to answer"}.`;
   }
   function render(main) {
     const stage = h("div", { class: "dl-stage" });
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, Nav.title("Decisions")),
-      h("p", {}, "Every decision the vault records: what was chosen, what was turned down and why, who decided and when, and which open questions it still waits on. Pick one to read it as a decision record.")),
+      h("p", {}, "Every decision the plan records: what was chosen, what was turned down and why, who decided and when, and which open questions it still waits on. Pick one to read it as a decision record.")),
       h("div", { class: "spacer" }), Nav.pageActions()));
     if (!trees.length) { main.append(emptyState("No decision records its options yet.", "An Options considered line, or a decision record with an Alternatives considered table, is listed here.", "/planner:shape")); return; }
     main.append(h("div", { class: "dl-wrap" }, h("div", { class: "dl-barhost" }, bar()), h("p", { class: "dl-count", id: "dl-count", "aria-live": "polite" }), stage));

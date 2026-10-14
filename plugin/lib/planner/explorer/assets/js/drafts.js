@@ -21,13 +21,13 @@ const Drafts = (() => {
     }
     return box;
   }
-  const STATUS = { changed: "changed", added: "new page", removed: "removed", conflict: "Conflict" };
+  const STATUS = { changed: "Changed", added: "New page", removed: "Removed", conflict: "Conflict" };
   function pageCard(p, open) {
-    const counts = p.binary ? "binary, not shown" : `+${p.added} -${p.removed}`;
+    const counts = p.binary ? "not text, not shown" : `+${p.added} -${p.removed}`;
     const head = h("summary", {}, h("span", { class: "dstate " + p.status }, STATUS[p.status] || p.status), p.merged ? h("span", { class: "dstate merged", title: "Your lines and the owner's were joined when you re-opened; read it once" }, "merged") : null,
       h("b", {}, p.title || p.path), h("span", { class: "dpath" }, p.path), h("span", { class: "dn" }, counts),
       p.key && E[p.key] ? refChip(p.key) : null);
-    const body = p.binary ? h("p", { class: "p-note" }, `${p.status === "removed" ? "A binary file was removed." : "A binary file changed."} A proposal lists it and does not include it.`)
+    const body = p.binary ? h("p", { class: "p-note" }, `${p.status === "removed" ? "A file that isn't text was removed." : "A file that isn't text changed."} A proposal lists it but doesn't include it.`)
       : h("div", {}, diffBlock(p.lines), p.truncated ? h("p", { class: "p-note" }, "Longer than this view shows; the rest of the change is in the file.") : null);
     const card = h("details", { class: "dpage", "data-path": p.path }, head, body);
     if (open) card.open = true;
@@ -47,28 +47,28 @@ const Drafts = (() => {
   function conflictList() {
     if (!conflicts().length) return null;
     return h("section", { class: "d-sec", id: "conflicts" }, h("h2", {}, "Conflicts", h("span", { class: "sub" }, String(conflicts().length))),
-      h("p", { class: "p-note" }, "These pages changed on both sides since you opened the earlier copy. Nothing of yours was overwritten, and you cannot propose until each is settled."),
+      h("p", { class: "p-note" }, "You and the owner both changed these pages since you started. Nothing of yours was overwritten, and you can't send your changes until each one is settled."),
       conflicts().map(conflictCard));
   }
   function pendingList() {
     if (!D.pending.length) return null;
     return h("section", { class: "d-sec" }, h("h2", {}, "Pending approval", h("span", { class: "sub" }, String(D.pending.length))),
-      h("p", { class: "p-note" }, reader() ? "Decisions you recorded. They look settled and are not until the owner reviews them." : "Decisions a reader recorded. Each stays marked until you accept, reject or edit it."),
+      h("p", { class: "p-note" }, reader() ? "Decisions you recorded. They look settled, but they aren't until the owner reviews them." : "Decisions someone reading the plan recorded. Each stays marked until you accept, reject or edit it."),
       h("ul", { class: "mini-list d-pending" }, D.pending.map((p) => h("li", {}, E[p.key] ? refChip(p.key) : p.subject, " ", h("span", { class: "muted" }, `${p.by}, ${p.date}`)))));
   }
   /* How a draft reaches the owner. The page only names the command: it has no network and sends nothing. */
   function proposeHint() {
     if (!reader()) return null;
-    return h("p", { class: "p-note propose-hint", id: "propose-hint" }, "To send these to the owner, run ", h("code", {}, "/planner:propose"),
-      " in Claude Code from this folder. It asks you why for each change and writes a proposal folder you send yourself. Nothing is sent from this page.");
+    return h("p", { class: "p-note propose-hint", id: "propose-hint" }, "To send these to the owner, ask Claude Code to propose them (", h("code", {}, "/planner:propose"),
+      ") from this folder. It asks you why for each change and writes a proposal folder you send yourself. Nothing is sent from this page.");
   }
   function changes() {
     const d = D.draft;
     if (!d) return null;
     if (d.problem) return h("section", { class: "d-sec" }, emptyState("I could not compare your pages with the copy you opened.", d.problem));
-    if (!d.count) return conflicts().length ? null : h("section", { class: "d-sec" }, emptyState("No changes yet.", "You have not edited a page since you opened this copy."));
+    if (!d.count) return conflicts().length ? null : h("section", { class: "d-sec" }, emptyState("No changes yet.", "You haven't edited a page since you started."));
     return h("section", { class: "d-sec" }, h("h2", {}, "Changed pages", h("span", { class: "sub" }, String(d.count))),
-      h("p", { class: "p-note" }, "Against the copy you opened. + is an added line, - a removed one; a generated table is collapsed to one line."),
+      h("p", { class: "p-note" }, "Compared with the copy you started from. + is an added line, - a removed one; a generated table is folded to one line."),
       proposeHint(),
       d.pages.map((p, i) => pageCard(p, d.pages.length <= 3 || i === 0)));
   }
@@ -95,7 +95,7 @@ const Drafts = (() => {
     const box = $("#flags");
     box.innerHTML = "";
     if (reader() && D.draft && (count() || conflicts().length || D.draft.problem)) {
-      box.append(h("button", { class: "chip draft-badge" + (conflicts().length ? " has-conflict" : ""), id: "draft-badge", title: D.draft.problem || "Pages you changed since you opened this copy; click for the lines", onclick: open }, heading()));
+      box.append(h("button", { class: "chip draft-badge" + (conflicts().length ? " has-conflict" : ""), id: "draft-badge", title: D.draft.problem || "Pages you changed since you started; click to see the lines", onclick: open }, heading()));
     }
     if (D.pending.length) {
       const word = reader() ? `${D.pending.length} pending approval` : `${D.pending.length} from readers awaiting your review`;
@@ -103,6 +103,6 @@ const Drafts = (() => {
     }
     box.hidden = !box.childNodes.length;
   }
-  View("drafts", { label: "Drafts", title: "What you changed since you opened this copy", render });
+  View("drafts", { label: "Drafts", title: "What you changed since you started", render });
   return { render, open, boot, badges, diffBlock, conflictCard, heading, st };
 })();

@@ -24,11 +24,20 @@
 const Inside = (() => {
   const DES = D.designs || {}, CONT = D.containers || {};
   const LEVELS = [["context", "Context"], ["containers", "Containers"], ["components", "Components"], ["plan", "Build plan"]];
-  const TABS = [["trace", "Trace"], ["data", "Data model"], ["api", "API contracts"], ["flows", "Key flows"], ["stack", "Tech stack"], ["nfrs", "NFRs"],
-    ["constraints", "Constraints"], ["risks", "Risks"], ["adrs", "ADRs"], ["ops", "Operations"], ["glossary", "Glossary"]];
+  const TABS = [["trace", "Coverage"], ["data", "Data model"], ["api", "API contracts"], ["flows", "Key flows"], ["stack", "Tech stack"], ["nfrs", "Quality targets"],
+    ["constraints", "Constraints"], ["risks", "Risks"], ["adrs", "Design decisions"], ["ops", "Operations"], ["glossary", "Glossary"]];
   const st = { app: "", level: "context", tab: "trace", step: {}, playing: null, zoom: {} };
   const VAULT_ID = /\b(?:CAP-\d{3}(?:\.FR\d+(?:@APP-[a-z0-9-]+)?)?|EPC-\d{3}(?:\.AC\d+)?|CON-\d{3}|UNK-\d{3}|FLO-\d{3}|CST-\d+|INI-\d{3}|APP-[a-z0-9-]+|R-\d{2}|PTY-\d{2,3}|SV-\d{2,3})\b/g;
   const appTitle = (k) => titleOf(k);
+  const VIA = { "trace table": "trace table", responsibility: "component description", "depends on": "what it depends on", exposes: "what it offers", owns: "what it owns",
+    "matrix owns": "data table", "matrix reads from": "data table", "matrix writes to": "data table", "api contracts": "API contracts" };
+  const viaWords = (via) => [...new Set(via.map((v) => VIA[v] || v))].join(", ");
+  const person = (handle) => { const t = String(handle || "").replace(/^@/, "").replace(/-/g, " "); return /^claude$/i.test(t) ? "Claude (AI)" : t; };
+  const ID_KIND = [[/^CAP-\d{3}\.FR/, "Requirement"], [/^CAP-/, "Capability"], [/^CON-/, "Contract"], [/^UNK-/, "Open question"], [/^EPC-\d{3}\.AC/, "Acceptance criterion"], [/^EPC-/, "Epic"],
+    [/^FLO-/, "Flow"], [/^CST-/, "Constraint"], [/^R-/, "Risk"], [/^PTY-/, "Outside party"], [/^APP-/, "App"], [/^INI-/, "Initiative"]];
+  const idKind = (id) => (ID_KIND.find(([re]) => re.test(id)) || [null, "Item"])[1];
+  const conNames = (text) => String(text || "").replace(/\bCON-\d{3}\b/g, (id) => (CONTRACT[id] ? `“${CONTRACT[id].title}”` : id));
+  const STATE_WORD = { assumption: "not decided yet", inkling: "early idea", proposed: "proposed", decided: "decided", confirmed: "confirmed" };
   const design = (k) => DES[k] || null;
   const base = (id) => id.split("@")[0];
   const appOfId = (id) => (APP_BY_ID[id] ? APP_BY_ID[id].key : null);
@@ -48,17 +57,17 @@ const Inside = (() => {
   const def = (id, parts, text) => Legend.define(id, parts, text);
   def("ic.frame", [bx({ stroke: "rule-3", w: 1.4, rx: 5 })], "Faint frame: the app these belong to");
   def("ic.container", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.4, rx: 4 })], "Flat box with a glyph: a container, with its job and state");
-  def("ic.contract", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: a contract to an app or party outside, labeled with its ID");
+  def("ic.contract", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: a contract with an app or outside company, labeled with its name");
   def("ic.soft", [ln({ stroke: "ink-4", w: 1.6, head: "fill", dash: "4 3" })], "Dashed arrow: read from the app page's own diagram, best effort");
   def("ic.component", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.4, rx: 4, height: 8 }), bx({ fill: "room-2", stroke: "rule-3", w: 1, x: 6, y: 10, width: 22, height: 4, rx: 1 })], "Flat box: a component, with what it does under its name");
-  def("ic.lip", [bx({ fill: "room-2", stroke: "rule-3", w: 1.2, y: 5, height: 6, rx: 2 })], "Strip under a box: what the component exposes");
-  def("ic.lip.missing", [bx({ fill: "room-2", stroke: "note-text", w: 1.2, y: 5, height: 6, rx: 2, dash: "3 2" })], "Dashed amber strip: the design gives it no Exposes line");
-  def("ic.owns", [bx({ fill: "deck-3", width: 14, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "3", fill: "ink-2", y: 11, size: 8 }], "Gray count: how many vault items the component owns");
+  def("ic.lip", [bx({ fill: "room-2", stroke: "rule-3", w: 1.2, y: 5, height: 6, rx: 2 })], "Strip under a box: what it offers other components");
+  def("ic.lip.missing", [bx({ fill: "room-2", stroke: "note-text", w: 1.2, y: 5, height: 6, rx: 2, dash: "3 2" })], "Dashed amber strip: the design doesn't say what it offers");
+  def("ic.owns", [bx({ fill: "deck-3", width: 14, x: 10, y: 3.5, height: 9, rx: 4.5 }), { k: "text", t: "3", fill: "ink-2", y: 11, size: 8 }], "Gray count: how many plan items the component delivers");
   def("ic.oq", [{ k: "dot", fill: "caution", r: 4.5 }], "Amber dot: an open design question affects it");
-  def("ic.stub", [{ k: "clip", fill: "room-2", stroke: "ink-4", w: 1.4, dash: "4 3" }], "Clipped dashed box: an integration point, a system outside");
-  def("ic.stub.loose", [{ k: "clip", fill: "room-2", stroke: "note-text", w: 1.6 }], "Amber clipped box: an integration point no component meets");
-  def("ic.depends", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: depends on, or reaches an integration point; the label says over what");
-  def("ic.loose", [ln({ stroke: "ink-4", w: 1.6, head: "fill", dash: "5 4" })], "Dashed arrow: an integration point no component meets");
+  def("ic.stub", [{ k: "clip", fill: "room-2", stroke: "ink-4", w: 1.4, dash: "4 3" }], "Dashed box with cut corners: an outside system it connects to");
+  def("ic.stub.loose", [{ k: "clip", fill: "room-2", stroke: "note-text", w: 1.6 }], "Amber box with cut corners: an outside system no component connects to");
+  def("ic.depends", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Solid arrow: depends on, or connects to an outside system; the label says over what");
+  def("ic.loose", [ln({ stroke: "ink-4", w: 1.6, head: "fill", dash: "5 4" })], "Dashed arrow: an outside system no component connects to");
   def("er.entity", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.2, rx: 3 }), bx({ fill: "deck-3", y: 2.5, height: 4, rx: 2, x: 3, width: 28 })], "Box with a heading: an entity, its fields listed under it");
   def("er.key", [{ k: "text", t: "PK", fill: "ink-4", size: 10 }], "Letters at a field's right edge (PK, FK): the field is a key");
   def("er.rel", [ln({ stroke: "ink-3", w: 1.6, head: "fill" })], "Arrow: a relationship; the label says what and how many");
@@ -93,7 +102,7 @@ const Inside = (() => {
     return hits.length ? hits : null;
   };
   const designWord = (app) => `${appTitle(app)} design`;
-  const sourceWord = (d) => (d.trace_source === "recorded" ? "recorded in the design's Trace table" : "inferred from where the ID appears in the design");
+  const sourceWord = (d) => (d.trace_source === "recorded" ? "as the design's trace table lists it" : "guessed from where each one is mentioned in the design");
 
   /* ------------------------------------------------------------ keys: inside:<app>[|kind|name] */
   const key = (app, kind, name) => "inside:" + app + (kind ? `|${kind}|${encodeURIComponent(name)}` : "");
@@ -101,14 +110,14 @@ const Inside = (() => {
   function entOf(k) {
     const p = parse(k), d = design(p.app);
     if (!APPS[p.app]) return null;
-    const title = !p.kind ? designWord(p.app) : p.kind === "problems" ? `What the ${designWord(p.app)} could not read` : (p.kind === "story" || p.kind === "blocker") && typeof Plan !== "undefined" ? Plan.panelTitle(p.app, p.kind, p.name) : p.kind === "adr" ? (d && (d.adrs.find((a) => a.id === p.name) || {}).adr_title ? `${p.name} ${(d.adrs.find((a) => a.id === p.name) || {}).adr_title}` : p.name) : p.name;
+    const title = !p.kind ? designWord(p.app) : p.kind === "problems" ? `What couldn't be read in the ${designWord(p.app)}` : (p.kind === "story" || p.kind === "blocker") && typeof Plan !== "undefined" ? Plan.panelTitle(p.app, p.kind, p.name) : p.kind === "adr" ? (d && (d.adrs.find((a) => a.id === p.name) || {}).adr_title ? `${p.name} ${(d.adrs.find((a) => a.id === p.name) || {}).adr_title}` : p.name) : p.name;
     return { key: k, kind: "inside", title, id: "" };
   }
 
   /* ------------------------------------------------------------ going in, and back out */
   function open(app, level, opts = {}) {
     const k = keyOfApp(app);
-    if (!k) { toast(`${app} is not an app in this vault`); return; }
+    if (!k) { toast(`${app} is not an app in this plan`); return; }
     const deeper = LEVELS.findIndex(([l]) => l === level) > LEVELS.findIndex(([l]) => l === st.level);
     const was = App.view === "inside" && st.app === k ? st.level : null;
     st.app = k; st.level = LEVELS.some(([l]) => l === level) ? level : "context";
@@ -140,7 +149,7 @@ const Inside = (() => {
   /* ------------------------------------------------------------ the view */
   function render(main) {
     const app = st.app && APPS[st.app] ? st.app : (D.map.apps[0] || {}).key;
-    if (!app) { main.append(emptyState("This vault has no apps yet.", "There is nothing to go inside.", "/planner:boundary")); return; }
+    if (!app) { main.append(emptyState("This plan has no apps yet.", "There is nothing to go inside.", "/planner:boundary")); return; }
     st.app = app;
     const d = design(app);
     MapView.resetPulses(); if (typeof Motion !== "undefined") Motion.clear();
@@ -170,15 +179,19 @@ const Inside = (() => {
   }
   function statusPill(app) {
     const d = design(app), fm = d.frontmatter, gaps = fm.gaps.map((g) => g.id).filter(Boolean);
-    return h("span", { class: "d-status " + (fm.status || "unknown"), title: `The team's design is ${fm.status || "of no known status"}${gaps.length ? ", with " + gaps.join(", ") : ""}; last session ${fm.last_session || "not recorded"}` },
-      fm.status === "complete-with-gaps" ? `complete with gaps` : fm.status || "status not read", gapsTag(gaps));
+    const lastDay = fm.last_session ? day(String(fm.last_session).slice(0, 10)) : "";
+    return h("span", { class: "d-status " + (fm.status || "unknown"), title: `${designStatus(fm.status)}${gaps.length ? `, ${plural(gaps.length, "known gap")} (${gaps.join(", ")})` : ""}. ${lastDay ? "Last worked on " + lastDay : "No date of the last session"}.` },
+      fm.status === "complete-with-gaps" ? (gaps.length ? `Design done, ${plural(gaps.length, "known gap")}` : "Design done, with gaps") : designStatus(fm.status));
+  }
+  function designStatus(status) {
+    return ({ complete: "Design done", "complete-with-gaps": "Design done, with gaps", "in-progress": "Design in progress", draft: "Design in draft" })[status] || (status ? "Design: " + status : "Design status not given");
   }
   /* The count of what the reader could not read: always shown, opening the list with line numbers. */
   function problemsChip(app, opts = {}) {
     const d = design(app), n = d.problems.length, un = d.resolved.unresolved.length;
-    return h("button", { class: "chip d-problems" + (n || un ? " some" : ""), "data-problems": n, title: "What this page could not read in the design, with line numbers",
+    return h("button", { class: "chip d-problems" + (n || un ? " some" : ""), "data-problems": n, title: "Parts of the design doc this page couldn't read, with line numbers",
       onclick: (ev) => { ev.stopPropagation(); go(key(app, "problems", "all"), { reset: !opts.keep }); } },
-      Icons.el(n || un ? "audit" : "consent"), n ? `${plural(n, "thing")} this page could not read` : "read with no problems", un ? h("span", { class: "ct" }, ` · ${un} not in the vault`) : null);
+      Icons.el(n || un ? "audit" : "consent"), n ? `${plural(n, "part")} couldn't be read` : "Design doc read in full", un ? h("span", { class: "ct" }, ` · ${un} not in the plan`) : null);
   }
   function chipCard(icon, title, body, action) {
     return h("div", { class: "inside-chip-card" }, h("div", { class: "icc-ico" }, Icons.el(icon)), h("div", {}, h("b", {}, title), body ? h("div", { class: "muted" }, body) : null, action || null));
@@ -427,8 +440,8 @@ const Inside = (() => {
     // the controls sit on the frame around the holder, not in it: inside a scrolling holder they took a column of room
     frame.append(h("div", { class: "in-zoom", role: "group", "aria-label": "Zoom" },
       h("button", { title: "Zoom out", onclick: () => set(Math.max(0.3, now() / 1.25)) }, "−"),
-      h("button", { title: "The whole drawing in view", onclick: () => set("whole") }, "Whole"),
-      h("button", { title: opts.open === "read" ? "Reading size, centered on the main box" : "Reading size: names at 10px or more, scrolling if it must", onclick: () => set(null) }, "Read"),
+      h("button", { title: "Fit the whole drawing in view", onclick: () => set("whole") }, "Fit"),
+      h("button", { title: opts.open === "read" ? "Back to a size you can read, centered on the main box" : "Back to a size you can read, scrolling if it must", onclick: () => set(null) }, "Reading size"),
       h("button", { title: "Zoom in", onclick: () => set(Math.min(2, now() * 1.25)) }, "+")));
     if (mini) frame.append(mini.el);
   }
@@ -502,7 +515,7 @@ const Inside = (() => {
   function containers(stage, app) {
     const c = CONT[app], pk = Reader.keyFor(app);
     if (!c || !c.rows.length) {
-      stage.append(chipCard("layers", `${appTitle(app)}'s page has no main containers table.`, "An app's main containers are co-designed by its senior and the solution lead, and written on its page as a Container | Job table (c4: container). Nothing else in the vault says what is inside it.",
+      stage.append(chipCard("layers", `${appTitle(app)}'s page doesn't list its main parts yet.`, "An app's main parts (its containers) are agreed by the app team's lead and the solution lead, and written as a table on the app's page. Nothing else in the plan says what is inside it.",
         h("div", { class: "p-actions" }, pk ? h("button", { class: "btn", onclick: () => go(pk, {}) }, "Open the app page") : null, h("button", { class: "btn", onclick: () => open(app, "components") }, "Components, from the team's design"))));
       return;
     }
@@ -540,7 +553,7 @@ const Inside = (() => {
         Icons.put(grp, glyphFor(r.name), b.x + 20, b.y + 22, 18, "node-glyph");
         s("text", { x: b.x + 36, y: b.y + 27, class: "in-box-name" }, grp).textContent = fit(r.name, b.w - 46, 14, 600);
         s("text", { x: b.x + 14, y: b.y + 48, class: "in-box-sub" }, grp).textContent = fit(r.job, b.w - 24, 11.5);
-        s("text", { x: b.x + 14, y: b.y + 63, class: "in-box-meta" }, grp).textContent = fit([r.state, r.proposedBy ? "by " + r.proposedBy : ""].filter(Boolean).join(" · "), b.w - 24, 10.5);
+        s("text", { x: b.x + 14, y: b.y + 63, class: "in-box-meta" }, grp).textContent = fit([STATE_WORD[r.state] || r.state, r.proposedBy ? "suggested by " + person(r.proposedBy) : ""].filter(Boolean).join(" · "), b.w - 24, 10.5);
         s("title", {}, grp).textContent = `${r.name}: ${r.job}`;
         pick(grp, key(app, "ct", r.name));
       },
@@ -562,8 +575,10 @@ const Inside = (() => {
   /* ------------------------------------------------------------ level 3: the team's design */
   function components(stage, app, d) {
     if (!d) {
-      stage.append(chipCard("docs", `The ${appTitle(app)} team's design is not loaded.`, h("span", {}, "Build with ", h("code", {}, `--design ${D.map.apps.find((a) => a.key === app).id}=<team repo>/docs/tech-design/<slug>.md`), ", or set ", h("code", {}, "design:"), " on the app's page (or ", h("code", {}, "designs:"), " in .planner.yaml) to its path, and the build finds it. Run tech-design-grill from the vault root and it writes docs/tech-design/<slug>.md in the vault, where the build finds it by itself. Context and Containers still draw from the vault."),
-        h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => open(app, "containers") }, "Containers, from the vault"), linkChips(app))));
+      stage.append(chipCard("docs", `The ${appTitle(app)} team hasn't shared a design yet.`, h("span", {}, "Once they do, it shows here. Context and Containers still draw from the plan. ",
+        h("details", { class: "in-howto" }, h("summary", {}, "How to add one"), "The team writes it with ", h("code", {}, "/planner:design"), " from the plan's folder, or you build with ",
+          h("code", {}, `--design ${D.map.apps.find((a) => a.key === app).id}=<path to the design doc>`), ", or set ", h("code", {}, "design:"), " on the app's page to its path.")),
+        h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => open(app, "containers") }, "Containers, from the plan"), linkChips(app))));
       stage.dataset.design = "none";
       return;
     }
@@ -588,23 +603,23 @@ const Inside = (() => {
     placeDrawings();
   }
   function componentsNote(app, d) {
-    const missing = d.problems.some((p) => p.section === "Integration points" && /missing section/.test(p.message));
-    return h("div", { class: "inside-hint" }, `${plural(d.components.length, "component")} from ${d.path.split("/").slice(-1)[0]}. Arrows are each Depends on, labeled with what the other offers on its Exposes line; `,
-      missing ? h("span", { class: "gap" }, "the design has no Integration points section, so no stub is drawn for it. ") : "stubs at the sides are its Integration points, joined where the design cites their contract. ",
-      h("span", { class: "heuristic" }, d.trace_source === "recorded" ? "Owned IDs are recorded in its Trace table." : "Owned IDs are inferred from where each ID appears; the format records no trace."));
+    const missing = d.problems.some((p) => p.section === "Integration points" && /has no '.*' section/.test(p.message));
+    return h("div", { class: "inside-hint" }, `${plural(d.components.length, "component")} from the design. An arrow means one component depends on another, labeled with what the other offers it; `,
+      missing ? h("span", { class: "gap" }, "the design doesn't list the outside systems it connects to, so none is drawn. ") : "boxes at the edges are outside systems it connects to. ",
+      h("span", { class: "heuristic" }, d.trace_source === "recorded" ? "What each component delivers comes from the design's trace table." : "What each component delivers is guessed from where each item is mentioned; the design doesn't list it."));
   }
   function drawComponents(holder, app, d, lg) {
     const comps = d.components, affects = {};
     for (const oq of d.open_questions) for (const c of comps) if (new RegExp(`\\b${c.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(oq.affects)) (affects[c.name] = affects[c.name] || []).push(oq.id);
     const nodes = comps.map((c) => ({ id: "c:" + c.name, kind: "component", w: 206, h: 86, portH: 62, c }));
     const edges = d.depends.map((e) => ({ from: "c:" + e.from, to: "c:" + e.to, label: e.label, fromName: e.from, toName: e.to,
-      title: e.label ? `${e.from} depends on ${e.to}: ${e.label} (from ${e.labelFrom})` : `${e.from} depends on ${e.to}; ${e.to}'s Exposes line names nothing it offers ${e.from}` }));
+      title: e.label ? `${e.from} depends on ${e.to}, for ${e.label}` : `${e.from} depends on ${e.to} (the design doesn't say what ${e.to} offers it)` }));
     const loose = [];
     d.stubs.forEach((x, i) => {
       const side = x.direction === "in" ? "in" : "out", id = "s:" + i;
       nodes.push({ id, kind: "stub", side, w: 168, h: 56, stub: x });
       const label = x.contracts.join(", ");
-      const title = `${x.system}${x.protocol ? ", " + x.protocol : ""}${x.auth ? ", " + x.auth : ""}: ${x.component ? `meets ${x.component} (${x.how})` : x.how}`;
+      const title = `${x.system}${x.protocol ? ", " + x.protocol : ""}${x.auth ? ", " + x.auth : ""}: ${x.component ? `connected to ${x.component} (${conNames(x.how)})` : conNames(x.how)}`;
       if (!x.component) { loose.push({ id, side, title }); return; }
       const lit = worstOf(x.contracts.filter((c) => CONTRACT[c]));
       const onpick = x.contracts[0] && CONTRACT[x.contracts[0]] ? () => go(x.contracts[0], { reset: true }) : null;
@@ -618,7 +633,7 @@ const Inside = (() => {
     const gFrame = s("g", {}, svg);
     const inner = Object.values(lay.box).filter((b) => b.node.kind === "component");
     const fr = frameAround(gFrame, inner, `${appTitle(app)}: components`, `From the team's design: ${d.file}`);
-    const heads = [columnHeads(gFrame, lay, "in", "In: integration points"), columnHeads(gFrame, lay, "out", "Out: integration points")].filter(Boolean);
+    const heads = [columnHeads(gFrame, lay, "in", "Systems that call it"), columnHeads(gFrame, lay, "out", "Systems it calls")].filter(Boolean);
     // a stub no component meets is tied to the app's own edge, dashed, and says so on hover
     for (const l of loose) {
       const b = lay.box[l.id], tb = lay.dir === "TB", inward = l.side === "in";
@@ -663,11 +678,11 @@ const Inside = (() => {
         s("text", { x: b.x + 36, y: b.y + 25, class: "in-box-name small" }, grp).textContent = fit(x.system, b.w - 44, 13, 600);
         const names = x.nodes.filter((k) => NODE[k]).map(titleOf);
         s("text", { x: b.x + 12, y: b.y + 45, class: "in-box-sub" }, grp).textContent = fit(names.length ? names.join(", ") : x.protocol || "not on the map", b.w - 22, 11);
-        s("title", {}, grp).textContent = `${x.system}${x.protocol ? ": " + x.protocol : ""}${names.length ? "\nOn the map: " + names.join(", ") : ""}\n${x.component ? `Meets ${x.component}: ${x.how}` : x.how}`;
+        s("title", {}, grp).textContent = `${x.system}${x.protocol ? ": " + x.protocol : ""}${names.length ? "\nOn the map: " + names.join(", ") : ""}\n${x.component ? `Connected to ${x.component}: ${conNames(x.how)}` : conNames(x.how)}`;
         const target = nk || x.contracts.find((c) => CONTRACT[c]);
         if (target) pick(grp, target, x.system);
-        else Nodes.wire(grp, { label: x.system, note: Nodes.note({ diagram: `${appTitle(app)} components`, name: x.system, kind: "Integration point with no page in the vault",
-          text: x.how || `${x.system} is named in the design as an integration point.`, facts: [["Protocol", x.protocol], ["Auth", x.auth], ["Direction", x.direction || "out"]].filter(([, v]) => v),
+        else Nodes.wire(grp, { label: x.system, note: Nodes.note({ diagram: `${appTitle(app)} components`, name: x.system, kind: "Outside system with no page in the plan",
+          text: x.how || `The design names ${x.system} as an outside system it connects to.`, facts: [["Protocol", x.protocol], ["Auth", x.auth], ["Direction", x.direction || "out"]].filter(([, v]) => v),
           relates: [x.component ? key(app, "c", x.component) : ""] }) });
         grp.addEventListener("dblclick", (ev) => { if (nk && APPS[nk]) { ev.stopPropagation(); open(nk, "context", { from: grp.getBoundingClientRect() }); } });
       },
@@ -720,32 +735,34 @@ const Inside = (() => {
 
   function traceTab(app, d) {
     const r = d.resolved, ownedIds = new Set(Object.values(d.trace).flat().map((e) => e.id));
-    const out = [best(`Who owns each vault ID: ${sourceWord(d)}.`)];
-    out.push(card("Owned, by component", d.components.map((c) => {
+    const out = [best(`Which component delivers each requirement, contract and criterion, ${sourceWord(d)}.`)];
+    out.push(card("What each component delivers", d.components.map((c) => {
       const list = d.trace[c.name] || [];
       return h("div", { class: "in-own" }, h("a", { class: "in-own-name", onclick: () => go(key(app, "c", c.name), { reset: true }) }, c.name), h("span", { class: "ct muted" }, ` ${list.length}`),
-        h("div", {}, list.length ? list.map((e) => idChip(e.id, e.via.join(", "))) : h("span", { class: "p-empty-line" }, "cites no trace target")));
-    }), (d.trace.Operations || []).length ? h("div", { class: "in-own" }, h("b", {}, "Operations"), h("div", {}, d.trace.Operations.map((e) => idChip(e.id, e.via.join(", "))))) : null));
+        h("div", {}, list.length ? list.map((e) => idChip(e.id, viaWords(e.via))) : h("span", { class: "p-empty-line" }, "nothing on this app's list")));
+    }), (d.trace.Operations || []).length ? h("div", { class: "in-own" }, h("b", {}, "Operations"), h("div", {}, d.trace.Operations.map((e) => idChip(e.id, viaWords(e.via))))) : null));
     const ack = r.untraced.filter((t) => r.acknowledged[t]), missed = r.untraced.filter((t) => !r.acknowledged[t]);
-    out.push(card(`Untraced: ${r.untraced.length} of ${d.targets.length} targets`, missed.length ? h("div", { class: "in-untraced missed" }, h("div", { class: "in-sub" }, lampEl("caution"), `Missed: no component owns ${missed.length === 1 ? "it" : "them"}, and no gap says so`), missed.map((t) => idChip(t))) : null,
-      ack.length ? h("div", { class: "in-untraced ack" }, h("div", { class: "in-sub" }, lampEl("dark"), "Acknowledged by a gap"), ack.map((t) => idChip(t, r.acknowledged[t]))) : null,
-      !r.untraced.length ? h("div", { class: "p-empty-line" }, "Every trace target the vault gives this app is owned by a component.") : null,
-      best("Targets are what a vault-mode design must trace: the app's allocated requirement rows, every contract it provides or consumes, and the criteria of each epic that lists it.")));
+    out.push(card(`Not covered by any component: ${r.untraced.length} of ${d.targets.length}`, missed.length ? h("div", { class: "in-untraced missed" }, h("div", { class: "in-sub" }, lampEl("caution"), "Not covered, and the design doesn't say why"), missed.map((t) => idChip(t))) : null,
+      ack.length ? h("div", { class: "in-untraced ack" }, h("div", { class: "in-sub" }, lampEl("dark"), "Not covered, and the design says why (a known gap)"), ack.map((t) => idChip(t, r.acknowledged[t]))) : null,
+      !r.untraced.length ? h("div", { class: "p-empty-line" }, "Every requirement, contract and criterion for this app is covered by a component.") : null,
+      best(`The ${d.targets.length} are this app's requirements, the contracts it provides or uses, and the acceptance criteria of its epics.`)));
     const mentioned = Object.entries(d.mentions).filter(([id]) => !ownedIds.has(id) && !r.untraced.includes(id) && id !== d.appId && id !== D.initiative);
-    if (mentioned.length) out.push(card("Mentioned, not owned", mentioned.map(([id, where]) => idChip(id, where.join(", ")))));
-    if (r.unresolved.length) out.push(card("Cited, but not in the vault", r.unresolved.map((u) => h("div", { class: "gap" }, lampEl("caution"), " ", h("b", {}, u.id), ` in ${u.where.replace("trace:", "the trace of ").replace("challenge:", "the challenge in ")}`))));
+    if (mentioned.length) out.push(card("Mentioned in the design, but not delivered by any component", mentioned.map(([id, where]) => idChip(id, viaWords(where)))));
+    if (r.unresolved.length) out.push(card("Named in the design, but missing from the plan", r.unresolved.map((u) => h("div", { class: "gap" }, lampEl("caution"), " ", h("b", {}, u.id), ` in ${u.where.replace("trace:", "the trace of ").replace("challenge:", "the challenge in ")}`))));
     return out;
   }
   function idChip(id, note) {
     const k = vaultKey(id);
-    return h("a", { class: "ref-chip in-id" + (k ? "" : " ref-dead"), "data-ref": k, title: k ? `${titleOf(k)}${note ? " · " + note : ""}` : "not in this vault" }, h("span", { class: "rid" }, id), note ? h("span", { class: "in-via" }, note) : null);
+    const named = k && titleOf(k) && titleOf(k) !== id ? shorten(titleOf(k), 48) : "";
+    return h("a", { class: "ref-chip in-id" + (k ? "" : " ref-dead"), "data-ref": k, title: k ? `${titleOf(k)} (${id})${note ? " · found in: " + note : ""}` : `${idKind(id)} ${id}: not found in the plan` },
+      named || (k ? null : idKind(id) + " "), h("span", { class: "rid" }, id), note ? h("span", { class: "in-via" }, note) : null);
   }
   function dataTab(app, d) {
     const m = d.data_model, out = [];
     if (m.parsed_from === "erDiagram") {
-      out.push(best("Entities and relationships from the design's erDiagram."), erDiagram(m, appTitle(app)));
+      out.push(best("Entities and relationships from the design's data diagram."), erDiagram(m, appTitle(app)));
     } else if (m.entities.length) {
-      out.push(best(`No erDiagram, so these are read from its ${m.parsed_from}: best effort, no relationships.`),
+      out.push(best("The design has no data diagram, so these are read from its text and the relationships aren't shown."),
         card(null, m.entities.map((x) => h("div", { class: "in-entity" }, h("b", {}, x.name), x.text ? h("div", {}, prose(x.text)) : null))));
     } else out.push(card(null, h("div", { class: "p-empty-line" }, m.raw ? "The data model is free text this page cannot draw; it is below as written." : "The design has no data model section.")));
     if (m.stores.length) out.push(card("Persistence", m.stores.map((x) => h("div", {}, prose(x)))));
@@ -791,8 +808,8 @@ const Inside = (() => {
     return outer;
   }
   function apiTab(app, d) {
-    if (!d.api.length) return [card(null, h("div", { class: "p-empty-line" }, "The design has no ### <Component> public surface under API contracts."))];
-    return d.api.map((a) => card(null, h("h3", {}, a.component_found ? h("a", { onclick: () => go(key(app, "c", a.component), { reset: true }) }, a.heading) : h("span", { class: "gap" }, a.heading, " (names no component)")),
+    if (!d.api.length) return [card(null, h("div", { class: "p-empty-line" }, "The design lists no API for each component."))];
+    return d.api.map((a) => card(null, h("h3", {}, a.component_found ? h("a", { onclick: () => go(key(app, "c", a.component), { reset: true }) }, a.heading) : h("span", { class: "gap" }, a.heading, " (not one of the design's components)")),
       a.operations.length ? h("ul", { class: "in-ops" }, a.operations.map((op) => h("li", {}, prose(op)))) : h("div", { class: "p-empty-line" }, "No operations listed."), raw(a.raw, "As written")));
   }
   function tableTab(field, cols) {
@@ -804,18 +821,18 @@ const Inside = (() => {
     };
   }
   function adrTab(app, d) {
-    if (!d.adrs.length) return [card(null, h("div", { class: "p-empty-line" }, "The design lists no ADRs."))];
-    return [best("The team's ADRs, keyed by this design: ADR-0001 here is not the vault's ADR-0001."),
+    if (!d.adrs.length) return [card(null, h("div", { class: "p-empty-line" }, "The design lists no design decisions."))];
+    return [best("The team's own design decisions. Their numbers are the team's, separate from the plan's decision numbers."),
       h("ul", { class: "mini-list" }, d.adrs.map((a) => h("li", {}, a.found ? h("a", { class: "in-adr", onclick: () => go(key(app, "adr", a.id), { reset: true }) }, h("b", {}, a.id), " ", a.adr_title || a.title)
-        : h("span", { class: "gap" }, h("b", {}, a.id), ` ${a.title}: its file ${a.href} is not there`), a.status ? h("span", { class: "pill" }, a.status) : null)))];
+        : h("span", { class: "gap" }, h("b", {}, a.id), ` ${a.title}: its file isn't there (${a.href})`), a.status ? h("span", { class: "pill" }, a.status) : null)))];
   }
   function opsTab(app, d) {
     const o = d.operations, rows = [["Deploy", o.deploy], ["Monitor", o.monitor], ["Scale", o.scale], ...Object.entries(o.other || {})];
-    return [best("IDs named here are mentioned, not owned: the format has no component for running the service."),
-      card(null, h("div", { class: "facts" }, rows.flatMap(([label, v]) => [h("div", { class: "fl" }, label), v ? h("div", {}, prose(v)) : h("div", { class: "gap" }, `no ${label} line`)])))];
+    return [best("Items named here aren't delivered by any one component: running the service belongs to no single part."),
+      card(null, h("div", { class: "facts" }, rows.flatMap(([label, v]) => [h("div", { class: "fl" }, label), v ? h("div", {}, prose(v)) : h("div", { class: "gap" }, `not written`)])))];
   }
   function glossaryTab(app, d) {
-    if (!d.context) return [card(null, h("div", { class: "p-empty-line" }, "No CONTEXT.md beside the design, so no glossary."))];
+    if (!d.context) return [card(null, h("div", { class: "p-empty-line" }, "The design has no glossary."))];
     return [card(null, d.context.glossary.map((g) => h("div", { class: "in-term" }, h("b", {}, g.term), h("div", {}, prose(g.definition)), g.not_to_be_confused_with ? h("div", { class: "muted small" }, "Not to be confused with: ", prose(g.not_to_be_confused_with)) : null)))];
   }
 
@@ -827,7 +844,7 @@ const Inside = (() => {
     if (!all.length) return [card(null, h("div", { class: "p-empty-line" }, "The design draws no flow."))];
     return all.map((f, i) => {
       const flo = (f.title || "").match(/\bFLO-\d{3}\b/), fk = flo ? keyForId(flo[0]) : null;
-      const head = h("h3", {}, f.title || `${f.from}, line ${f.line}`, fk && FLOW[fk] ? h("button", { class: "btn tiny", onclick: () => go(fk, { reveal: true }) }, `▶ Play ${flo[0]} in the vault`) : null);
+      const head = h("h3", {}, f.title || `${f.from}, line ${f.line}`, fk && FLOW[fk] ? h("button", { class: "btn tiny", onclick: () => go(fk, { reveal: true }) }, `▶ Play “${titleOf(fk)}” on the map`) : null);
       if (f.kind !== "sequenceDiagram") return card(null, head, h("div", { class: "muted small" }, `${f.kind || "a diagram"}, shown as its source`), h("pre", { class: "in-src" }, f.mermaid));
       return card(null, head, sequence(app, d, f, `${app}:${i}`));
     });
@@ -939,7 +956,7 @@ const Inside = (() => {
     const p = parse(k), d = design(p.app);
     if (!APPS[p.app]) return [h("div", { class: "p-empty" }, `Nothing here is called ${k}.`)];
     if (p.kind === "story" || p.kind === "blocker") return Plan.panel(p.app, p.kind, p.name);
-    if (!d && p.kind !== "ct") return [h("div", { class: "p-empty" }, `The ${appTitle(p.app)} team's design is not loaded.`)];
+    if (!d && p.kind !== "ct") return [h("div", { class: "p-empty" }, `The ${appTitle(p.app)} team hasn't shared a design yet.`)];
     if (p.kind === "c") return componentPanel(p.app, d, p.name);
     if (p.kind === "ct") return containerPanel(p.app, p.name);
     if (p.kind === "adr") return adrPanel(p.app, d, p.name);
@@ -950,22 +967,27 @@ const Inside = (() => {
   const sec = (title, n, ...kids) => Panel.section(title, n, ...kids);
   function designPanel(app, d) {
     const fm = d.frontmatter;
-    return [phead(`Team design · ${d.path.split("/").slice(-1)[0]}`, d.title || designWord(app), h("div", { class: "p-meta" }, statusPill(app), problemsChip(app, { keep: true })),
+    return [phead("Team design", d.title || designWord(app), h("div", { class: "p-meta" }, statusPill(app), problemsChip(app, { keep: true })),
       h("div", { class: "p-actions" }, designLink(d), linkChips(app))),
     h("div", { class: "p-body" },
       d.summary && d.summary.text ? h("div", { class: "prose-text in-prose in-summary" }, prose(d.summary.text)) : null,
       d.overview.text ? (d.summary && d.summary.text ? sec("Architecture overview", null, h("div", { class: "prose-text in-prose" }, prose(d.overview.text))) : h("div", { class: "prose-text in-prose" }, prose(d.overview.text))) : null,
       skeletonSection(d),
       sec("Boundaries", null, h("div", { class: "facts" }, h("div", { class: "fl" }, "Inside"), h("div", {}, prose(d.boundaries.inside || "not written")), h("div", { class: "fl" }, "Outside"), h("div", {}, prose(d.boundaries.outside || "not written")))),
-      sec("Gaps", fm.gaps.length, fm.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", prose(g.what || ""), h("div", { class: "ml-sub" }, [g.acknowledged_by ? `acknowledged by ${g.acknowledged_by}` : "acknowledged by nobody", g.why ? `; why: ${g.why}` : "; no why", g.revisit ? `; revisit ${g.revisit}` : "; no revisit"].join(""))))),
+      sec("Gaps", fm.gaps.length, fm.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", prose(g.what || ""), h("div", { class: "ml-sub" }, [g.acknowledged_by ? `Accepted by ${person(g.acknowledged_by)}.` : "Nobody has accepted it yet.", g.why ? ` Why: ${g.why}` : " No reason given.", g.revisit ? ` Look again: ${g.revisit}` : ""].join(""))))),
       sec("Deferred", fm.deferred.length, fm.deferred.map((x) => h("div", { class: "in-gap" }, h("b", {}, x.id), " ", x.section || "", ": ", prose(x.reason || "")))),
-      sec("Open questions", d.open_questions.length, d.open_questions.map((q) => h("div", { class: "in-gap" }, q.challenges.length ? lampEl("caution", "Challenges a vault item: needs you") : null, " ", h("b", {}, q.id), " ", q.title,
-        q.challenges.length ? h("div", {}, "Challenges ", q.challenges.map((id) => idChip(id))) : null, q.other.Scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(q.other.Scenario)) : null,
+      sec("Open questions", d.open_questions.length, d.open_questions.map((q) => h("div", { class: "in-gap" }, q.challenges.length ? lampEl("caution", "Questions part of the plan: needs you") : null, " ", h("b", {}, q.id), " ", q.title,
+        q.challenges.length ? h("div", {}, "Questions ", q.challenges.map((id) => idChip(id))) : null, q.other.Scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(q.other.Scenario)) : null,
         q.affects_ids.length ? h("div", { class: "ml-sub" }, "Affects ", q.affects_ids.map((id) => idChip(id))) : null))),
-      sec("The vault it answers to", null, h("div", { class: "p-note" }, d.vault.app ? `${d.vault.app}, ${d.vault.commits.length ? "at " + d.vault.commits.join(" and ") : "at no commit it names"}` : "No vault prereq: a requirements-mode design.",
-        d.vault.source === "inferred" ? h("span", { class: "heuristic" }, " Inferred from the prereq path and the citations; the format has no vault: field.") : null)),
-      sec("Trace", null, h("div", { class: "p-note" }, `${plural(d.targets.length, "target")} the vault gives it; ${d.targets.length - d.resolved.untraced.length} owned, ${Object.keys(d.resolved.acknowledged).length} acknowledged by a gap, ${d.resolved.untraced.length - Object.keys(d.resolved.acknowledged).length} missed. Owners are ${sourceWord(d)}.`),
-        h("button", { class: "btn tiny", onclick: () => { st.tab = "trace"; open(app, "components", { keepTrail: true }); } }, "The trace, by component")))];
+      sec("The plan it was written against", null, h("div", { class: "p-note" }, d.vault.app ? `The plan for ${appTitle(keyOfApp(d.vault.app) || app)}${d.vault.commits.length ? ` (version ${d.vault.commits.join(" and ")})` : ", with no version named"}.` : "This design isn't linked to the plan; it was written from a requirements doc.",
+        d.vault.source === "inferred" ? h("span", { class: "heuristic" }, " Guessed from the design's references; it doesn't name the plan directly.") : null)),
+      sec("Coverage", null, h("div", { class: "p-note" }, coverageSay(d)),
+        h("button", { class: "btn tiny", onclick: () => { st.tab = "trace"; open(app, "components", { keepTrail: true }); } }, "What each component delivers")))];
+  }
+  function coverageSay(d) {
+    const n = d.targets.length, ack = Object.keys(d.resolved.acknowledged).length, missed = d.resolved.untraced.length - ack, how = d.trace_source === "recorded" ? "" : " (guessed from where each is mentioned)";
+    if (!d.resolved.untraced.length) return `All ${n} requirements, contracts and criteria for this app are covered by a component${how}.`;
+    return `${n - d.resolved.untraced.length} of ${n} requirements, contracts and criteria for this app are covered by a component${how}; ${ack ? `${ack} not covered, with the reason given` : ""}${ack && missed ? ", " : ""}${missed ? `${missed} not covered, with no reason given` : ""}.`;
   }
   /* The walking skeleton a /planner:design doc names: the release-one path through the components, and what is stubbed. */
   function skeletonSection(d) {
@@ -979,15 +1001,15 @@ const Inside = (() => {
     if (!c) return [h("div", { class: "p-empty" }, `The ${designWord(app)} has no component called ${name}.`)];
     const list = d.trace[name] || [], api = d.api.find((a) => a.component.toLowerCase() === name.toLowerCase());
     const oqs = d.open_questions.filter((q) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(q.affects));
-    return [phead(`Component · ${designWord(app)}`, name, h("div", { class: "p-meta" }, h("span", { class: "pill" }, `line ${c.line}`), oqs.length ? levelPill("caution", `${oqs.map((q) => q.id).join(", ")} affects it`) : null), linkChips(app),
+    return [phead(`Component · ${designWord(app)}`, name, h("div", { class: "p-meta" }, h("span", { class: "pill" }, `line ${c.line}`), oqs.length ? levelPill("caution", `${plural(oqs.length, "open design question")} on it`) : null), linkChips(app),
       h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => open(app, "components", { keepTrail: true }) }, "Show it inside"), designLink(d, null, `, line ${c.line}`))),
     h("div", { class: "p-body" },
-      h("div", { class: "big-q" }, prose(c.responsibility || "No Responsibility line.")),
-      sec("Vault IDs it owns", list.length, list.length ? h("ul", { class: "mini-list" }, list.map((e) => h("li", {}, idChip(e.id), h("div", { class: "ml-sub" }, `found in ${e.via.join(", ")}`, d.trace_source === "inferred" ? h("span", { class: "heuristic" }, " · inferred") : null))))
-        : h("div", { class: "p-empty-line" }, "It cites no trace target."), list.length && d.trace_source === "inferred" ? h("div", { class: "p-note heuristic" }, "Inferred: the format records no trace, so an ID cited in passing reads as owned.") : null),
-      sec("Its bullets", null, h("div", { class: "facts" }, [["Owns", c.owns], ["Depends on", c.depends_on], ["Exposes", c.exposes], ["Container", c.container], ...Object.entries(c.other)].flatMap(([l, v]) =>
-        [h("div", { class: "fl" }, l), v ? h("div", {}, prose(v)) : h("div", { class: l === "Container" ? "muted" : "gap" }, l === "Container" ? "not named (the format has no Container bullet)" : `no ${l} line`)]))),
-      c.depends_on_components.length || c.depends_on_other.length ? sec("Depends on", null, c.depends_on_components.map((x) => h("a", { class: "ref-chip", onclick: () => go(key(app, "c", x), {}) }, x)), c.depends_on_other.map((x) => h("span", { class: "ref-chip ref-dead", title: "neither a component nor an integration point" }, x))) : null,
+      h("div", { class: "big-q" }, prose(c.responsibility || "The design doesn't say what it does.")),
+      sec("What it delivers from the plan", list.length, list.length ? h("ul", { class: "mini-list" }, list.map((e) => h("li", {}, idChip(e.id), h("div", { class: "ml-sub" }, `found in: ${viaWords(e.via)}`, d.trace_source === "inferred" ? h("span", { class: "heuristic" }, " · guessed") : null))))
+        : h("div", { class: "p-empty-line" }, "Nothing on this app's list."), list.length && d.trace_source === "inferred" ? h("div", { class: "p-note heuristic" }, "Guessed: the design doesn't list what each component delivers, so anything it mentions is counted.") : null),
+      sec("Details", null, h("div", { class: "facts" }, [["Owns", c.owns], ["Depends on", c.depends_on], ["Offers", c.exposes], ["Container", c.container], ...Object.entries(c.other)].flatMap(([l, v]) =>
+        [h("div", { class: "fl" }, l), v ? h("div", {}, prose(v)) : h("div", { class: l === "Container" ? "muted" : "gap" }, l === "Offers" ? "doesn't say what it offers" : "not given")]))),
+      c.depends_on_components.length || c.depends_on_other.length ? sec("Depends on", null, c.depends_on_components.map((x) => h("a", { class: "ref-chip", onclick: () => go(key(app, "c", x), {}) }, x)), c.depends_on_other.map((x) => h("span", { class: "ref-chip ref-dead", title: "Neither a component nor an outside system the design lists" }, x))) : null,
       api ? sec("Public surface", api.operations.length, h("ul", { class: "in-ops" }, api.operations.map((op) => h("li", {}, prose(op))))) : null,
       oqs.length ? sec("Open questions on it", oqs.length, oqs.map((q) => h("div", {}, h("b", {}, q.id), " ", q.title))) : null)];
   }
@@ -996,73 +1018,73 @@ const Inside = (() => {
     if (!r) return [h("div", { class: "p-empty" }, `${appTitle(app)}'s page has no container called ${name}.`)];
     const same = d ? d.components.filter((x) => x.name.toLowerCase() === name.toLowerCase()) : [];
     const pk = Reader.keyFor(app);
-    return [phead(`Main container · ${appTitle(app)}`, name, h("div", { class: "p-meta" }, statePill(r.state), r.proposedBy ? h("span", { class: "pill" }, "proposed by " + r.proposedBy) : null),
+    return [phead(`Main container · ${appTitle(app)}`, name, h("div", { class: "p-meta" }, statePill(STATE_WORD[r.state] || r.state), r.proposedBy ? h("span", { class: "pill" }, "suggested by " + person(r.proposedBy)) : null),
       h("div", { class: "p-actions" }, pk ? h("button", { class: "btn", onclick: () => go(pk, {}) }, "Open the page") : null)),
     h("div", { class: "p-body" }, h("div", { class: "big-q" }, r.job),
       sec("Serves", r.serves.length, r.serves.map((id) => refChip(id))), sec("Uses", r.uses.length, r.uses.map((id) => refChip(id))),
       sec("Components in it", null, same.length ? same.map((x) => h("a", { class: "ref-chip", onclick: () => go(key(app, "c", x.name), {}) }, x.name, h("span", { class: "rid" }, "same name"))) : null,
-        h("div", { class: "p-note heuristic" }, d ? "The format has no component-to-container link, so only a component of the same name is shown." : "No team design is loaded.")),
+        h("div", { class: "p-note heuristic" }, d ? "The design doesn't say which container each component sits in, so only a component with the same name is shown." : "The team hasn't shared a design yet.")),
       h("div", { class: "p-note" }, `From the row on line ${r.line} of the app page.`))];
   }
   function adrPanel(app, d, id) {
     const a = d.adrs.find((x) => x.id === id);
     if (!a) return [h("div", { class: "p-empty" }, `The ${designWord(app)} lists no ${id}.`)];
-    return [phead(`Team ADR · ${designWord(app)}`, `${a.id}: ${a.adr_title || a.title}`, h("div", { class: "p-meta" }, statePill(a.status), a.date ? h("span", { class: "pill" }, a.date) : null),
-      h("div", { class: "p-note" }, `${a.file || a.href}; keyed by the design, so it is not the vault's ${a.id}.`)),
-    h("div", { class: "p-body" }, !a.found ? h("div", { class: "gap" }, `Its file ${a.href} is not there.`) : null,
+    return [phead(`Team design decision · ${designWord(app)}`, `${a.id}: ${a.adr_title || a.title}`, h("div", { class: "p-meta" }, statePill(a.status), a.date ? h("span", { class: "pill" }, a.date) : null),
+      h("div", { class: "p-note" }, `${a.file || a.href}. The number is the team's own, not the plan's ${a.id}.`)),
+    h("div", { class: "p-body" }, !a.found ? h("div", { class: "gap" }, `Its file isn't there (${a.href}).`) : null,
       sec("Context", null, a.context ? h("div", { class: "prose-text in-prose" }, prose(a.context)) : null), sec("Decision", null, a.decision ? h("div", { class: "prose-text in-prose" }, prose(a.decision)) : null),
       sec("Alternatives considered", (a.alternatives || []).length, (a.alternatives || []).map((x) => h("div", { class: "in-gap" }, h("b", {}, x.option), " ", prose(x.why_not)))),
       sec("Consequences", null, Object.keys(a.consequences || {}).length ? h("div", { class: "facts" }, Object.entries(a.consequences).flatMap(([l, v]) => [h("div", { class: "fl" }, l), h("div", {}, prose(v))])) : null))];
   }
   function problemsPanel(app, d) {
     const byLine = d.problems.slice().sort((p, q) => (p.line || 1e9) - (q.line || 1e9));
-    return [phead(`Team design · ${d.path.split("/").slice(-1)[0]}`, `What this page could not read`, h("p", { class: "p-lede" }, d.problems.length ? `${plural(d.problems.length, "thing")} in the ${designWord(app)} could not be read as the format says. Each is shown as it is; none is filled with a guess.` : "Every part of the design read as the format says.")),
-    h("div", { class: "p-body" }, sec("Could not read", d.problems.length, d.problems.length ? h("ol", { class: "in-problems" }, byLine.map((p) => h("li", { "data-line": p.line || "" }, h("span", { class: "in-line" }, p.line ? `line ${p.line}` : "no line"), h("b", {}, p.section), " ", p.message))) : null),
-      sec("Cited, but not in the vault", d.resolved.unresolved.length, d.resolved.unresolved.map((u) => h("div", { class: "gap" }, h("b", {}, u.id), ` in ${u.where.replace("trace:", "the trace of ").replace("challenge:", "the challenge in ")}`))))];
+    return [phead("Team design", "What couldn't be read", h("p", { class: "p-lede" }, d.problems.length ? `${plural(d.problems.length, "part")} of the ${designWord(app)} couldn't be read. Each is listed as found; none is filled in with a guess.` : "The whole design doc was read with no problems.")),
+    h("div", { class: "p-body" }, sec("Couldn't read", d.problems.length, d.problems.length ? h("ol", { class: "in-problems" }, byLine.map((p) => h("li", { "data-line": p.line || "" }, h("span", { class: "in-line" }, p.line ? `line ${p.line}` : "no line"), h("b", {}, p.section), " ", p.message))) : null),
+      sec("Named in the design, but missing from the plan", d.resolved.unresolved.length, d.resolved.unresolved.map((u) => h("div", { class: "gap" }, h("b", {}, u.id), ` in ${u.where.replace("trace:", "the trace of ").replace("challenge:", "the challenge in ")}`))))];
   }
 
   /* ------------------------------------------------------------ what the rest of the page asks of it */
   /* A vault item's owners in each design, or that none owns it: for a requirement, contract or epic criterion. */
   function ownedBy(id, opts = {}) {
     const owners = OWNERS[id] || [], untraced = UNTRACED[id] || [], built = builtBy(id, opts);
-    if (!owners.length && !untraced.length && !built.length) return opts.inline ? null : (Object.keys(DES).length ? sec("Inside the teams' designs", null, h("div", { class: "p-empty-line" }, "No loaded design traces it.")) : null);
+    if (!owners.length && !untraced.length && !built.length) return opts.inline ? null : (Object.keys(DES).length ? sec("Inside the teams' designs", null, h("div", { class: "p-empty-line" }, "No team's design covers it.")) : null);
     const rows = [
-      ...owners.map((o) => h("div", { class: "in-owner" }, "Owned by ", h("a", { onclick: () => go(key(o.app, "c", o.component), {}) }, o.component), ` (${designWord(o.app)})`,
-        opts.inline ? null : h("span", { class: "ml-sub" }, ` found in ${o.via.join(", ")}${DES[o.app].trace_source === "inferred" ? ", inferred" : ""}`))),
-      ...untraced.filter((u) => !owners.some((o) => o.app === u.app)).map((u) => h("div", { class: "in-owner untraced " + (u.gap ? "ack" : "missed"), title: u.gap ? `${u.gap} in the ${designWord(u.app)} acknowledges it` : `No component of the ${designWord(u.app)} owns it, and no gap says so` },
-        lampEl(u.gap ? "dark" : "caution"), ` Untraced in the ${designWord(u.app)}`, u.gap ? `, acknowledged by ${u.gap}` : ", and no gap says so")),
+      ...owners.map((o) => h("div", { class: "in-owner" }, "Delivered by ", h("a", { onclick: () => go(key(o.app, "c", o.component), {}) }, o.component), ` (${designWord(o.app)})`,
+        opts.inline ? null : h("span", { class: "ml-sub" }, ` found in: ${viaWords(o.via)}${DES[o.app].trace_source === "inferred" ? ", guessed" : ""}`))),
+      ...untraced.filter((u) => !owners.some((o) => o.app === u.app)).map((u) => h("div", { class: "in-owner untraced " + (u.gap ? "ack" : "missed"), title: u.gap ? `The ${designWord(u.app)} lists it as a known gap (${u.gap})` : `No component in the ${designWord(u.app)} delivers it, and the design doesn't say why` },
+        lampEl(u.gap ? "dark" : "caution"), ` No component in the ${designWord(u.app)} delivers this`, u.gap ? `; the design says why (${u.gap})` : ", and the design doesn't say why")),
       ...built];
-    return opts.inline ? h("div", { class: "in-owners inline" }, rows) : sec("Inside the teams' designs", null, rows, owners.length || untraced.length ? h("div", { class: "p-note heuristic" }, "Owners are inferred where a design records no Trace table.") : null);
+    return opts.inline ? h("div", { class: "in-owners inline" }, rows) : sec("Inside the teams' designs", null, rows, owners.length || untraced.length ? h("div", { class: "p-note heuristic" }, "Where a design has no trace table, who delivers what is guessed from where it is mentioned.") : null);
   }
   /* The other half of the trace: which story of a team's build plan builds the item ("Built by S-03 (Booking plan)"). */
   function builtBy(id, opts) {
-    return Plan.built(id).map((b) => h("div", { class: "in-owner built", "data-built": b.story }, "Built by ", h("a", { onclick: () => Plan.reveal(b.app, b.story) }, b.story),
-      ` (${Plan.planWord(b.app)})`, opts.inline ? null : h("span", { class: "ml-sub" }, ` ${b.name}`)));
+    return Plan.built(id).map((b) => h("div", { class: "in-owner built", "data-built": b.story }, "Built by ", h("a", { onclick: () => Plan.reveal(b.app, b.story) }, b.name ? `“${shorten(b.name, 48)}”` : b.story),
+      b.name ? idTag(b.story) : null, ` (${Plan.planWord(b.app)})`));
   }
   function challengeSection(k) {
     const list = challenge(k);
     if (!list) return null;
-    return sec("Challenged by a team's design", list.length, list.map((c) => h("div", { class: "in-challenge" }, lampEl("caution", "Needs you: challenged by a team's design"), " ",
-      h("a", { onclick: () => go(key(c.app, "", ""), {}) }, `${c.oq} in the ${designWord(c.app)}`), `: ${c.title}`, c.scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(c.scenario)) : null,
+    return sec("Questioned by an app team", list.length, list.map((c) => h("div", { class: "in-challenge" }, lampEl("caution", "Needs you: an app team questions this in its design"), " ",
+      h("a", { onclick: () => go(key(c.app, "", ""), {}) }, `The ${appTitle(c.app)} team asks`), `: ${c.title}`, idTag(c.oq), c.scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(c.scenario)) : null,
       c.affects.length ? h("div", { class: "ml-sub" }, "Affects ", c.affects.map((id) => idChip(id))) : null)),
-    h("div", { class: "p-note" }, "This lamp is the design's, not attention.lights: it stays lit until the vault records the challenge (/planner:challenge)."));
+    h("div", { class: "p-note" }, "This warning comes from the team's design, not from the plan. It stays until the plan records the team's question (/planner:challenge)."));
   }
   function homeSection() {
     const all = Object.values(CHALLENGED).flat();
     if (!all.length) return null;
-    return sec("Challenged by a team's design", all.length, h("p", { class: "p-note" }, "A senior's design question that challenges the vault. Lit by the design, not by attention.lights, until the vault records the challenge."),
+    return sec("Questioned by an app team", all.length, h("p", { class: "p-note" }, "Questions the app teams raised in their designs about the plan. Each needs you until the plan records it."),
       h("ul", { class: "lights" }, all.map((c) => h("li", {}, h("button", { class: "challenge-row", "data-ref": keyForId(challengeHome(c.id)) }, lampEl("caution"),
-        h("span", {}, h("span", { class: "what" }, `${c.id} challenged by ${c.oq}`), h("span", { class: "why" }, `${appTitle(c.app)} design: ${c.title}${c.scenario ? " " + shorten(c.scenario, 110) : ""}`)))))));
+        h("span", {}, h("span", { class: "what" }, `“${shorten(titleOf(keyForId(challengeHome(c.id))) || c.id, 60)}” is questioned by the ${appTitle(c.app)} team`), h("span", { class: "why" }, `${c.title}${c.scenario ? " " + shorten(c.scenario, 110) : ""}`)))))));
   }
   /* The design's state, for the stage ladder and the Engineering door. */
   function statusCell(app) {
     const d = design(app);
-    if (!d) return h("div", { class: "small" }, h("span", { class: "muted" }, "not loaded "), h("a", { class: "small", onclick: (ev) => { ev.stopPropagation(); open(app, "context"); } }, "Inside ›"));
+    if (!d) return h("div", { class: "small" }, h("span", { class: "muted" }, "no design yet "), h("a", { class: "small", onclick: (ev) => { ev.stopPropagation(); open(app, "context"); } }, "Inside ›"));
     return h("div", { class: "in-status-cell" }, statusPill(app), h("div", {}, problemsChip(app)), h("a", { class: "small", onclick: (ev) => { ev.stopPropagation(); open(app, "components"); } }, "Inside ›"));
   }
   function doorEntry(app) {
     const d = design(app);
-    return h("div", { class: "in-door" }, h("h3", {}, "Inside"), h("div", { class: "in-door-row" }, d ? statusPill(app) : h("span", { class: "muted small" }, "the team's design is not loaded"), d ? problemsChip(app) : null),
+    return h("div", { class: "in-door" }, h("h3", {}, "Inside"), h("div", { class: "in-door-row" }, d ? statusPill(app) : h("span", { class: "muted small" }, "no design from the team yet"), d ? problemsChip(app) : null),
       h("div", { class: "in-door-row", "data-readiness": Plan.readiness(app).id }, Plan.readinessPill(app), h("span", { class: "muted small" }, Plan.readiness(app).counts)),
       h("div", { class: "in-door-row" }, LEVELS.map(([l, word]) => h("button", { class: "chip", "data-inside": l, onclick: () => open(app, l) }, word))));
   }

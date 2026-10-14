@@ -17,7 +17,8 @@ from .record import plain, refs_in
 HANDLE = re.compile(r"@[a-z0-9][a-z0-9-]*", re.I)
 NOTHING = re.compile(r"^\s*nothing", re.I)
 HISTORY_LABELS = ("Decision", "Options considered", "Decided by", "Confirmed by", "Dissent", "Override")
-ACRONYMS = {"ceo": "CEO", "cto": "CTO", "pr": "PR", "qa": "QA", "ux": "UX"}
+ACRONYMS = {"ceo": "CEO", "cto": "CTO", "cio": "CIO", "ciso": "CISO", "cfo": "CFO", "coo": "COO", "dpo": "DPO",
+            "hr": "HR", "pr": "PR", "qa": "QA", "ux": "UX"}
 
 
 def human(handle):
@@ -49,30 +50,30 @@ def who_to_ask(unknown, handles):
         h = HANDLE.findall(recorded)
         key = h[0] if h else recorded
         return {**base, "key": key, "name": human(key) if h else recorded, "inferred": False, "recorded": True,
-                "rule": "recorded in the unknown's Ask line"}
+                "rule": "recorded with the question: ask them"}
     paren = " ".join(re.findall(r"\(([^)]*)\)", owner))
     owner_role = paren.split(",")[0].split(";")[0].strip() if paren else ""
     m = re.search(r"asking (@[a-z0-9-]+)", paren, re.I)
     if m:
         return {**base, "key": m.group(1), "name": human(m.group(1)), "inferred": True,
-                "rule": f"a guess, read from “asking {m.group(1)}” in the Owner line"}
+                "rule": f"our guess, from the owner note “asking {m.group(1)}”"}
     m = re.search(r"(?:asking|who asks|asks) (the [a-z ]+?|[a-z ]+?)(?:[;,)]|$)", paren, re.I)
     if m:
         parts = re.split(r"\s+and\s+", m.group(1).strip())
         resolved = [resolve_role(p, handles) for p in parts]
         h, name = resolved[0]
         return {**base, "key": h or name, "name": name, "inferred": True, "also": [n for _, n in resolved[1:]],
-                "rule": f"a guess, read from “{m.group(0).rstrip(';,)')}” in the Owner line"}
+                "rule": f"our guess, from the owner note “{m.group(0).rstrip(';,)')}”"}
     m = re.search(r"([a-z ]+?) gives the ruling", paren, re.I)
     if m:
         h, name = resolve_role(m.group(1), handles)
         return {**base, "key": h or name, "name": name, "inferred": True,
-                "rule": f"a guess, read from “{m.group(0)}” in the Owner line"}
+                "rule": f"our guess, from the owner note “{m.group(0)}”"}
     asked_by = "the product lead" if "product lead does the asking" in paren else ""
     name = human(owner_role) if owner_role and len(owner_role) < 30 else human(owner_handle)
     return {**base, "key": owner_handle, "name": name, "inferred": False, "also": [human(h) for h in found[1:]],
             "asked_by": asked_by,
-            "rule": "the owner holds the answer" + ("; the product lead does the asking" if asked_by else "; nobody else is named")}
+            "rule": "ask the owner" + ("; the product lead does the asking" if asked_by else "")}
 
 
 def first_prose(page, after_line):

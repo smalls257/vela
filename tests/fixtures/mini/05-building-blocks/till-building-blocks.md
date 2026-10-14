@@ -16,8 +16,8 @@ The till rings up sales and calls the shop.
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=e3dd58fb: do not edit, run planner render -->
-| Contract | Provider | Change policy | State |
+<!-- generated:contracts-consumed sha=1fb4b643: do not edit, run planner render -->
+| Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
-| [[shop-building-blocks#CON-001 Sale API\|CON-001 Sale API]] | [[shop-building-blocks\|Shop]] | versioned. | decided |
+| [[shop-building-blocks#CON-001 Sale API\|Sale API (CON-001)]] | [[shop-building-blocks\|Shop]] | versioned. | decided |
 <!-- /generated:contracts-consumed -->

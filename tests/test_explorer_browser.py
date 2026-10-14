@@ -463,8 +463,11 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
     short = git(vault, "rev-parse", "--short", "HEAD")
     dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=20000", "--dump-dom",
                           f"file://{vault / 'dashboard.html'}#home"], timeout=180, capture_output=True, text=True).stdout
-    line = html.unescape(re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S).group(1))
-    assert f"from commit {short}" in line and "hidden" not in re.search(r'<div class="built" id="built"[^>]*>', dom).group(0)
+    tag = re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S)
+    line, opening = html.unescape(tag.group(1)), html.unescape(tag.group(0).split(">", 1)[0])
+    # The sentence is for every reader (a date, no hash); the commit is for whoever maintains the plan, in the tooltip.
+    assert line.startswith("Built ") and "commit" not in line and short not in line
+    assert f"from commit {short}" in opening and "hidden" not in opening
 
 
 def _explore_and_dump(chrome_path, source, tmp_path, today, route, viewport="1600,1000"):

@@ -81,10 +81,10 @@ def test_traceability_block_on_an_index(mini):
         "---\nid: epics\ntype: index\ntitle: Epics\nauthored: mixed\n---\n\n# Epics\n\n" + NEW_BLOCK.format("traceability"), encoding="utf-8")
     render(mini)
     text = (mini / "13-epics" / "13-epics.md").read_text(encoding="utf-8")
-    assert "**Traceability:** 1 gap. 2 checks pass." in text
-    assert "| T4 | [[concern-testing\\|concern-testing × APP-shop]] |" in text
+    assert "**Gaps in the planned work:** 1. 2 checks pass." in text
+    assert "| [[concern-testing\\|Testing for Shop]] | Testing for Shop is covered, but no epic for Shop has a done-when check that does this work. | T4 |" in text
     goals = (mini / "01-goals.md").read_text(encoding="utf-8")
-    assert "**Coverage gaps:** 1, listed on [[13-epics|Epics]]" in goals
+    assert "**Gaps in the planned work:** 1, listed on [[13-epics|Epics]]" in goals
 
 
 def test_traceability_block_with_nothing_to_trace(mini):
@@ -94,14 +94,14 @@ def test_traceability_block_with_nothing_to_trace(mini):
     edit(mini / "08-concerns/concern-testing.md", "| addressed | Provider tests for CON-001 |", "| unchanged | Provider tests for CON-001 |")
     edit(mini / SHOP, "- **Change:** new", "- **Change:** unchanged")
     render(mini)
-    assert "**Traceability:** nothing to trace yet." in (mini / "13-epics" / "13-epics.md").read_text(encoding="utf-8")
+    assert "**Gaps in the planned work:** nothing to check yet." in (mini / "13-epics" / "13-epics.md").read_text(encoding="utf-8")
 
 
 def test_where_it_stands_shows_a_handoff_and_skips_a_malformed_one(mini):
     edit(mini / SHOP, "stage: contracts\n", 'stage: contracts\nhanded_off: "Shop senior, 2026-01-12, PR #4"\n')
     render(mini)
     goals = (mini / "01-goals.md").read_text(encoding="utf-8")
-    assert "**Handed off:** [[shop-building-blocks|Shop]] (Shop senior, 2026-01-12, PR #4)" in goals
+    assert "**Handed to its team:** [[shop-building-blocks|Shop]] (Shop senior, 2026-01-12, PR #4)" in goals
     edit(mini / SHOP, 'handed_off: "Shop senior, 2026-01-12, PR #4"', 'handed_off: "Shop senior"')
     render(mini)
-    assert "**Handed off:**" not in (mini / "01-goals.md").read_text(encoding="utf-8")
+    assert "**Handed to its team:**" not in (mini / "01-goals.md").read_text(encoding="utf-8")
