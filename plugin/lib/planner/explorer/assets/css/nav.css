@@ -2,6 +2,14 @@
 #side { grid-area: side; background: var(--room-2); border-right: 1px solid var(--rule); overflow: auto; padding: 10px 10px 16px; min-height: 0; font-size: 13.5px; }
 body.side-hidden #side { display: none; }
 body.side-hidden { --side-w: 0px; }
+/* the drag handle straddles the bar's right rule, in the bar's grid cell but outside its scrolling box, so a redraw of
+   the bar (Nav.refresh empties it) never takes the handle with it */
+#side-grip { grid-area: side; justify-self: end; align-self: stretch; width: 11px; margin-right: -6px; cursor: col-resize; z-index: 6; touch-action: none; position: relative; }
+#side-grip[hidden] { display: none; }
+#side-grip::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 3px; background: transparent; }
+#side-grip:hover::after, body.side-dragging #side-grip::after { background: var(--ink-3); }
+#side-grip:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+body.side-dragging { user-select: none; cursor: col-resize; }
 .side-group { margin-bottom: 14px; }
 .side-h { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-4); padding: 4px 8px 6px; }
 .side-home { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: 8px;

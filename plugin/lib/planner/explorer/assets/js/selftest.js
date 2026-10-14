@@ -207,7 +207,7 @@ const SelfTest = (() => {
     }
     ok(!lines.some((l) => l.includes("overflows") || l.includes(" cut")), `front doors: ${lines.join(", ")}, each card whole, the door scrolling when they are taller than the window`, `front doors: ${lines.join(", ")}`);
     Nav.role("eng"); await frames();
-    ok(!!$(".door-pick .chip.on") || !D.map.apps.length, `engineering door: an app picked, its slice of ${(D.slices[Roles.st.app] || []).length} items from handoff.slice_of`, "engineering door has no app picked");
+    ok(!!$(".door-pick .chip.on") || !D.map.apps.length, `engineering door: an app picked, its handoff list of ${(D.handoffList[Roles.st.app] || []).length} items from handoff.handoff_list`, "engineering door has no app picked");
   }
   /* The flow picker: it lists every flow once, groups only above ten, filters by name, and takes the keyboard. The
      grouping is also checked on made-up flows, so a vault with three flows still proves the rule at twelve. */
@@ -721,6 +721,136 @@ const SelfTest = (() => {
     PanelSize.setWidth(want0, { now: true }); PanelSize.hide(hidden0);
     MapView.st.lens = null; MapView.st.group = null; Nav.home(); await frames();
   }
+  /* The sections bar's room, the same rule as the panel's (one EdgeSize serves both): the menu button hides it and the
+     main area widens, the handle's drag and arrow keys stay between the minimum and a third of the window, both choices
+     are in storage as a reload reads them, and the page never scrolls sideways at the window it was opened in. */
+  async function sideRoom() {
+    const hidden0 = SideSize.hidden, want0 = SideSize.wanted;
+    const mainW = () => $("#main").getBoundingClientRect().width, sideW = () => $("#side").getBoundingClientRect().width;
+    const stored = () => ({ hidden: Settings.read("explorer.side"), width: Number(Settings.read("explorer.side.width")) || null });
+    const sideways = () => Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, document.body.scrollWidth - document.body.clientWidth, $("#main").scrollWidth - $("#main").clientWidth);
+    const fitted = () => {
+      const b = $("#board"), svg = b && $("svg.cockpit", b);
+      if (!svg) return true;
+      const r = b.getBoundingClientRect(), v = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      return (v.right <= r.right + 1 && v.bottom <= r.bottom + 1) || v.width / vb.width <= 0.151;
+    };
+    SideSize.hide(false); SideSize.setWidth(null, { now: true });
+    Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; rerender(); await frames();
+    const open = mainW(), openSide = sideW(), toggle = $("#side-toggle"), grip = $("#side-grip");
+    toggle.click(); await frames();
+    ok(SideSize.hidden && $("#side").offsetParent === null && grip.hidden && mainW() > open + openSide * 0.9 && toggle.getAttribute("aria-expanded") === "false" && stored().hidden === "true",
+      `sections bar: the menu button hides it, the main area widens ${Math.round(open)} to ${Math.round(mainW())} px, and the choice is stored`,
+      `sections bar hide: main ${Math.round(open)} to ${Math.round(mainW())}, bar shown ${$("#side").offsetParent !== null}, stored ${stored().hidden}`);
+    ok(fitted() && sideways() <= 1, "sections bar hidden: the map still fits its board and nothing scrolls sideways", `sections bar hidden: fitted ${fitted()}, sideways ${sideways()} px`);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "[", bubbles: true, cancelable: true })); await frames();
+    ok(!SideSize.hidden && $("#side").offsetParent !== null && !grip.hidden && toggle.getAttribute("aria-expanded") === "true" && stored().hidden === "false",
+      "sections bar: [ shows it again, and the choice is stored", `sections bar [: hidden ${SideSize.hidden}, stored ${stored().hidden}`);
+    SideSize.setWidth(10, { now: true });
+    const low = Math.round(sideW());
+    SideSize.setWidth(100000, { now: true });
+    const high = Math.round(sideW()), cap = SideSize.max();
+    ok(low === SideSize.MIN && high === cap && +grip.getAttribute("aria-valuenow") === high && +grip.getAttribute("aria-valuemin") === SideSize.MIN && +grip.getAttribute("aria-valuemax") === cap && grip.getAttribute("role") === "separator" && grip.tabIndex === 0,
+      `sections bar: resize clamps to ${low} px at the least and ${high} px (a third of ${innerWidth}) at the most, and the handle, in the tab order, reports both`,
+      `sections bar resize: least ${low} (want ${SideSize.MIN}), most ${high} (want ${cap}), aria-valuenow ${grip.getAttribute("aria-valuenow")}`);
+    SideSize.setWidth(SideSize.MIN + 20, { now: true });
+    grip.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    const grown = Math.round(sideW());
+    grip.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }));
+    const back = Math.round(sideW());
+    ok(grown === SideSize.MIN + 20 + SideSize.STEP && back === SideSize.MIN + 20, `sections bar: the handle's arrow keys move it ${SideSize.STEP} px each way`, `sections bar arrows: ${SideSize.MIN + 20} to ${grown} to ${back}`);
+    // a drag: the bar's right edge follows the pointer, and where the drag ends is what is remembered
+    const left = $("#side").getBoundingClientRect().left, target = Math.min(SideSize.max(), SideSize.MIN + 60), pid = 7;
+    grip.setPointerCapture = () => {}; grip.releasePointerCapture = () => {}; grip.hasPointerCapture = () => false;  // a synthetic pointer has nothing to capture
+    grip.dispatchEvent(new PointerEvent("pointerdown", { pointerId: pid, button: 0, clientX: left + sideW(), bubbles: true, cancelable: true }));
+    grip.dispatchEvent(new PointerEvent("pointermove", { pointerId: pid, clientX: left + target, bubbles: true }));
+    grip.dispatchEvent(new PointerEvent("pointerup", { pointerId: pid, clientX: left + target, bubbles: true }));
+    delete grip.setPointerCapture; delete grip.releasePointerCapture; delete grip.hasPointerCapture;
+    await frames();
+    const dragged = Math.round(sideW());
+    ok(dragged === target && stored().width === target && !document.body.classList.contains("side-dragging"), `sections bar: a drag to ${target} px sets the width and stores it, so a reload reads it back`, `sections bar drag: ${dragged} px on screen, ${stored().width} stored, want ${target}`);
+    ok(fitted() && sideways() <= 1, `sections bar at ${dragged} px: the main area refits, the map fits its board and nothing scrolls sideways at ${innerWidth} px`, `sections bar resized: fitted ${fitted()}, sideways ${sideways()} px`);
+    SideSize.setWidth(null, { now: true });
+    ok(stored().width === null && SideSize.wanted === null, "sections bar: the default width comes back, and storage forgets the width", "sections bar default: width still stored");
+    SideSize.setWidth(want0, { now: true }); SideSize.hide(hidden0);
+    MapView.st.lens = null; MapView.st.group = null; Nav.home(); await frames();
+  }
+  /* The Slices view: a table whose rows are buttons that fold open by click, Enter and Space, and whose names open the
+     panel without folding the row; a Path of the same slices; the layout kept in this browser; search and filter chips
+     that narrow both layouts the same way, ride in the address bar and come back from it, and an empty result that says
+     so with a way out. */
+  async function sliceChecks() {
+    const L = Slices.LIST, KEYL = Slices.LAYOUT_KEY, was = Settings.read(KEYL);
+    if (!L.length) { out.push("skip slices view: vault has no slices"); return; }
+    const sideways = () => Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, $("#main").scrollWidth - $("#main").clientWidth, ($(".sl-body") || $("#main")).scrollWidth - ($(".sl-body") || $("#main")).clientWidth);
+    const layout = (id) => { $(`.sl-seg [data-layout="${id}"]`).click(); };
+    Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null; Settings.write(KEYL, "table"); Nav.open("slices"); await frames();
+    let rows = $$(".sl-tr");
+    ok(rows.length === L.length && rows.every((r) => r.getAttribute("role") === "button" && r.tabIndex === 0 && r.getAttribute("aria-expanded") === "false" && $(".sl-name[data-node]", r)),
+      `slices table: ${rows.length} rows, one per slice, each a button in the tab order, folded, with its name wired to the panel`, `slices table: ${rows.length} rows for ${L.length} slices`);
+    const r0 = rows[0], more = () => document.getElementById(r0.getAttribute("aria-controls"));
+    r0.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); await frames();
+    const openEnter = r0.getAttribute("aria-expanded") === "true" && !more().hidden && $$(".sl-line", more()).length > 0;
+    r0.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true })); await frames();
+    const foldSpace = r0.getAttribute("aria-expanded") === "false" && more().hidden;
+    $(".sl-c-status", r0).click(); await frames();
+    const openClick = r0.getAttribute("aria-expanded") === "true" && !more().hidden;
+    const labels = $$(".sl-l", more()).map((l) => l.textContent);
+    ok(openEnter && foldSpace && openClick && ["Flows", "Joins", "Journey", "Flow check"].every((w) => labels.includes(w)),
+      `slices table: Enter opens a row, Space folds it, a click opens it, and the open row shows ${labels.join(", ")}`, `slices table: Enter ${openEnter}, Space ${foldSpace}, click ${openClick}, lines ${labels.join(", ")}`);
+    go("lights", { reset: true }); await frames();
+    $(".sl-name", r0).click(); await frames();
+    ok(App.focus === (L[0].key || App.focus) && r0.getAttribute("aria-expanded") === "true" && $("#panel h2") && $("#panel h2").textContent.trim() === (L[0].key ? E[L[0].key].title : L[0].name),
+      `slices table: a slice's name opens it in the panel ("${L[0].name}") and leaves the row as it was`, `slices table: the name opened "${$("#panel h2") && $("#panel h2").textContent}", row ${r0.getAttribute("aria-expanded")}`);
+    $$(".sl-tr[aria-expanded=false]").forEach((r) => r.click()); await frames();
+    ok(sideways() <= 1, `slices table, every row open: nothing scrolls sideways at ${innerWidth} px`, `slices table open: scrolls sideways by ${sideways()} px at ${innerWidth} px`);
+    // Path, and the layout kept
+    layout("path"); await frames();
+    const nodes = $$(".sl-node");
+    ok(nodes.length === L.length && nodes.every((n) => n.hasAttribute("data-node")) && Settings.read(KEYL) === "path" && $(".sl-seg [data-layout=path]").getAttribute("aria-pressed") === "true" && !$('.legend[data-legend="slices"]').hidden,
+      `slices path: ${nodes.length} boxes, each opening the panel, with its key, and the layout is kept in this browser`, `slices path: ${nodes.length} boxes for ${L.length}, stored ${Settings.read(KEYL)}`);
+    const wantArrows = L.reduce((n, x) => n + x.after.filter((k) => L.some((y) => y.slice === k)).length, 0);
+    ok($$(".sl-path-arrows path.sl-after").length === wantArrows, `slices path: ${wantArrows} arrows, one for each "comes after"`, `slices path: ${$$(".sl-path-arrows path.sl-after").length} arrows, want ${wantArrows}`);
+    ok(sideways() <= 1, `slices path: nothing scrolls sideways at ${innerWidth} px`, `slices path: scrolls sideways by ${sideways()} px`);
+    Nav.open("slices"); await frames();
+    ok(!!$(".sl-path") && $(".sl-seg [data-layout=path]").getAttribute("aria-pressed") === "true", "slices: drawn again, the path is still the layout", "slices: the layout was not kept");
+    // a filter narrows both layouts the same way, and the address bar carries it
+    const counts = {};
+    for (const x of L) { const s = x.status || "not planned yet"; counts[s] = (counts[s] || 0) + 1; }
+    const [pick, n] = Object.entries(counts).sort((a, b) => a[1] - b[1])[0];
+    $(`.sl-fgroup[data-group=status] [data-value="${CSS.escape(pick)}"]`).click(); await frames();
+    const hashed = location.hash, inPath = $$(".sl-node").length;
+    layout("table"); await frames();
+    const inTable = $$(".sl-tr").length, chipCount = +$(`.sl-fgroup[data-group=status] [data-value="${CSS.escape(pick)}"] .ct`).textContent;
+    ok(inPath === n && inTable === n && chipCount === n && hashed.includes("sl-status=" + encodeURIComponent(pick)),
+      `slices filter: status ${pick} shows ${n} in the path and in the table, its chip says ${chipCount}, and the address bar has it`, `slices filter ${pick}: path ${inPath}, table ${inTable}, chip ${chipCount}, want ${n}; hash ${hashed}`);
+    const link = location.hash;
+    Slices.clear(); await frames();
+    const cleared = $$(".sl-tr").length === L.length && !/sl-/.test(location.hash);
+    history.replaceState(null, "", link); Nav.followHash(); await frames();
+    ok(cleared && Slices.st.status.has(pick) && $$(".sl-tr").length === n && $(`.sl-fgroup[data-group=status] [data-value="${CSS.escape(pick)}"]`).getAttribute("aria-pressed") === "true",
+      `slices filter: the link ${link} opens the same ${n} again, with the chip pressed`, `slices link: cleared ${cleared}, back to ${$$(".sl-tr").length} rows, status ${[...Slices.st.status]}`);
+    // search, the empty answer, and Needs you only
+    Slices.clear(); await frames();
+    const f = L.find((x) => x.flows.some((fl) => fl.key && E[fl.key])), find = $(".sl-find");
+    if (f) {
+      const word = E[f.flows.find((fl) => fl.key && E[fl.key]).key].title;
+      find.value = word; find.dispatchEvent(new Event("input", { bubbles: true })); await frames();
+      ok($$(".sl-tr").some((r) => r.dataset.slice === f.slice) && location.hash.includes("sl-find="), `slices search: "${word}", a flow's name, finds the slice that proves it`, `slices search "${word}": rows ${$$(".sl-tr").map((r) => r.dataset.slice)}`);
+    }
+    find.value = "no slice says this"; find.dispatchEvent(new Event("input", { bubbles: true })); await frames();
+    const empty = $(".sl-empty"), clearBtn = empty && [...empty.querySelectorAll("button")].find((b) => b.textContent === "Clear filters");
+    ok(!!empty && /No slice matches the words "no slice says this"/.test(empty.textContent) && !!clearBtn, "slices search: nothing found says so in words, with a Clear filters button", `slices empty: ${empty ? empty.textContent : "no message"}`);
+    if (clearBtn) { clearBtn.click(); await frames(); }
+    ok($$(".sl-tr").length === L.length && $(".sl-find").value === "", "slices: Clear filters shows every slice again", `slices clear: ${$$(".sl-tr").length} rows`);
+    const late = L.filter((x) => x.overdue).length, needs = $(".sl-fgroup[data-group=needs] button");
+    needs.click(); await frames();
+    ok(+$(".ct", $(".sl-fgroup[data-group=needs] button")).textContent === late && (late ? $$(".sl-tr").length === late && $$(".sl-tr .sl-due").length === late : !!$(".sl-empty")),
+      `slices: Needs you only shows the ${late} with a journey past its due date`, `slices needs you: ${$$(".sl-tr").length} rows, want ${late}`);
+    Slices.clear(); Slices.st.open = new Set(); Slices.st.layout = null;
+    if (was === null) localStorage.removeItem(KEYL); else Settings.write(KEYL, was);
+    Nav.home(); go("lights", { reset: true }); await frames();
+  }
   async function releases() {
     const S = Releases.STATES;
     ok(D.releases.count ? S.length === D.releases.count + 1 : S.length === 2 && S[1].fromChange, D.releases.count ? `releases: Today and ${plural(D.releases.count, "release")}, from planner.releases` : "releases: none planned, so Today against the end state from each app's change, and the page says so", "release states wrong");
@@ -1150,7 +1280,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await panning(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await panning(); await effects(); await panelRoom(); await sideRoom(); await sliceChecks(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
@@ -1743,6 +1873,12 @@ const TextFit = (() => {
       for (const child of (s.children || []).slice(0, s.id === "apps" ? 99 : 3)) { Nav.open(s.id, child); note(`${s.label} > ${titleOf(child)}`); }
     }
     for (const view of ["asks", "progress", "trace", "decisions", "releases", "slices", "flows"]) { showView(view); note(`view ${view}`); }
+    if (D.slicePlan.list.length) {  // the table with every row open, and the path, without touching the reader's kept layout
+      const all = D.slicePlan.list.map((x) => x.slice);
+      Slices.st.layout = "table"; Slices.st.open = new Set(all); showView("slices"); note("slices, every row open");
+      Slices.st.layout = "path"; Slices.st.open = new Set(); showView("slices"); note("slices, path");
+      Slices.st.layout = null;
+    }
     for (const f of D.flows) { Flows.select(f.key, 0); note(`flow ${f.key}`); }
     for (const id of ["lead", "exec", "product", "qa", "mgr"]) { Nav.role(id); note(`door ${id}`); }
     for (const k of apps) { Roles.st.app = k; Nav.role("eng"); note(`door eng, ${titleOf(k)}`); }
@@ -1858,7 +1994,10 @@ const TextFit = (() => {
     map("map, grouped by capability, clusters open", "cockpit", "capability", () => MapGroups.all(true));
     map("map, line map", "transit", "none");
     list.push({ name: "releases", root: "#main", show: () => { Releases.st.compare = false; Releases.st.at = 0; Nav.open("releases"); } });
-    if (D.slicePlan.list.length) list.push({ name: "slices", root: "#main", show: () => Nav.open("slices") });
+    if (D.slicePlan.list.length) {
+      list.push({ name: "slices, table, every row open", root: "#main", show: () => { Slices.st.layout = "table"; Slices.st.open = new Set(D.slicePlan.list.map((x) => x.slice)); Nav.open("slices"); } });
+      list.push({ name: "slices, path", root: "#main", show: () => { Slices.st.layout = "path"; Slices.st.open = new Set(); Nav.open("slices"); } });
+    }
     D.flows.slice(0, 4).forEach((f) => list.push({ name: `flow ${f.key}`, root: "#main", show: () => Flows.select(f.key, -1) }));
     list.push({ name: "progress, open questions by week", root: "#main", show: () => showView("progress") });
     list.push({ name: "the minimap", root: "#panel-mini", show: () => { Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; rerender(); } });
@@ -1948,7 +2087,7 @@ const TextFit = (() => {
   const EXPECT = [
     ["svg.cockpit.grouped", "map-grouped"], ["#main svg.cockpit.focus", "map-focus", "outside"], ["#inside-stage svg.cockpit.focus", "inside-context", "inside"],
     ["#main svg.cockpit:not(.grouped):not(.focus):not(.containers):not(.components)", "map-cockpit", "outside"], ["svg.transit", "map-lines"], ["table.dsm", "map-matrix"],
-    ["svg.rl-map", "releases"], ["canvas.stage-canvas", "flow"], [".fp-pop:not([hidden])", "flows-list|lines-list"],
+    ["svg.rl-map", "releases"], [".sl-table", "slices"], [".sl-path", "slices"], ["canvas.stage-canvas", "flow"], [".fp-pop:not([hidden])", "flows-list|lines-list"],
     ["svg.containers", "inside-containers"], ["svg.components", "inside-components"], [".in-er svg", "inside-data"], [".in-seq svg", "inside-sequence"],
     ["svg.plan-dag-svg", "plan-waits"], [".due-chart", "progress-due"], [".card table.t .ladder:not(.inline)", "progress-table"], [".card table.t .mix", "progress-table"], ["#panel-mini svg", "minimap"],
   ];
@@ -1981,6 +2120,10 @@ const TextFit = (() => {
     MapView.st.group = "none"; MapView.st.lens = "cockpit";
     for (const k of apps.slice(0, 3)) { MapView.st.focus = k; rerender(); look(`map, focus on ${titleOf(k)}`); }
     MapView.st.lens = null; MapView.st.group = null; MapView.st.focus = null; rerender();
+    if (D.slicePlan.list.length) {
+      for (const layout of ["table", "path"]) { Slices.st.layout = layout; Nav.open("slices"); look(`slices, ${layout}`); }
+      Slices.st.layout = null;
+    }
     Nav.open("releases"); look("releases section");
     for (let j = 0; j < Releases.STATES.length; j++) { const stop = $(`.rel-stop[data-state="${j}"]`); if (stop) { stop.click(); look(`releases, state ${j}`); } }
     Releases.st.compare = true; Releases.st.a = 0; Releases.st.b = Releases.STATES.length - 1; rerender(); look("releases, compared");

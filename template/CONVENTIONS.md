@@ -578,14 +578,16 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W380 | contract has no case table | W381 | a case table row, or a Can time out, Retries or Idempotent line, cannot be read |
 | W382 | two cases of one contract share a key | W383 | a case emits an event the vault does not name |
 | W384 | a case sets an entity the vault does not name | W385 | decided contract has no error case |
-| W386 | an app at handoff has an item in its slice that is not decided | W387 | an app at handoff calls a provider nobody has designed |
+| W386 | an app at handoff has an item in its handoff list that is not decided | W387 | an app at handoff calls a provider nobody has designed |
 | W388 | a handoff manifest pins a commit this repository does not have, or cannot be read | W389 | prose leaves a matter for a Grill with no open question linked |
 | W390 | decided item records no Why | W391 | a drawn slice does not pass the flow check |
-| W392 | a slice names no flows | W393 | a slice's Flows, After or Joins names nothing in the vault |
+| W392 | a slice names no flows | W393 | a slice's Flows or After names nothing in the vault |
 | E394 | slices come after each other in a circle | W395 | a slice at building or later has flow-check findings no override covers |
 | W396 | a slice at journey passes or later records no readable Journey line | W397 | a slice is at building or later while a slice it comes after has not passed its journey |
 | E398 | a flow-check override has passed its end date | W399 | slices are still named on the releases page, not in slices/ |
 | E346 | slice status is not one of the five | W348 | a release's Slices names no slice page, or a slice's Milestone names a release that does not list it |
+| W400 | a slice's journey due date has passed and no Journey line records the run, or the date does not read | W405 | a slice page still has a Joins line, which is no longer read: joins come from its flows |
+| W406 | two or more slices name no After, or none does: the tracer is the one slice with no After | | |
 | E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
 | E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
@@ -662,7 +664,7 @@ Nothing else records a release. What the system looks like after each one is wor
 
 ## Slices
 
-A slice is the unit of done: one journey, proven end to end through every app and contract it needs, and switched on when that journey passes. The tracer is the first slice, SLC-001: a thin path through every app and contract it needs, built first and kept, so the first story each team builds is its part of it. Several slices can be in flight at once; each says which slices it comes after, so the order is a graph, not a queue. A slice stands on its own: a release may point at it as a milestone, and nothing waits for the release.
+A slice is the unit of done: one journey, proven end to end through every app and contract it needs, and switched on when that journey passes. The tracer is the one slice with no After, usually SLC-001: a thin path through every app and contract it needs, built first and kept, so the first story each team builds is its part of it. Several slices can be in flight at once; each says which slices it comes after, so the order is a graph, not a queue. A slice stands on its own: a release may point at it as a milestone, and nothing waits for the release.
 
 Each slice is a page in `slices/`, `SLC-nnn-<slug>.md`, with `type: slice`. Its facts are bullets under the title:
 
@@ -681,11 +683,11 @@ The digest flow on its own, after the tracer, from the calendar only. Transcript
 - **Status:** building
 - **Flows:** [[FLO-002-get-morning-digest|FLO-002]]
 - **After:** SLC-001
-- **Joins:** [[consent-and-identity-building-blocks#CON-004 Record consent|Record consent]] (Desk agent → Consent and identity), [[desktop-agent-building-blocks#CON-007 Calendar read|Calendar read]] (Desk agent → Microsoft)
 - **Ships switched off:** a per-user flag, held by the Desk agent team
 - **Done when:** the digest journey passes in the shared integration environment, from the pilot user's side
 - **Owner:** @lead
 - **Milestone:** Release one
+- **Journey due:** 2026-11-30
 
 ## Not in this slice
 
@@ -703,11 +705,12 @@ The digest flow on its own, after the tracer, from the calendar only. Transcript
 
 - **`**Status:**`** is one of `planned`, `building`, `journey passes`, `live but off` or `on`. Leave it out while the slice is being drafted: the dashboard shows it as not planned yet.
 - **`**Flows:**`** links the flows the slice proves, in the order they run. `none, <reason>` records a tracer with no flow on purpose.
-- **`**After:**`** names the slices it comes after, by ID. The tracer has none.
-- **`**Joins:**`** names each contract the slice crosses, with both sides in brackets, sender first.
+- **`**After:**`** names the slices it comes after, by ID. The tracer has none, and it is the only slice with none: every other slice comes after the tracer or after a slice that does.
+- The joins a slice crosses are not written on its page. They are read from its flows' steps, which name each contract with its sender and receiver (see Flow steps), so they cannot drift from the flows. A join missing from a slice is a step missing from a flow.
 - **`**Ships switched off:**`** says how it goes live but off: the flag or switch, and who holds it.
 - **`**Done when:**`** is the journey that must pass, said from the side of the person or app that uses it.
 - **`**Owner:**`** is the person who moves it on. **`**Milestone:**`** is optional: the release that lists it, by the start of its heading.
+- **`**Journey due:**`** is the date, `YYYY-MM-DD`, the team expects the journey to run. It is written when the slice moves to `building`. Once the date has passed with no Journey line, the dashboard puts the slice in What needs you and check warns.
 - **`## Not in this slice`** lists what is left out, one bullet each: what, an optional ID in brackets or a link, a colon and why. Naming an app, contract or requirement there answers W343 and W347 for it.
 - **`## Overrides`** holds the flow check's overrides for this slice (see Flow check). One here covers that finding in any flow of the slice.
 - **`## History`** comes last, as on every page: one dated line for each move, with who moved it.
@@ -727,15 +730,20 @@ Where a slice stands, and what moves it on:
 `planner check` reports, for slice pages:
 
 - E346 for a Status that is not one of the five;
-- W345 when the tracer (the first slice) names no flows, and W392 for any other slice that names none;
-- W393 when Flows, After or Joins names something the vault does not have;
+- W345 when the tracer (the slice with no After) names no flows, and W392 for any other slice that names none;
+- W393 when Flows or After names something the vault does not have;
 - E394 when slices come after each other in a circle, so none of them can start;
 - W395 when a slice is `building` or later and its flow check has a finding no unexpired override covers, or is not fully checked; check runs the flow check itself, in milliseconds a slice;
 - W396 when a slice is `journey passes` or later with no Journey line, or one that does not read;
+- W400 when the Journey due date has passed and no Journey line that reads records the run, or when the date is not `YYYY-MM-DD`;
+- W405 when a slice page still has a `**Joins:**` line. Joins are no longer written on the page, so the line is not read;
+- W406 when two or more slices name no After (the first by ID stands in as the tracer until the others name what they build on), or when every slice names one, so there is no tracer;
 - W397 when a slice is `building` or later and a slice it comes after is not yet at `journey passes`. It warns, never blocks: building in parallel is allowed, and the warning says it is a bet;
 - E398 for a flow check override past its end date, on a slice page or a flow page;
 - W347 when a slice's flows pass through an app or contract that a release listing the slice delivers no share of, unless Not in this slice names it;
 - W348 when a slice's Milestone names a release that does not list it.
+
+In this file a slice is always the unit of done, a page in `slices/`. What a senior takes on at handoff is the app's handoff list, and a story's `Slice:` line in a build plan names the slice it builds and its shape (tracer, vertical or layer).
 
 `/planner:releases` writes slice pages, the tracer first, and the release milestones that point at them; the lead decides each cut. A Grill moves a slice to `planned`. Breakdown and tickets group a team's work by slice, and the handoff names the slices an app takes part in. `planner next` suggests the next step for the slice furthest along.
 
@@ -926,7 +934,7 @@ More than about seven criteria are grouped: a `###` heading names the group ("Ti
 
 A concern marker is the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`.
 
-Five trace rules run once the vault holds an epic, and T7 alone runs as soon as it holds an app page, because allocation comes before epics. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger). The gate reads the whole vault; `--app APP-x` narrows it to that app and its slice (its contracts, the capabilities its allocation rows carry, its concern cells, its epics, and the questions about it or the whole initiative), so one team can finish while another is still drafting. T7 belongs to no app and stays with the whole-vault run.
+Five trace rules run once the vault holds an epic, and T7 alone runs as soon as it holds an app page, because allocation comes before epics. They are warnings in `planner check` and errors under `planner check --gate epics`, which is run before anyone calls an app's epics complete. The same gate fails on a high-severity question nobody has disposed (E805, under Questions and the ledger). The gate reads the whole vault; `--app APP-x` narrows it to that app and what it carries (its contracts, the capabilities its allocation rows carry, its concern cells, its epics, and the questions about it or the whole initiative), so one team can finish while another is still drafting. T7 belongs to no app and stays with the whole-vault run.
 
 | Rule | Passes when | Codes |
 |---|---|---|
@@ -953,12 +961,12 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 
 The handoff order is: releases, then handoff in a Grill, then epics for that app (`/planner:epics`) while the senior designs it (`/planner:design`), then the build plan and the tickets. The guide draws the same order.
 
-**What is not firm.** Whatever the list above says, the lead hears what the senior would accept without a yes, in plain words, one line each: every item in the app's slice (the app page, its runtime page, its contracts, the functional requirements it carries with their acceptance criteria, its epics with theirs) still at `inkling`, `assumption` or `draft`; every contract it provides or consumes with no case table; and every provider it calls that the initiative builds and nobody has designed yet. A provider counts as designed once it is handed off, records a `design:` page, or has a decided epic. The Grill reads the list back before the handoff, `planner handoff` prints it and writes it into the manifest under `## Not firm at handoff`, `planner next` prints it for an app at the handoff stage or handed off, and `planner check` warns W386 for each unfirm item and W387 for each undesigned provider (a missing case table is W380 already). Handing over anyway is the `"handoff checklist"` override, as below.
+**What is not firm.** Whatever the list above says, the lead hears what the senior would accept without a yes, in plain words, one line each: every item in the app's handoff list (the app page, its runtime page, its contracts, the functional requirements it carries with their acceptance criteria, its epics with theirs) still at `inkling`, `assumption` or `draft`; every contract it provides or consumes with no case table; and every provider it calls that the initiative builds and nobody has designed yet. A provider counts as designed once it is handed off, records a `design:` page, or has a decided epic. The Grill reads the list back before the handoff, `planner handoff` prints it and writes it into the manifest under `## Not firm at handoff`, `planner next` prints it for an app at the handoff stage or handed off, and `planner check` warns W386 for each unfirm item and W387 for each undesigned provider (a missing case table is W380 already). Handing over anyway is the `"handoff checklist"` override, as below.
 
 Epics come after handoff, not before it. The senior takes the boundary first; the solution lead then writes and decides the app's epics against it (`/planner:epics`), and `planner check --gate epics --app <APP-id>` says when that app's epics are complete. So neither the epics nor the epics gate is a condition of handing over, and one app's handoff never waits on another app's gaps. If the lead hands an app over with items on the list above unmet, that is an override named `"handoff checklist"`, written as the Overrides section says.
 
-In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the functional requirements its allocation rows carry, the epics whose `apps` lists it, release one's tracer and Not in the tracer bullets as one entry, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`. `planner check` warns W388 when a manifest pins a commit this repository does not have.
+In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`, the app's handoff list: every ID the senior takes on (the app page, its runtime page, the contracts it provides and consumes, the functional requirements its allocation rows carry, the epics whose `apps` lists it, one row for each slice the app takes part in, and the open unknowns that block any of them; while the vault still names its slices on the releases page, release one's Tracer and Not in the tracer bullets stand in as one entry instead of the slice rows), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. A slice row's hash also leaves out its Status, Journey, Journey due and History lines, which move as the teams move it, and covers the joins its flows cross, so a join changed in a flow reaches the senior. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`. `planner check` warns W388 when a manifest pins a commit this repository does not have.
 
-`planner handoff verify <APP-id>` lists every item changed, added or removed since. A changed tracer is a changed item, so it reaches the senior. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
+`planner handoff verify <APP-id>` lists every item changed, added or removed since. A changed slice, the tracer included, is a changed item, so it reaches the senior. It exits 1 when something the senior accepted changed or left the handoff list, and 0 when the only news is an added item.
 
 A senior who disputes a boundary or contract after handoff, or an owner who disputes a decision made on their behalf, raises a challenge: an open unknown with the senior as owner that blocks the item, and a `**Dissent:**` line on it. The item's state and text stay as they are, so the check fails with E316 until the solution lead answers. To reopen an epic, set it to `reopened`. A `reopened` epic counts as not decided until a Grill decides it again. A Grill decides a `reopened` epic as it decides a `draft` one, and its `## Changes` row reads `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |`. The red check is deliberate: it blocks the merge wherever planner-check is a required check, so a challenge cannot merge while `main` still reads `decided` with an open blocker. The solution lead answers on the challenge branch, by resolving the unknown with a Grill or by setting the item back, and then the check turns green. START's "Answer a challenge" path opens that answer session on the branch, and close pushes to it and comments on the challenge PR instead of opening a second one.

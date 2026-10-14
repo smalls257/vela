@@ -13,7 +13,6 @@ Customers change or cancel their own booking online instead of phoning, which is
 
 - **Flows:** [[FLO-002-amend-or-cancel|FLO-002]]
 - **After:** SLC-001
-- **Joins:** [[booking-building-blocks#CON-001 Booking API|Booking API]] (Website → Booking), [[customer-identity-building-blocks#CON-005 Customer lookup|Customer lookup]] (Booking → Customer identity), [[vessel-schedule-building-blocks#CON-004 Capacity check|Capacity check]] (Booking → Vessel schedule), [[pricing-building-blocks#CON-003 Quote a fare|Quote a fare]] (Booking → Pricing), [[ferrymaster-building-blocks#CON-006 Ledger transactions|Ledger transactions]] (Booking → FERRYMASTER), [[booking-building-blocks#CON-002 Booking state changed|Booking state changed]] (Booking → Notifications)
 - **Ships switched off:** the website pages stay hidden until the website's 4-week switch window closes
 - **Done when:** a customer amends a booking up and down and cancels one on the website, and is told each change
 - **Owner:** @hl-solution-lead

@@ -10,7 +10,7 @@
 - Acceptance criteria: an epic's criteria in either shape, numbered lines under "acceptance criteria" or headed ones
   under "Done when", as `criteria.read` reads them (and so `trace.ac_markers`); a requirement's plain bullets under its heading, as `releases.criteria_count` counts them.
 - Failure behaviour: the runtime page's sections whose heading `ladder.FAILURE` accepts.
-- An engineer's slice: `handoff.slice_of`, the same list a handoff manifest records.
+- An app's handoff list: `handoff.handoff_list`, the same list a handoff manifest records.
 """
 import re
 
@@ -196,8 +196,8 @@ def tested_by(vault):
     return {c.id: plain(c.fact("Tested by")) for c in vault.contracts}
 
 
-def slices(vault, keys):
-    return {keys.page(app): [{"id": e.id, "kind": e.kind, "state": e.state} for e in handoff.slice_of(vault, app)]
+def handoff_lists(vault, keys):
+    return {keys.page(app): [{"id": e.id, "kind": e.kind, "state": e.state} for e in handoff.handoff_list(vault, app)]
             for app in vault.apps}
 
 
@@ -216,5 +216,4 @@ def extract(vault, keys):
             "releases": release_data(vault, keys), "goals": goals(vault, keys), "constraints": constraints(vault, keys),
             "riskList": risks(vault, keys), "epicCriteria": epic_criteria(vault, keys),
             "reqCriteria": requirement_criteria(vault, keys), "failure": failure(vault, keys),
-            "testedBy": tested_by(vault), "slices": slices(vault, keys), "cells": cells(vault, keys),
-            "slicePlan": slices_data.extract(vault, keys)}
+            "testedBy": tested_by(vault), "handoffList": handoff_lists(vault, keys), "cells": cells(vault, keys)}

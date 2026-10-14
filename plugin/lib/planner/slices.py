@@ -5,8 +5,10 @@ This is the one place that reads a slice. check-slice, check's slice rules, the 
 all ask it, and nothing else reads the bullets behind it: a Shield against the Distributed Monolith in which every
 caller parses slice pages (or the releases page) its own way, and one reader's idea of "the tracer" drifts from another's.
 
-A slice lives on its own page, `slices/SLC-nnn-<slug>.md`, with `**Status:**`, `**Flows:**`, `**After:**`, `**Joins:**`
-and the rest as bullets under the title. A vault with no slice pages yet is read the old way, so nothing breaks while a
+A slice lives on its own page, `slices/SLC-nnn-<slug>.md`, with `**Status:**`, `**Flows:**`, `**After:**` and the rest
+as bullets under the title. The joins it crosses are not written on the page: they are read from its flows' steps
+(`flows.steps`), which already name each contract with its sender and receiver, so a hand-written list cannot drift from
+the flows. A page that still has the old `**Joins:**` bullet is told so by check (W405), never quietly obeyed. A vault with no slice pages yet is read the old way, so nothing breaks while a
 lead moves over: release one's `**Tracer:**` flows are the tracer slice, and a later release's `**Flows:**` bullet names
 its own, each after the one before. `planner check` says, once, that the vault is still on the old way (W399): the
 fallback is never silent.
@@ -19,7 +21,7 @@ from planner import releases, schema
 STATUSES = schema.SLICE_STATUSES
 PAGE_TYPE = "slice"
 SLICE_ID = re.compile(r"\bSLC-\d{3}\b")
-CONTRACT_ID = re.compile(r"\bCON-\d{3}\b")
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 JOURNEY = re.compile(rf"^passed (?P<date>\d{{4}}-\d{{2}}-\d{{2}}) by (?P<by>{schema.HANDLE}), (?P<evidence>\S.*)$")
 NOT_IN_HEADING = "not in this slice"
 
@@ -43,11 +45,12 @@ class Slice:
     line: int  # the bullet that names them (the title when there is none)
     order: int  # 0 for the first slice; slices come in After order, ties by ID
     after: tuple = ()  # keys of the slices it comes after; a release's slice comes after the release before it
-    joins: tuple = ()  # contract ids it crosses, in the order written
-    sides: tuple = ()  # (contract id, sender, receiver) as the Joins bullet names them in brackets
+    joins: tuple = ()  # contract ids its flows' steps cross, in flow and step order
+    sides: tuple = ()  # (contract id, sender, receiver) for each join, as the first step that crosses it names its ends
     status: str = ""  # one of STATUSES, or "" until a grill plans it (or for a slice read from the releases page)
     status_raw: str = ""  # as written, so a misspelt status is reported, never read as "not planned yet"
     journey: Journey = None
+    journey_due: str = ""  # the Journey due bullet as written: the date the team expects the journey to run
     owner: str = ""
     ships_off: str = ""
     done_when: str = ""
@@ -88,9 +91,8 @@ def on_pages(vault):
 def read_slices(vault):
     """Every slice in the vault, in order: from slice pages when there are any, else from the releases page."""
     found = pages(vault)
-    if found:
-        return _in_order([read_page(p) for p in found])
-    return _from_releases(vault)
+    read = _in_order([read_page(p) for p in found]) if found else _from_releases(vault)
+    return _with_joins(vault, read)
 
 
 def read_page(page):
@@ -101,7 +103,7 @@ def read_page(page):
 
     lines = {}
     values = {}
-    for label in schema.SLICE_LABELS:
+    for label in schema.SLICE_LABELS + schema.RETIRED_SLICE_LABELS:
         b = bullet(label)
         if b is not None:
             lines[label], values[label] = b.line, b.value.strip()
@@ -115,9 +117,9 @@ def read_page(page):
     journey = read_journey(values["Journey"], lines["Journey"]) if "Journey" in values else None
     title = str(page.meta.get("title") or page.id)
     return Slice(page.id, title, tuple(flows), page.path, lines.get("Flows", 1), 0,
-                 after=_ids(SLICE_ID, values.get("After", "")), joins=_ids(CONTRACT_ID, values.get("Joins", "")),
-                 sides=tuple(read_sides(values.get("Joins", ""))),
+                 after=_ids(SLICE_ID, values.get("After", "")),
                  status=status if status in STATUSES else "", status_raw=status_raw, journey=journey,
+                 journey_due=values.get("Journey due", ""),
                  owner=values.get("Owner", ""), ships_off=values.get("Ships switched off", ""),
                  done_when=values.get("Done when", ""), milestone=values.get("Milestone", ""),
                  not_in=tuple(_not_in(page)), flows_none=flows_none, from_page=True, lines=lines)
@@ -128,6 +130,38 @@ def read_journey(value, line):
     if not m:
         return Journey("", "", "", line, "is not 'passed YYYY-MM-DD by @who, <where the run's result is>'")
     return Journey(m["date"], m["by"], m["evidence"].strip(), line)
+
+
+def _with_joins(vault, found):
+    """Each slice with the joins its flows cross, read from the flows' steps: one read of the steps for all slices."""
+    from planner import flows  # flows reads the vault's pages; slices is imported by modules flows does not need
+    contract_ids = {c.id for c in vault.contracts}
+    by_flow = {}
+    for step in flows.steps(vault):
+        by_flow.setdefault(step.page.id, []).append(step)
+    out = []
+    for s in found:
+        sides = {}
+        for fid in s.flows:
+            for step in by_flow.get(fid, ()):
+                for contract in step.contracts:
+                    if contract.id in contract_ids and contract.id not in sides:
+                        sender, receiver = (_plain(step.pair[0]), _plain(step.pair[1])) if step.pair else ("", "")
+                        sides[contract.id] = (contract.id, sender, receiver)
+        out.append(replace(s, joins=tuple(sides), sides=tuple(sides.values())))
+    return out
+
+
+def journey_overdue(s, today):
+    """True when the slice's Journey due date has passed and no readable Journey line records the run: the team said
+    when it would run, and nothing says it did. A due date that does not read is check's to report (W400), not a guess."""
+    return bool(DATE.match(s.journey_due)) and s.journey_due < today and (s.journey is None or bool(s.journey.problem))
+
+
+def journey_overdue_says(s):
+    """The plain words a reader sees for an overdue journey, after the slice's name: on the dashboard and in check."""
+    recorded = "its Journey line does not read" if s.journey is not None else "nothing is recorded"
+    return f"its journey was due {s.journey_due} and {recorded}"
 
 
 def _ids(pattern, value):
@@ -184,9 +218,17 @@ def _in_order(found):
     return [replace(s, order=n) for n, s in enumerate(out)]
 
 
+def roots(found):
+    """The slices that come after nothing, in slice order: the tracer, when there is exactly one."""
+    return [s for s in found if not s.after]
+
+
 def tracer(found):
-    """The tracer: the first slice, built first and kept. None when the vault names no slice."""
-    return found[0] if found else None
+    """The tracer: the one slice with no After, built first and kept. Every other slice comes after it, or after one
+    that does. When two or more name no After, the first by ID stands in and check says so (W406); when none does (a
+    circle, E394), there is no tracer. None when the vault names no slice."""
+    first = roots(found)
+    return first[0] if first else None
 
 
 def upstream(found, chosen):
@@ -228,44 +270,29 @@ def milestones(vault):
     return out
 
 
-SIDES = re.compile(r"(CON-\d{3})[^()]*?\(([^()]+?)\s*(?:→|->)\s*([^()]+?)\)")
-
-
-def read_sides(value):
-    """(contract id, sender, receiver) for each join written `<contract> (<sender> → <receiver>)`."""
-    for m in SIDES.finditer(value):
-        yield m.group(1), _plain(m.group(2)), _plain(m.group(3))
-
-
 def _plain(text):
     """A side as words: a link reads as its label."""
     return " ".join(re.sub(r"\[\[[^\]|]*\|([^\]]+)\]\]|\[\[([^\]]+)\]\]", lambda m: m.group(1) or m.group(2), text).split())
 
 
-def names(app):
-    """The words a slice page may call an app by: its title or its slug, ignoring case."""
-    return {str(app.meta.get("title") or "").lower(), app.id.removeprefix("APP-").replace("-", " ").lower()} - {""}
-
-
-def _calls(side, app):
-    """A side names the app when its words are the app's name or a part of it ("Kiosks" for "Port kiosks")."""
-    words = set(side.lower().split())
-    return bool(words) and any(words <= set(n.split()) or set(n.split()) <= words for n in names(app))
+def taking_part(vault, found):
+    """{slice key: [app id]}: the apps each slice takes part in, in vault order. An app takes part when a flow of the
+    slice has a step to or from it, or the slice joins a contract it provides. Consuming a joined contract is not
+    enough: three channels consume one booking API, and only the channel a slice moves takes part in it. The one rule
+    behind the handoff, the dashboard's team filter and planner next."""
+    from planner import flows, progress
+    provided = {app.id: {c.id for c in progress.provided(vault, app) if not c.fact("Provider")} for app in vault.apps}
+    out = {}
+    for s in found:
+        apps, _ = flows.passes_through(vault, s.flows)
+        out[s.key] = [app.id for app in vault.apps if app.id in apps or provided[app.id] & set(s.joins)]
+    return out
 
 
 def for_app(vault, found, app):
-    """The slices an app takes part in: a flow of the slice has a step to or from it, a join names it on one side,
-    or the slice joins a contract it provides. Consuming a joined contract is not enough: three channels consume one
-    booking API, and only the channel a slice moves takes part in it."""
-    from planner import flows, progress
-    provided = {c.id for c in progress.provided(vault, app) if not c.fact("Provider")}
-    out = []
-    for s in found:
-        apps, _ = flows.passes_through(vault, s.flows)
-        sided = any(_calls(sender, app) or _calls(receiver, app) for _, sender, receiver in s.sides)
-        if app.id in apps or sided or provided & set(s.joins):
-            out.append(s)
-    return out
+    """The slices an app takes part in (taking_part), in slice order."""
+    part = taking_part(vault, found)
+    return [s for s in found if app.id in part[s.key]]
 
 
 # What moves a slice on from each status, in words for `planner next`. Vela plans and records; the teams run things.

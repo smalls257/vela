@@ -53,14 +53,14 @@ def test_a_slice_page_is_read_for_every_field():
     v = vault_of(("SLC-002", page("SLC-002", "The digest reaches a pilot user", "**Status:** Journey  passes",
                                   "**Flows:** [[FLO-002-get-morning-digest|FLO-002]], [[FLO-001-a|FLO-001]]",
                                   "**After:** SLC-001 (the tracer)",
-                                  "**Joins:** [[a#CON-004 Record consent|Record consent]] (Desk agent → Consent), CON-007 Calendar read",
                                   "**Ships switched off:** a per-user flag", "**Done when:** the digest journey passes",
-                                  "**Owner:** @lead", "**Milestone:** Pilot",
+                                  "**Owner:** @lead", "**Milestone:** Pilot", "**Journey due:** 2026-11-28",
                                   "**Journey:** passed 2026-11-30 by @desk-senior, [the run](https://ci.example/1)",
                                   extra="\n## Not in this slice\n\n- Transcripts (CAP-001.FR1): waits on the review\n")))
     (s,) = slices.read_slices(v)
     assert (s.id, s.name, s.key, s.flows, s.after, s.joins) == ("SLC-002", "The digest reaches a pilot user", "SLC-002",
-                                                                  ("FLO-002", "FLO-001"), ("SLC-001",), ("CON-004", "CON-007"))
+                                                                  ("FLO-002", "FLO-001"), ("SLC-001",), ())
+    assert s.journey_due == "2026-11-28" and not slices.journey_overdue(s, "2026-12-01")  # the journey is recorded
     assert s.status == "journey passes" and s.at_least("building") and not s.at_least("live but off")
     assert (s.ships_off, s.done_when, s.owner, s.milestone) == ("a per-user flag", "the digest journey passes", "@lead", "Pilot")
     assert s.journey.date == "2026-11-30" and s.journey.by == "@desk-senior" and not s.journey.problem
@@ -78,6 +78,24 @@ def test_slices_come_in_after_order_ties_by_id_and_a_circle_is_found():
     assert slices.cycles(found) == []
     loop = vault_of(("SLC-001", page("SLC-001", "a", "**After:** SLC-002")), ("SLC-002", page("SLC-002", "b", "**After:** SLC-001")))
     assert slices.cycles(slices.read_slices(loop)) == [("SLC-001", "SLC-002")]
+    assert slices.tracer(slices.read_slices(loop)) is None  # every slice names an After: none is the tracer
+
+
+def test_the_tracer_is_the_one_slice_with_no_after_whatever_its_id():
+    v = vault_of(("SLC-001", page("SLC-001", "a", "**After:** SLC-002")), ("SLC-002", page("SLC-002", "b")))
+    assert slices.tracer(slices.read_slices(v)).id == "SLC-002"
+
+
+def test_w406_two_slices_with_no_after_or_none_at_all(example):
+    write(example, "SLC-004", page("SLC-004", "d", "**Flows:** [[FLO-002-amend-or-cancel|FLO-002]]"))
+    assert lines(example, "W406") == [
+        "slices/SLC-004-x.md:12: W406 SLC-001 and SLC-004 name no After, and only the tracer comes after nothing, so SLC-001 stands in "
+        "as the tracer by its ID. Fix: Give SLC-004 an After line naming the slice it builds on (the tracer, SLC-001, if nothing else)."]
+    write(example, "SLC-004", page("SLC-004", "d", "**Flows:** [[FLO-002-amend-or-cancel|FLO-002]]", "**After:** SLC-001"))
+    assert lines(example, "W406") == []
+    write(example, "SLC-001", page("SLC-001", "a", "**Flows:** [[FLO-001-hold-pay-confirm|FLO-001]]", "**After:** SLC-004"))
+    found = lines(example, "W406")
+    assert len(found) == 1 and "Every slice names an After, so none is the tracer" in found[0]
 
 
 def test_without_slice_pages_the_releases_page_is_read_and_each_release_comes_after_the_last():
@@ -100,13 +118,54 @@ def test_a_release_names_its_slices_as_a_milestone(example):
     assert sorted(marked) == ["SLC-001", "SLC-004"] and marked["SLC-001"][0].name == "Release one: website"
 
 
+KIOSK_FLOW = """---
+id: FLO-009
+type: flow
+title: A kiosk books
+state: assumption
+owner: "@hl-solution-lead"
+authored: authored
+---
+
+# A kiosk books
+
+A customer at a kiosk holds a seat, and Booking checks capacity.
+
+## Steps
+
+1. [[kiosks-building-blocks|Kiosks]] → [[booking-building-blocks|Booking]]: holds a seat, over [[booking-building-blocks#CON-001 Booking API|Booking API]].
+2. [[booking-building-blocks|Booking]] → [[vessel-schedule-building-blocks|Vessel schedule]]: checks capacity, over [[vessel-schedule-building-blocks#CON-004 Capacity check|Capacity check]].
+3. [[booking-building-blocks|Booking]] → [[kiosks-building-blocks|Kiosks]]: answers with the hold, over [[booking-building-blocks#CON-001 Booking API|Booking API]].
+"""
+
+
+def with_kiosk_flow(vault):
+    """The example's flows predate step pairs, so they name no joins; a kiosk flow in the current form does."""
+    (vault / "06-runtime" / "flows" / "FLO-009-a-kiosk-books.md").write_text(KIOSK_FLOW, encoding="utf-8")
+    path = next((vault / "slices").glob("SLC-003-*.md"))
+    path.write_text(path.read_text(encoding="utf-8").replace("[[FLO-001-hold-pay-confirm|FLO-001]]", "[[FLO-009-a-kiosk-books|FLO-009]]"),
+                    encoding="utf-8")
+    return path
+
+
+def test_a_slice_reads_its_joins_from_its_flows_steps_with_both_sides(example):
+    with_kiosk_flow(example)
+    vault = cli.load_vault(example)
+    s = next(x for x in slices.read_slices(vault) if x.id == "SLC-003")
+    assert s.joins == ("CON-001", "CON-004")  # in step order, each once: the answer over CON-001 adds nothing
+    assert s.sides == (("CON-001", "Kiosks", "Booking"), ("CON-004", "Booking", "Vessel schedule"))
+
+
 def test_the_slices_an_app_takes_part_in(example):
+    with_kiosk_flow(example)
     vault = cli.load_vault(example)
     found = slices.read_slices(vault)
     kiosks = next(a for a in vault.apps if a.id == "APP-kiosks")
     booking = next(a for a in vault.apps if a.id == "APP-booking")
-    assert [s.id for s in slices.for_app(vault, found, booking)] == ["SLC-001", "SLC-002", "SLC-003", "SLC-004"]
-    assert "SLC-003" in [s.id for s in slices.for_app(vault, found, kiosks)]
+    website = next(a for a in vault.apps if a.id == "APP-website")
+    assert [s.id for s in slices.for_app(vault, found, kiosks)] == ["SLC-003"]
+    assert [s.id for s in slices.for_app(vault, found, booking)] == ["SLC-003"]  # it provides a contract the slice joins
+    assert slices.for_app(vault, found, website) == []  # the example's own flows name no step pairs, so no joins
 
 
 # --- the vault rules ---------------------------------------------------------------------------------------------
@@ -131,12 +190,39 @@ def test_w392_a_slice_with_no_flows_and_w345_for_the_tracer(example):
     assert len(lines(example, "W345")) == 1
 
 
-def test_w393_flows_after_or_joins_naming_nothing(example):
-    write(example, "SLC-004", page("SLC-004", "d", "**Flows:** [[FLO-002-amend-or-cancel|FLO-002]], FLO-099", "**After:** SLC-009",
-                                   "**Joins:** CON-001, CON-099"))
+def test_w393_flows_or_after_naming_nothing(example):
+    write(example, "SLC-004", page("SLC-004", "d", "**Flows:** [[FLO-002-amend-or-cancel|FLO-002]], FLO-099", "**After:** SLC-009"))
     said = [line.split(" W393 ", 1)[1].split(" Fix:")[0] for line in lines(example, "W393")]
-    assert said == ["SLC-004's Flows names FLO-099, which is not in this vault.", "SLC-004's After names SLC-009, which is not in this vault.",
-                    "SLC-004's Joins names CON-099, which is not in this vault."]
+    assert said == ["SLC-004's Flows names FLO-099, which is not in this vault.", "SLC-004's After names SLC-009, which is not in this vault."]
+
+
+def test_w405_a_joins_line_left_on_a_slice_page_is_said_once_and_not_read(example):
+    write(example, "SLC-004", page("SLC-004", "d", "**Flows:** [[FLO-002-amend-or-cancel|FLO-002]]", "**After:** SLC-001",
+                                   "**Joins:** CON-001, CON-099"))
+    found = lines(example, "W405")
+    assert found == ["slices/SLC-004-x.md:14: W405 SLC-004 still has a Joins line, which is no longer read: a slice's joins come "
+                     "from its flows' steps, which name each contract with its sender and receiver. Fix: Delete the Joins line. "
+                     "If a join is missing from the slice, the flow step that crosses it is missing; add it to the flow."]
+    assert next(s for s in slices.read_slices(cli.load_vault(example)) if s.id == "SLC-004").joins == ()
+    assert lines(example, "W393") == [] and lines(example, "E321") == [] and lines(example, "E322") == []
+
+
+def test_w400_a_journey_due_date_that_passed_with_nothing_recorded(example):
+    base = ("**Status:** building", "**Flows:** [[FLO-002-amend-or-cancel|FLO-002]]", "**After:** SLC-001")
+    write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** 2026-11-20"))
+    assert lines(example, "W400", "2026-11-20") == []  # due today is not late
+    assert lines(example, "W400", "2026-11-21") == [
+        "slices/SLC-004-x.md:15: W400 SLC-004 Amend online: its journey was due 2026-11-20 and nothing is recorded. Fix: Record the run as "
+        "'- **Journey:** passed YYYY-MM-DD by @who, <link to the run>', or write the new Journey due date and say in History why it moved."]
+    write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** 2026-11-20", "**Journey:** it ran"))
+    assert "its Journey line does not read" in lines(example, "W400", "2026-11-21")[0]
+    write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** 2026-11-20",
+                                   "**Journey:** passed 2026-11-19 by @qa, [run](https://ci.example/9)"))
+    assert lines(example, "W400", "2026-11-21") == []
+    write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** end of November"))
+    assert lines(example, "W400", "2026-11-21") == ["slices/SLC-004-x.md:15: W400 SLC-004's Journey due says 'end of November', which "
+                                                    "is not a YYYY-MM-DD date. Fix: Write the date the team expects the journey to run, "
+                                                    "as '- **Journey due:** YYYY-MM-DD'."]
 
 
 def test_e394_slices_after_each_other_in_a_circle(example):
@@ -275,6 +361,8 @@ def test_w347_on_a_slice_a_release_lists_and_not_in_this_slice_answers_it(tmp_pa
 # --- the handoff names the slices an app takes part in --------------------------------------------------------------
 
 def test_the_handoff_lists_the_slices_an_app_takes_part_in_and_verify_sees_a_changed_join_not_a_status_move(example):
+    flow = example / "06-runtime" / "flows" / "FLO-009-a-kiosk-books.md"
+    with_kiosk_flow(example)
     code, out = run("handoff", "APP-kiosks", "--vault", str(example), "--today", TODAY, "--commit", "abc1234", "--replace")
     assert code == 0, out
     assert "APP-kiosks takes part in 1 slice: SLC-003 Kiosks book through Booking in the March image (not planned yet)." in out
@@ -287,9 +375,10 @@ def test_the_handoff_lists_the_slices_an_app_takes_part_in_and_verify_sees_a_cha
     path.write_text(text.replace("- **After:** SLC-002\n", "- **Status:** planned\n- **After:** SLC-002\n")
                     .replace("## History\n", "## History\n\n- 2026-11-21: planned by @hl-solution-lead.\n"), encoding="utf-8")
     assert run(*verify)[0] == 0  # a status move is the teams' own, not a change to accept
-    path.write_text(path.read_text(encoding="utf-8").replace("Kiosks → Booking", "Kiosks → Booking, through the kiosk gateway"), encoding="utf-8")
+    flow.write_text(flow.read_text(encoding="utf-8").replace("checks capacity, over", "checks the fare, over")
+                    .replace("vessel-schedule-building-blocks#CON-004 Capacity check|Capacity check", "pricing-building-blocks#CON-003 Quote a fare|Quote a fare"), encoding="utf-8")
     code, out = run(*verify)
-    assert code == 1 and "SLC-003 (slice" in out
+    assert code == 1 and "SLC-003 (slice" in out  # the join changed in the flow, and the slice it is part of says so
 
 
 # --- planner next -------------------------------------------------------------------------------------------------

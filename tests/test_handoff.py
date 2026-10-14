@@ -81,7 +81,7 @@ def test_an_item_gone_from_the_slice_is_removed_and_fails(mini):
     edit(mini / "05-building-blocks/stock-building-blocks.md", "[[shop-building-blocks|Shop]]", "none")
     code, out = verify(mini)
     assert code == 1
-    assert "changed: CON-002 (consumes, 05-building-blocks/stock-building-blocks.md): text changed, no longer in this app's slice" in out
+    assert "changed: CON-002 (consumes, 05-building-blocks/stock-building-blocks.md): text changed, no longer in this app's handoff list" in out
     assert "removed:" not in out
 
 
@@ -101,7 +101,7 @@ def test_a_resolved_blocking_unknown_is_changed_not_removed(mini):
     edit(mini / "11-unknowns-and-risks.md", "- **State:** open\n- **Ask by:**", "- **State:** resolved\n- **Ask by:**")
     code, out = verify(mini)
     assert code == 1, out
-    assert "changed: UNK-001 (unknown, 11-unknowns-and-risks.md): state open -> resolved, text changed, no longer in this app's slice" in out
+    assert "changed: UNK-001 (unknown, 11-unknowns-and-risks.md): state open -> resolved, text changed, no longer in this app's handoff list" in out
     assert "removed:" not in out
 
 

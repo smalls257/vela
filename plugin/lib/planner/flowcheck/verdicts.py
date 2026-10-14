@@ -11,16 +11,40 @@ from planner import flowcheck
 from planner.model import Finding
 
 
+def checked(catalog, found, today, max_states):
+    """The flow checker's result for one slice, or None when check leaves it to check-slice: a slice that names no flow,
+    or one with nothing drawn that is not building yet. The one place that decides which slices check runs, so the
+    dashboard's flow-check state and check's W391 and W395 can never judge different slices."""
+    drawn = any(catalog.flows[f].has_diagram for f in found.flows if f in catalog.flows)
+    if not found.flows or not (drawn or found.at_least("building")):
+        return None
+    return flowcheck.check_catalog(catalog, found.key, today, max_states)
+
+
+def state(catalog, found, today, max_states):
+    """Where one slice's flow check stands, for a reader: its status ("passes", "fails", "not fully checked", "fails,
+    and is not fully checked", or "not run" when check leaves it to check-slice), the open findings by name, how many an
+    override covers, and every override that could cover a finding of the slice, with its end date and whether it has
+    ended (an ended override covers nothing: E398)."""
+    result = checked(catalog, found, today, max_states)
+    rules = [o for f in found.flows if f in catalog.flows for o in catalog.flows[f].overrides]
+    rules += list(catalog.slice_overrides.get(found.key, ()))
+    overrides = [{"code": o.code, "item": o.item, "case": o.case, "until": o.until, "ended": o.until < today, "text": o.text,
+                  "where": o.where} for o in sorted(set(rules), key=lambda o: o.where)]
+    if result is None:
+        return {"status": "not run", "open": [], "covered": 0, "overrides": overrides}
+    open_ = [f for f in result.findings if f.severity == "error"]
+    return {"status": result.status, "open": sorted({flowcheck.TITLES.get(f.code, f.code).lower() for f in open_}),
+            "covered": sum(1 for f in result.findings if f.severity == "covered"), "overrides": overrides}
+
+
 def findings(catalog, today, max_states):
     out = []
     for found in catalog.slices:
-        drawn = any(catalog.flows[f].has_diagram for f in found.flows if f in catalog.flows)
+        result = checked(catalog, found, today, max_states)
+        if result is None or result.status == "passes":
+            continue
         building = found.at_least("building")
-        if not found.flows or not (drawn or building):
-            continue
-        result = flowcheck.check_catalog(catalog, found.key, today, max_states)
-        if result.status == "passes":
-            continue
         open_ = [f for f in result.findings if f.severity == "error"]
         names = sorted({flowcheck.TITLES.get(f.code, f.code).lower() for f in open_})
         what = f"{len(open_)} open finding{'' if len(open_) == 1 else 's'} ({', '.join(names)})"

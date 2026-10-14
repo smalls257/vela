@@ -28,12 +28,12 @@ def test_each_lead_side_skill_carries_its_tracer_guidance():
     assert "**Not in the tracer:**" in read("references/TECH-DESIGN-FROM-VAULT.md")
 
 
-def test_the_tracer_is_explained_where_a_skill_first_says_it_and_is_the_first_slice():
+def test_the_tracer_is_explained_where_a_skill_first_says_it_and_is_the_slice_with_no_after():
     # The amendment of 2026-10-13: a slice is the unit of done and the tracer is slice one, so a sentence may say both.
     for name in ("boundary", "releases", "grill", "epics"):
         text = skill_text(name)  # the tracer is defined once, in CONVENTIONS; each skill names it the first thin path
         assert "first thin path" in text and ("Releases" in text or "Slices" in text), name
-    assert "The tracer is the first slice, SLC-001" in (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    assert "The tracer is the one slice with no After, usually SLC-001" in (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
 
 
 def test_the_tracer_has_one_definition_and_boundary_hands_the_candidate_to_releases():

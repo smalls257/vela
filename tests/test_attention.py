@@ -160,3 +160,19 @@ def test_an_unexamined_concern_is_named_by_its_title(tmp_path):
     found, _ = lit(vault)
     texts = [r["text"] for r in found["APP-booking"].reasons if r["kind"] == "unexamined"]
     assert texts == ["Cost never examined"], texts
+
+
+def test_a_slice_whose_journey_is_past_due_with_nothing_recorded_is_a_warning_in_plain_words(tmp_path):
+    vault = tmp_path / "v"
+    shutil.copytree(FIXTURE, vault)
+    page = next((vault / "slices").glob("SLC-004-*.md"))
+    page.write_text(page.read_text(encoding="utf-8").replace("- **Owner:**", "- **Status:** building\n- **Journey due:** 2026-11-19\n- **Owner:**", 1),
+                    encoding="utf-8")
+    found, _ = lit(vault, "2026-11-19")
+    assert "SLC-004" not in found  # due today is not late
+    found, _ = lit(vault, "2026-11-20")
+    light = found["SLC-004"]
+    assert light.level == "warning" and light.urgency == 1.0
+    name = next(p for p in cli.load_vault(vault).pages if p.id == "SLC-004")
+    assert light.reasons == [{"kind": "journey-due", "text": "its journey was due 2026-11-19 and nothing is recorded"}] and name.meta["title"]
+    assert [s for s, _ in attention.ranked(found)][0] == "SLC-004"

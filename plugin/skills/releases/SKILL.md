@@ -38,7 +38,9 @@ Label every line with what it rests on: a source, the user's words, or `(claude)
 
 ## 3. Write the confirmed slices and releases
 
-Each slice is a page, `slices/SLC-nnn-<slug>.md`, numbered with `planner next-id SLC`, the tracer SLC-001. Write it in the form `CONVENTIONS.md` gives under "Slices": the title says the journey in the user's words, an opening of two or three sentences, then `**Flows:**`, `**After:**` (not on the tracer), `**Joins:**` with both sides of each contract, `**Ships switched off:**`, `**Done when:**`, `**Owner:**` and `**Milestone:**` when a release lists it, then `## Not in this slice` and `## History` with a dated line saying what it was written from. Leave `**Status:**` out: a Grill sets `planned`.
+Each slice is a page, `slices/SLC-nnn-<slug>.md`, numbered with `planner next-id SLC`, the tracer SLC-001. Write it in the form `CONVENTIONS.md` gives under "Slices": the title says the journey in the user's words, an opening of two or three sentences, then `**Flows:**`, `**After:**` (not on the tracer), `**Ships switched off:**`, `**Done when:**`, `**Owner:**` and `**Milestone:**` when a release lists it, then `## Not in this slice` and `## History` with a dated line saying what it was written from. Leave `**Status:**` out: a Grill sets `planned`. Write no joins: they are read from the flows' steps, so a join missing from a slice means a step missing from a flow, and boundary is where it gets drawn.
+
+When the lead says a slice has moved to `building`, ask when its journey should run, and write the date they give as `- **Journey due:** YYYY-MM-DD` under Owner. Write no date nobody gave: without one, nothing reminds anyone the journey is late.
 
 On `04b-releases.md`, one section per release, in the order they ship:
 

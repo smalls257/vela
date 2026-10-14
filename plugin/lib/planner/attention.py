@@ -5,7 +5,8 @@ same things by the same rule, so this is the rule. It follows the early-warning 
 a subject's light is its single worst sign, never an average, because one overdue answer matters however calm
 the rest is. Levels, most urgent first:
 
-  warning     an open question holding it is past its ask-by date
+  warning     an open question holding it is past its ask-by date, or a slice's journey is past its due date with
+              nothing recorded
   caution     not decided yet, or held by an open question
   pending     decided by a reader and not yet reviewed by the owner: an unsettled claim that looks settled
   unexamined  no state recorded, or a concern cell nobody has looked at: dark has to be earned
@@ -22,7 +23,7 @@ Every light carries its reasons, in words, so a page can say why something is li
 import datetime
 from dataclasses import dataclass, field
 
-from planner import model, override, pending, progress, trace
+from planner import model, override, pending, progress, slices, trace
 
 LEVELS = ("warning", "caution", "pending", "unexamined", "override", "dark")
 SETTLED = ("decided", "fact")
@@ -114,9 +115,9 @@ def settle(light, state, unexamined=(), overrides=(), marker=None):
 
 
 def lights(vault, as_of):
-    """{subject id: Light} for every app page, contract and flow, and "above": open questions that hold
-    something not on a map (the strategy, a goal, another question), so a page can show them instead of
-    dropping them."""
+    """{subject id: Light} for every app page, contract and flow, each slice whose journey is overdue, and "above":
+    open questions that hold something not on a map (the strategy, a goal, another question), so a page can show them
+    instead of dropping them."""
     blockers = model.blockers(vault)
     out = {}
     epics = trace.epics(vault)
@@ -154,6 +155,11 @@ def lights(vault, as_of):
                                   "text": f"line {line} reads {unknown_id} as open; the record says resolved"})
             light.raise_to("caution", 0.35)
         settle(light, str(flow.meta.get("state") or ""), marker=pending.pending_for(flow))
+    for s in slices.read_slices(vault):  # a journey past its due date with nothing recorded needs the lead
+        if s.id and slices.journey_overdue(s, as_of):
+            light = out.setdefault(s.id, Light())
+            light.reasons.append({"kind": "journey-due", "text": slices.journey_overdue_says(s)})
+            light.raise_to("warning", 1.0)
     for marker in pending.items(vault):  # a reader's decision on any other page or item is lit too
         subject = marker.item or next((p.id for p in vault.pages if p.path == marker.path), "")
         if subject and subject not in out:
