@@ -57,23 +57,34 @@ def _unfirm(vault, app):
         yield Gap("unfirm", entry.id, page, line, _unfirm_sentence(vault, entry, page))
 
 
+# How a not-yet-firm state reads in a sentence. "is still assumption" read as broken English to every reader the
+# wording audit tried; the user ruled assumption reads "not decided yet".
+STATE_PHRASE = {"inkling": "is only an early idea so far", "assumption": "is not decided yet", "draft": "is still a draft"}
+# The one sentence for a contract without a case table, shared with W380 so check and next don't read as two problems.
+NO_CASE_TABLE = "doesn't list what it returns when a call fails"
+
+
+def state_phrase(state):
+    return STATE_PHRASE.get(state, f"is {state}")
+
+
 def _unfirm_sentence(vault, entry, page):
     name = name_of(vault, entry)
-    base = f"{name} ({entry.id}) is still {entry.state}: nobody has decided it."
+    phrase = state_phrase(entry.state)
     if entry.kind == "epic":
         count = sum(1 for c in criteria.read(page) if not c.struck)
         if count:
-            return f"{name} ({entry.id}) is still {entry.state}, and so are its {count} acceptance criteria: nobody has said yes to what done means."
+            return f"{name} ({entry.id}) {phrase}, and the same goes for its {count} acceptance criteria: nobody has agreed what finished looks like."
     if entry.kind == "requirement":
-        return f"{name} ({entry.id}) is still {entry.state}, and so are its acceptance criteria."
-    return base
+        return f"{name} ({entry.id}) {phrase}, and the same goes for its acceptance criteria."
+    return f"{name} ({entry.id}) {phrase}: nobody has said yes to it."
 
 
 def _without_case_tables(vault, app):
     for contract in progress.provided(vault, app) + progress.consumed(vault, app):
         if cases.case_table(contract.page, contract) is None:
             yield Gap("no-case-table", contract.id, contract.page, contract.line,
-                      f"{contract.name} ({contract.id}) has no case table: what it answers when something goes wrong is not written down.")
+                      f"{contract.name} ({contract.id}) {NO_CASE_TABLE}, so nobody can say how a failed call is answered.")
 
 
 def _undesigned_providers(vault, app):
@@ -86,10 +97,11 @@ def _undesigned_providers(vault, app):
     for provider_id, contracts in sorted(by_provider.items()):
         provider = providers[provider_id]
         first = contracts[0]
-        names = ", ".join(f"{c.name} ({c.id})" for c in contracts)
+        said = [f"{c.name} ({c.id})" for c in contracts]
+        names = said[0] if len(said) == 1 else ", ".join(said[:-1]) + " and " + said[-1]
         yield Gap("no-designer", provider.id, first.page, first.line,
-                  f"{provider.meta.get('title', provider.id)} provides {names} to {app.meta.get('title', app.id)}, and nobody has designed it yet: "
-                  f"no team has taken it, so there is nothing to build the calls against.")
+                  f"{app.meta.get('title', app.id)} calls {names} on {provider.meta.get('title', provider.id)}, but no team has taken "
+                  f"{provider.meta.get('title', provider.id)} or designed it yet, so there is no design behind those calls to build against.")
 
 
 def gaps(vault, app):

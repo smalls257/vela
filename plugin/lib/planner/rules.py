@@ -149,8 +149,8 @@ def _enum_findings(vault, page, page_type, spec):
         yield _f(page, meta_line(page, "handed_off"), "E105", "'handed_off' is not in the form '<name>, <date>, PR #N'.",
                  "Write handed_off: \"Booking senior, 2026-11-20, PR #41\".")
     elif isinstance(meta.get("handed_off"), str) and meta["handed_off"].endswith("PR pending"):
-        yield _f(page, meta_line(page, "handed_off"), "W325", f"{page.id} is handed off, but its PR number is not recorded yet.",
-                 "Once the PR exists, write its number in place of 'pending', as close does after gh prints the URL.")
+        yield _f(page, meta_line(page, "handed_off"), "W325", f"{vault.named(page.id)} is handed off, but the number of its pull request isn't recorded yet.",
+                 "Once the pull request exists, write its number in place of 'pending' in handed_off.")
     initiative = vault.config.get("initiative")
     if "initiative" in meta and meta["initiative"] != initiative:
         yield _f(page, meta_line(page, "initiative"), "E105",
@@ -399,8 +399,8 @@ def case_table_rules(vault, today):
             yield _f(page, line, "W381", message, fix)
         table = cases.case_table(page, contract)
         if table is None:
-            yield _f(page, contract.line, "W380", f"{contract.id} has no case table, so nobody can say what it answers when a call goes wrong.",
-                     f"Add a table under the {contract.id} heading: | {' | '.join(cases.HEADER)} |, one row per answer.")
+            yield _f(page, contract.line, "W380", f"{contract.name} ({contract.id}) {handoffwarn.NO_CASE_TABLE}, so nobody can say how a failed call is answered.",
+                     f"Under its heading, add a table of the answers it can give (columns: {', '.join(cases.HEADER)}), one row per answer.")
             continue
         for problem in table.problems:
             yield _f(page, problem.line, "W382" if problem.code == "duplicate" else "W381", problem.message, problem.fix)
@@ -418,6 +418,12 @@ def case_table_rules(vault, today):
                      "Add the answer for a refusal or a failure (a 4xx or 5xx status, or error).")
 
 
+def handing(app):
+    """Where the app stands in its handoff, in words: already handed over, or ready to be."""
+    name = app.meta.get("title", app.id)
+    return f"{name} has been handed to its team." if app.meta.get("handed_off") else f"{name} is ready to hand to its team."
+
+
 def handoff_rules(vault, today):
     """Sensor for the app handed over on an override: every item still short of a yes is named before the senior accepts it.
     A contract with no case table is W380 already, and the read-back lists it with the rest."""
@@ -426,11 +432,11 @@ def handoff_rules(vault, today):
             continue
         for gap in handoffwarn.gaps(vault, app):
             if gap.kind == "unfirm":
-                yield _f(gap.page, gap.line, "W386", f"{gap.sentence} {app.id} is at handoff.",
-                         "Decide it in a Grill before the senior accepts the app, or tell the senior it is not firm.")
+                yield _f(gap.page, gap.line, "W386", f"{gap.sentence} {handing(app)}",
+                         "Decide it in a grill before the app's team accepts the app, or tell them it isn't settled.")
             elif gap.kind == "no-designer":
-                yield _f(gap.page, gap.line, "W387", f"{gap.sentence} {app.id} is at handoff.",
-                         "Hand the provider's app over too, or tell the senior the calls are built against nothing yet.")
+                yield _f(gap.page, gap.line, "W387", f"{gap.sentence} {handing(app)}",
+                         "Hand the app that provides those calls to a team too, or warn this app's team that the calls have no design behind them yet.")
 
 
 def deferral_rules(vault, today):
@@ -460,9 +466,9 @@ def why_rules(vault, today):
             seen.add(page.path)
             has_why = bool(page.page_bullets(schema.WHY_LABEL))
         if not has_why:
-            yield _f(page, line, "W390", f"{unit} is decided and records no reason: the lead's own words on why are not written down.",
-                     f"Add '- **{schema.WHY_LABEL}:** <the lead's words>' under the item's heading, or under its entry in History "
-                     "(directly under History for a page).")
+            yield _f(page, line, "W390", f"{vault.named(unit)} is marked decided, but the reason isn't written down in the lead's own words.",
+                     f"Add a '{schema.WHY_LABEL}:' line in the lead's words: under the item's heading, or for a whole page "
+                     "under its History.")
 
 
 # ------------------------------------------------------------ unknowns, risks
@@ -761,14 +767,14 @@ def release_rules(vault, today):
     left_out = {i: (left, "Not in the tracer") for left in found[0].not_in_tracer for i in left.ids}
     for s in slices.read_slices(vault) if slices.on_pages(vault) else ():
         for left in s.not_in:
-            left_out.update({i: (left, f"{s.id}'s Not in this slice") for i in left.ids if i not in left_out})
+            left_out.update({i: (left, f"the slice {s.id}, in what it leaves out,") for i in left.ids if i not in left_out})
     for req in allocation.due(vault):
         if req.id not in delivered:
             why, where = left_out.get(req.id, (None, ""))
-            ending = (f"and {where} says why: {why.reason}" if why and why.reason
+            ending = (f"and {where} says why: {why.reason.rstrip('.')}." if why and why.reason
                       else "so nothing says when it ships.")
-            yield _f(req.page, req.line, "W343", f"{req.id} is at {req.fact('State')}, but no release on 04b-releases.md "
-                     f"delivers it, {ending}", "Add it to the release that delivers it.")
+            yield _f(req.page, req.line, "W343", f"{vault.named(req.id)} {handoffwarn.state_phrase(req.fact('State'))}, "
+                     f"but no release delivers it, {ending}", "Add it to the release that will deliver it, once nothing holds it back.")
     yield from tracer_rules(vault, page, found[0])
 
 
@@ -970,8 +976,8 @@ def flow_capability_rules(vault, today):
         named = flow.meta.get("capabilities")
         if not named:
             if known:
-                yield _f(flow, 1, "W358", f"{flow.id} names no capability, so the flow picker can only guess where it belongs.",
-                         "Add capabilities: [CAP-nnn] to its frontmatter, the capability the journey serves.")
+                yield _f(flow, 1, "W358", f"The flow {vault.named(flow.id)} isn't linked to a capability, so the dashboard can only guess where it belongs.",
+                         "Add the capability the journey serves to its capabilities field, as in capabilities: [CAP-001].")
             continue
         if not isinstance(named, list):
             continue  # E105 already says it must be a list
@@ -1225,8 +1231,8 @@ def block_rules(vault, today):
             if unreadable:
                 continue  # a page the model cannot read would make every staleness verdict a guess
             if current != render.block_content(vault, page, block.name):
-                yield _f(page, block.start, "W402", f"The '{block.name}' block is out of date.",
-                         "Run planner render.")
+                yield _f(page, block.start, "W402", f"The generated {block.name.replace('-', ' ')} section on this page is out of date.",
+                         "Run planner render to write it again.")
 
 
 # ----------------------------------------------------------------- freshness
@@ -1255,7 +1261,7 @@ def freshness_rules(vault, today):
                      "Set last_verified to the date you last reread the page, no later than today.")
         elif age > window:
             yield _f(page, meta_line(page, "last_verified"), "W704",
-                     f"{page.id} was last verified on {verified}, {age} days ago; stale_after_days is {window}.",
+                     f"Nobody has rechecked {vault.named(page.id)} since {verified}, {age} days ago; pages are due a recheck every {window} days.",
                      "Reread the page against its sources, then set last_verified to today and verified_by to your handle.")
     for page in vault.of_type("sources"):
         for table in page.tables:
@@ -1270,7 +1276,7 @@ def freshness_rules(vault, today):
                     yield _f(page, line, "W716", f"{source} is dated in the future ({date}); check for a typo.",
                              "Write the document's own date, no later than today.")
                 elif days_between(date, today) > window:
-                    yield _f(page, line, "W716", f"{source} is dated {date}, {days_between(date, today)} days ago; stale_after_days is {window}.",
+                    yield _f(page, line, "W716", f"{source} is dated {date}, {days_between(date, today)} days ago; sources are due a recheck every {window} days.",
                              "Check the document still says what the vault cites, then update its Date, or register the newer version.")
     closed = [s for s in vault.sessions if s.meta.get("status") == "closed" and is_date(s.meta.get("date"))]
     if closed:
@@ -1295,7 +1301,7 @@ def trace_findings(vault, gated, keep=None):
             continue
         warning, error = schema.TRACE_CODES[gap.rule]
         line = gap.line or meta_line(gap.page, gap.field)
-        yield _f(gap.page, line, error if gated else warning, f"{gap.rule}: {gap.message}", gap.fix)
+        yield _f(gap.page, line, error if gated else warning, gap.message, gap.fix)
 
 
 def trace_rules(vault, today):
@@ -1354,7 +1360,7 @@ def link_pipe_rules(vault, today):
             for line in table.row_lines:
                 row = lines[line - 1] if 0 < line <= len(lines) else ""
                 for link in BARE_LINK_PIPE.findall(row):
-                    yield _f(page, line, "W329", f"The link {link} in a table row has a bare |, which splits the row in other readers.",
+                    yield _f(page, line, "W329", f"The link {link} in a table row uses a plain | in its label, which breaks the table in other Markdown apps.",
                              "Write its label pipe as \\| inside a table, as in [[page#Heading\\|label]].")
 
 

@@ -209,8 +209,8 @@ def _list_findings(page):
 
     def close():
         if items > schema.LIST_LIMIT and not criteria_reader.is_criteria_heading(section):
-            out.append((first, "W362", f"{items} list items sit under one heading, more than a reader can hold at once.",
-                        "Group them under short subheadings of about five each, or fold the least important into an 'Also open (n)' section."))
+            out.append((first, "W362", f"This list has {items} items under one heading, more than people take in at once.",
+                        "Split it under short subheadings of about five each, or move the least important into a section of their own, such as 'Also open (3)'."))
 
     for n, raw, heading, history in _regions(page):
         found = HEADING.match(raw)

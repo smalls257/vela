@@ -327,10 +327,10 @@ def test_the_digest_shows_consequential_lines_in_full_and_counts_the_rest_by_are
     code, out = run("questions", "--vault", str(vault), "--open", "--digest")
     lines = out.splitlines()
     assert code == 0
-    assert lines[0].endswith("11 lines to take, most consequential first: 1 in full, 10 more counted by area.")
-    assert lines[1] == "1. [REG] high: High question about points?"
-    assert "FIN: 8 more (normal). List them: planner questions --open --digest --all --area FIN" in lines
-    assert "OPS: 2 more (normal). List them: planner questions --open --digest --all --area OPS" in lines
+    assert lines[0].endswith("11 questions to settle, most important first: 1 in full, 10 more counted by area.")
+    assert lines[1] == "1. [Regulation and liability] high: High question about points?"
+    assert "Finance and liabilities (FIN): 8 more of normal priority. List them: planner questions --open --digest --all --area FIN" in lines
+    assert "Operations and people (OPS): 2 more of normal priority. List them: planner questions --open --digest --all --area OPS" in lines
     assert lines[-1] == "Every line in full: planner questions --open --digest --all"
 
 
@@ -338,9 +338,9 @@ def test_digest_all_prints_every_line_in_full(tmp_path):
     vault = long_digest_vault(tmp_path)
     code, out = run("questions", "--vault", str(vault), "--open", "--digest", "--all")
     lines = out.splitlines()
-    assert lines[0].endswith("11 lines to take, most consequential first.")
+    assert lines[0].endswith("11 questions to settle, most important first.")
     assert sum(1 for l in lines if l[:1].isdigit()) == 11
-    assert not any("more (normal)" in l for l in lines)
+    assert not any("more of normal priority" in l for l in lines)
 
 
 def test_the_digest_hides_nothing_from_open_or_json(tmp_path):

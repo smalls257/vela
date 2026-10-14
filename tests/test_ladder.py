@@ -8,7 +8,7 @@ def test_the_example_vault_reaches_every_stage_it_types():
     code, out = run("ladder", "--vault", str(FIXTURE))
     assert code == 0
     lines = out.splitlines()[1:]
-    assert lines and all(line.split(" | ")[1] == "stage epics" and line.split(" | ")[2] == "pages reach epics"
+    assert lines and all(line.split(" | ")[1] == "marked at stage: epics" and line.split(" | ")[2] == "pages meet stage: epics"
                          for line in lines), out
 
 
@@ -25,9 +25,10 @@ def write_app(vault, state, extra="", stage="target"):
 def test_a_decided_app_page_reaches_contracts_and_says_what_handoff_needs(tmp_path):
     write_app(tmp_path, "decided")
     code, out = run("ladder", "--vault", str(tmp_path))
-    assert "APP-coach | stage target | pages reach contracts | next stage needs: its runtime page has no section on failure" in out
+    assert ("(APP-coach) | marked at stage: target | pages meet stage: contracts | held back from the next stage by: "
+            "its runtime page has no section on what happens when things fail") in out
     status = run("status", "--vault", str(tmp_path), "--today", "2026-01-15")[1]
-    assert "APP-coach | stage target | pages reach contracts |" in status
+    assert "Coach (APP-coach) | stage: target (its pages already meet the contracts stage) |" in status
 
 
 def test_status_says_nothing_when_the_pages_reach_no_further_than_the_stage(tmp_path):

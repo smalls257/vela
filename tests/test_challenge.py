@@ -117,8 +117,8 @@ def test_what_a_challenge_writes_turns_the_check_red_and_verify_names_it(tmp_pat
     assert "CON-001 is decided, but open unknown UNK-009 blocks it." in out
     code, out = run("handoff", "verify", "APP-booking", "--vault", str(vault))
     assert code == 1
-    assert "changed: CON-001 (provides, 05-building-blocks/booking-building-blocks.md): text changed" in out
-    assert "added: UNK-009 (unknown, 11-unknowns-and-risks.md, open)" in out
+    assert "changed: interface it offers" in out and "(CON-001): its wording changed" in out
+    assert "added: open question" in out and "(UNK-009), on 11-unknowns-and-risks.md, open" in out
     _, answer = run("query", "get", "CON-001", "--vault", str(vault), "--json")
     answer = json.loads(answer)
     assert answer["state"] == "decided" and answer["blocked_by"] == ["UNK-009"]

@@ -788,7 +788,10 @@ def stats(vault, area=None):
 
 # ------------------------------------------------------------------ the gates
 
-DISPOSE = "Answer it, rule it out with a reason, or record it as an unknown with an owner or as an assumption."
+DISPOSE = "Answer it, rule it out with a reason, or log it as an open question with an owner, or as an assumption."
+# A ledger state in a sentence. The state names are the ledger's own column values; a reader sees what they mean.
+STANDING_WORDS = {"open": "is still open", "asked": "has been asked but not answered", "assumed": "is answered by an assumption",
+                  "answered": "is answered", "not-applicable": "is ruled out", "unknown": "is logged as an open question"}
 
 
 def _ledger_location(vault):
@@ -810,7 +813,10 @@ def _ledger_gap(vault):
 
 
 def _standing(d):
-    return "has no ledger row" if d.row is None else f"is {state_label(d.state, d.valid)}" + (f" (by {d.via})" if d.via else "")
+    if d.row is None:
+        return "hasn't been dealt with yet (it has no row in the question ledger)"
+    said = STANDING_WORDS.get(d.state, f"is {d.state}") if d.valid else f"has a ledger row that can't be read ({d.state})"
+    return said + (f" (through {d.via})" if d.via else "")
 
 
 def epics_gate(vault):
@@ -824,14 +830,16 @@ def epics_gate(vault):
     for d in dispositions(vault):
         if d.copy.entry.severity != "high" or not d.pending:
             continue
-        message = f"{d.copy.id} is high severity and {_standing(d)}: {d.copy.entry.question}"
+        message = f"A high-priority question {_standing(d)}, so the epics can't be called finished: {d.copy.entry.question} ({d.copy.id})"
         yield Finding(path, d.row.line if d.row else heading, "E805",
                       f"{message} {gap}".strip() if d.row is None else message,
                       f"{adding}{DISPOSE} {schema.E805_OVERRIDE_HINT}")
     for row in reviewer_rows(vault):
         if row.get("severity") == "high" and reviewer_pending(vault, row):
-            label = state_label(row.state, row_valid(vault, row))
-            yield Finding(path, row.line, "E805", f"{row.copy} is high severity and is {label}: {row.get('question')}",
+            said = (STANDING_WORDS.get(row.state, f"is {row.state}") if row_valid(vault, row)
+                    else f"has a ledger row that can't be read ({row.state})")
+            yield Finding(path, row.line, "E805", f"A high-priority reviewer question {said}, so the epics can't be called finished: "
+                          f"{row.get('question')} ({row.copy})",
                           f"{DISPOSE} {schema.E805_OVERRIDE_HINT}")
 
 
@@ -850,9 +858,9 @@ def shape_gate(vault):
     constraint before Shape closes (Volere), or it stays a belief nobody checked."""
     for row in rows(vault):
         if row.state == "assumed" and row.kind:
-            yield Finding(row.path, row.line, "W806", f"{row.copy} is still assumed: {row.get('belief') or 'no belief given'}.",
-                          "Once the plan holds it, set the row to answered with an item link, or record it as an unknown "
-                          "with an owner. Say in the session why it stays assumed if it does.")
+            yield Finding(row.path, row.line, "W806", f"The plan still assumes this ({row.copy}): {row.get('belief') or 'no belief given'}.",
+                          "Once the plan covers it, mark the row answered and link the item that covers it, or log it as an "
+                          "open question with an owner. If it stays an assumption, say why in the session.")
 
 
 def unit_location(vault, unit_id):
@@ -882,17 +890,17 @@ def grill_gate(vault, items):
     for unit_id in items:
         where = unit_location(vault, unit_id)
         if where is None:
-            yield Finding(*_ledger_location(vault), "W807", f"{unit_id} has no page or line to report on, so no open question can be shown against it.",
+            yield Finding(*_ledger_location(vault), "W807", f"{unit_id} isn't a page, heading or table row in this plan, so no open question can be shown against it.",
                           "Name an item the vault holds as a heading, a page or a table row.")
             continue
         if not can_be_blocked(vault, unit_id):
-            yield Finding(where[0], where[1], "W807", f"No catalog question blocks {unit_id}: it is not a unit of any kind the catalog holds up.",
-                          "A Grill on it gets no ledger warning. Name the app, contract, requirement, capability or concern it touches.")
+            yield Finding(where[0], where[1], "W807", f"None of the standard questions applies to {vault.named(unit_id)}, so nothing is checked for it before the grill.",
+                          "To get the checks, name the app, contract, requirement, capability or concern it affects instead.")
             continue
         for d in dispositions(vault):
             if d.pending and unit_id in blocks(vault, d.copy):
                 yield Finding(where[0], where[1], "W807",
-                              f"{d.copy.id} {_standing(d)} and blocks {unit_id}: {d.copy.entry.question}",
+                              f"A question that holds up {vault.named(unit_id)} {_standing(d)}: {d.copy.entry.question} ({d.copy.id})",
                               "Put it on the agenda and settle it first, or decide anyway and capture "
                               "\"decided with <copy IDs> open (W807)\": that capture is the record, because W807 "
                               "prints only under this gate.")

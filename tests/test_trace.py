@@ -48,7 +48,7 @@ def test_gate_turns_gaps_into_errors_even_with_no_epic(mini):
     code, out = gated(mini)
     assert code == 1
     assert findings(out) == [("E502", SHOP), ("E503", TESTING)]
-    assert out.splitlines()[0].endswith("Gate: epics.")
+    assert out.splitlines()[0].endswith("Checking whether the epics are ready to call finished.")
 
 
 def test_an_epic_that_covers_everything_is_clean_under_the_gate(mini):
@@ -63,7 +63,7 @@ def test_t2_new_contract_with_no_provider_epic(mini):
     code, out = check(mini)
     assert code == 0
     assert findings(out) == [("W502", SHOP)]
-    assert "T2: No epic builds Sale API (CON-001), the new contract Shop must offer." in out
+    assert "No epic builds Sale API (CON-001), the new contract Shop must offer." in out and "T2:" not in out
     assert findings(gated(mini)[1]) == [("E502", SHOP)]
 
 
@@ -172,7 +172,7 @@ TILL = "05-building-blocks/till-building-blocks.md"
 def test_the_app_scope_leaves_out_another_apps_gaps(mini):
     code, out = run("check", "--vault", str(mini), "--today", "2026-01-15", "--gate", "epics", "--app", "APP-till")
     assert code == 0, out
-    assert findings(out) == [] and "App: APP-till." in out.splitlines()[0]
+    assert findings(out) == [] and "App: Till (APP-till)." in out.splitlines()[0]
 
 
 def test_the_app_scope_still_fails_for_the_apps_own_gaps(mini):
@@ -187,6 +187,6 @@ def test_the_whole_vault_gate_is_unchanged_without_the_scope(mini):
 
 def test_the_app_scope_names_an_app_that_exists_and_goes_with_the_epics_gate(mini):
     code, out = run("check", "--vault", str(mini), "--gate", "epics", "--app", "APP-nope")
-    assert code == 2 and "APP-nope is not an app page" in out
+    assert code == 2 and "there's no app with the ID APP-nope" in out and "APP-till" in out
     code, out = run("check", "--vault", str(mini), "--app", "APP-shop")
     assert code == 2 and "--gate epics" in out

@@ -77,6 +77,21 @@ class Vault:
         found = self.items.get(item_id)
         return found[0] if found else None
 
+    def name_of(self, ident):
+        """The plain name a reader knows a thing by: an item's heading name or a page's title. The ID itself when
+        nothing names it, so a message never loses its subject."""
+        item = self.item(ident)
+        if item is not None and item.name:
+            return item.name
+        pages = self.by_id.get(ident)
+        title = pages[0].meta.get("title") if pages else None
+        return str(title) if title else ident
+
+    def named(self, ident):
+        """'Name (ID)': the name to read, the ID kept as a tag. Just the ID when nothing names it."""
+        name = self.name_of(ident)
+        return ident if name == ident else f"{name} ({ident})"
+
     @property
     def apps(self):
         return sorted(self.of_type("app-building-blocks"), key=lambda p: p.id)

@@ -8,12 +8,12 @@ def test_mini_vault_is_clean(mini):
     code, out = check(mini)
     assert code == 0, out
     assert findings(out) == []
-    assert out.splitlines()[0].startswith("planner check: 0 errors, 0 warnings in 12 pages. Today is 2026-01-15 (--today).")
+    assert out.splitlines()[0].startswith("planner check: 0 errors, 0 warnings in 12 pages, judged as of 2026-01-15 (the date you gave).")
 
 
 def test_system_date_is_printed_when_no_today_given(mini):
     code, out = run("check", "--vault", str(mini))
-    assert "(system date)" in out.splitlines()[0]
+    assert "(today)" in out.splitlines()[0]
 
 
 def test_findings_exit_1_and_name_a_fix(mini):

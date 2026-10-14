@@ -158,7 +158,7 @@ def test_an_app_requirement_with_no_story_is_found_unless_a_plan_gap_accepts_it(
     text = plan_text(vault)
     cut = text.replace("CAP-005.FR2@APP-desktop-agent, CON-004, EPC-032.AC5, EPC-032.AC6", "CON-004, EPC-032.AC5, EPC-032.AC6")
     found = [f for f in check(vault, cut) if f.kind == "coverage" and f.flag]
-    assert [str(f) for f in found] == ["CAP-005.FR2@APP-desktop-agent has no story to build"]
+    assert [str(f) for f in found] == ["No story builds Stop reading when a withdrawal is not confirmed (CAP-005.FR2) for Desktop agent"]
     accepted = check(vault)
     assert [f for f in accepted if f.kind == "coverage"] and not [f for f in accepted if f.kind == "coverage" and f.flag]
 
@@ -166,33 +166,33 @@ def test_an_app_requirement_with_no_story_is_found_unless_a_plan_gap_accepts_it(
 def test_a_trace_to_an_id_the_vault_does_not_hold_and_a_blocker_that_is_not_a_story_are_found(vault):
     text = plan_text(vault).replace("EPC-033.AC5, EPC-034.AC1", "EPC-033.AC5, EPC-099.AC1", 1).replace("Blocked by: S-01 for the real binary only", "Blocked by: S-77 for the real binary only", 1)
     found = [str(f) for f in check(vault, text)]
-    assert any("EPC-099.AC1, which is not in the vault" in f for f in found)
+    assert any("EPC-099.AC1, which isn't in the plan" in f for f in found)
     assert any("S-77, which is not a story in this plan" in f for f in found)
 
 
 def test_the_tracer_comes_first_in_the_build_order(vault):
     text = plan_text(vault).replace("1. S-01 (tracer)", "9. S-01 (tracer)", 1)
     ordered = text.replace("2. S-02 (tracer)", "1. S-02 (tracer)", 1).replace("9. S-01 (tracer)", "2. S-01 (tracer)", 1)
-    assert not [f for f in check(vault, ordered) if f.kind == "slice" and "tracer story" in f.text]
+    assert not [f for f in check(vault, ordered) if f.kind == "slice" and "part of the tracer, but" in f.text]
     lines = ordered.split("\n")
     s05 = next(i for i, ln in enumerate(lines) if ln.startswith("3. S-05"))
     s06 = next(i for i, ln in enumerate(lines) if ln.startswith("5. S-06"))
     lines.insert(s06, lines.pop(s05))
     late = "\n".join(lines)
-    assert [f.story for f in check(vault, late) if "tracer story but" in f.text] == ["S-05"]
+    assert [f.story for f in check(vault, late) if "part of the tracer, but" in f.text] == ["S-05"]
 
 
 def test_no_tracer_story_is_a_finding_until_the_plan_records_an_override(vault):
     bare = plan_text(vault).replace("- **Tracer:** yes\n", "").replace("Slice: tracer", "Slice: vertical")
-    assert any("no story is marked as the tracer" in f.text for f in check(vault, bare))
+    assert any("No story is marked as part of the tracer" in f.text for f in check(vault, bare))
     overridden = bare.replace("## Build order", "- **Override:** the team lead starts with packaging; the tracer waits on OQ-001.\n\n## Build order", 1)
-    assert not any("no story is marked as the tracer" in f.text for f in check(vault, overridden))
+    assert not any("No story is marked as part of the tracer" in f.text for f in check(vault, overridden))
 
 
 def test_a_release_fit_that_names_the_wrong_date_is_found(vault):
     text = plan_text(vault).replace("cannot tell for 2027-02-02. Sizes add to at most 14", "cannot tell for 2027-03-01. Sizes add to at most 14", 1)
     found = [f for f in check(vault, text) if f.kind == "release"]
-    assert [f.story for f in found] == ["S-02"] and "does not start from 2027-02-02" in str(found[0])
+    assert [f.story for f in found] == ["S-02"] and "doesn't start from 2027-02-02" in str(found[0])
 
 
 # ---- the command
@@ -235,11 +235,11 @@ def test_next_suggests_breakdown_after_a_complete_design_and_tickets_after_a_com
     plan = vault / "docs" / "plan" / "desktop-agent-breakdown.md"
     kept = plan.read_text(encoding="utf-8")
     plan.unlink()
-    assert teamdocs.team_step(vault).startswith("APP-desktop-agent, breakdown desktop-agent.")
+    assert teamdocs.team_step(vault).startswith("the APP-desktop-agent team: their design is") and "/planner:breakdown" in teamdocs.team_step(vault)
     code, said = run("next", "--vault", str(vault), "--today", "2026-11-20")
-    assert "APP-desktop-agent, breakdown desktop-agent." in said
+    assert "planner next: for the Desktop agent team: their design is" in said
     plan.write_text(kept, encoding="utf-8")
-    assert teamdocs.team_step(vault).startswith("APP-desktop-agent, tickets desktop-agent.")
+    assert teamdocs.team_step(vault).startswith("the APP-desktop-agent team: their build plan is") and "/planner:tickets" in teamdocs.team_step(vault)
     run("tickets", "write", "--vault", str(vault))
     assert teamdocs.team_step(vault) is None
 
@@ -271,9 +271,9 @@ def test_a_story_names_its_vault_slice_on_its_slice_line():
 def test_a_story_naming_a_slice_the_vault_lacks_is_flagged_and_naming_the_tracer_makes_it_a_tracer_story(vault):
     add_slices(vault)
     text = plan_text(vault).replace("Slice: vertical", "Slice: vertical, SLC-009", 1)
-    assert [f.text for f in check(vault, text) if f.kind == "slice" and "SLC-009" in f.text] == ["names SLC-009, which is no slice page in this vault"]
+    assert [f.text for f in check(vault, text) if f.kind == "slice" and "SLC-009" in f.text] == ["names the slice SLC-009, which isn't in the plan"]
     bare = plan_text(vault).replace("- **Tracer:** yes\n", "").replace("Slice: tracer", "Slice: vertical, SLC-001")
-    assert not any("no story is marked as the tracer" in f.text for f in check(vault, bare))
+    assert not any("No story is marked as part of the tracer" in f.text for f in check(vault, bare))
 
 
 def test_tickets_are_grouped_by_slice_the_tracer_first(vault):

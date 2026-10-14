@@ -17,7 +17,7 @@ def test_a_page_verified_long_ago_warns_and_exits_0(mini):
     code, out = check(mini)
     assert code == 0
     assert findings(out) == [("W704", GOALS)]
-    assert f"{GOALS}:10: W704 goals was last verified on 2025-11-01, 75 days ago; stale_after_days is 60." in out
+    assert f"{GOALS}:10: W704 Nobody has rechecked" in out and "since 2025-11-01, 75 days ago; pages are due a recheck every 60 days." in out
 
 
 def test_an_unquoted_yaml_date_counts_as_a_date(mini):
@@ -60,7 +60,7 @@ def test_an_old_source_row_warns(mini):
     code, out = check(mini, today="2026-03-10")
     assert code == 0
     assert ("W716", "sources.md") in findings(out)
-    assert "SRC-01 is dated 2026-01-02, 67 days ago; stale_after_days is 60." in out
+    assert "SRC-01 is dated 2026-01-02, 67 days ago; sources are due a recheck every 60 days." in out
 
 
 def test_a_source_row_with_no_date_warns_instead_of_passing(mini):

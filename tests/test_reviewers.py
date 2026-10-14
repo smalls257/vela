@@ -408,9 +408,9 @@ summary: Typed travel credit as stored value and recorded where its owed questio
 
     code, out = run("questions", "--subject", "SV-02", "--vault", str(vault))
     assert code == 0, out
-    for copy, state in (("Q-DAT-04@SV-02", "answered"), ("Q-FIN-05@SV-02", "assumed"),
-                        ("Q-FIN-06@SV-02", "not-applicable"), ("Q-FIN-03@SV-02", "unknown"),
-                        ("Q-FIN-04@SV-02", "not-applicable via Q-FIN-04@SV-*")):
+    for copy, state in (("Q-DAT-04@SV-02", "answered"), ("Q-FIN-05@SV-02", "answered by assumption"),
+                        ("Q-FIN-06@SV-02", "ruled out"), ("Q-FIN-03@SV-02", "logged as an open question"),
+                        ("Q-FIN-04@SV-02", "ruled out through Q-FIN-04@SV-*")):
         line = next((l for l in out.splitlines() if l.startswith(copy + " ")), "")
         assert f"| {state} |" in line, (copy, out)
 
@@ -689,7 +689,7 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
     ledger.write_text("".join(l for l in ledger.read_text(encoding="utf-8").splitlines(keepends=True)
                               if not l.startswith(("| Q-FIN-01@INI-002 |", "| Q-DAT-01@INI-002 |"))), encoding="utf-8")
     gate = run("check", "--gate", "epics", "--vault", str(vault), "--today", TODAY)[1]
-    assert any(" E805 Q-FIN-01@INI-002 " in l for l in gate.splitlines()), gate
+    assert any(" E805 " in l and "(Q-FIN-01@INI-002)" in l for l in gate.splitlines()), gate
     (vault / "sessions" / "2026-11-20-credit-dump.md").write_text(DUMP_RECORD, encoding="utf-8")
 
     _close(vault, "2026-11-20-credit-dump", DUMP_SAID)
@@ -720,9 +720,9 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
 
     assert _states(vault, "SV-02") == {
         "Q-DAT-04@SV-02": "answered",
-        "Q-FIN-03@SV-02": "unknown",
-        "Q-FIN-04@SV-02": "not-applicable via Q-FIN-04@SV-*",
-        "Q-FIN-05@SV-02": "assumed",
+        "Q-FIN-03@SV-02": "logged as an open question",
+        "Q-FIN-04@SV-02": "ruled out through Q-FIN-04@SV-*",
+        "Q-FIN-05@SV-02": "answered by assumption",
         "Q-FIN-06@SV-02": "no row",
     }
     ledger = (vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8")

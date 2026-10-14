@@ -61,7 +61,7 @@ def test_config_role_owner_on_an_owner_is_still_ignored_with_a_warning():
 
 def test_an_unknown_config_role_warns_and_changes_nothing():
     found = roles.decide(roles.Facts(**OWNER_FACTS, config_role="admin"))
-    assert found.role == roles.OWNER and "not understood" in found.warnings[0]
+    assert found.role == roles.OWNER and "isn't recognized" in found.warnings[0]
 
 
 def test_an_unreadable_config_is_a_warning_not_a_silent_skip():

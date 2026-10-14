@@ -42,9 +42,9 @@ def verdict(found, release_date="", ask_phrase=""):
     dated release is present; an Ask appears where the persona planted one. The last two run only when asked for."""
     out = [("every app has a domain", found["apps"] > 0 and found["apps_with_domain"] == found["apps"],
             f"{found['apps_with_domain']} of {found['apps']}"),
-           ("80% of crossing steps name a sender",
+           ("at least 80% of flow steps between apps say who sends",
             found["flow_steps_crossing"] > 0 and found["flow_steps_with_sender"] * 5 >= found["flow_steps_crossing"] * 4,
-            f"{found['flow_steps_with_sender']} of {found['flow_steps_crossing']}")]
+            f"{found['flow_steps_with_sender']} of {found['flow_steps_crossing']} do")]
     if release_date:
         out.append((f"a release is dated {release_date}", release_date in found["release_targets"],
                     ", ".join(found["release_targets"]) or "no release"))

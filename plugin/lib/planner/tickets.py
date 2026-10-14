@@ -181,7 +181,7 @@ class Finding:
         self.kind, self.story, self.text, self.flag = kind, story, text, flag
 
     def __str__(self):
-        return f"{self.story + ': ' if self.story else ''}{self.text}"
+        return f"{'Story ' + self.story + ' ' if self.story else ''}{self.text}"
 
     def __repr__(self):
         return f"Finding({self.kind!r}, {self.story!r}, {self.text!r})"
@@ -268,12 +268,12 @@ def check_story(vault, story, known, dates):
     checkable = [i for i in ids if CRITERION_ID.match(i) or REQUIREMENT_ID.match(i)]
     constraints = breakdown.CONSTRAINT_ID.findall(story.traces or "")
     if not checkable and constraints:
-        out.append(Finding("trace", story.id, f"traces only to {', '.join(constraints)}, a constraint: no criterion to quote, so its done-when comes from the design", flag=False))
+        out.append(Finding("trace", story.id, f"is linked only to a constraint ({', '.join(constraints)}), with no criterion to quote, so when it counts as done comes from the design", flag=False))
     elif not checkable:
-        out.append(Finding("trace", story.id, "traces to no epic criterion and no allocated requirement, so nothing in the vault says what done looks like"))
+        out.append(Finding("trace", story.id, "isn't linked to an epic's acceptance criterion or to a requirement the app owns, so nothing in the plan says when it's done"))
     for target in [*ids, *constraints]:
         if target not in known and target.split("@")[0] not in known:
-            out.append(Finding("trace", story.id, f"traces to {target}, which is not in the vault"))
+            out.append(Finding("trace", story.id, f"is linked to {target}, which isn't in the plan"))
     for target in checkable:
         sentence = vault_sentence(vault, target)
         found = check_quote(story, target, sentence) if sentence else None
@@ -281,7 +281,7 @@ def check_story(vault, story, known, dates):
             out.append(found)
     for unknown in UNKNOWN_ID.findall(story.blocked or ""):
         if unknown not in known:
-            out.append(Finding("blocked", story.id, f"is blocked by {unknown}, which is not in the vault"))
+            out.append(Finding("blocked", story.id, f"is blocked by {unknown}, which isn't in the plan"))
     out += check_slice(story)
     out += check_fit(vault, story, dates)
     return out
@@ -289,9 +289,9 @@ def check_story(vault, story, known, dates):
 
 def check_slice(story):
     if story.slice == "layer":
-        return [Finding("slice", story.id, "is a layer, not a slice a person can see: fold it into the slice that needs it, or say why it stays apart")]
+        return [Finding("slice", story.id, "builds a layer nobody can see on its own, not a slice: fold it into the slice that needs it, or say why it stays separate")]
     if not story.slice:
-        return [Finding("slice", story.id, "has no 'Slice:' line, so it is not clear whether it is the tracer, a vertical slice or a layer")]
+        return [Finding("slice", story.id, "has no 'Slice:' line, so it isn't clear whether it is part of the tracer, a slice or a layer")]
     return []
 
 
@@ -301,9 +301,9 @@ def check_fit(vault, story, dates):
         return [Finding("release", story.id, "has no 'Release fit:' line")]
     named = re.findall(r"\d{4}-\d{2}-\d{2}", story.fit)
     if release and named[:1] != [release]:
-        return [Finding("release", story.id, f"'Release fit' does not start from {release}, the date of the first release that delivers what it traces to")]
+        return [Finding("release", story.id, f"has a 'Release fit' that doesn't start from {release}, the date of the first release that delivers what it is linked to")]
     if not release and named:
-        return [Finding("release", story.id, "'Release fit' names a date, but nothing it traces to is on a release")]
+        return [Finding("release", story.id, "has a 'Release fit' that names a date, but nothing it is linked to is on a release")]
     return []
 
 
@@ -318,7 +318,9 @@ def check_coverage(vault, app_id, plan, stories):
             continue
         epic_or_requirement = target.split("@")[0].split(".")[0]  # a gap that names EPC-035 or "EPC-035.AC1 to AC5" accepts the whole epic's criteria
         accepted = re.search(rf"\b{re.escape(target.split('@')[0])}\b", gaps) or (target.startswith("EPC-") and re.search(rf"\b{epic_or_requirement}\b", gaps))
-        out.append(Finding("coverage", "", f"{target} has no story to build" + (", and a plan gap accepts that" if accepted else ""), flag=not accepted))
+        out.append(Finding("coverage", "", f"No story builds {vault.named(target.split('@')[0])}"
+                           + (f" for {vault.name_of(target.split('@')[1])}" if "@" in target else "")
+                           + ("; the plan lists this as a known gap" if accepted else ""), flag=not accepted))
     return out
 
 
@@ -340,9 +342,9 @@ def check_slices(vault, stories, app_id):
         if not sid or not story.built:
             continue
         if sid not in known:
-            out.append(Finding("slice", story.id, f"names {sid}, which is no slice page in this vault"))
+            out.append(Finding("slice", story.id, f"names the slice {sid}, which isn't in the plan"))
         elif sid not in ours:
-            out.append(Finding("slice", story.id, f"names {sid} {known[sid].name}, a slice {app_id} takes no part in"))
+            out.append(Finding("slice", story.id, f"names the slice {known[sid].name} ({sid}), which {vault.name_of(app_id)} takes no part in"))
     return out
 
 
@@ -350,11 +352,11 @@ def check_tracer(stories, order, tracer_id=""):
     """Tracer stories come first in the build order; none at all needs an override the plan records."""
     tracers = [s.id for s in stories if s.built and is_tracer(s, tracer_id)]
     if not tracers:
-        return [Finding("slice", "", "no story is marked as the tracer, and the plan records no override saying the team starts elsewhere")]
+        return [Finding("slice", "", "No story is marked as part of the tracer, and the plan doesn't record an exception saying the team starts elsewhere")]
     ranked = [o["id"] for o in order]
     first_other = next((i for i, sid in enumerate(ranked) if sid not in tracers), len(ranked))
     late = [sid for sid in tracers if sid in ranked and ranked.index(sid) > first_other]
-    return [Finding("slice", sid, "is a tracer story but the build order puts another story before it") for sid in late]
+    return [Finding("slice", sid, "is part of the tracer, but the build order puts another story before it") for sid in late]
 
 
 def check(text, vault, app_id=""):
@@ -375,7 +377,7 @@ def check(text, vault, app_id=""):
     out += check_slices(vault, stories, app_id)
     out += check_tracer(stories, plan["order"], tracer_id(vault))
     if "**Override:**" in text:
-        out = [f for f in out if not (f.kind == "slice" and f.story == "" and f.text.startswith("no story is marked"))]
+        out = [f for f in out if not (f.kind == "slice" and f.story == "" and f.text.startswith("No story is marked"))]
     return out
 
 

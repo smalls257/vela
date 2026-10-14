@@ -19,7 +19,7 @@ def test_a_decided_contract_with_no_why_warns(mini):
     (mini / SHOP).write_text(text[:contract] + text[contract:].replace(WHY, "", 1), encoding="utf-8")
     code, out = check(mini)
     assert code == 0  # a warning, never an error
-    assert whys(out) == [("W390", SHOP)] and "CON-001 is decided and records no reason" in out
+    assert whys(out) == [("W390", SHOP)] and "(CON-001) is marked decided, but the reason isn't written down" in out
 
 
 def test_a_decided_page_with_no_why_warns_once_however_many_rows_it_decides(mini):

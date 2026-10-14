@@ -52,8 +52,8 @@ def test_two_openings_that_restate_the_release_warn_at_the_second_one(mini):
     write_epic(mini, f"{first}\n\n{second}\n")
     lines = w371(mini)
     assert len(lines) == 1
-    assert f"{EPIC}:17: W371" in lines[0] and "2 openings above its first heading" in lines[0]
-    assert "Keep one opening" in lines[0]
+    assert f"{EPIC}:17: W371" in lines[0] and "2 intro paragraphs before its first heading" in lines[0]
+    assert "Keep one intro" in lines[0]
 
 
 def test_what_a_page_does_and_what_it_does_not_own_is_an_ordinary_opening_and_stays_quiet(mini):
@@ -99,7 +99,7 @@ def test_the_heron_strategy_page_has_the_warning():
     vault = REPO / "tests" / "fixtures" / "team-skills" / "heron"
     code, out = check(vault)
     lines = [line for line in out.splitlines() if " W371 " in line]
-    assert any(line.startswith("04-solution-strategy.md:17: W371 The page keeps 3 openings") for line in lines), out
+    assert any(line.startswith("04-solution-strategy.md:17: W371 The page has 3 intro paragraphs") for line in lines), out
 
 
 def test_the_template_and_the_example_stay_free_of_errors_and_the_template_stays_without_the_warning():

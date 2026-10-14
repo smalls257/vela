@@ -105,10 +105,10 @@ def report(vault, findings, today, commit):
     errors = sum(1 for f in findings if f.is_error)
     out = ["# Vault health",
            "",
-           f"Built by `planner health` on {today} from {commit}. `planner check` found {errors} errors and "
+           f"Made by `planner health` on {today}, from {commit}. `planner check` found {errors} errors and "
            f"{len(findings) - errors} warnings."]
     for title, header, rower, code in (
-            ("Overdue unknowns", ("Unknown", "Owner", "Ask by"), overdue_rows, "W705"),
+            ("Overdue open questions", ("Open question", "Owner", "Ask by"), overdue_rows, "W705"),
             ("Stale pages", ("Page", "Last verified", "By", "Owner"), stale_page_rows, "W704"),
             ("Stale sources", ("Source", "Title", "Date", "Owner"), stale_source_rows, "W716")):
         found = by_code.get(code, [])
@@ -124,5 +124,5 @@ def report(vault, findings, today, commit):
             sessions = f"The last session closed on {last}, {days} days ago." + (" That is over 30 days." if "W711" in by_code else "")
     missing, total = never_verified(vault)
     out += ["", "## Sessions", "", sessions, "", "## Never verified", "",
-            f"{missing} of {total} pages carry no `last_verified`, so nobody has said when they were last checked."]
+            f"{missing} of {total} pages don't record when someone last checked them (their last_verified date)."]
     return "\n".join(out) + "\n"

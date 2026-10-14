@@ -23,7 +23,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, tickets, untrusted, viewer, voicecheck, voicescore
+from planner import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from planner.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, teamdocs, vaultgit
 from planner.edge import proposals as proposal_files
 
@@ -134,10 +134,10 @@ def load_vault(root):
 
 def parse_today(value):
     if value is None:
-        return datetime.date.today().isoformat(), "system date"
+        return datetime.date.today().isoformat(), "today"
     if not rules.is_date(value):
         raise ToolError(f"--today '{value}' is not a YYYY-MM-DD date.")
-    return value, "--today"
+    return value, "the date you gave"
 
 
 # The format the installed skills follow. A vault keeps its own copy, from the day it was made, so a plugin update
@@ -156,9 +156,9 @@ def conventions_findings(root):
     if not (mine.is_file() and PLUGIN_CONVENTIONS.is_file()) or same_text(mine, PLUGIN_CONVENTIONS):
         return []
     return [model.Finding("CONVENTIONS.md", 1, "W717",
-                          "CONVENTIONS.md is not the copy the installed plugin ships, so the skills may follow rules "
-                          "it does not state.",
-                          "Run planner upgrade, review the change with git diff CONVENTIONS.md, and commit it.")]
+                          "The vault's rule book (CONVENTIONS.md) differs from the one the installed Vela ships, so the "
+                          "sessions may follow rules it doesn't state.",
+                          "Run planner upgrade, check the changes (git diff CONVENTIONS.md), and commit them.")]
 
 
 def title_line(root):
@@ -203,17 +203,16 @@ def manifest_findings(root):
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
             found.append(model.Finding(f"{schema.HANDOFF_DIR}/{path.name}", 1, "W388",
-                                       f"This manifest cannot be read ({exc}), so the commit it pins is unchecked.",
-                                       f"Restore the file, or write the manifest again with planner handoff {path.stem} and the replace flag."))
+                                       f"This handoff record can't be read ({exc}), so the commit it points at can't be checked.",
+                                       f"Restore the file, or write it again with planner handoff {path.stem} --replace."))
             continue
         pinned = MANIFEST_COMMIT.search(text)
         if pinned and not commit_exists(root, pinned.group(1)):
             line = text[:pinned.start()].count("\n") + 1
             found.append(model.Finding(f"{schema.HANDOFF_DIR}/{path.name}", line, "W388",
-                                       f"This manifest pins commit {pinned.group(1)}, which this repository does not have, so nobody "
-                                       "can open what the senior accepted.",
-                                       f"Write the manifest again on a committed tree with planner handoff {path.stem} and the replace flag, "
-                                       "or restore the commit."))
+                                       f"This handoff record points at commit {pinned.group(1)}, which this repository doesn't have, so nobody "
+                                       "can see the version the app's team accepted.",
+                                       f"Commit your changes, then run planner handoff {path.stem} --replace; or restore the commit."))
     return found
 
 
@@ -386,7 +385,7 @@ def owner_freshness(root, timeout, checked_at):
     uncommitted = len(vaultgit.uncommitted(root))
     upstream_name = vaultgit.upstream(root)
     if not vaultgit.has_origin(root):
-        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this vault has no remote called origin, so there is nothing to compare with", checked_at)
+        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this vault isn't linked to a shared repository (it has no remote called origin), so there is nothing to compare with", checked_at)
     fetch_error = vaultgit.fetch(root, timeout)
     if not upstream_name:
         return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this branch has no upstream, so there is nothing to compare with", checked_at)
@@ -996,18 +995,41 @@ def cmd_check(args, out):
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     elapsed = time.perf_counter() - started
-    print(f"planner check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages. "
-          f"Today is {today} ({origin}). Took {elapsed:.2f} s." + (f" Gate: {args.gate}." if args.gate else "")
-          + (f" Items: {', '.join(items)}." if items else "") + (f" App: {app.id}." if app is not None else ""), file=out)
+    print(f"planner check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
+          f"Took {elapsed:.2f} s." + (f" {GATE_WORDS[args.gate]}" if args.gate else "")
+          + (f" Items: {', '.join(vault.named(i) for i in items)}." if items else "")
+          + (f" App: {vault.named(app.id)}." if app is not None else ""), file=out)
     for finding in findings:
         print(finding.format(), file=out)
+    for note in term_notes(f.message + " " + f.fix for f in findings):
+        print(note, file=out)
     if args.gate == "epics" and not errors:
         resting = questions.load_bearing_assumptions(vault)
         if resting:
-            print(f"Note: the epics gate passed, and it rests on {len(resting)} load-bearing "
-                  f"assumption{'' if len(resting) == 1 else 's'} about high-severity questions: {', '.join(resting)}. "
-                  "Each holds until its signpost shows.", file=out)
+            print(f"Note: the epics are ready to call finished, but {len(resting)} high-priority "
+                  f"question{' is' if len(resting) == 1 else 's are'} answered by an assumption the plan rests on: "
+                  f"{', '.join(resting)}. Each stands until the warning sign written beside it shows.", file=out)
     return 1 if errors else 0
+
+
+# What each gate checks, said in the summary line instead of the gate's bare name.
+GATE_WORDS = {"epics": "Checking whether the epics are ready to call finished.",
+              "shape": "Checking for questions the plan still answers by assumption, as shaping ends.",
+              "grill": "Checking the open questions that hold up the items a grill will decide."}
+# The kept working words, matched whole and in any case, so output that uses one defines it once, at the end.
+TERM_WORD = re.compile(r"\b(grill|slice|tracer)s?\b", re.IGNORECASE)
+
+
+def term_notes(texts):
+    """One definition line for each kept word (slice, tracer, grill) the lines above used, in first-use order.
+    The user ruled the words stay and are defined on first use; definitions live in planner/terms.py only."""
+    seen = []
+    for text_value in texts:
+        for match in TERM_WORD.finditer(text_value):
+            word = match.group(1).lower()
+            if word not in seen:
+                seen.append(word)
+    return [f'What "{word}" means: {terms.define(word)}' for word in seen]
 
 
 SPEC_PATTERNS = ("specs/*.yaml", "specs/*.yml")
@@ -1209,7 +1231,10 @@ def gate_app(vault, gate, app_id):
         raise ToolError("--app narrows the epics gate to one app, so it goes with --gate epics.")
     found = next((a for a in vault.apps if a.id == app_id), None)
     if found is None:
-        raise ToolError(f"--app {app_id} is not an app page in this vault.")
+        hint = next((a.id for a in vault.apps if a.id == f"APP-{app_id}"), None)
+        raise ToolError(f"there's no app with the ID {app_id}. "
+                        + (f"Use its full ID: --app {hint}." if hint else
+                           f"Use an app's ID, one of: {', '.join(a.id for a in vault.apps) or 'none yet'}."))
     return found
 
 
@@ -1217,9 +1242,9 @@ def gate_items(vault, gate, items):
     """The items a grill gate checks. A grill gate needs at least one, and only a grill gate takes any."""
     items = list(items or ())
     if gate == "grill" and not items:
-        raise ToolError("--gate grill needs the agenda: one --item <ID> per item, for example --item CON-001.")
+        raise ToolError("--gate grill needs the items the grill will decide: add --item <ID> for each, for example --item CON-001.")
     if items and gate != "grill":
-        raise ToolError("--item names a Grill's agenda, so it goes with --gate grill.")
+        raise ToolError("--item names what a grill will decide, so it goes with --gate grill.")
     missing = [i for i in items if i not in vault.known_ids()]
     if missing:
         raise ToolError(f"--item {', '.join(missing)} is not an ID in this vault.")
@@ -1469,16 +1494,26 @@ def cmd_health(args, out):
     return 0
 
 
+# A JSON key as a person reads it in the text answer; --json keeps the keys as they are.
+KEY_WORDS = {"oldest_unknown": "oldest open question", "decided_by_override": "decided by exception",
+             "blocked_by": "held up by", "inkling": "early ideas"}
+
+
+def said_key(key):
+    return KEY_WORDS.get(key, key.replace("_", " "))
+
+
 def print_answer(answer, as_json, out):
     """JSON, or one "key: value" line per field with lists joined by commas."""
     if as_json:
         print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
         return
-    for key, value in answer.items():
+    for raw_key, value in answer.items():
+        key = said_key(raw_key)
         if isinstance(value, list) and value and isinstance(value[0], dict):
             print(f"{key}:", file=out)
             for entry in value:
-                print("  " + " · ".join(f"{k}: {v}" for k, v in entry.items()), file=out)
+                print("  " + " · ".join(f"{said_key(k)}: {v}" for k, v in entry.items()), file=out)
         elif isinstance(value, list):
             print(f"{key}: {', '.join(map(str, value)) or 'none'}", file=out)
         elif isinstance(value, bool):
@@ -1495,7 +1530,7 @@ def print_search(answer, out):
               file=out)
         return
     print(f"planner query search: {len(answer['hits'])} places for {', '.join(answer['terms'])}"
-          + (f", {answer['more']} more with --limit" if answer["more"] else "") + ".", file=out)
+          + (f"; {answer['more']} more aren't shown (add --limit {len(answer['hits']) + answer['more']} to see them all)" if answer["more"] else "") + ".", file=out)
     for n, hit in enumerate(answer["hits"], 1):
         where = hit["page"] + (f" › {hit['heading']}" if hit["heading"] else "")
         print(f"{n}. {hit['title']}: {where}", file=out)
@@ -1555,7 +1590,7 @@ def cmd_questions(args, out):
         if args.json:
             print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
         else:
-            print_digest(answer, out, vault.catalog.area_codes, args)
+            print_digest(answer, out, vault.catalog.area_codes, args, dict(vault.catalog.areas))
         return 0
     answer = questions.listing(vault, args.area, args.open, args.subject)
     if args.json:
@@ -1569,11 +1604,21 @@ def cmd_questions(args, out):
     return 0
 
 
+def said_coverage(answer):
+    """The coverage line in a reader's words. The rendered vault block keeps questions.coverage_line, so pages already
+    written don't all go stale; this is what the command line says."""
+    owed, undisposed, asked, reviewers = answer["owed"], answer["undisposed"], answer.get("asked", 0), answer.get("reviewer_open", 0)
+    return (f"{owed} standard question{'' if owed == 1 else 's'} apply, {undisposed} not dealt with yet"
+            + (f", {asked} asked but not answered" if asked else "")
+            + (f", {reviewers} open reviewer question{'' if reviewers == 1 else 's'}" if reviewers else "")
+            + f" (question catalog v{answer['catalog']})")
+
+
 def questions_header(answer, args):
     kept = [f"area {args.area}" if args.area else "", f"subject {args.subject}" if args.subject else "",
             "open only" if args.open else ""]
     where = ", ".join(k for k in kept if k)
-    line = f"planner questions: {answer['coverage']}." + (f" Showing {where}." if where else "")
+    line = f"planner questions: {said_coverage(answer)}." + (f" Showing {where}." if where else "")
     if answer["reviewer_questions"]:
         count = answer["reviewer_questions"]
         line += f" {count} reviewer question{'' if count == 1 else 's'}, {answer['reviewer_open']} open."
@@ -1590,34 +1635,35 @@ def blocks_text(units):
     return f"{len(units)} items: {', '.join(units[:BLOCKS_SHOWN])}, …"
 
 
-def print_digest(answer, out, area_codes, args):
+def print_digest(answer, out, area_codes, args, area_names=None):
     """The consequential lines in full, then the rest as one count per area with the command that lists them,
     so a long digest stays readable and nothing leaves it. --all prints every line in full."""
     groups = answer["groups"]
+    area_names = area_names or {}
     short = len(groups) <= questions.DIGEST_READS_WHOLE
     full = groups if args.all or short else [g for g in groups if questions.consequential(g)]
     rest = [g for g in groups if g not in full]
-    lines = f"{len(groups)} line{'' if len(groups) == 1 else 's'} to take, most consequential first"
+    lines = f"{len(groups)} question{'' if len(groups) == 1 else 's'} to settle, most important first"
     if rest:
         lines += f": {len(full)} in full, {len(rest)} more counted by area"
-    print(f"planner questions --digest: {answer['coverage']}. {lines}.", file=out)
+    print(f"planner questions --digest: {said_coverage(answer)}. {lines}.", file=out)
     for n, group in enumerate(full, start=1):
-        print_digest_line(n, group, out)
+        print_digest_line(n, group, out, area_names)
     if not rest:
         return
     narrow = (f" --area {args.area}" if args.area else "") + (f" --subject {args.subject}" if args.subject else "")
     for code in area_codes:
         count = sum(1 for g in rest if g["area"] == code)
         if count:
-            print(f"{code}: {count} more (normal). List them: planner questions --open --digest --all"
+            print(f"{area_names.get(code, code)} ({code}): {count} more of normal priority. List them: planner questions --open --digest --all"
                   f"{narrow if args.area else narrow + ' --area ' + code}", file=out)
     print(f"Every line in full: planner questions --open --digest --all{narrow}", file=out)
 
 
-def print_digest_line(n, group, out):
-    head = f"[{group['area']}] {group['severity']}"
+def print_digest_line(n, group, out, area_names=None):
+    head = f"[{(area_names or {}).get(group['area'], group['area'])}] {group['severity']}"
     if group["blocks"]:
-        head += f", blocks {blocks_text(group['blocks'])}"
+        head += f", holds up {blocks_text(group['blocks'])}"
     print(f"{n}. {head}: {group['question']}", file=out)
     why = ", ".join(f"{digest_label(k)} {v}" if len(group["why"]) > 1 else digest_label(k)
                     for k, v in group["why"].items())
@@ -1633,21 +1679,27 @@ def digest_label(label):
 
 
 def print_stats(answer, out):
-    print(f"planner questions --stats: how each entry of catalog v{answer['catalog']} ended in this vault. "
-          "An entry that nearly always ends not-applicable is one to prune or tighten; that is your call.", file=out)
+    print(f"planner questions --stats: how each standard question (catalog v{answer['catalog']}) ended in this plan. "
+          "One that is nearly always ruled out is one to prune or tighten; that is your call.", file=out)
     for entry in answer["entries"]:
-        states = ", ".join(f"{k} {v}" for k, v in entry["states"].items()) or "nothing owed"
+        states = ", ".join(f"{k} {v}" for k, v in entry["states"].items()) or "applied nowhere"
         share = f"{entry['not_applicable_share'] * 100:.0f}%"
-        print(f"{entry['entry']} | {entry['area']} | owed {entry['owed']} | not-applicable {entry['not_applicable']} "
+        print(f"{entry['entry']} | {entry['area']} | applied {entry['owed']} | ruled out {entry['not_applicable']} "
               f"of {entry['owed']} ({share}) | {states}", file=out)
 
 
+# Ledger states as a reader says them. "unknown" means the question was logged as an open question, which counts as
+# dealt with; beside "settled" the bare word read as a contradiction.
+LEDGER_STATE_WORDS = {"unknown": "logged as an open question", "not-applicable": "ruled out", "assumed": "answered by assumption"}
+
+
 def question_line(entry):
-    state = (entry["state"] if entry["valid"] else f"invalid ({entry['state']})") + (f" via {entry['via']}" if entry["via"] else "")
+    said = LEDGER_STATE_WORDS.get(entry["state"], entry["state"])
+    state = (said if entry["valid"] else f"unreadable row ({entry['state']})") + (f" through {entry['via']}" if entry["via"] else "")
     if not entry["pending"]:
-        blocked = "settled"
+        blocked = "dealt with"
     else:
-        blocked = f"blocks {blocks_text(entry['blocks'])}" if entry["blocks"] else "blocks nothing"
+        blocked = f"holds up {blocks_text(entry['blocks'])}" if entry["blocks"] else "not linked to an item yet"
     return " | ".join((entry["id"], entry["area"], entry["severity"], state, entry["subject"] or "reviewer", blocked,
                        entry["question"]))
 
@@ -1803,33 +1855,38 @@ def cmd_handoff(args, out):
     app = handoff_app(vault, app_id)
     errors = [f for f in everything_check_says(root, vault, today) if f.is_error]
     if errors:
-        print(f"planner handoff: wrote nothing, planner check has {len(errors)} errors. Fix them first.", file=out)
+        print(f"planner handoff: didn't write the handoff record: planner check found {len(errors)} errors. Fix them, then try again.", file=out)
         for finding in errors:
             print(finding.format(), file=out)
         return 1
     target = root / schema.HANDOFF_DIR / f"{app_id}.md"
     if target.exists() and not args.replace:
-        print(f"planner handoff: wrote nothing. {target.relative_to(root)} is what the senior accepted. "
-              f"Run planner handoff verify {app_id}, or pass --replace once the senior accepts the changes.", file=out)
+        print(f"planner handoff: didn't write anything: {vault.named(app_id)} already has a handoff record "
+              f"({target.relative_to(root).as_posix()}), the one its team accepted. To see what changed since, run "
+              f"planner handoff verify {app_id}. Once the team agrees to the changes, run it again with --replace.", file=out)
         return 1
     entries = handoff.handoff_list(vault, app)
     commit = stamp_commit(root, args.commit)
     not_firm = handoffwarn.lines(handoffwarn.gaps(vault, app))
     try:
         target.parent.mkdir(exist_ok=True)
-        atomic.write_atomic(target, handoff.write(app_id, entries, commit, today, not_firm))
+        atomic.write_atomic(target, handoff.write(app_id, entries, commit, today, not_firm, vault.name_of(app_id)))
     except OSError as exc:
         raise ToolError(f"cannot write {target.relative_to(root).as_posix()}: {exc.strerror or exc}. "
                         f"{schema.HANDOFF_DIR}/ must be a folder and {app_id}.md a file.") from exc
-    print(f"planner handoff: wrote {target.relative_to(root).as_posix()}, {len(entries)} items, at {commit}.", file=out)
+    print(f"planner handoff: wrote the handoff record for {vault.named(app_id)}, {target.relative_to(root).as_posix()}: "
+          f"{len(entries)} things its team takes on, as of commit {commit}.", file=out)
     taking_part = [s for s in slices.for_app(vault, slices.read_slices(vault), app)] if slices.on_pages(vault) else []
     if taking_part:
-        print(f"{app_id} takes part in {len(taking_part)} slice{'' if len(taking_part) == 1 else 's'}: "
+        print(f"{vault.name_of(app_id)} is part of {len(taking_part)} slice{'' if len(taking_part) == 1 else 's'}: "
               + "; ".join(f"{s.label} ({s.status or 'not planned yet'})" for s in taking_part) + ".", file=out)
     if not_firm:
-        print(f"Not firm at handoff, {len(not_firm)}: the senior should hear these before accepting the app. They are listed in the manifest.", file=out)
+        print(f"{len(not_firm)} {'thing is' if len(not_firm) == 1 else 'things are'} not settled yet. Tell the app's team before "
+              "they accept it; the handoff record lists them too.", file=out)
         for line in not_firm:
             print(line, file=out)
+    for note in term_notes(["slice"] if taking_part else []):
+        print(note, file=out)
     return 0
 
 
@@ -1838,25 +1895,33 @@ def handoff_verify(root, app_id, out):
     app = handoff_app(vault, app_id)
     path = root / schema.HANDOFF_DIR / f"{app_id}.md"
     if path.is_dir():
-        raise ToolError(f"{path.relative_to(root).as_posix()} is a folder, not a manifest file.")
+        raise ToolError(f"{path.relative_to(root).as_posix()} is a folder, not a handoff record.")
     if not path.is_file():
-        raise ToolError(f"{path.relative_to(root).as_posix()} does not exist. Run planner handoff {app_id} when the senior accepts the app.")
+        raise ToolError(f"{path.relative_to(root).as_posix()} doesn't exist. Run planner handoff {app_id} when the app's team accepts it.")
     try:
         facts, accepted = handoff.read(path.read_text(encoding="utf-8"))
         handoff.check_manifest(app_id, facts, accepted)
     except (OSError, UnicodeDecodeError, handoff.ManifestError) as exc:
-        raise ToolError(f"{path.relative_to(root).as_posix()} cannot be read as a manifest: {exc}") from exc
+        raise ToolError(f"{path.relative_to(root).as_posix()} can't be read as a handoff record: {exc}") from exc
     diff = handoff.verify(accepted, handoff.handoff_list(vault, app), vault)
-    print(f"planner handoff verify {app_id}: {len(diff.changed)} changed, {len(diff.added)} added, {len(diff.removed)} removed "
-          f"since the handoff at {facts.get('Commit', 'an unrecorded commit')} on {facts.get('Written', 'an unrecorded date')}.",
-          file=out)
+    commit = facts.get('Commit', 'an unrecorded commit')
+    rough = " (that commit had changes not yet committed, so the comparison may be rough)" if "uncommitted" in commit else ""
+    print(f"planner handoff verify {app_id}: since {vault.name_of(app_id)} was handed off on {facts.get('Written', 'an unrecorded date')} "
+          f"at {commit.split(' with ')[0]}, {plural_things(len(diff.changed))} changed, {len(diff.added)} added and "
+          f"{len(diff.removed)} removed{rough}.", file=out)
     for old, new in diff.changed:
-        print(handoff.describe(old, new, new.id in diff.left), file=out)
+        print(handoff.describe(old, new, new.id in diff.left, vault.name_of(new.id)), file=out)
     for entry in diff.added:
-        print(f"added: {entry.id} ({entry.kind}, {entry.page}, {entry.state or 'no state'})", file=out)
+        print(f"added: {handoff.KIND_WORDS.get(entry.kind, entry.kind)} {vault.named(entry.id)}, on {entry.page}, "
+              f"{entry.state or ('not planned yet' if entry.kind == 'slice' else 'no state yet')}", file=out)
     for entry in diff.removed:
-        print(f"removed: {entry.id} ({entry.kind}, {entry.page}, was {entry.state or 'no state'})", file=out)
+        print(f"removed: {handoff.KIND_WORDS.get(entry.kind, entry.kind)} {entry.id}, was on {entry.page}, "
+              f"{entry.state or 'no state'}", file=out)
     return 1 if diff.breaks_acceptance else 0
+
+
+def plural_things(n):
+    return f"{n} thing" if n == 1 else f"{n} things"
 
 
 def cmd_export(args, out):
@@ -1885,7 +1950,7 @@ def cmd_export(args, out):
         raise ToolError(f"Cannot write {target}: {exc}") from exc
     print(f"planner export: wrote {len(table)} epics to {target}.", file=out)
     if remote and not base:
-        print("  The repository remote is not one planner can turn into a web link.", file=out)
+        print("  Vela couldn't make web links from this repository's address, so links show file paths.", file=out)
     if not (base and commit):
         print("  No repository URL or commit was found, so Vault link holds each epic's path in the vault. "
               "Pass --repo-url and --commit to link to the repository.", file=out)
@@ -1895,7 +1960,7 @@ def cmd_export(args, out):
         print(f"  Git did not answer ({git_trouble}), so Vault links hold paths, not repository links.", file=out)
     open_epics = [e for e in vault.of_type("epic") if e.meta.get("state") != "decided"]
     if open_epics:
-        print("  Not decided yet: " + ", ".join(f"{e.id or e.path} ({e.meta.get('state', 'no state')})"
+        print("  Not decided yet: " + ", ".join(f"{vault.named(e.id) if e.id else e.path} ({e.meta.get('state', 'no state')})"
                                                for e in sorted(open_epics, key=lambda e: e.id or e.path)) + ".", file=out)
     skipped = export.unloaded(vault)
     for path in skipped:
@@ -2204,24 +2269,40 @@ def days_between(earlier, later):
 def oldest_text(row, today):
     if row.oldest is None:
         return "none"
+    name = f"{row.oldest.name} ({row.oldest.id})" if row.oldest.name else row.oldest.id
     if not row.opened:
-        return f"{row.oldest.id}, opened: not recorded"
-    return f"{row.oldest.id}, open {days_between(row.opened, today)} days (opened {row.opened})"
+        return f"{name}, date opened not recorded"
+    return f"{name}, open {days_between(row.opened, today)} days (since {row.opened})"
 
 
 def ladder_note(vault, app):
     """" | pages reach <stage>" when the app's pages meet a later stage's entry list than its typed stage, else "".
     Said once, here and in close's report, never asked: the lead types the stage, or leaves it."""
     reached = ladder.ahead_of_stage(vault, app)
-    return f" | pages reach {reached}" if reached else ""
+    return f" (its pages already meet the {reached} stage)" if reached else ""
+
+
+def without_subject(reason, subject):
+    """The reason with its opening subject said as "It", when the line has just named that subject."""
+    for lead in (subject, f"The open question {subject}"):
+        if subject and reason.startswith(lead + " "):
+            return "It" + reason[len(lead):]
+    return reason
+
+
+def counted(n, word):
+    return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
 
 def status_line(row, today, vault=None):
     inkling, assumption, fact, decided = row.mix
-    next_text = f"{row.mode} {row.subject}".strip() if row.mode != "none" else "none"
+    subject = vault.named(row.subject) if vault is not None and row.subject else row.subject
+    next_text = f"{NEXT_MODE_WORDS.get(row.mode, row.mode)} {subject}".strip() if row.mode != "none" else "nothing"
     note = ladder_note(vault, row.app) if vault is not None else ""
-    return (f"{row.app.id} | stage {row.stage or '-'}{note} | inkling {inkling}, assumption {assumption}, fact {fact}, "
-            f"decided {progress.decided_text(row)} | oldest open unknown: {oldest_text(row, today)} | next: {next_text}. {row.reason}")
+    name = vault.named(row.app.id) if vault is not None else row.app.id
+    reason = without_subject(row.reason, subject)
+    return (f"{name} | stage: {row.stage or 'none'}{note} | {counted(inkling, 'early idea')}, {counted(assumption, 'assumption')}, {counted(fact, 'fact')}, "
+            f"{progress.decided_text(row)} decided | oldest open question: {oldest_text(row, today)} | next: {next_text}. {reason}")
 
 
 def load_lint_words(path=None):
@@ -2262,14 +2343,14 @@ def cmd_ladder(args, out):
     root = pathlib.Path(args.vault).resolve()
     vault = load_vault(root)
     apps = [a for a in vault.apps if a.meta.get("change") in schema.LADDERED_CHANGES]
-    print(f"planner ladder: {len(apps)} apps on the ladder.", file=out)
+    print(f"planner ladder: {len(apps)} apps being built or changed, each with the stage it is marked at and the stage its pages meet.", file=out)
     for app in apps:
         reached, gaps = ladder.allows(vault, app)
-        typed = app.meta.get("stage") or "-"
-        head = f"{app.id} | stage {typed} | pages reach {reached}"
+        typed = app.meta.get("stage") or "none"
+        head = f"{vault.named(app.id)} | marked at stage: {typed} | pages meet stage: {reached}"
         if gaps:
             shown = "; ".join(gaps[:3]) + (f"; and {len(gaps) - 3} more" if len(gaps) > 3 else "")
-            head += f" | next stage needs: {shown}"
+            head += f" | held back from the next stage by: {shown}"
         print(head, file=out)
     return 0
 
@@ -2279,10 +2360,12 @@ def cmd_status(args, out):
     today, origin = parse_today(args.today)
     vault = load_vault(root)
     rows = progress.grid(vault, today)
-    print(f"planner status: {len(rows)} apps. Today is {today} ({origin}).", file=out)
+    print(f"planner status: {len(rows)} apps, as of {today} ({origin}).", file=out)
     for row in rows:
         print(status_line(row, today, vault), file=out)
     print(completeness.line(vault), file=out)
+    for note in term_notes(status_line(r, today, vault) for r in rows):
+        print(note, file=out)
     return 0
 
 
@@ -2300,18 +2383,18 @@ def initiative_step(vault, row):
         return None
     loose = allocation.unallocated(vault)
     if loose:
-        return (f"initiative, allocate {loose[0].id.split('.')[0]}. {loose[0].id} is at {loose[0].fact('State')} and no "
-                f"app's Requirements allocated table carries it, so no team owns it yet.")
+        return (f"for the whole plan: decide which app owns {vault.named(loose[0].id)}, with /planner:allocate. "
+                f"It {handoffwarn.state_phrase(loose[0].fact('State'))} and no app has taken it, so no team owns it yet.")
     if allocation.due(vault) and not releases.releases(vault) and not vault.of_type("epic"):
-        return ("initiative, releases. Every requirement is carried by an app and no release says when anyone gets any of "
-                "it, so date the releases before epics are cut.")
+        return ("for the whole plan: date the releases, with /planner:releases. Every requirement has an app, but no release "
+                "says when anyone gets any of it, so date them before the epics are written.")
     have = {r.id.split(".")[0] for r in allocation.requirements(vault)}
     bare = [c for c in sorted(vault.of_type("capability"), key=lambda p: p.id)
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"
             and c.id not in have]
     if bare and (not vault.of_type("epic") or not have):
-        return (f"initiative, requirements {bare[0].id}. {bare[0].id} is {bare[0].meta['change']} and has no functional "
-                "requirements, so allocate has nothing to divide among the apps for it.")
+        return (f"for the whole plan: write the requirements for {vault.named(bare[0].id)}, with /planner:requirements. "
+                f"The capability is {bare[0].meta['change']} and has no requirements yet, so there's nothing to divide among the apps for it.")
     return None
 
 
@@ -2320,12 +2403,13 @@ def first_step(vault):
     and only a Boundary session turns it into apps; before that, the work is still finding out and shaping."""
     strategy = vault.page("04-solution-strategy")
     if strategy is not None and strategy.meta.get("state") == "decided" and not allocation.requirements(vault):
-        return ("initiative, requirements. The solution strategy is decided and no capability has functional "
-                "requirements yet, so write them before Boundary cuts the apps against them.")
+        return ("for the whole plan: write the requirements, with /planner:requirements. The solution strategy is decided "
+                "and no capability has requirements yet, so write them before the boundary session splits the work into apps.")
     if strategy is not None and strategy.meta.get("state") == "decided":
-        return ("initiative, boundary. The solution strategy is decided and no app page exists yet, so run a Boundary "
-                "session to turn it into apps.")
-    return "initiative, dump. No app page exists yet, so start with a Dump & Diverge or a Discover."
+        return ("for the whole plan: run a boundary session, with /planner:boundary. The solution strategy is decided and "
+                "no app page exists yet, so split the work into apps.")
+    return ("for the whole plan: no app page exists yet, so start by getting everything known written down "
+            "(/planner:dump, a brainstorm), or by reading the existing sources (/planner:discover).")
 
 
 def cmd_capture(args, out):
@@ -2336,10 +2420,11 @@ def cmd_capture(args, out):
         print(json.dumps({"counts": found, "checks": [{"check": n, "passed": ok, "detail": d} for n, ok, d in checks]},
                          indent=2), file=out)
         return 0
-    print(f"planner capture: {found['apps_with_domain']} of {found['apps']} apps have a domain; "
-          f"{found['flow_steps_with_sender']} of {found['flow_steps_crossing']} flow steps that cross a contract name a sender; "
-          f"{found['releases']} releases; {found['requirements']} requirements; {found['allocation_rows']} allocation rows; "
-          f"{found['unknowns_with_ask']} of {found['unknowns']} unknowns name who to ask.", file=out)
+    print(f"planner capture: {found['apps_with_domain']} of {found['apps']} apps have a business area (domain); "
+          f"{found['flow_steps_with_sender']} of {found['flow_steps_crossing']} flow steps between apps say who sends; "
+          f"{found['releases']} release{'' if found['releases'] == 1 else 's'}; {found['requirements']} requirements; "
+          f"{found['allocation_rows']} requirement-to-app assignments; "
+          f"{found['unknowns_with_ask']} of {found['unknowns']} open questions name who to ask.", file=out)
     print(f"  info  {found['apps_with_link']} of {found['apps']} apps have a code or wiki link; "
           f"{found['epics_with_link']} of {found['epics']} epics have a tracker link.", file=out)
     for name, ok, detail in checks:
@@ -2349,36 +2434,44 @@ def cmd_capture(args, out):
 
 # "probe" is the progress grid's name for an overdue or blocking unknown. There is no Probe skill, so the line the
 # lead hears says what to do instead.
-NEXT_MODE_WORDS = {"probe": "ask about"}
+NEXT_MODE_WORDS = {"probe": "ask about", "discover": "find sources for", "boundary": "read back the boundary of",
+                   "shape": "shape the options for", "grill": "grill", "epics": "write the epics for"}
 
 
 def cmd_next(args, out):
     root = pathlib.Path(args.vault).resolve()
     today, origin = parse_today(args.today)
     vault = load_vault(root)
-    when = f"Today is {today} ({origin})."
+    when = f"As of {today} ({origin})."
+    lines = []
     if not vault.apps:
-        print(f"planner next: {first_step(vault)} {when}", file=out)
+        line = f"planner next: {first_step(vault)} {when}"
+        print(line, file=out)
+        for note in term_notes([line]):
+            print(note, file=out)
         return 0
     row = progress.best(progress.grid(vault, today))
     step = initiative_step(vault, row)
     if step:
-        print(f"planner next: {step} {when}", file=out)
+        lines.append(f"planner next: {step} {when}")
     elif row is None:
-        print(f"planner next: nothing to do. Every app's items are settled and its epics decided. {when}", file=out)
+        lines.append(f"planner next: nothing to do. Every app's decisions are made and its epics agreed. {when}")
     else:
-        print(f"planner next: {row.app.id}, {NEXT_MODE_WORDS.get(row.mode, row.mode)} {row.subject}. {row.reason} {when}", file=out)
+        subject = vault.named(row.subject)
+        reason = without_subject(row.reason, subject)
+        lines.append(f"planner next: {vault.name_of(row.app.id)}: {NEXT_MODE_WORDS.get(row.mode, row.mode)} "
+                     f"{subject}. {reason} {when}")
     slice_step = slices.next_step(slices.read_slices(vault)) if slices.on_pages(vault) else ""
     if slice_step:
-        print(f"planner next: slices, {slice_step}", file=out)
+        lines.append(f"planner next: for the slices: {slice_step}")
     # The team's next step is another person's work, so it is a line of its own beside the lead's, never instead of it.
-    for line in handoff_steps(vault):
-        print(line, file=out)
-    for line in design_steps(vault, root):
-        print(line, file=out)
-    team = teamdocs.team_step(root)
+    lines += handoff_steps(vault)
+    lines += design_steps(vault, root)
+    team = teamdocs.team_step(root, vault.name_of)
     if team:
-        print(f"planner next: team side, {team}", file=out)
+        lines.append(f"planner next: for {team}")
+    for line in lines + term_notes(lines):
+        print(line, file=out)
     return 0
 
 
@@ -2402,7 +2495,7 @@ def cmd_tickets(args, out):
     except (OSError, UnicodeDecodeError, tickets.TicketsError) as exc:
         raise ToolError(f"tickets: {exc}") from exc
     for finding in findings:
-        print(f"{'flag' if finding.flag else 'note'} {finding.kind}: {finding}", file=out)
+        print(f"{'Needs fixing' if finding.flag else 'Note'}: {finding}", file=out)
     line = tickets.summary(text, findings)
     if action == "check":
         print(line, file=out)
@@ -2436,9 +2529,9 @@ def handoff_steps(vault):
         found = handoffwarn.gaps(vault, app)
         if not found:
             continue
-        state = "handed off" if app.meta.get("handed_off") else "ready to hand off"
-        out.append(f"planner next: {app.id} is {state}, and {len(found)} thing{'s' if len(found) != 1 else ''} in its handoff list "
-                   f"{'are' if len(found) != 1 else 'is'} not firm:")
+        state = "has been handed to its team" if app.meta.get("handed_off") else "is ready to hand to its team"
+        out.append(f"planner next: {vault.name_of(app.id)} {state}, but {len(found)} thing{'s' if len(found) != 1 else ''} "
+                   f"on its handoff list {'are' if len(found) != 1 else 'is'} not settled yet:")
         out.extend(f"  {line}" for line in handoffwarn.lines(found))
     return out
 
@@ -2449,28 +2542,29 @@ def design_steps(vault, root):
     from planner.explorer import design_find
     found, _ = design_find.discover(vault, root, [])
     designed = {arg.split("=", 1)[0] for arg in found}
-    return [f"planner next: team side, {app.id}, design. {app.id} is handed off and has no design doc in "
-            f"docs/tech-design/ yet; its team runs /planner:design --app {app.id}."
+    return [f"planner next: for the {vault.name_of(app.id)} team: the app is handed over but has no technical design "
+            f"yet. They start it with /planner:design --app {app.id}."
             for app in vault.apps if app.meta.get("handed_off") and app.id not in designed]
 
 
 def build_parser():
     parser = argparse.ArgumentParser(prog="planner", description="Check and render an initiative vault.")
-    parser.add_argument("--version", action="version", version="planner (run `planner --version` on its own)",
-                        help="print the plugin version and exit")
+    parser.add_argument("--version", action="version", version="Vela planner (run `planner --version` on its own)",
+                        help="print Vela's version and exit")
     sub = parser.add_subparsers(dest="command", required=True)
     check = sub.add_parser("check", help="read-only check of the vault")
     check.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    check.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
+    check.add_argument("--today", help="the date to judge overdue questions by, YYYY-MM-DD (default: today)")
     check.add_argument("--gate", choices=schema.GATES,
-                       help="epics: trace gaps and undisposed high-severity questions are errors; shape: assumed "
-                            "questions warn; grill: open questions that block an --item warn")
-    check.add_argument("--item", action="append", help="with --gate grill: an agenda item's ID; repeat for each")
-    check.add_argument("--app", help="with --gate epics: only this app and what it carries (an APP-id); other apps' gaps "
-                                     "and the whole-vault requirement check are left out")
+                       help="epics: before calling the epics finished, fail on anything no epic builds and on high-priority "
+                            "questions nobody has dealt with; shape: as shaping ends, warn on questions still answered by "
+                            "assumption; grill: before a grill, warn on open questions that hold up the items named with --item")
+    check.add_argument("--item", action="append", help="with --gate grill: the ID of an item the grill will decide; repeat for each")
+    check.add_argument("--app", help="with --gate epics: check only this app and the things on its handoff list (give its ID, "
+                                     "like APP-booking); other apps, and the check that every requirement has an app, are skipped")
     check.set_defaults(func=cmd_check)
-    slc = sub.add_parser("check-slice", help="prove one slice's logic (a release's flows, or one flow) from its specs, "
-                                             "case tables, entities and strict sequence diagrams")
+    slc = sub.add_parser("check-slice", help="check that a slice's journeys (a release's flows, or one flow) can run end to "
+                                             "end without dead ends, from their sequence diagrams, error cases and specs")
     slc.add_argument("slice", nargs="?", help="a slice, by its ID (SLC-002) or the start of its name (\"Release one\" while slices are still on the releases page), or a flow ID (FLO-001)")
     slc.add_argument("--changed", nargs="?", const="", metavar="RANGE",
                      help="check only the slices a change can touch, and reuse the recorded result of the rest: the "
@@ -2481,8 +2575,9 @@ def build_parser():
                      help="journeys at once over a shared entity: 2, or 3 to look for three-way races (costs more)")
     slc.add_argument("--vault", default=".", help="vault root (default: current directory)")
     slc.add_argument("--today", help="the date overrides' end dates are judged by, YYYY-MM-DD (default: system date)")
-    slc.add_argument("--max-states", type=int, default=200_000, help="state budget; running out is 'not fully checked' (default 200000)")
-    slc.add_argument("--max-seconds", type=float, default=10.0, help="time budget, after the state budget (default 10)")
+    slc.add_argument("--max-states", type=int, default=200_000, help="how many situations the checker may try before it stops; "
+                                                                      "stopping early means 'not fully checked' (default 200,000)")
+    slc.add_argument("--max-seconds", type=float, default=10.0, help="how long the checker may run, in seconds (default 10)")
     slc.set_defaults(func=cmd_check_slice)
     dia = sub.add_parser("check-diagrams", help="check that every mermaid diagram on the vault's pages and under docs/ "
                                                 "parses with the pinned mermaid (E604), or only the files named")
@@ -2507,12 +2602,12 @@ def build_parser():
     explore.add_argument("--today", help="the date due windows count from, YYYY-MM-DD (default: system date)")
     explore.add_argument("--theme", default="console", help="the theme the page opens in: console, graphite, daylight or vaporwave")
     explore.add_argument("--design", action="append", default=[], metavar="APP-x=PATH",
-                         help="a team's tech design doc for an app, for Inside this app; repeat for each app")
+                         help="a team's technical design for an app, shown in its 'Inside this app' view; repeat for each app")
     explore.add_argument("--breakdown", action="append", default=[], metavar="APP-x=PATH",
                          help="a team's work breakdown (docs/plan/<slug>-breakdown.md) for an app, for its Build plan; repeat for each app")
     explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
     explore.add_argument("--selftest", action="store_true",
-                         help="bundle the page's own checks, so opening it with #selftest runs them (about 120 KB; the browser tests use it)")
+                         help="for developers: bundle the dashboard's own checks, so opening it with #selftest runs them (about 120 KB)")
     explore.add_argument("--serve", action="store_true",
                          help="then serve the page on this machine only, with Ask Claude on; opens the browser, Ctrl-C stops")
     explore.add_argument("--port", type=int, default=None, help="with --serve, the port (default: one derived from the vault, so the browser finds what it saved; 0 asks for any free one)")
@@ -2520,11 +2615,12 @@ def build_parser():
                          help="with --serve, the model that answers questions (default: haiku; the page's Think harder asks sonnet)")
     explore.add_argument("--no-open", action="store_true", help="with --serve, do not open the browser")
     explore.set_defaults(func=cmd_explore)
-    role = sub.add_parser("role", help="owner or reader: decided by access to the vault's git repo, never by title or config")
+    role = sub.add_parser("role", help="whether you can change this plan (owner) or only read it (reader), from your access to its repository")
     role.add_argument("--vault", default=".", help="vault root (default: current directory)")
     role.add_argument("--json", action="store_true", help="the answer as JSON")
     role.set_defaults(func=cmd_role)
-    nid = sub.add_parser("next-id", help="the next free ID for a prefix, such as UNK, counting main and every session branch as last fetched (git fetch first); never fills a gap")
+    nid = sub.add_parser("next-id", help="the next unused ID for a kind of item, such as UNK; run git fetch first so it counts "
+                                         "everyone's work; skipped numbers aren't reused")
     nid.add_argument("prefix", help="1 to 4 capital letters, for example UNK, CON, R or ADR")
     nid.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nid.set_defaults(func=cmd_next_id)
@@ -2547,9 +2643,9 @@ def build_parser():
     opn.add_argument("--into", help="the workspace folder (default: $PLANNER_WORKSPACES/<slug>, else ~/PlannerWorkspaces/<slug>); folders OneDrive, SharePoint, Dropbox, iCloud Drive, Google Drive or Box sync are refused")
     opn.add_argument("--author", help="your name for the drafts (default: git user.name)")
     opn.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
-    opn.add_argument("--newer", action="store_true", help="re-opening: say that this copy is the later of two published on the same day (a stamp holds a date, not a time)")
+    opn.add_argument("--newer", action="store_true", help="when reopening: treat this copy as the newer of two published the same day (copies record a date, not a time)")
     opn.set_defaults(func=cmd_open)
-    prop = sub.add_parser("propose", help="a reader's changes as a proposal folder (proposal.md and changes.patch) beside the workspace; sends nothing")
+    prop = sub.add_parser("propose", help="package a reader's edits as a proposal for the owner, in a folder beside the workspace; it doesn't send anything")
     prop.add_argument("--vault", default=".", help="the reader workspace (default: current directory)")
     prop.add_argument("--groups", action="store_true", help="list the groups of change that need a reason, and write nothing")
     prop.add_argument("--json", action="store_true", help="with --groups, print them as JSON")
@@ -2595,7 +2691,7 @@ def build_parser():
     where.add_argument("--plugin-root", default="", help="the value ${CLAUDE_PLUGIN_ROOT} had when the skill loaded")
     where.add_argument("--skill-dir", default="", help="the value ${CLAUDE_SKILL_DIR} had when the skill loaded")
     where.set_defaults(func=cmd_where)
-    status = sub.add_parser("status", help="each app's stage, certainty mix, oldest open unknown and next mode")
+    status = sub.add_parser("status", help="where each app stands: its stage, how much is decided, its oldest open question and what to do next")
     status.add_argument("--vault", default=".", help="vault root (default: current directory)")
     status.add_argument("--today", help="date to judge overdue unknowns and ages by, YYYY-MM-DD (default: system date)")
     status.set_defaults(func=cmd_status)
@@ -2603,17 +2699,17 @@ def build_parser():
     nxt.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nxt.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
     nxt.set_defaults(func=cmd_next)
-    cap = sub.add_parser("capture", help="counts of what the vault records for domains, flow senders, releases, requirements and asks")
+    cap = sub.add_parser("capture", help="how much the plan records: business areas, who sends each flow step, releases, requirements and who to ask")
     cap.add_argument("--vault", default=".", help="vault root (default: current directory)")
     cap.add_argument("--json", action="store_true", help="print the counts and checks as JSON")
     cap.add_argument("--expect-release", help="a YYYY-MM-DD target a release should carry")
     cap.add_argument("--expect-ask", help="words an Ask line should contain, such as 'outside counsel'")
     cap.set_defaults(func=cmd_capture)
-    sty = sub.add_parser("style", help="where pages read as a log rather than a document; close runs it on changed pages")
+    sty = sub.add_parser("style", help="pages that read like a diary instead of a document; session close runs it on the pages it changed")
     sty.add_argument("pages", nargs="*", help="pages to read, by path or name (default: every page)")
     sty.add_argument("--vault", default=".", help="vault root (default: current directory)")
     sty.set_defaults(func=cmd_style)
-    lad = sub.add_parser("ladder", help="each app's typed stage, the stage its pages reach, and what the next needs")
+    lad = sub.add_parser("ladder", help="each app's marked stage beside the stage its pages meet, and what the next stage still needs")
     lad.add_argument("--vault", default=".", help="vault root (default: current directory)")
     lad.set_defaults(func=cmd_ladder)
     upgrade = sub.add_parser("upgrade", help="replace the vault's CONVENTIONS.md with the installed plugin's copy")
@@ -2655,7 +2751,7 @@ def build_parser():
                       help="with --digest: every line in full, not only the high and blocking ones")
     view_of.add_argument("--stats", action="store_true", help="how often each entry ends not-applicable in this vault")
     ques.set_defaults(func=cmd_questions)
-    found = sub.add_parser("findings", help="merge the focused reviewers' findings and check every quote")
+    found = sub.add_parser("findings", help="combine the reviewers' notes and check each quote is really on its page")
     founds = found.add_subparsers(dest="what", required=True)
     merge = founds.add_parser("merge", help="union, remove duplicates, drop a finding whose quote is not on its page")
     merge.add_argument("folder", help="folder holding one <AREA>.json per reviewer, such as FIN.json")
@@ -2667,12 +2763,13 @@ def build_parser():
     merge.add_argument("--changed", help="the pages this session changed, and its record, comma-separated: a new "
                                          "question quoting any other page is dropped")
     merge.set_defaults(func=cmd_findings)
-    hand = sub.add_parser("handoff", help="write the senior's handoff manifest, or verify the vault against it")
-    hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id to write handoffs/<APP-id>.md; verify APP-id to compare")
+    hand = sub.add_parser("handoff", help="record what a team takes on when an app is handed over, or list what changed since")
+    hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id: the app to hand off, which writes its handoff record; "
+                                                                          "verify APP-id: list what changed since that app was handed off")
     hand.add_argument("--vault", default=".", help="vault root (default: current directory)")
     hand.add_argument("--today", help="date to record, YYYY-MM-DD (default: system date)")
     hand.add_argument("--commit", help="commit to record (default: git rev-parse --short HEAD)")
-    hand.add_argument("--replace", action="store_true", help="overwrite an existing manifest once the senior accepts the changes")
+    hand.add_argument("--replace", action="store_true", help="replace the existing handoff record once the app's team accepts the changes")
     hand.set_defaults(func=cmd_handoff)
     exp = sub.add_parser("export", help="write the epics out for another tool; nothing is read back")
     exps = exp.add_subparsers(dest="format", required=True)
@@ -2686,7 +2783,7 @@ def build_parser():
     tick.add_argument("action", choices=("check", "write"), help="check: print what does not line up; write: also write the file")
     tick.add_argument("plan", nargs="?", help="the build plan (default: the one docs/plan/*-breakdown.md in the vault)")
     tick.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    tick.add_argument("--app", help="the app the plan is for, an APP-id (default: vault.app in the plan's frontmatter)")
+    tick.add_argument("--app", help="the app the plan is for, like APP-booking (default: the app named at the top of the plan)")
     tick.add_argument("--format", choices=("markdown", "csv"), default="markdown", help="with write: the file to write (default: markdown)")
     tick.add_argument("--out", help="with write: the folder to write into (default: <vault>/docs/work)")
     tick.set_defaults(func=cmd_tickets)
@@ -2698,7 +2795,7 @@ def build_parser():
                             "Repeat for each. It must be in the text before and gone from the text after")
     voice.add_argument("--vault", default=".", help="vault root for --range (default: current directory)")
     voice.set_defaults(func=cmd_voicecheck)
-    score = sub.add_parser("voicescore", help="optional: where each prose paragraph sits against your own voice's range")
+    score = sub.add_parser("voicescore", help="optional: how close each paragraph is to your usual writing style")
     score.add_argument("words", nargs="+", metavar="setup | file | candidate",
                        help="setup to download the model once; a page to score its prose paragraphs; with --rank, two or more drafts")
     score.add_argument("--rank", action="store_true", help="rank drafts of the same paragraph, closest to the voice first")
@@ -2736,7 +2833,7 @@ def plugin_version(path=PLUGIN_JSON):
 def main(argv=None, out=None):
     out = out or sys.stdout
     if list(argv if argv is not None else sys.argv[1:]) == ["--version"]:
-        print(f"planner {plugin_version()}", file=out)
+        print(f"Vela planner {plugin_version()}", file=out)
         return 0
     try:
         args, extras = build_parser().parse_known_args(argv)

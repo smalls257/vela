@@ -3,6 +3,8 @@ import json
 
 from conftest import edit, run
 
+from planner import cli
+
 
 def ask(mini, *argv):
     code, out = run("query", *argv, "--vault", str(mini), "--json")
@@ -35,7 +37,7 @@ def test_an_unknown_id_is_not_found_and_exits_1(mini):
     assert code == 1
     assert answer == {"id": "CON-099", "not_found": True}
     code, out = run("query", "get", "con-001", "--vault", str(mini))
-    assert code == 1 and out == "id: con-001\nnot_found: true\n"
+    assert code == 1 and out == "id: con-001\nnot found: true\n"
 
 
 def test_get_says_what_blocks_an_item(mini):
@@ -101,7 +103,8 @@ def test_status_is_the_planner_status_grid(mini):
     assert [a["app"] for a in answer["apps"]] == ["APP-till", "APP-shop", "APP-stock"]
     _, text = run("status", "--vault", str(mini), "--today", "2026-01-15")
     for app in answer["apps"]:
-        assert f"next: {app['next']} {app['subject']}".strip() + f". {app['reason']}" in text or app["next"] == "none"
+        said = cli.NEXT_MODE_WORDS.get(app["next"], app["next"])  # the grid's mode, in the words status prints
+        assert (f"next: {said} " in text and f"({app['subject']})" in text and app["reason"][-40:] in text) or app["next"] == "none"
 
 
 def test_query_writes_nothing(mini):

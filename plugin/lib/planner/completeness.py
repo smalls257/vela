@@ -22,7 +22,7 @@ class Share:
         return self.done / self.total if self.total else None
 
     def text(self):
-        return f"{self.name} {self.done} of {self.total}"
+        return f"{self.done} of {self.total} {self.name}"
 
 
 def items(vault):
@@ -45,7 +45,7 @@ def model_body(page):
 
 def unknowns(vault):
     found = vault.unknowns
-    return Share("unknowns resolved", sum(1 for u in found if u.fact("State") == "resolved"), len(found))
+    return Share("open questions answered", sum(1 for u in found if u.fact("State") == "resolved"), len(found))
 
 
 def cells(vault):
@@ -55,14 +55,14 @@ def cells(vault):
     seen = {(c.concern.id, c.app): c.state for c in vault.cells}
     total = len(apps) * len(concerns)
     done = sum(1 for p in concerns for a in apps if seen.get((p.id, a.name), "unexamined") != "unexamined")
-    return Share("concern cells examined", done, total)
+    return Share("cross-cutting concern checks made", done, total)
 
 
 def owed_questions(vault):
     kept = questions.dispositions(vault)
     rows = questions.reviewer_rows(vault)
     done = sum(1 for d in kept if not d.pending) + sum(1 for r in rows if r.state not in ("open", "asked"))
-    return Share("questions disposed", done, len(kept) + len(rows))
+    return Share("standard questions dealt with", done, len(kept) + len(rows))
 
 
 def pages(vault):
@@ -82,4 +82,4 @@ def measure(vault):
 
 def line(vault):
     percent, shares = measure(vault)
-    return f"Completeness: {percent}% ({', '.join(s.text() for s in shares)})."
+    return f"Completeness: {percent}%, the average of {', '.join(s.text() for s in shares)}."

@@ -162,7 +162,7 @@ def test_style_flags_labels_nothing_reads_items_with_no_sentence_and_asides():
     assert any("bracketed aside" in p for p in problems)
     assert any("'Brightwater, what it does' is not a fact bullet" in p for p in problems)
     assert any("only bullets" in p for p in problems)
-    assert any("a link labeled UNK-002" in p for p in problems)
+    assert any("a link shows the code UNK-002" in p for p in problems)
 
 
 def test_the_question_ledger_folds_in_place():

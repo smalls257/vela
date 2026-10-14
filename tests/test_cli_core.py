@@ -8,7 +8,7 @@ from planner import cli
 
 def test_c28_version_prints_the_plugin_json_version():
     declared = json.loads((REPO / "plugin" / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))["version"]
-    assert run("--version") == (0, f"planner {declared}\n")
+    assert run("--version") == (0, f"Vela planner {declared}\n")
 
 
 def test_c28_a_missing_plugin_json_is_said_not_hidden(tmp_path):
