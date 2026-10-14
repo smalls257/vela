@@ -151,15 +151,19 @@ def slice_of(vault, app):
     return sorted(unique.values(), key=lambda e: (KIND_ORDER.index(e.kind), e.id))
 
 
-def write(app_id, entries, commit, today):
-    """The manifest file's text."""
+NOT_FIRM_HEADING = "## Not firm at handoff"
+
+
+def write(app_id, entries, commit, today, not_firm=()):
+    """The manifest file's text. `not_firm` is the sentences handoffwarn found, so the senior's copy says what was never decided."""
     rows = [f"| {e.id} | {e.kind} | {e.page} | {e.state or '-'} | {e.hash} |" for e in entries]
+    tail = ["", NOT_FIRM_HEADING, "", "The senior accepts the slice with these still open:", "", *not_firm, ""] if not_firm else [""]
     return "\n".join([
         f"# Handoff manifest: {app_id}", "",
         f"- **App:** {app_id}", f"- **Commit:** {commit}", f"- **Written:** {today}", f"- **Items:** {len(entries)}", "",
         f"Written by `planner handoff {app_id}`. Do not edit it by hand. "
         f"`planner handoff verify {app_id}` lists what changed since the senior accepted this slice.", "",
-        "| " + " | ".join(HEADER) + " |", "|---|---|---|---|---|", *rows, ""])
+        "| " + " | ".join(HEADER) + " |", "|---|---|---|---|---|", *rows, *tail])
 
 
 def read(text_value):

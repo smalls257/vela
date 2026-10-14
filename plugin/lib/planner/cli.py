@@ -13,6 +13,7 @@ import errno
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -22,7 +23,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, tickets, untrusted, viewer, voicecheck, voicescore
+from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, tickets, untrusted, viewer, voicecheck, voicescore
 from planner.edge import atomic, copies, replays, reviewgit, teamdocs, vaultgit
 from planner.edge import proposals as proposal_files
 
@@ -162,9 +163,44 @@ def config_findings(root):
                           "Ask the lead for a short name for the initiative and write it as title: in .planner.yaml.")]
 
 
+MANIFEST_COMMIT = re.compile(r"^- \*\*Commit:\*\* ([0-9a-f]{7,40})\b", re.MULTILINE)
+
+
+def commit_exists(root, sha):
+    """False only when git answered and has no such commit. A git that cannot run proves nothing."""
+    try:
+        result = subprocess.run(["git", "-C", str(root), "cat-file", "-e", f"{sha}^{{commit}}"], capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return True
+    return result.returncode == 0 or b"not a git repository" in result.stderr
+
+
+def manifest_findings(root):
+    """W388 for a handoff manifest that pins a commit this repository does not have: the sensor `handoff verify` reads
+    from would be a dead reference, and the senior could never see what they accepted."""
+    found = []
+    for path in sorted((root / schema.HANDOFF_DIR).glob("*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            found.append(model.Finding(f"{schema.HANDOFF_DIR}/{path.name}", 1, "W388",
+                                       f"This manifest cannot be read ({exc}), so the commit it pins is unchecked.",
+                                       f"Restore the file, or write the manifest again with planner handoff {path.stem} and the replace flag."))
+            continue
+        pinned = MANIFEST_COMMIT.search(text)
+        if pinned and not commit_exists(root, pinned.group(1)):
+            line = text[:pinned.start()].count("\n") + 1
+            found.append(model.Finding(f"{schema.HANDOFF_DIR}/{path.name}", line, "W388",
+                                       f"This manifest pins commit {pinned.group(1)}, which this repository does not have, so nobody "
+                                       "can open what the senior accepted.",
+                                       f"Write the manifest again on a committed tree with planner handoff {path.stem} and the replace flag, "
+                                       "or restore the commit."))
+    return found
+
+
 def vault_file_findings(root):
-    """The findings about the vault's own files, which are not pages: its conventions copy and its config."""
-    return conventions_findings(root) + config_findings(root)
+    """The findings about the vault's own files, which are not pages: its conventions copy, its config and its manifests."""
+    return conventions_findings(root) + config_findings(root) + manifest_findings(root)
 
 
 def cmd_upgrade(args, out):
@@ -1549,13 +1585,18 @@ def cmd_handoff(args, out):
         return 1
     entries = handoff.slice_of(vault, app)
     commit = stamp_commit(root, args.commit)
+    not_firm = handoffwarn.lines(handoffwarn.gaps(vault, app))
     try:
         target.parent.mkdir(exist_ok=True)
-        atomic.write_atomic(target, handoff.write(app_id, entries, commit, today))
+        atomic.write_atomic(target, handoff.write(app_id, entries, commit, today, not_firm))
     except OSError as exc:
         raise ToolError(f"cannot write {target.relative_to(root).as_posix()}: {exc.strerror or exc}. "
                         f"{schema.HANDOFF_DIR}/ must be a folder and {app_id}.md a file.") from exc
     print(f"planner handoff: wrote {target.relative_to(root).as_posix()}, {len(entries)} items, at {commit}.", file=out)
+    if not_firm:
+        print(f"Not firm at handoff, {len(not_firm)}: the senior should hear these before accepting the app. They are listed in the manifest.", file=out)
+        for line in not_firm:
+            print(line, file=out)
     return 0
 
 
@@ -2095,6 +2136,8 @@ def cmd_next(args, out):
     else:
         print(f"planner next: {row.app.id}, {NEXT_MODE_WORDS.get(row.mode, row.mode)} {row.subject}. {row.reason} {when}", file=out)
     # The team's next step is another person's work, so it is a line of its own beside the lead's, never instead of it.
+    for line in handoff_steps(vault):
+        print(line, file=out)
     for line in design_steps(vault, root):
         print(line, file=out)
     team = teamdocs.team_step(root)
@@ -2144,6 +2187,24 @@ def cmd_tickets(args, out):
     print(f"wrote {', '.join(str(w) for w in written)}", file=out)
     print(line, file=out)
     return 1 if any(f.flag for f in findings) else 0
+
+
+def handoff_steps(vault):
+    """For each app at handoff with something not firm, a line saying so and one line per gap. An app whose pages reached the
+    handoff stage and has no `handed_off` yet is ready to hand over; saying what is not firm is the point of the line, so the
+    lead hears it before the senior accepts the app."""
+    out = []
+    for app in vault.apps:
+        if not handoffwarn.at_handoff(app):
+            continue
+        found = handoffwarn.gaps(vault, app)
+        if not found:
+            continue
+        state = "handed off" if app.meta.get("handed_off") else "ready to hand off"
+        out.append(f"planner next: {app.id} is {state}, and {len(found)} thing{'s' if len(found) != 1 else ''} in its slice "
+                   f"{'are' if len(found) != 1 else 'is'} not firm:")
+        out.extend(f"  {line}" for line in handoffwarn.lines(found))
+    return out
 
 
 def design_steps(vault, root):

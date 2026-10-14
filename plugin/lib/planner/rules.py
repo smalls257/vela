@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, cases, flows, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
+from planner import allocation, cases, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -416,6 +416,21 @@ def case_table_rules(vault, today):
         if contract.fact("State") == "decided" and not any(c.is_error for c in table.cases):
             yield _f(page, contract.line, "W385", f"{contract.id} is decided and its case table has no error case.",
                      "Add the answer for a refusal or a failure (a 4xx or 5xx status, or error).")
+
+
+def handoff_rules(vault, today):
+    """Sensor for the app handed over on an override: every item still short of a yes is named before the senior accepts it.
+    A contract with no case table is W380 already, and the read-back lists it with the rest."""
+    for app in vault.apps:
+        if not handoffwarn.at_handoff(app):
+            continue
+        for gap in handoffwarn.gaps(vault, app):
+            if gap.kind == "unfirm":
+                yield _f(gap.page, gap.line, "W386", f"{gap.sentence} {app.id} is at handoff.",
+                         "Decide it in a Grill before the senior accepts the app, or tell the senior it is not firm.")
+            elif gap.kind == "no-designer":
+                yield _f(gap.page, gap.line, "W387", f"{gap.sentence} {app.id} is at handoff.",
+                         "Hand the provider's app over too, or tell the senior the calls are built against nothing yet.")
 
 
 # ------------------------------------------------------------ unknowns, risks
@@ -1166,5 +1181,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)
