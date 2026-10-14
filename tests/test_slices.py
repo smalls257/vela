@@ -78,6 +78,24 @@ def test_slices_come_in_after_order_ties_by_id_and_a_circle_is_found():
     assert slices.cycles(found) == []
     loop = vault_of(("SLC-001", page("SLC-001", "a", "**After:** SLC-002")), ("SLC-002", page("SLC-002", "b", "**After:** SLC-001")))
     assert slices.cycles(slices.read_slices(loop)) == [("SLC-001", "SLC-002")]
+    assert slices.tracer(slices.read_slices(loop)) is None  # every slice names an After: none is the tracer
+
+
+def test_the_tracer_is_the_one_slice_with_no_after_whatever_its_id():
+    v = vault_of(("SLC-001", page("SLC-001", "a", "**After:** SLC-002")), ("SLC-002", page("SLC-002", "b")))
+    assert slices.tracer(slices.read_slices(v)).id == "SLC-002"
+
+
+def test_w406_two_slices_with_no_after_or_none_at_all(example):
+    write(example, "SLC-004", page("SLC-004", "d", "**Flows:** [[FLO-002-amend-or-cancel|FLO-002]]"))
+    assert lines(example, "W406") == [
+        "slices/SLC-004-x.md:12: W406 SLC-001 and SLC-004 name no After, and only the tracer comes after nothing, so SLC-001 stands in "
+        "as the tracer by its ID. Fix: Give SLC-004 an After line naming the slice it builds on (the tracer, SLC-001, if nothing else)."]
+    write(example, "SLC-004", page("SLC-004", "d", "**Flows:** [[FLO-002-amend-or-cancel|FLO-002]]", "**After:** SLC-001"))
+    assert lines(example, "W406") == []
+    write(example, "SLC-001", page("SLC-001", "a", "**Flows:** [[FLO-001-hold-pay-confirm|FLO-001]]", "**After:** SLC-004"))
+    found = lines(example, "W406")
+    assert len(found) == 1 and "Every slice names an After, so none is the tracer" in found[0]
 
 
 def test_without_slice_pages_the_releases_page_is_read_and_each_release_comes_after_the_last():

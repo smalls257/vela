@@ -410,7 +410,7 @@ def handoff_status(vault, root, keys, app):
     except (OSError, UnicodeDecodeError, handoff.ManifestError) as exc:
         status["problem"] = str(exc)
         return status
-    diff = handoff.verify(accepted, handoff.slice_of(vault, app), vault)
+    diff = handoff.verify(accepted, handoff.handoff_list(vault, app), vault)
     status.update(changed=len(diff.changed), added=len(diff.added), removed=len(diff.removed),
                   written=facts.get("Written", ""),
                   changes=[handoff.describe(o, n, n.id in diff.left) for o, n in diff.changed][:12])

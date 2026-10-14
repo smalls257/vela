@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Contents: 1 start; 2 read the frontier; 3 shape the cuts; 4 draft each epic; 5 behaviour the vault does not hold; 6 grill the criteria; 7 check the gate.
 
-Turn a handed-off slice into epics a team can build from. The check finds the gaps, so the frontier is never guessed. Only the Grill part of this session sets an epic to `decided`.
+Turn a handed-off app into epics a team can build from. The check finds the gaps, so the frontier is never guessed. Only the Grill part of this session sets an epic to `decided`.
 
 The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The format, including the epic page and the trace rules, is in `CONVENTIONS.md` under "Epics and traceability".
 

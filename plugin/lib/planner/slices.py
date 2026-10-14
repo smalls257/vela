@@ -218,9 +218,17 @@ def _in_order(found):
     return [replace(s, order=n) for n, s in enumerate(out)]
 
 
+def roots(found):
+    """The slices that come after nothing, in slice order: the tracer, when there is exactly one."""
+    return [s for s in found if not s.after]
+
+
 def tracer(found):
-    """The tracer: the first slice, built first and kept. None when the vault names no slice."""
-    return found[0] if found else None
+    """The tracer: the one slice with no After, built first and kept. Every other slice comes after it, or after one
+    that does. When two or more name no After, the first by ID stands in and check says so (W406); when none does (a
+    circle, E394), there is no tracer. None when the vault names no slice."""
+    first = roots(found)
+    return first[0] if first else None
 
 
 def upstream(found, chosen):

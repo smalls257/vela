@@ -5,12 +5,12 @@
    - Product: capabilities and requirements, what each release delivers, the business questions, the user flows.
    - QA: acceptance criteria by epic, contracts and who tests each side, failure behaviour per app, and unsettled
      questions that would change a test.
-   - Engineering: pick an app for its slice: boundary, contracts in and out, flows, open questions, handoff state, and
+   - Engineering: pick an app for its handoff list: boundary, contracts in and out, flows, open questions, handoff state, and
      how far every app is from a build plan (no design, design only, plan with gaps, plan complete).
    - Managers: progress, completeness, the timeline, what is blocked on whom, and the build plans' stories and points. */
 const Roles = (() => {
   const ROLES = [["lead", "Lead", "What needs you"], ["exec", "Exec", "Goals, decisions, risks and the timeline"], ["product", "Product", "Capabilities, requirements, releases and flows"],
-    ["qa", "QA", "Criteria, contracts, failure and what would change a test"], ["eng", "Engineering", "One app's slice"], ["mgr", "Managers", "Progress, timeline and who is blocking what"]];
+    ["qa", "QA", "Criteria, contracts, failure and what would change a test"], ["eng", "Engineering", "One app's handoff list"], ["mgr", "Managers", "Progress, timeline and who is blocking what"]];
   const st = { role: HASH.get("role") || "exec", app: HASH.get("app") || "" };
   const lamp = (lv) => (lv && lv !== "dark" ? lampEl(lv) : null);  // a settled thing needs no lamp in a short list
   const worst = (levels) => levels.slice().sort((p, q) => rank(q) - rank(p))[0] || "dark";
@@ -120,7 +120,7 @@ const Roles = (() => {
       rule("Rule: open questions whose Blocks line reaches a contract, epic, requirement or flow, the things a test is written against.")));
   }
 
-  /* ------------------------------------------------------------ engineering: one app's slice */
+  /* ------------------------------------------------------------ engineering: one app's handoff list */
   function eng(grid, root) {
     const apps = D.map.apps;
     if (!st.app || !APPS[st.app]) st.app = (apps.find((a) => a.stage) || apps[0] || {}).key || "";
@@ -145,12 +145,12 @@ const Roles = (() => {
     grid.append(card("Flows and open questions", null, flows.length ? list(flows, 3, (r) => h("li", {}, h("a", { "data-ref": r.flow, "data-reveal": "", title: E[r.flow].id }, E[r.flow].title, idTag(E[r.flow].id)),
       h("button", { class: "btn tiny", onclick: () => Flows.present(r.flow, firstStepTouching(FLOW[r.flow], k)) }, "▶ Present"))) : empty("No flow crosses it."),
       h("h3", {}, "Open questions holding it"), a.questions.length ? list(a.questions.map((q) => UNKNOWN[q.id]).filter(Boolean), 4, qRow) : empty("None.")));
-    const slice = D.slices[k] || [];
+    const slice = D.handoffList[k] || [];
     grid.append(card("Handoff", null, h("div", { class: "small" }, ho && (ho.manifest || ho.handedOff) ? [ho.handedOff ? h("div", {}, "Handed off: ", ho.handedOff) : null,
       ho.manifest ? h("div", { class: ho.changed + ho.removed ? "gap" : "muted" }, ho.problem ? "Manifest unreadable: " + ho.problem : ho.changed + ho.removed ? `${ho.changed} changed and ${ho.removed} removed since the senior accepted it` : "Nothing the senior accepted has changed.") : h("div", { class: "muted" }, "No manifest in handoffs/.")] : h("div", { class: "muted" }, "Not handed off.")),
       h("h3", {}, `The slice, ${plural(slice.length, "item")}`),
       h("ul", { class: "door-list" }, [...new Set(slice.map((x) => x.kind))].map((kind) => { const of = slice.filter((x) => x.kind === kind); return h("li", {}, h("span", { class: "muted small slice-k" }, kind + " "), of.slice(0, 6).map((x) => h("a", { class: "slice-id", "data-ref": keyForId(x.id), title: x.id }, shortName(x.id))), of.length > 6 ? h("span", { class: "muted small" }, ` +${of.length - 6}`) : null); })),
-      rule("The slice is handoff.slice_of: what a handoff manifest records for this app.")));
+      rule("The handoff list is handoff.handoff_list: what a handoff manifest records for this app.")));
   }
 
   /* ------------------------------------------------------------ managers */
@@ -194,7 +194,7 @@ const Roles = (() => {
   function render(main) {
     const def = ROLES.find(([id]) => id === st.role) || ROLES[1];
     const root = h("div", { class: "door", "data-role": def[0] });
-    root.append(h("div", { class: "door-head" }, h("div", {}, h("div", { class: "kicker" }, "Front door"), h("h1", {}, def[0] === "eng" ? "Engineering: one app's slice" : `${def[1]}: ${def[2].toLowerCase()}`)), switcher()));
+    root.append(h("div", { class: "door-head" }, h("div", {}, h("div", { class: "kicker" }, "Front door"), h("h1", {}, def[0] === "eng" ? "Engineering: one app's handoff list" : `${def[1]}: ${def[2].toLowerCase()}`)), switcher()));
     const grid = h("div", { class: "door-grid door-" + def[0] });
     root.append(grid);
     main.append(root);

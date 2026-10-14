@@ -17,7 +17,7 @@ def check(vault, today, gate=None, items=(), app=None):
     high-severity question not yet disposed. `gate="shape"` is the end of a
     Shape: each assumed question still unresolved warns. `gate="grill"` with
     `items` is a Grill on those items: each open question that blocks one warns.
-    `app` narrows the epics gate to one app page and its slice (scope_to_app), so a multi-app
+    `app` narrows the epics gate to one app page and what it carries (scope_to_app), so a multi-app
     initiative can call one app's epics complete while another app's are still draft.
     Overrides apply last, so an override can soften an error but never hide one:
     see override.apply.
@@ -40,7 +40,7 @@ def check(vault, today, gate=None, items=(), app=None):
 
 
 def scope_to_app(vault, app):
-    """(gap filter, question filter) for the epics gate narrowed to `app` and its slice.
+    """(gap filter, question filter) for the epics gate narrowed to `app` and what it carries.
 
     A gap is kept when its subject is the app, a contract it provides, a capability its allocation rows
     carry, a concern cell for it, or an epic that lists it. T7 (a requirement no app carries) belongs to
@@ -803,9 +803,9 @@ def short_of(vault, flow_ids, release):
 
 
 def slice_rules(vault, today):
-    """The slice pages' own rules (W345, W347, E346, W348, W392 to W394, W396, W397, W400, W405), or W399 once while a
-    vault still names its slices on the releases page. Those that need the flow checker's result (W391, W395, E398) run in
-    `planner check` beside it, from the same reader."""
+    """The slice pages' own rules (W345, W347, E346, W348, W392 to W394, W396, W397, W400, W405, W406), or W399 once
+    while a vault still names its slices on the releases page. Those that need the flow checker's result (W391, W395,
+    E398) run in `planner check` beside it, from the same reader."""
     found = slices.read_slices(vault)
     if not slices.on_pages(vault):
         yield from _slices_still_on_releases(vault, found)
@@ -821,12 +821,32 @@ def slice_rules(vault, today):
         yield from _slice_page_rules(vault, page, s, s is tracer, keys, flow_ids)
         yield from _slice_milestone_rules(vault, page, s, marked.get(s.id, []), release_names)
         yield from _slice_progress_rules(page, s, {x.key: x for x in found}, today)
+    yield from _tracer_count_rules(by_page, found)
     for circle in slices.cycles(found):
         first = next(s for s in found if s.key == circle[0])
         yield _f(by_page[first.path], first.lines.get("After", 1), "E394",
                  f"{', '.join(circle)} each come after another of them, so none of them can start.",
                  "Take one slice out of another's After: decide which goes first.")
     yield from _release_slice_rules(vault, keys)
+
+
+def _tracer_count_rules(by_page, found):
+    """W406: the tracer is the one slice with no After. Two or more with none leaves the first by ID standing in, a
+    guess the lead never made; none at all leaves no tracer, so no team knows which thin path to build first."""
+    first = slices.roots(found)
+    if len(first) > 1:
+        rest = first[1:]
+        names = ", ".join(s.id for s in rest)
+        yield _f(by_page[rest[0].path], rest[0].lines.get("After", rest[0].line), "W406",
+                 f"{first[0].id} and {names} name no After, and only the tracer comes after nothing, so {first[0].id} "
+                 "stands in as the tracer by its ID.",
+                 f"Give {names} an After line naming the slice {'each builds' if len(rest) > 1 else 'it builds'} on "
+                 f"(the tracer, {first[0].id}, if nothing else).")
+    elif found and not first:
+        s = found[0]
+        yield _f(by_page[s.path], s.lines.get("After", s.line), "W406",
+                 "Every slice names an After, so none is the tracer: no slice is the thin path built first.",
+                 "Take the After line off the slice that goes first; it is the tracer.")
 
 
 def _slices_still_on_releases(vault, found):

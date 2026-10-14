@@ -207,7 +207,7 @@ const SelfTest = (() => {
     }
     ok(!lines.some((l) => l.includes("overflows") || l.includes(" cut")), `front doors: ${lines.join(", ")}, each card whole, the door scrolling when they are taller than the window`, `front doors: ${lines.join(", ")}`);
     Nav.role("eng"); await frames();
-    ok(!!$(".door-pick .chip.on") || !D.map.apps.length, `engineering door: an app picked, its slice of ${(D.slices[Roles.st.app] || []).length} items from handoff.slice_of`, "engineering door has no app picked");
+    ok(!!$(".door-pick .chip.on") || !D.map.apps.length, `engineering door: an app picked, its handoff list of ${(D.handoffList[Roles.st.app] || []).length} items from handoff.handoff_list`, "engineering door has no app picked");
   }
   /* The flow picker: it lists every flow once, groups only above ten, filters by name, and takes the keyboard. The
      grouping is also checked on made-up flows, so a vault with three flows still proves the rule at twelve. */

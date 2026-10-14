@@ -194,7 +194,7 @@ def test_demo_vault_passes_planner_check(demo):
     assert {a.meta.get("domain") for a in loaded.apps} == {"Channels", "Booking core", "Platform", "Legacy"}
     assert not allocation.unallocated(loaded)
     booking = next(a for a in loaded.apps if a.id == "APP-booking")
-    diff = handoff.verify(handoff.read((vault / "handoffs/APP-booking.md").read_text())[1], handoff.slice_of(loaded, booking), loaded)
+    diff = handoff.verify(handoff.read((vault / "handoffs/APP-booking.md").read_text())[1], handoff.handoff_list(loaded, booking), loaded)
     assert not diff.changed and not diff.removed
 
 
@@ -249,7 +249,7 @@ def test_domains_capabilities_and_door_data(demo):
     assert len(data["epicCriteria"]["EPC-035"]) == 6 and "security" in data["epicCriteria"]["EPC-035"][1]["markers"]
     assert len(data["reqCriteria"]["CAP-013.FR1"]) == 3
     assert data["failure"]["APP-booking"]["sections"], "Booking's runtime page says how it fails"
-    assert any(e["id"] == "CON-001" for e in data["slices"]["APP-booking"])
+    assert any(e["id"] == "CON-001" for e in data["handoffList"]["APP-booking"])
     assert [g["id"] for g in data["goals"]] == ["G1", "G2", "G3"]
 
 

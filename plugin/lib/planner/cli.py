@@ -1638,7 +1638,7 @@ def cmd_handoff(args, out):
         print(f"planner handoff: wrote nothing. {target.relative_to(root)} is what the senior accepted. "
               f"Run planner handoff verify {app_id}, or pass --replace once the senior accepts the changes.", file=out)
         return 1
-    entries = handoff.slice_of(vault, app)
+    entries = handoff.handoff_list(vault, app)
     commit = stamp_commit(root, args.commit)
     not_firm = handoffwarn.lines(handoffwarn.gaps(vault, app))
     try:
@@ -1666,13 +1666,13 @@ def handoff_verify(root, app_id, out):
     if path.is_dir():
         raise ToolError(f"{path.relative_to(root).as_posix()} is a folder, not a manifest file.")
     if not path.is_file():
-        raise ToolError(f"{path.relative_to(root).as_posix()} does not exist. Run planner handoff {app_id} when the senior accepts the slice.")
+        raise ToolError(f"{path.relative_to(root).as_posix()} does not exist. Run planner handoff {app_id} when the senior accepts the app.")
     try:
         facts, accepted = handoff.read(path.read_text(encoding="utf-8"))
         handoff.check_manifest(app_id, facts, accepted)
     except (OSError, UnicodeDecodeError, handoff.ManifestError) as exc:
         raise ToolError(f"{path.relative_to(root).as_posix()} cannot be read as a manifest: {exc}") from exc
-    diff = handoff.verify(accepted, handoff.slice_of(vault, app), vault)
+    diff = handoff.verify(accepted, handoff.handoff_list(vault, app), vault)
     print(f"planner handoff verify {app_id}: {len(diff.changed)} changed, {len(diff.added)} added, {len(diff.removed)} removed "
           f"since the handoff at {facts.get('Commit', 'an unrecorded commit')} on {facts.get('Written', 'an unrecorded date')}.",
           file=out)
@@ -2263,7 +2263,7 @@ def handoff_steps(vault):
         if not found:
             continue
         state = "handed off" if app.meta.get("handed_off") else "ready to hand off"
-        out.append(f"planner next: {app.id} is {state}, and {len(found)} thing{'s' if len(found) != 1 else ''} in its slice "
+        out.append(f"planner next: {app.id} is {state}, and {len(found)} thing{'s' if len(found) != 1 else ''} in its handoff list "
                    f"{'are' if len(found) != 1 else 'is'} not firm:")
         out.extend(f"  {line}" for line in handoffwarn.lines(found))
     return out
@@ -2292,7 +2292,7 @@ def build_parser():
                        help="epics: trace gaps and undisposed high-severity questions are errors; shape: assumed "
                             "questions warn; grill: open questions that block an --item warn")
     check.add_argument("--item", action="append", help="with --gate grill: an agenda item's ID; repeat for each")
-    check.add_argument("--app", help="with --gate epics: only this app and its slice (an APP-id); other apps' gaps "
+    check.add_argument("--app", help="with --gate epics: only this app and what it carries (an APP-id); other apps' gaps "
                                      "and the whole-vault requirement check are left out")
     check.set_defaults(func=cmd_check)
     slc = sub.add_parser("check-slice", help="prove one slice's logic (a release's flows, or one flow) from its specs, "

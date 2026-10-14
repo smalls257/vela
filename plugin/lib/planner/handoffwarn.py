@@ -1,7 +1,7 @@
 """What is not firm at handoff, in plain words. Pure: a vault and an app in, gaps out.
 
 The Violation this exists to prevent is a Silent Fallback at the hinge of the product: an override on someone's behalf,
-and the senior accepts an app without knowing that half its slice was never decided. One reader here feeds the grill's
+and the senior accepts an app without knowing that half its handoff list was never decided. One reader here feeds the grill's
 read-back, close's manifest, `planner next` and `planner check`, so none of them can tell the senior less than another.
 """
 from dataclasses import dataclass
@@ -48,7 +48,7 @@ def name_of(vault, entry):
 
 
 def _unfirm(vault, app):
-    for entry in handoff.slice_of(vault, app):
+    for entry in handoff.handoff_list(vault, app):
         if entry.kind not in KINDS_THAT_NEED_A_YES or entry.state not in UNFIRM_STATES:
             continue
         item = vault.item(entry.id)
@@ -93,7 +93,7 @@ def _undesigned_providers(vault, app):
 
 
 def gaps(vault, app):
-    """Every gap in the app's slice, unfirm items first."""
+    """Every gap in the app's handoff list, unfirm items first."""
     return [*_unfirm(vault, app), *_without_case_tables(vault, app), *_undesigned_providers(vault, app)]
 
 

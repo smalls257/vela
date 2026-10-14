@@ -1,7 +1,7 @@
 """The senior's handoff manifest, and the check against it. Pure: the CLI passes the
 commit and the date, and reads and writes the file.
 
-A manifest lists every ID in an app's slice with its state and a content hash.
+A manifest is an app's handoff list: every ID the senior takes on, with its state and a content hash.
 `verify` compares the vault now with the manifest, so a change to anything the
 senior accepted shows up the moment anyone runs it, not when their build breaks.
 """
@@ -38,7 +38,7 @@ class Diff:
     changed: tuple  # (old Entry, new Entry)
     added: tuple  # new Entry
     removed: tuple  # old Entry
-    left: frozenset = frozenset()  # ids in `changed` that are still in the vault but no longer in the slice
+    left: frozenset = frozenset()  # ids in `changed` that are still in the vault but no longer in the handoff list
 
     @property
     def breaks_acceptance(self):
@@ -150,8 +150,8 @@ def app_slices(vault, app):
     return [slice_entry(vault, by_path[s.path], s) for s in slices.for_app(vault, slices.read_slices(vault), app)]
 
 
-def slice_of(vault, app):
-    """Every entry in the app's slice: the app page, its runtime page, contracts provided and
+def handoff_list(vault, app):
+    """Every entry in the app's handoff list: the app page, its runtime page, contracts provided and
     consumed, the slices it takes part in (or release one's tracer, while slices are on the releases page), the
     functional requirements its allocation rows carry, epics whose `apps` lists it, and open unknowns that block any
     of those."""
@@ -188,12 +188,12 @@ NOT_FIRM_HEADING = "## Not firm at handoff"
 def write(app_id, entries, commit, today, not_firm=()):
     """The manifest file's text. `not_firm` is the sentences handoffwarn found, so the senior's copy says what was never decided."""
     rows = [f"| {e.id} | {e.kind} | {e.page} | {e.state or '-'} | {e.hash} |" for e in entries]
-    tail = ["", NOT_FIRM_HEADING, "", "The senior accepts the slice with these still open:", "", *not_firm, ""] if not_firm else [""]
+    tail = ["", NOT_FIRM_HEADING, "", "The senior accepts the app with these still open:", "", *not_firm, ""] if not_firm else [""]
     return "\n".join([
         f"# Handoff manifest: {app_id}", "",
         f"- **App:** {app_id}", f"- **Commit:** {commit}", f"- **Written:** {today}", f"- **Items:** {len(entries)}", "",
         f"Written by `planner handoff {app_id}`. Do not edit it by hand. "
-        f"`planner handoff verify {app_id}` lists what changed since the senior accepted this slice.", "",
+        f"`planner handoff verify {app_id}` lists what changed since the senior accepted this app.", "",
         "| " + " | ".join(HEADER) + " |", "|---|---|---|---|---|", *rows, *tail])
 
 
@@ -286,5 +286,5 @@ def describe(old, new, left=False):
     if old.hash != new.hash:
         parts.append("text changed")
     if left:
-        parts.append("no longer in this app's slice")
+        parts.append("no longer in this app's handoff list")
     return f"changed: {new.id} ({new.kind}, {new.page}): " + ", ".join(parts)
