@@ -145,9 +145,9 @@ const Nav = (() => {
      replaces, and so does a refinement inside a view (a flow's next step: view-flows.js). `written` is what this page last
      put in the address bar, so a hashchange the page did not make is a pasted link or a Back, and is followed. */
   let written = location.hash, following = false;
-  function setHash(hash) {
+  function setHash(hash, replace) {
     if (hash === location.hash) return;
-    if (following) history.replaceState(null, "", hash); else history.pushState(null, "", hash);  // following a Back must not add an entry to go back to
+    if (following || replace) history.replaceState(null, "", hash); else history.pushState(null, "", hash);  // following a Back must not add an entry to go back to
     written = location.hash;
   }
   function followHash() {
@@ -169,7 +169,8 @@ const Nav = (() => {
     if (HASH.get("present") && FLOW[HASH.get("present")]) Flows.present(HASH.get("present"), (+HASH.get("step") || 1) - 1);
   }
   window.addEventListener("hashchange", followHash);
-  function syncHash() {
+  /* opts.replace: a refinement inside a view (a filter, a search word) replaces the entry instead of adding one. */
+  function syncHash(opts) {
     const p = [];
     if (App.view === "ask" && typeof Ask !== "undefined") {
       for (const keep of ["still", "fx", "selftest", "trace", "theme"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
@@ -194,9 +195,11 @@ const Nav = (() => {
     if (App.view === "map") { if (MapView.st.lens) p.push("lens=" + MapView.st.lens); if (MapView.st.group) p.push("group=" + MapView.st.group); }
     if (App.view === "releases" || (App.view === "map" && MapView.lens() === "releases")) p.push("state=" + Releases.st.at);
     for (const keep of ["still", "fx", "selftest", "trace"]) if (HASH.has(keep)) p.push(keep + (HASH.get(keep) ? "=" + HASH.get(keep) : ""));
-    setHash("#" + p.join("&"));
+    if (App.view === "slices" && typeof Slices !== "undefined") p.push(...Slices.hashParts());
+    setHash("#" + p.join("&"), !!(opts && opts.replace));
   }
   function boot() {
+    if (typeof Slices !== "undefined") Slices.readHash();  // a link to the slices brings its filters; one without clears them
     const hs = HASH.get("s"), legacy = VIEWS.find((v) => (HASH.has(v.id) || (v.alias && HASH.has(v.alias))) && !["role", "doc"].includes(v.id));
     if (HASH.get("lens")) MapView.st.lens = HASH.get("lens");
     if (HASH.get("group")) MapView.st.group = HASH.get("group");
@@ -222,6 +225,7 @@ const Nav = (() => {
     if (s.id === "apps") return worst(D.map.apps.map((a) => levelOf(a.key)));
     if (s.id === "flows") return worst(D.flows.map((f) => levelOf(f.key)));
     if (s.id === "unknowns") return worst(D.asks.filter((u) => u.state === "open").map((u) => u.light.level));
+    if (s.id === "slices") return worst(D.slicePlan.list.filter((x) => x.key).map((x) => levelOf(x.key)));
     if (s.id === "goals") return D.above.length ? worst(D.above.map((a) => (ASK[a.unknown] ? ASK[a.unknown].light.level : "caution"))) : "dark";
     return "dark";
   }

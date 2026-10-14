@@ -72,10 +72,13 @@ const Panel = (() => {
     const out = [h("div", { class: "p-head" }, h("div", { class: "kind" }, `Lit from the record as of ${day(D.today)}`), h("h2", {}, "What needs you"),
       lede ? h("p", { class: "p-lede" }, lede) : null)];
     if (!beside && queue.length) out.push(section("Waiting on an answer", queue.length, Queue.block()));
-    out.push(section("Lit on the map", lit.length, lit.length ? h("ul", { class: "lights" }, lit.map(({ key, light }) => h("li", {},
+    // a slice is not on the map: one whose journey is past its due date is lit too, and listed under its own heading
+    const lightRows = (list) => h("ul", { class: "lights" }, list.map(({ key, light }) => h("li", {},
       h("button", { class: "light-row" + (key === App.focus ? " on" : ""), "data-ref": key, title: `${LIGHT[light.level].word}${idOf(key) ? ", " + idOf(key) : ""}` },
-        lampEl(light.level), h("span", {}, h("span", { class: "what" }, titleOf(key)), h("span", { class: "why" }, litWhy(light) || LIGHT[light.level].say))))))
-      : empty("Nothing on the map is lit.")));
+        lampEl(light.level), h("span", {}, h("span", { class: "what" }, titleOf(key)), h("span", { class: "why" }, litWhy(light) || LIGHT[light.level].say))))));
+    const sliceLit = lit.filter((x) => ent(x.key).kind === "slice"), mapLit = lit.filter((x) => ent(x.key).kind !== "slice");
+    if (sliceLit.length) out.push(section("Slices with a journey past due", sliceLit.length, lightRows(sliceLit)));
+    out.push(section("Lit on the map", mapLit.length, mapLit.length ? lightRows(mapLit) : empty("Nothing on the map is lit.")));
     const challenged = typeof Inside !== "undefined" ? Inside.homeSection() : null;
     if (challenged) out.push(challenged);  // Element.append writes a null as the text "null"
     out.push(section("Dark, settled", dark.length, h("p", { class: "p-note" }, dark.map((k) => titleOf(k)).join(", ") || "None.")));

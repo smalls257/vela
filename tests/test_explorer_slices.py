@@ -94,7 +94,7 @@ def test_the_tracer_reads_from_the_tracer_slice_and_from_release_one_without_sli
 
 def test_the_page_carries_the_slices_view_and_its_key(booking):  # noqa: F811
     page, _ = booking
-    assert 'View("slices"' in page and "Nodes.wire(head" in page and 'Legend.open("slices"' in page
+    assert 'View("slices"' in page and 'Legend.open("slices"' in page and "Slices.hashParts()" in page and "sl-layout" in page
 
 
 PLAN = """### S-01 Hold a seat

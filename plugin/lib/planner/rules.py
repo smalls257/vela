@@ -889,7 +889,7 @@ def _slice_progress_rules(page, s, by_key, today):
         yield _f(page, s.lines["Journey due"], "W400", f"{s.id}'s Journey due says '{s.journey_due}', which is not a YYYY-MM-DD date.",
                  "Write the date the team expects the journey to run, as '- **Journey due:** YYYY-MM-DD'.")
     elif today and slices.journey_overdue(s, today):
-        yield _f(page, s.lines["Journey due"], "W400", f"{slices.journey_overdue_says(s)}.",
+        yield _f(page, s.lines["Journey due"], "W400", f"{s.label}: {slices.journey_overdue_says(s)}.",
                  "Record the run as '- **Journey:** passed YYYY-MM-DD by @who, <link to the run>', or write the new "
                  "Journey due date and say in History why it moved.")
     if s.at_least("journey passes") and (s.journey is None or s.journey.problem):

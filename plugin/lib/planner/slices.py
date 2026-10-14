@@ -159,9 +159,9 @@ def journey_overdue(s, today):
 
 
 def journey_overdue_says(s):
-    """The plain sentence a reader sees for an overdue journey, on the dashboard and in check."""
+    """The plain words a reader sees for an overdue journey, after the slice's name: on the dashboard and in check."""
     recorded = "its Journey line does not read" if s.journey is not None else "nothing is recorded"
-    return f"{s.name}'s journey was due {s.journey_due} and {recorded}"
+    return f"its journey was due {s.journey_due} and {recorded}"
 
 
 def _ids(pattern, value):

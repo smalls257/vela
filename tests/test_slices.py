@@ -194,7 +194,7 @@ def test_w400_a_journey_due_date_that_passed_with_nothing_recorded(example):
     write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** 2026-11-20"))
     assert lines(example, "W400", "2026-11-20") == []  # due today is not late
     assert lines(example, "W400", "2026-11-21") == [
-        "slices/SLC-004-x.md:15: W400 Amend online's journey was due 2026-11-20 and nothing is recorded. Fix: Record the run as "
+        "slices/SLC-004-x.md:15: W400 SLC-004 Amend online: its journey was due 2026-11-20 and nothing is recorded. Fix: Record the run as "
         "'- **Journey:** passed YYYY-MM-DD by @who, <link to the run>', or write the new Journey due date and say in History why it moved."]
     write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** 2026-11-20", "**Journey:** it ran"))
     assert "its Journey line does not read" in lines(example, "W400", "2026-11-21")[0]
