@@ -1,6 +1,6 @@
 # Review Checkpoint
 
-Run this once the design's sections are written, before `NEG-AUDIT.md`. The interview only surfaces what someone in the room knows. Fresh reviewers, each reading one area with no memory of the session, find what nobody mentioned: a vendor limit, a license clause, a nightly reset.
+Run this once the design's sections are written, before `NEG-AUDIT.md`. The interview only surfaces what someone in the room knows. Fresh reviewers, each reading one area with no memory of the session, find what nobody mentioned: a vendor limit, a licence clause, a nightly reset.
 
 ## 1. Dispatch five reviewers
 
@@ -9,7 +9,7 @@ Start five subagents in parallel, each with a fresh context and only these input
 | Area | Asks |
 |---|---|
 | Vendors and integrations | What does each outside service, SDK and partner actually allow: rate limits, sandboxes and their resets, quotas, terms, what happens when it changes or is down? |
-| Data and licensing | What may be stored, cached, shown, shared or used for training, under which license or consent, for how long, and who may see it? |
+| Data and licensing | What may be stored, cached, shown, shared or used for training, under which licence or consent, for how long, and who may see it? |
 | Failure and recovery | What happens when each dependency is slow, wrong or gone, mid-operation; what is retried, what is lost, what does the user see, how is it repaired? |
 | Security | Who can do what, how it is proven, where secrets live, what an attacker gains from each component. |
 | Operations | How it is deployed, observed, paged, rolled back and paid for; what someone on call needs at 3am. |

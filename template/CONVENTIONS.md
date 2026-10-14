@@ -575,7 +575,7 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W368 | the opening is a line the template wrote | W369 | an abbreviation not spelled out on the page |
 | W370 | an epic criterion has no AC id on its Trace line, or two share one | | |
 | W371 | two or more openings above the first heading, over 150 words together | | |
-| W372 | a British spelling in the page's own words (quotes, code, links, IDs and History are skipped) | | |
+| W372 | a British spelling in the page's own words | | |
 | W380 | contract has no case table | W381 | a case table row, or a Can time out, Retries or Idempotent line, cannot be read |
 | W382 | two cases of one contract share a key | W383 | a case emits an event the vault does not name |
 | W384 | a case sets an entity the vault does not name | W385 | decided contract has no error case |

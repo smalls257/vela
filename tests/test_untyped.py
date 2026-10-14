@@ -51,7 +51,8 @@ def test_the_british_spelling_of_licence_still_warns(ub):
     cost = ub / COST
     cost.write_text(cost.read_text(encoding="utf-8").replace("licenses", "licences"), encoding="utf-8")
     assert "licences" in cost.read_text(encoding="utf-8")
-    assert findings(checked(ub)[1]) == [("W809", COST)]
+    # the British word also raises the spelling sensor, which is right: both nets see it
+    assert sorted(findings(checked(ub)[1])) == [("W372", COST), ("W809", COST)]
 
 
 def test_an_open_existence_row_still_warns(ub):
