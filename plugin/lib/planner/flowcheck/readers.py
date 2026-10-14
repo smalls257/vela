@@ -422,9 +422,15 @@ def read_entity(path, text, problems):
     if "shared" in meta and shared is None:
         problems.append(Problem(path, f"{path}: shared must be true or false.", eid or slug))
     final = meta.get("final")
+    quote = " YAML reads on, off, yes and no as true or false; quote such a state, as \"off\"."
     if final is not None and not (isinstance(final, list) and all(isinstance(s, str) for s in final)):
-        problems.append(Problem(path, f"{path}: final must be a list of states, such as [released, captured].", eid or slug))
+        hint = quote if isinstance(final, list) and any(isinstance(s, bool) for s in final) else ""
+        problems.append(Problem(path, f"{path}: final must be a list of states, such as [released, captured].{hint}", eid or slug))
         final = []
+    if meta.get("initial") is not None and not isinstance(meta["initial"], str):
+        problems.append(Problem(path, f"{path}: initial must be a state name.{quote if isinstance(meta['initial'], bool) else ''}",
+                                eid or slug))
+        meta = dict(meta, initial=None)
     lines = parse.lines_of(text)
     table, invariants = set(), []
     for header, rows in _tables(lines[body_start - 1:], body_start):

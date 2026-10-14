@@ -372,6 +372,10 @@ class Builder:
                 ins.data["branches"][key] = start
             emits = {e: node.parts[1] for key in keys for e in _case_emits(table, key)} if ins.data["drawn"] is None else {}
             causes = tuple(f"{cid} {k}" for k in keys)
+            if ctx.in_handling:
+                # Inside a provider's drawn handling the change is also the provider's handling of its own call:
+                # Consent and identity keeps a consent "in CON-005 signed_in" and "for CON-004". Either may allow it.
+                causes += tuple(c for c in ctx.cause if c not in causes)
             inner = ctx.child(cause=causes, emits=emits,
                               branch_keys=tuple((ins.where, k) for k in keys) if ins.data["drawn"] is None else ())
             self.seq(body, inner)

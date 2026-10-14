@@ -370,8 +370,10 @@ def judge_graph(g, sem, renderer, flow_paths):
         trail = steps(sid)
         entity = sem.p.entities[slug]
         call_line, case = _last_pill(trail, pill)
+        named = [n for n in sorted(_atoms_of(next(e for t, _, e in entity.invariants if t == text))) if n in sem.p.entities]
         add(key, Finding("F9", where_of(label, trail), f"The invariant \"{text}\" of {entity.title} no longer holds.",
-                         items=ids(trail, entity.id), owners=_owners(renderer.actor(label) if label else "", renderer.owner_of(slug)),
+                         items=ids(trail, entity.id),
+                         owners=_owners(renderer.actor(label) if label else "", renderer.owner_of(slug), *map(renderer.owner_of, named)),
                          trace=tuple(renderer.trace(trail)), case=case, call_line=call_line))
 
     finished, stuck = set(), set()
@@ -458,6 +460,12 @@ def _stuck_finding(sem, renderer, g, sid, trail, where, point, parity=None):
             owners = [target.producer, target.subscriber_name] + owners
     return Finding("F6", where, summary, items=tuple(renderer.ids([(l, p) for l, p, _, _ in trail])),
                    owners=_owners(*owners), trace=tuple(renderer.trace(trail)))
+
+
+def _atoms_of(expr):
+    if expr[0] == "is":
+        return {expr[1]}
+    return set().union(*(_atoms_of(e) for e in expr[1:]))
 
 
 def cause_words(program, cause):
