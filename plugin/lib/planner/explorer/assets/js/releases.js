@@ -55,6 +55,7 @@ const Releases = (() => {
     const svg = s("svg", { viewBox: `${left} ${top} ${right - left} ${bottom - top}`, class: "rl-map", role: "img", "aria-label": "The system in this state" }, box);
     const looks = new Set();
     MapView.fitSvg(svg, box, right - left, bottom - top, opts.max || 1.0);
+    Pan.attach(box, { key: "releases", svg: () => box.querySelector("svg.rl-map") });
     if (L.zoneY !== null) s("line", { x1: left, x2: right, y1: L.zoneY, y2: L.zoneY, class: "zone" }, svg);
     const gCor = s("g", {}, svg), gNodes = s("g", {}, svg);
     const cors = Object.values(L.corridors).map((cor) => {

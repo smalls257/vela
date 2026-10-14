@@ -263,3 +263,8 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 .legend.tight { padding: 0 14px; font-size: 11.5px; }
 .legend.tight .lg-items { grid-template-columns: 1fr; max-height: 30vh; }
 .card .legend { background: transparent; padding: 0; }
+
+/* drag to pan (pan.js): the background of a drawing shows an open hand, a closed one while it pans; no text is selected meanwhile */
+.pannable { cursor: grab; }
+.pannable.panning, .pannable.panning * { cursor: grabbing !important; }
+html.pan-now, html.pan-now * { user-select: none; -webkit-user-select: none; }

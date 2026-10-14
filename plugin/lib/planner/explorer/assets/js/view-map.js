@@ -256,6 +256,7 @@ const MapView = (() => {
           sub: `${E[f.key].id}, ${!light || light.level === "dark" ? "settled" : light.reasons.some((r) => r.kind === "stale") ? "page out of date" : shortWhy(light)}` });
       });
     }
+    Pan.attach(board, { key: "cockpit", svg: () => $("svg.cockpit", board) });  // drag the background to pan (pan.js)
     breathe.start();
   }
   /* ------------------------------------------------------------ moving a box */
@@ -452,6 +453,7 @@ const MapView = (() => {
     stripEl = h("div", { class: "line-strip" });
     board.append(stripEl);
     if (st.line) selectLine(st.line);
+    Pan.attach(area, { key: "transit", svg: () => $("svg.transit", area) });
     trainLoop.start();
   }
   // where along a track a label or marker may stand, from near its quieter end outward in steps of a twentieth

@@ -582,6 +582,66 @@ const SelfTest = (() => {
     FX.set(fxWas);
     MapView.st.group = null; rerender(); await frames();
   }
+  /* Drag to pan (pan.js): the background pans, a box still moves, a click still selects, and every map drawing has it. */
+  async function panning() {
+    if (!D.nodes.length) { out.push("skip drag to pan: this vault has no apps"); return; }
+    const press = (el, x, y, type = "mouse") => el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: 1, isPrimary: true, pointerId: 9, pointerType: type }));
+    const glide = (x, y) => window.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, cancelable: true, clientX: x, clientY: y, buttons: 1, isPrimary: true, pointerId: 9, pointerType: "mouse" }));
+    const lift = (x, y) => window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, isPrimary: true, pointerId: 9, pointerType: "mouse" }));
+    const layoutWas = Layout.snapshot();
+    Pan.reset();
+    Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; rerender(); await frames();
+    const board = () => $("#board"), root = () => $("#board svg.cockpit"), vb = () => root().getAttribute("viewBox").split(/\s+/).map(Number);
+    const holders = { cockpit: !!(board() && board().classList.contains("pannable")) };
+    // a press on the background, then a drag: the drawing moves with the pointer, and the click on release opens nothing
+    const r = root().getBoundingClientRect(), x = r.left + 4, y = r.top + 4, before = vb(), pansBefore = Pan.pans, focusBefore = App.focus;
+    const k = before[2] / r.width;
+    let picked = 0;
+    const spy = () => { picked++; };
+    root().addEventListener("click", spy);
+    press(root(), x, y); glide(x + 3, y + 2); glide(x + 80, y + 50); lift(x + 80, y + 50);
+    root().dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: x + 80, clientY: y + 50 }));
+    root().removeEventListener("click", spy);
+    const after = vb(), moved = [after[0] - before[0], after[1] - before[1]];
+    ok(Pan.pans === pansBefore + 1 && Math.abs(moved[0] + 80 * k) < 1 && Math.abs(moved[1] + 50 * k) < 1 && after[2] === before[2] && !picked && App.focus === focusBefore,
+      "drag to pan: a drag on the cockpit's background moves the drawing with the pointer, and the release opens nothing",
+      `drag to pan: viewBox moved ${moved.map((v) => v.toFixed(1))}, wanted ${[-80 * k, -50 * k].map((v) => v.toFixed(1))}; pans ${Pan.pans - pansBefore}; release clicks ${picked}; focus ${App.focus}`);
+    rerender(); await frames();
+    const kept = vb();
+    ok(Math.abs(kept[0] - after[0]) < 1 && Math.abs(kept[1] - after[1]) < 1 && !overlaps(COCKPIT_PARTS).length, "drag to pan: the pan holds when the cockpit is drawn again, with nothing on anything",
+      `drag to pan: after a redraw the viewBox starts at ${kept.slice(0, 2)}, the pan left it at ${after.slice(0, 2)}`);
+    root().dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
+    const back = vb();
+    ok(Math.abs(back[0] - before[0]) < 0.5 && Math.abs(back[1] - before[1]) < 0.5, "drag to pan: a double click on the background puts the drawing back", `after a double click the viewBox starts at ${back.slice(0, 2)}, it began at ${before.slice(0, 2)}`);
+    // a press without movement is a click, not a pan; a touch is left to the browser; a press on a box moves the box
+    const p0 = Pan.pans;
+    press(root(), x, y); lift(x, y);
+    press(root(), x, y, "touch"); glide(x + 60, y + 60); lift(x + 60, y + 60);
+    const box = $("#board svg.cockpit g.hit[data-movable]"), key = box.dataset.key, cell0 = Layout.cell(key).slice(), br = box.getBoundingClientRect();
+    press(box, br.x + br.width / 2, br.y + br.height / 2); glide(br.x + br.width / 2 + 3, br.y + br.height / 2 + 3); glide(br.x + br.width / 2 + 40, br.y + br.height / 2 + 30); lift(br.x + br.width / 2 + 40, br.y + br.height / 2 + 30);
+    await flush();
+    const cell1 = Layout.cell(key);
+    ok(Pan.pans === p0 && JSON.stringify(cell1) !== JSON.stringify(cell0) && Math.abs(vb()[0] - before[0]) < 0.5,
+      "drag to pan: a click on the background, a touch drag and a drag on a box do not pan; the box moves instead",
+      `drag to pan: ${Pan.pans - p0} pans; box ${titleOf(key)} at ${cell0} then ${cell1}`);
+    Layout.restore(layoutWas); rerender(); await frames();
+    // where the drawing scrolls, a pan scrolls it
+    const room = h("div", { style: "position:fixed;left:0;top:0;width:200px;height:120px;overflow:auto;z-index:99" }), big = s("svg", { width: 900, height: 700, viewBox: "0 0 900 700" }, room);
+    document.body.append(room);
+    Pan.attach(room, { key: "selftest-scroll", svg: () => big, scrollOnly: true });
+    press(big, 100, 60); glide(96, 58); glide(40, 20); lift(40, 20);
+    const scrolled = [room.scrollLeft, room.scrollTop], unchanged = big.getAttribute("viewBox");
+    room.remove();
+    ok(scrolled[0] === 60 && scrolled[1] === 40 && unchanged === "0 0 900 700", "drag to pan: where a drawing scrolls in its holder, a drag on it scrolls the holder by the distance dragged", `drag to pan: scrolled ${scrolled}, viewBox ${unchanged}`);
+    // every map drawing can be panned
+    MapView.st.lens = "transit"; rerender(); await frames();
+    holders.line = !$("#board svg.transit") || !!$("#board svg.transit").closest(".pannable");
+    if (D.map.apps.some((a) => a.domain)) { MapView.st.lens = "cockpit"; MapView.st.group = "domain"; rerender(); await frames(); holders.grouped = !!$("#board svg.cockpit.grouped").closest(".pannable"); }
+    MapView.st.lens = null; MapView.st.group = null; rerender(); await frames();
+    const without = Object.entries(holders).filter(([, v]) => !v).map(([k]) => k);
+    ok(!without.length, `drag to pan: the ${Object.keys(holders).join(", ")} drawings can be panned`, `drag to pan: not pannable: ${without.join(", ")}`);
+    Pan.reset();
+  }
   async function effects() {
     const was = FX.on;
     Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; FX.set(false); await frames();
@@ -1090,7 +1150,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await panning(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
@@ -1152,6 +1212,14 @@ const SelfTest = (() => {
       const comps = $$("#inside-stage .in-box.component").length, stubs = $$("#inside-stage .in-stub").length, o = overlaps();
       ok(comps === d.components.length && stubs === d.stubs.length && !o.bad.length, `inside ${name}, components: ${comps} components and ${stubs} integration stubs, ${o.n} boxes and labels, no two overlap`,
         `inside ${name}, components: ${comps} of ${d.components.length}, ${stubs} of ${d.stubs.length} stubs; overlaps ${o.bad.slice(0, 3).join("; ")}`);
+      {  // drag to pan (pan.js): the drawing's background scrolls its holder
+        const holder = $("#inside-draw"), svg = $("svg", holder), was = [holder.scrollLeft, holder.scrollTop], r = svg.getBoundingClientRect();
+        const can = holder.scrollWidth > holder.clientWidth + 1, ev = (type, x, y) => new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: 1, isPrimary: true, pointerId: 11, pointerType: "mouse" });
+        svg.dispatchEvent(ev("pointerdown", r.left + 2, r.top + 2)); window.dispatchEvent(ev("pointermove", r.left - 4, r.top + 2)); window.dispatchEvent(ev("pointermove", r.left - 40, r.top + 2)); window.dispatchEvent(ev("pointerup", r.left - 40, r.top + 2));
+        const went = holder.scrollLeft - was[0];
+        holder.scrollLeft = was[0]; holder.scrollTop = was[1];
+        ok(holder.classList.contains("pannable") && (!can || went > 0), `inside ${name}, components: the drawing can be panned by dragging its background${can ? ` (it scrolled ${went} px)` : ""}`, `inside ${name}, components: pannable ${holder.classList.contains("pannable")}, scrolled ${went} px of a possible ${holder.scrollWidth - holder.clientWidth}`);
+      }
       {  // opens at a size a reader can read, with the whole in a minimap; "Whole" fits all of it, and the tabs fold away
         const holder = $("#inside-draw"), box = holder.getBoundingClientRect(), svg = $("svg", holder).getBoundingClientRect(), scale = +holder.dataset.scale;
         const spills = svg.width > box.width + 1 || svg.height > box.height + 1;  // the minimap's own test: the drawing is bigger than its room
@@ -1288,6 +1356,7 @@ const SelfTest = (() => {
           `inside ${name}, dependency view: fits the width (${Math.round(box.width)} px in ${Math.round(room.width)} px), no sideways scroll, ${Math.round(box.height)} px tall`,
           `inside ${name}, dependency view: scrolls sideways (drawing ${Math.round(box.width)} px, room ${Math.round(room.width)} px, scroll width ${dag.scrollWidth})`);
       }
+      ok($("#plan-dag").classList.contains("pannable"), `inside ${name}, dependency view: dragging its background pans (scrolls) the page`, `inside ${name}, dependency view: #plan-dag is not pannable`);
       const hits = $$("#plan-dag .plan-hit"), unnamed = hits.filter((n) => !n.getAttribute("aria-label") || n.getAttribute("role") !== "button" || n.tabIndex !== 0);
       ok(hits.length === $$("#plan-dag g.in-node").length && hits.length >= p.stories.length && !unnamed.length,
         `inside ${name}, dependency view: all ${hits.length} nodes can be focused and have a name`, `inside ${name}, dependency view: ${$$("#plan-dag g.in-node").length - hits.length} nodes cannot be clicked, ${unnamed.length} have no name`);

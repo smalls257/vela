@@ -389,6 +389,7 @@ const MapGroups = (() => {
     MapView.startBreathing();
     board.dataset.groups = list.length;
     board.dataset.closed = list.filter((g) => !g.isOpen).length;
+    Pan.attach(board, { key: "grouped-" + mode, svg: () => $("svg.cockpit.grouped", board) });
   }
   function defs(root) {
     const d = s("defs", {}, root);
@@ -542,6 +543,7 @@ const MapGroups = (() => {
     const x0 = Math.min(...xs) - 120, x1 = Math.max(...xs) + 120, y0 = Math.min(...ys) - 70, y1 = Math.max(...ys) + 60;
     const root = s("svg", { viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, class: "cockpit focus", role: "img", "aria-label": `${titleOf(key)} and its direct neighbours` }, board);
     MapView.fitSvg(root, board, x1 - x0, y1 - y0, 1.1);
+    Pan.attach(board, { key: "focus", svg: () => $("svg.cockpit.focus", board) });
     defs(root);
     const gDucts = s("g", {}, root), gMotion = s("g", { class: "m-layer" }, root), gLamps = s("g", {}, root), gNodes = s("g", {}, root), gTop = s("g", { class: "m-top" }, root);
     Scene.reset(root, gMotion, (k) => (boxes[k] ? k : null), gTop);

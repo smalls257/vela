@@ -61,6 +61,29 @@ def test_plain_names_and_trace_rows_pass_the_selftest(tmp_path, chrome_path):
 
 
 @pytest.mark.browser
+def test_maps_move_free_form_and_pan_by_dragging_the_background(tmp_path, chrome_path):
+    """The user, on the dashboard map: movement should be free-form, not snap to a grid, and a drag on the background
+    should pan. The selftest's own lines must be there and passing: a box dropped between cells stays there, the
+    rule's cases agree with pins.check_move, a background drag pans the cockpit and a drawing inside an app, a box
+    drag still moves the box, and every map drawing is pannable. A selftest that quietly skipped them would pass."""
+    vault = tmp_path / "vault"
+    shutil.copytree(SNAPSHOTS["heron-desk/after-design-2"], vault)
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
+    assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
+    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000",
+                          "--virtual-time-budget=60000", "--dump-dom", f"file://{vault / 'dashboard.html'}#map&selftest"],
+                         timeout=180, capture_output=True, text=True).stdout
+    lines = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1)).split(" || ")
+    wanted = ["ok the page's overlap rule gives pins.check_move's answer", "it stays exactly there, between cells",
+              "it lands clear of it on the line it was dragged along",
+              "ok Shift and an arrow key move the box a whole cell", "ok drag to pan: a drag on the cockpit's background",
+              "ok drag to pan: a click on the background, a touch drag and a drag on a box do not pan",
+              "ok drag to pan: where a drawing scrolls in its holder", "the drawing can be panned by dragging its background"]
+    missing = [w for w in wanted if not any(w in line and line.startswith("ok") for line in lines)]
+    assert not missing, "missing or failing selftest lines: " + "; ".join(missing) + "\n" + "\n".join(x for x in lines if x.startswith("FAIL"))
+
+
+@pytest.mark.browser
 def test_fourteen_flows_are_grouped_in_the_picker_and_pass_the_selftest(tmp_path, chrome_path):
     """The synthetic stress vault has 14 flows, past the ten the picker lists flat: grouped, filtered and driven by key."""
     sys.path.insert(0, str(REPO / "prototypes" / "explorer"))

@@ -396,6 +396,8 @@ const Inside = (() => {
     const centreOn = (x, y) => { const p = at(x, y); holder.scrollLeft = p.x - holder.clientWidth / 2; holder.scrollTop = p.y - holder.clientHeight / 2; };
     const centreNow = () => { const k = +holder.dataset.scale; return { x: x0 + (holder.scrollLeft + holder.clientWidth / 2 - at(x0, y0).x) / k, y: y0 + (holder.scrollTop + holder.clientHeight / 2 - at(x0, y0).y) / k }; };
     const mini = opts.open === "read" ? minimap(svg, holder, { x0, y0, w, ht, lg: opts.lg }) : null;
+    // drag the background to pan: it scrolls the holder, so the zoom and the minimap keep telling the truth
+    Pan.attach(holder, { key: "inside-" + zkey, svg: () => svg, scrollOnly: true });
     const apply = () => {
       const k = scaleOf();
       svg.setAttribute("width", Math.round(w * k)); svg.setAttribute("height", Math.round(ht * k));
@@ -857,6 +859,7 @@ const Inside = (() => {
     function draw() {
       box.innerHTML = "";
       lg.seen.clear();
+      Pan.attach(box, { key: "seq-" + id, svg: () => box.querySelector("svg.seq"), scrollOnly: true });
       const cur = st.step[id], LW = 128, RH = 30, top = 42, W = seq.parts.length * LW, H = top + n * RH + 16;
       const x = (pid) => seq.parts.findIndex((p) => p.id === pid) * LW + LW / 2;
       const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, class: "inside-svg seq", role: "img", "aria-label": f.title || "sequence" });
