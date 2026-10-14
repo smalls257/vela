@@ -534,3 +534,12 @@ def test_the_conventions_worked_example_is_in_the_grammar_the_checker_reads():
         if "..." in line:
             continue
         assert mermaid._token(line, 1) is not None, line
+
+
+def test_a_slice_named_in_full_is_found_even_when_a_longer_name_starts_the_same():
+    from planner.flowcheck.tables import Catalog
+    from planner.slices import Slice
+    catalog = Catalog(slices=[Slice("", "Release one", ("FLO-001",), "", 1, 0), Slice("", "Release one b", ("FLO-002",), "", 2, 1)])
+    assert flowcheck.resolve_slice(catalog, "Release one") == ("Release one", ("FLO-001",), 0)
+    with pytest.raises(flowcheck.SliceNotFound, match="more than one"):
+        flowcheck.resolve_slice(catalog, "Release o")

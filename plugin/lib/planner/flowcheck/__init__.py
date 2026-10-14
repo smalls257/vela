@@ -42,7 +42,8 @@ def resolve_slice(catalog, target):
         fid = wanted.upper()
         order = next((s.order for s in catalog.slices if fid in s.flows), None)
         return fid, (fid,), order
-    found = [s for s in catalog.slices if (s.id and s.id.lower() == wanted.lower()) or s.name.lower().startswith(wanted.lower())]
+    exact = [s for s in catalog.slices if wanted.lower() in (s.id.lower(), s.name.lower())]
+    found = exact or [s for s in catalog.slices if s.name.lower().startswith(wanted.lower())]
     if not found:
         names = "; ".join(s.name for s in catalog.slices) or "none: release one needs a Tracer bullet, later ones a Flows bullet"
         raise SliceNotFound(f"'{target}' names no flow ID and no slice. Slices: {names}.")
