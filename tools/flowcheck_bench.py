@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure the flow checker prototype on synthetic slices: states, transitions per second, time and peak memory.
+"""Measure the flow checker on synthetic slices: states, transitions per second, time and peak memory.
 
 A synthetic slice is one flow: App 0 calls apps 1..N-1 in turn over undrawn contracts (ok, refused, and optionally a
 timeout and retries); a thread-wide ON rule ends the journey on anything but ok, so the main thread is a straight
@@ -42,10 +42,11 @@ def synthetic_slice(apps, events, entities, delivery, retries, timeout, shared):
     for i in range(apps):
         contracts, evts = "", ""
         if i > 0:
-            row_tail = f"| {'yes' if timeout else 'no'} | {'max 2 on timeout' if retries and timeout else 'none'} |"
             emits = ", ".join(f"EVT-{200 + j}" for j, _ in emitted.get(i, []))
-            contracts = (f"\n### CON-{100 + i} Do step {i}\n\n| Case | Status | Emits | Sets | When | Timeout | Retries |\n"
-                         f"|---|---|---|---|---|---|---|\n| ok | 200 | {emits} |  |  {row_tail}\n| refused | 409 |  |  |  {row_tail}\n")
+            contracts = (f"\n### CON-{100 + i} Do step {i}\n\n- **Can time out:** {'yes' if timeout else 'no'}\n"
+                         f"- **Retries:** {'1 after timeout' if retries and timeout else 'none'}\n\n"
+                         "| Case | When | Status | Answer | Emits | Sets |\n|---|---|---|---|---|---|\n"
+                         f"| ok | | 200 | done | {emits} | |\n| refused | | 409 | refused | | |\n")
         for j, subscriber in emitted.get(i, []):
             evts += (f"\n### EVT-{200 + j} Event {j}\n\n- **Delivery:** {delivery}\n- **Order:** any\n\n"
                      f"| Subscriber | Retries |\n|---|---|\n| {names[subscriber]} | none |\n")
@@ -53,7 +54,7 @@ def synthetic_slice(apps, events, entities, delivery, retries, timeout, shared):
             f"---\nid: APP-{keys[i]}\ntype: app-building-blocks\ntitle: {names[i]}\n---\n\n# {names[i]}\n{contracts}{evts}")
     for k in range(entities):
         rows = "".join(f"| {a} | {b} | EVT-{200 + int(b[1:])} handled |\n" for a in states[k] for b in states[k][1:] if a != b)
-        files[f"entities/e{k}.md"] = (f"---\nid: ENT-{900 + k}\ntitle: Entity {k}\nowner: app-0\nshared: {'true' if shared and k == 0 else 'false'}\n"
+        files[f"entities/e{k}.md"] = (f"---\nid: ENT-{900 + k}\ntype: entity\ntitle: Entity {k}\napp: APP-app-0\nshared: {'true' if shared and k == 0 else 'false'}\n"
                                       f"initial: new\nfinal: [{', '.join(states[k])}]\n---\n\n# Entity {k}\n\n"
                                       f"| From | To | Allowed by |\n|---|---|---|\n{rows}")
     lines = [f"participant A{i} as {names[i]}" for i in range(apps)]
