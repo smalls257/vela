@@ -11,7 +11,7 @@ POLICY = "- **Change policy:** the existing read API, no change.\n"
 
 
 def test_a_clean_vault_with_links_and_an_icon_passes(mini):
-    edit(mini / STOCK, FRONT, "sources: [SRC-01]\nicon: catalogue\nlinks: {GitHub: \"https://github.example.com/mini/stock\", "
+    edit(mini / STOCK, FRONT, "sources: [SRC-01]\nicon: catalog\nlinks: {GitHub: \"https://github.example.com/mini/stock\", "
                               "Jira: STOCK-4}\n---")
     edit(mini / STOCK, POLICY, POLICY + "- **Links:** [API spec](https://docs.example.com/stock/openapi.yaml), "
                                         "[Docs](https://docs.example.com/stock)\n")

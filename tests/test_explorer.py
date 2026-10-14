@@ -118,7 +118,7 @@ def test_garden_grows_from_typed_fields(trading, booking):
     assert ledger["buds"] == ["UNK-006"] and ledger["leaves"] == ["UNK-001"]
 
 
-def test_inferred_directions_are_labelled(booking):
+def test_inferred_directions_are_labeled(booking):
     _, data = booking
     messages = [m for f in data["flows"] for s in f["steps"] for m in s["messages"]]
     assert messages and all(m["direction"] in ("stated", "inferred") for m in messages)
@@ -304,8 +304,8 @@ def themes():
     return out
 
 
-def luminance(hex_colour):
-    rgb = [int(hex_colour.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+def luminance(hex_color):
+    rgb = [int(hex_color.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4)]
     lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
     return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
 
@@ -326,8 +326,8 @@ LAMPS = ("warning", "caution", "pending", "unexamined", "override")
 
 
 def test_lamps_keep_their_meaning_in_every_theme():
-    """Each lamp stands out from the board (3:1, WCAG's non-text contrast) on its own colour or through its edge, its
-    words on it read (4.5:1), and its text form reads on the room. The lamps stay distinct: no two share a colour.
+    """Each lamp stands out from the board (3:1, WCAG's non-text contrast) on its own color or through its edge, its
+    words on it read (4.5:1), and its text form reads on the room. The lamps stay distinct: no two share a color.
     Pending approval is a ring, so its words must also read on the unlit face a master lamp or matrix cell gives it."""
     for name, p in themes().items():
         for lamp in LAMPS + ("unlit",):
@@ -340,7 +340,7 @@ def test_lamps_keep_their_meaning_in_every_theme():
             assert ink >= 4.5, f"{name}: --{lamp}-ink on --{lamp} is {ink:.2f}:1"
             text = contrast(p[f"{lamp}-text"], p["room"])
             assert text >= 4.5, f"{name}: --{lamp}-text on the room is {text:.2f}:1"
-        assert len({p[k] for k in LAMPS + ("unlit",)}) == 6, f"{name}: two lamps share a colour"
+        assert len({p[k] for k in LAMPS + ("unlit",)}) == 6, f"{name}: two lamps share a color"
         assert contrast(p["pending"], p["unlit"]) >= 3, f"{name}: the pending ring is {contrast(p['pending'], p['unlit']):.2f}:1 against the unlit face"
         assert contrast(p["pending-text"], p["unlit"]) >= 4.5, f"{name}: --pending-text on the unlit face"
         assert contrast(p["pending-text"], p["deck"]) >= 4.5, f"{name}: --pending-text on a deck"
@@ -439,7 +439,7 @@ def test_designs_are_embedded_and_checked_against_the_vault(designed):
     # each Integration point meets the component that cites its contract, and names the boxes it reaches on the map
     stubs = {s["system"]: s for s in booking["stubs"]}
     assert stubs["FERRYMASTER"]["component"] == "Ledger adapter" and stubs["FERRYMASTER"]["how"] == "cites CON-006"
-    assert set(stubs["Channels via Platform gateway"]["nodes"]) == {"APP-website", "APP-call-centre", "APP-kiosks"}
+    assert set(stubs["Channels via Platform gateway"]["nodes"]) == {"APP-website", "APP-call-center", "APP-kiosks"}
     assert next(s for s in D["APP-pricing"]["stubs"] if s["system"] == "Fare rules store")["how"] == "its matrix row reads from it"
     assert [s["how"] for s in D["APP-notifications"]["stubs"]] == ["depends on it; it is not an integration point"]
     edge = next(e for e in booking["depends"] if e["from"] == "Booking lifecycle" and e["to"] == "Hold keeper")
@@ -650,7 +650,7 @@ def test_empty_state_blocks_appear_in_data(tmp_path):
 
 
 def test_added_and_removed_diff_lines_read_on_the_room_in_every_theme():
-    """The Drafts view's + and - lines carry a symbol as well as a colour; the colour still has to read (4.5:1) on the room and on the page's own tint."""
+    """The Drafts view's + and - lines carry a symbol as well as a color; the color still has to read (4.5:1) on the room and on the page's own tint."""
     for name, p in themes().items():
         for token in ("diff-add", "diff-del"):
             assert p[token].startswith("#") and len(p[token]) == 7, f"{name} --{token}"

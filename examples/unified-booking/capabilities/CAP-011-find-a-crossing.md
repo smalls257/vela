@@ -26,7 +26,7 @@ Lets a customer or an agent see which crossings run on a route and date, and how
 | Application | Today | After |
 |---|---|---|
 | [[website-building-blocks\|Public website]] | searches crossings | same |
-| [[call-centre-building-blocks\|Call centre desktop]] | searches crossings | same |
+| [[call-center-building-blocks\|Call center desktop]] | searches crossings | same |
 | [[kiosks-building-blocks\|Port kiosks]] | searches crossings | same |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | provides crossings and capacity | same |
 

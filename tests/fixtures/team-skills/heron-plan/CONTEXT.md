@@ -22,8 +22,8 @@
 ## Boundaries
 
 **This project owns:** the Desktop agent on each laptop: reading calendar entries, asking for notes, showing them, recording consent choices.
-**This project consumes:** Microsoft 365 (CON-001), the Summariser (CON-002), Consent and identity (CON-003, CON-004).
-**This project does not concern itself with:** writing the digest or prep note (Summariser), keeping the consent record (Consent and identity), pushing the package to laptops (the endpoint team's Intune and Jamf).
+**This project consumes:** Microsoft 365 (CON-001), the Summarizer (CON-002), Consent and identity (CON-003, CON-004).
+**This project does not concern itself with:** writing the digest or prep note (Summarizer), keeping the consent record (Consent and identity), pushing the package to laptops (the endpoint team's Intune and Jamf).
 
 ## Conventions
 

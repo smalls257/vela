@@ -166,7 +166,7 @@ def test_a_failed_create_fails_the_job(tmp_path):
     assert run_issue_step(tmp_path, "", fail_on="issue create")[0].returncode != 0
 
 
-def test_workflow_queues_runs_instead_of_cancelling_one_mid_write():
+def test_workflow_queues_runs_instead_of_canceling_one_mid_write():
     assert workflow()["concurrency"] == {"group": "vault-health", "cancel-in-progress": False}
 
 

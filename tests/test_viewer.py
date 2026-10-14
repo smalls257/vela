@@ -23,7 +23,7 @@ ASSET_SHA256 = {
 
 def build(vault, out):
     return run("view", "--vault", str(vault), "--out", str(out), "--date", "2026-11-20",
-               "--commit", "abc1234", "--repo-url", "https://github.example/harbourline/unified-booking")
+               "--commit", "abc1234", "--repo-url", "https://github.example/harborline/unified-booking")
 
 
 def bundle(html):
@@ -57,7 +57,7 @@ def test_viewer_builds_offline_from_the_fixture(tmp_path):
     counts = re.search(r"planner check: (\d+) errors, (\d+) warnings", checked)
     assert counts, checked
     assert data["stamp"] == {"commit": "abc1234", "date": "2026-11-20",
-                             "repo": "https://github.example/harbourline/unified-booking",
+                             "repo": "https://github.example/harborline/unified-booking",
                              "errors": 0, "warnings": int(counts.group(2))}
     assert data["stamp"]["warnings"] == len(re.findall(r" W39[01] ", checked)) > 0
     assert "Built from ${DATA.stamp.commit} on ${DATA.stamp.date}. Newer versions: ${DATA.stamp.repo}" in html
@@ -155,7 +155,7 @@ def test_an_unconfirmed_on_behalf_decision_gets_one_status_line(tmp_path):
     shutil.copytree(FIXTURE, vault)
     edit(vault / "05-building-blocks" / "pricing-building-blocks.md", "- **Confirmed by:** @hl-pricing-senior on 2026-08-12\n", "")
     html, pages = pages_of(tmp_path, vault)
-    assert [o["pending_for"] for o in pages["pricing-building-blocks"]["overrides"]] == ["@harbourline/revenue-team"]
+    assert [o["pending_for"] for o in pages["pricing-building-blocks"]["overrides"]] == ["@harborline/revenue-team"]
     assert "decided on behalf of ${esc([...new Set(pending)].join(', '))}, not yet confirmed" in html
 
 
@@ -264,12 +264,12 @@ def test_code_and_diagrams_are_left_as_written(tmp_path):
     assert "[[01-goals]]" in body
 
 
-def test_generated_markers_survive_neutralising():
+def test_generated_markers_survive_neutralizing():
     from planner import viewer
     marker = "<!-- generated:where-it-stands sha=0a1b2c3d: do not edit, run planner render -->"
     end = "<!-- /generated:where-it-stands -->"
-    assert viewer.neutralise(f"{marker}\ntext <b>\n{end}") == f"{marker}\ntext &lt;b>\n{end}"
-    assert viewer.neutralise("<!-- anything else -->") == "&lt;!-- anything else -->"
+    assert viewer.neutralize(f"{marker}\ntext <b>\n{end}") == f"{marker}\ntext &lt;b>\n{end}"
+    assert viewer.neutralize("<!-- anything else -->") == "&lt;!-- anything else -->"
 
 
 def test_broken_link_in_a_bundled_page_stops_the_build(tmp_path):
@@ -323,7 +323,7 @@ def test_built_file_carries_a_csp_whose_hashes_match_its_scripts(tmp_path):
 
 # The checks below run the real viewer in headless Chrome and audit the DOM it
 # produced, with a local server that records every network request. They are the
-# only tests that exercise marked, the sanitiser, mermaid and the CSP together.
+# only tests that exercise marked, the sanitizer, mermaid and the CSP together.
 
 CHROME_PATHS = ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",)
 CHROME = next((p for p in CHROME_PATHS if pathlib.Path(p).exists()),
@@ -547,7 +547,7 @@ GENERATED_ROUTES = {"05-building-blocks": "CON-007", "03-context-and-scope": "CO
 
 @needs_chrome
 @pytest.mark.parametrize("route", sorted(GENERATED_ROUTES))
-def test_generated_diagrams_draw_under_the_csp_and_sanitiser(tmp_path, sensor, route):
+def test_generated_diagrams_draw_under_the_csp_and_sanitizer(tmp_path, sensor, route):
     out = tmp_path / "viewer.html"
     build(FIXTURE, out)
     sensor.requests.clear()

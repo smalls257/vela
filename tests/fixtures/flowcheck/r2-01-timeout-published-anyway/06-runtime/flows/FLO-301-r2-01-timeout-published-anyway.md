@@ -22,7 +22,7 @@ alt paid
     Note over S: SET order paid
     Note over S: END paid
 else declined, timeout
-    Note over S: SET order cancelled
-    Note over S: END cancelled
+    Note over S: SET order canceled
+    Note over S: END canceled
 end
 ```

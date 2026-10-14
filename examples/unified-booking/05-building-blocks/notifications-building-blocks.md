@@ -8,12 +8,12 @@ c4: container
 state: decided
 change: changed
 stage: epics
-owner: "@harbourline/platform-team"
+owner: "@harborline/platform-team"
 authored: mixed
 sources: ["Platform lead review of CON-002", "UNK-005 event bus readiness 2026-11-03"]
 ---
 
-[[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Notifications
+[[README|Harborline]] / [[05-building-blocks|05 Building blocks]] / Notifications
 
 # Notifications
 
@@ -27,7 +27,7 @@ Notifications does not decide what state a booking is in. It reports what Bookin
 |---|---|
 | Changed: a new Booking event consumer. The existing email and SMS sender is reused. | Platform team |
 
-<!-- generated:app-context sha=735fe849: do not edit, run planner render -->
+<!-- generated:app-context sha=a46ef5b5: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -39,7 +39,7 @@ flowchart LR
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Notifications: main containers
@@ -51,7 +51,7 @@ Key: dark blue: the app this page is about · green: new in this initiative · a
 
 ```mermaid
 flowchart LR
-  bus["Harbourline event bus"]
+  bus["Harborline event bus"]
   subgraph notif["Notifications"]
     cons["Booking event consumer<br/>new"]
     send["Message sender<br/>existing"]
@@ -77,10 +77,10 @@ None. Notifications only consumes.
 
 ## Epics
 
-<!-- generated:epics-for-app sha=135a68d0: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=89ec5c52: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harbourline/booking-team @harbourline/platform-team | decided |
+| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harborline/booking-team @harborline/platform-team | decided |
 <!-- /generated:epics-for-app -->
 
 Next: [[notifications-runtime|Notifications runtime]]

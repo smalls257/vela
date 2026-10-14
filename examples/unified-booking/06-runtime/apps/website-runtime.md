@@ -5,12 +5,12 @@ title: Public website runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: "@harbourline/digital-team"
+owner: "@harborline/digital-team"
 authored: authored
 sources: ["UNK-001 ledger latency measurement 2026-09-02", "Digital senior container review"]
 ---
 
-[[README|Harbourline]] / [[06-flows|06 Flows]] / [[website-building-blocks|Public website]] / Runtime
+[[README|Harborline]] / [[06-flows|06 Flows]] / [[website-building-blocks|Public website]] / Runtime
 
 # Public website runtime
 

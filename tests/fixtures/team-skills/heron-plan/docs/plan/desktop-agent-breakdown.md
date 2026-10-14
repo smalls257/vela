@@ -32,8 +32,8 @@ Audited on 2026-10-12 against `NEG-AUDIT.md`, after S-04 was merged into S-05; t
 | S-04 Read calendar entries | merged into S-05 | not planned | none |
 | S-05 Morning digest, from calendar to screen | CAP-001.FR2, CAP-002.FR1, CAP-003.FR1, CAP-003.FR2, CON-001, CON-002, EPC-033.AC1-5, EPC-034.AC1 | 5 M, 6 S | S-02, UNK-069, D-002, UNK-067, OQ-005, S-07b |
 | S-06 Prep note before a meeting | CAP-002.FR2, CAP-004.FR1, CON-002, EPC-034.AC2-5 | 3 M, 2 S | S-05, OQ-002, D-002, UNK-067 |
-| S-07a Managed-setting gate for the remote Summariser path | CON-002, CST-003 | 1 M, 1 S | S-01, S-05, OQ-007, UNK-051, OQ-009 |
-| S-07b Remote Summariser transport and both-paths tests | CON-002, CST-003 | not planned | OQ-007, UNK-051, OQ-009 |
+| S-07a Managed-setting gate for the remote Summarizer path | CON-002, CST-003 | 1 M, 1 S | S-01, S-05, OQ-007, UNK-051, OQ-009 |
+| S-07b Remote Summarizer transport and both-paths tests | CON-002, CST-003 | not planned | OQ-007, UNK-051, OQ-009 |
 | S-08 Windows MSIX through Intune | CST-007, CST-010 | 2 M, 1 S | S-01, OQ-009, UNK-069 |
 | S-09 Mac pkg through Jamf | CST-007, CST-010 | 1 M, 2 S | OQ-001, UNK-054, OQ-009, S-08 |
 | S-10 Operations hardening | design only: Operations (Monitor, Restart, Tunables); K-1, K-8 | 2 M, 1 S | OQ-009, D-004 |
@@ -75,7 +75,7 @@ Acceptance criteria:
 - Each choice is sent to Consent and identity with the person's sign-in over the record-consent contract, and Heron treats it as kept only when Consent and identity confirms it. What is sent holds the person's sign-in, the source and the date, and no meeting text.
 - When a choice is not confirmed as kept, Heron reads nothing for that person and tells them.
 - For a person who has not switched Heron on, Heron records no agreement and reads nothing.
-- A choice not confirmed by Consent and identity counts as not kept (design, Failure behaviour).
+- A choice not confirmed by Consent and identity counts as not kept (design, Failure behavior).
 
 | Task | Size | Component |
 |---|---|---|
@@ -116,22 +116,22 @@ Status: merged into S-05 on 2026-10-12. Reading calendar entries shows nothing a
 - **Tracer:** yes
 Traces to: CAP-001.FR2@APP-desktop-agent, CAP-002.FR1@APP-desktop-agent, CAP-003.FR1@APP-desktop-agent, CAP-003.FR2@APP-desktop-agent, CON-001, CON-002, EPC-033.AC1, EPC-033.AC2, EPC-033.AC3, EPC-033.AC4, EPC-033.AC5, EPC-034.AC1
 Components: ConsentGate, SourceReader, Scheduler, NoteClient, NoteView, LocalStore
-Slice: tracer. The team's thin path through the pilot flow ends here: a granted person sees their digest on screen, from a mocked Graph and the on-device Summariser path.
-Done when: a person who has switched Heron on sees their digest on screen, from a mocked Graph and the on-device Summariser path.
+Slice: tracer. The team's thin path through the pilot flow ends here: a granted person sees their digest on screen, from a mocked Graph and the on-device Summarizer path.
+Done when: a person who has switched Heron on sees their digest on screen, from a mocked Graph and the on-device Summarizer path.
 Acceptance criteria:
 - Heron reads the signed-in person's own calendar entries for the day, and for each meeting the title, time and attendees that the entry holds.
 - Each morning a person who has switched Heron on sees that day's digest on their own laptop. If the laptop was not available at 7:30, they see it the first time they are back at it that morning. A digest shown after 7:30 says that it is late.
 - Each working morning, a person who has switched Heron on gets a digest written from their own calendar entries and any existing Teams transcripts. On a day with no meetings the digest says so.
 - A digest names a person only if they were in the meeting. It leaves out any remark about anyone's mood, tone or performance.
 - The agent reads a day's calendar entries only once the consent check says the person agreed to calendar entries, and reads only the signed-in person's own entries (title, time and attendees), with no mail and no documents.
-- The agent reads the day's calendar entries before it asks the Summariser for the digest, sends the entries with each meeting's attendees and names no one itself, and sends the request even on a day with no meetings.
+- The agent reads the day's calendar entries before it asks the Summarizer for the digest, sends the entries with each meeting's attendees and names no one itself, and sends the request even on a day with no meetings.
 - The person sees the digest at 7:30. If the laptop was off or asleep, they see it the first time they are back at it that morning, marked late with the time it arrived.
 - A digest not seen by 12:00 is not shown, and the person is told that this morning's digest was missed.
-- When the Summariser returns no digest, the person is told there is none that morning, and an old digest is never shown as new.
-- Before a meeting on the person's own calendar, the agent checks the consent check, reads that meeting's calendar entry, and asks the Summariser for a note, sending only that meeting's entry, with no transcript and no earlier meeting.
+- When the Summarizer returns no digest, the person is told there is none that morning, and an old digest is never shown as new.
+- Before a meeting on the person's own calendar, the agent checks the consent check, reads that meeting's calendar entry, and asks the Summarizer for a note, sending only that meeting's entry, with no transcript and no earlier meeting.
 - Reads subject, start, end and attendees only (`$select`); never a body or notes; no `Mail.Read`; no read without a grant.
 - A digest not shown by 12:00 is deleted and a missed notice shown on the first wake after it; a late result is marked late, never dropped before the deadline; an old note is never shown as new.
-- Target (team, not in the vault): ready within 1 minute of the Summariser reply, Note view opens in under 2 seconds; idle CPU at most 5 percent of one core.
+- Target (team, not in the vault): ready within 1 minute of the Summarizer reply, Note view opens in under 2 seconds; idle CPU at most 5 percent of one core.
 
 | Task | Size | Component |
 |---|---|---|
@@ -147,40 +147,40 @@ Acceptance criteria:
 | Expiry sweep, shown marker so a note is never pushed twice, seven-day marker deletion | S | LocalStore |
 | Measure idle CPU and the two latency targets in test | S | Scheduler, NoteView |
 
-Blocked by: S-02 (Grant). Against a real tenant, also blocked by the app registration approval (CST-002, UNK-069, K-4); status and approval date not confirmed, so build and test against a mocked Graph meanwhile. D-002 (timeouts are config placeholders; final values wait on measurement) and UNK-067 (Summariser budget). OQ-005 (telling the person about an expired sign-in) is not planned: the agent shows nothing and logs. Uses the on-device Summariser path; the remote path is S-07b (deferred).
+Blocked by: S-02 (Grant). Against a real tenant, also blocked by the app registration approval (CST-002, UNK-069, K-4); status and approval date not confirmed, so build and test against a mocked Graph meanwhile. D-002 (timeouts are config placeholders; final values wait on measurement) and UNK-067 (Summarizer budget). OQ-005 (telling the person about an expired sign-in) is not planned: the agent shows nothing and logs. Uses the on-device Summarizer path; the remote path is S-07b (deferred).
 Release fit: cannot tell for 2027-02-02. Sizes add to at most 37 days for one engineer, and the design names two Rust engineers but not how many days each has before 2027-02-02.
 
 ### S-06 Prep note before a meeting
 Traces to: CAP-002.FR2@APP-desktop-agent, CAP-004.FR1@APP-desktop-agent, CON-002, EPC-034.AC2, EPC-034.AC3, EPC-034.AC4, EPC-034.AC5
 Components: Scheduler, NoteClient, SourceReader, NoteView, LocalStore
 Slice: vertical
-Done when: a prep note shows ten minutes before a meeting, follows a move, and is never shown for a cancelled meeting.
+Done when: a prep note shows ten minutes before a meeting, follows a move, and is never shown for a canceled meeting.
 Acceptance criteria:
 - The person sees a prep note for a meeting on their own calendar ten minutes before it starts. If the note is ready late, they still see it until the meeting starts, marked late.
 - For a meeting on their own calendar, a person who has switched Heron on gets a short prep note written from that meeting's calendar entry, ready ten minutes before it starts.
 - The agent asks early enough for the note to be ready, and shows it ten minutes before the meeting starts.
 - A note that is ready after that time is shown as soon as it is ready, marked late, until the meeting starts, and not after.
-- If a meeting moves, the note follows the new time. If it is cancelled, no note is shown. A note already shown is not shown again.
+- If a meeting moves, the note follows the new time. If it is canceled, no note is shown. A note already shown is not shown again.
 - When no note comes, nothing is shown and nothing is said.
-- A moved meeting's note follows the new time; a cancelled one shows no note; a slow or empty Summariser reply shows nothing and says nothing; a prep note not shown by the meeting start is deleted.
-- The entry is re-read at ten minutes before the meeting, immediately before showing, so a moved or cancelled meeting is never shown stale whatever the staleness bound turns out to be.
+- A moved meeting's note follows the new time; a canceled one shows no note; a slow or empty Summarizer reply shows nothing and says nothing; a prep note not shown by the meeting start is deleted.
+- The entry is re-read at ten minutes before the meeting, immediately before showing, so a moved or canceled meeting is never shown stale whatever the staleness bound turns out to be.
 
 | Task | Size | Component |
 |---|---|---|
 | Ask for a prep note ahead of each meeting, and re-read the entry ten minutes before showing | M | Scheduler |
 | `requestPrep`: one entry; nothing shown or said on a slow or empty reply | S | NoteClient |
-| Moved and cancelled meetings handled together with the re-read: the note follows the new time, a cancelled note is deleted and never shown | M | Scheduler, SourceReader, LocalStore |
+| Moved and canceled meetings handled together with the re-read: the note follows the new time, a canceled note is deleted and never shown | M | Scheduler, SourceReader, LocalStore |
 | Show the prep note, marked late; delete it at the meeting start | S | NoteView |
-| Tests on the whole mechanism: a move at 09:49, a cancellation after the note is ready, a move during the prep window, a slow Summariser | M | Scheduler, NoteClient |
+| Tests on the whole mechanism: a move at 09:49, a cancellation after the note is ready, a move during the prep window, a slow Summarizer | M | Scheduler, NoteClient |
 
 Blocked by: S-05. OQ-002 (staleness bound; the 15-minute figure is a config proposal, only the value waits), D-002 (timeouts), UNK-067.
 Release fit: cannot tell for 2027-02-02. Sizes add to at most 19 days for one engineer, and the design names two Rust engineers but not how many days each has before 2027-02-02.
 
-### S-07a Managed-setting gate for the remote Summariser path
+### S-07a Managed-setting gate for the remote Summarizer path
 Traces to: CON-002, CST-003
 Components: NoteClient
 Slice: layer. A gate nobody sees; the original plan's own audit calls it "a gate, not a feature". Flagged, not folded: the team lead says whether it folds into S-05 or stays apart so the CST-003 guarantee has its own test.
-Done when: with the managed setting off, no meeting text can leave the laptop for a remote Summariser.
+Done when: with the managed setting off, no meeting text can leave the laptop for a remote Summarizer.
 Acceptance criteria:
 - No vault epic criterion covers the remote path; the criteria are CST-003 and the design's Gate rule: no meeting text goes to a remote endpoint unless a machine-level managed setting (default off, not user-writable) says the text call is settled.
 
@@ -189,15 +189,15 @@ Acceptance criteria:
 | Read the managed setting; refuse the remote endpoint while it is off | M | NoteClient |
 | Test, against a fake remote transport that only records that a send was attempted, that no meeting text leaves the laptop while the setting is off. The fake models no authentication, protocol or reply, so no CON-002 answer can invalidate it | S | NoteClient |
 
-Blocked by: S-01 (setting reader pattern) and the S-05 transport interface. Not blocked by OQ-007, UNK-051 or OQ-009: nothing here depends on what the Summariser keeps or how it authenticates callers.
+Blocked by: S-01 (setting reader pattern) and the S-05 transport interface. Not blocked by OQ-007, UNK-051 or OQ-009: nothing here depends on what the Summarizer keeps or how it authenticates callers.
 Release fit: cannot tell. It traces to no requirement on a release, and the design names two Rust engineers but not their days.
 
-### S-07b Remote Summariser transport and both-paths tests
+### S-07b Remote Summarizer transport and both-paths tests
 Traces to: CON-002, CST-003
 Components: NoteClient
 Slice: layer
 Done when: the remote transport sends only through the gate, with an audience-scoped token and TLS, and both paths pass in CI.
-Status: deferred (2026-10-12). The pilot runs on-device only, and the remote path cannot be used until OQ-007, UNK-051 and OQ-009 are answered. Restart it when the blockers clear; the token design assumes a separate token with the Summariser as its own audience, to be confirmed by OQ-007.
+Status: deferred (2026-10-12). The pilot runs on-device only, and the remote path cannot be used until OQ-007, UNK-051 and OQ-009 are answered. Restart it when the blockers clear; the token design assumes a separate token with the Summarizer as its own audience, to be confirmed by OQ-007.
 Acceptance criteria:
 - Remote transport: audience-scoped token, TLS, no meeting text in logs.
 - CI covers both paths, with a test-tenant run before 4 December.
@@ -216,11 +216,11 @@ Components: LocalStore (key binding), Scheduler (startup task)
 Slice: vertical
 Done when: a signed MSIX installs through Intune on a test device and the agent starts, reading the managed profile keys.
 Acceptance criteria:
-- A signed MSIX installs through Intune on a test device and the agent starts; the managed profile keys (Summariser gate, kill switch, tunables) are read.
+- A signed MSIX installs through Intune on a test device and the agent starts; the managed profile keys (Summarizer gate, kill switch, tunables) are read.
 
 | Task | Size | Component |
 |---|---|---|
-| Signing and pipeline prep with a placeholder Tauri app: certificate, MSIX identity, test-device enrolment, push through Intune. Needs no S-01 code | M | LocalStore |
+| Signing and pipeline prep with a placeholder Tauri app: certificate, MSIX identity, test-device enrollment, push through Intune. Needs no S-01 code | M | LocalStore |
 | Full pipeline with the real binary and the managed profile keys | M | LocalStore |
 | Startup task and relaunch backoff | S | Scheduler |
 
@@ -231,14 +231,14 @@ Release fit: cannot tell. The fixed slot is 18 January 2027 (CST-010); sizes add
 Traces to: CST-007, CST-010
 Components: LocalStore (Keychain binding), Scheduler (launch agent)
 Slice: vertical
-Done when: a signed, notarised pkg installs through Jamf on a test device and the Keychain access control binds the store key to the signed app.
+Done when: a signed, notarized pkg installs through Jamf on a test device and the Keychain access control binds the store key to the signed app.
 Acceptance criteria:
-- A signed, notarised pkg installs through Jamf on a test device; the Keychain access control binds the store key to the signed app.
+- A signed, notarized pkg installs through Jamf on a test device; the Keychain access control binds the store key to the signed app.
 
 | Task | Size | Component |
 |---|---|---|
-| Jamf pkg, signed and notarised | M | LocalStore |
-| Launch agent with the same relaunch behaviour as Windows | S | Scheduler |
+| Jamf pkg, signed and notarized | M | LocalStore |
+| Launch agent with the same relaunch behavior as Windows | S | Scheduler |
 | Keychain access control check on a test device | S | LocalStore |
 
 Blocked by: OQ-001 (UNK-054, Mac in the first release), OQ-009. The shared code is not blocked; only this story. Runs beside S-08 if OQ-001 is yes; drops from the plan if no.
@@ -269,7 +269,7 @@ Done when: a person who agreed to transcripts has them read where Microsoft allo
 Status: deferred by the team lead (2026-10-12). It would take half the Rust capacity for something that does not ship while EPC-035 is on no release, and both engineers are needed on S-08, S-09 and S-10. Not sized yet.
 Acceptance criteria:
 - Where a meeting has a Teams transcript that Heron is allowed to read, Heron reads it for a person who was in that meeting. Where there is none, Heron has the calendar entry only, and the person is told when a note is thin for that reason.
-- The agent asks Microsoft for a meeting's transcript only where the consent check says the person agreed to transcripts, and reads one only where the organiser turned transcripts on and the tenant administrators approved reading them.
+- The agent asks Microsoft for a meeting's transcript only where the consent check says the person agreed to transcripts, and reads one only where the organizer turned transcripts on and the tenant administrators approved reading them.
 - The agent reads a transcript only for a person who was in that meeting, and none for a meeting they were not in.
 - A person who agreed to calendar entries only never has a transcript read.
 - A meeting with no readable transcript gives no error, and the agent works from the calendar entry.
@@ -350,10 +350,10 @@ First wave (tickets created this week): all S-01 tasks, all S-02 tasks, and the 
 | NoteView | S-01, S-02, S-03, S-05, S-06, S-10 |
 
 ## Not planned
-- S-07b (remote Summariser transport and both-paths tests): deferred by the team lead. Blocked by OQ-007 (what the Summariser keeps and how it authenticates callers), UNK-051 (the text call) and OQ-009 (profile pushes after the freeze). The pilot runs on-device only; S-07a keeps the gate in place.
+- S-07b (remote Summarizer transport and both-paths tests): deferred by the team lead. Blocked by OQ-007 (what the Summarizer keeps and how it authenticates callers), UNK-051 (the text call) and OQ-009 (profile pushes after the freeze). The pilot runs on-device only; S-07a keeps the gate in place.
 - PG-001, S-11, CAP-001.FR1 and EPC-035.AC1 to AC5: deferred by the team lead; no review date recorded (UNK-059).
 - D-003, D-004: pilot measurements, not build work.
-- OQ-003 (mail), OQ-004 (off-laptop events), OQ-005 (telling the person), OQ-006 (reviewable digests), OQ-008 (attendee lawful basis): vault answers owed; the design's default behaviour is what is planned.
+- OQ-003 (mail), OQ-004 (off-laptop events), OQ-005 (telling the person), OQ-006 (reviewable digests), OQ-008 (attendee lawful basis): vault answers owed; the design's default behavior is what is planned.
 - OQ-010 (what "purged" means on disk; design G-011): S-03 tests check for lingering text, the decision with the DPO is not planned.
 - Design G-001 (single process): accepted trade-off; its mitigations are in S-10 and the kill switch in S-01.
 - Design G-002 (no fleet-wide detection): waits on OQ-004; local logs only (S-10).

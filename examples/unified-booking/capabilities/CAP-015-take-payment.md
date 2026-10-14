@@ -15,7 +15,7 @@ sources: ["session 2026-07-14 Shape", "04a-capability-delta"]
 
 - **Decision:** [[2026-08-12-goals-and-data]]
 
-Takes a customer's card payment for a crossing by card without Harbourline ever handling the card.
+Takes a customer's card payment for a crossing by card without Harborline ever handling the card.
 
 **Domain:** Sell
 

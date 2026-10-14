@@ -18,13 +18,13 @@ verified_by: "@hl-solution-lead"
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=20288d91: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=2cb0ee7a: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
 |---|---|---|---|---|
 | [[booking-building-blocks\|Booking]] | epics | 0 | 0 | 7 of 7 |
-| [[call-centre-building-blocks\|Call centre desktop]] | epics | 0 | 0 | 1 of 1 |
+| [[call-center-building-blocks\|Call center desktop]] | epics | 0 | 0 | 1 of 1 |
 | [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 1 of 1 |
 | [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 1 of 1 |
 | [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 1 of 1 |
@@ -48,13 +48,13 @@ verified_by: "@hl-solution-lead"
 
 ## Progress by app
 
-<!-- generated:progress-map sha=1d9383d3: do not edit, run planner render -->
+<!-- generated:progress-map sha=810c5a32: do not edit, run planner render -->
 **As of:** 2026-11-19, the last session
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
 |---|---|---|---|---|---|---|---|
 | [[booking-building-blocks\|Booking]] | epics | 0 | 0 | 1 | 4 | none | none |
-| [[call-centre-building-blocks\|Call centre desktop]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[call-center-building-blocks\|Call center desktop]] | epics | 0 | 0 | 0 | 2 | none | none |
 | [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 0 | 2 | none | none |
 | [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 0 | 2 | none | none |
 | [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 0 | 3 (1 by override) | none | none |
@@ -66,9 +66,9 @@ verified_by: "@hl-solution-lead"
 
 ## Why now
 
-Harbourline sells crossings through three front ends: the public website, the call centre desktop and the port kiosks. Each one talks to FERRYMASTER through its own screen-scraping adapter, so when the mainframe changes a screen, all three break. That happened eleven times in the last twelve months, usually just before a bank holiday weekend.
+Harborline sells crossings through three front ends: the public website, the call center desktop and the port kiosks. Each one talks to FERRYMASTER through its own screen-scraping adapter, so when the mainframe changes a screen, all three break. That happened eleven times in the last twelve months, usually just before a bank holiday weekend.
 
-It also means nobody agrees on what "confirmed" means. The kiosks and the call centre cache FERRYMASTER's replies differently, and customers notice. Worst of all, if the website's confirm step fails after payment, the customer has paid for nothing until someone in the call centre fixes it by hand the following day.
+It also means nobody agrees on what "confirmed" means. The kiosks and the call center cache FERRYMASTER's replies differently, and customers notice. Worst of all, if the website's confirm step fails after payment, the customer has paid for nothing until someone in the call center fixes it by hand the following day.
 
 This initiative puts one application, Booking, between the front ends and the ledger. Only Booking talks to FERRYMASTER about bookings, and only Booking decides what state a booking is in.
 
@@ -98,7 +98,7 @@ Full detail, including which software provides each capability before and after:
 | Stakeholder | What they need from it |
 |---|---|
 | CIO | Fewer outages, and no surprise mainframe cost |
-| Head of Contact Centre | No more next-morning manual fixes; amendments move online |
+| Head of Contact Center | No more next-morning manual fixes; amendments move online |
 | Port Operations | Kiosks change only on the March and September image cycle |
 | Revenue | Pricing keeps its rules; only its callers change |
 | Mainframe team lead | No change to FERRYMASTER, and support limited to 2 days a week in Q1 |

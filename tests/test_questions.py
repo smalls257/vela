@@ -1,4 +1,4 @@
-"""Owed copies: each catalogue entry applied once per subject its trigger matches.
+"""Owed copies: each catalog entry applied once per subject its trigger matches.
 
 The copies are computed by code, so the same vault always owes the same questions in the same
 order, and a copy keeps its ID while its subject keeps its ID."""
@@ -35,7 +35,7 @@ def test_the_fixture_owes_fifty_seven_copies_in_copy_id_order():
 def test_only_new_and_changed_apps_owe_app_questions():
     vault = load(FIXTURE)
     apps = sorted({c.subject.id for c in questions.owed(vault) if c.entry.scope == "app"})
-    assert apps == ["APP-booking", "APP-call-centre", "APP-kiosks", "APP-notifications", "APP-pricing", "APP-website"]
+    assert apps == ["APP-booking", "APP-call-center", "APP-kiosks", "APP-notifications", "APP-pricing", "APP-website"]
     assert not any(c.subject.id == "APP-ferrymaster" for c in questions.owed(vault))
 
 
@@ -55,9 +55,9 @@ def test_the_same_vault_in_any_page_order_owes_the_same_copies():
     pages = [parse.parse_page(p.relative_to(FIXTURE).as_posix(), p.read_text(encoding="utf-8"))
              for p in sorted(FIXTURE.rglob("*.md")) if "voice" not in p.parts and p.name not in ("CLAUDE.md", "CONVENTIONS.md")]
     config = {"initiative": "INI-002", "title": "Unified Booking"}
-    first = model.build(pages, config, catalogue=cli.load_catalogue())
+    first = model.build(pages, config, catalog=cli.load_catalog())
     random.Random(7).shuffle(pages)
-    second = model.build(pages, config, catalogue=cli.load_catalogue())
+    second = model.build(pages, config, catalog=cli.load_catalog())
     assert owed_ids(first) == owed_ids(second)
     assert [questions.blocks(first, c) for c in questions.owed(first)] == \
         [questions.blocks(second, c) for c in questions.owed(second)]
@@ -88,10 +88,10 @@ def test_a_regulator_owes_the_regulator_question_and_not_the_partner_ones(mini):
     assert ids == ["Q-REG-03@PTY-01"]
 
 
-def test_with_no_catalogue_nothing_is_owed(mini):
+def test_with_no_catalog_nothing_is_owed(mini):
     pages = [parse.parse_page(p.relative_to(mini).as_posix(), p.read_text(encoding="utf-8")) for p in mini.rglob("*.md")]
     vault = model.build(pages, {"initiative": "INI-900", "title": "Mini"})
-    assert vault.catalogue is catalog.EMPTY and questions.owed(vault) == ()
+    assert vault.catalog is catalog.EMPTY and questions.owed(vault) == ()
 
 
 def test_what_an_open_copy_blocks():

@@ -23,4 +23,4 @@ None kept.
 | UNK-002 | open | resolved | pre-v1 record |
 | FLO-002 | assumption | decided | pre-v1 record |
 | RUN-website | assumption | decided | pre-v1 record |
-| RUN-call-centre | assumption | decided | pre-v1 record |
+| RUN-call-center | assumption | decided | pre-v1 record |

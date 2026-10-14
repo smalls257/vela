@@ -4,7 +4,7 @@ type: epic
 title: Booking events and customer notifications
 initiative: INI-002
 state: decided
-owner: "@harbourline/booking-team @harbourline/platform-team"
+owner: "@harborline/booking-team @harborline/platform-team"
 authored: mixed
 apps: [APP-booking, APP-notifications]
 delivers: [CAP-022, CON-002, G2, G3]
@@ -18,7 +18,7 @@ sources: ["session 2026-11-03 Grill"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-Booking publishes the Booking state changed event to the Harbourline event bus on every change of state, as the transformation programme requires of new applications. Notifications adds a consumer for that event and sends email or SMS through its existing message sender.
+Booking publishes the Booking state changed event to the Harborline event bus on every change of state, as the transformation program requires of new applications. Notifications adds a consumer for that event and sends email or SMS through its existing message sender.
 
 Still open: whether Finance reads these events later, which is deferred to the Mainframe Exit initiative and blocks nothing here.
 
@@ -34,7 +34,7 @@ The event bus has been production-ready since 2026-11-01 ([[11-unknowns-and-risk
 
 ### Every state change publishes one event
 
-Every change of booking state (held, confirmed, amended, cancelled, released) produces one Booking state changed event on the bus, carrying the booking reference, the new state and the time of the change.
+Every change of booking state (held, confirmed, amended, canceled, released) produces one Booking state changed event on the bus, carrying the booking reference, the new state and the time of the change.
 
 - Trace: AC1
 
@@ -46,7 +46,7 @@ A hold that isn't confirmed within 10 minutes is released, and Booking publishes
 
 ### One message to the customer for each change
 
-A confirmed, amended or cancelled booking produces one message to the customer, by email or SMS as Notifications decides, whichever channel made the change.
+A confirmed, amended or canceled booking produces one message to the customer, by email or SMS as Notifications decides, whichever channel made the change.
 
 - Trace: AC3
 

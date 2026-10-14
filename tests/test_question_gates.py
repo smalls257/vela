@@ -52,8 +52,8 @@ def test_an_undisposed_high_question_fails_the_epics_gate_and_nothing_else(ub):
     assert code == 0 and findings(out) == [], "a plain check lets open questions be"
     code, out = gate(ub, "--gate", "epics")
     assert code == 1
-    assert findings(out) == [("E805", LEDGER)] * 3, "call centre, kiosks and website"
-    assert f"{LEDGER}:{heading_line(ub)}: E805 Q-DAT-02@APP-call-centre is high severity and has no ledger row: What customer data" in out
+    assert findings(out) == [("E805", LEDGER)] * 3, "call center, kiosks and website"
+    assert f"{LEDGER}:{heading_line(ub)}: E805 Q-DAT-02@APP-call-center is high severity and has no ledger row: What customer data" in out
 
 
 def test_an_open_or_asked_high_row_fails_the_gate_at_its_own_line(ub):
@@ -103,7 +103,7 @@ def test_the_epics_override_is_never_idle_on_a_plain_check(ub):
     assert findings(gate(ub, "--gate", "epics")[1]) == [("W323", LEDGER)]
 
 
-def test_a_misspelt_epics_override_is_e321_and_overrides_nothing(ub):
+def test_a_misspelled_epics_override_is_e321_and_overrides_nothing(ub):
     edit(ub / LEDGER, DAT_02_ALL, "")
     edit(ub / LEDGER, "## Question ledger\n\n", "## Question ledger\n\n" + OVERRIDE.replace("E805", "E85"))
     code, out = gate(ub, "--gate", "epics")
@@ -129,7 +129,7 @@ def test_the_grill_gate_warns_at_the_item_for_each_open_question_that_blocks_it(
     assert code == 0
     assert out.splitlines()[0].endswith("Gate: grill. Items: ADR-0001, CON-001.")
     got = [line for line in out.splitlines() if " W807 " in line]
-    assert len(got) == 3, "call centre, kiosks and website block CON-001; nothing open blocks ADR-0001"
+    assert len(got) == 3, "call center, kiosks and website block CON-001; nothing open blocks ADR-0001"
     assert all(line.startswith("05-building-blocks/booking-building-blocks.md:") for line in got)
     assert "Q-DAT-02@APP-kiosks has no ledger row and blocks CON-001:" in out
 
@@ -208,4 +208,4 @@ def test_an_invalid_high_reviewer_row_fails_the_gate_and_an_override_clears_it(u
 def test_a_grill_item_no_question_can_block_is_said_not_passed_quietly(ub):
     code, out = gate(ub, "--gate", "grill", "--item", "PTY-01")
     assert code == 0
-    assert "No catalogue question blocks PTY-01" in out
+    assert "No catalog question blocks PTY-01" in out

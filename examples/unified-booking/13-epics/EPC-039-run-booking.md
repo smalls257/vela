@@ -4,7 +4,7 @@ type: epic
 title: "Run Booking: on-call, runbooks, dashboards"
 initiative: INI-002
 state: decided
-owner: "@harbourline/booking-team"
+owner: "@harborline/booking-team"
 authored: mixed
 apps: [APP-booking]
 delivers: [G2]
@@ -26,7 +26,7 @@ Still open: nothing.
 
 ## Who this is for and what changes
 
-Today a stuck booking shows up as a call centre fix the next morning. After go-live the same problem has to show up on a dashboard within minutes. Per-channel request and error rates, booking state transitions, ledger write latency, hold expiry rate and one trace ID from channel to ledger write give the on-call engineer what they need without a debugger or a release.
+Today a stuck booking shows up as a call center fix the next morning. After go-live the same problem has to show up on a dashboard within minutes. Per-channel request and error rates, booking state transitions, ledger write latency, hold expiry rate and one trace ID from channel to ledger write give the on-call engineer what they need without a debugger or a release.
 
 ## Done when
 

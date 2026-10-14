@@ -5,12 +5,12 @@ title: Port kiosks runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: "@harbourline/port-systems"
+owner: "@harborline/port-systems"
 authored: authored
 sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 2026-09-23"]
 ---
 
-[[README|Harbourline]] / [[06-flows|06 Flows]] / [[kiosks-building-blocks|Port kiosks]] / Runtime
+[[README|Harborline]] / [[06-flows|06 Flows]] / [[kiosks-building-blocks|Port kiosks]] / Runtime
 
 # Port kiosks runtime
 
@@ -19,7 +19,7 @@ sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 
 | Flow | Kiosk's part |
 |---|---|
 | [[FLO-001-hold-pay-confirm\|FLO-001]] | Finds the crossing, asks Booking for a hold, takes payment through Tidepay, asks Booking to confirm and shows the state it returns. |
-| [[FLO-002-amend-or-cancel\|FLO-002]] | The kiosk shows a booking's state through get. Amend and cancel are not in the March 2027 image; customers use the website or the call centre. |
+| [[FLO-002-amend-or-cancel\|FLO-002]] | The kiosk shows a booking's state through get. Amend and cancel are not in the March 2027 image; customers use the website or the call center. |
 
 Kiosks have no part in [[FLO-003-notify-on-change|Notify on change]].
 

@@ -40,8 +40,8 @@ Lets a customer hear about a change to their booking, wherever the change was ma
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=135a68d0: do not edit, run planner render -->
+<!-- generated:delivered-by sha=89ec5c52: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harbourline/booking-team @harbourline/platform-team | decided |
+| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harborline/booking-team @harborline/platform-team | decided |
 <!-- /generated:delivered-by -->

@@ -31,7 +31,7 @@ Traces to: CAP-001.FR1@APP-desktop-agent; components: Installer, Updater
 
 | Task | Size | Component |
 |---|---|---|
-| Sign and notarise the Mac build | M | Installer |
+| Sign and notarize the Mac build | M | Installer |
 | Windows MSI package | S | Installer |
 
 Blocked by: none

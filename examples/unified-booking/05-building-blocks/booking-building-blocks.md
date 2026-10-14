@@ -9,18 +9,18 @@ state: decided
 change: new
 stage: epics
 handed_off: "Booking senior, 2026-11-10, PR #23"
-owner: "@harbourline/booking-team"
+owner: "@harborline/booking-team"
 authored: mixed
 sources: ["Booking senior container review", "UNK-001 ledger latency measurement 2026-09-02", SRC-04, SRC-05]
 ---
 
-[[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Booking
+[[README|Harborline]] / [[05-building-blocks|05 Building blocks]] / Booking
 
 # Booking
 
 - **Decision:** [[2026-09-09-booking-containers]]
 
-Booking decides whether a booking is held, confirmed, amended or cancelled. Every channel asks Booking, so the website, the call centre and the kiosks give the same answer about a booking's state. Booking is the only application that talks to FERRYMASTER about bookings, and it does so through FERRYMASTER's existing message queue (MQ) transactions. It keeps a seat held while the customer pays and publishes every state change to the event bus.
+Booking decides whether a booking is held, confirmed, amended or canceled. Every channel asks Booking, so the website, the call center and the kiosks give the same answer about a booking's state. Booking is the only application that talks to FERRYMASTER about bookings, and it does so through FERRYMASTER's existing message queue (MQ) transactions. It keeps a seat held while the customer pays and publishes every state change to the event bus.
 
 Booking does not own fares, capacity, customer records, card payments or the ledger. Pricing, Vessel schedule, Customer identity, Tidepay and FERRYMASTER keep those jobs ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]).
 
@@ -28,11 +28,11 @@ Booking does not own fares, capacity, customer records, card payments or the led
 |---|---|
 | New ([[ADR-0001-one-booking-context\|ADR-0001]]) | Booking team (new) |
 
-<!-- generated:app-context sha=f51bb681: do not edit, run planner render -->
+<!-- generated:app-context sha=8006e1c8: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
-  n_APP_call_centre["Call centre desktop (changed)"]
+  n_APP_call_center["Call center desktop (changed)"]
   n_APP_customer_identity["Customer identity (unchanged)"]
   n_APP_ferrymaster["FERRYMASTER (integrated)"]
   n_APP_kiosks["Port kiosks (changed)"]
@@ -41,7 +41,7 @@ flowchart LR
   n_APP_vessel_schedule["Vessel schedule (unchanged)"]
   n_APP_website["Public website (changed)"]
   x_tidepay__external_["Tidepay (external)"]
-  n_APP_booking -->|"CON-001"| n_APP_call_centre
+  n_APP_booking -->|"CON-001"| n_APP_call_center
   n_APP_booking -->|"CON-001"| n_APP_kiosks
   n_APP_booking -->|"CON-001"| n_APP_website
   n_APP_booking -->|"CON-002"| n_APP_notifications
@@ -54,13 +54,13 @@ flowchart LR
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
   classDef unchanged fill:#eef1f5,stroke:#7a8494,color:#19212d
-  class n_APP_call_centre,n_APP_kiosks,n_APP_notifications,n_APP_pricing,n_APP_website changed
+  class n_APP_call_center,n_APP_kiosks,n_APP_notifications,n_APP_pricing,n_APP_website changed
   class x_tidepay__external_ external
   class n_APP_booking focus
   class n_APP_customer_identity,n_APP_ferrymaster,n_APP_vessel_schedule unchanged
 ```
 
-Key: dark blue: the app this page is about · amber: changed by this initiative · grey: stays as it is · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · amber: changed by this initiative · gray: stays as it is · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Booking: main containers
@@ -77,7 +77,7 @@ All four were confirmed by the Booking senior.
 ```mermaid
 flowchart LR
   web["Public website"]
-  cc["Call centre desktop"]
+  cc["Call center desktop"]
   kio["Port kiosks"]
   tp["Tidepay"]
   subgraph booking["Booking"]
@@ -109,7 +109,7 @@ flowchart LR
 ### CON-001 Booking API
 
 - **Crosses the boundary:** hold (crossing, passengers, vehicle, customer ID) returns a booking reference, a price and the hold expiry. Confirm takes the booking reference and the Tidepay payment reference. Amend, cancel and get work on the booking reference. No card data crosses.
-- **Consumers:** [[website-building-blocks|Public website]], [[call-centre-building-blocks|Call centre desktop]], [[kiosks-building-blocks|Port kiosks]]. All calls go through the Platform gateway with service tokens; kiosks use device certificates.
+- **Consumers:** [[website-building-blocks|Public website]], [[call-center-building-blocks|Call center desktop]], [[kiosks-building-blocks|Port kiosks]]. All calls go through the Platform gateway with service tokens; kiosks use device certificates.
 - **Change policy:** versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api|ADR-0003]]).
 - **Change:** new
 - **Tested by:** each channel runs consumer-driven contract tests in its own pipeline. Booking runs provider verification against all three, for every live version, in its pipeline. Both sides run on every build, and a failure blocks the Booking release.
@@ -173,18 +173,18 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 
 ## Epics
 
-<!-- generated:epics-for-app sha=8099f089: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=f4a1d9b1: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harbourline/booking-team | decided |
-| [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] | @harbourline/booking-team | decided |
-| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harbourline/digital-team | decided |
-| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
-| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harbourline/port-systems | decided |
-| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harbourline/booking-team @harbourline/digital-team | decided |
-| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harbourline/booking-team @harbourline/platform-team | decided |
-| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harbourline/revenue-team | decided |
-| [[EPC-039-run-booking\|EPC-039 Run Booking: on-call, runbooks, dashboards]] | @harbourline/booking-team | decided |
+| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harborline/booking-team | decided |
+| [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] | @harborline/booking-team | decided |
+| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harborline/digital-team | decided |
+| [[EPC-034-call-center-to-booking\|EPC-034 Call center moves to Booking]] | @harborline/contact-center-systems | decided |
+| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harborline/port-systems | decided |
+| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harborline/booking-team @harborline/digital-team | decided |
+| [[EPC-037-events-and-notifications\|EPC-037 Booking events and customer notifications]] | @harborline/booking-team @harborline/platform-team | decided |
+| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harborline/revenue-team | decided |
+| [[EPC-039-run-booking\|EPC-039 Run Booking: on-call, runbooks, dashboards]] | @harborline/booking-team | decided |
 <!-- /generated:epics-for-app -->
 
 Next: [[booking-runtime|Booking runtime]]

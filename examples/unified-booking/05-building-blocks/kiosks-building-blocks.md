@@ -8,12 +8,12 @@ c4: container
 state: decided
 change: changed
 stage: epics
-owner: "@harbourline/port-systems"
+owner: "@harborline/port-systems"
 authored: mixed
 sources: ["Port Systems senior container review", "UNK-004 kiosk authentication 2026-09-23"]
 ---
 
-[[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Port kiosks
+[[README|Harborline]] / [[05-building-blocks|05 Building blocks]] / Port kiosks
 
 # Port kiosks
 
@@ -27,7 +27,7 @@ Kiosks no longer decide if a booking is confirmed and no longer cache FERRYMASTE
 |---|---|
 | Changed: Booking API v1 client ships in the March 2027 image. The FM adapter is removed in the September 2027 image. | Port Systems team |
 
-<!-- generated:app-context sha=815799c8: do not edit, run planner render -->
+<!-- generated:app-context sha=70e5cf72: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -39,7 +39,7 @@ flowchart LR
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Port kiosks: main containers
@@ -87,10 +87,10 @@ Version 1 must stay available until at least the September 2027 image, and longe
 
 ## Epics
 
-<!-- generated:epics-for-app sha=a7b528a3: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=c0d8c230: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harbourline/port-systems | decided |
+| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harborline/port-systems | decided |
 <!-- /generated:epics-for-app -->
 
 Next: [[kiosks-runtime|Port kiosks runtime]]

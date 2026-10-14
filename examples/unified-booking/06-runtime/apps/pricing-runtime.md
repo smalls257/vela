@@ -5,12 +5,12 @@ title: Pricing runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: "@harbourline/revenue-team"
+owner: "@harborline/revenue-team"
 authored: authored
 sources: ["Pricing senior review of CON-003"]
 ---
 
-[[README|Harbourline]] / [[06-flows|06 Flows]] / [[pricing-building-blocks|Pricing]] / Runtime
+[[README|Harborline]] / [[06-flows|06 Flows]] / [[pricing-building-blocks|Pricing]] / Runtime
 
 # Pricing runtime
 

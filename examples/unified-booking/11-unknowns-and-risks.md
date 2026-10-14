@@ -130,15 +130,15 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 ## Question ledger
 
-Catalogue v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
+Catalog v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
-<!-- generated:undisposed-questions sha=a1e68b3d: do not edit, run planner render -->
-**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalogue v1.
+<!-- generated:undisposed-questions sha=062a2ac9: do not edit, run planner render -->
+**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |
 |---|---|---|---|---|---|
 | Q-FIN-02@INI-002 | asked | FIN | normal | INI-002 | Who pays for the change, and who carries its running cost once it is live? |
-| R-FIN-01 | open | FIN | normal | reviewer | Points are earned at reservation, so does a cancelled booking take its points back, and who tells the loyalty scheme? |
+| R-FIN-01 | open | FIN | normal | reviewer | Points are earned at reservation, so does a canceled booking take its points back, and who tells the loyalty scheme? |
 <!-- /generated:undisposed-questions -->
 
 | Copy | State | Evidence | By | Date |
@@ -151,11 +151,11 @@ Catalogue v1 owes these questions. Each row says where one stands. A wildcard ro
 | Q-FIN-06@SV-01 | not-applicable | reason: no balance converts between schemes under INI-002, so there is no rate to set | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-01@INI-002 | answered | item: [[customer-identity-building-blocks#CON-005 Customer lookup\|CON-005]]; source: SRC-07; answer: Booking becomes a new user of customer data, through the Customer lookup contract CON-005 | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-05@INI-002 | assumed | belief: no data is used for a new purpose, because the only personal data Booking holds is the customer ID, kept with the booking it belongs to; load-bearing: yes; signpost: a channel or team asking Booking for customer data it does not hold today | @hl-solution-lead | 2026-11-19 |
-| Q-DAT-02@APP-* | assumed | belief: the website, the call centre desktop and the kiosks hold no customer data once their FERRYMASTER reply caches go, so they need no basis of their own; load-bearing: no; signpost: any of them caching booking or customer data again | @hl-solution-lead | 2026-11-19 |
+| Q-DAT-02@APP-* | assumed | belief: the website, the call center desktop and the kiosks hold no customer data once their FERRYMASTER reply caches go, so they need no basis of their own; load-bearing: no; signpost: any of them caching booking or customer data again | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-02@APP-booking | unknown | unknown: [[#UNK-008 Review of the customer data Booking holds\|UNK-008]] | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-02@APP-notifications | answered | item: [[concern-data\|Data]]; source: "Notifications resolves contact details at send time from Customer identity." in [[concern-data]]; answer: Notifications keeps a record of messages sent per booking reference and state, and reads contact details from Customer identity at send time | @hl-booking-senior | 2026-11-19 |
 | Q-DAT-02@APP-pricing | not-applicable | reason: Pricing holds fare rules only, per the Data concern, so it holds no customer data | @hl-pricing-senior | 2026-11-19 |
-| Q-DAT-03@CON-* | assumed | belief: customer data crosses a contract only where it carries a customer ID, and every consumer is a Harbourline channel or service the customer already deals with; load-bearing: no; signpost: a new consumer added to any of these contracts | @hl-solution-lead | 2026-11-19 |
+| Q-DAT-03@CON-* | assumed | belief: customer data crosses a contract only where it carries a customer ID, and every consumer is a Harborline channel or service the customer already deals with; load-bearing: no; signpost: a new consumer added to any of these contracts | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-03@CON-002 | unknown | unknown: [[#UNK-006 Finance on Booking events\|UNK-006]] | @hl-solution-lead | 2026-11-19 |
 | Q-DAT-04@SV-01 | answered | item: [[03-context-and-scope#SV-01 Loyalty points\|SV-01]]; source: "the loyalty scheme, which reads FERRYMASTER directly and stays out of scope until INI-004" in [[03-context-and-scope]]; answer: The loyalty scheme holds the balances | @hl-solution-lead | 2026-11-19 |
 | Q-PTN-01@INI-002 | answered | item: [[concern-ownership\|Ownership]]; source: "The new Booking team owns Booking, including the Ledger adapter" in [[concern-ownership]]; answer: Yes, the new Booking team owns Booking and its Ledger adapter, which writes to FERRYMASTER | @hl-solution-lead | 2026-11-19 |
@@ -170,7 +170,7 @@ Catalogue v1 owes these questions. Each row says where one stands. A wildcard ro
 | Q-REG-02@INI-002 | unknown | unknown: [[#UNK-008 Review of the customer data Booking holds\|UNK-008]] | @hl-solution-lead | 2026-11-19 |
 | Q-REG-05@INI-002 | not-applicable | reason: no product is shared across parties, so no party's failure reaches a customer through one | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-01@APP-booking | answered | item: [[#UNK-007 Booking on-call\|UNK-007]]; source: "joins the Platform on-call rota from go-live" in [[concern-operations]]; answer: The Booking team joins the Platform on-call rota from go-live | @hl-solution-lead | 2026-11-19 |
-| Q-OPS-01@APP-call-centre | assumed | belief: the Contact Centre Systems team keeps supporting the desktop on today's hours, without the manual fix queue; load-bearing: no; signpost: an agent unable to get a failed booking fixed out of hours after cutover | @hl-solution-lead | 2026-11-19 |
+| Q-OPS-01@APP-call-center | assumed | belief: the Contact Center Systems team keeps supporting the desktop on today's hours, without the manual fix queue; load-bearing: no; signpost: an agent unable to get a failed booking fixed out of hours after cutover | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-01@APP-notifications | answered | item: [[concern-operations\|Operations]]; source: "new consumer covered by the Platform rota" in [[concern-operations]]; answer: Covered by the Platform rota, so the same people answer for Booking and Notifications | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-01@APP-kiosks | answered | item: [[concern-operations\|Operations]]; source: "Port Systems support as today" in [[concern-operations]]; answer: Port Systems supports the kiosks as it does today | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-01@APP-pricing | answered | item: [[concern-operations\|Operations]]; source: "Revenue team support as today" in [[concern-operations]]; answer: The Revenue team supports Pricing as it does today | @hl-solution-lead | 2026-11-19 |
@@ -185,11 +185,11 @@ Catalogue v1 owes these questions. Each row says where one stands. A wildcard ro
 | Q-OPS-03@INI-002 | assumed | belief: CAP-012 stays with the Revenue team, because Pricing keeps its current owner; load-bearing: no; signpost: Pricing changing hands during INI-002; covers: capability | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-03@CAP-013 | answered | item: [[concern-ownership\|Ownership]]; source: "The new Booking team owns Booking, including the Ledger adapter" in [[concern-ownership]]; answer: The Booking team, which owns Booking and EPC-031, the epic that delivers CAP-013 | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-03@CAP-014 | answered | item: [[concern-ownership\|Ownership]]; source: "The new Booking team owns Booking, including the Ledger adapter" in [[concern-ownership]]; answer: The new Booking team, which owns the Hold store | @hl-solution-lead | 2026-11-19 |
-| Q-OPS-03@CAP-021 | assumed | belief: the Contact Centre Systems team and the Digital team each keep their own amend and cancel screens, and the Booking team owns the change check and the ledger write; load-bearing: yes; signpost: a failed amendment that no team picks up | @hl-solution-lead | 2026-11-19 |
+| Q-OPS-03@CAP-021 | assumed | belief: the Contact Center Systems team and the Digital team each keep their own amend and cancel screens, and the Booking team owns the change check and the ledger write; load-bearing: yes; signpost: a failed amendment that no team picks up | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-03@CAP-022 | answered | item: [[concern-ownership\|Ownership]]; source: "sends email or SMS on Booking state changed events" in [[CAP-022-notify-customer]]; answer: The Platform team owns Notifications, which sends the messages, and the Digital team's website stops sending booking emails | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-03@CAP-023 | not-applicable | reason: the capability retires with the manual fix queue, so no team owns it after INI-002 | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-04@INI-002 | answered | item: [[ADR-0001-one-booking-context\|ADR-0001]]; source: SRC-01; answer: Three screen adapters each decided what a booking's state is, and Booking becomes the one place that does (ADR-0001) | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-05@INI-002 | answered | item: [[CAP-023-fix-failed-bookings\|CAP-023]]; source: "The data warehouse feed, the finance reconciliation job and the loyalty scheme." in [[03-context-and-scope]]; answer: The three screen adapters and the manual fix queue retire. The warehouse feed, the finance job and the loyalty scheme keep reading FERRYMASTER | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-06@INI-002 | unknown | unknown: [[#UNK-006 Finance on Booking events\|UNK-006]] | @hl-solution-lead | 2026-11-19 |
 | Q-OPS-07@INI-002 | assumed | belief: customers amend online once they can; load-bearing: yes; signpost: the online share of amendments in the first two months after go-live | @hl-solution-lead | 2026-11-19 |
-| R-FIN-01 | open | question: Points are earned at reservation, so does a cancelled booking take its points back, and who tells the loyalty scheme?; quote: "because points are earned at reservation" in [[04a-capability-delta]]; severity: normal | @hl-solution-lead | 2026-11-19 |
+| R-FIN-01 | open | question: Points are earned at reservation, so does a canceled booking take its points back, and who tells the loyalty scheme?; quote: "because points are earned at reservation" in [[04a-capability-delta]]; severity: normal | @hl-solution-lead | 2026-11-19 |

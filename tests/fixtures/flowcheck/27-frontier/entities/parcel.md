@@ -5,7 +5,7 @@ title: Parcel
 app: APP-packing
 shared: false
 initial: new
-final: [labelled]
+final: [labeled]
 ---
 
 # Parcel
@@ -14,4 +14,4 @@ final: [labelled]
 |---|---|---|
 | new | picked | EVT-027 handled |
 | picked | packed | EVT-027 handled |
-| packed | labelled | EVT-027 handled |
+| packed | labeled | EVT-027 handled |

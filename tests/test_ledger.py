@@ -32,7 +32,7 @@ def broken(vault, allow=()):
 
 
 def untyped_warns(vault):
-    """A ledger that disposes of nothing leaves Q-REG-02 unanswered, so the cost page's licences warn."""
+    """A ledger that disposes of nothing leaves Q-REG-02 unanswered, so the cost page's licenses warn."""
     assert ("W809", "08-concerns/concern-cost.md") in findings(check(vault, TODAY)[1])
 
 
@@ -156,7 +156,7 @@ ROW_QUOTE = ('source: "Notifications resolves contact details at send time from 
     ('source: "Finance should read Booking events instead of FERRYMASTER?" in [[11-unknowns-and-risks]]',
      'is not in the written text of [[11-unknowns-and-risks]]'),
     ('source: "Should the finance reconciliation job read Booking events instead of FERRYMASTER?" in [[11-unknowns-and-risks]]', None),
-    ('source: "Catalogue v1 owes these questions. Each row says where one stands." in [[11-unknowns-and-risks]]', 'is not in the written text of [[11-unknowns-and-risks]]'),
+    ('source: "Catalog v1 owes these questions. Each row says where one stands." in [[11-unknowns-and-risks]]', 'is not in the written text of [[11-unknowns-and-risks]]'),
     ('source: "customer identity." in [[concern-data]]', "fewer than 4 words"),
     ('source: "gives 8 weeks\u2019 notice of changes" in [[concern-ownership]]', None),
     ('source: "The only personal data is the customer ID."', 'source must be exactly one SRC-nn, or exactly one quote'),
@@ -204,7 +204,7 @@ def test_a_semicolon_inside_a_quote_or_a_link_does_not_split_the_evidence():
 # ------------------------------------------------------------------ E803 and W804: what a row names
 
 @pytest.mark.parametrize("old, new, code, said", [
-    ("| Q-REG-01@INI-002 |", "| Q-REG-09@INI-002 |", "E803", "Q-REG-09, which is not in catalogue v1"),
+    ("| Q-REG-01@INI-002 |", "| Q-REG-09@INI-002 |", "E803", "Q-REG-09, which is not in catalog v1"),
     ("| Q-DAT-03@CON-002 |", "| Q-DAT-03@APP-booking |", "E803", "which is not a contract ID"),
     ("| Q-DAT-02@APP-* |", "| Q-DAT-02@CON-* |", "E803", "so it must start Q-DAT-02@APP-"),
     ("| R-FIN-01 | open | question:", "| R-XYZ-01 | open | question:", "E803", "names area XYZ"),
@@ -249,7 +249,7 @@ def test_a_copy_with_no_row_is_undisposed_and_never_a_finding(ub):
     assert broken(ub) == []
     code, answer = ask(ub, "--open")
     assert code == 0 and answer["undisposed"] == 3
-    assert [c["id"] for c in answer["copies"]] == ["Q-DAT-02@APP-call-centre", "Q-DAT-02@APP-kiosks", "Q-DAT-02@APP-website",
+    assert [c["id"] for c in answer["copies"]] == ["Q-DAT-02@APP-call-center", "Q-DAT-02@APP-kiosks", "Q-DAT-02@APP-website",
                                                    "Q-FIN-02@INI-002"]  # the fixture's asked copy, still pending
     assert [c["state"] for c in answer["copies"]] == ["no row"] * 3 + ["asked"] and all(c["pending"] for c in answer["copies"])
 
@@ -286,7 +286,7 @@ def test_planner_questions_prints_the_coverage_line_and_one_line_per_copy():
     code, out = run("questions", "--vault", str(FIXTURE))
     lines = out.splitlines()
     assert code == 0
-    assert lines[0] == "planner questions: 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalogue v1. 1 reviewer question, 1 open."
+    assert lines[0] == "planner questions: 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1. 1 reviewer question, 1 open."
     assert "complete" not in out.lower()
     assert len(lines) == 59
     assert "Q-DAT-02@APP-website | DAT | high | assumed via Q-DAT-02@APP-* | APP-website | settled | What customer data" in out
@@ -299,7 +299,7 @@ def test_planner_questions_filters_by_area_and_subject():
     assert answer["reviewer"] == []
     code, answer = ask(FIXTURE, "--subject", "SV-01")
     assert [c["id"] for c in answer["copies"]] == ["Q-DAT-04@SV-01", "Q-FIN-03@SV-01", "Q-FIN-04@SV-01", "Q-FIN-05@SV-01", "Q-FIN-06@SV-01"]
-    assert answer["coverage"] == "5 owed, 0 undisposed, against catalogue v1"
+    assert answer["coverage"] == "5 owed, 0 undisposed, against catalog v1"
 
 
 def test_planner_questions_json_holds_every_field():
@@ -382,7 +382,7 @@ def test_a_fully_shadowed_wildcard_is_w804(ub):
     path = ub / LEDGER
     text = path.read_text(encoding="utf-8")
     wild = next(l for l in text.split("\n") if l.startswith("| Q-DAT-02@APP-* |"))
-    own = "\n".join(wild.replace("Q-DAT-02@APP-*", f"Q-DAT-02@{app}", 1) for app in ("APP-website", "APP-call-centre", "APP-kiosks"))
+    own = "\n".join(wild.replace("Q-DAT-02@APP-*", f"Q-DAT-02@{app}", 1) for app in ("APP-website", "APP-call-center", "APP-kiosks"))
     path.write_text(text.replace(wild, wild + "\n" + own), encoding="utf-8")
     assert [f for f in broken(ub) if f[0] == "W804"] == [("W804", LEDGER)]
     assert "Q-DAT-02@APP-* is shadowed" in check(ub, TODAY)[1]

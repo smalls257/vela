@@ -2,16 +2,16 @@
 
 For the senior. Design `docs/tech-design/desktop-agent.md` (complete-with-gaps), vault INI-001 @ 051d15a. Each item below is an open question in the design that challenges a vault item; raise it with `/planner:challenge <ID>`. The design never edits the vault. Ordered by urgency: the first two are tied to the January freeze (CST-010) and S-07 must be built before the 4 December outcome. Text is as written in the design.
 
-## 1. OQ-007: What does the Summariser keep, log and train on, and does withdrawal reach it?
+## 1. OQ-007: What does the Summarizer keep, log and train on, and does withdrawal reach it?
 Raise: `/planner:challenge CON-002`
-**What we know:** The agent sends calendar entries, and later transcript text, over CON-002. The vault records the shape of the request and no authentication, retention, logging, no-training rule or transport. CON-002 has no deletion call. Scenario: a person withdraws and the agent purges the laptop, but the Summariser still holds their meeting text. CST-003 forbids meeting text leaving a laptop until the 4 December outcome, and the text call is open as UNK-051. The design adds three controls on its own side: an audience-scoped token, TLS with no text in logs, and a gate that refuses a remote Summariser endpoint until a managed setting says the text call is settled.
-**What would unblock:** The Summariser's owner and the product owner record in CON-002 who authenticates callers, what is kept, logged and trained on and for how long, and whether withdrawal reaches it, before the January freeze (CST-010). The endpoint lead and CISO also say whether a configuration profile may change the gate after the freeze.
+**What we know:** The agent sends calendar entries, and later transcript text, over CON-002. The vault records the shape of the request and no authentication, retention, logging, no-training rule or transport. CON-002 has no deletion call. Scenario: a person withdraws and the agent purges the laptop, but the Summarizer still holds their meeting text. CST-003 forbids meeting text leaving a laptop until the 4 December outcome, and the text call is open as UNK-051. The design adds three controls on its own side: an audience-scoped token, TLS with no text in logs, and a gate that refuses a remote Summarizer endpoint until a managed setting says the text call is settled.
+**What would unblock:** The Summarizer's owner and the product owner record in CON-002 who authenticates callers, what is kept, logged and trained on and for how long, and whether withdrawal reaches it, before the January freeze (CST-010). The endpoint lead and CISO also say whether a configuration profile may change the gate after the freeze.
 **Affects:** NoteClient, Integration points, CON-002, EPC-033, EPC-034.
 **Challenges:** CON-002
 
 ## 2. OQ-009: Can the endpoint team stage the package in rings and recall a bad build, and who holds the signing keys?
 Raise: `/planner:challenge CST-010`
-**What we know:** The agent ships through Intune and Jamf in the endpoint lead's one slot on 18 January 2027, and he will not raise an earlier one (CST-010). The vault does not say whether Intune and Jamf stage the pilot group in rings, how a build is pulled or superseded, who holds the signing certificates and Apple notarisation credentials, who renews them, or how WebView2 and macOS updates are tracked after the slot. The pilot is Client Delivery London, so a bad build reaches that group, not the whole firm. Without rings the only rollback is the kill switch, and the agent lead cannot absorb a second build with the team available.
+**What we know:** The agent ships through Intune and Jamf in the endpoint lead's one slot on 18 January 2027, and he will not raise an earlier one (CST-010). The vault does not say whether Intune and Jamf stage the pilot group in rings, how a build is pulled or superseded, who holds the signing certificates and Apple notarization credentials, who renews them, or how WebView2 and macOS updates are tracked after the slot. The pilot is Client Delivery London, so a bad build reaches that group, not the whole firm. Without rings the only rollback is the kill switch, and the agent lead cannot absorb a second build with the team available.
 **What would unblock:** The endpoint lead answers on rings and recall, and names the key holders. The agent lead needs a yes on ring support before the freeze.
 **Affects:** Operations (Deploy), Tech stack, ADR-0001.
 **Challenges:** CST-010
@@ -23,10 +23,10 @@ Raise: `/planner:challenge UNK-054`
 **Affects:** Tech stack, Operations (packaging), Trace for CST-007 and CST-010.
 **Challenges:** UNK-054
 
-## 4. OQ-002: How stale may a moved or cancelled meeting be before the prep note follows it?
+## 4. OQ-002: How stale may a moved or canceled meeting be before the prep note follows it?
 Raise: `/planner:challenge EPC-034.AC4`
-**What we know:** EPC-034 criterion 4 says a moved meeting's note follows the new time and a cancelled one shows no note, with no time bound. Scenario: a meeting moves from 10:00 to 11:00 at 09:40. The note is ready for 09:50; the display-time re-read at 09:50 catches the move, but a move at 09:49 and a 15-minute delta pass could leave the ask or the early timers wrong.
-**What would unblock:** A bound from the product owner. Design proposal: 15 minutes, with the display-time re-read as the backstop so a moved or cancelled meeting is never shown stale.
+**What we know:** EPC-034 criterion 4 says a moved meeting's note follows the new time and a canceled one shows no note, with no time bound. Scenario: a meeting moves from 10:00 to 11:00 at 09:40. The note is ready for 09:50; the display-time re-read at 09:50 catches the move, but a move at 09:49 and a 15-minute delta pass could leave the ask or the early timers wrong.
+**What would unblock:** A bound from the product owner. Design proposal: 15 minutes, with the display-time re-read as the backstop so a moved or canceled meeting is never shown stale.
 **Affects:** Scheduler; EPC-034.AC4.
 **Challenges:** EPC-034.AC4
 
@@ -39,7 +39,7 @@ Raise: `/planner:challenge CAP-001.FR2`
 
 ## 6. OQ-005: Is the person told when Consent and identity is down, or their sign-in has expired?
 Raise: `/planner:challenge EPC-033`
-**What we know:** The runtime page (RUN-desktop-agent, On failure) says that if the Summariser is down or slow the agent "shows nothing that morning and says so", but that if Consent and identity is down the agent "reads nothing and shows no note", with no mention of telling the person. EPC-033 puts this out of scope ("the runtime page holds it, and no requirement does"). Scenario: at 7:30 the Consent check times out, the person sees nothing and gets no reason. The design shows nothing and writes a local log entry. The team lead suggests a generic "your digest couldn't be prepared" covers both failures safely; that wording is not in the vault.
+**What we know:** The runtime page (RUN-desktop-agent, On failure) says that if the Summarizer is down or slow the agent "shows nothing that morning and says so", but that if Consent and identity is down the agent "reads nothing and shows no note", with no mention of telling the person. EPC-033 puts this out of scope ("the runtime page holds it, and no requirement does"). Scenario: at 7:30 the Consent check times out, the person sees nothing and gets no reason. The design shows nothing and writes a local log entry. The team lead suggests a generic "your digest couldn't be prepared" covers both failures safely; that wording is not in the vault.
 **Second case:** A person's Microsoft sign-in expires, or Conditional Access blocks it, so the agent cannot read. EPC-032 AC3 covers a choice not confirmed at switch-on, not a sign-in that stops working later, so the vault is silent on telling the person to sign in again.
 **What would unblock:** The solution lead says whether silence on a Consent outage or an expired sign-in is the intent or a gap to close, and if a gap, owns the wording and which requirement carries it.
 **Affects:** ConsentGate, NoteView, EPC-033 (digest), EPC-034 (prep note says nothing by AC5).
@@ -54,7 +54,7 @@ Raise: `/planner:challenge UNK-057`
 
 ## 8. OQ-008: Does the lawful basis cover other attendees in a calendar entry?
 Raise: `/planner:challenge UNK-071`
-**What we know:** UNK-071 asks the DPO for the lawful basis for each source, which is about the person who switched Heron on. A calendar entry also names other attendees, who have not agreed and may be outside the pilot. Scenario: a London pilot user's meeting has a Frankfurt colleague as an invitee; the entry, with that name, goes to the Summariser. Frankfurt stays out of the pilot (CST-006). The design reads only subject, start, end and attendees. Whether the pilot group is set by office or by team is open as UNK-055. If the DPO says attendees outside the pilot may not be sent, the contingency is a local roster filter before sending, which needs a roster source the vault does not record and the answer before the request freezes.
+**What we know:** UNK-071 asks the DPO for the lawful basis for each source, which is about the person who switched Heron on. A calendar entry also names other attendees, who have not agreed and may be outside the pilot. Scenario: a London pilot user's meeting has a Frankfurt colleague as an invitee; the entry, with that name, goes to the Summarizer. Frankfurt stays out of the pilot (CST-006). The design reads only subject, start, end and attendees. Whether the pilot group is set by office or by team is open as UNK-055. If the DPO says attendees outside the pilot may not be sent, the contingency is a local roster filter before sending, which needs a roster source the vault does not record and the answer before the request freezes.
 **What would unblock:** The DPO answers for attendees as well as the person, and the pilot lead says how the pilot group is set (UNK-055).
 **Affects:** SourceReader, NoteClient, CST-004, CST-006, CAP-003.FR2.
 **Challenges:** UNK-071

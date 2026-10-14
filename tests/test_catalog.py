@@ -1,7 +1,7 @@
-"""The question catalogue: the seeded entries, the loader, and the trigger language.
+"""The question catalog: the seeded entries, the loader, and the trigger language.
 
-A catalogue that cannot be read must stop the tool (exit 2), never load as empty, because an
-empty catalogue makes every vault look as if it owed nothing. A trigger is read, never run."""
+A catalog that cannot be read must stop the tool (exit 2), never load as empty, because an
+empty catalog makes every vault look as if it owed nothing. A trigger is read, never run."""
 import re
 
 import pytest
@@ -18,13 +18,13 @@ def seed():
 
 
 def problems(data):
-    with pytest.raises(catalog.CatalogueError) as exc:
-        catalog.parse_catalogue(data)
+    with pytest.raises(catalog.CatalogError) as exc:
+        catalog.parse_catalog(data)
     return str(exc.value)
 
 
 def test_the_seed_loads_with_five_areas_and_about_twenty_entries():
-    cat = catalog.parse_catalogue(seed())
+    cat = catalog.parse_catalog(seed())
     assert cat.version == 1
     assert cat.area_codes == ("FIN", "DAT", "PTN", "REG", "OPS")
     assert 18 <= len(cat.entries) <= 30
@@ -33,12 +33,12 @@ def test_the_seed_loads_with_five_areas_and_about_twenty_entries():
 
 
 def test_every_entry_cites_why_it_is_there():
-    for entry in catalog.parse_catalogue(seed()).entries:
+    for entry in catalog.parse_catalog(seed()).entries:
         assert len(entry.why) >= 40, f"{entry.id} needs a why: a regulation, a practice or a simulation miss"
 
 
 def test_the_eight_existence_questions_are_initiative_scope_and_always_owed():
-    cat = catalog.parse_catalogue(seed())
+    cat = catalog.parse_catalog(seed())
     words = {"FIN-01": "hold value", "DAT-01": "new party", "PTN-01": "ownership, operation or payment",
              "REG-01": "sold or promised across parties", "REG-02": "regulated or licensed",
              "OPS-04": "more than one system, scheme, map or team doing the same job? Name them", "OPS-05": "retired", "OPS-06": "not yet in the room"}
@@ -49,13 +49,13 @@ def test_the_eight_existence_questions_are_initiative_scope_and_always_owed():
 
 
 def test_the_high_severity_entries_are_lawful_basis_partner_clauses_and_stored_value():
-    cat = catalog.parse_catalogue(seed())
+    cat = catalog.parse_catalog(seed())
     assert sorted(e.id for e in cat.entries if e.severity == "high") == [
         "Q-DAT-01", "Q-DAT-02", "Q-DAT-05", "Q-FIN-01", "Q-FIN-03", "Q-PTN-01", "Q-PTN-02", "Q-PTN-05"]
 
 
 def test_every_scope_has_an_entry_and_the_new_kinds_are_created_by_a_yes():
-    cat = catalog.parse_catalogue(seed())
+    cat = catalog.parse_catalog(seed())
     assert {e.scope for e in cat.entries} == set(catalog.SCOPES)
     assert {e.creates for e in cat.entries if e.creates} == {"party", "stored-value"}
     assert "points" in cat.entry("Q-FIN-01").mentions and "licence" in cat.entry("Q-REG-02").mentions
@@ -68,7 +68,7 @@ def test_no_entry_names_a_persona_or_an_archetype():
 
 
 def test_the_questions_and_whys_assume_no_merger_and_no_rail_except_as_a_cited_example():
-    for entry in catalog.parse_catalogue(seed()).entries:
+    for entry in catalog.parse_catalog(seed()).entries:
         for word in (r"merger", r"mergers", r"post-merger", r"ferry", r"ferries", r"rail", r"ticket", r"tickets",
                      r"passengers?", r"carriers?"):
             assert not re.search(rf"\b{word}\b", entry.question, re.I), (entry.id, word)
@@ -78,7 +78,7 @@ def test_the_questions_and_whys_assume_no_merger_and_no_rail_except_as_a_cited_e
 
 
 def test_each_split_question_asks_one_thing_and_its_follow_up_is_its_own_entry():
-    cat = catalog.parse_catalogue(seed())
+    cat = catalog.parse_catalog(seed())
     assert not re.search(r"purpose", cat.entry("Q-DAT-01").question) and "purpose" in cat.entry("Q-DAT-05").question
     assert not re.search(r"expiry|closure|conversion", cat.entry("Q-FIN-03").question)
     assert "expiry" in cat.entry("Q-FIN-05").question
@@ -91,7 +91,7 @@ def test_each_split_question_asks_one_thing_and_its_follow_up_is_its_own_entry()
 
 
 def test_every_contract_entry_filters_on_change_so_a_settled_contract_owes_nothing():
-    for entry in catalog.parse_catalogue(seed()).entries:
+    for entry in catalog.parse_catalog(seed()).entries:
         if entry.scope == "contract":
             assert any(c.field == "change" for c in entry.trigger.conditions), entry.id
 
@@ -124,7 +124,7 @@ def test_a_fact_that_is_not_text_never_matches():
 @pytest.mark.parametrize("text, scope, said", [
     ("change == 'new'", "app", "is not 'field: value' or 'field in [a, b]'"),
     ("__import__('os').system('x')", "app", "is not 'field: value'"),
-    ("colour: red", "app", "trigger field 'colour' is not one a app subject has"),
+    ("color: red", "app", "trigger field 'color' is not one a app subject has"),
     ("change: brand-new", "app", "trigger value 'brand-new' is not one change can take"),
     ("change in [new, ]", "app", "has an empty value"),
     ("change: new", "initiative", "fields: none: use exists"),
@@ -138,7 +138,7 @@ def test_a_fact_that_is_not_text_never_matches():
     (["exists"], "app", "trigger must be text"),
 ])
 def test_a_trigger_outside_the_grammar_is_refused_with_its_reason(text, scope, said):
-    with pytest.raises(catalog.CatalogueError) as exc:
+    with pytest.raises(catalog.CatalogError) as exc:
         catalog.parse_trigger(text, scope)
     assert said in str(exc.value)
 
@@ -156,12 +156,12 @@ def test_every_problem_is_named_at_once():
     data["entries"][0]["severity"] = "urgent"
     data["entries"][1]["area"] = "XYZ"
     data["entries"][2]["id"] = "Q-1"
-    data["entries"][3]["trigger"] = "colour: red"
+    data["entries"][3]["trigger"] = "color: red"
     data["entries"][4]["blocks"] = ["vibes"]
     data["entries"][5]["extra"] = 1
     said = problems(data)
     for part in ("'version' must be a whole number", "severity 'urgent'", "area 'XYZ'", "id must look like Q-FIN-01",
-                 "trigger field 'colour'", "'blocks' has 'vibes'", "unknown field extra"):
+                 "trigger field 'color'", "'blocks' has 'vibes'", "unknown field extra"):
         assert part in said, part
 
 
@@ -210,7 +210,7 @@ def test_a_mention_group_needs_a_reason_and_a_reason_needs_a_mention():
 
 
 def test_mention_forms_expand_from_groups_and_exceptions_are_phrases():
-    cat = catalog.parse_catalogue(seed())
+    cat = catalog.parse_catalog(seed())
     assert {"licensed", "licensing", "credited", "deposited", "point"} <= set(
         cat.entry("Q-REG-02").mentions + cat.entry("Q-FIN-01").mentions)
     data = seed()
@@ -237,25 +237,25 @@ def test_a_key_written_twice_is_an_error_at_every_depth(tmp_path):
 
 
 @pytest.mark.parametrize("data", [None, [], {"version": 1}, {"version": 1, "areas": {"FIN": "x"}, "entries": []}])
-def test_a_catalogue_with_no_entries_is_refused(data):
-    with pytest.raises(catalog.CatalogueError):
-        catalog.parse_catalogue(data)
+def test_a_catalog_with_no_entries_is_refused(data):
+    with pytest.raises(catalog.CatalogError):
+        catalog.parse_catalog(data)
 
 
-def test_the_cli_stops_with_exit_2_on_a_broken_catalogue(mini, tmp_path, monkeypatch):
+def test_the_cli_stops_with_exit_2_on_a_broken_catalog(mini, tmp_path, monkeypatch):
     broken = tmp_path / "questions.yaml"
     data = seed()
     data["entries"][0]["severity"] = "urgent"
     broken.write_text(yaml.safe_dump(data), encoding="utf-8")
-    monkeypatch.setattr(cli, "CATALOGUE", broken)
+    monkeypatch.setattr(cli, "CATALOG", broken)
     code, out = check(mini)
     assert code == 2
-    assert "is not a valid question catalogue" in out and "severity 'urgent'" in out
-    monkeypatch.setattr(cli, "CATALOGUE", tmp_path / "missing.yaml")
+    assert "is not a valid question catalog" in out and "severity 'urgent'" in out
+    monkeypatch.setattr(cli, "CATALOG", tmp_path / "missing.yaml")
     code, out = check(mini)
     assert code == 2 and "missing.yaml is missing" in out
     broken.write_text("version: [1\n", encoding="utf-8")
-    monkeypatch.setattr(cli, "CATALOGUE", broken)
+    monkeypatch.setattr(cli, "CATALOG", broken)
     assert check(mini)[0] == 2
 
 
@@ -263,17 +263,17 @@ def test_the_cli_stops_with_exit_2_on_a_duplicate_key(mini, tmp_path, monkeypatc
     broken = tmp_path / "questions.yaml"
     broken.write_text(SEED.read_text(encoding="utf-8").replace("version: 1\n", "version: 1\nversion: 1\n", 1),
                       encoding="utf-8")
-    monkeypatch.setattr(cli, "CATALOGUE", broken)
+    monkeypatch.setattr(cli, "CATALOG", broken)
     code, out = check(mini)
     assert code == 2 and "duplicate key" in out
 
 
-def test_the_vault_carries_the_catalogue(mini):
+def test_the_vault_carries_the_catalog(mini):
     vault = cli.load_vault(mini)
-    assert vault.catalogue.version == 1 and vault.catalogue.entry("Q-FIN-01") is not None
+    assert vault.catalog.version == 1 and vault.catalog.entry("Q-FIN-01") is not None
 
 
-def test_the_installed_plugin_finds_its_catalogue(tmp_path):
+def test_the_installed_plugin_finds_its_catalog(tmp_path):
     import shutil
     import subprocess
     import sys

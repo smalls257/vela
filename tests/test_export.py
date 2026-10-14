@@ -20,14 +20,14 @@ def exported(tmp_path, *extra, vault=None):
 
 
 def test_one_row_per_epic_with_the_five_columns(tmp_path):
-    code, text, rows = exported(tmp_path, "--repo-url", "git@github.com:harbourline/unified-booking.git", "--commit", "3f9c2a1")
+    code, text, rows = exported(tmp_path, "--repo-url", "git@github.com:harborline/unified-booking.git", "--commit", "3f9c2a1")
     assert code == 0, text
     assert text == f"planner export: wrote 9 epics to {tmp_path / 'epics.csv'}.\n"
     assert rows[0] == ["Summary", "Description", "Epic Name", "Owner team", "Vault link"]
     assert [r[2] for r in rows[1:]] == [f"EPC-0{n}" for n in range(31, 40)]
     summary, description, name, owner, link = rows[1]
-    assert (summary, name, owner) == ("Booking holds and confirms crossings", "EPC-031", "harbourline/booking-team")
-    assert link == "https://github.com/harbourline/unified-booking/blob/3f9c2a1/13-epics/EPC-031-holds-and-confirms.md"
+    assert (summary, name, owner) == ("Booking holds and confirms crossings", "EPC-031", "harborline/booking-team")
+    assert link == "https://github.com/harborline/unified-booking/blob/3f9c2a1/13-epics/EPC-031-holds-and-confirms.md"
     assert description.startswith("Booking becomes the one place that decides whether a crossing is held")
     assert "FERRYMASTER stays the ledger of record (the ledger-of-record decision), so Booking" in description  # under "Who this is for"
     assert "Still open: nothing." in description
@@ -116,7 +116,7 @@ def test_a_formula_shaped_epic_title_is_defused_in_the_file(tmp_path):
 def test_owner_loses_its_at_sign_and_is_still_guarded(tmp_path):
     vault = tmp_path / "ub"
     shutil.copytree(FIXTURE, vault)
-    edit(vault / "13-epics" / "EPC-031-holds-and-confirms.md", "owner: \"@harbourline/booking-team\"", 'owner: "@=x"')
+    edit(vault / "13-epics" / "EPC-031-holds-and-confirms.md", "owner: \"@harborline/booking-team\"", 'owner: "@=x"')
     _, _, rows = exported(tmp_path, vault=vault)
     assert rows[1][3] == "'=x"
 
@@ -227,11 +227,11 @@ def test_an_epic_that_carries_an_override_and_an_unconfirmed_decision_says_so_at
     shutil.copytree(FIXTURE, vault)
     epic = vault / "13-epics" / "EPC-031-holds-and-confirms.md"
     after_title(epic, "- **Override:** GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
-                "- **Decided by:** @hl-solution-lead, on behalf of @harbourline/booking-team\n")
+                "- **Decided by:** @hl-solution-lead, on behalf of @harborline/booking-team\n")
     _, _, rows = exported(tmp_path, vault=vault)
     description = rows[1][1]
     assert description.endswith("\n\nOverride: GATE-4, GATE-5 by @hl-solution-lead on 2026-11-20: the ask can wait\n"
-                                "Decided by @hl-solution-lead on behalf of @harbourline/booking-team (not yet confirmed)")
+                                "Decided by @hl-solution-lead on behalf of @harborline/booking-team (not yet confirmed)")
     assert "Acceptance criteria:\nAC1." in description and description.index("Acceptance criteria") < description.index("Override:")
     assert "Override:" not in rows[2][1], "an epic without overrides is unchanged"
 

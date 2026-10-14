@@ -12,12 +12,12 @@ sources: ["session 2026-10-21 Shape", "session 2026-11-18 Grill"]
 
 Nine epics deliver Unified Booking. Each one names its owning team. The solution lead wrote every epic down to its acceptance criteria; the teams write the stories after their own tech design sessions.
 
-Booking's own epics come first because every channel cutover needs a working Booking API and ledger writes. The channels then move in the order the rollout concern sets: website in February 2027, call centre in March 2027, kiosks with the March 2027 image. Pricing closes the gateway to other callers last, once no front end calls it directly.
+Booking's own epics come first because every channel cutover needs a working Booking API and ledger writes. The channels then move in the order the rollout concern sets: website in February 2027, call center in March 2027, kiosks with the March 2027 image. Pricing closes the gateway to other callers last, once no front end calls it directly.
 
 - [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]] Booking holds and confirms crossings
 - [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]] Booking writes bookings to the ledger through the existing message queue (MQ).
 - [[EPC-033-website-to-booking|Website moves to Booking]] Website moves to Booking
-- [[EPC-034-call-centre-to-booking|Call centre moves to Booking]] Call centre moves to Booking
+- [[EPC-034-call-center-to-booking|Call center moves to Booking]] Call center moves to Booking
 - [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]] Kiosks move to Booking in the March image
 - [[EPC-036-amend-cancel-online|Amend and cancel online]] Amend and cancel online
 - [[EPC-037-events-and-notifications|Booking events and customer notifications]] Booking events and customer notifications
@@ -40,7 +40,7 @@ flowchart LR
   E039 --> E033[EPC-033 Website, Feb 2027]
   E031 --> E033
   E033 --> E036[EPC-036 Amend and cancel online]
-  E036 --> E034[EPC-034 Call centre, Mar 2027]
+  E036 --> E034[EPC-034 Call center, Mar 2027]
   E031 --> E035[EPC-035 Kiosks, March image]
   E031 --> E037[EPC-037 Events and notifications]
   E033 --> E038[EPC-038 Pricing serves Booking]

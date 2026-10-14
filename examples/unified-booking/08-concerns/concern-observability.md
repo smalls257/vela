@@ -28,7 +28,7 @@ The dashboards track per-channel request and error rate, booking state transitio
 | [[pricing-building-blocks\|Pricing]] | unchanged | Existing service metrics |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | n/a | Black box; latency is measured at the Ledger adapter |
 | [[website-building-blocks\|Website]] | addressed | Creates and passes the trace ID |
-| [[call-centre-building-blocks\|Call centre]] | addressed | Creates and passes the trace ID |
+| [[call-center-building-blocks\|Call center]] | addressed | Creates and passes the trace ID |
 | [[kiosks-building-blocks\|Kiosks]] | addressed | Creates and passes the trace ID from the March 2027 image |
 | [[notifications-building-blocks\|Notifications]] | unchanged | Existing sender metrics |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | Existing service metrics |

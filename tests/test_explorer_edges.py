@@ -1,5 +1,5 @@
 """The two side columns' room: one EdgeSize (panelsize.js) serves the right-hand panel and the left-hand sections bar,
-so both hide, drag and remember the same way. The browser checks the behaviour (the selftest's panel and sections bar
+so both hide, drag and remember the same way. The browser checks the behavior (the selftest's panel and sections bar
 lines); this checks the page carries it, and that the sidebar's old copy of the hide logic is gone from nav.js."""
 from conftest import REPO
 from test_explorer import booking  # noqa: F401  (a fixture)

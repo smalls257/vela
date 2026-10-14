@@ -5,12 +5,12 @@ title: FERRYMASTER runtime
 initiative: INI-002
 arc42: "§6"
 state: fact
-owner: "@harbourline/mainframe-team"
+owner: "@harborline/mainframe-team"
 authored: authored
 sources: ["UNK-001 ledger latency measurement 2026-09-02", SRC-04]
 ---
 
-[[README|Harbourline]] / [[06-flows|06 Flows]] / [[ferrymaster-building-blocks|FERRYMASTER]] / Runtime
+[[README|Harborline]] / [[06-flows|06 Flows]] / [[ferrymaster-building-blocks|FERRYMASTER]] / Runtime
 
 # FERRYMASTER runtime
 

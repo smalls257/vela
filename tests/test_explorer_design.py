@@ -75,8 +75,8 @@ def test_frontmatter_and_vault_link(booking):
     assert [d["id"] for d in fm["deferred"]] == ["D-001"]
     assert fm["last_session"].startswith("2026-11-24T16:40")
     assert booking["vault"] == {"mode": "vault", "source": "inferred", "app": "APP-booking",
-                                "vault_path": "../harbourline-vault",
-                                "building_blocks": "../harbourline-vault/05-building-blocks/booking-building-blocks.md",
+                                "vault_path": "../harborline-vault",
+                                "building_blocks": "../harborline-vault/05-building-blocks/booking-building-blocks.md",
                                 "commits": ["7d41e0c"]}
     assert booking["title"] == "Booking"
 
@@ -212,7 +212,7 @@ def test_a_doc_in_the_proposed_format_is_read_as_recorded(tmp_path, demo_vault):
     doc = doc.replace("status: complete\n", "status: complete-with-gaps\ngaps:\n  - id: G-001\n    what: rotation\n"
                       "    acknowledged_by: x\n    why: y\n    revisit: z\n    oq: OQ-001\n")
     doc = doc.replace("---\n\n# Tech", "vault:\n  app: APP-pricing\n  initiative: INI-002\n  commit: 7d41e0c\n"
-                      "  origin: git@example.invalid:harbourline/vault.git\n---\n\n# Tech")
+                      "  origin: git@example.invalid:harborline/vault.git\n---\n\n# Tech")
     doc = doc.replace("- Exposes: CON-003 at /v2/quotes", "- Exposes: CON-003 at /v2/quotes\n- Container: Quote service")
     doc += ("\n## Trace\n| Target | Component |\n|--------|-----------|\n| CON-003 | Quote API |\n"
             "| EPC-038.AC4 | Operations |\n\n## Open questions\n\n### OQ-001: Key rotation?\n"

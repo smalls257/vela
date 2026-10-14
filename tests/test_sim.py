@@ -264,7 +264,7 @@ def test_a_broken_persona_is_refused_with_every_problem_named():
     assert any("'wrong' must be a non-empty list" in p for p in problems)
 
 
-# Character names and lines a reader would recognise from the published books. None may appear.
+# Character names and lines a reader would recognize from the published books. None may appear.
 PUBLISHED = ["grinch", "lorax", "sneetch", "horton", "yertle", "zax", "truffula", "thneed", "sam-i-am",
              "thing one", "thing two", "whoville", "cat in the hat", "green eggs", "one fish", "places you'll go",
              "i speak for the trees", "bar-ba-loot", "who-hash", "oobleck", "fox in socks", "lifted lorax"]
@@ -557,7 +557,7 @@ def test_a_script_with_bad_news_or_a_missing_start_is_refused():
     persona = {"opening": "x", "topics": {}}
     session = [{"mode": "dump", "cap": 1, "planner": "/planner:dump", "baseline": "go"}]
     assert sim.script_problems({"sessions": session, "news": {"knows": [{"fact": "no id"}]}}, persona)
-    assert sim.script_problems({"sessions": session, "news": {"rumours": []}}, persona)
+    assert sim.script_problems({"sessions": session, "news": {"rumors": []}}, persona)
     assert sim.script_problems({"sessions": session, "start": "no-such-snapshot"}, persona)
 
 
@@ -722,7 +722,7 @@ def test_news_dropped_into_the_inbox_reaches_the_lead_before_the_next_session(tm
     arm.arrive_live(13, "discover", inbox)
     assert any(k["id"] == "K90" for k in arm.persona["knows"])
     assert (inbox / "applied" / "01-counsel.yaml").is_file() and not (inbox / "01-counsel.yaml").exists()
-    (inbox / "02-bad.yaml").write_text("rumours: []\n", encoding="utf-8")
+    (inbox / "02-bad.yaml").write_text("rumors: []\n", encoding="utf-8")
     with pytest.raises(sim.ToolFailure):
         arm.arrive_live(14, "close", inbox)
     assert (inbox / "02-bad.yaml").exists()

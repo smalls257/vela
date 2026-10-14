@@ -343,7 +343,7 @@ def test_the_holdout_is_blind_without_the_flag(tmp_path):
 
 
 def test_blind_on_coastal_hides_its_items_and_open_output_shows_them(tmp_path):
-    text = "1. Halyard CRM in Kestrel Bay (SRC-01)\n2. Signal CRM in Dunmere, so the two centres use a separate CRM each?"
+    text = "1. Halyard CRM in Kestrel Bay (SRC-01)\n2. Signal CRM in Dunmere, so the two centers use a separate CRM each?"
     code, out, err, _ = run_probe(tmp_path, "discover-implications", "coastal-merger", "--blind", env=reply(tmp_path, text))
     assert code == 1 and leaks(out + err, persona("coastal-merger"), tmp_path) == 0
     assert "cross-source-mismatch: 1 of 4 flagged, 0 listed, 3 never" in out

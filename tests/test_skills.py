@@ -268,7 +268,7 @@ def test_ask_fix_round_bash_read_only_and_every_claim_sourced():
     for banned in ("`tee`", "`sed -i`", "`git commit`", "`git checkout`", "`git log --output`", "`planner render`"):
         assert banned in ask
     assert "writes a file or changes git state" in ask
-    assert "Every claim rests on a page in the `Sources:` list or is labelled `Not from the vault:`. There is no third choice." in ask
+    assert "Every claim rests on a page in the `Sources:` list or is labeled `Not from the vault:`. There is no third choice." in ask
     assert "Name each thing in the sentence by its plain name, not its ID." in ask  # the lead reads names; IDs sit in Sources
     assert "Assert nothing you did not open and read. A Grep snippet alone does not count." in ask
     assert "Search and Read `sessions/` only if the question asks about a session or what was said." in ask

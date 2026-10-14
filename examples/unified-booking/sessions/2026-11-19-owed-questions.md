@@ -5,7 +5,7 @@ title: "Discover: owed questions"
 date: 2026-11-19
 modes: [discover]
 status: closed
-summary: Walked the questions catalogue v1 owes INI-002 and recorded where each one stands in the question ledger.
+summary: Walked the questions catalog v1 owes INI-002 and recorded where each one stands in the question ledger.
 ---
 
 # 2026-11-19 Discover: owed questions

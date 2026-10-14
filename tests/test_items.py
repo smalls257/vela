@@ -175,7 +175,7 @@ def test_goal_row_state(mini):
 
 
 def test_source_row_kind(mini):
-    edit(mini / "sources.md", "| exists |", "| rumour |")
+    edit(mini / "sources.md", "| exists |", "| rumor |")
     _, out = check(mini)
     assert codes(out) == [("E306", "sources.md")]
 

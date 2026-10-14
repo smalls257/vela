@@ -26,9 +26,9 @@ Lets a customer turn a chosen crossing into a confirmed booking that every sales
 | Application | Today | After |
 |---|---|---|
 | [[website-building-blocks\|Public website]] | FM screen adapter into FERRYMASTER | Booking API client |
-| [[call-centre-building-blocks\|Call centre desktop]] | terminal adapter into FERRYMASTER | Booking API client |
+| [[call-center-building-blocks\|Call center desktop]] | terminal adapter into FERRYMASTER | Booking API client |
 | [[kiosks-building-blocks\|Port kiosks]] | FM adapter into FERRYMASTER | Booking API v1 client (March 2027 image) |
-| [[booking-building-blocks\|Booking]] | did not exist | decides held, confirmed, amended, cancelled |
+| [[booking-building-blocks\|Booking]] | did not exist | decides held, confirmed, amended, canceled |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | ledger of record | ledger of record, written only by Booking |
 
 ## Initiatives that touch this
@@ -43,11 +43,11 @@ Lets a customer turn a chosen crossing into a confirmed booking that every sales
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=63e70d5e: do not edit, run planner render -->
+<!-- generated:delivered-by sha=cb6c5c25: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harbourline/booking-team | decided |
-| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harbourline/digital-team | decided |
-| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
-| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harbourline/port-systems | decided |
+| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harborline/booking-team | decided |
+| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harborline/digital-team | decided |
+| [[EPC-034-call-center-to-booking\|EPC-034 Call center moves to Booking]] | @harborline/contact-center-systems | decided |
+| [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] | @harborline/port-systems | decided |
 <!-- /generated:delivered-by -->

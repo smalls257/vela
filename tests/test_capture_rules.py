@@ -95,9 +95,9 @@ def test_a_small_initiative_is_not_asked_for_domains(tmp_path):
 
 def test_domains_that_differ_only_by_case_or_a_trailing_s_warn(tmp_path):
     vault = copy(tmp_path)
-    set_domains(vault, {"website": "Channels", "kiosks": "Channels", "call-centre": "channel"})
+    set_domains(vault, {"website": "Channels", "kiosks": "Channels", "call-center": "channel"})
     out = check(vault)
-    assert "W353" in out and "call-centre" in out, out
+    assert "W353" in out and "call-center" in out, out
 
 
 def test_a_release_target_must_be_a_date(tmp_path):

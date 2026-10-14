@@ -13,7 +13,7 @@ sources: [2026-10-12-first-release-boundary]
 
 # Read calendar and Teams transcripts
 
-The business can have the Desktop agent read a person's own calendar entries and any Teams transcripts that already exist, on that person's laptop. It reads no mail and no documents in the first release. A transcript exists only where the organiser turned it on and needs tenant admin approval, so for most meetings the agent has the calendar entry and nothing more, and the note says it was written from the calendar entry only. Whether transcripts may be read at all still waits on legal counsel and the data protection officer.
+The business can have the Desktop agent read a person's own calendar entries and any Teams transcripts that already exist, on that person's laptop. It reads no mail and no documents in the first release. A transcript exists only where the organizer turned it on and needs tenant admin approval, so for most meetings the agent has the calendar entry and nothing more, and the note says it was written from the calendar entry only. Whether transcripts may be read at all still waits on legal counsel and the data protection officer.
 
 ## Functional requirements
 
@@ -24,7 +24,7 @@ Where a meeting has a Teams transcript that Heron is allowed to read, Heron read
 - **State:** assumption
 - **Source:** [[2026-10-12-heron-capability-requirements#^c03]]
 
-- Heron reads a transcript only if the organiser turned transcripts on and the tenant administrators have approved reading them.
+- Heron reads a transcript only if the organizer turned transcripts on and the tenant administrators have approved reading them.
   - Trace: CST-008, UNK-059
 - Heron reads a transcript only for a person who was in that meeting and has switched Heron on, and stops reading once they withdraw.
 - A meeting with no readable transcript gives no error. Heron works from the calendar entry.

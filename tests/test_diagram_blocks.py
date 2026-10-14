@@ -92,7 +92,7 @@ def test_system_context_is_the_after_view_and_lists_retired_apps():
     assert text.endswith("**Retired, not drawn:** [[old-building-blocks|Old]]")
 
 
-def test_app_context_draws_only_direct_neighbours():
+def test_app_context_draws_only_direct_neighbors():
     pages = dict(SHOP)
     pages["05-building-blocks/far-building-blocks.md"] = app_page("far", "changed", contract("CON-004", ["till"]))
     vault = vault_of(pages)
@@ -163,7 +163,7 @@ def test_labels_cannot_break_out_of_the_diagram():
 
 def test_safe_label_falls_back_when_nothing_is_left():
     assert diagrams.safe_label('"[]"', "APP-x") == "APP-x"
-    assert diagrams.safe_label("  Call   centre ", "x") == "Call centre"
+    assert diagrams.safe_label("  Call   center ", "x") == "Call center"
 
 
 def test_malformed_change_and_title_do_not_crash():

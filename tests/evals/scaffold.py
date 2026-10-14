@@ -33,7 +33,7 @@ summary: In progress.
 - [unknown] (solution lead) We don't know whether the mainframe team has any capacity in Q1. ^c02
 - [idea] (claude) What if every channel called one booking service instead of scraping screens? ^c03
 - [wild] (claude) What if the kiosks stopped selling and only printed tickets? ^c04
-- [worry] (Head of Contact Centre) Agents fix failed bookings by hand every morning, and nobody counts them. ^c05
+- [worry] (Head of Contact Center) Agents fix failed bookings by hand every morning, and nobody counts them. ^c05
 - [idea] (solution lead) The website could go first; it has the most traffic and the newest code. ^c06
 - [unknown] (claude) We don't know whether the mainframe team can host a booking service. ^c07
 
@@ -51,17 +51,17 @@ Owner: mainframe team lead. Written 2026-06-02.
 
 FERRYMASTER accepts four booking transactions over MQ today: BKHOLD, BKCONF, BKAMND and BKCANC. The nightly finance job already sends BKCONF and reads the replies. Each transaction answers within 3 seconds at the 95th percentile on the production region. The test region is refreshed once a year, in January.
 """,
-    "programme-deck-2026.md": """# Transformation programme: 2026 roadmap
+    "program-deck-2026.md": """# Transformation program: 2026 roadmap
 
-Slide 4. Every new application publishes its events to the Harbourline event bus.
+Slide 4. Every new application publishes its events to the Harborline event bus.
 
 Slide 7. The event bus will be ready in Q4. Teams can plan to publish from October.
 
 Slide 9. Payment stays with Tidepay until the contract ends in 2028.
 """,
-    "call-centre-fix-queue.md": """# Call centre: the morning fix queue
+    "call-center-fix-queue.md": """# Call center: the morning fix queue
 
-Owner: Head of Contact Centre. Written 2026-08-20.
+Owner: Head of Contact Center. Written 2026-08-20.
 
 Each morning two agents work through bookings the website took payment for but never confirmed. In August that was between 30 and 50 bookings a day. Agents re-enter each one on the mainframe screen and email the customer.
 """,

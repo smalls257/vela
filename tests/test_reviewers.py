@@ -244,9 +244,9 @@ def test_close_writes_a_ledger_row_for_every_copy_taken_and_every_finding():
     assert "<!-- generated:undisposed-questions sha=00000000: do not edit, run planner render -->" in close
 
 
-def test_close_proposes_catalogue_entries_and_never_edits_the_catalogue():
+def test_close_proposes_catalog_entries_and_never_edits_the_catalog():
     close = skill_text("close")
-    assert "### Gaps the catalogue missed" in close
+    assert "### Gaps the catalog missed" in close
     assert "Never ask the lead whether a gap turned up late" in close  # S25: the answer was no, 11 times in 11
     assert "Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`" in close
     assert "planner questions --stats" in close and "Pruning is the maintainer's call." in close
@@ -254,7 +254,7 @@ def test_close_proposes_catalogue_entries_and_never_edits_the_catalogue():
 
 def test_close_reports_questions_and_reviews_in_the_pr_body():
     close = skill_text("close")
-    for label in ("**Questions:**", "**Reviews:**", "**Catalogue proposals:**"):
+    for label in ("**Questions:**", "**Reviews:**", "**Catalog proposals:**"):
         assert label in close
     assert "Never write that the questions are complete." in close
     assert "planner check --gate shape" in close
@@ -352,7 +352,7 @@ def test_the_ledger_grammar_close_describes_passes_check(tmp_path):
         "| Q-DAT-04@SV-02 | answered | item: [[03-context-and-scope#SV-02 Travel credit\\|SV-02]]; "
         "source: \"keeps each credit against the booking reference\" in [[03-context-and-scope]]; "
         "answer: Booking holds the credit against its booking reference | @hl-solution-lead | 2026-11-20 |",
-        "| Q-FIN-05@SV-02 | assumed | belief: credit expires 12 months after the cancelled crossing; "
+        "| Q-FIN-05@SV-02 | assumed | belief: credit expires 12 months after the canceled crossing; "
         "load-bearing: yes; signpost: a customer asking to use credit after a year | @hl-solution-lead | 2026-11-20 |",
         "| Q-FIN-06@SV-02 | not-applicable | reason: travel credit never converts into another scheme "
         "| @hl-solution-lead | 2026-11-20 |",
@@ -382,7 +382,7 @@ summary: Typed travel credit as stored value and recorded where its owed questio
 
 ## Captures
 
-- [thought] (solution lead) A cancelled crossing can be kept as travel credit, held by Booking. type at close: SV → keep: [[03-context-and-scope#SV-02 Travel credit|SV-02]] (subject) ^c01
+- [thought] (solution lead) A canceled crossing can be kept as travel credit, held by Booking. type at close: SV → keep: [[03-context-and-scope#SV-02 Travel credit|SV-02]] (subject) ^c01
 - [thought] (solution lead) Q-FIN-05@SV-02: we believe credit expires after 12 months, and the plan rests on it → keep: [[11-unknowns-and-risks#Question ledger|Q-FIN-05@SV-02]] (assumed) ^c02
 - [thought] (solution lead) Q-FIN-06@SV-02: credit never converts into another scheme → keep: [[11-unknowns-and-risks#Question ledger|Q-FIN-06@SV-02]] (not-applicable) ^c03
 - [unknown] (solution lead) Q-FIN-03@SV-02: nobody here knows who carries the credit → keep: [[11-unknowns-and-risks#UNK-009 Who carries travel credit|UNK-009]] (open) ^c04
@@ -590,7 +590,7 @@ title: "Dump: travel credit"
 date: 2026-11-20
 modes: [dump]
 status: open
-summary: Travel credit for cancelled crossings.
+summary: Travel credit for canceled crossings.
 ---
 
 # 2026-11-20 Dump: travel credit
@@ -622,7 +622,7 @@ summary: Options for when travel credit expires.
 
 ## Captures
 
-- [thought] (claude) Option A: credit expires 12 months after the cancelled crossing, and Booking removes it then. ^c01
+- [thought] (claude) Option A: credit expires 12 months after the canceled crossing, and Booking removes it then. ^c01
 - [thought] (claude) Option B: credit never expires, and finance carries it until it is used. ^c02
 - [thought] (solution lead) Neither option fits until we know who carries the credit, so both are rejected for now. ^c03
 - [thought] (solution lead) F1.1: we believe credit lasts 12 months, and the plan rests on it ^c04
@@ -639,7 +639,7 @@ summary: Options for when travel credit expires.
 
 | Finding | Area | Severity | Copy | Question | Quote |
 |---|---|---|---|---|---|
-| F1.1 | FIN | normal | Q-FIN-05@SV-02 | What happens to the credit at expiry? | "credit expires 12 months after the cancelled crossing" in [[2026-11-20-credit-expiry]] |
+| F1.1 | FIN | normal | Q-FIN-05@SV-02 | What happens to the credit at expiry? | "credit expires 12 months after the canceled crossing" in [[2026-11-20-credit-expiry]] |
 | F1.2 | FIN | normal | Q-FIN-06@SV-02 | Who sets the rate if credit converts? | "finance carries it until it is used" in [[2026-11-20-credit-expiry]] |
 | F1.3 | FIN | high | new | Does a refund to card cancel the credit, and who records it? | "keep the fare as travel credit" in [[2026-11-20-credit-dump]] |
 
@@ -662,7 +662,7 @@ DUMP_SAID = {
 }
 
 SHAPE_SAID = {
-    "c04": {"state": "assumed", "belief": "credit lasts 12 months after the cancelled crossing",
+    "c04": {"state": "assumed", "belief": "credit lasts 12 months after the canceled crossing",
             "load_bearing": "yes", "signpost": "a customer asking to use credit after a year"},
     "c05": {"state": "answered", "item": "[[03-context-and-scope#SV-02 Travel credit\\|SV-02]]",
             "about": "travel credit", "answer": "Booking is the one record of each customer's credit balance"},

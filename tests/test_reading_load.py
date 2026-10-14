@@ -140,8 +140,8 @@ def test_a_long_page_with_no_summary_warns_and_a_summary_ends_it(mini):
     stripped = original.replace(title, title + "\n## Notes\n\n" + WALL, 1)
     path.write_text(stripped, encoding="utf-8")
     assert reading_codes(mini).count("W363") == 1
-    summarised = stripped.replace(title, title + "\nThis page lists what the till reads and what the person keeps. Still open: the receipt format.\n", 1)
-    path.write_text(summarised, encoding="utf-8")
+    summarized = stripped.replace(title, title + "\nThis page lists what the till reads and what the person keeps. Still open: the receipt format.\n", 1)
+    path.write_text(summarized, encoding="utf-8")
     assert "W363" not in reading_codes(mini)
 
 

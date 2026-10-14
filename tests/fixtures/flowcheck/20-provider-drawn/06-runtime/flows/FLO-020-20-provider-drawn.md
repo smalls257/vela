@@ -1,11 +1,11 @@
 ---
 id: FLO-020
 type: flow
-title: A traveller holds a seat
+title: A traveler holds a seat
 state: assumption
 ---
 
-# A traveller holds a seat
+# A traveler holds a seat
 
 ```mermaid
 sequenceDiagram

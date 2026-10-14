@@ -9,7 +9,7 @@ sources: [2026-09-16-testing-and-amend]
 
 # Customers amend and cancel on the website
 
-Customers change or cancel their own booking online instead of phoning, which is what the goal of 60% of amendments online measures. The amend and cancel operations are ready before the call centre cutover; the website pages go live once the website's 4-week switch window closes. No Grill has planned it yet.
+Customers change or cancel their own booking online instead of phoning, which is what the goal of 60% of amendments online measures. The amend and cancel operations are ready before the call center cutover; the website pages go live once the website's 4-week switch window closes. No Grill has planned it yet.
 
 - **Flows:** [[FLO-002-amend-or-cancel|FLO-002]]
 - **After:** SLC-001

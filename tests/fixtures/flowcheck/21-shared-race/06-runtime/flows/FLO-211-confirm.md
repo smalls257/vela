@@ -1,11 +1,11 @@
 ---
 id: FLO-211
 type: flow
-title: A traveller confirms
+title: A traveler confirms
 state: assumption
 ---
 
-# A traveller confirms
+# A traveler confirms
 
 ```mermaid
 sequenceDiagram

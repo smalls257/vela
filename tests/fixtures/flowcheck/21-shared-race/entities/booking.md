@@ -5,7 +5,7 @@ title: Booking
 app: APP-booking
 shared: true
 initial: held
-final: [confirmed, cancelled]
+final: [confirmed, canceled]
 ---
 
 # Booking
@@ -13,4 +13,4 @@ final: [confirmed, cancelled]
 | From | To | Allowed by |
 |---|---|---|
 | held | confirmed | CON-110 confirmed |
-| held | cancelled | CON-111 cancelled |
+| held | canceled | CON-111 canceled |

@@ -18,7 +18,7 @@ FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|
 
 Booking stores two things. The Hold store keeps unpaid holds for 10 minutes. The booking-state cache, keyed by booking reference, holds the last state FERRYMASTER accepted, so channels can read state without a mainframe call. Booking changes that state only after a ledger write succeeds. When the cache and FERRYMASTER disagree, FERRYMASTER wins and the cache is refreshed.
 
-Booking holds no card data and no contact details. The only personal data is the customer ID. Notifications resolves contact details at send time from Customer identity. The channels used to cache FERRYMASTER replies, each in its own way, and that is why the call centre and the kiosks disagreed about confirmations. Those caches go when each channel moves to Booking.
+Booking holds no card data and no contact details. The only personal data is the customer ID. Notifications resolves contact details at send time from Customer identity. The channels used to cache FERRYMASTER replies, each in its own way, and that is why the call center and the kiosks disagreed about confirmations. Those caches go when each channel moves to Booking.
 
 ## Per app
 
@@ -28,7 +28,7 @@ Booking holds no card data and no contact details. The only personal data is the
 | [[pricing-building-blocks\|Pricing]] | unchanged | Fare rules |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | Ledger of record for every booking |
 | [[website-building-blocks\|Website]] | addressed | Nothing. Its FERRYMASTER reply cache is removed with the screen adapter. |
-| [[call-centre-building-blocks\|Call centre]] | addressed | Nothing. Its cache and the manual fix queue are retired. |
+| [[call-center-building-blocks\|Call center]] | addressed | Nothing. Its cache and the manual fix queue are retired. |
 | [[kiosks-building-blocks\|Kiosks]] | addressed | Nothing after cutover. Its cache goes with the old adapter. |
 | [[notifications-building-blocks\|Notifications]] | addressed | Record of messages sent per booking reference and state, used to drop duplicates |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | Sailings and capacity |
