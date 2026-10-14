@@ -139,7 +139,7 @@ class Merge:
         return all(a.ran or a.skipped for a in self.areas) and not self.dropped and not self.ignored
 
     def as_dict(self, version):
-        return {**catalog.version_keys(version), "coverage": self.coverage, "areas": [a.as_dict() for a in self.areas],
+        return {"catalog": version, "coverage": self.coverage, "areas": [a.as_dict() for a in self.areas],
                 "kept": [k.as_dict() for k in self.kept], "duplicates": [d.as_dict() for d in self.duplicates],
                 "dropped": [d.as_dict() for d in self.dropped], "ignored": list(self.ignored)}
 

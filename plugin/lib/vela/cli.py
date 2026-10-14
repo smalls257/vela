@@ -32,8 +32,8 @@ ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOG = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
 LINT_WORDS = pathlib.Path(__file__).resolve().parent.parent.parent / "references" / "lint-words.txt"
 TEMPLATE_LINES = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "template-lines.txt"
-# Lines older templates wrote and the current one no longer does, such as the British "licences" line the cost concern
-# opened with. A vault made from that template still opens with it, so W368 has to keep knowing it was template text.
+# Lines older templates wrote and the current one no longer does, such as the file-name patterns the index pages
+# opened with. A vault made from that template still opens with them, so W368 has to keep knowing they were template text.
 TEMPLATE_LINES_RETIRED = TEMPLATE_LINES.with_name("template-lines-retired.txt")
 
 

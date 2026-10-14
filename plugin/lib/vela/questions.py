@@ -698,7 +698,7 @@ def listing(vault, area=None, open_only=False, subject_id=None):
     opened = [r for r in reviewers if reviewer_open(vault, r)]
     asked = asked_count(vault, kept, reviewers)
     return {
-        **catalog.version_keys(vault.catalog.version),
+        "catalog": vault.catalog.version,
         "coverage": coverage_line(vault, len(kept), undisposed, len(opened), asked),
         "owed": len(kept),
         "undisposed": undisposed,
@@ -763,7 +763,7 @@ def digest(vault, area=None, subject_id=None):
     asked = asked_count(vault, kept, reviewers)
     out.sort(key=lambda g: (g["band"], g["entry"]))
     undisposed = sum(1 for d in kept if d.undisposed)
-    return {**catalog.version_keys(vault.catalog.version), "coverage": coverage_line(vault, len(kept), undisposed, opened, asked),
+    return {"catalog": vault.catalog.version, "coverage": coverage_line(vault, len(kept), undisposed, opened, asked),
             "owed": len(kept), "undisposed": undisposed, "asked": asked, "reviewer_open": opened, "groups": out}
 
 
@@ -783,7 +783,7 @@ def stats(vault, area=None):
         out.append({"entry": entry.id, "area": entry.area, "owed": len(mine),
                     "states": {k: v for k, v in states.items() if v}, "not_applicable": na,
                     "not_applicable_share": round(na / len(mine), 2) if mine else 0.0})
-    return {**catalog.version_keys(vault.catalog.version), "entries": out}
+    return {"catalog": vault.catalog.version, "entries": out}
 
 
 # ------------------------------------------------------------------ the gates
