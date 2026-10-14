@@ -533,6 +533,8 @@ def map_nodes(vault, keys, m, pins_path, seed=None):
         n["col"], n["row"] = found[n["key"]]
     return nodes, {"added": added, "stale": stale, "seededFrom": seeded, "moved": moved,
                    "all": dict(sorted(found.items())),  # sorted: a first build and a rebuild must write the same bytes
+                   # the frame and box the overlap rule measures in, so the page's copy of the rule (layout.js) uses the same numbers
+                   "frame": {**pinning.FRAME, "boxW": pinning.BOX["w"], "boxH": pinning.BOX["h"], "gap": pinning.GAP, "slack": pinning.SLACK},
                    "file": pathlib.Path(pins_path).name if pins_path else ""}
 
 
@@ -766,7 +768,7 @@ def pin_lines(data, pins_path, was_there, root):
     said = []
     if pins["moved"]:
         said.append(f"moved {', '.join(pins['moved'])} to the nearest free cell in {shown(pins_path, root) if pins_path else 'the layout'}: "
-                    "each stood on another box or above the apps, and the map would have drawn them over one another")
+                    "each stood on another box, and the map would have drawn them over one another")
     if not pins["added"]:
         return said
     names = ", ".join(pins["added"])
@@ -850,7 +852,9 @@ def generate(root, out, today, pins_path=None, seed=None, assets_config=None, de
     said = link_sources(data, root, design_args, out.parent, plan_args)
     # Which apps this build newly pinned is a fact about the pins file, not the vault: the page does not read it, and
     # carrying it would make the first build and every later build of one vault differ. The report lines still say it.
-    page = render({**data, "pins": {**data["pins"], "added": []}}, assets, selftest)
+    # A selftest build also carries the layout rule's cases with pins.check_move's answers, for the page to play against its own copy.
+    cases = {"cases": pinning.move_cases()} if selftest else {}
+    page = render({**data, "pins": {**data["pins"], "added": [], **cases}}, assets, selftest)
     out.parent.mkdir(parents=True, exist_ok=True)
     atomic.write_atomic(out, page)
     said += pin_lines(data, pins_path, was_there, root)
