@@ -18,14 +18,26 @@ copy that sits inside some other repo never reads that repo's history.
 
 Every git call has a timeout (vaultgit.run_git) and a failure raises GitUnavailable with git's words; nothing here
 turns a failure into "no session is open".
+
+Task 6b adds what `session start`, `session brief`, `record add` and `whoami` need from git, `gh` and the disk:
+fetching (with the short timeout freshness uses, so a dead network costs seconds), what the switch to main and the
+pull would change, branch and commit by exact path (through `stagegit`), the record's history (so a capture number
+used once is never reused), `gh` through the probe's runner (every call timed and never prompting), and
+`.vela/session.json` and `.vela/handle`, written through `atomic`. Paths are vault-relative everywhere, so a vault in
+a subfolder of its repo compares the same paths git reports.
 """
+import json
 import pathlib
 
 from vela import roles
-from vela.edge.vaultgit import GitUnavailable, git_out, run_git
+from vela.edge import atomic, hostprobe, stagegit
+from vela.edge.vaultgit import FETCH_TIMEOUT, NO_PROMPT, GitUnavailable, git_out, run_git
 
 SWITCH_TIMEOUT = 60  # a checkout of a large vault, with hooks, can take a while
 PATTERNS = ("refs/heads/session/", "refs/remotes/origin/session/")
+STATE_FILE = ".vela/session.json"
+HANDLE_FILE = ".vela/handle"
+GH_TIMEOUT = 20  # a merged-PR listing with comments is a few calls; each still gets its own limit
 
 
 def is_read_copy(root):
@@ -109,3 +121,124 @@ def switch(root, branch, remote_only):
     args = ["switch", "--track", f"origin/{branch}"] if remote_only else ["switch", branch]
     code, out, err = run_git(root, *args, timeout=SWITCH_TIMEOUT)
     return code == 0, "\n".join(x for x in (err, out) if x)
+
+
+def _words(err, out):
+    return "\n".join(x for x in (err, out) if x)
+
+
+def has_origin(root):
+    return run_git(root, "remote", "get-url", "origin")[0] == 0
+
+
+def fetch(root):
+    """(ok, git's words) for `git fetch origin`. A timeout is a failure with its reason, never a hang."""
+    try:
+        code, out, err = run_git(root, "fetch", "--quiet", "origin", timeout=FETCH_TIMEOUT, env=NO_PROMPT)
+    except GitUnavailable as exc:
+        return False, str(exc)
+    return code == 0, _words(err, out)
+
+
+def ref_exists(root, ref):
+    return run_git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")[0] == 0
+
+
+def branch_taken(root, branch):
+    """True when `branch` exists here or on origin (as the last fetch saw it)."""
+    return ref_exists(root, f"refs/heads/{branch}") or ref_exists(root, f"refs/remotes/origin/{branch}")
+
+
+def dirty_paths(root):
+    """Every changed or untracked path, vault-relative. git status names them from the repo's top."""
+    prefix = git_out(root, "rev-parse", "--show-prefix")
+    return [path[len(prefix):] for path in stagegit.changed_paths(root) if path.startswith(prefix)]
+
+
+def incoming_paths(root, target):
+    """The vault-relative paths that differ between HEAD and `target`: what moving to `target` would rewrite."""
+    if not ref_exists(root, "HEAD"):
+        return []
+    out = git_out(root, "diff", "--name-only", "--relative", "-z", "HEAD", target)
+    return [path for path in out.split("\0") if path]
+
+
+def fast_forward(root, upstream):
+    """(ok, git's words) for `git merge --ff-only <upstream>`: the pull, after the fetch already ran."""
+    code, out, err = run_git(root, "merge", "--ff-only", "--quiet", upstream, timeout=SWITCH_TIMEOUT)
+    return code == 0, _words(err, out)
+
+
+def create_branch(root, branch):
+    code, out, err = run_git(root, "switch", "-c", branch, timeout=SWITCH_TIMEOUT)
+    return code == 0, _words(err, out)
+
+
+def commit(root, message, paths):
+    """Stage exactly `paths` and commit them with `message`; the short hash. Raises GitUnavailable with git's words."""
+    stagegit.stage(root, paths)
+    return stagegit.commit(root, message, paths)
+
+
+def history_text(root, path):
+    """Every version of `path` git has, as one patch text: the numbers a record ever held."""
+    return git_out(root, "log", "-p", "--format=", "--", path, timeout=60)
+
+
+def gh(root, *args):
+    """One `gh` call through the probe's runner: timed, never prompting, a missing gh named. A `hostprobe.Ran`."""
+    return hostprobe.run(["gh", *args], root, GH_TIMEOUT)
+
+
+def gh_json(root, *args):
+    """(value, None) for a gh call that printed JSON, or (None, why) in gh's own words."""
+    ran = gh(root, *args)
+    if ran.how == "missing":
+        return None, "gh isn't installed"
+    if ran.how == "timeout":
+        return None, f"gh gave no answer within {GH_TIMEOUT} seconds"
+    if ran.how != "ok":
+        return None, ran.first_line() or f"gh {' '.join(args[:2])} failed"
+    try:
+        return json.loads(ran.out or "null"), None
+    except ValueError:
+        return None, f"gh printed something that isn't JSON: {ran.out.strip()[:200]}"
+
+
+def read_json(root, rel):
+    """The file's JSON object, or None when it is absent. One that can't be read or parsed raises ValueError: a
+    broken state file is said, never read as "no session"."""
+    path = pathlib.Path(root) / rel
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise ValueError(f"{rel} can't be read: {exc}") from exc
+    try:
+        data = json.loads(text)
+    except ValueError as exc:
+        raise ValueError(f"{rel} isn't JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{rel} isn't a JSON object")
+    return data
+
+
+def write_text(root, rel, text):
+    """Write a vault-relative file whole (atomic), making its folder. Raises OSError (atomic.WriteFailed)."""
+    path = pathlib.Path(root) / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic.write_atomic(path, text)
+    return rel
+
+
+def write_state(root, state):
+    return write_text(root, STATE_FILE, json.dumps(state, indent=2) + "\n")
+
+
+def read_handle(root):
+    """The first line of `.vela/handle`, or ""."""
+    try:
+        return (pathlib.Path(root) / HANDLE_FILE).read_text(encoding="utf-8").split("\n", 1)[0].strip()
+    except FileNotFoundError:
+        return ""
