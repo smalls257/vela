@@ -23,8 +23,8 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, diagramcheck, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, tickets, untrusted, viewer, voicecheck, voicescore
-from planner.edge import atomic, copies, mermaidjs, replays, reviewgit, teamdocs, vaultgit
+from planner import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, tickets, untrusted, viewer, voicecheck, voicescore
+from planner.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, teamdocs, vaultgit
 from planner.edge import proposals as proposal_files
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
@@ -926,6 +926,22 @@ def cmd_proposals_answer(args, out):
         raise ToolError(str(exc)) from exc
     print(f"planner proposals answer: wrote {target} ({len(refs)} group(s) answered). Send it to {note.author if note and note.author else 'the reader'}. Merging {branch} is your normal git step; nothing was pushed.", file=out)
     return 0
+
+
+def cmd_doctor(args, out):
+    """Whether this machine has what planner needs, one line per item. The folder need not be a vault."""
+    root = pathlib.Path(args.vault).resolve()
+    if not (root / ".planner.yaml").is_file():
+        vault = doctor.Vault(str(root), problem="there is no .planner.yaml here.")
+    else:
+        try:
+            config = load_config(root)
+            vault = doctor.Vault(str(root), str(config["initiative"]), str(config["title"]))
+        except ToolError as exc:
+            vault = doctor.Vault(str(root), problem=str(exc))
+    lines = doctor.report(machine.survey(), vault, plugin_version())
+    print(doctor.render(lines), file=out)
+    return doctor.exit_code(lines)
 
 
 def cmd_where(args, out):
@@ -2465,6 +2481,9 @@ def build_parser():
     ans.add_argument("--decisions", required=True, help="JSON list of {group, outcome: accepted|rejected|edited, reason, commit}, from a file or - for standard input")
     ans.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
     ans.set_defaults(func=cmd_proposals_answer)
+    doc = sub.add_parser("doctor", help="whether this machine has what planner needs; each missing piece says what it adds and how to get it")
+    doc.add_argument("--vault", default=".", help="folder to check as a vault too (default: current directory)")
+    doc.set_defaults(func=cmd_doctor)
     where = sub.add_parser("where", help="which planner program a skill would run, and why other places were passed over")
     where.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
     where.add_argument("--plugin-root", default="", help="the value ${CLAUDE_PLUGIN_ROOT} had when the skill loaded")

@@ -12,3 +12,5 @@ prototypes/explorer/out/
 prototypes/gallery/assets/assets.bundle.js
 # rule fixtures are deliberately bad code; `semgrep --test .semgrep` runs them
 .semgrep/
+# vendored PyYAML 6.0.3, kept byte-for-byte as released; tests still run through it, lint does not
+plugin/lib/yaml/
