@@ -13,6 +13,7 @@ authored: mixed
 # Shop
 
 - **Decision:** [[2026-01-10-shop-api]]
+- **Why:** The till needs one place to ask for a sale.
 
 Shop sells products to the till.
 
@@ -33,6 +34,12 @@ flowchart LR
 - **Tested by:** consumer tests in the till pipeline.
 - **State:** decided
 - **Decision:** [[2026-01-10-shop-api]]
+- **Why:** The till needs one place to ask for a sale.
+
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| sold | | 200 | the receipt | | |
+| basket_refused | | 422 | the basket is empty or holds an unknown product | | |
 
 ## Contracts this app consumes
 

@@ -13,6 +13,7 @@ sources: ["2026-01-10-shop-api"]
 # Mini shop
 
 - **Decision:** [[2026-01-10-shop-api]]
+- **Why:** The till needs one place to ask for a sale.
 
 ## Goals
 

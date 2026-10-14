@@ -103,10 +103,11 @@ flowchart LR
   E --> F["/planner:boundary<br/>cut into apps"]
   F --> G["/planner:allocate<br/>requirements to apps"]
   G --> H["/planner:releases<br/>what ships when"]
-  H --> I["/planner:epics<br/>work per team"]
-  I --> J["handoff<br/>(in a grill)"]
+  H --> J["handoff<br/>(in a grill)"]
+  J --> I["/planner:epics<br/>work per team"]
   J --> K["/planner:design<br/>the team's design"]
   K --> L["/planner:breakdown<br/>stories and tasks"]
+  I --> L
   L --> M["/planner:tickets<br/>checked, ready to import"]
 ```
 
@@ -123,7 +124,7 @@ Only a grill sets an item to `decided`. Every other session writes `inkling`, `a
 
 The last three sessions are the team's. Once an app is handed off, its senior runs `/planner:design` and then `/planner:breakdown`, and `/planner:tickets` turns the build plan into tickets. `planner next` shows the team's next step as its own line, beside yours.
 
-Handoff happens inside a grill on an app that is ready, and it records the senior's name and date on the app page. Close then writes the handoff manifest, and `planner handoff verify APP-x` later tells you if anything the senior accepted has changed. A senior who disagrees later uses `/planner:challenge`, and you answer on the same branch.
+Epics come after handoff: the senior takes the boundary first, and you write the app's epics against it while they design. Handoff happens inside a grill on an app that is ready, and before it Claude reads back what the senior would accept without a yes: every draft or assumed item in the app's slice, every contract with no case table, and every provider the app calls that nobody has designed. Handing over anyway is your call. It records the senior's name and date on the app page. Close then writes the handoff manifest, and `planner handoff verify APP-x` later tells you if anything the senior accepted has changed. A senior who disagrees later uses `/planner:challenge`, and you answer on the same branch.
 
 ### Tracer first
 

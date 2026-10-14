@@ -54,7 +54,7 @@ A page's key is its `id` if the table lists it, and its `type` otherwise.
 These keep the exact words they were written in. Do not restyle them:
 
 - fact bullets, such as `**Owner:**` or `**Tested by:**`;
-- tables;
+- tables, and a contract's case table above all: its rows are read by the checker, so a row's words are the lead's, confirmed one by one;
 - acceptance criteria, and the `- Trace:` line under each;
 - `**Decision:**` and `**Dissent:**` lines;
 - generated blocks;

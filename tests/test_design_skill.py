@@ -289,7 +289,8 @@ def test_planner_next_offers_the_design_for_a_handed_off_app_with_none(tmp_path)
     assert "planner next: team side, APP-desktop-agent, breakdown desktop-agent." in out, out  # the team's own next step
     shutil.rmtree(vault / "docs" / "tech-design")
     code, out = run("next", "--vault", str(vault), "--today", "2026-10-12")
-    lines = out.splitlines()
+    # what is not firm at handoff is its own line and an indented list; the lead's step and the team's step are the two others
+    lines = [l for l in out.splitlines() if not l.startswith("  ") and "not firm:" not in l]
     assert code == 0 and len(lines) == 2 and lines[0].startswith("planner next: APP-consent-and-identity, grill"), out
     assert lines[1] == (f"planner next: team side, {APP}, design. {APP} is handed off and has no design doc in "
                         f"docs/tech-design/ yet; its team runs /planner:design --app {APP}."), out

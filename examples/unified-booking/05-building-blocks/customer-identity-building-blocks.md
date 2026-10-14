@@ -52,3 +52,7 @@ Customer identity is a black box on this page. Nothing inside it changes, so its
 - **Tested by:** Booking runs a contract test on its side. The Platform team adds no test, because the API does not change and Booking's test fails first if it does. Booking's test runs on every Booking build, and a failure blocks the Booking release.
 - **State:** fact
 - **Source:** SRC-07
+
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| found | | ok | the customer record | | |

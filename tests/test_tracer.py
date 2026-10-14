@@ -112,6 +112,7 @@ def test_several_flows_union_their_apps_and_contracts(tmp_path):
 
 def test_w347_unions_across_the_tracers_flows(tmp_path):
     out = check(vault_for(tmp_path, ["**Tracer:** [[FLO-902-booking-to-tidepay|FLO-902]], [[FLO-903-booking-only|FLO-903]], pay and quote"]))
+    out = "\n".join(l for l in out.splitlines() if " W390 " not in l)  # the example's decided items carry no Why; not what this tests
     assert "APP-pricing" in out and "APP-website" not in out
 
 

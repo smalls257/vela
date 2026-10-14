@@ -35,6 +35,8 @@ For each item the user named, check all five before it goes on the agenda. Never
 | GATE-4 | No open unknown lists the item in its `**Blocks:**`. Search `11-unknowns-and-risks.md` for open unknowns whose `**Blocks:**` links the item's page or heading. An open unknown that links a page blocks every item on that page, as `planner check` does. | ask the user whether they know the answer now; the unknown's owner and ask-by date, or a research task |
 | GATE-5 | The item's owner is present and says yes in person, or their async answer is quoted in a capture with them as origin, naming the channel and the date. The user deciding on the owner's behalf also passes it, recorded as below. | reschedule, collect an async answer first, or decide on the owner's behalf |
 
+A contract has a further condition: it is not decided without its case table, the rows for every way the provider can answer, an error case among them (`CONVENTIONS.md`, "Fact bullets"). Without one, the contract is not ready: say so in plain words ("Nobody has written down what Stock says back when the item is unknown") and offer to write the table here, one open case at a time with your recommendation, or to go back to Boundary. If the lead decides it anyway, record an override named `"case table"`, as for any gate, and the item goes on the agenda.
+
 If the user names an item that is already `decided`, say so. Offer to reopen it only if the user wants that, and say that reopening records the change of mind in the Changes table.
 
 An item that is not ready is said so in one sentence ("The Summariser can't be decided yet: nobody has said how slow is too slow, and the product owner isn't here"), with the one thing that would make it ready: the mode in the last column of the table, or deciding it anyway. If the lead wants to decide it anyway, do it and record the override under the gate's name (`GATE-n`). Do not list gates. The user may override any gate, as `START.md` says under "The user may override any rule". Never refuse, and never ask twice. An item that fails a gate stays off the agenda until the lead chooses. Before offering the choices for a GATE-4 failure, ask the user whether they know the blocking unknown's answer now, and how, as `MODES.md` says under "Unknowns". If no item passes and the user overrides none, do not start the grill: make no change to any page, say why, and offer Shape or stopping. If the user takes neither, end the session as `MODES.md` says under "Unknowns". Never draft an ask, an email or a chase for the user to send.
@@ -83,6 +85,7 @@ When an item's branch closes, write it at once, before the next question:
 
 - Set its state to `decided`: the page's `state:` field, or the contract's `**State:**` bullet. A Grill on an app page also takes its `## Requirements allocated` rows: read each row back as part of the app's agenda, as `CAP-nnn.FRn@APP-<slug>`, and set each row the user confirms to `decided` in its State cell. The page's `**Decision:**` answers for them, as it does for goal rows.
 - Add `- **Decision:** [[<session id>]]` under the page's `## History`: directly under it for the page, under `#### <ID>` for a contract.
+- Ask the lead why, once, in a sentence of your own that names the item: "Why this one, in your words?" Write the answer word for word as `- **Why:** <the lead's words>` beside the Decision bullet. Do not tidy it, do not supply a reason they did not give, and do not accept your own recommendation as theirs: if they say "as you suggested", ask what in it persuaded them. A reason they decline to give is not written, and the check keeps warning, which is the honest record. If the decision shapes the whole design (the strategy, an app, a flow), also offer a decision record: say it is optional, and on a yes write a stub `09-decisions/ADR-nnnn-<slug>.md` (`planner next-id ADR`) with `state: proposed` and the Why as its Context, which close fills in.
 - For a contract, record where the provider stands as well as each consumer, as a capture: present, async with channel and date, asked in the PR, or "not consulted: <reason>".
 - If anyone disagrees, add `- **Dissent:** <name>, <date>: <reason>`. The item can still be decided.
 - If the user overrode a gate for it, add the `**Override:**` bullet, and `**Decided by:**` when the owner is not the user, as section 2 says.
@@ -94,7 +97,7 @@ A functional requirement is a `### CAP-nnn.FRn <what the capability does>` headi
 
 A release is a `## <name>` section on `04b-releases.md`, with no ID. A Grill decides it by setting that section's `**State:**` to `decided` and adding `- **Decision:** [[<session id>]]` directly under the page's `## History`. Without that Decision, check reports E303 on the release's heading.
 
-Write fact bullets and table cells only. Prose waits for close. Any `- Trace:` line on an item or a criterion is the planner's: leave it exactly as it is.
+Write fact bullets (the Why among them) and table cells only. Prose waits for close. Any `- Trace:` line on an item or a criterion is the planner's: leave it exactly as it is.
 
 ## 5. A new unknown mid-grill
 

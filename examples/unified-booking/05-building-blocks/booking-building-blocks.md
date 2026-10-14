@@ -115,6 +115,15 @@ flowchart LR
 - **Tested by:** each channel runs consumer-driven contract tests in its own pipeline. Booking runs provider verification against all three, for every live version, in its pipeline. Both sides run on every build, and a failure blocks the Booking release.
 - **State:** decided
 - **Decision:** [[2026-08-26-kiosks-and-rollout]]
+- **Auth:** service tokens through the Platform gateway; kiosks use device certificates.
+
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| held | | ok | returns a booking reference, a price and the hold expiry | | |
+| confirming | | ok | the booking is paid and the ledger write is still being retried; get reports confirming | | |
+| refused_ledger_unavailable | | error | refuses the hold with an explicit unavailable error when FERRYMASTER is down before payment | | |
+| refused_dependency_down | | error | refuses the hold and says which dependency failed: Pricing, Vessel schedule or Customer identity | | |
+| refused_hold_store_down | | error | refuses new holds while the hold store is down | | |
 
 ### CON-002 Booking state changed
 
@@ -125,6 +134,11 @@ flowchart LR
 - **Tested by:** schema check and the additive-only rule in Booking's pipeline. Notifications runs a consumer test. Both run on every build, and a failure blocks the Booking release and the Notifications release.
 - **State:** decided
 - **Decision:** [[2026-11-03-events]]
+
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| published | | ok | one event per state change, in order | | |
+| bus_down | | error | the event bus is down: the Event publisher keeps the events and publishes them in order when it returns, so none are lost | | |
 
 ## Contract kept here for an external provider
 
@@ -140,6 +154,10 @@ Tidepay is external and has no page in this vault, so its contract with Booking 
 - **Tested by:** the Tidepay sandbox in Booking's pipeline, on every Booking build. A failure blocks the Booking release. Tidepay tests its own side.
 - **State:** fact
 - **Source:** SRC-05
+
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| payment_result | | ok | the webhook carries the payment reference, the booking reference, the amount and the result | | |
 
 ## Contracts this app consumes
 

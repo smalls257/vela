@@ -114,10 +114,12 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 Every item has a state. `inkling` is a hunch. `assumption` is believed but not checked. `fact` has a source. `decided` came out of a Grill. `unknown` is a question with an owner, an ask-by date and a list of what it blocks.
 
 - **Only a Grill decides,** unless the user overrides it (see Overrides). A `decided` page carries a page-level `- **Decision:** [[<session>]]` bullet, and a `decided` contract or functional requirement carries one under its heading. The linked session's `modes` must include `grill`, or an `**Override:**` on the item names `grill`. Goal rows take their decision from the Goals page's bullet.
+- **A decision keeps its why.** When a Grill sets an item to `decided`, it asks the lead why in one question, and writes the answer in the lead's own words as `- **Why:** <the lead's words>` beside the `**Decision:**` bullet: under the item's heading, or under its `#### <ID>` in `## History`, or directly under `## History` for a page. A decision that shapes the whole design (the strategy, an app, a flow) also gets a decision record stub for close to fill. `planner check` warns W390 on a decided item with no Why; it is a warning, never an error, and a decision record is exempt because it is the reasoning. A page and the rows it decides (goals, allocation, releases) share one page-level Why.
 - **A requirements session cannot decide.** It writes at most `assumption`.
 - **A fact needs a source.** A `fact` page lists `sources`. A `fact` contract or functional requirement carries `- **Source:** SRC-nn`. A goal row at `fact` needs its page to list `sources`.
 - **What counts as a source.** A document describing what exists gives a fact. A document stating intent gives an assumption. A person's first-hand knowledge gives a fact. Claude's general knowledge is never a source.
 - **Sources live in the register.** `sources.md` has one row per document: `ID | Title | Owner | Date | Kind | Location`. `Kind` is `exists`, `intends` or `repo`. A `repo` source is a code repository read at a commit, with Location `<url>@<sha>`. Raw files stay in `.inbox/`; document text is never copied into the vault.
+- **Nothing is left for a Grill in prose.** A matter a session leaves for a Grill, or says is decided later, is an open unknown with an owner and an ask-by date, and the page links it. Close writes the unknown when a capture or a sentence defers; `planner check` warns W389 on page prose that says it is left for a Grill, or decided later, and links no open unknown in the same paragraph. Session records, History and generated blocks are not read, and nor is the unknowns page, where the question lives.
 - **Disputes are unknowns.** When two sources or two people disagree, write an unknown naming both. Do not pick one.
 - **State a value once.** The item that owns a value states it. Every other page links to it.
 
@@ -139,12 +141,43 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Tested by:**` | Required once `decided`. Who tests it from each side. |
 | `**Source:**` | Required when `fact`. |
 | `**Decision:**` | Required when `decided`. |
+| `**Why:**` | Written when `decided`: the lead's own reasons, in their words. See Certainty and sources. |
 | `**Provider:**` | Only for an external provider with no page. The contract then lives on the consumer's page. |
 | `**Dissent:**` | Optional. |
 | `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
 | `**Links:**` | Optional. Where the contract is written down outside the vault, such as its API spec. See Links out of the vault. |
+| `**Auth:**` | Optional, but a stub needs it. How a caller proves who it is, in a few words. |
+| `**Can time out:**` | Optional. `yes` or `no`: whether a caller can be left waiting with no answer. |
+| `**Retries:**` | Optional. How many times a caller tries again: a number, or `none`. |
 | `**Override:**`, `**Decided by:**`, `**Confirmed by:**` | Optional. See Overrides. |
 | `**Pending approval:**` | Optional. A reader's decision awaiting the owner. See Pending approval. |
+
+A contract also carries a **case table** under its fact bullets: one row for every way the provider can answer. It is what a flow check, a stub and a boundary test read, so it replaces prose for checking: the `**Crosses the boundary:**` sentence says what goes across, and the table says what happens, including when it goes wrong. Header, exactly:
+
+`| Case | When | Status | Answer | Emits | Sets |`
+
+- **Case** is a snake_case key, unique within the contract (`in_stock`, `out_of_stock`).
+- **When** is blank, or a condition in a small fixed form: `<field> is <value>`, `<field> is not <value>` or `<field> in [a, b]`, joined by `and`.
+- **Status** is a three-digit code such as `409`, or `ok` or `error` for a contract that is not HTTP. A status of 400 or more, or `error`, is an error case.
+- **Answer** is what the provider says back, in a sentence.
+- **Emits** is blank or event IDs (`EVT-003`) the provider publishes when it answers this way. Each must be a `### EVT-nnn <name>` heading somewhere in the vault.
+- **Sets** is blank or state changes the provider makes, `<entity>: <from>→<to>` or `<entity>: <state>`, separated by `;`. Each entity must be a `### ENT-nnn <name>` heading somewhere in the vault, named by its ID or its name.
+
+A worked example, with the bullets that go beside it:
+
+```
+- **Auth:** service token through the gateway
+- **Can time out:** yes
+- **Retries:** 2
+
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| reserved | stock is available | 201 | the item is held; the reply carries a reservation reference | EVT-004 | order: new→held |
+| out_of_stock | stock is not available | 409 | refused, and the reply says the item is out of stock | | |
+| unknown_item | | 404 | refused, because the item ID is not one the provider knows | | |
+```
+
+Leave a column blank rather than drop it. Timeouts and giving up after the retries are not rows: `**Can time out:**` and `**Retries:**` say them once, and the checker adds those cases itself. A contract that is `decided` has an error case, because a contract that says nothing about failure has not been decided. A grill does not decide a contract without its case table.
 
 Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking a Grill session, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
 
@@ -534,6 +567,12 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W368 | the opening is a line the template wrote | W369 | an abbreviation not spelled out on the page |
 | W370 | an epic criterion has no AC id on its Trace line, or two share one | | |
 | W371 | two or more openings above the first heading, over 150 words together | | |
+| W380 | contract has no case table | W381 | a case table row, or a Can time out or Retries line, cannot be read |
+| W382 | two cases of one contract share a key | W383 | a case emits an event the vault does not name |
+| W384 | a case sets an entity the vault does not name | W385 | decided contract has no error case |
+| W386 | an app at handoff has an item in its slice that is not decided | W387 | an app at handoff calls a provider nobody has designed |
+| W388 | a handoff manifest pins a commit this repository does not have, or cannot be read | W389 | prose leaves a matter for a Grill with no open question linked |
+| W390 | decided item records no Why | | |
 | E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
 | E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
@@ -696,10 +735,15 @@ A cell that starts `no work` but does not follow the waiver form covers nothing,
 - No concern cell for the app is `unexamined`.
 - The runtime page says how the app behaves when something fails.
 - Every open unknown that blocks the app has an owner and an ask-by date.
+- Every contract it provides or consumes has a case table with an error case.
+
+The handoff order is: releases, then handoff in a Grill, then epics for that app (`/planner:epics`) while the senior designs it (`/planner:design`), then the build plan and the tickets. The guide draws the same order.
+
+**What is not firm.** Whatever the list above says, the lead hears what the senior would accept without a yes, in plain words, one line each: every item in the app's slice (the app page, its runtime page, its contracts, the functional requirements it carries with their acceptance criteria, its epics with theirs) still at `inkling`, `assumption` or `draft`; every contract it provides or consumes with no case table; and every provider it calls that the initiative builds and nobody has designed yet. A provider counts as designed once it is handed off, records a `design:` page, or has a decided epic. The Grill reads the list back before the handoff, `planner handoff` prints it and writes it into the manifest under `## Not firm at handoff`, `planner next` prints it for an app at the handoff stage or handed off, and `planner check` warns W386 for each unfirm item and W387 for each undesigned provider (a missing case table is W380 already). Handing over anyway is the `"handoff checklist"` override, as below.
 
 Epics come after handoff, not before it. The senior takes the boundary first; the solution lead then writes and decides the app's epics against it (`/planner:epics`), and `planner check --gate epics --app <APP-id>` says when that app's epics are complete. So neither the epics nor the epics gate is a condition of handing over, and one app's handoff never waits on another app's gaps. If the lead hands an app over with items on the list above unmet, that is an override named `"handoff checklist"`, written as the Overrides section says.
 
-In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the functional requirements its allocation rows carry, the epics whose `apps` lists it, release one's tracer and Not in the tracer bullets as one entry, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`.
+In the PR that sets `handed_off`, run `planner handoff <APP-id>`. It writes `handoffs/<APP-id>.md`: every ID in the app's slice (the app page, its runtime page, the contracts it provides and consumes, the functional requirements its allocation rows carry, the epics whose `apps` lists it, release one's tracer and Not in the tracer bullets as one entry, and the open unknowns that block any of them), each with its state and a hash of its text, and the commit it was written at. The hash leaves out generated blocks, the `last_verified`, `verified_by` and `handed_off` lines, and `**Confirmed by:**` bullets, so rendering or rereading a page, or an owner confirming a decision made on their behalf, changes nothing. The hash also ignores trailing whitespace on a line, but a changed blank line or column padding in a table counts as a change. `planner handoff` writes nothing while `planner check` has errors, and never overwrites a manifest unless given `--replace`. `planner check` warns W388 when a manifest pins a commit this repository does not have.
 
 `planner handoff verify <APP-id>` lists every item changed, added or removed since. A changed tracer is a changed item, so it reaches the senior. It exits 1 when something the senior accepted changed or left the slice, and 0 when the only news is an added item.
 

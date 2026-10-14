@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, flows, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
+from planner import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -388,6 +388,81 @@ def contract_rules(vault, today):
         if state == "decided" and not contract.fact("Tested by"):
             yield _f(page, contract.line, "E318", f"{contract.id} is decided but says nothing about who tests it.",
                      "Add '- **Tested by:** ...' naming the test on each side.")
+
+
+def case_table_rules(vault, today):
+    """Sensor for the contract that says nothing about its failures: a Paper Tiger that is decided and cannot be stubbed."""
+    events, entities = cases.vault_events(vault), {e.lower() for e in cases.vault_entities(vault)}
+    for contract in vault.contracts:
+        page = contract.page
+        for line, message, fix in cases.facts_problems(contract):
+            yield _f(page, line, "W381", message, fix)
+        table = cases.case_table(page, contract)
+        if table is None:
+            yield _f(page, contract.line, "W380", f"{contract.id} has no case table, so nobody can say what it answers when a call goes wrong.",
+                     f"Add a table under the {contract.id} heading: | {' | '.join(cases.HEADER)} |, one row per answer.")
+            continue
+        for problem in table.problems:
+            yield _f(page, problem.line, "W382" if problem.code == "duplicate" else "W381", problem.message, problem.fix)
+        for case in table.cases:
+            for event in case.emits:
+                if event not in events:
+                    yield _f(page, case.line, "W383", f"{contract.id} case {case.key} emits {event}, which no page in the vault names.",
+                             f"Add '### {event} <name>' where the event is described, or correct the ID.")
+            for entity, _, _ in case.sets:
+                if entity.lower() not in entities:
+                    yield _f(page, case.line, "W384", f"{contract.id} case {case.key} sets {entity}, which no page in the vault names as an entity.",
+                             "Add '### ENT-nnn <name>' where the entity and its states are described, or correct the name.")
+        if contract.fact("State") == "decided" and not any(c.is_error for c in table.cases):
+            yield _f(page, contract.line, "W385", f"{contract.id} is decided and its case table has no error case.",
+                     "Add the answer for a refusal or a failure (a 4xx or 5xx status, or error).")
+
+
+def handoff_rules(vault, today):
+    """Sensor for the app handed over on an override: every item still short of a yes is named before the senior accepts it.
+    A contract with no case table is W380 already, and the read-back lists it with the rest."""
+    for app in vault.apps:
+        if not handoffwarn.at_handoff(app):
+            continue
+        for gap in handoffwarn.gaps(vault, app):
+            if gap.kind == "unfirm":
+                yield _f(gap.page, gap.line, "W386", f"{gap.sentence} {app.id} is at handoff.",
+                         "Decide it in a Grill before the senior accepts the app, or tell the senior it is not firm.")
+            elif gap.kind == "no-designer":
+                yield _f(gap.page, gap.line, "W387", f"{gap.sentence} {app.id} is at handoff.",
+                         "Hand the provider's app over too, or tell the senior the calls are built against nothing yet.")
+
+
+def deferral_rules(vault, today):
+    """W389: prose that says a matter is left for a Grill, or decided later, with no open question to carry it. A session
+    record is exempt (it is the record of what was said), and so is the unknowns page, where the question lives."""
+    open_unknowns = {u.id for u in vault.unknowns if u.fact("State") == "open"}
+    for page in vault.pages:
+        if page.type == "session" or page.id == "unknowns-and-risks":
+            continue
+        for line, phrase in deferrals.deferrals(page, schema.HISTORY_HEADING, open_unknowns):
+            yield _f(page, line, "W389", f"This says '{phrase}', and no open question is linked, so nothing will ever ask.",
+                     "Write it as an unknown with an owner and an ask-by date, link it from this paragraph, and let the Grill answer it.")
+
+
+def why_rules(vault, today):
+    """W390: a decided item whose reasons are not written down. The Grill asks the lead why while the reason is freshest;
+    an item decided without the answer is Forensic Coding for whoever reopens it, so the warning names the item. A decision
+    record is the why itself and is left alone. Pages and their rows share the page-level bullet, so each page warns once."""
+    seen = set()
+    for unit, page, line, _ in decided_units(vault):
+        item = vault.item(unit) if schema.ITEM_ID_RE.match(unit) else None
+        if item is not None and item.page is page:
+            has_why = bool(item.fact(schema.WHY_LABEL))
+        elif page.type == "decision" or page.path in seen:
+            continue
+        else:
+            seen.add(page.path)
+            has_why = bool(page.page_bullets(schema.WHY_LABEL))
+        if not has_why:
+            yield _f(page, line, "W390", f"{unit} is decided and records no reason: the lead's own words on why are not written down.",
+                     f"Add '- **{schema.WHY_LABEL}:** <the lead's words>' under the item's heading, or under its entry in History "
+                     "(directly under History for a page).")
 
 
 # ------------------------------------------------------------ unknowns, risks
@@ -1138,5 +1213,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)
