@@ -1,6 +1,6 @@
-# Planner user guide
+# Vela user guide
 
-Vela (the planner) takes a pile of ideas, documents and meetings and turns them into one planning vault: a folder of Markdown pages for a single initiative. The pages cover goals, apps, contracts, requirements, epics and open questions. Claude runs the sessions that fill the vault, and a checker keeps the pages honest. On a call, you walk through the vault in the explorer, an offline page.
+Vela turns a pile of ideas, documents and meetings into one planning vault: a folder of Markdown pages for a single initiative. The pages cover goals, apps, contracts (the agreed interfaces between apps), requirements, epics and open questions. Claude runs the sessions that fill the vault, and a checker flags pages that contradict each other. On a call, you walk through the vault in the dashboard, a page that works offline. You type Vela's commands as `planner` (for example `planner check`) or as `/planner:<session>` inside Claude.
 
 This guide is for people who have never seen Vela. Start by finding your role in the table.
 
@@ -9,8 +9,8 @@ This guide is for people who have never seen Vela. Start by finding your role in
 | Owner | the vault's git repo, and rights to commit | run sessions, decide, publish | [Owners](#owners) |
 | Reader | a folder or zip on OneDrive or Teams, no git | read, ask, draft privately, propose | [Readers](#readers) |
 | Product owner, sponsor | either, depending on access | decide (git) or propose (no git) | [Roles](#roles-are-decided-by-access) |
-| Senior dev | the vault, plus your team's repo | design and plan one app | [Where designs and plans live](#where-team-designs-and-plans-live) |
-| QA | usually a reader | read the QA door, ask | [The explorer](#the-explorer) |
+| Team lead engineer | the vault, plus your team's repo | design and plan one app | [Where designs and plans live](#where-team-designs-and-plans-live) |
+| QA | usually a reader | read the QA view of the dashboard, ask questions | [The dashboard](#the-dashboard) |
 
 ```mermaid
 flowchart LR
@@ -66,7 +66,7 @@ The command prints `claude plugin validate passed` (if `claude` is on your PATH)
 
 Every skill works in Cowork: reading, asking, drafting and proposing. The skills call `scripts/planner` rather than `bin/` for this reason.
 
-One thing may not work. The explorer's live "Ask Claude" box needs a `claude` command on the machine's PATH. Without one, the explorer still opens and searches, and when you type a question it offers the question as a prompt to copy. Paste that into Cowork's own chat, or use `/planner:ask <question>` or `/planner:find <words>`, which need no helper.
+One thing may not work. The dashboard's live "Ask Claude" box needs a `claude` command on the machine's PATH. Without one, the dashboard still opens and searches, and when you type a question it offers the question as a prompt to copy. Paste that into Cowork's own chat, or use `/planner:ask <question>` or `/planner:find <words>`, which need no helper.
 
 In Cowork, keep the private workspace inside the working folder, because that is the only place Cowork keeps:
 
@@ -95,95 +95,95 @@ Each session is one Claude conversation with one job. Open it, work, then close 
 
 ```mermaid
 flowchart LR
-  A["/planner:dump<br/>ideas, no docs yet"] --> B["/planner:discover<br/>what exists today"]
-  B --> C["/planner:shape<br/>2-3 options"]
-  C --> D["/planner:grill<br/>decide"]
-  D --> E["/planner:requirements<br/>the what"]
-  E --> F["/planner:boundary<br/>cut into apps"]
-  F --> G["/planner:allocate<br/>requirements to apps"]
-  G --> H["/planner:releases<br/>what ships when"]
+  A["Brain dump<br/>/planner:dump"] --> B["What exists today<br/>/planner:discover"]
+  B --> C["Two or three options<br/>/planner:shape"]
+  C --> D["Decide<br/>/planner:grill"]
+  D --> E["What is needed<br/>/planner:requirements"]
+  E --> F["Split into apps<br/>/planner:boundary"]
+  F --> G["Who does what<br/>/planner:allocate"]
+  G --> H["What ships when<br/>/planner:releases"]
   H --> J["handoff<br/>(in a grill)"]
   J --> I["/planner:epics<br/>work per team"]
-  J --> K["/planner:design<br/>the team's design"]
-  K --> L["/planner:breakdown<br/>stories and tasks"]
+  J --> K["The team's design<br/>/planner:design"]
+  K --> L["Stories and tasks<br/>/planner:breakdown"]
   I --> L
-  L --> M["/planner:tickets<br/>checked, ready to import"]
+  L --> M["Tickets, ready to import<br/>/planner:tickets"]
 ```
 
-The order is a guide, not a track. Once the strategy is decided, `planner next` suggests requirements before boundary. A grill comes back for each app, and you can skip any stage you already have. Ask it:
+A grill is a working session where Vela asks you questions one at a time until a part of the plan is settled. The order is a guide, not a track. Once the strategy is decided, `planner next` suggests requirements before boundary. A grill comes back for each app, and you can skip any stage you already have. Ask it:
 
 ```
 planner next
 planner next: initiative, dump. No app page exists yet, so start with a Dump & Diverge or a Discover. ...
 ```
 
-`planner status` shows every app's stage and its oldest open unknown.
+`planner status` shows how far each app has got and its oldest unanswered question.
 
-Only a grill sets an item to `decided`. Every other session writes `inkling`, `assumption` or `fact`. If you want to override a rule, say so. Claude tells you once what the rule protects, does what you asked, and writes an `Override:` line on the item so nobody has to guess later.
+Only a grill can mark an item decided. Other sessions mark it as a hunch (`inkling`), a working assumption (`assumption`) or a confirmed fact (`fact`). If you want to override a rule, say so. Claude tells you once what the rule protects, does what you asked, and writes a note on the item saying you overrode the rule, and why, so nobody has to guess later.
 
-The last three sessions are the team's. Once an app is handed off, its senior runs `/planner:design` and then `/planner:breakdown`, and `/planner:tickets` turns the build plan into tickets. `planner next` shows the team's next step as its own line, beside yours.
+The last three sessions are the team's. Once an app is handed off, the team's lead engineer runs `/planner:design` and then `/planner:breakdown`, and `/planner:tickets` turns the build plan into tickets. `planner next` shows the team's next step as its own line, beside yours.
 
-Epics come after handoff: the senior takes the boundary first, and you write the app's epics against it while they design. Handoff happens inside a grill on an app that is ready, and before it Claude reads back what the senior would accept without a yes: every draft or assumed item in the app's slice, every contract with no case table, and every provider the app calls that nobody has designed. Handing over anyway is your call. It records the senior's name and date on the app page. Close then writes the handoff manifest, and `planner handoff verify APP-x` later tells you if anything the senior accepted has changed. A senior who disagrees later uses `/planner:challenge`, and you answer on the same branch.
+Epics come after handoff: the team's lead takes the app's boundary first, and you write the app's epics against it while they design. Handoff happens inside a grill on an app that is ready, and before it Claude reads back what the lead would be taking on that isn't settled: everything on the app's handoff list that is still a draft or an assumption, every contract with no table of example cases, and every app it depends on that has no design yet. Handing over anyway is your call. It records the lead's name and date on the app page. Closing the session then saves the handoff list (everything handed over), and `planner handoff verify <app>` later tells you if any of it has changed. A lead who disagrees later uses `/planner:challenge`, and you answer on the same branch.
 
 ### Tracer first
 
-A tracer is one thin path that runs end to end through every app and contract release one needs. It is built first and kept, so the contracts between the apps get proved before anyone builds a second slice. [How the approach works](explainers/tracer-bullets.html).
+A tracer is one thin path that runs end to end through every app and contract release one needs. It is built first and kept, so the contracts between the apps get proved before anyone builds a second slice. A slice is one thin piece of the product built end to end, from what the user does to what gets stored, so it can ship and be tried on its own; the tracer is the first one. [How the approach works](explainers/tracer-bullets.html).
 
-In the releases session, release one names it. Two bullets carry it: `**Tracer:**` lists the flows and says the thin version in plain words, and `**Not in the tracer:**` lists what is held back and why. Design then names each app's walking skeleton, its piece of that path with the other apps stubbed at their contracts. Breakdown makes story one of each plan the team's piece of the tracer.
+In the releases session, release one names it: the release page lists which flows the tracer covers, in plain words (its `**Tracer:**` line), and what waits for a later slice, and why (`**Not in the tracer:**`). Each team's design then names its own piece of that path (its walking skeleton), with stand-ins for the other apps. Breakdown makes story one of each plan the team's piece of the tracer.
 
 Claude steers you to this, it doesn't force it. If the path isn't ready, say "not ready" and Claude records the reason under `**Not in the tracer:**`, or writes `**Tracer:** none` and your reason. Nothing stops the session.
 
 ### Close every session
 
-Say "close" (or "we're done") and the assistant starts the close for you; typing `/planner:close` does the same. Claude marks each capture keep, park or drop by its own defaults, and asks you only the two or three things it can't settle.
+Say "close" (or "we're done") and the assistant starts the close for you; typing `/planner:close` does the same. Claude sorts each note it took during the session into keep, park for later, or drop, and asks you only the two or three things it can't settle.
 
-Then it writes the kept captures into the pages, renders, checks and commits. After one yes from you, it pushes `session/<id>` and opens a PR. The last step rebuilds the dashboard without `--serve`, commits it if it changed, and tells you:
+Then it writes the kept notes into the pages, fills the generated sections, checks and commits. After one yes from you, it pushes the session's branch and opens a pull request. The last step rebuilds the dashboard file, commits it if it changed, and tells you:
 
 ```
 The dashboard is up to date: dashboard.html
 ```
 
-A failed explorer build never undoes the close, and `/planner:import` and `/planner:open` end the same way.
+A failed dashboard build never undoes the close, and `/planner:import` and `/planner:open` end the same way.
 
 ### Material you already have
 
 `/planner:import <where it lives>` turns existing folders, decks, spreadsheets, code or wiki exports into pages. It registers every source in `sources.md` and shows you an import map before it writes anything. Each line it writes carries its source, and every clash between sources becomes a question with an owner and a date. Large piles go in batches, and you run it again to resume.
 
-### The explorer
+### The dashboard
 
 ```
 /planner:explore            # serves it on this machine, opens the browser, search box can ask Claude
 ```
 
-or `planner explore` for a static `dashboard.html` at the vault root. Nobody else has to build it. The explorer is committed with the vault, so a teammate who pulls the repo opens `dashboard.html`, and a reader on OneDrive opens `dashboard.html` in the published folder (`planner publish` rebuilds it from the published pages). A quiet line at the top says when it was built and from which commit, so an old copy shows its age.
+or `planner explore` for a static `dashboard.html` at the vault root. Nobody else has to build it. The dashboard is committed with the vault, so a teammate who pulls the repo opens `dashboard.html`, and a reader on OneDrive opens `dashboard.html` in the published folder (`planner publish` rebuilds it from the published pages). A quiet line at the top says when it was built, so an old copy shows its age.
 
-The flags worth knowing, all checked against `planner explore --help`: `--theme console|graphite|daylight|vaporwave`, `--today YYYY-MM-DD` (a vault dated ahead of your clock), `--port`, `--no-open`, `--model haiku|sonnet`.
+The flags worth knowing, all checked against `planner explore --help`: `--theme console|graphite|daylight|vaporwave`, `--today YYYY-MM-DD` (treat this date as today, for example when the sessions are dated in the future), `--port`, `--no-open`, `--model haiku|sonnet`.
 
 What you get:
-- **What needs you** is the home screen: lit lamps for overdue questions, unreviewed decisions and unsettled items.
-- **Five doors** for other readers: Exec, Product, QA, Engineering, Managers.
+- **What needs you** is the home screen: every overdue question, unreviewed decision and item not decided yet, marked as needing a decision.
+- **Five views** for other readers: Exec, Product, QA, Engineering, Managers.
 - **Map, flows, releases, who to ask, why** (the decision log). A flow plays step by step; press `P` to present it full screen.
-- **Ask Claude**: type a question and press Enter. Claude reads the vault only (it can't edit), cites page IDs as links, and flags an ID the vault doesn't hold. Each answer shows its model and cost. "Think harder" uses Sonnet.
-- **Inside this app** (double-click an app) goes Context, Containers, Components, then **Build plan**: the team's stories in build order, what blocks what, and coverage of the requirements.
+- **Ask Claude**: type a question and press Enter. Claude reads the vault only (it can't edit), cites the pages it used as links, and flags an ID the vault doesn't hold. Each answer shows its model and cost. "Think harder" uses Sonnet.
+- **Inside this app** (double-click an app) zooms in step by step: what the app talks to, its main parts, their pieces, then the **Build plan**: the team's stories in build order, what blocks what, and which requirements have a story.
 
 The first build writes `.planner/explorer-pins.json`, which fixes each app's place on the map. Commit it, so the team shares one layout. The rest of `.planner/` stays out of git.
 
 ### Two voices, and how to set yours
 
-The planner has two voices. The **page voice** is how the pages it writes read: the vault pages, the design docs, the build plans. The **conversation voice** is how a session talks to you: the grill, shape, boundary, close and the rest. Both have sensible defaults, and you can change either.
+Vela writes in two styles. The **page voice** is how the pages it writes read: the vault pages, the design docs, the build plans. The **conversation voice** is how a session talks to you: the grill, shape, boundary, close and the rest. Both have sensible defaults, and you can change either.
 
 - **Your own wording for pages.** Run `/planner:voice-seed` and paste two or three passages you wrote. Drafts then follow you instead of the public examples.
 - **Your own wording for conversation.** Run `/planner:voice-seed conversation` and paste two or three exchanges you liked, from any session or chat. They are stored word for word. Sessions read them before the first question and talk the way they do.
-- **Your own rules.** Write them in `voice/VOICE.md`, in your words, for either voice: "use British spelling", "give me the trade-off in one line, then the question". Both voices read this file first, and your rules win over the defaults. `/planner:voice-seed` can help you start it, writing down only what you tell it.
+- **Your own rules.** Write them in `voice/VOICE.md`, in your words, for either voice: "use the metric system", "give me the trade-off in one line, then the question". Both voices read this file first, and your rules win over the defaults. `/planner:voice-seed` can help you start it, writing down only what you tell it.
 
 Nothing is required. With no file and no examples, the defaults apply. If text is your employer's, choose "local only" when voice-seed asks: it stays on your machine and is never committed.
 
 ### Where team designs and plans live
 
-Designs and plans live in the vault's own `docs/` folder. A senior runs `/planner:design --app APP-x` and then `/planner:breakdown` from the vault root. (A team that already uses its own `tech-design-grill` and `work-breakdown` skills can keep them; they write the same files.) They write:
+Designs and plans live in the vault's own `docs/` folder. The team's lead engineer runs `/planner:design --app APP-x` and then `/planner:breakdown` from the vault root. (A team that already uses its own `tech-design-grill` and `work-breakdown` skills can keep them; they write the same files.) They write:
 
 ```
-docs/tech-design/<slug>.md          the design (with vault.app: APP-x in its frontmatter)
+docs/tech-design/<slug>.md          the design (the top of the file says which app it is for)
 docs/adr/  CONTEXT.md
 docs/plan/<slug>-breakdown.md       the work breakdown
 ```
@@ -192,7 +192,7 @@ docs/plan/<slug>-breakdown.md       the work breakdown
 
 ### From the build plan to tickets
 
-`/planner:tickets` takes a finished build plan and holds it against the vault one more time: every story traces to a criterion or a requirement, every requirement the app carries has a story, criteria match the vault word for word, blockers point at real stories, and the tracer stories come first. Then it asks what you want: a Markdown list of tickets, a CSV for Jira's import, or, if you already have Jira tools set up (an MCP server or a CLI), whether to use them. It creates nothing in Jira without your yes, and it stops once it has written the file and told you what it found, such as "9 stories, 42 tasks, 3 flagged".
+`/planner:tickets` takes a finished build plan and holds it against the vault one more time: every story points back to a requirement or an acceptance criterion, every requirement given to this app has a story, criteria match the vault word for word, blockers point at real stories, and the tracer stories come first. Then it asks what you want: a Markdown list of tickets, a CSV for Jira's import, or, if you already have Jira tools set up (an MCP server or a CLI), whether to use them. It creates nothing in Jira without your yes, and it stops once it has written the file and told you what it found, such as "9 stories, 42 tasks, 3 flagged".
 
 The same check and output work without a session, and no model is involved, so nothing gets invented:
 
@@ -201,7 +201,7 @@ planner tickets check
 planner tickets write --format csv
 ```
 
-It reads the single `docs/plan/*-breakdown.md` (or the plan you name) and writes into `docs/work/` (or `--out`). Merged and deferred stories aren't exported; the output lists them as not ticketed. Each story becomes a Story row and each task a Task row, and the CSV turns sizes S, M and L into 2, 5 and 8 points, our mapping, for ordering only. `python3 tools/breakdown_to_tickets.py` still works and runs the same code. The explorer's Build plan level shows the same plan, with a "Copy as Jira CSV" button.
+It reads the single `docs/plan/*-breakdown.md` (or the plan you name) and writes into `docs/work/` (or `--out`). Merged and deferred stories aren't exported; the output lists them as not ticketed. Each story becomes a Story row and each task a Task row, and the CSV gives each task story points (S = 2, M = 5, L = 8). Vela picked these numbers; use them for ordering, not as estimates. `python3 tools/breakdown_to_tickets.py` still works and runs the same code. The dashboard's Build plan shows the same plan, with a "Copy as Jira CSV" button.
 
 For epics rather than stories: `planner export jira-csv --out epics.csv`.
 
@@ -264,9 +264,9 @@ If you decide something in a grill, Claude writes it as decided, with a line bes
 - **Pending approval:** @sam, 2026-10-18
 ```
 
-That line means the owner hasn't seen the decision yet. The explorer shows it as a ring with a clock, and `planner check` lists these under warning W327. It's a warning, never an error.
+That line means the owner hasn't seen the decision yet. The dashboard marks it "Pending approval", and `planner check` lists it as a warning (W327). It's a warning, never an error.
 
-The explorer's "Draft: N pages changed" chip and Drafts view show exactly what you changed against the copy you opened.
+The dashboard's "Draft: N pages changed" chip and Drafts view show exactly what you changed against the copy you opened.
 
 ### Propose
 
@@ -304,7 +304,7 @@ Claude adds `--into` for you. Your drafts are replayed onto the new pages, and t
 
 Nothing of yours is overwritten. Go through each pair with Claude, copy over the lines you want, and delete the `.mine.md` file. While any conflict is open, you can't propose. Your pre-merge pages are also kept in `.planner/replay-backup/`.
 
-To check without opening, run `planner freshness`. It says "Your copy is the latest published", or "A newer copy was published ... Your drafts are kept", or "I cannot reach the folder you opened this from (OneDrive offline?)". It only reports, and the explorer shows the same message as a banner.
+To check without opening, run `planner freshness`. It says "Your copy is the latest published", or "A newer copy was published ... Your drafts are kept", or "I cannot reach the folder you opened this from (OneDrive offline?)". It only reports, and the dashboard shows the same message as a banner.
 
 ## 4. Roles are decided by access
 
@@ -342,15 +342,15 @@ A product owner with git access is an owner. A sponsor with only OneDrive is a r
 
 | Code | Means | What to do |
 |---|---|---|
-| E316 | an item is `decided` while an open question blocks it | answer the question, or set the item back; a challenge leaves this red on purpose until answered |
-| E105 | a link in `links:` could not be read | fix the link; the explorer leaves it out |
-| W327 | decisions pending approval | owners: review them. Readers: expected |
-| W324 | decided on the owner's behalf, not yet confirmed | the owner adds `Confirmed by:` or challenges |
-| W325 | handed off but the PR number is not recorded | close writes it once the PR exists |
+| E316 | decided too early: an item is marked decided while an open question blocks it | answer the question, or set the item back; a challenge leaves this red on purpose until answered |
+| E105 | a link could not be read | fix the link; the dashboard leaves it out |
+| W327 | decisions waiting for the owner's approval | owners: review them. Readers: expected |
+| W324 | decided on the owner's behalf, and the owner hasn't confirmed it | the owner adds `Confirmed by:` or challenges |
+| W325 | handed off, but the pull request number isn't recorded | close writes it once the PR exists |
 | W329 | a `[[link\|label]]` in a table has a bare `\|` | write `\|` |
-| W402 | a generated block is out of date | run `planner render` |
-| W705 | an unknown is past its ask-by date | ask the lead; it is their call who to chase |
+| W402 | an auto-filled section is out of date | run `planner render` |
+| W705 | an open question is past its answer-by date | ask the lead; it is their call who to chase |
 
-**8. The explorer says "no design doc found" or its Ask box does nothing.** For the first: the design is not in the vault's `docs/tech-design/`; give the path with `design:` on the app page or `--design APP-x=<path>`. For the second: the box asks only when served (`/planner:explore`) and `claude` is on PATH. A file opened from disk, and Cowork, search only. Paste the offered prompt into a chat.
+**8. The dashboard says "no design doc found" or its Ask box does nothing.** For the first: the design is not in the vault's `docs/tech-design/`; give the path with `design:` on the app page or `--design APP-x=<path>`. For the second: the box asks only when served (`/planner:explore`) and `claude` is on PATH. A file opened from disk, and Cowork, search only. Paste the offered prompt into a chat.
 
 A last one that bites owners: if `planner role` says reader or none where you expected owner, you are in the wrong folder, or the copy is a published one. Owners work in the git clone.
