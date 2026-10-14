@@ -26,8 +26,11 @@ const FlowKit = (() => {
   const emblemImg = {};
   Assets.onReady(() => { for (const l of lanes) { const url = Assets.emblem(l.name); if (url) { const img = new Image(); img.src = url; emblemImg[l.id] = img; } } });
 
-  /* The record's view of a flow, shaped for playing. */
+  /* The record's view of a flow, shaped for playing; or, when a branch is chosen in the header's Show picker, that
+     branch's steps (branches.js), so one diagram draws both. */
   function flowOf(key) {
+    const branch = typeof Branches !== "undefined" ? Branches.flowFor(key) : null;
+    if (branch) return branch;
     const f = FLOW[key], e = E[key];
     return { key, id: e.id, title: e.title, state: e.state || "", steps: f.steps, unknowns: f.unknowns };
   }
@@ -41,7 +44,10 @@ const FlowKit = (() => {
   function unitsOf(step) {
     if (step.messages.length) {
       const out = [];
-      step.messages.forEach((m, mi) => { out.push({ kind: "msg", mi, from: m.from, to: m.to, msg: m }); if (m.kind === "request") out.push({ kind: "reply", mi, from: m.to, to: m.from, msg: m }); });
+      step.messages.forEach((m, mi) => {
+        if (m.kind === "answer") { out.push({ kind: "reply", mi, from: m.from, to: m.to, msg: m }); return; }  // an answer drawn later than its call
+        out.push({ kind: "msg", mi, from: m.from, to: m.to, msg: m }); if (m.kind === "request") out.push({ kind: "reply", mi, from: m.to, to: m.from, msg: m });
+      });
       return out;
     }
     if (step.self && LANE_INDEX[step.self] !== undefined) return [{ kind: "self", lane: step.self }];
@@ -84,6 +90,14 @@ const FlowKit = (() => {
     const rowH = Math.min(66 * k, (bottom - top) / Math.max(1, rows.length + gaps * 0.35));
     let cy = top + rowH * 0.5, prev = -1;
     for (const r of rows) { if (prev !== -1 && r.si !== prev) cy += rowH * 0.35; r.y = cy; cy += rowH; prev = r.si; }
+    // One pill per call and answer: an arrow that answers the arrow just above it, over the same contract between the
+    // same two lanes, carries no second pill (two pills for one exchange overlapped where rows are close).
+    rows.forEach((r, i) => {
+      const before = rows[i - 1];
+      if (r.u.kind !== "msg" || !before || !before.u.msg) return;
+      const same = before.u.msg.contract === r.u.msg.contract && new Set([before.u.from, before.u.to, r.u.from, r.u.to]).size === 2;
+      if (same) r.noChip = true;
+    });
     return { x, y, w, h: ht, s: k, gutter, headerH, colW: unit, idle, laneX, rows, rowH, top, bottom, touched, flow };
   }
 
@@ -187,6 +201,8 @@ const FlowKit = (() => {
     for (const [si, r] of Object.entries(firstRow)) drawMarkers(ctx, G, +si, r, st, hits);
     return hits;
   }
+  // A step that leaves the happy path (a branch chosen in the Show picker) is drawn in amber, whatever its lane.
+  const amber = (phase) => hexA(Theme.c("caution"), phase === "future" ? 0.45 : phase === "past" ? 0.8 : 1);
   function unitColor(phase, laneId, a = 1) {
     if (phase === "now") return hexA(laneColor(laneId), a);
     if (phase === "past") return hexA(C.ink, 0.5 * a);
@@ -198,7 +214,8 @@ const FlowKit = (() => {
       const x1 = G.laneX[LANE_INDEX[u.from]], x2 = G.laneX[LANE_INDEX[u.to]];
       if (x1 === undefined || x2 === undefined) return;
       const dir = Math.sign(x2 - x1) || 1, a = x1 + dir * 5 * k, b = x2 - dir * 6 * k, e = ease(p);
-      const head = phase === "future" ? b : a + (b - a) * e, col = unitColor(phase, u.from);
+      const head = phase === "future" ? b : a + (b - a) * e, col = step.differs ? amber(phase) : unitColor(phase, u.from);
+      if (step.differs && st.seen) st.seen.add("flow.differs");
       ctx.lineCap = "round";
       ctx.setLineDash(u.kind === "reply" ? [5 * k, 5 * k] : phase === "future" ? [2 * k, 5 * k] : []);
       ctx.strokeStyle = col; ctx.lineWidth = (phase === "now" ? 2.4 : 1.6) * k;
@@ -216,23 +233,27 @@ const FlowKit = (() => {
         ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(head, y, 18 * k, 0, 7); ctx.fill();
         ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(head, y, 4.5 * k, 0, 7); ctx.fill();
       }
-      if (u.kind === "msg") {
+      // Where rows sit close (a long flow on a short stage) the pill rides on its arrow instead of above it, and where even that
+      // would touch the next row it is left out: the caption and the panel still name the contract. Pills never overlap.
+      if (u.kind === "msg" && !r.noChip && G.rowH >= 21 * k) {
+        // the pill names the contract; its ID follows in small type only when there is room (names, not codes)
         const con = CONTRACT[u.msg.contract], mid = (x1 + x2) / 2, span = Math.abs(x2 - x1) - 34 * k;
-        ctx.font = `600 ${11.5 * k}px ${UI}`;
+        ctx.font = `400 ${10 * k}px ${UI}`;
         const idW = ctx.measureText(con.id).width;
-        ctx.font = `400 ${11.5 * k}px ${UI}`;
-        let name = fitText(ctx, con.title, Math.max(0, span - idW - 26 * k));
-        if (name.endsWith("…") && name.length < 10) name = "";
-        const nameW = name.length > 1 ? ctx.measureText(name).width + 6 * k : 0;
-        const cw = idW + nameW + 16 * k, ch = 19 * k, cx = mid - cw / 2, cy = y - ch - 6 * k;
+        ctx.font = `600 ${11.5 * k}px ${UI}`;
+        const whole = ctx.measureText(con.title).width, withId = whole + idW + 6 * k <= span - 16 * k;
+        const name = fitText(ctx, con.title, Math.max(24 * k, span - 16 * k));
+        const nameW = ctx.measureText(name).width;
+        const cw = nameW + (withId ? idW + 6 * k : 0) + 16 * k, ch = 19 * k, cx = mid - cw / 2, cy = G.rowH >= 31 * k ? y - ch - 6 * k : y - ch / 2;
         const lv = levelOf(con.id);
         if (st.seen) { st.seen.add("flow.chip"); if (lv !== "dark" && phase !== "future") st.seen.add("lamp." + lv); }
         ctx.globalAlpha = phase === "future" ? 0.4 : 1;
         rr(ctx, cx, cy, cw, ch, ch / 2); ctx.fillStyle = C.deck; ctx.fill();
-        ctx.strokeStyle = lv !== "dark" && phase !== "future" ? hexA(lampLine(lv), 0.8) : phase === "now" ? hexA(laneColor(u.from), 0.7) : C.rule; ctx.lineWidth = 1 * k; ctx.stroke();
+        ctx.strokeStyle = step.differs ? amber(phase) : lv !== "dark" && phase !== "future" ? hexA(lampLine(lv), 0.8) : phase === "now" ? hexA(laneColor(u.from), 0.7) : C.rule;
+        ctx.lineWidth = (step.differs ? 1.8 : 1) * k; ctx.stroke();
         ctx.textBaseline = "middle"; ctx.textAlign = "left";
-        ctx.font = `600 ${11.5 * k}px ${UI}`; ctx.fillStyle = lv !== "dark" ? lampText(lv) : C.ink; ctx.fillText(con.id, cx + 8 * k, cy + ch / 2 + 0.5 * k);
-        if (nameW) { ctx.font = `400 ${11.5 * k}px ${UI}`; ctx.fillStyle = C.ink2; ctx.fillText(name, cx + 8 * k + idW + 6 * k, cy + ch / 2 + 0.5 * k); }
+        ctx.font = `600 ${11.5 * k}px ${UI}`; ctx.fillStyle = lv !== "dark" ? lampText(lv) : C.ink; ctx.fillText(name, cx + 8 * k, cy + ch / 2 + 0.5 * k);
+        if (withId) { ctx.font = `400 ${10 * k}px ${UI}`; ctx.fillStyle = C.muted; ctx.fillText(con.id, cx + 8 * k + nameW + 6 * k, cy + ch / 2 + 0.5 * k); }
         ctx.globalAlpha = 1;
         hits.push({ type: "contract", id: con.id, si: r.si, x: cx, y: cy, w: cw, h: ch });
         if (!stated && phase === "now" && p >= 1 && st.labels !== false) {
@@ -242,7 +263,8 @@ const FlowKit = (() => {
       }
       hits.push({ type: "row", si: r.si, x: Math.min(x1, x2), y: y - 14 * k, w: Math.abs(x2 - x1), h: 28 * k });
     } else if (u.kind === "self") {
-      const X = G.laneX[LANE_INDEX[u.lane]], col = unitColor(phase, u.lane), lw = 34 * k, lh = 11 * k;
+      const X = G.laneX[LANE_INDEX[u.lane]], col = step.differs ? amber(phase) : unitColor(phase, u.lane), lw = 34 * k, lh = 11 * k;
+      if (step.differs && st.seen) st.seen.add("flow.differs");
       if (st.seen) { st.seen.add("flow.self"); if (phase === "future") st.seen.add("flow.future"); }
       ctx.strokeStyle = col; ctx.lineWidth = (phase === "now" ? 2.2 : 1.5) * k;
       ctx.setLineDash(phase === "future" ? [2 * k, 4 * k] : []);
@@ -266,7 +288,8 @@ const FlowKit = (() => {
       const x0 = xs.length ? Math.min(...xs) - G.colW * 0.32 : G.x + G.gutter, x1 = xs.length ? Math.max(...xs) + G.colW * 0.32 : G.x + G.w - 10, bh = Math.min(G.rowH * 0.66, 32 * k);
       ctx.globalAlpha = phase === "future" ? 0.4 : 1;
       rr(ctx, x0, y - bh / 2, x1 - x0, bh, 8 * k); ctx.fillStyle = phase === "now" ? hexA(C.deck2, 0.95) : hexA(C.deck, 0.7); ctx.fill();
-      ctx.setLineDash([4 * k, 4 * k]); ctx.strokeStyle = phase === "now" ? C.ink2 : C.rule; ctx.lineWidth = 1 * k; ctx.stroke(); ctx.setLineDash([]);
+      ctx.setLineDash([4 * k, 4 * k]); ctx.strokeStyle = step.differs ? amber(phase) : phase === "now" ? C.ink2 : C.rule; ctx.lineWidth = (step.differs ? 1.6 : 1) * k; ctx.stroke(); ctx.setLineDash([]);
+      if (step.differs && st.seen) st.seen.add("flow.differs");
       const ref = u.ref && FLOW[u.ref];
       ctx.font = `400 ${12.5 * k}px ${SERIF}`; ctx.fillStyle = C.ink; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(fitText(ctx, ref ? `Repeats “${E[u.ref].title}” (${E[u.ref].id})` : step.short, x1 - x0 - 24 * k), (x0 + x1) / 2, y + 0.5 * k);
@@ -469,8 +492,9 @@ const FlowKit = (() => {
   Legend.define("flow.pin.settled", [{ k: "dot", fill: "room", stroke: "ink-3", w: 1.3, r: 5 }, { k: "text", t: "✓", fill: "ink-3", y: 11, size: 8 }], "Ring with a tick: a pinned question that has been settled");
   Legend.define("flow.lane", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 9, r: 2 }], "Pill at the top: one app or outside party, in its own color");
   Legend.define("flow.lane.idle", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9, opacity: 0.4 })], "Faded pill: this app or party takes no part in the flow");
+  Legend.define("flow.differs", [ln({ stroke: "caution", w: 2.2, head: "fill" }), bx({ stroke: "caution", w: 1.4, rx: 4, x: 9, y: 1, width: 14, height: 5 })], "Amber: differs from the happy path, on the branch chosen in Show");
   Legend.define("flow.stepno", [{ k: "dot", fill: "ink", r: 5.5 }, { k: "text", t: "2", fill: "room", y: 11, size: 8 }], "Numbered circle at the left: a step; the one playing is filled");
-  const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.lane.idle", "flow.stepno"];
+  const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.lane.idle", "flow.stepno", "flow.differs"];
   function census(flow) {
     const seen = new Set(), canvas = document.createElement("canvas");
     canvas.width = 1040; canvas.height = 700;
@@ -495,6 +519,7 @@ const FlowKit = (() => {
     }
     out.add("flow.lane"); if (lanes.some((l) => !touchedLanes(flow).has(l.id))) out.add("flow.lane.idle");
     if (flow.steps.length) out.add("flow.stepno");
+    if (flow.steps.some((step) => step.differs && unitsOf(step).some((u) => u.kind !== "ref"))) out.add("flow.differs");
     return out;
   }
   const flowProbes = (keyOf) => Object.fromEntries(LOOK_ORDER.map((id) => [id, () => expected(flowOf(keyOf())).has(id)]));

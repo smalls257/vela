@@ -73,7 +73,8 @@ def test_a_link_naming_a_branch_opens_it_with_its_marks_in_words(tmp_path, chrom
     assert '<option value="CON-001.refused_dependency_down" disabled="">Booking API: Refused dependency down (not drawn, not fully checked)</option>' in out
     assert ("3 ways this flow can go: the happy path and 2 branches. None has a finding, 5 weren't fully checked, and 2 answers "
             "aren't drawn at all.") in out
-    assert re.search(r'<label for="br-pick-FLO-009">Show</label>', out)
+    assert re.search(r'<div class="br-picker" data-branches="FLO-009"><label for="br-pick-FLO-009" class="fp-kind">Show</label>', out)
+    assert out.count('class="stage-canvas"') == 1 and "<svg class=\"br-svg" not in out  # one diagram
     # a flow drawn the old way keeps the played view and one line
     out = html.unescape(dom(chrome_path, page, "flows&open=FLO-001&still"))
     assert "Error cases aren't drawn yet" in out and 'class="br-pick"' not in out
@@ -86,7 +87,7 @@ def test_the_selftest_walks_every_branch_in_every_theme(tmp_path, chrome_path): 
         _check_selftest_in_chrome(chrome_path, page, f"booking with a kiosk flow's branches at {viewport}", viewport)
     out = dom(chrome_path, page, "map&selftest", budget=60000)
     lines = html.unescape(re.search(r'data-selftest="([^"]*)"', out).group(1)).split(" || ")
-    for want in ('ok branches, FLO-009: "Show" and one picker', "ok branches, FLO-009: every option says not fully checked",
-                 "ok branches, FLO-009: each of 3 branches redraws", "ok branches: a link naming", "ok branches, FLO-001: one line",
-                 "ok branches: in Plain, every branch's words fit"):
+    for want in ('ok branches, FLO-009: "Show" in the header row', 'ok flows: no two contract pills overlap', "ok branches, FLO-009: every option says not fully checked",
+                 "ok branches, FLO-009: each of 3 redraws the one diagram", "ok branches: a link naming", "ok branches, FLO-001: one line",
+                 "ok branches: in Plain, every branch's header, summary and findings fit"):
         assert any(line.startswith(want) for line in lines), want

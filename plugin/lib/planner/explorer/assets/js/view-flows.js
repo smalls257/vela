@@ -83,7 +83,10 @@ const Flows = (() => {
       h("button", { class: "btn", id: "clip-btn", onclick: saveClip, title: clipNote() }, svgIcon("download"), "Save clip"),
       h("button", { class: "btn primary", id: "present-btn", onclick: () => present(st.key, Math.max(0, st.cur)), title: "Present full screen (P)" }, svgIcon("present"), "Present"));
     const tag = Releases.tracerTag(st.key), pl = Releases.tracerPlace(st.key);
-    main.append(h("div", { class: "flows-head" }, picker, ...(tag ? [h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`)] : []), actions));
+    // the Show picker swaps a branch's steps into this same diagram (branches.js); the step numbers change, so the play head starts over
+    const branch = Branches.picker(st.key, () => { st.cur = -1; rerender(); });
+    main.append(h("div", { class: "flows-head" }, picker, ...[branch].filter(Boolean), ...(tag ? [h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`)] : []), actions),
+      ...[Branches.summary(st.key)].filter(Boolean));
     if (HASH.has("picker")) picker.open();  // #flows&picker opens the list on arrival, for screenshots
     const stage = h("div", { class: "stage" });
     const canvas = h("canvas", { class: "stage-canvas", role: "img", "aria-label": `Sequence of ${f.title}` });
@@ -93,7 +96,7 @@ const Flows = (() => {
     const nodeList = flowNodes(st.key, () => player);
     const caption = h("section", { class: "caption", id: "caption", "aria-live": "polite" });
     const transport = h("footer", { class: "transport", id: "transport" });
-    main.append(stage, key.el(), ...[Branches.section(st.key)].filter(Boolean), nodeList, caption, transport);
+    main.append(stage, ...[Branches.findings(st.key)].filter(Boolean), key.el(), nodeList, caption, transport);
     key.paint();
     player = makePlayer(canvas, { key: st.key, cur: st.cur, onStep: (p) => { st.cur = p.cur; paintCaption(); paintTransport(); Minimap.refresh(); }, onPlay: paintTransport,
       onFlow: (p) => select(p.key, -1) });
@@ -293,7 +296,7 @@ const Flows = (() => {
   });
   function here() {
     if (!st.key || App.view !== "flows") return null;
-    const f = FLOW[st.key];
+    const f = FlowKit.flowOf(st.key);  // the branch shown, when one is picked
     return st.cur >= 0 ? [...stepEnds(f.steps[st.cur])] : flowStations(f);
   }
   function highlight(key) { if (FLOW[key] && key !== st.key) select(key, -1); }

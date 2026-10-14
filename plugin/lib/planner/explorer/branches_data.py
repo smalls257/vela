@@ -146,7 +146,7 @@ class Walker:
         elif kind in ("set", "given"):
             words = f"{self.entity_title(parts[1])}: {parts[2].replace('_', ' ')}"
             yield Path((step("note", line, words if kind == "set" else f"Starts with {words}", over=[actor], tag=kind,
-                             key=self.entity_keys.get(parts[1], "")),))
+                             key=self.entity_keys.get(parts[1], ""), entity=self.entity_title(parts[1])),))
         elif kind == "human":
             yield Path((step("note", line, parts[1], over=[actor], tag="person"),))
         elif kind == "finish":
@@ -322,8 +322,135 @@ def entity_keys(catalog, vault, keys):
             if str(e.where).split(":", 1)[0] in by_path}
 
 
-def finding_record(f):
-    return {"code": f.code, "title": TITLES.get(f.code, f.code), "summary": f.summary, "trace": list(f.trace),
+
+# --- the played view: one diagram, so a branch is drawn as the flow's own steps, in plain words ---------------------
+
+QUIET_TAGS = ("set", "given", "rule", "end", "handler", "contract")  # the checker's bookkeeping, not steps a person reads
+
+
+def answer_words(item, key, answers):
+    """"Agreed: calendar entries only" from the case table's Answer; the checker's own answers in words."""
+    if key == "timeout":
+        return "no answer in time"
+    if key == "gave_up":
+        return "no answer after the retries"
+    said = answers.get(item, {}).get(key, ("", ""))[1]
+    return said or case_words(key).lower()
+
+
+def played(steps, names, answers, contract_titles):
+    """The path as the played view's steps: a call and its answer are one step ("Desktop agent asks Consent and
+    identity to record the person's consent. Answer: kept."), an answer that comes later is its own step, a person's
+    step stays, and the checker's bookkeeping (states set, ON rules, where the journey ends) is left out. Each step
+    says whether it leaves the happy path (`differs`). No status codes and no state names."""
+    out, open_calls, i = [], [], 0
+    steps = list(steps)
+    while i < len(steps):
+        s = steps[i]
+        if s.get("tag") in QUIET_TAGS:
+            i += 1
+            continue
+        who = lambda n: names.get(n, n)  # noqa: E731
+        if s["kind"] == "call":
+            nxt = steps[i + 1] if i + 1 < len(steps) else None
+            ask = f"{who(s['from'])} asks {who(s['to'])} to {s['text']}"
+            if nxt and nxt["kind"] == "reply" and (nxt["from"], nxt["to"]) == (s["to"], s["from"]):
+                said = answer_words(s.get("item"), nxt.get("case"), answers)
+                out.append({"kind": "request", "from": s["from"], "to": s["to"], "item": s.get("item"), "differs": s["alt"] or nxt["alt"],
+                            "short": f"{ask}. Answer: {said}.", "answer": said})
+                i += 2
+                continue
+            if nxt and nxt["kind"] == "note" and nxt.get("tag") == "timeout" and nxt.get("over") == [s["from"]]:
+                said = answer_words(s.get("item"), nxt.get("case"), answers)
+                out.append({"kind": "send", "from": s["from"], "to": s["to"], "item": s.get("item"), "differs": s["alt"] or nxt["alt"],
+                            "short": f"{ask}: {said}.", "answer": said})
+                i += 2
+                continue
+            open_calls.append((s["from"], s["to"], s.get("item")))
+            out.append({"kind": "send", "from": s["from"], "to": s["to"], "item": s.get("item"), "differs": s["alt"], "short": f"{ask}."})
+        elif s["kind"] == "reply":
+            item = next((c for f, to, c in reversed(open_calls) if (to, f) == (s["from"], s["to"])), None)
+            open_calls = [c for c in open_calls if c[2] != item] if item else open_calls
+            said = answer_words(item, s.get("case"), answers)
+            title = contract_titles.get(item, "")
+            out.append({"kind": "answer", "from": s["from"], "to": s["to"], "item": item, "differs": s["alt"],
+                        "short": f"{who(s['from'])} answers {who(s['to'])}{' on ' + title.lower() if title else ''}: {said}.", "answer": said})
+        elif s["kind"] == "event":
+            out.append({"kind": "send", "from": s["from"], "to": s["to"], "item": s.get("item"), "differs": s["alt"],
+                        "short": f"{who(s['from'])} tells {who(s['to'])}: {s['text']}."})
+        else:
+            words = s["text"] if s.get("tag") != "timeout" else f"{s['text']}"
+            out.append({"kind": "note", "over": s.get("over", []), "differs": s["alt"], "short": words.rstrip(".") + "."})
+        i += 1
+    for n, step in enumerate(out, 1):
+        step["n"] = n
+    return out
+
+
+def plain_invariant(text, catalog):
+    """A broken invariant in words a person reads, from its entities' titles and its states:
+    "This flow can reach a moment when Transcripts read is at “read” while Consent is not at “calendar and
+    transcripts”." None when the expression is not one of the shapes worded here."""
+    expr, problem = readers.parse_invariant(text)
+    if expr is None or problem:
+        return None
+
+    def title(name):
+        found = catalog.entity(name)
+        return found.title if found else name.replace("_", " ")
+
+    def pos(e):
+        if e[0] == "is":
+            return f"{title(e[1])} is at “{e[2].replace('_', ' ')}”"
+        if e[0] == "not" and e[1][0] == "is":
+            return neg(e[1])
+        if e[0] == "and":
+            a, b = pos(e[1]), pos(e[2])
+            return a and b and f"{a} and {b}"
+        if e[0] == "or":
+            a, b = pos(e[1]), pos(e[2])
+            return a and b and f"{a} or {b}"
+        if e[0] == "not":
+            return neg(e[1])
+        return None
+
+    def neg(e):
+        if e[0] == "is":
+            return f"{title(e[1])} is not at “{e[2].replace('_', ' ')}”"
+        if e[0] == "not":
+            return pos(e[1])
+        if e[0] == "or":
+            a, b = neg(e[1]), neg(e[2])
+            return a and b and f"{a} and {b}"
+        return None
+
+    if expr[0] == "implies":
+        a, b = pos(expr[1]), neg(expr[2])
+        said = a and b and f"{a} while {b}"
+    elif expr[0] == "not" and expr[1][0] == "and":
+        a, b = pos(expr[1][1]), pos(expr[1][2])
+        said = a and b and f"{a} while {b}"
+    else:
+        said = neg(expr)
+    return f"This flow can reach a moment when {said}." if said else None
+
+
+INVARIANT = __import__("re").compile(r'^The invariant "(?P<text>.+?)" of .+? no longer holds\.')
+
+
+def plain_summary(f, catalog):
+    """(sentence, expression or ""): the finding in plain words, and the checker's own expression for a disclosure
+    when the sentence had to be written around it."""
+    found = INVARIANT.match(f.summary)
+    if not found:
+        return f.summary, ""
+    said = plain_invariant(found.group("text"), catalog)
+    return (said or "This flow can break a rule the plan says must always hold."), f.summary
+
+
+def finding_record(f, catalog):
+    plain, expression = plain_summary(f, catalog)
+    return {"code": f.code, "title": TITLES.get(f.code, f.code), "summary": plain, "expression": expression, "trace": list(f.trace),
             "owners": list(f.owners), "items": list(f.items), "where": f.where, "case": f.case,
             "severity": f.severity, "covered": f.covered}
 
@@ -331,6 +458,30 @@ def finding_record(f):
 def _line(where):
     tail = str(where).rsplit(":", 1)[-1]
     return int(tail) if tail.isdigit() else 0
+
+
+def limits_for(path, walker, stated, shared):
+    """Which of the checker's stated limits a branch's own path runs into: a timer when it arms one, a shared entity
+    when a step changes it or starts from it, or calls a contract whose cases set it or answer by it, and a budget
+    stop always (what was not explored is not claimed)."""
+    steps = path.steps if path is not None else ()
+    timers = any(s.get("tag") == "timer" for s in steps)
+    touched = {s.get("entity") for s in steps if s.get("entity")}
+    for s in steps:
+        table = walker.table(s.get("item")) if s.get("kind") == "call" else None
+        for case in table.cases if table else ():
+            touched |= {walker.entity_title(e) for e, _ in case.sets} | {walker.entity_title(w[0]) for w in case.when}
+    touched &= set(shared)
+    out = []
+    for i, text in enumerate(stated):
+        if text.startswith("A timer"):
+            if timers:
+                out.append(i)
+        elif text.startswith("Not explored"):
+            out.append(i)
+        elif any(text.startswith(name) or f", {name}" in text or f" and {name}" in text for name in touched):
+            out.append(i)
+    return out
 
 
 def marks_of(findings, not_checked):
@@ -356,15 +507,21 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
     happy = walker.search()
     if happy is None or not walker.points:
         return {"state": "none", "note": NOT_DRAWN_NOTE}
-    result = flowcheck.check_catalog(catalog, flow.id, today, CHECK_STATES)
+    # the run check-slice makes for the first slice that proves this flow (so the marks match it), else the flow alone
+    home = next((s for s in catalog.slices if flow.id in s.flows), None)
+    result = flowcheck.check_catalog(catalog, (home.id or home.name) if home else flow.id, today, CHECK_STATES)
+    stated = list(result.limits)  # the checker's own sentences on what its result rests on (ledger C39)
+    shared = sorted({e.title for e in catalog.entities.values() if e.shared})
     not_checked = "not fully checked" in result.status
     mine = [f for f in result.findings if f.where.startswith(flow.path + ":") or f.call_line.startswith(flow.path + ":")]
-    found = [finding_record(f) for f in mine]
+    found = [finding_record(f, catalog) for f in mine]
     at = {}
     for i, f in enumerate(mine):
         if f.case and f.call_line:
             at.setdefault((_line(f.call_line), f.case), []).append(i)
     groups, ids, seen_titles, used = [], set(), {}, []
+    names = {name: title for name, (title, _) in tree.participants.items()}
+    titles_of = {cid: table.title for cid, table in catalog.contracts.items()}
 
     def use(steps):
         for s in steps:
@@ -391,24 +548,25 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
                 marks = ["not drawn"] + marks
             elif path is None:
                 marks = ["too many paths to draw"] + marks
-            steps = list(path.steps) if path else []
+            steps = played(path.steps, names, answers, titles_of) if path else []
             use(steps)
             options.append({"id": ident, "label": f"{name}: {case_words(key)}", "case": key, "line": line, "status": status,
-                            "says": says, "findings": hits, "marks": marks, "drawn": path is not None, "steps": steps})
+                            "says": says, "findings": hits, "marks": marks, "drawn": path is not None, "steps": steps,
+                            "limits": limits_for(path, walker, stated, shared)})
         if options:
             label = name + (f", call {seen_titles[name]}" if seen_titles[name] > 1 else "")
             groups.append({"label": label, "item": item, "line": line, "options": options})
     happy_hits = sorted({i for choice in happy.choices for i in at.get(choice, [])})
     on_options = {i for g in groups for o in g["options"] for i in o["findings"]} | set(happy_hits)
-    names = {name: title for name, (title, _) in tree.participants.items()}
     people = participant_keys(tree, catalog, vault, keys)
     order = list(tree.participants) + [u for u in used if u not in tree.participants]
     options = [o for g in groups for o in g["options"]]
     return {
         "state": "drawn",
         "participants": [{"id": n, "title": names.get(n, n), "key": people.get(n, "")} for n in order if n in used],
-        "happy": {"id": "happy", "label": "Happy path", "steps": list(happy.steps), "findings": happy_hits,
-                  "marks": marks_of([found[i] for i in happy_hits], not_checked)},
+        "happy": {"id": "happy", "label": "Happy path", "steps": played(happy.steps, names, answers, titles_of), "findings": happy_hits,
+                  "marks": marks_of([found[i] for i in happy_hits], not_checked), "limits": limits_for(happy, walker, stated, shared)},
+        "limits": stated,
         "groups": groups, "findings": found,
         "flowWide": [i for i in range(len(found)) if i not in on_options],  # findings about no one answer at one call
         "check": {"status": result.status, "states": result.states, "notChecked": not_checked, "surveyed": surveyed},
