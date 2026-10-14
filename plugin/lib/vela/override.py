@@ -7,14 +7,25 @@ user believes a rule was set aside when the check still enforces it. So an overr
 never refused and never invisible: a well-formed one turns the error it names into a
 warning that quotes it, and a malformed one is an error of its own.
 
+A third failure is time. An override of a standing rule (schema.STANDING_RULES: an open
+unknown still blocking, a case table still missing) with no end would cover the rule
+forever, so a red check stays green long after the lead's reason stopped holding: a Silent
+Fallback with a signature on it. So it carries `until`, the day it ends (Anchor: the lead's
+words and the date sit on the page). Past that day it covers nothing and check says E398;
+the lead renews it or the rule bites again. An event rule (GATE-1, 2, 3, 5) was met or not at
+the moment of deciding, so its override has nothing to end. An old bullet with no `until`
+still parses and still covers, and when a refusal asks for a date, suggest_until offers one;
+nothing here ever writes it. Dates come in as arguments: the core reads no clock.
+
 Grammar, as CONVENTIONS.md gives it under "Overrides":
 
-    - **Override:** <rule>[, <rule>...] by @handle on YYYY-MM-DD: <reason>
+    - **Override:** <rule>[, <rule>...] by @handle on YYYY-MM-DD[ until YYYY-MM-DD]: <reason>
     - **Decided by:** @handle, on behalf of @owner [@owner...]
     - **Confirmed by:** @handle on YYYY-MM-DD
 
 A <rule> is a name in schema.OVERRIDE_RULES, or a skill rule check cannot see, quoted:
-"Shape offers 2 or 3 options".
+"Shape offers 2 or 3 options". The flow check's quoted rules carry their end inside the
+quotes ("F8 CON-020 declined until 2026-10-01"), and flowcheck.verdicts says their E398.
 """
 import datetime
 import difflib
@@ -23,17 +34,21 @@ from dataclasses import dataclass
 
 from vela import allocation, ledger, releases, schema
 from vela.model import Finding, meta_line
+from vela.parse import Bullet
 
 QUOTED_RULE = r'"[^"\n]+"'
 RULE_TOKEN = rf'{QUOTED_RULE}|[A-Za-z0-9-]+'
 OVERRIDE_RE = re.compile(
-    rf'^(?P<rules>(?:{RULE_TOKEN})(?:, (?:{RULE_TOKEN}))*) by (?P<by>{schema.HANDLE}) on (?P<date>\d{{4}}-\d{{2}}-\d{{2}}): (?P<reason>\S.*)$')
+    rf'^(?P<rules>(?:{RULE_TOKEN})(?:, (?:{RULE_TOKEN}))*) by (?P<by>{schema.HANDLE}) on (?P<date>\d{{4}}-\d{{2}}-\d{{2}})'
+    rf'(?: until (?P<until>\d{{4}}-\d{{2}}-\d{{2}}))?: (?P<reason>\S.*)$')
+# The end a flow-check rule carries inside its quotes.
+QUOTED_UNTIL_RE = re.compile(r'^"F\d+ .* until (\d{4}-\d{2}-\d{2})"$')
 # A bare handle is the owner's own decision (what a proposal's review writes); "on behalf of" is someone else deciding for them.
 DECIDED_BY_RE = re.compile(rf'^(?P<by>{schema.HANDLE})(?:, on behalf of (?P<owners>{schema.HANDLE}(?: {schema.HANDLE})*))?$')
 CONFIRMED_BY_RE = re.compile(rf'^(?P<by>{schema.HANDLE}) on (?P<date>\d{{4}}-\d{{2}}-\d{{2}})$')
 RULE_SPLIT = re.compile(rf'{QUOTED_RULE}|[^,]+')
 
-GRAMMAR = "<rule>, <rule> by @handle on YYYY-MM-DD: <reason>"
+GRAMMAR = "<rule>, <rule> by @handle on YYYY-MM-DD until YYYY-MM-DD: <reason>"
 DECIDED_BY_GRAMMAR = "@handle, on behalf of @owner (or just @owner for the owner's own decision)"
 CONFIRMED_BY_GRAMMAR = "@owner on YYYY-MM-DD"
 NEAR_MISS = 0.75  # a label this close to one of ours is a typo, never prose
@@ -48,6 +63,7 @@ class Override:
     date: str
     reason: str
     problem: str  # "" when well formed
+    until: object = None  # "YYYY-MM-DD", the last day it covers, or None when the bullet names no end
 
     @property
     def codes(self):
@@ -55,12 +71,16 @@ class Override:
         return {code for rule in self.rules for code in schema.OVERRIDE_RULES.get(rule, ())}
 
     def describe(self):
-        return f"{', '.join(self.rules)} by {self.by} on {self.date}: {self.reason}"
+        until = f" until {self.until}" if self.until else ""
+        return f"{', '.join(self.rules)} by {self.by} on {self.date}{until}: {self.reason}"
 
     def as_dict(self):
         if self.problem:
             return {"line": self.line, "text": self.text, "malformed": True, "problem": self.problem}
-        return {"line": self.line, "rules": list(self.rules), "by": self.by, "date": self.date, "reason": self.reason}
+        out = {"line": self.line, "rules": list(self.rules), "by": self.by, "date": self.date, "reason": self.reason}
+        if self.until:
+            out["until"] = self.until
+        return out
 
 
 @dataclass(frozen=True)
@@ -107,7 +127,9 @@ def _shape_problem(value):
         return "names no @handle after 'by'"
     if not re.search(r" on \d{4}-\d{2}-\d{2}", value):
         return "has no 'on YYYY-MM-DD' date"
-    if not re.search(r" on \d{4}-\d{2}-\d{2}: \S", value):
+    if re.search(r" on \d{4}-\d{2}-\d{2} until(?! \d{4}-\d{2}-\d{2}:)", value):
+        return "has an end date that is not 'until YYYY-MM-DD' before the colon"
+    if not re.search(r" on \d{4}-\d{2}-\d{2}(?: until \d{4}-\d{2}-\d{2})?: \S", value):
         return "gives no reason after the date"
     head = value.split(" by @", 1)[0]
     if not re.fullmatch(rf'(?:{RULE_TOKEN})(?:, (?:{RULE_TOKEN}))*', head):
@@ -121,12 +143,86 @@ def parse_override(bullet):
     if not match:
         return Override(bullet.line, value, (), "", "", "", _shape_problem(value))
     names = tuple(m.group(0).strip() for m in RULE_SPLIT.finditer(match["rules"]))
+    until = match["until"]
     problem = _rule_problem(names)
     if not problem and not _is_date(match["date"]):
         problem = f"has date {match['date']}, which is not a real date"
+    if not problem and until and not _is_date(until):
+        problem = f"has end date {until}, which is not a real date"
+    if not problem and until and until < match["date"]:
+        problem = f"ends on {until}, before the day it was written ({match['date']})"
     if problem:
         return Override(bullet.line, value, (), "", "", "", problem)
-    return Override(bullet.line, value, names, match["by"], match["date"], match["reason"].strip(), "")
+    return Override(bullet.line, value, names, match["by"], match["date"], match["reason"].strip(), "", until or None)
+
+
+def parse(value, line=0):
+    """One Override bullet's value read: rules, by, date, until (or None) and reason, or the problem."""
+    return parse_override(Bullet(schema.OVERRIDE_LABEL, value, line, (), "", False))
+
+
+# ------------------------------------------------------------------ end dates
+
+def is_standing(rule):
+    """Whether the rule guards a condition that stays true, so an override of it needs the date it ends. A quoted
+    rule is standing when it is one of schema.STANDING_QUOTED or a flow-check finding ("F<n> ...")."""
+    if rule.startswith('"'):
+        return rule in schema.STANDING_QUOTED or bool(re.match(r'^"F\d+ ', rule))
+    return rule in schema.STANDING_RULES
+
+
+def ends(ov):
+    """The last day a standing override covers, "YYYY-MM-DD", or None when it names no end: its own `until`,
+    else the earliest end a flow-check rule carries inside its quotes. An event override never ends."""
+    if not any(is_standing(rule) for rule in ov.rules):
+        return None
+    if ov.until:
+        return ov.until
+    inner = [m.group(1) for m in map(QUOTED_UNTIL_RE.match, ov.rules) if m]
+    return min(inner) if inner else None
+
+
+def covers(ov, today):
+    """Whether the override sets its rules aside on `today` ("YYYY-MM-DD" or a date): well formed, and not past its
+    end. A past end covers nothing, so the rule bites again rather than staying quietly green."""
+    if ov.problem:
+        return False
+    end = ends(ov)
+    return end is None or str(today) <= end
+
+
+def expired(ov, today):
+    """Whether a well-formed standing override's own `until` has passed. The flow check's in-quote ends are
+    flowcheck.verdicts' to report, so E398 is said once."""
+    return bool(not ov.problem and ov.until and any(is_standing(r) for r in ov.rules) and ov.until < str(today))
+
+
+_ISO = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+
+
+def _feeds(vault, release, item_id):
+    """Whether the item is part of what the release delivers: a requirement it lists, the capability one belongs to,
+    or an app or contract that carries a share of it."""
+    requirements = {row.requirement for row in release.rows if row.requirement}
+    if item_id in requirements or any(r.split(".")[0] == item_id for r in requirements):
+        return True
+    apps, contracts = releases.reach(vault, release)
+    return item_id in apps or item_id in contracts
+
+
+def suggest_until(item_id, vault, today):
+    """The end date a refusal offers for a standing override on `item_id`: the soonest release `**Target**`, on or
+    after today, of a release the item feeds, else SUGGEST_UNTIL_DAYS from today. Offered, never written: the lead
+    picks the date."""
+    today = str(today)
+    targets = []
+    for release in releases.releases(vault):
+        found = _ISO.search(release.target or "")
+        if found and _is_date(found.group(0)) and found.group(0) >= today and _feeds(vault, release, item_id):
+            targets.append(found.group(0))
+    if targets:
+        return min(targets)
+    return (datetime.date.fromisoformat(today) + datetime.timedelta(days=schema.SUGGEST_UNTIL_DAYS)).isoformat()
 
 
 # ------------------------------------------------------------------ scopes
@@ -266,11 +362,13 @@ def testable(rule, gate):
     return bool(codes) and all(schema.GATE_ONLY_CODES.get(code) in (None, gate) for code in codes)
 
 
-def apply(vault, findings, gate=None):
+def apply(vault, findings, today, gate=None):
     """The findings with every overridden error turned into its warning, plus W323 for an
     override that sets aside a rule the item does not break, W324 for an on-behalf decision
-    the owner has not confirmed, and E321/E322 for bullets that cannot be read. `gate` is the
-    gate check ran under, so an override of a gate-only code is idle only when its gate ran."""
+    the owner has not confirmed, E398 for a standing override past its `until` (which covers
+    nothing, so the error it named stays an error), and E321/E322 for bullets that cannot be
+    read. `gate` is the gate check ran under, so an override of a gate-only code is idle only
+    when its gate ran. `today` is "YYYY-MM-DD", passed in."""
     scopes = _scopes(vault)
     by_line = {}
     for (path, item_id), page in scopes.items():
@@ -285,7 +383,7 @@ def apply(vault, findings, gate=None):
             continue
         page, item_id = scope
         fired.setdefault((page.path, item_id), set()).add(finding.code)
-        cover = [o for o in valid_overrides(page, item_id) if finding.code in o.codes]
+        cover = [o for o in valid_overrides(page, item_id) if finding.code in o.codes and covers(o, today)]
         if not cover:
             out.append(finding)
             continue
@@ -298,6 +396,13 @@ def apply(vault, findings, gate=None):
         seen = fired.get((path, item_id), set())
         where = item_id or page.id or page.name
         for found in valid_overrides(page, item_id):
+            if expired(found, today):
+                standing = [r for r in found.rules if is_standing(r)]
+                out.append(_f(page, found.line, "E398",
+                              f"The override of {', '.join(standing)} on {vault.named(where)} ended on {found.until}, "
+                              "so it covers nothing and the rule it set aside applies again.",
+                              "Fix the cause and delete the override, or renew it: write a new until date and why it moved."))
+                continue
             idle = [r for r in found.rules if testable(r, gate) and not set(schema.OVERRIDE_RULES[r]) & seen]
             if idle:
                 out.append(_f(page, found.line, "W323",
