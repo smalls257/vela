@@ -31,7 +31,7 @@ def survey():
 
 
 VENDORED = ".claude/skills/vela/scripts/vela"
-RUNNING = LIB.parent / "scripts" / "vela"  # the launcher of the vela running doctor
+RUNNING = LIB.parent / "scripts" / "vela"  # the launcher this doctor runs from
 
 
 def hook_facts(root, environ=None, home=None):
