@@ -50,7 +50,7 @@ const Releases = (() => {
 
   /* ------------------------------------------------------------ the drawing */
   function drawMap(box, i, opts = {}) {
-    const L = Geo.layout({ cw: 300, rh: 150 }), b = L.bounds, W = 172, H = 58;
+    const L = Geo.layout(Layout.FRAME), b = L.bounds, W = 172, H = 58;  // the frame the overlap rule measures in (pins.FRAME)
     const left = b.x0 - 104, right = b.x1 + 104, top = b.y0 - 50, bottom = b.y1 + 36;  // room for the 172-wide boxes and their tags
     const svg = s("svg", { viewBox: `${left} ${top} ${right - left} ${bottom - top}`, class: "rl-map", role: "img", "aria-label": "The system in this state" }, box);
     const looks = new Set();

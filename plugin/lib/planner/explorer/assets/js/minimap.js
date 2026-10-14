@@ -8,7 +8,7 @@ const Minimap = (() => {
   Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Coloured line: a link whose contracts need someone, in the colour of the worst");
   Legend.define("mini.link.hot", [Legend.ln({ stroke: "focus", w: 4.5 })], "White line: a link to what you picked");
   Legend.define("mini.here", [Legend.bx({ stroke: "focus", w: 2.4, rx: 6 })], "White ring: where you are, the thing the panel is showing");
-  const MINI = { cw: 300, rh: 150 };
+  const MINI = Layout.FRAME;  // the cockpit's frame, the one the overlap rule measures in: a box clear on the big map is clear here
   const pulses = [];
   function here() {
     const v = viewDef(App.view);

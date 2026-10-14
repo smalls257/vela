@@ -229,7 +229,7 @@ table.dsm.angled tbody th.row, table.dsm.angled tbody th.group { padding-left: 2
 table.dsm.angled { margin: -3px 0 0 -3px; }  /* the border-spacing, so a frozen cell starts where it stays */
 .cockpit .leader { stroke: var(--ink-4); stroke-width: 1.2; stroke-dasharray: 2 3; fill: none; }
 
-/* moving a box: the dashed outline is the free cell it will settle in */
+/* moving a box: the dashed outline is where it will land when that is not under the pointer (it would cover another box) */
 g.hit[data-movable] { cursor: grab; touch-action: none; }
 .board.moving, .board.moving g.hit[data-movable] { cursor: grabbing; }
 .board.moving svg { user-select: none; -webkit-user-select: none; }
@@ -237,6 +237,6 @@ g.hit[data-movable] { cursor: grab; touch-action: none; }
 .cockpit .drag-ghost { fill: none; stroke: var(--focus); stroke-width: 2; stroke-dasharray: 7 6; opacity: .9; }
 .layout-tools { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .layout-say { color: var(--ink-2, inherit); font-weight: 500; }
-.cockpit .drop-mark { stroke: var(--focus); stroke-width: 4; stroke-linecap: round; }
+.cockpit .drag-ghost.landing { stroke-width: 3; opacity: 1; }  /* where a held cluster will land, when not under the pointer */
 .cockpit .cluster[data-movable] .cluster-frame, g.cluster-lamp[data-movable] { cursor: grab; }
 button.cell > span { max-width: calc(100% - 6px); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -3,11 +3,13 @@
    The cockpit, the line map and the minimap all draw from this one function, so an app is in the same place on all
    three, and its lane in a played flow follows the same left-to-right order. A position never comes from a force
    layout or the screen size: cells are pinned and only scaled here. Track is octilinear (horizontal, vertical, 45°).
-   A box dragged by a reader stands at a fractional cell (layout.js) and is drawn there like any other.
+   A position may fall between cells (a reader drops a box where they like, layout.js); nothing here rounds it, and a
+   route between two boxes nearly in line runs straight. The cockpit, the minimap and the releases view scale by
+   Layout.FRAME, the frame the overlap rule measures in; the line map keeps its own, wider spacing.
    A station with several corridors on one side becomes an interchange bar with one port per corridor, so lines fan
    out instead of piling onto one point. Ported from prototypes/gallery/maps/shared/geometry.js. */
 const Geo = (() => {
-  const LINE_W = 6, LINE_GAP = 8.5, PORT_GAP = 16, MIN_SIDE = 26;
+  const LINE_W = 6, LINE_GAP = 8.5, PORT_GAP = 16, MIN_SIDE = 26, NEAR_LEVEL = 8;
   // Flow line colours per theme (--lines in themes.css), kept apart from the lamp colours; past the sixth a line is
   // grey and told apart by its label.
   const flowColour = (i) => Theme.list("lines")[i] || Theme.c("line-grey");
@@ -25,8 +27,6 @@ const Geo = (() => {
   }
   function layout(opts) {
     const o = Object.assign({}, DEFAULTS, opts || {});
-    const apps = D.nodes.filter((n) => n.kind === "app");
-    const maxAppRow = Math.max(0, ...apps.map((n) => n.row));
     const stations = {};
     for (const n of D.nodes) {
       const outside = n.kind !== "app";
@@ -87,7 +87,11 @@ const Geo = (() => {
     const xs = Object.values(stations).flatMap((st) => [st.x - st.w / 2, st.x + st.w / 2]);
     const ys = Object.values(stations).flatMap((st) => [st.y - st.h / 2, st.y + st.h / 2]);
     const bounds = xs.length ? { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) } : { x0: 0, x1: 100, y0: 0, y1: 100 };
-    const zoneY = D.nodes.some((n) => n.kind !== "app") ? o.padY + maxAppRow * o.rh + (o.rh + o.bandGap) / 2 + 10 : null;
+    // The line between our apps and the outside parties is drawn only where it divides them: a reader may now drop a
+    // party anywhere clear of the boxes, and a line with a party on the wrong side of it would say something false.
+    const all = Object.values(stations), appYs = all.filter((st) => !st.outside).map((st) => st.y), partyYs = all.filter((st) => st.outside).map((st) => st.y);
+    const lowApp = Math.max(o.padY, ...appYs), highParty = Math.min(...partyYs);
+    const zoneY = partyYs.length && highParty - lowApp >= o.rh ? (lowApp + highParty) / 2 + 10 : null;
     return { stations, corridors, bounds, zoneY };
   }
 
@@ -103,7 +107,9 @@ const Geo = (() => {
   function octilinear(A, B, sideA) {
     const dx = B.x - A.x, dy = B.y - A.y, adx = Math.abs(dx), ady = Math.abs(dy);
     const sx = Math.sign(dx) || 1, sy = Math.sign(dy) || 1;
-    if (ady < 0.5 || adx < 0.5) return [A, B];
+    // nearly in line: one straight run. Whole cells put ports exactly level; a box dropped between cells can stand a
+    // few pixels off, and a 45° jog that short reads as a kink, not as a bend.
+    if (ady < NEAR_LEVEL || adx < NEAR_LEVEL) return [A, B];
     if (sideA === "L" || sideA === "R") {
       if (adx >= ady) { const hh = (adx - ady) / 2; return [A, { x: A.x + sx * hh, y: A.y }, { x: B.x - sx * hh, y: B.y }, B]; }
       const d = adx / 2; return [A, { x: A.x + sx * d, y: A.y + sy * d }, { x: B.x - sx * d, y: B.y - sy * d }, B];

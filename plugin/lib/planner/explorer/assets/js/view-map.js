@@ -178,9 +178,9 @@ const MapView = (() => {
     board.__fit = fit; addEventListener("resize", fit);
   }
   const FLOW_CARD_MIN = 240;
-  const COCKPIT = { cw: 380, rh: 128, bandGap: 104 }, BOX_W = 176, BOX_H = 66;
+  const COCKPIT = Layout.FRAME, BOX_W = 176, BOX_H = 66;  // the frame the overlap rule measures in (pins.FRAME); a box no bigger than pins.BOX
   let seenView = null;  // the cockpit's frame before a drag: a drag keeps it, so the board does not rescale under the pointer
-  /* Nothing sits on anything: the boxes are laid out from their cells (pins keep them a column apart), and each
+  /* Nothing sits on anything: the boxes are drawn where they are pinned (pins keep them pins.GAP apart), and each
      duct's lamps stand together as one bank at the first point along the duct, from its quieter end outward, that
      touches no box, caption or earlier bank (MapGroups.place). #selftest checks that no two parts intersect. */
   function cockpit(board) {
@@ -209,8 +209,10 @@ const MapView = (() => {
         taken.push(MapGroups.drawnBox(caption, { x: right - 130, y: y - 14, w: 110, h: 18 }));
       }
     }
-    if (dragging && Layout.live.spot) {
-      const at = Geo.pointOf(COCKPIT, Layout.live.spot[0], Layout.live.spot[1], NODE[Layout.live.key].kind !== "app");
+    // while held, a dashed outline shows where the box will stand when let go, if that is not under the pointer
+    const land = dragging && Layout.live.land;
+    if (land && land.hit) {
+      const at = Geo.pointOf(COCKPIT, land.spot[0], land.spot[1], NODE[Layout.live.key].kind !== "app");
       s("rect", { x: at.x - W / 2, y: at.y - H / 2, width: W, height: H, rx: 10, class: "drag-ghost" }, gDucts);
     }
     for (const cor of Object.values(L.corridors)) {
@@ -257,9 +259,10 @@ const MapView = (() => {
     breathe.start();
   }
   /* ------------------------------------------------------------ moving a box */
-  /* Drag a box to another cell, or focus it and press an arrow key. While it is held the cockpit, the minimap and the
-     ducts are drawn with it where the pointer is, and a dashed outline shows the free cell it will settle in; on
-     release it takes that cell, or stays where it was when no free cell is near. Escape lets go without moving it. */
+  /* Drag a box anywhere, or focus it and press an arrow key (a quarter of a cell; with Shift, a whole cell). While it
+     is held the cockpit, the minimap and the ducts are drawn with it where the pointer is; on release it stays exactly
+     there. Where that would cover another box, a dashed outline shows the nearest clear point on the line it is being
+     dragged along, and the box lands there; the status line says so. Escape lets go without moving it. */
   // the release of a drag is followed by a click on whatever is under the pointer; a pick within this long of a drop is that click
   let droppedAt = -1e9;
   const markDrop = () => { droppedAt = Date.now(); };
@@ -268,13 +271,13 @@ const MapView = (() => {
   const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   function movable(el, key, board) {
     el.setAttribute("data-movable", "1");
-    el.setAttribute("aria-keyshortcuts", "ArrowLeft ArrowRight ArrowUp ArrowDown");
+    el.setAttribute("aria-keyshortcuts", "ArrowLeft ArrowRight ArrowUp ArrowDown Shift+ArrowLeft Shift+ArrowRight Shift+ArrowUp Shift+ArrowDown");
     el.addEventListener("pointerdown", (e) => startMove(e, key, board));
     el.addEventListener("keydown", (e) => {
       const d = ARROWS[e.key];
       if (!d || e.altKey || e.ctrlKey || e.metaKey) return;
       e.preventDefault();
-      Layout.step(key, d[0], d[1]);
+      Layout.step(key, d[0], d[1], e.shiftKey);
       rerender();
       refocus(key);
     });
@@ -438,7 +441,8 @@ const MapView = (() => {
         hit.addEventListener("mouseleave", hideTip);
       }
     }
-    for (const stn of Object.values(L.stations)) station(stn, L, gStations);
+    const names = [];  // the station names placed so far, which a later name keeps clear of
+    for (const stn of Object.values(L.stations)) station(stn, L, gStations, names);
     // Nothing sits on anything: each track label takes the first spot along its corridor, either side, that touches no
     // station, name, caption or label before it; the works markers then do the same around all of them.
     const taken = $$("g.station, .zone-text", map).map((el) => { const b = el.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
@@ -483,7 +487,7 @@ const MapView = (() => {
     if (!box) { box = place(tries[0]); console.warn(`[map] no free place for the label of ${ids.join(", ")}; drawn where it overlaps`); }
     taken.push(box);
   }
-  function station(stn, L, g) {
+  function station(stn, L, g, names) {
     const n = stn.node, w = stn.w, ht = stn.h;
     const grp = s("g", { class: "station " + (n.kind !== "app" ? "party" : "app"), "data-key": n.key }, g);
     Legend.saw(n.kind !== "app" ? "station.party" : "station.app");
@@ -495,21 +499,37 @@ const MapView = (() => {
     if (em) { const size = Math.max(16, Math.min(w, ht) - 9); s("image", { href: em, x: stn.x - size / 2, y: stn.y - size / 2, width: size, height: size, class: "emblem" }, grp); }
     const free = ["L", "R", "U", "D"].filter((sd) => !stn.ports[sd].length);
     const cols = Object.values(L.stations).filter((x) => !x.outside).map((x) => x.node.col);
-    const prefer = n.kind !== "app" ? ["D", "R", "L", "U"] : n.col === Math.min(...cols) ? ["L", "U", "D", "R"] : ["R", "D", "U", "L"];
-    const sideFree = prefer.find((sd) => free.includes(sd)) || "D";
-    stn.labelSide = sideFree;
-    let x = stn.x, y = stn.y, anchor = "middle";
-    if (sideFree === "L") { x = stn.x - w / 2 - 14; anchor = "end"; y = stn.y + 2; }
-    if (sideFree === "R") { x = stn.x + w / 2 + 14; anchor = "start"; y = stn.y + 2; }
-    if (sideFree === "U") y = stn.y - ht / 2 - 30;
-    if (sideFree === "D") y = stn.y + ht / 2 + 24;
-    const name = s("text", { x, y, "text-anchor": anchor, class: "station-name" }, grp);
+    // the leftmost apps name themselves on the left: within half a column of the leftmost, since a box may stand between cells
+    const prefer = n.kind !== "app" ? ["D", "R", "L", "U"] : n.col - Math.min(...cols) < 0.5 ? ["L", "U", "D", "R"] : ["R", "D", "U", "L"];
+    const sides = prefer.filter((sd) => free.includes(sd));
+    const name = s("text", { class: "station-name" }, grp);
     name.textContent = shorten(n.title, 26);  // a longer name would run into the next station's; the full one is the hover title
     s("title", {}, grp).textContent = n.external && EXTERNAL[n.key] ? EXTERNAL[n.key].said : n.title;
     const lv = levelOf(n.key);
     if (["warning", "caution", "unexamined"].includes(lv)) Legend.saw("lit.words");
-    s("text", { x, y: y + 18, "text-anchor": anchor, class: "station-sub" + (lv !== "dark" ? " " + lv : "") }, grp).textContent =
-      n.kind !== "app" ? "outside party" : lv !== "dark" ? LIGHT[lv].word.toLowerCase() : (APPS[n.key].change || "change not recorded");
+    const sub = s("text", { class: "station-sub" + (lv !== "dark" ? " " + lv : "") }, grp);
+    sub.textContent = n.kind !== "app" ? "outside party" : lv !== "dark" ? LIGHT[lv].word.toLowerCase() : (APPS[n.key].change || "change not recorded");
+    // The name takes the first free side whose words touch no other station and no name placed before it: boxes
+    // dropped between cells can stand closer than a column, and a name on the near side would run into the neighbour.
+    const put = (side) => {
+      let x = stn.x, y = stn.y, anchor = "middle";
+      if (side === "L") { x = stn.x - w / 2 - 14; anchor = "end"; y = stn.y + 2; }
+      if (side === "R") { x = stn.x + w / 2 + 14; anchor = "start"; y = stn.y + 2; }
+      if (side === "U") y = stn.y - ht / 2 - 30;
+      if (side === "D") y = stn.y + ht / 2 + 24;
+      for (const [t, dy] of [[name, 0], [sub, 18]]) { t.setAttribute("x", x); t.setAttribute("y", y + dy); t.setAttribute("text-anchor", anchor); }
+      const a = name.getBBox(), b = sub.getBBox(), x0 = Math.min(a.x, b.x), y0 = Math.min(a.y, b.y);
+      return { x: x0, y: y0, w: Math.max(a.x + a.width, b.x + b.width) - x0, h: Math.max(a.y + a.height, b.y + b.height) - y0 };
+    };
+    const others = Object.values(L.stations).filter((o) => o.key !== n.key).map((o) => ({ x: o.x - o.w / 2 - 2, y: o.y - o.h / 2 - 2, w: o.w + 4, h: o.h + 4 }));
+    const blocked = (r) => bumps(r, others) || bumps(r, names);
+    let side = sides.find((sd) => !blocked(put(sd)));
+    if (!side) {
+      side = sides[0] || "D";
+      if (sides.length > 1) console.warn(`[map] no side of ${n.title} has room for its name on the line map; drawn where it overlaps`);
+    }
+    stn.labelSide = side;
+    names.push(put(side));
     const open = () => { go(n.key, { reset: true }); Assets.theme(n.title); };
     Nodes.wire(grp, { label: n.title, aria: `${n.title}. Open details.`, open });
   }
