@@ -381,8 +381,8 @@ def test_a_gap_the_lead_raised_first_is_not_counted_for_the_assistant():
 def test_disagreements_lead_the_scorecard_under_check_these():
     persona = coastal()
     card = {kind: [] for kind in sim.SCORE_LISTS}
-    card["knows"] = [{"id": "K4", "search": "read 01-goals.md", "captured": False, "where": None},
-                     {"id": "K2", "search": "read the risks", "captured": True, "where": "11-unknowns-and-risks.md"}]
+    card["knows"] = [{"id": "K4", "grounds": "read 01-goals.md", "captured": False, "where": None},
+                     {"id": "K2", "grounds": "read the risks", "captured": True, "where": "11-unknowns-and-risks.md"}]
     hits = {"K4": {"kind": "knows", "keywords": ["FERRYMASTER"], "assistant_turns": [],
                    "vault_files": [{"file": "01-goals.md", "keywords": ["FERRYMASTER"]}]},
             "K2": {"kind": "knows", "keywords": ["SeaBook"], "assistant_turns": [], "vault_files": []}}
@@ -405,7 +405,7 @@ def test_the_full_run_scorecard_sets_hits_beside_the_verdicts(full_run):
     assert card["hits"]["K1"]["assistant_turns"][0]["turn"] == 2 and card["hits"]["K1"]["vault_files"] == []
     assert any(c.startswith("K1: judge: yes; no vault page holds") for c in card["check_these"])
     assert any(c.startswith("U1: judge: yes; no assistant turn holds") for c in card["check_these"])
-    assert all(row["search"].startswith("stub: read") for kind in sim.SCORE_LISTS for row in card[kind])
+    assert all(row["grounds"].startswith("stub: read") for kind in sim.SCORE_LISTS for row in card[kind])
     md = (full_run["run"] / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert md.index("## Check these") < md.index("## Gaps surfaced")
     assert "keyword hits" in (full_run["run"] / "compare.html").read_text(encoding="utf-8")
@@ -444,30 +444,30 @@ def test_each_call_holds_only_its_own_items_and_the_hints_say_a_hint_is_not_proo
     assert "A hint is not proof" in sim.judge_system_prompt("unaware")
 
 
-def test_every_verdict_needs_a_search_note_written_first():
+def test_every_verdict_needs_a_grounds_note_written_first():
     persona = coastal()
-    rows = [{"id": i["id"], "search": "looked in T4", "captured": False, "where": None} for i in persona["knows"]]
+    rows = [{"id": i["id"], "grounds": "T4 names it", "captured": False, "where": None} for i in persona["knows"]]
     assert sim.category_problems({"knows": rows}, persona, "knows") == []
     rows[0] = {"id": "K1", "captured": False, "where": None}
-    rows[1] = {"id": "K2", "captured": False, "search": "  ", "where": None}
-    rows[2] = {"id": "K3", "captured": False, "where": None, "search": "looked afterwards"}
+    rows[1] = {"id": "K2", "captured": False, "grounds": "  ", "where": None}
+    rows[2] = {"id": "K3", "captured": False, "where": None, "grounds": "written afterwards"}
     problems = sim.category_problems({"knows": rows}, persona, "knows")
-    assert problems == ["knows K1: 'search' must say what you looked for and where",
-                        "knows K2: 'search' must say what you looked for and where",
-                        "knows K3: write 'search' before 'captured'"]
+    assert problems == ["knows K1: 'grounds' must name the turns and files that bear on it and what they say",
+                        "knows K2: 'grounds' must name the turns and files that bear on it and what they say",
+                        "knows K3: write 'grounds' before 'captured'"]
     shape = {key: [] for key in sim.SHAPE_LISTS}
-    assert sim.category_problems(shape, persona, "shape") == ["the reply: 'search' must say what you looked for and where"]
-    assert sim.category_problems({"search": "read every turn", **shape}, persona, "shape") == []
+    assert sim.category_problems(shape, persona, "shape") == ["the reply: 'grounds' must name the turns and files that bear on it and what they say"]
+    assert sim.category_problems({"grounds": "every turn", **shape}, persona, "shape") == []
     # The shape checks that were there before are as strict as they were.
-    missing = [{"id": "K1", "search": "x", "captured": "yes"}]
+    missing = [{"id": "K1", "grounds": "x", "captured": "yes"}]
     assert sim.category_problems({"knows": missing}, persona, "knows")[:2] == [
         f"'knows' must list exactly {', '.join(i['id'] for i in persona['knows'])}, once each; got ['K1']",
         "knows K1: 'captured' must be true or false"]
 
 
-def test_a_reply_without_search_notes_is_asked_again_once_then_exits_2(tmp_path):
-    code, err, _, calls = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "nosearch"})
-    assert code == 2 and "'search' must say" in err
+def test_a_reply_without_grounds_notes_is_asked_again_once_then_exits_2(tmp_path):
+    code, err, _, calls = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "nogrounds"})
+    assert code == 2 and "'grounds' must name" in err
     assert [c["category"] for c in calls if c["role"] == "judge"] == ["knows", "knows"]
 
 
@@ -616,15 +616,62 @@ def test_news_can_change_how_the_lead_takes_a_decision():
 
 
 def test_a_judge_refusal_is_retried_once_cut_short_then_that_category_reads_not_scored(tmp_path):
-    code, err, run_dir, calls = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "refuse:wrong"})
+    reply = tmp_path / "long-reply.md"
+    reply.write_text("A long first turn, so cutting each turn to 800 characters changes the input. " * 30
+                     + "\n\nWhat else is on your mind?", encoding="utf-8")
+    code, err, run_dir, calls = simulate(tmp_path, "--budget", "5",
+                                         env={"SIM_STUB_JUDGE": "refuse:wrong", "SIM_STUB_REPLY": str(reply)})
     assert code == 0, err
-    assert [c["category"] for c in calls if c["role"] == "judge"].count("wrong") == 2
+    wrong = [c for c in calls if c["role"] == "judge" and c["category"] == "wrong"]
+    assert len(wrong) == 2 and wrong[1]["stdin_chars"] < wrong[0]["stdin_chars"]
     card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
     assert list(card["not_scored"]) == ["wrong"] and card["wrong"] == []
-    assert any(c.startswith("judge: wrong not scored: the judge model refused twice") for c in card["check_these"])
+    assert any(c.startswith("judge: wrong not scored: the judge model refused twice (flagged [reasoning_extraction])")
+               for c in card["check_these"])
     md = (run_dir / "vela" / "scorecard.md").read_text(encoding="utf-8")
     assert "## Wrong beliefs challenged (W): not scored" in md
     assert "## Facts captured (K):" in md  # the other categories still count
+
+
+def test_a_refused_judge_input_already_cut_short_is_not_sent_again(tmp_path):
+    # Every stub turn is under 800 characters, so the cut-short retry would be the same request at the same price.
+    code, err, run_dir, calls = simulate(tmp_path, "--budget", "5", env={"SIM_STUB_JUDGE": "refuse:wrong"})
+    assert code == 0, err
+    assert [c["category"] for c in calls if c["role"] == "judge"].count("wrong") == 1
+    card = json.loads((run_dir / "vela" / "scorecard.json").read_text(encoding="utf-8"))
+    assert list(card["not_scored"]) == ["wrong"]
+    assert "so it was not sent again" in card["not_scored"]["wrong"]
+
+
+# The judge thinks (--effort, alwaysThinkingEnabled). Asked as well to write in its reply what it looked for, where,
+# and what it found, it was refused by the model's safeguards as [reasoning_extraction]: knows, wrong and tracer on
+# every call of the 2026-10-14 heron-desk run, on Sonnet 5.5 and Opus 5.5 alike. The note before each verdict names
+# the text it rests on instead, and no prompt may ask the judge to narrate, disclose or quote its own reasoning.
+REASONING_EXTRACTION_PHRASES = (
+    r"what you looked for", r"where you looked", r"what you found", r"\bsearch\b", r"\byour (own )?(reasoning|thinking|"
+    r"thoughts|thought process)\b", r"\bchain[- ]of[- ]thought\b", r"\bstep[- ]by[- ]step\b", r"\bexplain (your|how you)\b",
+    r"\bshow your work\b", r"\bthink(ing)? (out loud|aloud)\b", r"\breason(ing)? (first|out loud|aloud)\b")
+
+
+@pytest.mark.parametrize("category", sim.JUDGE_CATEGORIES)
+def test_no_judge_prompt_asks_the_judge_to_disclose_its_reasoning(category):
+    prompt = sim.judge_system_prompt(category)
+    found = [p for p in REASONING_EXTRACTION_PHRASES if re.search(p, prompt, re.I)]
+    assert not found, f"the {category} judge prompt asks for its reasoning in the reply: {found}"
+    # Not weakened: it still names its grounds before every verdict, and every yes still cites a turn and a quote.
+    assert '"grounds"' in prompt and "turn number T<n>" in prompt and "a quote copied exactly" in prompt
+
+
+def test_the_judge_still_thinks():
+    argv = sim.text_call_argv("m", sim.judge_system_prompt("knows"), 1.0, thinking=True)
+    assert argv[argv.index("--effort") + 1] == sim.JUDGE_EFFORT
+    assert json.loads(argv[argv.index("--settings") + 1])["alwaysThinkingEnabled"] is True
+
+
+def test_a_refusal_names_the_classifier_that_flagged_it():
+    result = {"result": "API Error: flagged.\n\nDetails: `[reasoning_extraction]`\n\nRequest ID: req_1"}
+    assert sim.refusal_flag(result) == " (flagged [reasoning_extraction])"
+    assert sim.refusal_flag({"result": "API Error: flagged."}) == ""
 
 
 def test_two_closed_sessions_that_clash_are_merged_by_union_keeping_mains_state(tmp_path):
@@ -1173,15 +1220,15 @@ def test_the_judge_has_one_tracer_question_that_reads_the_releases_page(full_run
     assert "THE RELEASES PAGES" in text and "----- FILE 04b-releases.md -----" in text
 
 
-def test_a_tracer_reply_needs_a_search_note_a_known_answer_and_a_yes_or_no_for_a_tracer():
-    ok = {"search": "read the releases page", "answer": "tracer", "through_every_app": True, "where": "x", "quote": "y"}
+def test_a_tracer_reply_needs_a_grounds_note_a_known_answer_and_a_yes_or_no_for_a_tracer():
+    ok = {"grounds": "the releases page", "answer": "tracer", "through_every_app": True, "where": "x", "quote": "y"}
     assert sim.category_problems(ok, {}, "tracer") == []
-    assert sim.category_problems({"search": "x", "answer": "none_with_reason"}, {}, "tracer") == []
+    assert sim.category_problems({"grounds": "x", "answer": "none_with_reason"}, {}, "tracer") == []
     assert sim.category_problems({"answer": "tracer", "through_every_app": True}, {}, "tracer") == [
-        "the reply: 'search' must say what you looked for and where"]
-    assert sim.category_problems({"search": "x", "answer": "maybe"}, {}, "tracer") == [
+        "the reply: 'grounds' must name the turns and files that bear on it and what they say"]
+    assert sim.category_problems({"grounds": "x", "answer": "maybe"}, {}, "tracer") == [
         "'answer' must be one of tracer, none_with_reason, not_recorded, no_releases_session"]
-    assert sim.category_problems({"search": "x", "answer": "tracer"}, {}, "tracer") == [
+    assert sim.category_problems({"grounds": "x", "answer": "tracer"}, {}, "tracer") == [
         "'through_every_app' must be true or false when the answer is tracer"]
 
 
@@ -1306,3 +1353,60 @@ def test_a_subagent_reply_without_a_turn_renders():
     spec.loader.exec_module(simrun)
     page = simrun.render_transcript("x", [{"speaker": "subagent", "session": "1", "mode": "dump", "text": "found <it>", "cost_usd": "0"}])
     assert "Subagent" in page and "found &lt;it&gt;" in page
+
+
+# ---- the judge preflight: a judge that can't score stops the run before the sessions it would pay for
+
+def fake_claude_env(tmp_path, **extra):
+    """The stub first on PATH, so a run without --stub still never reaches a real model."""
+    return {"PATH": os.pathsep.join([str(SIM / "stub"), os.environ.get("PATH", "")]),
+            "SIM_STUB_LOG": str(tmp_path / "stub-log.jsonl"), **extra}
+
+
+def logged_calls(tmp_path):
+    log = tmp_path / "stub-log.jsonl"
+    return [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()] if log.is_file() else []
+
+
+def test_a_refusing_judge_stops_the_run_at_setup_before_any_session(tmp_path):
+    script = tmp_path / "two.yaml"
+    script.write_text(yaml.safe_dump(TWO_SESSIONS), encoding="utf-8")
+    done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--script", str(script),
+                           "--arms", "vela", "--out", str(tmp_path / "results"), *MODELS, "--budget", "5"],
+                          capture_output=True, text=True, timeout=600,
+                          env={**os.environ, **fake_claude_env(tmp_path, SIM_STUB_JUDGE="refuse:knows")})
+    assert done.returncode == 4, done.stderr
+    assert "failed its preflight, so no session ran" in done.stderr
+    assert "knows: refused by the model's safeguards (flagged [reasoning_extraction])" in done.stderr
+    calls = logged_calls(tmp_path)
+    assert {c["role"] for c in calls} == {"judge"}  # no assistant or persona call was made
+    assert sorted(c["category"] for c in calls) == sorted(sim.JUDGE_CATEGORIES)
+    run_json = json.loads(next((tmp_path / "results").iterdir()).joinpath("run.json").read_text(encoding="utf-8"))
+    assert run_json["exit"] == 4 and run_json["preflight"][0].startswith("knows: refused")
+
+
+def test_the_preflight_passes_a_judge_that_answers_and_names_an_erroring_one(tmp_path, monkeypatch):
+    for key, value in fake_claude_env(tmp_path).items():
+        monkeypatch.setenv(key, value)
+    args = sim.parse_args(["coastal-merger", *MODELS, "--budget", "5"])
+    spent, problems = sim.judge_preflight(args, tmp_path / "ok")
+    assert problems == [] and spent == pytest.approx(0.01 * len(sim.JUDGE_CATEGORIES))
+    monkeypatch.setenv("SIM_STUB_JUDGE", "toolong:shape")
+    _, problems = sim.judge_preflight(args, tmp_path / "bad")
+    assert len(problems) == 1 and problems[0].startswith("shape: failed because the prompt was too long")
+
+
+def test_every_preflight_input_has_the_real_shape_and_is_tiny(tmp_path):
+    inputs = dict(sim.preflight_inputs(tmp_path))
+    assert list(inputs) == list(sim.JUDGE_CATEGORIES)
+    for category, text in inputs.items():
+        assert "THE TRANSCRIPT:\n" in text and len(text) < 6000, category
+    assert "HINTS, which turns and files hold" in inputs["knows"] and "FILE 01-goals.md" in inputs["knows"]
+    assert "INBOX DOCUMENTS:" in inputs["wrong"] and "04b-releases.md" in inputs["tracer"]
+
+
+def test_a_stub_run_skips_the_preflight(tmp_path):
+    code, err, run_dir, calls = simulate(tmp_path, "--budget", "5")
+    assert code == 0, err
+    assert not (run_dir / "judge-preflight").exists()
+    assert not any(str(c.get("cwd", "")).endswith("judge-preflight") for c in calls)
