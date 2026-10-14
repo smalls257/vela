@@ -148,13 +148,16 @@ def test_frontier_lists_team_gaps(tmp_path):
     code, out = run("epics", "frontier", "--vault", str(HERON), "--team", "@product-owner", "--json")
     data = json.loads(out)
     assert code == 1
-    assert sorted(g["subject"] for g in data["gaps"]) == ["CAP-006", "CON-002", "CON-003", "CON-004", "CON-005"]
-    assert data["counts"]["gaps"] == {"T1": 1, "T2": 4, "T4": 0, "T6": 0}
+    assert sorted(g["subject"] for g in data["gaps"]) == ["CON-002", "CON-003", "CON-004", "CON-005"]
+    assert data["counts"]["gaps"] == {"T1": 0, "T2": 4, "T4": 0, "T6": 0}
+    # No allocation row carries CAP-006, so it is no team's yet; it is said on every frontier, never dropped.
+    assert [g["subject"] for g in data["unowned"]] == ["CAP-006"]
     assert sorted(a["id"] for a in data["apps"]) == ["APP-consent-and-identity", "APP-summarizer"]
 
     code, out = run("epics", "frontier", "--vault", str(HERON), "--team", "sim-lead", "--json")
     data = json.loads(out)
     assert code == 0 and data["gaps"] == []  # the other team's gaps are not this team's
+    assert [g["subject"] for g in data["unowned"]] == ["CAP-006"]
     assert data["counts"]["epics"] == 4 and data["counts"]["criteria"] > 0
 
     code, out = run("epics", "frontier", "--vault", str(HERON), "--team", "@nobody")

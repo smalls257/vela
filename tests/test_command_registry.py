@@ -25,7 +25,7 @@ def test_every_group_module_registers_without_touching_cli(monkeypatch):
 def test_a_group_with_nothing_built_adds_no_command():
     """`vela --help` never lists a command that does nothing: an unbuilt group registers no parser."""
     names = set(cli.build_parser()._subparsers._group_actions[0].choices)
-    for name in ("apply", "decide", "marks", "epics", "boundary"):
+    for name in ("apply", "decide", "marks", "boundary"):
         assert name not in names, name
     assert {"check", "explore", "where", "questions", "handoff", "capture"} <= names
 
