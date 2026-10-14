@@ -1,8 +1,7 @@
 """S50: a page kept two openings that disagree. W371 warns for two or more prose paragraphs above the first `##`
 heading that together run past the opening limit; ordinary short two-paragraph openings stay quiet."""
-import shutil
 
-from conftest import REPO, check, findings, skill_text
+from conftest import REPO, check
 
 from vela import cli, readload, schema
 
@@ -112,10 +111,3 @@ def test_every_conventions_copy_explains_the_code():
         text = (REPO / folder / "CONVENTIONS.md").read_text(encoding="utf-8")
         assert "| W371 | two or more openings above the first heading, over 150 words together |" in text, folder
         assert "W371 fires on a page that keeps two or more separate openings" in text, folder
-
-
-def test_close_replaces_the_opening_it_rewrites_instead_of_adding_one():
-    text = skill_text("close")
-    assert "A page has one opening: the one you rewrite replaces the old one, and you never write a new opening beside it." in text
-    assert "draw W371; keep one and fold what the others add under a heading." in text
-    assert "W363, W365, W368 and W371" in text

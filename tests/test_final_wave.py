@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 
-from conftest import REPO, skill_text
+from conftest import REPO
 from vela import voicecheck
 
 PLUGIN = REPO / "plugin"
@@ -15,10 +15,6 @@ PLUGIN = REPO / "plugin"
 
 def read(*parts):
     return REPO.joinpath(*parts).read_text(encoding="utf-8")
-
-
-def close_section(start, end):
-    return skill_text("close").split(start, 1)[1].split(end, 1)[0]
 
 
 # I3 and M7: the root README
@@ -64,15 +60,6 @@ def test_readme_plugin_row_lists_every_cli_command():
 
 # M1: a stale session branch merges main before render
 
-def test_close_merges_a_moved_main_before_render():
-    # The merge recipe moved into `vela close sync-main` (tests/test_sync_main.py pins its behavior); the skill
-    # runs it before render and checkpoints through `close stage`.
-    step = close_section("## 6. Render and check", "## 7.")
-    assert step.index("vela close sync-main") < step.index("vela render`, then")
-    assert "vela close stage --checkpoint" in step
-    assert "git merge" not in step and "-X ours" not in step and "--theirs" not in step
-    assert "long-lived PR" in read("README.md") and "merge `origin/main`" in read("README.md")
-
 
 def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
     """main rewrote a generated block; the session edited G3 on the same page. -X ours keeps G3."""
@@ -102,14 +89,6 @@ def test_a_block_only_conflict_keeps_the_sessions_clean_edits(tmp_path):
     assert "65%" in text and "<<<<<<<" not in text
 
 
-# M2: a suggestion to chase an unknown reaches the lead as plain words, not as the name of a skill that does not exist
-
-def test_start_never_mentions_a_probe_skill_because_next_says_what_to_do():
-    start = read("plugin", "references", "START.md").split("## 4.", 1)[1].split("## 5.", 1)[0]
-    assert "probe" not in start.lower()
-    assert "Ask the user whether they know the answer now" in start
-
-
 # M3: CONVENTIONS' negation sentence matches voicecheck
 
 def test_conventions_negation_words_match_the_code():
@@ -121,24 +100,6 @@ def test_conventions_negation_words_match_the_code():
         assert re.search(rf"\b{word}\b", sentence), word
     assert "any word ending in n't" in sentence
     assert "The count is per file" in sentence and "each paragraph" not in sentence
-
-
-# M4: the draft commit holds each drafted page whole
-
-def test_close_says_the_draft_commit_holds_whole_pages_and_review_lists_only_prose():
-    draft = close_section("## 4. Draft the prose", "### Voice review")
-    assert "holds each drafted page whole, including its structured section-3 edits" in draft
-    assert "Commit the drafts on their own" not in draft
-    review = (PLUGIN / "skills" / "close" / "VOICE-REVIEW.md").read_text(encoding="utf-8")
-    assert "List only the prose paragraphs this section drafted" in review
-
-
-# M5: house-voice's no-examples line has a place in the PR body
-
-def test_close_pr_body_carries_the_no_examples_line():
-    assert "No examples for <type>: drafted without examples" in read("plugin", "skills", "house-voice", "SKILL.md")
-    body = (PLUGIN / "skills" / "close" / "PR-BODY.md").read_text(encoding="utf-8")
-    assert '- **House voice:** each "No examples for <type>: drafted without examples" line house-voice gave' in body
 
 
 # M6: the plugin manifest
@@ -161,17 +122,6 @@ def test_readme_names_what_has_not_run_against_real_github():
     line = [l for l in read("README.md").splitlines() if l.startswith("- **Not yet run against a real GitHub repo:**")][0]
     for piece in ("weekly issue", "harvest", "answering a challenge", "merge of a moved `main`"):
         assert piece in line, piece
-
-
-def test_grill_sets_a_challenged_item_back_by_its_kind():
-    grill = read("plugin", "skills", "grill", "SKILL.md")
-    assert "to `reopened` for an epic or to `assumption` for anything else" in grill
-    assert "reopen it first" not in grill
-
-
-def test_start_does_not_offer_to_resume_a_waiting_challenge():
-    start = read("plugin", "references", "START.md")
-    assert "challenge waiting for an answer" in start and "offer the \"Answer a challenge\" path" in start
 
 
 def test_guide_html_is_rendered_from_guide_md():

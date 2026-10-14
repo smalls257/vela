@@ -132,10 +132,3 @@ def test_retries_with_their_answers_and_an_idempotent_bullet_are_quiet(mini):
                                             "- **Idempotent:** yes\n")
     _, out = check(mini)
     assert codes(out) == []
-
-
-def test_the_skills_put_the_case_table_where_it_is_written_and_decided():
-    from conftest import skill_text
-    assert "case table" in skill_text("boundary") and "one question per open case" in skill_text("boundary")
-    assert "not decided without its case table" in skill_text("grill")
-    assert "case table" in skill_text("house-voice")

@@ -9,7 +9,7 @@ import types
 
 import pytest
 
-from conftest import REPO, run, skill_text
+from conftest import REPO, run
 from vela import cli, voicescore
 
 PLUGIN = REPO / "plugin"
@@ -437,31 +437,6 @@ def test_only_the_cli_touches_the_disk_or_network():
 
 
 # --- the close skill ------------------------------------------------------------------------
-
-def voice_review():
-    return (PLUGIN / "skills" / "close" / "VOICE-REVIEW.md").read_text(encoding="utf-8")  # read by close at the voice review
-
-
-def test_close_scores_drafts_only_when_available_and_never_gates_on_it():
-    part = voice_review()
-    assert "vela voicescore" in part
-    assert "at least 5 active `owner` and `owner-edit` examples" in part
-    assert "information, not a gate" in part
-    assert "Never block, rewrite or skip a paragraph because of its voicescore" in part
-    assert '"voicescore: not run (<reason>)"' in part
-    assert "voicescore: 3 of 4 paragraphs inside your range; ¶2 outside (p96)" in part
-
-
-def test_close_still_runs_the_voicecheck_fact_guard_unchanged():
-    part = voice_review()
-    assert 'python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela voicecheck "$tmp" <page>; code=$?; rm -f "$tmp"; (exit $code)' in part
-    assert "Never commit a rewrite voicecheck could not check." in part
-
-
-def test_the_pr_body_reports_voicescore_in_the_voice_review_line():
-    close = skill_text("close")
-    line = next(l for l in close.splitlines() if l.strip().startswith("- **Voice review:**"))
-    assert "voicescore" in line and "not run (<reason>)" in line
 
 
 def test_the_reviewer_may_read_a_voicescore_as_a_hint_only():

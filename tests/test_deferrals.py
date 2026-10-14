@@ -1,7 +1,7 @@
 """A matter left for a Grill is an open question with an owner and a date, never a sentence that nothing will read again."""
 import pytest
 
-from conftest import check, edit, findings, skill_text
+from conftest import check, edit, findings
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
 UNK = "11-unknowns-and-risks.md"
@@ -61,9 +61,3 @@ def test_a_session_record_may_say_it(mini):
     session.write_text(text + "\nThe float was left for a Grill.\n", encoding="utf-8")
     _, out = check(mini)
     assert "W389" not in codes(out)
-
-
-def test_close_turns_a_deferral_into_a_question_with_an_owner_and_a_date():
-    close = skill_text("close")
-    assert "left for a grill, or is decided later, is never kept as prose" in close
-    assert "`**Owner:**`" in close and "`**Ask by:**`" in close

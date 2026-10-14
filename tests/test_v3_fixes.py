@@ -221,13 +221,6 @@ def test_the_area_reviewer_runs_on_a_named_model():
     assert "\nmodel: sonnet\n" in front
 
 
-def test_review_md_dispatches_on_that_model_and_skips_areas_out_of_scope():
-    text = (PLUGIN / "references" / "REVIEW.md").read_text(encoding="utf-8")
-    assert "model: sonnet" in text and text.count("sonnet") >= 2, "the subagent and the general-purpose fallback"
-    assert "skipped (nothing in scope)" in text and "--skipped" in text
-    assert "## Question ledger" in text, "reviewers read the ledger page only above its ledger section"
-
-
 # ------------------------------------------------------------------ 3. a deferral is not a ruling-out
 
 RUN_DEFERRAL = "ruled out for now, the pick depends on UNK-011 and UNK-024 (Monday)"
@@ -354,14 +347,6 @@ def test_the_digest_hides_nothing_from_open_or_json(tmp_path):
 def test_all_goes_only_with_digest():
     code, out = run("questions", "--vault", str(FIXTURE), "--all")
     assert code == 2 and "--all goes with --digest" in out
-
-
-def test_review_md_and_skills_describe_the_short_digest():
-    review = (PLUGIN / "references" / "REVIEW.md").read_text(encoding="utf-8")
-    section = review.split("## 5. The digest")[1].split("## 6.")[0]
-    assert "--all" in section and "more (normal)" in section
-    conventions = (FIXTURE / "CONVENTIONS.md").read_text(encoding="utf-8")
-    assert "--all" in conventions and "counted by area" in conventions
 
 
 def test_the_fixture_stays_clean():

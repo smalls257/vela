@@ -1,0 +1,236 @@
+"""What the epics skill says, pinned in one place (overhaul plan Task 3).
+
+Every test that pins this text lives here, so the rewrite that changes it edits this file and no other skill's.
+Each section is headed by the file it came from and that file's reason.
+"""
+import re
+
+from conftest import REPO, skill_text
+
+
+def read(*parts):
+    return REPO.joinpath(*parts).read_text(encoding="utf-8")
+
+
+PLUGIN = REPO / "plugin"
+
+
+def read_override(*parts):
+    return (PLUGIN.joinpath(*parts)).read_text(encoding="utf-8")
+
+
+def text_of(*parts):
+    return (REPO.joinpath(*parts)).read_text(encoding="utf-8")
+
+
+def words(count, start=0):
+    """Distinct words, so a long paragraph is not also a repeated phrase."""
+    return " ".join(f"item{n}" for n in range(start, start + count)) + ". "
+
+
+LINT = REPO / "plugin" / "references" / "lint-words.txt"
+
+
+def text(rel):
+    return (PLUGIN / rel).read_text(encoding="utf-8")
+
+
+def read_tracer_skills(rel):
+    return (PLUGIN / rel).read_text(encoding="utf-8")
+
+
+# --- From tests/test_answer.py: Answering a challenge: START opens an answer session on the challenge's own branch, a
+# Grill (or the lead setting the item back) works there, and close pushes to that branch and comments on the open
+# challenge PR instead of opening a new one.
+
+
+def test_epics_accepts_reopened_to_decided_for_an_epic():
+    assert "| EPC-nnn | reopened | decided |" in read("plugin", "skills", "epics", "SKILL.md")
+    assert "GATE-2 reads `draft` or `reopened`" in read("plugin", "skills", "epics", "SKILL.md")
+
+
+# --- From tests/test_final_fixes.py: Fixes from the final whole-branch review: each test names the failure it keeps
+# out.
+
+# 1, M6, M9, M5, M4, 7, M2, M3, README: the words the skills and template must carry
+
+
+def test_epics_stages_what_render_rewrote():
+    epics = read("plugin/skills/epics/SKILL.md")
+    # epics still stages by hand until its rewrite
+    assert "Stage every file `vela render` reported" in epics
+
+
+def test_epics_writes_owning_team_now():
+    epics = read("plugin/skills/epics/SKILL.md")
+    assert "written now, in this session" in epics
+
+
+# --- From tests/test_override.py: The user can override any rule, and an override is never invisible.
+
+# ------------------------------------------------------------- skill text
+
+
+def test_epics_keeps_the_override_bullets():
+    epics = read_override("skills", "epics", "SKILL.md")
+    assert "Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet" in epics
+
+
+# --- From tests/test_reading_load.py: Pages a person can hold in mind: plain names in prose, IDs on a Trace line, and
+# the five reading-load warnings.
+
+# ---------------------------------------------------------------- the rule is written where sessions read it
+
+
+def test_epics_says_split_a_wall():
+    assert "split" in text_of("plugin", "skills", "epics", "SKILL.md")
+
+
+# --- From tests/test_readload.py: The second five reading-load warnings (design session 16): a paragraph, a table
+# cell, a stock phrase, a template opening and an abbreviation that costs the reader more than a careful writer would.
+
+# ------------------------------------------------------------------------------------------------ the lint word list (16-D2)
+
+
+def test_epics_never_names_a_listed_word():
+    """Naming a word in a prompt raises its odds, so the list lives in the lint and the reviewer, and the drafter never
+    sees it."""
+    from vela import reading
+    words = reading.lint_words(LINT.read_text(encoding="utf-8"))
+    relative = "skills/epics/SKILL.md"
+    text = (REPO / "plugin" / relative).read_text(encoding="utf-8")
+    for word in words:
+        assert not reading.lint_pattern(word).search(text.replace("lint-words.txt", "")), f"{relative} names '{word}'"
+
+
+# --- From tests/test_reviewers.py: The focused reviewers and the review checkpoints in the session skills.
+
+# ------------------------------------------------------------------ the checkpoints replace the sweeps
+
+
+def test_epics_reads_the_question_gate():
+    assert "`E805`" in text("skills/epics/SKILL.md")
+
+
+def test_epics_offers_the_e805_override_with_its_exact_bullet():
+    epics = text("skills/epics/SKILL.md")
+    assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
+    assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --open --digest" in epics
+    assert "Defer it to whoever can answer" in epics and "--gate epics --app <APP-id>" in epics
+    assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
+    assert "the override is the only way to a clean `--gate epics`" in epics
+
+
+# --- From tests/test_session_experience.py: What the skills make a lead go through (docs/research/2026-10-12-session-
+# experience-review.md and the friction pass).
+
+# --- S24: close starts on the lead's word, and still confirms before anything leaves the machine
+
+
+def test_epics_stays_the_leads_to_start():
+    assert "disable-model-invocation: true" in text("skills/epics/SKILL.md"), "epics must stay the lead's to start"
+
+
+def test_epics_hands_the_lead_to_start_not_to_a_slash_command_they_must_type():
+    body = text("skills/epics/SKILL.md")
+    assert "Closing a session" in body, "epics must say how its session ends"
+    assert "Do not run close yourself" not in body
+    assert not re.search(r'[Tt]ell the user: "Run `/vela:close`', body)
+
+
+# --- S26 and S43: the review digest is small, plain, once
+
+
+def test_epics_leaves_the_digest_to_review():
+    assert "high and blocking lines in full" not in text("skills/epics/SKILL.md")
+
+
+# --- S29 and S30: handoff and epics no longer wait on each other
+
+
+def test_epics_use_the_app_scope():
+    epics = text("skills/epics/SKILL.md")
+    assert "--gate epics --app <APP-id>" in epics and "Report those separately" not in epics
+
+
+# --- S36 to S47
+
+
+def test_epics_read_the_releases():
+    assert "04b-releases.md" in text("skills/epics/SKILL.md")
+
+
+# --- From tests/test_skills.py: The plugin's skills: frontmatter, size, the files they point at, the plugin
+# validator, and the rules each skill exists to hold.
+
+# epics (V1-17): the check finds the frontier, only the lead's confirmation decides, the gate closes.
+
+
+def test_epics_skill_reads_the_gaps_and_runs_the_gate():
+    epics = text("skills/epics/SKILL.md")
+    assert "`traceability` block" in epics
+    assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
+    assert "4 to 7 criteria" in epics and "## Done when" in epics
+    assert "`[testing]`" in epics
+    assert "offer `/vela:requirements` on that `CAP-nnn`, then `/vela:allocate`" in epics and "Never write the requirement into the epic." in epics
+    assert "Set an epic to `decided` only when the solution lead confirms" in epics
+    assert "in groups of about five" in epics and "while any criterion lacks a yes (its own or its group's)" in epics
+    assert "every criterion has a yes, its own or its group's" in epics
+    assert "It does not mean they are decided" in epics and "check --gate epics --app <APP-id>" in epics
+    assert "list each epic still at `draft`" in epics
+    assert "Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID" in epics and "Redis or Kafka" in epics
+    assert "- Trace: CAP-001.FR1, CON-001, FLO-001  ·  AC3  ·  [testing]" in epics and "More than 7 means the epic should be split" in epics
+    assert "`modes: [epics, shape, grill]` and the title `Epics: <team>`" in epics
+    assert "check --gate epics" in epics
+    assert "Never say an app's epics are complete while one remains." in epics
+
+
+def test_epics_skill_frontmatter_instruction_names_the_epics_mode():
+    epics = text("skills/epics/SKILL.md")
+    assert "`modes: [epics, shape, grill]`" in epics and "`modes: [shape, grill]`" not in epics
+
+
+# tech-design-grill vault mode (V1-18): read the slice, link back by ID and commit, never copy vault text.
+
+
+def test_epics_skill_disposes_of_e805_by_answer_defer_or_override_and_never_leaves_it_unplaced():
+    """S11: the heron run offered "leave the gate failing", the lead took it, and the question had no owner."""
+    epics = text("skills/epics/SKILL.md")
+    assert "Defer it to whoever can answer" in epics and "vela next-id UNK" in epics
+    assert "- Leave the gate failing." not in epics
+    assert "is not a route" in epics and "do not loop" in epics
+
+
+# --- From tests/test_tracer_skills.py: The lead-side tracer guidance (S52, step 2): present in each skill, never a
+# gate, the example in the plan's format, and no codes read to the lead.
+
+
+def test_epics_carries_its_tracer_guidance():
+    assert "first epic is on the first thin path (the tracer" in read_tracer_skills("skills/epics/SKILL.md")
+
+
+def test_epics_explains_the_tracer_as_the_first_thin_path():
+    # The amendment of 2026-10-13: a slice is the unit of done and the tracer is slice one, so a sentence may say both.
+    text = skill_text("epics")  # the tracer is defined once, in CONVENTIONS; each skill names it the first thin path
+    assert "first thin path" in text and ("Releases" in text or "Slices" in text)
+
+
+def test_epics_leaves_the_tracer_definition_to_conventions():
+    assert "thin path through every app" not in skill_text("epics")  # said once, in CONVENTIONS
+
+
+def test_epics_never_makes_the_tracer_a_gate():
+    for sentence in re.split(r"(?<=[.?!])\s+", read_tracer_skills("skills/epics/SKILL.md")):
+        if re.search(r"tracer", sentence, re.I):
+            assert not re.search(r"\b(stop|stops|refuse|refuses|block|blocks|gate)\b", sentence, re.I), sentence
+
+
+# --- From tests/test_v3_final_fixes.py: The v3 final fix wave.
+
+# ------------------------------------------------------------------ asked copies hold the gates, so the views list them
+
+
+def test_epics_says_e805_holds_asked_questions_too():
+    epics = text("skills/epics/SKILL.md")
+    assert "nobody has disposed, or that was asked and still waits for its answer" in epics
