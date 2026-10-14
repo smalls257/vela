@@ -20,7 +20,7 @@ Accepted, 2026-08-26, in a Grill session with the Booking senior, Port Systems s
 
 ## Context
 
-Kiosks run a locked-down image that changes only twice a year. Whatever the kiosk app calls must stay stable for at least six months. The website releases weekly and the call centre desktop monthly, so they can follow API changes quickly. The kiosks cannot.
+Kiosks run a locked-down image that changes only twice a year. Whatever the kiosk app calls must stay stable for at least six months. The website releases weekly and the call center desktop monthly, so they can follow API changes quickly. The kiosks cannot.
 
 ## Decision
 
@@ -38,7 +38,7 @@ Version the Booking API ([[booking-building-blocks#CON-001 Booking API|Booking A
 
 - Booking carries at least two versions whenever it ships a breaking change, with tests for both.
 - If the March 2027 image slips, v1 must stay up until the September image ([[11-unknowns-and-risks#R-02 The March 2027 kiosk image slips|The March 2027 kiosk image slips]]).
-- The website and call centre can move to a new version as soon as it ships.
+- The website and call center can move to a new version as soon as it ships.
 
 ## Assumptions it depends on
 

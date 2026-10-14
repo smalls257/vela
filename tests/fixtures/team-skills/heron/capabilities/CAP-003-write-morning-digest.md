@@ -13,7 +13,7 @@ sources: [2026-10-12-first-release-boundary]
 
 # Write the morning digest
 
-The business can have the Summariser write each person's 7:30 digest from the day's calendar entries and existing Teams transcripts that the Desktop agent hands it. The digest names only people who were in the meeting. Whether a digest counts as a client record waits on legal counsel, and whether an accepted invitee counts as being in a meeting with no transcript waits on the data protection officer.
+The business can have the Summarizer write each person's 7:30 digest from the day's calendar entries and existing Teams transcripts that the Desktop agent hands it. The digest names only people who were in the meeting. Whether a digest counts as a client record waits on legal counsel, and whether an accepted invitee counts as being in a meeting with no transcript waits on the data protection officer.
 
 ## Functional requirements
 

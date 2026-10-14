@@ -25,8 +25,8 @@ Gives a customer or an agent the price of a crossing before they commit to it.
 
 | Application | Today | After |
 |---|---|---|
-| [[pricing-building-blocks\|Pricing]] | quotes for the website, call centre and kiosks | quotes for [[booking-building-blocks\|Booking]] only |
-| [[website-building-blocks\|Public website]], [[call-centre-building-blocks\|Call centre desktop]], [[kiosks-building-blocks\|Port kiosks]] | call Pricing directly | get fares through Booking |
+| [[pricing-building-blocks\|Pricing]] | quotes for the website, call center and kiosks | quotes for [[booking-building-blocks\|Booking]] only |
+| [[website-building-blocks\|Public website]], [[call-center-building-blocks\|Call center desktop]], [[kiosks-building-blocks\|Port kiosks]] | call Pricing directly | get fares through Booking |
 
 ## Initiatives that touch this
 
@@ -38,8 +38,8 @@ Gives a customer or an agent the price of a crossing before they commit to it.
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=1390bbd7: do not edit, run planner render -->
+<!-- generated:delivered-by sha=d2445171: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harbourline/revenue-team | decided |
+| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harborline/revenue-team | decided |
 <!-- /generated:delivered-by -->

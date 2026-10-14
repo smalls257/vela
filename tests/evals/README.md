@@ -18,7 +18,7 @@ Confirm three things the Claude Code docs leave open:
 
 1. The scaffold finds the repo from `BASH_SOURCE`.
 2. `plugins:` in a `case.yaml` loads that plugin when the target is the file.
-3. `--keep-temp` prints paths that `find_workspaces()` recognises.
+3. `--keep-temp` prints paths that `find_workspaces()` recognizes.
 
 The model IDs are suggestions: edit them to the IDs you pin. If any fails, the wrapper says so and exits 2. Fix `fixture.sh`, `case.yaml` or `find_workspaces()`, then rerun.
 

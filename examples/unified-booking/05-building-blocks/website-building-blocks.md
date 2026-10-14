@@ -8,12 +8,12 @@ c4: container
 state: decided
 change: changed
 stage: epics
-owner: "@harbourline/digital-team"
+owner: "@harborline/digital-team"
 authored: mixed
 sources: ["Digital senior container review", "rollout plan with solution lead"]
 ---
 
-[[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Public website
+[[README|Harborline]] / [[05-building-blocks|05 Building blocks]] / Public website
 
 # Public website
 
@@ -27,7 +27,7 @@ The website no longer decides whether a booking is confirmed and no longer talks
 |---|---|
 | Changed: calls the Booking API. The FM screen adapter is retired. | Digital team |
 
-<!-- generated:app-context sha=8d58fc7c: do not edit, run planner render -->
+<!-- generated:app-context sha=40c9180e: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -39,7 +39,7 @@ flowchart LR
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Public website: main containers
@@ -83,11 +83,11 @@ None. The website only consumes.
 
 ## Epics
 
-<!-- generated:epics-for-app sha=dc376978: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=583b7a5e: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harbourline/digital-team | decided |
-| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harbourline/booking-team @harbourline/digital-team | decided |
+| [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]] | @harborline/digital-team | decided |
+| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harborline/booking-team @harborline/digital-team | decided |
 <!-- /generated:epics-for-app -->
 
 Next: [[website-runtime|Public website runtime]]

@@ -253,7 +253,7 @@ def test_21_confirm_and_cancel_on_one_shared_booking_race():
     result = check("21-shared-race", "Release one")
     assert [r[0] for r in result.runs] == [("FLO-211", "FLO-211"), ("FLO-211", "FLO-212"), ("FLO-212", "FLO-212")]
     summaries = [f.summary for f in result.findings if f.code == "F5"]
-    assert 'Booking is cancelled, and "Confirm the booking" answering confirmed gives it nowhere to go from there.' in summaries
+    assert 'Booking is canceled, and "Confirm the booking" answering confirmed gives it nowhere to go from there.' in summaries
 
 
 def test_21_symmetry_halves_the_same_flow_pair_and_finds_the_same():
@@ -481,7 +481,7 @@ def test_an_override_covers_an_explored_finding_until_its_date_then_it_blocks_ag
     assert one(other_case, "F8").severity == "error"
 
 
-def test_an_override_cannot_cover_not_fully_checked_and_a_misspelt_one_is_said():
+def test_an_override_cannot_cover_not_fully_checked_and_a_misspelled_one_is_said():
     result = flowcheck.check_slice(_with_override("10-unreadable-and-undeclared", "F10 EVT-010 delivery", "2026-12-01"),
                                    "FLO-010", TODAY)
     assert any("no override covers it" in f.summary for f in result.findings)

@@ -14,9 +14,9 @@ depends_on: []
 
 # Calendar
 
-Heron reads the [[heron-building-blocks#CON-001 Calendar entries|calendar entries]] and builds one note for each client call, shown ten minutes before the call starts. If the entry moves the note moves with it, and if the entry is cancelled the note is withdrawn.
+Heron reads the [[heron-building-blocks#CON-001 Calendar entries|calendar entries]] and builds one note for each client call, shown ten minutes before the call starts. If the entry moves the note moves with it, and if the entry is canceled the note is withdrawn.
 
-Still open: how a call is marked as a client call, and whether the entry carries each person's organisation.
+Still open: how a call is marked as a client call, and whether the entry carries each person's organization.
 
 - **Owning team:** @agent-lead
 
@@ -60,9 +60,9 @@ The people listed on a client call come from that call's calendar entry and nowh
 
 - Trace: CAP-001.FR2, CON-001, FLO-001  ·  AC5  ·  [data]
 
-#### Name and organisation only
+#### Name and organization only
 
-Each person on the list is shown by name and organisation only. Whether the entry carries the organisation is still open.
+Each person on the list is shown by name and organization only. Whether the entry carries the organization is still open.
 
 - Trace: CAP-001.FR2, CON-001, FLO-001, UNK-026  ·  AC6
 

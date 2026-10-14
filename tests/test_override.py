@@ -102,7 +102,7 @@ def test_a_label_one_typo_away_is_an_error_not_prose(ub):
 
 
 def test_malformed_decided_by_and_confirmed_by_are_errors(ub):
-    edit(ub / PRICING, "- **Decided by:** @hl-solution-lead, on behalf of @harbourline/revenue-team\n",
+    edit(ub / PRICING, "- **Decided by:** @hl-solution-lead, on behalf of @harborline/revenue-team\n",
          "- **Decided by:** the solution lead, for Revenue\n")
     edit(ub / PRICING, CONFIRMED, "- **Confirmed by:** @hl-pricing-senior in August\n")
     assert codes(ub) == [("E322", PRICING), ("E322", PRICING)]
@@ -190,7 +190,7 @@ def test_gates_and_quoted_rules_the_check_cannot_see_are_never_not_needed(ub):
 def test_the_fixture_decides_con_003_on_an_absent_owners_behalf_and_is_confirmed():
     text = (FIXTURE / PRICING).read_text(encoding="utf-8")
     assert "- **Override:** GATE-5 by @hl-solution-lead on 2026-07-28: " in text
-    assert "- **Decided by:** @hl-solution-lead, on behalf of @harbourline/revenue-team\n" in text
+    assert "- **Decided by:** @hl-solution-lead, on behalf of @harborline/revenue-team\n" in text
     assert CONFIRMED in text
     assert findings(check(FIXTURE, TODAY)[1]) == []
 
@@ -199,9 +199,9 @@ def test_on_behalf_unconfirmed_warns_until_confirmed(ub):
     edit(ub / PRICING, CONFIRMED, "")
     code, out = broken(ub)
     assert code == 0 and findings(out) == [("W324", PRICING)]
-    assert "CON-003 was decided on @harbourline/revenue-team's behalf by @hl-solution-lead, not yet confirmed." in out
+    assert "CON-003 was decided on @harborline/revenue-team's behalf by @hl-solution-lead, not yet confirmed." in out
     assert "/planner:challenge" in out
-    edit(ub / PRICING, "on behalf of @harbourline/revenue-team\n", "on behalf of @harbourline/revenue-team\n" + CONFIRMED)
+    edit(ub / PRICING, "on behalf of @harborline/revenue-team\n", "on behalf of @harborline/revenue-team\n" + CONFIRMED)
     assert codes(ub) == []
 
 
@@ -224,7 +224,7 @@ def test_query_get_returns_override_decided_by_and_confirmed_by():
                                    "date": "2026-07-28", "reason": answer["override"][0]["reason"]}]
     assert answer["override"][0]["reason"].startswith("the Revenue team was in its fare review")
     assert answer["decided_by"]["by"] == "@hl-solution-lead"
-    assert answer["decided_by"]["on_behalf_of"] == ["@harbourline/revenue-team"]
+    assert answer["decided_by"]["on_behalf_of"] == ["@harborline/revenue-team"]
     assert answer["decided_by"]["confirmed"] is True
     assert answer["confirmed_by"] == {"by": "@hl-pricing-senior", "date": "2026-08-12"}
     _, plain = query(FIXTURE, "get", "CON-001")

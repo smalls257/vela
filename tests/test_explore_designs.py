@@ -98,7 +98,7 @@ def test_a_repo_with_no_doc_for_the_app_is_said_not_assumed(world):
 
 def test_a_web_link_is_never_a_design_source(world):
     vault, _ = world
-    edit(vault / PRICING_PAGE, "id: APP-pricing\n", "id: APP-pricing\nlinks: {GitHub: \"https://github.example.com/harbourline/pricing\"}\n")
+    edit(vault / PRICING_PAGE, "id: APP-pricing\n", "id: APP-pricing\nlinks: {GitHub: \"https://github.example.com/harborline/pricing\"}\n")
     code, said = explore(vault)
     assert code == 0, said
     assert "warning: APP-pricing" not in said and designs_on_the_page(vault) == []
@@ -164,7 +164,7 @@ def test_a_design_in_the_vaults_docs_folder_is_found_by_file_name_with_no_config
 
 def test_vault_app_wins_over_the_file_name(world):
     vault, _ = world
-    edit(put_in_vault(vault, "pricing"), "../harbourline-vault/05-building-blocks/pricing-building-blocks.md", "elsewhere.md")
+    edit(put_in_vault(vault, "pricing"), "../harborline-vault/05-building-blocks/pricing-building-blocks.md", "elsewhere.md")
     other = put_in_vault(vault, "zz-other")
     say_vault_app(other, "APP-pricing")
     code, said = explore(vault)
@@ -181,7 +181,7 @@ def test_a_design_whose_prereqs_name_the_app_page_is_found(world):
 
 def test_a_vault_design_for_no_app_is_said_and_the_not_loaded_report_names_the_folder(world):
     vault, _ = world
-    edit(put_in_vault(vault, "unrelated"), "../harbourline-vault/05-building-blocks/pricing-building-blocks.md", "elsewhere.md")
+    edit(put_in_vault(vault, "unrelated"), "../harborline-vault/05-building-blocks/pricing-building-blocks.md", "elsewhere.md")
     code, said = explore(vault)
     assert code == 0, said
     assert "none naming it by vault.app, prereqs or file name" in said and "docs/tech-design/<slug>.md" in said, said

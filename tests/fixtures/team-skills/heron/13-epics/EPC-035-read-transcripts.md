@@ -14,13 +14,13 @@ depends_on: [EPC-032, EPC-033, EPC-034]
 
 # Read existing Teams transcripts
 
-This epic lets the agent read Teams transcripts that already exist. It asks Microsoft for a transcript only where the person agreed to transcripts, the organiser turned transcripts on and the tenant administrators approved reading them, and it reads one only for a meeting the person was in. It is on no release yet, because the security review of 4 December gates it and the endpoint lead and legal counsel must first answer on transcripts, administrator approval and the lawful basis for each source.
+This epic lets the agent read Teams transcripts that already exist. It asks Microsoft for a transcript only where the person agreed to transcripts, the organizer turned transcripts on and the tenant administrators approved reading them, and it reads one only for a meeting the person was in. It is on no release yet, because the security review of 4 December gates it and the endpoint lead and legal counsel must first answer on transcripts, administrator approval and the lawful basis for each source.
 
 **Owning team:** @sim-lead (Desk Agent team)
 
 ## Epic acceptance criteria
 
-1. The agent asks Microsoft for a meeting's transcript only where the consent check says the person agreed to transcripts, and reads one only where the organiser turned transcripts on and the tenant administrators approved reading them.
+1. The agent asks Microsoft for a meeting's transcript only where the consent check says the person agreed to transcripts, and reads one only where the organizer turned transcripts on and the tenant administrators approved reading them.
    - Trace: CAP-001.FR1, CON-001, CON-003, FLO-002, FLO-003, UNK-059
 2. The agent reads a transcript only for a person who was in that meeting, and none for a meeting they were not in.
    - Trace: CAP-001.FR1, CON-001, FLO-002, FLO-003
@@ -51,10 +51,10 @@ This epic lets the agent read Teams transcripts that already exist. It asks Micr
 
 ## Out of scope
 
-- Saying in a note that it was written from the calendar entry only: the Summariser's epic.
+- Saying in a note that it was written from the calendar entry only: the Summarizer's epic.
 - Whether transcripts are approved at all: with the endpoint lead, as transcripts and admin approval.
   - Trace: UNK-059
 
 ## History
 
-- **Options considered:** Four epics, by flow with transcripts separate (picked); Two epics, by capability: rejected, the showing epic would carry about 15 behaviours and need splitting anyway; Three epics, by flow: rejected, reading transcripts would be spread across the digest and prep epics and the pilot epics would carry a gated piece
+- **Options considered:** Four epics, by flow with transcripts separate (picked); Two epics, by capability: rejected, the showing epic would carry about 15 behaviors and need splitting anyway; Three epics, by flow: rejected, reading transcripts would be spread across the digest and prep epics and the pilot epics would carry a gated piece

@@ -28,7 +28,7 @@ End-to-end tests are kept to the two flows that move money and write the ledger:
 | [[pricing-building-blocks\|Pricing]] | addressed | Provider verification for CON-003 in Pricing's pipeline |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | Keeps the test region available for the weekly end-to-end run |
 | [[website-building-blocks\|Website]] | addressed | Consumer-driven contract tests for CON-001 in its own pipeline |
-| [[call-centre-building-blocks\|Call centre]] | addressed | Consumer-driven contract tests for CON-001 in its own pipeline |
+| [[call-center-building-blocks\|Call center]] | addressed | Consumer-driven contract tests for CON-001 in its own pipeline |
 | [[kiosks-building-blocks\|Kiosks]] | addressed | Consumer-driven contract tests for CON-001 v1 in the image build |
 | [[notifications-building-blocks\|Notifications]] | addressed | Consumer test for CON-002 in Notifications' pipeline |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | Booking's consumer-side test is the only check on CON-004 |
@@ -50,12 +50,12 @@ Who tests each contract, from each side, is written once on the contract under *
 
 | Flow | Paths | Environment | When | Owner |
 |---|---|---|---|---|
-| [[FLO-001-hold-pay-confirm\|FLO-001]] | Website, call centre desktop; kiosk on a test kiosk | Staging with ledger simulator and Tidepay sandbox; FERRYMASTER test region weekly | Every Booking release candidate; weekly; kiosk before March 2027 image sign-off | QA lead; kiosk run by Port Systems senior |
-| [[FLO-002-amend-or-cancel\|FLO-002]] | Website, call centre desktop: amend up, amend down, cancel. No kiosk path; kiosks do not amend or cancel in the March 2027 image. | Same as FLO-001 | Every Booking release candidate; weekly | QA lead |
+| [[FLO-001-hold-pay-confirm\|FLO-001]] | Website, call center desktop; kiosk on a test kiosk | Staging with ledger simulator and Tidepay sandbox; FERRYMASTER test region weekly | Every Booking release candidate; weekly; kiosk before March 2027 image sign-off | QA lead; kiosk run by Port Systems senior |
+| [[FLO-002-amend-or-cancel\|FLO-002]] | Website, call center desktop: amend up, amend down, cancel. No kiosk path; kiosks do not amend or cancel in the March 2027 image. | Same as FLO-001 | Every Booking release candidate; weekly | QA lead |
 | [[FLO-003-notify-on-change\|FLO-003]] | None. Covered by CON-002 contract tests. | n/a | n/a | QA lead |
 
 ## Related
 
 - Unknowns: [[11-unknowns-and-risks#UNK-002 Repeatable test data|Repeatable test data]] (test data), [[11-unknowns-and-risks#UNK-001 Ledger write latency|Ledger write latency]] (ledger latency behind the "confirming" screen the suites check)
 - Decisions: [[ADR-0003-versioned-booking-api|the versioning decision]], [[ADR-0004-mq-not-screen-scraping|the MQ decision]]
-- Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]] (ledger simulator), [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]], [[EPC-036-amend-cancel-online|Amend and cancel online]], [[EPC-037-events-and-notifications|Booking events and customer notifications]], [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]
+- Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]] (ledger simulator), [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-center-to-booking|Call center moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]], [[EPC-036-amend-cancel-online|Amend and cancel online]], [[EPC-037-events-and-notifications|Booking events and customer notifications]], [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]

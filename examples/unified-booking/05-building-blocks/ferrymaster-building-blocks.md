@@ -7,16 +7,16 @@ arc42: "§5"
 c4: context
 state: fact
 change: integrated
-owner: "@harbourline/mainframe-team"
+owner: "@harborline/mainframe-team"
 authored: mixed
 sources: [SRC-04, "UNK-003 mainframe capacity 2026-08-14", "UNK-002 test data decision 2026-09-16"]
 ---
 
-[[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / FERRYMASTER
+[[README|Harborline]] / [[05-building-blocks|05 Building blocks]] / FERRYMASTER
 
 # FERRYMASTER
 
-FERRYMASTER is the 1990s mainframe that holds Harbourline's booking ledger. It stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]). Booking writes to it through four message queue (MQ) transactions the mainframe team already exposes for the finance job ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]).
+FERRYMASTER is the 1990s mainframe that holds Harborline's booking ledger. It stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]). Booking writes to it through four message queue (MQ) transactions the mainframe team already exposes for the finance job ([[ADR-0004-mq-not-screen-scraping|the MQ decision]]).
 
 FERRYMASTER is not responsible for holds during payment or for telling channels a booking's state. Booking does both.
 
@@ -24,7 +24,7 @@ FERRYMASTER is not responsible for holds during payment or for telling channels 
 |---|---|
 | Integrated, unchanged. The vendor contract ends in 2028 and the code cannot change (CST-1). | Mainframe team (2 people) |
 
-<!-- generated:app-context sha=8df36c67: do not edit, run planner render -->
+<!-- generated:app-context sha=a8c09b16: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -36,7 +36,7 @@ flowchart LR
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 FERRYMASTER is a black box on this page. Nobody in this initiative changes it, and only two people understand its mainframe programming, so we describe the transactions it exposes and stop there.
@@ -68,10 +68,10 @@ The mainframe team gives 2 days a week from January to March 2027 ([[11-unknowns
 
 ## Epics
 
-<!-- generated:epics-for-app sha=496df681: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=8078719e: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] | @harbourline/booking-team | decided |
+| [[EPC-032-ledger-adapter\|EPC-032 Ledger adapter on FERRYMASTER's MQ transactions]] | @harborline/booking-team | decided |
 <!-- /generated:epics-for-app -->
 
 Next: [[ferrymaster-runtime|FERRYMASTER runtime]]

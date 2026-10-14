@@ -1,12 +1,12 @@
 ---
 id: EPC-034
 type: epic
-title: Call centre moves to Booking
+title: Call center moves to Booking
 initiative: INI-002
 state: decided
-owner: "@harbourline/contact-centre-systems"
+owner: "@harborline/contact-center-systems"
 authored: mixed
-apps: [APP-call-centre, APP-booking]
+apps: [APP-call-center, APP-booking]
 delivers: [CAP-013, CAP-021, CAP-023, G1, G2]
 consumes: [CON-001]
 flows: [FLO-001, FLO-002]
@@ -14,19 +14,19 @@ depends_on: [EPC-031, EPC-036]
 sources: ["session 2026-10-07 Grill", "session 2026-11-18 Grill"]
 ---
 
-# EPC-034 Call centre moves to Booking
+# EPC-034 Call center moves to Booking
 
 - **Decision:** [[2026-11-18-epics]]
 
-The call centre desktop client becomes a Booking API client, gets new amend and cancel screens, and loses its terminal adapter. Agents then see the same booking state as the website and the kiosks, because all three ask Booking instead of reading FERRYMASTER through their own cache.
+The call center desktop client becomes a Booking API client, gets new amend and cancel screens, and loses its terminal adapter. Agents then see the same booking state as the website and the kiosks, because all three ask Booking instead of reading FERRYMASTER through their own cache.
 
 Still open: nothing.
 
-**Owning team:** Contact Centre Systems team.
+**Owning team:** Contact Center Systems team.
 
 ## Who this is for and what changes
 
-The manual fix queue goes too. It exists because the website's confirm can fail after payment, leaving agents to repair bookings the next day. Booking now retries the ledger write and keeps the hold, so nothing is left to repair. The Head of Contact Centre agreed the queue closes when the old adapter is removed.
+The manual fix queue goes too. It exists because the website's confirm can fail after payment, leaving agents to repair bookings the next day. Booking now retries the ledger write and keeps the hold, so nothing is left to repair. The Head of Contact Center agreed the queue closes when the old adapter is removed.
 
 ## Done when
 
@@ -62,7 +62,7 @@ The desktop's consumer-driven contract tests for the Booking API pass in Booking
 
 ### The old path can be switched back
 
-Flipping the call centre's switch back sends bookings through the terminal adapter without a release, for 4 weeks after cutover.
+Flipping the call center's switch back sends bookings through the terminal adapter without a release, for 4 weeks after cutover.
 
 - Trace: AC6  ·  [rollout]
 
@@ -74,10 +74,10 @@ After those 4 weeks the terminal adapter and the manual fix screens are removed 
 
 ## Traces to
 
-<!-- generated:traces-to sha=a2a5873d: do not edit, run planner render -->
+<!-- generated:traces-to sha=32d551d3: do not edit, run planner render -->
 | Traces to | Items |
 |---|---|
-| Apps | [[call-centre-building-blocks\|Call centre desktop]], [[booking-building-blocks\|Booking]] |
+| Apps | [[call-center-building-blocks\|Call center desktop]], [[booking-building-blocks\|Booking]] |
 | Delivers | [[CAP-013-reserve-a-crossing\|CAP-013 Reserve a crossing]], [[CAP-021-amend-or-cancel\|CAP-021 Amend or cancel a booking]], [[CAP-023-fix-failed-bookings\|CAP-023 Fix failed bookings by hand]], [[01-goals\|G1]], [[01-goals\|G2]] |
 | Consumes | [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] |
 | Flows | [[FLO-001-hold-pay-confirm\|FLO-001 Hold, pay, confirm]], [[FLO-002-amend-or-cancel\|FLO-002 Amend or cancel]] |
@@ -92,7 +92,7 @@ After those 4 weeks the terminal adapter and the manual fix screens are removed 
 
 ## Rollout notes
 
-Second channel, March 2027, after the website. Rollback is flipping the call centre's switch back during the 4 weeks.
+Second channel, March 2027, after the website. Rollback is flipping the call center's switch back during the 4 weeks.
 
 ## Out of scope
 

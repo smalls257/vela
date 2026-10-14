@@ -22,7 +22,7 @@ Systems only. Anything inside a box belongs to that app's own pages under [[05-b
 ```mermaid
 flowchart LR
   Web[Public website] -- screen-scrape --> FM[(FERRYMASTER)]
-  CC[Call centre desktop] -- screen-scrape --> FM
+  CC[Call center desktop] -- screen-scrape --> FM
   K[Port kiosks] -- screen-scrape --> FM
   Web -- quote --> P[Pricing]
   CC -- quote --> P
@@ -35,12 +35,12 @@ Three channels, three adapters, three opinions about what state a booking is in.
 
 ## After
 
-<!-- generated:system-context sha=1ac6e749: do not edit, run planner render -->
+<!-- generated:system-context sha=d424906b: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["Unified Booking"]
     n_APP_booking["Booking"]
-    n_APP_call_centre["Call centre desktop"]
+    n_APP_call_center["Call center desktop"]
     n_APP_customer_identity["Customer identity"]
     n_APP_ferrymaster["FERRYMASTER"]
     n_APP_kiosks["Port kiosks"]
@@ -50,7 +50,7 @@ flowchart LR
     n_APP_website["Public website"]
   end
   x_tidepay__external_["Tidepay (external)"]
-  n_APP_booking -->|"CON-001"| n_APP_call_centre
+  n_APP_booking -->|"CON-001"| n_APP_call_center
   n_APP_booking -->|"CON-001"| n_APP_kiosks
   n_APP_booking -->|"CON-001"| n_APP_website
   n_APP_booking -->|"CON-002"| n_APP_notifications
@@ -61,11 +61,11 @@ flowchart LR
   x_tidepay__external_ -->|"CON-007"| n_APP_booking
   classDef app fill:#eef1f5,stroke:#2448b8,color:#19212d
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
-  class n_APP_booking,n_APP_call_centre,n_APP_customer_identity,n_APP_ferrymaster,n_APP_kiosks,n_APP_notifications,n_APP_pricing,n_APP_vessel_schedule,n_APP_website app
+  class n_APP_booking,n_APP_call_center,n_APP_customer_identity,n_APP_ferrymaster,n_APP_kiosks,n_APP_notifications,n_APP_pricing,n_APP_vessel_schedule,n_APP_website app
   class x_tidepay__external_ external
 ```
 
-Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:system-context -->
 
 The channels stop knowing FERRYMASTER exists. Booking is the only thing that writes bookings to the ledger, and it tells everyone else what changed through the event bus.
@@ -78,13 +78,13 @@ Each app page says what changes and which team owns it.
 - [[pricing-building-blocks|Pricing]] · [[pricing-runtime|runtime]]
 - [[ferrymaster-building-blocks|FERRYMASTER]] · [[ferrymaster-runtime|runtime]]
 - [[website-building-blocks|Public website]] · [[website-runtime|runtime]]
-- [[call-centre-building-blocks|Call centre desktop]] · [[call-centre-runtime|runtime]]
+- [[call-center-building-blocks|Call center desktop]] · [[call-center-runtime|runtime]]
 - [[kiosks-building-blocks|Port kiosks]] · [[kiosks-runtime|runtime]]
 - [[notifications-building-blocks|Notifications]] · [[notifications-runtime|runtime]]
 - [[vessel-schedule-building-blocks|Vessel schedule]]
 - [[customer-identity-building-blocks|Customer identity]]
 
-External: Tidepay (payment provider) and the Harbourline event bus (Platform).
+External: Tidepay (payment provider) and the Harborline event bus (Platform).
 
 ## Outside parties
 
@@ -96,7 +96,7 @@ External: Tidepay (payment provider) and the Harbourline event bus (Platform).
 ### PTY-02 FERRYMASTER vendor
 
 - **Relationship:** supplier
-- **Agreements:** the vendor contract, which runs to 2028 ([[02-constraints|CST-1]]) and is summarised in SRC-02. [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]] and [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]] rest on it.
+- **Agreements:** the vendor contract, which runs to 2028 ([[02-constraints|CST-1]]) and is summarized in SRC-02. [[ADR-0002-ferrymaster-ledger-of-record|ADR-0002]] and [[ferrymaster-building-blocks#CON-006 Ledger transactions|CON-006]] rest on it.
 
 ## Value held for customers
 

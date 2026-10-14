@@ -1,18 +1,18 @@
 ---
-id: RUN-call-centre
+id: RUN-call-center
 type: app-runtime
-title: Call centre desktop runtime
+title: Call center desktop runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: "@harbourline/contact-centre-systems"
+owner: "@harborline/contact-center-systems"
 authored: authored
-sources: ["Contact Centre Systems senior container review"]
+sources: ["Contact Center Systems senior container review"]
 ---
 
-[[README|Harbourline]] / [[06-flows|06 Flows]] / [[call-centre-building-blocks|Call centre desktop]] / Runtime
+[[README|Harborline]] / [[06-flows|06 Flows]] / [[call-center-building-blocks|Call center desktop]] / Runtime
 
-# Call centre desktop runtime
+# Call center desktop runtime
 
 - **Decision:** [[2026-09-16-testing-and-amend]]
 

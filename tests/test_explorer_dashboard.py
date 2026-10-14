@@ -17,7 +17,7 @@ def shown(text):
     return inline_html(text, Keys(vault), vault.page("EPC-001-calendar"))
 
 
-def test_e21_asterisks_inside_code_spans_stay_literal_and_do_not_italicise_what_follows():
+def test_e21_asterisks_inside_code_spans_stay_literal_and_do_not_italicize_what_follows():
     out = shown("Run `*.md` and `*.py` checks, and *really* mean it")
     assert "<code>*.md</code>" in out and "<code>*.py</code>" in out
     assert out.count("<em>") == 1 and "<em>really</em>" in out

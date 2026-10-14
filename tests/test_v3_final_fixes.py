@@ -137,8 +137,8 @@ def test_close_allocates_ids_before_it_writes_the_marks():
     two = close.split("## 2. Mark every capture", 1)[1].split("## 3.", 1)[0]
     assert "Write each mark into the line" not in two
     three = close.split("## 3. Write the promoted items", 1)[1].split("## 4.", 1)[0]
-    assert three.index("Write each mark into the line") > three.index("### Subjects, the question ledger and catalogue gaps")
-    assert "### Gaps the catalogue missed" in skill_text("close")  # the ledger part, read before the marks are written
+    assert three.index("Write each mark into the line") > three.index("### Subjects, the question ledger and catalog gaps")
+    assert "### Gaps the catalog missed" in skill_text("close")  # the ledger part, read before the marks are written
 
 
 # ------------------------------------------------------------------ asked copies hold the gates, so the views list them
@@ -165,22 +165,22 @@ def test_open_lists_an_asked_copy_and_an_asked_reviewer_question(tmp_path):
     assert [c["id"] for c in answer["copies"]] == [ASKED] and answer["copies"][0]["state"] == "asked"
     assert [r["id"] for r in answer["reviewer"]] == ["R-FIN-01"] and answer["reviewer"][0]["state"] == "asked"
     assert answer["undisposed"] == 0 and answer["asked"] == 2
-    assert answer["coverage"] == "57 owed, 0 undisposed, 2 asked, against catalogue v1"
+    assert answer["coverage"] == "57 owed, 0 undisposed, 2 asked, against catalog v1"
     out = run("questions", "--open", "--vault", str(vault))[1]
     assert any(l.startswith(f"{ASKED} | FIN | normal | asked |") for l in out.splitlines()), out
 
 
-def test_the_digest_and_the_block_show_asked_copies_labelled_asked(tmp_path):
+def test_the_digest_and_the_block_show_asked_copies_labeled_asked(tmp_path):
     vault = ub(tmp_path)
     answer = json.loads(run("questions", "--digest", "--json", "--vault", str(vault))[1])
     fin = next(g for g in answer["groups"] if g["entry"] == "Q-FIN-02")
     assert fin["copies"] == [ASKED] and fin["why"] == {"asked": 1}
-    assert answer["coverage"] == "57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalogue v1"
+    assert answer["coverage"] == "57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1"
     out = run("questions", "--digest", "--vault", str(vault))[1]
     assert f"   (asked) {ASKED}" in out
     run("render", "--vault", str(vault))
     page = (vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8")
-    assert "**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalogue v1." in page
+    assert "**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1." in page
     assert f"| {ASKED} | asked | FIN | normal | INI-002 |" in page
 
 
@@ -316,7 +316,7 @@ def test_the_readme_has_a_v3_section_a_returning_user_can_follow():
     for said in ("29 entries", "per subject", "generic", "`planner questions`", "`--digest`", "`--open`", "`--stats`",
                  "`11-unknowns-and-risks.md`", "`open`", "`asked`", "`answered`", "`assumed`", "`unknown`",
                  "`not-applicable`", "evidence", "five", "area-reviewer", "time and tokens", "`planner findings merge`",
-                 "`## Reviews`", "catalogue entries", "W806", "W807", "E805", "override", "voicescore"):
+                 "`## Reviews`", "catalog entries", "W806", "W807", "E805", "override", "voicescore"):
         assert said in v3, said
     for mode in ("dump", "discover", "shape", "grill"):
         assert f"/planner:{mode}" in v3, mode

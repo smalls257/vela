@@ -115,7 +115,7 @@ def test_open_leaves_out_programs_and_settings_and_says_so(tmp_path, published):
     assert (tmp_path / "ws" / ".planner.yaml").is_file()
 
 
-def test_a_forged_hash_verifies_which_is_why_the_hash_is_not_the_defence(tmp_path, published):
+def test_a_forged_hash_verifies_which_is_why_the_hash_is_not_the_defense(tmp_path, published):
     """C14: the forger recomputed tree_hash, so verify_tree is happy. The refusal above came from the rules, not the hash."""
     _, archive = published
     evil = forged(archive, tmp_path / "evil.zip", extra={"01-goals.md": b"changed by someone else\n"})

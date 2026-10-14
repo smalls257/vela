@@ -19,11 +19,11 @@ A concern is something every app has to answer for, such as testing or rollback.
 - **unknown**: an open unknown has to be answered first. The cell links it.
 - **unexamined**: nobody has looked yet. An app with no cell on a concern page shows as `unexamined (no row)`.
 
-<!-- generated:concern-matrix sha=411ef3bb: do not edit, run planner render -->
+<!-- generated:concern-matrix sha=4ee86a62: do not edit, run planner render -->
 | App | [[concern-cost\|Cost]] | [[concern-data\|Data]] | [[concern-observability\|Observability]] | [[concern-operations\|Operations]] | [[concern-ownership\|Ownership]] | [[concern-rollout\|Rollout]] | [[concern-security\|Security]] | [[concern-testing\|Testing]] |
 |---|---|---|---|---|---|---|---|---|
 | [[booking-building-blocks\|Booking]] | addressed | addressed | addressed | addressed | addressed | addressed | addressed | addressed |
-| [[call-centre-building-blocks\|Call centre desktop]] | unchanged | addressed | addressed | addressed | addressed | addressed | addressed | addressed |
+| [[call-center-building-blocks\|Call center desktop]] | unchanged | addressed | addressed | addressed | addressed | addressed | addressed | addressed |
 | [[customer-identity-building-blocks\|Customer identity]] | unchanged | unchanged | unchanged | unchanged | unchanged | n/a | unchanged | unchanged |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | addressed | addressed | n/a | addressed | unchanged | n/a | unchanged | addressed |
 | [[kiosks-building-blocks\|Port kiosks]] | unchanged | addressed | addressed | unchanged | addressed | addressed | addressed | addressed |

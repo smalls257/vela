@@ -17,8 +17,8 @@ capabilities: [CAP-022]
 
 ## Steps
 
-1. [[CAP-022-notify-customer|Booking state changes]]. A booking is confirmed, amended, cancelled or expires, after FERRYMASTER has accepted the write.
-2. [[CAP-022-notify-customer|Event published]]. Booking's Event publisher puts "Booking state changed" on the Harbourline event bus. The event carries the booking reference, the new state and the customer ID. It carries no contact details.
+1. [[CAP-022-notify-customer|Booking state changes]]. A booking is confirmed, amended, canceled or expires, after FERRYMASTER has accepted the write.
+2. [[CAP-022-notify-customer|Event published]]. Booking's Event publisher puts "Booking state changed" on the Harborline event bus. The event carries the booking reference, the new state and the customer ID. It carries no contact details.
 3. [[CAP-022-notify-customer|Notifications decides channel]]. The Booking event consumer looks up the customer's contact details and preference in Customer identity and picks email or SMS.
 4. [[CAP-022-notify-customer|Message sent]]. The existing Message sender sends it.
 
@@ -41,9 +41,9 @@ sequenceDiagram
 
 ## What the customer sees
 
-One message for each change, in the channel they chose, whichever front end made the change. Today only the website sends emails, so a booking made at a kiosk or by phone gets nothing. With Booking, every confirmed, amended, cancelled or expired booking produces a message.
+One message for each change, in the channel they chose, whichever front end made the change. Today only the website sends emails, so a booking made at a kiosk or by phone gets nothing. With Booking, every confirmed, amended, canceled or expired booking produces a message.
 
-## Failure behaviour
+## Failure behavior
 
 | What fails | What happens | What the customer sees |
 |---|---|---|

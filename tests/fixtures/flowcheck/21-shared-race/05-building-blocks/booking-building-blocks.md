@@ -24,4 +24,4 @@ title: Booking
 
 | Case | When | Status | Answer | Emits | Sets |
 |---|---|---|---|---|---|
-| cancelled |  | 200 | cancelled |  | booking: held→cancelled |
+| canceled |  | 200 | canceled |  | booking: held→canceled |

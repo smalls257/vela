@@ -26,6 +26,6 @@ None kept.
 | 04-solution-strategy | assumption | decided | pre-v1 record |
 | APP-pricing | assumption | decided | pre-v1 record |
 | APP-website | assumption | decided | pre-v1 record |
-| APP-call-centre | assumption | decided | pre-v1 record |
+| APP-call-center | assumption | decided | pre-v1 record |
 | APP-kiosks | assumption | decided | pre-v1 record |
 | APP-notifications | assumption | decided | pre-v1 record |

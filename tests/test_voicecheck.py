@@ -51,8 +51,8 @@ def test_tokens_come_in_document_order_by_kind():
 
 
 def test_ids_are_not_numbers_and_a_link_or_code_span_is_one_token():
-    assert kinds("G12, CAP-001.FR2, APP-call-centre, concern-testing, SRC-01, R-01, 1,200 seats, v2") == [
-        ("id", "G12"), ("id", "CAP-001.FR2"), ("id", "APP-call-centre"), ("id", "concern-testing"),
+    assert kinds("G12, CAP-001.FR2, APP-call-center, concern-testing, SRC-01, R-01, 1,200 seats, v2") == [
+        ("id", "G12"), ("id", "CAP-001.FR2"), ("id", "APP-call-center"), ("id", "concern-testing"),
         ("id", "SRC-01"), ("id", "R-01"), ("number", "1,200"), ("version", "v2")]
     assert kinds("[[booking-building-blocks#CON-001 Booking API|CON-001]] and `CON-002`") == [
         ("link", "[[booking-building-blocks#CON-001 Booking API|CON-001]]"), ("code", "`CON-002`")]

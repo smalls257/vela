@@ -16,7 +16,7 @@ QUOTE = "because points are earned at reservation"
 def finding(**over):
     base = {"finding": "Points are earned when a crossing is reserved, so a cancellation may owe points back.",
             "quote": QUOTE, "page": "04a-capability-delta.md", "copy": "Q-FIN-03@SV-01", "severity": "high",
-            "question": "Who takes the points back when a booking is cancelled?"}
+            "question": "Who takes the points back when a booking is canceled?"}
     base.update(over)
     return base
 
@@ -83,7 +83,7 @@ def test_a_finding_that_cannot_be_checked_is_dropped_with_its_reason(tmp_path, o
 
 
 def test_duplicates_across_areas_are_removed_without_a_vote(tmp_path):
-    same = finding(question="Who takes the points back when a booking is cancelled")
+    same = finding(question="Who takes the points back when a booking is canceled")
     all_ran(tmp_path / "f", FIN=[finding()], DAT=[same], OPS=[finding(copy="new")])
     code, result = merged(tmp_path / "f")
     assert code == 0
@@ -131,7 +131,7 @@ def test_a_file_for_no_area_is_ignored_and_said(tmp_path):
     write(folder, "FINANCE", {"area": "FIN", "findings": [finding()]})
     code, out = run("findings", "merge", str(folder), "--vault", str(FIXTURE))
     assert code == 1
-    assert "ignored: FINANCE.json is not <AREA>.json for an area of catalogue v1" in out
+    assert "ignored: FINANCE.json is not <AREA>.json for an area of catalog v1" in out
 
 
 def test_the_text_report(tmp_path):
@@ -143,7 +143,7 @@ def test_the_text_report(tmp_path):
     assert lines[0] == "planner findings merge: 1 kept, 0 duplicates, 1 dropped, from 4 of 5 areas."
     assert lines[1] == ("coverage: FIN found 1, 1 dropped; DAT checked, none; PTN checked, none; REG checked, none; "
                         "OPS did not run (no findings file)")
-    assert lines[3] == f'1. [FIN] high, Q-FIN-03@SV-01: Who takes the points back when a booking is cancelled? | "{QUOTE}" in 04a-capability-delta.md'
+    assert lines[3] == f'1. [FIN] high, Q-FIN-03@SV-01: Who takes the points back when a booking is canceled? | "{QUOTE}" in 04a-capability-delta.md'
     assert any(l.startswith("- [FIN] its quote ") and l.endswith(": Do points expire?") for l in lines)
 
 
@@ -231,7 +231,7 @@ def test_an_area_not_listed_is_not_reported_as_did_not_run(tmp_path):
     assert code == 0 and result["coverage"] == "coverage: REG checked, none"
 
 
-def test_areas_names_only_codes_of_the_catalogue(tmp_path):
+def test_areas_names_only_codes_of_the_catalog(tmp_path):
     all_ran(tmp_path / "f")
     code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--areas", "FIN,XYZ")
     assert code == 2 and "XYZ" in out
@@ -273,9 +273,9 @@ def test_changed_can_name_only_some_lines_of_a_page(tmp_path):
 def test_a_new_question_about_a_decided_page_is_dropped_unless_it_is_high_severity(tmp_path):
     page = (FIXTURE / "05-building-blocks" / "booking-building-blocks.md").read_text(encoding="utf-8")
     assert "state: decided" in page
-    quote = "Booking decides whether a booking is held, confirmed, amended or cancelled"
+    quote = "Booking decides whether a booking is held, confirmed, amended or canceled"
     normal = finding(copy="new", severity="normal", page="05-building-blocks/booking-building-blocks.md", quote=quote,
-                     question="Who decides whether a booking is held, confirmed, amended or cancelled after a refund?")
+                     question="Who decides whether a booking is held, confirmed, amended or canceled after a refund?")
     all_ran(tmp_path / "f", OPS=[normal])
     changed = ["--changed", "05-building-blocks/booking-building-blocks.md"]
     code, out = run("findings", "merge", str(tmp_path / "f"), "--vault", str(FIXTURE), "--json", *changed)

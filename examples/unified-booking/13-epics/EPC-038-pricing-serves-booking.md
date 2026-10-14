@@ -4,7 +4,7 @@ type: epic
 title: Pricing serves Booking only
 initiative: INI-002
 state: decided
-owner: "@harbourline/revenue-team"
+owner: "@harborline/revenue-team"
 authored: mixed
 apps: [APP-pricing, APP-booking]
 delivers: [CAP-012, CON-003]
@@ -18,7 +18,7 @@ sources: ["session 2026-07-28 Shape", "session 2026-11-18 Grill"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-Pricing keeps the same job and the same containers. What changes is who calls it: today the website, the call centre and the kiosks each ask the Quote service for fares, and after this epic only Booking does.
+Pricing keeps the same job and the same containers. What changes is who calls it: today the website, the call center and the kiosks each ask the Quote service for fares, and after this epic only Booking does.
 
 Still open: nothing.
 
@@ -52,20 +52,20 @@ Once the restriction is on, a quote request from any caller other than Booking i
 
 ### No direct callers before the restriction
 
-Before the restriction goes on, the gateway shows no direct quote requests from the website, the call centre or the kiosks.
+Before the restriction goes on, the gateway shows no direct quote requests from the website, the call center or the kiosks.
 
 - Trace: AC4  ·  [rollout]
 
 ## Traces to
 
-<!-- generated:traces-to sha=3f3e7f6d: do not edit, run planner render -->
+<!-- generated:traces-to sha=a37dbe15: do not edit, run planner render -->
 | Traces to | Items |
 |---|---|
 | Apps | [[pricing-building-blocks\|Pricing]], [[booking-building-blocks\|Booking]] |
 | Delivers | [[CAP-012-quote-a-fare\|CAP-012 Quote a fare]], [[pricing-building-blocks#CON-003 Quote a fare\|CON-003 Quote a fare]] |
 | Consumes | none |
 | Flows | none |
-| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]], [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]], [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]], [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] |
+| Depends on | [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]], [[EPC-033-website-to-booking\|EPC-033 Website moves to Booking]], [[EPC-034-call-center-to-booking\|EPC-034 Call center moves to Booking]], [[EPC-035-kiosks-to-booking\|EPC-035 Kiosks move to Booking in the March image]] |
 | Concerns | [[concern-rollout\|Rollout]], [[concern-security\|Security]], [[concern-testing\|Testing]] |
 <!-- /generated:traces-to -->
 
@@ -74,7 +74,7 @@ Also related: [[ADR-0001-one-booking-context|the one-application decision]].
 ## Depends on
 
 - [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]: Booking asks for quotes.
-- [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]]: each front end stops calling Pricing directly.
+- [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-center-to-booking|Call center moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]]: each front end stops calling Pricing directly.
 
 ## Rollout notes
 

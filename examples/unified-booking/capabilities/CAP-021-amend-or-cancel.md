@@ -25,7 +25,7 @@ Lets a customer change or cancel a booking they already have.
 
 | Application | Today | After |
 |---|---|---|
-| [[call-centre-building-blocks\|Call centre desktop]] | only channel, through a mainframe screen | amend and cancel screens on the Booking API |
+| [[call-center-building-blocks\|Call center desktop]] | only channel, through a mainframe screen | amend and cancel screens on the Booking API |
 | [[website-building-blocks\|Public website]] | none | amend and cancel pages |
 | [[kiosks-building-blocks\|Port kiosks]] | none | shows booking state only; no amend or cancel |
 | [[booking-building-blocks\|Booking]] | did not exist | checks the change, re-quotes, writes to FERRYMASTER |
@@ -41,9 +41,9 @@ Lets a customer change or cancel a booking they already have.
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=f20e8bd8: do not edit, run planner render -->
+<!-- generated:delivered-by sha=79de1ada: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
-| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harbourline/booking-team @harbourline/digital-team | decided |
+| [[EPC-034-call-center-to-booking\|EPC-034 Call center moves to Booking]] | @harborline/contact-center-systems | decided |
+| [[EPC-036-amend-cancel-online\|EPC-036 Amend and cancel online]] | @harborline/booking-team @harborline/digital-team | decided |
 <!-- /generated:delivered-by -->

@@ -7,16 +7,16 @@ arc42: "§5"
 c4: context
 state: fact
 change: unchanged
-owner: "@harbourline/platform-team"
+owner: "@harborline/platform-team"
 authored: mixed
 sources: [SRC-07]
 ---
 
-[[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Customer identity
+[[README|Harborline]] / [[05-building-blocks|05 Building blocks]] / Customer identity
 
 # Customer identity
 
-Customer identity holds Harbourline's customer records and answers who a customer is. Booking looks the customer up when it places a hold and keeps only the customer ID.
+Customer identity holds Harborline's customer records and answers who a customer is. Booking looks the customer up when it places a hold and keeps only the customer ID.
 
 Customer identity does not know about bookings. Booking holds the link from booking reference to customer ID.
 
@@ -24,7 +24,7 @@ Customer identity does not know about bookings. Booking holds the link from book
 |---|---|
 | Unchanged. Booking becomes a new caller of the existing read API. | Platform team |
 
-<!-- generated:app-context sha=5d9b057a: do not edit, run planner render -->
+<!-- generated:app-context sha=82035eb1: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -36,7 +36,7 @@ flowchart LR
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 Customer identity is a black box on this page. Nothing inside it changes, so its containers belong to the Platform team's own documentation.

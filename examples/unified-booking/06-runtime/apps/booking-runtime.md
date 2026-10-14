@@ -5,12 +5,12 @@ title: Booking runtime
 initiative: INI-002
 arc42: "§6"
 state: decided
-owner: "@harbourline/booking-team"
+owner: "@harborline/booking-team"
 authored: authored
 sources: ["UNK-001 ledger latency measurement 2026-09-02", "UNK-002 test data decision 2026-09-16", "Booking senior container review"]
 ---
 
-[[README|Harbourline]] / [[06-flows|06 Flows]] / [[booking-building-blocks|Booking]] / Runtime
+[[README|Harborline]] / [[06-flows|06 Flows]] / [[booking-building-blocks|Booking]] / Runtime
 
 # Booking runtime
 
@@ -69,6 +69,6 @@ sequenceDiagram
 - **FERRYMASTER down before payment.** If BKHOLD fails, Booking refuses the hold with an explicit "unavailable" error. The channel never sends the customer to payment for a seat the ledger has not seen.
 - **Pricing, Vessel schedule or Customer identity down.** Booking refuses the hold and says which dependency failed. It does not guess a fare or assume capacity.
 - **Hold store down.** Booking refuses new holds. On-call follows the hold-store outage runbook.
-- **Hold expires unpaid.** After 10 minutes the Ledger adapter sends BKCANC to release the seat and Booking publishes state = cancelled.
+- **Hold expires unpaid.** After 10 minutes the Ledger adapter sends BKCANC to release the seat and Booking publishes state = canceled.
 - **Event bus down.** The state change still completes. The Event publisher keeps the events and publishes them in order when the bus returns, so notifications arrive late and none are lost.
 - **Slow channel.** Each channel polls get with the booking reference. The trace ID from the channel follows the request to the Ledger adapter, so a slow confirm shows which stage took the time.

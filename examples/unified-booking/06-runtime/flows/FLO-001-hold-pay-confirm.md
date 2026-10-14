@@ -23,7 +23,7 @@ capabilities: [CAP-013, CAP-014, CAP-015]
 4. [[CAP-013-reserve-a-crossing|Confirm booking]]. Booking writes BKCONF to FERRYMASTER and marks the booking confirmed once the ledger accepts it.
 5. [[CAP-022-notify-customer|Notify customer]]. Booking publishes the state change and Notifications sends the confirmation ([[FLO-003-notify-on-change|Notify on change]]).
 
-The diagram shows the website. The call centre desktop and the kiosk app follow the same sequence; only the channel changes.
+The diagram shows the website. The call center desktop and the kiosk app follow the same sequence; only the channel changes.
 
 ```mermaid
 sequenceDiagram
@@ -54,7 +54,7 @@ sequenceDiagram
 
 The customer picks a sailing and sees the fare with a 10-minute timer. They pay on Tidepay's page and come back to a "confirming" screen. Ledger writes take 2.1 s at p95, so most customers see "confirmed" within a few seconds. The email or SMS follows. Every channel shows the same state, because every channel asks Booking.
 
-## Failure behaviour
+## Failure behavior
 
 | What fails | What happens | What the customer sees |
 |---|---|---|
@@ -78,14 +78,14 @@ The customer picks a sailing and sees the fare with a 10-minute timer. They pay 
 
 ## Tested end to end
 
-Yes. The QA lead owns the suite. It runs the website and call centre desktop paths on every Booking release candidate in staging, against the ledger simulator and the Tidepay sandbox. It runs once a week against the FERRYMASTER test region. The Port Systems senior runs the kiosk path on a test kiosk before the March 2027 image is signed off. See [[concern-testing|Testing]].
+Yes. The QA lead owns the suite. It runs the website and call center desktop paths on every Booking release candidate in staging, against the ledger simulator and the Tidepay sandbox. It runs once a week against the FERRYMASTER test region. The Port Systems senior runs the kiosk path on a test kiosk before the March 2027 image is signed off. See [[concern-testing|Testing]].
 
 Delivered by:
 
 - [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]]
 - [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]]
 - [[EPC-033-website-to-booking|Website moves to Booking]]
-- [[EPC-034-call-centre-to-booking|Call centre moves to Booking]]
+- [[EPC-034-call-center-to-booking|Call center moves to Booking]]
 - [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]]
 - [[EPC-037-events-and-notifications|Booking events and customer notifications]]
 - [[EPC-038-pricing-serves-booking|Pricing serves Booking only]]

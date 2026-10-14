@@ -5,7 +5,7 @@ title: Order
 app: APP-shop
 shared: false
 initial: new
-final: [paid, cancelled]
+final: [paid, canceled]
 ---
 
 # Order
@@ -13,6 +13,6 @@ final: [paid, cancelled]
 | From | To | Allowed by |
 |---|---|---|
 | new | paid | CON-300 paid |
-| new | cancelled | CON-300 |
+| new | canceled | CON-300 |
 
-- **Invariant:** not (order=cancelled and parcel=shipped)
+- **Invariant:** not (order=canceled and parcel=shipped)

@@ -1,4 +1,4 @@
-"""Parties and stored value: the two subject kinds the question catalogue needs that are not pages.
+"""Parties and stored value: the two subject kinds the question catalog needs that are not pages.
 
 A subject the check cannot type would leave its questions never owed and the ledger looking clean,
 so a missing fact is an error, never a silent skip."""

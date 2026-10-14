@@ -93,7 +93,7 @@ def test_three_areas_raising_the_hotel_gap_become_one_finding_listing_all_three(
 
 
 def test_a_near_duplicate_of_an_open_reviewer_question_takes_its_id(tmp_path):
-    question = "Does a cancelled booking take its points back, and who tells the loyalty scheme?"
+    question = "Does a canceled booking take its points back, and who tells the loyalty scheme?"
     quote, page = "because points are earned at reservation", "04a-capability-delta.md"
     write_all(tmp_path / "f", FIN=[finding(question, quote, page)],
               OPS=[finding(question.replace("Does", "So does"), quote, page, copy="R-FIN-01")])
@@ -103,7 +103,7 @@ def test_a_near_duplicate_of_an_open_reviewer_question_takes_its_id(tmp_path):
 
 def test_findings_about_different_owed_copies_never_merge(tmp_path):
     quote, page = "because points are earned at reservation", "04a-capability-delta.md"
-    question = "Who takes the points back when a booking is cancelled?"
+    question = "Who takes the points back when a booking is canceled?"
     write_all(tmp_path / "f", FIN=[finding(question, quote, page, copy="Q-FIN-03@SV-01")],
               DAT=[finding(question, quote, page, copy="new")])
     code, result = merged(tmp_path / "f", FIXTURE)

@@ -16,22 +16,22 @@ sources: ["session 2026-07-28 Grill"]
 
 ## Status
 
-Accepted, 2026-07-28, in a Grill session with the Booking senior, Digital senior, Contact Centre Systems senior and Port Systems senior.
+Accepted, 2026-07-28, in a Grill session with the Booking senior, Digital senior, Contact Center Systems senior and Port Systems senior.
 
 ## Context
 
-The website, call centre desktop and kiosks each talk to FERRYMASTER through their own screen-scraping adapter. Each adapter decides for itself when a booking counts as confirmed, and each caches replies differently. That is why the call centre and the kiosks disagree about bookings (G2), and why a mainframe screen change breaks all three at once (G1).
+The website, call center desktop and kiosks each talk to FERRYMASTER through their own screen-scraping adapter. Each adapter decides for itself when a booking counts as confirmed, and each caches replies differently. That is why the call center and the kiosks disagree about bookings (G2), and why a mainframe screen change breaks all three at once (G1).
 
 ## Decision
 
-Build one Booking application. It is the only thing that talks to FERRYMASTER about bookings, and the only place that decides whether a booking is held, confirmed, amended or cancelled. Every channel calls the Booking API ([[booking-building-blocks#CON-001 Booking API|Booking API]]).
+Build one Booking application. It is the only thing that talks to FERRYMASTER about bookings, and the only place that decides whether a booking is held, confirmed, amended or canceled. Every channel calls the Booking API ([[booking-building-blocks#CON-001 Booking API|Booking API]]).
 
 ## Alternatives considered
 
 | Alternative | Why rejected |
 |---|---|
 | Shared adapter library used by all three front ends | Quicker to build. Each team would still embed it and decide what "confirmed" means around it. Kiosks upgrade twice a year, so channels would run different library versions for months and disagree again. |
-| Gateway facade over the three existing adapters | Puts one URL in front of three behaviours. Nothing would own booking state, so G2 stays unmet. |
+| Gateway facade over the three existing adapters | Puts one URL in front of three behaviors. Nothing would own booking state, so G2 stays unmet. |
 
 ## Consequences
 

@@ -4,7 +4,7 @@ type: epic
 title: Website moves to Booking
 initiative: INI-002
 state: decided
-owner: "@harbourline/digital-team"
+owner: "@harborline/digital-team"
 authored: mixed
 apps: [APP-website, APP-booking]
 delivers: [CAP-013, G1, G2]
@@ -18,7 +18,7 @@ sources: ["session 2026-10-07 Grill", "session 2026-11-18 Grill"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-The website's booking pages call the Booking API and the FERRYMASTER screen adapter is retired. The website goes first because it has the worst failure today: if the second scrape, the confirm, fails after payment, the customer has paid for nothing and the call centre fixes it by hand the next morning.
+The website's booking pages call the Booking API and the FERRYMASTER screen adapter is retired. The website goes first because it has the worst failure today: if the second scrape, the confirm, fails after payment, the customer has paid for nothing and the call center fixes it by hand the next morning.
 
 Still open: nothing.
 

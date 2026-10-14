@@ -27,7 +27,7 @@ def test_a_vault_that_records_none_of_it_counts_zero_and_fails_both_standing_che
 
 def test_domains_pairs_and_asks_are_counted_and_the_verdict_reads_them(tmp_path):
     vault = copy(tmp_path)
-    set_domains(vault, {slug: "Area" for slug in ("website", "kiosks", "call-centre", "booking", "pricing", "notifications",
+    set_domains(vault, {slug: "Area" for slug in ("website", "kiosks", "call-center", "booking", "pricing", "notifications",
                                                   "vessel-schedule", "customer-identity", "ferrymaster")})
     edit(vault / FLOW, STEP5, f"6. {WEBSITE} → {BOOKING}: asks to hold the seat over {CON1}.\n{STEP5}")
     owner = "- **Owner:** @hl-booking-senior (Booking senior)\n"

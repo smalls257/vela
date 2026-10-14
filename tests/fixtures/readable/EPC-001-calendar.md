@@ -14,7 +14,7 @@ depends_on: []
 
 # Calendar
 
-Heron reads the [[heron-building-blocks#CON-001 Calendar entries|calendar entries]] and builds one note for each client call, shown ten minutes before the call starts. If the entry moves the note moves with it, and if the entry is cancelled the note is withdrawn. Still open: how a call is marked as a client call, and whether the entry carries each person's organisation.
+Heron reads the [[heron-building-blocks#CON-001 Calendar entries|calendar entries]] and builds one note for each client call, shown ten minutes before the call starts. If the entry moves the note moves with it, and if the entry is canceled the note is withdrawn. Still open: how a call is marked as a client call, and whether the entry carries each person's organization.
 
 - **Owning team:** @agent-lead
 
@@ -35,7 +35,7 @@ Heron reads the [[heron-building-blocks#CON-001 Calendar entries|calendar entrie
 
 5. The people listed on a client call come from that call's calendar entry and nowhere else: everyone invited appears except those who have declined, someone who joins without being invited does not appear, and a list in the invitation is expanded only when the entry names its members.
    - Trace: CAP-001.FR2, CON-001, FLO-001
-6. Each person on the list is shown by name and organisation only. Whether the entry carries the organisation is still open ([[11-unknowns-and-risks#UNK-026 Whether the calendar entry carries an attendee's organisation|the organisation question]]).
+6. Each person on the list is shown by name and organization only. Whether the entry carries the organization is still open ([[11-unknowns-and-risks#UNK-026 Whether the calendar entry carries an attendee's organization|the organization question]]).
    - Trace: CAP-001.FR2, CON-001, FLO-001, UNK-026
 7. Past calendar entries come over with their attendees, as coming ones do, so the most recent earlier call with the same client can be found.
    - Trace: CAP-001.FR3, CON-001, FLO-001

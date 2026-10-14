@@ -31,7 +31,7 @@ def test_every_story_and_task_row_of_the_breakdown_is_one_ticket_in_order(tmp_pa
         ("S-02", "Story", ""), ("S-02-T1", "Task", "S-02"), ("S-02-T2", "Task", "S-02"),
         ("S-03", "Story", ""), ("S-03-T1", "Task", "S-03")]
     assert [r["Summary"] for r in rows if r["Issue Type"] == "Task"] == [
-        "Sign and notarise the Mac build", "Windows MSI package", "Capture system audio",
+        "Sign and notarize the Mac build", "Windows MSI package", "Capture system audio",
         "Store transcripts encrypted", "Build the digest from a transcript"]
     assert rows[0]["Summary"] == "S-01 Signed installer"
 
@@ -156,7 +156,7 @@ def test_a_story_that_says_it_traces_to_nothing_is_stated_not_unreadable():
     assert stories["S-14"].traces.startswith("no requirement row or epic criterion")
 
 
-def test_criteria_open_notes_and_conflicts_land_in_the_description_under_labels_and_the_story_is_labelled(tmp_path):
+def test_criteria_open_notes_and_conflicts_land_in_the_description_under_labels_and_the_story_is_labeled(tmp_path):
     source = tmp_path / "heron-breakdown.md"
     source.write_text(HERON.read_text(encoding="utf-8"), encoding="utf-8")
     problems = b2t.convert(source, tmp_path / "work")
@@ -177,7 +177,7 @@ def test_criteria_open_notes_and_conflicts_land_in_the_description_under_labels_
     assert clash[clash.index("Conflicts:") + 1].startswith("- Conflict with an epic criterion: EPC-001.AC5 says everyone invited")
     assert "conflict" in labels(by_id["S-11"]) and "needs-design" not in labels(by_id["S-11"])
     assert "needs-design" not in labels(by_id["S-06-T1"]), "tasks carry their story's trace labels, not its flags"
-    assert "Acceptance criteria. No epic criterion covers this story, so these are the design's behaviour:" in clash
+    assert "Acceptance criteria. No epic criterion covers this story, so these are the design's behavior:" in clash
 
 
 def test_the_tickets_for_the_real_plan_are_stable(tmp_path):

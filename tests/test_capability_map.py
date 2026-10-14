@@ -1,4 +1,4 @@
-"""The capability-map block: capabilities grouped by `domain`, coloured by `change`,
+"""The capability-map block: capabilities grouped by `domain`, colored by `change`,
 split into one diagram per domain when the whole map is over budget."""
 from conftest import check, findings, run
 from planner import render, schema
@@ -33,7 +33,7 @@ def fences(text):
     return out
 
 
-def test_groups_by_domain_and_colours_by_change():
+def test_groups_by_domain_and_colors_by_change():
     vault = vault_of(capability(1, "new", "Booking"), capability(2, "narrow", "Pricing"),
                      capability(3, "retire", "Booking"), capability(4, "unchanged"))
     [lines] = fences(render.capability_map(vault, None))

@@ -1,11 +1,11 @@
 ---
 id: FLO-022
 type: flow
-title: A traveller amends
+title: A traveler amends
 state: assumption
 ---
 
-# A traveller amends
+# A traveler amends
 
 ```mermaid
 sequenceDiagram

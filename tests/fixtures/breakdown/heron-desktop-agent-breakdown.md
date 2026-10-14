@@ -115,27 +115,27 @@ Blocked by: G-005 (OQ-005, IT has not committed to settings delivery; blocks del
 
 ### S-03 A note on screen ten minutes before a client call (walking skeleton, fake calendar)
 
-Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organisation, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.
+Traces to: CAP-001.FR1@APP-heron (share), CAP-001.FR2@APP-heron (share), CAP-001.FR5@APP-heron (share); EPC-001.AC1, EPC-001.AC5, EPC-001.AC6, EPC-004.AC1, EPC-004.AC2, EPC-004.AC5. Components: NoteScheduler, NoteAssembler, NoteStore, NoteWindow, Diagnostics. Rests on the design sections Note building, Attendee organization, Showing the note, Web view boundary, Copies of note text and wind-down, and Data model.
 
 Acceptance criteria:
 - For each client call the person sees one note ten minutes before the start, and no note for a call that does not count as a client call (EPC-001.AC1).
 - The people come from that call's entry only: everyone invited appears except those who declined, someone who joins without being invited does not appear, and a list in the invitation is expanded only when the entry names its members (EPC-001.AC5).
-- Each person is shown by name and organisation only (EPC-001.AC6).
+- Each person is shown by name and organization only (EPC-001.AC6).
 - Every client call gets a note or a short message saying why there is none (EPC-004.AC1).
 - A first call gets a note that says there is no earlier call and still lists who is on the call (EPC-004.AC2).
 - A message never takes the place of the list of who is on the call, when the entry makes that known (EPC-004.AC5).
 
 | Task | Size | Component |
 |------|------|-----------|
-| `NoteScheduler` against a fake clock: build on discovery, show at T-10, mark shown only on the window's acknowledgement, retry once | M | NoteScheduler |
-| `NoteAssembler.build` for the people list, organisation derived from the email domain and labelled, the first-call note and the reason-only note | M | NoteAssembler |
+| `NoteScheduler` against a fake clock: build on discovery, show at T-10, mark shown only on the window's acknowledgment, retry once | M | NoteScheduler |
+| `NoteAssembler.build` for the people list, organization derived from the email domain and labeled, the first-call note and the reason-only note | M | NoteAssembler |
 | `NoteStore` port and the encrypted SQLCipher adapter: `SURFACED_NOTE` row, key behind the `TokenStore` port, 30-day expiry sweep | M | NoteStore |
-| `NoteWindow` Tauri web view: plain-text rendering, strict content security policy, the three commands, show acknowledgement, tray entry with the latest note | L | NoteWindow |
+| `NoteWindow` Tauri web view: plain-text rendering, strict content security policy, the three commands, show acknowledgment, tray entry with the latest note | L | NoteWindow |
 | Web-view boundary checks: static command-list test and runtime refusal test | M | NoteWindow |
 | `Diagnostics` local log of closed codes, rotation, note reference scheme | M | Diagnostics |
 | Fixture `CalendarSource` for the demo | S | CalendarSource |
 
-Blocked by: UNK-026 (whether the entry carries an organisation; the plan uses the derived value); G-002 (OQ-002, wording of the message when the calendar cannot be read; does not block the build); G-013 (OQ-013, window behaviour while the screen is shared; handled in the release stories once the S-01 result is in, see Not planned).
+Blocked by: UNK-026 (whether the entry carries an organization; the plan uses the derived value); G-002 (OQ-002, wording of the message when the calendar cannot be read; does not block the build); G-013 (OQ-013, window behavior while the screen is shared; handled in the release stories once the S-01 result is in, see Not planned).
 
 ### S-04 Moves, cancels and late notes
 
@@ -146,27 +146,27 @@ Acceptance criteria:
 - After a move, the note is shown ten minutes before the call's new time and not the old one (EPC-001.AC3).
 - After a cancellation, no note is shown for that call and a note already built for it is withdrawn (EPC-001.AC4).
 - A note not ready by ten minutes before the call is shown as soon as it is ready, clearly marked as late, and not dropped (EPC-004.AC4).
-- Design behaviour, not an epic criterion: a cancel or move after a note was shown adds a one-time marker and the shown note is not rewritten; on start or wake the scheduler loads unshown rows, catches up from the delta token before it shows what is now due, and says when the app was not running through T-10.
+- Design behavior, not an epic criterion: a cancel or move after a note was shown adds a one-time marker and the shown note is not rewritten; on start or wake the scheduler loads unshown rows, catches up from the delta token before it shows what is now due, and says when the app was not running through T-10.
 
 | Task | Size | Component |
 |------|------|-----------|
 | Re-time on a move: new T-10, model deadline moves with it, moved earlier builds at once and shows late | M | NoteScheduler |
 | Build at once for a call inside ten minutes; late marking; the tray's latest note with a late mark and the call-passed case | M | NoteScheduler, NoteWindow |
 | Cancel: withdraw a built note, delete the row after the marker is shown | S | NoteScheduler, NoteStore |
-| Markers on a shown note: cancelled, moved to HH:MM, changed after this note was shown | M | NoteWindow |
+| Markers on a shown note: canceled, moved to HH:MM, changed after this note was shown | M | NoteWindow |
 | Start and wake catch-up: load unshown rows, catch up from the delta token, then show what is due, with the "not running through T-10" wording | M | NoteScheduler, NoteStore |
 | Diagnostics counts for late notes and for cancels and moves that arrived after a note was shown | S | Diagnostics |
 
-Blocked by: S-03. Real moves and cancels arrive only with S-05; this story builds against the fixture calendar. If the catch-up cannot finish on wake (offline, signed out), the design shows the built note marked "calendar not confirmed since HH:MM", so a cancelled call can still show a note in that case; how long to wait for the catch-up before showing is not decided in the design (see Not planned). G-013 (OQ-013) touches the late-note behaviour. UNK-027 is open for EPC-004.AC4.
+Blocked by: S-03. Real moves and cancels arrive only with S-05; this story builds against the fixture calendar. If the catch-up cannot finish on wake (offline, signed out), the design shows the built note marked "calendar not confirmed since HH:MM", so a canceled call can still show a note in that case; how long to wait for the catch-up before showing is not decided in the design (see Not planned). G-013 (OQ-013) touches the late-note behavior. UNK-027 is open for EPC-004.AC4.
 
 ### S-05 Real calendar: sign in and poll
 
-Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behaviour, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.
+Traces to: CON-001; CAP-001.FR1@APP-heron (obligation of CON-001), CAP-001.FR2@APP-heron (obligation of CON-001); EPC-001.AC1 (entries arrive), EPC-001.AC5 and EPC-001.AC6 (attendees arrive). Components: CalendarSource, SignIn / TokenStore. Rests on the design sections Integration points, Failure behavior, Sign-in redirect, Registration, scopes and schedule, Throttling and stale calendar, and Scale.
 
 Acceptance criteria:
 - Microsoft's calendar sends each entry with its time and attendees, and sends any move or cancellation, so Heron can act on the change before the note is due (CAP-001.FR1 obligation of CON-001).
 - Each entry carries every invitee's name, whether each has accepted or declined, and the members of a list when the entry names them (CAP-001.FR2 obligation of CON-001).
-- Design behaviour, not an epic criterion: delegated scopes `Calendars.Read`, `offline_access` and `User.Read` only; a calendar with no good poll for five minutes is marked stale; throttling honours `Retry-After`; one notification per signed-out episode, a reminder at T-30, and the reason shown at T-10 only.
+- Design behavior, not an epic criterion: delegated scopes `Calendars.Read`, `offline_access` and `User.Read` only; a calendar with no good poll for five minutes is marked stale; throttling honors `Retry-After`; one notification per signed-out episode, a reminder at T-30, and the reason shown at T-10 only.
 
 | Task | Size | Component |
 |------|------|-----------|
@@ -187,7 +187,7 @@ Traces to: CON-001; CAP-001.FR3@APP-heron (obligation of CON-001); EPC-001.AC7. 
 
 Acceptance criteria:
 - Past calendar entries come over CON-001 with their attendees, as coming ones do, so the most recent earlier call with the same client can be found (EPC-001.AC7).
-- Design behaviour, not an epic criterion: past lookback is capped at 90 days, provisionally, as a managed setting with a request budget per client lookup; a rejected delta token drops only that token and resyncs the window.
+- Design behavior, not an epic criterion: past lookback is capped at 90 days, provisionally, as a managed setting with a request budget per client lookup; a rejected delta token drops only that token and resyncs the window.
 
 | Task | Size | Component |
 |------|------|-----------|
@@ -210,7 +210,7 @@ Acceptance criteria:
 - Until a folder is chosen, the note for a client call says that no folder is set (EPC-002.AC3).
 - When the chosen folder is missing or empty, the note says so and names the problem (EPC-002.AC4).
 - The files in the chosen folder can be read and nothing is written back to it (EPC-002.AC6).
-- Design behaviour, not an epic criterion: only text, Markdown, Word and PDF files are read, up to 2 MB per file and 50 files by default, as managed settings; a path that leaves the folder, including by symlink or junction, is refused; a network or synced folder is refused unless `allow_network_folders` allows it; online-only files are skipped and listed as "not on this laptop"; the floor has a 60-second deadline and a 5-second per-file timeout; file names and paths are never stored.
+- Design behavior, not an epic criterion: only text, Markdown, Word and PDF files are read, up to 2 MB per file and 50 files by default, as managed settings; a path that leaves the folder, including by symlink or junction, is refused; a network or synced folder is refused unless `allow_network_folders` allows it; online-only files are skipped and listed as "not on this laptop"; the floor has a 60-second deadline and a 5-second per-file timeout; file names and paths are never stored.
 
 | Task | Size | Component |
 |------|------|-----------|
@@ -236,7 +236,7 @@ Traces to: CAP-001.FR4@APP-heron (share, matched as for CAP-001.FR3); EPC-002.AC
 
 Acceptance criteria:
 - From a folder that holds files for several clients, the note uses only the files that relate to the call's client, matched as for CAP-001.FR3 (EPC-002.AC5).
-- Design behaviour, not an epic criterion: a file relates only on an exact match, the full domain or the full client name as a whole word, never a substring; public-mail names and domains never identify a client; the Note view shows each file used by name with the reason, at build time; the stored note keeps the kind of source and never a name or path; each stored note records the rule that built it, unshown notes are rebuilt after a rule switch and shown notes keep theirs.
+- Design behavior, not an epic criterion: a file relates only on an exact match, the full domain or the full client name as a whole word, never a substring; public-mail names and domains never identify a client; the Note view shows each file used by name with the reason, at build time; the stored note keeps the kind of source and never a name or path; each stored note records the rule that built it, unshown notes are rebuilt after a rule switch and shown notes keep theirs.
 
 | Task | Size | Component |
 |------|------|-----------|
@@ -258,7 +258,7 @@ Traces to: CAP-001.FR3@APP-heron (share, content rules); EPC-003.AC5; EPC-003.AC
 Acceptance criteria:
 - The note carries no remark about anyone's mood, tone or performance, whatever the records contain (EPC-003.AC5).
 - An open point appears only when a record or a folder file states it as open and the note adds no open point of its own, so a sentence that maps to no source span is dropped (EPC-003.AC2).
-- Design behaviour, not an epic criterion: a sentence naming a person off the call's attendee list is dropped; the withheld count is shown by reason; settings can add terms but never remove the base list; the list version and the name-filter level are recorded on each stored note.
+- Design behavior, not an epic criterion: a sentence naming a person off the call's attendee list is dropped; the withheld count is shown by reason; settings can add terms but never remove the base list; the list version and the name-filter level are recorded on each stored note.
 
 | Task | Size | Component |
 |------|------|-----------|
@@ -268,7 +268,7 @@ Acceptance criteria:
 | Withheld count by reason (name, mood or tone, no source) to the Note view and Diagnostics | S | ContentCheck, NoteWindow |
 | Record the list version and filter level on each stored note | S | ContentCheck, NoteStore |
 | Plumbing for `excluded_names` in `check()`; the policy is S-11 | S | ContentCheck |
-| Labelled test set from synthetic or consenting records, scoring misses and false alarms | M | ContentCheck |
+| Labeled test set from synthetic or consenting records, scoring misses and false alarms | M | ContentCheck |
 
 Blocked by: S-03; G-006 (OQ-006, no owner for the term list and no DPO acceptance of a word list); G-007 (OQ-007, name filter not accepted against the DPO's rule); UNK-023 and UNK-024; UNK-025 for any test on real records (synthetic records do not wait on it). The language the name filter must handle is not recorded; the plan assumes English for the London pilot.
 
@@ -289,7 +289,7 @@ Acceptance criteria:
 |------|------|-----------|
 | `RecordSource` port; every call resolves to "none readable" until an adapter exists | S | RecordSource |
 | Pick the most recent earlier call from `earlier_calls` and `same_client`; the first-call case; a stub "lookup incomplete" outcome (see S-06) | M | NoteAssembler |
-| Floor extraction of open points, only where a record or file states them as open, each labelled with its source | L | NoteAssembler |
+| Floor extraction of open points, only where a record or file states them as open, each labeled with its source | L | NoteAssembler |
 | Floor account as excerpts, every sentence through `ContentCheck` | M | NoteAssembler |
 | "Nothing readable" and "no record" messages, with no reach back to an older call | S | NoteAssembler |
 | Source labels in the note: a call record, or a file in the chosen folder | S | NoteAssembler, NoteWindow |
@@ -300,7 +300,7 @@ Blocked by: S-03, S-06, S-07, S-08, S-09; UNK-025 (Legal on reusing call records
 
 Traces to: CAP-001.FR2@APP-heron (share), CAP-001.FR3@APP-heron (share); EPC-001.AC5 and EPC-001.AC7 (in conflict with this story, see below); constraint CST-8. Components: PopulationFilter, ContentCheck, NoteStore, Diagnostics. Rests on the design section Excluded population.
 
-Acceptance criteria. No epic criterion covers this story, so these are the design's behaviour:
+Acceptance criteria. No epic criterion covers this story, so these are the design's behavior:
 - Excluded attendees are dropped from the people list, from past-entry matching and from the stored note.
 - A call whose only external attendees are excluded gets no note and the reason "excluded attendee".
 - An explicitly empty exclusion list means nobody is excluded; an absent list means it has not arrived and Heron fails closed.
@@ -328,7 +328,7 @@ Traces to: CAP-001.FR3@APP-heron (share); EPC-003.AC1 (as written: a short accou
 Acceptance criteria:
 - The note gives a short account of the most recent earlier call, drawn only from what the call tool left behind about it and from files in the chosen folder (EPC-003.AC1).
 - A note not ready by ten minutes before the call is shown as soon as it is ready, clearly marked as late, and not dropped (EPC-004.AC4).
-- Design behaviour, not an epic criterion: the rewrite runs only if it can finish before T-10 and a shown note is never swapped in place; its output passes `ContentCheck` again; if the model is absent, too slow or fails the check, the floor text stands; `enabled=false` dominates and `model=false` means floor only; the weights are a separate hashed resource and a mismatch means floor only; memory stays within 500 MB with the model (C-1).
+- Design behavior, not an epic criterion: the rewrite runs only if it can finish before T-10 and a shown note is never swapped in place; its output passes `ContentCheck` again; if the model is absent, too slow or fails the check, the floor text stands; `enabled=false` dominates and `model=false` means floor only; the weights are a separate hashed resource and a mismatch means floor only; memory stays within 500 MB with the model (C-1).
 
 | Task | Size | Component |
 |------|------|-----------|
@@ -342,13 +342,13 @@ Acceptance criteria:
 | Deadline-aware rewrite: only if it can finish before T-10 | M | Rewriter, NoteScheduler |
 | Rewrite output through `ContentCheck` again | S | Rewriter, ContentCheck |
 
-Blocked by: S-09 and S-10; G-015 (OQ-015, no model, runtime or licence chosen or checked; the licence check is Legal's and is not a task here, see Not planned); G-003 (OQ-003, memory and build-time measurements); UNK-027 (pilot laptops); G-010 (the owner who runs the licence check).
+Blocked by: S-09 and S-10; G-015 (OQ-015, no model, runtime or license chosen or checked; the license check is Legal's and is not a task here, see Not planned); G-003 (OQ-003, memory and build-time measurements); UNK-027 (pilot laptops); G-010 (the owner who runs the license check).
 
 ### S-13 Keep it running and wind it down (shared)
 
 Traces to: EPC-004.AC1 and CAP-001.FR5@APP-heron (share), through "not saved" and "build failed"; otherwise the design's NFRs (retention, C-3) and its Rollback, kill switch and signing, Copies of note text and wind-down, Keeping it running, and Operations sections. No requirement row or epic criterion covers most of this story. Components: NoteStore, NoteScheduler, ManagedSettings, Diagnostics. The OS mechanisms (login item, scheduled task, uninstaller, key survival) are S-14 and S-15.
 
-Acceptance criteria. Design behaviour, except where marked:
+Acceptance criteria. Design behavior, except where marked:
 - Every client call gets a note or a short message saying why there is none (EPC-004.AC1): a note that cannot be saved is still shown from memory, marked "not saved", and the write is retried with backoff; a call whose build fails twice is marked "build failed" with a reason code and skipped.
 - If the store will not open, Heron deletes and recreates it and resyncs; the tray says "Heron reset its local data" and the log counts resets.
 - A backup is taken before a migration, expires with the notes it holds, and a store found still marked "migrating" is restored from it.
@@ -367,53 +367,53 @@ Acceptance criteria. Design behaviour, except where marked:
 | Kill switch and `model` switch; tray shows "paused by IT", build number, snapshot time and active rule | M | ManagedSettings |
 | Build-failed-twice marking, crash restart backoff and stop limit, "pause until tomorrow" | M | NoteScheduler |
 | Diagnostics export: note reference mapping, no call IDs, in-memory ring, failed-write count | M | Diagnostics |
-| Bill of materials for the CISO pack: every third-party component with version and licence, generated from the build's lockfiles; the model and runtime entries are added by S-12 when chosen (G-015) | S | all |
+| Bill of materials for the CISO pack: every third-party component with version and license, generated from the build's lockfiles; the model and runtime entries are added by S-12 when chosen (G-015) | S | all |
 
 Blocked by: S-02, S-03, S-04; G-004 (OQ-004, the DPO, Legal and the works council have not accepted the 30-day store, backup, logs and the erasure route; this can change retention values, not the build); G-010 (OQ-010, nobody owns the kill switch or pilot support). D-001 and D-002 stay under Not planned.
 
 ### S-14 Windows release
 
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behaviour while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.
+Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the design sections Architecture overview, Web view boundary, Copies of note text and wind-down, Rollback, kill switch and signing, Keeping it running, and Operations.
 
-Acceptance criteria. Design behaviour:
+Acceptance criteria. Design behavior:
 - A signed `.msi` installs through Intune; updates come only through IT's channel, with no self-updater.
 - The installer sets Heron to start at login and restart after a crash; the uninstaller deletes the data folder and the key.
-- The signing gate signs only an artefact that passed both web-view checks, with the result recorded against its hash.
+- The signing gate signs only an artifact that passed both web-view checks, with the result recorded against its hash.
 - Release tests on Windows: the web view runtime removed; a note shown during a presentation or Do Not Disturb; the app killed mid-parse and mid-rewrite leaves no temp file; no database file after sign-out, uninstall and re-image; a known note string searched for in the data and temp folders; the disk filled, the database file locked and the credential store locked at T-10; the lid closed for 10 minutes and the app killed mid-build; a malformed PDF and a malformed Word file do not loop the app; a worker trying the network, the credential store or a symlink is refused; a calendar title and a file containing script show as literal text; N+1 then N through a real Intune push; an update from a build signed with the old certificate to one signed with the renewed certificate reads the key; the diagnostics export holds no calendar IDs, names, text or paths.
 - A network-block test allows only Microsoft sign-in and calendar reads.
 
 | Task | Size | Component |
 |------|------|-----------|
 | `.msi` packaging, start at login, restart after a crash | M | packaging |
-| Uninstaller deletes the data folder and key (final behaviour waits on G-004) | S | packaging, NoteStore |
-| Signing pipeline and the gate that signs only an artefact that passed both web-view checks | M | packaging |
+| Uninstaller deletes the data folder and key (final behavior waits on G-004) | S | packaging, NoteStore |
+| Signing pipeline and the gate that signs only an artifact that passed both web-view checks | M | packaging |
 | Certificate update test: old certificate to renewed, key still readable | M | SignIn / TokenStore |
-| Window behaviour while the screen is shared, from the S-01 result and the product owner's ruling | M | NoteWindow, NoteScheduler |
+| Window behavior while the screen is shared, from the S-01 result and the product owner's ruling | M | NoteWindow, NoteScheduler |
 | Network-block test on Windows | M | packaging |
 | Windows release test pack (the list above, apart from the Intune push) | L | all |
 | Intune push test: install N+1 then N, read the key, restore the backup | M | NoteStore |
 | Web view runtime check at launch, wake and show; report an old version in the tray | S | NoteWindow |
 
-Blocked by: S-03 to S-13 (the release tests need the real behaviour); G-001 (DPAPI and worker-sandbox results); G-012 (OQ-012, key survival through IT's rollback, needs a managed laptop from the endpoint lead); G-005 (OQ-005, IT's 18 January slot and no recorded emergency route); G-013 (OQ-013, sharing behaviour); G-010 (OQ-010, signing certificates and their renewal); G-004 (OQ-004, uninstall); UNK-027 (minimum OS and WebView2 versions). Ships independently of S-15.
+Blocked by: S-03 to S-13 (the release tests need the real behavior); G-001 (DPAPI and worker-sandbox results); G-012 (OQ-012, key survival through IT's rollback, needs a managed laptop from the endpoint lead); G-005 (OQ-005, IT's 18 January slot and no recorded emergency route); G-013 (OQ-013, sharing behavior); G-010 (OQ-010, signing certificates and their renewal); G-004 (OQ-004, uninstall); UNK-027 (minimum OS and WebView2 versions). Ships independently of S-15.
 
 ### S-15 Mac release
 
-Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behaviour while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.
+Traces to: no requirement row or epic criterion; delivers CST-2 packaging and the design's release tests, and carries the window behavior while the screen is shared that S-03 deferred (G-013). Components: all, through packaging; SignIn / TokenStore, NoteStore, NoteWindow, NoteScheduler. Rests on the same design sections as S-14.
 
-Acceptance criteria. Design behaviour, the Mac counterparts of S-14:
+Acceptance criteria. Design behavior, the Mac counterparts of S-14:
 - A signed `.pkg` installs through Jamf; updates come only through IT's channel, with no self-updater.
 - The installer sets Heron to start at login (a login item) and restart after a crash; the keychain item's access list names the signed Heron binary only; uninstall deletes the data folder and the key.
-- The signing gate signs only an artefact that passed both web-view checks, with the result recorded against its hash.
+- The signing gate signs only an artifact that passed both web-view checks, with the result recorded against its hash.
 - The release tests of S-14, run on Mac, with N+1 then N through a real Jamf push, and an update to a build signed with a renewed certificate under the same team ID that still reads the key (unverified in the design).
 - A network-block test allows only Microsoft sign-in and calendar reads.
 
 | Task | Size | Component |
 |------|------|-----------|
 | `.pkg` packaging, login item, restart after a crash | M | packaging |
-| Uninstall script run through Jamf: delete the data folder and key (final behaviour waits on G-004; how uninstall is delivered under Jamf is not recorded) | S | packaging, NoteStore |
-| Signing and notarization pipeline and the gate that signs only an artefact that passed both web-view checks | M | packaging |
+| Uninstall script run through Jamf: delete the data folder and key (final behavior waits on G-004; how uninstall is delivered under Jamf is not recorded) | S | packaging, NoteStore |
+| Signing and notarization pipeline and the gate that signs only an artifact that passed both web-view checks | M | packaging |
 | Certificate update test: old certificate to renewed under the same team ID, key still readable | M | SignIn / TokenStore |
-| Window behaviour while the screen is shared, from the S-01 result and the product owner's ruling | M | NoteWindow, NoteScheduler |
+| Window behavior while the screen is shared, from the S-01 result and the product owner's ruling | M | NoteWindow, NoteScheduler |
 | Network-block test on Mac | M | packaging |
 | Mac release test pack (the S-14 list, apart from the Jamf push) | L | all |
 | Jamf push test: install N+1 then N, read the key, restore the backup | M | NoteStore |
@@ -429,7 +429,7 @@ Sizes are for ordering, not commitments. A story in a later tier can start earli
 2. **S-04 Moves, cancels and late notes; S-09 Content check; S-07 Choose a folder; S-11 Excluded people.** Each needs only S-03 (S-11 also S-02). S-07's parser work starts here while its two sandbox tasks wait for S-01, so S-07 is not done until S-01 lands. S-11 runs in parallel with S-05 and must land before S-06 is enabled for real users.
 3. **S-05 Real calendar; S-08 Only this client's files.** S-05 waits on S-01, the production registration (G-009) and the sign-in policy answer (G-014). S-08 needs S-07 and S-02.
 4. **S-06 Earlier calls.** Needs S-05 and S-02; rollout blocker: not enabled for real users before S-11.
-5. **S-10 Last time and what's open; S-13 Keep it running.** S-10 needs S-06, S-07, S-08 and S-09. S-13 can start in part from tier 1, on the store, migration and open-failure paths against S-03's store; its release-gated behaviour is proven by S-14 and S-15.
+5. **S-10 Last time and what's open; S-13 Keep it running.** S-10 needs S-06, S-07, S-08 and S-09. S-13 can start in part from tier 1, on the store, migration and open-failure paths against S-03's store; its release-gated behavior is proven by S-14 and S-15.
 6. **S-14 Windows release, S-15 Mac release.** Parallel tracks, one per platform expert. Their packaging and signing tasks start earlier against S-13's interfaces; their release tests need the real S-03 to S-13. The Intune and Jamf push tests start when the managed laptops arrive.
 7. **S-12 Short account from the on-device model.** Last, behind the `model` switch. Its first task is a measurement gate, and the floor note stands without it, so it can ship later or not at all.
 
@@ -534,7 +534,7 @@ Gaps of the design. A gap that is a ruling or an answer from an outside party ha
 | G-012 (OQ-012) | Verified by the push tests in S-14 and S-15; needs managed laptops from the endpoint lead. |
 | G-013 (OQ-013) | A task in each of S-14 and S-15, once the S-01 result and the product owner's and DPO's rulings are in. |
 | G-014 (OQ-014) | The identity team's answer on sign-in frequency; carried on S-05. |
-| G-015 (OQ-015) | The model, runtime and licence choice, and Legal's licence check, are outside the plan; S-12 measures what is chosen. |
+| G-015 (OQ-015) | The model, runtime and license choice, and Legal's license check, are outside the plan; S-12 measures what is chosen. |
 | G-016 (OQ-016) | S-07 builds the online-only detection; the test against the firm's sync client needs laptops and the CISO's reading, and is not a separate task. |
 
 Questions this session raised, for `tech-design-grill` or `/planner:challenge`:
@@ -543,14 +543,14 @@ Questions this session raised, for `tech-design-grill` or `/planner:challenge`:
 |----------|--------------------|
 | What `earlier_calls` returns when the per-lookup request budget runs out. A partial list could hide the true most recent call, and an empty one would read as "first call". | S-06, S-10 |
 | How long the scheduler waits for the catch-up on wake before showing a note, and what shows if it cannot finish. | S-04 |
-| Whether a stored row with no entry after a full resync means a cancelled call. | S-05 |
+| Whether a stored row with no entry after a full resync means a canceled call. | S-05 |
 | Whether "a change to how names are detected is a rebuild" means a new app build or rebuilding unshown notes. | S-09 |
 | Who owns the public-mail list, and whether it should be a managed setting and not a build constant. | S-08 |
 | EPC-001.AC5 against the exclusion of Frankfurt staff from the people list. Raise with `/planner:challenge EPC-001.AC5` (G-101). | S-11 |
 | What happens if one operating system passes its gate for the 18 January slot and the other does not. Ask the endpoint lead (OQ-005); the plan keeps S-14 and S-15 independent. | S-14, S-15 |
 | An answer to UNK-021 or UNK-022 outside the shipped rule kinds is a matcher change and a new build, which the design records no emergency route for. | S-02, S-08 |
 | Call tool adapters, one per tool, until UNK-008 (ask by 2026-10-18) and UNK-017 (2026-11-01) name the tools (G-103). | S-10 |
-| The licence check of the model and runtime is Legal's. | S-12 |
+| The license check of the model and runtime is Legal's. | S-12 |
 | The bill of materials in S-13 is provisional for the CISO pack due 10 November; the model and runtime entries wait on G-015. | S-13 |
 | How uninstall is delivered under Jamf. | S-15 |
 

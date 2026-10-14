@@ -14,13 +14,13 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=920438ec: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=c45f8ff4: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
 |---|---|---|---|---|
 | [[consent-and-identity-building-blocks\|Consent and identity]] | target | 3 | 4 | 0 of 3 |
-| [[summariser-building-blocks\|Summariser]] | target | 1 | 4 | 0 of 1 |
+| [[summarizer-building-blocks\|Summarizer]] | target | 1 | 4 | 0 of 1 |
 | [[desktop-agent-building-blocks\|Desktop agent]] | handoff | 2 | 5 | 0 of 4 |
 
 **Handed off:** [[desktop-agent-building-blocks|Desktop agent]] (@agent-lead, 2026-10-12, PR pending)
@@ -44,12 +44,12 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 | [[11-unknowns-and-risks#UNK-064 Digest as client record\|UNK-064]] | @legal-counsel (Legal counsel) | 2026-10-29 | [[CAP-001-read-calendar-and-transcripts#CAP-001.FR1 Read existing Teams transcripts\|Read existing Teams transcripts]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR1 Show the 7:30 digest\|Show the 7:30 digest]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR2 Show a prep note before a meeting\|Show a prep note before a meeting]], [[CAP-003-write-morning-digest#CAP-003.FR1 Write each person's digest\|Write each person's digest]], [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
 | [[11-unknowns-and-risks#UNK-065 Client Delivery told what Heron surfaces\|UNK-065]] | @pilot-lead (Pilot lead) | 2026-11-06 | [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|UNK-066]] | @product-owner (Product owner) | 2026-11-06 | [[desktop-agent-building-blocks\|the Desktop agent's list of contracts it provides]] |
-| [[11-unknowns-and-risks#UNK-067 How slow is too slow\|UNK-067]] | @product-owner (Product owner) | 2026-10-29 | [[summariser-building-blocks\|the Summariser's failure behaviour]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR2 Show a prep note before a meeting\|Show a prep note before a meeting]] |
+| [[11-unknowns-and-risks#UNK-067 How slow is too slow\|UNK-067]] | @product-owner (Product owner) | 2026-10-29 | [[summarizer-building-blocks\|the Summarizer's failure behavior]], [[CAP-002-show-digest-and-prep-note#CAP-002.FR2 Show a prep note before a meeting\|Show a prep note before a meeting]] |
 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|UNK-068]] | @product-owner (Product owner) | 2026-11-06 | [[consent-and-identity-building-blocks\|the Consent and identity page's builder]] |
 | [[11-unknowns-and-risks#UNK-069 When the registration request goes in\|UNK-069]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | [[desktop-agent-building-blocks\|the Desktop agent's boundary]], [[consent-and-identity-building-blocks\|the Consent and identity boundary]], [[FLO-005-get-tenant-registration\|the tenant registration flow]] |
 | [[11-unknowns-and-risks#UNK-070 Who stands behind the data list\|UNK-070]] | @product-owner (Product owner) | 2026-11-06 | [[11-unknowns-and-risks#UNK-057 Full list of data Heron reads\|the full list of data Heron reads]] |
 | [[11-unknowns-and-risks#UNK-071 Lawful basis for each source\|UNK-071]] | @dpo (DPO) | 2026-11-10 | [[consent-and-identity-building-blocks#CON-004 Record consent\|Record consent]], [[04b-releases#Release one: February pilot, Client Delivery London\|February pilot]] |
-| [[11-unknowns-and-risks#UNK-072 How many organisers turn transcripts on\|UNK-072]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | [[CAP-001-read-calendar-and-transcripts#CAP-001.FR1 Read existing Teams transcripts\|Read existing Teams transcripts]] |
+| [[11-unknowns-and-risks#UNK-072 How many organizers turn transcripts on\|UNK-072]] | @endpoint-lead (IT endpoint lead) | 2026-11-06 | [[CAP-001-read-calendar-and-transcripts#CAP-001.FR1 Read existing Teams transcripts\|Read existing Teams transcripts]] |
 | [[11-unknowns-and-risks#UNK-073 Digest held until first login\|UNK-073]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-002-show-digest-and-prep-note#CAP-002.FR1 Show the 7:30 digest\|Show the 7:30 digest]] |
 | [[11-unknowns-and-risks#UNK-074 Accepted invitees and the digest\|UNK-074]] | @dpo (DPO) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
 | [[11-unknowns-and-risks#UNK-075 Acceptance in the calendar read\|UNK-075]] | @product-owner (Product owner) | 2026-10-29 | [[CAP-003-write-morning-digest#CAP-003.FR2 Name only people who were there\|Name only people who were there]] |
@@ -64,13 +64,13 @@ Heron has one goal so far, the chief information officer's first ask: a desk hel
 
 ## Progress by app
 
-<!-- generated:progress-map sha=3fdbed13: do not edit, run planner render -->
+<!-- generated:progress-map sha=fef76e6d: do not edit, run planner render -->
 **As of:** no session yet, so no unknown counts as overdue
 
 | App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
 |---|---|---|---|---|---|---|---|
 | [[consent-and-identity-building-blocks\|Consent and identity]] | target | 0 | 5 | 0 | 0 | [[11-unknowns-and-risks#UNK-068 Who builds Consent and identity\|UNK-068]] opened 2026-10-12 | grill RUN-consent-and-identity |
-| [[summariser-building-blocks\|Summariser]] | target | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|UNK-067]] opened 2026-10-12 | grill RUN-summariser |
+| [[summarizer-building-blocks\|Summarizer]] | target | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-067 How slow is too slow\|UNK-067]] opened 2026-10-12 | grill RUN-summarizer |
 | [[desktop-agent-building-blocks\|Desktop agent]] | handoff | 0 | 3 | 0 | 0 | [[11-unknowns-and-risks#UNK-066 Consent sees what agent read\|UNK-066]] opened 2026-10-12 | grill RUN-desktop-agent |
 <!-- /generated:progress-map -->
 

@@ -68,8 +68,8 @@ Consent and identity asks Microsoft 365 who signed in, so each record belongs to
 | [[CAP-001-read-calendar-and-transcripts#CAP-001.FR2 Read the person's own calendar entries\|Read the person's own calendar entries]] | answers before anything is read whether the person has agreed to calendar entries, separately from transcripts, and answers no before they switch on, after they withdraw, or when it is down | CON-003 | assumption |
 | [[CAP-002-show-digest-and-prep-note#CAP-002.FR1 Show the 7:30 digest\|Show the 7:30 digest]] | answers no to the consent check once the person has withdrawn, so the agent shows no digest | CON-003 | assumption |
 | [[CAP-002-show-digest-and-prep-note#CAP-002.FR2 Show a prep note before a meeting\|Show a prep note before a meeting]] | answers no to the consent check once the person has withdrawn, so the agent shows no prep note | CON-003 | assumption |
-| [[CAP-003-write-morning-digest#CAP-003.FR1 Write each person's digest\|Write each person's digest]] | answers no to the consent check once the person has withdrawn, so the agent sends the Summariser nothing | CON-003 | assumption |
-| [[CAP-004-write-prep-note#CAP-004.FR1 Write a prep note for one meeting\|Write a prep note for one meeting]] | answers no to the consent check once the person has withdrawn, so the agent sends the Summariser nothing | CON-003 | assumption |
+| [[CAP-003-write-morning-digest#CAP-003.FR1 Write each person's digest\|Write each person's digest]] | answers no to the consent check once the person has withdrawn, so the agent sends the Summarizer nothing | CON-003 | assumption |
+| [[CAP-004-write-prep-note#CAP-004.FR1 Write a prep note for one meeting\|Write a prep note for one meeting]] | answers no to the consent check once the person has withdrawn, so the agent sends the Summarizer nothing | CON-003 | assumption |
 | [[CAP-005-record-persons-consent#CAP-005.FR1 Agree to each source separately\|Agree to each source separately]] | keeps each source choice with the person, the source and the date; also refuses transcripts without calendar entries; confirms to the agent only once the choice is kept; answers the consent check per source, and no for a person who has not switched on | CON-004, CON-003 | assumption |
 
 ## Capabilities
@@ -79,7 +79,7 @@ Consent and identity asks Microsoft 365 who signed in, so each record belongs to
 
 ## Where it fits
 
-<!-- generated:app-context sha=8815d317: do not edit, run planner render -->
+<!-- generated:app-context sha=9a121243: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
@@ -96,7 +96,7 @@ flowchart LR
   class n_APP_desktop_agent new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 <!-- generated:contracts-consumed sha=a859dfe7: do not edit, run planner render -->
@@ -107,16 +107,16 @@ Key: dark blue: the app this page is about · green: new in this initiative · w
 
 ## History
 
-- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarising inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
+- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarizing inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
 
 #### CON-003
 
-- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarising inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
+- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarizing inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
 
 #### CON-004
 
-- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarising inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
+- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarizing inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
 
 #### CON-005
 
-- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarising inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January
+- **Options considered:** Three apps (picked); Two apps: rejected, it keeps the summarizing inside the agent, so a cloud answer to the text call would pull it out after the agent's contracts are fixed in early January

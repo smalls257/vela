@@ -38,8 +38,8 @@ Keeps a seat for a customer on a crossing for 10 minutes while they pay, so no o
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=fa44021f: do not edit, run planner render -->
+<!-- generated:delivered-by sha=90b69c89: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harbourline/booking-team | decided |
+| [[EPC-031-holds-and-confirms\|EPC-031 Booking holds and confirms crossings]] | @harborline/booking-team | decided |
 <!-- /generated:delivered-by -->

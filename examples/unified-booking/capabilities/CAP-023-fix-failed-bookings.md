@@ -25,7 +25,7 @@ Lets an agent repair a booking that was paid for but never confirmed.
 
 | Application | Today | After |
 |---|---|---|
-| [[call-centre-building-blocks\|Call centre desktop]] | manual fix queue, worked the next morning | retired: nobody, [[booking-building-blocks\|Booking]] retries the ledger write and keeps the hold |
+| [[call-center-building-blocks\|Call center desktop]] | manual fix queue, worked the next morning | retired: nobody, [[booking-building-blocks\|Booking]] retries the ledger write and keeps the hold |
 
 ## Initiatives that touch this
 
@@ -37,10 +37,10 @@ None after this initiative. The retry path in [[FLO-001-hold-pay-confirm|Hold, p
 
 ## Delivered by
 
-<!-- generated:delivered-by sha=21f098f6: do not edit, run planner render -->
+<!-- generated:delivered-by sha=e556a87b: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-034-call-centre-to-booking\|EPC-034 Call centre moves to Booking]] | @harbourline/contact-centre-systems | decided |
+| [[EPC-034-call-center-to-booking\|EPC-034 Call center moves to Booking]] | @harborline/contact-center-systems | decided |
 <!-- /generated:delivered-by -->
 
-[[EPC-034-call-centre-to-booking|Call centre moves to Booking]] retires the manual fix queue.
+[[EPC-034-call-center-to-booking|Call center moves to Booking]] retires the manual fix queue.

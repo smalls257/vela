@@ -19,7 +19,7 @@ Every capability this initiative changes, which software provides it before and 
 
 Each capability page holds the change, what provides it today and after, its flows and its epics.
 
-<!-- generated:capability-map sha=26e98444: do not edit, run planner render -->
+<!-- generated:capability-map sha=3a8c0e2e: do not edit, run planner render -->
 ```mermaid
 flowchart TB
   subgraph d_booking["Booking"]
@@ -48,7 +48,7 @@ flowchart TB
   class c_CAP_011,c_CAP_015 unchanged
 ```
 
-Key: green: new in this initiative · amber: changed by this initiative · grey: stays as it is · red, dashed: retired by this initiative.
+Key: green: new in this initiative · amber: changed by this initiative · gray: stays as it is · red, dashed: retired by this initiative.
 <!-- /generated:capability-map -->
 
 - [[CAP-013-reserve-a-crossing|Reserve a crossing]]
@@ -60,9 +60,9 @@ Key: green: new in this initiative · amber: changed by this initiative · grey:
 
 ## Notes on the trickier rows
 
-**Hold a seat during payment.** Ten minutes came from Tidepay's own session timeout, which is nine. A hold that outlives the payment page by a minute covers slow webhooks without blocking the seat for long. It was an assumption until the Grill on 2026-08-12, when the Head of Contact Centre confirmed that ten minutes matches what agents already do by hand.
+**Hold a seat during payment.** Ten minutes came from Tidepay's own session timeout, which is nine. A hold that outlives the payment page by a minute covers slow webhooks without blocking the seat for long. It was an assumption until the Grill on 2026-08-12, when the Head of Contact Center confirmed that ten minutes matches what agents already do by hand.
 
-**Fix failed bookings by hand.** Retiring a capability is a promise that nobody will need it. Booking makes that promise by retrying the ledger write and keeping the hold, so the failure the call centre used to clean up can no longer reach a customer. If it does, it shows up in the hold expiry rate on [[concern-observability|Observability]] long before anyone phones.
+**Fix failed bookings by hand.** Retiring a capability is a promise that nobody will need it. Booking makes that promise by retrying the ledger write and keeping the hold, so the failure the call center used to clean up can no longer reach a customer. If it does, it shows up in the hold expiry rate on [[concern-observability|Observability]] long before anyone phones.
 
 **Reserve a crossing.** INI-004 Loyalty Revamp also touches this capability, because points are earned at reservation. Loyalty Revamp will consume Booking's state-changed event rather than adding a fourth caller.
 

@@ -13,7 +13,7 @@ sources: [2026-10-12-first-release-boundary]
 
 # Write a prep note
 
-The business can have the Summariser write a short prep note for one meeting from that meeting's calendar entry alone, ready ten minutes before it starts. It uses no transcript and no earlier meeting for now; the previous meeting is added once the product owner says the model keeps up with ten minutes.
+The business can have the Summarizer write a short prep note for one meeting from that meeting's calendar entry alone, ready ten minutes before it starts. It uses no transcript and no earlier meeting for now; the previous meeting is added once the product owner says the model keeps up with ten minutes.
 
 ## Functional requirements
 

@@ -28,7 +28,7 @@ The mainframe team owns FERRYMASTER and the message queue (MQ) transactions, and
 | [[pricing-building-blocks\|Pricing]] | unchanged | Revenue team | Quote service, Fare rules store |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | unchanged | Mainframe team | Ledger and MQ transactions |
 | [[website-building-blocks\|Website]] | addressed | Digital team | Booking API client in Booking pages |
-| [[call-centre-building-blocks\|Call centre]] | addressed | Contact Centre Systems team | Booking API client, amend and cancel screens |
+| [[call-center-building-blocks\|Call center]] | addressed | Contact Center Systems team | Booking API client, amend and cancel screens |
 | [[kiosks-building-blocks\|Kiosks]] | addressed | Port Systems team | Booking API v1 client in the kiosk app: hold, confirm, get. No amend or cancel in the March 2027 image. |
 | [[notifications-building-blocks\|Notifications]] | addressed | Platform team | Booking event consumer |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | unchanged | Marine Ops Systems team | Capacity read API |
@@ -38,4 +38,4 @@ The mainframe team owns FERRYMASTER and the message queue (MQ) transactions, and
 
 - Unknowns: [[11-unknowns-and-risks#UNK-007 Booking on-call|Booking on-call]], [[11-unknowns-and-risks#UNK-003 Mainframe capacity in Q1|Mainframe capacity in Q1]]
 - Decisions: [[ADR-0001-one-booking-context|the one-application decision]]
-- Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-centre-to-booking|Call centre moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]], [[EPC-037-events-and-notifications|Booking events and customer notifications]]
+- Epics: [[EPC-031-holds-and-confirms|Booking holds and confirms crossings]], [[EPC-032-ledger-adapter|Ledger adapter on FERRYMASTER's MQ transactions]], [[EPC-033-website-to-booking|Website moves to Booking]], [[EPC-034-call-center-to-booking|Call center moves to Booking]], [[EPC-035-kiosks-to-booking|Kiosks move to Booking in the March image]], [[EPC-037-events-and-notifications|Booking events and customer notifications]]

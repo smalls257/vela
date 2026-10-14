@@ -4,7 +4,7 @@ type: epic
 title: Amend and cancel online
 initiative: INI-002
 state: decided
-owner: "@harbourline/booking-team @harbourline/digital-team"
+owner: "@harborline/booking-team @harborline/digital-team"
 authored: mixed
 apps: [APP-booking, APP-website]
 delivers: [CAP-021, CON-001, G3]
@@ -18,7 +18,7 @@ sources: ["session 2026-09-16 Grill", "session 2026-11-18 Grill"]
 
 - **Decision:** [[2026-11-18-epics]]
 
-Today a customer who wants to change or cancel a crossing has to phone, because only the call centre can do it, through a mainframe screen. This epic adds amend and cancel to the Booking API and gives the website pages for both.
+Today a customer who wants to change or cancel a crossing has to phone, because only the call center can do it, through a mainframe screen. This epic adds amend and cancel to the Booking API and gives the website pages for both.
 
 Still open: nothing.
 
@@ -28,7 +28,7 @@ Still open: nothing.
 
 [[01-goals|G3]] asks for 60% of amendments to be done online within 6 months of go-live.
 
-Booking checks whether the change is allowed, asks Pricing for a new fare when the crossing changes, and writes BKAMND or BKCANC to FERRYMASTER. The Booking team builds the API side; the Digital team builds the pages. The call centre's new screens in [[EPC-034-call-centre-to-booking|Call centre moves to Booking]] use the same operations, so an amendment means the same thing on the website and in the call centre. Kiosks show booking state only and do not amend or cancel.
+Booking checks whether the change is allowed, asks Pricing for a new fare when the crossing changes, and writes BKAMND or BKCANC to FERRYMASTER. The Booking team builds the API side; the Digital team builds the pages. The call center's new screens in [[EPC-034-call-center-to-booking|Call center moves to Booking]] use the same operations, so an amendment means the same thing on the website and in the call center. Kiosks show booking state only and do not amend or cancel.
 
 ## Done when
 
@@ -40,7 +40,7 @@ A customer can change the date or time of a crossing on the website and sees the
 
 ### A customer can cancel online
 
-A customer can cancel a booking on the website, and every channel, kiosks included, shows it as `cancelled` once FERRYMASTER has accepted the cancellation.
+A customer can cancel a booking on the website, and every channel, kiosks included, shows it as `canceled` once FERRYMASTER has accepted the cancellation.
 
 - Trace: AC2
 
@@ -83,7 +83,7 @@ The share of amendments made online is reported each month from go-live, so G3 c
 
 ## Rollout notes
 
-The amend and cancel operations are ready before the call centre cutover in March 2027. The website pages go live after the website's 4-week switch window closes. G3's 6-month clock starts on that date.
+The amend and cancel operations are ready before the call center cutover in March 2027. The website pages go live after the website's 4-week switch window closes. G3's 6-month clock starts on that date.
 
 ## Out of scope
 

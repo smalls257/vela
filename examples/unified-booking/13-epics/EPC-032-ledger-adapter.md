@@ -4,7 +4,7 @@ type: epic
 title: Ledger adapter on FERRYMASTER's MQ transactions
 initiative: INI-002
 state: decided
-owner: "@harbourline/booking-team"
+owner: "@harborline/booking-team"
 authored: mixed
 apps: [APP-booking, APP-ferrymaster]
 delivers: [ADR-0004, G1]

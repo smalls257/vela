@@ -8,12 +8,12 @@ c4: container
 state: decided
 change: changed
 stage: epics
-owner: "@harbourline/revenue-team"
+owner: "@harborline/revenue-team"
 authored: mixed
 sources: ["Pricing senior review of CON-003", SRC-09]
 ---
 
-[[README|Harbourline]] / [[05-building-blocks|05 Building blocks]] / Pricing
+[[README|Harborline]] / [[05-building-blocks|05 Building blocks]] / Pricing
 
 # Pricing
 
@@ -27,7 +27,7 @@ Pricing does not hold seats or know if a booking is confirmed. Booking does that
 |---|---|
 | Changed: callers narrowed from the three front ends to Booking only | Revenue team |
 
-<!-- generated:app-context sha=4f500fae: do not edit, run planner render -->
+<!-- generated:app-context sha=b584fb63: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
@@ -39,7 +39,7 @@ flowchart LR
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Inside Pricing: main containers
@@ -76,7 +76,7 @@ flowchart LR
 - **State:** decided
 - **Decision:** [[2026-07-28-solution-strategy]]
 - **Override:** GATE-5 by @hl-solution-lead on 2026-07-28: the Revenue team was in its fare review that week, and the strategy could not wait for it. The contract's API does not change, only its list of callers.
-- **Decided by:** @hl-solution-lead, on behalf of @harbourline/revenue-team
+- **Decided by:** @hl-solution-lead, on behalf of @harborline/revenue-team
 - **Confirmed by:** @hl-pricing-senior on 2026-08-12
 
 | Case | When | Status | Answer | Emits | Sets |
@@ -92,10 +92,10 @@ none
 
 ## Epics
 
-<!-- generated:epics-for-app sha=1390bbd7: do not edit, run planner render -->
+<!-- generated:epics-for-app sha=d2445171: do not edit, run planner render -->
 | Epic | Owner | State |
 |---|---|---|
-| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harbourline/revenue-team | decided |
+| [[EPC-038-pricing-serves-booking\|EPC-038 Pricing serves Booking only]] | @harborline/revenue-team | decided |
 <!-- /generated:epics-for-app -->
 
 Next: [[pricing-runtime|Pricing runtime]]

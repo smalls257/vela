@@ -1,22 +1,22 @@
-# Harbourline example: fact sheet and writing conventions
+# Harborline example: fact sheet and writing conventions
 
 This is the single source of truth for the mock "completed" initiative. Every page in
 `examples/unified-booking/` must agree with it. It is not part of the vault.
 
-Everything here is made up. Harbourline is a fictional regional ferry operator.
+Everything here is made up. Harborline is a fictional regional ferry operator.
 
 ## Status of the mock
 
 - Initiative: **INI-002 Unified Booking**. Every app on the ladder has reached stage 6 (Epics) and its epics are written. Delivery is not tracked in the vault.
 - Mock dates: started 2026-07-06, finished 2026-11-20. The fixture is checked with `--today 2026-11-20`.
-- People are named by role only: solution lead, Booking senior, Pricing senior, QA lead, Head of Contact Centre, Platform lead, mainframe team lead, Port Systems senior, Digital senior, Contact Centre Systems senior.
+- People are named by role only: solution lead, Booking senior, Pricing senior, QA lead, Head of Contact Center, Platform lead, mainframe team lead, Port Systems senior, Digital senior, Contact Center Systems senior.
 
 ## Why the initiative exists
 
-- The three front ends (website, call centre desktop, port kiosks) each talk to FERRYMASTER through their own screen-scraping adapter.
+- The three front ends (website, call center desktop, port kiosks) each talk to FERRYMASTER through their own screen-scraping adapter.
 - When the mainframe changes a screen, all three break. That happened 11 times in the last 12 months, usually before a bank holiday.
-- The call centre and the kiosks cache FERRYMASTER replies differently, so they disagree about whether a booking is confirmed.
-- If the website's second scrape (the confirm) fails after payment, the customer has paid for nothing. The call centre fixes it by hand the next morning.
+- The call center and the kiosks cache FERRYMASTER replies differently, so they disagree about whether a booking is confirmed.
+- If the website's second scrape (the confirm) fails after payment, the customer has paid for nothing. The call center fixes it by hand the next morning.
 
 ## Goals
 
@@ -31,24 +31,24 @@ Everything here is made up. Harbourline is a fictional regional ferry operator.
 - CST-1 FERRYMASTER cannot be changed. The vendor contract ends in 2028. Two people understand its COBOL.
 - CST-2 Payment stays with the existing provider, Tidepay. PCI scope must not grow. Card data never enters Booking.
 - CST-3 Kiosks run a locked-down image updated twice a year (March and September). Whatever they call must stay stable for at least six months.
-- CST-4 The transformation programme requires every new application to publish events to the Harbourline event bus.
+- CST-4 The transformation program requires every new application to publish events to the Harborline event bus.
 - CST-5 Mainframe processing must stay within the existing MIPS budget.
 
 ## Applications in scope (9)
 
 | App | Page folder | Change | Owner team | Notes |
 |---|---|---|---|---|
-| Booking | `apps/booking/` | new | Booking team (new) | Decides held, confirmed, amended, cancelled. Only thing that talks to FERRYMASTER about bookings. |
+| Booking | `apps/booking/` | new | Booking team (new) | Decides held, confirmed, amended, canceled. Only thing that talks to FERRYMASTER about bookings. |
 | Pricing | `apps/pricing/` | changed | Revenue team | Same job; callers narrowed from 3 front ends to Booking only. No container changes. |
 | FERRYMASTER | `apps/ferrymaster/` | integrated, unchanged | Mainframe team (2 people) | 1990s mainframe ledger, ledger of record. Black box. Booking uses its existing MQ transactions BKHOLD, BKCONF, BKAMND, BKCANC. |
 | Public website | `apps/website/` | changed | Digital team | Calls Booking API. Its FERRYMASTER screen adapter is retired. |
-| Call centre desktop | `apps/call-centre/` | changed | Contact Centre Systems team | Calls Booking API. Its terminal adapter is retired. Manual fix screens retired. |
+| Call center desktop | `apps/call-center/` | changed | Contact Center Systems team | Calls Booking API. Its terminal adapter is retired. Manual fix screens retired. |
 | Port kiosks | `apps/kiosks/` | changed | Port Systems team | Booking API v1 client ships in the March 2027 image. Old adapter removed in the September 2027 image. Device certificates for auth. |
 | Notifications | `apps/notifications/` | changed (new consumer) | Platform team | New Booking event consumer; existing email/SMS sender reused. |
 | Vessel schedule | `apps/vessel-schedule/` | unchanged | Marine Ops Systems team | Booking reads capacity through the existing read API. |
 | Customer identity | `apps/customer-identity/` | unchanged | Platform team | Booking looks up customers through the existing read API. |
 
-External, not in scope: **Tidepay** (payment provider), **Harbourline event bus** (Platform; production-ready since 2026-11-01).
+External, not in scope: **Tidepay** (payment provider), **Harborline event bus** (Platform; production-ready since 2026-11-01).
 Out of scope, still reading FERRYMASTER directly: data warehouse feed, finance reconciliation job, loyalty scheme (INI-004 and INI-005 deal with those).
 
 Outside parties, on `03-context-and-scope.md`: PTY-01 Tidepay and PTY-02 the FERRYMASTER vendor, both suppliers. Value held for customers: SV-01 loyalty points, earned at reservation and held by the loyalty scheme, which Finance carries and INI-004 owns.
@@ -58,7 +58,7 @@ Outside parties, on `03-context-and-scope.md`: PTY-01 Tidepay and PTY-02 the FER
 - **Booking**: Booking API (requests from every channel; also receives Tidepay payment outcome), Hold store (unpaid holds for 10 minutes), Ledger adapter (only writer to FERRYMASTER via MQ; retries and keeps the hold if a write fails), Event publisher (publishes Booking state changed to the event bus). All four confirmed by the Booking senior.
 - **Pricing**: Quote service, Fare rules store. No changes. Access to Quote service restricted to Booking at the Platform gateway.
 - **Public website**: Booking pages (changed to call Booking API), FM screen adapter (retired).
-- **Call centre desktop**: Desktop client (changed: Booking API client, new amend/cancel screens), Terminal adapter (retired), Manual fix queue (retired).
+- **Call center desktop**: Desktop client (changed: Booking API client, new amend/cancel screens), Terminal adapter (retired), Manual fix queue (retired).
 - **Port kiosks**: Kiosk app (Booking API v1 client), FM adapter (retired with the September 2027 image).
 - **Notifications**: Booking event consumer (new), Message sender (existing, email and SMS).
 - FERRYMASTER, Vessel schedule, Customer identity: black box only.
@@ -67,7 +67,7 @@ Outside parties, on `03-context-and-scope.md`: PTY-01 Tidepay and PTY-02 the FER
 
 | ID | Contract | Provider | Consumers | Change policy | Tested by |
 |---|---|---|---|---|---|
-| CON-001 | Booking API: hold, confirm, amend, cancel, get | Booking | Website, Call centre, Kiosks | Versioned. Each version kept at least 6 months (ADR-0003). | Consumer-driven contract tests, each channel; provider verification in Booking's pipeline |
+| CON-001 | Booking API: hold, confirm, amend, cancel, get | Booking | Website, Call center, Kiosks | Versioned. Each version kept at least 6 months (ADR-0003). | Consumer-driven contract tests, each channel; provider verification in Booking's pipeline |
 | CON-002 | Booking state changed (event) | Booking | Notifications; Finance later (UNK-006) | Additive changes only | Schema check in Booking's pipeline; Notifications consumer test |
 | CON-003 | Quote a fare | Pricing | Booking | Existing; callers narrowed | Contract test, Booking side; Pricing provider verification |
 | CON-004 | Capacity check | Vessel schedule | Booking | Existing read API, no change | Contract test, Booking side |
@@ -81,14 +81,14 @@ Booking hold expires after 10 minutes. Ledger write latency p95 is 2.1 s (measur
 
 | ID | File | Capability | Domain | Change in INI-002 | Today | After |
 |---|---|---|---|---|---|---|
-| CAP-011 | `CAP-011-find-a-crossing.md` | Find a crossing | Sell | unchanged | Website, Call centre, Kiosks + Vessel schedule | same |
+| CAP-011 | `CAP-011-find-a-crossing.md` | Find a crossing | Sell | unchanged | Website, Call center, Kiosks + Vessel schedule | same |
 | CAP-012 | `CAP-012-quote-a-fare.md` | Quote a fare | Sell | narrow | Pricing, 3 callers | Pricing, called by Booking only |
 | CAP-013 | `CAP-013-reserve-a-crossing.md` | Reserve a crossing | Sell | replace | 3 front-end adapters into FERRYMASTER | Booking |
 | CAP-014 | `CAP-014-hold-a-seat.md` | Hold a seat during payment | Sell | new | nothing; overbooking fixed by hand | Booking, 10-minute hold |
 | CAP-015 | `CAP-015-take-payment.md` | Take payment | Sell | unchanged | Tidepay via each front end | Tidepay; outcome reported to Booking |
-| CAP-021 | `CAP-021-amend-or-cancel.md` | Amend or cancel a booking | Serve | extend | Call centre only, via mainframe screen | Booking, used by website and call centre; kiosks show state only |
+| CAP-021 | `CAP-021-amend-or-cancel.md` | Amend or cancel a booking | Serve | extend | Call center only, via mainframe screen | Booking, used by website and call center; kiosks show state only |
 | CAP-022 | `CAP-022-notify-customer.md` | Notify customer of changes | Serve | new | website emails only | Notifications, triggered by Booking events |
-| CAP-023 | `CAP-023-fix-failed-bookings.md` | Fix failed bookings by hand | Serve | retire | call centre next-morning fixes | nobody: Booking retries and keeps the hold |
+| CAP-023 | `CAP-023-fix-failed-bookings.md` | Fix failed bookings by hand | Serve | retire | call center next-morning fixes | nobody: Booking retries and keeps the hold |
 
 Overlap: INI-004 Loyalty Revamp also touches CAP-013. INI-005 Mainframe Exit touches everything that writes to FERRYMASTER.
 
@@ -119,20 +119,20 @@ Overlap: INI-004 Loyalty Revamp also touches CAP-013. INI-005 Mainframe Exit tou
 
 Risks: R-01 mainframe knowledge sits with two people (mitigation: MQ mapping documented in CON-006, pairing in Q1). R-02 if the March kiosk image slips, kiosks wait six months for the next one (mitigation: kiosks keep their old adapter until their cutover; API v1 kept 6+ months).
 
-## Question ledger (catalogue v1)
+## Question ledger (catalog v1)
 
-The ledger on `11-unknowns-and-risks.md` disposes every one of the 57 copies catalogue v1 owes, so `planner check --gate epics` passes. Its rows show every state. Who pays Booking's running cost (Q-FIN-02) was asked of the finance business partner on 2026-11-19 and has no answer yet. That customers amend online once they can (Q-OPS-07) is a load-bearing assumption, with the online share of amendments as its signpost. Pricing is an exception to the data question, because it holds fare rules only. Where the vault does not say (lawful basis for customer data, who owns each capability, who runs unchanged apps out of hours) the row is an assumption with a signpost, never an answer. One reviewer question, R-FIN-01, on points and cancelled bookings, is open.
+The ledger on `11-unknowns-and-risks.md` disposes every one of the 57 copies catalog v1 owes, so `planner check --gate epics` passes. Its rows show every state. Who pays Booking's running cost (Q-FIN-02) was asked of the finance business partner on 2026-11-19 and has no answer yet. That customers amend online once they can (Q-OPS-07) is a load-bearing assumption, with the online share of amendments as its signpost. Pricing is an exception to the data question, because it holds fare rules only. Where the vault does not say (lawful basis for customer data, who owns each capability, who runs unchanged apps out of hours) the row is an assumption with a signpost, never an answer. One reviewer question, R-FIN-01, on points and canceled bookings, is open.
 
 ## Concerns (all eight addressed or N/A)
 
 - Testing: consumer-driven contract tests on every Booking boundary; end-to-end only for hold-pay-confirm and amend-or-cancel; ledger simulator. Owner: QA lead.
 - Security: no new PCI scope (Tidepay hosted payment page); kiosk device certificates; Booking API behind the Platform gateway with service tokens. Owner: Platform lead.
 - Data: FERRYMASTER is the ledger of record (ADR-0002). Booking stores holds for 10 minutes and a booking-state cache keyed by booking reference; no card data; personal data limited to customer ID. Owner: solution lead.
-- Rollout: website first (Feb 2027), call centre second (Mar 2027), kiosks with the March 2027 image. Each channel keeps its old adapter behind a switch for 4 weeks after cutover, then it is removed. Rollback = flip the channel's switch back. Owner: solution lead.
+- Rollout: website first (Feb 2027), call center second (Mar 2027), kiosks with the March 2027 image. Each channel keeps its old adapter behind a switch for 4 weeks after cutover, then it is removed. Rollback = flip the channel's switch back. Owner: solution lead.
 - Operations: Booking joins the Platform on-call rota; runbooks for ledger-write failures and hold-store outage. Owner: Booking senior.
 - Observability: per-channel request and error rate; booking state transitions; ledger write latency p95; hold expiry rate; one trace ID from channel to ledger adapter. Owner: Booking senior.
 - Ownership: each app keeps its owner; Booking team owns Booking and the ledger adapter; front-end teams own their Booking API clients. Owner: solution lead.
-- Cost: addressed. Standard service footprint, no new licences, MQ use within the existing MIPS budget (checked with the mainframe team lead). Owner: solution lead.
+- Cost: addressed. Standard service footprint, no new licenses, MQ use within the existing MIPS budget (checked with the mainframe team lead). Owner: solution lead.
 
 ## Epics (`13-epics/`)
 
@@ -141,7 +141,7 @@ The ledger on `11-unknowns-and-risks.md` disposes every one of the 57 copies cat
 | EPC-031 | `EPC-031-holds-and-confirms.md` | Booking holds and confirms crossings | Booking | CAP-013, CAP-014; CON-001, CON-007 |
 | EPC-032 | `EPC-032-ledger-adapter.md` | Ledger adapter on FERRYMASTER's MQ transactions | Booking (+ mainframe team support) | CON-006; ADR-0004 |
 | EPC-033 | `EPC-033-website-to-booking.md` | Website moves to Booking | Digital | CAP-013 (website); retires FM screen adapter |
-| EPC-034 | `EPC-034-call-centre-to-booking.md` | Call centre moves to Booking | Contact Centre Systems | CAP-013, CAP-021 (call centre); retires CAP-023 |
+| EPC-034 | `EPC-034-call-center-to-booking.md` | Call center moves to Booking | Contact Center Systems | CAP-013, CAP-021 (call center); retires CAP-023 |
 | EPC-035 | `EPC-035-kiosks-to-booking.md` | Kiosks move to Booking in the March image | Port Systems | CAP-013 (kiosks); ADR-0003; device certs |
 | EPC-036 | `EPC-036-amend-cancel-online.md` | Amend and cancel online | Booking + Digital | CAP-021; G3 |
 | EPC-037 | `EPC-037-events-and-notifications.md` | Booking events and customer notifications | Booking + Platform | CAP-022; CON-002 |
@@ -180,4 +180,4 @@ Write the way a senior engineer explains something to a peer they respect:
 
 Example passage in the house voice:
 
-> Harbourline sells crossings through three front ends. Each one talks to FERRYMASTER through its own screen-scraping adapter, so when the mainframe changes a screen, all three break. That happened eleven times last year, usually just before a bank holiday weekend.
+> Harborline sells crossings through three front ends. Each one talks to FERRYMASTER through its own screen-scraping adapter, so when the mainframe changes a screen, all three break. That happened eleven times last year, usually just before a bank holiday weekend.

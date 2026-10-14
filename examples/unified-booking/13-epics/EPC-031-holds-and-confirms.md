@@ -4,7 +4,7 @@ type: epic
 title: Booking holds and confirms crossings
 initiative: INI-002
 state: decided
-owner: "@harbourline/booking-team"
+owner: "@harborline/booking-team"
 authored: mixed
 apps: [APP-booking]
 delivers: [CAP-013, CAP-014, CON-001, CON-007, G1, G2]
@@ -26,9 +26,9 @@ Still open: nothing.
 
 ## Who this is for and what changes
 
-Today each front end works that out from whatever its own adapter scraped, which is why the call centre and the kiosks can disagree about the same booking.
+Today each front end works that out from whatever its own adapter scraped, which is why the call center and the kiosks can disagree about the same booking.
 
-The hold is new. Today nothing stops a second channel selling the last seat while a customer is on Tidepay's page, and the call centre sorts out the overbooking by hand. FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]), so Booking reports a booking as confirmed only after the ledger has accepted it. Customers pay on Tidepay's hosted page and card data never reaches Booking.
+The hold is new. Today nothing stops a second channel selling the last seat while a customer is on Tidepay's page, and the call center sorts out the overbooking by hand. FERRYMASTER stays the ledger of record ([[ADR-0002-ferrymaster-ledger-of-record|the ledger-of-record decision]]), so Booking reports a booking as confirmed only after the ledger has accepted it. Customers pay on Tidepay's hosted page and card data never reaches Booking.
 
 ## Done when
 
@@ -46,7 +46,7 @@ When Tidepay reports a successful payment, a get on the Booking API returns `con
 
 ### A failed ledger write still ends in a confirmation
 
-If the ledger write fails after payment, get returns `confirming`, the seat stays held past the 10 minutes, and the booking reaches `confirmed` without anyone at Harbourline touching it.
+If the ledger write fails after payment, get returns `confirming`, the seat stays held past the 10 minutes, and the booking reaches `confirmed` without anyone at Harborline touching it.
 
 - Trace: AC3
 

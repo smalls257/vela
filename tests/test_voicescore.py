@@ -168,7 +168,7 @@ def test_a_distance_is_placed_by_percentile_of_the_range(distance, percentile, l
     assert placed.inside == label.startswith("inside")
 
 
-def test_paragraphs_are_labelled_against_the_owner_range_never_as_a_bare_number(vault, scorer, tmp_path):
+def test_paragraphs_are_labeled_against_the_owner_range_never_as_a_bare_number(vault, scorer, tmp_path):
     code, out = run("voicescore", page(tmp_path, "Near the owner.", "Far from the owner."), "--vault", str(vault))
     assert code == 0
     lines = out.splitlines()
@@ -216,7 +216,7 @@ def test_the_seed_is_never_used_when_owner_examples_are_missing(vault, scorer, t
     code, out = run("voicescore", page(tmp_path, "Near the owner."), "--vault", str(vault))
     assert code == 2
     assert out.startswith("planner voicescore: not run: 0 active owner examples")
-    assert "`--against seed` scores against the public seed instead, labelled as such." in out
+    assert "`--against seed` scores against the public seed instead, labeled as such." in out
     assert scorer.calls == []  # nothing was embedded, so no seed vector stood in for the owner
 
 
@@ -226,7 +226,7 @@ def test_one_owner_example_is_not_enough_to_form_a_range():
         voicescore.reference(one)
 
 
-def test_against_seed_is_labelled_as_the_seed(vault, scorer, tmp_path):
+def test_against_seed_is_labeled_as_the_seed(vault, scorer, tmp_path):
     code, out = run("voicescore", page(tmp_path, "Far from the owner."), "--vault", str(vault), "--against", "seed")
     assert code == 0
     assert "against the public seed, not your voice (3 public-seed examples)." in out

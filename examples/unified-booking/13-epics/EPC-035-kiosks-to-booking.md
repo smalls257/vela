@@ -4,7 +4,7 @@ type: epic
 title: Kiosks move to Booking in the March image
 initiative: INI-002
 state: decided
-owner: "@harbourline/port-systems"
+owner: "@harborline/port-systems"
 authored: mixed
 apps: [APP-kiosks, APP-booking]
 delivers: [CAP-013, G1, G2]
@@ -89,10 +89,10 @@ Also related: [[ADR-0003-versioned-booking-api|the versioning decision]], [[11-u
 
 ## Rollout notes
 
-Kiosks cut over with the March 2027 image. The switch stays usable until the September 2027 image removes the old adapter, because a locked image cannot drop code after 4 weeks the way the website and call centre can.
+Kiosks cut over with the March 2027 image. The switch stays usable until the September 2027 image removes the old adapter, because a locked image cannot drop code after 4 weeks the way the website and call center can.
 
 ## Out of scope
 
-- Amend and cancel at the kiosk. In the March 2027 image kiosks show booking state only; customers amend or cancel on the website or through the call centre.
+- Amend and cancel at the kiosk. In the March 2027 image kiosks show booking state only; customers amend or cancel on the website or through the call center.
 - Any change to the kiosk image cycle.
 

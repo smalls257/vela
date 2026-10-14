@@ -1,4 +1,4 @@
-"""House-voice examples: licence and attribution, copies in step, and the page-type map."""
+"""House-voice examples: license and attribution, copies in step, and the page-type map."""
 import re
 import subprocess
 import sys
@@ -30,13 +30,13 @@ def test_two_or_three_examples_per_voice_type():
 
 
 @pytest.mark.parametrize("path", FILES, ids=[p.stem for p in FILES])
-def test_every_example_carries_licence_and_attribution(path):
+def test_every_example_carries_license_and_attribution(path):
     meta, body = split(path)
     assert meta["id"] == path.stem
     assert meta["voice_type"] == path.parent.name
     assert meta["source"] == "public-seed"
-    assert meta["licence"] == "CC BY 3.0"
-    assert meta["licence_url"] == "https://creativecommons.org/licenses/by/3.0/"
+    assert meta["license"] == "CC BY 3.0"
+    assert meta["license_url"] == "https://creativecommons.org/licenses/by/3.0/"
     assert meta["author"] and meta["chapter"].startswith("Chapter ")
     assert meta["work"].startswith("The Architecture of Open Source Applications, Volume ")
     assert re.match(r"^https://aosabook\.org/en/v[12]/[a-z]+\.html$", meta["url"])

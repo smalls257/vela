@@ -64,7 +64,7 @@ def digest(vault, *extra):
 
 def test_the_fixture_block_says_nothing_is_undisposed():
     assert block(FIXTURE).splitlines()[1] == ("**Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, "
-                                              "against catalogue v1.")
+                                              "against catalog v1.")
     rows = [l for l in block(FIXTURE).splitlines() if l.startswith("| R-") or l.startswith("| Q-")]
     assert [r.split(" | ")[0:2] for r in rows] == [["| Q-FIN-02@INI-002", "asked"], ["| R-FIN-01", "open"]], \
         "only the asked copy and the open reviewer question are listed"
@@ -72,7 +72,7 @@ def test_the_fixture_block_says_nothing_is_undisposed():
 
 def test_the_template_block_lists_the_twelve_initiative_questions():
     lines = block(REPO / "template").splitlines()
-    assert lines[1] == "**Questions:** 12 owed, 12 undisposed, against catalogue v1."
+    assert lines[1] == "**Questions:** 12 owed, 12 undisposed, against catalog v1."
     assert lines[3] == "| Copy | State | Area | Severity | Subject | Question |"
     assert len([l for l in lines if l.startswith("| Q-")]) == 12
 
@@ -82,7 +82,7 @@ def test_removing_a_row_makes_the_block_stale_and_render_lists_the_copies(ub):
     assert findings(check(ub, TODAY)[1]) == [("W402", LEDGER)]
     run("render", "--vault", str(ub))
     text = block(ub)
-    assert "**Questions:** 57 owed, 1 undisposed, 1 asked, 1 open reviewer question, against catalogue v1." in text
+    assert "**Questions:** 57 owed, 1 undisposed, 1 asked, 1 open reviewer question, against catalog v1." in text
     assert "| Q-OPS-01@APP-kiosks | no row | OPS | normal | [[kiosks-building-blocks\\|Port kiosks]] | Who runs it out of hours" in text
     assert "Q-OPS-01@APP-booking" not in text, "booking has its own row"
     assert findings(check(ub, TODAY)[1]) == []
@@ -117,14 +117,14 @@ def test_render_is_a_no_op_on_the_fixture_and_the_template(tmp_path):
 def test_the_digest_ranks_high_and_blocking_first_and_groups_one_entry(ub):
     drop(ub, DAT_02_ALL, DAT_03_ALL, PTN_02_TIDEPAY, OPS_KIOSKS, OPS_PRICING)
     answer = digest(ub)
-    assert answer["coverage"] == "57 owed, 12 undisposed, 1 asked, 1 open reviewer question, against catalogue v1"
+    assert answer["coverage"] == "57 owed, 12 undisposed, 1 asked, 1 open reviewer question, against catalog v1"
     order = [(g["band"], g["entry"]) for g in answer["groups"]]
     assert order == [(1, "Q-DAT-02"), (1, "Q-PTN-02"), (3, "Q-DAT-03"), (3, "Q-FIN-02"), (3, "Q-OPS-01"), (3, "R-FIN-01")]
     dat = answer["groups"][0]
-    assert dat["copies"] == ["Q-DAT-02@APP-call-centre", "Q-DAT-02@APP-kiosks", "Q-DAT-02@APP-website"]
+    assert dat["copies"] == ["Q-DAT-02@APP-call-center", "Q-DAT-02@APP-kiosks", "Q-DAT-02@APP-website"]
     assert "Q-DAT-02@APP-pricing" not in dat["copies"], "its own not-applicable row still stands"
     assert "Q-DAT-02@APP-booking" not in dat["copies"], "its own unknown row still stands"
-    assert dat["blocks"][:2] == ["APP-call-centre", "APP-kiosks"]
+    assert dat["blocks"][:2] == ["APP-call-center", "APP-kiosks"]
     assert answer["groups"][4]["copies"] == ["Q-OPS-01@APP-kiosks", "Q-OPS-01@APP-pricing"]
 
 
@@ -144,7 +144,7 @@ def test_the_digest_text_offers_one_answer_for_a_group(ub):
     code, out = run("questions", "--vault", str(ub), "--digest")
     assert code == 0
     assert out.splitlines()[0] == ("planner questions --digest: 57 owed, 2 undisposed, 1 asked, 1 open reviewer question, "
-                                   "against catalogue v1. 3 lines to take, most consequential first.")
+                                   "against catalog v1. 3 lines to take, most consequential first.")
     assert "1. [FIN] normal: Who pays for the change" in out and "   (asked) Q-FIN-02@INI-002" in out
     assert "2. [OPS] normal, blocks APP-kiosks, APP-pricing: Who runs it" in out
     assert "   2 copies (no row): Q-OPS-01@APP-kiosks, Q-OPS-01@APP-pricing: one answer for all?" in out
@@ -163,7 +163,7 @@ def test_a_group_says_why_each_copy_is_undisposed(ub):
 def test_long_blocks_lists_are_cut_in_text_and_whole_in_json(ub):
     drop(ub, DAT_02_ALL)
     code, out = run("questions", "--vault", str(ub), "--digest")
-    assert "blocks 8 items: APP-call-centre, APP-kiosks, APP-website, …:" in out
+    assert "blocks 8 items: APP-call-center, APP-kiosks, APP-website, …:" in out
     assert len(digest(ub)["groups"][0]["blocks"]) == 8
 
 
@@ -184,7 +184,7 @@ def test_the_line_describes_the_table_under_it(ub):
     run("render", "--vault", str(ub))
     lines = block(ub).splitlines()
     shown = json.loads(run("questions", "--vault", str(ub), "--json")[1])
-    assert lines[1] == "**Questions:** 57 owed, 2 undisposed, 1 asked, 1 open reviewer question, against catalogue v1."
+    assert lines[1] == "**Questions:** 57 owed, 2 undisposed, 1 asked, 1 open reviewer question, against catalog v1."
     assert len([l for l in lines if l.startswith("| Q-") or l.startswith("| R-")]) == \
         shown["undisposed"] + shown["asked"] + shown["reviewer_open"] == 4
 
@@ -234,6 +234,6 @@ def test_an_invalid_row_is_counted_as_invalid_and_not_as_not_applicable(ub):
     assert "invalid 1" in run("questions", "--vault", str(ub), "--stats")[1]
 
 
-def test_stats_refuse_filters_they_cannot_honour():
+def test_stats_refuse_filters_they_cannot_honor():
     assert run("questions", "--vault", str(FIXTURE), "--stats", "--open")[0] == 2
     assert run("questions", "--vault", str(FIXTURE), "--stats", "--digest")[0] == 2
