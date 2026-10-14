@@ -223,8 +223,12 @@ def check_await(b, flow, node, ctx):
 # --- across flows and slices ----------------------------------------------------------------------------------------
 
 def unused_cases(catalog, trees):
-    """F4, once per initiative: a declared case of a called contract that no flow anywhere branches on or replies."""
+    """F4, once per initiative: a declared case of a called contract that no flow anywhere branches on or replies.
+    Only claimed once every flow that crosses the contract is drawn: while one is not, the case may be its to reach
+    (Heron's "transcripts alone" refusal of Record consent, with the withdrawal flow still undrawn), and "reached by
+    no flow" would be a claim nobody can back."""
     reached, called = set(), {}
+    drawn = {flow.id for flow, _ in trees}
     for flow, tree in trees:
         for node in _walk(tree.nodes):
             if node.kind == "call":
@@ -244,6 +248,8 @@ def unused_cases(catalog, trees):
     out = []
     for cid in sorted(called):
         table = catalog.contracts.get(cid)
+        if any(fid not in drawn for fid in catalog.crossing.get(cid, ())):
+            continue
         for case in (table.cases if table else ()):
             if (cid, case.key) not in reached and ("*", case.key) not in reached:
                 out.append(Finding("F4", table.source, f"Case {case.key} of \"{table.title}\" is reached by no flow.",
@@ -337,7 +343,9 @@ def judge_graph(g, sem, renderer, flow_paths):
         if label[0] in ("ans", "tmo") and ins.kind == "call":
             table = sem.p.contracts[ins.data["contract"]]
             return ins.where, (table.cases[label[3]].key if label[0] == "ans" else TIMEOUT)
-        if label[0] in ("reply", "rtmo"):
+        if label[0] in ("ptmo", "pcarry"):
+            return ins.where, TIMEOUT
+        if label[0] in ("reply", "rtmo", "late"):
             if label[0] == "rtmo":
                 return sem.p.code[label[3]].where, TIMEOUT
             if ins.kind == "contract":
@@ -373,10 +381,12 @@ def judge_graph(g, sem, renderer, flow_paths):
     for sid in sorted(g.cut):
         _, slug, text, journey = g.cut[sid]
         label = g.label[sid]
-        key = ("F9", text, label_key(label) if label else None)
+        trail = steps(sid)
+        # One root cause: the same rule broken by the same answers, in whatever order they came. An answer that goes
+        # nowhere (its caller has moved on) decides nothing, so it is no part of the cause (ledger C40).
+        key = ("F9", text, frozenset(p for p in (pill(l) for l, _, _, _ in trail if l[0] != "late") if p[0]))
         if key in seen:
             continue
-        trail = steps(sid)
         entity = sem.p.entities[slug]
         call_line, case = _last_pill(trail, pill)
         named = [n for n in sorted(_atoms_of(next(e for t, _, e in entity.invariants if t == text))) if n in sem.p.entities]

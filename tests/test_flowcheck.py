@@ -353,12 +353,21 @@ def test_an_unknown_slice_names_the_releases():
         check("12-clean-tracer", "Release nine")
 
 
-def test_the_cli_exits_0_on_a_pass_1_on_findings_and_prints_plain_words():
-    code, out = run("check-slice", "Release one", "--vault", str(FIXTURES / "12-clean-tracer"))
+def copy_fixture(tmp_path, case):
+    """A copy to run the CLI on: check-slice records its result under the vault's .planner/."""
+    import shutil
+    target = tmp_path / case
+    shutil.copytree(FIXTURES / case, target)
+    return target
+
+
+def test_the_cli_exits_0_on_a_pass_1_on_findings_and_prints_plain_words(tmp_path):
+    clean, early = copy_fixture(tmp_path, "12-clean-tracer"), copy_fixture(tmp_path, "04-chain-early-billing")
+    code, out = run("check-slice", "Release one", "--vault", str(clean))
     assert code == 0 and "passes" in out.splitlines()[0]
-    code, out = run("check-slice", "FLO-004", "--vault", str(FIXTURES / "04-chain-early-billing"))
+    code, out = run("check-slice", "FLO-004", "--vault", str(early))
     assert code == 1 and "F8 Not final" in out and "Billing has no retries left" in out
-    code, out = run("check-slice", "Release one", "--vault", str(FIXTURES / "12-clean-tracer"), "--max-states", "5")
+    code, out = run("check-slice", "Release one", "--vault", str(clean), "--max-states", "5")
     assert code == 1 and "not fully checked" in out
 
 
@@ -368,7 +377,8 @@ def test_r2_01_a_timed_out_call_may_have_been_answered_events_included():
     """Item 1: an undrawn provider that timed out either did nothing or applied a case, its events included."""
     case = "r2-01-timeout-published-anyway"
     result = check(case)
-    assert errors(result) == ["F9", "F9"]
+    # One finding: the same rule broken by the same answers, whether the parcel ships before or after the cancel.
+    assert errors(result) == ["F9"]
     first = result.findings[0]
     assert first.trace[0] == ('Shop asks Payments to take the payment, and the call times out, though Payments had in fact '
                               'answered paid and published "payment taken".')
@@ -385,6 +395,15 @@ def test_r2_04_a_when_column_keeps_a_case_to_the_states_it_names():
     files[page] = files[page].replace("| already_gone | booking is not held and booking is not paid |", "| already_gone | |")
     f8 = one(flowcheck.check_slice(files, "FLO-304", TODAY), "F8")
     assert f8.summary.startswith("Booking 1 is left held")
+
+
+def test_an_unreadable_bullet_on_a_contract_with_a_when_column_is_f10_not_a_crash():
+    """Ledger C47: a problem tied to an item made the builder unpack a When clause (three parts) as a Sets pair (two)."""
+    files = files_of("r2-04-when")
+    page = "05-building-blocks/booking-building-blocks.md"
+    files[page] = files[page].replace("- **Retries:** none", "- **Retries:** often", 1)
+    result = flowcheck.check_slice(files, "FLO-304", TODAY)
+    assert result.status == "not fully checked" and "F10" in [f.code for f in result.findings]
 
 
 def test_r2_05_a_change_with_no_row_for_the_current_state_is_illegal():
@@ -446,6 +465,183 @@ def test_r2_18_unquoted_yaml_booleans_and_an_on_retry_key_are_refused():
     assert any("x-vela-retries says on:" in s for s in summaries)
     assert any("quote such a state" in s for s in summaries)
     assert result.status.endswith("not fully checked") and result.states == 0
+
+
+def test_c40_a_timeout_part_way_through_drawn_handling_leaves_what_the_provider_had_done():
+    """Ledger C40: Store sets the hold, then Shop's call times out before Store charges the card. Store stops there, the
+    hold stays held, and Shop cancels. Before part-way timeouts were modeled this slice showed only the late answer."""
+    case = "r2-40-timeout-part-way"
+    result = check(case)
+    f8 = one(result, "F8")
+    assert f8.summary.startswith("Hold 1 is left held, which is not one of its final states")
+    assert f8.trace == ("Shop asks Store to take the order.",
+                        "Store sets Hold 1 to held.",
+                        'Shop times out waiting for Store part-way through "Take the order": Store stops there, and what '
+                        "it has done so far stands.",
+                        "Shop sets Order 1 to canceled.",
+                        "The journey ends: canceled.")
+    assert (f8.call_line, f8.case) == (at(case, "CON-401"), "timeout")
+    assert f8.owners == ("Shop", "Store")
+    assert sorted(errors(result)) == ["F8", "F9"]
+
+
+def test_c40_a_provider_that_carries_on_after_its_caller_moved_on_races_the_callers_lookup():
+    """Shop looks the order up after a timeout, finds nothing yet, and cancels; Store, still going, then takes the card.
+    Only a provider that carries on alone finds it: before it acts and after it answers, the lookup agrees."""
+    case = "r2-40-timeout-late-answer"
+    f9 = one(check(case), "F9")
+    assert f9.summary == 'The invariant "not (order=canceled and hold=captured)" of Order no longer holds.'
+    assert f9.trace[2] == 'Shop times out waiting for Store part-way through "Take the order": Store carries on with it alone.'
+    assert f9.trace[3:] == ("Shop asks Store to look up the order, and is refused: not found (404).",
+                            "Shop sets Order 1 to canceled.", "Store sets Hold 1 to captured.")
+
+
+def test_c40_a_provider_that_changes_state_in_one_step_passes_however_the_timeout_falls():
+    result = check("r2-40-timeout-part-way-one-step")
+    assert result.status == "passes", result.format()
+    assert errors(result) == []
+
+
+def test_c40_an_answer_that_goes_nowhere_ends_the_provider_and_retries_reenter_its_handling():
+    """The semantics directly: a part-way timeout that is retried enters the drawn handling again; an answer to a caller
+    that moved on ends the provider's thread, and the slice can still finish."""
+    files = files_of("r2-40-timeout-part-way-one-step")
+    page = "05-building-blocks/store-building-blocks.md"
+    files[page] = files[page].replace("- **Can time out:** yes\n- **Retries:** none", "- **Can time out:** yes\n- **Retries:** 1 after timeout", 1)
+    flow = flow_path("r2-40-timeout-part-way-one-step")
+    files[flow] = files[flow].replace("else refused, timeout", "else refused, gave_up")
+    catalog = readers.read_vault(files)
+    program, _ = build.build(catalog, ("FLO-402",), TODAY)
+    sem = semantics.Semantics(program, (0,))
+    graph = explore.explore(sem, 10_000, 10, flowcheck.frozen_clock)
+    kinds = {label[0] for label in graph.label if label}
+    assert {"ptmo", "pcarry", "late"} <= kinds
+    assert any(label[0] == "ptmo" and label[5] == 1 for label in graph.label if label)  # tried again
+    assert any(label[0] == "ptmo" and label[5] == 2 for label in graph.label if label)  # gave up after the last
+    assert graph.complete and any(sem.finished(s) for s in graph.states)
+
+
+# --- limits said out loud, and three journeys on request (ledger C39) -------------------------------------------------
+
+def _three_orders_two_items():
+    """06 with two items in stock: two orders can never oversell, three can."""
+    files = files_of("06-two-orders-last-item")
+    files["entities/stock.md"] = (files["entities/stock.md"].replace("initial: one\nfinal: [one, zero]", "initial: two\nfinal: [two, one, zero]")
+                                  .replace("| one | zero | CON-021 reserved |", "| two | one | CON-021 reserved |\n| one | zero | CON-021 reserved |"))
+    page = "05-building-blocks/inventory-building-blocks.md"
+    files[page] = (files[page].replace("| in_stock | stock is one |", "| in_stock | stock in [two, one] |")
+                   .replace("stock: one→zero, zero→minus_one", "stock: two→one, one→zero, zero→minus_one"))
+    return files
+
+
+def test_a_result_over_a_shared_entity_says_it_ran_pairs_not_triples():
+    result = check("06-two-orders-last-item")
+    assert result.limits == ["Stock is shared, so the flows that touch it ran two journeys at once, not three "
+                             "(--journeys 3 tries three)."]
+    assert "Limit: Stock is shared" in result.format().split("\n")[1]
+
+
+def test_three_journeys_on_request_find_the_race_two_cannot():
+    files = _three_orders_two_items()
+    pairs = flowcheck.check_slice(files, "FLO-006", TODAY)
+    assert pairs.status == "passes", pairs.format()
+    triples = flowcheck.check_slice(files, "FLO-006", TODAY, journeys=3)
+    f9 = one(triples, "F9")
+    assert f9.summary == 'The invariant "not stock=minus_one" of Stock no longer holds.'
+    assert {line.split(":")[0] for line in f9.trace} == {"Journey 1", "Journey 2", "Journey 3"}
+    assert [r[0] for r in triples.runs] == [("FLO-006", "FLO-006"), ("FLO-006", "FLO-006", "FLO-006")]
+    assert triples.limits == ["Stock is shared, so the flows that touch it ran two and three journeys at once, never four."]
+
+
+def test_journeys_other_than_two_or_three_are_refused():
+    catalog = readers.read_vault(files_of("06-two-orders-last-item"))
+    program, _ = build.build(catalog, ("FLO-006",), TODAY)
+    with pytest.raises(ValueError, match="journeys must be 2 or 3"):
+        flowcheck.plan_runs(program, 4)
+
+
+def test_a_slice_with_a_timer_says_it_takes_timers_to_fire():
+    assert "A timer is taken to fire in the end: an order of events in which a timer never fires is not explored." in \
+        check("r2-10-timer-race").limits
+
+
+def test_a_plain_slice_states_no_limits():
+    assert check("12-clean-tracer").limits == []
+
+
+def test_a_budget_stop_names_the_run_it_stopped_in_and_the_runs_it_skipped():
+    """The write-up's §5: a budget stop used to end the slice without a word about the runs after it."""
+    result = check("21-shared-race", "Release one", max_states=3)
+    f11 = one(result, "F11")
+    assert "while checking FLO-211 and FLO-212 together." in f11.summary
+    assert [r[3] for r in result.runs] == [True, False]
+    assert result.skipped == [("FLO-212", "FLO-212")]
+    assert result.limits[-1] == "Not explored, because the budget ran out first: FLO-212 twice."
+    assert result.status.endswith("not fully checked")
+
+
+# --- noise: warnings that fire only on a real gap ---------------------------------------------------------------------
+
+def test_f12_is_quiet_when_everything_the_provider_calls_is_drawn_in_the_slice():
+    """Heron's false alarm: Consent and identity answered the consent check from its contract, though the Microsoft
+    sign-in it calls was drawn in Record consent's handling, in the same slice. Here Store answers the lookup from its
+    contract, and the card charge it calls is drawn in Take the order's handling."""
+    case = "r2-40-timeout-late-answer"
+    assert "F12" not in [f.code for f in check(case).findings]
+
+
+def test_f12_still_fires_for_a_call_the_slice_never_draws_and_names_it():
+    files = files_of("r2-40-timeout-late-answer")
+    page = "05-building-blocks/store-building-blocks.md"
+    files[page] += ("\n### CON-404 Ask the fraud desk\n\n- **Provider:** Fraudco\n- **Consumers:** [[store-building-blocks|Store]]\n"
+                    "- **Can time out:** no\n- **Retries:** none\n\n| Case | When | Status | Answer | Emits | Sets |\n"
+                    "|---|---|---|---|---|---|\n| clear |  | 200 | clear |  |  |\n")
+    f12 = one(flowcheck.check_slice(files, "FLO-403", TODAY), "F12")
+    assert f12.summary == ('Store answers "Look up the order" from its contract alone in this flow, and it calls "Ask the '
+                           'fraud desk" itself, which no flow of this slice draws it calling; what it does with the answers '
+                           "is not checked here.")
+    assert f12.items == ("CON-403", "CON-404")
+
+
+def test_f12_fires_for_a_flow_checked_alone_when_its_calls_are_drawn_only_in_another_flow():
+    """The rule is per slice: checked on its own, the lookup flow has no drawing of the charge Store makes."""
+    files = files_of("r2-40-timeout-late-answer")
+    flow = flow_path("r2-40-timeout-late-answer")
+    files[flow] = files[flow].replace("S->>T: CON-401 take the order\nT->>P: CON-402 charge the card\nalt charged\n    P-->>T: 200 charged\n"
+                                      "    Note over T: SET hold captured\n    T-->>S: 200 taken\nelse declined\n    P-->>T: 402 declined\n"
+                                      "    T-->>S: 402 refused\nend\n", "S->>T: CON-401 take the order\n")
+    codes = [f.code for f in flowcheck.check_slice(files, "FLO-403", TODAY).findings]
+    assert codes.count("F12") == 2  # both of Store's answers, Take the order and the lookup, now hide the charge
+
+
+def _with_unreached_case(files):
+    page = "05-building-blocks/booking-building-blocks.md"
+    files[page] = files[page].replace("| unavailable |  | 503 | unavailable |  |  |\n",
+                                      "| unavailable |  | 503 | unavailable |  |  |\n| waitlisted |  | 202 | on the waiting list |  |  |\n", 1)
+    return files
+
+
+UNDRAWN_FLOW = ("---\nid: FLO-099\ntype: flow\ntitle: A traveler changes a seat\nstate: assumption\n---\n\n# A traveler changes a seat\n\n"
+                "## Steps\n\n1. [[website-building-blocks|Website]] → [[booking-building-blocks|Booking]]: asks for a seat, over "
+                "[[booking-building-blocks#CON-100 Hold a seat|Hold a seat]].\n")
+
+
+def test_f4_still_fires_for_a_case_no_flow_reaches_when_every_flow_that_crosses_it_is_drawn():
+    result = flowcheck.check_slice(_with_unreached_case(files_of("20-provider-drawn")), "FLO-020", TODAY)
+    f4 = one(result, "F4")
+    assert f4.summary == 'Case waitlisted of "Hold a seat" is reached by no flow.'
+
+
+def test_f4_is_not_claimed_while_a_flow_that_crosses_the_contract_is_undrawn():
+    """Heron's other false alarm: "transcripts alone" of Record consent, reached by no drawn flow, while the withdrawal
+    flow, which crosses Record consent, had no diagram yet."""
+    files = _with_unreached_case(files_of("20-provider-drawn"))
+    files["06-runtime/flows/FLO-099-change-a-seat.md"] = UNDRAWN_FLOW
+    assert "F4" not in [f.code for f in flowcheck.check_slice(files, "FLO-020", TODAY).findings]
+
+
+def test_one_missing_branch_is_one_finding_not_an_unhandled_and_an_unused_case():
+    assert [f.code for f in check("01-unhandled-409").findings] == ["F1"]
 
 
 # --- slices, overrides and the check warning --------------------------------------------------------------------------

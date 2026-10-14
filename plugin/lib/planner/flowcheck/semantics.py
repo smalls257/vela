@@ -2,9 +2,11 @@
 
 A state is a tuple of plain tuples and ints, so it hashes cheaply and two runs build identical graphs:
     (threads, entity states, touched bitmask, messages, armed timers)
-- a thread is (journey, handler id or -1 for main, spawn number, pc, call frames, attempt, applied, handler attempt);
-  pc >= 0 runs, -1 ended by falling off its steps, -(p + 2) ended at the END instruction p;
-- a call frame is (call pc, attempt, applied) for drawn provider handling in progress (the call stack);
+- a thread is (journey, handler id or -1 for main or -2 for a provider carrying on alone, spawn number, pc, call frames,
+  attempt, applied, handler attempt); pc >= 0 runs, -1 ended by falling off its steps, -(p + 2) ended at the END
+  instruction p;
+- a call frame is (call pc, attempt, applied) for drawn provider handling in progress (the call stack); attempt 0 marks
+  the frame of a call whose caller timed out and moved on, so its answer goes nowhere;
 - an entity state is an index into that entity's sorted states; one per (entity, journey), one for a shared entity;
 - messages are queues (key, items), item (target, journey, duplicate); `any` order and duplicates are unordered;
 - an armed timer is (journey, timer id).
@@ -20,6 +22,8 @@ Two reductions, both switchable for measurement:
 from planner.flowcheck.build import GAVE_UP, TIMEOUT
 
 ENDED = -1
+DETACHED = -2  # the handler id of a provider carrying on with a call its caller has timed out on
+GONE = 0  # the attempt of a frame whose caller has moved on
 SYMMETRY, LOCAL_STEPS = "symmetry", "local-steps"
 ALL_REDUCTIONS = frozenset({SYMMETRY, LOCAL_STEPS})
 
@@ -119,6 +123,14 @@ class Semantics:
         return out
 
     def thread_steps(self, state, i):
+        """Thread i's own steps, and, inside drawn handling, its callers timing out part-way through (ledger C40).
+        Each touches thread i alone, so the local-steps reduction may take them together."""
+        out = self.step(state, i)
+        if state[0][i][4]:
+            out += self.part_way(state, i)
+        return out
+
+    def step(self, state, i):
         t = state[0][i]
         ins = self.code[t[3]]
         kind = ins.kind
@@ -225,6 +237,9 @@ class Semantics:
     def reply_steps(self, state, i, ins, case_key=None, case_index=-1):
         t = state[0][i]
         call_pc, attempt, applied = t[4][-1]
+        if attempt == GONE:  # the caller timed out and moved on: the answer goes nowhere, and the provider is done
+            done = (t[0], t[1], t[2], ENDED, (), 1, 0, t[7])
+            return [(("late", t[0], t[3], call_pc, 0, 0, case_index), self.with_thread(state, i, done), None)]
         call = self.code[call_pc]
         table = self.p.contracts[call.data["contract"]]
         caller = (t[0], t[1], t[2], call_pc, t[4][:-1], attempt, applied, t[7])
@@ -245,6 +260,40 @@ class Semantics:
                 continue
             out.append(((kind, t[0], t[3], call_pc, attempt, 2 if seen == GAVE_UP else 0, case_index),
                         self.with_thread(state, i, self.advance(caller, target)), None))
+        return out
+
+    def part_way(self, state, i):
+        """A caller of drawn handling times out while its provider is part-way through it (ledger C40): what the
+        provider has done so far stands, and the caller takes its timeout branch (or tries again). The provider then
+        either stops where it is ("ptmo") or carries on alone ("pcarry"), and its answer goes nowhere. Before its first
+        step this is the request arriving late; after its last, the answer arriving late (as "rtmo"). Each frame of the
+        call stack whose call can time out is a caller that can give up, the innermost one included."""
+        t = state[0][i]
+        frames = t[4]
+        out = []
+        for k, (call_pc, attempt, applied) in enumerate(frames):
+            call = self.code[call_pc]
+            table = self.p.contracts[call.data["contract"]]
+            if attempt == GONE or not table.timeout:
+                continue
+            retries = table.retries
+            below = frames[:k]
+            if retries is not None and TIMEOUT in retries.on and attempt < retries.max:
+                caller = (t[0], t[1], t[2], self.settle(call.data["drawn"]), below + ((call_pc, attempt + 1, applied),), 1, 0, t[7])
+                flag = 1
+            else:
+                seen = GAVE_UP if retries is not None and TIMEOUT in retries.on else TIMEOUT
+                target = call.data["branches"].get(seen)
+                if target is None:
+                    continue  # no branch: F1 is reported statically, or an override covers it
+                caller = self.advance((t[0], t[1], t[2], call_pc, below, attempt, applied, t[7]), target)
+                flag = 2 if seen == GAVE_UP else 0
+            out.append((("ptmo", t[0], call_pc, t[3], attempt, flag), self.with_thread(state, i, caller), None))
+            spawn = 1 + max((th[2] for th in state[0] if th[0] == t[0] and th[1] == DETACHED), default=-1)
+            alone = (t[0], DETACHED, spawn, t[3], ((call_pc, GONE, 0),) + frames[k + 1:], t[5], t[6], 1)
+            threads = state[0][:i] + (caller,) + state[0][i + 1:]
+            out.append((("pcarry", t[0], call_pc, t[3], attempt, flag),
+                        (tuple(sorted(threads + (alone,))),) + state[1:], None))
         return out
 
     def end_step(self, state, i, ins):

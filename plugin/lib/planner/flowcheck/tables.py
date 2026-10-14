@@ -134,8 +134,14 @@ class Catalog:
     flows: dict = field(default_factory=dict)  # FLO id -> Flow
     slices: list = field(default_factory=list)  # [slices.Slice], in order
     slice_overrides: dict = field(default_factory=dict)  # slice key -> (Override,) from its slice page's Overrides
-    callers: set = field(default_factory=set)  # app keys that call a contract of the vault: their handling can miss something
+    consumes: dict = field(default_factory=dict)  # app key -> {contract id} it calls: its handling can miss something
+    crossing: dict = field(default_factory=dict)  # contract id -> {flow id} whose steps or diagram cross it
     problems: list = field(default_factory=list)
+
+    @property
+    def callers(self):
+        """App keys that call some contract of the vault."""
+        return {key for key, ids in self.consumes.items() if ids}
 
     def app_named(self, title):
         """The app a participant's title names: by title, ignoring case, or by key."""

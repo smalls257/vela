@@ -74,7 +74,8 @@ def read_catalog(vault, specs):
     for found in cat.slices:
         if found.path in by_path:
             cat.slice_overrides[found.key] = flow_overrides(by_path[found.path], cat.problems)
-    cat.callers = _callers(cat, vault)
+    cat.consumes = _consumes(cat, vault)
+    cat.crossing = _crossing(cat, vault)
     return cat
 
 
@@ -102,19 +103,37 @@ def _add_contract(cat, table):
     cat.contracts[table.id] = table
 
 
-def _callers(cat, vault):
-    """Apps with contracts of their own to call: a consumer named on a contract, or a caller drawn in any flow. Only
-    their handling can miss something, so only they get F12 when it is not drawn (revision 2, item 8)."""
-    found = set()
+def _consumes(cat, vault):
+    """{app key: {contract id}}: the contracts each app calls, as a consumer named on the contract or a caller drawn in
+    any flow. Only an app that calls something can miss something in its handling, so only it gets F12 when its
+    handling is not drawn (revision 2, item 8), and only for what it calls that the slice never draws it calling."""
+    found = {}
     for contract in vault.contracts:
-        found |= {_app_key(page.id) for page in vault.consumers(contract)}
+        for page in vault.consumers(contract):
+            found.setdefault(_app_key(page.id), set()).add(contract.id)
     for flow in cat.flows.values():
         names = {t.parts[0]: t.parts[1] or t.parts[0] for t in flow.lines if t.kind == "participant"}
         for token in flow.lines:
             if token.kind == "call":
                 app = cat.app_named(names.get(token.parts[0], token.parts[0]))
                 if app is not None:
-                    found.add(app.key)
+                    found.setdefault(app.key, set()).add(token.parts[2])
+    return found
+
+
+def _crossing(cat, vault):
+    """{contract id: {flow id}}: every flow that crosses each contract, drawn or not, by its Steps (the vault's own
+    reader, `flows.steps`) or its diagram. F4 needs it: a case is "reached by no flow" only once every flow that
+    crosses its contract is drawn."""
+    from planner import flows  # flows imports slices, which this module's callers import first
+    found = {}
+    for step in flows.steps(vault):
+        for contract in step.contracts:
+            found.setdefault(contract.id, set()).add(step.page.id)
+    for flow in cat.flows.values():
+        for token in flow.lines:
+            if token.kind == "call":
+                found.setdefault(token.parts[2], set()).add(flow.id)
     return found
 
 

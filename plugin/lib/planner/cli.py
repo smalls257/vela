@@ -96,16 +96,27 @@ def vault_files(root):
     pages, others = [], []
     for path in sorted(root.rglob("*.md")):
         rel = path.relative_to(root)
-        parts = rel.parts
-        if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel.as_posix()):
+        kind = page_kind(rel.as_posix())
+        if kind == "ignored":
             continue
         if path.is_symlink():
             raise ToolError(str(untrusted.link_refusal(rel.as_posix())))
-        if (len(parts) == 1 and parts[0] in schema.SKIP_FILES) or parts[0] in schema.SKIP_DIRS:
+        if kind == "other":
             others.append(path.stem)
             continue
         pages.append(path)
     return pages, others
+
+
+def page_kind(rel):
+    """"page", "other" (Markdown the vault skips, such as README.md) or "ignored" for a vault-relative path ending
+    .md: the one rule vault_files and the flow check's view of an earlier version share."""
+    parts = pathlib.PurePosixPath(rel).parts
+    if any(p.startswith(".") for p in parts[:-1]) or replay.is_mine_file(rel):
+        return "ignored"
+    if (len(parts) == 1 and parts[0] in schema.SKIP_FILES) or parts[0] in schema.SKIP_DIRS:
+        return "other"
+    return "page"
 
 
 def load_vault(root):
@@ -1093,21 +1104,101 @@ def slice_findings(root, vault, today):
 
 
 def cmd_check_slice(args, out):
-    """Prove one slice's logic: read the vault, run the checker, print its findings in plain words.
-    Exit 0 only for a pass; findings or a slice not fully checked are 1 (R0: never a pass by default)."""
+    """Prove one slice's logic, or every slice a change can touch (--changed) or all of them (--all): read the vault,
+    run the checker, print the findings in plain words, and record each result in .planner/flowcheck-cache.json for the
+    next --changed and for readers. Exit 0 only when every slice reported passes; findings or a slice not fully
+    checked are 1 (R0: never a pass by default)."""
     from planner import flowcheck
-    from planner.flowcheck import readers
+    from planner.edge import flowstore
+    from planner.flowcheck import readers, record
     root = pathlib.Path(args.vault).resolve()
     today, _ = parse_today(args.today)
     if args.max_states < 1 or args.max_seconds <= 0:
         raise ToolError("check-slice: --max-states and --max-seconds must be above zero.")
-    catalog = readers.read_catalog(load_vault(root), spec_texts(root))
+    many = args.changed is not None or args.since_commit is not None or args.all
+    if many == bool(args.slice):
+        raise ToolError("check-slice: name one slice (SLC-002, \"Release one\" or FLO-002), or ask for --changed or --all, "
+                        "not both and not neither.")
+    if args.all and (args.changed is not None or args.since_commit is not None):
+        raise ToolError("check-slice: --all checks every slice, so it takes no --changed or --since-commit.")
+    if args.changed and args.since_commit is not None:
+        raise ToolError("check-slice: give a range to --changed or a commit to --since-commit, not both.")
+    vault = load_vault(root)
+    specs = spec_texts(root)
+    catalog = readers.read_catalog(vault, specs)
+    version = flowstore.checker_version()
+    text, unreadable = flowstore.read_store(root)
+    store, corrupt = record.read_store(text)
+    warnings = [w for w in (unreadable, corrupt) if w]
+    if many:
+        report = check_changed_slices(root, vault, specs, catalog, store, today, args, version)
+        report.warnings = warnings + report.warnings
+        written = flowstore.write_store(root, record.dump_store(report.store))
+        if written:
+            report.warnings.append(written)
+        print(report.format("--all" if args.all else "--changed"), file=out)
+        return report.exit_code
     try:
-        result = flowcheck.check_catalog(catalog, args.slice, today, args.max_states, args.max_seconds, time.perf_counter)
+        prepared = flowcheck.prepare(catalog, args.slice, today, args.journeys)
     except flowcheck.SliceNotFound as exc:
         raise ToolError(f"check-slice: {exc}") from exc
+    explored = flowcheck.explore_prepared(prepared, args.max_states, args.max_seconds, time.perf_counter)
+    result = flowcheck.finish(catalog, prepared, explored, today)
+    store["slices"][recorded_key(catalog, args.slice, prepared)] = record.to_record(
+        result, explored, record.fingerprint(prepared, args.max_states, args.max_seconds, version), today)
+    warnings.append(flowstore.write_store(root, record.dump_store(store)))
     print(result.format(), file=out)
+    for warning in filter(None, warnings):
+        print(f"Warning: {warning}", file=out)
     return 0 if result.status == "passes" else 1
+
+
+def recorded_key(catalog, target, prepared):
+    """The key a result is recorded under: the slice's (its ID, or its release heading), or the flow ID checked alone."""
+    if target.strip().upper().startswith("FLO-"):
+        return target.strip().upper()
+    return catalog.slices[prepared.order].key
+
+
+def check_changed_slices(root, vault, specs, catalog, store, today, args, version):
+    """--changed and --all: the impact walk over what git says changed, then flowcheck.changed over every slice."""
+    from planner.edge import flowstore
+    from planner.flowcheck import changed, impact
+    unread, walk = [], None
+    if not args.all:
+        try:
+            before = flowstore.changed_files(root, args.changed or None, args.since_commit)
+        except vaultgit.GitUnavailable as exc:
+            walk = impact.everything(catalog, f"git cannot say what changed ({exc})")
+        else:
+            unread = [path for path in sorted(before) if not flowcheck_reads(path) and page_kind(path) != "ignored"]
+            walk = changes_walk(root, vault, specs, catalog, before)
+    return changed.check_slices(catalog, today, store, walk, everything=args.all, max_states=args.max_states,
+                                max_seconds=args.max_seconds, clock=time.perf_counter, journeys=args.journeys,
+                                version=version, unread=unread)
+
+
+def flowcheck_reads(path):
+    """True for a file the flow check reads: a vault page or a spec."""
+    if path.startswith("specs/") and path.endswith((".yaml", ".yml")):
+        return True
+    return path.endswith(".md") and page_kind(path) == "page"
+
+
+def changes_walk(root, vault, specs, catalog, before):
+    """impact.walk from the vault as it was before (`before`: {path: old text or None}) to the vault now. The earlier
+    vault is today's pages with the changed ones swapped for their old text, so both are read by the one reader."""
+    from planner.flowcheck import impact, readers
+    if ".planner.yaml" in before:
+        return impact.everything(catalog, ".planner.yaml changed")
+    read = {path: text for path, text in before.items() if flowcheck_reads(path)}
+    pages = [page for page in vault.pages if page.path not in read]
+    pages += [parse.parse_page(path, text) for path, text in sorted(read.items()) if text is not None and path.endswith(".md")]
+    old_specs = {path: text for path, text in specs.items() if path not in read}
+    old_specs.update({path: text for path, text in read.items() if text is not None and path.startswith("specs/")})
+    old = readers.read_catalog(model.build(pages, vault.config, sorted(vault.other_names), vault.catalog,
+                                           vault.template_lines), old_specs)
+    return impact.walk(old, catalog, impact.changes(old, catalog))
 
 
 def gate_app(vault, gate, app_id):
@@ -2380,7 +2471,14 @@ def build_parser():
     check.set_defaults(func=cmd_check)
     slc = sub.add_parser("check-slice", help="prove one slice's logic (a release's flows, or one flow) from its specs, "
                                              "case tables, entities and strict sequence diagrams")
-    slc.add_argument("slice", help="a slice, by its ID (SLC-002) or the start of its name (\"Release one\" while slices are still on the releases page), or a flow ID (FLO-001)")
+    slc.add_argument("slice", nargs="?", help="a slice, by its ID (SLC-002) or the start of its name (\"Release one\" while slices are still on the releases page), or a flow ID (FLO-001)")
+    slc.add_argument("--changed", nargs="?", const="", metavar="RANGE",
+                     help="check only the slices a change can touch, and reuse the recorded result of the rest: the "
+                          "working tree against HEAD plus untracked files, or a git range A..B")
+    slc.add_argument("--since-commit", metavar="REV", help="with --changed: the working tree against this commit")
+    slc.add_argument("--all", action="store_true", help="check every slice afresh and record each result")
+    slc.add_argument("--journeys", type=int, choices=(2, 3), default=2,
+                     help="journeys at once over a shared entity: 2, or 3 to look for three-way races (costs more)")
     slc.add_argument("--vault", default=".", help="vault root (default: current directory)")
     slc.add_argument("--today", help="the date overrides' end dates are judged by, YYYY-MM-DD (default: system date)")
     slc.add_argument("--max-states", type=int, default=200_000, help="state budget; running out is 'not fully checked' (default 200000)")

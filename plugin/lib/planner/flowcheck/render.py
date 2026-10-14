@@ -89,6 +89,18 @@ class Renderer:
                 if emitted:
                     text += " and published " + ", ".join(f"\"{e}\"" for e in emitted)
             return text + self.retry_words(caller, table, attempt, flag) + "."
+        if kind in ("ptmo", "pcarry"):
+            table = self.p.contracts[ins.data["contract"]]
+            caller, provider = ins.actor, ins.data["provider"]
+            what = (f"{provider} stops there, and what it has done so far stands" if kind == "ptmo"
+                    else f"{provider} carries on with it alone")
+            return (f"{caller} times out waiting for {provider} part-way through \"{table.title}\": {what}"
+                    + self.retry_words(caller, table, attempt, flag) + ".")
+        if kind == "late":
+            call = self.p.code[x]
+            table = self.p.contracts[call.data["contract"]]
+            case = table.cases[case_index] if ins.kind == "contract" else next(c for c in table.cases if c.key == ins.data["case"])
+            return f"{ins.actor} answers {call.actor}: {words(case.key)} ({case.status}), but {call.actor} has already moved on."
         if kind in ("reply", "rtmo"):
             call = self.p.code[x]
             table = self.p.contracts[call.data["contract"]]
@@ -152,9 +164,9 @@ class Renderer:
             found = []
             if kind in ("dlv", "dlv2", "dup", "lost", "drop", "pub"):
                 found.append(self.p.targets[x if kind != "pub" else self.p.code[pc].data["target"]].item)
-            elif kind in ("ans", "tmo", "enter"):
+            elif kind in ("ans", "tmo", "enter", "ptmo", "pcarry"):
                 found.append(self.p.code[pc].data["contract"])
-            elif kind in ("reply", "rtmo"):
+            elif kind in ("reply", "rtmo", "late"):
                 found.append(self.p.code[x].data["contract"])
             elif kind == "set":
                 found.append(self.p.entities[self.p.code[pc].data["entity"]].id)

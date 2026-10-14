@@ -1,0 +1,7 @@
+---
+id: APP-shop
+type: app-building-blocks
+title: Shop
+---
+
+# Shop

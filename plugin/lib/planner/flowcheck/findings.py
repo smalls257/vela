@@ -55,6 +55,9 @@ class SliceResult:
     transitions: int = 0
     seconds: float = 0.0
     runs: list = field(default_factory=list)  # [(journeys, states, transitions, complete)]
+    skipped: list = field(default_factory=list)  # [flow ids] of runs a budget stop left unexplored
+    limits: list = field(default_factory=list)  # sentences: what the result rests on and does not claim
+    journeys: int = 2  # journeys at once over a shared entity: 2, or 3 on request
 
     @property
     def status(self):
@@ -71,7 +74,12 @@ class SliceResult:
         head = (f"planner check-slice: {self.name} ({', '.join(self.flows)}): {self.status}. {_count(errors, 'error')}, "
                 f"{_count(warnings, 'warning')}" + (f", {covered} covered by overrides" if covered else "") +
                 f". {self.states} states, {self.transitions} transitions, {self.seconds:.2f} s.")
-        return "\n".join([head] + [f.format() for f in self.findings])
+        return "\n".join([head] + [f"Limit: {limit}" for limit in self.limits] + [f.format() for f in self.findings])
+
+    @property
+    def open(self):
+        """The findings that block the slice: errors no unexpired override covers."""
+        return [f for f in self.findings if f.severity == "error"]
 
 
 def _count(n, word):

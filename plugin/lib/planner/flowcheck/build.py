@@ -109,6 +109,7 @@ class Builder:
         self.slice_apps = set()
         self.emit_requests = []  # (ins, case key, {event: hid}) resolved once every handler is known
         self.f12_seen = set()
+        self.drawn_calls = set()  # (caller app key, contract id) for every call drawn in the slice's flows
         self.trees = {}
 
     # --- reporting ------------------------------------------------------------------------------------------------
@@ -146,6 +147,9 @@ class Builder:
                     app = self.app_of(index, name)
                     if app is not None:
                         self.slice_apps.add(app.key)
+                caller = self.app_of(index, node.parts[0]) if node.kind == "call" else None
+                if caller is not None:
+                    self.drawn_calls.add((caller.key, node.parts[2]))
         for index, (flow, tree) in sorted(self.trees.items()):
             self.compile_flow(index, flow, tree)
         while self.pending_handlers:
@@ -169,11 +173,19 @@ class Builder:
                 if token.kind == "call" and token.parts[2] in self.cat.contracts:
                     for case in self.cat.contracts[token.parts[2]].cases:
                         ids |= set(case.emits)
-                        for name, _ in case.sets + case.when:
+                        for name in [s[0] for s in case.sets] + [w[0] for w in case.when]:
                             entity = self.cat.entity(name)
                             if entity is not None:
                                 ids |= {entity.id, entity.slug}
         return ids
+
+    def calls_not_drawn(self, app):
+        """The contracts `app` calls (catalog.consumes) that no flow of this slice draws it calling. When every one is
+        drawn somewhere in the slice, what it does with their answers is checked there, and an undrawn answer of its
+        own adds nothing unchecked: Heron's Consent check, answered from the consent record, while the Microsoft
+        sign-in it calls is drawn in Record consent's handling. Assumed, and said in the docs: the same call made
+        inside the undrawn handling would be handled as it is where it is drawn."""
+        return tuple(sorted(c for c in self.cat.consumes.get(app.key, ()) if (app.key, c) not in self.drawn_calls))
 
     def app_of(self, index, name):
         known = self.participants.get(index, {})
@@ -346,12 +358,15 @@ class Builder:
             self.report("F10", where, f"{provider_app.title} is outside the vault, so it answers from its contract; its handling cannot be drawn.",
                         items=(cid,))
             return
-        if not drawn and provider_app is not None and not provider_app.outside and provider_app.key in self.cat.callers:
+        unseen = self.calls_not_drawn(provider_app) if not drawn and provider_app is not None and not provider_app.outside else ()
+        if unseen:
             key = (flow.id, provider_app.key, cid)
             if key not in self.f12_seen:
                 self.f12_seen.add(key)
+                named = ", ".join(f"\"{self.cat.contracts[c].title}\"" if c in self.cat.contracts else c for c in unseen)
                 self.report("F12", where, f"{provider_app.title} answers \"{table.title}\" from its contract alone in this flow, "
-                            "though it calls other apps itself; what it does with them is not checked here.", items=(cid,),
+                            f"and it calls {named} itself, which no flow of this slice draws it calling; what it does with "
+                            "the answers is not checked here.", items=(cid,) + tuple(unseen),
                             owners=(provider_app.title,), call_line=where)
         replies = _collect_replies(node.handling or (), provider_name, caller, table)
         outcomes = properties.outcomes(self, where, table, replies if drawn else None)
