@@ -72,17 +72,17 @@ The Desktop agent reads the signed-in person's calendar entries and existing Tea
 
 ## Where it fits
 
-<!-- generated:app-context sha=71742b64: do not edit, run planner render -->
+<!-- generated:app-context sha=9a59b12f: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_consent_and_identity["Consent and identity (new)"]
   n_APP_desktop_agent["Desktop agent (new)"]
   n_APP_summarizer["Summarizer (new)"]
   x_microsoft["Microsoft"]
-  x_microsoft -->|"CON-001"| n_APP_desktop_agent
-  n_APP_summarizer -->|"CON-002"| n_APP_desktop_agent
-  n_APP_consent_and_identity -->|"CON-003"| n_APP_desktop_agent
-  n_APP_consent_and_identity -->|"CON-004"| n_APP_desktop_agent
+  x_microsoft -->|"Calendar and Teams transcripts"| n_APP_desktop_agent
+  n_APP_consent_and_identity -->|"Consent check"| n_APP_desktop_agent
+  n_APP_summarizer -->|"Note request"| n_APP_desktop_agent
+  n_APP_consent_and_identity -->|"Record consent"| n_APP_desktop_agent
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
@@ -91,16 +91,16 @@ flowchart LR
   class n_APP_consent_and_identity,n_APP_summarizer new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · white, dashed: outside this initiative (another company or system) · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
-<!-- generated:contracts-consumed sha=f1b90462: do not edit, run planner render -->
-| Contract | Provider | Change policy | State |
+<!-- generated:contracts-consumed sha=089120f8: do not edit, run planner render -->
+| Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
-| [[desktop-agent-building-blocks#CON-001 Calendar and Teams transcripts\|CON-001 Calendar and Teams transcripts]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not recorded. Microsoft runs the interface, and no agreement with Microsoft is registered. | assumption |
-| [[summarizer-building-blocks#CON-002 Note request\|CON-002 Note request]] | [[summarizer-building-blocks\|Summarizer]] | A change is agreed by the product owner and the agent's team before the January package. | assumption |
-| [[consent-and-identity-building-blocks#CON-003 Consent check\|CON-003 Consent check]] | [[consent-and-identity-building-blocks\|Consent and identity]] | A change is agreed by the product owner and the agent's team before the January package. | assumption |
-| [[consent-and-identity-building-blocks#CON-004 Record consent\|CON-004 Record consent]] | [[consent-and-identity-building-blocks\|Consent and identity]] | A change is agreed by the product owner and the agent's team before the January package. | assumption |
+| [[desktop-agent-building-blocks#CON-001 Calendar and Teams transcripts\|Calendar and Teams transcripts (CON-001)]] | [[03-context-and-scope#PTY-01 Microsoft\|Microsoft]] | Not recorded. Microsoft runs the interface, and no agreement with Microsoft is registered. | assumed |
+| [[summarizer-building-blocks#CON-002 Note request\|Note request (CON-002)]] | [[summarizer-building-blocks\|Summarizer]] | A change is agreed by the product owner and the agent's team before the January package. | assumed |
+| [[consent-and-identity-building-blocks#CON-003 Consent check\|Consent check (CON-003)]] | [[consent-and-identity-building-blocks\|Consent and identity]] | A change is agreed by the product owner and the agent's team before the January package. | assumed |
+| [[consent-and-identity-building-blocks#CON-004 Record consent\|Record consent (CON-004)]] | [[consent-and-identity-building-blocks\|Consent and identity]] | A change is agreed by the product owner and the agent's team before the January package. | assumed |
 <!-- /generated:contracts-consumed -->
 
 ## History

@@ -100,7 +100,7 @@ def test_a_consumed_contract_still_open_means_wait():
     till = app_page("till", state="decided")
     row = only(vault_of(shop, till), "APP-till")
     assert (row.rule, row.mode, row.subject) == (7, "none", "CON-001")
-    assert render.next_cell(row) == "waits on CON-001"
+    assert render.next_cell(vault_of(shop, till), row) == "waits on Thing (CON-001)"
 
 
 def test_everything_settled_and_no_epic_means_epics():
@@ -167,8 +167,8 @@ def test_progress_map_is_dated_by_the_last_session_and_holds_no_age(mini):
     assert code == 0 and "01-goals.md: progress-map" in out, out
     text = (mini / "01-goals.md").read_text(encoding="utf-8")
     block = text[text.index("<!-- generated:progress-map"):text.index("<!-- /generated:progress-map -->")]
-    assert "**As of:** 2026-01-10, the last session" in block
-    assert "| [[till-building-blocks\\|Till]] | baseline | 0 | 1 | 0 | 0 | none | discover APP-till |" in block
+    assert "**How sure each app's items are,** as of 2026-01-10 (the last session)" in block
+    assert "| [[till-building-blocks\\|Till]] | named in scope | 0 | 1 | 0 | 0 | none | Discover: Till (APP-till) |" in block
     assert " days" not in block
     assert findings(check(mini)[1]) == []
     assert "0 blocks changed" in run("render", "--vault", str(mini))[1]

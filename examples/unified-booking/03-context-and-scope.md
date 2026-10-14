@@ -35,7 +35,7 @@ Three channels, three adapters, three opinions about what state a booking is in.
 
 ## After
 
-<!-- generated:system-context sha=d424906b: do not edit, run planner render -->
+<!-- generated:system-context sha=934b781a: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["Unified Booking"]
@@ -50,22 +50,22 @@ flowchart LR
     n_APP_website["Public website"]
   end
   x_tidepay__external_["Tidepay (external)"]
-  n_APP_booking -->|"CON-001"| n_APP_call_center
-  n_APP_booking -->|"CON-001"| n_APP_kiosks
-  n_APP_booking -->|"CON-001"| n_APP_website
-  n_APP_booking -->|"CON-002"| n_APP_notifications
-  n_APP_pricing -->|"CON-003"| n_APP_booking
-  n_APP_vessel_schedule -->|"CON-004"| n_APP_booking
-  n_APP_customer_identity -->|"CON-005"| n_APP_booking
-  n_APP_ferrymaster -->|"CON-006"| n_APP_booking
-  x_tidepay__external_ -->|"CON-007"| n_APP_booking
+  n_APP_booking -->|"Booking API"| n_APP_call_center
+  n_APP_booking -->|"Booking API"| n_APP_kiosks
+  n_APP_booking -->|"Booking API"| n_APP_website
+  n_APP_booking -->|"Booking state changed"| n_APP_notifications
+  n_APP_vessel_schedule -->|"Capacity check"| n_APP_booking
+  n_APP_customer_identity -->|"Customer lookup"| n_APP_booking
+  n_APP_ferrymaster -->|"Ledger transactions"| n_APP_booking
+  n_APP_pricing -->|"Quote a fare"| n_APP_booking
+  x_tidepay__external_ -->|"Tidepay payment outcome"| n_APP_booking
   classDef app fill:#eef1f5,stroke:#2448b8,color:#19212d
   classDef external fill:#ffffff,stroke:#7a8494,color:#19212d,stroke-dasharray:2 2
   class n_APP_booking,n_APP_call_center,n_APP_customer_identity,n_APP_ferrymaster,n_APP_kiosks,n_APP_notifications,n_APP_pricing,n_APP_vessel_schedule,n_APP_website app
   class x_tidepay__external_ external
 ```
 
-Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
+Key: blue outline: an app in the initiative · white, dashed: outside this initiative (another company or system) · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:system-context -->
 
 The channels stop knowing FERRYMASTER exists. Booking is the only thing that writes bookings to the ledger, and it tells everyone else what changed through the event bus.

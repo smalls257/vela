@@ -63,7 +63,7 @@ def test_t2_new_contract_with_no_provider_epic(mini):
     code, out = check(mini)
     assert code == 0
     assert findings(out) == [("W502", SHOP)]
-    assert "T2: CON-001 is new, but no epic delivers its provider side." in out
+    assert "T2: No epic builds Sale API (CON-001), the new contract Shop must offer." in out
     assert findings(gated(mini)[1]) == [("E502", SHOP)]
 
 

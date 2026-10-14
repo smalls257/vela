@@ -18,10 +18,10 @@ none
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=38d9fed0: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=b4e23afc: do not edit, run planner render -->
 **Questions:** 12 owed, 12 undisposed, against catalog v1.
 
-| Copy | State | Area | Severity | Subject | Question |
+| Ref | Status | Area | How serious | About | Question |
 |---|---|---|---|---|---|
 | Q-DAT-01@INI-001 | no row | DAT | high | INI-001 | Will any data be used by a new party? |
 | Q-DAT-05@INI-001 | no row | DAT | high | INI-001 | Will any data be used for a purpose other than the one it was collected for? |

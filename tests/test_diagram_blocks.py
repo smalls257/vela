@@ -74,9 +74,9 @@ def test_context_map_has_one_node_per_app_and_external_and_one_edge_per_contract
     assert '  n_APP_shop["Shop (new)"]' in lines
     assert '  n_APP_old["Old (retired)"]' in lines
     assert '  x_payco__external_["Payco (external)"]' in lines
-    assert '  n_APP_shop -->|"CON-001"| n_APP_till' in lines
-    assert '  n_APP_stock -->|"CON-002"| n_APP_shop' in lines
-    assert '  x_payco__external_ -->|"CON-009"| n_APP_shop' in lines
+    assert '  n_APP_shop -->|"Thing"| n_APP_till' in lines
+    assert '  n_APP_stock -->|"Thing"| n_APP_shop' in lines
+    assert '  x_payco__external_ -->|"Thing"| n_APP_shop' in lines
     assert "  class n_APP_shop new" in lines and "  class n_APP_till changed" in lines
     assert "  class n_APP_stock unchanged" in lines and "  class n_APP_old retired" in lines
 
@@ -99,7 +99,7 @@ def test_app_context_draws_only_direct_neighbors():
     stock = vault.page("stock-building-blocks")
     [lines] = mermaid_lines(render.app_context(vault, stock))
     assert '  n_APP_stock["Stock (unchanged)"]' in lines and "  class n_APP_stock focus" in lines
-    assert '  n_APP_stock -->|"CON-002"| n_APP_shop' in lines
+    assert '  n_APP_stock -->|"Thing"| n_APP_shop' in lines
     assert not [l for l in lines if "n_APP_till" in l or "n_APP_far" in l]
 
 
@@ -107,7 +107,7 @@ def test_consumer_app_draws_its_provider():
     vault = vault_of(SHOP)
     [lines] = mermaid_lines(render.app_context(vault, vault.page("till-building-blocks")))
     assert '  n_APP_till["Till (changed)"]' in lines
-    assert '  n_APP_shop -->|"CON-001"| n_APP_till' in lines
+    assert '  n_APP_shop -->|"Thing"| n_APP_till' in lines
 
 
 def big_vault(count):
@@ -123,12 +123,12 @@ def test_over_budget_draws_twenty_and_lists_every_other_node():
     text = render.context_map(vault, None)
     [lines] = mermaid_lines(text)
     assert flowchart_elements(lines) == schema.FLOWCHART_BUDGET
-    assert f"**Not drawn, over the {schema.FLOWCHART_BUDGET}-element budget:** 6" in text
+    assert f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes):** 6" in text
     assert "| Not drawn | Contracts |" in text
     for i in range(25):
         name = f"a{i:02d}"
         assert f"n_APP_{name}[" in text or f"[[{name}-building-blocks\\|" in text, f"{name} was dropped"
-    assert "| [[a24-building-blocks\\|A24]] | CON-001 from APP-hub to APP-a24 |" in text
+    assert "| [[a24-building-blocks\\|A24]] | Thing from Hub to A24 |" in text
     assert '  n_APP_hub["Hub (new)"]' in lines  # the new app is drawn before unchanged ones
 
 
@@ -179,7 +179,7 @@ def test_render_fills_the_blocks_and_check_budgets_them(mini):
     code, out = run("render", "--vault", str(mini))
     assert code == 0 and "05-building-blocks/05-building-blocks.md: context-map" in out, out
     text = (mini / "05-building-blocks" / "05-building-blocks.md").read_text(encoding="utf-8")
-    assert '  n_APP_shop -->|"CON-001"| n_APP_till' in text
+    assert '  n_APP_shop -->|"Sale API"| n_APP_till' in text
     code, out = check(mini)
     assert code == 0 and findings(out) == [], out
     code, out = run("render", "--vault", str(mini))
@@ -208,7 +208,7 @@ def test_context_map_is_refused_on_another_page(mini):
 def test_a_contract_an_app_consumes_from_itself_draws_a_loop():
     vault = vault_of({"05-building-blocks/shop-building-blocks.md": app_page("shop", "new", contract("CON-001", ["shop"]))})
     [lines] = mermaid_lines(render.app_context(vault, vault.page("shop-building-blocks")))
-    assert '  n_APP_shop -->|"CON-001"| n_APP_shop' in lines
+    assert '  n_APP_shop -->|"Thing"| n_APP_shop' in lines
 
 
 def test_an_external_provider_spelled_two_ways_is_two_nodes_not_a_guess():
@@ -281,7 +281,7 @@ def test_app_context_over_budget_lists_what_it_left_out():
     text = render.app_context(vault, vault.page("hub-building-blocks"))
     [lines] = mermaid_lines(text)
     assert flowchart_elements(lines) == schema.FLOWCHART_BUDGET
-    assert f"**Not drawn, over the {schema.FLOWCHART_BUDGET}-element budget:** 6" in text
+    assert f"**Not drawn, to keep the diagram readable (at most {schema.FLOWCHART_BUDGET} boxes):** 6" in text
     assert '  n_APP_hub["Hub (new)"]' in lines and "  class n_APP_hub focus" in lines
     for i in range(25):
         name = f"a{i:02d}"

@@ -18,47 +18,47 @@ verified_by: "@hl-solution-lead"
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=2cb0ee7a: do not edit, run planner render -->
-**Apps on the ladder**
+<!-- generated:where-it-stands sha=970d4f76: do not edit, run planner render -->
+**Where each app has got to**
 
-| App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
+| App | Step reached | Open questions holding it up | Topics nobody has looked at | Contracts settled |
 |---|---|---|---|---|
-| [[booking-building-blocks\|Booking]] | epics | 0 | 0 | 7 of 7 |
-| [[call-center-building-blocks\|Call center desktop]] | epics | 0 | 0 | 1 of 1 |
-| [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 1 of 1 |
-| [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 1 of 1 |
-| [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 1 of 1 |
-| [[website-building-blocks\|Public website]] | epics | 0 | 0 | 1 of 1 |
+| [[booking-building-blocks\|Booking]] | writing epics | 0 | 0 | 7 of 7 |
+| [[call-center-building-blocks\|Call center desktop]] | writing epics | 0 | 0 | 1 of 1 |
+| [[kiosks-building-blocks\|Port kiosks]] | writing epics | 0 | 0 | 1 of 1 |
+| [[notifications-building-blocks\|Notifications]] | writing epics | 0 | 0 | 1 of 1 |
+| [[pricing-building-blocks\|Pricing]] | writing epics | 0 | 0 | 1 of 1 |
+| [[website-building-blocks\|Public website]] | writing epics | 0 | 0 | 1 of 1 |
 
-**Handed off:** [[booking-building-blocks|Booking]] (Booking senior, 2026-11-10, PR #23)
+**Handed to its team:** [[booking-building-blocks|Booking]] (Booking senior, 2026-11-10, PR #23)
 
-**Open unknowns**
+**Open questions**
 
-| Unknown | Owner | Ask by | Blocks |
+| Question | Who answers | Answer needed by | Holds up |
 |---|---|---|---|
-| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|UNK-006]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing |
-| [[11-unknowns-and-risks#UNK-008 Review of the customer data Booking holds\|UNK-008]] | @hl-solution-lead (solution lead) | 2026-12-15 | nothing |
+| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\|Finance on Booking events (UNK-006)]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing yet |
+| [[11-unknowns-and-risks#UNK-008 Review of the customer data Booking holds\|Review of the customer data Booking holds (UNK-008)]] | @hl-solution-lead (solution lead) | 2026-12-15 | nothing yet |
 
 **Last session:** 2026-11-19
 
-**Coverage gaps:** 0, listed on [[13-epics|Epics]]
+**Gaps in the planned work:** 0, listed on [[13-epics|Epics]]
 
-**Delivery status:** not tracked in this vault
+**Build progress:** tracked in each team's tickets, not in this vault
 <!-- /generated:where-it-stands -->
 
 ## Progress by app
 
-<!-- generated:progress-map sha=810c5a32: do not edit, run planner render -->
-**As of:** 2026-11-19, the last session
+<!-- generated:progress-map sha=231431df: do not edit, run planner render -->
+**How sure each app's items are,** as of 2026-11-19 (the last session)
 
-| App | Stage | Inkling | Assumption | Fact | Decided | Oldest open unknown | Next |
+| App | Step reached | Early ideas | Assumed | Confirmed | Decided | Oldest open question | Next session |
 |---|---|---|---|---|---|---|---|
-| [[booking-building-blocks\|Booking]] | epics | 0 | 0 | 1 | 4 | none | none |
-| [[call-center-building-blocks\|Call center desktop]] | epics | 0 | 0 | 0 | 2 | none | none |
-| [[kiosks-building-blocks\|Port kiosks]] | epics | 0 | 0 | 0 | 2 | none | none |
-| [[notifications-building-blocks\|Notifications]] | epics | 0 | 0 | 0 | 2 | none | none |
-| [[pricing-building-blocks\|Pricing]] | epics | 0 | 0 | 0 | 3 (1 by override) | none | none |
-| [[website-building-blocks\|Public website]] | epics | 0 | 0 | 0 | 2 | none | none |
+| [[booking-building-blocks\|Booking]] | writing epics | 0 | 0 | 1 | 4 | none | none |
+| [[call-center-building-blocks\|Call center desktop]] | writing epics | 0 | 0 | 0 | 2 | none | none |
+| [[kiosks-building-blocks\|Port kiosks]] | writing epics | 0 | 0 | 0 | 2 | none | none |
+| [[notifications-building-blocks\|Notifications]] | writing epics | 0 | 0 | 0 | 2 | none | none |
+| [[pricing-building-blocks\|Pricing]] | writing epics | 0 | 0 | 0 | 3 (1 by override) | none | none |
+| [[website-building-blocks\|Public website]] | writing epics | 0 | 0 | 0 | 2 | none | none |
 | [[customer-identity-building-blocks\|Customer identity]] | - | 0 | 0 | 2 | 0 | none | none |
 | [[ferrymaster-building-blocks\|FERRYMASTER]] | - | 0 | 0 | 3 | 0 | none | none |
 | [[vessel-schedule-building-blocks\|Vessel schedule]] | - | 0 | 0 | 2 | 0 | none | none |

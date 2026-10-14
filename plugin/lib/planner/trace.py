@@ -6,7 +6,8 @@ Pure. One computation feeds the T-rule findings in `rules` and the
 import re
 from dataclasses import dataclass
 
-from planner import criteria, schema
+from planner import criteria, plainwords, schema
+from planner.diagrams import external_name
 
 SECTION_HEADING = re.compile(r"^##\s+(?P<text>.*?)\s*#*\s*$")
 
@@ -21,6 +22,7 @@ class Gap:
     anchor: str  # heading to link to, "" for the page
     message: str
     fix: str
+    label: str = ""  # what a reader calls the subject, "Hold a seat (CAP-014)"; subject stays the key rules.py matches on
 
 
 @dataclass(frozen=True)
@@ -53,6 +55,26 @@ def ac_markers(page):
     return {marker for c in criteria.read(page) for marker in c.markers}
 
 
+def _title(page):
+    title = page.meta.get("title")
+    return title.strip() if isinstance(title, str) and title.strip() else page.name
+
+
+def named(name, item_id):
+    """A name with its ID as a tag: "Consent check (CON-003)". The bare ID when there is no name."""
+    name = (name or "").strip()
+    return f"{name} ({item_id})" if name and name != item_id else item_id
+
+
+# What a capability's `change` does, said as a verb: "which this initiative adds".
+CHANGE_VERBS = {"new": "adds", "extend": "extends", "replace": "replaces", "narrow": "narrows", "retire": "retires"}
+
+
+def _provider(contract):
+    external = contract.fact("Provider")
+    return external_name(external) if external else _title(contract.page)
+
+
 def report(vault):
     all_epics = epics(vault)
     gaps, checked = [], 0
@@ -68,8 +90,10 @@ def _t1(vault, all_epics):
     caps = [c for c in sorted(vault.of_type("capability"), key=lambda p: p.id)
             if c.meta.get("change") in schema.ENUMS["change@capability"] and c.meta.get("change") != "unchanged"]
     gaps = [Gap("T1", c.id, c, 0, "change", "",
-                f"No epic delivers {c.id} ({c.meta['change']}), so nobody is planned to build it.",
-                f"Add {c.id} to delivers on the epic that builds it, or set change: unchanged if nothing changes.")
+                f"No epic delivers {named(_title(c), c.id)}, which this initiative "
+                f"{CHANGE_VERBS.get(c.meta['change'], 'changes')}, so nobody is planned to build it.",
+                f"Add {c.id} to delivers on the epic that builds it, or set change: unchanged if nothing changes.",
+                named(_title(c), c.id))
             for c in caps if c.id not in delivered]
     return gaps, len(caps)
 
@@ -86,12 +110,16 @@ def _t2(vault, all_epics):
         if contract.fact("Provider"):  # external provider: the vault plans only the client side
             if contract.id not in delivered | consumed:
                 gaps.append(Gap("T2", contract.id, contract.page, contract.line, "", contract.heading,
-                                f"{contract.id} is {change} and its provider is outside this vault, but no epic delivers or consumes it.",
-                                f"Add {contract.id} to consumes on the epic that builds the client."))
+                                f"{named(contract.name, contract.id)} is a {change} contract with {_provider(contract)}, "
+                                "outside this vault, but no epic builds the side that calls it.",
+                                f"Add {contract.id} to consumes on the epic that builds the client.",
+                                named(contract.name, contract.id)))
         elif contract.id not in delivered:
             gaps.append(Gap("T2", contract.id, contract.page, contract.line, "", contract.heading,
-                            f"{contract.id} is {change}, but no epic delivers its provider side.",
-                            f"Add {contract.id} to delivers on the provider team's epic."))
+                            f"No epic builds {named(contract.name, contract.id)}, the {change} contract "
+                            f"{_provider(contract)} must offer.",
+                            f"Add {contract.id} to delivers on the provider team's epic.",
+                            named(contract.name, contract.id)))
     return gaps, count
 
 
@@ -113,24 +141,25 @@ def _t4(vault, all_epics):
         count += 1
         name = cell.concern.id[len("concern-"):]
         subject = f"{cell.concern.id} × {app.id}"
+        label = f"{_title(cell.concern)} for {_title(app)}"
         waiver = waiver_state(cell.text)
         if waiver == "waiver":
             continue
         for_app = [e for e in all_epics if app.id in listed(e, "apps")]
         if waiver == "malformed":
             gaps.append(Gap("T4", subject, cell.concern, cell.line, "", "",
-                            f"{subject} reads like a waiver, but not in the waiver form, so it covers nothing.",
-                            "Write it as: no work (@handle, review YYYY-MM-DD): <reason>."))
+                            f"{label} reads like a waiver, but not in the waiver form, so it covers nothing.",
+                            "Write it as: no work (@handle, review YYYY-MM-DD): <reason>.", label))
         elif cell.concern.id == schema.OWNERSHIP_CONCERN:
             if not for_app:
                 gaps.append(Gap("T4", subject, cell.concern, cell.line, "", "",
-                                f"{subject} is addressed, but no epic lists {app.id} in apps, so no team is planned to own the work.",
-                                f"Add {app.id} to apps on the epic its team owns, or write the cell as a waiver."))
+                                f"{label} is covered, but no epic is for {_title(app)}, so no team is planned to own the work.",
+                                f"Add {app.id} to apps on the epic its team owns, or write the cell as a waiver.", label))
         elif not any(name in markers[e.id] for e in for_app):
             gaps.append(Gap("T4", subject, cell.concern, cell.line, "", "",
-                            f"{subject} is addressed, but no epic for {app.id} has an acceptance criterion marked [{name}].",
+                            f"{label} is covered, but no epic for {_title(app)} has a done-when check that does this work.",
                             f"End the numbered acceptance criterion that does this work with [{name}] on an epic listing {app.id}, "
-                            "or write a waiver: no work (@handle, review YYYY-MM-DD): <reason>."))
+                            "or write a waiver: no work (@handle, review YYYY-MM-DD): <reason>.", label))
     return gaps, count
 
 
@@ -138,15 +167,17 @@ def _t7(vault, all_epics):
     """A functional requirement nobody is allocated: every epic can pass while it goes unbuilt."""
     from planner import allocation
     gaps = [Gap("T7", r.id, r.page, r.line, "", r.heading,
-                f"{r.id} is at {r.fact('State')}, but no app's Requirements allocated table carries it, so no team owns it.",
-                f"Run /planner:allocate {r.id.split('.')[0]}, or add a row for {r.id} to the app page that delivers it.")
+                f"{named(r.name, r.id)} is {plainwords.state_word(r.fact('State'))}, but no app has taken it on "
+                "(no Requirements allocated row), so no team owns it.",
+                f"Run /planner:allocate {r.id.split('.')[0]}, or add a row for {r.id} to the app page that delivers it.",
+                named(r.name, r.id))
             for r in allocation.unallocated(vault)]
     return gaps, len(allocation.due(vault))
 
 
 def _t6(vault, all_epics):
     gaps = [Gap("T6", e.id, e, 0, "delivers", "",
-                f"{e.id} delivers nothing, so it traces to no capability, contract or goal.",
-                "List what it builds or changes in delivers, or delete the epic.")
+                f"{named(_title(e), e.id)} delivers nothing, so it traces to no capability, contract or goal.",
+                "List what it builds or changes in delivers, or delete the epic.", named(_title(e), e.id))
             for e in all_epics if isinstance(e.meta.get("delivers"), list) and not e.meta["delivers"]]
     return gaps, len(all_epics)

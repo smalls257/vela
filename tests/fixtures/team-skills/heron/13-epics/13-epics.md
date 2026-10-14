@@ -11,14 +11,14 @@ One page per epic, named `EPC-nnn-<slug>.md`.
 
 ## Traceability
 
-<!-- generated:traceability sha=3ee25d35: do not edit, run planner render -->
-**Traceability:** 5 gaps. 19 checks pass.
+<!-- generated:traceability sha=5028cafe: do not edit, run planner render -->
+**Gaps in the planned work:** 5. 19 checks pass.
 
-| Rule | Item | Gap |
+| Item | What is missing | Check |
 |---|---|---|
-| T1 | [[CAP-006-answer-consent-check\|CAP-006]] | No epic delivers CAP-006 (new), so nobody is planned to build it. |
-| T2 | [[summarizer-building-blocks#CON-002 Note request\|CON-002]] | CON-002 is new, but no epic delivers its provider side. |
-| T2 | [[consent-and-identity-building-blocks#CON-003 Consent check\|CON-003]] | CON-003 is new, but no epic delivers its provider side. |
-| T2 | [[consent-and-identity-building-blocks#CON-004 Record consent\|CON-004]] | CON-004 is new, but no epic delivers its provider side. |
-| T2 | [[consent-and-identity-building-blocks#CON-005 Microsoft sign-in\|CON-005]] | CON-005 is new and its provider is outside this vault, but no epic delivers or consumes it. |
+| [[CAP-006-answer-consent-check\|Answer whether a person has agreed (CAP-006)]] | No epic delivers Answer whether a person has agreed (CAP-006), which this initiative adds, so nobody is planned to build it. | T1 |
+| [[summarizer-building-blocks#CON-002 Note request\|Note request (CON-002)]] | No epic builds Note request (CON-002), the new contract Summarizer must offer. | T2 |
+| [[consent-and-identity-building-blocks#CON-003 Consent check\|Consent check (CON-003)]] | No epic builds Consent check (CON-003), the new contract Consent and identity must offer. | T2 |
+| [[consent-and-identity-building-blocks#CON-004 Record consent\|Record consent (CON-004)]] | No epic builds Record consent (CON-004), the new contract Consent and identity must offer. | T2 |
+| [[consent-and-identity-building-blocks#CON-005 Microsoft sign-in\|Microsoft sign-in (CON-005)]] | Microsoft sign-in (CON-005) is a new contract with Microsoft, outside this vault, but no epic builds the side that calls it. | T2 |
 <!-- /generated:traceability -->

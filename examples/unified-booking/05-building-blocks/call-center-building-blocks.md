@@ -27,19 +27,19 @@ The desktop no longer decides whether a booking is confirmed and no longer cache
 |---|---|
 | Changed: Booking API client and new amend and cancel screens. Terminal adapter and manual fix queue retired. | Contact Center Systems team |
 
-<!-- generated:app-context sha=06e34ad3: do not edit, run planner render -->
+<!-- generated:app-context sha=e4c63e95: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_booking["Booking (new)"]
   n_APP_call_center["Call center desktop (changed)"]
-  n_APP_booking -->|"CON-001"| n_APP_call_center
+  n_APP_booking -->|"Booking API"| n_APP_call_center
   classDef focus fill:#2448b8,stroke:#19212d,color:#ffffff
   classDef new fill:#d9f2e3,stroke:#1e7a46,color:#10301d
   class n_APP_call_center focus
   class n_APP_booking new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract (an agreed interface), labeled with its name, pointing from the side that provides it to the app that uses it.
 <!-- /generated:app-context -->
 
 ## Inside Call center desktop: main containers
@@ -77,10 +77,10 @@ None. The desktop only consumes.
 
 ## Contracts this app consumes
 
-<!-- generated:contracts-consumed sha=730b0a4e: do not edit, run planner render -->
-| Contract | Provider | Change policy | State |
+<!-- generated:contracts-consumed sha=0e14b175: do not edit, run planner render -->
+| Contract | Provided by | Who can change it, and how | How sure |
 |---|---|---|---|
-| [[booking-building-blocks#CON-001 Booking API\|CON-001 Booking API]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
+| [[booking-building-blocks#CON-001 Booking API\|Booking API (CON-001)]] | [[booking-building-blocks\|Booking]] | versioned. Each version is kept at least 6 months because kiosks update twice a year ([[ADR-0003-versioned-booking-api\|ADR-0003]]). | decided |
 <!-- /generated:contracts-consumed -->
 
 ## Epics

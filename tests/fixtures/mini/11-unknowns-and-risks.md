@@ -8,12 +8,19 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=14efe937: do not edit, run planner render -->
-| ID | Name | Owner | State | Ask by |
-|---|---|---|---|---|
-| [[#UNK-001 Till test rig\|UNK-001]] | Till test rig | @mini-qa | open | 2026-02-01 |
-| [[#UNK-002 Receipt format\|UNK-002]] | Receipt format | @mini-lead | resolved |  |
-| [[#R-01 One till only\|R-01]] | One till only | @mini/till-team | open |  |
+<!-- generated:unknowns-index sha=228602bc: do not edit, run planner render -->
+**Questions**
+
+| Question | Who answers | Status | Answer needed by |
+|---|---|---|---|
+| [[#UNK-001 Till test rig\|Till test rig (UNK-001)]] | @mini-qa | open | 2026-02-01 |
+| [[#UNK-002 Receipt format\|Receipt format (UNK-002)]] | @mini-lead | answered |  |
+
+**Risks**
+
+| Risk | Owner | Status |
+|---|---|---|
+| [[#R-01 One till only\|One till only (R-01)]] | @mini/till-team | open |
 <!-- /generated:unknowns-index -->
 
 ## Unknowns
