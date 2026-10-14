@@ -18,13 +18,30 @@ step was a place to guess. The rules now live here, as functions over records th
 - **Several open never guesses.** Picking one of two open sessions for the lead would file one session's captures
   into the other's record; the caller exits 3 and lists them.
 
+Task 6b adds what `vela session start` decides, each rule with the reason START.md gave for it:
+
+- **The id is the date and the topic, and never one already taken.** A second `sessions/<id>.md`, or a branch
+  `session/<id>` here or on origin, would put two sessions' captures in one record or one pull request; `-2`, `-3`
+  and on are tried until all are free (`new_id`).
+- **An answer is found by its PR's exact title suffix.** gh's search for `Challenge: CON-001` also returns
+  `Challenge: CON-0010`; an answer opened on the wrong challenge's branch lands its decision in the wrong PR. So only
+  a title ending in exactly `Challenge: <ID>` counts, and none or several stops (`challenge_matches`). A PR named by
+  number must be open and titled as a challenge is (`challenged_id`). Never a guessed branch.
+- **A dirty tree stops only when the pull would overwrite it.** A lead's unsaved edit to a page comes into the
+  session unstaged and is said in one clause; only a path the pull changes is a choice that would lose work
+  (`clobbered`, `carried`). vela's own `.vela/` output is never a reason and never mentioned.
+- **The initiative is named once.** The template's `title: New initiative` heads the dashboard and every reader's
+  copy, so it is asked before the first question and written only in the lead's words (`is_unnamed`, `with_title`).
+- **A reader copy can't run an owner's mode.** A challenge opens its own pull request and an answer pushes to one;
+  a published copy has no git (`OWNER_ONLY`).
+
 Pure: records arrive as `(ref, path, text)`; no disk, git or clock. `edge/sessiongit.py` reads them.
 """
 import datetime
 import re
 from dataclasses import dataclass
 
-from vela import parse
+from vela import parse, schema
 
 LOCAL, REMOTE, FOLDER = "refs/heads/", "refs/remotes/origin/", ""
 MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
@@ -138,3 +155,145 @@ def date_in_words(value, today=None):
         return value or "on a date the record doesn't give"
     words = f"{day.day} {MONTHS[day.month - 1]}"
     return words if today is not None and today.year == day.year else f"{words} {day.year}"
+
+
+# The display names MODES.md gives each mode, used in a record's title ("Grill: consent").
+MODE_NAMES = {"dump": "Dump & Diverge", "discover": "Discover", "shape": "Shape", "boundary": "Boundary",
+              "allocate": "Allocate", "releases": "Releases", "grill": "Grill", "requirements": "Requirements",
+              "epics": "Epics", "challenge": "Challenge", "answer": "Answer"}
+OWNER_ONLY = ("challenge", "answer")  # each opens or pushes to a pull request, which a published copy can't
+STALE_DAYS = 14  # START step 2: an open record older than this is said to be old
+NAMING_QUESTION = "What short name should this initiative go by? A few words, as you would say it to a colleague."
+_CHALLENGE_TITLE = re.compile(r"^\d{4}-\d{2}-\d{2}\b.*\bChallenge: (?P<id>\S+)$")
+_NOT_SLUG = re.compile(r"[^a-z0-9]+")
+
+
+def slug(words):
+    return _NOT_SLUG.sub("-", words.lower()).strip("-")
+
+
+def _free(base, taken):
+    candidate, n = base, 1
+    while taken(candidate):
+        n += 1
+        candidate = f"{base}-{n}"
+    return candidate
+
+
+def new_id(today, topic, taken):
+    """`<today>-<topic slug>`, with `-2`, `-3` and on until `taken(id)` is false. Raises ValueError for a topic with
+    no letters or digits, since an id of only the date would collide with every other topicless session."""
+    words = slug(topic)
+    if not words:
+        raise ValueError(f"the topic '{topic}' has no letters or digits to name the session by")
+    return _free(f"{today}-{words}", taken)
+
+
+def answer_id(today, challenged, taken):
+    """`<today>-answer-<id lower-cased>`, as ANSWER-A-CHALLENGE.md names an answer session."""
+    return _free(f"{today}-answer-{slug(challenged)}", taken)
+
+
+def challenged_id(pr):
+    """The id a PR named by number challenges, or None when it isn't an open challenge PR: its title starts with a
+    date and ends `Challenge: <id>`, and gh says it is OPEN."""
+    match = _CHALLENGE_TITLE.match(str(pr.get("title", "")))
+    if not match or str(pr.get("state", "")).upper() != "OPEN":
+        return None
+    return match.group("id")
+
+
+def challenge_matches(prs, challenged):
+    """The PRs whose title ends with exactly `Challenge: <id>` (gh's search matches longer ids too)."""
+    out = []
+    for pr in prs:
+        match = _CHALLENGE_TITLE.match(str(pr.get("title", "")))
+        if match and match.group("id") == challenged:
+            out.append(pr)
+    return out
+
+
+def _own(path):
+    return path == ".vela" or path.startswith(".vela/")
+
+
+def clobbered(dirty, incoming):
+    """The uncommitted paths the switch to main and the pull would overwrite: the ones that need the lead."""
+    coming = set(incoming)
+    return [path for path in dirty if path in coming and not _own(path)]
+
+
+def carried(dirty, incoming):
+    """The uncommitted paths that come into the session unstaged, to say in one clause."""
+    coming = set(incoming)
+    return [path for path in dirty if path not in coming and not _own(path)]
+
+
+def is_unnamed(config):
+    """True while `.vela.yaml` keeps the title the template ships (W718)."""
+    return str(config.get("title", "")).strip() == schema.PLACEHOLDER_TITLE
+
+
+def with_title(yaml_text, title):
+    """`.vela.yaml` with its `title:` line set to `title`, every other line kept as written, comments too."""
+    line = "title: " + '"' + title.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    lines = yaml_text.split("\n")
+    for i, row in enumerate(lines):
+        if row.startswith("title:"):
+            lines[i] = line
+            return "\n".join(lines)
+    body = yaml_text if (yaml_text.endswith("\n") or not yaml_text) else yaml_text + "\n"
+    return body + line + "\n"
+
+
+def title_for(modes, topic, challenged=""):
+    """`<Mode name>: <topic>`, or `Answer: <ID>` for an answer session."""
+    if challenged:
+        return f"Answer: {challenged}"
+    return f"{MODE_NAMES.get(modes[0], modes[0].capitalize())}: {topic.strip()}"
+
+
+def record_text(record_id, title, today, modes):
+    """A new session record, in the form START step 5 gives."""
+    quoted = title.replace("\\", "\\\\").replace('"', '\\"')
+    return (f"---\nid: {record_id}\ntype: session\ntitle: \"{quoted}\"\ndate: {today}\nmodes: [{', '.join(modes)}]\n"
+            f"status: open\nsummary: In progress.\n---\n\n# {today} {title}\n\n## Captures\n\n## Changes\n\n"
+            "| ID | From | To | Source |\n|---|---|---|---|\n")
+
+
+def last_closed(metas):
+    """The highest `date:` among closed session records (frontmatter dicts), or "" when none is closed: the day
+    from which merged session PRs may carry review comments nobody brought in yet (START step 3)."""
+    dates = [str(m.get("date", "")) for m in metas if m.get("status") == "closed"]
+    return max((d for d in dates if re.match(r"^\d{4}-\d{2}-\d{2}$", d)), default="")
+
+
+def _login(entry, key):
+    who = entry.get(key) if isinstance(entry, dict) else None
+    return str(who.get("login", "")) if isinstance(who, dict) else ""
+
+
+def review_candidates(pr, view, line_comments):
+    """Every non-empty comment on one merged PR, as a candidate capture with its author as the origin: the PR's
+    conversation comments, the review bodies, then the line comments. A review with no body (a bare approval) is
+    nothing to capture."""
+    base = {"pr": pr.get("number"), "pr_title": pr.get("title", ""), "url": pr.get("url", "")}
+    out = []
+    view = view if isinstance(view, dict) else {}
+    for kind, entries, key in (("comment", view.get("comments"), "author"), ("review", view.get("reviews"), "author"),
+                               ("line", line_comments, "user")):
+        for entry in entries if isinstance(entries, list) else []:
+            body = str(entry.get("body") or "").strip() if isinstance(entry, dict) else ""
+            if body:
+                out.append({**base, "kind": kind, "author": _login(entry, key), "body": body,
+                            "path": entry.get("path", "")})
+    return out
+
+
+def is_stale(record, today):
+    """True for an open record started more than STALE_DAYS before `today` (a date)."""
+    try:
+        started = datetime.date.fromisoformat(record.date)
+    except (TypeError, ValueError):
+        return False
+    return (today - started).days > STALE_DAYS
