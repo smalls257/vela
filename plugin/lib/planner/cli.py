@@ -26,6 +26,7 @@ import yaml
 from planner import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from planner.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, teamdocs, vaultgit
 from planner.edge import proposals as proposal_files
+from planner import commands, say
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOG = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -1006,6 +1007,8 @@ def cmd_check(args, out):
         findings += slice_findings(root, vault, today)
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
+    if getattr(args, "for_lead", False):
+        return check_for_lead(vault, findings, errors, out)
     elapsed = time.perf_counter() - started
     print(f"planner check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
           f"Took {elapsed:.2f} s." + (f" {GATE_WORDS[args.gate]}" if args.gate else "")
@@ -1020,6 +1023,27 @@ def cmd_check(args, out):
                   f"question{' is' if len(resting) == 1 else 's are'} answered by an assumption the plan rests on: "
                   f"{', '.join(resting)}. Each stands until the warning sign written beside it shows.", file=out)
     return 1 if errors else 0
+
+
+def check_for_lead(vault, findings, errors, out):
+    """`check --for-lead`: each finding as the lead would hear it, by page title and with no code, ID or fix line. The
+    fix lines are for the model; the lead hears what is wrong. Every line goes through `say`, which raises on a leak."""
+    resolver = say.Resolver(vault)
+    lines = [say.Line("", plain=check_lead_header(errors, len(findings) - errors, len(vault.pages)))]
+    for finding in findings:
+        page = vault.page(pathlib.PurePosixPath(finding.path).stem)
+        where = resolver.page_title(page.name) if page is not None else None
+        lines.append(say.Line(f"{where or finding.path}: {finding.message}"))
+    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines)
+    return commands.emit(result, argparse.Namespace(for_lead=True), out, resolver)
+
+
+def check_lead_header(errors, warnings, pages):
+    if not errors and not warnings:
+        return f"Nothing to fix in the {pages} pages."
+    must = f"{errors} thing{'' if errors == 1 else 's'} must be fixed before this can merge" if errors else ""
+    look = f"{warnings} thing{'' if warnings == 1 else 's'} worth a look" if warnings else ""
+    return f"{', and '.join(x for x in (must, look) if x)}, across the {pages} pages."
 
 
 # What each gate checks, said in the summary line instead of the gate's bare name.
@@ -2558,17 +2582,7 @@ def build_parser():
     parser.add_argument("--version", action="version", version="Vela planner (run `planner --version` on its own)",
                         help="print Vela's version and exit")
     sub = parser.add_subparsers(dest="command", required=True)
-    check = sub.add_parser("check", help="read-only check of the vault")
-    check.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    check.add_argument("--today", help="the date to judge overdue questions by, YYYY-MM-DD (default: today)")
-    check.add_argument("--gate", choices=schema.GATES,
-                       help="epics: before calling the epics finished, fail on anything no epic builds and on high-priority "
-                            "questions nobody has dealt with; shape: as shaping ends, warn on questions still answered by "
-                            "assumption; grill: before a grill, warn on open questions that hold up the items named with --item")
-    check.add_argument("--item", action="append", help="with --gate grill: the ID of an item the grill will decide; repeat for each")
-    check.add_argument("--app", help="with --gate epics: check only this app and the things on its handoff list (give its ID, "
-                                     "like APP-booking); other apps, and the check that every requirement has an app, are skipped")
-    check.set_defaults(func=cmd_check)
+    commands.register(sub, "check")
     slc = sub.add_parser("check-slice", help="check that a slice's journeys (a release's flows, or one flow) can run end to "
                                              "end without dead ends, from their sequence diagrams, error cases and specs")
     slc.add_argument("slice", nargs="?", help="a slice, by its ID (SLC-002) or the start of its name (\"Release one\" while slices are still on the releases page), or a flow ID (FLO-001)")
@@ -2602,25 +2616,7 @@ def build_parser():
     view.add_argument("--repo-url", help="where newer versions live (default: git remote get-url origin)")
     view.add_argument("--date", help="build date to stamp, YYYY-MM-DD (default: system date)")
     view.set_defaults(func=cmd_view)
-    explore = sub.add_parser("explore", help="build the vault explorer, one offline HTML page of the whole initiative")
-    explore.add_argument("vault", nargs="?", default=".", help="vault root (default: current directory)")
-    explore.add_argument("-o", "--out", help="HTML file to write (default: <vault>/dashboard.html)")
-    explore.add_argument("--today", help="the date due windows count from, YYYY-MM-DD (default: system date)")
-    explore.add_argument("--theme", default="console", help="the theme the page opens in: console, graphite, daylight or vaporwave")
-    explore.add_argument("--design", action="append", default=[], metavar="APP-x=PATH",
-                         help="a team's technical design for an app, shown in its 'Inside this app' view; repeat for each app")
-    explore.add_argument("--breakdown", action="append", default=[], metavar="APP-x=PATH",
-                         help="a team's work breakdown (docs/plan/<slug>-breakdown.md) for an app, for its Build plan; repeat for each app")
-    explore.add_argument("--assets", help="an assets.config.json whose provider's art is inlined (default: the builtin art)")
-    explore.add_argument("--selftest", action="store_true",
-                         help="for developers: bundle the dashboard's own checks, so opening it with #selftest runs them (about 120 KB)")
-    explore.add_argument("--serve", action="store_true",
-                         help="then serve the page on this machine only, with Ask Claude on; opens the browser, Ctrl-C stops")
-    explore.add_argument("--port", type=int, default=None, help="with --serve, the port (default: one derived from the vault, so the browser finds what it saved; 0 asks for any free one)")
-    explore.add_argument("--model", choices=["haiku", "sonnet"], default="haiku",
-                         help="with --serve, the model that answers questions (default: haiku; the page's Think harder asks sonnet)")
-    explore.add_argument("--no-open", action="store_true", help="with --serve, do not open the browser")
-    explore.set_defaults(func=cmd_explore)
+    commands.register(sub, "explore")
     role = sub.add_parser("role", help="whether you can change this plan (owner) or only read it (reader), from your access to its repository")
     role.add_argument("--vault", default=".", help="vault root (default: current directory)")
     role.add_argument("--json", action="store_true", help="the answer as JSON")
@@ -2695,11 +2691,7 @@ def build_parser():
     doc = sub.add_parser("doctor", help="whether this machine has what planner needs; each missing piece says what it adds and how to get it")
     doc.add_argument("--vault", default=".", help="folder to check as a vault too (default: current directory)")
     doc.set_defaults(func=cmd_doctor)
-    where = sub.add_parser("where", help="which planner program a skill would run, and why other places were passed over")
-    where.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
-    where.add_argument("--plugin-root", default="", help="the value ${CLAUDE_PLUGIN_ROOT} had when the skill loaded")
-    where.add_argument("--skill-dir", default="", help="the value ${CLAUDE_SKILL_DIR} had when the skill loaded")
-    where.set_defaults(func=cmd_where)
+    commands.register(sub, "where")
     status = sub.add_parser("status", help="where each app stands: its stage, how much is decided, its oldest open question and what to do next")
     status.add_argument("--vault", default=".", help="vault root (default: current directory)")
     status.add_argument("--today", help="date to judge overdue unknowns and ages by, YYYY-MM-DD (default: system date)")
@@ -2747,19 +2739,7 @@ def build_parser():
         one.add_argument("--vault", default=".", help="vault root (default: current directory)")
         one.add_argument("--json", action="store_true", help="print JSON instead of text")
         one.set_defaults(func=cmd_query)
-    ques = sub.add_parser("questions", help="the questions the catalog says this vault owes, and where each stands")
-    ques.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    ques.add_argument("--json", action="store_true", help="print JSON instead of text")
-    ques.add_argument("--area", help="only this area of the catalog, such as FIN")
-    ques.add_argument("--open", action="store_true", help="list only copies with no row, an open row, an invalid row or an asked row")
-    ques.add_argument("--subject", help="only copies about this subject, such as APP-booking")
-    view_of = ques.add_mutually_exclusive_group()
-    view_of.add_argument("--digest", action="store_true",
-                         help="the undisposed and asked copies grouped by entry and ranked, high and blocking first")
-    ques.add_argument("--all", action="store_true",
-                      help="with --digest: every line in full, not only the high and blocking ones")
-    view_of.add_argument("--stats", action="store_true", help="how often each entry ends not-applicable in this vault")
-    ques.set_defaults(func=cmd_questions)
+    commands.register(sub, "questions")
     found = sub.add_parser("findings", help="combine the reviewers' notes and check each quote is really on its page")
     founds = found.add_subparsers(dest="what", required=True)
     merge = founds.add_parser("merge", help="union, remove duplicates, drop a finding whose quote is not on its page")
@@ -2772,14 +2752,7 @@ def build_parser():
     merge.add_argument("--changed", help="the pages this session changed, and its record, comma-separated: a new "
                                          "question quoting any other page is dropped")
     merge.set_defaults(func=cmd_findings)
-    hand = sub.add_parser("handoff", help="record what a team takes on when an app is handed over, or list what changed since")
-    hand.add_argument("words", nargs="+", metavar="[verify] APP-id", help="APP-id: the app to hand off, which writes its handoff record; "
-                                                                          "verify APP-id: list what changed since that app was handed off")
-    hand.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    hand.add_argument("--today", help="date to record, YYYY-MM-DD (default: system date)")
-    hand.add_argument("--commit", help="commit to record (default: git rev-parse --short HEAD)")
-    hand.add_argument("--replace", action="store_true", help="replace the existing handoff record once the app's team accepts the changes")
-    hand.set_defaults(func=cmd_handoff)
+    commands.register(sub, "handoff")
     exp = sub.add_parser("export", help="write the epics out for another tool; nothing is read back")
     exps = exp.add_subparsers(dest="format", required=True)
     jira = exps.add_parser("jira-csv", help="one row per epic: Summary, Description, Epic Name, Owner team, Vault link")
@@ -2813,6 +2786,7 @@ def build_parser():
     score.add_argument("--vault", default=".", help="vault root holding voice/ (default: current directory)")
     score.add_argument("--json", action="store_true", help="print JSON instead of text")
     score.set_defaults(func=cmd_voicescore)
+    commands.register_groups(sub)  # the overhaul's command groups; a new command never edits this file
     return parser
 
 
@@ -2840,6 +2814,15 @@ def plugin_version(path=PLUGIN_JSON):
 
 
 def main(argv=None, out=None):
+    """Run one planner command and return its exit code. Every command means the same by each code:
+
+    0  done.
+    1  refused, or findings to fix, with a plain reason (`check`: errors).
+    2  the tool failed: bad arguments, an unreadable vault, a git or gh failure, or a planner bug, such as a line
+       meant for the lead that still held an ID (`say.LeadLeak`).
+    3  needs the lead: nothing changed, the choices are printed, and `--json` carries the `needs_lead` list.
+       `check` never exits 3.
+    """
     out = out or sys.stdout
     if list(argv if argv is not None else sys.argv[1:]) == ["--version"]:
         print(f"Vela planner {plugin_version()}", file=out)
@@ -2855,6 +2838,9 @@ def main(argv=None, out=None):
         return args.func(args, out)
     except ToolError as exc:
         print(f"planner: {exc}", file=out)
+        return 2
+    except say.LeadLeak as exc:  # a leak fails loudly at its source, never reaches the lead as a quiet code
+        print(str(exc), file=out)
         return 2
     except Exception as exc:  # the tool failed; never report this as a vault finding
         print(f"planner: internal error: {exc!r}. This is a bug in planner, not in the vault.", file=out)

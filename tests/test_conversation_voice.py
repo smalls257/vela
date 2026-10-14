@@ -94,3 +94,11 @@ def test_the_yes_rule_and_the_ask_who_knows_line_are_said_once_not_scripted_in_e
         body = path.read_text(encoding="utf-8")
         assert "Who would actually know this? If that is not the owner" not in body, path.name
         assert "explicit yes to that line" not in body and "an explicit yes for that line" not in body, path.name
+
+
+def test_what_the_sim_counts_as_a_leak_the_for_lead_formatter_refuses():
+    """`planner.say.LEAD_PATTERNS` is the one copy the CLI enforces. The sim's scorecard keeps its own narrower count so
+    paid runs stay comparable with the baseline; every leak it counts must also be one `--for-lead` refuses."""
+    from planner import say
+    for sample in ("UNK-001", "CAP-002.FR1", "CON-010", "EPC-031", "W365", "E316", "GATE-4", "--gate"):
+        assert say.leak_in(f"the line holds {sample} here"), sample
