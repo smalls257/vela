@@ -1295,3 +1295,14 @@ def test_the_scorecard_and_the_shape_judge_carry_the_voice_count(tmp_path):
     hits = sim.vault_hits(persona, transcript, run_dir / "vela" / "vault")
     shape = sim.judge_input(persona, transcript, run_dir / "vela" / "vault", "shape", hits)
     assert f"voice score {card['voice']['score']} of 100" in shape and "Do not count codes yourself" in shape
+
+
+def test_a_subagent_reply_without_a_turn_renders():
+    """The 2026-10-14 baseline run finished every session, then crashed writing transcript.html: a subagent's reply
+    carries no turn number of its own. The page must render it, labeled, with no turn."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("simrun", REPO / "tests" / "sim" / "run.py")
+    simrun = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(simrun)
+    page = simrun.render_transcript("x", [{"speaker": "subagent", "session": "1", "mode": "dump", "text": "found <it>", "cost_usd": "0"}])
+    assert "Subagent" in page and "found &lt;it&gt;" in page

@@ -2188,9 +2188,11 @@ def render_transcript(arm_name, entries):
         elif e["speaker"] == "driver":
             out.append(f"<div class=driver>{esc(e['text'])}</div>")
         else:
-            who = "Lead" + (" (scripted opening)" if e.get("scripted") else "") if e["speaker"] == "lead" else "Assistant"
-            cost = f" · ${e.get('cost_usd', 0):.3f}" if e.get("cost_usd") else ""
-            out.append(f"<div class='turn {esc(e['speaker'])}'><div class=meta>T{esc(e['turn'])} · {esc(who)}{cost}</div>"
+            who = {"lead": "Lead" + (" (scripted opening)" if e.get("scripted") else ""), "subagent": "Subagent"}.get(e["speaker"], "Assistant")
+            cost = f" · ${float(e.get('cost_usd') or 0):.3f}" if float(e.get("cost_usd") or 0) else ""
+            # a subagent's reply carries no turn of its own (it ran inside an assistant turn), so it shows none
+            turn = f"T{esc(e['turn'])} · " if "turn" in e else ""
+            out.append(f"<div class='turn {esc(e['speaker'])}'><div class=meta>{turn}{esc(who)}{cost}</div>"
                        f"{esc(e['text'])}")
             tools = e.get("tool_calls") or []
             if tools:
