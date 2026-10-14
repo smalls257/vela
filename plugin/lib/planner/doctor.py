@@ -43,10 +43,71 @@ class Line:
     text: str
 
 
-def report(machine, vault, plugin_version):
+@dataclass(frozen=True)
+class Hook:
+    """What edge/machine.py found about the vault's pre-commit hook (template/.githooks/pre-commit)."""
+    hook_file: bool  # .githooks/pre-commit is in the vault
+    hooks_on: bool  # core.hooksPath points git at .githooks
+    env_planner: str  # PLANNER in doctor's environment ("" when unset); the hook reads it first
+    config_path: str  # git config planner.path ("" when unset); the hook reads it second
+    vendored: str  # the vendored launcher's path in the vault; the hook reads it last
+    launcher: str  # the installed planner launcher doctor found ("" when none)
+
+
+# The hook's own order (template/.githooks/pre-commit), kept here so doctor says what the hook will do; a test runs the
+# hook against each case and holds the two together.
+HOOK_ORDER = ("PLANNER", "git config planner.path", "the vendored copy in the vault")
+
+
+def hook_finds(hook, is_file):
+    """(source, path) of the launcher the pre-commit hook will run, or ("", "") when it finds none and stops the commit."""
+    for source, path in zip(HOOK_ORDER, (hook.env_planner, hook.config_path, hook.vendored)):
+        if path:
+            return (source, path) if is_file(path) else (source, "")  # the hook takes the first one set, and stops if it is not there
+    return "", ""
+
+
+def wire_command(hook, found):
+    """The one command that wires the hook to the installed launcher: turns the vault's hooks on when they are off, and
+    records the launcher when the hook would not find it."""
+    steps = [] if hook.hooks_on else ["git config core.hooksPath .githooks"]
+    if found != hook.launcher:
+        steps.append(f"git config planner.path {shell_quote(hook.launcher)}")
+    return " && ".join(steps)
+
+
+def shell_quote(path):
+    return path if path and all(c.isalnum() or c in "/._-~@+" for c in path) else "'" + path.replace("'", "'\\''") + "'"
+
+
+def hook_line(hook, is_file):
+    """Whether a commit typed by hand in this vault is checked by the planner it was installed with. The hook stops a
+    commit when it cannot find the planner (it never waves one through), so a hook that finds nothing is a vault where
+    every hand commit stops; doctor names the one command that fixes it."""
+    if hook is None:
+        return None
+    if not hook.hook_file:
+        return Line("info", "this vault has no .githooks/pre-commit, so a commit typed by hand isn't checked for files "
+                            "that must stay on this machine. Copy .githooks/ from the planner's template folder.")
+    source, found = hook_finds(hook, is_file)
+    fix = f" Wire it: {wire_command(hook, found)}" if hook.launcher else " Install the plugin, then run planner doctor again."
+    if not hook.hooks_on:
+        return Line("optional", "the vault's pre-commit hook is off, so a commit typed by hand isn't checked." + fix)
+    if not found:
+        return Line("optional", f"the vault's pre-commit hook stops every commit typed by hand: {source} names a "
+                                f"launcher that isn't there.{fix}")
+    if hook.launcher and found != hook.launcher:
+        return Line("optional", f"the vault's pre-commit hook runs the planner at {found} (from {source}), not the "
+                                f"installed one at {hook.launcher}, so two versions answer this vault.{fix}")
+    return Line("ok", f"the vault's pre-commit hook checks hand commits with the planner at {found}")
+
+
+def report(machine, vault, plugin_version, hook=None, is_file=None):
     """One Line per item, required ones first."""
-    return [python_line(machine), yaml_line(machine), git_line(machine), node_line(machine), claude_line(machine),
-            voice_line(machine), vault_line(vault), Line("info", f"planner plugin {plugin_version}")]
+    lines = [python_line(machine), yaml_line(machine), git_line(machine), node_line(machine), claude_line(machine),
+             voice_line(machine), vault_line(vault)]
+    found = hook_line(hook, is_file or (lambda _: False)) if hook is not None else None
+    return lines + ([found] if found else []) + [Line("info", f"planner plugin {plugin_version}")]
 
 
 def python_line(machine):

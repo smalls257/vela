@@ -970,7 +970,8 @@ def cmd_doctor(args, out):
             vault = doctor.Vault(str(root), str(config["initiative"]), str(config["title"]))
         except ToolError as exc:
             vault = doctor.Vault(str(root), problem=str(exc))
-    lines = doctor.report(machine.survey(), vault, plugin_version())
+    hook = machine.hook_facts(root) if not vault.problem else None
+    lines = doctor.report(machine.survey(), vault, plugin_version(), hook, lambda path: pathlib.Path(path).is_file())
     print(doctor.render(lines), file=out)
     return doctor.exit_code(lines)
 
