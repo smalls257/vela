@@ -270,11 +270,8 @@ def test_the_fixture_page_opens_the_design_on_its_summary(tmp_path):
     shutil.copytree(HERON, vault)
     cmd = [sys.executable, str(PLUGIN / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-12"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
-    _check_selftest_in_chrome(chrome, vault / "dashboard.html", "team-skills/heron")
-    dom = subprocess.run([str(chrome), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000",
-                          "--virtual-time-budget=60000", "--dump-dom", f"file://{vault / 'dashboard.html'}#map&selftest"],
-                         timeout=180, capture_output=True, text=True).stdout
-    assert "the design panel opens on its summary, with the walking skeleton below" in dom
+    lines = _check_selftest_in_chrome(chrome, vault / "dashboard.html", "team-skills/heron")
+    assert any("the design panel opens on its summary, with the walking skeleton below" in line for line in lines)
 
 
 # --- design as a known mode ---------------------------------------------------------------------------------------

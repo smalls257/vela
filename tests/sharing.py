@@ -81,13 +81,34 @@ def commit_snapshot(tmp_path, name="src"):
     return root
 
 
+_PUBLISHED = {}  # per process: the committed snapshot and its published copy, built once and copied for each test
+
+
+def published_snapshot(tmp_path, out="published"):
+    """(source repo, published folder) in `tmp_path`: the trading-coach snapshot committed in its own repo and
+    `planner publish`ed on 2026-10-11. Publishing reads the whole vault (about a second and a half, forty-odd tests a
+    run), and its output names no path and depends only on the commit, so it is built once per worker and each test
+    gets its own copy of both, repo history included."""
+    import tempfile
+    from conftest import run
+    if "root" not in _PUBLISHED:
+        cache = pathlib.Path(tempfile.mkdtemp(prefix="planner-published-"))
+        src = commit_snapshot(cache)
+        assert run("publish", "--vault", str(src), "--out", str(cache / "published"), "--today", "2026-10-11")[0] == 0
+        _PUBLISHED["root"] = cache
+    src, published = tmp_path / "src", tmp_path / out
+    shutil.copytree(_PUBLISHED["root"] / "src", src, symlinks=True)
+    shutil.copytree(_PUBLISHED["root"] / "published", published, symlinks=True)
+    git(src, "update-index", "-q", "--refresh")  # the copy has new file times; without this git apply sees every file as changed
+    return src, published
+
+
 def draft_workspace(tmp_path):
     """(source repo, published folder, reader workspace) after the reader edited a page (with markup in the new line),
     added a page and recorded a pending-approval decision on CON-001, which nothing else lights."""
     from conftest import run
-    src = commit_snapshot(tmp_path)
-    published, workspace = tmp_path / "published", tmp_path / "workspace"
-    assert run("publish", "--vault", str(src), "--out", str(published), "--today", "2026-10-11")[0] == 0
+    src, published = published_snapshot(tmp_path)
+    workspace = tmp_path / "workspace"
     assert run("open", str(published), "--into", str(workspace), "--author", "Sam Okoye", "--today", "2026-10-12")[0] == 0
     page = workspace / "05-building-blocks" / "coach-building-blocks.md"
     text = page.read_text(encoding="utf-8")

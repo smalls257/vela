@@ -53,11 +53,8 @@ def test_the_selftest_walks_the_slices_view_with_a_journey_past_due(tmp_path, ch
     vault = staged(tmp_path)
     cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-11-20"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
-    for viewport in ("1600,1000", "800,600"):
-        _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", f"booking with slices moving at {viewport}", viewport)
-    page = vault / "dashboard.html"
-    out = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000", "--virtual-time-budget=60000",
-                          "--dump-dom", f"file://{page}#map&selftest"], timeout=300, capture_output=True, text=True).stdout
-    lines = html.unescape(re.search(r'data-selftest="([^"]*)"', out).group(1)).split(" || ")
+    runs = {viewport: _check_selftest_in_chrome(chrome_path, vault / "dashboard.html", f"booking with slices moving at {viewport}", viewport)
+            for viewport in ("1600,1000", "800,600")}
+    lines = runs["1600,1000"]  # the wide run's own lines: the same page and window, so no second run of the selftest
     for want in ("ok slices table: Enter opens a row", "ok slices filter: the link", "ok slices: Needs you only shows the 1 ", "ok slices path:"):
         assert any(line.startswith(want) for line in lines), want

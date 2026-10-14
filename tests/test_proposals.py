@@ -10,7 +10,7 @@ import zipfile
 
 import pytest
 from conftest import run
-from sharing import commit_snapshot, git
+from sharing import commit_snapshot, git, published_snapshot
 
 from planner import drafts, proposal, review
 
@@ -37,9 +37,8 @@ def session_edit(workspace):
 @pytest.fixture
 def world(tmp_path):
     """(owner repo at the published commit, reader workspace after a session's edits)."""
-    src = commit_snapshot(tmp_path)
-    published, workspace = tmp_path / "published", tmp_path / "workspace"
-    assert run("publish", "--vault", str(src), "--out", str(published), "--today", "2026-10-11")[0] == 0
+    src, published = published_snapshot(tmp_path)
+    workspace = tmp_path / "workspace"
     assert run("open", str(published), "--into", str(workspace), "--author", "Sam Okoye", "--today", "2026-10-12")[0] == 0
     session_edit(workspace)
     return src, workspace

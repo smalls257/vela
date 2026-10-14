@@ -68,8 +68,26 @@ def isolate_git_config(tmp_path, monkeypatch):
 
 
 def pytest_configure(config):
-    """Register custom markers."""
+    """Register custom markers, and under xdist schedule by group (see SHARED_BUILDS)."""
     config.addinivalue_line("markers", "browser: browser smoke tests (require Chrome; slow)")
+    if getattr(config.option, "dist", "no") == "load":
+        config.option.dist = "loadgroup"  # plain `load` with every test of a group kept on one worker
+    if hasattr(config, "workerinput"):
+        config.option.loadgroup = True  # a worker learns the mode from its own reading of the options, not the controller's
+
+
+# Module fixtures that build something costly, and the xdist group their tests share. Under `-n auto` a module fixture
+# is built once per worker that runs one of its tests: test_sim's full_run (three simulated arms, about 20 s) was built
+# on twelve workers in one run, about 240 s of CPU for one result. Grouped, it is built once.
+SHARED_BUILDS = {"full_run": "sim-full-run"}
+
+
+@pytest.hookimpl(tryfirst=True)  # before xdist's own hook, which reads the group marks to schedule by them
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        for fixture, group in SHARED_BUILDS.items():
+            if fixture in getattr(item, "fixturenames", ()):
+                item.add_marker(pytest.mark.xdist_group(group))
 
 
 

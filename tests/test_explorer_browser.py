@@ -52,11 +52,7 @@ def test_plain_names_and_trace_rows_pass_the_selftest(tmp_path, chrome_path):
     cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     html_path = vault / "dashboard.html"
-    _check_selftest_in_chrome(chrome_path, html_path, "heron-desk/readable")
-    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--window-size=1600,1000",
-                          "--virtual-time-budget=60000", "--dump-dom", f"file://{html_path}#map&selftest&trace"],
-                         timeout=180, capture_output=True, text=True).stdout
-    selftest = html.unescape(re.search(r'data-selftest="([^"]*)"', dom).group(1))
+    selftest = " || ".join(_check_selftest_in_chrome(chrome_path, html_path, "heron-desk/readable"))
     assert "ok trace rows:" in selftest and "ok plain names:" in selftest, selftest
 
 
@@ -295,6 +291,8 @@ def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600
     # a selftest that quietly skipped most of its checks still says OK, so a floor on how many ran guards it (E32)
     ran = int(re.match(r"SELFTEST OK: (\d+) checks passed", selftest_text).group(1))
     assert ran >= CHECKS_FLOOR, f"{vault_name}: only {ran} selftest checks ran, wanted at least {CHECKS_FLOOR}"
+    # every line, so a test that wants particular checks reads them from this run instead of running Chrome again
+    return selftest_text.split(" || ")
 
 
 @pytest.mark.browser
