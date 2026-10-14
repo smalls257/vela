@@ -50,7 +50,7 @@ def test_patched_skill_frontmatter_parses_and_mentions_vaults(folder):
     assert "vault" in meta["description"]
 
 
-# Vela reference each integration follows in vault mode. PREREQ-CHECK.md names both, because the
+# The vela reference file each integration follows in vault mode. PREREQ-CHECK.md names both, because the
 # two grill skills share that file byte for byte; each skill depends only on its own.
 REFERENCE = {"requirements-grill": "REQUIREMENTS-IN-VAULT.md", "tech-design-grill": "TECH-DESIGN-FROM-VAULT.md"}
 

@@ -13,7 +13,7 @@ LITERAL = "${CLAUDE_PLUGIN_ROOT}"
 
 @pytest.fixture(autouse=True)
 def no_installed_plugins(tmp_path, monkeypatch):
-    """The real ~/.claude/plugins may hold an installed vela; no test here may find it (each sets its own)."""
+    """The real ~/.claude/plugins may hold an installed vela plugin; no test here may find it (each sets its own)."""
     empty = tmp_path / "no-plugins"
     empty.mkdir()
     monkeypatch.setenv("CLAUDE_CODE_PLUGIN_CACHE_DIR", str(empty))

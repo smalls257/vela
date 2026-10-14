@@ -30,7 +30,7 @@ def explore(root, *extra):
 
 # ------------------------------------------------------------------ item 1: where the page is written
 
-def test_explore_writes_dashboard_html_at_the_vault_root_and_nothing_under_vela_but_the_pins(tmp_path):
+def test_explore_writes_dashboard_html_at_the_vault_root_and_nothing_under_dot_vela_but_the_pins(tmp_path):
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOT, vault)
     explore(vault)

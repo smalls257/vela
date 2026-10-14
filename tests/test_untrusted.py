@@ -63,7 +63,7 @@ def test_open_refuses_a_zip_carrying_git_internals_and_writes_nothing(tmp_path, 
     assert not (tmp_path / "ws").exists()
 
 
-def test_open_refuses_a_zip_that_plants_the_velas_own_state(tmp_path, published):
+def test_open_refuses_a_zip_that_plants_velas_own_state(tmp_path, published):
     """A planted .vela/workspace.json would make a copy report itself as an owner's vault."""
     _, archive = published
     evil = forged(archive, tmp_path / "evil.zip", extra={".vela/workspace.json": b'{"role": "owner"}', ".claude/skills/vela/scripts/vela": b"#!/bin/sh\n"})

@@ -17,7 +17,7 @@ def ask_meta():
     return yaml.safe_load(ASK.read_text(encoding="utf-8").split("---\n", 2)[1])
 
 
-def test_ask_runs_the_vela_by_the_one_loose_pattern_and_stays_read_only_by_disallowed_tools():
+def test_ask_runs_vela_by_the_one_loose_pattern_and_stays_read_only_by_disallowed_tools():
     allowed = ask_meta()["allowed-tools"]
     assert VELA_TOOL in allowed and allowed.count("scripts/vela") == 1
     assert "Write" not in allowed.split() and "Edit" not in allowed.split()

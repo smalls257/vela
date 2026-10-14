@@ -79,7 +79,7 @@ def test_the_agent_reads_both_folders_with_owner_examples_first():
 
 
 def recipe_commands():
-    """The fenced voicecheck block in close's text, with the vela path pointed at this repo."""
+    """The fenced voicecheck block in close's text, with the path to vela pointed at this repo."""
     found = re.search(r"^ *```\n( *tmp=\$\(mktemp\)\n.*?)^ *```", close_text(), re.S | re.M)
     block = textwrap.dedent(found.group(1))
     assert "${CLAUDE_PLUGIN_ROOT}/scripts/vela" in block
