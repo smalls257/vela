@@ -86,7 +86,7 @@ def verdict(rec):
     """The gate's reading of a record (or None when sync-main has not run on this branch). The gate calls this and
     lists `plain` for every verdict that blocks or is `listed`."""
     if rec is None:
-        return Verdict(True, "Main hasn't been brought in yet: sync-main hasn't run on this branch.", "")
+        return Verdict(True, "Main hasn't been brought into this branch yet.", "")
     status = rec.get("status")
     if status in _PASS:
         return Verdict(False, _PASS[status], status)
