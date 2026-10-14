@@ -86,7 +86,22 @@ const Queue = (() => {
     return out;
   }
   const otherLit = () => litSubjects().filter((x) => !x.light.reasons.some((r) => r.kind === "held"));
-  const total = () => items().length + otherLit().length;
+  /* "Needs you" is one count everywhere it is shown: the top bar, the side door, the waiting card and the panel all read it.
+     It is the questions that hold something up plus the other things lit overdue or needs-you, each counted once. Pending
+     approval and never-examined are lit too, but they are not waiting on the lead, so they are not in it. */
+  const NEEDS = ["warning", "caution"];
+  function needsYou() {
+    const q = items().filter((x) => NEEDS.includes(x.level)), other = otherLit().filter((x) => NEEDS.includes(x.light.level));
+    return { n: q.length + other.length, questions: q.length, other: other.length, late: q.filter((x) => x.level === "warning").length + other.filter((x) => x.light.level === "warning").length };
+  }
+  /* What the number is made of, in words: "20 need you: 16 questions holding things up and 4 other things lit". */
+  function needsYouSays() {
+    const c = needsYou();
+    if (!c.n) return "Nothing needs you";
+    const parts = [c.questions ? `${plural(c.questions, "question")} holding things up` : null, c.other ? `${plural(c.other, "other thing")} lit` : null].filter(Boolean);
+    return `${c.n} need you: ${parts.join(" and ")}${c.late ? `, ${c.late} overdue` : ""}`;
+  }
+  const total = () => needsYou().n;
 
   function row(it) {
     const late = it.level === "warning", when = isDate(it.askBy) ? relDue(it.askBy) : "no date";
@@ -130,8 +145,8 @@ const Queue = (() => {
   const NARROW = 880, FOLD_KEY = "explorer.queue.folded";
   const folded = (width) => width < NARROW || Settings.read(FOLD_KEY) === "1";
   function card(width) {
-    const list = items(), late = list.filter((x) => x.level === "warning").length, fold = folded(width);
-    const say1 = list.length ? `${plural(list.length, "question")} holding things up${late ? `, ${late} overdue` : ""}` : "Nothing is waiting on an answer";
+    const list = items(), fold = folded(width);
+    const say1 = needsYou().n ? needsYouSays() : "Nothing is waiting on an answer";
     const el = h("section", { class: "q-card" + (fold ? "" : " open"), "aria-label": "What is waiting on an answer" },
       h("div", { class: "q-head" }, h("span", { class: "q-kicker" }, "Waiting on an answer"), h("span", { class: "q-count" }, say1),
         h("button", { class: "q-fold", "aria-expanded": String(!fold), title: "Fold the list to give the map the whole width", onclick: (ev) => {
@@ -145,5 +160,5 @@ const Queue = (() => {
   }
   /* The row picked anywhere stays marked here. */
   function sync() { $$(".q-row").forEach((b) => b.classList.toggle("on", b.dataset.ref === App.focus)); }
-  return { items, card, folded, block, counts, total, sync, holdless, say, TOP, GROUPS, st, otherLit };
+  return { items, card, folded, block, counts, needsYou, needsYouSays, total, sync, holdless, say, TOP, GROUPS, st, otherLit };
 })();

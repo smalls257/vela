@@ -163,7 +163,7 @@ kbd { font: 500 11px var(--ui); border: 1px solid var(--rule-3); border-bottom-w
 .ref-chip { display: inline-flex; flex-wrap: wrap; max-width: 100%; align-items: baseline; gap: 5px; border: 1px solid var(--rule-3); border-radius: 6px; padding: 1px 7px; margin: 0 4px 4px 0;
   font-size: 12.5px; color: var(--ink); cursor: pointer; background: var(--room-2); text-decoration: none; }
 .ref-chip:hover { border-color: var(--ink-3); text-decoration: none; }
-.ref-chip .rid { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.ref-chip .rid { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-left: 0; }
 .ref-chip .lamp { width: 7px; height: 7px; align-self: center; }
 .ref-dead { color: var(--ink-4); text-decoration: line-through; }
 /* A bare ID in prose reads as the thing's name; the ID shows only on hover, small and muted. */

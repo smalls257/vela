@@ -110,10 +110,12 @@ body.meeting-on .bay { filter: saturate(.5) brightness(.55); transform: scale(.9
 .changes-tray .warn { color: var(--warning-text); }
 .changes-tray .empty { color: var(--ink-3); padding: 4px 0 6px; }
 .changes-tray .tray-actions { display: flex; gap: 8px; padding: 0 14px 12px; }
-.idbox .uid { font-size: 13.5px; white-space: nowrap; }
-.holdbox .tag-word { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color: var(--paper-ink); font-weight: 600; font-size: 12.5px; }
+.idbox .uid { font-size: 10.5px; font-weight: 400; color: #8a8471; white-space: nowrap; margin-top: 4px; letter-spacing: 0; }
+.holdbox .tag-word { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--paper-ink); font-weight: 600; font-size: 12.5px; }
 .idbox { padding-top: 6px; }
 .idbox .due { font-size: 14px; margin-top: 5px; }
 .idbox .rel { font-size: 11.5px; margin-top: 1px; }
 .changes-tray:not(.open) .lines, .changes-tray:not(.open) .tray-actions { visibility: hidden; }
 .back dd.clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+.face.back .id-tag { color: #8a8471; }

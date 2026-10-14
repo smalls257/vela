@@ -171,14 +171,14 @@ const MapView = (() => {
       // The contract lamps sit as one bank on the duct, nearer the quieter end, clear of the boxes and of every other bank.
       const busy = (x) => Object.values(x.ports).reduce((n, l) => n + l.length, 0);
       const path = busy(A) >= busy(B) ? pts : pts.slice().reverse();
-      const lw = 84, lh = 22, gap = 5, bankH = cor.contracts.length * lh + (cor.contracts.length - 1) * gap;
+      const lw = 120, lh = 22, gap = 5, bankH = cor.contracts.length * lh + (cor.contracts.length - 1) * gap;
       const spot = MapGroups.place(path, lw, bankH, taken, 0.58) || MapGroups.beside(path, lw, bankH, taken);
       if (spot.leader) s("path", { d: `M${spot.leader.x},${spot.leader.y}L${spot.at.x},${spot.at.y}`, class: "leader" }, gDucts);
       if (spot.crowded) console.warn(`[map] no free place for the lamps of ${cor.contracts.join(", ")}; drawn where they overlap`);
       taken.push(spot.r);
       cor.contracts.forEach((cid, i) => {
         const y = spot.at.y + (i - (cor.contracts.length - 1) / 2) * (lh + gap);
-        lamp(gLamps, { key: cid, x: spot.at.x - lw / 2, y: y - lh / 2, w: lw, h: lh, rx: 3, label: cid, kind: "contract", title: `${cid} ${CONTRACT[cid].title}` });
+        lamp(gLamps, { key: cid, x: spot.at.x - lw / 2, y: y - lh / 2, w: lw, h: lh, rx: 3, label: CONTRACT[cid].title, kind: "contract", title: `${cid} ${CONTRACT[cid].title}` });
       });
     }
     for (const stn of Object.values(L.stations)) {
@@ -307,7 +307,7 @@ const MapView = (() => {
     const face = shape({ fill: isLit && !ringed ? colour : "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" });
     if (glows) pulses[pulses.length - 1].shade = shape({ fill: "url(#ck-lens)", opacity: 0, class: "shade", "pointer-events": "none" });
     const cx = o.x + o.w / 2;
-    if (o.kind === "contract") s("text", { x: cx, y: o.y + o.h / 2 + 4, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = o.label;
+    if (o.kind === "contract") s("text", { x: cx, y: o.y + o.h / 2 + 4, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = shorten(o.label, 18);
     else {
       // A generated emblem wins; otherwise the page's own glyph (icons.js), so every box carries a picture.
       let tx = cx, room = o.small ? 30 : 22;
@@ -399,7 +399,7 @@ const MapView = (() => {
   const SWEEP = [0.66, 0.5, 0.8, 0.34, ...Array.from({ length: 19 }, (_, i) => (i + 1) / 20)];
   const bumps = (r, list) => list.some((o) => o.x < r.x + r.w && r.x < o.x + o.w && o.y < r.y + r.h && r.y < o.y + o.h);
   function trackLabel(cor, L, g, taken) {
-    const ids = cor.contracts, short = ids.map((id, i) => (i === 0 ? id : id.replace(/^CON-/, ""))).join(", ");
+    const ids = cor.contracts, short = ids.length > 1 ? `${shorten(CONTRACT[ids[0]].title, 20)} +${ids.length - 1}` : shorten(CONTRACT[ids[0]].title, 26);
     const A = L.stations[cor.a], B = L.stations[cor.b];
     const busy = (x) => Object.values(x.ports).reduce((n, l) => n + l.length, 0);
     const pts = busy(A) >= busy(B) ? cor.centre : cor.centre.slice().reverse();
@@ -407,7 +407,7 @@ const MapView = (() => {
     const t = s("text", { class: "track-label" + (lit ? " lit" : ""), "data-corridor": cor.key }, g);
     t.textContent = short;
     t.addEventListener("click", () => go(ids[0], { reset: true }));
-    t.addEventListener("mousemove", (e) => showTip(e, ids.map((id) => `<b>${esc(id)} ${esc(CONTRACT[id].title)}</b>${esc(CONTRACT[id].state || "no state")}, ${esc(LIGHT[levelOf(id)].word.toLowerCase())}`).join("")));
+    t.addEventListener("mousemove", (e) => showTip(e, ids.map((id) => `<b>${esc(CONTRACT[id].title)}</b>${esc(CONTRACT[id].state || "no state")}, ${esc(LIGHT[levelOf(id)].word.toLowerCase())}`).join("")));
     t.addEventListener("mouseleave", hideTip);
     const total = Geo.length(pts), off = cor.width / 2 + 10;
     const spot = (f, flip) => {
@@ -621,10 +621,10 @@ const MapView = (() => {
         const lv = list.map((c) => levelOf(c.id)).sort((x, y) => rank(y) - rank(x))[0];
         const held = [...new Set(list.flatMap((c) => D.blockedBy[c.id] || []))];
         const ids = list.map((c) => c.id), sel = focus.has(p) || focus.has(k) || ids.some((id) => focus.has(id));
-        const btn = h("button", { class: `cell ${lv}${upper ? " backwards" : ""}`, "aria-label": `${titleOf(p)} provides ${ids.join(", ")} to ${titleOf(k)}: ${LIGHT[lv].word}`,
+        const btn = h("button", { class: `cell ${lv}${upper ? " backwards" : ""}`, "aria-label": `${titleOf(p)} provides ${ids.map((id) => CONTRACT[id].title).join(", ")} to ${titleOf(k)}: ${LIGHT[lv].word}`,
           onclick: () => go(ids.length > 1 ? `bundle:${ids.join(",")}|${k}` : ids[0], { reset: true }),
-          onmouseenter: (e) => showTip(e, list.map((c) => `<b>${esc(c.id)} ${esc(c.title)}</b>${esc(c.state || "no state")}, ${esc(LIGHT[levelOf(c.id)].word.toLowerCase())}`).join("")), onmouseleave: hideTip },
-          ids.slice(0, 3).map((id) => h("span", {}, small ? id.replace(/^CON-/, "") : id)), ids.length > 3 ? h("span", { class: "more" }, `+${ids.length - 3}`) : null);
+          onmouseenter: (e) => showTip(e, list.map((c) => `<b>${esc(c.title)}</b>${esc(c.state || "no state")}, ${esc(LIGHT[levelOf(c.id)].word.toLowerCase())}`).join("")), onmouseleave: hideTip },
+          ids.length === 1 ? h("span", { title: ids[0] }, shorten(CONTRACT[ids[0]].title, small ? 8 : 13)) : h("span", { title: ids.map((id) => CONTRACT[id].title).join(", ") }, small ? `${ids.length}×` : `${ids.length} contracts`));
         return h("td", { class: (upper ? "upper" : "") + (sel ? " sel" : ""), "data-r": p, "data-c": k }, btn, held.length ? h("span", { class: "holds " + held.map(unknownLevel).sort((x, y) => rank(y) - rank(x))[0] }, held.length) : null);
       }));
     apps.forEach((k) => tbody.append(row(k, false)));
@@ -639,7 +639,7 @@ const MapView = (() => {
         h("p", { class: "p-note" }, `${plural(D.map.contracts.length, "contract")}; ${plural(backwards.length, "cell")} ${backwards.length === 1 ? "runs" : "run"} backwards.`,
           coupled.length ? ` ${coupled.slice(0, 3).map((k) => k.split("|").map(titleOf).join(" and ")).join("; ")}${coupled.length > 3 ? ` and ${plural(coupled.length - 3, "other pair")}` : ""} provide to each other, so they cannot be designed apart.` : ""),
         h("h3", {}, "Flows"), D.flows.map((f, i) => h("button", { class: "line-btn", onmouseenter: () => flowCells(f.key, i, true), onmouseleave: () => flowCells(f.key, i, false), onclick: () => go(f.key, { reset: true, reveal: true }) },
-          h("span", { class: "swatch", style: `--c:${Geo.flowColour(i)}` }), h("span", {}, E[f.key].title, h("small", {}, E[f.key].id))))) };
+          h("span", { class: "swatch", style: `--c:${Geo.flowColour(i)}` }), h("span", {}, E[f.key].title, h("small", { class: "id-tag" }, E[f.key].id))))) };
   }
   function flowCells(fid, i, on) {
     const used = new Set(FLOW[fid].steps.flatMap((stp) => stp.contracts));

@@ -15,12 +15,12 @@ if (STILL) document.documentElement.classList.add("still");
 
 function renderMasters() {
   const box = $("#masters"), counts = Queue.counts();  // a question counts once however many things it holds
-  const count = (lv) => counts[lv] || 0;
+  const need = Queue.needsYou(), count = (lv) => (lv === "caution" ? need.n : counts[lv] || 0);  // "need you" is the one count the side door and the panel give; overdue is the part of it that is late
   box.innerHTML = "";
   for (const [lv, word] of [["warning", "overdue"], ["caution", "need you"], ["unexamined", "unexamined"]]) {
     const n = count(lv);
     if (lv === "unexamined" && !n) continue;
-    box.append(h("button", { class: `master ${lv}${n ? " on" : ""}`, title: `${n} ${LIGHT[lv].word.toLowerCase()}: ${LIGHT[lv].say}`, onclick: () => { if (App.section !== "home") Nav.home(); go("lights", { reset: true }); } },
+    box.append(h("button", { class: `master ${lv}${n ? " on" : ""}`, title: lv === "caution" ? `${Queue.needsYouSays()}. ${LIGHT[lv].say}` : `${n} ${LIGHT[lv].word.toLowerCase()}: ${LIGHT[lv].say}`, onclick: () => { if (App.section !== "home") Nav.home(); go("lights", { reset: true }); } },
       h("b", {}, n), h("span", {}, word)));
   }
 }

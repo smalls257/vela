@@ -243,7 +243,7 @@ const Nav = (() => {
       const lvk = levelOf(k), cur = here && st.child === k;
       return h("button", { class: "side-kid" + (cur ? " on" : ""), "data-section": s.id, "data-child": k, "aria-current": cur ? "page" : null, onclick: () => open(s.id, k), title: E[k].title },
         s.id === "apps" && NODE[k] ? Icons.forKey(k, "side-glyph") : null,
-        h("span", { class: "side-label" }, s.id === "capabilities" || s.id === "epics" || s.id === "decisions" ? `${E[k].id} ${E[k].title}` : E[k].title), lvk !== "dark" && D.lights[k] ? lampEl(lvk) : null);
+        h("span", { class: "side-label" }, s.id === "capabilities" || s.id === "epics" || s.id === "decisions" ? [E[k].title, idTag(E[k].id)] : E[k].title), lvk !== "dark" && D.lights[k] ? lampEl(lvk) : null);
     }).flatMap((kid) => (s.id === "apps" && here && st.child === kid.dataset.child && typeof Inside !== "undefined" ? [kid, Inside.sideEntry(kid.dataset.child)] : [kid]))));
     return out;
   }
@@ -255,7 +255,7 @@ const Nav = (() => {
     side.innerHTML = "";
     const lit = Queue.total();
     side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Front doors"),
-      h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, onclick: home },
+      h("button", { class: "side-home" + (App.section === "home" ? " on" : ""), "aria-current": App.section === "home" ? "page" : null, title: Queue.needsYouSays(), onclick: home },
         h("span", { class: "side-label" }, "What needs you"), lit ? h("span", { class: "side-n lit " + (litSubjects()[0] ? litSubjects()[0].light.level : "caution") }, lit) : null),
       typeof Ask !== "undefined" && Ask.served() ? h("button", { class: "side-home side-ask" + (App.section === "ask" ? " on" : ""), "aria-current": App.section === "ask" ? "page" : null, title: "Ask Claude about the vault", onclick: () => Ask.open() },
         h("span", { class: "side-label" }, "Ask Claude"), Ask.count() ? h("span", { class: "side-n" }, Ask.count()) : null) : null,

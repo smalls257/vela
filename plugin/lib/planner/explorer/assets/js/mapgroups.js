@@ -50,7 +50,7 @@ const MapGroups = (() => {
       }
       out = Object.values(regions).map((g) => {
         const e = g.cap ? ent(keyForId(g.cap)) : null;
-        return Object.assign(g, { label: g.cap ? `${g.cap} ${e ? e.title : ""}`.trim() : `No capability yet (${plural(g.members.length, "app")})`, page: e ? e.key : "", members: g.members.sort(byPin), ghosts: g.ghosts.sort(byPin) });
+        return Object.assign(g, { label: g.cap ? (e && e.title) || g.cap : `No capability yet (${plural(g.members.length, "app")})`, page: e ? e.key : "", members: g.members.sort(byPin), ghosts: g.ghosts.sort(byPin) });
       }).sort((a, b) => (a.cap === "") - (b.cap === "") || cmp(a.cap, b.cap));
     }
     out = Layout.ordered(out, (g) => g.key);  // a cluster a reader moved keeps its place (layout.js)
@@ -212,7 +212,7 @@ const MapGroups = (() => {
       s("path", { d, class: "duct-hi", transform: "translate(0,2.5)" }, gDucts);
       if (lv !== "dark") s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts);
       Scene.edge(e.a, e.b, { pts, el: duct, contracts: e.contracts });
-      const one = e.contracts.length === 1, lw = one ? 84 : 98;
+      const one = e.contracts.length === 1, lw = one ? 120 : 98;
       const ids = e.contracts.slice().sort();
       const bundle = `bundle:${ids.join(",")}|${label(e.a)}|${label(e.b)}`;
       const spot = place(pts, lw, 22, obs);
@@ -228,7 +228,7 @@ const MapGroups = (() => {
       obs.push(spot.r);
       const at = spot.at;
       MapView.lamp(gLamps, { key: one ? ids[0] : ids[0], x: at.x - lw / 2, y: at.y - 11, w: lw, h: 22, rx: 3, kind: "contract",
-        label: one ? ids[0] : `${ids.length} contracts`, title: ids.map((id) => `${id} ${CONTRACT[id].title}`).join("; "),
+        label: one ? CONTRACT[ids[0]].title : `${ids.length} contracts`, title: ids.map((id) => `${id} ${CONTRACT[id].title}`).join("; "),
         level: lv, onpick: () => go(one ? ids[0] : bundle, { reset: true }) });
     }
   }
@@ -520,7 +520,7 @@ const MapGroups = (() => {
       if (lv !== "dark") s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts);
       Scene.edge(key, k, { pts, el: duct, contracts: ids });
       const at = Geo.pointAt(pts, Geo.length(pts) * 0.55);
-      ids.forEach((id, i) => MapView.lamp(gLamps, { key: id, x: at.x - 42, y: at.y - 11 + (i - (ids.length - 1) / 2) * 27, w: 84, h: 22, rx: 3, label: id, kind: "contract", title: `${id} ${CONTRACT[id].title}` }));
+      ids.forEach((id, i) => MapView.lamp(gLamps, { key: id, x: at.x - 60, y: at.y - 11 + (i - (ids.length - 1) / 2) * 27, w: 120, h: 22, rx: 3, label: CONTRACT[id].title, kind: "contract", title: `${id} ${CONTRACT[id].title}` }));
     }
     const hidden = D.nodes.length - Object.keys(boxes).length;
     board.append(h("div", { class: "focus-note" }, `${titleOf(key)} and ${plural(Object.keys(boxes).length - 1, "direct neighbour")}. `, hidden ? `${plural(hidden, "box", "boxes")} with no contract to it ${hidden === 1 ? "is" : "are"} not drawn.` : "Nothing else is hidden."));

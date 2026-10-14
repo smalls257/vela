@@ -46,14 +46,14 @@ const Asks = (() => {
     const holds = holdsOf(u.id);
     if (!holds.length) return `<span class="label">holds</span><span class="none">nothing recorded</span>`;
     const first = holds[0], more = holds.length > 1 ? ` <span class="more">+${holds.length - 1}</span>` : "";
-    return `<span class="label">holds</span>${shortId(first) ? `<span class="tag">${esc(shortId(first))}</span><span class="hl">${esc(titleOf(first))}</span>` : `<span class="tag-word hl">${esc(titleOf(first))}</span>`}${more}`;
+    return `<span class="label">holds${more}</span><span class="tag-word hl" title="${esc(shortId(first) || titleOf(first))}">${esc(titleOf(first))}</span>`;
   }
   /* The flip side's blocking chain: what the Blocks line links, then what that is used by, from the typed record. */
   function chainHtml(u) {
     const holds = holdsOf(u.id);
     if (!holds.length) return `nothing: “${esc(u.holdsReason || (UNKNOWN[u.id] || {}).blocksText || "no Blocks line")}”`;
     return holds.map((k) => {
-      const parts = [`<a data-ref="${esc(k)}">${esc(shortId(k))} ${esc(titleOf(k))}</a>`];
+      const parts = [`<a data-ref="${esc(k)}">${esc(titleOf(k))}${shortId(k) ? `<span class="id-tag">${esc(shortId(k))}</span>` : ""}</a>`];
       if (CONTRACT[k]) parts.push(`${esc(titleOf(CONTRACT[k].provider))} → ${esc(CONTRACT[k].consumers.map(titleOf).join(", "))}`);
       const fl = flowsFor(k);
       if (fl.length) parts.push(`in ${fl.map((r) => `<a data-ref="${esc(r.flow)}" data-reveal>${esc(E[r.flow].title)}</a>`).join(", ")}`);
@@ -66,15 +66,15 @@ const Asks = (() => {
     const title = E[u.id] ? E[u.id].title : u.id, q = u.question || title;
     const inferred = u.ask.inferred && !marks.moved[u.id] ? `<span class="mark inferred" title="Who to ask is a guess: ${esc(u.ask.rule)}">?</span>` : "";
     const front = resolved
-      ? `<div class="front"><div class="edge"></div><div class="cellbox idbox"><div class="uid">${u.id}</div><div class="rel">answered</div></div>
+      ? `<div class="front"><div class="edge"></div><div class="cellbox idbox"><div class="rel">answered</div><div class="uid" title="${u.id}">${u.id}</div></div>
           <div class="cellbox qbox"><div class="q">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div></div>`
       : `<div class="front"><div class="edge"></div>
-          <div class="cellbox idbox"><div class="uid">${u.id}</div><div class="due">${esc(day(u.askBy))}</div><div class="rel">${relDue(u.askBy)}</div></div>
+          <div class="cellbox idbox"><div class="due">${esc(day(u.askBy))}</div><div class="rel">${relDue(u.askBy)}</div><div class="uid" title="${u.id}">${u.id}</div></div>
           <div class="cellbox qbox"><div class="q">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div>
           <div class="timebar" title="Opened ${esc(day(u.opened))}, ask by ${esc(day(u.askBy))}"><i style="width:${(fill(u) * 100).toFixed(1)}%"></i></div>
           ${inferred}${fails ? `<span class="mark critical-note" title="A critical question must hold a decision; this one's Blocks line names nothing">holds nothing!</span>` : ""}${marks.asked[u.id] ? `<span class="mark tick">✓</span>` : ""}</div>`;
     const who = marks.moved[u.id] ? `moved here by you; the record ${u.ask.inferred ? "guess" : "says"} <i>${esc(u.ask.name)}</i>` : u.ask.inferred ? `<span class="inferred-why">${esc(u.ask.rule)}</span>` : esc(u.ask.rule);
-    const back = `<div class="face back"><h4>${u.id} ${esc(title)}</h4><dl>
+    const back = `<div class="face back"><h4>${esc(title)}<span class="id-tag">${u.id}</span></h4><dl>
         <dt>Holds up</dt><dd class="chain-cell">${chainHtml(u)}</dd>
         <dt>Who to ask</dt><dd>${who}</dd>
         ${resolved && u.outcome ? `<dt>Answer</dt><dd class="clamp">${esc(u.outcome)}</dd>` : `<dt>Asks</dt><dd class="clamp">${esc(q)}</dd>`}

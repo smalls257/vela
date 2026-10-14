@@ -222,6 +222,26 @@ def test_no_label_runs_past_its_box_in_a_narrow_window(tmp_path, chrome_path, vi
         assert len(fit) >= 5 and not failed, f"{name} at {viewport}: {len(fit)} text-fit checks ran\n" + "\n".join(failed)
 
 
+@pytest.mark.browser
+def test_names_not_codes_whole_prose_and_one_needs_you_count_pass_the_selftest(tmp_path, chrome_path):
+    """The Fix-first findings, each as a line of the page's own selftest: the sensors that flag prose cut mid-sentence and
+    titles that are codes see planted defects, the sweep finds none in any view or theme, and the header badge, the side
+    door, the waiting card and the panel's opening line give one "needs you" number. Run against the old page these
+    lines are absent or FAIL (the sweep found the door cards, the map's CON-nnn lamps and a 20-against-16 count)."""
+    vault = tmp_path / "vault"
+    shutil.copytree(SNAPSHOTS["heron-desk/after-full-1"], vault)
+    cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "planner"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
+    assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
+    lines = _text_fit_lines(chrome_path, vault / "dashboard.html", "1600,1000")
+    ok = [line for line in lines if line.startswith("ok ")]
+    assert any(line.startswith("ok needs you: one count") for line in ok), "the needs-you agreement check did not run or failed"
+    assert any("the sensor flags prose cut with no ellipsis" in line for line in ok)
+    assert any("the sensor flags a title that is a code" in line for line in ok)
+    swept = [line for line in ok if "no prose is cut off without a Show more, no title is a bare ID" in line]
+    assert len(swept) >= 5, "the sweep must pass in every theme and in Plain"
+    assert not [line for line in lines if line.startswith("FAIL")], "\n".join(line for line in lines if line.startswith("FAIL"))
+
+
 def _check_selftest_in_chrome(chrome_path, html_path, vault_name, viewport="1600,1000"):
     """Run Chrome headless and check #selftest output."""
     cmd = [
