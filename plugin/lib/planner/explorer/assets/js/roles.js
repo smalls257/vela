@@ -192,7 +192,7 @@ const Roles = (() => {
         h("button", { class: "btn tiny", onclick: () => Inside.open(a.key, "plan") }, "Build plan"));
     }) : empty("No team has shared a build plan yet."),
     whom.length ? h("h3", {}, "What stories are waiting on") : null,
-    whom.length ? list(whom, 5, (w) => h("li", { "data-waiting": w.kind }, w.kind === "question" ? refChip(keyForId(w.ref)) : h("b", { title: w.text }, shorten(w.text, 80)), h("span", { class: "muted small" },
+    whom.length ? list(whom, 5, (w) => h("li", { "data-waiting": w.kind }, w.kind === "question" ? refChip(keyForId(w.ref)) : h("b", { title: w.text }, shorten(String(w.text).split(/;\s|\.\s/)[0], 80)), h("span", { class: "muted small" },
       `: blocks ${w.stories.map((x) => x.name || x.id).join(", ")} (${w.stories.map((x) => titleOf(x.app)).filter((x, i, all) => all.indexOf(x) === i).join(", ")})${w.kind === "outside" ? ", an outside company" : w.kind === "question" && ASK[w.ref] ? `, ask ${ASK[w.ref].ask.name}` : ""}`))) : null,
     rule("Points: small = 2, medium = 5, large = 8. They're for ordering work, not promises. Waiting on: an open question in the plan, an outside company, or anything else that isn't another story.")));
   }

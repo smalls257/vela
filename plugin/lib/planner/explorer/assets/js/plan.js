@@ -123,7 +123,7 @@ const Plan = (() => {
   function waitsText(p, story) {
     const words = story.blockers.map((b) => {
       if (b.kind === "story") { const w = storyById(p, b.ref); return w ? cleanName(w.name) : b.ref; }
-      if (b.kind === "question") { const title = (E[keyForId(b.ref)] || {}).title; return (title || b.text || b.ref) + (isOpen(UNKNOWN[b.ref]) ? "" : " (resolved)"); }
+      if (b.kind === "question") { const title = (E[keyForId(b.ref)] || {}).title; return (title || (b.text ? shortBlocker(b.text) : b.ref)) + (isOpen(UNKNOWN[b.ref]) ? "" : " (resolved)"); }
       return shortBlocker(b.text);
     }).filter(Boolean);
     return words.length ? words.join("; ") : "";
