@@ -37,7 +37,7 @@ Say what it found in plain words, grouped by story, not as the tool printed it: 
 
 Ask once, with your recommendation and why:
 
-1. **A Markdown ticket list**, recommended: one file, one section per story with its criteria written out, size, components, what it waits on and its release fit, and its tasks as a checklist. Tracer stories come first. It needs no account or project key, and a team can paste from it anywhere.
+1. **A Markdown ticket list**, recommended: one file, one section per story with its criteria written out, size, components, what it waits on and its release fit, and its tasks as a checklist. Tracer stories come first, then the rest grouped by the slice each names. It needs no account or project key, and a team can paste from it anywhere.
 2. **A CSV for Jira import**: one row per story and per task. Task sizes become story points by a fixed mapping (S 2, M 5, L 8) that the README beside the file explains; say so, and that the points are ordering aids, not estimates.
 3. **Jira tools the person already has.** Ask whether their setup has an MCP server or a command-line tool for Jira, and which. Look at what is actually available; do not assume one, and never guess a project key or a repository. If they name none, offer 1 or 2.
 

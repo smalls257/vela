@@ -29,7 +29,8 @@ Read in this order, and when a fact is missing look in this order before asking 
 
 - The design (`gaps` and `deferred` in its frontmatter, its Trace table, components, open questions) and its ADRs.
 - The app's page in the vault: its `## Requirements allocated` rows, the contracts it provides and consumes, and each epic that lists the app, with every acceptance criterion.
-- `04b-releases.md`: the release dates and what each delivers. Its first release section may name the initiative's tracer flow (`- **Tracer:**`).
+- `slices/`: one page per slice, the unit of done. SLC-001 is the tracer; each names its flows, what it comes after and the joins it crosses. `planner handoff` lists the slices this app takes part in.
+- `04b-releases.md`: the release dates and what each delivers, and the slices each points at. In a vault with no slice pages, its first release section may name the initiative's tracer flow (`- **Tracer:**`).
 - `CONTEXT.md`, and the codebase if it exists, so tasks name real modules.
 
 Build the coverage table before proposing a cut: every allocated requirement, contract, epic criterion and design component, with the stories that will cover it. An empty cell is work left out.
@@ -40,7 +41,9 @@ Plan only around people the design or the vault names. The design says who owns 
 
 The first release is a thin flow end to end through every app. This team's first story is its piece of that flow, with the other teams' sides stubbed, so the first thing built is something the whole initiative can see working. Later stories are vertical slices: each one delivers behaviour someone can watch.
 
-Read the tracer from the first release section of `04b-releases.md`: a `- **Tracer:**` bullet linking one or more flows, then optionally the thin version in plain words, and an optional `- **Not in the tracer:**` bullet saying what is left out and why. Mark this team's tracer story with the fact bullet `- **Tracer:** yes` under its `### S-nn` heading. If the vault names no tracer, ask one question with your recommendation: "Release one has seven flows. I'd take the one that proves the most with the least: switching on and then one digest. Does that match what the release is meant to show?" Record the answer as the plan's tracer. The person may say a piece isn't ready; carry on, and put it in the plan under what the tracer leaves out, with their reason. No override is needed.
+Read the tracer from `slices/SLC-001-*.md`: its `**Flows:**` and its `## Not in this slice`. A vault with no slice pages names it in the first release section of `04b-releases.md`: a `- **Tracer:**` bullet linking one or more flows, then optionally the thin version in plain words, and an optional `- **Not in the tracer:**` bullet saying what is left out and why.
+
+Group the work by slice: the tracer's stories first, then each later slice this app takes part in, in the order the slices come. Each story names its slice on its `Slice:` line after its shape, `Slice: vertical, SLC-002 The digest reaches a pilot user`; a story that serves no slice says nothing more. A story naming SLC-001 is a tracer story. Mark this team's tracer story with the fact bullet `- **Tracer:** yes` under its `### S-nn` heading. If the vault names no tracer, ask one question with your recommendation: "Release one has seven flows. I'd take the one that proves the most with the least: switching on and then one digest. Does that match what the release is meant to show?" Record the answer as the plan's tracer. The person may say a piece isn't ready; carry on, and put it in the plan under what the tracer leaves out, with their reason. No override is needed.
 
 A story that is a layer (a gate, a schema, a screen with nothing behind it) is flagged with `Slice: layer` and folded into the slice that needs it. If the person keeps it apart, the plan says why in their words.
 
