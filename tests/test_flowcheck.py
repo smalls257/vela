@@ -503,6 +503,65 @@ def test_c40_an_answer_that_goes_nowhere_ends_the_provider_and_retries_reenter_i
     assert graph.complete and any(sem.finished(s) for s in graph.states)
 
 
+# --- limits said out loud, and three journeys on request (ledger C39) -------------------------------------------------
+
+def _three_orders_two_items():
+    """06 with two items in stock: two orders can never oversell, three can."""
+    files = files_of("06-two-orders-last-item")
+    files["entities/stock.md"] = (files["entities/stock.md"].replace("initial: one\nfinal: [one, zero]", "initial: two\nfinal: [two, one, zero]")
+                                  .replace("| one | zero | CON-021 reserved |", "| two | one | CON-021 reserved |\n| one | zero | CON-021 reserved |"))
+    page = "05-building-blocks/inventory-building-blocks.md"
+    files[page] = (files[page].replace("| in_stock | stock is one |", "| in_stock | stock in [two, one] |")
+                   .replace("stock: one→zero, zero→minus_one", "stock: two→one, one→zero, zero→minus_one"))
+    return files
+
+
+def test_a_result_over_a_shared_entity_says_it_ran_pairs_not_triples():
+    result = check("06-two-orders-last-item")
+    assert result.limits == ["Stock is shared, so the flows that touch it ran two journeys at once, not three "
+                             "(--journeys 3 tries three)."]
+    assert "Limit: Stock is shared" in result.format().split("\n")[1]
+
+
+def test_three_journeys_on_request_find_the_race_two_cannot():
+    files = _three_orders_two_items()
+    pairs = flowcheck.check_slice(files, "FLO-006", TODAY)
+    assert pairs.status == "passes", pairs.format()
+    triples = flowcheck.check_slice(files, "FLO-006", TODAY, journeys=3)
+    f9 = one(triples, "F9")
+    assert f9.summary == 'The invariant "not stock=minus_one" of Stock no longer holds.'
+    assert {line.split(":")[0] for line in f9.trace} == {"Journey 1", "Journey 2", "Journey 3"}
+    assert [r[0] for r in triples.runs] == [("FLO-006", "FLO-006"), ("FLO-006", "FLO-006", "FLO-006")]
+    assert triples.limits == ["Stock is shared, so the flows that touch it ran two and three journeys at once, never four."]
+
+
+def test_journeys_other_than_two_or_three_are_refused():
+    catalog = readers.read_vault(files_of("06-two-orders-last-item"))
+    program, _ = build.build(catalog, ("FLO-006",), TODAY)
+    with pytest.raises(ValueError, match="journeys must be 2 or 3"):
+        flowcheck.plan_runs(program, 4)
+
+
+def test_a_slice_with_a_timer_says_it_takes_timers_to_fire():
+    assert "A timer is taken to fire in the end: an order of events in which a timer never fires is not explored." in \
+        check("r2-10-timer-race").limits
+
+
+def test_a_plain_slice_states_no_limits():
+    assert check("12-clean-tracer").limits == []
+
+
+def test_a_budget_stop_names_the_run_it_stopped_in_and_the_runs_it_skipped():
+    """The write-up's §5: a budget stop used to end the slice without a word about the runs after it."""
+    result = check("21-shared-race", "Release one", max_states=3)
+    f11 = one(result, "F11")
+    assert "while checking FLO-211 and FLO-212 together." in f11.summary
+    assert [r[3] for r in result.runs] == [True, False]
+    assert result.skipped == [("FLO-212", "FLO-212")]
+    assert result.limits[-1] == "Not explored, because the budget ran out first: FLO-212 twice."
+    assert result.status.endswith("not fully checked")
+
+
 # --- noise: warnings that fire only on a real gap ---------------------------------------------------------------------
 
 def test_f12_is_quiet_when_everything_the_provider_calls_is_drawn_in_the_slice():

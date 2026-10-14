@@ -12,6 +12,12 @@
     explore.explore         transition system -> state graph (BFS, budgets)
     properties.judge_graph  state graph -> explored findings (F5 to F9); render.Renderer words their traces
 
+check_catalog runs three stages of its own, so the costly middle can be recorded and reused (record, impact, changed):
+
+    prepare           Catalog + slice -> Prepared (the program, static findings, the runs to explore)
+    explore_prepared  Prepared -> Explored (explored findings, counts, the runs a budget stop skipped)
+    finish            Prepared + Explored + today -> SliceResult (F4, overrides as of today, limits)
+
 R0 throughout: an unreadable line, a missing property or a budget run out makes the slice "not fully checked", never
 a pass. With any F10, exploration does not run at all: a model with a hole in it proves nothing.
 """
@@ -23,6 +29,7 @@ from planner.flowcheck.semantics import ALL_REDUCTIONS
 
 DEFAULT_MAX_STATES = 200_000
 DEFAULT_MAX_SECONDS = 10.0
+PAIRS, TRIPLES = 2, 3  # journeys at once over a shared entity: pairs by default, triples on request (ledger C39)
 
 
 class SliceNotFound(ValueError):
@@ -52,56 +59,163 @@ def resolve_slice(catalog, target):
     return found[0].name, found[0].flows, found[0].order
 
 
-def plan_runs(program):
+def plan_runs(program, journeys=None):
     """Which journeys run together (review 1.8): a flow on its own, or, when it touches a shared entity, paired with
-    each flow of the slice touching the same one (itself included). All flows twice at once is not explored."""
+    each flow of the slice touching the same one (itself included). With `journeys` 3, the triples over a shared
+    entity follow the pairs, so a budget stop still leaves the pairs explored. All flows at once is never explored.
+    Triples do not replace pairs: a third journey can unblock or finish what two leave stuck."""
+    journeys = PAIRS if journeys is None else journeys
+    if journeys not in (PAIRS, TRIPLES):
+        raise ValueError(f"journeys must be {PAIRS} or {TRIPLES}, not {journeys}")
+    shared = _shared_touched(program)
+    runs = []
+    n = len(program.flows)
+    for i in range(n):
+        partners = [j for j in range(i, n) if shared[i] & shared[j]]
+        runs += [(i, j) for j in partners] if partners else [(i,)]
+    if journeys == TRIPLES:
+        runs += [(i, j, k) for i in range(n) for j in range(i, n) for k in range(j, n) if shared[i] & shared[j] & shared[k]]
+    return runs
+
+
+def _shared_touched(program):
+    """{flow index: the shared entities it touches}."""
     touched = {}
     for ins in program.code:
         touched.setdefault(ins.flow, set()).update(semantics._entities_of(ins, program))
     for index, (_, _, givens) in enumerate(program.flows):
         touched.setdefault(index, set()).update(givens)
-    shared = {i: {s for s in touched.get(i, ()) if program.entities[s].shared} for i in range(len(program.flows))}
-    runs = []
-    for i in range(len(program.flows)):
-        partners = [j for j in range(i, len(program.flows)) if shared[i] & shared[j]]
-        runs += [(i, j) for j in partners] if partners else [(i,)]
-    return runs
+    return {i: {s for s in touched.get(i, ()) if program.entities[s].shared} for i in range(len(program.flows))}
 
 
-def check_slice(files, target, today, max_states=DEFAULT_MAX_STATES, max_seconds=DEFAULT_MAX_SECONDS,
-                clock=frozen_clock, reductions=ALL_REDUCTIONS):
-    return check_catalog(readers.read_vault(files), target, today, max_states, max_seconds, clock, reductions)
+@dataclasses.dataclass
+class Prepared:
+    """A slice built and statically judged, before any exploration: everything the exploration depends on, so a
+    fingerprint of it (record.fingerprint) says whether a recorded exploration still holds."""
+    name: str
+    flows: tuple
+    order: object
+    program: object
+    static: list  # static findings, F13 included, before overrides
+    runs: list  # plan_runs: tuples of flow indexes
+    journeys: int
+    apps: dict  # the catalog's apps, for the owners a trace names
 
 
-def check_catalog(catalog, target, today, max_states=DEFAULT_MAX_STATES, max_seconds=DEFAULT_MAX_SECONDS,
-                  clock=frozen_clock, reductions=ALL_REDUCTIONS):
+@dataclasses.dataclass
+class Explored:
+    """What exploring a Prepared slice found: the part of a result worth recording, since it is the part that costs."""
+    findings: list = dataclasses.field(default_factory=list)
+    states: int = 0
+    transitions: int = 0
+    seconds: float = 0.0
+    runs: list = dataclasses.field(default_factory=list)  # [(flow ids, states, transitions, complete)]
+    skipped: list = dataclasses.field(default_factory=list)  # [flow ids] of runs a budget stop left unexplored
+
+
+def prepare(catalog, target, today, journeys=None):
+    journeys = PAIRS if journeys is None else journeys
     name, flow_ids, order = resolve_slice(catalog, target)
     program, findings = build.build(catalog, flow_ids, today)
     findings += properties.loose_ends(catalog, order, [catalog.flows[f] for f in flow_ids if f in catalog.flows])
-    result = SliceResult(name, tuple(flow_ids))
-    if any(f.code == "F10" for f in findings):
-        result.findings = apply_overrides(_ordered(findings + _unused(catalog, findings)), catalog, flow_ids, today, order)
-        return result
-    began, explored = clock(), []
-    for journeys in plan_runs(program):
+    return Prepared(name, tuple(flow_ids), order, program, findings, plan_runs(program, journeys), journeys, catalog.apps)
+
+
+def explore_prepared(prepared, max_states=DEFAULT_MAX_STATES, max_seconds=DEFAULT_MAX_SECONDS, clock=frozen_clock,
+                     reductions=ALL_REDUCTIONS):
+    """Every run of the slice in turn, on one shared budget. With any F10 nothing is explored. A budget stop ends the
+    slice: the run it stopped in is F11, and the runs after it are listed in `skipped`, so the result can say which
+    journeys nobody looked at instead of leaving them out without a word."""
+    program, out = prepared.program, Explored()
+    if any(f.code == "F10" for f in prepared.static):
+        return out
+    began = clock()
+    for index, journeys in enumerate(prepared.runs):
         sem = semantics.Semantics(program, journeys, reductions)
-        states_left = max_states - result.states
-        seconds_left = max_seconds - (clock() - began)
-        graph = explore.explore(sem, states_left, seconds_left, clock)
-        result.states += len(graph.states)
-        result.transitions += graph.transitions
-        result.runs.append((tuple(program.flows[j][0].id for j in journeys), len(graph.states), graph.transitions, graph.complete))
+        graph = explore.explore(sem, max_states - out.states, max_seconds - (clock() - began), clock)
+        out.states += len(graph.states)
+        out.transitions += graph.transitions
+        ids = tuple(program.flows[j][0].id for j in journeys)
+        out.runs.append((ids, len(graph.states), graph.transitions, graph.complete))
         paths = [program.flows[j][0].path for j in journeys]
-        explored += properties.judge_graph(graph, sem, render.Renderer(program, sem, catalog.apps), paths)
+        out.findings += properties.judge_graph(graph, sem, render.Renderer(program, sem, prepared.apps), paths)
         if not graph.complete:
             budget = f"{max_states:,} states" if graph.stopped_by == "states" else f"{max_seconds:g} seconds"
-            explored.append(Finding("F11", paths[0], f"Not fully checked: the budget of {budget} ran out after "
-                                    f"{result.states:,} states and {result.transitions:,} transitions. Nothing past that is "
-                                    "claimed, and what was not explored is not a pass."))
+            out.findings.append(Finding("F11", paths[0], f"Not fully checked: the budget of {budget} ran out after "
+                                        f"{out.states:,} states and {out.transitions:,} transitions, while checking "
+                                        f"{run_words(ids)}. Nothing past that is claimed, and what was not explored is not a pass."))
+            out.skipped = [tuple(program.flows[j][0].id for j in later) for later in prepared.runs[index + 1:]]
             break
-    result.seconds = clock() - began
-    result.findings = apply_overrides(_ordered(findings + explored + _unused(catalog, findings)), catalog, flow_ids, today, order)
+    out.seconds = clock() - began
+    return out
+
+
+def finish(catalog, prepared, explored, today):
+    """The result: static and explored findings, F4 for the initiative, overrides as of `today`, and the limits the
+    result rests on, said out loud (ledger C39)."""
+    result = SliceResult(prepared.name, prepared.flows, journeys=prepared.journeys)
+    result.states, result.transitions, result.seconds = explored.states, explored.transitions, explored.seconds
+    result.runs = list(explored.runs)
+    result.skipped = list(explored.skipped)
+    found = prepared.static + list(explored.findings) + _unused(catalog, prepared.static)
+    result.findings = apply_overrides(_ordered(found), catalog, prepared.flows, today, prepared.order)
+    result.limits = limits(prepared, explored)
     return result
+
+
+def limits(prepared, explored):
+    """What a result rests on and does not claim, one sentence each, whenever it applies: how many journeys ran at once
+    over a shared entity, that timers are taken to fire in the end, and which runs a budget stop left unexplored."""
+    program, out = prepared.program, []
+    shared = _shared_touched(program)
+    together = [r for r in prepared.runs if len(r) > 1]
+    if together:
+        names = sorted({program.entities[s].title for r in together for i in r for s in shared[i]})
+        verb, them = ("is", "it") if len(names) == 1 else ("are", "them")
+        if prepared.journeys == TRIPLES:
+            out.append(f"{_and(names)} {verb} shared, so the flows that touch {them} ran two and three journeys at once, "
+                       "never four.")
+        else:
+            out.append(f"{_and(names)} {verb} shared, so the flows that touch {them} ran two journeys at once, not three "
+                       "(--journeys 3 tries three).")
+    if program.timers:
+        out.append("A timer is taken to fire in the end: an order of events in which a timer never fires is not explored.")
+    if explored.skipped:
+        out.append(f"Not explored, because the budget ran out first: {'; '.join(run_words(r) for r in explored.skipped)}.")
+    return out
+
+
+def run_words(ids):
+    """One run in words: "FLO-001 alone", "FLO-006 twice", "FLO-211 and FLO-212", "FLO-006 three times"."""
+    counts = {}
+    for fid in ids:
+        counts[fid] = counts.get(fid, 0) + 1
+    if len(ids) == 1:
+        return f"{ids[0]} alone"
+    times = {1: "", 2: " twice", 3: " three times"}
+    if len(counts) == 1:
+        return f"{ids[0]}{times[len(ids)]}"
+    return _and([f"{fid}{times[n]}" for fid, n in counts.items()]) + " together"
+
+
+def _and(items):
+    items = list(items)
+    if len(items) <= 1:
+        return "".join(items)
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f" and {items[-1]}"
+
+
+def check_slice(files, target, today, max_states=DEFAULT_MAX_STATES, max_seconds=DEFAULT_MAX_SECONDS,
+                clock=frozen_clock, reductions=ALL_REDUCTIONS, journeys=None):
+    return check_catalog(readers.read_vault(files), target, today, max_states, max_seconds, clock, reductions, journeys)
+
+
+def check_catalog(catalog, target, today, max_states=DEFAULT_MAX_STATES, max_seconds=DEFAULT_MAX_SECONDS,
+                  clock=frozen_clock, reductions=ALL_REDUCTIONS, journeys=None):
+    prepared = prepare(catalog, target, today, journeys)
+    return finish(catalog, prepared, explore_prepared(prepared, max_states, max_seconds, clock, reductions), today)
 
 
 def apply_overrides(findings, catalog, flow_ids, today, order=None):
@@ -151,4 +265,6 @@ def _ordered(findings):
     return out
 
 
-__all__ = ["check_slice", "check_catalog", "apply_overrides", "resolve_slice", "plan_runs", "SliceResult", "Finding", "SliceNotFound", "frozen_clock"]
+__all__ = ["check_slice", "check_catalog", "prepare", "explore_prepared", "finish", "apply_overrides", "resolve_slice",
+           "plan_runs", "limits", "run_words", "Prepared", "Explored", "SliceResult", "Finding", "SliceNotFound",
+           "frozen_clock", "PAIRS", "TRIPLES"]
