@@ -12,7 +12,8 @@ Usage:
 
 --rejudge scores a finished run again from its transcript.jsonl and vault/, without replaying any session. It
 rewrites each arm's scorecard.json and scorecard.md and the run's compare.html, and writes what it cost to
-rejudge.json. It exits 0 when every arm was scored and 2 on a tool failure.
+rejudge.json. It exits 0 when every arm was scored, 2 on a tool failure, and 3 when a final vault is under the
+script's completeness gate. It reads the script run.json names, for the news and the outsiders the run gave the lead.
 
 The judge makes one call per category: knows, wrong, unaware, conflicts, decisions, and the shape of the guidance.
 Beside each verdict the scorecard sets the driver's own keyword hits for the item, and lists every disagreement
@@ -26,7 +27,11 @@ judge, so sessions stop at 85% of the arm's share. Spend is the sum of every cal
 
 Exit codes: 0 every session of every arm ran to its end and was scored; 1 the budget or a turn cap ended at
 least one session early (every output is still written); 2 a tool failed: claude was missing, its JSON lacked a
-field, the judge's JSON was bad twice, git or the scaffold failed. Output written before the failure is kept.
+field, the judge's JSON was bad twice, git or the scaffold failed. Output written before the failure is kept; 3 every
+session ran and was scored, but the final vault's Completeness (planner status) is under the script's
+`completeness_gate`, so the run does not count. The scorecard names the shares that held it back. A --stub run reports
+the gate and is never failed by it, since no model wrote its vault. A tool failure (2) outranks the gate (3), and the
+gate outranks an early stop (1): a run under the gate does not count however its sessions ended.
 """
 import argparse
 import datetime
@@ -252,11 +257,20 @@ def script_problems(data, persona):
                 problems.append("two events have the same 'after'; put their news in one event")
     if data.get("start") is not None and not (SNAPSHOTS / str(data["start"])).is_dir():
         problems.append(f"'start' {data['start']!r} is not a folder in {SNAPSHOTS}")
+    gate = data.get("completeness_gate")
+    if gate is not None and (isinstance(gate, bool) or not isinstance(gate, int) or not 1 <= gate <= 100):
+        problems.append("'completeness_gate' must be a whole percent from 1 to 100")
     if any(problems):
         return problems
     for n, session in enumerate(data["sessions"], 1):
         if not isinstance(session, dict):
             problems.append(f"session {n} must be a mapping")
+            continue
+        # A session's own persona (an outsider, a team's senior) is loaded when the session starts, so a broken or
+        # missing one would stop a paid run part-way. It is checked here, before any call.
+        speaker, why = session_persona(session, persona)
+        if why:
+            problems.append(f"session {n}: {why}")
             continue
         if session.get("repo") and session["repo"] not in (data.get("team_repos") or {}):
             problems.append(f"session {n}: repo {session['repo']!r} is not one of the script's team_repos")
@@ -271,7 +285,7 @@ def script_problems(data, persona):
             continue
         for arm in ("planner", "baseline"):
             try:
-                text = opening(session, arm, persona)
+                text = opening(session, arm, speaker)
             except (KeyError, IndexError, ValueError) as exc:
                 problems.append(f"session {n}: the {arm} opening names {exc}, which the persona does not hold")
                 continue
@@ -286,6 +300,40 @@ def script_problems(data, persona):
             if arm == "baseline" and text.startswith("/"):
                 problems.append(f"session {n}: the baseline opening must be plain words, not a slash command")
     return problems
+
+
+def session_persona(session, persona):
+    """(the persona that speaks in a session, the reason it can't be used or ""): the run's own lead, or the persona the
+    session names."""
+    name = session.get("persona")
+    if not name:
+        return persona, ""
+    path = resolve(name, "personas")
+    try:
+        named = load_yaml(path)
+    except ToolFailure as exc:
+        return None, f"persona {name!r}: {exc}"
+    problems = persona_problems(named)
+    return (named, "") if not problems else (None, f"persona {name!r} is not valid: " + "; ".join(problems))
+
+
+def outsiders_of(script):
+    """Every persona a script's sessions name, by name, in the order they first speak. Their facts are what they may
+    tell the assistant, so the judge reads them before it calls anything invented."""
+    out = {}
+    for session in script.get("sessions") or []:
+        name = session.get("persona")
+        if name and name not in out:
+            out[name] = load_yaml(resolve(name, "personas"))
+    return out
+
+
+def final_brief(persona, script):
+    """The lead as they stand at the end of a run: the script's news, then every event's, in session order."""
+    persona = with_news(persona, script.get("news"))
+    for event in sorted(script.get("events") or [], key=lambda e: e["after"]):
+        persona = with_news(persona, {k: v for k, v in event.items() if k != "after"})
+    return persona
 
 
 def load_brief(persona_ref, script_ref):
@@ -946,6 +994,7 @@ class Arm:
         self.failure = None
         self.scorecard = None
         self.capture_expect = {}  # the script's `capture:` block: release_date and ask, what the persona planted
+        self.completeness_gate = None  # the script's `completeness_gate:`, the percent the final vault must reach
         self.merge_prs = True  # the script's `merge_prs:`, read again in run()
         self.prior_spent = 0.0  # what an earlier run spent, when this arm is only being judged again
         self.judge_calls = []
@@ -973,6 +1022,8 @@ class Arm:
         arm.notes, arm.failure, arm.scorecard, arm.judge_calls = [], None, None, []
         arm.judge_cuts = {}
         arm.capture_expect = {}
+        arm.completeness_gate = None
+        arm.extra_personas = {}
         arm.prior_spent = float(record.get("spent_usd") or 0)
         arm.env = arm_env(arm.dir, args.stub)
         (arm.dir / "persona-cwd").mkdir(exist_ok=True)
@@ -1652,7 +1703,16 @@ def voice_line(voice):
             f"turns over {CODES_PER_TURN} codes: {where}. Do not count codes yourself.")
 
 
-def build_judge_input(persona, transcript, vault, category, hits, compact=False):
+def outsider_brief(outsiders):
+    """What each persona a session brought in may say, for the judge's whole-brief calls: a fact an outsider gave in
+    the room is given, not invented, and the judge can only know that if it reads the outsider's facts."""
+    return [{"name": p["name"], "handle": p["handle"], "role": p["role"],
+             "knows": [{"fact": k["fact"], "owner": k.get("owner")} for k in p.get("knows") or []],
+             "decisions": [{"question": d["question"], "choice": d["choice"]} for d in p.get("decisions") or []]}
+            for p in outsiders or []]
+
+
+def build_judge_input(persona, transcript, vault, category, hits, compact=False, outsiders=()):
     """(input, cuts) for one call: its own brief items and their hints, the transcript, and only what the category
     needs, never more than JUDGE_INPUT_CHARS. `cuts` is what was left out. `compact` cuts each turn short: the retry
     after the judge model's safeguards refused the full input."""
@@ -1660,6 +1720,8 @@ def build_judge_input(persona, transcript, vault, category, hits, compact=False)
     strip = lambda items: [{k: v for k, v in i.items() if k != "keywords"} for i in items or []]
     kinds = list(ID_KINDS) if "whole brief" in reads else [category]
     brief = {kind: strip(persona.get(kind)) for kind in kinds}
+    if "whole brief" in reads and outsiders:
+        brief["outsiders"] = outsider_brief(outsiders)
     sessions = sorted({e["session"] for e in transcript.spoken()})
     head = [f"THE HIDDEN BRIEF (YAML):\n{yaml.safe_dump(brief, sort_keys=False, allow_unicode=True)}"]
     if category in ID_KINDS:
@@ -1690,8 +1752,8 @@ def build_judge_input(persona, transcript, vault, category, hits, compact=False)
     return text, cuts
 
 
-def judge_input(persona, transcript, vault, category, hits, compact=False):
-    return build_judge_input(persona, transcript, vault, category, hits, compact)[0]
+def judge_input(persona, transcript, vault, category, hits, compact=False, outsiders=()):
+    return build_judge_input(persona, transcript, vault, category, hits, compact, outsiders)[0]
 
 
 def strip_fences(text):
@@ -1882,7 +1944,9 @@ def judge_category(arm, category, hits):
     """One judge call for one category. Re-ask once on bad JSON with the problems named, then give up with exit 2.
     A refusal by the judge model's safeguards is retried once with each turn cut short; a second refusal returns
     None and the reason, so the category reads "not scored" on the scorecard and the other categories still count."""
-    stdin, arm.judge_cuts[category] = build_judge_input(arm.persona, arm.transcript, arm.vault, category, hits)
+    outsiders = list(getattr(arm, "extra_personas", {}).values())
+    stdin, arm.judge_cuts[category] = build_judge_input(arm.persona, arm.transcript, arm.vault, category, hits,
+                                                        outsiders=outsiders)
     problems, refused, bad = [], False, 0
     for attempt in (1, 2, 3):
         room = arm.ledger.judge_room()
@@ -1902,7 +1966,7 @@ def judge_category(arm, category, hits):
                 return None, f"the judge model refused twice, the second time with each turn cut to 800 characters. Read {raw}"
             refused, problems = True, []
             stdin, arm.judge_cuts[category] = build_judge_input(arm.persona, arm.transcript, arm.vault, category, hits,
-                                                                compact=True)
+                                                                compact=True, outsiders=outsiders)
             continue
         if result["is_error"]:
             raise ToolFailure(f"the {category} judge call {error_in_words(result)}. Read {raw}")
@@ -2010,6 +2074,49 @@ def capture_of(arm):
     return json.loads(done.stdout)
 
 
+COMPLETENESS_LINE = re.compile(r"^Completeness: (\d+)%, the average of (.*?)\.?$", re.M)
+COMPLETENESS_SHARE = re.compile(r"(\d+) of (\d+) ([^,]+?)(?:,|$)")
+
+
+def completeness_of(vault):
+    """The Completeness line `planner status` prints for the final vault, as its percent and its five shares. A status
+    that fails or prints no such line is written as an error: the gate never reads a missing figure as a pass."""
+    argv = [sys.executable, str(PLANNER), "status", "--vault", str(vault)]
+    try:
+        done = subprocess.run(argv, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        return {"error": "planner status timed out after 120s"}
+    found = COMPLETENESS_LINE.search(done.stdout)
+    if done.returncode != 0 or not found:
+        return {"error": f"planner status exit {done.returncode}, no Completeness line: "
+                         + (done.stdout + done.stderr).strip()[-300:]}
+    return parse_completeness(found.group(0))
+
+
+def parse_completeness(line):
+    found = COMPLETENESS_LINE.search(line)
+    if not found:
+        return {"error": f"not a Completeness line: {line[:200]}"}
+    shares = [{"name": name.strip(), "done": int(done), "total": int(total)}
+              for done, total, name in COMPLETENESS_SHARE.findall(found.group(2))]
+    return {"percent": int(found.group(1)), "shares": shares, "line": found.group(0).strip()}
+
+
+def completeness_verdict(completeness, gate, enforced=True):
+    """Whether the final vault reached the script's gate, and the shares that held it back, weakest first. A stub
+    run's vault is written by no model, so its verdict is reported and does not fail the run (enforced false)."""
+    if completeness.get("error"):
+        return {"gate": gate, "passed": False, "enforced": enforced, "fails_run": enforced,
+                "held_back": [f"no figure: {completeness['error']}"]}
+    open_shares = sorted((s for s in completeness["shares"] if s["total"] and s["done"] < s["total"]),
+                         key=lambda s: s["done"] / s["total"])
+    passed = completeness["percent"] >= gate
+    return {"gate": gate, "percent": completeness["percent"], "passed": passed, "enforced": enforced,
+            "fails_run": enforced and not passed,
+            "held_back": [f"{s['name']}: {s['done']} of {s['total']} ({round(100 * s['done'] / s['total'])}%)"
+                          for s in open_shares]}
+
+
 def build_scorecard(arm, data, hits):
     card = enforce_citations(data, arm.transcript, arm.vault)
     card["hits"] = hits
@@ -2026,6 +2133,15 @@ def build_scorecard(arm, data, hits):
     card["check_these"] += [f"voice: T{f['turn']} shows the lead {len(f['codes'])} codes ({', '.join(f['codes'][:6])})"
                             for f in card["voice"]["flagged"]]
     card["capture"] = capture_of(arm)
+    card["completeness"] = completeness_of(arm.vault)
+    gate = getattr(arm, "completeness_gate", None)
+    if gate:
+        verdict = completeness_verdict(card["completeness"], gate, enforced=not arm.args.stub)
+        card["completeness_gate"] = verdict
+        if not verdict["passed"]:
+            card["check_these"].insert(0, f"completeness: {verdict.get('percent', 'no figure')}% is under the {gate}% gate"
+                                       + ("" if verdict["enforced"] else " (a stub run: reported, not enforced)")
+                                       + "; held back by " + "; ".join(verdict["held_back"] or ["nothing named"]))
     claimed = claimed_actions(arm.transcript)
     if claimed:
         card["check_these"].append(f"persona: claimed an action outside the chat in {len(claimed)} turns "
@@ -2116,6 +2232,20 @@ def render_capture(capture):
     return lines + [""]
 
 
+def render_completeness(card):
+    """The final vault's Completeness line, and the gate's verdict with the shares that held it back."""
+    found = card.get("completeness")
+    if not found:
+        return []
+    lines = ["## Completeness", "", f"- {found['line']}" if not found.get("error") else f"- planner status failed: {found['error']}"]
+    verdict = card.get("completeness_gate")
+    if verdict:
+        word = "pass" if verdict["passed"] else "FAIL" if verdict["enforced"] else "under the gate, not enforced in a stub run"
+        lines.append(f"- Gate {verdict['gate']}%: {word}")
+        lines += [f"  - held back by {part}" for part in verdict["held_back"]]
+    return lines + [""]
+
+
 TRACER_WORDS = {"tracer": "a tracer is named", "none_with_reason": "no tracer, with the reason recorded",
                 "not_recorded": "release one records neither a tracer nor why not",
                 "no_releases_session": "no releases session ran"}
@@ -2181,7 +2311,7 @@ def render_scorecard_md(card, persona):
              "## Check these", ""]
     lines += [f"- {c}" for c in card.get("check_these") or []] or ["- none: the judge and the keyword hits agree"]
     lines.append("")
-    lines += render_capture(card.get("capture"))
+    lines += render_capture(card.get("capture")) + render_completeness(card)
     titles = {"unaware": "Gaps surfaced (U)", "wrong": "Wrong beliefs challenged (W)", "knows": "Facts captured (K)",
               "decisions": "Decisions (D)", "conflicts": "Stakeholder conflicts surfaced (C)"}
     hits = card.get("hits") or {}
@@ -2354,6 +2484,17 @@ def load_run(run_dir):
     return summary
 
 
+def brief_of_run(summary, persona):
+    """(the lead's final brief, the outsiders by name, the completeness gate) for a finished run, from the script its
+    run.json names: the news and events it gave the lead, and the personas its sessions brought in. Judged without them,
+    a fact the news or an outsider gave would read as invented. A script that is no longer there is a tool failure."""
+    ref = summary.get("script")
+    if not ref:
+        raise ToolFailure("run.json names no script, so the news and the outsiders the run gave the lead can't be read")
+    script = load_yaml(resolve(ref, "scripts"))
+    return final_brief(persona, script), outsiders_of(script), script.get("completeness_gate")
+
+
 def rejudge(args):
     """Score every arm of a finished run again: new hits, new judge calls, new scorecards and compare.html. The
     transcript, the vault and run.json are read and never written; what this judging cost goes in rejudge.json."""
@@ -2365,6 +2506,7 @@ def rejudge(args):
         problems = persona_problems(persona)
         if problems:
             raise ToolFailure(f"{persona_path} is not a valid persona:\n  " + "\n  ".join(problems))
+        persona, outsiders, gate = brief_of_run(summary, persona)
     except ToolFailure as exc:
         print(f"sim: {exc}", file=sys.stderr)
         return 2
@@ -2381,6 +2523,7 @@ def rejudge(args):
             failed = True
             break
         arms.append(arm)
+        arm.extra_personas, arm.completeness_gate = outsiders, gate
         try:
             arm.scorecard = score_arm(arm)
             arm.scorecard["rejudged"] = when
@@ -2397,8 +2540,9 @@ def rejudge(args):
               "spent_usd": round(sum(a.ledger.spent for a in arms), 4),
               "per_arm": {a.name: {"spent_usd": round(a.ledger.spent, 4), "failure": a.failure,
                                    "judge_calls": a.judge_calls} for a in arms},
-              "exit": 2 if failed else 0}
+              "exit": run_exit(failed, False, gate_failures(arms))}
     (run_dir / "rejudge.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    report_gate(arms)
     print(f"Rejudged for ${record['spent_usd']:.2f} of ${args.budget:.2f}. Results: {run_dir}")
     return record["exit"]
 
@@ -2409,14 +2553,14 @@ def dry_judge(args):
     run_dir = pathlib.Path(args.dry_judge).resolve()
     try:
         summary = load_run(run_dir)
-        persona = load_yaml(resolve(summary["persona"], "personas"))
+        persona, outsiders, _ = brief_of_run(summary, load_yaml(resolve(summary["persona"], "personas")))
         for name in [n for n in summary.get("arms") or summary["per_arm"] if n in summary["per_arm"]]:
             arm_dir = run_dir / name
             transcript = Transcript.load(arm_dir / "transcript.jsonl")
             vault = arm_dir / "vault"
             hits = vault_hits(persona, transcript, vault)
             for category in JUDGE_CATEGORIES:
-                text, cuts = build_judge_input(persona, transcript, vault, category, hits)
+                text, cuts = build_judge_input(persona, transcript, vault, category, hits, outsiders=list(outsiders.values()))
                 print(f"[{name}] {category}: {len(text)} characters (about {len(text) // 3} tokens) of {JUDGE_INPUT_CHARS}")
                 for cut in cuts:
                     print(f"    cut: {cut}")
@@ -2424,6 +2568,23 @@ def dry_judge(args):
         print(f"sim: {exc}", file=sys.stderr)
         return 2
     return 0
+
+
+def gate_failures(arms):
+    """The scored arms whose final vault missed the script's completeness gate, where the gate is enforced."""
+    return [a for a in arms if a.scorecard and (a.scorecard.get("completeness_gate") or {}).get("fails_run")]
+
+
+def report_gate(arms):
+    for arm in gate_failures(arms):
+        verdict = arm.scorecard["completeness_gate"]
+        print(f"[{arm.name}] completeness {verdict.get('percent', 'unknown')}% is under the {verdict['gate']}% gate, so the "
+              f"run does not count. Held back by: {'; '.join(verdict['held_back'])}", file=sys.stderr)
+
+
+def run_exit(failed, early, under_gate):
+    """The exit code the module docstring lists: 2 a tool failed, 3 under the completeness gate, 1 stopped early, 0."""
+    return 2 if failed else 3 if under_gate else 1 if early else 0
 
 
 def main(argv=None):
@@ -2451,6 +2612,7 @@ def main(argv=None):
         arm = Arm(name, run_dir, args, persona, share)
         arms.append(arm)
         arm.capture_expect = script.get("capture") or {}
+        arm.completeness_gate = script.get("completeness_gate")
         try:
             arm.run(script)
             arm.scorecard = score_arm(arm)
@@ -2471,8 +2633,9 @@ def main(argv=None):
                "spent_usd": round(sum(a.ledger.spent for a in arms), 4),
                "per_arm": {a.name: {"spent_usd": round(a.ledger.spent, 4), "endings": a.endings,
                                     "failure": a.failure, "notes": a.notes} for a in arms},
-               "exit": 2 if failed else 1 if early else 0}
+               "exit": run_exit(failed, early, gate_failures(arms))}
     (run_dir / "run.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    report_gate(arms)
     print(f"Spent ${summary['spent_usd']:.2f} of ${args.budget:.2f}. Results: {run_dir}")
     return summary["exit"]
 
