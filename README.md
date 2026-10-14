@@ -1,6 +1,6 @@
 # proj-planner
 
-Vela is a Claude Code toolkit for planning at the initiative level. It takes you from a one-line ask to fully specified epics, written in Markdown that every reader can follow. The plugin, its commands and this repo are still named `vela`.
+Vela is a Claude Code toolkit for planning at the initiative level. It takes you from a one-line ask to fully specified epics, written in Markdown that every reader can follow. It was called "planner" before 2026-10-14, and the design records in `docs/` dated before then use that name.
 
 ## Install
 

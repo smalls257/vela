@@ -1,4 +1,4 @@
-# How vela works, and how to use it
+# How Vela works, and how to use it
 
 ## The problem, briefly
 
@@ -217,4 +217,4 @@ These runs found most of the gaps fixed so far, such as no session ever writing 
 - **Thorough versus overwhelming.** How many questions to raise before they bury the lead.
 - **What "complete" means.** A design marked complete with known gaps the team has accepted is not the same as one with no gaps.
 - **Whether the tool should draft the pages or mainly interview you.** Today it drafts and you review.
-- **No comparison with plain Claude Code yet.** The tool hasn't been run against Claude Code with no vela at all, which is the comparison that would show its real value.
+- **No comparison with plain Claude Code yet.** The tool hasn't been run against Claude Code without Vela, which is the comparison that would show its real value.

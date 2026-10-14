@@ -35,7 +35,7 @@ The repo is private, so you need access to it on GitHub first, and git on your m
 
 ### Claude Code CLI
 
-The marketplace is called `proj-planner` and holds one plugin, `vela` (`.claude-plugin/marketplace.json`). After the install, skills appear as `/vela:dump`, `/vela:close`, and so on. A copy of the repo elsewhere works the same way: give `/plugin marketplace add` its git URL or a local folder path.
+The marketplace is called `vela` and holds one plugin, also called `vela` (`.claude-plugin/marketplace.json`), so the install name is `vela@vela`. After the install, skills appear as `/vela:dump`, `/vela:close`, and so on. A copy of the repo elsewhere works the same way: give `/plugin marketplace add` its git URL or a local folder path.
 
 To give teammates the plugin without typing anything, commit this to the team repo as `.claude/settings.json`. Claude Code asks them to trust the repo once, then offers the plugin:
 
