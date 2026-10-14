@@ -201,7 +201,7 @@ a.idname:hover .idsuf, a.idname:focus-visible .idsuf { display: inline; color: v
 @media print {
   html[data-theme][data-theme] { --room: #fff; --deck: #fff; --deck-2: #f3f3f3; --ink: #111; --ink-2: #222; --ink-3: #444; --rule-3: #999; --link: #0b4ea2; }
   html, body { height: auto; display: block; background: #fff; color: #111; }
-  header.top, #side, #panel, #panel-tab, #toast, #tip, #fresh, #built, .page-actions, .seg { display: none !important; }
+  header.top, #side, #side-grip, #panel, #panel-tab, #toast, #tip, #fresh, #built, .page-actions, .seg { display: none !important; }
   #main { display: block; overflow: visible; background: #fff; }
   #main :not(svg):not(svg *) { overflow: visible !important; max-height: none !important; }
   a.ext[href]::after { content: " (" attr(href) ")"; font-size: .85em; color: #444; word-break: break-all; }

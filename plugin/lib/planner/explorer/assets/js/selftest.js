@@ -635,6 +635,60 @@ const SelfTest = (() => {
     PanelSize.setWidth(want0, { now: true }); PanelSize.hide(hidden0);
     MapView.st.lens = null; MapView.st.group = null; Nav.home(); await frames();
   }
+  /* The sections bar's room, the same rule as the panel's (one EdgeSize serves both): the menu button hides it and the
+     main area widens, the handle's drag and arrow keys stay between the minimum and a third of the window, both choices
+     are in storage as a reload reads them, and the page never scrolls sideways at the window it was opened in. */
+  async function sideRoom() {
+    const hidden0 = SideSize.hidden, want0 = SideSize.wanted;
+    const mainW = () => $("#main").getBoundingClientRect().width, sideW = () => $("#side").getBoundingClientRect().width;
+    const stored = () => ({ hidden: Settings.read("explorer.side"), width: Number(Settings.read("explorer.side.width")) || null });
+    const sideways = () => Math.max(document.documentElement.scrollWidth - document.documentElement.clientWidth, document.body.scrollWidth - document.body.clientWidth, $("#main").scrollWidth - $("#main").clientWidth);
+    const fitted = () => {
+      const b = $("#board"), svg = b && $("svg.cockpit", b);
+      if (!svg) return true;
+      const r = b.getBoundingClientRect(), v = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      return (v.right <= r.right + 1 && v.bottom <= r.bottom + 1) || v.width / vb.width <= 0.151;
+    };
+    SideSize.hide(false); SideSize.setWidth(null, { now: true });
+    Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; rerender(); await frames();
+    const open = mainW(), openSide = sideW(), toggle = $("#side-toggle"), grip = $("#side-grip");
+    toggle.click(); await frames();
+    ok(SideSize.hidden && $("#side").offsetParent === null && grip.hidden && mainW() > open + openSide * 0.9 && toggle.getAttribute("aria-expanded") === "false" && stored().hidden === "true",
+      `sections bar: the menu button hides it, the main area widens ${Math.round(open)} to ${Math.round(mainW())} px, and the choice is stored`,
+      `sections bar hide: main ${Math.round(open)} to ${Math.round(mainW())}, bar shown ${$("#side").offsetParent !== null}, stored ${stored().hidden}`);
+    ok(fitted() && sideways() <= 1, "sections bar hidden: the map still fits its board and nothing scrolls sideways", `sections bar hidden: fitted ${fitted()}, sideways ${sideways()} px`);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "[", bubbles: true, cancelable: true })); await frames();
+    ok(!SideSize.hidden && $("#side").offsetParent !== null && !grip.hidden && toggle.getAttribute("aria-expanded") === "true" && stored().hidden === "false",
+      "sections bar: [ shows it again, and the choice is stored", `sections bar [: hidden ${SideSize.hidden}, stored ${stored().hidden}`);
+    SideSize.setWidth(10, { now: true });
+    const low = Math.round(sideW());
+    SideSize.setWidth(100000, { now: true });
+    const high = Math.round(sideW()), cap = SideSize.max();
+    ok(low === SideSize.MIN && high === cap && +grip.getAttribute("aria-valuenow") === high && +grip.getAttribute("aria-valuemin") === SideSize.MIN && +grip.getAttribute("aria-valuemax") === cap && grip.getAttribute("role") === "separator" && grip.tabIndex === 0,
+      `sections bar: resize clamps to ${low} px at the least and ${high} px (a third of ${innerWidth}) at the most, and the handle, in the tab order, reports both`,
+      `sections bar resize: least ${low} (want ${SideSize.MIN}), most ${high} (want ${cap}), aria-valuenow ${grip.getAttribute("aria-valuenow")}`);
+    SideSize.setWidth(SideSize.MIN + 20, { now: true });
+    grip.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
+    const grown = Math.round(sideW());
+    grip.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true }));
+    const back = Math.round(sideW());
+    ok(grown === SideSize.MIN + 20 + SideSize.STEP && back === SideSize.MIN + 20, `sections bar: the handle's arrow keys move it ${SideSize.STEP} px each way`, `sections bar arrows: ${SideSize.MIN + 20} to ${grown} to ${back}`);
+    // a drag: the bar's right edge follows the pointer, and where the drag ends is what is remembered
+    const left = $("#side").getBoundingClientRect().left, target = Math.min(SideSize.max(), SideSize.MIN + 60), pid = 7;
+    grip.setPointerCapture = () => {}; grip.releasePointerCapture = () => {}; grip.hasPointerCapture = () => false;  // a synthetic pointer has nothing to capture
+    grip.dispatchEvent(new PointerEvent("pointerdown", { pointerId: pid, button: 0, clientX: left + sideW(), bubbles: true, cancelable: true }));
+    grip.dispatchEvent(new PointerEvent("pointermove", { pointerId: pid, clientX: left + target, bubbles: true }));
+    grip.dispatchEvent(new PointerEvent("pointerup", { pointerId: pid, clientX: left + target, bubbles: true }));
+    delete grip.setPointerCapture; delete grip.releasePointerCapture; delete grip.hasPointerCapture;
+    await frames();
+    const dragged = Math.round(sideW());
+    ok(dragged === target && stored().width === target && !document.body.classList.contains("side-dragging"), `sections bar: a drag to ${target} px sets the width and stores it, so a reload reads it back`, `sections bar drag: ${dragged} px on screen, ${stored().width} stored, want ${target}`);
+    ok(fitted() && sideways() <= 1, `sections bar at ${dragged} px: the main area refits, the map fits its board and nothing scrolls sideways at ${innerWidth} px`, `sections bar resized: fitted ${fitted()}, sideways ${sideways()} px`);
+    SideSize.setWidth(null, { now: true });
+    ok(stored().width === null && SideSize.wanted === null, "sections bar: the default width comes back, and storage forgets the width", "sections bar default: width still stored");
+    SideSize.setWidth(want0, { now: true }); SideSize.hide(hidden0);
+    MapView.st.lens = null; MapView.st.group = null; Nav.home(); await frames();
+  }
   async function releases() {
     const S = Releases.STATES;
     ok(D.releases.count ? S.length === D.releases.count + 1 : S.length === 2 && S[1].fromChange, D.releases.count ? `releases: Today and ${plural(D.releases.count, "release")}, from planner.releases` : "releases: none planned, so Today against the end state from each app's change, and the page says so", "release states wrong");
@@ -1064,7 +1118,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await sideRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");

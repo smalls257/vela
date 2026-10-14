@@ -9,7 +9,7 @@
    releases' &state=. The old deep links (#map, #flows&open=FLO-002, #asks&open=UNK-065, #garden&open=ADR-0002, now the decision log)
    still land where they did. */
 const Nav = (() => {
-  const SIDE_KEY = "explorer.side", OPEN_KEY = "explorer.side.open";
+  const OPEN_KEY = "explorer.side.open";  // the bar's width, and whether it is hidden, are SideSize's (panelsize.js)
   const SECTIONS = Object.fromEntries(D.sections.map((x) => [x.id, x]));
   // section -> its visuals, the first being the default; [] means its page is read full width
   const VISUALS = {
@@ -20,7 +20,7 @@ const Nav = (() => {
   };
   const read = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { console.warn("[nav] this browser keeps no settings:", e.message); } };
-  const st = { child: "", hidden: read(SIDE_KEY, false), expanded: new Set(read(OPEN_KEY, ["apps", "flows"].filter((id) => (SECTIONS[id] || { children: [] }).children.length <= 12))) };
+  const st = { child: "", expanded: new Set(read(OPEN_KEY, ["apps", "flows"].filter((id) => (SECTIONS[id] || { children: [] }).children.length <= 12))) };
   const sec = () => SECTIONS[App.section] || null;
   const textLed = (id) => VISUALS[id] && !VISUALS[id].length;
   const worst = (levels) => levels.slice().sort((p, q) => rank(q) - rank(p))[0] || "dark";
@@ -250,8 +250,6 @@ const Nav = (() => {
   function refresh() {
     const side = $("#side");
     if (!side) return;
-    document.body.classList.toggle("side-hidden", !!st.hidden);
-    $("#side-toggle").setAttribute("aria-expanded", String(!st.hidden));
     side.innerHTML = "";
     const lit = Queue.total();
     side.append(h("div", { class: "side-group" }, h("div", { class: "side-h" }, "Front doors"),
@@ -266,6 +264,5 @@ const Nav = (() => {
     side.append(vault);
     side.append(h("div", { class: "side-foot" }, h("span", { class: "muted" }, `${D.initiative} · ${Object.keys(D.reader).length} pages`)));
   }
-  $("#side-toggle").addEventListener("click", () => { st.hidden = !st.hidden; write(SIDE_KEY, st.hidden); refresh(); rerender(); });
   return { where, whereLabel, back, title, sectionPage, pageBeside, missingPage, pageActions, open, home, role, readWide, adopt, focusApp, trace, ripple, openRelease, syncHash, followHash, boot, refresh, st, VISUALS, SECTIONS };
 })();
