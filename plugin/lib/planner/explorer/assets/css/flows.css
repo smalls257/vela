@@ -40,7 +40,8 @@
 .cap-text .ref-chip { font-family: var(--ui); vertical-align: 2px; }
 ol.cap-steps { margin: 4px 0 0; padding: 0 0 0 22px; columns: 2 15rem; column-gap: 32px; font: 14.5px/1.45 var(--serif); }
 ol.cap-steps li { break-inside: avoid; margin-bottom: 3px; color: var(--ink-3); }
-ol.cap-steps button { all: unset; cursor: pointer; color: var(--ink-2); }
+/* block, not the button's inline-block: an inline-block that wraps puts the list number beside its last line */
+ol.cap-steps button { all: unset; display: block; cursor: pointer; color: var(--ink-2); }
 ol.cap-steps button:hover { color: var(--ink); text-decoration: underline; }
 ul.cap-facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 13.5px; color: var(--ink-2); }
 ul.cap-facts li { display: grid; grid-template-columns: 11px 1fr; gap: 10px; }

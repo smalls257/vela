@@ -31,8 +31,8 @@ def test_a_drawn_provider_s_answer_follows_its_drawing_and_the_happy_path_is_the
     assert flow["state"] == "drawn"
     # the played view's steps: a call and its answer in one step, in plain words, no status codes, no state names
     assert texts(flow["happy"]["steps"]) == ["Website asks Booking to hold a seat.", "Booking asks Ferrymaster to reserve on the ferry. Answer: reserved.",
-                                             "Booking answers Website on hold a seat: held."]
-    assert [s["kind"] for s in flow["happy"]["steps"]] == ["send", "request", "answer"]
+                                             "Booking answers Website on hold a seat: held.", "It ends here: held."]
+    assert [s["kind"] for s in flow["happy"]["steps"]] == ["send", "request", "answer", "end"]
     assert [g["label"] for g in flow["groups"]] == ["Hold a seat", "Reserve on the ferry"]
     assert [o["label"] for g in flow["groups"] for o in g["options"]] == [
         "Hold a seat: Sold out", "Hold a seat: Unavailable", "Reserve on the ferry: Full", "Reserve on the ferry: Times out"]
@@ -40,9 +40,11 @@ def test_a_drawn_provider_s_answer_follows_its_drawing_and_the_happy_path_is_the
     # Booking answers sold out only when Ferrymaster is full: the path goes through that inner answer, and only the
     # steps that leave the happy path are marked
     assert texts(sold_out["steps"], off=False) == ["Website asks Booking to hold a seat."]
-    assert texts(sold_out["steps"], off=True) == ["Booking asks Ferrymaster to reserve on the ferry. Answer: full.", "Booking answers Website on hold a seat: sold out."]
+    assert texts(sold_out["steps"], off=True) == ["Booking asks Ferrymaster to reserve on the ferry. Answer: full.", "Booking answers Website on hold a seat: sold out.",
+                                                  "It ends here: sold out."]
     timed = option(flow, "CON-101.timeout")
-    assert texts(timed["steps"], off=True) == ["Booking asks Ferrymaster to reserve on the ferry: no answer in time.", "Booking answers Website on hold a seat: unavailable."]
+    assert texts(timed["steps"], off=True) == ["Booking asks Ferrymaster to reserve on the ferry: no answer in time.", "Booking answers Website on hold a seat: unavailable.",
+                                               "It ends here: unavailable."]
     assert flow["check"] == {"status": "passes", "states": 15, "notChecked": False, "surveyed": True}
     assert all(o["marks"] == [] for g in flow["groups"] for o in g["options"])  # passed, so no word on any option
     assert flow["counts"] == {"branches": 4, "notDrawn": 0, "withFindings": 0, "notChecked": 0}
@@ -50,12 +52,13 @@ def test_a_drawn_provider_s_answer_follows_its_drawing_and_the_happy_path_is_the
 
 def test_an_on_rule_gives_a_call_without_alt_its_timeout_branch_and_the_happy_path_goes_on():
     flow = branches("25-grouped-and-on")["FLO-025"]
-    assert texts(flow["happy"]["steps"]) == ["Shop asks Inventory to place a hold. Answer: placed.", "Shop asks Tidepay to take the payment. Answer: paid."]
+    assert texts(flow["happy"]["steps"]) == ["Shop asks Inventory to place a hold. Answer: placed.", "Shop asks Tidepay to take the payment. Answer: paid.",
+                                             "It ends here: paid."]
     payment = option(flow, "CON-020.timeout")
-    assert texts(payment["steps"], off=True) == ["Shop asks Tidepay to take the payment: no answer in time."]
+    assert texts(payment["steps"], off=True) == ["Shop asks Tidepay to take the payment: no answer in time.", "It ends here: refused upstream unavailable."]
     grouped = [option(flow, i) for i in ("CON-010.unavailable", "CON-010.blocked")]
-    assert [texts(o["steps"], off=True) for o in grouped] == [["Shop asks Inventory to place a hold. Answer: unavailable."],
-                                                              ["Shop asks Inventory to place a hold. Answer: blocked."]]
+    assert [texts(o["steps"], off=True) for o in grouped] == [["Shop asks Inventory to place a hold. Answer: unavailable.", "It ends here: refused."],
+                                                              ["Shop asks Inventory to place a hold. Answer: blocked.", "It ends here: refused."]]
 
 
 def test_a_broken_invariant_reads_in_plain_words_with_the_expression_kept_for_details():
@@ -107,6 +110,25 @@ def test_the_build_hands_every_flow_its_branches(booking):  # noqa: F811
     assert set(data["branches"]) == {f["key"] for f in data["flows"]}
     # the example's diagrams are drawn the old way, so each flow shows as today with the one-line note
     assert all(b == {"state": "none", "note": branches_data.NOT_DRAWN_NOTE} for b in data["branches"].values())
+
+
+def test_every_branch_ends_with_its_ending_or_says_it_has_none():
+    flow = branches("20-provider-drawn")["FLO-020"]
+    timed = option(flow, "CON-101.timeout")["steps"]
+    assert timed[-1]["short"] == "It ends here: unavailable." and timed[-1]["kind"] == "end"
+    # a path the diagram leaves without an END says so, in amber
+    call = branches_data.step("call", 3, "hold a seat", **{"from": "W", "to": "B", "item": "CON-100"})
+    tail = branches_data.played((call,), {}, {}, {}, ended=False)[-1]
+    assert tail["short"] == branches_data.NO_ENDING and tail["differs"]
+
+
+def test_a_broken_invariant_reads_in_the_states_own_words_when_the_entity_page_gives_them():
+    words = {"heron": {"not_kept": ("the agent says consent wasn't kept", "")},
+             "consent": {"calendar_only": ("Consent and identity has kept it (calendar only)", "")}}
+    assert branches_data.labeled_invariant("heron=not_kept implies not consent=calendar_only", words) == \
+        "The agent says consent wasn't kept, while Consent and identity has kept it (calendar only)."
+    # a state with no words: no half-worded sentence; the caller falls back to naming the states
+    assert branches_data.labeled_invariant("heron=not_kept implies consent=calendar_only", words) is None
 
 
 @pytest.mark.parametrize("key,words", [("not_found", "Not found"), ("timeout", "Times out"), ("gave_up", "Gives up after its retries")])

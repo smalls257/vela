@@ -46,7 +46,8 @@ const Branches = (() => {
       const from = lane(x.from), to = lane(x.to), arrow = !!(x.item && CONTRACT[x.item] && from && to && from !== to);
       const unknowns = arrow && !pinned.has(x.item) ? (pins[x.item] || []) : [];
       if (arrow) pinned.add(x.item);
-      const self = arrow ? null : lane(x.from) || (x.over || []).map(lane).find(Boolean) || null;
+      // the ending is a band across the flow, as the page's own last step is; any other step inside one app loops on its lane
+      const self = arrow || x.kind === "end" ? null : lane(x.from) || (x.over || []).map(lane).find(Boolean) || null;
       return { n: x.n, short: x.short, text: x.short, html: esc(x.short), differs: !!x.differs, ref: null, unknowns, linked: [], named: [], fromTable: false,
         contracts: x.item && CONTRACT[x.item] ? [x.item] : [], self,
         messages: arrow ? [{ from, to, contract: x.item, direction: "stated", kind: x.kind === "request" ? "request" : x.kind === "answer" ? "answer" : "send" }] : [] };

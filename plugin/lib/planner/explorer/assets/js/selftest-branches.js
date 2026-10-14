@@ -38,7 +38,27 @@
     }
     return out;
   }
+  /* A numbered item's number sits on its first line. An atomic inline box (an inline-block, or a button, which is one
+     whatever its display) that wraps is one tall box whose baseline is its last line, and the list number follows the
+     baseline: so any such child of an ol item, one box taller than a line and a half, puts the number out of line. */
+  function markersOutOfLine(root) {
+    const bad = [];
+    for (const li of $$("ol > li", root)) {
+      if (!li.getClientRects().length) continue;
+      const lh = parseFloat(getComputedStyle(li).lineHeight) || parseFloat(getComputedStyle(li).fontSize) * 1.3;
+      for (const el of li.children) {
+        const rects = [...el.getClientRects()].filter((r) => r.width > 0), cs = getComputedStyle(el);
+        const atomic = /^inline-(block|flex|grid|table)$/.test(cs.display) || (/^(BUTTON|SELECT|INPUT)$/.test(el.tagName) && cs.display === "inline");
+        if (atomic && rects.length === 1 && rects[0].height > lh * 1.5) bad.push(shorten(li.textContent.trim(), 40));
+      }
+    }
+    return bad;
+  }
   async function checks(ok) {
+    const off = [];
+    for (const f of D.flows) { Nav.open("flows", f.key); Flows.select(f.key, -1); await frames(); for (const b of markersOutOfLine($("#main"))) off.push(`${f.key}: "${b}"`); }
+    for (const s of D.sections) { Nav.open(s.id); await frames(); for (const b of markersOutOfLine($("#main"))) off.push(`${s.label}: "${b}"`); }
+    ok(!off.length, "lists: every numbered item's number sits on its first line, on every flow and section page", `lists: numbers out of line with their text: ${off.slice(0, 6).join("; ")}`);
     const keys = Object.keys(D.branches || {});
     const crowded = [];
     for (const f of D.flows) for (const o of overlaps(FlowKit.flowOf(f.key))) crowded.push(`${f.key}: ${o}`);
@@ -71,6 +91,8 @@
         await frames();
         const flow = FlowKit.flowOf(key), want = o.id === "happy" ? FLOW[key].steps.length : o.steps.length;
         if (flow.steps.length !== want || $$("#scrub .tick").length !== want) bad.push(`${o.id}: ${flow.steps.length} steps and ${$$("#scrub .tick").length} ticks for ${want}`);
+        const last = flow.steps[flow.steps.length - 1];
+        if (o.id !== "happy" && !(o.steps[o.steps.length - 1].kind === "end" && last && !last.messages.length && !last.self)) bad.push(`${o.id}: the branch does not end with its ending drawn as a band`);
         if (o.id !== "happy" && flow.steps.filter((x) => x.differs).length !== o.steps.filter((x) => x.differs).length) bad.push(`${o.id}: the amber steps do not match`);
         if (o.id !== "happy" && o.steps.some((x) => x.differs) && !$('.legend[data-legend="flow"] [data-lg="flow.differs"]')) bad.push(`${o.id}: the key does not say what amber means`);
         if ($$(".legend").filter((l) => !l.hidden && l.closest("#main")).length !== 1) bad.push(`${o.id}: ${$$(".legend").filter((l) => !l.hidden && l.closest("#main")).length} keys on the view`);

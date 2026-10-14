@@ -795,7 +795,7 @@ final: [released, captured]
 - **Invariant:** not (hold=held and payment=refunded)
 ```
 
-`app` is the APP-id that keeps it. `shared: true` means two journeys can touch the same one, so the check runs two at once. `final` lists the states a journey may leave it in. **Allowed by** names what may make the move: a case (`CON-010 placed`), any case of a contract (`CON-010`), an event's handling (`EVT-003 handled`), an awaited event (`EVT-003 received`), a timer (`timer hold_expiry`), or the flow itself (`FLO-004`) for a step outside any case. An invariant uses `<entity>=<state>`, `not`, `and`, `or`, `implies` and parentheses.
+`app` is the APP-id that keeps it. `shared: true` means two journeys can touch the same one, so the check runs two at once. `final` lists the states a journey may leave it in. **Allowed by** names what may make the move: a case (`CON-010 placed`), any case of a contract (`CON-010`), an event's handling (`EVT-003 handled`), an awaited event (`EVT-003 received`), a timer (`timer hold_expiry`), or the flow itself (`FLO-004`) for a step outside any case. An invariant uses `<entity>=<state>`, `not`, `and`, `or`, `implies` and parentheses. An optional table `| State | Means | Not in it |` gives each state in plain words, what it means and what it means not to be in it, such as `| not_kept | the agent says consent wasn't kept | |`. When every state a broken invariant names has its words, the dashboard says the finding in them; otherwise it names the states.
 
 YAML reads `on`, `off`, `yes` and `no` as true or false. Quote a state with one of those names (`initial: "off"`); the check refuses an unquoted one rather than read it wrongly. For the same reason a spec's retried answers go under `retried:`, never `on:`.
 

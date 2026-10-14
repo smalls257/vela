@@ -157,7 +157,7 @@ class Walker:
 
     def end_step(self, line, actor, outcome, leaves):
         left = "".join(f"; leaves {self.entity_title(e)} {s.replace('_', ' ')}" for e, s in leaves)
-        return step("note", line, f"Ends: {outcome.replace('_', ' ')}{left}", over=[actor], tag="end")
+        return step("note", line, f"Ends: {outcome.replace('_', ' ')}{left}", over=[actor], tag="end", outcome=outcome.replace("_", " "))
 
     def with_handler(self, head, node, words, who):
         if node.handler is None:
@@ -165,7 +165,8 @@ class Walker:
             return
         opener = Path((step("note", node.handler_line, words, over=[who], tag="handler"),))
         for inner in self.block(node.handler):  # a thread of its own: its END ends the handler, not the flow
-            yield head.then(opener).then(Path(inner.steps, False, (), inner.choices))
+            steps = tuple(dict(s, tag="handler_end") if s.get("tag") == "end" else s for s in inner.steps)
+            yield head.then(opener).then(Path(steps, False, (), inner.choices))
 
     def call(self, node, rules):
         caller, provider, con, words = node.parts
@@ -325,7 +326,8 @@ def entity_keys(catalog, vault, keys):
 
 # --- the played view: one diagram, so a branch is drawn as the flow's own steps, in plain words ---------------------
 
-QUIET_TAGS = ("set", "given", "rule", "end", "handler", "contract")  # the checker's bookkeeping, not steps a person reads
+QUIET_TAGS = ("set", "given", "rule", "handler", "handler_end", "contract")  # the checker's bookkeeping, not steps a person reads
+NO_ENDING = "This branch doesn't say what happens next."
 
 
 def answer_words(item, key, answers):
@@ -338,11 +340,13 @@ def answer_words(item, key, answers):
     return said or case_words(key).lower()
 
 
-def played(steps, names, answers, contract_titles):
+def played(steps, names, answers, contract_titles, ended=True):
     """The path as the played view's steps: a call and its answer are one step ("Desktop agent asks Consent and
     identity to record the person's consent. Answer: kept."), an answer that comes later is its own step, a person's
-    step stays, and the checker's bookkeeping (states set, ON rules, where the journey ends) is left out. Each step
-    says whether it leaves the happy path (`differs`). No status codes and no state names."""
+    step stays, and the checker's bookkeeping (states set, ON rules) is left out. The journey's ending is the last
+    step, a band ("It ends here: told not kept."); a path the diagram leaves without an ending says so instead,
+    which is a finding of its own for the reader. Each step says whether it leaves the happy path (`differs`). No
+    status codes and no state names."""
     out, open_calls, i = [], [], 0
     steps = list(steps)
     while i < len(steps):
@@ -351,6 +355,10 @@ def played(steps, names, answers, contract_titles):
             i += 1
             continue
         who = lambda n: names.get(n, n)  # noqa: E731
+        if s.get("tag") == "end":
+            out.append({"kind": "end", "over": s.get("over", []), "differs": s["alt"], "short": f"It ends here: {s['outcome']}."})
+            i += 1
+            continue
         if s["kind"] == "call":
             nxt = steps[i + 1] if i + 1 < len(steps) else None
             ask = f"{who(s['from'])} asks {who(s['to'])} to {s['text']}"
@@ -382,9 +390,65 @@ def played(steps, names, answers, contract_titles):
             words = s["text"] if s.get("tag") != "timeout" else f"{s['text']}"
             out.append({"kind": "note", "over": s.get("over", []), "differs": s["alt"], "short": words.rstrip(".") + "."})
         i += 1
+    if not ended or not out or out[-1]["kind"] != "end":
+        out.append({"kind": "end", "over": [], "differs": True, "short": NO_ENDING, "open": True})
     for n, step in enumerate(out, 1):
         step["n"] = n
     return out
+
+
+def state_words(vault, catalog):
+    """{entity name: {state: (what it means, what it means not to be in it)}} from each entity page's optional
+    `| State | Means | Not in it |` table, under every name the checker finds the entity by."""
+    pages = {p.path: p for p in vault.pages}
+    out = {}
+    for name, entity in catalog.entities.items():
+        page = pages.get(str(entity.where).split(":", 1)[0])
+        if page is None:
+            continue
+        found = {}
+        for table in page.tables:
+            head = [c.strip().lower() for c in table.header or ()]
+            if head[:2] != ["state", "means"]:
+                continue
+            for row in table.rows:
+                cells = [c.strip() for c in row] + ["", ""]
+                if cells[0]:
+                    found[cells[0].strip("`")] = (cells[1], cells[2] if len(head) > 2 else "")
+        if found:
+            out[name] = found
+    return out
+
+
+def labeled_invariant(text, words):
+    """The broken invariant as a sentence of the entities' own words ("The agent says consent wasn't kept, while
+    Consent and identity has kept it (calendar only)."), or None when a state it needs has no words written."""
+    expr, problem = readers.parse_invariant(text)
+    if expr is None or problem:
+        return None
+
+    def said(e, positive):
+        if e[0] == "not":
+            return said(e[1], not positive)
+        if e[0] == "is":
+            pair = words.get(e[1], {}).get(e[2])
+            return (pair[0] if positive else pair[1]) or None if pair else None
+        if e[0] in ("and", "or"):
+            a, b = said(e[1], positive), said(e[2], positive)
+            joiner = "and" if (e[0] == "and") == positive else "or"
+            return a and b and f"{a} {joiner} {b}"
+        return None
+
+    if expr[0] == "implies":
+        a, b = said(expr[1], True), said(expr[2], False)
+    elif expr[0] == "not" and expr[1][0] == "and":
+        a, b = said(expr[1][1], True), said(expr[1][2], True)
+    else:
+        a, b = said(expr, False), ""
+    if not a or b is None:
+        return None
+    sentence = f"{a}, while {b}" if b else a
+    return sentence[0].upper() + sentence[1:] + "."
 
 
 def plain_invariant(text, catalog):
@@ -438,18 +502,18 @@ def plain_invariant(text, catalog):
 INVARIANT = __import__("re").compile(r'^The invariant "(?P<text>.+?)" of .+? no longer holds\.')
 
 
-def plain_summary(f, catalog):
+def plain_summary(f, catalog, words=None):
     """(sentence, expression or ""): the finding in plain words, and the checker's own expression for a disclosure
     when the sentence had to be written around it."""
     found = INVARIANT.match(f.summary)
     if not found:
         return f.summary, ""
-    said = plain_invariant(found.group("text"), catalog)
+    said = labeled_invariant(found.group("text"), words or {}) or plain_invariant(found.group("text"), catalog)
     return (said or "This flow can break a rule the plan says must always hold."), f.summary
 
 
-def finding_record(f, catalog):
-    plain, expression = plain_summary(f, catalog)
+def finding_record(f, catalog, words=None):
+    plain, expression = plain_summary(f, catalog, words)
     return {"code": f.code, "title": TITLES.get(f.code, f.code), "summary": plain, "expression": expression, "trace": list(f.trace),
             "owners": list(f.owners), "items": list(f.items), "where": f.where, "case": f.case,
             "severity": f.severity, "covered": f.covered}
@@ -514,7 +578,8 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
     shared = sorted({e.title for e in catalog.entities.values() if e.shared})
     not_checked = "not fully checked" in result.status
     mine = [f for f in result.findings if f.where.startswith(flow.path + ":") or f.call_line.startswith(flow.path + ":")]
-    found = [finding_record(f, catalog) for f in mine]
+    words = state_words(vault, catalog)
+    found = [finding_record(f, catalog, words) for f in mine]
     at = {}
     for i, f in enumerate(mine):
         if f.case and f.call_line:
@@ -548,7 +613,7 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
                 marks = ["not drawn"] + marks
             elif path is None:
                 marks = ["too many paths to draw"] + marks
-            steps = played(path.steps, names, answers, titles_of) if path else []
+            steps = played(path.steps, names, answers, titles_of, path.ended) if path else []
             use(steps)
             options.append({"id": ident, "label": f"{name}: {case_words(key)}", "case": key, "line": line, "status": status,
                             "says": says, "findings": hits, "marks": marks, "drawn": path is not None, "steps": steps,
@@ -564,7 +629,7 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
     return {
         "state": "drawn",
         "participants": [{"id": n, "title": names.get(n, n), "key": people.get(n, "")} for n in order if n in used],
-        "happy": {"id": "happy", "label": "Happy path", "steps": played(happy.steps, names, answers, titles_of), "findings": happy_hits,
+        "happy": {"id": "happy", "label": "Happy path", "steps": played(happy.steps, names, answers, titles_of, happy.ended), "findings": happy_hits,
                   "marks": marks_of([found[i] for i in happy_hits], not_checked), "limits": limits_for(happy, walker, stated, shared)},
         "limits": stated,
         "groups": groups, "findings": found,
