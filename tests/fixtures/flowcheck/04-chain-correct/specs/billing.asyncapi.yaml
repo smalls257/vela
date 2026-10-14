@@ -1,0 +1,10 @@
+asyncapi: 3.0.0
+info: {title: Billing, version: "1"}
+channels:
+  registrationCreated:
+    x-vela-id: EVT-003
+operations:
+  onRegistrationCreated:
+    action: receive
+    channel: {$ref: '#/channels/registrationCreated'}
+    x-vela-retries: {max: 2, on: [refused]}

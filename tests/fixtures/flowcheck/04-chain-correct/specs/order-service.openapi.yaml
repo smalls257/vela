@@ -1,0 +1,21 @@
+openapi: 3.1.0
+info: {title: Order service, version: "1"}
+paths:
+  /orders/{id}/complete:
+    post:
+      x-vela-id: CON-041
+      summary: Complete the order
+      x-vela-timeout: false
+      responses:
+        "200":
+          description: completed
+          content:
+            application/json:
+              examples:
+                completed: {value: {}, x-vela-sets: {order: completed}, x-vela-when: {order: [pending]}}
+        "409":
+          description: no such order yet
+          content:
+            application/json:
+              examples:
+                not_found: {value: {}, x-vela-when: {order: [new]}}
