@@ -1215,8 +1215,10 @@ const SelfTest = (() => {
       {  // drag to pan (pan.js): the drawing's background scrolls its holder
         const holder = $("#inside-draw"), svg = $("svg", holder), was = [holder.scrollLeft, holder.scrollTop], r = svg.getBoundingClientRect();
         const can = holder.scrollWidth > holder.clientWidth + 1, ev = (type, x, y) => new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: 1, isPrimary: true, pointerId: 11, pointerType: "mouse" });
-        svg.dispatchEvent(ev("pointerdown", r.left + 2, r.top + 2)); window.dispatchEvent(ev("pointermove", r.left - 4, r.top + 2)); window.dispatchEvent(ev("pointermove", r.left - 40, r.top + 2)); window.dispatchEvent(ev("pointerup", r.left - 40, r.top + 2));
-        const went = holder.scrollLeft - was[0];
+        // drag toward the side with room: a holder scrolled to its right end only moves when dragged rightward
+        const dx = holder.scrollLeft > 0 ? 40 : -40, at = [r.left + 2, r.top + 2];
+        svg.dispatchEvent(ev("pointerdown", at[0], at[1])); window.dispatchEvent(ev("pointermove", at[0] + Math.sign(dx) * 6, at[1])); window.dispatchEvent(ev("pointermove", at[0] + dx, at[1])); window.dispatchEvent(ev("pointerup", at[0] + dx, at[1]));
+        const went = Math.abs(holder.scrollLeft - was[0]);
         holder.scrollLeft = was[0]; holder.scrollTop = was[1];
         ok(holder.classList.contains("pannable") && (!can || went > 0), `inside ${name}, components: the drawing can be panned by dragging its background${can ? ` (it scrolled ${went} px)` : ""}`, `inside ${name}, components: pannable ${holder.classList.contains("pannable")}, scrolled ${went} px of a possible ${holder.scrollWidth - holder.clientWidth}`);
       }
