@@ -22,7 +22,7 @@ Each rule is a sentence to follow, not a phrase to copy. Say each thing in your 
 4. **Give each point its true state when you play it back:** assumed, decided or open.
 5. **Keep codes, IDs, gate names and rule numbers out of what the lead reads.** Say the thing's name.
 6. **Name a rule in one sentence, then do what the lead asked.**
-7. **Offer about four things at a time.** A longer list is grouped, or offered as "there are six more; want them?"
+7. **Answer first, then ask the lead to judge about four things at most,** each with your recommendation. A longer list is grouped ("three things hold up the first release") or offered as "there are six more; want them?" Status is a line, not a list to hold.
 8. **Hear "done":** when the lead says close, stop, or "I'm out", close.
 9. **Play back the lead's words, not yours, before you record a decision.**
 
