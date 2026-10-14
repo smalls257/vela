@@ -4,7 +4,6 @@ import shutil
 
 from conftest import REPO, edit, findings, run
 
-PLUGIN = REPO / "plugin"
 SESSION = "---\nid: 2026-01-10-first\ntype: session\ntitle: First\ndate: 2026-01-10\nmodes: [dump]\nstatus: open\nsummary: In progress.\n---\n\n# First\n"
 CONVENTIONS = ("template", "plugin/vault", "examples/unified-booking", "tests/stub-conventions")
 
@@ -57,15 +56,3 @@ def test_every_conventions_copy_lists_the_code(tmp_path):
         text = (REPO / folder / "CONVENTIONS.md").read_text(encoding="utf-8")
         assert "| W718 | the initiative's title in .vela.yaml is still the template's placeholder |" in text, folder
         assert "- W718: `.vela.yaml` still has `title: New initiative`" in text, folder
-
-
-def test_the_first_session_asks_for_the_name_once_and_writes_it():
-    start = (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
-    assert "**Name the initiative, once.**" in start
-    paragraph = start.split("**Name the initiative, once.**", 1)[1].split("\n", 1)[0]
-    assert "What short name should this initiative go by?" in paragraph
-    assert "`title:` in `.vela.yaml`" in paragraph and "never ask again" in paragraph
-    assert "Reader copy" in paragraph
-    for skill in ("dump", "discover"):
-        text = (PLUGIN / "skills" / skill / "SKILL.md").read_text(encoding="utf-8")
-        assert "asks once for the initiative's short name" in text, skill

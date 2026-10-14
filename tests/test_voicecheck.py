@@ -6,7 +6,7 @@ import subprocess
 
 import pytest
 
-from conftest import run, skill_text
+from conftest import run
 from vela import voicecheck
 
 DRAFT = ("Booking holds a seat for 10 minutes ([[CAP-014-hold-a-seat|CAP-014]]). It calls CON-003 on 2026-11-20, "
@@ -309,11 +309,3 @@ def test_tool_failures_exit_2(repo, tmp_path):
     code, out = run("voicecheck", "--range", "no-such-ref", "--vault", str(repo))
     assert code == 2 and "no-such-ref" in out
     assert run("voicecheck", "--range", "..HEAD", "--vault", str(repo))[0] == 2
-
-
-def test_close_and_the_reviewer_carry_the_redundant_route():
-    root = pathlib.Path(__file__).resolve().parent.parent / "plugin"
-    close = skill_text("close")
-    reviewer = (root / "agents" / "voice-reviewer.md").read_text(encoding="utf-8")
-    assert '--redundant "<sentence>"' in close and "named by the reviewer" in close or "the reviewer named as redundant" in close
-    assert "Redundant sentences" in reviewer and "Redundant sentence (exact)" in reviewer

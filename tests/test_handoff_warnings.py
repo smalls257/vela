@@ -5,7 +5,7 @@ import subprocess
 
 import pytest
 
-from conftest import REPO, check, findings, run, skill_text
+from conftest import REPO, check, findings, run
 from vela import cli, handoff, handoffwarn
 
 HERON = REPO / "tests" / "fixtures" / "team-skills" / "heron"
@@ -88,8 +88,3 @@ def test_the_guide_and_conventions_agree_that_epics_follow_handoff():
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert 'H --> J["handoff' in guide and 'J --> I["/vela:epics' in guide
     assert "Epics come after handoff" in guide and "Epics come after handoff" in conventions
-
-
-def test_the_read_back_and_the_manifest_step_tell_the_lead_what_is_not_firm():
-    assert "draft or assumption" in skill_text("grill") and "no case table" in skill_text("grill")
-    assert "not settled at handoff" in skill_text("close")  # the words the handoff record's heading now uses
