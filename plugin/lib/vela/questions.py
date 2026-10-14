@@ -767,6 +767,25 @@ def digest(vault, area=None, subject_id=None):
             "owed": len(kept), "undisposed": undisposed, "asked": asked, "reviewer_open": opened, "groups": out}
 
 
+# REVIEW section 5: the lead hears at most three questions at a time, and "more" brings the next three. A turn of 50
+# questions is a dump, not an interview, and the lead answers none of it well.
+DIGEST_AT_A_TIME = 3
+
+
+def unseen(answer, seen, at_a_time=DIGEST_AT_A_TIME):
+    """(shown, held) from a `digest` answer: its groups without any copy in `seen` (copy and reviewer IDs already shown
+    this session, or that a capture this session already answered or ruled out), the first `at_a_time` of them to show
+    and the rest held back. A group keeps only its unseen copies, so a copy that turned up after its entry was shown is
+    still asked. The order is the digest's own. Never a line twice: what is shown is what the caller records."""
+    seen = set(seen)
+    left = []
+    for group in answer["groups"]:
+        copies = [c for c in group["copies"] if c not in seen]
+        if copies:
+            left.append(dict(group, copies=copies))
+    return left[:at_a_time], left[at_a_time:]
+
+
 def stats(vault, area=None):
     """For each entry, how many copies the vault owes and how each ended, and how often it ended
     not-applicable: the evidence for pruning an entry or tightening its trigger. Pruning is the user's call."""
