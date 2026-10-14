@@ -50,8 +50,10 @@ Then re-read the frontmatter and confirm it parses as YAML and that `from` is th
 Re-read every file you wrote or changed. Confirm each frontmatter parses, then run this from the vault root. It prints a count per type and exits 1 if a type has more than 5 active examples or a file does not parse:
 
 ```
-python3 - <<'PLANNER_EOF'
-import glob, sys, yaml
+python3 - "${CLAUDE_PLUGIN_ROOT}/lib" <<'PLANNER_EOF'
+import glob, sys
+sys.path.insert(0, sys.argv[1])  # the plugin's own PyYAML, so nothing needs installing
+import yaml
 active, bad = {}, []
 for path in glob.glob("voice/examples/*/*.md") + glob.glob("voice/local/*/*.md"):
     try:

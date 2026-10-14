@@ -63,7 +63,7 @@ def test_pr_check_workflow_runs_planner_check():
     steps = workflow["jobs"]["planner-check"]["steps"]
     commands = [s.get("run", "") for s in steps]
     assert "python .claude/skills/planner/scripts/planner check" in commands
-    assert any("pyyaml" in c for c in commands)
+    assert not any("pyyaml" in c for c in commands)  # the plugin brings its own
 
 
 def test_toolkit_ci_runs_the_suite():

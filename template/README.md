@@ -9,7 +9,7 @@ authored: authored
 
 This vault holds one initiative. Start at [[01-goals|Goals]]. The format is in `CONVENTIONS.md`.
 
-Prerequisites: Python 3.11 or later, and PyYAML (`python3 -m pip install pyyaml`).
+Prerequisites: Python 3.9 or later, which every Mac already has. Nothing to pip install: the plugin brings its own copy of PyYAML. `planner doctor` says what this machine has and what each missing optional piece would add.
 
 ## Setup checklist
 

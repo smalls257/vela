@@ -228,7 +228,9 @@ def test_voice_seed_quotes_from_and_runs_a_final_check(tmp_path):
         for i in range(n):
             (vault / folder / "decision" / f"VX-decision-{folder[-1]}{i}.md").write_text(
                 "---\nvoice_type: decision\nstate: active\nfrom: 'it''s'\n---\n\nbody\n", encoding="utf-8")
-    run = lambda: subprocess.run([sys.executable, "-c", script], cwd=vault, capture_output=True, text=True, timeout=60)
+    assert block.startswith('python3 - "${CLAUDE_PLUGIN_ROOT}/lib" <<')  # the plugin's own PyYAML, no pip step
+    lib = str(REPO / "plugin" / "lib")  # what ${CLAUDE_PLUGIN_ROOT}/lib expands to
+    run = lambda: subprocess.run([sys.executable, "-c", script, lib], cwd=vault, capture_output=True, text=True, timeout=60)
     assert run().returncode == 1  # six active in one type
     next((vault / "voice" / "local" / "decision").glob("*.md")).write_text(
         "---\nvoice_type: decision\nstate: retired\n---\n", encoding="utf-8")

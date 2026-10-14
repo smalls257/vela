@@ -20,6 +20,7 @@ from planner import criteria as criteria_reader
 from . import slices_data
 from .record import chips_html, inline_html, plain
 
+LIST_MARK = re.compile(r"^[-*] |^\d+\. ")
 APP_STATUS_END = {"new": "new", "changed": "changes", "retired": "absent", "retire": "absent"}
 
 
@@ -186,7 +187,7 @@ def failure(vault, keys):
             stop = next((x.line for x in heads[i + 1:] if x.level <= h.level), len(lines) + 1)
             body = [l.strip() for l in lines[h.line:stop - 1] if l.strip() and not l.strip().startswith(("|", "<!--", "```"))]
             sections.append({"heading": h.text, "id": h.text,
-                             "html": "".join(f"<p>{inline_html(re.sub(r'^[-*] |^\d+\. ', '', b), keys, runtime)}</p>" for b in body[:8]),
+                             "html": "".join(f"<p>{inline_html(LIST_MARK.sub('', b), keys, runtime)}</p>" for b in body[:8]),
                              "more": len(body) > 8})
         out[keys.page(app)] = {"runtime": keys.page(runtime), "sections": sections}
     return out

@@ -45,15 +45,14 @@ def run_bin(vault, *args, env=None):
                           env={**os.environ, **(env or {})}, timeout=120)
 
 
-# 2. a missing PyYAML is a tool failure with the fix in the message, not "vault has errors"
+# 2. PyYAML comes with the plugin: a broken or missing one on the machine changes nothing
 
-def test_missing_pyyaml_exits_2_with_the_install_command(mini, tmp_path):
+def test_a_broken_machine_pyyaml_is_never_loaded(mini, tmp_path):
     (tmp_path / "shadow").mkdir()
     (tmp_path / "shadow" / "yaml.py").write_text("raise ImportError('no yaml here')\n", encoding="utf-8")
     result = run_bin(mini, "check", env={"PYTHONPATH": str(tmp_path / "shadow")})
-    assert result.returncode == 2
-    assert "planner needs PyYAML: python3 -m pip install pyyaml" in result.stderr
-    assert "Traceback" not in result.stderr
+    assert result.returncode in (0, 1), result.stdout + result.stderr
+    assert "Traceback" not in result.stdout + result.stderr
 
 
 # 3. running the bin never writes bytecode into a vault
@@ -262,5 +261,5 @@ def test_template_wrapper_readme_and_claude_md():
     assert 'cd "$root" && exec claude' in read("template/bin/claude-planner")
     assert "`/ask`" not in read("template/CLAUDE.md") and "`/planner:ask`" in read("template/CLAUDE.md")
     readme = read("template/README.md")
-    assert "Python 3.11" in readme and "PyYAML" in readme
+    assert "Python 3.9" in readme and "Nothing to pip install" in readme and "pip install pyyaml" not in readme
     assert "python3 .claude/skills/planner/scripts/planner view --out ~/Desktop/<name>.html" in readme

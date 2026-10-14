@@ -36,7 +36,8 @@ import subprocess
 import sys
 import traceback
 
-import yaml
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "plugin" / "lib"))  # the plugin's bundled PyYAML
+import yaml  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 

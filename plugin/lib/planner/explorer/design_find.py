@@ -57,8 +57,7 @@ def discover(vault, root, named):
         said.append(f"no design doc found for {', '.join(app for app, _ in missing)}; Inside this app stops at their containers. "
                     f"Put the design at {VAULT_DOCS}/<slug>.md in the vault (its team runs /planner:design --app APP-x from the vault root), "
                     "or point to one with design: on the app page, designs: in .planner.yaml, or --design APP-x=<path>.")
-        said += [f"  {app}: {'; '.join(tried) if tried else f"no design: or designs: entry, no {VAULT_DOCS}/*.md in the vault, no local GitHub or Code link"}"
-                 for app, tried in missing if tried]
+        said += [f"  {app}: {'; '.join(tried)}" for app, tried in missing if tried]
     return found, said
 
 
