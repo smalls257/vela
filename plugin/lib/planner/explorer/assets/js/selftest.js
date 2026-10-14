@@ -1330,7 +1330,7 @@ const SelfTest = (() => {
       Inside.open(k, "components");
       if (!d) {
         const say = ($("#inside-stage .inside-chip-card") || { textContent: "" }).textContent;
-        ok(/design is not loaded/.test(say) && say.includes("--design"), `inside ${name}, components: no design, so the chip says how to load one with --design`, `inside ${name}, components: no design and no chip ("${say.slice(0, 60)}")`);
+        ok(/hasn't shared a design yet/.test(say) && say.includes("--design"), `inside ${name}, components: no design, so the chip says how to load one with --design`, `inside ${name}, components: no design and no chip ("${say.slice(0, 60)}")`);
         continue;
       }
       if (d.summary && d.summary.text) {  // a summary-first design (/planner:design) opens its panel on the summary, then the walking skeleton
@@ -1405,7 +1405,7 @@ const SelfTest = (() => {
     }
     // the vault and the design, both ways: owned, acknowledged and missed, each on the vault item's own panel
     const owned = Object.keys(Inside.OWNERS).find((id) => /^CAP-\d{3}\.FR\d+$/.test(id) && E[id]);
-    if (owned) { go(owned, { reset: true }); ok($$("#panel .in-owner").some((x) => /Owned by/.test(x.textContent)), `reverse trace: ${owned}'s panel says "Owned by ${Inside.OWNERS[owned][0].component} (${titleOf(Inside.OWNERS[owned][0].app)} design)"`, `reverse trace: ${owned} shows no owner`); }
+    if (owned) { go(owned, { reset: true }); ok($$("#panel .in-owner").some((x) => /Delivered by/.test(x.textContent)), `reverse trace: ${owned}'s panel says "Delivered by ${Inside.OWNERS[owned][0].component} (${titleOf(Inside.OWNERS[owned][0].app)} design)"`, `reverse trace: ${owned} shows no owner`); }
     for (const kind of ["ack", "missed"]) {
       const id = Object.keys(Inside.UNTRACED).find((x) => Inside.UNTRACED[x].some((u) => !!u.gap === (kind === "ack")) && (CONTRACT[x] || E[x] || /^EPC-\d{3}\.AC\d+$/.test(x)));
       if (!id) { out.push(`skip reverse trace, ${kind}: no such untraced target in these designs`); continue; }
@@ -1519,7 +1519,7 @@ const SelfTest = (() => {
       ok(copied === p.csv && copied.split("\r\n").length - 1 === p.totals.built + p.totals.tasks + 1,
         `inside ${name}, build plan: "Copy as Jira CSV" hands over the build's CSV, ${p.totals.built + p.totals.tasks} rows (stories it builds, and their tasks) and a header`, `inside ${name}, build plan: copied ${copied === null ? "nothing" : copied.length + " characters, not the CSV"}`);
       const built = Object.keys(Plan_BUILT_KEYS(k)).find((id) => E[id]);
-      if (built) { go(built, { reset: true }); ok($$("#panel .in-owner.built").some((x) => /Built by S-\d+/.test(x.textContent)), `reverse trace: ${built}'s panel says "Built by ${Plan.built(built)[0].story} (${Plan.planWord(k)})"`, `reverse trace: ${built} shows no Built by`); }
+      if (built) { go(built, { reset: true }); ok($$("#panel .in-owner.built").some((x) => /Built by .*S-\d+/.test(x.textContent)), `reverse trace: ${built}'s panel says "Built by ${Plan.built(built)[0].story} (${Plan.planWord(k)})"`, `reverse trace: ${built} shows no Built by`); }
     }
     if (bare) {
       Inside.open(bare, "plan");

@@ -54,7 +54,7 @@ const Plan = (() => {
     for (const [app, p] of Object.entries(PLANS)) for (const story of p.stories) for (const b of story.blockers) {
       if (b.kind === "story" || (b.kind === "question" && !isOpen(UNKNOWN[b.ref]))) continue;
       const k = `${b.kind}:${b.ref || b.text}`;
-      (by[k] = by[k] || { kind: b.kind, ref: b.ref, text: b.text, stories: [] }).stories.push({ app, id: story.id });
+      (by[k] = by[k] || { kind: b.kind, ref: b.ref, text: b.text, stories: [] }).stories.push({ app, id: story.id, name: story.name });
     }
     return Object.values(by).sort((a, b) => b.stories.length - a.stories.length || cmp(a.text, b.text));
   }
