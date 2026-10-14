@@ -18,13 +18,13 @@ def test_report_lists_what_check_found_and_exits_0(mini):
     stale(mini)
     code, out = run("health", "--vault", str(mini), "--today", "2026-03-10")
     assert code == 0, out
-    assert out.startswith("# Vault health\n\nBuilt by `planner health` on 2026-03-10 from ")
+    assert out.startswith("# Vault health\n\nMade by `planner health` on 2026-03-10, from ")
     assert "`planner check` found 0 errors and 4 warnings." in out
     assert "| UNK-001 Till test rig | @mini-qa | 2026-02-01 |" in out
     assert "| 01-goals.md | 2025-11-01 | @\u200dmini-lead | @mini-lead |" in out
     assert "| SRC-01 | Stock read API documentation | 2026-01-02 | @stock-team |" in out
     assert "The last session closed on 2026-01-10, 59 days ago. That is over 30 days." in out
-    assert "9 of 10 pages carry no `last_verified`" in out
+    assert "9 of 10 pages don't record when someone last checked them" in out
 
 
 def test_report_and_check_agree(mini):
@@ -84,7 +84,7 @@ def test_a_future_session_does_not_read_as_negative_days(mini):
 def test_an_empty_last_verified_is_not_verified(mini):
     edit(mini / "01-goals.md", "authored: mixed\n", "authored: mixed\nlast_verified: \"\"\n")
     _, out = run("health", "--vault", str(mini), "--today", "2026-01-15")
-    assert "10 of 10 pages carry no `last_verified`" in out
+    assert "10 of 10 pages don't record when someone last checked them" in out
 
 
 def test_findings_that_map_to_no_row_are_counted_not_dropped():

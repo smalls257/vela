@@ -124,7 +124,7 @@ def test_gate_4_override_turns_e316_into_w316(ub):
     code, out = broken(ub)
     assert code == 0
     assert findings(out) == [("W316", CAP)]
-    assert "Overridden: GATE-4 by @hl-solution-lead on 2026-11-20: the board signs off Monday" in out
+    assert "Accepted as an exception: GATE-4 by @hl-solution-lead on 2026-11-20: the board signs off Monday" in out
 
 
 def test_the_e316_code_itself_can_be_named(ub):
@@ -199,7 +199,8 @@ def test_on_behalf_unconfirmed_warns_until_confirmed(ub):
     edit(ub / PRICING, CONFIRMED, "")
     code, out = broken(ub)
     assert code == 0 and findings(out) == [("W324", PRICING)]
-    assert "CON-003 was decided on @harborline/revenue-team's behalf by @hl-solution-lead, not yet confirmed." in out
+    assert ("@hl-solution-lead decided" in out and "(CON-003) on @harborline/revenue-team's behalf, and "
+            "@harborline/revenue-team hasn't confirmed it yet." in out)
     assert "/planner:challenge" in out
     edit(ub / PRICING, "on behalf of @harborline/revenue-team\n", "on behalf of @harborline/revenue-team\n" + CONFIRMED)
     assert codes(ub) == []
@@ -246,9 +247,9 @@ def test_progress_grid_counts_override_decisions_as_decided_and_says_so():
     assert "| [[pricing-building-blocks\\|Pricing]] | epics | 0 | 0 | 0 | 3 (1 by override) | none | none |" in goals
     code, out = run("status", "--vault", str(FIXTURE), "--today", TODAY)
     assert code == 0
-    assert "APP-pricing | stage epics | inkling 0, assumption 0, fact 0, decided 3 (1 by override) |" in out
-    booking = next(line for line in out.splitlines() if line.startswith("APP-booking |"))
-    assert re.search(r", decided \d+ \|", booking) and "by override" not in booking
+    assert "(APP-pricing) | stage: epics | 0 early ideas, 0 assumptions, 0 facts, 3 (1 by override) decided |" in out
+    booking = next(line for line in out.splitlines() if "(APP-booking) |" in line)
+    assert re.search(r", \d+ decided \|", booking) and "by override" not in booking
     _, status = query(FIXTURE, "status")
     pricing = next(a for a in status["apps"] if a["app"] == "APP-pricing")
     assert (pricing["decided"], pricing["decided_by_override"]) == (3, 1)
@@ -257,7 +258,7 @@ def test_progress_grid_counts_override_decisions_as_decided_and_says_so():
 def test_a_malformed_override_does_not_count_in_the_grid(ub):
     edit(ub / PRICING, "- **Override:** GATE-5 by", "- **Override:** GATE5 by")
     code, out = run("status", "--vault", str(ub), "--today", TODAY)
-    assert "APP-pricing | stage epics | inkling 0, assumption 0, fact 0, decided 3 |" in out
+    assert "(APP-pricing) | stage: epics | 0 early ideas, 0 assumptions, 0 facts, 3 decided |" in out
 
 
 # ------------------------------------------------------------- skill text
@@ -330,10 +331,10 @@ def test_every_never_list_is_a_default_the_user_can_override_because_start_says_
 def test_an_owner_confirming_after_handoff_changes_nothing_the_senior_accepted(ub):
     edit(ub / PRICING, CONFIRMED, "")
     code, out = run("handoff", "verify", "APP-booking", "--vault", str(ub))
-    assert code == 0 and "0 changed, 0 added, 0 removed" in out, out
+    assert code == 0 and "0 things changed, 0 added and 0 removed" in out, out
     edit(ub / PRICING, "- **Decided by:** @hl-solution-lead", "- **Decided by:** @hl-booking-senior")
     code, out = run("handoff", "verify", "APP-booking", "--vault", str(ub))
-    assert code == 1 and "changed: CON-003" in out
+    assert code == 1 and "(CON-003): its wording changed" in out
 
 
 def test_a_bare_decided_by_is_the_owners_own_decision_and_needs_no_confirmation(ub):

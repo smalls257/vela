@@ -105,7 +105,7 @@ def report(vault, findings, today, commit):
     errors = sum(1 for f in findings if f.is_error)
     out = ["# Vault health",
            "",
-           f"Made by `planner health` on {today}, from commit {commit}. `planner check` found {errors} errors and "
+           f"Made by `planner health` on {today}, from {commit}. `planner check` found {errors} errors and "
            f"{len(findings) - errors} warnings."]
     for title, header, rower, code in (
             ("Overdue open questions", ("Open question", "Owner", "Ask by"), overdue_rows, "W705"),

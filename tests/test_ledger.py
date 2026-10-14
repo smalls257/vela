@@ -263,7 +263,7 @@ def test_a_row_with_an_error_disposes_of_nothing(ub):
     assert answer["undisposed"] == 1 and answer["coverage"].startswith("57 owed, 1 undisposed")
     assert [c["id"] for c in ask(ub, "--open")[1]["copies"]] == ["Q-FIN-02@INI-002", "Q-FIN-03@SV-01"]
     _, out = run("questions", "--vault", str(ub))
-    assert "Q-FIN-03@SV-01 | FIN | high | invalid (answered) | SV-01 | blocks nothing |" in out
+    assert "Q-FIN-03@SV-01 | FIN | high | unreadable row (answered) | SV-01 | not linked to an item yet |" in out
 
 
 def test_a_broken_exception_is_not_quietly_replaced_by_its_wildcard(ub):
@@ -286,11 +286,12 @@ def test_planner_questions_prints_the_coverage_line_and_one_line_per_copy():
     code, out = run("questions", "--vault", str(FIXTURE))
     lines = out.splitlines()
     assert code == 0
-    assert lines[0] == "planner questions: 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1. 1 reviewer question, 1 open."
+    assert lines[0] == ("planner questions: 57 standard questions apply, 0 not dealt with yet, 1 asked but not answered, "
+                        "1 open reviewer question (question catalog v1). 1 reviewer question, 1 open.")
     assert "complete" not in out.lower()
     assert len(lines) == 59
-    assert "Q-DAT-02@APP-website | DAT | high | assumed via Q-DAT-02@APP-* | APP-website | settled | What customer data" in out
-    assert lines[-1].startswith("R-FIN-01 | FIN | normal | open | reviewer | blocks nothing | Points are earned")
+    assert "Q-DAT-02@APP-website | DAT | high | answered by assumption through Q-DAT-02@APP-* | APP-website | dealt with | What customer data" in out
+    assert lines[-1].startswith("R-FIN-01 | FIN | normal | open | reviewer | not linked to an item yet | Points are earned")
 
 
 def test_planner_questions_filters_by_area_and_subject():

@@ -50,7 +50,7 @@ def test_epics_not_decided_are_exported_and_named(tmp_path):
     edit(vault / "13-epics" / "EPC-033-website-to-booking.md", "state: decided", "state: reopened")
     code, text, rows = exported(tmp_path, vault=vault)
     assert code == 0 and len(rows) == 10
-    assert "Not decided yet: EPC-033 (reopened)." in text
+    assert "(EPC-033) (reopened)." in text and "Not decided yet: " in text
 
 
 def test_struck_criteria_and_commas_and_quotes_survive(tmp_path):
@@ -167,7 +167,7 @@ def test_ssh_remotes_and_remotes_with_whitespace(tmp_path):
     assert export.web_url("https://github.com/o/my repo") == ""
     code, text, rows = exported(tmp_path, "--repo-url", "https://github.com/o/my repo", "--commit", "abc")
     assert rows[1][4] == "13-epics/EPC-031-holds-and-confirms.md"
-    assert "not one planner can turn into a web link" in text
+    assert "couldn't make web links from this repository's address" in text
 
 
 def test_link_paths_are_encoded(tmp_path):
@@ -206,7 +206,7 @@ def test_a_password_holding_an_at_sign_gives_no_link_and_no_leak(tmp_path):
     assert export.web_url("https://user:p@ss@github.com/o/r") == ""
     code, text, rows = exported(tmp_path, "--repo-url", "https://user:p@ssw0rdX@github.com/o/r", "--commit", "abc")
     assert rows[1][4] == "13-epics/EPC-031-holds-and-confirms.md"
-    assert "not one planner can turn into a web link" in text
+    assert "couldn't make web links from this repository's address" in text
     assert "ssw0rdX" not in (tmp_path / "epics.csv").read_text(encoding="utf-8") + text
 
 

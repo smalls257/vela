@@ -280,4 +280,4 @@ def test_capabilities_carry_a_domain_and_the_delta_page_draws_them():
 def test_booking_handoff_manifest_matches_the_vault():
     code, out = run("handoff", "verify", "APP-booking", "--vault", str(FIXTURE))
     assert code == 0, out
-    assert out.startswith("planner handoff verify APP-booking: 0 changed, 0 added, 0 removed since the handoff at example on 2026-11-20.")
+    assert out.startswith("planner handoff verify APP-booking: since Booking was handed off on 2026-11-20 at example, 0 things changed, 0 added and 0 removed.")

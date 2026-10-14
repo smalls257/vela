@@ -39,7 +39,7 @@ def test_next_offers_releases_once_allocation_is_carried_and_no_release_exists(t
     for epic in (vault / "13-epics").glob("EPC-*.md"):
         epic.unlink()
     said = run("next", "--vault", str(vault), "--today", TODAY)[1]
-    assert "initiative, releases" in said, said
+    assert "for the whole plan: date the releases" in said, said
     (vault / "04b-releases.md").write_text(vault_with(tmp_path / "second", skill_example()).joinpath("04b-releases.md").read_text(encoding="utf-8"),
                                            encoding="utf-8")
     assert "initiative, releases" not in run("next", "--vault", str(vault), "--today", TODAY)[1]

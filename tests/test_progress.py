@@ -52,7 +52,7 @@ def only(vault, app_id, as_of="2026-01-15"):
 def test_no_sources_means_discover():
     row = only(vault_of(app_page("shop", sources=None)), "APP-shop")
     assert (row.rule, row.mode, row.subject) == (2, "discover", "APP-shop")
-    assert row.reason == "APP-shop lists no sources."
+    assert row.reason == "Shop lists no sources yet."
 
 
 def test_an_overdue_unknown_comes_first():
@@ -65,14 +65,14 @@ def test_an_overdue_unknown_comes_first():
 def test_an_item_with_no_options_means_shape():
     row = only(vault_of(app_page("shop")), "APP-shop")
     assert (row.rule, row.mode, row.subject) == (3, "shape", "APP-shop")
-    assert only(vault_of(app_page("shop", state="inkling")), "APP-shop").reason == "APP-shop is at inkling with no options recorded."
+    assert only(vault_of(app_page("shop", state="inkling")), "APP-shop").reason == "Shop (APP-shop) is only an early idea so far and has no options written down."
 
 
 def test_options_recorded_before_target_means_discover_for_gate_one():
     page = app_page("shop", state="decided", stage="baseline", body=contract("CON-001", "till", "assumption", options=True))
     row = only(vault_of(page), "APP-shop")
     assert (row.rule, row.mode, row.subject) == (4, "discover", "CON-001")
-    assert "a Grill needs target or later" in row.reason
+    assert "a grill needs the app at target or later" in row.reason
 
 
 def test_options_recorded_at_target_means_grill():
@@ -112,7 +112,7 @@ def test_an_epic_not_decided_means_epics():
     shop = app_page("shop", state="decided", body=contract("CON-001", "till"))
     row = only(vault_of(shop, epic("EPC-001", "shop", "draft")), "APP-shop")
     assert (row.mode, row.subject) == ("epics", "EPC-001")
-    assert row.reason == "Every contract of APP-shop is settled, and EPC-001 is draft."
+    assert row.reason.startswith("Every interface of Shop is settled, and the epic ") and row.reason.endswith("(EPC-001) is still a draft.")
     done = only(vault_of(shop, epic("EPC-001", "shop")), "APP-shop")
     assert (done.rule, done.mode) == (9, "none")
 
