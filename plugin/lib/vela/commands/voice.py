@@ -34,7 +34,7 @@ from vela.decisions import consent, record as records
 from vela.edge import atomic, sessiongit, voicegit
 from vela.edge.vaultgit import GitUnavailable
 
-STEPS = ()  # modules with `register_voice(steps)`; Task 19 adds "voice_settle"
+STEPS = ("voice_settle",)  # modules with `register_voice(steps)`
 NAME = "voice"
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _HASH = re.compile(r"^[0-9a-f]{12}$")
