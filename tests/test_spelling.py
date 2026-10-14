@@ -1,20 +1,16 @@
-"""American spelling, and the vaults written before it.
-
-The toolkit now writes American English. A vault made earlier still says "licences" and opens its cost concern with the
-old template line, and a script may still read the old "catalogue" JSON key. Renaming only the new side would not crash;
-the checks would just stop noticing, so each old form is fed in here and must still be read. W372 is the other half: it
-says, in plain words, when a page's own prose is spelled the British way."""
-import json
+"""American spelling: W372 says, in plain words, when a page's own prose is spelled the British way, and W809 still
+hears the British "licences" a lead or a source document writes today. W368 still knows the lines older templates
+opened with, so a vault made from one does not look as if it had replaced its template opening."""
 import shutil
 
 import pytest
 
 from conftest import REPO, check, edit, findings, run
 
-from vela import catalog, cli, readload, spelling
+from vela import cli, readload, spelling
 
-OLD_COST_LINE = "Running cost, licences and shared budgets such as mainframe processing."
-NEW_COST_LINE = "Running cost, licenses and shared budgets such as mainframe processing."
+RETIRED_LINE = "One row per app, one column per concern."
+COST_LINE = "Running cost, licenses and shared budgets such as mainframe processing."
 
 
 def opens_with(vault, line):
@@ -28,15 +24,15 @@ def codes_on(out, path):
     return [code for code, where in findings(out) if where == path]
 
 
-# ------------------------------------------------------------------------------ W368 knows the retired British line
+# ------------------------------------------------------------------------------ W368 knows the retired template lines
 
-def test_the_shipped_template_lines_hold_the_new_cost_line_and_the_retired_one():
+def test_the_shipped_template_lines_hold_the_current_lines_and_the_retired_ones():
     lines = cli.load_template_lines()
-    assert NEW_COST_LINE in lines and OLD_COST_LINE in lines
-    assert OLD_COST_LINE not in cli.TEMPLATE_LINES.read_text(encoding="utf-8"), "the current list is American"
+    assert COST_LINE in lines and RETIRED_LINE in lines
+    assert RETIRED_LINE not in cli.TEMPLATE_LINES.read_text(encoding="utf-8"), "the retired line is not current"
 
 
-@pytest.mark.parametrize("line", [OLD_COST_LINE, NEW_COST_LINE])
+@pytest.mark.parametrize("line", [RETIRED_LINE, COST_LINE])
 def test_an_opening_left_from_either_template_still_reads_as_template_text(mini, line):
     opens_with(mini, line)
     _, out = check(mini)
@@ -47,21 +43,6 @@ def test_a_missing_retired_line_file_is_a_tool_failure(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "TEMPLATE_LINES_RETIRED", tmp_path / "nope.txt")
     with pytest.raises(cli.ToolError):
         cli.load_template_lines()
-
-
-# ------------------------------------------------------------------------------ the JSON key, both spellings
-
-@pytest.mark.parametrize("flag", ["--json", "--stats"])
-def test_questions_json_carries_catalog_and_the_old_catalogue_key(mini, flag):
-    argv = ["questions", "--vault", str(mini), "--json"] + (["--stats"] if flag == "--stats" else [])
-    code, out = run(*argv)
-    assert code == 0, out
-    answer = json.loads(out)
-    assert answer["catalog"] == answer["catalogue"] == cli.load_catalog().version
-
-
-def test_version_keys_name_one_version_twice():
-    assert catalog.version_keys(3) == {"catalog": 3, "catalogue": 3}
 
 
 # ------------------------------------------------------------------------------ W809 still hears "licences"

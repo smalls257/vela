@@ -205,7 +205,7 @@ def find(vault, words):
 
 
 def status(vault, today):
-    """The vela status grid as data."""
+    """The grid `vela status` prints, as data."""
     apps = []
     for row in progress.grid(vault, today):
         inkling, assumption, fact, decided = row.mix

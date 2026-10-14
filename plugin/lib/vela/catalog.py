@@ -120,13 +120,6 @@ class Catalog:
 EMPTY = Catalog(0, (), ())
 
 
-def version_keys(version):
-    """The catalog version as the JSON answers carry it. "catalog" is the key; "catalogue" is the same value under
-    the British spelling the key had before, kept for one release so a script that reads the old key keeps working
-    instead of getting nothing. Drop the old key once that release is out."""
-    return {"catalog": version, "catalogue": version}
-
-
 def parse_trigger(text, scope):
     """A Trigger, or CatalogError naming what is wrong with the text.
 
