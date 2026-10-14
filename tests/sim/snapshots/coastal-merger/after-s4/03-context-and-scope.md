@@ -13,15 +13,15 @@ sources: [SRC-01, SRC-02, SRC-03, SRC-04]
 
 ## Today
 
-Ferry side (Harbourline), from SRC-01:
+Ferry side (Harborline), from SRC-01:
 
 - SeaBook is the web booking engine, with a 99.9% availability target from May to September and 24/7 on-call. (SRC-01)
 - FERRYMASTER is the mainframe reservation system and the ledger of record. The vendor contract runs to March 2029 with an 18-month notice period. The end date is disputed: see [[11-unknowns-and-risks#UNK-008 FERRYMASTER end date|UNK-008]]. (SRC-01)
 - Two people run the FERRYMASTER mainframe. Neither has cover today. What to do about it is open: see [[11-unknowns-and-risks#UNK-009 Mainframe key-person cover|UNK-009]]. (SRC-03, SRC-04)
-- Halyard CRM serves the Kestrel Bay contact centre. (SRC-01)
-- Tidepay takes card payments for web, the contact centre and the port kiosks. (SRC-01)
+- Halyard CRM serves the Kestrel Bay contact center. (SRC-01)
+- Tidepay takes card payments for web, the contact center and the port kiosks. (SRC-01)
 - Tidemiles is the ferry loyalty scheme: 1 point per pound spent, and 100 points redeem for 1 pound. (SRC-01)
-- The customer database holds about 1.2 million records. Its owner is not confirmed after the reorganisation: see [[11-unknowns-and-risks#UNK-003 Ferry customer data owner|UNK-003]]. (SRC-01)
+- The customer database holds about 1.2 million records. Its owner is not confirmed after the reorganization: see [[11-unknowns-and-risks#UNK-003 Ferry customer data owner|UNK-003]]. (SRC-01)
 
 Rail side (Northway), from SRC-02:
 

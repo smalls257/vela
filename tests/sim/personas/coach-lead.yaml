@@ -82,8 +82,8 @@ unaware:
   - id: U2
     category: legal-regulatory
     keywords: ["15-minute embargo", "redistribution", "delay is enforced"]
-    gap: Quoteline's licence makes Kestrel responsible for never showing a quote less than 15 minutes old, including from cache after a feed hiccup.
-    why: A cache that falls back to a fresher source, or replays a late-arriving quote as current, breaches the licence.
+    gap: Quoteline's license makes Kestrel responsible for never showing a quote less than 15 minutes old, including from cache after a feed hiccup.
+    why: A cache that falls back to a fresher source, or replays a late-arriving quote as current, breaches the license.
 
 conflicts:
   - id: C1

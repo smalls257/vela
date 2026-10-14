@@ -6,8 +6,8 @@ author: "Eric Allman"
 work: "The Architecture of Open Source Applications, Volume 1"
 chapter: "Chapter 17, Sendmail, section 17.4. Design Decisions"
 url: https://aosabook.org/en/v1/sendmail.html
-licence: CC BY 3.0
-licence_url: https://creativecommons.org/licenses/by/3.0/
+license: CC BY 3.0
+license_url: https://creativecommons.org/licenses/by/3.0/
 changes: none, the passage is quoted word for word
 state: active
 added: 2026-10-03

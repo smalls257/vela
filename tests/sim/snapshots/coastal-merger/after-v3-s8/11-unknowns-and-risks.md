@@ -195,7 +195,7 @@ authored: mixed
 
 ### UNK-019 FERRYMASTER contract end
 
-- **Question:** When does the FERRYMASTER vendor contract end: March 2029 with an 18-month notice period (SRC-02, Harbourline systems list), or December 2027 (SRC-01, CIO memo)? SRC-02 owns the contract term; SRC-01 states the retirement date. Neither is picked.
+- **Question:** When does the FERRYMASTER vendor contract end: March 2029 with an 18-month notice period (SRC-02, Harborline systems list), or December 2027 (SRC-01, CIO memo)? SRC-02 owns the contract term; SRC-01 states the retirement date. Neither is picked.
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
 - **Blocks:** nothing yet, no item is past inkling
@@ -223,7 +223,7 @@ authored: mixed
 
 ### UNK-022 Customer database owner
 
-- **Question:** Who owns the ferry customer database after the reorganisation? SRC-02 says to be confirmed.
+- **Question:** Who owns the ferry customer database after the reorganization? SRC-02 says to be confirmed.
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
 - **Blocks:** nothing yet, no item is past inkling
@@ -252,7 +252,7 @@ authored: mixed
 
 ### UNK-025 Current rail systems list
 
-- **Question:** What does rail actually run today? The only rail source is SRC-04, a slide of the target architecture, so every rail line is a plan, not a fact. Is there a current systems list for rail, like Harbourline's SRC-02 for ferry, who owns it, and can the solution lead get it?
+- **Question:** What does rail actually run today? The only rail source is SRC-04, a slide of the target architecture, so every rail line is a plan, not a fact. Is there a current systems list for rail, like Harborline's SRC-02 for ferry, who owns it, and can the solution lead get it?
 - **Owner:** @sim-lead (Solution lead)
 - **State:** open
 - **Blocks:** nothing yet, no item is past inkling
@@ -264,8 +264,8 @@ authored: mixed
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=848ed1c5: do not edit, run planner render -->
-**Questions:** 34 owed, 20 undisposed, 25 open reviewer questions, against catalogue v1.
+<!-- generated:undisposed-questions sha=fb3a1f03: do not edit, run planner render -->
+**Questions:** 34 owed, 20 undisposed, 25 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |
 |---|---|---|---|---|---|
@@ -335,7 +335,7 @@ authored: mixed
 | R-PTN-06 | unknown | question: Is 'next summer' tied to any external commitment or contract date, and where is the mandate in writing?; quote: "To fetch: the CIO's mandate in writing, held by the CIO's office." in [[2026-10-06-one-customer-mandate]]; unknown: UNK-011, UNK-024 | @sim-lead | 2026-10-06 |
 | R-REG-01 | open | question: Which legal entity will be the customer's counterparty for a combined account or journey, and are Kestrel Bay and Dunmere one legal entity yet?; quote: "Merged three months, ferry and rail ops still completely separate—Kestrel Bay and Dunmere." in [[2026-10-06-one-customer-mandate]]; severity: high | @solution-lead | 2026-10-06 |
 | R-REG-02 | open | question: What do the existing ferry and rail customer terms and consents allow, and does a shared customer ID that links accounts need new consent or notice?; quote: "Honestly not sure how many of them even want this merged anyway—we never asked." in [[2026-10-06-one-customer-mandate]]; severity: high | @solution-lead | 2026-10-06 |
-| R-REG-03 | unknown | question: Does the freeze come from internal policy or from a safety, licence or regulatory duty, and who can lift it?; quote: "Is the May to September freeze written down anywhere, such as a change policy or an agreement between ferry ops and IT?" in [[2026-10-06-one-customer-mandate]]; unknown: [[11-unknowns-and-risks#UNK-006 Freeze and next summer\|UNK-006]] | @sim-lead | 2026-10-06 |
+| R-REG-03 | unknown | question: Does the freeze come from internal policy or from a safety, license or regulatory duty, and who can lift it?; quote: "Is the May to September freeze written down anywhere, such as a change policy or an agreement between ferry ops and IT?" in [[2026-10-06-one-customer-mandate]]; unknown: [[11-unknowns-and-risks#UNK-006 Freeze and next summer\|UNK-006]] | @sim-lead | 2026-10-06 |
 | R-OPS-01 | unknown | question: Is the May to September freeze a written rule or a request? Who set it? Does 'next summer' fall inside it, and does the plan need any change inside FERRYMASTER?; quote: "we can't touch FERRYMASTER May through September, and the CIO wants this live by next summer. Those dates just don't fit." in [[2026-10-06-one-customer-mandate]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-006 Freeze and next summer\|UNK-006]] | @sim-lead | 2026-10-06 |
 | R-OPS-02 | unknown | question: Who owns the initiative's work and decides between teams? Who tells ferry and rail to stop building their own versions? Who runs the new shared layer, including out of hours?; quote: "Ferry and rail both quietly build their own thing because nobody told them to stop." in [[2026-10-06-one-customer-mandate]]; unknown: [[11-unknowns-and-risks#UNK-011 Parallel builds by ferry and rail\|UNK-011]] | @sim-lead | 2026-10-06 |
 | R-OPS-03 | open | question: What must follow a customer between SeaBook, FERRYMASTER and RailCore, such as identity, wallet or balance and preferences? What happens when one side is frozen or down?; quote: "Customers end up logging in somewhere and half the features don't work." in [[2026-10-06-one-customer-mandate]] | @solution-lead | 2026-10-06 |
@@ -348,7 +348,7 @@ authored: mixed
 | Q-PTN-06@PTY-01 | open |  | @sim-lead | 2026-10-06 |
 | R-FIN-05 | open | question: What does leaving the FERRYMASTER contract early cost, who pays, and when must notice be given?; quote: "If the contract runs to March 2029, retiring in December 2027 means leaving early, and the notice date matters." in [[11-unknowns-and-risks]]; severity: high | @sim-lead | 2026-10-06 |
 | R-FIN-06 | open | question: Who funds the move of rail payments to Tidepay, and does it sit inside or outside this initiative's budget?; quote: "RailCore's own gateway takes payments today, with a move to Tidepay planned for 2027." in [[03-context-and-scope]] | @sim-lead | 2026-10-06 |
-| R-DAT-06 | unknown | question: Which legal entity is the data controller of the ferry customer database, and who can authorise a new use of it?; quote: "Who owns the ferry customer database after the reorganisation? SRC-02 says to be confirmed." in [[11-unknowns-and-risks]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-022 Customer database owner\|UNK-022]] | @sim-lead | 2026-10-06 |
+| R-DAT-06 | unknown | question: Which legal entity is the data controller of the ferry customer database, and who can authorize a new use of it?; quote: "Who owns the ferry customer database after the reorganization? SRC-02 says to be confirmed." in [[11-unknowns-and-risks]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-022 Customer database owner\|UNK-022]] | @sim-lead | 2026-10-06 |
 | R-DAT-07 | unknown | question: What personal data does the hotel feed carry, and what terms or data-sharing agreement cover it, given the changes to identity and ownership?; quote: "- **Agreements:** none known" in [[03-context-and-scope]]; severity: high; unknown: UNK-011, UNK-024 | @sim-lead | 2026-10-06 |
 | R-DAT-08 | open | question: Will stored card or payment data move between the RailCore gateway and Tidepay, and under what basis and controls?; quote: "RailCore's own gateway takes payments today, with a move to Tidepay planned for 2027." in [[03-context-and-scope]] | @sim-lead | 2026-10-06 |
 | R-DAT-09 | unknown | question: Do the RailCore and FERRYMASTER vendor contracts include data-processing terms, and do they allow a new party or purpose?; quote: "- **Agreements:** the RailCore vendor service level (SRC-04)." in [[03-context-and-scope]]; unknown: UNK-011, UNK-024 | @sim-lead | 2026-10-06 |
@@ -356,7 +356,7 @@ authored: mixed
 | R-DAT-11 | open | question: What customer data moves when the two loyalty schemes merge, and what were members told about how their points can be used?; quote: "Tidemiles and Northway Plus are combined, one for one into a single balance." in [[03-context-and-scope]] | @sim-lead | 2026-10-06 |
 | R-REG-04 | open | question: Which legal entity owes each loyalty balance, what is the conversion rate, and do the scheme terms allow the change? Who bears the cost if customers lose value?; quote: "What is a Northway Plus point worth on redemption, which rate wins, and who owes the difference to customers?" in [[11-unknowns-and-risks]]; severity: high | @sim-lead | 2026-10-06 |
 | R-REG-05 | open | question: What does the FERRYMASTER contract say about early exit, notice and liability, and which end date is right?; quote: "If the contract runs to March 2029, retiring in December 2027 means leaving early, and the notice date matters." in [[11-unknowns-and-risks]]; severity: high | @sim-lead | 2026-10-06 |
-| R-REG-06 | unknown | question: Which legal entity is the controller of the ferry customer database, and does a transfer or sharing with rail need new notice or consent?; quote: "Who owns it after the reorganisation is not known" in [[03-context-and-scope]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-022 Customer database owner\|UNK-022]] | @sim-lead | 2026-10-06 |
+| R-REG-06 | unknown | question: Which legal entity is the controller of the ferry customer database, and does a transfer or sharing with rail need new notice or consent?; quote: "Who owns it after the reorganization is not known" in [[03-context-and-scope]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-022 Customer database owner\|UNK-022]] | @sim-lead | 2026-10-06 |
 | R-REG-07 | open | question: Do payment-handling rules, or duties to assisted-travel customers, constrain the Tidepay move or the shared identity? Who is accountable for them?; quote: "RailCore's own gateway takes payments today, with a move to Tidepay planned for 2027." in [[03-context-and-scope]] | @sim-lead | 2026-10-06 |
 | R-OPS-04 | unknown | question: Which date governs: March 2029 with 18 months' notice, or December 2027? Who confirms it, and by when must notice be given?; quote: "SRC-02 owns the contract term; SRC-01 states the retirement date. Neither is picked." in [[11-unknowns-and-risks]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-019 FERRYMASTER contract end\|UNK-019]] | @sim-lead | 2026-10-06 |
 | R-OPS-05 | open | question: Who will run the matching of ferry records to Northway IDs? What happens to customers with shared or missing emails, and who owns the ferry database while that is decided?; quote: "Northway ID is used for every customer login, and emails are unique. Assumption, SRC-04" in [[03-context-and-scope]] | @sim-lead | 2026-10-06 |

@@ -18,4 +18,4 @@ When the calendar cannot be read, the folder is missing or the note is late, Her
 
 ## History
 
-- **Options considered:** One laptop app (picked); Collector and note builder: rejected, "I don't own anyone yet, and two apps means two ownership questions when I can't answer one."; Laptop agent and cloud summariser: rejected, "No text off the device in release one, that's the line we hold for the pack."
+- **Options considered:** One laptop app (picked); Collector and note builder: rejected, "I don't own anyone yet, and two apps means two ownership questions when I can't answer one."; Laptop agent and cloud summarizer: rejected, "No text off the device in release one, that's the line we hold for the pack."

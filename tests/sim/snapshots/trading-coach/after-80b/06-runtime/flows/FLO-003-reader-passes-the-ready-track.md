@@ -15,6 +15,6 @@ A reader works through the lessons and three paper trades and is shown as ready.
 ## Steps
 
 1. The reader finishes every lesson for the stocks they trade, over [[coach-building-blocks#CON-001 Lessons and track|Lessons and track]]. Uses [[CAP-003-pass-the-ready-track|Pass the ready track]].
-2. The reader places paper trades on three different stocks from the list, as in [[FLO-002-reader-practises-a-trade|a reader practises a trade]], and each is graded. How a trade is graded is still open, see [[11-unknowns-and-risks#UNK-051 How Coach grades a paper trade|how Coach grades a paper trade]].
+2. The reader places paper trades on three different stocks from the list, as in [[FLO-002-reader-practices-a-trade|a reader practices a trade]], and each is graded. How a trade is graded is still open, see [[11-unknowns-and-risks#UNK-051 How Coach grades a paper trade|how Coach grades a paper trade]].
 3. Coach marks the reader ready and sends that in the reader's progress over [[coach-building-blocks#CON-001 Lessons and track|Lessons and track]].
 4. TickerTalk shows the reader as ready. Nothing live opens, because the release places no real order.

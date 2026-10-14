@@ -1,4 +1,4 @@
-# The simulated lead for a merger with no definition yet. Everything here is made up: Harbourline is the fictional
+# The simulated lead for a merger with no definition yet. Everything here is made up: Harborline is the fictional
 # ferry operator of examples/unified-booking, and Northway Rail is a fictional train operator it has merged with.
 # The persona prompt gets knows, wrong, conflicts and decisions. It never sees unaware: a gap it was never told
 # cannot leak. The judge sees all of it.
@@ -10,8 +10,8 @@
 # Every item's `category` is one of the fixed set in tests/sim/run.py (CATEGORIES). The probes score by category,
 # so a blind probe can say "cross-source-mismatch: 2 of 4 flagged" without naming an item.
 name: Sam Okafor
-role: newly appointed solution lead for the merger programme
-org: Harbourline-Northway, the group formed when Harbourline Ferries merged with Northway Rail three months ago
+role: newly appointed solution lead for the merger program
+org: Harborline-Northway, the group formed when Harborline Ferries merged with Northway Rail three months ago
 handle: "@sim-lead"
 style: >-
   Capable but overloaded, typing between meetings. Answers in short bursts of one to three sentences. Sometimes
@@ -59,7 +59,7 @@ knows:
     category: data-identity
     keywords: ["1.2 million", "share emails", "shared email", "share an email"]
     fact: The ferry customer database holds about 1.2 million customer records, and an email address does not have to be unique there, so families often share one.
-    owner: unknown since a reorganisation; it used to be the old CRM team
+    owner: unknown since a reorganization; it used to be the old CRM team
   - id: K6
     category: data-identity
     keywords: ["Northway ID", "unique email", "2 million accounts"]
@@ -91,9 +91,9 @@ knows:
     owner: Ferry Finance Systems
   - id: K12
     category: fact
-    keywords: ["Kestrel Bay", "Dunmere", "call centres"]
-    fact: Each company has its own call centre, the ferry one in Kestrel Bay and the rail one in Dunmere.
-    owner: Head of Contact Centre for ferry; nobody named for rail
+    keywords: ["Kestrel Bay", "Dunmere", "call centres", "call centers"]
+    fact: Each company has its own call center, the ferry one in Kestrel Bay and the rail one in Dunmere.
+    owner: Head of Contact Center for ferry; nobody named for rail
   - id: K13
     category: third-party-contract
     keywords: ["partner hotel", "40 hotels", "about 40"]
@@ -144,19 +144,19 @@ wrong:
   - id: W4
     category: cross-source-mismatch
     keywords: ["Halyard", "Signal CRM", "separate CRM", "CRMs"]
-    belief: Both call centres use the same CRM, so the agents can already see each other's customers.
-    truth: The ferry call centre uses Halyard CRM and the rail call centre uses Signal CRM. They share nothing.
+    belief: Both call centers use the same CRM, so the agents can already see each other's customers.
+    truth: The ferry call center uses Halyard CRM and the rail call center uses Signal CRM. They share nothing.
   - id: W5
     category: cross-source-mismatch
     keywords: ["March 2029", "notice period", "18-month", "contract end"]
-    belief: The FERRYMASTER contract ends in December 2027, so it can be replaced inside this programme.
+    belief: The FERRYMASTER contract ends in December 2027, so it can be replaced inside this program.
     truth: The contract runs to March 2029 with an 18-month notice period, as the ferry system list says. The CIO's memo has the date wrong.
 
 unaware:
   - id: U1
     category: legal-regulatory
     keywords: ["lawful basis", "DPIA", "data protection", "GDPR"]
-    gap: There is no data-protection basis for merging customer records across two legal entities. Harbourline Ferries Ltd and Northway Rail Ltd are still separate controllers.
+    gap: There is no data-protection basis for merging customer records across two legal entities. Harborline Ferries Ltd and Northway Rail Ltd are still separate controllers.
     why: Merging or even linking records needs a lawful basis, new privacy notices and a DPIA, and the group DPO has to sign it off.
   - id: U2
     category: legal-regulatory
@@ -191,7 +191,7 @@ unaware:
   - id: U8
     category: cross-source-mismatch
     keywords: ["capability map", "value stream", "capability tree"]
-    gap: There are two capability maps in different shapes. Harbourline's is a three-level business-capability tree and Northway's is built on value streams.
+    gap: There are two capability maps in different shapes. Harborline's is a three-level business-capability tree and Northway's is built on value streams.
     why: The plan needs one map to place the change on, and picking one is a decision with owners on both sides.
 
 conflicts:
@@ -253,7 +253,7 @@ decisions:
     keywords: ["FERRYMASTER exit", "exit FERRYMASTER", "after next summer", "procurement"]
     question: When is the FERRYMASTER exit planned?
     options:
-      - start the exit inside this programme
+      - start the exit inside this program
       - plan the exit after next summer
       - plan no exit
     choice: plan the exit after next summer
@@ -305,24 +305,24 @@ docs:
     text: |
       # From the CIO: one customer, one journey, one account
 
-      Written 2026-09-14, to the merger programme leads.
+      Written 2026-09-14, to the merger program leads.
 
       One customer, one journey, one account across ferry and rail by next summer. Northway ID becomes the
       single identity for every customer of the group. The Tidemiles and Northway Plus schemes will be combined.
       FERRYMASTER retires when its contract ends in December 2027, so nothing new should be built on it.
   - name: ferry-system-list.md
     text: |
-      # Harbourline systems list
+      # Harborline systems list
 
-      Owner: Harbourline IT operations. Written 2026-06-30.
+      Owner: Harborline IT operations. Written 2026-06-30.
 
       - SeaBook: web booking engine. 99.9% availability target May to September, 24/7 on-call.
       - FERRYMASTER: mainframe reservation system, ledger of record. Vendor contract runs to March 2029 with an
         18-month notice period.
-      - Halyard CRM: used by the Kestrel Bay contact centre.
-      - Tidepay: card payments for web, contact centre and port kiosks.
+      - Halyard CRM: used by the Kestrel Bay contact center.
+      - Tidepay: card payments for web, contact center and port kiosks.
       - Tidemiles: loyalty, 1 point per pound, 100 points redeem for 1 pound.
-      - Customer database: about 1.2 million records. Owner: to be confirmed after the reorganisation.
+      - Customer database: about 1.2 million records. Owner: to be confirmed after the reorganization.
       - Partner hotel feed: nightly file of package bookings sent to about 40 partner hotels.
   - name: rail-architecture-slide.md
     text: |
@@ -332,7 +332,7 @@ docs:
 
       - RailCore booking engine, vendor-hosted. Vendor SLA 99.5%, support 08:00 to 18:00 on weekdays.
       - Northway ID for every customer login. Emails unique.
-      - Signal CRM in the Dunmere contact centre.
+      - Signal CRM in the Dunmere contact center.
       - Northway Plus loyalty, 5 points per pound.
       - Northway Assist for assisted travel bookings.
       - Payments: RailCore gateway today, moving to Tidepay in 2027.

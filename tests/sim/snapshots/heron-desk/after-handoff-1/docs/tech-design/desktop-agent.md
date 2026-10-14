@@ -31,7 +31,7 @@ One per-user background app, one Tauri 2 codebase (Rust core, small web UI for t
 
 ## Note building
 
-Two layers inside the Note builder. The deterministic floor (Rust) does everything the requirements pin down: the attendee list, the most recent earlier call, which records and files count, and open points taken only where a record or file states them as open, each labelled with its source. An optional on-device model rewrites the extracted text into a short account; it never decides which points exist. Its output passes a check that each sentence maps to a source span and carries no remark on mood, tone or performance. If the model is absent, too slow or fails the check, the note shows the extracted text plainly. No hosted fallback (CST-3).
+Two layers inside the Note builder. The deterministic floor (Rust) does everything the requirements pin down: the attendee list, the most recent earlier call, which records and files count, and open points taken only where a record or file states them as open, each labeled with its source. An optional on-device model rewrites the extracted text into a short account; it never decides which points exist. Its output passes a check that each sentence maps to a source span and carries no remark on mood, tone or performance. If the model is absent, too slow or fails the check, the note shows the extracted text plainly. No hosted fallback (CST-3).
 
 First iteration may ship without the model; the floor alone must meet every EPC-003 criterion except that "short account" (EPC-003.AC1) would read as excerpts, which the product owner must accept.
 
@@ -50,7 +50,7 @@ The interval is one constant. The delta token is kept in `NoteStore`. One failed
 
 `CallClassifier` and `ClientMatcher` are interfaces; the rules are configuration. Provisional defaults, both assumptions tied to open unknowns: a client call has at least one invitee outside the firm's own email domains (UNK-021); the same client is the external invitees' email domain, and a folder file relates to the client when its path contains the client's name or domain or its text names them (UNK-022). Alternates shipped: a calendar tag or category, and the call tool named in the invitation. The Note view shows which rule is active. No match for an earlier call gives the first-call note, never an older call. The rule choice and the firm's domains come from managed settings (Intune policy on Windows, Jamf configuration profile on Mac), read at start and on change; the person cannot change them. Settings are read from machine-scope locations only (the Windows policy key under HKLM, Mac managed preferences from a configuration profile); a per-user key or a file in the user's home is ignored. If settings are missing or invalid, Heron fails closed: it builds no notes, and says why in the tray and at T-10 ("Heron's settings from IT haven't arrived"); it never falls back to a default domain list. Term-list additions can only add terms; the base list in the build cannot be removed by settings. A settings change applies to notes not yet shown. Each stored note records the rule that built it; unshown notes are rebuilt after a switch, shown notes keep theirs. A rule kind that is not shipped needs a new build through IT's update channel.
 
-## Failure behaviour
+## Failure behavior
 
 Sign-in or keychain failure (review finding 1). `CalendarSource` returns `Token`. The tray icon shows a warning badge while sign-in is dead. A signed-out episode runs from the first failed refresh to the next good poll. One notification fires per episode, only when a client call is due inside the lead window (default 4 hours); one reminder fires at T-30 for the next client call if sign-in is still dead. The reason shows in the Note view at T-10 only, never as an all-day banner. A good poll ends the episode, runs a catch-up from the saved delta token, builds the notes due, clears the badge and withdraws the notification. A note built before the failure still shows at T-10, marked "calendar not confirmed". The lead window and the reminder are managed settings (OQ-005). The wording of the message waits on OQ-002.
 
@@ -68,7 +68,7 @@ Delegated permissions only: `Calendars.Read`, `offline_access` and `User.Read`. 
 
 ## Store key and recovery (review finding 8)
 
-The encryption protects the store at rest if the laptop is lost or the disk copied; it does not protect against malware running as the user, and the design does not claim it does. The key is bound to the app: on Mac, the keychain item's access list names the signed Heron binary only; on Windows the key is wrapped with DPAPI, as is the encrypted-file token fallback (OQ-001). The key is per install and destroyed on sign-out or uninstall. If the store will not open or Graph rejects the delta token, Heron deletes the store and the token, recreates them and does a full resync of the 7-day window; shown and dismissed states are lost and a seen note may show again for a call still ahead; the tray says "Heron reset its local data" and the log records the reason code and counts resets. Release tests wipe the keychain entry, corrupt the database, and update from one signed build to the next and read the key, on both OSes. A profile push does not normally wipe the keychain; the realistic triggers are an admin password reset, a re-image or re-enrolment, an account migration and a change of signing identity (unverified for this MDM setup; the endpoint lead confirms, OQ-001).
+The encryption protects the store at rest if the laptop is lost or the disk copied; it does not protect against malware running as the user, and the design does not claim it does. The key is bound to the app: on Mac, the keychain item's access list names the signed Heron binary only; on Windows the key is wrapped with DPAPI, as is the encrypted-file token fallback (OQ-001). The key is per install and destroyed on sign-out or uninstall. If the store will not open or Graph rejects the delta token, Heron deletes the store and the token, recreates them and does a full resync of the 7-day window; shown and dismissed states are lost and a seen note may show again for a call still ahead; the tray says "Heron reset its local data" and the log records the reason code and counts resets. Release tests wipe the keychain entry, corrupt the database, and update from one signed build to the next and read the key, on both OSes. A profile push does not normally wipe the keychain; the realistic triggers are an admin password reset, a re-image or re-enrollment, an account migration and a change of signing identity (unverified for this MDM setup; the endpoint lead confirms, OQ-001).
 
 ## Folder matching (review finding 7)
 
@@ -80,11 +80,11 @@ A file relates to the client only on an exact match: the full domain, or the ful
 
 ## Names in extracted text (review finding 5)
 
-Interim, until the DPO answers UNK-023 and UNK-024: the floor drops any extracted sentence that names a person not on the call's attendee list, and the withheld count says so. Name detection is imperfect; the design does not claim the DPO's rule is met (OQ-007). `name_filter` is a managed setting, `strict` (default) or `off`, with an allow-list of tokens that look like names but are not; turning it `off` needs the DPO's agreement on record, a procedure the code cannot enforce. Each stored note records the level it was built under. A change to how names are detected is a rebuild. If the DPO says invitees who never join cannot be named, `NoteAssembler` changes in one place: the people list shows only those who accepted. Before the pilot, a labelled test set from consenting or synthetic records scores misses and false alarms; the log splits the withheld count by reason (name, mood or tone, no source).
+Interim, until the DPO answers UNK-023 and UNK-024: the floor drops any extracted sentence that names a person not on the call's attendee list, and the withheld count says so. Name detection is imperfect; the design does not claim the DPO's rule is met (OQ-007). `name_filter` is a managed setting, `strict` (default) or `off`, with an allow-list of tokens that look like names but are not; turning it `off` needs the DPO's agreement on record, a procedure the code cannot enforce. Each stored note records the level it was built under. A change to how names are detected is a rebuild. If the DPO says invitees who never join cannot be named, `NoteAssembler` changes in one place: the people list shows only those who accepted. Before the pilot, a labeled test set from consenting or synthetic records scores misses and false alarms; the log splits the withheld count by reason (name, mood or tone, no source).
 
 ## Throttling and stale calendar (review finding 4)
 
-On a 429 or 503 `CalendarSource` honours `Retry-After`; with none it backs off 30 s, 1, 2 and 5 minutes, then stays at 5. The T-15 re-poll is skipped while throttled. A note built from a stale calendar still shows at T-10, marked "calendar not confirmed since HH:MM"; the marker appears only when the last good poll is older than the threshold at T-10. The first good poll applies every move and cancellation from the saved delta token, withdraws notes for cancelled calls and re-times moved ones. The stale threshold, the backoff steps, the lead window and the idle unload are managed settings with built-in defaults, used when a value is absent; only the rule choice and the firm's domains fail closed. The log counts how often the marker was shown and how often a cancellation arrived after a note was shown.
+On a 429 or 503 `CalendarSource` honors `Retry-After`; with none it backs off 30 s, 1, 2 and 5 minutes, then stays at 5. The T-15 re-poll is skipped while throttled. A note built from a stale calendar still shows at T-10, marked "calendar not confirmed since HH:MM"; the marker appears only when the last good poll is older than the threshold at T-10. The first good poll applies every move and cancellation from the saved delta token, withdraws notes for canceled calls and re-times moved ones. The stale threshold, the backoff steps, the lead window and the idle unload are managed settings with built-in defaults, used when a value is absent; only the rule choice and the firm's domains fail closed. The log counts how often the marker was shown and how often a cancellation arrived after a note was shown.
 
 ## Keeping it running (review finding 3)
 
@@ -109,14 +109,14 @@ erDiagram
   SURFACED_NOTE { string call_id string start_time string text string state datetime created_at datetime expires_at }
   SOURCE_REF { string kind }
 ```
-- **Persistence:** `NoteStore` (Note view container): SQLCipher database, key held in the OS keychain. One row per surfaced note: the note as shown with file names and paths replaced by the kind of source, its source kinds, and its state (built, shown, dismissed, late). Rows expire 30 days after creation, swept at start and daily. A cancelled call deletes its row. A note already shown is never rebuilt; the sources stay the authority for notes not yet shown. The store is a decision of the user's made outside the vault.
+- **Persistence:** `NoteStore` (Note view container): SQLCipher database, key held in the OS keychain. One row per surfaced note: the note as shown with file names and paths replaced by the kind of source, its source kinds, and its state (built, shown, dismissed, late). Rows expire 30 days after creation, swept at start and daily. A canceled call deletes its row. A note already shown is never rebuilt; the sources stay the authority for notes not yet shown. The store is a decision of the user's made outside the vault.
 
 ## Constraints register
 | ID | Constraint | Source | Impact |
 |----|-----------|--------|--------|
 | C-3 | Surfaced notes kept in an encrypted SQLite store, 30-day expiry | user, this session (not in the vault) | notes with names and call content sit on disk; see OQ-004 |
 | C-1 | App memory budget 500 MB with the bundled model | user, this session (not in the vault) | model size and runtime must fit; unmeasured, see OQ-003 |
-| C-2 | No text leaves the device | CST-3, INI-001 @ c410421 | no hosted model, no remote summariser |
+| C-2 | No text leaves the device | CST-3, INI-001 @ c410421 | no hosted model, no remote summarizer |
 
 ## Tech stack
 | Layer | Choice | Rationale |
@@ -254,7 +254,7 @@ The core (`NoteAssembler`, `NoteScheduler`, `CallClassifier`, `ClientMatcher`) i
 
 ## API contracts
 Ports are in-process interfaces, not network APIs.
-- `CalendarSource`: `upcoming() -> [Entry{id,start,end,title,attendees[{name,org?,response}],list_members?}]`, `changes() -> [Added|Moved|Cancelled]`, `earlier_calls(client) -> [Entry]`. Errors: `Network`, `Throttled`, `Token`, `Stale`.
+- `CalendarSource`: `upcoming() -> [Entry{id,start,end,title,attendees[{name,org?,response}],list_members?}]`, `changes() -> [Added|Moved|Canceled]`, `earlier_calls(client) -> [Entry]`. Errors: `Network`, `Throttled`, `Token`, `Stale`.
 - `FolderSource`: `status() -> Unset|Missing|Empty|Ok`, `files_for(client) -> [File]`.
 - `RecordSource`: `record_for(call) -> Record|None|Unreadable`.
 - `NoteAssembler`: `build(call, deadline) -> Note{people[], account?, open_points[{text,source}], reason?}`. Never returns a guessed note; no earlier call gives the first-call note.
@@ -277,8 +277,8 @@ sequenceDiagram
   Note over NS: at T-10
   NS->>NW: show(note) or show(late)
   NS->>ST: mark(shown)
-  MS->>CS: Cancelled(call)
-  CS->>NS: Cancelled
+  MS->>CS: Canceled(call)
+  CS->>NS: Canceled
   NS->>ST: delete
 ```
 
@@ -364,7 +364,7 @@ sequenceDiagram
 
 ### OQ-007: Does a name filter on extracted text satisfy the DPO's rule that a note names only people in the meeting?
 **What we know:** The floor drops sentences naming anyone off the call's attendee list. Free-text name detection misses and misfires. The vault has UNK-023 (invitees who never join) and UNK-024 (reach of the rule) open with the DPO.
-**What would unblock:** The DPO's answer to UNK-023 and UNK-024, and a measured miss and false-alarm rate on a labelled set.
+**What would unblock:** The DPO's answer to UNK-023 and UNK-024, and a measured miss and false-alarm rate on a labeled set.
 **Affects:** NoteAssembler, CAP-001.FR2, CAP-001.FR3, EPC-001.AC5, EPC-003.AC1
 
 ### OQ-008: What is the policy for Frankfurt staff in past and coming entries: drop the person, drop the call, or something else?

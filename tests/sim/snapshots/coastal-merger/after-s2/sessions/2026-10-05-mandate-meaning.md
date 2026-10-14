@@ -23,7 +23,7 @@ summary: Mandate "one account" has no definition; April go-live, the DPO gate, a
 - [idea] (claude) What if the three demands are put on one timeline: rail work in the months before May, ferry connected by a read-only feed that never changes their systems, and the CFO's switch-off date counted from when the single view is live? → park ^c09
 - [wild] (claude) What if the CFO's saving came from sharing the back office and keeping both front doors, so nothing has to be switched off? → park ^c10
 - [thought] (solution lead) "Ferry customers share email addresses, rail customers don't." → keep: [[11-unknowns-and-risks#UNK-002 Overlap and shared emails|UNK-002]] (unknown) ^c11
-- [idea] (claude) What if a shared ferry email is treated as a household, with a traveller under it for each person, the way a family booking works? → park ^c12
+- [idea] (claude) What if a shared ferry email is treated as a household, with a traveler under it for each person, the way a family booking works? → park ^c12
 - [unknown] (solution lead) "We don't even know how many customers travel both ways." → keep: [[11-unknowns-and-risks#UNK-002 Overlap and shared emails|UNK-002]] (unknown) ^c13
 - [idea] (claude) What if the overlap were estimated from a small sample of customers matched on name and a booking reference, so there is a rough number before any full data work? → park ^c14
 - [worry] (solution lead) "Nobody named owns the ferry customer database anymore." → keep: [[11-unknowns-and-risks#UNK-003 Ferry customer data owner|UNK-003]] (unknown) ^c15

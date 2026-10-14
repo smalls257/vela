@@ -156,7 +156,7 @@ Risk, under `### R-nn <name>`: `**Owner:**` and `**State:**` are required. State
 
 ## Fact tables
 
-A fact table is recognised by its first header cells.
+A fact table is recognized by its first header cells.
 
 | Table | Header | Rules |
 |---|---|---|
@@ -198,7 +198,7 @@ A waiver records that an `addressed` cell needs no epic work. The cell text star
 
 ## Diagrams
 
-Mermaid only, as `flowchart` (or `graph`) or `sequenceDiagram`. A flowchart has at most 20 elements, counting each node and each subgraph once. A sequence diagram has at most 8 participants. Draw only the level the page owns: initiative pages draw systems, app pages draw that app's containers and direct neighbours, and nothing draws components.
+Mermaid only, as `flowchart` (or `graph`) or `sequenceDiagram`. A flowchart has at most 20 elements, counting each node and each subgraph once. A sequence diagram has at most 8 participants. Draw only the level the page owns: initiative pages draw systems, app pages draw that app's containers and direct neighbors, and nothing draws components.
 
 Four diagrams are generated blocks, drawn from the model: `context-map`, `system-context`, `app-context` and `capability-map`. Nothing in them is drawn by hand. A generated diagram keeps to the same budget. Over it, the diagram draws the app in focus first, then new and changed apps, then the other apps, then external providers, and lists every node it left out in a table under the diagram, with its contracts. The capability map first splits into one diagram per domain. Generated diagrams hold no `%%` directives and no frontmatter. Diagrams with no generator, such as an app's containers or a flow's swimlanes, are drawn by hand.
 
@@ -231,7 +231,7 @@ House-voice passages live in `voice/examples/<voice type>/`, one per file named 
 | `state` | `active` (house-voice reads it) or `retired` (kept for its attribution, never read) |
 | `added` | `YYYY-MM-DD` |
 | `author` | who wrote it: a name for `public-seed`, `"@handle"` for `owner` and `owner-edit` |
-| `work`, `chapter`, `url`, `licence`, `licence_url`, `changes` | `public-seed` only: where it comes from and its licence |
+| `work`, `chapter`, `url`, `license`, `license_url`, `changes` | `public-seed` only: where it comes from and its license |
 | `from` | `owner` only: where the passage comes from, in a few words |
 | `page`, `harvested_from` | `owner-edit` only: the page, and the full hash of the draft commit the owner edited |
 
@@ -263,10 +263,10 @@ The `sha` is the first 8 hex digits of SHA-256 over the block's text, with trail
 | `traceability` | `13-epics.md` | Each trace gap in full, and the number of checks that pass |
 | `traces-to` | each epic page | The epic's `apps`, `delivers`, `consumes`, `flows` and `depends_on` as links, and the concerns its acceptance criteria mark |
 | `delivered-by` | each capability page | Every epic whose `delivers` lists this capability |
-| `context-map` | `05-building-blocks.md` | One node per app page and per external `**Provider:**`, and one arrow per contract from its provider to each consumer, labelled with the contract ID. Each app's label and colour say its `change`. |
+| `context-map` | `05-building-blocks.md` | One node per app page and per external `**Provider:**`, and one arrow per contract from its provider to each consumer, labeled with the contract ID. Each app's label and color say its `change`. |
 | `system-context` | `03-context-and-scope.md` | The after view: apps in one box, external providers outside it, and the same contract arrows. Retired apps are listed under it, not drawn. |
-| `app-context` | each app page | The app and its direct neighbours by contract, provided or consumed |
-| `capability-map` | `04a-capability-delta.md` | Every capability in a box per `domain`, labelled and coloured by `change` |
+| `app-context` | each app page | The app and its direct neighbors by contract, provided or consumed |
+| `capability-map` | `04a-capability-delta.md` | Every capability in a box per `domain`, labeled and colored by `change` |
 | `progress-map` | `01-goals.md` | One row per app: its stage, how many of its items are at each state, the oldest open unknown that blocks it with its Opened date, and its next mode. It is judged as of the last session's date, so it changes only when the vault does. |
 
 A view with no generator is a list of links to where the data lives, never a copy kept by hand.
@@ -347,7 +347,7 @@ Codes are stable. A retired code is never reused.
 
 ## Epics and traceability
 
-An epic page holds a description, the owning team, 4 to 7 numbered acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behaviour a tester can see at a contract or flow boundary, never inside a container.
+An epic page holds a description, the owning team, 4 to 7 numbered acceptance criteria, dependencies, rollout notes and what is out of scope. Its trace data is the frontmatter lists; the `traces-to` block shows them as links. Each acceptance criterion describes behavior a tester can see at a contract or flow boundary, never inside a container.
 
 A concern marker ends an acceptance criterion with the concern's name in brackets, `[testing]` for `concern-testing`. One criterion may carry several, `[security] [data]`. A criterion whose text starts with `~~` is struck and its markers count for nothing.
 

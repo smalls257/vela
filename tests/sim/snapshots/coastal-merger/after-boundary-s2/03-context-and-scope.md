@@ -17,15 +17,15 @@ Each bullet below carries its own state word and source. The page state is the w
 
 ### Ferry side today
 
-Harbourline, from its IT operations systems list. Each bullet is a `fact`, source SRC-02.
+Harborline, from its IT operations systems list. Each bullet is a `fact`, source SRC-02.
 
 - **SeaBook** (fact, SRC-02): the web booking engine. It has an availability target of 99.9% from May to September and is on call round the clock.
 - **FERRYMASTER** (fact, SRC-02): a mainframe reservation system, and the ledger of record.
 - **FERRYMASTER contract notice** (fact, SRC-02): the vendor contract needs 18 months' notice. Its end date is disputed, so it is held in [[11-unknowns-and-risks#UNK-021 FERRYMASTER contract end date|UNK-021]] and not stated here.
-- **Halyard CRM** (fact, SRC-02): used by the Kestrel Bay contact centre.
-- **Tidepay** (fact, SRC-02): takes card payments for the web, the contact centre and the port kiosks.
+- **Halyard CRM** (fact, SRC-02): used by the Kestrel Bay contact center.
+- **Tidepay** (fact, SRC-02): takes card payments for the web, the contact center and the port kiosks.
 - **Tidemiles** (fact, SRC-02): the ferry loyalty scheme, 1 point per pound spent, and 100 points redeem for 1 pound. See [[#SV-01 Tidemiles]].
-- **Customer database** (fact, SRC-02): about 1.2 million records. Its owner is to be confirmed after the reorganisation: [[11-unknowns-and-risks#UNK-016 Ferry customer DB owner|UNK-016]].
+- **Customer database** (fact, SRC-02): about 1.2 million records. Its owner is to be confirmed after the reorganization: [[11-unknowns-and-risks#UNK-016 Ferry customer DB owner|UNK-016]].
 - **Partner hotel feed** (fact, SRC-02): a nightly file of package bookings goes to about 40 partner hotels. See [[#PTY-01 Partner hotels]].
 
 ### Rail side today
@@ -34,7 +34,7 @@ Northway Rail, from a target-architecture slide. Each bullet is an `assumption`,
 
 - **RailCore** (assumption, SRC-04): the booking engine, hosted by its vendor. The vendor SLA is 99.5%, and support runs 08:00 to 18:00 on weekdays. See [[#PTY-03 RailCore vendor]].
 - **Northway ID** (assumption, SRC-04): the login for every rail customer, and emails are unique.
-- **Signal CRM** (assumption, SRC-04): used in the Dunmere contact centre.
+- **Signal CRM** (assumption, SRC-04): used in the Dunmere contact center.
 - **Northway Plus** (assumption, SRC-04): the rail loyalty scheme, 5 points per pound spent. See [[#SV-02 Northway Plus]].
 - **Northway Assist** (assumption, SRC-04): handles assisted travel bookings.
 - **Payments** (assumption, SRC-04): through the RailCore gateway today, with a move to Tidepay planned for 2027.
@@ -57,7 +57,7 @@ Sarah Chen, named second-hand as the Data Protection Officer ([[11-unknowns-and-
 The Data Protection Officer's written reply of 2026-10-07 (SRC-07). It is the officer's position on what is lawful, and not a sign-off on any design. Whether the officer is the Sarah Chen above is not settled: [[11-unknowns-and-risks#UNK-010 Data Protection Officer|UNK-010]].
 
 - **Linking at sign-in** (fact, SRC-07): the officer's position is that linking a ferry account and a rail account is lawful when the customer links them at sign-in and consents.
-- **Matching without consent** (fact, SRC-07): the officer's position is that matching records across Harbourline and Northway without that consent is not lawful.
+- **Matching without consent** (fact, SRC-07): the officer's position is that matching records across Harborline and Northway without that consent is not lawful.
 - **Households** (fact, SRC-07): the officer's position is that a household needs each adult's own consent.
 - **Households in release one** (assumption, SRC-07): the officer asks for households to be kept out of the first release. This clashes with the picked option in [[04-solution-strategy]]: [[11-unknowns-and-risks#UNK-044 Households in release one|UNK-044]].
 
@@ -77,7 +77,7 @@ Each bullet is an `assumption`, source SRC-06, because the reply states what the
 - **Shared account service** (assumption, SRC-06): the Northway Platform team owns it. Who owns Northway ID itself is still open: [[11-unknowns-and-risks#UNK-012 Northway ID ownership|UNK-012]].
 - **Live date** (assumption, SRC-06): live by 1 June 2027, which is what the CIO means by next summer. [[11-unknowns-and-risks#UNK-002 Meaning of next summer|UNK-002]] stays open until the CIO's office confirms it.
 
-<!-- generated:system-context sha=bcd10c1b: do not edit, run planner render -->
+<!-- generated:system-context sha=9376a557: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]
@@ -102,7 +102,7 @@ flowchart LR
   class n_APP_account_link_service,n_APP_ferrymaster,n_APP_northway_id,n_APP_railcore,n_APP_seabook app
 ```
 
-Key: blue outline: an app in the initiative · an arrow is a contract, labelled with its ID.
+Key: blue outline: an app in the initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:system-context -->
 
 ## In scope

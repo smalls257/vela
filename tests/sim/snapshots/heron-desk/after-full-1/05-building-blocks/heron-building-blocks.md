@@ -79,7 +79,7 @@ Heron reads what each call tool leaves behind about a call, such as notes or a t
 - **Change:** new
 - **State:** assumption
 
-<!-- generated:app-context sha=b9a0afa9: do not edit, run planner render -->
+<!-- generated:app-context sha=a722d99f: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_heron["Heron (new)"]
@@ -95,17 +95,17 @@ flowchart LR
   class n_APP_heron focus
 ```
 
-Key: dark blue: the app this page is about · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Requirements allocated
 
 | Requirement | Share | Through | State |
 |---|---|---|---|
-| [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR1 Note before a client call\|Note before a client call]] | builds one note for each client call as soon as the call is known and shows it ten minutes before the start; a call booked or moved to start inside ten minutes gets its note as soon as it can be built; a moved call is shown ten minutes before its new time; for a cancelled call it shows no note and withdraws one already built; only for calls counted as client calls | CON-001 | assumption |
+| [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR1 Note before a client call\|Note before a client call]] | builds one note for each client call as soon as the call is known and shows it ten minutes before the start; a call booked or moved to start inside ten minutes gets its note as soon as it can be built; a moved call is shown ten minutes before its new time; for a canceled call it shows no note and withdraws one already built; only for calls counted as client calls | CON-001 | assumption |
 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR1 Note before a client call\|Note before a client call]] | obligation of CON-001: Microsoft's calendar sends each entry with its time and attendees, and sends any move or cancellation, so Heron can act on the change before the note is due | CON-001 | assumption |
-| [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR2 Who is on the call\|Who is on the call]] | lists the people on a client call from the person's own calendar entry and nowhere else; everyone invited appears except those who have declined; someone who joins without being invited does not appear; a list in the invitation is expanded only when the entry names its members; each person is shown by name and organisation only | CON-001 | assumption |
-| [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR2 Who is on the call\|Who is on the call]] | obligation of CON-001: each calendar entry carries every invitee's name and organisation, whether each has accepted or declined, and the members of a list when the entry names them | CON-001 | assumption |
+| [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR2 Who is on the call\|Who is on the call]] | lists the people on a client call from the person's own calendar entry and nowhere else; everyone invited appears except those who have declined; someone who joins without being invited does not appear; a list in the invitation is expanded only when the entry names its members; each person is shown by name and organization only | CON-001 | assumption |
+| [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR2 Who is on the call\|Who is on the call]] | obligation of CON-001: each calendar entry carries every invitee's name and organization, whether each has accepted or declined, and the members of a list when the entry names them | CON-001 | assumption |
 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR3 Last time and what is open\|Last time and what is open]] | finds the most recent earlier call with the same client and gives a short account of it and the points still open from it, drawn only from what the call tool left behind about that call and from files in the chosen folder; an open point appears only when a call tool record or a folder file states it as open, and the note says which; it adds no open point of its own; when the most recent earlier call left nothing readable, the note says so and does not reach back to an older call; it carries no remark about anyone's mood, tone or performance | CON-001, CON-002, CON-003 | assumption |
 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR3 Last time and what is open\|Last time and what is open]] | obligation of CON-003: for each call the call tool leaves a readable record, such as notes or a transcript, that can be tied to that call; where it leaves none, Heron says so | CON-003 | assumption |
 | [[CAP-001-prepare-a-client-for-a-call#CAP-001.FR3 Last time and what is open\|Last time and what is open]] | obligation of CON-002: the files in the chosen folder can be read, and nothing is written back | CON-002 | assumption |
@@ -116,5 +116,5 @@ Key: dark blue: the app this page is about · white, dashed: outside the initiat
 
 ## History
 
-- **Options considered:** One laptop app (picked); Collector and note builder: rejected, "I don't own anyone yet, and two apps means two ownership questions when I can't answer one."; Laptop agent and cloud summariser: rejected, "No text off the device in release one, that's the line we hold for the pack."
+- **Options considered:** One laptop app (picked); Collector and note builder: rejected, "I don't own anyone yet, and two apps means two ownership questions when I can't answer one."; Laptop agent and cloud summarizer: rejected, "No text off the device in release one, that's the line we hold for the pack."
 - **Decision:** [[2026-10-11-privacy-m365-device-line]]

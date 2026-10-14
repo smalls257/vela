@@ -12,7 +12,7 @@ authored: authored
 
 One paragraph per term: the term in bold, then what it means in this initiative.
 
-**Paper trading** means practising a trade with pretend money. In release one a reader places paper trades on stocks from the fixed list, Coach keeps the record of each reader's paper balance and trades, and Brightwater's sandbox only fills the orders. Paper balances are not money, and options are taught as reading only, never paper-traded.
+**Paper trading** means practicing a trade with pretend money. In release one a reader places paper trades on stocks from the fixed list, Coach keeps the record of each reader's paper balance and trades, and Brightwater's sandbox only fills the orders. Paper balances are not money, and options are taught as reading only, never paper-traded.
 
 **Pending order** means a paper order that Coach has sent to Brightwater's sandbox and the sandbox has not yet answered. Coach never sends it again, asks the sandbox for its status when it can, and moves the reader's balance only when the order fills at its fill price.
 

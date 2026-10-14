@@ -8,16 +8,16 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=253a95b4: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=a2da693f: do not edit, run planner render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 What the front door means\|UNK-001]] | What the front door means | @joint-ceo (Joint CEO) | open | 2026-10-19 |
-| [[#UNK-002 Calder booking owner\|UNK-002]] | Calder booking owner | @sim-lead (Programme lead) | open | 2026-10-26 |
+| [[#UNK-002 Calder booking owner\|UNK-002]] | Calder booking owner | @sim-lead (Program lead) | open | 2026-10-26 |
 | [[#UNK-003 Competing director demands\|UNK-003]] | Competing director demands | @joint-ceo (Joint CEO) | open | 2026-10-19 |
-| [[#UNK-004 Phone option for patients\|UNK-004]] | Phone option for patients | @sim-lead (Programme lead) | open | 2026-11-02 |
+| [[#UNK-004 Phone option for patients\|UNK-004]] | Phone option for patients | @sim-lead (Program lead) | open | 2026-11-02 |
 | [[#UNK-005 Build window around the freeze\|UNK-005]] | Build window around the freeze | @fenwick-coo (Fenwick COO) | open | 2026-10-19 |
 | [[#UNK-006 Keystone contract end date\|UNK-006]] | Keystone contract end date | @calder-procurement (Calder procurement) | open | 2026-10-19 |
-| [[#R-01 Miss the April date\|R-01]] | Miss the April date | @sim-lead (Programme lead) | open |  |
+| [[#R-01 Miss the April date\|R-01]] | Miss the April date | @sim-lead (Program lead) | open |  |
 <!-- /generated:unknowns-index -->
 
 ## Unknowns
@@ -35,7 +35,7 @@ authored: mixed
 ### UNK-002 Calder booking owner
 
 - **Question:** Who owns outpatient booking at Calder as a whole, when each specialty's medical secretaries book their own clinics?
-- **Owner:** @sim-lead (Programme lead)
+- **Owner:** @sim-lead (Program lead)
 - **State:** open
 - **Blocks:** [[01-goals|Goals]]
 - **Ask by:** 2026-10-26
@@ -55,7 +55,7 @@ authored: mixed
 ### UNK-004 Phone option for patients
 
 - **Question:** What must the front door offer patients who do not use a smartphone or the web?
-- **Owner:** @sim-lead (Programme lead)
+- **Owner:** @sim-lead (Program lead)
 - **State:** open
 - **Blocks:** [[01-goals|Goals]]
 - **Ask by:** 2026-11-02
@@ -86,6 +86,6 @@ authored: mixed
 
 ### R-01 Miss the April date
 
-- **Owner:** @sim-lead (Programme lead)
+- **Owner:** @sim-lead (Program lead)
 - **State:** open
 - **Notes:** Raised in [[2026-10-05-front-door-meaning#^c17]]. Missing April pushes the next safe window past the following winter.

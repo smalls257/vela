@@ -56,7 +56,7 @@ knows:
   - id: K5
     category: data-identity
     keywords: ["watchlist", "reading history"]
-    fact: TickerTalk holds each user's email, watchlists and reading history. Users agreed to it for personalising news.
+    fact: TickerTalk holds each user's email, watchlists and reading history. Users agreed to it for personalizing news.
     owner: Mobile team
   - id: K6
     category: fact
@@ -81,7 +81,7 @@ knows:
   - id: K10
     category: finance-liability
     keywords: ["2.5 million", "this year's budget"]
-    fact: The budget for the coach this year is 2.5 million dollars, including any licences.
+    fact: The budget for the coach this year is 2.5 million dollars, including any licenses.
     owner: CFO
   - id: K11
     category: fact
@@ -113,8 +113,8 @@ wrong:
   - id: W2
     category: cross-source-mismatch
     keywords: ["OPRA", "real-time licence", "real-time license", "exchange fees"]
-    belief: Our Quoteline licence lets us show live quotes and options prices in the coach.
-    truth: The licence covers 15-minute delayed equity quotes for display only. Real-time quotes need exchange fees per user, and options prices need an OPRA licence.
+    belief: Our Quoteline license lets us show live quotes and options prices in the coach.
+    truth: The license covers 15-minute delayed equity quotes for display only. Real-time quotes need exchange fees per user, and options prices need an OPRA license.
   - id: W3
     category: finance-liability
     keywords: ["look-ahead", "lookahead", "survivorship", "out-of-sample"]
@@ -146,7 +146,7 @@ unaware:
     category: finance-liability
     keywords: ["discretionary", "trading authorization", "trading authorisation", "power of attorney"]
     gap: Placing trades for a customer without their approval of each one is discretionary authority.
-    why: It needs written authorisation, a registered firm to supervise it, and someone liable for every loss or error. "Trades for them when they're ready" is exactly this.
+    why: It needs written authorization, a registered firm to supervise it, and someone liable for every loss or error. "Trades for them when they're ready" is exactly this.
   - id: U4
     category: data-identity
     keywords: ["new purpose", "training data", "consent for training", "train Signal on"]
@@ -160,8 +160,8 @@ unaware:
   - id: U6
     category: third-party-contract
     keywords: ["non-display", "derived data", "derived works"]
-    gap: The Quoteline licence forbids using its data to train models or make derived data without a non-display addendum.
-    why: Signal was trained on Quoteline prices, so the model itself may already breach the licence.
+    gap: The Quoteline license forbids using its data to train models or make derived data without a non-display addendum.
+    why: Signal was trained on Quoteline prices, so the model itself may already breach the license.
   - id: U7
     category: finance-liability
     keywords: ["early assignment", "assigned early", "assignment risk"]
@@ -197,7 +197,7 @@ decisions:
     question: What does the first release of the coach do?
     options:
       - lessons and paper trading only
-      - personalised trade ideas the user places themselves
+      - personalized trade ideas the user places themselves
       - the coach places trades for users who opt in
     choice: lessons and paper trading only, with the coach walking through one stock or option trade at a time
     reason: nothing regulated goes live before counsel and Brightwater have read it
@@ -237,10 +237,10 @@ decisions:
     question: Where do quotes in the coach come from?
     options:
       - stay on Quoteline's delayed quotes
-      - buy a real-time licence from Quoteline
+      - buy a real-time license from Quoteline
       - use Brightwater's quotes inside the trade screen, delayed elsewhere
     choice: use Brightwater's quotes inside the trade screen, delayed elsewhere
-    reason: it costs nothing extra and stays inside a licence someone else holds
+    reason: it costs nothing extra and stays inside a license someone else holds
     refuse_until: someone confirms in writing that Brightwater's quotes may be shown inside a third-party app
   - id: D6
     category: fact
@@ -295,9 +295,9 @@ docs:
       - Section 7.2: any customer-facing content about trading that Kestrel shows to Brightwater customers must be
         approved by Brightwater before use.
       - Sandbox paper accounts are available for testing.
-  - name: quoteline-licence-summary.md
+  - name: quoteline-license-summary.md
     text: |
-      # Quoteline market data licence: summary
+      # Quoteline market data license: summary
 
       Prepared by the data engineer, 2026-03-02.
 

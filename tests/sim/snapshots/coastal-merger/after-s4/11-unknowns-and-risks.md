@@ -53,7 +53,7 @@ authored: mixed
 - **Blocks:** [[concern-data|Data concern]]
 - **Ask by:** 2026-10-19
 - **Opened:** 2026-10-05
-- **Notes:** Raised in [[2026-10-05-mandate-meaning#^c15]]. Nobody named owns it since the merger. SRC-01 also lists the owner as to be confirmed after the reorganisation ([[2026-10-05-systems-run-today#^c11]]).
+- **Notes:** Raised in [[2026-10-05-mandate-meaning#^c15]]. Nobody named owns it since the merger. SRC-01 also lists the owner as to be confirmed after the reorganization ([[2026-10-05-systems-run-today#^c11]]).
 
 ### UNK-004 DPO proposal before data
 
@@ -97,7 +97,7 @@ authored: mixed
 
 ### UNK-008 FERRYMASTER end date
 
-- **Question:** When does FERRYMASTER actually end: March 2029, as the Harbourline systems list says, or December 2027, as the solution lead has heard?
+- **Question:** When does FERRYMASTER actually end: March 2029, as the Harborline systems list says, or December 2027, as the solution lead has heard?
 - **Owner:** @solution-lead (Solution lead)
 - **State:** open
 - **Blocks:** [[03-context-and-scope|Context and scope]]

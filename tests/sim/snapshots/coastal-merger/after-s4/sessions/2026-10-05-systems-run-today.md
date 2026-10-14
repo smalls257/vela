@@ -5,7 +5,7 @@ title: "Discover: systems run today"
 date: 2026-10-05
 modes: [discover, dump]
 status: closed
-summary: "Systems today: 11 facts from the Harbourline list, the Northway slide and the lead, plus unknowns on the FERRYMASTER end date and mainframe cover."
+summary: "Systems today: 11 facts from the Harborline list, the Northway slide and the lead, plus unknowns on the FERRYMASTER end date and mainframe cover."
 ---
 
 # 2026-10-05 Discover: systems run today
@@ -14,10 +14,10 @@ summary: "Systems today: 11 facts from the Harbourline list, the Northway slide 
 
 - [fact] (claude, from SRC-01) SeaBook is the web booking engine, 99.9% availability target May to September, 24/7 on-call. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c01
 - [fact] (claude, from SRC-01) FERRYMASTER is the mainframe reservation system and ledger of record, vendor contract to March 2029, 18-month notice. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c02
-- [fact] (claude, from SRC-01) Halyard CRM serves the Kestrel Bay contact centre. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c03
-- [fact] (claude, from SRC-01) Tidepay takes card payments for web, contact centre and port kiosks. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c04
+- [fact] (claude, from SRC-01) Halyard CRM serves the Kestrel Bay contact center. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c03
+- [fact] (claude, from SRC-01) Tidepay takes card payments for web, contact center and port kiosks. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c04
 - [fact] (claude, from SRC-01) Tidemiles loyalty earns 1 point per pound and 100 points redeem for 1 pound. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c05
-- [fact] (claude, from SRC-01) The customer database holds about 1.2 million records, owner not confirmed after the reorganisation. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c06
+- [fact] (claude, from SRC-01) The customer database holds about 1.2 million records, owner not confirmed after the reorganization. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c06
 - [fact] (claude, from SRC-02) Northway ID is the login for every rail customer, emails unique. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c07
 - [fact] (claude, from SRC-02) Northway Plus loyalty earns 5 points per pound, Northway Assist handles assisted travel bookings. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c08
 - [fact] (claude, from SRC-02) Rail payments go through the RailCore gateway today. → keep: [[03-context-and-scope#Today|Today]] (fact) ^c09

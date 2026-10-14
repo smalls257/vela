@@ -9,7 +9,7 @@ authored: authored
 
 # Cost
 
-Running cost, licences and shared budgets such as mainframe processing.
+Running cost, licenses and shared budgets such as mainframe processing.
 
 ## Strategy
 

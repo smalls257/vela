@@ -34,7 +34,7 @@ knows:
   - id: K3
     category: legal-regulatory
     keywords: ["on-device ruling", "nothing off the laptop"]
-    fact: The ruling for release one is that meeting and mail text is read and ranked on the laptop and nothing goes off the laptop until the CISO's review passes and the DPO clears cloud summarisation. The agent must work fully with the cloud switched off.
+    fact: The ruling for release one is that meeting and mail text is read and ranked on the laptop and nothing goes off the laptop until the CISO's review passes and the DPO clears cloud summarization. The agent must work fully with the cloud switched off.
     owner: CISO
   - id: K4
     category: fact
@@ -44,12 +44,12 @@ knows:
   - id: K5
     category: fact
     keywords: ["MSIX", "signed pkg"]
-    fact: The Windows build is an MSIX package signed with the firm's code-signing certificate and deployed by Intune. The Mac build is a signed and notarised pkg deployed by Jamf with a privacy-permissions profile.
+    fact: The Windows build is an MSIX package signed with the firm's code-signing certificate and deployed by Intune. The Mac build is a signed and notarized pkg deployed by Jamf with a privacy-permissions profile.
     owner: IT endpoint lead
   - id: K6
     category: fact
     keywords: ["local model", "small model"]
-    fact: The on-device model is a small quantised model, run through a local runtime on the CPU. Laptops have no guaranteed GPU, and the budget is under 500 megabytes of memory and 5 percent of one core while idle.
+    fact: The on-device model is a small quantized model, run through a local runtime on the CPU. Laptops have no guaranteed GPU, and the budget is under 500 megabytes of memory and 5 percent of one core while idle.
     owner: Desk Agent lead
   - id: K7
     category: fact

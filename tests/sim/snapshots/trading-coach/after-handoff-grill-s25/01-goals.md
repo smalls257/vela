@@ -13,7 +13,7 @@ sources: [SRC-04]
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=ab2d1dba: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=af777136: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -48,7 +48,7 @@ sources: [SRC-04]
 | [[11-unknowns-and-risks#UNK-023 Which counsel wrote the reply and when\|UNK-023]] | @sim-lead (product lead) | 2026-10-15 | [[03-context-and-scope\|03-context-and-scope]] |
 | [[11-unknowns-and-risks#UNK-024 Brightwater owning the recommendation role\|UNK-024]] | @sim-lead (product lead), answer from Partnerships | 2026-10-09 | [[04-solution-strategy\|04-solution-strategy]] |
 | [[11-unknowns-and-risks#UNK-025 Recommendations at the January board demo\|UNK-025]] | @sim-lead (product lead), answer from the CEO | 2026-10-09 | [[04-solution-strategy\|04-solution-strategy]] |
-| [[11-unknowns-and-risks#UNK-026 ETFs under the Quoteline licence and Brightwater\|UNK-026]] | @sim-lead (product lead), answer from the data engineer | 2026-10-23 | nothing |
+| [[11-unknowns-and-risks#UNK-026 ETFs under the Quoteline license and Brightwater\|UNK-026]] | @sim-lead (product lead), answer from the data engineer | 2026-10-23 | nothing |
 | [[11-unknowns-and-risks#UNK-027 Paper practice and Brightwater accounts\|UNK-027]] | @sim-lead (product lead), answer from Partnerships | 2026-10-16 | [[coach-building-blocks\|coach-building-blocks]] |
 | [[11-unknowns-and-risks#UNK-028 Section 7.2 approval of lessons\|UNK-028]] | @sim-lead (product lead), answer from Partnerships | 2026-10-16 | [[coach-building-blocks\|coach-building-blocks]] |
 | [[11-unknowns-and-risks#UNK-029 Source of the demo's trade ideas\|UNK-029]] | @sim-lead (product lead), answer from the ML lead | 2026-10-16 | [[coach-building-blocks\|coach-building-blocks]] |

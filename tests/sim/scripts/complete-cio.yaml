@@ -52,7 +52,7 @@ news:
         # From the Data Protection Officer, 7 October
 
         Linking a ferry account and a rail account is lawful when the customer links them at sign-in and
-        consents. Matching records across Harbourline and Northway without that consent is not. A household
+        consents. Matching records across Harborline and Northway without that consent is not. A household
         needs each adult's own consent, so please keep households out of the first release.
 sessions:
   - mode: discover
@@ -73,8 +73,8 @@ sessions:
     baseline: "Close out this session: sort what we captured into the vault pages, commit it and open a PR, following CONVENTIONS.md."
   - mode: grill
     cap: 20
-    planner: "/planner:grill the Group Account app's boundary, contracts and failure behaviour"
-    baseline: "Take me through the Group Account boundary, contracts and failure behaviour and record what I decide, following CONVENTIONS.md."
+    planner: "/planner:grill the Group Account app's boundary, contracts and failure behavior"
+    baseline: "Take me through the Group Account boundary, contracts and failure behavior and record what I decide, following CONVENTIONS.md."
   - mode: close
     cap: 8
     planner: "/planner:close"

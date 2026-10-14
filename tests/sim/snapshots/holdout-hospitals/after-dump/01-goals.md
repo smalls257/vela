@@ -12,7 +12,7 @@ authored: mixed
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=3be8e6e4: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=7822073f: do not edit, run planner render -->
 **Apps on the ladder:** none
 
 **Open unknowns**
@@ -20,9 +20,9 @@ authored: mixed
 | Unknown | Owner | Ask by | Blocks |
 |---|---|---|---|
 | [[11-unknowns-and-risks#UNK-001 What the front door means\|UNK-001]] | @joint-ceo (Joint CEO) | 2026-10-19 | [[01-goals\|Goals]] |
-| [[11-unknowns-and-risks#UNK-002 Calder booking owner\|UNK-002]] | @sim-lead (Programme lead) | 2026-10-26 | [[01-goals\|Goals]] |
+| [[11-unknowns-and-risks#UNK-002 Calder booking owner\|UNK-002]] | @sim-lead (Program lead) | 2026-10-26 | [[01-goals\|Goals]] |
 | [[11-unknowns-and-risks#UNK-003 Competing director demands\|UNK-003]] | @joint-ceo (Joint CEO) | 2026-10-19 | [[01-goals\|Goals]] |
-| [[11-unknowns-and-risks#UNK-004 Phone option for patients\|UNK-004]] | @sim-lead (Programme lead) | 2026-11-02 | [[01-goals\|Goals]] |
+| [[11-unknowns-and-risks#UNK-004 Phone option for patients\|UNK-004]] | @sim-lead (Program lead) | 2026-11-02 | [[01-goals\|Goals]] |
 | [[11-unknowns-and-risks#UNK-005 Build window around the freeze\|UNK-005]] | @fenwick-coo (Fenwick COO) | 2026-10-19 | [[02-constraints\|Constraints]] |
 
 **Last session:** 2026-10-05

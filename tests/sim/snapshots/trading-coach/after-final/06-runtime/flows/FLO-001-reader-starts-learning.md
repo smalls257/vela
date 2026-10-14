@@ -21,7 +21,7 @@ If the reader ID does not reach Coach, or Coach is down at step 3 or 4, the opt-
 3. TickerTalk sends Coach the opaque reader ID of the opted-in reader, and nothing else, over [[tickertalk-building-blocks#CON-005 Reader identity|Reader identity]].
 4. Coach creates the reader's record the first time it sees the ID, with no registration call, over [[tickertalk-building-blocks#CON-005 Reader identity|Reader identity]].
 5. TickerTalk asks Coach for the lessons, the stock list and the reader's progress over [[coach-building-blocks#CON-001 Lessons and track|Lessons and track]], and draws the screens from them.
-6. The reader works through a lesson on one stock. TickerTalk shows Coach's copy exactly as sent, with delayed prices labelled as delayed, using [[CAP-001-teach-a-stock-lesson|Teach a stock lesson]].
+6. The reader works through a lesson on one stock. TickerTalk shows Coach's copy exactly as sent, with delayed prices labeled as delayed, using [[CAP-001-teach-a-stock-lesson|Teach a stock lesson]].
 
 ## History
 

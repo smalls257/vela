@@ -8,7 +8,7 @@ authored: mixed
 
 # Unknowns and risks
 
-<!-- generated:unknowns-index sha=c43b112a: do not edit, run planner render -->
+<!-- generated:unknowns-index sha=cb7a4b89: do not edit, run planner render -->
 | ID | Name | Owner | State | Ask by |
 |---|---|---|---|---|
 | [[#UNK-001 Meaning of the mandate\|UNK-001]] | Meaning of the mandate | @solution-lead (asking CIO office) | open | 2026-10-09 |
@@ -56,7 +56,7 @@ authored: mixed
 | [[#UNK-046 Households: DPO letter and the phone call\|UNK-046]] | Households: DPO letter and the phone call | @sim-lead (asking the Data Protection Officer) | open | 2026-10-13 |
 | [[#UNK-047 Who the build team is\|UNK-047]] | Who the build team is | @sim-lead (asking the CIO's office) | open | 2026-10-13 |
 | [[#UNK-048 FERRYMASTER leavers and HR\|UNK-048]] | FERRYMASTER leavers and HR | @sim-lead (asking Ferry Ops and HR) | open | 2026-10-13 |
-| [[#UNK-049 Call centres in the room\|UNK-049]] | Call centres in the room | @sim-lead (asking the CIO's office) | open | 2026-10-13 |
+| [[#UNK-049 Call centers in the room\|UNK-049]] | Call centers in the room | @sim-lead (asking the CIO's office) | open | 2026-10-13 |
 | [[#R-01 FERRYMASTER sign-in after the two leave\|R-01]] | FERRYMASTER sign-in after the two leave | @sim-lead | open |  |
 <!-- /generated:unknowns-index -->
 
@@ -214,7 +214,7 @@ authored: mixed
 
 ### UNK-016 Ferry customer DB owner
 
-- **Question:** Who owned the ferry customer database before the reorganisation, and who owns it now?
+- **Question:** Who owned the ferry customer database before the reorganization, and who owns it now?
 - **Owner:** @solution-lead (asking CIO)
 - **State:** open
 - **Blocks:** nothing yet, no item depends on it
@@ -264,7 +264,7 @@ authored: mixed
 
 ### UNK-021 FERRYMASTER contract end date
 
-- **Question:** Which date is real for the end of the FERRYMASTER vendor contract: March 2029 with 18 months' notice (the Harbourline systems list, SRC-02), or December 2027 (the CIO memo, SRC-01)? Has notice already been given, or has it passed? If it was given, what end date did the notice name?
+- **Question:** Which date is real for the end of the FERRYMASTER vendor contract: March 2029 with 18 months' notice (the Harborline systems list, SRC-02), or December 2027 (the CIO memo, SRC-01)? Has notice already been given, or has it passed? If it was given, what end date did the notice name?
 - **Owner:** @solution-lead (asking Procurement and Ferry Ops)
 - **State:** open
 - **Blocks:** nothing yet, no item depends on it
@@ -280,7 +280,7 @@ authored: mixed
 - **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
-- **Notes:** The marketing draft (SRC-03) promises a one-for-one merge into a single balance. The Harbourline systems list (SRC-02) gives the Tidemiles earn and redemption rates, and the rail slide (SRC-04) gives only the Northway Plus earn rate. The Northway Plus redemption value is not recorded in any source. The solution lead holds that one for one cannot work on those rates and puts the question with Finance, not Marketing. From [[2026-10-06-what-two-companies-run#^c20]], [[2026-10-06-what-two-companies-run#^c21]]. The same question went to the CIO's office on 2026-10-06 at 14:47 ([[2026-10-06-customer-data-identity#^c06]]); no reply yet.
+- **Notes:** The marketing draft (SRC-03) promises a one-for-one merge into a single balance. The Harborline systems list (SRC-02) gives the Tidemiles earn and redemption rates, and the rail slide (SRC-04) gives only the Northway Plus earn rate. The Northway Plus redemption value is not recorded in any source. The solution lead holds that one for one cannot work on those rates and puts the question with Finance, not Marketing. From [[2026-10-06-what-two-companies-run#^c20]], [[2026-10-06-what-two-companies-run#^c21]]. The same question went to the CIO's office on 2026-10-06 at 14:47 ([[2026-10-06-customer-data-identity#^c06]]); no reply yet.
 
 ### UNK-023 Rail capability map appendix
 
@@ -294,13 +294,13 @@ authored: mixed
 
 ### UNK-024 Halyard and Signal CRM overlap
 
-- **Question:** Are Halyard CRM (Kestrel Bay contact centre) and Signal CRM (Dunmere contact centre) separate systems, or do the two contact centres already share a CRM? If they share one, what customer data does it hold?
+- **Question:** Are Halyard CRM (Kestrel Bay contact center) and Signal CRM (Dunmere contact center) separate systems, or do the two contact centers already share a CRM? If they share one, what customer data does it hold?
 - **Owner:** @solution-lead (asking Ferry Ops)
 - **State:** open
 - **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-06
-- **Notes:** The Harbourline systems list (SRC-02) names Halyard and the rail slide (SRC-04) names Signal, as two products at two sites. Neither says whether they are linked. The solution lead recalled that the two centres might already share a CRM, which no source supports. The solution lead will ask Ferry Ops directly. From [[2026-10-06-what-two-companies-run#^c23]]. The contact-centre view for Option B waits on this: [[2026-10-06-what-one-account-means#^c20]].
+- **Notes:** The Harborline systems list (SRC-02) names Halyard and the rail slide (SRC-04) names Signal, as two products at two sites. Neither says whether they are linked. The solution lead recalled that the two centers might already share a CRM, which no source supports. The solution lead will ask Ferry Ops directly. From [[2026-10-06-what-two-companies-run#^c23]]. The contact-center view for Option B waits on this: [[2026-10-06-what-one-account-means#^c20]].
 
 ### UNK-025 Who runs each system
 
@@ -324,7 +324,7 @@ authored: mixed
 
 ### UNK-027 Customer cutover method
 
-- **Question:** How are ferry customers brought onto a linked account: asked to link, linked quietly at the back, or helped by the contact centre? About 1.2 million ferry records are involved (SRC-02).
+- **Question:** How are ferry customers brought onto a linked account: asked to link, linked quietly at the back, or helped by the contact center? About 1.2 million ferry records are involved (SRC-02).
 - **Owner:** @solution-lead (asking CIO office)
 - **State:** open
 - **Blocks:** nothing yet, no item depends on it
@@ -344,7 +344,7 @@ authored: mixed
 
 ### UNK-029 Who pays for the household link
 
-- **Question:** Who pays to build and run the matching, consent and contact-centre view for a linked household account, and does the cost land on central IT or sit inside what Ferry and Rail already have?
+- **Question:** Who pays to build and run the matching, consent and contact-center view for a linked household account, and does the cost land on central IT or sit inside what Ferry and Rail already have?
 - **Owner:** @solution-lead (asking CFO)
 - **State:** resolved
 - **Blocks:** [[04-solution-strategy#The core move|solution-strategy]]
@@ -515,15 +515,15 @@ authored: mixed
 - **Opened:** 2026-10-07
 - **Notes:** The two leave around Christmas or early in the new year, and the CIO's live date is 1 June 2027, so about five months pass with no one who knows FERRYMASTER, and only what they write down. Whether they have been told, and whether HR has been engaged, is not recorded anywhere. This adds to [[#UNK-030 Who owns the FERRYMASTER handover|UNK-030]] (who owns the handover), [[#UNK-014 FERRYMASTER people and docs|UNK-014]] and [[#UNK-026 People affected by retirements|UNK-026]]. The lead is not sure any of it has been lined up. From [[2026-10-07-cio-dpo-replies#^c16]], [[2026-10-07-cio-dpo-replies#^c24]].
 
-### UNK-049 Call centres in the room
+### UNK-049 Call centers in the room
 
-- **Question:** Are the Kestrel Bay and Dunmere contact centres in the room, and do their leads know that one account means their agents see both sides?
+- **Question:** Are the Kestrel Bay and Dunmere contact centers in the room, and do their leads know that one account means their agents see both sides?
 - **Owner:** @sim-lead (asking the CIO's office)
 - **State:** open
 - **Blocks:** nothing yet, no item depends on it
 - **Ask by:** 2026-10-13
 - **Opened:** 2026-10-07
-- **Notes:** Both centres need to see both sides for the customer. Nothing records that either has been told. They run different systems, Halyard at Kestrel Bay and Signal at Dunmere, and whether those connect is open: [[#UNK-024 Halyard and Signal CRM overlap|UNK-024]]. Related: [[#UNK-020 Others affected not in room|UNK-020]], [[#UNK-018 Kestrel Bay team change|UNK-018]]. Claude's point, which the lead accepted as something to design for, is that an agent seeing the other side's account is itself a use of the data the DPO's consent rule covers (SRC-07), so what agents may see belongs in the consent wording and not only in the build. That is the lead's view and not a decision. From [[2026-10-07-cio-dpo-replies#^c19]], [[2026-10-07-cio-dpo-replies#^c20]], [[2026-10-07-cio-dpo-replies#^c25]].
+- **Notes:** Both centers need to see both sides for the customer. Nothing records that either has been told. They run different systems, Halyard at Kestrel Bay and Signal at Dunmere, and whether those connect is open: [[#UNK-024 Halyard and Signal CRM overlap|UNK-024]]. Related: [[#UNK-020 Others affected not in room|UNK-020]], [[#UNK-018 Kestrel Bay team change|UNK-018]]. Claude's point, which the lead accepted as something to design for, is that an agent seeing the other side's account is itself a use of the data the DPO's consent rule covers (SRC-07), so what agents may see belongs in the consent wording and not only in the build. That is the lead's view and not a decision. From [[2026-10-07-cio-dpo-replies#^c19]], [[2026-10-07-cio-dpo-replies#^c20]], [[2026-10-07-cio-dpo-replies#^c25]].
 
 ## Risks
 
@@ -535,8 +535,8 @@ authored: mixed
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=8483f4e0: do not edit, run planner render -->
-**Questions:** 34 owed, 30 undisposed, 46 open reviewer questions, against catalogue v1.
+<!-- generated:undisposed-questions sha=85764078: do not edit, run planner render -->
+**Questions:** 34 owed, 30 undisposed, 46 open reviewer questions, against catalog v1.
 
 | Copy | State | Area | Severity | Subject | Question |
 |---|---|---|---|---|---|
@@ -573,7 +573,7 @@ authored: mixed
 | R-FIN-02 | open | FIN | normal | reviewer | Who owns revenue and the customer database in each business after the merger, and who signs off financial commitments? |
 | R-FIN-03 | open | FIN | normal | reviewer | Who funds retention or documentation for the FERRYMASTER staff, and what is the cost if they leave before the link is built? |
 | R-DAT-03 | open | DAT | normal | reviewer | If a copy or a third linking service is used, who holds it, under what basis, and for how long? |
-| R-PTN-01 | open | PTN | high | reviewer | Are SeaBook, RailCore, Northway ID and FERRYMASTER run under vendor or licence contracts? What do those contracts say on change of control, assignment, notice, and use of data for a new purpose? |
+| R-PTN-01 | open | PTN | high | reviewer | Are SeaBook, RailCore, Northway ID and FERRYMASTER run under vendor or license contracts? What do those contracts say on change of control, assignment, notice, and use of data for a new purpose? |
 | R-PTN-02 | open | PTN | high | reviewer | What is the employment or contract status of the two FERRYMASTER people? Is there any support contract or notice period that governs their leaving or handover? |
 | R-PTN-03 | open | PTN | normal | reviewer | Where does the Ferry Ops freeze come from (contract, operations or policy)? Who can lift it? Which date is next summer? |
 | R-PTN-05 | open | PTN | normal | reviewer | Who has authority to approve changes to ownership, operation, payment or agreements while the CIO is unreachable? |
@@ -591,14 +591,14 @@ authored: mixed
 | R-OPS-04 | open | OPS | high | reviewer | Who covers out-of-hours support and failures for a linked ferry and rail journey during the May to September peak, given the SLA mismatch? |
 | R-OPS-05 | open | OPS | normal | reviewer | Who confirms what actually runs on the rail side, and who owns Northway ID? |
 | R-FIN-07 | open | FIN | normal | reviewer | Which date is next summer, and what must the customer see by then, so Finance can cost each option against it? |
-| R-DAT-09 | open | DAT | normal | reviewer | What exactly does the marketing draft promise customers about points and data, and which options can honour it? |
+| R-DAT-09 | open | DAT | normal | reviewer | What exactly does the marketing draft promise customers about points and data, and which options can honor it? |
 | R-OPS-06 | open | OPS | high | reviewer | Who in Finance owns revenue, the ferry customer DB and each loyalty balance, and have they agreed to carry a combined balance? |
 | R-OPS-07 | open | OPS | normal | reviewer | Which fixed constraints (freeze, SLAs, contract notice, staff departures) must each option respect? |
 | R-FIN-11 | open | FIN | normal | reviewer | Will Sarah Chen confirm her conditions in writing, and who is funded to deliver the design gates she asked for? |
 | R-DAT-18 | open | DAT | normal | reviewer | What data does the loyalty view hold, who sees it, and where is it recorded so she can review it? |
 | R-PTN-12 | open | PTN | normal | reviewer | Which service level must the linked household account meet in the summer peak? Does the RailCore vendor contract allow out-of-hours support or a higher SLA? |
 | R-REG-16 | open | REG | normal | reviewer | Which service level applies to a linked ferry and rail journey, and who answers out of hours for the rail side? |
-| R-FIN-12 | open | FIN | high | reviewer | Who owns Northway ID, and do its vendor or licence terms allow 1.2 million ferry customers, and at what fee? |
+| R-FIN-12 | open | FIN | high | reviewer | Who owns Northway ID, and do its vendor or license terms allow 1.2 million ferry customers, and at what fee? |
 | R-FIN-13 | open | FIN | high | reviewer | Under Option 3, who pays to move rail customers, which service level covers the shared login, and what exactly does the freeze forbid? |
 | R-FIN-14 | open | FIN | high | reviewer | Which option set is live? Is the 04b pick of Northway ID still in force, or does this session re-open it? Which cost claim, 'nothing is built new' or 'the least new build', is correct? |
 | R-FIN-15 | open | FIN | high | reviewer | Will the CIO confirm that ferry customers get Northway ID before any option is costed? Who loses if the answer is no? |
@@ -614,7 +614,7 @@ authored: mixed
 | R-DAT-20 | open | DAT | normal | reviewer | What is the true date of the Sarah Chen call, and does the DPO's written reply of 7 October supersede it? |
 | R-REG-19 | open | REG | high | reviewer | How will each existing ferry customer's consent be captured and carried across systems at cutover, given the DPO needs the customer to link and consent at sign-in? |
 | R-DAT-21 | open | DAT | high | reviewer | Can the CIO remark be registered as a source? And does the DPO's reply (SRC-07) still gate any step where ferry customer data goes to Northway ID? |
-| R-REG-22 | open | REG | normal | reviewer | What may contact-centre agents see of the other side's account, and is that covered in the consent wording? |
+| R-REG-22 | open | REG | normal | reviewer | What may contact-center agents see of the other side's account, and is that covered in the consent wording? |
 | R-OPS-13 | open | OPS | normal | reviewer | Does the team that would run Northway ID know it is meant to take on ferry customers, and has it agreed? |
 <!-- /generated:undisposed-questions -->
 
@@ -626,8 +626,8 @@ authored: mixed
 | R-DAT-01 | unknown | question: Who is the Data Protection Officer, have they been asked, and what do they need to see to approve the family-email handling?; quote: "the Data Protection Officer won't let us go live because we can't prove the family email thing is legal." in [[2026-10-06-decode-cio-mandate]]; severity: high ; unknown: [[11-unknowns-and-risks#UNK-010 Data Protection Officer\|UNK-010]] | @sim-lead | 2026-10-06 |
 | R-DAT-02 | unknown | question: How will the link match the right person when emails are shared, and how will consent and preferences follow each person across systems?; quote: "families share one email on ferry but every rail account needs unique." in [[2026-10-06-decode-cio-mandate]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-010 Data Protection Officer\|UNK-010]] | @solution-lead | 2026-10-06 |
 | R-DAT-03 | open | question: If a copy or a third linking service is used, who holds it, under what basis, and for how long?; quote: "What if FERRYMASTER were never touched, and a nightly copy of customer data were read out of it and the copy became the thing we link to?" in [[2026-10-06-decode-cio-mandate]] | | |
-| R-DAT-04 | unknown | question: Who is the data owner or controller of the ferry customer database now, and who can approve a change in its use?; quote: "Honestly not sure about the port teams or who owns the customer database after the reorganisation." in [[2026-10-06-decode-cio-mandate]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-016 Ferry customer DB owner\|UNK-016]] | @solution-lead | 2026-10-06 |
-| R-PTN-01 | open | question: Are SeaBook, RailCore, Northway ID and FERRYMASTER run under vendor or licence contracts? What do those contracts say on change of control, assignment, notice, and use of data for a new purpose?; quote: "Is Northway ID the rail login in RailCore or a separate identity service, and who owns it? Ask: Rail Product." in [[2026-10-06-decode-cio-mandate]]; severity: high | | |
+| R-DAT-04 | unknown | question: Who is the data owner or controller of the ferry customer database now, and who can approve a change in its use?; quote: "Honestly not sure about the port teams or who owns the customer database after the reorganization." in [[2026-10-06-decode-cio-mandate]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-016 Ferry customer DB owner\|UNK-016]] | @solution-lead | 2026-10-06 |
+| R-PTN-01 | open | question: Are SeaBook, RailCore, Northway ID and FERRYMASTER run under vendor or license contracts? What do those contracts say on change of control, assignment, notice, and use of data for a new purpose?; quote: "Is Northway ID the rail login in RailCore or a separate identity service, and who owns it? Ask: Rail Product." in [[2026-10-06-decode-cio-mandate]]; severity: high | | |
 | R-PTN-02 | open | question: What is the employment or contract status of the two FERRYMASTER people? Is there any support contract or notice period that governs their leaving or handover?; quote: "FERRYMASTER's got two people who understand it, both probably on their way out." in [[2026-10-06-decode-cio-mandate]]; severity: high | | |
 | R-PTN-03 | open | question: Where does the Ferry Ops freeze come from (contract, operations or policy)? Who can lift it? Which date is next summer?; quote: "Ferry Ops won't touch anything before May" in [[2026-10-06-decode-cio-mandate]] | | |
 | R-PTN-04 | unknown | question: What do the ferry and rail customer terms and consents allow? Can data cross between the two entities, and who is the contracting party on each side?; quote: "What customer data do SeaBook and RailCore each hold, and what do their customers agreed to? Ask: the owner of each system." in [[2026-10-06-decode-cio-mandate]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-028 Customer terms and contracting party\|UNK-028]] | @solution-lead | 2026-10-06 |
@@ -640,10 +640,10 @@ authored: mixed
 | R-OPS-03 | unknown | question: Are the CIO, CFO and Rail Product asking for one goal or three? Who gains and who loses under each reading, and who decides between them?; quote: "CFO wants one platform" in [[2026-10-06-decode-cio-mandate]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-001 Meaning of the mandate\|UNK-001]] | @solution-lead | 2026-10-06 |
 | Q-PTN-03@PTY-02 | unknown | unknown: [[11-unknowns-and-risks#UNK-021 FERRYMASTER contract end date\|UNK-021]] | @sim-lead | 2026-10-06 |
 | Q-FIN-01@INI-001 | answered | item: [[03-context-and-scope#SV-01 Tidemiles\|SV-01]]; answer: yes, the Tidemiles and Northway Plus points are held for customers; source: SRC-02 | @sim-lead | 2026-10-06 |
-| R-FIN-04 | open | question: Which contract end date is real, and what does it cost to exit or overlap? Has notice already been given or has it passed?; quote: "March 2029 with 18 months' notice (the Harbourline systems list, SRC-02), or December 2027 (the CIO memo, SRC-01)" in [[11-unknowns-and-risks]]; severity: high |  |  |
+| R-FIN-04 | open | question: Which contract end date is real, and what does it cost to exit or overlap? Has notice already been given or has it passed?; quote: "March 2029 with 18 months' notice (the Harborline systems list, SRC-02), or December 2027 (the CIO memo, SRC-01)" in [[11-unknowns-and-risks]]; severity: high |  |  |
 | R-FIN-05 | open | question: What is the rail redemption value, and can Finance size the combined liability before any one-for-one promise is made to customers?; quote: "Finance owns Clash B, not Marketing, because the redemption values are completely different and the money doesn't add up." in [[2026-10-06-what-two-companies-run]] |  |  |
 | R-FIN-06 | open | question: Who funds and carries the 2027 payments move, and does it overlap the identity and loyalty work?; quote: "through the RailCore gateway today, with a move to Tidepay planned for 2027" in [[03-context-and-scope]] |  |  |
-| R-DAT-05 | unknown | question: Do Halyard and Signal share any customer data today, and if so under what basis?; quote: "are Halyard and Signal really different, or did I get wrong that the two call centres already share a CRM?" in [[2026-10-06-what-two-companies-run]]; unknown: [[11-unknowns-and-risks#UNK-024 Halyard and Signal CRM overlap\|UNK-024]] | @solution-lead | 2026-10-06 |
+| R-DAT-05 | unknown | question: Do Halyard and Signal share any customer data today, and if so under what basis?; quote: "are Halyard and Signal really different, or did I get wrong that the two call centers already share a CRM?" in [[2026-10-06-what-two-companies-run]]; unknown: [[11-unknowns-and-risks#UNK-024 Halyard and Signal CRM overlap\|UNK-024]] | @solution-lead | 2026-10-06 |
 | R-DAT-06 | open | question: What personal data goes to the partner hotels in the nightly file, and under what agreement or lawful basis?; quote: "- **Agreements:** none known" in [[03-context-and-scope]]; severity: high |  |  |
 | R-DAT-07 | open | question: Can the rail data claims (unique emails, Northway ID covering all rail customers) be confirmed from a record before matching is designed?; quote: "Northway ID** (assumption, SRC-04): the login for every rail customer, and emails are unique." in [[03-context-and-scope]] |  |  |
 | R-DAT-08 | open | question: Does the Tidepay move send rail customers' payment data to a new processor, and is it covered by their consent and contract?; quote: "through the RailCore gateway today, with a move to Tidepay planned for 2027" in [[03-context-and-scope]] |  |  |
@@ -657,7 +657,7 @@ authored: mixed
 | Q-OPS-04@INI-001 | unknown | unknown: [[11-unknowns-and-risks#UNK-024 Halyard and Signal CRM overlap\|UNK-024]] | @solution-lead | 2026-10-06 |
 | Q-FIN-02@INI-001 | assumed | belief: the CFO wants cost cuts and will not want to carry the matching and consent work; load-bearing: yes; signpost: the CFO says no to funding the matching and consent work ([[11-unknowns-and-risks#UNK-029 Who pays for the household link\|UNK-029]]) | @solution-lead | 2026-10-06 |
 | R-FIN-07 | open | question: Which date is next summer, and what must the customer see by then, so Finance can cost each option against it?; quote: "One customer, one journey, one account across ferry and rail by next summer" in [[01-goals]] | | |
-| R-DAT-09 | open | question: What exactly does the marketing draft promise customers about points and data, and which options can honour it?; quote: "The marketing draft that promises one-for-one points is not recorded here" in [[03-context-and-scope]] | | |
+| R-DAT-09 | open | question: What exactly does the marketing draft promise customers about points and data, and which options can honor it?; quote: "The marketing draft that promises one-for-one points is not recorded here" in [[03-context-and-scope]] | | |
 | R-OPS-06 | open | question: Who in Finance owns revenue, the ferry customer DB and each loyalty balance, and have they agreed to carry a combined balance?; quote: "Finance carries the combined balance as money owed to customers" in [[2026-10-06-what-one-account-means]]; severity: high | | |
 | R-OPS-07 | open | question: Which fixed constraints (freeze, SLAs, contract notice, staff departures) must each option respect?; quote: "What this initiative cannot change." in [[02-constraints]] | | |
 | R-FIN-11 | open | question: Will Sarah Chen confirm her conditions in writing, and who is funded to deliver the design gates she asked for?; quote: "No written confirmation from Sarah: ”no email. Just the phone call.”" in [[2026-10-06-dpo-decision-2]] |  |  |
@@ -671,7 +671,7 @@ authored: mixed
 | R-REG-14 | unknown | question: Is the two-weeks-before-go-live point a review or a sign-off? Who can stop go-live if the design does not pass, and what date applies while UNK-002 is open?; quote: "Sarah Chen's sign-off is due two weeks before go-live, and no go-live date is recorded" in [[11-unknowns-and-risks]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-041 Review or sign-off before go-live\|UNK-041]] | @sim-lead | 2026-10-06 |
 | R-REG-15 | answered | question: On what date did the call with Sarah Chen take place, and should SRC-05 and the 03 page carry that date?; quote: "2026-10-07 is a Wednesday and the system date is Tuesday 2026-10-06, so the date is not settled." in [[2026-10-06-dpo-decision-2]]; item: [[03-context-and-scope#What Sarah Chen has said\|context-and-scope]]; answer: the lead gives the call as Friday 2026-10-07 and knows the calendar does not agree; source: SRC-05 | @sim-lead | 2026-10-06 |
 | R-REG-16 | open | question: Which service level applies to a linked ferry and rail journey, and who answers out of hours for the rail side?; quote: "The vendor SLA is 99.5%, and support runs 08:00 to 18:00 on weekdays." in [[03-context-and-scope]] |  |  |
-| R-FIN-12 | open | question: Who owns Northway ID, and do its vendor or licence terms allow 1.2 million ferry customers, and at what fee?; quote: "Do the terms of Northway ID let us add about 1.2 million ferry customers (SRC-02) to it, and who can say?" in [[11-unknowns-and-risks]]; severity: high | | |
+| R-FIN-12 | open | question: Who owns Northway ID, and do its vendor or license terms allow 1.2 million ferry customers, and at what fee?; quote: "Do the terms of Northway ID let us add about 1.2 million ferry customers (SRC-02) to it, and who can say?" in [[11-unknowns-and-risks]]; severity: high | | |
 | R-FIN-13 | open | question: Under Option 3, who pays to move rail customers, which service level covers the shared login, and what exactly does the freeze forbid?; quote: "It costs a move for rail customers who have a working login, and rail accounts need unique emails." in [[2026-10-06-login-owner-and-offer]]; severity: high | | |
 | R-FIN-14 | open | question: Which option set is live? Is the 04b pick of Northway ID still in force, or does this session re-open it? Which cost claim, 'nothing is built new' or 'the least new build', is correct?; quote: "Option 2, a new identity service for both sides: rejected, it costs a build and a move for rail customers who have a working login" in [[04b-identity-provider]]; severity: high | | |
 | R-FIN-15 | open | question: Will the CIO confirm that ferry customers get Northway ID before any option is costed? Who loses if the answer is no?; quote: "Are the about 1.2 million ferry customers (SRC-02) meant to get Northway ID, or does Northway ID cover rail customers only?" in [[11-unknowns-and-risks]]; severity: high | | |
@@ -690,14 +690,14 @@ authored: mixed
 | R-PTN-14 | unknown | question: Who has authority to decide whether households are in release one, and does the legal check on Monday gate the build or the decision?; quote: "The strategy was decided on the solution lead's behalf and is not yet confirmed." in [[11-unknowns-and-risks]]; severity: high; unknown: UNK-044 | @sim-lead | 2026-10-07 |
 | R-PTN-15 | unknown | question: Does the CIO mean a sign-in only, with no ferry customers added to Northway ID? If so, does the Northway ID terms question (UNK-037) still apply?; quote: "Whether that is the ”single identity” of the memo is open" in [[03-context-and-scope]]; severity: high; unknown: UNK-045 | @sim-lead | 2026-10-07 |
 | R-REG-18 | unknown | question: Is the written DPO reply or the recalled phone call the position of record, and can a written confirmation of the officer's name and role be obtained before more is built on either?; quote: "Whether the officer is the Sarah Chen above is not settled" in [[03-context-and-scope]]; severity: high; unknown: UNK-046 | @sim-lead | 2026-10-07 |
-| R-REG-19 | open | question: How will each existing ferry customer's consent be captured and carried across systems at cutover, given the DPO needs the customer to link and consent at sign-in?; quote: "How are ferry customers brought onto a linked account: asked to link, linked quietly at the back, or helped by the contact centre?" in [[11-unknowns-and-risks]]; severity: high |  |  |
+| R-REG-19 | open | question: How will each existing ferry customer's consent be captured and carried across systems at cutover, given the DPO needs the customer to link and consent at sign-in?; quote: "How are ferry customers brought onto a linked account: asked to link, linked quietly at the back, or helped by the contact center?" in [[11-unknowns-and-risks]]; severity: high |  |  |
 | R-OPS-11 | unknown | question: Who is the Data Protection Officer, does the role sign off or only review, and who can stop go-live if the review fails?; quote: "Whether the officer is the Sarah Chen above is not settled" in [[03-context-and-scope]]; severity: high; unknown: UNK-046 | @sim-lead | 2026-10-07 |
 | R-DAT-21 | open | question: Can the CIO remark be registered as a source? And does the DPO's reply (SRC-07) still gate any step where ferry customer data goes to Northway ID?; quote: "registered as SRC-06 and quoted word for word" in [[2026-10-07-one-account-login-owner]]; severity: high | | |
 | R-DAT-22 | unknown | question: Is the household in release one at all? If so, who is the data controller for it, given the DPO's request?; quote: "the officer asks for households to be kept out of the first release." in [[03-context-and-scope]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-044 Households in release one\|UNK-044]] | @sim-lead | 2026-10-07 |
 | R-PTN-16 | assumed | question: If the shared login is left off the agenda, can the owner and offer be decided without first knowing whether Northway ID's owner and terms allow ferry customers? Who agrees to the dependency in the meantime?; quote: "Leave the shared login off for now." in [[2026-10-07-one-account-login-owner]]; severity: high; belief: the owner and offer pick holds without Northway ID's owner or terms known, and R-01 gets an owner by 2026-10-09; load-bearing: yes; signpost: no owner named on FERRYMASTER by 2026-10-09, or UNK-012 or UNK-037 resolves against ferry customers | @sim-lead | 2026-10-07 |
 | R-REG-20 | answered | question: Which options does the lead choose for Login owner and offer: Owner options 2 and 3 as rejected on 04b, or Option 2 or 3 of the shared-login list? Who accepts the contract and freeze risks that the 04b page gave as reasons for rejecting them?; quote: "Go with option 2 and 3 for ”Login owner and offer” only" in [[2026-10-07-one-account-login-owner]]; severity: high; item: [[04b-identity-provider#Login owner and offer]]; answer: Owner option 1 is picked, and option 2 and 3 meant the gate-failure choices to override GATE-4 and decide on behalf for GATE-5; source: "Owner option 1, Northway ID owns the login and offers sign-in only" in [[04b-identity-provider]] | @sim-lead | 2026-10-07 |
 | R-REG-21 | unknown | question: Can the CIO's statement that open questions carry as named risks be registered as a source before the gates are overridden? Who owns the legal risks (terms, contracting party, consent) that this override leaves open?; quote: "registered as SRC-06 and quoted word for word" in [[2026-10-07-one-account-login-owner]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-028 Customer terms and contracting party\|UNK-028]] | @sim-lead | 2026-10-07 |
-| R-REG-22 | open | question: What may contact-centre agents see of the other side's account, and is that covered in the consent wording?; quote: "an agent seeing the other side's account is itself a use of the data the DPO's consent rule covers (SRC-07)" in [[11-unknowns-and-risks]] | | |
+| R-REG-22 | open | question: What may contact-center agents see of the other side's account, and is that covered in the consent wording?; quote: "an agent seeing the other side's account is itself a use of the data the DPO's consent rule covers (SRC-07)" in [[11-unknowns-and-risks]] | | |
 | R-OPS-12 | answered | question: Which owner option is actually chosen for Login owner and offer: 1, 2, 3 or a mix? Will the lead show the CIO text, since a remark the session has not read in a registered source cannot carry the override?; quote: "Go with option 2 and 3 for ”Login owner and offer” only" in [[2026-10-07-one-account-login-owner]]; severity: high; item: [[04b-identity-provider#Login owner and offer]]; answer: Owner option 1 is picked, and option 2 and 3 meant the gate-failure choices to override GATE-4 and decide on behalf for GATE-5; source: "Owner option 1, Northway ID owns the login and offers sign-in only" in [[04b-identity-provider]] | @sim-lead | 2026-10-07 |
 | R-OPS-13 | open | question: Does the team that would run Northway ID know it is meant to take on ferry customers, and has it agreed?; quote: "Northway ID itself is an assumption from the rail slide (SRC-04)" in [[04b-identity-provider]] | | |
 | R-OPS-14 | unknown | question: Who builds and supports FERRYMASTER's sign-in through Northway ID once the two FERRYMASTER people have left?; quote: "both are probably leaving around Christmas this year" in [[11-unknowns-and-risks]]; severity: high; unknown: [[11-unknowns-and-risks#UNK-030 Who owns the FERRYMASTER handover\|UNK-030]] | @sim-lead | 2026-10-07 |

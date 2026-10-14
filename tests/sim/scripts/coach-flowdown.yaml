@@ -38,7 +38,7 @@ news:
     keywords:
     - CFO holds
     - content writer
-    fact: The CFO holds the 2.5 million dollar budget for the coach's first year, licences included. The product lead owns
+    fact: The CFO holds the 2.5 million dollar budget for the coach's first year, licenses included. The product lead owns
       the stock list and the lessons, written by a contracted content writer and paid from that budget.
     owner: CFO
   - id: K22
@@ -54,7 +54,7 @@ news:
     keywords:
     - Quoteline replied
     - display use
-    fact: 'Quoteline replied on 7 October: showing delayed quotes inside lessons is display use and the licence allows it.
+    fact: 'Quoteline replied on 7 October: showing delayed quotes inside lessons is display use and the license allows it.
       Using its prices to train or run Signal is non-display use and needs an addendum with its own fees; clause 9 says the
       same.'
     owner: Data engineer
@@ -434,7 +434,7 @@ news:
     - valuing paper positions
     - Quoteline confirmed
     fact: Quoteline confirmed in writing on 9 October that valuing paper balances and positions on its delayed quotes is display
-      use, inside the licence, with no addendum or fee.
+      use, inside the license, with no addendum or fee.
     owner: Data engineer
   docs:
   - name: counsel-reply.md
@@ -456,7 +456,7 @@ news:
     text: '# From Quoteline, 7 October
 
 
-      Showing delayed quotes inside lessons is display use, which your licence allows. Using our prices to train or run a
+      Showing delayed quotes inside lessons is display use, which your license allows. Using our prices to train or run a
       model is non-display use and needs an addendum with its own fees, as clause 9 says.'
   - name: agreement-read.md
     text: '# Partnerships: the signed Brightwater agreement, read in full, 8 October
@@ -654,7 +654,7 @@ news:
     text: '# From Quoteline, 9 October
 
 
-      Valuing paper balances and positions on our delayed quotes is display use. It is inside your licence and needs no addendum
+      Valuing paper balances and positions on our delayed quotes is display use. It is inside your license and needs no addendum
       or fee.'
   decisions:
   - id: D1

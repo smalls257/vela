@@ -17,15 +17,15 @@ Each bullet below carries its own state word and source. The page state is the w
 
 ### Ferry side today
 
-Harbourline, from its IT operations systems list. Each bullet is a `fact`, source SRC-02.
+Harborline, from its IT operations systems list. Each bullet is a `fact`, source SRC-02.
 
 - **SeaBook** (fact, SRC-02): the web booking engine. It has an availability target of 99.9% from May to September and is on call round the clock.
 - **FERRYMASTER** (fact, SRC-02): a mainframe reservation system, and the ledger of record.
 - **FERRYMASTER contract notice** (fact, SRC-02): the vendor contract needs 18 months' notice. Its end date is disputed, so it is held in [[11-unknowns-and-risks#UNK-021 FERRYMASTER contract end date|UNK-021]] and not stated here.
-- **Halyard CRM** (fact, SRC-02): used by the Kestrel Bay contact centre.
-- **Tidepay** (fact, SRC-02): takes card payments for the web, the contact centre and the port kiosks.
+- **Halyard CRM** (fact, SRC-02): used by the Kestrel Bay contact center.
+- **Tidepay** (fact, SRC-02): takes card payments for the web, the contact center and the port kiosks.
 - **Tidemiles** (fact, SRC-02): the ferry loyalty scheme, 1 point per pound spent, and 100 points redeem for 1 pound. See [[#SV-01 Tidemiles]].
-- **Customer database** (fact, SRC-02): about 1.2 million records. Its owner is to be confirmed after the reorganisation: [[11-unknowns-and-risks#UNK-016 Ferry customer DB owner|UNK-016]].
+- **Customer database** (fact, SRC-02): about 1.2 million records. Its owner is to be confirmed after the reorganization: [[11-unknowns-and-risks#UNK-016 Ferry customer DB owner|UNK-016]].
 - **Partner hotel feed** (fact, SRC-02): a nightly file of package bookings goes to about 40 partner hotels. See [[#PTY-01 Partner hotels]].
 
 ### Rail side today
@@ -34,7 +34,7 @@ Northway Rail, from a target-architecture slide. Each bullet is an `assumption`,
 
 - **RailCore** (assumption, SRC-04): the booking engine, hosted by its vendor. The vendor SLA is 99.5%, and support runs 08:00 to 18:00 on weekdays. See [[#PTY-03 RailCore vendor]].
 - **Northway ID** (assumption, SRC-04): the login for every rail customer, and emails are unique.
-- **Signal CRM** (assumption, SRC-04): used in the Dunmere contact centre.
+- **Signal CRM** (assumption, SRC-04): used in the Dunmere contact center.
 - **Northway Plus** (assumption, SRC-04): the rail loyalty scheme, 5 points per pound spent. See [[#SV-02 Northway Plus]].
 - **Northway Assist** (assumption, SRC-04): handles assisted travel bookings.
 - **Payments** (assumption, SRC-04): through the RailCore gateway today, with a move to Tidepay planned for 2027.

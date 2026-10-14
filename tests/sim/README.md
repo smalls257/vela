@@ -217,7 +217,7 @@ wrong, rather than producing a quietly wrong score.
 4. **The budget stop.** The driver treats a result with subtype `error_max_budget_usd` as a budget stop and any
    other error as a tool failure.
 5. **The isolation settings.** That `--setting-sources project,local` keeps your user plugins and hooks out
-   without touching your login, and that `claudeMdExcludes` passed through `--settings` is honoured.
+   without touching your login, and that `claudeMdExcludes` passed through `--settings` is honored.
 6. **The `gh` stub stays first on `PATH`.** Claude Code's Bash tool may rebuild `PATH` from your shell
    profile. If it does, the real `gh` runs, and fails for want of a token instead.
 7. **Judge thinking.** `claude --help` lists `--effort <level>`; `alwaysThinkingEnabled` is a settings key the
@@ -287,7 +287,7 @@ How each criterion is measured:
   not `open`, through its own row, a wildcard or an initiative row, and check flags no ledger row (E801, E802,
   E803). The summary gives counts only.
 - **Area coverage.** Each `- **Coverage:**` line a review checkpoint wrote into a session record must give every
-  focus area in the catalogue one result: `found N`, `checked, none` or `did not run (<reason>)`. With
+  focus area in the catalog one result: `found N`, `checked, none` or `did not run (<reason>)`. With
   `require: ran`, an area that did not run fails the run, so a reviewer that was never dispatched cannot pass as
   clean. No coverage line at all fails too.
 
@@ -306,7 +306,7 @@ How each criterion is measured:
   new one is pinned to that turn. It is "with a yes" when the lead message that led to the turn says yes and the
   assistant turn before it asked a question.
 - **Questions per turn.** `run.py`'s count: question marks in the turn's prose.
-- **Options.** The first assistant turn with two or more labelled options ("Option A", "### B.", "**1)**") is
+- **Options.** The first assistant turn with two or more labeled options ("Option A", "### B.", "**1)**") is
   read. A label seen twice ends the options. Cue words settle each part: costs (cost, effort, expensive, budget,
   £...), rules out (rules out, gives up, precludes, closes off...), stakeholder or unknown (an `UNK-` ID, "unknown",
   a role such as director or board, or a stakeholder the persona names). Only when a part is still missing, or no
@@ -325,7 +325,7 @@ How each criterion is measured:
 | `holdout-hospitals/empty`, `after-dump`, `after-discover` | written by hand as a dump and close, then a discover and close, would leave them; each passes `planner check` with 0 errors |
 
 Each snapshot holds the persona's documents in `.inbox/`, exactly as `run.py` writes them. A vault's `.gitignore`
-ignores `.inbox/`, and git honours that file inside the snapshot too, so they are committed with `git add -f`. A
+ignores `.inbox/`, and git honors that file inside the snapshot too, so they are committed with `git add -f`. A
 probe whose snapshot inbox has drifted from the persona's docs stops with exit 2.
 
 A probe copies the snapshot into its run folder, removes any `.claude/skills` it holds, installs the current
@@ -401,7 +401,7 @@ ledger refusing to start, and every exit code. Holdout tests assert on counts on
 - `probe.py`: one-session probes from a snapshot, for the iteration loop.
 - `probes/`: the probe cases. `snapshots/`: the starting vaults.
 - `personas/holdout-hospitals.yaml`: the holdout. Do not read it while iterating.
-- `personas/coastal-merger.yaml`: the default persona. Harbourline has merged with Northway Rail, the CIO's
+- `personas/coastal-merger.yaml`: the default persona. Harborline has merged with Northway Rail, the CIO's
   mandate is one line, and the lead starts from an empty vault. 15 K, 5 W, 8 U, 4 C and 5 D items, each with
   two to four `keywords`, and four inbox documents that contradict each other in places. A missing or empty
   keyword list fails the run at load, exit 2, and no keyword other than K1's may appear in the opening. Every

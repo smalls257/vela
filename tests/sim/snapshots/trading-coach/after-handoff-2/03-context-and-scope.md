@@ -11,15 +11,15 @@ sources: [SRC-03, SRC-04, SRC-07, SRC-08, SRC-10, SRC-11, SRC-13, SRC-15]
 
 # Context and scope
 
-TickerTalk is the foundation: an app, its readers and a mobile team. The product lead says about 400,000 people read it each month, and does not know whether the coach is for all of them or only those interested in trading. The coach is meant to take on one stock or option at a time. [[03-context-and-scope#PTY-01 Brightwater|Brightwater]], a broker-dealer TickerTalk signed with in June, holds the customers' money and executes equity orders through its API, and its agreement covers equities and not options. TickerTalk holds none of that money, and who carries the balances as owed to customers is not recorded. [[03-context-and-scope#PTY-02 Quoteline|Quoteline]] supplies the prices, under a licence that lets TickerTalk's own apps display US equity quotes delayed by 15 minutes, with no options data. A budget has been allocated, but its size, holder and scope are not recorded, and the dates and the no-live-trading ban are on the constraints page. [[sources#SRC-15|The product lead's own account]] is that a contractor, now locked in, writes the lessons, though the product lead does not have the name to hand. The product lead also defines what "ready" means for the track, and has not yet worked out what it looks like.
+TickerTalk is the foundation: an app, its readers and a mobile team. The product lead says about 400,000 people read it each month, and does not know whether the coach is for all of them or only those interested in trading. The coach is meant to take on one stock or option at a time. [[03-context-and-scope#PTY-01 Brightwater|Brightwater]], a broker-dealer TickerTalk signed with in June, holds the customers' money and executes equity orders through its API, and its agreement covers equities and not options. TickerTalk holds none of that money, and who carries the balances as owed to customers is not recorded. [[03-context-and-scope#PTY-02 Quoteline|Quoteline]] supplies the prices, under a license that lets TickerTalk's own apps display US equity quotes delayed by 15 minutes, with no options data. A budget has been allocated, but its size, holder and scope are not recorded, and the dates and the no-live-trading ban are on the constraints page. [[sources#SRC-15|The product lead's own account]] is that a contractor, now locked in, writes the lessons, though the product lead does not have the name to hand. The product lead also defines what "ready" means for the track, and has not yet worked out what it looks like.
 
 ## Today
 
-The product lead says TickerTalk is the foundation: the app, the readers and a mobile team. They also say "users are TickerTalk readers, about 400k monthly", and that the budget is allocated. All three are the product lead's account and none has a source. The agreement and licence summaries call TickerTalk "Kestrel", and [[sources#SRC-07|the product lead confirms]] they are the same company.
+The product lead says TickerTalk is the foundation: the app, the readers and a mobile team. They also say "users are TickerTalk readers, about 400k monthly", and that the budget is allocated. All three are the product lead's account and none has a source. The agreement and license summaries call TickerTalk "Kestrel", and [[sources#SRC-07|the product lead confirms]] they are the same company.
 
 ## After
 
-<!-- generated:system-context sha=58d1b902: do not edit, run planner render -->
+<!-- generated:system-context sha=bc841d11: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   subgraph scope["New initiative"]
@@ -39,7 +39,7 @@ flowchart LR
   class x_brightwater,x_quoteline external
 ```
 
-Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: blue outline: an app in the initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:system-context -->
 
 ## In scope
@@ -59,10 +59,10 @@ Brightwater is the broker-dealer TickerTalk signed with in June. [[sources#SRC-0
 
 ### PTY-02 Quoteline
 
-Quoteline supplies the market data under a licence. [[sources#SRC-04|The data engineer's licence summary]] says it lets TickerTalk's own apps display US equity quotes delayed by 15 minutes, and that it includes no options data. [[sources#SRC-10|Quoteline's own reply]] says showing delayed quotes inside lessons is display use, which the licence allows, and that using its prices to train or run a model is non-display use that needs an addendum with its own fees, as clause 9 says.
+Quoteline supplies the market data under a license. [[sources#SRC-04|The data engineer's license summary]] says it lets TickerTalk's own apps display US equity quotes delayed by 15 minutes, and that it includes no options data. [[sources#SRC-10|Quoteline's own reply]] says showing delayed quotes inside lessons is display use, which the license allows, and that using its prices to train or run a model is non-display use that needs an addendum with its own fees, as clause 9 says.
 
 - **Relationship:** supplier
-- **Agreements:** the Quoteline market data licence, summarised by the data engineer in March 2026 ([[sources#SRC-04|the summary]]); [[sources#SRC-10|Quoteline's reply of 14 October]] on clause 9; the licence itself is not in sources
+- **Agreements:** the Quoteline market data license, summarized by the data engineer in March 2026 ([[sources#SRC-04|the summary]]); [[sources#SRC-10|Quoteline's reply of 14 October]] on clause 9; the license itself is not in sources
 
 ### PTY-03 Outside Counsel
 

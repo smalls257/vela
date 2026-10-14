@@ -6,8 +6,8 @@ author: "Chris Davis"
 work: "The Architecture of Open Source Applications, Volume 1"
 chapter: "Chapter 7, Graphite, section 7.8. Kernels, Caches, and Catastrophic Failures"
 url: https://aosabook.org/en/v1/graphite.html
-licence: CC BY 3.0
-licence_url: https://creativecommons.org/licenses/by/3.0/
+license: CC BY 3.0
+license_url: https://creativecommons.org/licenses/by/3.0/
 changes: none, the passage is quoted word for word
 state: active
 added: 2026-10-03

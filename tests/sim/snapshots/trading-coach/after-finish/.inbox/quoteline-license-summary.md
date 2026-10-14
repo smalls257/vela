@@ -1,4 +1,4 @@
-# Quoteline market data licence: summary
+# Quoteline market data license: summary
 
 Prepared by the data engineer, 2026-03-02.
 

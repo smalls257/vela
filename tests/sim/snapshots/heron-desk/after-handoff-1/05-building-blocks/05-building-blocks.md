@@ -10,7 +10,7 @@ authored: mixed
 
 One page per app in scope, named `<app>-building-blocks.md`. Contracts live on the provider's page.
 
-<!-- generated:context-map sha=ae328095: do not edit, run planner render -->
+<!-- generated:context-map sha=46c029ce: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_heron["Heron (new)"]
@@ -26,7 +26,7 @@ flowchart LR
   class n_APP_heron new
 ```
 
-Key: green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labelled with its ID.
+Key: green: new in this initiative · white, dashed: outside the initiative (a party or provider) · an arrow is a contract, labeled with its ID.
 <!-- /generated:context-map -->
 
 ## One laptop app
@@ -35,4 +35,4 @@ One app carries the first release: [[heron-building-blocks|Heron]], new, in the 
 
 ## History
 
-- **Options considered:** One laptop app (picked); Collector and note builder: rejected, "I don't own anyone yet, and two apps means two ownership questions when I can't answer one."; Laptop agent and cloud summariser: rejected, "No text off the device in release one, that's the line we hold for the pack."
+- **Options considered:** One laptop app (picked); Collector and note builder: rejected, "I don't own anyone yet, and two apps means two ownership questions when I can't answer one."; Laptop agent and cloud summarizer: rejected, "No text off the device in release one, that's the line we hold for the pack."

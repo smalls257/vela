@@ -19,7 +19,7 @@ A later note from the CEO, dated 6 October, narrows the plan. [[sources#SRC-09|T
 
 ## Where it stands
 
-<!-- generated:where-it-stands sha=458437a8: do not edit, run planner render -->
+<!-- generated:where-it-stands sha=342e8240: do not edit, run planner render -->
 **Apps on the ladder**
 
 | App | Stage | Blocking unknowns | Unexamined cells | Contracts decided or fact |
@@ -63,7 +63,7 @@ A later note from the CEO, dated 6 October, narrows the plan. [[sources#SRC-09|T
 | [[11-unknowns-and-risks#UNK-047 Is the reader ID stable across email and device changes\|UNK-047]] | @sim-lead (product lead, asking the mobile lead) | 2026-10-14 | [[tickertalk-building-blocks#CON-005 Reader identity\|CON-005 Reader identity]] |
 | [[11-unknowns-and-risks#UNK-048 Does mobile's plan cover sending the ID only for opted-in readers\|UNK-048]] | @sim-lead (product lead, asking the mobile lead) | 2026-10-14 | [[tickertalk-building-blocks#CON-005 Reader identity\|CON-005 Reader identity]] |
 | [[11-unknowns-and-risks#UNK-049 Who covers TickerTalk out of hours\|UNK-049]] | @sim-lead (product lead, asking the mobile lead) | 2026-10-14 | [[tickertalk-building-blocks\|tickertalk-building-blocks]] |
-| [[11-unknowns-and-risks#UNK-050 When Coach opens a sandbox account\|UNK-050]] | @coach-lead | 2026-10-16 | [[FLO-002-reader-practises-a-trade\|FLO-002-reader-practises-a-trade]] |
+| [[11-unknowns-and-risks#UNK-050 When Coach opens a sandbox account\|UNK-050]] | @coach-lead | 2026-10-16 | [[FLO-002-reader-practices-a-trade\|FLO-002-reader-practices-a-trade]] |
 | [[11-unknowns-and-risks#UNK-051 How Coach grades a paper trade\|UNK-051]] | @coach-lead | 2026-10-16 | [[FLO-003-reader-passes-the-ready-track\|FLO-003-reader-passes-the-ready-track]] |
 | [[11-unknowns-and-risks#UNK-052 Who reviews Coach's failure cases during the build\|UNK-052]] | @coach-lead | 2026-10-16 | [[coach-runtime\|coach-runtime]] |
 | [[11-unknowns-and-risks#UNK-053 Who is the privacy lead who signed off the opt-in wording\|UNK-053]] | @sim-lead | 2026-10-12 | nothing |

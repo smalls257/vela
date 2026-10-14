@@ -18,7 +18,7 @@ TickerTalk keeps sign-in and the news, as it does today (the product lead, no so
 
 TickerTalk holds no lessons, practice, quotes or progress; Coach keeps them. It prepares or places no order and holds no customer money, which Brightwater holds (SRC-01). It shows no way into the board demo and no trade ideas to customers.
 
-<!-- generated:app-context sha=8389923e: do not edit, run planner render -->
+<!-- generated:app-context sha=c123efaf: do not edit, run planner render -->
 ```mermaid
 flowchart LR
   n_APP_coach["Coach (new)"]
@@ -30,7 +30,7 @@ flowchart LR
   class n_APP_coach new
 ```
 
-Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labelled with its ID.
+Key: dark blue: the app this page is about · green: new in this initiative · an arrow is a contract, labeled with its ID.
 <!-- /generated:app-context -->
 
 ## Containers
