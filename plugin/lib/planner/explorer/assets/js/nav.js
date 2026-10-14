@@ -53,7 +53,7 @@ const Nav = (() => {
     const pk = sectionPage();
     if (s.id === "apps" && st.child && APPS[st.child] && typeof Inside !== "undefined" && App.view !== "inside") box.append(h("button", { class: "btn inside-btn", title: "How this app is built, and the team's plan for building it", onclick: () => Inside.open(st.child, "containers") }, "Inside this app"));
     if (pk && App.view !== "doc") box.append(h("button", { class: "btn", title: "Read this section's page across the whole width", onclick: () => readWide(pk) }, "Read full page"));
-    const file = pk ? openLink(["Open source file"], D.vault ? D.vault + "/" + E[pk].path : "", E[pk].path, E[pk].path) : null;
+    const file = pk ? openLink(["Open the page"], D.vault ? D.vault + "/" + E[pk].path : "", E[pk].path, `${E[pk].title}, as it is written, in a new tab`) : null;
     if (file) box.append(file);  // openLink is null when the page is opened from a file; Element.append would print the word "null"
     return box;
   }

@@ -175,7 +175,7 @@ const Inside = (() => {
      the build could not make one without naming the builder's home folder. */
   function designLink(d, icon = null, where = "") {
     if (!d) return null;
-    return openLink([icon, "Open the design doc"], d.href, d.vaultPath, d.file + where);
+    return openLink([icon, "Open the design doc"], d.href, d.vaultPath, "The team's design" + where + ", in a new tab");
   }
   function statusPill(app) {
     const d = design(app), fm = d.frontmatter, gaps = fm.gaps.map((g) => g.id).filter(Boolean);
@@ -632,7 +632,7 @@ const Inside = (() => {
     defsFor(svg);
     const gFrame = s("g", {}, svg);
     const inner = Object.values(lay.box).filter((b) => b.node.kind === "component");
-    const fr = frameAround(gFrame, inner, `${appTitle(app)}: components`, `From the team's design: ${d.file}`);
+    const fr = frameAround(gFrame, inner, `${appTitle(app)}: components`, "From the team's design");
     const heads = [columnHeads(gFrame, lay, "in", "Systems that call it"), columnHeads(gFrame, lay, "out", "Systems it calls")].filter(Boolean);
     // a stub no component meets is tied to the app's own edge, dashed, and says so on hover
     for (const l of loose) {
@@ -714,7 +714,7 @@ const Inside = (() => {
   }
   /* Design text, with every vault ID it names a link into the vault, and `code` as code. */
   function prose(text, cls) {
-    const out = h("span", { class: cls || "" });
+    const out = h("span", { class: (cls ? cls + " " : "") + "authored" });  // the team's own words, as written
     for (const part of String(text || "").split(/(`[^`]+`)/)) {
       if (/^`[^`]+`$/.test(part)) { out.append(h("code", {}, part.slice(1, -1))); continue; }
       let last = 0;
@@ -979,7 +979,7 @@ const Inside = (() => {
       sec("Open questions", d.open_questions.length, d.open_questions.map((q) => h("div", { class: "in-gap" }, q.challenges.length ? lampEl("caution", "Questions part of the plan: needs you") : null, " ", h("b", {}, q.id), " ", q.title,
         q.challenges.length ? h("div", {}, "Questions ", q.challenges.map((id) => idChip(id))) : null, q.other.Scenario ? h("div", { class: "ml-sub" }, "Scenario: ", prose(q.other.Scenario)) : null,
         q.affects_ids.length ? h("div", { class: "ml-sub" }, "Affects ", q.affects_ids.map((id) => idChip(id))) : null))),
-      sec("The plan it was written against", null, h("div", { class: "p-note" }, d.vault.app ? `The plan for ${appTitle(keyOfApp(d.vault.app) || app)}${d.vault.commits.length ? ` (version ${d.vault.commits.join(" and ")})` : ", with no version named"}.` : "This design isn't linked to the plan; it was written from a requirements doc.",
+      sec("The plan it was written against", null, h("div", { class: "p-note" }, d.vault.app ? `The plan for ${appTitle(keyOfApp(d.vault.app) || app)}${d.vault.commits.length > 1 ? `, read at ${d.vault.commits.length} different versions` : d.vault.commits.length ? ", at the version the design names" : ", with no version named"}.` : "This design isn't linked to the plan; it was written from a requirements doc.",
         d.vault.source === "inferred" ? h("span", { class: "heuristic" }, " Guessed from the design's references; it doesn't name the plan directly.") : null)),
       sec("Coverage", null, h("div", { class: "p-note" }, coverageSay(d)),
         h("button", { class: "btn tiny", onclick: () => { st.tab = "trace"; open(app, "components", { keepTrail: true }); } }, "What each component delivers")))];
@@ -1030,8 +1030,8 @@ const Inside = (() => {
     const a = d.adrs.find((x) => x.id === id);
     if (!a) return [h("div", { class: "p-empty" }, `The ${designWord(app)} lists no ${id}.`)];
     return [phead(`Team design decision · ${designWord(app)}`, `${a.id}: ${a.adr_title || a.title}`, h("div", { class: "p-meta" }, statePill(a.status), a.date ? h("span", { class: "pill" }, a.date) : null),
-      h("div", { class: "p-note" }, `${a.file || a.href}. The number is the team's own, not the plan's ${a.id}.`)),
-    h("div", { class: "p-body" }, !a.found ? h("div", { class: "gap" }, `Its file isn't there (${a.href}).`) : null,
+      h("div", { class: "p-note" }, `The number is the team's own, not the plan's.`)),
+    h("div", { class: "p-body" }, !a.found ? h("div", { class: "gap" }, "The team's design names this decision, but its page isn't there.") : null,
       sec("Context", null, a.context ? h("div", { class: "prose-text in-prose" }, prose(a.context)) : null), sec("Decision", null, a.decision ? h("div", { class: "prose-text in-prose" }, prose(a.decision)) : null),
       sec("Alternatives considered", (a.alternatives || []).length, (a.alternatives || []).map((x) => h("div", { class: "in-gap" }, h("b", {}, x.option), " ", prose(x.why_not)))),
       sec("Consequences", null, Object.keys(a.consequences || {}).length ? h("div", { class: "facts" }, Object.entries(a.consequences).flatMap(([l, v]) => [h("div", { class: "fl" }, l), h("div", {}, prose(v))])) : null))];

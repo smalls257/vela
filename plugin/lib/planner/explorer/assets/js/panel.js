@@ -89,11 +89,12 @@ const Panel = (() => {
   /* ------------------------------------------------------------ a page, to read */
   function reading(key) {
     const [pk, anchor] = key.slice(5).split("#"), e = E[pk];
-    const out = [h("div", { class: "p-head" }, h("div", { class: "kind" }, ["page", "section"].includes(e.kind) ? "Page" : (KIND_WORD[e.kind] || "Page") + " page", h("span", { class: "p-id" }, e.path)),
+    // No file path in reader text (the wording rule: no file paths or commit hashes): the page is named by its title
+    const out = [h("div", { class: "p-head" }, h("div", { class: "kind" }, ["page", "section"].includes(e.kind) ? "Page" : (KIND_WORD[e.kind] || "Page") + " page"),
       h("h2", {}, e.title), linkChips(pk),
       h("div", { class: "p-actions" }, typeof Nav !== "undefined" ? h("button", { class: "btn", onclick: () => Nav.readWide(pk, anchor) }, "Read full page") : null,
         ent(pk) && e.kind !== "section" && e.kind !== "page" ? h("button", { class: "btn", onclick: () => go(pk, {}) }, "About it and what is blocking it") : null,
-        openLink(["Open source file"], D.vault ? D.vault + "/" + e.path : "", e.path, "Open the file this page is written in")))];
+        openLink(["Open the page"], D.vault ? D.vault + "/" + e.path : "", e.path, "The page as it is written, in a new tab")))];
     const body = Reader.body(pk, { toc: true });
     out.push(body);
     requestAnimationFrame(() => { if (!Reader.scrollTo(body, anchor)) $("#panel-body").scrollTop = 0; });
