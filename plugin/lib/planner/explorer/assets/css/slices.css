@@ -58,7 +58,7 @@
 .sl-chip { cursor: pointer; font-size: 12px; padding: 1px 9px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; flex-wrap: wrap; column-gap: 4px; row-gap: 0; min-width: 0; }
 .sl-chip:hover, .sl-chip:focus-visible { border-color: var(--ink-2); color: var(--ink); }
 .sl-chip.gap { border-style: dashed; color: var(--ink-3); }
-.sl-chip .id-tag { margin-left: 0; }
+.sl-chip .id-tag { margin-left: 0; white-space: normal; overflow-wrap: anywhere; }
 
 /* Path: a level per depth, side by side when they can be built at once, arrows for comes after */
 .sl-path { position: relative; display: grid; gap: 34px; max-width: 1100px; padding: 4px 0 8px; }

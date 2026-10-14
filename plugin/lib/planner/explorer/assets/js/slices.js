@@ -85,7 +85,7 @@ const Slices = (() => {
   function afterChip(k) {
     const x = BY[k];
     if (!x) return chip(k, "", missing(k, "Slice with no page", `The slice comes after ${k}, and this vault has no slice by that name.`), "sl-afterchip gap");
-    return chip(x.name, x.id, keyOf(x), "sl-afterchip");
+    return Nodes.wire(h("span", { class: "chip sl-chip sl-afterchip", title: x.id || null }, x.name), { label: x.label, stop: true, ...keyOf(x) });  // the ID in the tooltip: a narrow cell has no room for it
   }
   function ownerChip(handle) {
     if (D.owners[handle]) return chip(handle, "", { key: "owner:" + handle }, "sl-owner");
