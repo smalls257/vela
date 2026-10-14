@@ -7,10 +7,10 @@
      allocation, that an epic listing the app delivers. An app with several is drawn once, in the region of the one
      it carries most of, with a "+2 capabilities" tab; each other region lists it in its "Also carried by" row.
      Hover the tab, or pick the app, and those regions light.
-   - Focus: one app with its direct neighbours only.
+   - Focus: one app with its direct neighbors only.
 
    Pinned positions still hold inside a cluster: its apps are placed in the order of their pinned columns, then
-   rows (pins.py), so an app keeps its place relative to its neighbours from build to build. Every lamp is
+   rows (pins.py), so an app keeps its place relative to its neighbors from build to build. Every lamp is
    attention.lights, through MapView.lamp. Contracts between two drawn boxes share one duct with one lamp.
 
    Nothing sits on anything else. Regions are sized to what they hold and packed on shelves with gutters; then every
@@ -31,7 +31,7 @@ const MapGroups = (() => {
   const { bx } = Legend;
   Legend.define("cluster.open", [bx({ stroke: "rule", w: 1.4, rx: 5 })], "Faint frame: a group, with its apps drawn inside it");
   Legend.define("cluster.outside", [bx({ stroke: "ink-4", w: 1.4, rx: 5, dash: "3 3.5" })], "Dashed frame: the outside parties, kept apart from our apps");
-  Legend.define("cluster.closed", [bx({ fill: "unlit", stroke: "rule-3", w: 1.2, rx: 4 }), bx({ fill: "caution", x: 3, y: 4, width: 3, height: 8, rx: 1.5 })], "Card with a coloured edge: a closed group, in its worst light; click to open");
+  Legend.define("cluster.closed", [bx({ fill: "unlit", stroke: "rule-3", w: 1.2, rx: 4 }), bx({ fill: "caution", x: 3, y: 4, width: 3, height: 8, rx: 1.5 })], "Card with a colored edge: a closed group, in its worst light; click to open");
   Legend.define("cluster.mini", [bx({ fill: "caution", x: 5, y: 6, width: 6, height: 4, rx: 1 }), bx({ fill: "unlit", x: 13, y: 6, width: 6, height: 4, rx: 1 }), bx({ fill: "warning", x: 21, y: 6, width: 6, height: 4, rx: 1 })], "Row of small lamps: one per app in a closed group, each in its light");
   Legend.define("cluster.also-tab", [bx({ fill: "deck-3", stroke: "rule-3", w: 1, height: 8, y: 4, rx: 4 }), { k: "text", t: "+2", fill: "ink-2", y: 11, size: 8 }], "Small tab above a box: the app carries other capabilities too");
   Legend.define("cluster.also-chip", [bx({ fill: "deck-2", stroke: "rule-3", w: 1.2, dash: "3 2.5", height: 8, y: 4, rx: 4 })], "Dashed chip: an app drawn in another region that carries this one too");
@@ -39,7 +39,7 @@ const MapGroups = (() => {
     "cluster.open": ".cluster-frame:not(.outside)", "cluster.outside": ".cluster-frame.outside", "cluster.closed": "g.cluster-lamp", "cluster.mini": "rect.mini-lamp",
     "cluster.also-tab": "g.also-tab", "cluster.also-chip": "g.also-chip",
   };
-  const LOOKS_FOCUS = { "picked": "g.hit.picked, path.duct.picked, .focus-centre" };
+  const LOOKS_FOCUS = { "picked": "g.hit.picked, path.duct.picked, .focus-center" };
   const PARTIES = "grp:outside";
 
   function groups(mode) {
@@ -138,7 +138,7 @@ const MapGroups = (() => {
     }
     if (placed.length) {
       for (const g of placed) { const [c, r] = Layout.clusterAt(g.key); g.x = c * Layout.FRAME.cw; g.y = r * Layout.FRAME.rh; }
-      // Opening a cluster grows it, and it may then reach a neighbour: the later one (by its corner, top to bottom,
+      // Opening a cluster grows it, and it may then reach a neighbor: the later one (by its corner, top to bottom,
       // then left to right) is drawn pushed right until it is clear. Its pin is unchanged; the next drop pins it as drawn.
       const settled = [];
       for (const g of placed.slice().sort((a, b) => a.y - b.y || a.x - b.x || cmp(a.key, b.key))) {
@@ -244,7 +244,7 @@ const MapGroups = (() => {
       const duct = s("path", { d, class: "duct", "data-a": e.a, "data-b": e.b }, gDucts);
       s("path", { d, class: "duct-hi", transform: "translate(0,2.5)" }, gDucts);
       Legend.saw("link");
-      if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts); Legend.saw("link.lit"); }
+      if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].color }, gDucts); Legend.saw("link.lit"); }
       Scene.edge(e.a, e.b, { pts, el: duct, contracts: e.contracts });
       const one = e.contracts.length === 1, lw = one ? 120 : 98;
       const ids = e.contracts.slice().sort();
@@ -272,7 +272,7 @@ const MapGroups = (() => {
   function countBadge(g, at, ids, lv, bundle, crowded) {
     Legend.saw("kind.count"); Legend.saw("lamp." + lv);
     const grp = s("g", { class: `hit count-badge ${lv === "dark" ? "dark" : "lit " + lv}`, "data-key": ids[0], "data-agg": "1", "data-crowded": crowded ? "1" : null }, g);
-    s("circle", { cx: at.x, cy: at.y, r: 14, fill: lv === "dark" ? LIGHT.dark.colour : LIGHT[lv].colour, stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" }, grp);
+    s("circle", { cx: at.x, cy: at.y, r: 14, fill: lv === "dark" ? LIGHT.dark.color : LIGHT[lv].color, stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" }, grp);
     s("text", { x: at.x, y: at.y + 4.5, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = ids.length;
     s("title", {}, grp).textContent = ids.map((id) => `${id} ${CONTRACT[id].title}`).join("; ");
     Nodes.wire(grp, { label: `${plural(ids.length, "contract")}: ${ids.join(", ")}`, key: ids.length === 1 ? ids[0] : bundle });
@@ -296,7 +296,7 @@ const MapGroups = (() => {
     const mid = (o) => ({ x: o.x + o.w / 2, y: o.y + o.h / 2 }), from = mid(g);
     const others = list.filter((o) => o !== g).map((o) => ({ ...mid(o), w: o.w, h: o.h, key: o.label }));
     // half a pixel inside the gutter: shelved clusters stand exactly a gutter apart, and the one being moved must not
-    // count as already too close to its neighbour where it starts
+    // count as already too close to its neighbor where it starts
     const got = Layout.along(from, { x: from.x + dx, y: from.y + dy }, g.w, g.h, others, g.gap - 0.5);
     return got && { x: got.at.x - g.w / 2, y: got.at.y - g.h / 2, hit: got.hit, past: got.t > 1 };
   }
@@ -425,7 +425,7 @@ const MapGroups = (() => {
         obs.push(drawnBox(sub, { x: g.x + g.w - PAD - subW + 14, y: g.y + 16, w: subW - 14, h: 20 }));
       }
       if (g.alsoLines.length) alsoRow(g, gNames, obs);
-      if (lv !== "dark") s("rect", { x: g.x, y: g.y + 12, width: 3, height: 26, rx: 1.5, fill: LIGHT[lv].colour }, grp);
+      if (lv !== "dark") s("rect", { x: g.x, y: g.y + 12, width: 3, height: 26, rx: 1.5, fill: LIGHT[lv].color }, grp);
       const close = s("g", { class: "cluster-toggle", tabindex: 0, role: "button", "aria-label": `Close ${g.label}` }, grp);
       s("rect", { x: g.x + g.w / 2 - 34, y: g.y + g.h - 11, width: 68, height: 20, rx: 10 }, close);
       obs.push({ x: g.x + g.w / 2 - 34, y: g.y + g.h - 11, w: 68, h: 20 });
@@ -444,10 +444,10 @@ const MapGroups = (() => {
     s("rect", { x: g.x, y: g.y + 2, width: g.w, height: g.h, rx: 14, fill: Theme.c("face-drop") }, el);
     s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, fill: "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" }, el);
     if (lv !== "dark") {
-      s("rect", { x: g.x + 1, y: g.y + 14, width: 5, height: g.h - 28, rx: 2.5, fill: LIGHT[lv].colour, class: "band" }, el);
-      s("circle", { cx: g.x + 24, cy: g.y + 30, r: 6, fill: LIGHT[lv].colour, class: "dot" }, el);
+      s("rect", { x: g.x + 1, y: g.y + 14, width: 5, height: g.h - 28, rx: 2.5, fill: LIGHT[lv].color, class: "band" }, el);
+      s("circle", { cx: g.x + 24, cy: g.y + 30, r: 6, fill: LIGHT[lv].color, class: "dot" }, el);
     }
-    // cut to the card by measure, so a title never runs past its card onto a neighbour
+    // cut to the card by measure, so a title never runs past its card onto a neighbor
     const tx = g.x + (lv !== "dark" ? 38 : 20);
     let title = g.label;
     while (title.length > 4 && measure(title, 17, 600) > g.x + g.w - 16 - tx) title = title.slice(0, -2).trimEnd() + "…";
@@ -467,7 +467,7 @@ const MapGroups = (() => {
       // each app's glyph stands over its lamp, so a closed cluster still says what is inside it
       if (mw >= 12) Icons.put(el, Icons.name(k), g.x + 20 + i * (mw + 4) + mw / 2, g.y + g.h - 40, Math.min(14, mw), "mini-glyph");
       Legend.saw("cluster.mini");
-      const tiny = s("rect", { x: g.x + 20 + i * (mw + 4), y: g.y + g.h - 26, width: mw, height: 8, rx: 2, fill: l === "dark" ? Theme.c("mini-dark") : LIGHT[l].colour, class: "mini-lamp", "data-key": k }, el);
+      const tiny = s("rect", { x: g.x + 20 + i * (mw + 4), y: g.y + g.h - 26, width: mw, height: 8, rx: 2, fill: l === "dark" ? Theme.c("mini-dark") : LIGHT[l].color, class: "mini-lamp", "data-key": k }, el);
       tiny.appendChild(document.createElementNS(SVGNS, "title")).textContent = `${titleOf(k)}: ${LIGHT[l].word}`;
       // a part inside a focusable cluster: the cluster's panel lists the same apps for the keyboard
       Nodes.wire(tiny, { label: `${titleOf(k)}: ${LIGHT[l].word}`, key: k, nested: true, stop: true });
@@ -516,8 +516,8 @@ const MapGroups = (() => {
     $$("#board .also-chip").forEach((c) => c.classList.toggle("also-on", c.dataset.key === k));
   }
 
-  /* ------------------------------------------------------------ focus: one app and its direct neighbours */
-  function neighbours(key) {
+  /* ------------------------------------------------------------ focus: one app and its direct neighbors */
+  function neighbors(key) {
     const uses = new Map(), usedBy = new Map();
     for (const c of D.map.contracts) {
       if (c.consumers.includes(key) && c.provider !== key && NODE[c.provider]) (uses.get(c.provider) || uses.set(c.provider, []).get(c.provider)).push(c.id);
@@ -525,10 +525,10 @@ const MapGroups = (() => {
     }
     return { uses, usedBy };
   }
-  /* onCentre: what picking the app in the middle does besides open it in the panel (Inside this app goes in a level). */
-  function focus(board, key, onCentre) {
+  /* onCenter: what picking the app in the middle does besides open it in the panel (Inside this app goes in a level). */
+  function focus(board, key, onCenter) {
     if (!NODE[key]) { board.append(emptyState(`${key} is not on the map.`)); return; }
-    const { uses, usedBy } = neighbours(key);
+    const { uses, usedBy } = neighbors(key);
     const left = [...usedBy.keys()].filter((k) => NODE[k].kind === "app" && !uses.has(k)).sort(byPin);
     const both = [...usedBy.keys()].filter((k) => uses.has(k)).sort(byPin);
     const right = [...uses.keys()].filter((k) => NODE[k].kind === "app" && !usedBy.has(k)).sort(byPin);
@@ -541,7 +541,7 @@ const MapGroups = (() => {
     Object.values(boxes).forEach((b) => { b.w = W; b.h = H; });
     const xs = Object.values(boxes).flatMap((b) => [b.x, b.x + W]), ys = Object.values(boxes).flatMap((b) => [b.y, b.y + H]);
     const x0 = Math.min(...xs) - 120, x1 = Math.max(...xs) + 120, y0 = Math.min(...ys) - 70, y1 = Math.max(...ys) + 60;
-    const root = s("svg", { viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, class: "cockpit focus", role: "img", "aria-label": `${titleOf(key)} and its direct neighbours` }, board);
+    const root = s("svg", { viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, class: "cockpit focus", role: "img", "aria-label": `${titleOf(key)} and its direct neighbors` }, board);
     MapView.fitSvg(root, board, x1 - x0, y1 - y0, 1.1);
     Pan.attach(board, { key: "focus", svg: () => $("svg.cockpit.focus", board) });
     defs(root);
@@ -556,11 +556,11 @@ const MapGroups = (() => {
       const n = NODE[k], light = lightOf(k);
       const sub = n.kind !== "app" ? (n.external ? "outside provider" : "outside party") : !light || light.level === "dark" ? "settled" : MapView.shortWhy(light);
       const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(k),
-        onpick: k === key ? (onCentre ? () => { go(k, { reset: true }); onCentre(el); } : null) : () => go(k, { reset: true }) });
-      if (k === key) { el.classList.add("focus-centre"); Legend.saw("picked", "White outline: the app in focus, and what you pick"); }
+        onpick: k === key ? (onCenter ? () => { go(k, { reset: true }); onCenter(el); } : null) : () => go(k, { reset: true }) });
+      if (k === key) { el.classList.add("focus-center"); Legend.saw("picked", "White outline: the app in focus, and what you pick"); }
       Scene.node(k, { x: b.x, y: b.y, w: W, h: H, el });
     }
-    // each neighbour's contracts as a bank of lamps on its one duct, as on the cockpit
+    // each neighbor's contracts as a bank of lamps on its one duct, as on the cockpit
     for (const k of Object.keys(boxes)) {
       if (k === key) continue;
       const ids = [...new Set([...(uses.get(k) || []), ...(usedBy.get(k) || [])])].sort();
@@ -571,13 +571,13 @@ const MapGroups = (() => {
       const pts = Geo.route(pa, pb, sd), d = Geo.roundedPath(pts, 34), lv = worst(ids.map(levelOf));
       const duct = s("path", { d, class: "duct" }, gDucts);
       Legend.saw("link");
-      if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour }, gDucts); Legend.saw("link.lit"); }
+      if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].color }, gDucts); Legend.saw("link.lit"); }
       Scene.edge(key, k, { pts, el: duct, contracts: ids });
       const at = Geo.pointAt(pts, Geo.length(pts) * 0.55);
       ids.forEach((id, i) => MapView.lamp(gLamps, { key: id, x: at.x - 60, y: at.y - 11 + (i - (ids.length - 1) / 2) * 27, w: 120, h: 22, rx: 3, label: CONTRACT[id].title, kind: "contract", title: `${id} ${CONTRACT[id].title}` }));
     }
     const hidden = D.nodes.length - Object.keys(boxes).length;
-    board.append(h("div", { class: "focus-note" }, `${titleOf(key)} and ${plural(Object.keys(boxes).length - 1, "direct neighbour")}. `, hidden ? `${plural(hidden, "box", "boxes")} with no contract to it ${hidden === 1 ? "is" : "are"} not drawn.` : "Nothing else is hidden."));
+    board.append(h("div", { class: "focus-note" }, `${titleOf(key)} and ${plural(Object.keys(boxes).length - 1, "direct neighbor")}. `, hidden ? `${plural(hidden, "box", "boxes")} with no contract to it ${hidden === 1 ? "is" : "are"} not drawn.` : "Nothing else is hidden."));
     MapView.startBreathing();
     board.dataset.shown = Object.keys(boxes).length;
   }
@@ -588,5 +588,5 @@ const MapGroups = (() => {
     $$("g.hit", board).forEach((g) => g.classList.toggle("picked", anchors.has(g.dataset.key) || g.dataset.key === key));
     lightAlso(key && APPS[key] ? key : null);
   }
-  return { grouped, focus, groups, highlight, all, neighbours, isOpen, place, beside, drawnBox, LOOKS, LOOKS_FOCUS };
+  return { grouped, focus, groups, highlight, all, neighbors, isOpen, place, beside, drawnBox, LOOKS, LOOKS_FOCUS };
 })();

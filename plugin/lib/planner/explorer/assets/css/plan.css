@@ -1,6 +1,6 @@
 /* ------------------------------------------------ Inside this app, level 4: the build plan (plan.js)
    In the room's own palette, so it repaints with every theme. A lit card is the vault's lamp for the open question that
-   blocks it, never a colour of the plan's own; the plan's status is shape and ink, as the design's is. */
+   blocks it, never a color of the plan's own; the plan's status is shape and ink, as the design's is. */
 .plan-page { container: planpage / inline-size; flex: 1; min-height: 0; overflow: auto; padding: 14px 24px 44px; display: flex; flex-direction: column; gap: 16px; }
 .plan-bar { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
 .plan-kpis { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; }

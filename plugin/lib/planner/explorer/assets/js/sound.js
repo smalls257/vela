@@ -1,5 +1,5 @@
-/* Sound: off by default, one switch for the whole page (S). Every voice is synthesised with Web Audio, so there is
-   nothing to download. Each app has its own note, rising left to right across the map, so a message travelling
+/* Sound: off by default, one switch for the whole page (S). Every voice is synthesized with Web Audio, so there is
+   nothing to download. Each app has its own note, rising left to right across the map, so a message traveling
    right sounds as a rising interval; an open question sounds unsettled (a tritone). An app's theme from the asset
    resolver, if one is loaded, can mark an app coming into focus. */
 const PITCH = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99, 880.0];

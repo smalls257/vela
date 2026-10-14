@@ -1,5 +1,5 @@
 /* ------------------------------------------------ the decision log (view-decisions.js)
-   A working table in the room's own surfaces: hairlines, the room's ink, and a pill for state. Colour carries the
+   A working table in the room's own surfaces: hairlines, the room's ink, and a pill for state. Color carries the
    attention levels only (caution for proposed, the override tint for overridden, the pending ring for pending), and
    every state also says its word. */
 .dl-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 24px 12px; container: dls / inline-size; overflow: auto; }

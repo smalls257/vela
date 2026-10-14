@@ -312,7 +312,7 @@ const Asks = (() => {
     const dn = e.target.closest("[data-done]");
     if (dn) { const k = dn.dataset.done; st.expandedDone.has(k) ? st.expandedDone.delete(k) : st.expandedDone.add(k); repaint(); return; }
     const jump = e.target.closest("[data-jump]");
-    if (jump) { const b = $(`.bay[data-bay="${CSS.escape(jump.dataset.jump)}"]`); if (b) { $("#asks-wrap").scrollTo({ left: b.offsetLeft - 24, behavior: reducedMotion() ? "auto" : "smooth" }); b.animate([{ boxShadow: `0 0 0 3px ${LIGHT.caution.colour}` }, { boxShadow: "0 0 0 0 transparent" }], { duration: 1200 }); } return; }
+    if (jump) { const b = $(`.bay[data-bay="${CSS.escape(jump.dataset.jump)}"]`); if (b) { $("#asks-wrap").scrollTo({ left: b.offsetLeft - 24, behavior: reducedMotion() ? "auto" : "smooth" }); b.animate([{ boxShadow: `0 0 0 3px ${LIGHT.caution.color}` }, { boxShadow: "0 0 0 0 transparent" }], { duration: 1200 }); } return; }
     const m = e.target.closest("[data-meet]");
     if (m) meet(m.dataset.meet);
   });

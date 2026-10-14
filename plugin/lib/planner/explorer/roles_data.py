@@ -9,7 +9,7 @@
 - Goals and constraints: the rows the model registers from the Goals and Constraints tables.
 - Acceptance criteria: an epic's criteria in either shape, numbered lines under "acceptance criteria" or headed ones
   under "Done when", as `criteria.read` reads them (and so `trace.ac_markers`); a requirement's plain bullets under its heading, as `releases.criteria_count` counts them.
-- Failure behaviour: the runtime page's sections whose heading `ladder.FAILURE` accepts.
+- Failure behavior: the runtime page's sections whose heading `ladder.FAILURE` accepts.
 - An app's handoff list: `handoff.handoff_list`, the same list a handoff manifest records.
 """
 import re

@@ -3,7 +3,7 @@
    own (which questions are a "business question", which would "change a test"), the rule is written on the card.
    - Exec: goals and where they stand, what is decided, the top risks, what needs their decision, the timeline.
    - Product: capabilities and requirements, what each release delivers, the business questions, the user flows.
-   - QA: acceptance criteria by epic, contracts and who tests each side, failure behaviour per app, and unsettled
+   - QA: acceptance criteria by epic, contracts and who tests each side, failure behavior per app, and unsettled
      questions that would change a test.
    - Engineering: pick an app for its handoff list: boundary, contracts in and out, flows, open questions, handoff state, and
      how far every app is from a build plan (no design, design only, plan with gaps, plan complete).
@@ -111,7 +111,7 @@ const Roles = (() => {
       return h("li", {}, lamp(levelOf(c.id)), h("a", { "data-ref": c.id, title: c.id }, c.title, idTag(c.id)), h("span", { class: "muted small" }, ` ${titleOf(c.provider)} → ${c.consumers.map(titleOf).join(", ")}`),
         h("div", { class: t ? "small muted" : "small gap" }, t ? shorten(t, 96) : "No Tested by line."), linkChips(c.id, { small: true }));
     }) : empty("No contracts.")));
-    grid.append(card("Failure behaviour per app", null, D.map.apps.length ? list(D.map.apps, 6, (a) => {
+    grid.append(card("Failure behavior per app", null, D.map.apps.length ? list(D.map.apps, 6, (a) => {
       const f = D.failure[a.key];
       return h("li", {}, h("a", { "data-ref": a.key }, h("b", {}, a.title)), " ", f.sections.length ? h("span", { class: "muted small" }, f.sections.map((x) => x.heading).join("; ")) : h("span", { class: "gap small" }, f.runtime ? "runtime page has no failure section" : "no runtime page"));
     }) : empty("No apps."), rule("A runtime page section whose heading ladder.FAILURE accepts (fail, down, slow, outage).")));

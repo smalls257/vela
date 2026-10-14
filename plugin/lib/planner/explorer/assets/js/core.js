@@ -78,7 +78,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const day = (iso) => isDate(iso) ? `${+iso.slice(8, 10)} ${MONTHS[+iso.slice(5, 7) - 1]}` : (iso || "no date");
 /* Motion is off for screenshots and checks (STILL), in the Plain view (FX, fx.js), and when the system asks for less. */
 const reducedMotion = () => STILL || (typeof FX !== "undefined" && !FX.on) || matchMedia("(prefers-reduced-motion: reduce)").matches;
-/* Glow (halos, lit shadows) is part of the effects; Plain keeps every colour and drops the glow. */
+/* Glow (halos, lit shadows) is part of the effects; Plain keeps every color and drops the glow. */
 const glowOn = () => typeof FX === "undefined" || FX.on;
 function dueText(iso) {
   if (!isDate(iso)) return iso ? `ask by "${iso}"` : "no ask-by date";
@@ -125,15 +125,15 @@ migrateSaved(D.legacyVaultId, D.vaultId);
 const relDue = (iso) => { if (!isDate(iso)) return "no date"; const d = dayNum(iso) - TODAY; return d < 0 ? `${-d} d late` : d === 0 ? "today" : `in ${d} d`; };
 
 /* ------------------------------------------------------------------ the lamp vocabulary: attention.py's levels */
-// Colour is never the only signal: each level has a word, and the maps add shape and motion. The colours here are
+// Color is never the only signal: each level has a word, and the maps add shape and motion. The colors here are
 // Console's; theme.js re-reads them from the theme's --warning, --caution, ... so a lamp means the same in every room.
 const LIGHT = {
-  warning: { colour: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "an open question holding it is past its ask-by date" },
-  caution: { colour: "#ffb21e", ink: "#2b1a00", word: "Needs you", say: "not decided yet, or held by an open question" },
-  pending: { colour: "#b79cff", ink: "#150c33", word: "Pending approval", say: "a reader decided this and the owner has not reviewed it: it looks settled and is not" },
-  unexamined: { colour: "#52c8ff", ink: "#04202e", word: "Never examined", say: "no state recorded, or a concern nobody has looked at: dark has to be earned" },
-  override: { colour: "#f2f1e8", ink: "#1d1d18", word: "Overridden", say: "a rule was set aside by the lead: visible, not an alarm" },
-  dark: { colour: "#2a3236", ink: "#9aa7ad", word: "Settled", say: "settled, and nothing holds it" },
+  warning: { color: "#ff5a48", ink: "#2a0703", word: "Overdue", say: "an open question holding it is past its ask-by date" },
+  caution: { color: "#ffb21e", ink: "#2b1a00", word: "Needs you", say: "not decided yet, or held by an open question" },
+  pending: { color: "#b79cff", ink: "#150c33", word: "Pending approval", say: "a reader decided this and the owner has not reviewed it: it looks settled and is not" },
+  unexamined: { color: "#52c8ff", ink: "#04202e", word: "Never examined", say: "no state recorded, or a concern nobody has looked at: dark has to be earned" },
+  override: { color: "#f2f1e8", ink: "#1d1d18", word: "Overridden", say: "a rule was set aside by the lead: visible, not an alarm" },
+  dark: { color: "#2a3236", ink: "#9aa7ad", word: "Settled", say: "settled, and nothing holds it" },
 };
 const LEVELS = D.levels;  // most urgent first, from attention.LEVELS
 const rank = (level) => LEVELS.length - LEVELS.indexOf(level);
@@ -143,7 +143,7 @@ const levelOf = (key) => (lightOf(key) || { level: "dark" }).level;
 const pulsePeriod = (urgency) => Math.round(5200 - 3400 * clamp(urgency || 0, 0, 1));
 const ASK = Object.fromEntries(D.asks.map((u) => [u.id, u]));
 const unknownLevel = (id) => { const u = ASK[id]; if (!u) return "dark"; return u.state === "open" ? u.light.level : "resolved"; };
-/* The pending-approval mark in words: a clock glyph and the text, with who and when on hover, so colour is never alone. */
+/* The pending-approval mark in words: a clock glyph and the text, with who and when on hover, so color is never alone. */
 const pendingPill = (p) => h("span", { class: "pill pending", title: p ? `Decided by ${p.by} on ${p.date}; the owner has not reviewed it` : LIGHT.pending.say }, "◷ Pending approval");
 function lampEl(level, title) { return h("span", { class: "lamp " + level, title: title || (LIGHT[level] ? LIGHT[level].word : level) }); }
 function reasonText(r) {
@@ -450,7 +450,7 @@ function renderTabs() {
     const lamp = v.lamp ? v.lamp() : null;
     nav.append(h("button", { class: "tab", "aria-current": v.id === App.view ? "page" : null, onclick: () => showView(v.id), title: v.title || "" },
       v.label, v.count ? h("span", { class: "tab-n" }, v.count()) : null,
-      lamp ? h("span", { class: "tab-lamp", style: `background:${LIGHT[lamp].colour};box-shadow:0 0 6px ${LIGHT[lamp].colour}` }) : null));
+      lamp ? h("span", { class: "tab-lamp", style: `background:${LIGHT[lamp].color};box-shadow:0 0 6px ${LIGHT[lamp].color}` }) : null));
   }
 }
 
@@ -502,7 +502,7 @@ function darkSubjects() {
    its probe and compares it to what the key shows. A diagram that draws a look and forgets saw() fails there by name.
    The key sits under the drawing, never inside what scrolls, and folds away; the choice is kept per diagram. */
 const Legend = (() => {
-  const CATALOGUE = new Map(), live = new Map();
+  const CATALOG = new Map(), live = new Map();
   let active = null;
   const token = (c) => `var(--${c})`;
   const LAMPS = ["warning", "caution", "pending", "unexamined", "override", "dark"];
@@ -535,13 +535,13 @@ const Legend = (() => {
     return svg;
   }
   /* A look, once. `text` is "Lead words: what it means"; the lead is what to look for, the rest is the meaning. */
-  function define(id, parts, text) { CATALOGUE.set(id, { parts, text }); }
+  function define(id, parts, text) { CATALOG.set(id, { parts, text }); }
   const ln = (o) => ({ k: "line", stroke: "ink-3", ...o }), bx = (o) => ({ k: "box", ...o });
-  /* The lamp levels: the same words and meanings as LIGHT, drawn as the colour they are drawn in. */
+  /* The lamp levels: the same words and meanings as LIGHT, drawn as the color they are drawn in. */
   const lampPicture = (lv) => lv === "dark" ? [bx({ fill: "unlit", stroke: "rule-3", w: 1 })]
     : lv === "pending" ? [bx({ stroke: "pending", w: 2.2 })] : lv === "override" ? [bx({ fill: "override", stroke: "override-edge", w: 1 })] : [bx({ fill: lv })];
   for (const lv of LAMPS) {
-    define("lamp." + lv, lampPicture(lv), lv === "dark" ? "Grey: settled, and nothing holds it" : `${LIGHT[lv].word}: ${LIGHT[lv].say}`);
+    define("lamp." + lv, lampPicture(lv), lv === "dark" ? "Gray: settled, and nothing holds it" : `${LIGHT[lv].word}: ${LIGHT[lv].say}`);
   }
   define("picked", [bx({ fill: "deck-2", stroke: "focus", w: 2.2 })], "White outline: what you picked, or what it touches");
   const lampProbes = (selector) => Object.fromEntries(LAMPS.map((lv) => ["lamp." + lv, selector(lv)]));
@@ -562,7 +562,7 @@ const Legend = (() => {
     return lg;
   }
   const saw = (id, text) => { if (active) active.saw(id, text); };
-  const textOf = (lg, id) => lg.seen.get(id) || (CATALOGUE.get(id) || { text: id }).text;
+  const textOf = (lg, id) => lg.seen.get(id) || (CATALOG.get(id) || { text: id }).text;
   function build(lg) {
     const remembered = Settings.read("explorer.legend." + lg.name);
     const isOpen = remembered === null ? lg.def.open !== false && innerHeight >= 700 : remembered === "1";
@@ -581,7 +581,7 @@ const Legend = (() => {
     if (!ids.length) return;
     host.append(h("summary", {}, "Key", h("span", { class: "lg-n" }, String(ids.length))),
       h("ul", { class: "lg-items" }, ids.map((id) => {
-        const text = textOf(lg, id), at = text.indexOf(": "), entry = CATALOGUE.get(id);
+        const text = textOf(lg, id), at = text.indexOf(": "), entry = CATALOG.get(id);
         return h("li", { "data-lg": id }, entry ? picture(entry.parts) : null, h("span", {}, at > 0 ? [h("b", {}, text.slice(0, at)), text.slice(at)] : text));
       })));
     if (host.isConnected && !lg.def.quiet) dispatchEvent(new Event("resize"));  // the key took or gave back room, so the drawing above refits
@@ -603,5 +603,5 @@ const Legend = (() => {
   }
   const keyed = () => [...live.values()].filter((lg) => lg.host && lg.host.isConnected);
   const forget = (name) => live.delete(name + "#");
-  return { define, open, saw, audit, keyed, forget, lampProbes, LAMPS, ln, bx, part, picture, CATALOGUE };
+  return { define, open, saw, audit, keyed, forget, lampProbes, LAMPS, ln, bx, part, picture, CATALOG };
 })();

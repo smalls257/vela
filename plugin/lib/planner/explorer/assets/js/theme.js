@@ -1,8 +1,8 @@
 /* Themes: the room's palette, picked in the top bar beside Effects, remembered in this browser like Effects, and
    starting from the build's --theme. A theme is a set of CSS custom properties (themes.css). The SVG drawings and
    the flow canvas read the same properties through Theme.c, so every view repaints from one palette, and LIGHT's
-   colours are re-read from the theme's --warning, --caution, --unexamined, --override and --unlit, so a lamp keeps
-   its meaning in every room. Plain works under every theme: it removes motion and glow, never a colour. */
+   colors are re-read from the theme's --warning, --caution, --unexamined, --override and --unlit, so a lamp keeps
+   its meaning in every room. Plain works under every theme: it removes motion and glow, never a color. */
 const Theme = (() => {
   const KEY = "explorer.theme", LIST = D.themes, ids = LIST.map((t) => t.id);
   const known = (v) => (ids.includes(v) ? v : null);
@@ -20,7 +20,7 @@ const Theme = (() => {
     cache = {};
     for (const lv of Object.keys(LIGHT)) {
       const base = lv === "dark" ? "unlit" : lv;
-      LIGHT[lv].colour = c(base) || LIGHT[lv].colour;
+      LIGHT[lv].color = c(base) || LIGHT[lv].color;
       LIGHT[lv].ink = c(base + "-ink") || LIGHT[lv].ink;
     }
     const sel = $("#theme");

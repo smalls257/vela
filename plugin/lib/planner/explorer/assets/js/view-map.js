@@ -1,7 +1,7 @@
 /* The map. Four lenses on one pinned formation:
-   - Cockpit (default): a dark panel, calm grey where all is well, a lamp lit only where attention.lights says the
+   - Cockpit (default): a dark panel, calm gray where all is well, a lamp lit only where attention.lights says the
      lead is needed. Lit lamps glow steadily; only an overdue one breathes. It can group the apps by domain
-     (collapsible clusters) or by business capability (regions), and focus on one app with its direct neighbours
+     (collapsible clusters) or by business capability (regions), and focus on one app with its direct neighbors
      (mapgroups.js). Picking something runs the chosen motion, trace or ripple (motion.js).
    - Line map: flows are lines and apps are stations. With the Trains motion, a train runs each flow's journey.
    - Matrix: who provides (rows) to whom (columns). Past about 20 boxes or 30 lines a node-link drawing stops
@@ -23,11 +23,11 @@ const MapView = (() => {
   const group = () => { const g = st.group || (App.section === "capabilities" ? "capability" : manyApps() && hasDomains() ? "domain" : "none"); return groupOff(g) ? "none" : g; };
   let pulses = [], trains = [], gPulses = null, LAY = null, stripEl = null;
   const LEDE = {
-    cockpit: "Every app, outside party and contract, where they always sit. Grey is settled; a lamp is lit only where something needs you.",
-    home: "What is waiting on an answer, beside the system it holds up. Grey is settled; a lamp is lit only where something needs you.",
+    cockpit: "Every app, outside party and contract, where they always sit. Gray is settled; a lamp is lit only where something needs you.",
+    home: "What is waiting on an answer, beside the system it holds up. Gray is settled; a lamp is lit only where something needs you.",
     domain: "Apps grouped by the domain on their page. A closed cluster shows its apps' worst light and its counts; open it in place.",
     capability: "Capabilities as regions, with the apps that carry their requirements inside. An app in several is drawn once, with a tab saying how many more; the others list it under \"Also carried by\".",
-    focus: "One app and its direct neighbours only: who uses it on the left, what it uses on the right, outside parties below.",
+    focus: "One app and its direct neighbors only: who uses it on the left, what it uses on the right, outside parties below.",
     transit: "Each flow is a line and each app a station; contracts are the track. Pick a line to read its steps.",
     matrix: "Who provides (rows) to whom (columns). Each cell is lit as its contracts are lit; a cell above the diagonal runs backwards, from an app further right to one further left.",
     releases: "The system today and after each release, worked out from the requirements each one delivers.",
@@ -42,17 +42,17 @@ const MapView = (() => {
   Legend.define("kind.count", [{ k: "dot", fill: "unlit", stroke: "rule-3", r: 6, w: 1.4 }, { k: "text", t: "3", fill: "ink-2", y: 11 }], "Round count: that many contracts on one short link");
   Legend.define("kind.flow", [bx({ fill: "unlit", stroke: "rule-3", y: 3.5, height: 9, rx: 2, w: 1.2 })], "Wide card in the Flow pages row: a flow");
   Legend.define("link", [ln({ stroke: "duct", w: 4.5 })], "Dark line: a link between two boxes; its contracts are tagged on it");
-  Legend.define("link.lit", [ln({ stroke: "caution", w: 2, dash: "1.5 4.5" })], "Dotted colour on a link: the worst light among its contracts");
+  Legend.define("link.lit", [ln({ stroke: "caution", w: 2, dash: "1.5 4.5" })], "Dotted color on a link: the worst light among its contracts");
   Legend.define("link.leader", [ln({ stroke: "ink-4", w: 1.2, dash: "2 3" })], "Thin dotted line: ties a contract tag to its link");
-  Legend.define("lane", [ln({ stroke: "line-grey", w: 4 })], "Coloured line: one flow, each in its own colour");
-  Legend.define("lane.hollow", [ln({ stroke: "line-grey", w: 4.5 }), ln({ stroke: "room", w: 1.6 })], "Hollow line: the flow is not decided yet (an assumption or an inkling)");
-  Legend.define("siding", [ln({ stroke: "siding", w: 3, dash: "1 6" })], "Dotted grey track: no flow runs over this contract");
-  Legend.define("works", [bx({ stroke: "caution", dash: "3 2", w: 2, width: 19, y: 5, height: 8, rx: 1.5 }), { k: "dot", fill: "caution", x: 27, y: 4.5, r: 4.5 }], "Hatched board with a count: open questions hold it up, in the colour of the most urgent");
+  Legend.define("lane", [ln({ stroke: "line-gray", w: 4 })], "Colored line: one flow, each in its own color");
+  Legend.define("lane.hollow", [ln({ stroke: "line-gray", w: 4.5 }), ln({ stroke: "room", w: 1.6 })], "Hollow line: the flow is not decided yet (an assumption or an inkling)");
+  Legend.define("siding", [ln({ stroke: "siding", w: 3, dash: "1 6" })], "Dotted gray track: no flow runs over this contract");
+  Legend.define("works", [bx({ stroke: "caution", dash: "3 2", w: 2, width: 19, y: 5, height: 8, rx: 1.5 }), { k: "dot", fill: "caution", x: 27, y: 4.5, r: 4.5 }], "Hatched board with a count: open questions hold it up, in the color of the most urgent");
   Legend.define("station.app", [bx({ fill: "room", stroke: "ink", w: 2.4, rx: 7 })], "Round-ended station: one of our apps, its state in words under the name");
   Legend.define("station.party", [bx({ fill: "room", stroke: "ink-3", w: 2.4, rx: 3 }), bx({ stroke: "ink-3", w: 1, x: 6, y: 5.5, width: 22, height: 5, rx: 1 })], "Double frame: an outside party");
-  Legend.define("lit.words", [{ k: "text", t: "Aa", fill: "caution-text", size: 12 }], "Coloured words: something here needs someone, and the word says what");
+  Legend.define("lit.words", [{ k: "text", t: "Aa", fill: "caution-text", size: 12 }], "Colored words: something here needs someone, and the word says what");
   Legend.define("dim", [bx({ fill: "unlit", opacity: 0.25, stroke: "rule-3", w: 1 })], "Faded: not on the line you picked");
-  Legend.define("train", [bx({ fill: "line-grey", stroke: "room", x: 8, y: 4.5, width: 18, height: 7, rx: 3.5, w: 1.4 })], "Small moving block: a train running that flow's journey");
+  Legend.define("train", [bx({ fill: "line-gray", stroke: "room", x: 8, y: 4.5, width: 18, height: 7, rx: 3.5, w: 1.4 })], "Small moving block: a train running that flow's journey");
   Legend.define("matrix.upper", [bx({ fill: "cell-upper", stroke: "cell-upper-edge", w: 1 })], "Shaded cell: above the diagonal, where a contract would run backwards");
   Legend.define("matrix.backwards", [bx({ fill: "unlit", w: 1 }), { k: "text", t: "◤", x: 9, y: 9, fill: "ink", size: 10 }], "Corner mark: this contract runs backwards, from right to left");
   Legend.define("matrix.holds", [bx({ fill: "unlit", stroke: "rule-3", w: 1, width: 20 }), { k: "dot", fill: "caution", x: 26, y: 4, r: 4.5 }, { k: "text", t: "2", fill: "caution-ink", x: 26, y: 7, size: 7 }], "Number badge: open questions holding the cell");
@@ -223,7 +223,7 @@ const MapView = (() => {
       Scene.edge(cor.a, cor.b, { pts, el: duct, contracts: cor.contracts });
       s("path", { d, class: "duct-hi", transform: "translate(0,2.5)" }, gDucts);
       Legend.saw("link");
-      if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].colour, "data-corridor": cor.key }, gDucts); Legend.saw("link.lit"); }
+      if (lv !== "dark") { s("path", { d, class: "duct-lit", stroke: LIGHT[lv].color, "data-corridor": cor.key }, gDucts); Legend.saw("link.lit"); }
       // The contract lamps sit as one bank on the duct, nearer the quieter end, clear of the boxes and of every other bank.
       const busy = (x) => Object.values(x.ports).reduce((n, l) => n + l.length, 0);
       const path = busy(A) >= busy(B) ? pts : pts.slice().reverse();
@@ -352,18 +352,18 @@ const MapView = (() => {
   }
   function lamp(g, o) {
     // o.level draws a lamp for something attention.py does not light itself, a cluster or a shared duct: its worst light
-    const light = o.level ? { level: o.level, urgency: 0.3, reasons: [] } : lightOf(o.key), level = light ? light.level : "dark", isLit = level !== "dark", colour = LIGHT[level].colour;
+    const light = o.level ? { level: o.level, urgency: 0.3, reasons: [] } : lightOf(o.key), level = light ? light.level : "dark", isLit = level !== "dark", color = LIGHT[level].color;
     // Pending approval is a ring, not a lit face: a reader's decision is not an alarm, and it must not read as one.
     const ringed = level === "pending", glows = isLit && glowOn() && !ringed;
     Legend.saw("lamp." + level); Legend.saw(KIND_LOOK[o.kind]);
     const grp = s("g", { class: `hit ${isLit ? "lit " + level : "dark"}`, "data-key": o.key, "data-kind": o.kind || null, "data-agg": o.level ? "1" : null }, g);
     const shape = (attrs) => o.clip ? s("path", { d: clipped(o.x, o.y, o.w, o.h, 12), ...attrs }, grp) : s("rect", { x: o.x, y: o.y, width: o.w, height: o.h, rx: o.rx, ...attrs }, grp);
     if (glows) {
-      const halo = shape({ fill: colour, filter: "url(#ck-glow)", opacity: 0.32, class: "halo" });
+      const halo = shape({ fill: color, filter: "url(#ck-glow)", opacity: 0.32, class: "halo" });
       pulses.push({ el: halo, level, urgency: light.urgency, period: pulsePeriod(light.urgency), phase: (hash(o.key) % 1000) * 5, lastPeak: null, key: o.key });
     }
     shape({ fill: Theme.c("face-drop"), transform: "translate(0,2)" });
-    const face = shape({ fill: isLit && !ringed ? colour : "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" });
+    const face = shape({ fill: isLit && !ringed ? color : "url(#ck-lens)", stroke: Theme.c("face-edge"), "stroke-width": 2, class: "face" });
     if (glows) pulses[pulses.length - 1].shade = shape({ fill: "url(#ck-lens)", opacity: 0, class: "shade", "pointer-events": "none" });
     const cx = o.x + o.w / 2;
     if (o.kind === "contract") s("text", { x: cx, y: o.y + o.h / 2 + 4, "text-anchor": "middle", class: "lamp-text" }, grp).textContent = shorten(o.label, 18);
@@ -418,7 +418,7 @@ const MapView = (() => {
     fitSvg(map, area, right - left, bottom - top, 1.25);
     const defs = s("defs", {}, map);
     const hatch = s("pattern", { id: "works-hatch", width: 8, height: 8, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" }, defs);
-    s("rect", { width: 8, height: 8, fill: LIGHT.caution.colour }, hatch); s("rect", { width: 4, height: 8, fill: Theme.c("face-drop") }, hatch);
+    s("rect", { width: 8, height: 8, fill: LIGHT.caution.color }, hatch); s("rect", { width: 4, height: 8, fill: Theme.c("face-drop") }, hatch);
     if (L.zoneY !== null) {
       s("rect", { x: left - 4000, y: L.zoneY, width: right - left + 8000, height: bottom - L.zoneY + 4000, fill: Theme.c("duct"), opacity: 0.18 }, map);
       s("line", { x1: left - 4000, x2: right + 4000, y1: L.zoneY, y2: L.zoneY, stroke: Theme.c("rule-3"), "stroke-width": 1.5, "stroke-dasharray": "2 6" }, map);
@@ -429,11 +429,11 @@ const MapView = (() => {
     gPulses = s("g", {}, map);
     const gTrains = s("g", {}, map);
     for (const cor of Object.values(L.corridors)) {
-      if (!cor.flows.length) { s("path", { d: Geo.roundedPath(cor.centre), class: "siding", fill: "none", stroke: Theme.c("siding"), "stroke-width": 3, "stroke-dasharray": "1 7", "stroke-linecap": "round", "data-corridor": cor.key }, gTrack); Legend.saw("siding"); }
+      if (!cor.flows.length) { s("path", { d: Geo.roundedPath(cor.center), class: "siding", fill: "none", stroke: Theme.c("siding"), "stroke-width": 3, "stroke-dasharray": "1 7", "stroke-linecap": "round", "data-corridor": cor.key }, gTrack); Legend.saw("siding"); }
       for (const fid of cor.flows) {
-        const colour = Geo.flowColour(Geo.FLOW_ORDER[fid]), d = Geo.roundedPath(cor.lanes[fid]);
+        const color = Geo.flowColor(Geo.FLOW_ORDER[fid]), d = Geo.roundedPath(cor.lanes[fid]);
         const g = s("g", { "data-flow": fid, class: "lane" }, gTrack);
-        s("path", { d, fill: "none", stroke: colour, "stroke-width": Geo.LINE_W, "stroke-linecap": "round" }, g);
+        s("path", { d, fill: "none", stroke: color, "stroke-width": Geo.LINE_W, "stroke-linecap": "round" }, g);
         Legend.saw("lane");
         if (["assumption", "inkling", ""].includes(E[fid].state || "")) { s("path", { d, class: "hollow", fill: "none", stroke: Theme.c("room"), "stroke-width": 2.2, "stroke-linecap": "round" }, g); Legend.saw("lane.hollow"); }
         const hit = s("path", { d, fill: "none", stroke: "transparent", "stroke-width": 16, class: "line-hit" }, g);
@@ -463,7 +463,7 @@ const MapView = (() => {
     const ids = cor.contracts, short = ids.length > 1 ? `${shorten(CONTRACT[ids[0]].title, 20)} +${ids.length - 1}` : shorten(CONTRACT[ids[0]].title, 26);
     const A = L.stations[cor.a], B = L.stations[cor.b];
     const busy = (x) => Object.values(x.ports).reduce((n, l) => n + l.length, 0);
-    const pts = busy(A) >= busy(B) ? cor.centre : cor.centre.slice().reverse();
+    const pts = busy(A) >= busy(B) ? cor.center : cor.center.slice().reverse();
     const lit = ids.some((id) => levelOf(id) !== "dark");
     const t = s("text", { class: "track-label" + (lit ? " lit" : ""), "data-corridor": cor.key }, g);
     if (lit) Legend.saw("lit.words");
@@ -512,7 +512,7 @@ const MapView = (() => {
     const sub = s("text", { class: "station-sub" + (lv !== "dark" ? " " + lv : "") }, grp);
     sub.textContent = n.kind !== "app" ? "outside party" : lv !== "dark" ? LIGHT[lv].word.toLowerCase() : (APPS[n.key].change || "change not recorded");
     // The name takes the first free side whose words touch no other station and no name placed before it: boxes
-    // dropped between cells can stand closer than a column, and a name on the near side would run into the neighbour.
+    // dropped between cells can stand closer than a column, and a name on the near side would run into the neighbor.
     const put = (side) => {
       let x = stn.x, y = stn.y, anchor = "middle";
       if (side === "L") { x = stn.x - w / 2 - 14; anchor = "end"; y = stn.y + 2; }
@@ -550,8 +550,8 @@ const MapView = (() => {
     };
     for (const cor of Object.values(L.corridors)) {
       const held = [...new Set(cor.contracts.flatMap((cid) => D.blockedBy[cid] || []))];
-      const len = Geo.length(cor.centre);
-      if (held.length) choose(cor.contracts[0], held, [0.34, 0.5, ...SWEEP].flatMap((f) => [1, -2.2].map((side) => ({ at: Geo.pointAt(cor.centre, len * f), off: side * (cor.width / 2 + 22) }))));
+      const len = Geo.length(cor.center);
+      if (held.length) choose(cor.contracts[0], held, [0.34, 0.5, ...SWEEP].flatMap((f) => [1, -2.2].map((side) => ({ at: Geo.pointAt(cor.center, len * f), off: side * (cor.width / 2 + 22) }))));
     }
     for (const stn of Object.values(L.stations)) {
       const held = (D.apps[stn.key] || { questions: [] }).questions.map((q) => q.id);
@@ -568,7 +568,7 @@ const MapView = (() => {
       s("line", { x1: x + 4, y1: y + 16, x2: x + 4, y2: y + 23, stroke: Theme.c("ink-3"), "stroke-width": 2 }, grp);
       s("line", { x1: x + 26, y1: y + 16, x2: x + 26, y2: y + 23, stroke: Theme.c("ink-3"), "stroke-width": 2 }, grp);
       s("rect", { x, y, width: 30, height: 16, rx: 2, fill: "url(#works-hatch)", stroke: Theme.c("face-drop"), "stroke-width": 1.5 }, grp);
-      s("circle", { cx: x + 34, cy: y, r: 9, fill: LIGHT[worst] ? LIGHT[worst].colour : LIGHT.caution.colour }, grp);
+      s("circle", { cx: x + 34, cy: y, r: 9, fill: LIGHT[worst] ? LIGHT[worst].color : LIGHT.caution.color }, grp);
       s("text", { x: x + 34, y: y + 4, "text-anchor": "middle", fill: LIGHT[worst] ? LIGHT[worst].ink : LIGHT.caution.ink, "font-size": 11.5, "font-weight": 700 }, grp).textContent = m.held.length;
       Nodes.wire(grp, { label: `Works on ${titleOf(m.key)}: ${plural(m.held.length, "open question")}`, key: m.key, stop: true });
       grp.addEventListener("mousemove", (e) => showTip(e, m.held.map((u) => `<b>${esc(u)} ${esc(E[u] ? E[u].title : "")}</b>ask by ${esc(day(ASK[u].askBy))}`).join("")));
@@ -579,7 +579,7 @@ const MapView = (() => {
     const box = h("div", { class: "line-legend" }, h("h3", {}, "Lines"));
     if (D.flows.length) {
       linePicker = FlowPicker.make({ current: () => st.line, onPick: (key) => selectLine(key), none: "Every line", label: "Line",
-        swatch: (key) => Geo.flowColour(Geo.FLOW_ORDER[key]) });
+        swatch: (key) => Geo.flowColor(Geo.FLOW_ORDER[key]) });
       box.append(linePicker);
     }
     if (!D.flows.length) box.append(h("p", { class: "muted" }, "No flow pages, so no lines."));
@@ -600,7 +600,7 @@ const MapView = (() => {
     if (!stripEl) return;
     if (!fid) { stripEl.classList.remove("open"); return; }
     const f = FLOW[fid], i = Geo.FLOW_ORDER[fid];
-    stripEl.style.setProperty("--c", Geo.flowColour(i));
+    stripEl.style.setProperty("--c", Geo.flowColor(i));
     stripEl.innerHTML = "";
     stripEl.append(h("header", {}, h("b", {}, E[fid].title), h("span", {}, `${E[fid].id}, ${plural(f.steps.length, "step")}`),
       h("span", { class: "spacer" }), h("button", { class: "btn", onclick: () => { showView("flows"); Flows.select(fid, -1); } }, "Play it"),
@@ -630,7 +630,7 @@ const MapView = (() => {
       const total = legs.reduce((n, l) => n + l.dur, 0), order = Geo.FLOW_ORDER[f.key];
       const el = s("g", { class: "train", "data-flow": f.key }, g);
       Legend.saw("train");
-      s("rect", { x: -13, y: -6, width: 26, height: 12, rx: 5, fill: Geo.flowColour(order), stroke: Theme.c("room"), "stroke-width": 2 }, el);
+      s("rect", { x: -13, y: -6, width: 26, height: 12, rx: 5, fill: Geo.flowColor(order), stroke: Theme.c("room"), "stroke-width": 2 }, el);
       s("rect", { x: -8, y: -2.5, width: 5, height: 5, rx: 1, fill: Theme.c("room"), opacity: 0.8 }, el);
       s("rect", { x: 1, y: -2.5, width: 5, height: 5, rx: 1, fill: Theme.c("room"), opacity: 0.8 }, el);
       trains.push({ flow: f.key, order, el, legs, total, offset: (order * 1700) % total, L });
@@ -654,7 +654,7 @@ const MapView = (() => {
     function arrive(t, leg) {
       const stn = t.L.stations[leg.station];
       if (!stn || reducedMotion() || (st.line && st.line !== t.flow)) return;
-      const ring = s("rect", { x: stn.x - stn.w / 2, y: stn.y - stn.h / 2, width: stn.w, height: stn.h, rx: Math.min(stn.w, stn.h) / 2, fill: "none", stroke: Geo.flowColour(t.order), "stroke-width": 3, class: "arrival" }, gPulses);
+      const ring = s("rect", { x: stn.x - stn.w / 2, y: stn.y - stn.h / 2, width: stn.w, height: stn.h, rx: Math.min(stn.w, stn.h) / 2, fill: "none", stroke: Geo.flowColor(t.order), "stroke-width": 3, class: "arrival" }, gPulses);
       ring.style.transformOrigin = `${stn.x}px ${stn.y}px`;
       setTimeout(() => ring.remove(), 1100);
       Sound.arrival(t.order);
@@ -688,7 +688,7 @@ const MapView = (() => {
     const NAME_W = 168, longest = Math.min(NAME_W, Math.max(...apps.map((k) => titleOf(k).length * 7.4), 40));
     const table = h("table", { class: "dsm angled" + (small ? " small" : ""), style: `--cell:${size}px;--head:${Math.round(longest * 0.72 + 26)}px;--name-w:${NAME_W}px` });
     const thead = h("thead", {}, h("tr", {}, h("th", { class: "corner" }, "provides ↓", h("br"), "uses →"),
-      // each name leans over its right-hand neighbours, so a column sits above the next one and its backdrop never hides it
+      // each name leans over its right-hand neighbors, so a column sits above the next one and its backdrop never hides it
       apps.map((k, i) => h("th", { class: "col" + (focus.has(k) ? " sel" : ""), "data-c": k, style: `z-index:${4 + n - i}` }, h("a", { "data-ref": k, title: titleOf(k) }, h("span", {}, titleOf(k)))))));
     const tbody = h("tbody");
     table.append(thead, tbody);
@@ -721,7 +721,7 @@ const MapView = (() => {
         h("p", { class: "p-note" }, `${plural(D.map.contracts.length, "contract")}; ${plural(backwards.length, "cell")} ${backwards.length === 1 ? "runs" : "run"} backwards.`,
           coupled.length ? ` ${coupled.slice(0, 3).map((k) => k.split("|").map(titleOf).join(" and ")).join("; ")}${coupled.length > 3 ? ` and ${plural(coupled.length - 3, "other pair")}` : ""} provide to each other, so they cannot be designed apart.` : ""),
         h("h3", {}, "Flows"), D.flows.map((f, i) => h("button", { class: "line-btn", onmouseenter: () => flowCells(f.key, i, true), onmouseleave: () => flowCells(f.key, i, false), onclick: () => go(f.key, { reset: true, reveal: true }) },
-          h("span", { class: "swatch", style: `--c:${Geo.flowColour(i)}` }), h("span", {}, E[f.key].title, h("small", { class: "id-tag" }, E[f.key].id))))) };
+          h("span", { class: "swatch", style: `--c:${Geo.flowColor(i)}` }), h("span", {}, E[f.key].title, h("small", { class: "id-tag" }, E[f.key].id))))) };
   }
   function flowCells(fid, i, on) {
     const used = new Set(FLOW[fid].steps.flatMap((stp) => stp.contracts));
@@ -729,7 +729,7 @@ const MapView = (() => {
       const btn = td.querySelector("button.cell"); if (!btn) return;
       const ids = btn.getAttribute("aria-label").match(/CON-[\w-]+|[A-Z]+-C\d+/g) || [];
       td.classList.toggle("flowlit", on && ids.some((id) => used.has(id)));
-      td.style.setProperty("--fc", Geo.flowColour(i));
+      td.style.setProperty("--fc", Geo.flowColor(i));
     });
   }
 
@@ -745,7 +745,7 @@ const MapView = (() => {
     }
     if (lens() === "matrix" && key) { const cur = $(".grid-wrap"); if (cur) { const w = $("#board"), top = w.scrollTop, left = w.scrollLeft; rerender(); Object.assign($("#board"), { scrollTop: top, scrollLeft: left }); } }
     if (key && lens() === "cockpit" && typeof Motion !== "undefined") { if (st.focus || group() !== "none") MapGroups.highlight(key); Motion.onPick(key); }
-    if (KEY && KEY.host && KEY.host.isConnected && lens() !== "matrix") { KEY.set("picked", !!$("g.hit.picked, path.duct.picked, g.station.picked, .focus-centre", board), mode() === "focus" ? "White outline: the app in focus, and what you pick" : null); KEY.paint(); }
+    if (KEY && KEY.host && KEY.host.isConnected && lens() !== "matrix") { KEY.set("picked", !!$("g.hit.picked, path.duct.picked, g.station.picked, .focus-center", board), mode() === "focus" ? "White outline: the app in focus, and what you pick" : null); KEY.paint(); }
     const bar = $(".map-tools"), fresh = toolbar();
     if (bar && fresh) bar.replaceWith(fresh);  // "Focus on <the app you picked>"
   }

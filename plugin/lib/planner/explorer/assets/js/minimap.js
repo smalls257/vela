@@ -4,8 +4,8 @@
    panel shows, or what the current view is about (the step being played, the strip being read). */
 const Minimap = (() => {
   Legend.define("mini.party", [{ k: "clip", fill: "unlit", stroke: "rule-3", w: 1.4 }], "Square-cornered box: an outside party");
-  Legend.define("mini.link", [Legend.ln({ stroke: "track", w: 3 })], "Grey line: a link between two boxes");
-  Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Coloured line: a link whose contracts need someone, in the colour of the worst");
+  Legend.define("mini.link", [Legend.ln({ stroke: "track", w: 3 })], "Gray line: a link between two boxes");
+  Legend.define("mini.link.lit", [Legend.ln({ stroke: "caution", w: 3.5 })], "Colored line: a link whose contracts need someone, in the color of the worst");
   Legend.define("mini.link.hot", [Legend.ln({ stroke: "focus", w: 4.5 })], "White line: a link to what you picked");
   Legend.define("mini.here", [Legend.bx({ stroke: "focus", w: 2.4, rx: 6 })], "White ring: where you are, the thing the panel is showing");
   const MINI = Layout.FRAME;  // the cockpit's frame, the one the overlap rule measures in: a box clear on the big map is clear here
@@ -37,13 +37,13 @@ const Minimap = (() => {
     for (const cor of Object.values(L.corridors)) {
       const lv = cor.contracts.map(levelOf).sort((p, q) => rank(q) - rank(p))[0];
       const hot = cor.contracts.some((c) => at.has(c)) || (at.has(cor.a) && at.has(cor.b));
-      const colour = hot ? Theme.c("focus") : lv !== "dark" ? LIGHT[lv].colour : Theme.c("track");
+      const color = hot ? Theme.c("focus") : lv !== "dark" ? LIGHT[lv].color : Theme.c("track");
       lg.saw(hot ? "mini.link.hot" : lv !== "dark" ? "mini.link.lit" : "mini.link");
       s("path", { d: Geo.roundedPath(Geo.route({ x: L.stations[cor.a].x, y: L.stations[cor.a].y }, { x: L.stations[cor.b].x, y: L.stations[cor.b].y }, cor.sideA), 30),
-        class: "mini-link" + (hot ? " hot" : lv !== "dark" ? " lit" : ""), fill: "none", stroke: colour, "stroke-width": hot ? 12 : lv !== "dark" ? 8 : 6, "stroke-linecap": "round", opacity: hot ? 1 : 0.85 }, root);
+        class: "mini-link" + (hot ? " hot" : lv !== "dark" ? " lit" : ""), fill: "none", stroke: color, "stroke-width": hot ? 12 : lv !== "dark" ? 8 : 6, "stroke-linecap": "round", opacity: hot ? 1 : 0.85 }, root);
     }
     for (const st of Object.values(L.stations)) {
-      const light = lightOf(st.key), lv = light ? light.level : "dark", c = LIGHT[lv].colour;
+      const light = lightOf(st.key), lv = light ? light.level : "dark", c = LIGHT[lv].color;
       const w = st.outside ? 150 : 190, ht = 70;
       const g = s("g", { class: "mini-node", "data-level": lv, "data-kind": st.outside ? "party" : "app", }, root);
       lg.saw("lamp." + lv); if (st.outside) lg.saw("mini.party");
@@ -51,7 +51,7 @@ const Minimap = (() => {
         const glow = s("rect", { x: st.x - w / 2, y: st.y - ht / 2, width: w, height: ht, rx: 16, fill: c, filter: "url(#mini-glow)", opacity: 0.6 }, g);
         pulses.push({ el: glow, period: pulsePeriod(light.urgency), amp: 0.25 + 0.5 * light.urgency, phase: st.x * 7 });
       }
-      s("rect", { x: st.x - w / 2, y: st.y - ht / 2, width: w, height: ht, rx: st.outside ? 4 : 16, fill: lv === "dark" ? LIGHT.dark.colour : c, stroke: Theme.c("face-edge"), "stroke-width": 4 }, g);
+      s("rect", { x: st.x - w / 2, y: st.y - ht / 2, width: w, height: ht, rx: st.outside ? 4 : 16, fill: lv === "dark" ? LIGHT.dark.color : c, stroke: Theme.c("face-edge"), "stroke-width": 4 }, g);
       if (at.has(st.key)) lg.saw("mini.here");
       if (at.has(st.key)) s("rect", { x: st.x - w / 2 - 16, y: st.y - ht / 2 - 16, width: w + 32, height: ht + 32, rx: 26, fill: "none", stroke: Theme.c("focus"), "stroke-width": 8, class: "mini-ring" }, g);
       const t = s("text", { x: st.x, y: st.y + 11, "text-anchor": "middle", fill: lv === "dark" ? (at.has(st.key) ? Theme.c("focus") : Theme.c("node-name")) : LIGHT[lv].ink, "font-size": st.outside ? 26 : 30, "font-weight": 600 }, g);

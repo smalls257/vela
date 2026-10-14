@@ -1,7 +1,7 @@
 /* Flows, played. Each step's messages travel as pulses between the apps' lanes, in the map's left-to-right order;
-   open questions from the record sit at the step they hold, breathing in their lamp colour. One player drives the
+   open questions from the record sit at the step they hold, breathing in their lamp color. One player drives the
    view and one drives present mode, both on FlowKit's renderer. Save clip records the same frames as MP4 or WebM in
-   the browser. Heuristics are labelled where they show: an inferred direction says so under its arrow. */
+   the browser. Heuristics are labeled where they show: an inferred direction says so under its arrow. */
 const Flows = (() => {
   const TRAVEL = 0.8;
   const st = { key: D.flows.length ? D.flows[0].key : null, cur: -1, speed: 1 };

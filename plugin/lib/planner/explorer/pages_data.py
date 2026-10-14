@@ -122,7 +122,7 @@ class Renderer:
                 i += 1
                 continue
             if not out and not para and reading.BREADCRUMB.match(stripped):
-                i += 1  # the "Harbourline / 05 Building blocks / Booking" trail: the sidebar already says where you are
+                i += 1  # the "Harborline / 05 Building blocks / Booking" trail: the sidebar already says where you are
                 continue
             if stripped.startswith("|") and i + 1 < len(lines) and TABLE_SEP.match(lines[i + 1].strip()):
                 flush()

@@ -8,7 +8,7 @@ header `ladder.containers` reads) and the mermaid flowchart under the same headi
 container-to-container arrows are read from the flowchart, best effort, and the page labels them so.
 
 Level 3 is the team's design, read by design_data.py. Two things the page needs are not in the format, so they are
-worked out here and labelled where they show:
+worked out here and labeled where they show:
 - where an Integration point attaches: the component that cites its contract, else the one whose matrix row reads
   from or writes to it, else the one whose Depends on names it, else the app's own edge (`how` says which);
 - the label on a Depends-on arrow: what the depended-on component's Exposes line offers "to" the depending one.
@@ -84,7 +84,7 @@ def containers(vault, keys):
 
 
 def contracts_named(cell):
-    """(served, used) contract IDs from 'Serves CON-001, CON-007. Uses CON-003.'; an unlabelled ID counts as used."""
+    """(served, used) contract IDs from 'Serves CON-001, CON-007. Uses CON-003.'; an unlabeled ID counts as used."""
     served, used = [], []
     for sentence in re.split(r"(?<=\.)\s+|;\s*", cell):
         ids = CON.findall(sentence)

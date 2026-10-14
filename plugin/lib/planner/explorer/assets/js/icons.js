@@ -1,5 +1,5 @@
 /* The page's own icons: hand-drawn line glyphs on a 24 grid, one stroke weight, in currentColor, so they take the
-   theme's ink and the lamp's ink and never carry a colour of their own (the lamps keep colour to themselves).
+   theme's ink and the lamp's ink and never carry a color of their own (the lamps keep color to themselves).
 
    Every app and outside party has one: build.py picks it (icons_data.py: the page's icon:, else a keyword, else a
    shape kept by the name) and says why. A generated emblem, when its slot resolves, still wins (Assets.emblem).
@@ -16,14 +16,14 @@ const Icons = (() => {
     notifications: "M6 17h12l-1.5-2v-4a4.5 4.5 0 0 0-9 0v4z M10 20a2 2 0 0 0 4 0",
     messaging: "M4 5h16v11H9l-5 4z M8 9h8 M8 12h5",
     search: "M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13z M15.5 15.5L20 20",
-    catalogue: "M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z",
+    catalog: "M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z",
     analytics: "M4 20h16 M7 20v-6 M12 20V8 M17 20V10",
     gateway: "M12 3v18 M3 12h6 M15 12h6 M6 9l-3 3 3 3 M18 9l3 3-3 3",
     database: "M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3z M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6 M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3",
     mobile: "M8 3h8v18H8z M11 18h2",
     web: "M3 5h18v14H3z M3 9h18 M6 7h1 M9 7h1",
     kiosk: "M7 3h10v12H7z M10 7h4 M10 15v4 M14 15v4 M6 21h12",
-    callcentre: "M5 14v-2a7 7 0 0 1 14 0v2 M5 14h3v5H5z M16 14h3v5h-3z M19 19c0 1.5-2 2-5 2",
+    callcenter: "M5 14v-2a7 7 0 0 1 14 0v2 M5 14h3v5H5z M16 14h3v5h-3z M19 19c0 1.5-2 2-5 2",
     ship: "M3 16h18l-2.5 4h-13z M6 16v-5h12v5 M10 11V7h4v4",
     schedule: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2",
     pricing: "M3 12V4h8l10 10-8 8z M7 8a1 1 0 1 0 2 0 1 1 0 0 0-2 0",
@@ -64,7 +64,7 @@ const Icons = (() => {
     return svg;
   }
   const forKey = (key, cls) => { const node = el(name(key), cls); const t = why(key); if (t) node.appendChild(document.createElementNS(SVGNS, "title")).textContent = `Icon: ${t}`; return node; };
-  /* SVG: a glyph of `size` centred on (cx, cy), in the current text colour of its parent. */
+  /* SVG: a glyph of `size` centered on (cx, cy), in the current text color of its parent. */
   function put(parent, glyph, cx, cy, size, cls) {
     const k = size / 24;
     const g = s("g", { class: "glyph" + (cls ? " " + cls : ""), transform: `translate(${(cx - size / 2).toFixed(1)},${(cy - size / 2).toFixed(1)}) scale(${k.toFixed(3)})` }, parent);
@@ -74,10 +74,10 @@ const Icons = (() => {
   /* Canvas: the glyph as a Path2D on the 24 grid; the caller scales and strokes it. */
   const paths = {};
   const path = (glyph) => paths[glyph] || (paths[glyph] = new Path2D(G[glyph] || G[FALLBACK]));
-  function stroke(ctx, glyph, cx, cy, size, colour) {
+  function stroke(ctx, glyph, cx, cy, size, color) {
     const k = size / 24;
     ctx.save(); ctx.translate(cx - size / 2, cy - size / 2); ctx.scale(k, k);
-    ctx.strokeStyle = colour; ctx.lineWidth = 1.8; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke(path(glyph));
+    ctx.strokeStyle = color; ctx.lineWidth = 1.8; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke(path(glyph));
     ctx.restore();
   }
   return { G, name, why, el, forKey, put, stroke, has: (g) => !!G[g] };

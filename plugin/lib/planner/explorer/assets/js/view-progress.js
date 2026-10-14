@@ -5,13 +5,13 @@ const ProgressView = (() => {
   const MIX = ["inkling", "assumption", "fact", "decided"].map((s) => [s, `var(--mix-${s})`]);
   const { bx } = Legend;
   const step = (o) => bx({ y: 5, height: 6, rx: 2, width: 8, ...o });
-  Legend.define("pg.done", [step({ x: 3, fill: "ink-3" }), step({ x: 13, fill: "ink-3" })], "Grey step: a stage the app has already passed");
+  Legend.define("pg.done", [step({ x: 3, fill: "ink-3" }), step({ x: 13, fill: "ink-3" })], "Gray step: a stage the app has already passed");
   Legend.define("pg.cur", [step({ x: 12, fill: "ink" })], "Bright step: the stage the app is at");
   Legend.define("pg.reach", [step({ x: 12, fill: "deck-3", stroke: "ink-2", w: 1.4 })], "Ringed step: how far its pages already reach, ahead of the recorded stage");
   Legend.define("pg.empty", [step({ x: 12, fill: "deck-3" })], "Empty step: a stage still to come");
   Legend.define("pg.off", [step({ x: 12, fill: "deck" })], "Dim steps: outside the ladder, so no stage applies");
   const MIX_SAY = { inkling: "a hunch", assumption: "believed but not checked", fact: "has a source", decided: "came out of a Grill session" };
-  for (const [state, colour] of MIX) Legend.define("pg.mix." + state, [{ k: "box", y: 5, height: 6, rx: 2, fill: `mix-${state}` }], `${state[0].toUpperCase() + state.slice(1)}: ${MIX_SAY[state]}`);
+  for (const [state, color] of MIX) Legend.define("pg.mix." + state, [{ k: "box", y: 5, height: 6, rx: 2, fill: `mix-${state}` }], `${state[0].toUpperCase() + state.slice(1)}: ${MIX_SAY[state]}`);
   Legend.define("pg.fade", [bx({ fill: "caution", opacity: 0.4, x: 11, y: 2, width: 12, height: 12, rx: 3 })], "Paler bar: the most urgent question is some way off; bars strengthen as they fall due");
   function render(main) {
     const P = D.progress, sc = h("div", { class: "scroll pages" });
@@ -80,7 +80,7 @@ const ProgressView = (() => {
     }
     return out;
   }
-  /* Open questions by the week they fall due. A bar takes the lamp colour of its most urgent question, by attention.hold. */
+  /* Open questions by the week they fall due. A bar takes the lamp color of its most urgent question, by attention.hold. */
   function dueChart() {
     const open = D.asks.filter((u) => u.state === "open");
     const sec = h("section", { class: "card" }, h("h2", {}, "Open questions by the week they are due", h("span", { class: "sub" }, `${open.length} open; weeks start on Monday; click a bar for its list`)));
@@ -109,13 +109,13 @@ const ProgressView = (() => {
       const x = pad + i * bw + 4, bh = ((H - 20) * b.ids.length) / max;
       if (b.ids.length) {
         const lit = b.ids.map((id) => ASK[id].light).sort((p, q) => rank(q.level) - rank(p.level) || q.urgency - p.urgency)[0];
-        const colour = LIGHT[lit.level].colour, op = lit.level === "warning" ? 1 : 0.35 + 0.65 * lit.urgency;
-        const r = s("rect", { x, y: H - bh, width: bw - 8, height: bh, rx: 4, fill: colour, opacity: op.toFixed(2), class: "bar-r " + lit.level }, svg);
+        const color = LIGHT[lit.level].color, op = lit.level === "warning" ? 1 : 0.35 + 0.65 * lit.urgency;
+        const r = s("rect", { x, y: H - bh, width: bw - 8, height: bh, rx: 4, fill: color, opacity: op.toFixed(2), class: "bar-r " + lit.level }, svg);
         key.saw("lamp." + lit.level); if (op < 1) key.saw("pg.fade");
         r.addEventListener("mousemove", (ev) => showTip(ev, `<b>${esc(b.label)}${b.sub ? " (" + b.sub + ")" : ""}: ${b.ids.length}</b>${esc(b.ids.join(", "))}`));
         r.addEventListener("mouseleave", hideTip);
         const week = `${b.label}${b.sub ? " (" + b.sub + ")" : ""}`;
-        const note = Nodes.note({ diagram: "Open questions by week", name: week, kind: "Questions due in this bucket", text: `${plural(b.ids.length, "open question")} fall${b.ids.length === 1 ? "s" : ""} due in ${week.toLowerCase().startsWith("overdue") || week === "Later" || week === "No date" ? week.toLowerCase() : "the week starting " + week}. The bar takes the colour of the most urgent.`, stands: b.ids });
+        const note = Nodes.note({ diagram: "Open questions by week", name: week, kind: "Questions due in this bucket", text: `${plural(b.ids.length, "open question")} fall${b.ids.length === 1 ? "s" : ""} due in ${week.toLowerCase().startsWith("overdue") || week === "Later" || week === "No date" ? week.toLowerCase() : "the week starting " + week}. The bar takes the color of the most urgent.`, stands: b.ids });
         Nodes.wire(r, { label: `${week}: ${plural(b.ids.length, "open question")}`, open: () => { hideTip(); listBox.innerHTML = ""; listBox.append(h("div", { class: "note" }, h("b", {}, `${b.label}: `), b.ids.map((id) => refChip(id)))); go(note, { reset: true }); } });
         s("text", { x: x + (bw - 8) / 2, y: H - bh - 6, "text-anchor": "middle", class: "bar-n" }, svg).textContent = b.ids.length;
       }

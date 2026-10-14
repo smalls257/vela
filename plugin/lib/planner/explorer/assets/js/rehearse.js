@@ -46,9 +46,9 @@ const Rehearse = (() => {
     renderAll();
   }
   function emblem(lane) {
-    const url = Assets.emblem(lane.name), colour = FlowKit.laneColor(lane.id);
-    if (url) return `<span class="em" style="background:${colour}"><img alt="" src="${url}"></span>`;
-    return `<span class="em ${lane.kind}" style="background:${colour};border-color:${colour};color:${lane.kind === "partner" ? colour : Theme.c("room")}">${esc(lane.name[0])}</span>`;
+    const url = Assets.emblem(lane.name), color = FlowKit.laneColor(lane.id);
+    if (url) return `<span class="em" style="background:${color}"><img alt="" src="${url}"></span>`;
+    return `<span class="em ${lane.kind}" style="background:${color};border-color:${color};color:${lane.kind === "partner" ? color : Theme.c("room")}">${esc(lane.name[0])}</span>`;
   }
   const tileHtml = (lane, extra = "") => `<div class="tile ${extra}" data-lane="${esc(lane.id)}" tabindex="0" title="${esc(lane.name)}">${emblem(lane)}<span>${esc(lane.name)}<small>${lane.kind === "app" ? "app" : "outside party"}</small></span></div>`;
   function railGeom() {
