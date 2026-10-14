@@ -110,7 +110,7 @@ def test_the_summary_and_walking_skeleton_are_read_and_never_required(tmp_path):
 def test_the_missing_design_line_names_the_design_command(tmp_path):
     vault = cli.load_vault(HERON)
     _, said = design_find.discover(vault, tmp_path, [])
-    assert any("/planner:design --app APP-x" in line for line in said), said
+    assert any("/planner:design --app <app ID>" in line for line in said), said
 
 
 # --- hard requirement 1: as detailed as before -------------------------------------------------------------------

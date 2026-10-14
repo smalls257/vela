@@ -366,7 +366,7 @@ def test_the_handoff_lists_the_slices_an_app_takes_part_in_and_verify_sees_a_cha
     code, out = run("handoff", "APP-kiosks", "--vault", str(example), "--today", TODAY, "--commit", "abc1234", "--replace")
     assert code == 0, out
     assert "Port kiosks is part of 1 slice: SLC-003 Kiosks book through Booking in the March image (not planned yet)." in out
-    assert 'What "slice" means: A slice is' in out
+    assert 'What "slice" means' not in out  # definitions come from `planner terms`, not every run
     manifest = (example / "handoffs" / "APP-kiosks.md").read_text(encoding="utf-8")
     assert "| SLC-003 | slice | slices/SLC-003-kiosks-book-in-the-march-image.md |" in manifest and "TRACER-1" not in manifest
     verify = ("handoff", "verify", "APP-kiosks", "--vault", str(example))
