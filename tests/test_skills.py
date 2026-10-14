@@ -428,7 +428,7 @@ def test_open_and_import_also_say_where_the_explorer_is_and_never_stop_on_a_fail
 def test_explore_and_the_vault_reference_say_designs_and_plans_live_in_the_vault_docs_folder():
     explore, ref = skill_text("explore"), text("references/TECH-DESIGN-FROM-VAULT.md")
     assert "`docs/tech-design/<slug>.md` (with `docs/adr/`" in explore and "team_repos" not in explore
-    assert "write their own `docs/` files in the vault and never edit a vela page" in explore
+    assert "write their own `docs/` files in the vault and never edit a vault page" in explore
     assert 'says "never edit the vault"' not in explore  # an outside skill's words go stale; say what is true here
     assert "in the vault" in ref and "team_repos" not in ref
 

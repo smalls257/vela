@@ -45,7 +45,7 @@ No mode writes inside a generated block. `vela render` fills them. Close runs it
 
 ## Team-side sessions
 
-Once an app is handed off, its team designs it. `/vela:design --app APP-x` runs from the vault root with the app's senior, opens no session record and writes no vela page: it writes `docs/tech-design/<slug>.md`, its ADRs under `docs/adr/` and `CONTEXT.md` on a `design/<slug>` branch, and opens a pull request at the end. A gap it finds in the vault goes back through `/vela:challenge`. `vela next` adds a team-side line for each handed-off app with no design doc yet.
+Once an app is handed off, its team designs it. `/vela:design --app APP-x` runs from the vault root with the app's senior, opens no session record and writes no vault page: it writes `docs/tech-design/<slug>.md`, its ADRs under `docs/adr/` and `CONTEXT.md` on a `design/<slug>` branch, and opens a pull request at the end. A gap it finds in the vault goes back through `/vela:challenge`. `vela next` adds a team-side line for each handed-off app with no design doc yet.
 
 ## Where to start
 

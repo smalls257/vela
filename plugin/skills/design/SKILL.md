@@ -13,7 +13,7 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. If the host leaves `${CLAU
 
 ## 1. Start
 
-A design opens no session record and touches no vela page, so START's numbered steps don't apply. Its shared rules do: read START.md and follow "Where vela runs from", "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule", with its hard stops.
+A design opens no session record and touches no vault page, so START's numbered steps don't apply. Its shared rules do: read START.md and follow "Where vela runs from", "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule", with its hard stops.
 
 Then the two voices. For the conversation, read the conversation voice START.md points to (`references/CONVERSATION-VOICE.md` in the plugin root) and the vault's `voice/VOICE.md` when there is one; the vault owner's own rules there come first. For the pages, read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and the vault's `voice/examples/`. Read house-voice as a file: only a person can start it as a skill.
 
@@ -57,7 +57,7 @@ Write each answer into `docs/tech-design/<slug>.md` as the section it belongs to
 
 ## 5. When the vault is wrong or silent
 
-The design settles how, and the vault settles what. When the work shows a missing requirement, a contract that can't carry what's asked of it, or a vault answer the senior disputes, write it as an open question with `**Challenges:**` naming the vault ID and the scenario that shows the problem. Tell the senior in plain words, and that `/vela:challenge <vault ID>` raises it with the solution lead. Then carry on with every branch it doesn't touch. The design never edits vela pages; its own files under `docs/` and `CONTEXT.md` are its to write.
+The design settles how, and the vault settles what. When the work shows a missing requirement, a contract that can't carry what's asked of it, or a vault answer the senior disputes, write it as an open question with `**Challenges:**` naming the vault ID and the scenario that shows the problem. Tell the senior in plain words, and that `/vela:challenge <vault ID>` raises it with the solution lead. Then carry on with every branch it doesn't touch. The design never edits vault pages; its own files under `docs/` and `CONTEXT.md` are its to write.
 
 If nothing is left that the gap doesn't touch, say so, leave the doc at `in-progress`, and say which challenge it waits on.
 
