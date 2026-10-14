@@ -44,6 +44,7 @@ class Slice:
     order: int  # 0 for the first slice; slices come in After order, ties by ID
     after: tuple = ()  # keys of the slices it comes after; a release's slice comes after the release before it
     joins: tuple = ()  # contract ids it crosses, in the order written
+    sides: tuple = ()  # (contract id, sender, receiver) as the Joins bullet names them in brackets
     status: str = ""  # one of STATUSES, or "" until a grill plans it (or for a slice read from the releases page)
     status_raw: str = ""  # as written, so a misspelt status is reported, never read as "not planned yet"
     journey: Journey = None
@@ -115,6 +116,7 @@ def read_page(page):
     title = str(page.meta.get("title") or page.id)
     return Slice(page.id, title, tuple(flows), page.path, lines.get("Flows", 1), 0,
                  after=_ids(SLICE_ID, values.get("After", "")), joins=_ids(CONTRACT_ID, values.get("Joins", "")),
+                 sides=tuple(read_sides(values.get("Joins", ""))),
                  status=status if status in STATUSES else "", status_raw=status_raw, journey=journey,
                  owner=values.get("Owner", ""), ships_off=values.get("Ships switched off", ""),
                  done_when=values.get("Done when", ""), milestone=values.get("Milestone", ""),
@@ -226,14 +228,66 @@ def milestones(vault):
     return out
 
 
+SIDES = re.compile(r"(CON-\d{3})[^()]*?\(([^()]+?)\s*(?:→|->)\s*([^()]+?)\)")
+
+
+def read_sides(value):
+    """(contract id, sender, receiver) for each join written `<contract> (<sender> → <receiver>)`."""
+    for m in SIDES.finditer(value):
+        yield m.group(1), _plain(m.group(2)), _plain(m.group(3))
+
+
+def _plain(text):
+    """A side as words: a link reads as its label."""
+    return " ".join(re.sub(r"\[\[[^\]|]*\|([^\]]+)\]\]|\[\[([^\]]+)\]\]", lambda m: m.group(1) or m.group(2), text).split())
+
+
+def names(app):
+    """The words a slice page may call an app by: its title or its slug, ignoring case."""
+    return {str(app.meta.get("title") or "").lower(), app.id.removeprefix("APP-").replace("-", " ").lower()} - {""}
+
+
+def _calls(side, app):
+    """A side names the app when its words are the app's name or a part of it ("Kiosks" for "Port kiosks")."""
+    words = set(side.lower().split())
+    return bool(words) and any(words <= set(n.split()) or set(n.split()) <= words for n in names(app))
+
+
 def for_app(vault, found, app):
-    """The slices an app takes part in: a flow of the slice has a step to or from it, or the slice joins a contract
-    it provides or consumes."""
+    """The slices an app takes part in: a flow of the slice has a step to or from it, a join names it on one side,
+    or the slice joins a contract it provides. Consuming a joined contract is not enough: three channels consume one
+    booking API, and only the channel a slice moves takes part in it."""
     from planner import flows, progress
-    contracts = {c.id for c in progress.provided(vault, app)} | {c.id for c in progress.consumed(vault, app)}
+    provided = {c.id for c in progress.provided(vault, app) if not c.fact("Provider")}
     out = []
     for s in found:
-        apps, through = flows.passes_through(vault, s.flows)
-        if app.id in apps or contracts & (set(through) | set(s.joins)):
+        apps, _ = flows.passes_through(vault, s.flows)
+        sided = any(_calls(sender, app) or _calls(receiver, app) for _, sender, receiver in s.sides)
+        if app.id in apps or sided or provided & set(s.joins):
             out.append(s)
     return out
+
+
+# What moves a slice on from each status, in words for `planner next`. Vela plans and records; the teams run things.
+NEXT = {
+    "": "is not planned yet: draw its flows, write their case tables and run planner check-slice {id} until it passes "
+        "(or each finding has an override with an end date), then plan it in a Grill",
+    "planned": "is planned: hand its apps over so each team accepts its part, then set it to building",
+    "building": "is building: run its journey in the shared environment and record the result as "
+                "'- **Journey:** passed YYYY-MM-DD by @who, <link>'",
+    "journey passes": "passed its journey: deploy it switched off ({ships}), then set it to live but off",
+    "live but off": "is live but off: the business owner decides when to switch it on, and History records who and when",
+}
+
+
+def next_step(found):
+    """The next move for the first slice, in slice order, that is not on and whose After slices have all passed their
+    journey; failing that, the first that is not on. "" when every slice is on, or there are none."""
+    by_key = {s.key: s for s in found}
+    waiting = [s for s in found if s.status != "on"]
+    ready = [s for s in waiting if all(by_key[a].at_least("journey passes") for a in s.after if a in by_key)]
+    chosen = (ready or waiting or [None])[0]
+    if chosen is None:
+        return ""
+    ships = chosen.ships_off or "how it ships switched off is not written yet"
+    return f"{chosen.label} {NEXT[chosen.status].format(id=chosen.id or chosen.name, ships=ships)}."

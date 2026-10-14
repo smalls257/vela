@@ -270,3 +270,46 @@ def test_w347_on_a_slice_a_release_lists_and_not_in_this_slice_answers_it(tmp_pa
     write(vault, "SLC-001", page("SLC-001", "Hold and quote", flows, extra=(
         "\n## Not in this slice\n\n- Website (APP-website): no capacity yet\n- Pricing (APP-pricing, CON-003): waits on the fare review\n")))
     assert lines(vault, "W347") == []
+
+
+# --- the handoff names the slices an app takes part in --------------------------------------------------------------
+
+def test_the_handoff_lists_the_slices_an_app_takes_part_in_and_verify_sees_a_changed_join_not_a_status_move(example):
+    code, out = run("handoff", "APP-kiosks", "--vault", str(example), "--today", TODAY, "--commit", "abc1234", "--replace")
+    assert code == 0, out
+    assert "APP-kiosks takes part in 1 slice: SLC-003 Kiosks book through Booking in the March image (not planned yet)." in out
+    manifest = (example / "handoffs" / "APP-kiosks.md").read_text(encoding="utf-8")
+    assert "| SLC-003 | slice | slices/SLC-003-kiosks-book-in-the-march-image.md |" in manifest and "TRACER-1" not in manifest
+    verify = ("handoff", "verify", "APP-kiosks", "--vault", str(example))
+    assert run(*verify)[0] == 0
+    path = example / "slices" / "SLC-003-kiosks-book-in-the-march-image.md"
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace("- **After:** SLC-002\n", "- **Status:** planned\n- **After:** SLC-002\n")
+                    .replace("## History\n", "## History\n\n- 2026-11-21: planned by @hl-solution-lead.\n"), encoding="utf-8")
+    assert run(*verify)[0] == 0  # a status move is the teams' own, not a change to accept
+    path.write_text(path.read_text(encoding="utf-8").replace("Kiosks → Booking", "Kiosks → Booking, through the kiosk gateway"), encoding="utf-8")
+    code, out = run(*verify)
+    assert code == 1 and "SLC-003 (slice" in out
+
+
+# --- planner next -------------------------------------------------------------------------------------------------
+
+def test_next_suggests_the_step_for_the_first_slice_that_can_move():
+    v = vault_of(("SLC-001", page("SLC-001", "Tracer", "**Status:** journey passes", "**Flows:** FLO-001",
+                                  "**Ships switched off:** a per-user flag")),
+                 ("SLC-002", page("SLC-002", "Second", "**Status:** building", "**Flows:** FLO-002", "**After:** SLC-003")),
+                 ("SLC-003", page("SLC-003", "Third", "**Flows:** FLO-003", "**After:** SLC-001")))
+    found = slices.read_slices(v)
+    assert [s.id for s in found] == ["SLC-001", "SLC-003", "SLC-002"]
+    assert slices.next_step(found) == ("SLC-001 Tracer passed its journey: deploy it switched off (a per-user flag), "
+                                       "then set it to live but off.")
+    on = vault_of(("SLC-001", page("SLC-001", "Tracer", "**Status:** on", "**Flows:** FLO-001")),
+                  ("SLC-002", page("SLC-002", "Second", "**Status:** building", "**Flows:** FLO-002", "**After:** SLC-003")),
+                  ("SLC-003", page("SLC-003", "Third", "**Flows:** FLO-003", "**After:** SLC-001")))
+    assert slices.next_step(slices.read_slices(on)).startswith("SLC-003 Third is not planned yet: draw its flows")
+    assert slices.next_step([]) == ""
+
+
+def test_planner_next_prints_the_slice_step_on_a_line_of_its_own():
+    out = run("next", "--vault", str(EXAMPLE), "--today", TODAY)[1]
+    assert "planner next: slices, SLC-001 A customer books on the website through Booking is not planned yet" in out

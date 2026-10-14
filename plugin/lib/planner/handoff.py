@@ -9,13 +9,13 @@ import hashlib
 import re
 from dataclasses import dataclass
 
-from planner import allocation, model, parse, progress, releases, trace
+from planner import allocation, model, parse, progress, releases, schema, slices, trace
 from planner.parse import split_row
 
 # Lines a hash ignores: they change when a page is reread, handed off, or an owner confirms a decision
 # made on their behalf, not when its content does.
 VOLATILE = re.compile(r"^(last_verified|verified_by|handed_off):|^- \*\*[Cc]onfirmed [Bb]y:\*\*")
-KIND_ORDER = ("app", "runtime", "provides", "consumes", "requirement", "epic", "release", "unknown")
+KIND_ORDER = ("app", "runtime", "provides", "consumes", "requirement", "epic", "slice", "release", "unknown")
 HEADER = ("ID", "Kind", "Page", "State", "Hash")
 FACT = re.compile(r"^- \*\*(App|Commit|Written|Items):\*\* (.+)$")
 
@@ -122,10 +122,35 @@ def tracer_entry(vault):
     return Entry(TRACER_ID, "release", page.path, "", digest([lines[n - 1] for n in sorted(numbers)]))
 
 
+MOVES = re.compile(r"^- \*\*(Status|Journey):\*\*")
+
+
+def slice_entry(vault, page):
+    """A slice page the app takes part in. The hash reads what the senior builds against (its flows, After, joins,
+    how it ships switched off, what done is, what is left out, its overrides) and leaves out where it stands: Status,
+    Journey and History move as the teams move it, and the senior's own move must not read as a change to accept."""
+    lines = page.text.split("\n")
+    end = next((h.line for h in page.headings if h.level == 2 and h.text.strip().lower() == schema.HISTORY_HEADING.lower()),
+               len(lines) + 1)
+    kept = [line for n, line in enumerate(lines[:end - 1], 1) if not MOVES.match(line) and not VOLATILE.match(line)
+            and n not in block_lines(page)]
+    return Entry(page.id, "slice", page.path, "", digest(kept))
+
+
+def app_slices(vault, app):
+    """Slice entries for each slice the app takes part in, in slice order. Empty while slices are on the releases page,
+    where the tracer entry carries the one slice there is."""
+    if not slices.on_pages(vault):
+        return []
+    by_path = {p.path: p for p in slices.pages(vault)}
+    return [slice_entry(vault, by_path[s.path]) for s in slices.for_app(vault, slices.read_slices(vault), app)]
+
+
 def slice_of(vault, app):
     """Every entry in the app's slice: the app page, its runtime page, contracts provided and
-    consumed, release one's tracer, the functional requirements its allocation rows carry, epics whose `apps` lists it,
-    and open unknowns that block any of those."""
+    consumed, the slices it takes part in (or release one's tracer, while slices are on the releases page), the
+    functional requirements its allocation rows carry, epics whose `apps` lists it, and open unknowns that block any
+    of those."""
     entries = [page_entry(vault, app, "app")]
     runtime = progress.runtime_page(vault, app)
     if runtime is not None:
@@ -138,7 +163,9 @@ def slice_of(vault, app):
     carried = {r.requirement for r in allocation.rows(vault) if r.app is app and r.requirement}
     entries += [item_entry(r, "requirement") for r in allocation.requirements(vault) if r.id in carried]
     entries += [page_entry(vault, e, "epic") for e in trace.epics(vault) if app.id in trace.listed(e, "apps")]
-    tracer = tracer_entry(vault)
+    taking_part = app_slices(vault, app)
+    entries += taking_part
+    tracer = None if taking_part or slices.on_pages(vault) else tracer_entry(vault)
     if tracer is not None:
         entries.append(tracer)
     ids = {e.id for e in entries}
@@ -212,6 +239,9 @@ def lookup(vault, old):
     """The accepted ID as the whole vault holds it now, or None when the vault no longer has it."""
     if old.kind == "release":
         return tracer_entry(vault)
+    if old.kind == "slice":
+        found = [p for p in slices.pages(vault) if p.id == old.id]
+        return slice_entry(vault, found[0]) if found else None
     found = vault.items.get(old.id)
     if found:
         return item_entry(found[0], old.kind)

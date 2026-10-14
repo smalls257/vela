@@ -23,7 +23,7 @@ import traceback
 
 import yaml
 
-from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, tickets, untrusted, viewer, voicecheck, voicescore
+from planner import allocation, capture, catalog, completeness, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, tickets, untrusted, viewer, voicecheck, voicescore
 from planner.edge import atomic, copies, replays, reviewgit, teamdocs, vaultgit
 from planner.edge import proposals as proposal_files
 
@@ -1648,6 +1648,10 @@ def cmd_handoff(args, out):
         raise ToolError(f"cannot write {target.relative_to(root).as_posix()}: {exc.strerror or exc}. "
                         f"{schema.HANDOFF_DIR}/ must be a folder and {app_id}.md a file.") from exc
     print(f"planner handoff: wrote {target.relative_to(root).as_posix()}, {len(entries)} items, at {commit}.", file=out)
+    taking_part = [s for s in slices.for_app(vault, slices.read_slices(vault), app)] if slices.on_pages(vault) else []
+    if taking_part:
+        print(f"{app_id} takes part in {len(taking_part)} slice{'' if len(taking_part) == 1 else 's'}: "
+              + "; ".join(f"{s.label} ({s.status or 'not planned yet'})" for s in taking_part) + ".", file=out)
     if not_firm:
         print(f"Not firm at handoff, {len(not_firm)}: the senior should hear these before accepting the app. They are listed in the manifest.", file=out)
         for line in not_firm:
@@ -2190,6 +2194,9 @@ def cmd_next(args, out):
         print(f"planner next: nothing to do. Every app's items are settled and its epics decided. {when}", file=out)
     else:
         print(f"planner next: {row.app.id}, {NEXT_MODE_WORDS.get(row.mode, row.mode)} {row.subject}. {row.reason} {when}", file=out)
+    slice_step = slices.next_step(slices.read_slices(vault)) if slices.on_pages(vault) else ""
+    if slice_step:
+        print(f"planner next: slices, {slice_step}", file=out)
     # The team's next step is another person's work, so it is a line of its own beside the lead's, never instead of it.
     for line in handoff_steps(vault):
         print(line, file=out)
@@ -2230,7 +2237,7 @@ def cmd_tickets(args, out):
     try:
         target.mkdir(parents=True, exist_ok=True)
         if args.format == "markdown":
-            atomic.write_atomic(target / "tickets.md", tickets.markdown_text(text, plan_path.name))
+            atomic.write_atomic(target / "tickets.md", tickets.markdown_text(text, plan_path.name, load_vault(root)))
             written = [target / "tickets.md"]
         else:
             csv_body, readme, _ = tickets.convert_text(text, plan_path.name, tool="planner tickets")

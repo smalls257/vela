@@ -16,7 +16,7 @@ convert_text() and write what it returns, so the installed plugin and a repo che
 import difflib
 import re
 
-from planner import allocation, criteria, releases, trace
+from planner import allocation, criteria, releases, slices, trace
 from planner import breakdown
 from planner.breakdown import SIZE_POINTS, build_rows, csv_text, parse
 
@@ -136,15 +136,31 @@ def waves_text(text):
     return ""
 
 
-def markdown_text(text, source):
-    """The Markdown ticket list for a plan's text: one section per story that will be built, its tasks as a checklist."""
+def tracer_id(vault):
+    """The tracer slice's ID, "" while the vault has no slice pages."""
+    first = slices.tracer(slices.read_slices(vault)) if vault is not None and slices.on_pages(vault) else None
+    return first.id if first else ""
+
+
+def markdown_text(text, source, vault=None):
+    """The Markdown ticket list for a plan's text: one section per story that will be built, its tasks as a checklist.
+    Grouped by slice: the tracer first, then each slice in the vault's order, then stories that name none, each group
+    in the plan's build order."""
     plan = breakdown.read(text)
     stories, _ = retire_pointers(plan["stories"], [])
     ranked = {o["id"]: i for i, o in enumerate(plan["order"])}
-    built = sorted((s for s in stories if s.built), key=lambda s: (s.slice != "tracer", ranked.get(s.id, len(ranked))))  # tracer first, then the plan's build order
+    order = {s.id: s.order for s in slices.read_slices(vault)} if vault is not None and slices.on_pages(vault) else {}
+    first = tracer_id(vault)
+
+    def place(story):
+        group = order.get(story.slice_id, len(order) + (0 if story.slice_id else 1))
+        return (not is_tracer(story, first), group, story.slice_id, ranked.get(story.id, len(ranked)))
+
+    built = sorted((s for s in stories if s.built), key=place)
     title = str(plan["meta"].get("slug", source))
     counts = summary_line(built, 0).rsplit(",", 1)[0]
-    lines = [f"# Tickets for {title}", "", f"From `{source}`: {counts}, tracer stories first. Sizes are for ordering, not commitments.", ""]
+    lines = [f"# Tickets for {title}", "", f"From `{source}`: {counts}, tracer stories first, then grouped by slice. "
+             "Sizes are for ordering, not commitments.", ""]
     for story in built:
         lines += story_markdown(story)
     skipped = not_ticketed(stories)
@@ -306,9 +322,33 @@ def check_coverage(vault, app_id, plan, stories):
     return out
 
 
-def check_tracer(stories, order):
+def is_tracer(story, tracer_id=""):
+    """A story is the team's part of the tracer when it says so, or when it names the vault's tracer slice."""
+    return story.slice == "tracer" or bool(tracer_id and story.slice_id == tracer_id)
+
+
+def check_slices(vault, stories, app_id):
+    """A story that names a slice the vault does not have, or one the app takes no part in, would be grouped under a
+    slice nobody can find, or built for a journey that never reaches the app."""
+    found = slices.read_slices(vault) if slices.on_pages(vault) else []
+    known = {s.id: s for s in found}
+    app = next((a for a in vault.apps if a.id == app_id), None)
+    ours = {s.id for s in slices.for_app(vault, found, app)} if app is not None else set()
+    out = []
+    for story in stories:
+        sid = story.slice_id
+        if not sid or not story.built:
+            continue
+        if sid not in known:
+            out.append(Finding("slice", story.id, f"names {sid}, which is no slice page in this vault"))
+        elif sid not in ours:
+            out.append(Finding("slice", story.id, f"names {sid} {known[sid].name}, a slice {app_id} takes no part in"))
+    return out
+
+
+def check_tracer(stories, order, tracer_id=""):
     """Tracer stories come first in the build order; none at all needs an override the plan records."""
-    tracers = [s.id for s in stories if s.built and s.slice == "tracer"]
+    tracers = [s.id for s in stories if s.built and is_tracer(s, tracer_id)]
     if not tracers:
         return [Finding("slice", "", "no story is marked as the tracer, and the plan records no override saying the team starts elsewhere")]
     ranked = [o["id"] for o in order]
@@ -332,7 +372,8 @@ def check(text, vault, app_id=""):
         if story.built:
             out += check_story(vault, story, known, dates)
     out += check_coverage(vault, app_id, plan, stories)
-    out += check_tracer(stories, plan["order"])
+    out += check_slices(vault, stories, app_id)
+    out += check_tracer(stories, plan["order"], tracer_id(vault))
     if "**Override:**" in text:
         out = [f for f in out if not (f.kind == "slice" and f.story == "" and f.text.startswith("no story is marked"))]
     return out

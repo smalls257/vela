@@ -248,3 +248,42 @@ def test_next_says_nothing_new_while_the_design_is_in_progress(vault):
     edit(vault / "docs" / "tech-design" / "desktop-agent.md", "status: complete-with-gaps", "status: in-progress")
     (vault / "docs" / "plan" / "desktop-agent-breakdown.md").unlink()
     assert teamdocs.team_step(vault) is None
+
+
+# ---- slices: a story names the vault slice it is part of
+
+def add_slices(root):
+    (root / "slices").mkdir()
+    for sid, title, flows, after in (("SLC-001", "Switch on and get the digest", "FLO-001, FLO-002", ""),
+                                     ("SLC-002", "Get a prep note", "FLO-003", "- **After:** SLC-001\n")):
+        (root / "slices" / f"{sid}-x.md").write_text(
+            f"---\nid: {sid}\ntype: slice\ntitle: {title}\nauthored: authored\n---\n\n# {title}\n\nWhat it makes work.\n\n"
+            f"- **Flows:** {flows}\n{after}", encoding="utf-8")
+
+
+def test_a_story_names_its_vault_slice_on_its_slice_line():
+    text = PLAN.read_text(encoding="utf-8").replace("Slice: vertical", "Slice: vertical, SLC-002 Get a prep note", 1)
+    stories = breakdown.read(text)["stories"]
+    assert [s.slice_id for s in stories if s.slice_id] == ["SLC-002"]
+    assert next(s for s in stories if s.slice_id).slice == "vertical"
+
+
+def test_a_story_naming_a_slice_the_vault_lacks_is_flagged_and_naming_the_tracer_makes_it_a_tracer_story(vault):
+    add_slices(vault)
+    text = plan_text(vault).replace("Slice: vertical", "Slice: vertical, SLC-009", 1)
+    assert [f.text for f in check(vault, text) if f.kind == "slice" and "SLC-009" in f.text] == ["names SLC-009, which is no slice page in this vault"]
+    bare = plan_text(vault).replace("- **Tracer:** yes\n", "").replace("Slice: tracer", "Slice: vertical, SLC-001")
+    assert not any("no story is marked as the tracer" in f.text for f in check(vault, bare))
+
+
+def test_tickets_are_grouped_by_slice_the_tracer_first(vault):
+    add_slices(vault)
+    text = plan_text(vault)
+    later = [s.id for s in breakdown.read(text)["stories"] if s.slice == "vertical" and s.built][-1]
+    text = re.sub(rf"(### {later}\b[^\n]*\n(?:(?!### ).*\n)*?)Slice: vertical", r"\1Slice: vertical, SLC-002", text, count=1)
+    body = tickets.markdown_text(text, "plan.md", cli.load_vault(vault))
+    headings = re.findall(r"^## (S-\d+[a-z]?) ", body, re.M)
+    tracers = [s.id for s in breakdown.read(text)["stories"] if s.slice == "tracer" and s.built]
+    assert headings[:len(tracers)] == [h for h in headings if h in tracers]
+    assert headings[len(tracers)] == later  # the slice it names comes before stories that name none
+    assert "then grouped by slice" in body

@@ -52,6 +52,7 @@ TRACER_FACT = re.compile(r"^\s*[-*+]\s+\*\*Tracer:\*\*\s*(.*?)\s*$", re.I)  # th
 NO_BLOCKERS = re.compile(r"^\W*none\b", re.I)  # "none. D-001 runs in parallel, not a gate": no blockers, the rest is a note
 STATUS = re.compile(r"^\W*Status\W*:\W*(.*)$", re.I)
 SLICES = ("tracer", "vertical", "layer")
+VAULT_SLICE = re.compile(r"\bSLC-\d{3}\b")  # the vault's slice a story belongs to (slices.py), not its shape above
 NOT_BUILT = ("deferred", "merged")  # a story in either state is in no total and has no ticket
 # A story the plan says traces to nothing ("Traces to: no requirement row or epic criterion; ...") is stated, not unreadable.
 NO_TRACE = re.compile(r"^\W*(none|no |nothing|design only)", re.I)
@@ -80,6 +81,16 @@ class Story:
             return "tracer"
         words = re.findall(r"[a-z]+", (self.slice_text or "").lower())
         return words[0] if words and words[0] in SLICES else ""
+
+    @property
+    def slice_id(self):
+        """The vault slice the story is part of, SLC-nnn, named on its Slice line ("Slice: vertical, SLC-002 The digest
+        reaches a pilot user") or its Traces to line; "" when it names none. Breakdown and tickets group by it."""
+        for text in (self.slice_text, self.traces):
+            found = VAULT_SLICE.search(text or "")
+            if found:
+                return found.group(0)
+        return ""
 
     @property
     def built(self):
