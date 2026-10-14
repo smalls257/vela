@@ -146,7 +146,8 @@ class Walker:
         elif kind in ("set", "given"):
             words = f"{self.entity_title(parts[1])}: {parts[2].replace('_', ' ')}"
             yield Path((step("note", line, words if kind == "set" else f"Starts with {words}", over=[actor], tag=kind,
-                             key=self.entity_keys.get(parts[1], ""), entity=self.entity_title(parts[1])),))
+                             key=self.entity_keys.get(parts[1], ""), entity=self.entity_title(parts[1]),
+                             entity_name=parts[1], state=parts[2]),))
         elif kind == "human":
             yield Path((step("note", line, parts[1], over=[actor], tag="person"),))
         elif kind == "finish":
@@ -157,7 +158,8 @@ class Walker:
 
     def end_step(self, line, actor, outcome, leaves):
         left = "".join(f"; leaves {self.entity_title(e)} {s.replace('_', ' ')}" for e, s in leaves)
-        return step("note", line, f"Ends: {outcome.replace('_', ' ')}{left}", over=[actor], tag="end", outcome=outcome.replace("_", " "))
+        return step("note", line, f"Ends: {outcome.replace('_', ' ')}{left}", over=[actor], tag="end", outcome=outcome.replace("_", " "),
+                    outcome_key=outcome, leaves=[tuple(pair) for pair in leaves])
 
     def with_handler(self, head, node, words, who):
         if node.handler is None:
@@ -340,25 +342,78 @@ def answer_words(item, key, answers):
     return said or case_words(key).lower()
 
 
-def played(steps, names, answers, contract_titles, ended=True):
+def sentence_part(text):
+    """A cell's words as the tail of "It ends here: ...": no closing full stop, and a lower-case first letter unless
+    the word is a name or an acronym ("Heron", "API")."""
+    said = text.strip().rstrip(".").strip()
+    if len(said) > 1 and said[0].isupper() and said[1].islower() and said.split()[0].lower() in COMMON_OPENERS:
+        said = said[0].lower() + said[1:]
+    return said
+
+
+# Opening words that are not names, so "The agent tells..." reads "It ends here: the agent tells...".
+COMMON_OPENERS = {"the", "a", "an", "no", "nothing", "it", "they", "there", "this", "that", "their", "his", "her", "its"}
+
+
+def joined(parts):
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
+def ending_words(end, outcomes, words, settled):
+    """What an ending means, in the plan's own words: the flow page's `| Outcome | What the person sees |` row for it;
+    else the meanings of the states the journey ends in (the states its END leaves, then those set just before it,
+    from the entity pages' `| State | Means |` tables), when every one has its words; else its outcome name. The
+    outcome name is the last resort, never a guess at a sentence."""
+    row = (outcomes or {}).get(end.get("outcome_key", ""))
+    if row:
+        return sentence_part(row)
+    pairs = list(dict.fromkeys([tuple(p) for p in end.get("leaves") or ()] + list(settled)))
+    meanings = [(words or {}).get(entity, {}).get(state, ("", ""))[0] for entity, state in pairs]
+    if pairs and all(meanings):
+        return joined([sentence_part(m) for m in dict.fromkeys(meanings)])
+    return end["outcome"]
+
+
+def outcome_words(page):
+    """{END outcome: what the person sees} from a flow page's optional `| Outcome | What the person sees |` table."""
+    found = {}
+    for table in page.tables if page is not None else ():
+        head = [c.strip().lower() for c in table.header or ()]
+        if head[:2] != ["outcome", "what the person sees"]:
+            continue
+        for row in table.rows:
+            cells = [c.strip() for c in row] + ["", ""]
+            if cells[0].strip("`") and cells[1]:
+                found[cells[0].strip("`")] = cells[1]
+    return found
+
+
+def played(steps, names, answers, contract_titles, ended=True, outcomes=None, words=None):
     """The path as the played view's steps: a call and its answer are one step ("Desktop agent asks Consent and
     identity to record the person's consent. Answer: kept."), an answer that comes later is its own step, a person's
     step stays, and the checker's bookkeeping (states set, ON rules) is left out. The journey's ending is the last
-    step, a band ("It ends here: told not kept."); a path the diagram leaves without an ending says so instead,
-    which is a finding of its own for the reader. Each step says whether it leaves the happy path (`differs`). No
-    status codes and no state names."""
+    step, a band in plain words ("It ends here: the agent tells the person Heron isn't on."), from `ending_words`
+    with the flow page's outcome rows (`outcomes`) and the entities' state words (`words`); a path the diagram leaves
+    without an ending says so instead, which is a finding of its own for the reader. Each step says whether it leaves
+    the happy path (`differs`). No status codes and no state names."""
     out, open_calls, i = [], [], 0
+    settled = []  # (entity, state) set since the last step a person reads: the states the journey ends in
     steps = list(steps)
     while i < len(steps):
         s = steps[i]
+        if s.get("tag") in ("set", "given") and s.get("entity_name"):
+            settled.append((s["entity_name"], s["state"]))
         if s.get("tag") in QUIET_TAGS:
             i += 1
             continue
         who = lambda n: names.get(n, n)  # noqa: E731
         if s.get("tag") == "end":
-            out.append({"kind": "end", "over": s.get("over", []), "differs": s["alt"], "short": f"It ends here: {s['outcome']}."})
+            said = ending_words(s, outcomes, words, settled)
+            out.append({"kind": "end", "over": s.get("over", []), "differs": s["alt"], "short": f"It ends here: {said}."})
+            settled = []
             i += 1
             continue
+        settled = []
         if s["kind"] == "call":
             nxt = steps[i + 1] if i + 1 < len(steps) else None
             ask = f"{who(s['from'])} asks {who(s['to'])} to {s['text']}"
@@ -579,6 +634,7 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
     not_checked = "not fully checked" in result.status
     mine = [f for f in result.findings if f.where.startswith(flow.path + ":") or f.call_line.startswith(flow.path + ":")]
     words = state_words(vault, catalog)
+    outcomes = outcome_words(next((p for p in vault.pages if p.path == flow.path), None))
     found = [finding_record(f, catalog, words) for f in mine]
     at = {}
     for i, f in enumerate(mine):
@@ -613,7 +669,7 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
                 marks = ["not drawn"] + marks
             elif path is None:
                 marks = ["too many paths to draw"] + marks
-            steps = played(path.steps, names, answers, titles_of, path.ended) if path else []
+            steps = played(path.steps, names, answers, titles_of, path.ended, outcomes, words) if path else []
             use(steps)
             options.append({"id": ident, "label": f"{name}: {case_words(key)}", "case": key, "line": line, "status": status,
                             "says": says, "findings": hits, "marks": marks, "drawn": path is not None, "steps": steps,
@@ -629,7 +685,7 @@ def flow_branches(flow, catalog, vault, keys, answers, today):
     return {
         "state": "drawn",
         "participants": [{"id": n, "title": names.get(n, n), "key": people.get(n, "")} for n in order if n in used],
-        "happy": {"id": "happy", "label": "Happy path", "steps": played(happy.steps, names, answers, titles_of, happy.ended), "findings": happy_hits,
+        "happy": {"id": "happy", "label": "Happy path", "steps": played(happy.steps, names, answers, titles_of, happy.ended, outcomes, words), "findings": happy_hits,
                   "marks": marks_of([found[i] for i in happy_hits], not_checked), "limits": limits_for(happy, walker, stated, shared)},
         "limits": stated,
         "groups": groups, "findings": found,

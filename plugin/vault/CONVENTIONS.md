@@ -917,6 +917,8 @@ end
 
 Here the check finds the gap a reviewer would miss: when the timer wins, the hold is released, and the payment confirmation that arrives afterwards has nowhere to go.
 
+A flow page may say what each ending means to the person, so the dashboard ends each branch in a sentence rather than an outcome's name: an optional table `| Outcome | What the person sees |`, one row per END outcome, such as `| told_not_kept | the agent tells the person Heron isn't on, and nothing is kept |`. The check never reads it. An ending with no row is said in the words of the states the journey ends in (the states its END leaves and those set just before it, from the entity pages' `| State | Means | Not in it |` tables), and with neither, by its outcome's name.
+
 A provider whose handling is drawn answers as the drawing says. One that is not drawn answers with any case of its table whose When holds, Sets and Emits included. A timed-out call may still have been answered, so after a timeout the provider either did nothing or applied a case. A drawn provider can also time out part-way through its handling: it stops there, with what it has done so far standing, or it carries on alone and its answer goes nowhere. A party outside the vault always answers from its contract.
 
 Every result says what it rests on, in a `Limit:` line each: a flow touching a shared entity runs two journeys at once, not three (`--journeys 3` tries three, at more cost); a timer is taken to fire in the end, so an order in which it never fires isn't explored; and when the budget runs out, the runs it left unexplored are named.
