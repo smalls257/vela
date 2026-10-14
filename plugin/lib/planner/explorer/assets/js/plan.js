@@ -347,6 +347,7 @@ const Plan = (() => {
     lay.looks = { solid: "pw.arrow", soft: "pw.soft" };
     const svg = s("svg", { class: "inside-svg cockpit plan-dag-svg", role: "img", "aria-label": `${titleOf(app)}'s stories, each after the stories that block it` }, holder);
     K.defsFor(svg);
+    Pan.attach(holder, { key: "plan-dag", svg: () => svg, scrollOnly: true });  // the path grows taller, not wider: a pan scrolls the page
     lg.within(() => K.drawLayout(svg, lay, {
       story: (g, b) => {
         const story = b.node.story, lit = unclosedLevel(story);

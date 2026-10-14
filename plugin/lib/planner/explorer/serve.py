@@ -118,9 +118,9 @@ class BadRequest(Exception):
 
 def apply_pins(path, body):
     """Save a dragged layout to the pins file and return the saved pins, or raise BadRequest. The body is
-    {"pins": {key: [col, row]}, "kinds": {key: "app" | "partner"}}. A page may move boxes the file already pins and
-    order clusters ("grp:" keys); a key the file does not hold is refused, so the endpoint cannot grow the file.
-    Boxes that would overlap, or a party above the apps, are refused with the reason, as the page's drop refuses them.
+    {"pins": {key: [col, row]}, "kinds": {key: "app" | "partner"}}, a position free to fall between cells. A page
+    may move boxes the file already pins and place clusters ("grp:" keys); a key the file does not hold is refused,
+    so the endpoint cannot grow the file. Boxes that would be drawn over one another are refused with the reason, as the page's drop stops short of them.
     Pure of sockets: the handler only carries the body in and the answer out."""
     try:
         req = json.loads(body.decode("utf-8"))

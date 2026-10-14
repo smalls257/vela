@@ -6,21 +6,30 @@ position never comes from a force layout or from the screen size.
 
     <vault>/.planner/explorer-pins.json   {node key: [col, row]}
 
-A node the file lacks takes the nearest free cell to where the layout would put it; a pinned node is never moved
-unless it sits on another box (see `settle`). A key that starts "grp:" is not a node: it orders a cluster of the
-grouped map (view-map's drag), and takes no cell.
+A position is a pair of numbers, fractional where a reader dropped a box between cells: a box stays where it is put.
+The one rule (check_move, and layout.js in the page) is that no box is drawn over another: two boxes, as drawn, keep
+at least GAP pixels between their edges. The first layout, and a node the file lacks, take whole cells: the nearest
+free cell to where the layout would put it. A pinned node is never moved unless it sits on another box (see
+`settle`). A key that starts "grp:" is not a node: it places a cluster of the grouped map (view-map's drag), and is
+not a box this rule checks.
 The caller names the file: the vault's own, or a file kept elsewhere. When that file does not exist yet the caller
 may name a seed to start from, so a layout a lead has already seen carries over. Ported from the gallery mockup's
 maps/extract.py.
 """
+import itertools
 import json
 import pathlib
 
 PINS_FILE = ".planner/explorer-pins.json"
 GROUP_PREFIX = "grp:"
-# Two boxes of one row must stand at least this many columns apart; the drawing's column width is wider than any box
-# it draws (cockpit 380 for a 176 box, line map and minimap 300), so one column is the least that keeps them apart.
-MIN_APART = 1.0
+# How a cell is drawn on the cockpit, the minimap and the releases view (they share this frame, so a box clear of its
+# neighbours on one is clear on all): pixels per column and per row, and how far below its row an outside party is
+# drawn (the parties' band). The page reads these numbers from the build (D.pins.frame); #selftest checks every
+# view's boxes fit inside BOX.
+FRAME = {"cw": 380, "rh": 128, "bandGap": 104}
+BOX = {"w": 190, "h": 70}  # the largest box any of them draws: the minimap's 190 by 70 (the cockpit's is 176 by 66)
+GAP = 20  # pixels kept clear between two boxes' edges, so two boxes never touch
+SLACK = 0.5  # pixels: a box placed exactly GAP away, then rounded to the thousandth of a cell, still counts as clear
 MIN_PARTY_ROW_WIDTH = 3  # outside parties wrap to a new row past this many columns, or the apps' width when wider
 LIMIT = 10_000  # a column or row beyond this is a typo or an attack, not a layout
 
@@ -29,9 +38,21 @@ def is_node(key):
     return not key.startswith(GROUP_PREFIX)
 
 
-def crowded(taken, col, row):
-    """True when a cell is within one column of a box in its row."""
-    return any(r == row and abs(c - col) < MIN_APART - 1e-9 for c, r in taken)
+def drawn(cell, kind):
+    """Where a box's centre is drawn, in the frame's pixels: an outside party a band below its row."""
+    return cell[0] * FRAME["cw"], cell[1] * FRAME["rh"] + (FRAME["bandGap"] if kind != "app" else 0)
+
+
+def clash(a, kind_a, b, kind_b):
+    """True when two boxes, as drawn, come closer than GAP to one another."""
+    (ax, ay), (bx, by) = drawn(a, kind_a), drawn(b, kind_b)
+    return abs(ax - bx) < BOX["w"] + GAP - SLACK and abs(ay - by) < BOX["h"] + GAP - SLACK
+
+
+def crowded(taken, col, row, kind):
+    """True when a box of `kind` at (col, row) would come too close to one already placed; `taken` is
+    [(col, row, kind)]."""
+    return any(clash((col, row), kind, (c, r), k) for c, r, k in taken)
 
 
 def ideal_layout(nodes, contracts):
@@ -112,18 +133,41 @@ def read_pins(source):
 
 def check_move(pins, kinds):
     """Why this layout cannot be drawn without overlap, or "" when it can. `pins` is {key: [col, row]} and `kinds`
-    {node key: "app" | "partner"}; keys beyond `kinds` (clusters) take no cell. Two boxes may not stand within one
-    column of each other in one row, and an outside party may not sit above an app: the drawing puts the parties
-    in a band below the apps, and a row of parties above the last row of apps would be drawn over them."""
-    cells = sorted(((v[0], v[1], k) for k, v in pins.items() if k in kinds), key=lambda x: (x[1], x[0], x[2]))
-    for (c1, r1, k1), (c2, r2, k2) in zip(cells, cells[1:]):
-        if r1 == r2 and c2 - c1 < MIN_APART - 1e-9:
-            return f"{k1} and {k2} would overlap: boxes in one row stand at least {MIN_APART:g} column apart"
-    low = max((r for _, r, k in cells if kinds[k] == "app"), default=None)
-    for _, r, k in cells:
-        if kinds[k] == "partner" and low is not None and r < low:
-            return f"{k} is an outside party and would sit above the apps; parties stay in the band below them"
+    {node key: "app" | "partner"}; keys beyond `kinds` (clusters) are not boxes. Two boxes, as drawn, keep GAP
+    pixels between their edges; an outside party is drawn a band below its row, so it is measured there."""
+    boxes = sorted(((v[0], v[1], k) for k, v in pins.items() if k in kinds), key=lambda x: (x[0], x[1], x[2]))
+    reach = (BOX["w"] + GAP) / FRAME["cw"]  # columns: past this, nothing further right can touch
+    for i, (c1, r1, k1) in enumerate(boxes):
+        for c2, r2, k2 in itertools.islice(boxes, i + 1, None):
+            if c2 - c1 >= reach:
+                break
+            if clash((c1, r1), kinds[k1], (c2, r2), kinds[k2]):
+                return f"{k1} and {k2} would overlap: boxes keep {GAP} px apart as drawn"
     return ""
+
+
+# The rule's cases, played by tests/test_explorer_layout.py against check_move and by #selftest against the page's
+# copy of the rule (a selftest build carries them, with check_move's answer, as D.pins.cases): one table, so the two
+# copies cannot drift apart without a test saying so.
+MOVE_KINDS = {"APP-a": "app", "APP-b": "app", "PTY-01": "partner"}
+MOVE_CASES = (
+    ("two apps in one place", {"APP-a": [0, 0], "APP-b": [0, 0]}),
+    ("two apps half a column apart in one row", {"APP-a": [0, 0], "APP-b": [0.5, 0]}),
+    ("two apps 0.6 of a column apart in one row", {"APP-a": [0, 0], "APP-b": [0.6, 0]}),
+    ("two apps 0.6 of a row apart in one column", {"APP-a": [0, 0], "APP-b": [0, 0.6]}),
+    ("two apps 0.75 of a row apart in one column", {"APP-a": [0, 0], "APP-b": [0, 0.75]}),
+    ("two apps close on a diagonal", {"APP-a": [0, 0], "APP-b": [0.5, 0.6]}),
+    ("two apps just clear on a diagonal", {"APP-a": [0, 0], "APP-b": [0.5, 0.75]}),
+    ("a party pinned in an app's own cell, drawn a band below it", {"APP-a": [0, 0], "PTY-01": [0, 0]}),
+    ("a party a quarter row above an app", {"APP-a": [0, 1], "PTY-01": [0, 0.75]}),
+    ("a party above every app, clear of them", {"APP-a": [0, 2], "APP-b": [1, 2], "PTY-01": [0, 0]}),
+    ("whole cells, with a cluster key", {"APP-a": [0, 0], "APP-b": [1, 0], "PTY-01": [0, 1], "grp:x": [0, 0]}),
+)
+
+
+def move_cases():
+    """MOVE_CASES with check_move's answer to each, as the page's selftest reads them."""
+    return [{"name": name, "pins": pins, "kinds": MOVE_KINDS, "says": check_move(pins, MOVE_KINDS)} for name, pins in MOVE_CASES]
 
 
 def validate(pins, allowed):
@@ -155,42 +199,39 @@ def write_pins(path, pins):
 
 def settle(pins, kinds):
     """(pins, moved keys): the pins with every box that sits on another one moved to the nearest free cell. The
-    first of two boxes in a cell (by column, row, key) keeps it, so a lead's pins stay put and only the later of
-    two overlapping boxes moves. An outside party above the apps is lowered to the last row of apps. Keys that are
-    not nodes (clusters) pass through unchanged."""
+    first of two boxes (by column, row, key) keeps its place, so a lead's pins stay put and only the later of two
+    overlapping boxes moves. Keys that are not nodes (clusters) pass through unchanged."""
     out = {k: list(v) for k, v in pins.items()}
     nodes = sorted((k for k in out if k in kinds), key=lambda k: (out[k][0], out[k][1], k))
-    low = max((out[k][1] for k in nodes if kinds[k] == "app"), default=0)
     width = max(MIN_PARTY_ROW_WIDTH, 1 + max((round(out[k][0]) for k in nodes), default=0))
     moved, taken = [], []
     for k in nodes:
         c, r = out[k]
-        want_row = max(r, low) if kinds[k] == "partner" else r
-        if want_row == r and not crowded(taken, c, r):
-            taken.append((c, r))
+        if not crowded(taken, c, r, kinds[k]):
+            taken.append((c, r, kinds[k]))
             continue
         # a party stays in its band, along the row and then onto the next; an app takes the nearest free cell in any direction
-        spot = nearest_free(taken, round(c), want_row, width) if kinds[k] == "partner" else nearest_free(taken, round(c), want_row)
+        spot = nearest_free(taken, round(c), round(r), kinds[k], width if kinds[k] == "partner" else None)
         out[k] = list(spot)
-        taken.append(spot)
+        taken.append((*spot, kinds[k]))
         moved.append(k)
     return out, moved
 
 
-def nearest_free(taken, col, row, width=None):
-    """The free cell nearest (col, row): ring by ring, or, with a width, along that row and then the rows below it
-    (a row of parties wraps instead of running on without end)."""
+def nearest_free(taken, col, row, kind, width=None):
+    """The free cell nearest (col, row) for a box of `kind`: ring by ring, or, with a width, along that row and then
+    the rows below it (a row of parties wraps instead of running on without end)."""
     if width is not None:
         r = row
         while True:
-            free = [c for c in range(0, width) if not crowded(taken, c, r)]
+            free = [c for c in range(0, width) if not crowded(taken, c, r, kind)]
             if free:
                 return min(free, key=lambda c: (abs(c - col), c)), r
             r += 1
     ring = 0
     while True:
         free = [(col + dc, row + dr) for dc in range(-ring, ring + 1) for dr in range(-ring, ring + 1)
-                if max(abs(dc), abs(dr)) == ring and col + dc >= 0 and not crowded(taken, col + dc, row + dr)]
+                if max(abs(dc), abs(dr)) == ring and col + dc >= 0 and row + dr >= 0 and not crowded(taken, col + dc, row + dr, kind)]
         if free:
             return sorted(free, key=lambda p: (abs(p[0] - col), abs(p[1] - row), p))[0]
         ring += 1
@@ -208,18 +249,17 @@ def pinned(path, nodes, contracts, seed=None):
     kinds = {n["key"]: n["kind"] for n in nodes}
     asked = {k: list(v) for k, v in pins.items()}
     pins.update(settle({k: v for k, v in pins.items() if k in kinds}, kinds)[0])
-    taken = [tuple(v) for k, v in pins.items() if is_node(k)]
+    taken = [(v[0], v[1], kinds[k]) for k, v in pins.items() if k in kinds]
     width = max(MIN_PARTY_ROW_WIDTH, 1 + max((c for k, (c, _) in ideal.items() if kinds[k] == "app"), default=0))
     added = []
     for key in sorted(ideal, key=lambda k: (ideal[k][0], ideal[k][1], k)):
         if key in pins:
             continue
         c, r = ideal[key]
-        spot = nearest_free(taken, c, r, width) if kinds[key] == "partner" else nearest_free(taken, c, r)
+        spot = nearest_free(taken, c, r, kinds[key], width if kinds[key] == "partner" else None)
         pins[key] = list(spot)
-        taken.append(tuple(spot))
+        taken.append((*spot, kinds[key]))
         added.append(key)
-    pins.update(settle({k: v for k, v in pins.items() if k in kinds}, kinds)[0])  # a new app may have taken a row below the parties
     moved = sorted(k for k in asked if k in kinds and list(pins[k]) != list(asked[k]))
     stale = sorted(k for k in pins if is_node(k) and k not in ideal)
     if path and (added or moved or not path.exists()):

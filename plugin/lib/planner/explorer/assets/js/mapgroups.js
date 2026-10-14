@@ -66,7 +66,6 @@ const MapGroups = (() => {
         return Object.assign(g, { label: g.cap ? (e && e.title) || g.cap : `No capability yet (${plural(g.members.length, "app")})`, page: e ? e.key : "", members: g.members.sort(byPin), ghosts: g.ghosts.sort(byPin) });
       }).sort((a, b) => (a.cap === "") - (b.cap === "") || cmp(a.cap, b.cap));
     }
-    out = Layout.ordered(out, (g) => g.key);  // a cluster a reader moved keeps its place (layout.js)
     if (partners.length) out.push({ key: PARTIES, label: "Outside parties", members: partners.sort(byPin), ghosts: [], sub: "outside", outside: true });
     return out;
   }
@@ -97,6 +96,8 @@ const MapGroups = (() => {
     if (line.length) lines.push(line);
     return lines;
   }
+  /* True when two clusters ({x, y, w, h}, top left) come closer than `gap`. */
+  const near = (a, b, gap) => a.x < b.x + b.w + gap && b.x < a.x + a.w + gap && a.y < b.y + b.h + gap && b.y < a.y + a.h + gap;
   function layout(list, aspect, mode) {
     // a cluster holds ducts between its own boxes, so its gutters leave room for a count on each
     const gap = mode === "capability" ? CAP_GAP : GAP, gx = W + 60, gy = H + 62;
@@ -113,22 +114,41 @@ const MapGroups = (() => {
       g.top = HEAD + (g.alsoLines.length ? g.alsoLines.length * (CHIP_H + CHIP_GAP) + 12 : 0) + (tabs ? 16 : 0);
       g.h = g.top + (g.rows ? g.rows * gy - (gy - H) : 0) + PAD;
     }
+    for (const g of list) g.gap = gap;  // a dropped cluster keeps this far from the others (place, below)
+    // A cluster a reader placed stands where they put it (Layout.clusterAt: its top left, in cells of Layout.FRAME);
+    // the others are shelved, below the placed ones when there are any.
+    const placed = list.filter((g) => !g.outside && Layout.clusterAt(g.key)), shelved = list.filter((g) => !placed.includes(g));
     // Shelves: of every width that breaks the row at a cluster, keep the one whose drawing is largest on this board.
     const shelve = (limit) => {
       let x = 0, y = 0, rowH = 0, w = 0;
-      for (const g of list) {
+      for (const g of shelved) {
         if ((g.outside && x > 0) || (x > 0 && x + g.w > limit)) { x = 0; y += rowH + gap; rowH = 0; }
         g.x = x; g.y = y; x += g.w + gap; rowH = Math.max(rowH, g.h); w = Math.max(w, x - gap);
       }
       return { w, h: y + rowH };
     };
-    const want = aspect || 1.4, widest = Math.max(...list.map((g) => g.w)), total = list.reduce((n, g) => n + g.w + gap, 0);
-    let best = widest, bestScale = 0;
-    for (let limit = widest; limit <= total; limit += 40) {
-      const b = shelve(limit), scale = Math.min(want / b.w, 1 / b.h);
-      if (scale > bestScale * 1.0001) { bestScale = scale; best = limit; }
+    if (shelved.length) {
+      const want = aspect || 1.4, widest = Math.max(...shelved.map((g) => g.w)), total = shelved.reduce((n, g) => n + g.w + gap, 0);
+      let best = widest, bestScale = 0;
+      for (let limit = widest; limit <= total; limit += 40) {
+        const b = shelve(limit), scale = Math.min(want / b.w, 1 / b.h);
+        if (scale > bestScale * 1.0001) { bestScale = scale; best = limit; }
+      }
+      shelve(best);
     }
-    shelve(best);
+    if (placed.length) {
+      for (const g of placed) { const [c, r] = Layout.clusterAt(g.key); g.x = c * Layout.FRAME.cw; g.y = r * Layout.FRAME.rh; }
+      // Opening a cluster grows it, and it may then reach a neighbour: the later one (by its corner, top to bottom,
+      // then left to right) is drawn pushed right until it is clear. Its pin is unchanged; the next drop pins it as drawn.
+      const settled = [];
+      for (const g of placed.slice().sort((a, b) => a.y - b.y || a.x - b.x || cmp(a.key, b.key))) {
+        // a pixel of play: a dropped cluster stands half a pixel inside the gutter, and its pin is rounded to 0.4 px
+        for (let o = settled.find((p) => near(g, p, gap - 1)); o; o = settled.find((p) => near(g, p, gap - 1))) g.x = o.x + o.w + gap;
+        settled.push(g);
+      }
+      const left = Math.min(...placed.map((g) => g.x)), below = Math.max(...placed.map((g) => g.y + g.h)) + gap;
+      for (const g of shelved) { g.x += left; g.y += below; }
+    }
     const boxes = {};
     for (const g of list) {
       if (!g.isOpen) { boxes[g.key] = { x: g.x, y: g.y, w: g.w, h: g.h, group: g }; continue; }
@@ -259,37 +279,41 @@ const MapGroups = (() => {
   }
 
   /* ------------------------------------------------------------ moving a cluster */
-  /* A cluster has no cell: the clusters sit on shelves, in an order. Drag one onto another to put it before or after
-     that one, or focus it and press an arrow key to move it one place earlier (left, up) or later (right, down). The
-     order is kept as `grp:` pins (layout.js). Wires and lamps are routed again when it lands, not while it is held:
-     routing around every box is too much work for each frame of a drag. */
-  const inOrder = (list) => list.filter((g) => !g.outside);
+  /* A cluster stands where it is dropped, as a box does. Drag it anywhere, or focus it and press an arrow key (a
+     quarter of a cell; with Shift, a whole cell). A drop that would bring it within its gutter of another cluster
+     lands at the nearest clear point on the line it was dragged along (Layout.along), and the status line says so.
+     Every cluster drawn is pinned as it stands (`grp:` pins, layout.js), so the others stay put. Wires and lamps are
+     routed again when it lands, not while it is held: routing around every box is too much work for each frame. */
+  const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   function movable(el, g, list, root) {
     if (g.outside) return;
     el.setAttribute("data-movable", "1");
+    el.setAttribute("aria-keyshortcuts", "ArrowLeft ArrowRight ArrowUp ArrowDown Shift+ArrowLeft Shift+ArrowRight Shift+ArrowUp Shift+ArrowDown");
     el.addEventListener("pointerdown", (e) => startMove(e, g, list, root));
   }
+  /* Where `g` lands when its top left moves by (dx, dy) px: { x, y, hit, past } (top left), or null. */
+  function landing(g, list, dx, dy) {
+    const mid = (o) => ({ x: o.x + o.w / 2, y: o.y + o.h / 2 }), from = mid(g);
+    const others = list.filter((o) => o !== g).map((o) => ({ ...mid(o), w: o.w, h: o.h, key: o.label }));
+    // half a pixel inside the gutter: shelved clusters stand exactly a gutter apart, and the one being moved must not
+    // count as already too close to its neighbour where it starts
+    const got = Layout.along(from, { x: from.x + dx, y: from.y + dy }, g.w, g.h, others, g.gap - 0.5);
+    return got && { x: got.at.x - g.w / 2, y: got.at.y - g.h / 2, hit: got.hit, past: got.t > 1 };
+  }
+  function placeCluster(g, list, land) {
+    if (!land) { Layout.say(`${g.label} stays where it is: there is no clear place on that line.`); return; }
+    const F = Layout.FRAME, spots = list.filter((o) => !o.outside).map((o) => ({ key: o.key, at: o === g ? [land.x / F.cw, land.y / F.rh] : [o.x / F.cw, o.y / F.rh] }));
+    const said = land.hit ? `${g.label} would have come too close to ${land.hit}, so it ${land.past ? "went just past" : "stopped just short of"} it. ` : "";
+    Layout.placeClusters(spots, `${said}${g.label} moved. `);
+  }
   function arrowMove(e, g, list) {
-    const dir = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
-    if (!dir || g.outside || e.altKey || e.ctrlKey || e.metaKey) return;
+    const d = ARROWS[e.key];
+    if (!d || g.outside || e.altKey || e.ctrlKey || e.metaKey) return;
     e.preventDefault();
-    const keys = inOrder(list).map((x) => x.key), at = keys.indexOf(g.key), to = at + dir;
-    if (to < 0 || to >= keys.length) { Layout.say(`${g.label} is already ${dir < 0 ? "first" : "last"}.`); return; }
-    keys.splice(at, 1); keys.splice(to, 0, g.key);
-    Layout.reorder(keys);
+    const by = e.shiftKey ? 1 : Layout.STEP;
+    placeCluster(g, list, landing(g, list, d[0] * by * Layout.FRAME.cw, d[1] * by * Layout.FRAME.rh));
     const again = $(`#board [data-group="${CSS.escape(g.key)}"] .cluster-toggle, #board g.cluster-lamp[data-group="${CSS.escape(g.key)}"]`);
     if (again) again.focus();
-  }
-  /* Where `g` would go if dropped at (x, y): the key order with it removed and put before or after the nearest cluster. */
-  function dropOrder(g, list, x, y) {
-    const others = inOrder(list).filter((o) => o.key !== g.key);
-    if (!others.length) return { keys: [g.key] };
-    const mid = (o) => ({ x: o.x + o.w / 2, y: o.y + o.h / 2 });
-    const near = others.slice().sort((a, b) => Math.hypot(mid(a).x - x, mid(a).y - y) - Math.hypot(mid(b).x - x, mid(b).y - y))[0];
-    const sameShelf = Math.abs(y - mid(near).y) < near.h / 2, before = sameShelf ? x < mid(near).x : y < mid(near).y;
-    const keys = others.map((o) => o.key);
-    keys.splice(keys.indexOf(near.key) + (before ? 0 : 1), 0, g.key);
-    return { keys, near, before };
   }
   function startMove(ev, g, list, root) {
     if (ev.button !== 0 || ev.isPrimary === false) return;
@@ -297,13 +321,13 @@ const MapGroups = (() => {
     const toSvg = (e) => { const pt = root.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(root.getScreenCTM().inverse()); };
     const from = toSvg(ev);
     let started = false, ghost = null, mark = null, latest = ev;
+    // the cluster's outline follows the pointer; a dashed one shows where it will land when that is not under the pointer
     const paint = () => {
-      const p = toSvg(latest);
+      const p = toSvg(latest), land = landing(g, list, p.x - from.x, p.y - from.y);
       ghost.setAttribute("x", g.x + p.x - from.x); ghost.setAttribute("y", g.y + p.y - from.y);
-      const to = dropOrder(g, list, p.x, p.y);
-      if (!to.near) return;
-      const x = to.before ? to.near.x - 14 : to.near.x + to.near.w + 14;
-      mark.setAttribute("x1", x); mark.setAttribute("x2", x); mark.setAttribute("y1", to.near.y); mark.setAttribute("y2", to.near.y + to.near.h);
+      const show = land && land.hit;
+      mark.setAttribute("visibility", show ? "visible" : "hidden");
+      if (show) { mark.setAttribute("x", land.x); mark.setAttribute("y", land.y); }
     };
     const finish = () => {
       removeEventListener("pointermove", onMove); removeEventListener("pointerup", onUp); removeEventListener("keydown", onKey, true);
@@ -317,16 +341,16 @@ const MapGroups = (() => {
         if (Math.hypot(e.clientX - origin.x, e.clientY - origin.y) < 5) return;
         started = true; hideTip(); $("#board").classList.add("moving");
         ghost = s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, class: "drag-ghost" }, root);
-        mark = s("line", { class: "drop-mark" }, root);
+        mark = s("rect", { x: g.x, y: g.y, width: g.w, height: g.h, rx: 14, class: "drag-ghost landing", visibility: "hidden" }, root);
       }
       paint();
     };
     const onUp = (e) => {
       finish();
       if (!started) return;
-      const p = toSvg(e), to = dropOrder(g, list, p.x, p.y);
+      const p = toSvg(e);
       MapView.markDrop();
-      if (to.keys) Layout.reorder(to.keys);
+      placeCluster(g, list, landing(g, list, p.x - from.x, p.y - from.y));
     };
     const onKey = (e) => { if (e.key === "Escape" && started) { e.stopPropagation(); finish(); } };
     addEventListener("pointermove", onMove); addEventListener("pointerup", onUp); addEventListener("keydown", onKey, true);
@@ -365,6 +389,7 @@ const MapGroups = (() => {
     MapView.startBreathing();
     board.dataset.groups = list.length;
     board.dataset.closed = list.filter((g) => !g.isOpen).length;
+    Pan.attach(board, { key: "grouped-" + mode, svg: () => $("svg.cockpit.grouped", board) });
   }
   function defs(root) {
     const d = s("defs", {}, root);
@@ -518,6 +543,7 @@ const MapGroups = (() => {
     const x0 = Math.min(...xs) - 120, x1 = Math.max(...xs) + 120, y0 = Math.min(...ys) - 70, y1 = Math.max(...ys) + 60;
     const root = s("svg", { viewBox: `${x0} ${y0} ${x1 - x0} ${y1 - y0}`, class: "cockpit focus", role: "img", "aria-label": `${titleOf(key)} and its direct neighbours` }, board);
     MapView.fitSvg(root, board, x1 - x0, y1 - y0, 1.1);
+    Pan.attach(board, { key: "focus", svg: () => $("svg.cockpit.focus", board) });
     defs(root);
     const gDucts = s("g", {}, root), gMotion = s("g", { class: "m-layer" }, root), gLamps = s("g", {}, root), gNodes = s("g", {}, root), gTop = s("g", { class: "m-top" }, root);
     Scene.reset(root, gMotion, (k) => (boxes[k] ? k : null), gTop);

@@ -430,17 +430,27 @@ const SelfTest = (() => {
     const mover = nodes.find((n) => n.kind === "app") || nodes[0], other = nodes.find((n) => n.key !== mover.key);
     const farCol = Math.max(...nodes.map((n) => n.col)) + 2, outside = mover.kind !== "app";
 
-    // the rule: a cell taken, a free cell, the nearest free cell to a taken one, a party above the apps, an app below the parties
-    const taken = Layout.blocker(mover.key, other.col, other.row), free = Layout.blocker(mover.key, farCol, mover.row), near = Layout.nearestFree(mover.key, other.col, other.row);
-    const party = nodes.find((n) => n.kind !== "app"), app = nodes.find((n) => n.kind === "app");
-    const parties = nodes.filter((n) => n.kind !== "app"), appRows = nodes.filter((n) => n.kind === "app").map((n) => n.row);
-    const below = parties.length && app ? Layout.blocker(app.key, farCol, Math.min(...parties.map((n) => n.row)) + 1) : "skip";
-    const above = party && Math.max(...appRows) > 0 ? Layout.blocker(party.key, farCol, 0) : "skip";
-    ok(!!taken && !free && !!near && !Layout.blocker(mover.key, near[0], near[1]) && !!below && !!above && Layout.check(Layout.cells()) === "",
-      `moving a box: a taken cell is refused ("${taken}"), a free one is not, the nearest free cell to a taken one is ${near ? near.join(",") : "none"}, an app below the parties and a party above the apps are refused`,
-      `moving a box: taken "${taken}", free "${free}", near ${near}, app below parties "${below}", party above apps "${above}", layout "${Layout.check(Layout.cells())}"`);
+    // the rule: pins.check_move's own cases, with its answers, against this page's copy; then the rule on this vault
+    const cases = (D.pins.cases || []).map((c) => ({ ...c, page: Layout.verdict(c.pins, c.kinds) }));
+    const differ = cases.filter((c) => !!c.page !== !!c.says);
+    ok(cases.length >= 8 && !differ.length, `the page's overlap rule gives pins.check_move's answer in all ${cases.length} of its cases`,
+      cases.length ? `the page and pins.check_move differ on ${differ.map((c) => `${c.name} (page "${c.page}", pins "${c.says}")`).join("; ")}` : "this selftest build carries no pins.MOVE_CASES");
+    const drawnSizes = [...$$(`${COCKPIT} g.hit[data-movable] rect.face`), ...$$(`${MINI} g.mini-node > rect:not(.mini-ring)`)].map((r) => [+r.getAttribute("width"), +r.getAttribute("height")]);
+    const tooBig = drawnSizes.filter(([w, ht]) => w > Layout.BOX.w + 0.5 || ht > Layout.BOX.h + 0.5);
+    ok(MapView.COCKPIT === Layout.FRAME && drawnSizes.length > 0 && !tooBig.length, `the cockpit and the minimap draw in the rule's frame, every box within pins.BOX (${Layout.BOX.w} by ${Layout.BOX.h})`,
+      `frame shared ${MapView.COCKPIT === Layout.FRAME}; ${drawnSizes.length} boxes measured, larger than pins.BOX: ${tooBig.slice(0, 3).map((x) => x.join("x")).join(", ")}`);
+    // the cell at which the mover would be drawn right on top of `other`: a party is drawn a band below its row
+    const band = (n) => (n.kind === "app" ? 0 : MapView.COCKPIT.bandGap / MapView.COCKPIT.rh);
+    const onOther = [other.col, Layout.tidy(other.row + band(other) - band(mover))];
+    const taken = Layout.blocker(mover.key, onOther[0], onOther[1]), free = Layout.blocker(mover.key, farCol, mover.row);
+    const short = Layout.landing(mover.key, Layout.cell(mover.key), onOther);
+    const party = nodes.find((n) => n.kind !== "app");
+    const partyHigh = party ? Layout.blocker(party.key, farCol + 3, 0) : "";
+    ok(!!taken && !free && !!short && short.hit === other.key && !Layout.blocker(mover.key, short.spot[0], short.spot[1]) && !partyHigh && Layout.check(Layout.cells()) === "",
+      `moving a box: another box's place is refused ("${taken}"), a clear one is not, a move onto ${titleOf(other.key)} stops at ${short ? short.spot.join(",") : "none"}, clear of it, and an outside party may stand above the apps`,
+      `moving a box: taken "${taken}", free "${free}", landing ${JSON.stringify(short)}, party above the apps "${partyHigh}", layout "${Layout.check(Layout.cells())}"`);
 
-    // a drag, as a pointer would do it, to a free cell beyond the last column
+    // a drag, as a pointer would do it, to a clear point beyond the last column, between cells
     const cockpitRoot = () => $("#board svg.cockpit");
     const clientOf = (col, row, isOutside) => { const svg = cockpitRoot(), pt = svg.createSVGPoint(), at = Geo.pointOf(MapView.COCKPIT, col, row, isOutside); pt.x = at.x; pt.y = at.y; const c = pt.matrixTransform(svg.getScreenCTM()); return { x: c.x, y: c.y }; };
     const boxOf = (key) => $(`#board g.hit[data-key="${CSS.escape(key)}"]`);
@@ -451,18 +461,24 @@ const SelfTest = (() => {
       window.dispatchEvent(pointer("pointermove", goal.x, goal.y));
       window.dispatchEvent(pointer("pointerup", goal.x, goal.y));
     };
-    const focusBefore = App.focus;
-    dragTo(mover.key, farCol, mover.row);
+    // a pointer lands on a whole screen pixel, so "exactly there" is to within a pixel of the frame
+    const near = (got, want) => Math.abs(got[0] - want[0]) * MapView.COCKPIT.cw < 2 && Math.abs(got[1] - want[1]) * MapView.COCKPIT.rh < 2;
+    const focusBefore = App.focus, goal = [farCol + 0.37, mover.row + 0.21];
+    dragTo(mover.key, goal[0], goal[1]);
     boxOf(mover.key).dispatchEvent(new MouseEvent("click", { bubbles: true }));  // the click that follows a release must not open the page
     await flush();
     const now = [NODE[mover.key].col, NODE[mover.key].row];
     const mini = $$(`${MINI} g.mini-node`).map((g) => ({ label: g.getAttribute("aria-label"), x: g.getBBox().x }));
     const rightmost = mini.sort((a, b) => b.x - a.x)[0];
-    ok(now[0] === farCol && now[1] === mover.row && Layout.moved() && App.focus === focusBefore && !!rightmost && rightmost.label.startsWith(titleOf(mover.key)),
-      `dragging ${titleOf(mover.key)} to column ${farCol + 1}: it stands there on the cockpit and the minimap, and the release opened nothing`,
-      `dragging ${titleOf(mover.key)}: at ${now}, wanted ${[farCol, mover.row]}; moved ${Layout.moved()}; focus ${App.focus}; minimap rightmost ${rightmost && rightmost.label}`);
+    ok(near(now, goal) && !Number.isInteger(now[0]) && Layout.moved() && App.focus === focusBefore && !!rightmost && rightmost.label.startsWith(titleOf(mover.key)),
+      `dragging ${titleOf(mover.key)} to column ${(goal[0] + 1).toFixed(2)}, row ${(goal[1] + 1).toFixed(2)}: it stays exactly there, between cells, on the cockpit and the minimap, and the release opened nothing`,
+      `dragging ${titleOf(mover.key)}: at ${now}, wanted ${goal}; moved ${Layout.moved()}; focus ${App.focus}; minimap rightmost ${rightmost && rightmost.label}`);
     const bad = [...overlaps(COCKPIT_PARTS), ...overlaps(MINI_PARTS)];
     ok(!bad.length && Layout.check(Layout.cells()) === "", "after the drag: nothing overlaps on the cockpit or the minimap", `after the drag: ${bad.slice(0, 3).join("; ") || Layout.check(Layout.cells())}`);
+    MapView.st.lens = "transit"; rerender(); await frames();
+    const badLine = !MapView.big() && $(TRANSIT) ? overlaps(TRANSIT_PARTS) : [];  // past MapView.big the line map is not drawn to fit, as in ungrouped()
+    MapView.st.lens = "cockpit"; rerender(); await frames();
+    ok(!badLine.length, "after the drag: the line map draws the box between cells with nothing on anything", `line map after the drag: ${badLine.slice(0, 3).join("; ")}`);
 
     // where the move went: this browser, or the vault by POST /pins
     const served = Layout.canSave();
@@ -475,53 +491,63 @@ const SelfTest = (() => {
       Layout.setCopy(async (text) => { copied = text; });
       await Layout.copy(); Layout.setCopy(null);
       let json = null; try { json = JSON.parse(copied); } catch (e) { console.warn("[selftest] copied layout is not JSON:", e.message); }
-      ok(!!json && JSON.stringify(json[mover.key]) === JSON.stringify(now) && copied.endsWith("\n"), "Copy layout gives the pins file's JSON, with the move in it", `Copy layout gave "${copied.slice(0, 60)}"`);
+      ok(!!json && JSON.stringify(json[mover.key]) === JSON.stringify(now) && copied.endsWith("\n"), "Copy layout gives the pins file's JSON, with the move between cells in it", `Copy layout gave "${copied.slice(0, 60)}"`);
     }
 
-    // a drop on another box's cell settles in the nearest free cell, never on it
-    dragTo(mover.key, other.col, other.row);
+    // a drop on another box lands at the nearest clear point along the drag, and the status line says so
+    dragTo(mover.key, onOther[0], onOther[1]);
     await flush();
     const settled = [NODE[mover.key].col, NODE[mover.key].row], bad2 = [...overlaps(COCKPIT_PARTS), ...overlaps(MINI_PARTS)];
-    ok(!(settled[0] === other.col && settled[1] === other.row) && Layout.check(Layout.cells()) === "" && !bad2.length,
-      `dropping ${titleOf(mover.key)} on ${titleOf(other.key)}: it settles in the nearest free cell (${settled.join(",")}), no overlap`, `drop on a taken cell: at ${settled}, ${Layout.check(Layout.cells())} ${bad2.slice(0, 3).join("; ")}`);
+    const told = ($("#layout-say") || { textContent: "" }).textContent;
+    ok(!near(settled, onOther) && Layout.check(Layout.cells()) === "" && !bad2.length && /would have overlapped .*(stopped just short of|went just past) it/.test(told),
+      `dropping ${titleOf(mover.key)} on ${titleOf(other.key)}: it lands clear of it on the line it was dragged along (${settled.join(",")}), and the page says so`, `drop on a box: at ${settled}, said "${told}", ${Layout.check(Layout.cells())} ${bad2.slice(0, 3).join("; ")}`);
 
-    // the keyboard: an arrow key moves the focused box one cell; a move off the board is refused and said
+    // the keyboard: an arrow key moves the focused box a quarter of a cell, Shift and an arrow a whole cell
     dragTo(mover.key, farCol, mover.row); await flush();
     const before = Layout.cell(mover.key).slice();
     boxOf(mover.key).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
     await flush();
-    const arrived = Layout.cell(mover.key), focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.key : "";
-    ok(arrived[0] === before[0] + 1 && arrived[1] === before[1] && focused === mover.key && /moved to column/.test(($("#layout-say") || { textContent: "" }).textContent),
-      `arrow key: ${titleOf(mover.key)} moves one cell right and keeps the focus, and the page says where`, `arrow key: ${before} to ${arrived}, focus on ${focused}, said "${($("#layout-say") || { textContent: "" }).textContent}"`);
-    boxOf(mover.key).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
-    const up = Layout.cell(mover.key), atTop = arrived[1] === 0;
-    const refused = atTop ? JSON.stringify(up) === JSON.stringify(arrived) && /stays where it is/.test(Layout.note) : up[1] === arrived[1] - 1 || /stays where it is/.test(Layout.note);
-    ok(refused, atTop ? "arrow key: a move off the board is refused and the page says why" : "arrow key: up moves one row, or is refused with the reason", `arrow key up from row ${arrived[1]}: now ${up}, said "${Layout.note}"`);
+    const arrived = Layout.cell(mover.key).slice(), focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.key : "";
+    ok(arrived[0] === Layout.tidy(before[0] + Layout.STEP) && arrived[1] === before[1] && focused === mover.key && /moved to column/.test(($("#layout-say") || { textContent: "" }).textContent),
+      `arrow key: ${titleOf(mover.key)} moves a quarter of a cell right and keeps the focus, and the page says where`, `arrow key: ${before} to ${arrived}, focus on ${focused}, said "${($("#layout-say") || { textContent: "" }).textContent}"`);
+    boxOf(mover.key).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", shiftKey: true, bubbles: true, cancelable: true }));
+    await flush();
+    const whole = Layout.cell(mover.key).slice();
+    ok(whole[0] === Layout.tidy(arrived[0] + 1) && whole[1] === arrived[1], "Shift and an arrow key move the box a whole cell", `Shift+ArrowRight: ${arrived} to ${whole}`);
+    const help = ($(".layout-tools") || { title: "" }).title + " " + ($("#layout-say") || { textContent: "" }).textContent;
+    ok(/quarter of a cell/.test(help) && /Shift/.test(help), "the layout's key help says an arrow key moves a quarter of a cell and Shift a whole one", `layout help: "${help.slice(0, 160)}"`);
 
-    const off = Layout.step(mover.key, 0, -(Layout.cell(mover.key)[1] + 1));
-    ok(!off.ok && /off the board/.test(Layout.note), "a step off the top of the board is refused, and the page says why", `a step off the board gave ${JSON.stringify(off)}, said "${Layout.note}"`);
+    // the edge of the board: a move past it stops at the edge; once there, it is refused and said
+    Layout.moveToward(mover.key, [Layout.cell(mover.key)[0], -5]); await flush();
+    const top = Layout.cell(mover.key).slice();
+    const off = Layout.moveToward(mover.key, [top[0], -1]);
+    ok(top[1] === 0 && !off.ok && /off the board/.test(Layout.note), "a move past the top stops at the edge, and one more is refused, and the page says why", `at ${top} after a move past the top; then ${JSON.stringify(off)}, said "${Layout.note}"`);
     // Plain: the same drag, with no animation running
     FX.set(false); await frames();
     dragTo(mover.key, farCol + 1, mover.row); await flush();
     const anim = document.getAnimations ? document.getAnimations().filter((a) => a.playState === "running").length : 0;
-    ok(NODE[mover.key].col === farCol + 1 && !$$("#board .halo").length && !anim, `Plain: dragging works with no glow and ${anim} running animations`, `Plain: at ${NODE[mover.key].col}, ${$$("#board .halo").length} halos, ${anim} animations`);
+    ok(near([NODE[mover.key].col, NODE[mover.key].row], [farCol + 1, mover.row]) && !$$("#board .halo").length && !anim, `Plain: dragging works with no glow and ${anim} running animations`, `Plain: at ${NODE[mover.key].col}, ${$$("#board .halo").length} halos, ${anim} animations`);
     FX.set(fxWas);
 
-    // a cluster of the grouped map moves earlier or later, and the order is kept
+    // a cluster of the grouped map moves with the arrow key, stays where it is put, and the others stay put
     const ways = [];
     if (D.map.apps.some((a) => a.domain)) ways.push("domain");
     ways.push("capability");
     for (const way of ways) {
       MapView.st.group = way; MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
-      const keys = () => MapGroups.groups(way).filter((g) => !g.outside).map((g) => g.key);
-      const first = keys();
-      if (first.length < 2) { out.push(`skip moving a ${way} cluster: fewer than two clusters`); continue; }
-      const handle = $(`#board [data-group="${CSS.escape(first[0])}"] .cluster-toggle, #board g.cluster-lamp[data-group="${CSS.escape(first[0])}"]`);
-      handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }));
-      await flush();
-      const second = keys(), swapped = second[0] === first[1] && second[1] === first[0] && second.length === first.length;
+      const list = MapGroups.groups(way).filter((g) => !g.outside);
+      if (list.length < 2) { out.push(`skip moving a ${way} cluster: fewer than two clusters`); continue; }
+      const at = (key) => { const el = $(`#board [data-group="${CSS.escape(key)}"]`); const b = el.getBBox(); return [b.x, b.y]; };
+      const was = Object.fromEntries(list.map((g) => [g.key, at(g.key)])), first = list[0].key;
+      const handle = $(`#board [data-group="${CSS.escape(first)}"] .cluster-toggle, #board g.cluster-lamp[data-group="${CSS.escape(first)}"]`);
+      handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", shiftKey: true, bubbles: true, cancelable: true }));
+      await flush(); await frames();
+      const after = Object.fromEntries(list.map((g) => [g.key, at(g.key)])), said = Layout.note;
+      const movedBy = after[first][1] - was[first][1], stayed = list.filter((g) => g.key !== first).every((g) => Math.hypot(after[g.key][0] - was[g.key][0], after[g.key][1] - was[g.key][1]) < 1);
       const clash = overlaps();
-      ok(swapped && !clash.length, `a ${way} cluster moves one place later with the arrow key, and nothing overlaps`, `${way} cluster: order ${first} became ${second}; ${clash.slice(0, 3).join("; ")}`);
+      ok(!!Layout.clusterAt(first) && (Math.abs(movedBy - MapView.COCKPIT.rh) < 1 || /stopped just short|went just past/.test(said)) && stayed && !clash.length,
+        `a ${way} cluster moves a whole row down with Shift and the arrow key (or stops short of a neighbour and says so), the others stay where they were, and nothing overlaps`,
+        `${way} cluster: moved ${movedBy.toFixed(1)} px down, said "${said}", others stayed ${stayed}; ${clash.slice(0, 3).join("; ")}`);
     }
     MapView.st.group = "none"; MapView.st.open.clear(); MapView.st.shut.clear(); rerender(); await frames();
 
@@ -539,7 +565,7 @@ const SelfTest = (() => {
       await Ask.detect(fake, { protocol: "http:", hostname: "127.0.0.1" });
       Layout.net.fetch = fake; posts.length = 0;
       Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; rerender(); await frames();
-      const role = D.role, key = mover.key, spot = Layout.nearestFree(key, farCol, mover.row);
+      const role = D.role, key = mover.key, spot = [farCol + 0.5, mover.row];
       D.role = "owner";  // a reader's page is the other case, below
       Layout.move(key, spot); await flush();
       ok(posts.length === 1 && JSON.stringify(posts[0].pins[key]) === JSON.stringify(spot) && posts[0].kinds[key] === Layout.KIND(key) && /Layout saved to the vault/.test(Layout.note),
@@ -555,6 +581,66 @@ const SelfTest = (() => {
     Layout.net.fetch = (...a) => fetch(...a);
     FX.set(fxWas);
     MapView.st.group = null; rerender(); await frames();
+  }
+  /* Drag to pan (pan.js): the background pans, a box still moves, a click still selects, and every map drawing has it. */
+  async function panning() {
+    if (!D.nodes.length) { out.push("skip drag to pan: this vault has no apps"); return; }
+    const press = (el, x, y, type = "mouse") => el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: 1, isPrimary: true, pointerId: 9, pointerType: type }));
+    const glide = (x, y) => window.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, cancelable: true, clientX: x, clientY: y, buttons: 1, isPrimary: true, pointerId: 9, pointerType: "mouse" }));
+    const lift = (x, y) => window.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, isPrimary: true, pointerId: 9, pointerType: "mouse" }));
+    const layoutWas = Layout.snapshot();
+    Pan.reset();
+    Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; rerender(); await frames();
+    const board = () => $("#board"), root = () => $("#board svg.cockpit"), vb = () => root().getAttribute("viewBox").split(/\s+/).map(Number);
+    const holders = { cockpit: !!(board() && board().classList.contains("pannable")) };
+    // a press on the background, then a drag: the drawing moves with the pointer, and the click on release opens nothing
+    const r = root().getBoundingClientRect(), x = r.left + 4, y = r.top + 4, before = vb(), pansBefore = Pan.pans, focusBefore = App.focus;
+    const k = before[2] / r.width;
+    let picked = 0;
+    const spy = () => { picked++; };
+    root().addEventListener("click", spy);
+    press(root(), x, y); glide(x + 3, y + 2); glide(x + 80, y + 50); lift(x + 80, y + 50);
+    root().dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: x + 80, clientY: y + 50 }));
+    root().removeEventListener("click", spy);
+    const after = vb(), moved = [after[0] - before[0], after[1] - before[1]];
+    ok(Pan.pans === pansBefore + 1 && Math.abs(moved[0] + 80 * k) < 1 && Math.abs(moved[1] + 50 * k) < 1 && after[2] === before[2] && !picked && App.focus === focusBefore,
+      "drag to pan: a drag on the cockpit's background moves the drawing with the pointer, and the release opens nothing",
+      `drag to pan: viewBox moved ${moved.map((v) => v.toFixed(1))}, wanted ${[-80 * k, -50 * k].map((v) => v.toFixed(1))}; pans ${Pan.pans - pansBefore}; release clicks ${picked}; focus ${App.focus}`);
+    rerender(); await frames();
+    const kept = vb();
+    ok(Math.abs(kept[0] - after[0]) < 1 && Math.abs(kept[1] - after[1]) < 1 && !overlaps(COCKPIT_PARTS).length, "drag to pan: the pan holds when the cockpit is drawn again, with nothing on anything",
+      `drag to pan: after a redraw the viewBox starts at ${kept.slice(0, 2)}, the pan left it at ${after.slice(0, 2)}`);
+    root().dispatchEvent(new MouseEvent("dblclick", { bubbles: true, cancelable: true }));
+    const back = vb();
+    ok(Math.abs(back[0] - before[0]) < 0.5 && Math.abs(back[1] - before[1]) < 0.5, "drag to pan: a double click on the background puts the drawing back", `after a double click the viewBox starts at ${back.slice(0, 2)}, it began at ${before.slice(0, 2)}`);
+    // a press without movement is a click, not a pan; a touch is left to the browser; a press on a box moves the box
+    const p0 = Pan.pans;
+    press(root(), x, y); lift(x, y);
+    press(root(), x, y, "touch"); glide(x + 60, y + 60); lift(x + 60, y + 60);
+    const box = $("#board svg.cockpit g.hit[data-movable]"), key = box.dataset.key, cell0 = Layout.cell(key).slice(), br = box.getBoundingClientRect();
+    press(box, br.x + br.width / 2, br.y + br.height / 2); glide(br.x + br.width / 2 + 3, br.y + br.height / 2 + 3); glide(br.x + br.width / 2 + 40, br.y + br.height / 2 + 30); lift(br.x + br.width / 2 + 40, br.y + br.height / 2 + 30);
+    await flush();
+    const cell1 = Layout.cell(key);
+    ok(Pan.pans === p0 && JSON.stringify(cell1) !== JSON.stringify(cell0) && Math.abs(vb()[0] - before[0]) < 0.5,
+      "drag to pan: a click on the background, a touch drag and a drag on a box do not pan; the box moves instead",
+      `drag to pan: ${Pan.pans - p0} pans; box ${titleOf(key)} at ${cell0} then ${cell1}`);
+    Layout.restore(layoutWas); rerender(); await frames();
+    // where the drawing scrolls, a pan scrolls it
+    const room = h("div", { style: "position:fixed;left:0;top:0;width:200px;height:120px;overflow:auto;z-index:99" }), big = s("svg", { width: 900, height: 700, viewBox: "0 0 900 700" }, room);
+    document.body.append(room);
+    Pan.attach(room, { key: "selftest-scroll", svg: () => big, scrollOnly: true });
+    press(big, 100, 60); glide(96, 58); glide(40, 20); lift(40, 20);
+    const scrolled = [room.scrollLeft, room.scrollTop], unchanged = big.getAttribute("viewBox");
+    room.remove();
+    ok(scrolled[0] === 60 && scrolled[1] === 40 && unchanged === "0 0 900 700", "drag to pan: where a drawing scrolls in its holder, a drag on it scrolls the holder by the distance dragged", `drag to pan: scrolled ${scrolled}, viewBox ${unchanged}`);
+    // every map drawing can be panned
+    MapView.st.lens = "transit"; rerender(); await frames();
+    holders.line = !$("#board svg.transit") || !!$("#board svg.transit").closest(".pannable");
+    if (D.map.apps.some((a) => a.domain)) { MapView.st.lens = "cockpit"; MapView.st.group = "domain"; rerender(); await frames(); holders.grouped = !!$("#board svg.cockpit.grouped").closest(".pannable"); }
+    MapView.st.lens = null; MapView.st.group = null; rerender(); await frames();
+    const without = Object.entries(holders).filter(([, v]) => !v).map(([k]) => k);
+    ok(!without.length, `drag to pan: the ${Object.keys(holders).join(", ")} drawings can be panned`, `drag to pan: not pannable: ${without.join(", ")}`);
+    Pan.reset();
   }
   async function effects() {
     const was = FX.on;
@@ -1064,7 +1150,7 @@ const SelfTest = (() => {
     out.length = 0;
     const parity = Search.parity(), bad = parity.filter((p) => !p.same);
     out.push(bad.length ? `FAIL SEARCH PARITY ${bad.length} of ${parity.length}: ` + JSON.stringify(bad) : `ok SEARCH PARITY ${parity.length} of ${parity.length} queries rank exactly as planner query search`);
-    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
+    try { await livePaths(); await thread(); await views(); await navigation(); await doors(); await scale(); await ungrouped(); await moves(); await panning(); await effects(); await panelRoom(); await releases(); savedState(); corruptState(); keyboard(); searchAria(); await history_(); await policy(); await emptyStates(); await askChecks(); await plainNames(); }
     catch (e) { out.push("FAIL the self-test threw: " + e.message + " " + (e.stack || "").split("\n")[1]); }
     Nav.home(); go("lights", { reset: true });
     out.push(window.__errors.length ? "FAIL JS ERRORS: " + window.__errors.join(" | ") : "ok no JS errors");
@@ -1126,6 +1212,16 @@ const SelfTest = (() => {
       const comps = $$("#inside-stage .in-box.component").length, stubs = $$("#inside-stage .in-stub").length, o = overlaps();
       ok(comps === d.components.length && stubs === d.stubs.length && !o.bad.length, `inside ${name}, components: ${comps} components and ${stubs} integration stubs, ${o.n} boxes and labels, no two overlap`,
         `inside ${name}, components: ${comps} of ${d.components.length}, ${stubs} of ${d.stubs.length} stubs; overlaps ${o.bad.slice(0, 3).join("; ")}`);
+      {  // drag to pan (pan.js): the drawing's background scrolls its holder
+        const holder = $("#inside-draw"), svg = $("svg", holder), was = [holder.scrollLeft, holder.scrollTop], r = svg.getBoundingClientRect();
+        const can = holder.scrollWidth > holder.clientWidth + 1, ev = (type, x, y) => new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons: 1, isPrimary: true, pointerId: 11, pointerType: "mouse" });
+        // drag toward the side with room: a holder scrolled to its right end only moves when dragged rightward
+        const dx = holder.scrollLeft > 0 ? 40 : -40, at = [r.left + 2, r.top + 2];
+        svg.dispatchEvent(ev("pointerdown", at[0], at[1])); window.dispatchEvent(ev("pointermove", at[0] + Math.sign(dx) * 6, at[1])); window.dispatchEvent(ev("pointermove", at[0] + dx, at[1])); window.dispatchEvent(ev("pointerup", at[0] + dx, at[1]));
+        const went = Math.abs(holder.scrollLeft - was[0]);
+        holder.scrollLeft = was[0]; holder.scrollTop = was[1];
+        ok(holder.classList.contains("pannable") && (!can || went > 0), `inside ${name}, components: the drawing can be panned by dragging its background${can ? ` (it scrolled ${went} px)` : ""}`, `inside ${name}, components: pannable ${holder.classList.contains("pannable")}, scrolled ${went} px of a possible ${holder.scrollWidth - holder.clientWidth}`);
+      }
       {  // opens at a size a reader can read, with the whole in a minimap; "Whole" fits all of it, and the tabs fold away
         const holder = $("#inside-draw"), box = holder.getBoundingClientRect(), svg = $("svg", holder).getBoundingClientRect(), scale = +holder.dataset.scale;
         const spills = svg.width > box.width + 1 || svg.height > box.height + 1;  // the minimap's own test: the drawing is bigger than its room
@@ -1262,6 +1358,7 @@ const SelfTest = (() => {
           `inside ${name}, dependency view: fits the width (${Math.round(box.width)} px in ${Math.round(room.width)} px), no sideways scroll, ${Math.round(box.height)} px tall`,
           `inside ${name}, dependency view: scrolls sideways (drawing ${Math.round(box.width)} px, room ${Math.round(room.width)} px, scroll width ${dag.scrollWidth})`);
       }
+      ok($("#plan-dag").classList.contains("pannable"), `inside ${name}, dependency view: dragging its background pans (scrolls) the page`, `inside ${name}, dependency view: #plan-dag is not pannable`);
       const hits = $$("#plan-dag .plan-hit"), unnamed = hits.filter((n) => !n.getAttribute("aria-label") || n.getAttribute("role") !== "button" || n.tabIndex !== 0);
       ok(hits.length === $$("#plan-dag g.in-node").length && hits.length >= p.stories.length && !unnamed.length,
         `inside ${name}, dependency view: all ${hits.length} nodes can be focused and have a name`, `inside ${name}, dependency view: ${$$("#plan-dag g.in-node").length - hits.length} nodes cannot be clicked, ${unnamed.length} have no name`);
