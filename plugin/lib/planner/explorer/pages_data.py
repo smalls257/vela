@@ -235,6 +235,7 @@ SECTIONS = (  # (id, label, the section's own page path, a test for the pages li
     ("strategy", "Strategy", "04-solution-strategy.md", None),
     ("capabilities", "Capabilities", "04a-capability-delta.md", lambda p: p.type == "capability"),
     ("releases", "Releases", "04b-releases.md", None),
+    ("slices", "Slices", "slices/", lambda p: p.type == "slice"),  # no page of its own: each slice is one
     ("apps", "Apps", "05-building-blocks/05-building-blocks.md", lambda p: p.type == "app-building-blocks"),
     ("flows", "Flows", "06-runtime/06-flows.md", lambda p: p.type == "flow"),
     ("concerns", "Concerns", "08-concerns/08-concerns.md", lambda p: p.type == "concern"),

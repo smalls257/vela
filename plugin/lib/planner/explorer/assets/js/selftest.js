@@ -158,7 +158,7 @@ const SelfTest = (() => {
       ok(goneAfterRemove && goneAfterClick && goneAfterHash, "tooltip: it hides when its element goes, on any click and on a page change",
         `tooltip stayed: after its element went ${!goneAfterRemove}, after a click ${!goneAfterClick}, after a page change ${!goneAfterHash}`);
     }
-    const order = ["goals", "constraints", "context", "strategy", "capabilities", "releases", "apps", "flows", "concerns", "decisions", "unknowns", "glossary", "epics"];
+    const order = ["goals", "constraints", "context", "strategy", "capabilities", "releases", "slices", "apps", "flows", "concerns", "decisions", "unknowns", "glossary", "epics"];
     Nav.refresh();
     const shown = [...new Set($$("#side .side-link").map((b) => b.dataset.section))];
     ok(JSON.stringify(shown) === JSON.stringify(order), `sidebar: ${shown.length} sections in the vault's order, with What needs you and ${Roles.ROLES.length - 1} front doors above`, `sidebar order ${shown.join(",")}`);
@@ -1645,7 +1645,7 @@ const TextFit = (() => {
       Nav.open(s.id); note(`section ${s.label}`);
       for (const child of (s.children || []).slice(0, s.id === "apps" ? 99 : 3)) { Nav.open(s.id, child); note(`${s.label} > ${titleOf(child)}`); }
     }
-    for (const view of ["asks", "progress", "trace", "decisions", "releases", "flows"]) { showView(view); note(`view ${view}`); }
+    for (const view of ["asks", "progress", "trace", "decisions", "releases", "slices", "flows"]) { showView(view); note(`view ${view}`); }
     for (const f of D.flows) { Flows.select(f.key, 0); note(`flow ${f.key}`); }
     for (const id of ["lead", "exec", "product", "qa", "mgr"]) { Nav.role(id); note(`door ${id}`); }
     for (const k of apps) { Roles.st.app = k; Nav.role("eng"); note(`door eng, ${titleOf(k)}`); }
@@ -1761,6 +1761,7 @@ const TextFit = (() => {
     map("map, grouped by capability, clusters open", "cockpit", "capability", () => MapGroups.all(true));
     map("map, line map", "transit", "none");
     list.push({ name: "releases", root: "#main", show: () => { Releases.st.compare = false; Releases.st.at = 0; Nav.open("releases"); } });
+    if (D.slicePlan.list.length) list.push({ name: "slices", root: "#main", show: () => Nav.open("slices") });
     D.flows.slice(0, 4).forEach((f) => list.push({ name: `flow ${f.key}`, root: "#main", show: () => Flows.select(f.key, -1) }));
     list.push({ name: "progress, open questions by week", root: "#main", show: () => showView("progress") });
     list.push({ name: "the minimap", root: "#panel-mini", show: () => { Nav.home(); MapView.st.lens = "cockpit"; MapView.st.group = "none"; MapView.st.focus = null; rerender(); } });

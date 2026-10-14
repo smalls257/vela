@@ -159,7 +159,7 @@ function reasonText(r) {
 /* ------------------------------------------------------------------ the record, indexed */
 const KIND_WORD = { app: "App", runtime: "Runtime page", contract: "Contract", party: "Outside party", external: "Outside provider",
   unknown: "Open question", risk: "Risk", epic: "Epic", capability: "Capability", flow: "Flow", requirement: "Requirement",
-  decision: "Decision", concern: "Concern", session: "Session", section: "Initiative section", page: "Page",
+  decision: "Decision", concern: "Concern", session: "Session", section: "Initiative section", page: "Page", slice: "Slice",
   "stored-value": "Value held", owner: "Person", bundle: "Contracts", lights: "Lights", inside: "Inside this app" };
 const CONTRACT = Object.fromEntries(D.map.contracts.map((c) => [c.id, c]));
 const UNKNOWN = Object.fromEntries(D.unknowns.map((u) => [u.id, u]));
@@ -424,6 +424,7 @@ function revealView(e) {
   if (e.kind === "flow") return "flows";
   if (e.kind === "unknown") return "asks";
   if (e.kind === "decision") return "decisions";
+  if (e.kind === "slice") return "slices";
   if (mapAnchors(e.key).length) return "map";
   if (e.kind === "capability" || e.kind === "requirement" || e.kind === "epic") return "trace";
   return null;

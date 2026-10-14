@@ -20,7 +20,7 @@ argument that is not `APP-x=path` raises PlanError: a plan the caller asked for 
 import pathlib
 import re
 
-from planner import breakdown
+from planner import breakdown, slices
 
 from . import breakdown_find, design_data
 
@@ -191,12 +191,13 @@ def coverage(stories, table, design, problems):
 
 # ---------------------------------------------------------------- one plan
 
-def story_entry(story, summary, order_of, known, problems):
+def story_entry(story, summary, order_of, known, problems, tracer_slice=""):
     """One story as plain data, held against the summary table's row for it."""
     tasks = [{"name": r[0], "size": (r[1] if len(r) > 1 else "").strip().upper(), "component": r[2] if len(r) > 2 else "",
               "points": breakdown.SIZE_POINTS.get((r[1] if len(r) > 1 else "").strip().upper(), 0)} for r in story.tasks]
     entry = {"id": story.id, "name": story.name, "order": order_of.get(story.id), "traces": traced_ids(story.traces), "tracesText": story.traces or "",
-             "size": breakdown.size_total(story), "points": breakdown.points(story), "state": story.state, "slice": story.slice, "tracer": story.tracer,
+             "size": breakdown.size_total(story), "points": breakdown.points(story), "state": story.state, "slice": story.slice, "sliceId": story.slice_id,
+             "tracer": story.tracer or story.slice == "tracer" or bool(tracer_slice and story.slice_id == tracer_slice),
              "doneWhen": story.done_when or "", "components": story.components or "", "fit": story.fit or "", "criteria": story.criteria, "criteriaLabel": story.criteria_label, "openNotes": story.open_notes,
              "conflicts": [{"text": c, "ref": (EPIC_CRITERION.findall(c) or [""])[0]} for c in story.conflicts], "tasks": tasks,
              "blockedText": story.blocked or "", "blockers": [b for b in blockers_of(story.blocked, known) if b["ref"] != story.id]}  # a note that names its own story ("S-06 must not ship before S-11") does not make it wait for itself
@@ -223,13 +224,13 @@ def totals(stories):
     return {"stories": len(stories), "built": len(built), "tasks": sum(len(s["tasks"]) for s in built), "points": sum(s["points"] for s in built), "bySize": by_size}
 
 
-def plan_entry(app_id, wrapped, known, design):
+def plan_entry(app_id, wrapped, known, design, tracer_slice=""):
     read, path = wrapped["read"], wrapped["path"]
     problems = list(read["problems"])
     order = read["order"]
     order_of = {o["id"]: i + 1 for i, o in enumerate(order)}
     ranked = sorted(read["stories"], key=lambda s: order_of.get(s.id, len(order) + 1))
-    stories = [story_entry(s, read["summary"], order_of, known, problems) for s in ranked]
+    stories = [story_entry(s, read["summary"], order_of, known, problems, tracer_slice) for s in ranked]
     if design and design["path"] not in breakdown_find.prereq_names(read["meta"]):
         problems.append(f"the plan's prereqs do not name the design doc {design['path']}, so it may be a plan for another design")
     gaps = [{"id": str(g.get("id", "")), "note": str(g.get("note") or g.get("what") or "")} for g in read["meta"].get("gaps") or [] if isinstance(g, dict)]
@@ -246,10 +247,13 @@ def inside(vault, keys, plans, designs):
     known = design_data.vault_ids(vault)
     by_id = {a.id: a for a in vault.apps}
     by_app = {d["appId"]: d for d in designs.values()}
+    # A story is the tracer's when it says so, or when it names the vault's tracer slice: the tag reads from slices
+    tracer = slices.tracer(slices.read_slices(vault)) if plans else None
+    tracer_id = tracer.id if tracer is not None else ""
     out = {}
     for app_id, wrapped in plans.items():
         app = by_id.get(app_id)
         if app is None:
             raise PlanError(f"--breakdown names {app_id}, which is not an app in this vault")
-        out[keys.page(app)] = plan_entry(app_id, wrapped, known, by_app.get(app_id))
+        out[keys.page(app)] = plan_entry(app_id, wrapped, known, by_app.get(app_id), tracer_id)
     return out

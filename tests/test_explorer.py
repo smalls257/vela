@@ -215,11 +215,11 @@ def test_every_page_reads_inside_the_explorer(demo):
 def test_sidebar_follows_the_vault_order(demo):
     _, (_, data) = demo
     assert [s["label"] for s in data["sections"]] == ["Goals", "Constraints", "Context and scope", "Strategy", "Capabilities",
-                                                      "Releases", "Apps", "Flows", "Concerns", "Decisions",
+                                                      "Releases", "Slices", "Apps", "Flows", "Concerns", "Decisions",
                                                       "Unknowns and risks", "Glossary", "Epics"]
     apps = next(s for s in data["sections"] if s["id"] == "apps")
     assert sorted(apps["children"]) == sorted(a["key"] for a in data["map"]["apps"])
-    assert all(s["page"] for s in data["sections"])  # the demo vault has every section's page
+    assert all(s["page"] for s in data["sections"] if s["id"] != "slices")  # the demo vault has every section's page; slices have none, each slice is one
 
 
 def test_releases_are_planner_snapshots(demo):

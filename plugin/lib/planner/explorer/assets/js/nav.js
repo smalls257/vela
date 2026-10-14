@@ -14,7 +14,7 @@ const Nav = (() => {
   // section -> its visuals, the first being the default; [] means its page is read full width
   const VISUALS = {
     goals: [["goals", "Goals"]], constraints: [], context: [["context", "Today and after"]], strategy: [],
-    capabilities: [["map", "Capability map"], ["trace", "Trace"]], releases: [["releases", "Timeline"]],
+    capabilities: [["map", "Capability map"], ["trace", "Trace"]], releases: [["releases", "Timeline"]], slices: [["slices", "Slices"]],
     apps: [["map", "Map"], ["progress", "Progress"]], flows: [["flows", "Played"]], concerns: [["concerns", "Concern cells"]],
     decisions: [["decisions", "Log"]], unknowns: [["asks", "Who to ask"]], glossary: [], epics: [["epics", "Epics"], ["trace", "Trace"]],
   };
@@ -233,7 +233,7 @@ const Nav = (() => {
   }
   function item(s) {
     const here = App.section === s.id, has = s.children.length > 0, openList = st.expanded.has(s.id);
-    const lv = sectionLamp(s), missing = !s.page;
+    const lv = sectionLamp(s), missing = !s.page && !(s.id === "slices" && D.slicePlan.list.length);  // slices have no index page: each slice is one
     const row = h("div", { class: "side-row" + (here && !st.child ? " on" : here ? " in" : "") + (missing ? " missing" : "") },
       has ? h("button", { class: "side-caret", "aria-expanded": String(openList), "aria-label": `${openList ? "Hide" : "Show"} the ${s.label.toLowerCase()}`, onclick: () => { openList ? st.expanded.delete(s.id) : st.expanded.add(s.id); write(OPEN_KEY, [...st.expanded]); refresh(); } }, openList ? "▾" : "▸") : h("span", { class: "side-caret blank" }),
       h("button", { class: "side-link", "data-section": s.id, "aria-current": here && !st.child ? "page" : null, title: missing ? `No ${s.path} in this vault yet` : s.title, onclick: () => open(s.id) },

@@ -293,6 +293,7 @@ const Panel = (() => {
       out.push(section("Everything else they own", rest.length, rest.map((x) => refChip(x.key))));
     } else {
       if (e.kind === "runtime" && RUNTIME_TO_APP[k]) out.push(section("Runtime of", null, refChip(RUNTIME_TO_APP[k])));
+      if (e.kind === "slice" && typeof Slices !== "undefined") out.push(...Slices.panelPart(k));
       if (e.kind === "decision") out.push(h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => { showView("decisions"); Decisions.showFor(k); } }, "Open it in the decision log")));
       out.push(prose(e), heldBy(k));
       if (["concern", "decision", "section", "risk", "stored-value"].includes(e.kind)) out.push(flowsSection(k));

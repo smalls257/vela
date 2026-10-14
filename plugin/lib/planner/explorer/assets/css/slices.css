@@ -1,0 +1,28 @@
+/* ------------------------------------------------ slices: one row each, status across, After arrows in the gutter */
+.sl-body { flex: 1; min-height: 0; padding: 0 22px 14px; overflow-y: auto; }
+.sl-old { margin: 0 0 10px; max-width: 80ch; }
+.sl-list { position: relative; padding-left: 52px; display: grid; gap: 10px; max-width: 1100px; }
+.sl-arrows { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.sl-arrows path.sl-after { fill: none; stroke: var(--ink-3); stroke-width: 1.6; }
+.sl-arrows path.sl-head { fill: var(--ink-3); }
+.sl-row { background: var(--room-2); border: 1px solid var(--rule); border-radius: 10px; padding: 9px 12px 10px; display: grid; gap: 6px; min-width: 0; }
+.sl-row.on { border-color: var(--ink-3); background: var(--deck); }
+.sl-row.circled { box-shadow: inset 3px 0 0 var(--warning); }
+.sl-head { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 4px; border-radius: 6px; outline-offset: 2px; }
+.sl-head:hover .sl-name, .sl-head:focus-visible .sl-name { text-decoration: underline; }
+.sl-name { font-weight: 600; font-size: 14.5px; color: var(--ink); overflow-wrap: anywhere; }
+.sl-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.sl-pill { display: inline-block; font-size: 11.5px; line-height: 1.6; padding: 0 9px; border-radius: 999px; white-space: nowrap; color: var(--ink-4); box-shadow: inset 0 0 0 1px var(--rule-3); }
+.sl-pill.ahead { box-shadow: none; border: 1px dashed var(--rule-3); }
+.sl-pill.past { color: var(--ink-2); background: var(--deck-3); box-shadow: inset 0 0 0 1px var(--ink-3); }
+.sl-pill.on { color: var(--room); background: var(--ink); box-shadow: none; font-weight: 600; }
+.sl-pill.none { color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--ink-4); }
+.sl-line { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 6px; align-items: baseline; }
+.sl-l { color: var(--ink-4); font-size: 11.5px; }
+.sl-v { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.sl-chip { cursor: pointer; font-size: 12px; padding: 1px 9px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; flex-wrap: wrap; column-gap: 4px; row-gap: 0; min-width: 0; }
+.sl-chip:hover, .sl-chip:focus-visible { border-color: var(--ink-2); color: var(--ink); }
+.sl-chip.gap { border-style: dashed; color: var(--ink-3); }
+.sl-chip .id-tag { margin-left: 0; }
+.sl-facts { display: grid; gap: 2px; font-size: 12.5px; color: var(--ink-2); }
+.sl-fact b { color: var(--ink-3); font-weight: 600; }

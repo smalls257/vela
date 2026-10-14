@@ -102,9 +102,13 @@ const Plan = (() => {
      then the stories with no tasks, which are merged into another or deferred. */
   function arrange(p) {
     const tasked = p.stories.filter((x) => x.tasks.length), tracer = tasked.filter((x) => x.tracer), rest = tasked.filter((x) => !x.tracer);
+    // Stories that name a vault slice are grouped by it, in the slices' own order; the rest keep the build order.
+    const sliced = (D.slicePlan ? D.slicePlan.list : []).filter((sl) => sl.id && rest.some((x) => x.sliceId === sl.id))
+      .map((sl) => ({ id: "slice:" + sl.id, title: sl.name, note: sl.id, stories: rest.filter((x) => x.sliceId === sl.id) }));
+    const loose = rest.filter((x) => !sliced.some((g) => g.stories.includes(x)));
     const groups = tracer.length
-      ? [{ id: "tracer", title: "Build first: the tracer", note: "one thin path a person can use", stories: tracer }, { id: "then", title: "Then", note: "", stories: rest }]
-      : [{ id: "order", title: "In build order", note: "", stories: rest }];
+      ? [{ id: "tracer", title: "Build first: the tracer", note: "one thin path a person can use", stories: tracer }, ...sliced, { id: "then", title: sliced.length ? "Then, in no slice" : "Then", note: "", stories: loose }]
+      : sliced.length ? [...sliced, { id: "order", title: "In no slice, in build order", note: "", stories: loose }] : [{ id: "order", title: "In build order", note: "", stories: rest }];
     const idle = p.stories.filter((x) => !x.tasks.length);
     return groups.filter((g) => g.stories.length).concat(idle.length ? [{ id: "notnow", title: "Not now", note: "", stories: idle }] : []);
   }

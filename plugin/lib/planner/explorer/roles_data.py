@@ -17,6 +17,7 @@ import re
 from planner import allocation, handoff, ladder, progress, readability, releases, schema, trace
 from planner import criteria as criteria_reader
 
+from . import slices_data
 from .record import chips_html, inline_html, plain
 
 APP_STATUS_END = {"new": "new", "changed": "changes", "retired": "absent", "retire": "absent"}
@@ -62,12 +63,6 @@ def grouping(vault, keys):
             "noDomain": len(undomained), "noCapability": len(uncapped)}
 
 
-def tracer_data(first):
-    """Release one's tracer for the dashboard: the flows in order, the plain words, the reason when there is none,
-    and what is left out of it."""
-    return {"given": first.tracer_given, "flows": list(first.tracer_flows), "words": first.tracer_words,
-            "none": first.tracer_none,
-            "notIn": [{"text": left.text, "ids": list(left.ids), "reason": left.reason} for left in first.not_in_tracer]}
 
 
 def release_data(vault, keys):
@@ -102,7 +97,7 @@ def release_data(vault, keys):
                "fromChange": True}
     page = releases.page(vault)
     return {"states": states, "end": end, "page": keys.page(page) if page else "", "count": len(found),
-            "tracer": tracer_data(found[0]) if found else None}
+            "tracer": slices_data.tracer_data(vault, found[0] if found else None)}
 
 
 def table_rows(vault, keys, header):
@@ -221,4 +216,5 @@ def extract(vault, keys):
             "releases": release_data(vault, keys), "goals": goals(vault, keys), "constraints": constraints(vault, keys),
             "riskList": risks(vault, keys), "epicCriteria": epic_criteria(vault, keys),
             "reqCriteria": requirement_criteria(vault, keys), "failure": failure(vault, keys),
-            "testedBy": tested_by(vault), "slices": slices(vault, keys), "cells": cells(vault, keys)}
+            "testedBy": tested_by(vault), "slices": slices(vault, keys), "cells": cells(vault, keys),
+            "slicePlan": slices_data.extract(vault, keys)}

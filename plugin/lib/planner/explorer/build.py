@@ -52,11 +52,11 @@ class ExplorerError(Exception):
 
 # The page's script and style, in load order: shared code first, one module per view, the boot last.
 JS_MODULES = ("core", "theme", "fx", "sound", "assets", "icons", "layout", "geometry", "search", "minimap", "reader", "queue", "panel", "panelsize", "motion", "view-map",
-              "wires", "mapgroups", "releases", "flowkit", "flowpicker", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
+              "wires", "mapgroups", "releases", "slices", "flowkit", "flowpicker", "view-flows", "rehearse", "view-asks", "view-decisions", "view-progress",
               "view-trace", "sections", "roles", "nav", "markdown", "ask", "inside", "plan", "drafts", "freshness", "main")
 SELFTEST_MODULE = "selftest"  # 120 KB of checks: bundled only when asked (`planner explore --selftest`), not shipped to every reader
 CSS_MODULES = ("base", "nav", "panel", "map", "queue", "flows", "rehearse", "asks", "decisions", "pages", "reader", "roles",
-               "releases", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
+               "releases", "slices", "ask", "inside", "plan", "pending", "drafts", "themes", "plain")
 
 # The themes the page offers, first the default. Each is a palette in assets/css/themes.css (Console is base.css's
 # :root); the picker in the top bar lists them in this order and remembers the choice in the browser.
@@ -245,7 +245,7 @@ def pending_row(found):
 
 
 PAGE_KINDS = {"app-building-blocks": "app", "app-runtime": "runtime", "epic": "epic", "capability": "capability",
-              "flow": "flow", "decision": "decision", "concern": "concern", "session": "session",
+              "flow": "flow", "decision": "decision", "concern": "concern", "session": "session", "slice": "slice",
               "initiative-section": "section", "sources": "page", "index": "page"}
 
 
