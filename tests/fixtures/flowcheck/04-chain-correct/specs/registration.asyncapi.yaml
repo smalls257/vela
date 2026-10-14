@@ -1,0 +1,12 @@
+asyncapi: 3.0.0
+info: {title: Registration, version: "1"}
+channels:
+  registrationCreated:
+    x-vela-id: EVT-003
+    title: registration created
+    x-vela-delivery: exactly-once
+    x-vela-order: any
+operations:
+  publishRegistrationCreated:
+    action: send
+    channel: {$ref: '#/channels/registrationCreated'}

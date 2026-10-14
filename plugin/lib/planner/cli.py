@@ -972,6 +972,33 @@ def cmd_check(args, out):
     return 1 if errors else 0
 
 
+FLOWCHECK_INPUTS = ("specs/*.yaml", "05-building-blocks/*.md", "entities/*.md", "06-runtime/flows/*.md", "04b-releases.md")
+
+
+def cmd_check_slice(args, out):
+    """Prove one slice's logic: read the files the flow checker reads, run it, print its findings in plain words.
+    Exit 0 only for a pass; findings or a slice not fully checked are 1 (R0: never a pass by default)."""
+    from planner import flowcheck
+    root = pathlib.Path(args.vault).resolve()
+    load_config(root)
+    today, _ = parse_today(args.today)
+    files = {}
+    for pattern in FLOWCHECK_INPUTS:
+        for path in sorted(root.glob(pattern)):
+            try:
+                files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as exc:
+                raise ToolError(f"check-slice: cannot read {path}: {exc}") from exc
+    if args.max_states < 1 or args.max_seconds <= 0:
+        raise ToolError("check-slice: --max-states and --max-seconds must be above zero.")
+    try:
+        result = flowcheck.check_slice(files, args.slice, today, args.max_states, args.max_seconds, time.perf_counter)
+    except flowcheck.SliceNotFound as exc:
+        raise ToolError(f"check-slice: {exc}") from exc
+    print(result.format(), file=out)
+    return 0 if result.status == "passes" else 1
+
+
 def gate_app(vault, gate, app_id):
     """The app page `--app` names, or None. Only the epics gate narrows to one app."""
     if app_id is None:
@@ -2233,6 +2260,14 @@ def build_parser():
     check.add_argument("--app", help="with --gate epics: only this app and its slice (an APP-id); other apps' gaps "
                                      "and the whole-vault requirement check are left out")
     check.set_defaults(func=cmd_check)
+    slc = sub.add_parser("check-slice", help="prove one slice's logic (a release's flows, or one flow) from its specs, "
+                                             "case tables, entities and strict sequence diagrams")
+    slc.add_argument("slice", help="a release, by the start of its heading (\"Release one\"), or a flow ID (FLO-001)")
+    slc.add_argument("--vault", default=".", help="vault root (default: current directory)")
+    slc.add_argument("--today", help="the date overrides' end dates are judged by, YYYY-MM-DD (default: system date)")
+    slc.add_argument("--max-states", type=int, default=200_000, help="state budget; running out is 'not fully checked' (default 200000)")
+    slc.add_argument("--max-seconds", type=float, default=10.0, help="time budget, after the state budget (default 10)")
+    slc.set_defaults(func=cmd_check_slice)
     rend = sub.add_parser("render", help="rewrite generated blocks")
     rend.add_argument("--vault", default=".", help="vault root (default: current directory)")
     rend.add_argument("--discard-edits", action="store_true", help="overwrite hand-edited blocks and print what was lost")

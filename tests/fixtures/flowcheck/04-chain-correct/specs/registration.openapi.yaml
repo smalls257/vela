@@ -1,0 +1,21 @@
+openapi: 3.1.0
+info: {title: Registration, version: "1"}
+paths:
+  /registrations:
+    post:
+      x-vela-id: CON-030
+      summary: Register the customer
+      x-vela-timeout: false
+      responses:
+        "201":
+          description: registered
+          content:
+            application/json:
+              examples:
+                created: {value: {}, x-vela-emits: [EVT-003]}
+        "422":
+          description: refused
+          content:
+            application/json:
+              examples:
+                rejected: {value: {}}
