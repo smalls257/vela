@@ -19,6 +19,6 @@ Then report what else this host gives a skill, one line each, shown unedited:
 1. `skill base directory = <path>`: the folder the host told you this skill was loaded from (some hosts say it as "Base directory for this skill"), or `skill base directory = not given` if you weren't told one. Don't work it out; say only what the host said.
 2. If you were given a base directory, run `ls "<it>/../../scripts"` and show it.
 3. `git --version`, `gh --version`, and `curl -sI https://github.com | head -1`, each shown with its output or its error.
-4. `find / -path '*scripts/planner' -type f 2>/dev/null | head -5`, so the maintainer sees where the host put the plugin's files, if anywhere.
+4. `ls -t "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/synced/*/planner/scripts/planner "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/cache/*/planner/*/scripts/planner 2>/dev/null` (the folders the skills search, newest first), and if it prints nothing, `find / -path '*scripts/planner' -type f 2>/dev/null | head -5`, so the maintainer sees where the host put the plugin's files, if anywhere.
 
 If any line in all of this shows the planner program (`found:`, or a path from steps 2 or 4), run `python3 <that path> where --plugin-root "${CLAUDE_PLUGIN_ROOT}" --skill-dir "${CLAUDE_SKILL_DIR}"` and show it too. Use only what was shown; don't guess a path. Either way, end by asking the user to send this whole output to the plugin's maintainer.

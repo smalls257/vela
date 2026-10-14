@@ -43,9 +43,15 @@ def committed_plugin_tar(repo, ref):
 def write_zip(tar, out):
     out.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
-        for member in sorted(tar.getmembers(), key=lambda m: m.name):
-            if not member.isfile() or excluded(member.name):
-                continue
+        files = [m for m in sorted(tar.getmembers(), key=lambda m: m.name) if m.isfile() and not excluded(m.name)]
+        # Folder entries too (".claude-plugin/" before its manifest): Cowork's upload warned "The archive must contain a
+        # .claude-plugin/plugin.json manifest" on a files-only zip that held it, while the plugin still installed.
+        folders = sorted({"/".join(m.name.split("/")[:i]) + "/" for m in files for i in range(1, m.name.count("/") + 1)})
+        for folder in folders:
+            info = zipfile.ZipInfo(folder, date_time=(1980, 1, 1, 0, 0, 0))
+            info.external_attr = (0o40755 << 16) | 0x10
+            archive.writestr(info, b"")
+        for member in files:
             info = zipfile.ZipInfo(member.name, date_time=(1980, 1, 1, 0, 0, 0))
             info.external_attr = (member.mode & 0o777) << 16
             info.compress_type = zipfile.ZIP_DEFLATED

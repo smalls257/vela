@@ -2,11 +2,21 @@
 (variable set, literal ${CLAUDE_PLUGIN_ROOT}, vendored only, nothing), plus the skill directory and the recorded path."""
 import json
 
+import pytest
+
 from conftest import run
 
 from planner import pluginroot
 
 LITERAL = "${CLAUDE_PLUGIN_ROOT}"
+
+
+@pytest.fixture(autouse=True)
+def no_installed_plugins(tmp_path, monkeypatch):
+    """The real ~/.claude/plugins may hold an installed planner; no test here may find it (each sets its own)."""
+    empty = tmp_path / "no-plugins"
+    empty.mkdir()
+    monkeypatch.setenv("CLAUDE_CODE_PLUGIN_CACHE_DIR", str(empty))
 
 
 def pick(files, plugin_root="", skill_dir="", workspace_path="", vault="/vault"):
@@ -41,7 +51,7 @@ def test_vendored_only_still_works():
 def test_the_recorded_workspace_path_is_the_last_resort():
     recorded = "/opt/planner/scripts/planner"
     path, tried = pick({recorded}, workspace_path=recorded)
-    assert path == recorded and [t.usable for t in tried] == [False, False, False, True]
+    assert path == recorded and [t.usable for t in tried] == [False, False, False, False, True]
 
 
 def test_an_expanded_variable_pointing_nowhere_falls_through_and_says_so():
@@ -52,7 +62,7 @@ def test_an_expanded_variable_pointing_nowhere_falls_through_and_says_so():
 
 def test_nothing_found_returns_none_with_every_reason():
     path, tried = pick(set(), plugin_root=LITERAL)
-    assert path is None and len(tried) == 4 and all(t.skipped for t in tried)
+    assert path is None and len(tried) == 5 and all(t.skipped for t in tried)
     assert "/planner:where" in pluginroot.NOT_FOUND
 
 
@@ -84,3 +94,33 @@ def test_where_reads_the_path_a_workspace_recorded(tmp_path):
 def test_where_with_nothing_exits_1_and_names_the_help(tmp_path):
     code, text = run("where", "--vault", str(tmp_path), "--plugin-root", LITERAL)
     assert code == 1 and "/planner:where" in text
+
+
+def test_an_installed_copy_is_found_when_the_variables_are_empty():
+    """Cowork, 2026-10-14: both variables empty, the plugin synced under ~/.claude/plugins/synced/<id>/planner/."""
+    synced = "/root/.claude/plugins/synced/abc/planner/scripts/planner"
+    chosen, tried = pluginroot.resolve("", "", ".", "", lambda path: path == synced, installed=[synced])
+    assert chosen.path == synced and chosen.source.startswith("an installed copy")
+    assert [t.skipped for t in tried[:2]] == ["is empty", "is empty"]
+
+
+def test_the_newest_installed_copy_wins_and_says_how_many():
+    chosen, _ = pluginroot.resolve("", "", ".", "", lambda path: True, installed=["/new", "/old"])
+    assert chosen.path == "/new" and "newest of 2" in chosen.source
+
+
+def test_an_expanded_variable_still_beats_an_installed_copy():
+    chosen, _ = pluginroot.resolve("/root", "", ".", "", lambda path: True, installed=["/other"])
+    assert chosen.path == "/root/scripts/planner"
+
+
+def test_where_finds_a_synced_copy_under_the_plugins_root(tmp_path, monkeypatch):
+    launcher = tmp_path / "plugins" / "synced" / "x_y" / "planner" / "scripts" / "planner"
+    launcher.parent.mkdir(parents=True)
+    launcher.write_text("#!/usr/bin/env python3\n")
+    monkeypatch.setenv("CLAUDE_CODE_PLUGIN_CACHE_DIR", str(tmp_path / "plugins"))
+    from planner import cli
+    import io
+    out = io.StringIO()
+    code = cli.cmd_where(type("A", (), {"vault": str(tmp_path), "plugin_root": "", "skill_dir": ""})(), out)
+    assert code == 0 and f"run python3 {launcher}" in out.getvalue()

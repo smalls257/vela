@@ -42,8 +42,8 @@ def names(path):
 def test_zip_has_manifest_at_root_and_no_bin_or_caches(repo, tmp_path):
     out = tmp_path / "p.zip"
     count = package_plugin.package(out, repo=repo, say=lambda _: None)
-    assert names(out) == [".claude-plugin/plugin.json", "lib/mod.py", "scripts/planner"]
-    assert count == 3
+    assert sorted(names(out)) == [".claude-plugin/", ".claude-plugin/plugin.json", "lib/", "lib/mod.py", "scripts/", "scripts/planner"]
+    assert count == 6  # folder entries first: Cowork's upload warned about the manifest on a files-only zip
 
 
 def test_uncommitted_edits_do_not_ship(repo, tmp_path):

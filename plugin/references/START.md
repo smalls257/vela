@@ -8,11 +8,12 @@ Every mode skill runs these steps before its own. The vault root is the current 
 
 The skills write the planner as `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`. The host may or may not replace that variable. Pick the program once, at the start, by the first of these that works, and use it for every `planner` command in the session:
 
-1. `${CLAUDE_SKILL_DIR}/../../scripts/planner`, if the variable was expanded (no literal `${` is left in the text you were given) and the file exists. The skill's own folder sits two levels under the plugin root. It comes first because both Claude Code and Cowork document that they expand it in skill text.
-2. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`, on the same terms. Claude Code expands it; Cowork doesn't say.
-3. `.claude/skills/planner/scripts/planner`, if it exists. That is the copy a vendored vault carries.
-4. The `planner_path` recorded in `.planner/workspace.json`, in a reader copy.
-5. None: stop and say "I cannot find the planner program. Run `/planner:where` and send me what it prints." Do not guess a path.
+1. `${CLAUDE_SKILL_DIR}/../../scripts/planner`, if the variable was expanded (no literal `${` is left in the text you were given) and the file exists. The skill's own folder sits two levels under the plugin root. It comes first where the host expands it; Cowork's own run left it empty.
+2. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`, on the same terms. Claude Code expands it; Cowork left it empty.
+3. An installed copy in the plugins folder: run `ls -t "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/synced/*/planner/scripts/planner "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/cache/*/planner/*/scripts/planner 2>/dev/null | head -1` and use the path it prints. Cowork leaves both variables empty and keeps the plugin under `synced/`; a marketplace install keeps it under `cache/`. `ls -t` lists the newest first.
+4. `.claude/skills/planner/scripts/planner`, if it exists. That is the copy a vendored vault carries.
+5. The `planner_path` recorded in `.planner/workspace.json`, in a reader copy.
+6. None: stop and say "I cannot find the planner program. Run `/planner:where` and send me what it prints." Do not guess a path.
 
 Do not say which one you picked unless you could not find one. The installed plugin wins over a vendored copy, because two versions answering one vault is how a vault gets rules its skills no longer follow. Other files the skills name as `${CLAUDE_PLUGIN_ROOT}/...` (this file, `MODES.md`, `REVIEW.md`, the catalog) live in the same plugin root as `scripts/`. When the variable was not expanded, the root is the folder that holds the `scripts/planner` you picked, so a vendored vault's `.claude/skills/planner/`.
 

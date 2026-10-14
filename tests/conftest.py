@@ -98,3 +98,10 @@ def skill_text(name):
     parts = [(folder / "SKILL.md").read_text(encoding="utf-8")]
     parts += [path.read_text(encoding="utf-8") for path in sorted(folder.glob("*.md")) if path.name != "SKILL.md"]
     return "\n".join(parts)
+
+
+@pytest.fixture(autouse=True)
+def _no_installed_plugins(tmp_path_factory, monkeypatch):
+    """No test may find a planner installed on the machine that runs it (~/.claude/plugins): point the plugins root at
+    an empty folder. A test that wants an installed copy sets CLAUDE_CODE_PLUGIN_CACHE_DIR itself."""
+    monkeypatch.setenv("CLAUDE_CODE_PLUGIN_CACHE_DIR", str(tmp_path_factory.mktemp("no-plugins")))

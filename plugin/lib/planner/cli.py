@@ -976,6 +976,18 @@ def cmd_doctor(args, out):
     return doctor.exit_code(lines)
 
 
+def plugins_root():
+    """Where Claude Code and Cowork keep plugin files: CLAUDE_CODE_PLUGIN_CACHE_DIR, else ~/.claude/plugins."""
+    return pathlib.Path(os.environ.get("CLAUDE_CODE_PLUGIN_CACHE_DIR") or pathlib.Path.home() / ".claude" / "plugins")
+
+
+def installed_planners():
+    """Installed launchers under the plugins root, newest first (pluginroot.INSTALLED_GLOBS)."""
+    root = plugins_root()
+    found = {str(path) for pattern in pluginroot.INSTALLED_GLOBS for path in root.glob(pattern) if path.is_file()}
+    return sorted(found, key=lambda path: pathlib.Path(path).stat().st_mtime, reverse=True)
+
+
 def cmd_where(args, out):
     """Which program a skill would run, and why each earlier rule was passed over. For /planner:where and for bug reports."""
     vault = pathlib.Path(args.vault)
@@ -985,7 +997,8 @@ def cmd_where(args, out):
             recorded = copies.read_workspace(vault).get("planner_path") or ""
         except copies.SourceUnreadable as exc:
             raise ToolError(str(exc)) from exc
-    chosen, tried = pluginroot.resolve(args.plugin_root, args.skill_dir, str(vault), recorded, lambda path: pathlib.Path(path).is_file())
+    chosen, tried = pluginroot.resolve(args.plugin_root, args.skill_dir, str(vault), recorded, lambda path: pathlib.Path(path).is_file(),
+                                       installed_planners())
     for found in tried:
         print(f"{found.source}: {found.path or '(none)'}{' -> ' + found.skipped if found.skipped else ' -> found'}", file=out)
     if chosen is None:
