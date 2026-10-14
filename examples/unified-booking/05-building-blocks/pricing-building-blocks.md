@@ -79,6 +79,11 @@ flowchart LR
 - **Decided by:** @hl-solution-lead, on behalf of @harbourline/revenue-team
 - **Confirmed by:** @hl-pricing-senior on 2026-08-12
 
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| fare | | ok | a fare for the crossing, date, passengers and vehicle | | |
+| caller_retired | | error | the gateway rejects a call from a front end whose old adapter has been removed | | |
+
 ## Contracts this app consumes
 
 <!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->

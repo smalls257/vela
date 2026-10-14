@@ -34,6 +34,11 @@ flowchart LR
 - **State:** decided
 - **Decision:** [[2026-01-10-shop-api]]
 
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| sold | | 200 | the receipt | | |
+| basket_refused | | 422 | the basket is empty or holds an unknown product | | |
+
 ## Contracts this app consumes
 
 <!-- generated:contracts-consumed sha=0dca45ce: do not edit, run planner render -->

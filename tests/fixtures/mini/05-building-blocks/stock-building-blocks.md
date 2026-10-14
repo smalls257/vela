@@ -24,3 +24,7 @@ Stock knows how many of each product are left. It is unchanged, so this page is 
 - **Change:** unchanged
 - **State:** fact
 - **Source:** SRC-01
+
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| count | | ok | the count left | | |

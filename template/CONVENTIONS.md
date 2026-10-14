@@ -143,8 +143,38 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Dissent:**` | Optional. |
 | `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
 | `**Links:**` | Optional. Where the contract is written down outside the vault, such as its API spec. See Links out of the vault. |
+| `**Auth:**` | Optional, but a stub needs it. How a caller proves who it is, in a few words. |
+| `**Can time out:**` | Optional. `yes` or `no`: whether a caller can be left waiting with no answer. |
+| `**Retries:**` | Optional. How many times a caller tries again: a number, or `none`. |
 | `**Override:**`, `**Decided by:**`, `**Confirmed by:**` | Optional. See Overrides. |
 | `**Pending approval:**` | Optional. A reader's decision awaiting the owner. See Pending approval. |
+
+A contract also carries a **case table** under its fact bullets: one row for every way the provider can answer. It is what a flow check, a stub and a boundary test read, so it replaces prose for checking: the `**Crosses the boundary:**` sentence says what goes across, and the table says what happens, including when it goes wrong. Header, exactly:
+
+`| Case | When | Status | Answer | Emits | Sets |`
+
+- **Case** is a snake_case key, unique within the contract (`in_stock`, `out_of_stock`).
+- **When** is blank, or a condition in a small fixed form: `<field> is <value>`, `<field> is not <value>` or `<field> in [a, b]`, joined by `and`.
+- **Status** is a three-digit code such as `409`, or `ok` or `error` for a contract that is not HTTP. A status of 400 or more, or `error`, is an error case.
+- **Answer** is what the provider says back, in a sentence.
+- **Emits** is blank or event IDs (`EVT-003`) the provider publishes when it answers this way. Each must be a `### EVT-nnn <name>` heading somewhere in the vault.
+- **Sets** is blank or state changes the provider makes, `<entity>: <from>→<to>` or `<entity>: <state>`, separated by `;`. Each entity must be a `### ENT-nnn <name>` heading somewhere in the vault, named by its ID or its name.
+
+A worked example, with the bullets that go beside it:
+
+```
+- **Auth:** service token through the gateway
+- **Can time out:** yes
+- **Retries:** 2
+
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| reserved | stock is available | 201 | the item is held; the reply carries a reservation reference | EVT-004 | order: new→held |
+| out_of_stock | stock is not available | 409 | refused, and the reply says the item is out of stock | | |
+| unknown_item | | 404 | refused, because the item ID is not one the provider knows | | |
+```
+
+Leave a column blank rather than drop it. Timeouts and giving up after the retries are not rows: `**Can time out:**` and `**Retries:**` say them once, and the checker adds those cases itself. A contract that is `decided` has an error case, because a contract that says nothing about failure has not been decided. A grill does not decide a contract without its case table.
 
 Functional requirement, under `### CAP-nnn.FRn <what it does>` on the capability page. It carries `**State:**` (`inkling`, `assumption`, `fact` or `decided`) and is checked like a contract. `decided` needs `**Decision:**` linking a Grill session, `fact` needs `**Source:**`, and an open unknown that lists it in `**Blocks:**` stops it being `decided`.
 
@@ -534,6 +564,9 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W368 | the opening is a line the template wrote | W369 | an abbreviation not spelled out on the page |
 | W370 | an epic criterion has no AC id on its Trace line, or two share one | | |
 | W371 | two or more openings above the first heading, over 150 words together | | |
+| W380 | contract has no case table | W381 | a case table row, or a Can time out or Retries line, cannot be read |
+| W382 | two cases of one contract share a key | W383 | a case emits an event the vault does not name |
+| W384 | a case sets an entity the vault does not name | W385 | decided contract has no error case |
 | E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
 | E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |

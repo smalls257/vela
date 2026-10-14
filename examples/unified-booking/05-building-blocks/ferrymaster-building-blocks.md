@@ -53,6 +53,11 @@ FERRYMASTER is a black box on this page. Nobody in this initiative changes it, a
 - **State:** fact
 - **Source:** SRC-04
 
+| Case | When | Status | Answer | Emits | Sets |
+|---|---|---|---|---|---|
+| ledger_reference | | ok | the reply carries the ledger reference | | |
+| return_code | | error | the reply carries a return code | | |
+
 ## Contracts this app consumes
 
 <!-- generated:contracts-consumed sha=140bedbf: do not edit, run planner render -->

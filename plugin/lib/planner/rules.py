@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, flows, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
+from planner import allocation, cases, flows, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -388,6 +388,34 @@ def contract_rules(vault, today):
         if state == "decided" and not contract.fact("Tested by"):
             yield _f(page, contract.line, "E318", f"{contract.id} is decided but says nothing about who tests it.",
                      "Add '- **Tested by:** ...' naming the test on each side.")
+
+
+def case_table_rules(vault, today):
+    """Sensor for the contract that says nothing about its failures: a Paper Tiger that is decided and cannot be stubbed."""
+    events, entities = cases.vault_events(vault), {e.lower() for e in cases.vault_entities(vault)}
+    for contract in vault.contracts:
+        page = contract.page
+        for line, message, fix in cases.facts_problems(contract):
+            yield _f(page, line, "W381", message, fix)
+        table = cases.case_table(page, contract)
+        if table is None:
+            yield _f(page, contract.line, "W380", f"{contract.id} has no case table, so nobody can say what it answers when a call goes wrong.",
+                     f"Add a table under the {contract.id} heading: | {' | '.join(cases.HEADER)} |, one row per answer.")
+            continue
+        for problem in table.problems:
+            yield _f(page, problem.line, "W382" if problem.code == "duplicate" else "W381", problem.message, problem.fix)
+        for case in table.cases:
+            for event in case.emits:
+                if event not in events:
+                    yield _f(page, case.line, "W383", f"{contract.id} case {case.key} emits {event}, which no page in the vault names.",
+                             f"Add '### {event} <name>' where the event is described, or correct the ID.")
+            for entity, _, _ in case.sets:
+                if entity.lower() not in entities:
+                    yield _f(page, case.line, "W384", f"{contract.id} case {case.key} sets {entity}, which no page in the vault names as an entity.",
+                             "Add '### ENT-nnn <name>' where the entity and its states are described, or correct the name.")
+        if contract.fact("State") == "decided" and not any(c.is_error for c in table.cases):
+            yield _f(page, contract.line, "W385", f"{contract.id} is decided and its case table has no error case.",
+                     "Add the answer for a refusal or a failure (a 4xx or 5xx status, or error).")
 
 
 # ------------------------------------------------------------ unknowns, risks
@@ -1138,5 +1166,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)
