@@ -133,7 +133,7 @@ def test_ledger_row_removed_since_branch_point_blocks():
     result = readied(now=vault_of(rows=""))
     assert not result.ready
     problem = next(p for p in result.problems if "ledger" in p.plain)
-    assert "Q-DAT-01@APP-booking" in problem.detail and "Q-DAT" not in problem.plain
+    assert "Q-DAT-01@APP-booking" in problem.detail  # the command's resolver says the copy as its question
     assert "put" in problem.clear.lower()
 
 
@@ -182,11 +182,13 @@ def test_an_error_with_no_recorded_choice_blocks():
 
 
 def test_flowcheck_line_per_affected_slice():
-    lines = ("SLC-001 Book a room: passes. Checked because Consent records changed → Booking → SLC-001 Book a room.",
-             "SLC-002 Pay: fails, 1 open finding (dead end).")
+    lines = (("SLC-001 Book a room: passes. Checked because Consent records changed → Booking → SLC-001 Book a room.",
+              "The flow check of Book a room: passes."),
+             ("SLC-002 Pay: fails, 1 open finding (dead end).", "The flow check of Pay: fails, 1 open finding."))
     result = readied(flow=lines)
-    assert result.ready
-    assert [n.detail for n in result.notes if n.detail.startswith("SLC-")] == list(lines)
+    assert result.ready  # a read-back for the lead, not a gate
+    flow = [n for n in result.notes if n.detail.startswith("SLC-")]
+    assert [(n.detail, n.plain) for n in flow] == list(lines)
 
 
 def test_hooks_marker_missing_is_said_plainly():

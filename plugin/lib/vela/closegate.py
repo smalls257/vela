@@ -25,10 +25,12 @@ are filing, which close does from its defaults; holding every one of them to a q
 bookkeeping, which close is meant to spare them.
 """
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from vela import override, schema
 
+CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
+                 "their override with a reason.")
 QUOTED_YES_RULE = '"a decision needs the lead\'s quoted yes"'
 BARE_NON_YES = ("", "ok", "okay", "sure", "next", "fine")
 CONSENT_STATE = "decided"
@@ -44,6 +46,7 @@ class Capture:
     tag: str
     origin: str
     words: str
+    mark: str = ""  # keep/park/drop, added at close; "" while the capture is still unfiled
 
     @property
     def is_person(self):
@@ -85,9 +88,12 @@ class StateChange:
 
 @dataclass(frozen=True)
 class Problem:
-    """One reason the session can't finish yet. `plain` is what the lead hears; `detail` carries the IDs."""
+    """One reason the session can't finish yet (or, in `Readiness.notes`, one thing the lead hears that doesn't stop
+    it). `plain` is what the lead hears, any ID left in it resolved by the caller; `detail` carries the IDs and paths;
+    `clear` is what would clear it, in words the lead can hear."""
     plain: str
     detail: str
+    clear: str = ""
 
 
 @dataclass(frozen=True)
@@ -106,7 +112,8 @@ def captures(record_text):
     for line in record_text.split("\n"):
         match = CAPTURE_RE.match(line.strip())
         if match:
-            found[match["n"]] = Capture(match["n"], match["tag"], match["origin"], match["words"])
+            found[match["n"]] = Capture(match["n"], match["tag"], match["origin"], match["words"],
+                                        (match["mark"] or "").strip())
     return found
 
 
@@ -199,7 +206,7 @@ def judge(changes, record_text, record_name, vault):
     for change in changes:
         named = StateChange(change.item, vault.name_of(change.item), change.before, change.after)
         problem, line = judge_change(named, rows, said, vault, record_name)
-        problems += [problem] if problem else []
+        problems += [replace(problem, clear=CONSENT_CLEAR)] if problem else []
         consent += [line] if line else []
     return problems, consent
 
@@ -209,3 +216,212 @@ def consent_block(consent):
     if not consent:
         return ["**Consent**", "", "- No item was decided or reopened in this session."]
     return ["**Consent**", ""] + [f'- {c.name} ({c.item}), {c.change}: "{c.words}" {c.link}' for c in consent]
+
+
+# ------------------------------------------------------------------ Task 10: the rest of the one list
+
+REMOVED = "removed"  # the To of a Changes row that records the lead's yes to removing a ledger row or an override
+
+
+@dataclass(frozen=True)
+class Seen:
+    """What the edge observed for `ready`, so the judging stays pure.
+
+    `before` is the vault at the branch point, or None in a reader copy (no git, so no branch point). `errors` are
+    check's error findings, already past the overrides (rules.check applies them), so each one left has no recorded
+    choice. `stray` is every changed path the close's allow-list would leave out; `stale` the pages render would still
+    rewrite (`render_problems` when render can't run at all). `flow` is ((default line, lead line), ...), one per slice
+    this session's changes reach, and `flow_note` says why there are none when the check couldn't run. `host` is
+    `.vela/host.json` as read, or None."""
+    today: str
+    sync: object  # closestate.Verdict
+    before: object = None
+    errors: tuple = ()
+    stray: tuple = ()
+    stale: tuple = ()
+    render_problems: int = 0
+    flow: tuple = ()
+    flow_note: str = ""
+    hooks_ran: bool = False
+    host: dict = None
+    reader: bool = False
+
+
+@dataclass(frozen=True)
+class Readiness:
+    """The gate's answer: `problems` stop the close, `notes` are said and don't, `consent` feeds the PR body."""
+    problems: tuple
+    notes: tuple
+    consent: tuple
+
+    @property
+    def ready(self):
+        return not self.problems
+
+
+def _plural(n, one, many):
+    return one if n == 1 else many
+
+
+def unmarked(record_text):
+    """Captures with no keep/park/drop mark, in record order. Close files every capture, so one left unmarked is
+    something the lead said that would drop out of the plan without anyone choosing that."""
+    return [c for c in captures(record_text).values() if not c.mark]
+
+
+def ledger_copies(vault):
+    """{copy cell: page title} for every question-ledger row in the vault."""
+    from vela import ledger
+    return {row.copy: str(page.meta.get("title") or page.name) for page in vault.pages for row in ledger.rows(page)}
+
+
+def override_scopes(vault):
+    """{(page id, item id or "", rules, by, date): (plain scope name, Override)} for every well-formed override. The key
+    leaves out the reason and the end date, so rewording a reason or moving `until` is not a removal."""
+    found = {}
+    for page in vault.pages:
+        items = []
+        for bullet in page.bullets:
+            if bullet.label == schema.OVERRIDE_LABEL and not bullet.generated and bullet.item not in items:
+                items.append(bullet.item)
+        page_id = str(page.meta.get("id") or page.name)
+        for item in items:
+            name = vault.name_of(item) if item else str(page.meta.get("title") or page.name)
+            for o in override.valid_overrides(page, item):
+                found[(page_id, item, o.rules, o.by, o.date)] = (name, o)
+    return found
+
+
+def removal_agreed(key, rows, said):
+    """Whether the record holds the lead's own yes to removing `key` (a ledger copy, or an item or page ID): a Changes
+    row `| <key> | <what> | removed | [[record#^cNN]] |` citing a person's capture that is not a bare non-yes, the
+    same test a decision's yes passes."""
+    for row in rows:
+        if row.item != key or row.after != REMOVED:
+            continue
+        capture = said.get(row.capture_number)
+        if capture is not None and capture.is_person and not capture.is_bare_non_yes:
+            return True
+    return False
+
+
+def lead_path(path):
+    """A path the lead may hear: as it is, unless it holds something the lead check forbids (`ADR-0004-x.md`)."""
+    from vela import say
+    if say.leak_in(path) is None:
+        return path
+    folder = path.rsplit("/", 1)[0] if "/" in path else ""
+    return f"a file in {folder}" if folder and say.leak_in(folder) is None else "one more file"
+
+
+def unmarked_problem(record_text):
+    left = unmarked(record_text)
+    if not left:
+        return []
+    n = len(left)
+    return [Problem(f"{n} {_plural(n, 'note', 'notes')} in the session record {_plural(n, 'has', 'have')} no mark yet, "
+                    f"so the close doesn't know where {_plural(n, 'it goes', 'they go')}.",
+                    "unmarked: " + ", ".join(f"^c{c.n}" for c in left),
+                    "Marking each one keep, park or drop clears it.")]
+
+
+def error_problems(errors, vault):
+    out = []
+    for finding in errors:
+        stem = finding.path.rsplit("/", 1)[-1]
+        page = vault.page(stem[:-3]) if stem.endswith(".md") else None
+        where = str(page.meta.get("title") or finding.path) if page is not None else finding.path
+        out.append(Problem(f"{where}: {finding.message}", f"{finding.path}:{finding.line} {finding.code}",
+                           "Fixing it with the lead clears it, or recording the lead's choice as an override with "
+                           "their reason."))
+    return out
+
+
+def removal_problems(before, after, rows, said):
+    """A ledger row or an override that was there at the branch point and is gone now, with no recorded yes to its
+    removal. Deleting the row or the override is the one edit that quiets a check without answering it, and deletion
+    is detectable, so it is refused here rather than asked about in prose."""
+    out = []
+    now = ledger_copies(after)
+    for copy, title in sorted(ledger_copies(before).items()):
+        if copy not in now and not removal_agreed(copy, rows, said):
+            out.append(Problem(f"The row for {copy} was removed from the question ledger on {title} since this "
+                               "session began.", f"ledger row {copy} removed since the branch point",
+                               "Putting the row back clears it, or the lead's own words for removing it, recorded in "
+                               "the session record."))
+    kept = override_scopes(after)
+    for key, (name, o) in sorted(override_scopes(before).items(), key=lambda pair: tuple(map(str, pair[0]))):
+        scope = key[1] or key[0]
+        if key not in kept and not removal_agreed(scope, rows, said):
+            out.append(Problem(f'An override on {name} was removed since this session began: "{o.reason}".',
+                               f"override on {scope} ({', '.join(o.rules)} by {o.by} on {o.date}) removed since the "
+                               "branch point",
+                               "Putting it back clears it, or the lead's own words for removing it, recorded in the "
+                               "session record."))
+    return out
+
+
+def stray_problem(stray):
+    if not stray:
+        return []
+    n, names = len(stray), [lead_path(p) for p in stray]
+    return [Problem(f"{n} changed {_plural(n, 'file is', 'files are')} not part of this session, so the close would "
+                    f"leave {_plural(n, 'it', 'them')} out: {', '.join(names)}.", "left out: " + ", ".join(stray),
+                    f"Committing, moving or deleting {_plural(n, 'it', 'them')} clears it.")]
+
+
+def render_problem(stale, render_problems):
+    if render_problems:
+        return [Problem("Some generated tables are out of date, and render can't rewrite them yet.",
+                        f"render cannot run: {render_problems} problems (run vela render to see them)",
+                        "Fixing what render names, then running it, clears it.")]
+    if stale:
+        return [Problem("Some generated tables are out of date.", "render would still rewrite " + ", ".join(stale),
+                        "Running vela render clears it.")]
+    return []
+
+
+def notes_of(seen):
+    """What the lead hears that doesn't stop the close. The hooks line is informational on purpose: every rule a hook
+    holds is also held by the command it guards, so a missing hook costs earlier feedback, never correctness (plan 1,
+    the Silent Fallback row). Saying so plainly is what keeps "didn't run" from looking like "passed". The flow-check
+    lines are a read-back for the lead (plan 2.1), not a gate: a slice that fails is the boundary session's to fix."""
+    notes = []
+    if seen.sync.listed:
+        notes.append(Problem(seen.sync.plain, f"sync-main: {seen.sync.status}"))
+    if seen.reader:
+        notes.append(Problem("This is a read copy, so there's no branch point: removed ledger rows and overrides "
+                             "can't be checked here.", "reader copy: no merge-base"))
+    notes += [Problem(lead, line) for line, lead in seen.flow]
+    if seen.flow_note:
+        notes.append(Problem(seen.flow_note, seen.flow_note))
+    if not seen.hooks_ran:
+        notes.append(Problem("Hooks did not run in this session, so nothing stopped a wrong step early; this list "
+                             "checked everything itself.", ".vela/hooks-active is missing"))
+    if seen.host:
+        from vela.edge import hostprobe  # `stance` is pure: it reads only the host.json dict
+        row, sentence = hostprobe.stance(seen.host)
+        notes.append(Problem(sentence, f"host: {row}"))
+    return notes
+
+
+def ready(vault, record_text, record_id, seen):
+    """The whole gate, pure: a Readiness for one session record against what `seen` holds. `close gate` prints it and
+    `close finish` refuses on it. The order is the order the lead fixes things in: main, decisions, filing, the tree."""
+    rows, said = change_rows(record_text), captures(record_text)
+    after = states(vault)
+    if seen.before is None:
+        changes = reader_changes(rows, after)
+    else:
+        changes = consent_changes(states(seen.before), after, vault)
+    problems, consent = judge(changes, record_text, record_id, vault)
+    if seen.sync.blocks:
+        problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
+                                   "Running vela close sync-main clears it."))
+    problems += unmarked_problem(record_text)
+    problems += error_problems(seen.errors, vault)
+    if seen.before is not None:
+        problems += removal_problems(seen.before, vault, rows, said)
+    problems += stray_problem(seen.stray)
+    problems += render_problem(seen.stale, seen.render_problems)
+    return Readiness(tuple(problems), tuple(notes_of(seen)), tuple(consent))

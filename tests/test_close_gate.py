@@ -218,6 +218,7 @@ def test_ledger_row_removed_since_branch_point_blocks(tmp_path):
 
 def test_hooks_marker_missing_is_said_plainly(tmp_path):
     vault = session(tmp_path)
+    assert run("render", "--vault", str(vault))[0] == 0  # the new record's own line in a generated table
     code, out = gate(vault, "--for-lead")
     assert code == 0, out
     assert "Hooks did not run in this session" in out
