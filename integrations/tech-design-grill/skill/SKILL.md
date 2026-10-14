@@ -15,7 +15,7 @@ If the codebase can answer a question (brownfield), explore the code instead of 
 
 Trace every `FR-XXX` (in vault mode, every allocated requirement row, contract and epic criterion) to an owning component. Reject the design if any has no owner.
 
-Capture answers inline in `docs/tech-design/<slug>.md` and `CONTEXT.md` as decisions crystallise. Do not batch.
+Capture answers inline in `docs/tech-design/<slug>.md` and `CONTEXT.md` as decisions crystallize. Do not batch.
 
 Use `D-XXX` for explicit deferrals (logged in frontmatter `deferred[]`). Offer an ADR only when the decision is hard to reverse, surprising without context, and reflects a real trade-off.
 
@@ -77,7 +77,7 @@ Update the design doc + `CONTEXT.md` after each section. Do not batch.
 
 ## Review checkpoint
 
-Before the completion gate, run `REVIEW-CHECKPOINT.md`: five fresh-context reviewers read the written design, one area each, and their checked findings become `OQ-XXX` entries the user disposes of. The interview cannot see what nobody in the room knows; the reviewers are there for the vendor limit, the licence clause or the reset nobody mentioned.
+Before the completion gate, run `REVIEW-CHECKPOINT.md`: five fresh-context reviewers read the written design, one area each, and their checked findings become `OQ-XXX` entries the user disposes of. The interview cannot see what nobody in the room knows; the reviewers are there for the vendor limit, the license clause or the reset nobody mentioned.
 
 ## Completion gate
 
