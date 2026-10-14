@@ -25,25 +25,24 @@ Vela doesn't send anything for you. People move the files, by email, Teams or On
 
 ## 1. Install
 
-You need Python 3.11 or later and PyYAML (`python3 -m pip install pyyaml`). The planner stops with a message if either is missing.
+Three steps, in Claude Code:
+
+1. Add the marketplace: `/plugin marketplace add smalls257/vela`
+2. Install the plugin: `/plugin install planner@proj-planner`
+3. Ask Claude to run `planner doctor`. It prints one line per item and ends with `planner doctor: ready.` when the machine has what planner needs. Anything optional that's missing says what it adds and the one command that gets it.
+
+The repo is private, so you need access to it on GitHub first, and git on your machine signed in to that account (`gh auth login` does it). There is nothing to pip install. Planner runs on Python 3.9 or later, which comes with a Mac's developer tools, and it brings its own copy of PyYAML.
 
 ### Claude Code CLI
 
-Add this repo as a marketplace, then install the plugin. Replace the placeholder with where the repo lives (a GitHub `org/repo`, a git URL, or a local folder path).
-
-```
-/plugin marketplace add <org>/proj-planner
-/plugin install planner@proj-planner
-```
-
-The marketplace is called `proj-planner` and holds one plugin, `planner` (`.claude-plugin/marketplace.json`). Skills then appear as `/planner:dump`, `/planner:close`, and so on.
+The marketplace is called `proj-planner` and holds one plugin, `planner` (`.claude-plugin/marketplace.json`). After the install, skills appear as `/planner:dump`, `/planner:close`, and so on. A copy of the repo elsewhere works the same way: give `/plugin marketplace add` its git URL or a local folder path.
 
 To give teammates the plugin without typing anything, commit this to the team repo as `.claude/settings.json`. Claude Code asks them to trust the repo once, then offers the plugin:
 
 ```json
 {
   "extraKnownMarketplaces": {
-    "proj-planner": { "source": { "source": "github", "repo": "<org>/proj-planner" } }
+    "proj-planner": { "source": { "source": "github", "repo": "smalls257/vela" } }
   },
   "enabledPlugins": { "planner@proj-planner": true }
 }
@@ -331,7 +330,7 @@ A product owner with git access is an owner. A sponsor with only OneDrive is a r
 
 **2. `planner` is not a command in my terminal.** The PATH entry exists inside Claude Code only. Use `python3 <plugin folder>/scripts/planner ...`.
 
-**3. "needs Python 3.11 or later" or "needs PyYAML".** Install them. On a Mac where pip refuses with "externally-managed-environment", use a venv: `python3 -m venv ~/.venvs/planner && ~/.venvs/planner/bin/pip install pyyaml`.
+**3. "needs Python 3.9 or later".** Your Python is older than 3.9. On a Mac, `brew install python@3.12`, or `xcode-select --install` for the one that comes with the developer tools. Then run `planner doctor` again: it says what else, if anything, is missing.
 
 **4. Cowork rejects the upload.** It was built by hand, or from a tree with `bin/`. Rebuild with `tools/package_plugin.py`; it excludes `bin/` and checks the layout. If it says `claude not found on PATH: skipped plugin validate`, the zip is still written, only less checked.
 
