@@ -27,6 +27,8 @@ import urllib.parse
 
 import yaml
 
+from .record import title_of
+
 DOC_GLOB = "docs/tech-design/*.md"
 VAULT_DOCS = "docs/tech-design"
 CODE_LABELS = ("github", "code", "repo", "repository")
@@ -50,15 +52,21 @@ def discover(vault, root, named):
         look.repo_link()
         if look.doc:
             found.append(f"{app.id}={look.doc}")
-            said.append(f"{app.id} design found at {shown(look.doc, root)}, from {look.how}")
+            said.append(f"{app_named(app)}: using the design {shown(look.doc, root)}, found {look.how}")
         else:
-            missing.append((app.id, look.tried))
+            missing.append((app, look.tried))
     if missing:
-        said.append(f"no design doc found for {', '.join(app for app, _ in missing)}; Inside this app stops at their containers. "
-                    f"Put the design at {VAULT_DOCS}/<slug>.md in the vault (its team runs /planner:design --app APP-x from the vault root), "
-                    "or point to one with design: on the app page, designs: in .planner.yaml, or --design APP-x=<path>.")
-        said += [f"  {app}: {'; '.join(tried)}" for app, tried in missing if tried]
+        said.append(f"no design yet for {', '.join(app_named(app) for app, _ in missing)}, so Inside this app shows only their containers. "
+                    f"To add one, the app's team runs /planner:design --app <app ID> from the plan's folder (it writes {VAULT_DOCS}/<slug>.md), "
+                    "or point to one with design: on the app page, designs: in .planner.yaml, or --design <app ID>=<path>.")
+        said += [f"  {app_named(app)}: {'; '.join(tried)}" for app, tried in missing if tried]
     return found, said
+
+
+def app_named(app):
+    """An app as the report names it: its title, with the ID a lead types beside it."""
+    title = title_of(app)
+    return f"{title} ({app.id})" if title and title != app.id else app.id
 
 
 def vault_designs(root, said):
@@ -108,7 +116,7 @@ class Look:
         self.doc, self.how, self.tried = None, "", []
 
     def warn(self, text):
-        self.said.append(f"warning: {self.app.id}: {text}")
+        self.said.append(f"warning: {app_named(self.app)}: {text}")
 
     def adopt(self, doc, how):
         self.doc, self.how = doc, how
@@ -116,12 +124,12 @@ class Look:
     def page_field(self):
         value = self.app.meta.get("design")
         if value is not None:
-            self.from_path(value, "design: on its page")
+            self.from_path(value, "from design: on its page")
 
     def config_entry(self, configured):
         if self.doc or self.app.id not in configured:
             return
-        self.from_path(configured[self.app.id], "designs: in .planner.yaml")
+        self.from_path(configured[self.app.id], "from designs: in .planner.yaml")
 
     def from_path(self, value, where):
         doc = self.file_at(value, where)
@@ -130,18 +138,18 @@ class Look:
 
     def file_at(self, value, where):
         if not isinstance(value, str) or not value.strip():
-            self.warn(f"{where} is not a path to a design doc ({value!r})")
+            self.warn(f"{where.removeprefix('from ')} is not a path to a design doc ({value!r})")
             return None
         path = local_path(value.strip(), self.root)
         if path is None:
-            self.warn(f"{where} is {value}, a web address; it is never fetched, so use the path of a local clone")
+            self.warn(f"{where.removeprefix('from ')} is a web address ({value}); Vela never fetches one, so point it to a local copy of the repo instead")
             return None
         if not path.is_file():
-            self.warn(f"{where} is {value}, which is not a file ({path})")
+            self.warn(f"{where.removeprefix('from ')} is {value}, which is not a file ({path})")
             return None
         why = not_a_doc(path, "tech-design")
         if why:
-            self.warn(f"{where} is {value}, which {why}, so it is not read")
+            self.warn(f"{where.removeprefix('from ')} is {value}, which {why}, so it isn't read")
             return None
         return path
 
@@ -150,17 +158,17 @@ class Look:
             return
         slugs = {self.app.id.removeprefix("APP-").lower(), self.app.name.lower().removesuffix("-building-blocks")}
         page_name = self.app.path.rsplit("/", 1)[-1]
-        rules = (("vault.app", lambda doc, meta: (meta.get("vault") or {}).get("app") == self.app.id if isinstance(meta.get("vault"), dict) else False),
-                 ("the prereqs naming its page", lambda doc, meta: any(p.rsplit("/", 1)[-1] == page_name for p in prereq_paths(meta))),
-                 ("its file name", lambda doc, meta: doc.stem.lower() in slugs))
+        rules = (("it names this app", lambda doc, meta: (meta.get("vault") or {}).get("app") == self.app.id if isinstance(meta.get("vault"), dict) else False),
+                 ("it points to this app's page", lambda doc, meta: any(p.rsplit("/", 1)[-1] == page_name for p in prereq_paths(meta))),
+                 ("its file name matches the app", lambda doc, meta: doc.stem.lower() in slugs))
         for why, matches in rules:
             hits = [doc for doc, meta in docs if matches(doc, meta)]
             if hits:
                 if len(hits) > 1:
-                    self.warn(f"{len(hits)} docs in {VAULT_DOCS} match it by {why} ({', '.join(d.name for d in hits)}); using {hits[0].name}")
-                self.adopt(hits[0], f"{VAULT_DOCS}/ in the vault, by {why}")
+                    self.warn(f"{len(hits)} docs in {VAULT_DOCS} match it ({why}: {', '.join(d.name for d in hits)}); using {hits[0].name}")
+                self.adopt(hits[0], f"in {VAULT_DOCS}/ in the plan's folder, because {why}")
                 return
-        self.tried.append(f"{VAULT_DOCS}/ holds {len(docs)} design doc{'s' if len(docs) != 1 else ''}, none naming it by vault.app, prereqs or file name")
+        self.tried.append(f"{VAULT_DOCS}/ holds {len(docs)} design doc{'s' if len(docs) != 1 else ''}, but none is for this app (none names it, points to its page or has its file name)")
 
     def repo_link(self):
         if self.doc:
@@ -189,11 +197,11 @@ class Look:
             return
         names = [doc for doc in docs if self.names_this_app(doc)]
         if not names:
-            self.tried.append(f"{where} holds {len(docs)} design doc{'s' if len(docs) != 1 else ''}, none whose frontmatter vault.app is {self.app.id}")
+            self.tried.append(f"{where} holds {len(docs)} design doc{'s' if len(docs) != 1 else ''}, but none of them is for this app (none has vault: app: {self.app.id})")
             return
         if len(names) > 1:
             self.warn(f"{where} holds {len(names)} docs that name it ({', '.join(d.name for d in names)}); using {names[0].name}")
-        self.adopt(names[0], f"{where}, by vault.app")
+        self.adopt(names[0], f"through {where}, because it names this app")
 
     def names_this_app(self, doc):
         try:

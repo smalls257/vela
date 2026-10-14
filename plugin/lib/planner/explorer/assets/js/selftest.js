@@ -796,7 +796,7 @@ const SelfTest = (() => {
     $(".sl-c-status", r0).click(); await frames();
     const openClick = r0.getAttribute("aria-expanded") === "true" && !more().hidden;
     const labels = $$(".sl-l", more()).map((l) => l.textContent);
-    ok(openEnter && foldSpace && openClick && ["Flows", "Joins", "Journey", "Flow check"].every((w) => labels.includes(w)),
+    ok(openEnter && foldSpace && openClick && ["Flows", "Contracts it uses", "Journey", "Flow check"].every((w) => labels.includes(w)),
       `slices table: Enter opens a row, Space folds it, a click opens it, and the open row shows ${labels.join(", ")}`, `slices table: Enter ${openEnter}, Space ${foldSpace}, click ${openClick}, lines ${labels.join(", ")}`);
     go("lights", { reset: true }); await frames();
     $(".sl-name", r0).click(); await frames();
@@ -1558,7 +1558,7 @@ const SelfTest = (() => {
       ok(dead === p.unresolved.length && $$("#inside-stage .plan-traces .ref-chip:not(.ref-dead)").every((c) => !!c.dataset.ref && !!ent(c.dataset.ref)),
         `inside ${name}, build plan (${layout}): every trace chip resolves into the vault (${dead} named by the build as not in it)`, `inside ${name}, build plan (${layout}): ${dead} dead chips, the build names ${p.unresolved.length}`);
       const row = tasked.length ? $(`#inside-stage .plan-card[data-story="${tasked[0].id}"]`) : null, waits = row ? $(".plan-waits", row) || $(`#inside-stage .plan-pane[data-pane="${tasked[0].id}"] .plan-waits`) : null, listed = $$("#inside-stage .plan-task").length;
-      ok(!tasked.length || (!!waits && /^Waits on: /.test(waits.textContent) && !$(".ref-chip", waits) && listed === p.stories.reduce((n, x) => n + x.tasks.length, 0)),
+      ok(!tasked.length || (!!waits && /^(Waits on: |Can start now)/.test(waits.textContent) && !$(".ref-chip", waits) && listed === p.stories.reduce((n, x) => n + x.tasks.length, 0)),
         `inside ${name}, build plan (${layout}): each story says what it waits on in words, and all ${p.stories.reduce((n, x) => n + x.tasks.length, 0)} tasks are listed, deferred ones under Not now`, `inside ${name}, build plan (${layout}): waits "${waits ? waits.textContent : "missing"}", ${listed} tasks listed of ${p.stories.reduce((n, x) => n + x.tasks.length, 0)}`);
       const sizes = $$("#plan-page .plan-size, #plan-page .plan-total, #plan-page .plan-by-size, #plan-page [data-kpi=points]").length, text = $("#plan-page").textContent;
       ok(!sizes && !/\b[SML] ?\+ ?[SML]\b/.test(text), `inside ${name}, build plan (${layout}): no size chip anywhere`, `inside ${name}, build plan (${layout}): ${sizes} size chips or a size run in the text`);
@@ -1579,11 +1579,11 @@ const SelfTest = (() => {
     const added = !p.problems.length;
     if (added) { p.problems.push("selftest: a line this page could not read"); Inside.open(k, "plan"); }
     const list = $("#inside-stage #plan-problems"), chip = $("#inside-stage .d-problems"), first = $("#plan-page").firstElementChild;
-    ok(!!list && list.hidden && !!chip && +chip.dataset.problems === p.problems.length && chip.getAttribute("aria-expanded") === "false" && /could not read — show$/.test(chip.textContent) && first !== list,
+    ok(!!list && list.hidden && !!chip && +chip.dataset.problems === p.problems.length && chip.getAttribute("aria-expanded") === "false" && /couldn't be read: show$/.test(chip.textContent) && first !== list,
       `inside ${name}, build plan: ${plural(p.problems.length, "unreadable line")} counted on the chip, the list collapsed and not the first thing on the page`, `inside ${name}, build plan: list ${list ? (list.hidden ? "hidden" : "OPEN") : "missing"}, chip "${chip ? chip.textContent : "missing"}"`);
     if (chip) {
       chip.click();
-      ok(!list.hidden && list.querySelectorAll("li").length === p.problems.length + p.unresolved.length && /— hide$/.test(chip.textContent), `inside ${name}, build plan: the chip opens the list`, `inside ${name}, build plan: the chip did not open the list`);
+      ok(!list.hidden && list.querySelectorAll("li").length === p.problems.length + p.unresolved.length && /: hide$/.test(chip.textContent), `inside ${name}, build plan: the chip opens the list`, `inside ${name}, build plan: the chip did not open the list`);
     }
     if (added) { p.problems.pop(); Inside.open(k, "plan"); }
   }

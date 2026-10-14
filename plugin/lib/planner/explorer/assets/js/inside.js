@@ -603,7 +603,7 @@ const Inside = (() => {
     placeDrawings();
   }
   function componentsNote(app, d) {
-    const missing = d.problems.some((p) => p.section === "Integration points" && /missing section/.test(p.message));
+    const missing = d.problems.some((p) => p.section === "Integration points" && /has no '.*' section/.test(p.message));
     return h("div", { class: "inside-hint" }, `${plural(d.components.length, "component")} from the design. An arrow means one component depends on another, labeled with what the other offers it; `,
       missing ? h("span", { class: "gap" }, "the design doesn't list the outside systems it connects to, so none is drawn. ") : "boxes at the edges are outside systems it connects to. ",
       h("span", { class: "heuristic" }, d.trace_source === "recorded" ? "What each component delivers comes from the design's trace table." : "What each component delivers is guessed from where each item is mentioned; the design doesn't list it."));

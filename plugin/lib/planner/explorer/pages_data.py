@@ -90,8 +90,8 @@ class Renderer:
                     i += 1
                 code = html.escape("\n".join(body))
                 if lang == "mermaid":
-                    out.append('<details class="r-diagram"><summary>Diagram source; the explorer draws the system '
-                               f'itself</summary><pre><code>{code}</code></pre></details>')
+                    out.append('<details class="r-diagram"><summary>Diagram source (the dashboard draws this system '
+                               f'on its map)</summary><pre><code>{code}</code></pre></details>')
                 else:
                     out.append(f"<pre><code>{code}</code></pre>")
                 i += 1

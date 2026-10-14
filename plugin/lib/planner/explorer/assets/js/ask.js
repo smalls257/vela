@@ -138,7 +138,7 @@ const Ask = (() => {
     }
     return h("div", { class: "r-ask" }, h("button", { class: "ask-btn", type: "button", onmousedown: (ev) => { ev.preventDefault(); copyPrompt(q); } },
       h("b", {}, "Copy as a Claude Code prompt"), h("span", { class: "ask-q" }, shorten(q, 60))),
-    h("div", { class: "r-more" }, st.mode === "file" ? "Search only on a file. Run /planner:explore to ask Claude from this page." : "Search only: the helper did not answer. Run /planner:explore to ask Claude from this page."));
+    h("div", { class: "r-more" }, st.mode === "file" ? "Search only: this page was opened as a file. To ask Claude, open it with /planner:explore." : "Search only: Claude couldn't be reached. To ask Claude, open the page with /planner:explore."));
   }
   function closeSearch() { const q = $("#q"); q.value = ""; q.dispatchEvent(new Event("input")); q.blur(); }
   const enterAsks = (q) => served() && !!q.trim();
@@ -263,9 +263,9 @@ const Ask = (() => {
       st.fetches++;
       const res = await fetchFn("/ask", { method: "POST", headers: { "Content-Type": "application/json" }, signal: st.ctrl.signal,
         body: JSON.stringify({ question, context: ctx || {}, conversation_id: conv.session || undefined, model: model || undefined }) });
-      if (!res.ok) { const body = await res.json().catch(() => ({})); fail(msg, `The helper refused the question (${res.status}): ${body.error || res.statusText}`); return; }
+      if (!res.ok) { const body = await res.json().catch(() => ({})); fail(msg, `The local Claude connection turned the question down (${res.status}): ${body.error || res.statusText}`); return; }
       await readEvents(res, msg, conv);
-      if (msg.state === "running") fail(msg, "The answer stream ended without a result. The helper may have stopped; check the terminal running planner explore.");
+      if (msg.state === "running") fail(msg, "The answer stopped before it finished. The local Claude connection may have stopped; check the terminal where you started it.");
     } catch (e) {
       if (e.name === "AbortError") { msg.state = "stopped"; done(msg); }
       else fail(msg, `The question did not complete: ${e.message}`);
@@ -366,7 +366,7 @@ const Ask = (() => {
     box.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); submit(); }
     });
-    const harder = live ? h("button", { class: "btn tiny think", type: "button", "aria-pressed": String(st.harder), title: "Send the next questions to Sonnet: slower, dearer, more careful",
+    const harder = live ? h("button", { class: "btn tiny think", type: "button", "aria-pressed": String(st.harder), title: "Use the stronger model (Sonnet) for the next questions: slower and costs more, but more careful",
       onclick: (ev) => { st.harder = !st.harder; ev.currentTarget.setAttribute("aria-pressed", String(st.harder)); $(".ask-next").textContent = nextModel(); } }, "Think harder") : null;
     const go_ = h("button", { class: "btn tiny primary", type: "button", onclick: submit }, live ? "Ask" : "Copy as a prompt");
     return h("div", { class: "ask-compose" }, h("div", { class: "ask-col" }, aboutLine(), box,
@@ -383,7 +383,7 @@ const Ask = (() => {
   }
   function emptyLog() {
     if (served()) return h("div", { class: "ask-empty" }, h("b", {}, "Ask the vault in plain words."), " Claude reads its pages and answers with citations. Click a citation to read the source in the panel beside this conversation.");
-    return emptyState("Claude is not reachable from this page.", st.mode === "file" ? "A page opened as a file asks nothing of the network." : st.mode === "pending" ? "Looking for the helper." : "The helper did not answer.",
+    return emptyState("Claude is not reachable from this page.", st.mode === "file" ? "A page opened as a file asks nothing of the network." : st.mode === "pending" ? "Looking for the local Claude connection." : "The local Claude connection didn't answer.",
       "/planner:explore", "ask-empty");
   }
   function renderView(main) {

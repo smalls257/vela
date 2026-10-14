@@ -344,7 +344,7 @@ def stream_answer(vault, model_key, prompt, session_id, timeout=ASK_TIMEOUT, hom
         if code != 0:
             errors.seek(0)
             tail = errors.read().strip()[-400:] or "no message on stderr"
-            yield {"type": "error", "message": f"claude exited with status {code}: {tail}"}
+            yield {"type": "error", "message": f"Claude stopped with an error (exit status {code}): {tail}"}
             return
         yield from finish(state, model_key)
 
@@ -565,7 +565,7 @@ def serve(vault, page, port, model, open_browser, log, ask_timeout=ASK_TIMEOUT, 
     server = Server(vault, page, port, model, ask_timeout, log, freshness, pins)
     if shutil.which("claude") is None:
         log("claude is not on PATH: the page will load, and Ask Claude will say so when asked")
-    log(f"serving {server.url} (Ctrl-C stops it); questions run on {MODELS[model]} unless the page asks for sonnet")
+    log(f"serving {server.url} (press Ctrl-C to stop); Ask Claude uses {MODELS[model]}, or Sonnet when the page asks it to think harder")
     if open_browser and not webbrowser.open(server.url):
         log(f"no browser could be opened; open {server.url} yourself")
     try:

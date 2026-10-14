@@ -31,7 +31,7 @@ NOTIFICATIONS_PROBLEMS = [  # (section, part of the message)
     ("frontmatter", "gaps entry G-001 has no why, revisit"),
     ("frontmatter", "gap G-002 names OQ-002, which is not in the doc"),
     ("vault link", "more than one vault commit: 7d41e0c, 9e02b11"),
-    ("Integration points", "missing section: ## Integration points"),
+    ("Integration points", "the design has no 'Integration points' section (## Integration points)"),
     ("NFRs", "row has 2 cells, the header 3"),
     ("Operations", "no '**Scale:**' bullet"),
     ("Components › Channel suppressor", "no 'Exposes:' bullet"),
@@ -300,7 +300,7 @@ def test_the_deliberately_incomplete_doc_lists_each_problem():
      "the vault prereq expects status 'complete', not handed_off"),
     ("---\nslug: x\nstatus: in-progress\nlast_session: 2026-01-01\nprereqs:\n"
      "  - path: v/05-building-blocks/booking-building-blocks.md\n    expected_status: handed_off\n---\n",
-     "no vault citation names a commit"),
+     "doesn't say which version of the plan it used"),
     ("---\nslug: x\nstatus: in-progress\nlast_session: 2026-01-01\nprereqs:\n"
      "  - path: v/05-building-blocks/booking-building-blocks.md\n    expected_status: handed_off\n---\n",
      "no component cites a trace target"),
@@ -326,7 +326,7 @@ def test_a_doc_that_is_not_utf8_is_read_and_reported(tmp_path):
 
 def test_random_markdown_reports_every_template_section_missing(tmp_path):
     design = design_data.read_design(write(tmp_path, "just some notes\n\n```\n## Components\n```\n"))
-    missing = [m for m in messages(design) if m.startswith("missing section")]
+    missing = [m for m in messages(design) if m.startswith("the design has no '")]
     assert len(missing) == len(design_data.TEMPLATE_SECTIONS)  # the ## inside a fence is not a section
 
 

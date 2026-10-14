@@ -64,7 +64,7 @@ def test_a_plan_beside_the_design_whose_prereqs_name_it_is_found(world):
     vault, _ = world
     code, said = explore(vault)
     assert code == 0, said
-    assert "APP-pricing build plan found at" in said and "beside its design, by the prereqs naming pricing.md" in said, said
+    assert "(APP-pricing): using the build plan" in said and "beside its design, because it points to pricing.md" in said, said
     assert plans_on_the_page(vault) == ["APP-pricing"]
 
 
@@ -74,7 +74,7 @@ def test_a_plan_that_names_another_design_is_not_taken_and_the_report_says_what_
     code, said = explore(vault)
     assert code == 0, said
     assert plans_on_the_page(vault) == []
-    assert "no build plan found for APP-pricing" in said and "none whose prereqs name pricing.md" in said, said
+    assert "no build plan yet for Pricing (APP-pricing)" in said and "none of them is for the pricing.md design" in said, said
 
 
 def test_a_design_with_no_plan_folder_is_named_in_the_report(world):
@@ -82,7 +82,7 @@ def test_a_design_with_no_plan_folder_is_named_in_the_report(world):
     shutil.rmtree(team / "docs/plan")
     code, said = explore(vault)
     assert code == 0, said
-    assert "no build plan found for APP-pricing" in said and "no *-breakdown.md in" in said, said
+    assert "no build plan yet for Pricing (APP-pricing)" in said and "no *-breakdown.md in" in said, said
 
 
 def test_two_plans_naming_one_design_is_a_warning_and_the_first_is_used(world):
@@ -90,7 +90,7 @@ def test_two_plans_naming_one_design_is_a_warning_and_the_first_is_used(world):
     shutil.copy(team / PRICING_PLAN, team / "docs/plan/a-breakdown.md")
     code, said = explore(vault)
     assert code == 0, said
-    assert "warning: APP-pricing: 2 plans name pricing.md" in said and "using a-breakdown.md" in said, said
+    assert "warning: Pricing (APP-pricing): 2 plans name pricing.md" in said and "using a-breakdown.md" in said, said
 
 
 def test_breakdown_on_the_app_page_wins_over_beside_the_design(world):
@@ -110,7 +110,7 @@ def test_breakdowns_in_planner_yaml_names_a_plan_with_no_design_loaded(world):
         config.write(f"breakdowns: {{APP-booking: ../team/{PRICING_PLAN}}}\n")
     code, said = explore(vault)
     assert code == 0, said
-    assert "APP-booking build plan found at" in said and "breakdowns: in .planner.yaml" in said, said
+    assert "(APP-booking): using the build plan" in said and "breakdowns: in .planner.yaml" in said, said
     assert plans_on_the_page(vault) == ["APP-booking", "APP-pricing"]
 
 
@@ -119,7 +119,7 @@ def test_a_breakdown_path_that_leads_nowhere_is_a_warning_and_never_a_failed_bui
     edit(vault / PRICING_PAGE, "id: APP-pricing\n", "id: APP-pricing\nbreakdown: ../team/nothing-breakdown.md\n")
     code, said = explore(vault)
     assert code == 0, said
-    assert "warning: APP-pricing: breakdown: on its page is ../team/nothing-breakdown.md, which is not a file" in said, said
+    assert "warning: Pricing (APP-pricing): breakdown: on its page is ../team/nothing-breakdown.md, which is not a file" in said, said
 
 
 def test_a_web_address_is_never_fetched(world):
@@ -127,14 +127,14 @@ def test_a_web_address_is_never_fetched(world):
     edit(vault / PRICING_PAGE, "id: APP-pricing\n", "id: APP-pricing\nbreakdown: https://example.com/x-breakdown.md\n")
     code, said = explore(vault)
     assert code == 0, said
-    assert "a web address; it is never fetched" in said, said
+    assert "is a web address" in said, said
 
 
 def test_a_named_breakdown_beats_every_lookup_and_a_missing_one_stops_the_build(world):
     vault, team = world
     code, said = explore(vault, f"--breakdown=APP-pricing={team / PRICING_PLAN}")
     assert code == 0, said
-    assert "build plan found" not in said and plans_on_the_page(vault) == ["APP-pricing"]
+    assert "using the build plan" not in said and plans_on_the_page(vault) == ["APP-pricing"]
     code, said = explore(vault, f"--breakdown=APP-pricing={team / 'docs/plan/nope.md'}")
     assert code != 0 and "--breakdown: no breakdown at" in said, said
     code, said = explore(vault, "--breakdown=pricing")
@@ -259,7 +259,7 @@ def test_the_demo_build_gives_the_booking_plan_its_tickets_and_the_reverse_trace
     page = json.loads(DATA.search(out.read_text(encoding="utf-8")).group(1))
     plan = page["plans"]["APP-booking"]
     assert plan["problems"] == [] and plan["unresolved"] == [], (plan["problems"], plan["unresolved"])
-    assert any("APP-booking build plan found" in line for line in said)
+    assert any("(APP-booking): using the build plan" in line for line in said)
     assert any(t == "CAP-014.FR1@APP-booking" for s in plan["stories"] for t in s["traces"])
     assert plan["ticketsHref"].endswith("docs/work/tickets.csv")
 
@@ -322,5 +322,5 @@ def test_a_breakdown_path_outside_docs_plan_or_not_markdown_is_not_read(world, t
     edit(vault / PRICING_PAGE, "id: APP-pricing\n", f"id: APP-pricing\nbreakdown: {private}\n")
     code, said = explore(vault)
     assert code == 0, said
-    assert "is not a Markdown file, so it is not read" in said, said
+    assert "is not a Markdown file, so it isn't read" in said, said
     assert data_of(vault)["plans"]["APP-pricing"]["file"] != "salary-notes.txt"
