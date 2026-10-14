@@ -51,14 +51,15 @@ def test_viewer_builds_offline_from_the_fixture(tmp_path):
     paths = [p["path"] for p in data["pages"]]
     assert not [p for p in paths if p.startswith(("sessions/", "voice/", ".claude/"))]
     assert data["start"] == "01-goals" and "01-goals.md" in paths
-    # the stamp repeats what check says of the vault; the example leaves its decided items' Why open on purpose (W390)
+    # the stamp repeats what check says of the vault; the example leaves open on purpose its decided items' Why (W390) and
+    # the flow check of slices whose flows predate the strict form (W391)
     checked = run("check", "--vault", str(vault), "--today", "2026-11-20")[1]
     counts = re.search(r"planner check: (\d+) errors, (\d+) warnings", checked)
     assert counts, checked
     assert data["stamp"] == {"commit": "abc1234", "date": "2026-11-20",
                              "repo": "https://github.example/harbourline/unified-booking",
                              "errors": 0, "warnings": int(counts.group(2))}
-    assert data["stamp"]["warnings"] == len(re.findall(r" W390 ", checked)) > 0
+    assert data["stamp"]["warnings"] == len(re.findall(r" W39[01] ", checked)) > 0
     assert "Built from ${DATA.stamp.commit} on ${DATA.stamp.date}. Newer versions: ${DATA.stamp.repo}" in html
 
 

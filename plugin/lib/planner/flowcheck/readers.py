@@ -70,6 +70,10 @@ def read_catalog(vault, specs):
                 cat.flows[flow.id] = flow
     _merge_events(cat, channel_views)
     cat.slices = slices.read_slices(vault)
+    by_path = {p.path: p for p in slices.pages(vault)}
+    for found in cat.slices:
+        if found.path in by_path:
+            cat.slice_overrides[found.key] = flow_overrides(by_path[found.path], cat.problems)
     cat.callers = _callers(cat, vault)
     return cat
 
@@ -550,11 +554,13 @@ def read_flow(page, problems):
 
 
 def flow_overrides(page, problems):
-    """The checker's overrides on a flow page: the vault's Override bullet with a quoted rule, read by `override`.
+    """The checker's overrides on a flow page or a slice page: the vault's Override bullet with a quoted rule, read
+    by `override`.
 
         - **Override:** "F1 CON-010 unavailable until 2026-12-01" by @lead on 2026-10-13: next sprint
 
-    The one reader of them (slice pages will carry their own later, and come through here too). A quoted rule that
+    The one reader of them: one on a flow page covers that flow's findings wherever it is checked, one under a slice
+    page's `## Overrides` covers the finding in any flow of that slice. A quoted rule that
     starts like one of ours and does not read is a problem, never ignored: a typo would leave the user believing a
     finding is covered when it is not, the Silent Fallback overrides exist to prevent."""
     out = []

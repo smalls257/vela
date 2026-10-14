@@ -65,6 +65,13 @@ PAGE_TYPES = {
         "optional": ("owner", "sources"),
         "states": None,
     },
+    # A slice: one journey proven end to end, the unit of done (the tracer plan's amendment). Its facts are bullets
+    # under the title (SLICE_LABELS: Status, Flows, After, Joins and the rest), so the page itself is the record.
+    "slice": {
+        "required": ("id", "type", "title", "authored"),
+        "optional": ("initiative", "sources"),
+        "states": None,
+    },
     "session": {
         "required": ("id", "type", "date", "modes", "status", "summary"),
         "optional": ("title",),
@@ -128,6 +135,7 @@ PAGE_ID_RE = {
     "capability": re.compile(r"^CAP-\d{3}$"),
     "session": re.compile(rf"^\d{{4}}-\d{{2}}-\d{{2}}-{SLUG}$"),
     "entity": re.compile(r"^ENT-\d{3}$"),
+    "slice": re.compile(r"^SLC-\d{3}$"),
     "sources": re.compile(r"^sources$"),
 }
 ITEM_ID_RE = re.compile(r"^(CON-\d{3}|UNK-\d{3}|R-\d{2,}|CAP-\d{3}\.FR\d+|PTY-\d{2,}|SV-\d{2,})$")
@@ -145,7 +153,7 @@ def expected_basename(page_type, page_id):
         return ("exact", page_id[len("RUN-"):] + "-runtime")
     if page_type in ("concern", "session", "sources"):
         return ("exact", page_id)
-    if page_type in ("flow", "decision", "epic", "capability"):
+    if page_type in ("flow", "decision", "epic", "capability", "slice"):
         return ("prefix", page_id + "-")
     return None
 
@@ -182,7 +190,12 @@ RISK_STATES = ("open", "mitigated", "accepted", "closed")
 
 # Target is a release's date and Owning team an epic's receiving team; both are read or required, so style must not
 # call them prose.
-PAGE_LABELS = ("Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team", "Tracer", "Not in the tracer") + OVERRIDE_LABELS
+# A slice page's facts, which slices.py reads; a release points at its slices with Slices, or names flows with Flows.
+SLICE_STATUSES = ("planned", "building", "journey passes", "live but off", "on")
+SLICE_LABELS = ("Status", "Flows", "After", "Joins", "Ships switched off", "Done when", "Owner", "Milestone", "Journey")
+SLICE_DIR = "slices"
+PAGE_LABELS = ("Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team", "Tracer", "Not in the tracer",
+               "Slices") + SLICE_LABELS + OVERRIDE_LABELS
 
 # `- Trace: CAP-001.FR1, CON-001` under a criterion or bullet holds the IDs its sentence no longer shows. The planner
 # reads it, so `planner style` must never call it prose, and close must never delete it.
@@ -360,6 +373,16 @@ CODES = {
     "W389": "prose leaves a matter for a Grill with no open question linked",
     "W390": "decided item records no Why",
     "W391": "a drawn slice does not pass the flow check",
+    "W392": "a slice names no flows",
+    "W393": "a slice's Flows, After or Joins names nothing in the vault",
+    "E394": "slices come after each other in a circle",
+    "W395": "a slice at building or later has flow-check findings no override covers",
+    "W396": "a slice at journey passes or later records no readable Journey line",
+    "W397": "a slice is at building or later while a slice it comes after has not passed its journey",
+    "E398": "a flow-check override has passed its end date",
+    "W399": "slices are still named on the releases page, not in slices/",
+    "E346": "slice status is not one of the five",
+    "W348": "a release's Slices names no slice page, or a slice's Milestone names a release that does not list it",
     "W388": "a handoff manifest pins a commit this repository does not have, or cannot be read",
     "E330": "allocation row names no functional requirement",
     "E331": "allocation row goes through no such contract",

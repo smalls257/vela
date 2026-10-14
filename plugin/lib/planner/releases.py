@@ -16,6 +16,7 @@ HEADER = ("Delivers", "Criteria", "Note")
 STATES = ("inkling", "assumption", "decided")
 CRITERION = re.compile(r"^AC(\d+)$", re.I)
 FLOW_ID = re.compile(r"\bFLO-\d+\b")
+SLICE_ID = re.compile(r"\bSLC-\d+\b")
 ITEM_ID = re.compile(r"\b[A-Z]{3}-[A-Za-z0-9]+(?:\.FR\d+)?\b")
 _LEADING_LINKS = re.compile(r"^\s*(?:\[\[[^\]]+\]\]\s*(?:,\s*|$))+")
 _NONE = re.compile(r"^none\b\s*,?\s*(.*)$", re.I)
@@ -55,6 +56,8 @@ class Release:
     not_in_tracer: list = field(default_factory=list)  # [Left]
     flows_line: int = 0
     flows: tuple = ()  # a later release's slice: the flow ids its **Flows:** bullet links (slices.read_slices reads it)
+    slices_line: int = 0
+    slices: tuple = ()  # SLC ids its **Slices:** bullet names: the release as a milestone, "these slices on by the date"
 
 
 def page(vault):
@@ -127,8 +130,10 @@ def releases(vault):
             if m:
                 setattr(current, m.group(1).lower(), m.group(2).strip())
                 current.declared = True
-            m = re.match(r"^- \*\*(Tracer|Not in the tracer|Flows):\*\*\s*(.*)$", line)
-            if m and m.group(1) == "Flows":
+            m = re.match(r"^- \*\*(Tracer|Not in the tracer|Flows|Slices):\*\*\s*(.*)$", line)
+            if m and m.group(1) == "Slices":
+                current.slices_line, current.slices = n, tuple(dict.fromkeys(SLICE_ID.findall(m.group(2))))
+            elif m and m.group(1) == "Flows":
                 current.flows_line, current.flows = n, read_tracer(m.group(2))[0]
             elif m and m.group(1) == "Tracer":
                 current.tracer_given, current.tracer_line = True, n

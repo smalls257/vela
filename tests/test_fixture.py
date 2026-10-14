@@ -13,7 +13,7 @@ import time
 
 import pytest
 
-from conftest import REPO, check, edit, findings, run
+from conftest import OPEN_IN_THE_EXAMPLE, REPO, check, edit, findings, run
 
 FIXTURE = REPO / "examples" / "unified-booking"
 TODAY = "2026-11-20"
@@ -46,7 +46,7 @@ def test_fixture_is_clean_and_fast():
     assert result.stdout.startswith("planner check: 0 errors, ")
     assert findings(result.stdout) == []
     # what the example leaves open on purpose is its decided items' Why, which it carries for none (conftest.OPEN_IN_THE_EXAMPLE)
-    assert all(code == "W390" for code, _ in findings(result.stdout, keep_open=True))
+    assert all(code in OPEN_IN_THE_EXAMPLE for code, _ in findings(result.stdout, keep_open=True))
     assert elapsed < 1.0, f"check took {elapsed:.2f} s"
 
 

@@ -15,7 +15,8 @@ One vault holds one initiative. Pages are numbered by arc42 section.
 | `02-constraints.md` | Constraints table, `CST-n` |
 | `03-context-and-scope.md` | Systems today and after; apps in and out of scope |
 | `04-solution-strategy.md`, `04a-capability-delta.md` | The core move; links to every capability that changes |
-| `04b-releases.md` | One section per release, listing the functional requirements it delivers |
+| `04b-releases.md` | One section per release, listing the functional requirements it delivers and, as a dated milestone, the slices it points at |
+| `slices/` | `SLC-nnn-<slug>.md` per slice: one journey proven end to end, the unit of done (see Slices) |
 | `05-building-blocks/` | Index with the `context-map` block, then `<app>-building-blocks.md` per app, with its contracts |
 | `06-runtime/` | `06-flows.md`, `flows/FLO-nnn-<slug>.md`, `apps/<app>-runtime.md` |
 | `08-concerns/` | `08-concerns.md` with the `concern-matrix` block, then `concern-<name>.md` |
@@ -72,6 +73,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `session` | `id`, `type`, `date`, `modes`, `status`, `summary` | `title` | none: `status` is `open` or `closed` |
 | `sources` | `id`, `type`, `title`, `authored` | `owner` | none |
 | `entity` | `id`, `type`, `title`, `app`, `shared`, `initial`, `final` | `owner`, `sources` | none: `initial` and `final` name its states. See Flow check. |
+| `slice` | `id`, `type`, `title`, `authored` | `initiative`, `sources` | none: its `**Status:**` bullet says where it stands. See Slices. |
 
 Every type except `session` may also carry `last_verified`, `verified_by` and `links`.
 
@@ -101,7 +103,7 @@ IDs are never reused or renumbered. A file's basename is frozen once anything li
 | Initiative | `INI-001` | `.planner.yaml` | |
 | App | `APP-booking` | app page `id` | `booking-building-blocks.md` |
 | Runtime page | `RUN-booking` | runtime page `id` | `booking-runtime.md` |
-| Capability, flow, epic | `CAP-013`, `FLO-001`, `EPC-031` | page `id` | starts with the ID, then `-<slug>` |
+| Capability, flow, epic, slice | `CAP-013`, `FLO-001`, `EPC-031`, `SLC-001` | page `id` | starts with the ID, then `-<slug>` |
 | Decision | `ADR-0001` | page `id` | starts with the ID, then `-<slug>` |
 | Concern | `concern-testing` | page `id` | the ID |
 | Session | `2026-08-12-goals-and-data` | page `id` | the ID. Add `-2` on a same-day clash. |
@@ -576,6 +578,11 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W386 | an app at handoff has an item in its slice that is not decided | W387 | an app at handoff calls a provider nobody has designed |
 | W388 | a handoff manifest pins a commit this repository does not have, or cannot be read | W389 | prose leaves a matter for a Grill with no open question linked |
 | W390 | decided item records no Why | W391 | a drawn slice does not pass the flow check |
+| W392 | a slice names no flows | W393 | a slice's Flows, After or Joins names nothing in the vault |
+| E394 | slices come after each other in a circle | W395 | a slice at building or later has flow-check findings no override covers |
+| W396 | a slice at journey passes or later records no readable Journey line | W397 | a slice is at building or later while a slice it comes after has not passed its journey |
+| E398 | a flow-check override has passed its end date | W399 | slices are still named on the releases page, not in slices/ |
+| E346 | slice status is not one of the five | W348 | a release's Slices names no slice page, or a slice's Milestone names a release that does not list it |
 | E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
 | E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
@@ -619,27 +626,115 @@ An app's allocated rows are its team's input. Epics take their acceptance criter
 
 **Criteria** is `all`, or the acceptance criteria this release delivers, numbered in the order they appear under the requirement: AC1 is the first bullet (an indented `- Trace:` line under a bullet is not a bullet of its own). A requirement may be split across releases this way, so an epic never needs a release of its own.
 
-Release one also carries two bullets about its tracer, a thin path through every app and contract it needs, built first and kept, so the first story each team builds is its part of it:
+A release is a milestone: a named, dated checkpoint that says which slices should be on by its date. It points at them with `- **Slices:** SLC-001, SLC-002`. Nothing waits for a release; a slice switches on when its journey passes (see Slices).
 
 ```
 ## Release one: February pilot, Client Delivery London
 
 - **Target:** 2027-02-02
 - **State:** assumption
+- **Slices:** SLC-001, SLC-002, SLC-003
+```
+
+The thinning itself goes in the Delivers table. Put the criteria a slice needs in the row's Criteria column (`AC1, AC2`) and say in the Note that the rest is in release two.
+
+A vault with no slice pages yet names its slices on this page instead, and is read that way until the first slice page is written. Release one carries the tracer, and later releases name the flows they prove:
+
+```
 - **Tracer:** [[FLO-001-switch-heron-on|FLO-001]], [[FLO-002-get-morning-digest|FLO-002]], a person switches Heron on and gets the 7:30 digest from calendar entries only
 - **Not in the tracer:** Teams transcripts (CAP-001.FR1): waits on the CISO review of 4 December and the tenant admins' approval
 ```
 
-- **`**Tracer:**`** takes one or more flow links, in the order they run, then a comma and the thin version in plain words. A tracer is often several flows, and the planner joins their steps. If the flow has no page yet, write plain words with no link (`**Tracer:** a person gets the 7:30 digest from their calendar, no flow page yet`) and draw the flow in a boundary session. To record a deliberate choice of no tracer, write `**Tracer:** none, <reason>`.
-- **`**Not in the tracer:**`** is free text, one bullet per piece: what is left out, an optional ID in parentheses (an app, a contract or a requirement) and the reason. It is the record of "not ready", so nothing else needs an override.
-- The thinning itself goes in the Delivers table. Put the criteria the tracer needs in the row's Criteria column (`AC1, AC2`) and say in the Note that the rest is in release two. The words after the comma in the Tracer bullet summarise those rows.
-- Only release one carries these bullets. Later releases say what they add through their own Delivers tables, and name the flows they prove with `- **Flows:** [[FLO-003-get-prep-note|FLO-003]], ...`: those flows are the release's slice for the flow check (see Flow check).
+- **`**Tracer:**`** takes one or more flow links, in the order they run, then a comma and the thin version in plain words. If the flow has no page yet, write plain words with no link and draw the flow in a boundary session. To record a deliberate choice of no tracer, write `**Tracer:** none, <reason>`.
+- **`**Not in the tracer:**`** is free text, one bullet per piece: what is left out, an optional ID in parentheses (an app, a contract or a requirement) and the reason.
+- A later release names the flows it proves with `- **Flows:** [[FLO-003-get-prep-note|FLO-003]], ...`, and comes after the release before it.
+
+`planner check` says once that the vault still names its slices here (W399), so nobody mistakes the old way for slice pages. To move, write `slices/SLC-001-<slug>.md` from the Tracer bullet (its flows, and Not in the tracer as Not in this slice), a page for each later release's Flows, then replace those bullets with `- **Slices:**`. Once slice pages exist, a Tracer or Flows bullet left here is W399 too: the slice pages win.
 
 Nothing else records a release. What the system looks like after each one is worked out from the requirements it delivers: each app that carries a share of one changes, or arrives if it is new, and each contract its share goes through exists. Today is every app whose `change` is not `new`, and every contract whose `**Change:**` is not `new`.
 
 `/planner:releases` writes this page, after allocate and before epics, in a session with mode `releases`. A requirement the user places on no release ("later, no date") stays out of the file; W343 lists it.
 
-`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. If Not in the tracer lists that requirement, W343 quotes the reason. W345 warns when release one has no Tracer bullet; any Tracer bullet quiets it, including `none, <reason>` and plain words with no link. W347 warns when a tracer flow passes through an app or contract of this vault that release one delivers no share of; listing that app or contract by ID under Not in the tracer quiets it, an app or contract whose change is `unchanged` already runs and never counts, and neither do outside parties. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
+`planner check` reports E340 for a row that names no functional requirement of this vault, E341 for a criterion the requirement does not list, E342 for a release with no valid State, and E344 for a Target that is not a real YYYY-MM-DD date. Once any release exists, W343 warns for a requirement at `assumption`, `fact` or `decided` that no release delivers. If Not in the tracer, or a slice's Not in this slice, lists that requirement, W343 quotes the reason. Without slice pages, W345 warns when release one has no Tracer bullet; any Tracer bullet quiets it, including `none, <reason>` and plain words with no link. W347 warns when a tracer flow passes through an app or contract of this vault that release one delivers no share of; listing that app or contract by ID under Not in the tracer quiets it, an app or contract whose change is `unchanged` already runs and never counts, and neither do outside parties. With slice pages, the same two ask the same of the slices (see Slices). W348 warns when a release's Slices names a slice with no page. A Grill decides a release, as it decides any other item: the release's `**State:**` becomes `decided` and the Grill's `- **Decision:** [[<session id>]]` goes directly under the releases page's `## History`. A release set to `decided` with no such Decision is E303, reported on the release's heading, and an Override on the page clears it like any other.
+
+## Slices
+
+A slice is the unit of done: one journey, proven end to end through every app and contract it needs, and switched on when that journey passes. The tracer is the first slice, SLC-001, built first and kept. Several slices can be in flight at once; each says which slices it comes after, so the order is a graph, not a queue. A slice stands on its own: a release may point at it as a milestone, and nothing waits for the release.
+
+Each slice is a page in `slices/`, `SLC-nnn-<slug>.md`, with `type: slice`. Its facts are bullets under the title:
+
+```
+---
+id: SLC-002
+type: slice
+title: The digest reaches a pilot user
+authored: authored
+---
+
+# The digest reaches a pilot user
+
+The digest flow on its own, after the tracer, from the calendar only. Transcripts wait for their own slice.
+
+- **Status:** building
+- **Flows:** [[FLO-002-get-morning-digest|FLO-002]]
+- **After:** SLC-001
+- **Joins:** [[consent-and-identity-building-blocks#CON-004 Record consent|Record consent]] (Desk agent → Consent and identity), [[desktop-agent-building-blocks#CON-007 Calendar read|Calendar read]] (Desk agent → Microsoft)
+- **Ships switched off:** a per-user flag, held by the Desk agent team
+- **Done when:** the digest journey passes in the shared integration environment, from the pilot user's side
+- **Owner:** @lead
+- **Milestone:** Release one
+
+## Not in this slice
+
+- Transcripts (CAP-001.FR1): the digest reads the calendar only until SLC-004
+
+## Overrides
+
+- **Override:** "F1 CON-007 unavailable until 2026-12-01" by @lead on 2026-10-20: Microsoft's outage answer is still unknown; we're asking their support and showing "calendar not reachable" meanwhile
+
+## History
+
+- 2026-10-13: planned by @lead, in [[2026-10-13-digest-grill]]
+- 2026-10-20: building. The flow check passed with one override.
+```
+
+- **`**Status:**`** is one of `planned`, `building`, `journey passes`, `live but off` or `on`. Leave it out while the slice is being drafted: the dashboard shows it as not planned yet.
+- **`**Flows:**`** links the flows the slice proves, in the order they run. `none, <reason>` records a tracer with no flow on purpose.
+- **`**After:**`** names the slices it comes after, by ID. The tracer has none.
+- **`**Joins:**`** names each contract the slice crosses, with both sides in brackets, sender first.
+- **`**Ships switched off:**`** says how it goes live but off: the flag or switch, and who holds it.
+- **`**Done when:**`** is the journey that must pass, said from the side of the person or app that uses it.
+- **`**Owner:**`** is the person who moves it on. **`**Milestone:**`** is optional: the release that lists it, by the start of its heading.
+- **`## Not in this slice`** lists what is left out, one bullet each: what, an optional ID in brackets or a link, a colon and why. Naming an app, contract or requirement there answers W343 and W347 for it.
+- **`## Overrides`** holds the flow check's overrides for this slice (see Flow check). One here covers that finding in any flow of the slice.
+- **`## History`** comes last, as on every page: one dated line for each move, with who moved it.
+
+Where a slice stands, and what moves it on:
+
+| Status | Set when | Who sets it |
+|---|---|---|
+| `planned` | Its flows have case tables, and the flow check passes or each finding has an override with an end date | the lead, in a Grill |
+| `building` | Each team has accepted its app's part at handoff | each team's senior |
+| `journey passes` | The journey ran green in the shared environment | the team that ran it, with a Journey line |
+| `live but off` | It is deployed with its switch off | the team |
+| `on` | Someone decided to switch it on | the business owner, recorded in History with who and when |
+
+`journey passes` is written by hand, because Vela runs nothing: `- **Journey:** passed 2026-11-30 by @desk-senior, [the integration run](https://ci.example/runs/4411)`. Pipelines, flags, stubs, contract tests and journey runs are the teams' tools; the slice page records their results. Vela never switches anything on.
+
+`planner check` reports, for slice pages:
+
+- E346 for a Status that is not one of the five;
+- W345 when the tracer (the first slice) names no flows, and W392 for any other slice that names none;
+- W393 when Flows, After or Joins names something the vault does not have;
+- E394 when slices come after each other in a circle, so none of them can start;
+- W395 when a slice is `building` or later and its flow check has a finding no unexpired override covers, or is not fully checked; check runs the flow check itself, in milliseconds a slice;
+- W396 when a slice is `journey passes` or later with no Journey line, or one that does not read;
+- W397 when a slice is `building` or later and a slice it comes after is not yet at `journey passes`. It warns, never blocks: building in parallel is allowed, and the warning says it is a bet;
+- E398 for a flow check override past its end date, on a slice page or a flow page;
+- W347 when a slice's flows pass through an app or contract that a release listing the slice delivers no share of, unless Not in this slice names it;
+- W348 when a slice's Milestone names a release that does not list it.
+
+`/planner:releases` writes slice pages, the tracer first, and the release milestones that point at them; the lead decides each cut. A Grill moves a slice to `planned`. Breakdown and tickets group a team's work by slice, and the handoff names the slices an app takes part in. `planner next` suggests the next step for the slice furthest along.
 
 ## Flow steps
 
@@ -653,7 +748,7 @@ A flow page lists its journey under `## Steps`, one numbered line per step. A st
 
 ## Flow check
 
-`planner check-slice <slice>` proves a slice's logic before anyone builds it: every answer a provider can give is handled, every event is consumed, nothing is left half done, and the rules written as invariants hold, across every order the steps can happen in. It reads the plan, not the code, and runs in seconds with no apps running. A slice is release one's `**Tracer:**` flows, or a later release's `**Flows:**`; `planner check-slice "Release one"` checks the first, `planner check-slice FLO-002` one flow on its own.
+`planner check-slice <slice>` proves a slice's logic before anyone builds it: every answer a provider can give is handled, every event is consumed, nothing is left half done, and the rules written as invariants hold, across every order the steps can happen in. It reads the plan, not the code, and runs in seconds with no apps running. A slice is a slice page's `**Flows:**` (see Slices), or, in a vault with no slice pages yet, release one's `**Tracer:**` flows or a later release's `**Flows:**`. `planner check-slice SLC-002` checks a slice by its ID, `planner check-slice "Release one"` by the start of its name, and `planner check-slice FLO-002` one flow on its own.
 
 It reads four things, and never prose:
 
@@ -762,7 +857,7 @@ Findings, each with the step it sits on, a trace in plain words, the owners of t
 | F12 | a warning: a provider that calls other apps itself answers from its contract, so what it does with them is not checked |
 | F13 | a flow starts from a state no flow of this or an earlier slice leaves |
 
-"Not fully checked" is never a pass, and `check-slice` exits 1 for it as for any finding. To accept a finding for now, put an override on the flow page, in the Overrides form with a quoted rule naming the code, the contract (or event or entity), the answer and an end date: `- **Override:** "F1 CON-010 unavailable until 2026-12-01" by @lead on 2026-10-13: the refund flow lands next sprint`. Past its date it covers nothing and the finding blocks the slice again. Nothing covers F10 or F11. `planner check` runs each slice that has a drawn flow on a small budget and warns W391 while it does not pass; a slice with nothing drawn yet is left to `check-slice`.
+"Not fully checked" is never a pass, and `check-slice` exits 1 for it as for any finding. To accept a finding for now, put an override under the slice page's `## Overrides` (it covers the finding in any flow of that slice), or on the flow page (it covers it wherever the flow is checked), in the Overrides form with a quoted rule naming the code, the contract (or event or entity), the answer and an end date: `- **Override:** "F1 CON-010 unavailable until 2026-12-01" by @lead on 2026-10-13: the refund flow lands next sprint`. Past its date it covers nothing, the finding blocks the slice again, and check reports E398 until the override is renewed or removed. Nothing covers F10 or F11. `planner check` runs each slice that has a drawn flow on a small budget and warns W391 while it does not pass; a slice with nothing drawn yet is left to `check-slice` until it is `building`, when W395 says it is not fully checked. F13's "earlier slice" means a slice it comes after, through After all the way back.
 
 ## Domains
 

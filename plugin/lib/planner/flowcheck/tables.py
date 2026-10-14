@@ -133,6 +133,7 @@ class Catalog:
     entities: dict = field(default_factory=dict)  # slug and id -> Entity
     flows: dict = field(default_factory=dict)  # FLO id -> Flow
     slices: list = field(default_factory=list)  # [slices.Slice], in order
+    slice_overrides: dict = field(default_factory=dict)  # slice key -> (Override,) from its slice page's Overrides
     callers: set = field(default_factory=set)  # app keys that call a contract of the vault: their handling can miss something
     problems: list = field(default_factory=list)
 

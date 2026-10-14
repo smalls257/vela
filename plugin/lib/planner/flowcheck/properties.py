@@ -6,6 +6,7 @@ graph in `judge_graph`, after `explore` has built it.
 """
 import difflib
 
+from planner import slices
 from planner.flowcheck.findings import Finding
 
 TIMEOUT, GAVE_UP = "timeout", "gave_up"
@@ -251,10 +252,15 @@ def unused_cases(catalog, trees):
 
 
 def loose_ends(catalog, slice_index, flows):
-    """F13: a GIVEN that no flow of this or an earlier slice leaves, and that is neither the entity's initial nor a
-    final state. The join between slices, checked statically (review 1.9)."""
+    """F13: a GIVEN that no flow of this slice or one it comes after (its After, all the way back) leaves, and that is
+    neither the entity's initial nor a final state. The join between slices, checked statically (review 1.9). A flow
+    checked on its own outside any slice may start from anything any slice leaves."""
     left = set()
-    for found in catalog.slices[:slice_index + 1] if slice_index is not None else catalog.slices:
+    earlier = catalog.slices
+    if slice_index is not None and slice_index < len(catalog.slices):
+        keys = slices.upstream(catalog.slices, catalog.slices[slice_index])
+        earlier = [s for s in catalog.slices if s.key in keys]
+    for found in earlier:
         for fid in found.flows:
             flow = catalog.flows.get(fid)
             for token in (flow.lines if flow else ()):

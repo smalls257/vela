@@ -5,7 +5,7 @@ Every rule runs on every page it can read. No rule stops the others.
 import datetime
 import re
 
-from planner import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, trace
+from planner import allocation, cases, deferrals, flows, handoffwarn, links, override, parse, pending, progress, questions, readability, readload, releases, render, schema, slices, trace
 from planner.model import Finding, blocked_units, cell_table, decided_goal_rows, goal_rows_at, meta_line
 
 
@@ -757,11 +757,14 @@ def release_rules(vault, today):
                          f"{problem or ', '.join(f'AC{n}' for n in over)} of {row.requirement}, which lists {count} criteria.",
                          "Write all, or ACn for the nth acceptance criterion under the requirement.")
     delivered = {row.requirement for r in found for row in r.rows}
-    left_out = {i: left for left in found[0].not_in_tracer for i in left.ids}
+    left_out = {i: (left, "Not in the tracer") for left in found[0].not_in_tracer for i in left.ids}
+    for s in slices.read_slices(vault) if slices.on_pages(vault) else ():
+        for left in s.not_in:
+            left_out.update({i: (left, f"{s.id}'s Not in this slice") for i in left.ids if i not in left_out})
     for req in allocation.due(vault):
         if req.id not in delivered:
-            why = left_out.get(req.id)
-            ending = (f"and Not in the tracer says why: {why.reason}" if why and why.reason
+            why, where = left_out.get(req.id, (None, ""))
+            ending = (f"and {where} says why: {why.reason}" if why and why.reason
                       else "so nothing says when it ships.")
             yield _f(req.page, req.line, "W343", f"{req.id} is at {req.fact('State')}, but no release on 04b-releases.md "
                      f"delivers it, {ending}", "Add it to the release that delivers it.")
@@ -769,27 +772,138 @@ def release_rules(vault, today):
 
 
 def tracer_rules(vault, page, first):
-    """W345 and W347, on release one only. Both warn, and both go quiet when the record says why: any Tracer bullet
-    (even `none, reason`) answers W345; naming an app or contract under Not in the tracer answers W347 for it."""
+    """W345 and W347 on release one, while slices are still named on the releases page; once slices have pages,
+    slice_rules asks the same of the slices instead. Both warn, and both go quiet when the record says why: any Tracer
+    bullet (even `none, reason`) answers W345; naming an app or contract under Not in the tracer answers W347 for it."""
+    if slices.on_pages(vault):
+        return
     if not first.tracer_given:
         yield _f(page, first.line, "W345", f"'{first.name}' has no Tracer bullet, so nothing names the thin path the team builds first.",
                  "Add '- **Tracer:** [[FLO-001-...|FLO-001]], then the thin version in words', or '- **Tracer:** none, <reason>'.")
         return
     if not first.tracer_flows:
         return
-    apps, contracts = flows.passes_through(vault, first.tracer_flows)
-    got_apps, got_contracts = releases.reach(vault, first)
     named = {i for left in first.not_in_tracer for i in left.ids}
-    # An app or contract no release changes already runs, so the thin path needs no share of it in release one.
-    unchanged = {a.id for a in vault.apps if str(a.meta.get("change") or "") == "unchanged"}
-    unchanged |= {c.id for c in vault.contracts if (c.fact("Change") or "").strip().lower() == "unchanged"}
-    missing = [i for i in apps if i not in got_apps and i not in unchanged] + [i for i in contracts if i not in got_contracts and i not in unchanged]
-    for item_id in missing:
+    for item_id in short_of(vault, first.tracer_flows, first):
         if item_id in named:
             continue
         yield _f(page, first.tracer_line, "W347", f"The tracer of '{first.name}' passes through {item_id}, "
                  "but release one delivers no share of it, so the thin path cannot run end to end.",
                  f"Deliver a requirement that {item_id} carries in release one, or list it under '- **Not in the tracer:** ({item_id}) <reason>'.")
+
+
+def short_of(vault, flow_ids, release):
+    """The vault's apps and contracts the flows pass through that the release delivers no share of. An app or
+    contract no release changes already runs, so a path needs no share of it; an outside party never counts."""
+    apps, contracts = flows.passes_through(vault, flow_ids)
+    got_apps, got_contracts = releases.reach(vault, release)
+    unchanged = {a.id for a in vault.apps if str(a.meta.get("change") or "") == "unchanged"}
+    unchanged |= {c.id for c in vault.contracts if (c.fact("Change") or "").strip().lower() == "unchanged"}
+    return [i for i in apps if i not in got_apps and i not in unchanged] + [i for i in contracts if i not in got_contracts and i not in unchanged]
+
+
+def slice_rules(vault, today):
+    """The slice pages' own rules (W345, W347, E346, W348, W392 to W394, W396, W397), or W399 once while a vault still
+    names its slices on the releases page. Those that need the flow checker's result (W391, W395, E398) run in
+    `planner check` beside it, from the same reader."""
+    found = slices.read_slices(vault)
+    if not slices.on_pages(vault):
+        yield from _slices_still_on_releases(vault, found)
+        return
+    by_page = {p.path: p for p in slices.pages(vault)}
+    keys = {s.key for s in found}
+    flow_ids = {p.id for p in vault.of_type("flow")}
+    contract_ids = {c.id for c in vault.contracts}
+    marked = slices.milestones(vault)
+    release_names = {r.name.lower(): r for r in releases.releases(vault)}
+    tracer = slices.tracer(found)
+    for s in found:
+        page = by_page[s.path]
+        yield from _slice_page_rules(vault, page, s, s is tracer, keys, flow_ids, contract_ids)
+        yield from _slice_milestone_rules(vault, page, s, marked.get(s.id, []), release_names)
+        yield from _slice_progress_rules(page, s, {x.key: x for x in found})
+    for circle in slices.cycles(found):
+        first = next(s for s in found if s.key == circle[0])
+        yield _f(by_page[first.path], first.lines.get("After", 1), "E394",
+                 f"{', '.join(circle)} each come after another of them, so none of them can start.",
+                 "Take one slice out of another's After: decide which goes first.")
+    yield from _release_slice_rules(vault, keys)
+
+
+def _slices_still_on_releases(vault, found):
+    """W399, once: the vault is read the old way, from the releases page. Said, never silent, so nobody believes
+    the slice rules ran on slices that have no pages."""
+    if not found:
+        return
+    page = releases.page(vault)
+    yield _f(page, found[0].line, "W399", f"Slices are still named on the releases page ({len(found)} of them); "
+             "they now live in slices/, a page each, with a status, what each comes after and the joins it crosses.",
+             f"Write slices/SLC-001-<slug>.md for '{found[0].name}' (its flows, and Not in the tracer as Not in this slice), "
+             "one page for each later release's Flows, then replace the Tracer and Flows bullets with '- **Slices:** SLC-001'.")
+
+
+def _slice_page_rules(vault, page, s, is_tracer, keys, flow_ids, contract_ids):
+    if s.status_raw and not s.status:
+        yield _f(page, s.lines["Status"], "E346", f"{s.id} has Status '{s.status_raw}'.",
+                 f"Write one of {', '.join(slices.STATUSES)}, or leave Status out until a Grill plans the slice.")
+    if not s.flows and is_tracer and not s.flows_none:
+        yield _f(page, s.lines.get("Flows", 1), "W345", f"{s.id} is the tracer slice and names no flows, so nothing names the thin path the team builds first.",
+                 "Add '- **Flows:** [[FLO-001-...|FLO-001]]', or '- **Flows:** none, <reason>'.")
+    elif not s.flows and not is_tracer:
+        yield _f(page, s.lines.get("Flows", 1), "W392", f"{s.id} names no flows, so it proves no journey and the flow check has nothing to run.",
+                 "Add '- **Flows:** [[FLO-nnn-...|FLO-nnn]]' for the journey it makes work.")
+    for label, named, known in (("Flows", s.flows, flow_ids), ("After", s.after, keys), ("Joins", s.joins, contract_ids)):
+        for missing in [i for i in named if i not in known]:
+            yield _f(page, s.lines.get(label, 1), "W393", f"{s.id}'s {label} names {missing}, which is not in this vault.",
+                     f"Correct the ID, or write the {'flow page' if label == 'Flows' else 'slice page' if label == 'After' else 'contract'} first.")
+    if s.id in s.after:
+        yield _f(page, s.lines["After"], "E394", f"{s.id} comes after itself, so it can never start.", "Take it out of its own After.")
+
+
+def _slice_milestone_rules(vault, page, s, marked, release_names):
+    """W347 for each release that names the slice, and W348 when the slice's own Milestone names a release that does
+    not list it: the release's Slices bullet is the record, and two that disagree drift."""
+    named = {i for left in s.not_in for i in left.ids}
+    for release in marked:
+        for item_id in short_of(vault, s.flows, release):
+            if item_id not in named:
+                yield _f(page, s.line, "W347", f"{s.id} passes through {item_id}, but '{release.name}', which names it, "
+                         "delivers no share of it, so its journey cannot run end to end by that date.",
+                         f"Deliver a requirement that {item_id} carries in that release, or list it under '## Not in this slice' as '- ({item_id}) <reason>'.")
+    if s.milestone:
+        wanted = s.milestone.split(",")[0].strip().lower()
+        hit = next((r for name, r in release_names.items() if name.startswith(wanted) or wanted.startswith(name)), None)
+        if hit is None or s.id not in hit.slices:
+            yield _f(page, s.lines["Milestone"], "W348", f"{s.id}'s Milestone says '{s.milestone}', but no release on the releases page lists {s.id} in its Slices.",
+                     f"Add {s.id} to that release's '- **Slices:**' bullet, or take the Milestone line out.")
+
+
+def _slice_progress_rules(page, s, by_key):
+    """W396 and W397: what moving a slice on needs. A journey that passed is written down with who ran it and where
+    the result is; building may start in parallel with what a slice comes after, but the warning says it is a bet."""
+    if s.at_least("journey passes") and (s.journey is None or s.journey.problem):
+        why = f"its Journey line {s.journey.problem}" if s.journey else "no Journey line says who ran it and where the result is"
+        yield _f(page, s.lines.get("Journey", s.lines.get("Status", 1)), "W396", f"{s.id} is at {s.status}, but {why}.",
+                 "Add '- **Journey:** passed YYYY-MM-DD by @who, <link to the run>'.")
+    if s.at_least("building"):
+        for key in s.after:
+            before = by_key.get(key)
+            if before is not None and not before.at_least("journey passes"):
+                yield _f(page, s.lines["Status"], "W397", f"{s.id} is {s.status}, and {before.id} it comes after is "
+                         f"{before.status or 'not planned yet'}: what it builds on has not run end to end yet.",
+                         f"Fine if both are built at once on purpose; say so in History. Otherwise get {before.id}'s journey to pass first.")
+
+
+def _release_slice_rules(vault, keys):
+    page = releases.page(vault)
+    for release in releases.releases(vault):
+        for missing in [i for i in release.slices if i not in keys]:
+            yield _f(page, release.slices_line, "W348", f"'{release.name}' lists {missing} in its Slices, and there is no slice page {missing}.",
+                     f"Write slices/{missing}-<slug>.md, or take {missing} off the release.")
+        if release.tracer_given or release.flows:
+            line = release.tracer_line or release.flows_line
+            yield _f(page, line, "W399", f"'{release.name}' still names flows on the releases page, but slices now have pages, "
+                     "and the slice pages win.", "Move what the bullet says to the slice page and leave '- **Slices:** SLC-nnn' on the release.")
 
 
 def flow_sender_rules(vault, today):
@@ -1213,5 +1327,5 @@ def link_pipe_rules(vault, today):
 
 
 RULES = (parse_errors, frontmatter_rules, duplicate_rules, link_rules, reference_rules, table_rules,
-         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
+         history_rules, page_state_rules, stale_mention_rules, allocation_rules, release_rules, slice_rules, flow_sender_rules, flow_capability_rules, domain_rules, ask_rules, requirement_coverage_rules, contract_rules, case_table_rules, handoff_rules, deferral_rules, why_rules, requirement_rules, unknown_rules, risk_rules, subject_rules, question_rules, certainty_rules, stage_rules, concern_rules,
          diagram_rules, block_rules, trace_rules, freshness_rules, link_field_rules, link_pipe_rules, reading_load_rules)

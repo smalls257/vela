@@ -269,7 +269,7 @@ def check_counts(files, today):
         copies.write_folder(files, folder + "/vault")
         root = pathlib.Path(folder) / "vault"
         vault = load_vault(root)
-        found = rules.check(vault, today) + vault_file_findings(root)
+        found = everything_check_says(root, vault, today)
     errors = sum(1 for f in found if f.is_error)
     return errors, len(found) - errors
 
@@ -564,7 +564,7 @@ def explore_workspace(folder, today, out):
 
 def vault_findings(root, today):
     """Every finding `planner check` would print for the vault at `root`."""
-    return rules.check(load_vault(root), today) + vault_file_findings(root)
+    return everything_check_says(root, load_vault(root), today)
 
 
 def check_summary(root, baseline_dir, today):
@@ -993,27 +993,20 @@ def spec_texts(root):
     return out
 
 
+def everything_check_says(root, vault, today):
+    """What a plain `planner check` reports, in one place: the vault's rules, the files around it, and the slices'
+    flow check. The stamp, health, handoff and propose count from here, so an error only the flow check sees (an
+    override past its date) blocks them as it blocks check, and no copy of the list drifts from another."""
+    return rules.check(vault, today) + vault_file_findings(root) + slice_findings(root, vault, today)
+
+
 def slice_findings(root, vault, today):
-    """W391 for each slice with a drawn flow whose check does not pass: open findings, or not fully checked. A slice
-    none of whose flows has a sequence diagram yet is left to check-slice, which says so: nothing is drawn to judge,
-    and the boundary session is where it gets drawn."""
-    from planner import flowcheck
-    from planner.flowcheck import readers
-    catalog = readers.read_catalog(vault, spec_texts(root))
-    out = []
-    for found in catalog.slices:
-        if not any(catalog.flows[f].has_diagram for f in found.flows if f in catalog.flows):
-            continue
-        result = flowcheck.check_catalog(catalog, found.name, today, CHECK_SLICE_STATES)
-        if result.status == "passes":
-            continue
-        open_ = [f for f in result.findings if f.severity == "error"]
-        names = sorted({flowcheck.TITLES.get(f.code, f.code).lower() for f in open_})
-        out.append(model.Finding(found.path, found.line, "W391",
-                                 f"{found.name} {result.status}: {len(open_)} open finding{'' if len(open_) == 1 else 's'} "
-                                 f"({', '.join(names)}).",
-                                 f"Run planner check-slice \"{found.name}\" for the traces and owners, and fix or override each."))
-    return out
+    """W391, W395 and E398 from the flow checker's result for each slice (flowcheck.verdicts). A slice none of whose
+    flows has a sequence diagram yet is left to check-slice until it is building: nothing is drawn to judge, and the
+    boundary session is where it gets drawn. The checker runs here, in milliseconds a slice, so check judges the
+    result itself rather than trusting a recorded one."""
+    from planner.flowcheck import readers, verdicts
+    return verdicts.findings(readers.read_catalog(vault, spec_texts(root)), today, CHECK_SLICE_STATES)
 
 
 def cmd_check_slice(args, out):
@@ -1197,7 +1190,7 @@ def cmd_view(args, out):
     commit = commit_stamp(root, args.commit)
     if args.commit:
         commit += changes_note(root)  # a named commit still says when the files differ from it
-    findings = rules.check(vault, today)
+    findings = everything_check_says(root, vault, today)
     errors = sum(1 for f in findings if f.is_error)
     stamp = {
         "commit": commit,
@@ -1297,7 +1290,7 @@ def cmd_health(args, out):
     today, _ = parse_today(args.today)
     vault = load_vault(root)
     commit = commit_stamp(root)
-    findings = rules.check(vault, today)
+    findings = everything_check_says(root, vault, today)
     print(health.report(vault, findings, today, commit), end="", file=out)
     return 0
 
@@ -1634,7 +1627,7 @@ def cmd_handoff(args, out):
     today, _ = parse_today(args.today)
     vault = load_vault(root)
     app = handoff_app(vault, app_id)
-    errors = [f for f in rules.check(vault, today) if f.is_error]
+    errors = [f for f in everything_check_says(root, vault, today) if f.is_error]
     if errors:
         print(f"planner handoff: wrote nothing, planner check has {len(errors)} errors. Fix them first.", file=out)
         for finding in errors:
@@ -2297,7 +2290,7 @@ def build_parser():
     check.set_defaults(func=cmd_check)
     slc = sub.add_parser("check-slice", help="prove one slice's logic (a release's flows, or one flow) from its specs, "
                                              "case tables, entities and strict sequence diagrams")
-    slc.add_argument("slice", help="a slice, by the start of its release's heading (\"Release one\"), or a flow ID (FLO-001)")
+    slc.add_argument("slice", help="a slice, by its ID (SLC-002) or the start of its name (\"Release one\" while slices are still on the releases page), or a flow ID (FLO-001)")
     slc.add_argument("--vault", default=".", help="vault root (default: current directory)")
     slc.add_argument("--today", help="the date overrides' end dates are judged by, YYYY-MM-DD (default: system date)")
     slc.add_argument("--max-states", type=int, default=200_000, help="state budget; running out is 'not fully checked' (default 200000)")

@@ -1,5 +1,6 @@
 """The tracer on release one: parsed from two bullets, checked by W345 and W347, quoted by W343, and carried in the
 handoff so a changed tracer reaches the senior who accepted the slice."""
+import shutil
 import sys
 
 from conftest import REPO, findings, run
@@ -37,7 +38,10 @@ def with_bullets(bullets, rows=None):
 
 
 def vault_for(tmp_path, bullets, **kw):
+    """The example with its slice pages taken out: these tests are about the releases page's own tracer, which is how
+    a vault reads its slices until it has slice pages (test_slices.py covers the pages)."""
     vault = vault_with(tmp_path, with_bullets(bullets, **kw))
+    shutil.rmtree(vault / "slices")
     add_flows(vault)
     return vault
 

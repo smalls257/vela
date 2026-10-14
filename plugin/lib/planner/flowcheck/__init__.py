@@ -45,7 +45,7 @@ def resolve_slice(catalog, target):
     exact = [s for s in catalog.slices if wanted.lower() in (s.id.lower(), s.name.lower())]
     found = exact or [s for s in catalog.slices if s.name.lower().startswith(wanted.lower())]
     if not found:
-        names = "; ".join(s.name for s in catalog.slices) or "none: release one needs a Tracer bullet, later ones a Flows bullet"
+        names = "; ".join(s.label for s in catalog.slices) or "none yet: write a slice page in slices/, SLC-001 first"
         raise SliceNotFound(f"'{target}' names no flow ID and no slice. Slices: {names}.")
     if len(found) > 1:
         raise SliceNotFound(f"'{target}' starts more than one slice: {'; '.join(s.name for s in found)}.")
@@ -80,7 +80,7 @@ def check_catalog(catalog, target, today, max_states=DEFAULT_MAX_STATES, max_sec
     findings += properties.loose_ends(catalog, order, [catalog.flows[f] for f in flow_ids if f in catalog.flows])
     result = SliceResult(name, tuple(flow_ids))
     if any(f.code == "F10" for f in findings):
-        result.findings = apply_overrides(_ordered(findings + _unused(catalog)), catalog, flow_ids, today)
+        result.findings = apply_overrides(_ordered(findings + _unused(catalog)), catalog, flow_ids, today, order)
         return result
     began, explored = clock(), []
     for journeys in plan_runs(program):
@@ -100,20 +100,25 @@ def check_catalog(catalog, target, today, max_states=DEFAULT_MAX_STATES, max_sec
                                     "claimed, and what was not explored is not a pass."))
             break
     result.seconds = clock() - began
-    result.findings = apply_overrides(_ordered(findings + explored + _unused(catalog)), catalog, flow_ids, today)
+    result.findings = apply_overrides(_ordered(findings + explored + _unused(catalog)), catalog, flow_ids, today, order)
     return result
 
 
-def apply_overrides(findings, catalog, flow_ids, today):
-    """Each finding an override on its flow page covers, marked covered until the override's date (revision 2, item
-    21). Scope is the flow, the code, the item and the case. An override past its date covers nothing: the finding
-    blocks the slice again, and says when the override ended, so nobody believes it is still covered."""
+def apply_overrides(findings, catalog, flow_ids, today, order=None):
+    """Each finding an override covers, marked covered until the override's date (revision 2, item 21). One on a flow
+    page is scoped to that flow, the code, the item and the case; one on the slice page (the slice at `order`, the one
+    being checked or the first holding the flow checked alone) to any flow of that slice. An override past its date
+    covers nothing: the finding blocks the slice again, and says when the override ended, so nobody believes it is
+    still covered."""
     rules = [o for fid in flow_ids if fid in catalog.flows for o in catalog.flows[fid].overrides]
+    owner = catalog.slices[order] if order is not None and order < len(catalog.slices) else None
+    sliced = catalog.slice_overrides.get(owner.key, ()) if owner is not None else ()
     out = []
     for f in findings:
         paths = {f.where.split(":", 1)[0], f.call_line.split(":", 1)[0]}
         hit = next((o for o in rules if o.code == f.code and o.item in f.items and o.case == f.case
                     and o.where.split(":", 1)[0] in paths), None)
+        hit = hit or next((o for o in sliced if o.code == f.code and o.item in f.items and o.case == f.case), None)
         if hit is None:
             out.append(f)
         elif hit.until >= today:
