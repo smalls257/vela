@@ -578,11 +578,12 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W386 | an app at handoff has an item in its slice that is not decided | W387 | an app at handoff calls a provider nobody has designed |
 | W388 | a handoff manifest pins a commit this repository does not have, or cannot be read | W389 | prose leaves a matter for a Grill with no open question linked |
 | W390 | decided item records no Why | W391 | a drawn slice does not pass the flow check |
-| W392 | a slice names no flows | W393 | a slice's Flows, After or Joins names nothing in the vault |
+| W392 | a slice names no flows | W393 | a slice's Flows or After names nothing in the vault |
 | E394 | slices come after each other in a circle | W395 | a slice at building or later has flow-check findings no override covers |
 | W396 | a slice at journey passes or later records no readable Journey line | W397 | a slice is at building or later while a slice it comes after has not passed its journey |
 | E398 | a flow-check override has passed its end date | W399 | slices are still named on the releases page, not in slices/ |
 | E346 | slice status is not one of the five | W348 | a release's Slices names no slice page, or a slice's Milestone names a release that does not list it |
+| W400 | a slice's journey due date has passed and no Journey line records the run, or the date does not read | W405 | a slice page still has a Joins line, which is no longer read: joins come from its flows |
 | E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
 | E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
@@ -678,11 +679,11 @@ The digest flow on its own, after the tracer, from the calendar only. Transcript
 - **Status:** building
 - **Flows:** [[FLO-002-get-morning-digest|FLO-002]]
 - **After:** SLC-001
-- **Joins:** [[consent-and-identity-building-blocks#CON-004 Record consent|Record consent]] (Desk agent → Consent and identity), [[desktop-agent-building-blocks#CON-007 Calendar read|Calendar read]] (Desk agent → Microsoft)
 - **Ships switched off:** a per-user flag, held by the Desk agent team
 - **Done when:** the digest journey passes in the shared integration environment, from the pilot user's side
 - **Owner:** @lead
 - **Milestone:** Release one
+- **Journey due:** 2026-11-30
 
 ## Not in this slice
 
@@ -701,10 +702,11 @@ The digest flow on its own, after the tracer, from the calendar only. Transcript
 - **`**Status:**`** is one of `planned`, `building`, `journey passes`, `live but off` or `on`. Leave it out while the slice is being drafted: the dashboard shows it as not planned yet.
 - **`**Flows:**`** links the flows the slice proves, in the order they run. `none, <reason>` records a tracer with no flow on purpose.
 - **`**After:**`** names the slices it comes after, by ID. The tracer has none.
-- **`**Joins:**`** names each contract the slice crosses, with both sides in brackets, sender first.
+- The joins a slice crosses are not written on its page. They are read from its flows' steps, which name each contract with its sender and receiver (see Flow steps), so they cannot drift from the flows. A join missing from a slice is a step missing from a flow.
 - **`**Ships switched off:**`** says how it goes live but off: the flag or switch, and who holds it.
 - **`**Done when:**`** is the journey that must pass, said from the side of the person or app that uses it.
 - **`**Owner:**`** is the person who moves it on. **`**Milestone:**`** is optional: the release that lists it, by the start of its heading.
+- **`**Journey due:**`** is the date, `YYYY-MM-DD`, the team expects the journey to run. It is written when the slice moves to `building`. Once the date has passed with no Journey line, the dashboard puts the slice in What needs you and check warns.
 - **`## Not in this slice`** lists what is left out, one bullet each: what, an optional ID in brackets or a link, a colon and why. Naming an app, contract or requirement there answers W343 and W347 for it.
 - **`## Overrides`** holds the flow check's overrides for this slice (see Flow check). One here covers that finding in any flow of the slice.
 - **`## History`** comes last, as on every page: one dated line for each move, with who moved it.
@@ -725,10 +727,12 @@ Where a slice stands, and what moves it on:
 
 - E346 for a Status that is not one of the five;
 - W345 when the tracer (the first slice) names no flows, and W392 for any other slice that names none;
-- W393 when Flows, After or Joins names something the vault does not have;
+- W393 when Flows or After names something the vault does not have;
 - E394 when slices come after each other in a circle, so none of them can start;
 - W395 when a slice is `building` or later and its flow check has a finding no unexpired override covers, or is not fully checked; check runs the flow check itself, in milliseconds a slice;
 - W396 when a slice is `journey passes` or later with no Journey line, or one that does not read;
+- W400 when the Journey due date has passed and no Journey line that reads records the run, or when the date is not `YYYY-MM-DD`;
+- W405 when a slice page still has a `**Joins:**` line. Joins are no longer written on the page, so the line is not read;
 - W397 when a slice is `building` or later and a slice it comes after is not yet at `journey passes`. It warns, never blocks: building in parallel is allowed, and the warning says it is a bet;
 - E398 for a flow check override past its end date, on a slice page or a flow page;
 - W347 when a slice's flows pass through an app or contract that a release listing the slice delivers no share of, unless Not in this slice names it;

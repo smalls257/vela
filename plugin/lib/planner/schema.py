@@ -192,10 +192,13 @@ RISK_STATES = ("open", "mitigated", "accepted", "closed")
 # call them prose.
 # A slice page's facts, which slices.py reads; a release points at its slices with Slices, or names flows with Flows.
 SLICE_STATUSES = ("planned", "building", "journey passes", "live but off", "on")
-SLICE_LABELS = ("Status", "Flows", "After", "Joins", "Ships switched off", "Done when", "Owner", "Milestone", "Journey")
+SLICE_LABELS = ("Status", "Flows", "After", "Ships switched off", "Done when", "Owner", "Milestone", "Journey", "Journey due")
+# Labels a slice page once had and no longer reads: still known, so W405 can say the line is not read instead of the
+# typo rules calling it unknown. Joins now come from the flows' steps.
+RETIRED_SLICE_LABELS = ("Joins",)
 SLICE_DIR = "slices"
 PAGE_LABELS = ("Decision", WHY_LABEL, "Dissent", OPTIONS_LABEL, PENDING_LABEL, "Target", "Owning team", "Tracer", "Not in the tracer",
-               "Slices") + SLICE_LABELS + OVERRIDE_LABELS
+               "Slices") + SLICE_LABELS + RETIRED_SLICE_LABELS + OVERRIDE_LABELS
 
 # `- Trace: CAP-001.FR1, CON-001` under a criterion or bullet holds the IDs its sentence no longer shows. The planner
 # reads it, so `planner style` must never call it prose, and close must never delete it.
@@ -374,13 +377,14 @@ CODES = {
     "W390": "decided item records no Why",
     "W391": "a drawn slice does not pass the flow check",
     "W392": "a slice names no flows",
-    "W393": "a slice's Flows, After or Joins names nothing in the vault",
+    "W393": "a slice's Flows or After names nothing in the vault",
     "E394": "slices come after each other in a circle",
     "W395": "a slice at building or later has flow-check findings no override covers",
     "W396": "a slice at journey passes or later records no readable Journey line",
     "W397": "a slice is at building or later while a slice it comes after has not passed its journey",
     "E398": "a flow-check override has passed its end date",
     "W399": "slices are still named on the releases page, not in slices/",
+    "W400": "a slice's journey due date has passed and no Journey line records the run, or the date does not read",
     "E346": "slice status is not one of the five",
     "W348": "a release's Slices names no slice page, or a slice's Milestone names a release that does not list it",
     "W388": "a handoff manifest pins a commit this repository does not have, or cannot be read",
@@ -399,6 +403,7 @@ CODES = {
     "W402": "generated block is out of date",
     "E403": "generated block not allowed here",
     "E404": "generated block markers are broken",
+    "W405": "a slice page still has a Joins line, which is no longer read: joins come from its flows",
     "E601": "flowchart over its element budget",
     "E602": "sequence diagram over its participant budget",
     "E603": "diagram type not supported",

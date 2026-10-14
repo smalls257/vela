@@ -803,8 +803,8 @@ def short_of(vault, flow_ids, release):
 
 
 def slice_rules(vault, today):
-    """The slice pages' own rules (W345, W347, E346, W348, W392 to W394, W396, W397), or W399 once while a vault still
-    names its slices on the releases page. Those that need the flow checker's result (W391, W395, E398) run in
+    """The slice pages' own rules (W345, W347, E346, W348, W392 to W394, W396, W397, W400, W405), or W399 once while a
+    vault still names its slices on the releases page. Those that need the flow checker's result (W391, W395, E398) run in
     `planner check` beside it, from the same reader."""
     found = slices.read_slices(vault)
     if not slices.on_pages(vault):
@@ -813,15 +813,14 @@ def slice_rules(vault, today):
     by_page = {p.path: p for p in slices.pages(vault)}
     keys = {s.key for s in found}
     flow_ids = {p.id for p in vault.of_type("flow")}
-    contract_ids = {c.id for c in vault.contracts}
     marked = slices.milestones(vault)
     release_names = {r.name.lower(): r for r in releases.releases(vault)}
     tracer = slices.tracer(found)
     for s in found:
         page = by_page[s.path]
-        yield from _slice_page_rules(vault, page, s, s is tracer, keys, flow_ids, contract_ids)
+        yield from _slice_page_rules(vault, page, s, s is tracer, keys, flow_ids)
         yield from _slice_milestone_rules(vault, page, s, marked.get(s.id, []), release_names)
-        yield from _slice_progress_rules(page, s, {x.key: x for x in found})
+        yield from _slice_progress_rules(page, s, {x.key: x for x in found}, today)
     for circle in slices.cycles(found):
         first = next(s for s in found if s.key == circle[0])
         yield _f(by_page[first.path], first.lines.get("After", 1), "E394",
@@ -837,12 +836,12 @@ def _slices_still_on_releases(vault, found):
         return
     page = releases.page(vault)
     yield _f(page, found[0].line, "W399", f"Slices are still named on the releases page ({len(found)} of them); "
-             "they now live in slices/, a page each, with a status, what each comes after and the joins it crosses.",
+             "they now live in slices/, a page each, with a status and what each comes after.",
              f"Write slices/SLC-001-<slug>.md for '{found[0].name}' (its flows, and Not in the tracer as Not in this slice), "
              "one page for each later release's Flows, then replace the Tracer and Flows bullets with '- **Slices:** SLC-001'.")
 
 
-def _slice_page_rules(vault, page, s, is_tracer, keys, flow_ids, contract_ids):
+def _slice_page_rules(vault, page, s, is_tracer, keys, flow_ids):
     if s.status_raw and not s.status:
         yield _f(page, s.lines["Status"], "E346", f"{s.id} has Status '{s.status_raw}'.",
                  f"Write one of {', '.join(slices.STATUSES)}, or leave Status out until a Grill plans the slice.")
@@ -852,10 +851,14 @@ def _slice_page_rules(vault, page, s, is_tracer, keys, flow_ids, contract_ids):
     elif not s.flows and not is_tracer:
         yield _f(page, s.lines.get("Flows", 1), "W392", f"{s.id} names no flows, so it proves no journey and the flow check has nothing to run.",
                  "Add '- **Flows:** [[FLO-nnn-...|FLO-nnn]]' for the journey it makes work.")
-    for label, named, known in (("Flows", s.flows, flow_ids), ("After", s.after, keys), ("Joins", s.joins, contract_ids)):
+    for label, named, known in (("Flows", s.flows, flow_ids), ("After", s.after, keys)):
         for missing in [i for i in named if i not in known]:
             yield _f(page, s.lines.get(label, 1), "W393", f"{s.id}'s {label} names {missing}, which is not in this vault.",
-                     f"Correct the ID, or write the {'flow page' if label == 'Flows' else 'slice page' if label == 'After' else 'contract'} first.")
+                     f"Correct the ID, or write the {'flow page' if label == 'Flows' else 'slice page'} first.")
+    if "Joins" in s.lines:
+        yield _f(page, s.lines["Joins"], "W405", f"{s.id} still has a Joins line, which is no longer read: a slice's joins "
+                 "come from its flows' steps, which name each contract with its sender and receiver.",
+                 "Delete the Joins line. If a join is missing from the slice, the flow step that crosses it is missing; add it to the flow.")
     if s.id in s.after:
         yield _f(page, s.lines["After"], "E394", f"{s.id} comes after itself, so it can never start.", "Take it out of its own After.")
 
@@ -878,9 +881,17 @@ def _slice_milestone_rules(vault, page, s, marked, release_names):
                      f"Add {s.id} to that release's '- **Slices:**' bullet, or take the Milestone line out.")
 
 
-def _slice_progress_rules(page, s, by_key):
-    """W396 and W397: what moving a slice on needs. A journey that passed is written down with who ran it and where
-    the result is; building may start in parallel with what a slice comes after, but the warning says it is a bet."""
+def _slice_progress_rules(page, s, by_key, today):
+    """W396, W397 and W400: what moving a slice on needs. A journey that passed is written down with who ran it and where
+    the result is; building may start in parallel with what a slice comes after, but the warning says it is a bet; and
+    a journey whose due date has passed with nothing recorded is said, so a slipped run is never silent."""
+    if s.journey_due and not slices.DATE.match(s.journey_due):
+        yield _f(page, s.lines["Journey due"], "W400", f"{s.id}'s Journey due says '{s.journey_due}', which is not a YYYY-MM-DD date.",
+                 "Write the date the team expects the journey to run, as '- **Journey due:** YYYY-MM-DD'.")
+    elif today and slices.journey_overdue(s, today):
+        yield _f(page, s.lines["Journey due"], "W400", f"{slices.journey_overdue_says(s)}.",
+                 "Record the run as '- **Journey:** passed YYYY-MM-DD by @who, <link to the run>', or write the new "
+                 "Journey due date and say in History why it moved.")
     if s.at_least("journey passes") and (s.journey is None or s.journey.problem):
         why = f"its Journey line {s.journey.problem}" if s.journey else "no Journey line says who ran it and where the result is"
         yield _f(page, s.lines.get("Journey", s.lines.get("Status", 1)), "W396", f"{s.id} is at {s.status}, but {why}.",

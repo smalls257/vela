@@ -3,7 +3,7 @@
 - **App:** APP-booking
 - **Commit:** example
 - **Written:** 2026-11-20
-- **Items:** 22
+- **Items:** 18
 
 Written by `planner handoff APP-booking`. Do not edit it by hand. `planner handoff verify APP-booking` lists what changed since the senior accepted this slice.
 
@@ -27,7 +27,3 @@ Written by `planner handoff APP-booking`. Do not edit it by hand. `planner hando
 | EPC-037 | epic | 13-epics/EPC-037-events-and-notifications.md | decided | 7c0915473b5c |
 | EPC-038 | epic | 13-epics/EPC-038-pricing-serves-booking.md | decided | 2b6771a332be |
 | EPC-039 | epic | 13-epics/EPC-039-run-booking.md | decided | e647906d8a9a |
-| SLC-001 | slice | slices/SLC-001-website-books-through-booking.md | - | c38231449d2d |
-| SLC-002 | slice | slices/SLC-002-call-centre-moves-to-booking.md | - | c590cc54d122 |
-| SLC-003 | slice | slices/SLC-003-kiosks-book-in-the-march-image.md | - | fc7f4c516a8a |
-| SLC-004 | slice | slices/SLC-004-customers-amend-and-cancel-online.md | - | b200eefce3e7 |

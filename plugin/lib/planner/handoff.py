@@ -122,18 +122,22 @@ def tracer_entry(vault):
     return Entry(TRACER_ID, "release", page.path, "", digest([lines[n - 1] for n in sorted(numbers)]))
 
 
-MOVES = re.compile(r"^- \*\*(Status|Journey):\*\*")
+MOVES = re.compile(r"^- \*\*(Status|Journey|Journey due):\*\*")
 
 
-def slice_entry(vault, page):
-    """A slice page the app takes part in. The hash reads what the senior builds against (its flows, After, joins,
-    how it ships switched off, what done is, what is left out, its overrides) and leaves out where it stands: Status,
-    Journey and History move as the teams move it, and the senior's own move must not read as a change to accept."""
+def slice_entry(vault, page, found=None):
+    """A slice page the app takes part in. The hash reads what the senior builds against (its flows, After, the joins
+    its flows cross with both sides, how it ships switched off, what done is, what is left out, its overrides) and
+    leaves out where it stands: Status, Journey, Journey due and History move as the teams move it, and the senior's
+    own move must not read as a change to accept. The joins are read from the flows (slices.read_slices), so a join
+    that changes in a flow changes the slice's hash even though the slice page did not change."""
     lines = page.text.split("\n")
     end = next((h.line for h in page.headings if h.level == 2 and h.text.strip().lower() == schema.HISTORY_HEADING.lower()),
                len(lines) + 1)
     kept = [line for n, line in enumerate(lines[:end - 1], 1) if not MOVES.match(line) and not VOLATILE.match(line)
             and n not in block_lines(page)]
+    found = found if found is not None else next((s for s in slices.read_slices(vault) if s.path == page.path), None)
+    kept += [f"join {contract} {sender} -> {receiver}" for contract, sender, receiver in (found.sides if found else ())]
     return Entry(page.id, "slice", page.path, "", digest(kept))
 
 
@@ -143,7 +147,7 @@ def app_slices(vault, app):
     if not slices.on_pages(vault):
         return []
     by_path = {p.path: p for p in slices.pages(vault)}
-    return [slice_entry(vault, by_path[s.path]) for s in slices.for_app(vault, slices.read_slices(vault), app)]
+    return [slice_entry(vault, by_path[s.path], s) for s in slices.for_app(vault, slices.read_slices(vault), app)]
 
 
 def slice_of(vault, app):
