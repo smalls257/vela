@@ -48,10 +48,15 @@ stage "ruff correctness"   ruff check --no-cache --select E9,F63,F7,F82,E722,S50
 stage "conventions sync"   conventions_in_sync
 stage "check template"     planner_check template
 stage "check example"      planner_check examples/unified-booking
+# The suite runs in parallel when pytest-xdist is installed (about 2.5 min instead of about 11 on 14 cores). Without it the
+# gate still runs, serially, and says so, so a slow gate is never a silent one.
+PARALLEL=()
+if python3 -c 'import xdist' 2>/dev/null; then PARALLEL=(-n auto); else
+  echo "gate: pytest-xdist is not installed, so the tests run on one core; pip install pytest-xdist for a parallel run" >&2; fi
 case "$mode" in
   static) ;;
-  fast)   stage "pytest (fast)" python3 -m pytest -q -p no:cacheprovider tests "${FAST_IGNORES[@]}" ;;
-  full)   stage "pytest (full)" python3 -m pytest -q -p no:cacheprovider ;;
+  fast)   stage "pytest (fast)" python3 -m pytest -q -p no:cacheprovider "${PARALLEL[@]}" tests "${FAST_IGNORES[@]}" ;;
+  full)   stage "pytest (full)" python3 -m pytest -q -p no:cacheprovider "${PARALLEL[@]}" ;;
   *) echo "gate: unknown mode '$mode' (static, fast, full)" >&2; exit 2 ;;
 esac
 
