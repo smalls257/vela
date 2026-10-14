@@ -157,19 +157,19 @@ const Layout = (() => {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || `the helper answered ${res.status}`);
       base = clone(body.pins); mine = {}; remember();
-      say(`${said}Layout saved to the vault`);
+      say(`${said}Layout saved to the plan`);
       return true;
     } catch (e) {
       console.warn("[layout] the helper did not save the layout:", e.message);
       remember();
-      say(`${said}Not saved to the vault: ${e.message}. The move is kept in this browser.`);
+      say(`${said}Not saved to the plan: ${e.message}. The move is kept in this browser.`);
       return false;
     }
   }
   async function keep(said = "") {
     if (canSave()) { await saveToVault(said); refreshTools(); return; }
     remember();
-    say(`${said}Kept in this browser only; Copy layout or Download pins sends it on.`);
+    say(`${said}Kept in this browser only. To share it, download the layout and send it to the plan's owner.`);
   }
 
   /* ------------------------------------------------------------ moving */
@@ -229,13 +229,13 @@ const Layout = (() => {
     if (canSave()) {
       base = clone(built);
       apply();
-      if (await saveToVault()) say("Layout reset to the pins this page was built with, and saved to the vault");
-    } else { apply(); remember(); say("Layout reset to the vault's pins"); }
+      if (await saveToVault()) say("Layout reset to how this page was built, and saved to the plan");
+    } else { apply(); remember(); say("Layout reset to how this page was built"); }
     rerender();
   }
   const layoutJson = () => JSON.stringify(Object.fromEntries(Object.entries(cells()).sort(([a], [b]) => cmp(a, b))), null, 2) + "\n";
   async function copy() {
-    try { await (copyFn || ((t) => navigator.clipboard.writeText(t)))(layoutJson()); say("Layout copied. Commit it as .planner/explorer-pins.json."); }
+    try { await (copyFn || ((t) => navigator.clipboard.writeText(t)))(layoutJson()); say("Layout copied. Send it to the plan's owner to keep it for everyone."); }
     catch (e) { console.warn("[layout] could not copy:", e.message); say(`Could not copy (${e.message}); use Download pins.`); }
     refreshTools();
   }
@@ -244,7 +244,7 @@ const Layout = (() => {
     const a = h("a", { href: url, download: "explorer-pins.json" });
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    say("Pins downloaded. Commit the file as .planner/explorer-pins.json.");
+    say("Layout downloaded. Send the file to the plan's owner to keep it for everyone.");
     refreshTools();
   }
 
@@ -252,13 +252,13 @@ const Layout = (() => {
   function tools(what = "box") {
     const saving = canSave(), dirty = moved();
     const grab = `Drag a ${what} anywhere, or focus it and press an arrow key to nudge it a quarter of a cell (Shift and an arrow key: a whole cell). It stays where you put it; it stops short of another box rather than cover it.`;
-    const hint = saving ? `Drag a ${what} anywhere or use arrow keys (Shift for a whole cell). Saved to the vault.` : `Drag a ${what} anywhere or use arrow keys (Shift for a whole cell). Kept in this browser; commit the downloaded pins.`;
+    const hint = saving ? `Drag a ${what} anywhere or use the arrow keys (Shift for a whole cell). Saved to the plan.` : `Drag a ${what} anywhere or use the arrow keys (Shift for a whole cell). Changes stay in this browser.`;
     toolsFor = what;
-    return h("span", { class: "tool-unit layout-tools", title: `${grab} ${saving ? "A move is saved to the vault's pins file." : "A move stays in this browser; Copy layout or Download pins gives the owner a file to commit as .planner/explorer-pins.json."}` },
-      h("span", { class: "tool-label sep" }, "Layout"),
-      h("button", { class: "chip", "data-layout": "reset", disabled: dirty ? null : true, title: "Put every box back where the vault's pins have it", onclick: reset }, "Reset layout"),
-      saving ? null : h("button", { class: "chip", "data-layout": "copy", title: "Copy the layout as JSON, for .planner/explorer-pins.json", onclick: copy }, "Copy layout"),
-      saving ? null : h("button", { class: "chip", "data-layout": "download", title: "Download the layout as explorer-pins.json", onclick: download }, "Download pins"),
+    return h("span", { class: "tool-unit layout-tools", title: `${grab} ${saving ? "A move is saved to the plan for everyone." : "A move stays in this browser. To share it, download the layout and send it to the plan's owner."}` },
+      h("span", { class: "tool-label sep" }, "Arrange"),
+      h("button", { class: "chip", "data-layout": "reset", disabled: dirty ? null : true, title: "Put every box back where this page was built with it", onclick: reset }, "Reset layout"),
+      saving ? null : h("button", { class: "chip", "data-layout": "copy", title: "Copy the layout, to send to the plan's owner", onclick: copy }, "Copy layout"),
+      saving ? null : h("button", { class: "chip", "data-layout": "download", title: "Download the layout as a file, to send to the plan's owner", onclick: download }, "Download layout"),
       h("span", { class: "tool-hint layout-say", id: "layout-say", role: "status", "aria-live": "polite" }, note || hint));
   }
   let toolsFor = "box";

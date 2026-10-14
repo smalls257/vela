@@ -55,9 +55,9 @@ const Flows = (() => {
     canvas.addEventListener("mousemove", (e) => {
       const t = hitAt(e);
       canvas.style.cursor = t ? "pointer" : "default";
-      if (t && t.type === "unknown") { const q = ASK[t.id]; showTip(e, `<b>${esc(E[t.id] ? E[t.id].title : t.id)}</b>${esc(q.state === "open" ? q.question : "Settled: " + (q.outcome || q.question))}`); }
-      else if (t && t.type === "lane") showTip(e, `<b>${esc(FlowKit.laneName(t.id))}</b>${FlowKit.touchedLanes(FlowKit.flowOf(p.key)).has(t.id) ? "in this flow" : "not in this flow; its lane keeps its place"}`);
-      else if (t && t.type === "contract") showTip(e, `<b>${esc(CONTRACT[t.id].title)}</b>${esc(CONTRACT[t.id].state || "no state")}; ${esc(LIGHT[levelOf(t.id)].word.toLowerCase())}`);
+      if (t && t.type === "unknown") { const q = ASK[t.id]; showTip(e, `<b>${esc(E[t.id] ? E[t.id].title : t.id)}</b>${esc(q.state === "open" ? q.question : "Answered: " + (q.outcome || q.question))}`); }
+      else if (t && t.type === "lane") showTip(e, `<b>${esc(FlowKit.laneName(t.id))}</b>${FlowKit.touchedLanes(FlowKit.flowOf(p.key)).has(t.id) ? "in this flow" : "not in this flow; its column stays in place"}`);
+      else if (t && t.type === "contract") showTip(e, `<b>${esc(CONTRACT[t.id].title)}</b>${esc(stateWord(CONTRACT[t.id].state) || "status not recorded")}; ${esc(LIGHT[levelOf(t.id)].word.toLowerCase())}`);
       else hideTip();
     });
     canvas.addEventListener("mouseleave", hideTip);
@@ -75,12 +75,12 @@ const Flows = (() => {
 
   /* ------------------------------------------------------------ the view */
   function render(main) {
-    if (!D.flows.length) { main.append(emptyState("No flows yet.", "A flow page (FLO-nnn) with numbered Steps plays here, step by step across the apps.", "/planner:boundary")); return; }
+    if (!D.flows.length) { main.append(emptyState("No flows yet.", "Once the plan writes a flow with its steps, it plays here, step by step across the apps.", "/planner:boundary")); return; }
     const f = FlowKit.flowOf(st.key);
     const picker = FlowPicker.make({ current: () => st.key, onPick: (key) => select(key, -1) });
     const actions = h("div", { class: "flow-actions" },
-      h("button", { class: "btn", onclick: () => Rehearse.open(st.key), title: "Rebuild the flow from memory, then reveal it" }, svgIcon("rehearse"), "Rehearse this flow"),
-      h("button", { class: "btn", id: "clip-btn", onclick: saveClip, title: clipNote() }, svgIcon("download"), "Save clip"),
+      h("button", { class: "btn", onclick: () => Rehearse.open(st.key), title: "Quiz yourself: rebuild the flow from memory, then reveal it" }, svgIcon("rehearse"), "Rehearse this flow"),
+      h("button", { class: "btn", id: "clip-btn", onclick: saveClip, title: clipNote() }, svgIcon("download"), "Save as video"),
       h("button", { class: "btn primary", id: "present-btn", onclick: () => present(st.key, Math.max(0, st.cur)), title: "Present full screen (P)" }, svgIcon("present"), "Present"));
     const tag = Releases.tracerTag(st.key), pl = Releases.tracerPlace(st.key);
     main.append(h("div", { class: "flows-head" }, picker, ...(tag ? [h("span", { class: "tracer-place" }, tag, ` ${Releases.tracerPlaceWords(pl)}`)] : []), actions));
@@ -117,9 +117,9 @@ const Flows = (() => {
     return h("details", { class: "flow-nodes", "data-flow-nodes": flowKey },
       h("summary", {}, "The same flow as a list: steps, contracts, apps and open questions"),
       group("Steps", f.steps.map((x) => btn({ text: `${x.n}. ${x.short}`, label: `Step ${x.n}: ${x.short}`, open: () => { const p = playerOf(); if (p) { p.pause(); p.go(f.steps.indexOf(x)); } go(stepNote(flowKey, x), { reset: true }); } }))),
-      group("Apps and parties", lanes.filter((k) => ent(k)).map((k) => btn({ text: titleOf(k), label: titleOf(k), key: k }))),
-      group("Contracts", contracts.map((c) => btn({ text: c, label: `${c} ${CONTRACT[c].title}`, key: c }))),
-      group("Open questions", pins.map((u) => btn({ text: u, label: `${u} ${titleOf(u)}`, key: u }))));
+      group("Apps and outside services", lanes.filter((k) => ent(k)).map((k) => btn({ text: titleOf(k), label: titleOf(k), key: k }))),
+      group("Contracts", contracts.map((c) => btn({ text: CONTRACT[c].title, label: `${CONTRACT[c].title} (${c})`, key: c }))),
+      group("Open questions", pins.map((u) => btn({ text: titleOf(u), label: `${titleOf(u)} (${u})`, key: u }))));
   }
   function svgIcon(kind) {
     const paths = { present: '<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>', download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
@@ -135,7 +135,7 @@ const Flows = (() => {
     box.innerHTML = "";
     if (st.cur === -1) {
       const e = E[st.key];
-      box.append(h("div", { class: "cap-where" }, h("span", {}, `${e.id}, ${e.state || "no state"} · ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
+      box.append(h("div", { class: "cap-where" }, h("span", {}, idTag(e.id), ` ${e.state ? stateWord(e.state) : "Status not recorded"} · ${plural(f.steps.length, "step")}`), h("span", { class: "muted" }, "Press space to play, or pick a step")),
         h("div", { class: "cap-title" }, e.title), e.text ? h("p", { class: "cap-intro" }, shorten(e.text, 360)) : "",
         h("ol", { class: "cap-steps" }, f.steps.map((stp, i) => h("li", {}, h("button", { onclick: () => { player.pause(); player.go(i); } }, stp.short)))), ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
       return;
@@ -152,21 +152,21 @@ const Flows = (() => {
       const c = CONTRACT[m.contract];
       facts.append(h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(m.from)}` }),
         h("span", {}, h("b", {}, `${titleOf(m.from)} to ${m.to.map(titleOf).join(", ")}`), " over ", refChip(m.contract), m.kind === "request" ? ", and the answer comes back." : ".",
-          m.direction === "inferred" ? h("span", { class: "heuristic" }, ` Direction inferred: ${titleOf(c.provider)} provides it${m.to.length > 1 ? `; the step names no consumer, so all ${m.to.length} are drawn` : ""}${stp.fromTable ? "; the contract comes from the Contracts used table" : ""}.`) : null,
-          c.crosses ? h("div", { class: "muted crosses-line", html: "Crosses: " + c.crosses }) : null)));
+          m.direction === "inferred" ? h("span", { class: "heuristic" }, ` (Arrow direction guessed from who provides the contract: ${titleOf(c.provider)}${m.to.length > 1 ? `; the step doesn't say who receives it, so all ${m.to.length} users are drawn` : ""}.)`) : null,
+          c.crosses ? h("div", { class: "muted crosses-line", html: "Carries: " + c.crosses }) : null)));
     }
     if (!stp.messages.length && stp.self) facts.append(h("li", {}, h("i", { class: "lane-dot", style: `background:${FlowKit.laneColor(stp.self)}` }),
-      h("span", {}, "Inside ", h("b", {}, titleOf(stp.self)), "; nothing crosses a contract. ", h("span", { class: "heuristic" }, "The lane is the first app the text names."))));
+      h("span", {}, "Inside ", h("b", {}, titleOf(stp.self)), "; no contract is used. ", h("span", { class: "heuristic" }, "(Shown in the first app the step names.)"))));
     for (const pin of stp.unknowns) {
       const q = ASK[pin.id]; if (!q) continue;
       const lv = unknownLevel(pin.id);
       facts.append(h("li", {}, lampEl(lv === "resolved" ? "resolved" : lv), h("span", {}, refChip(pin.id), " ", E[pin.id] ? E[pin.id].title + ". " : "",
-        q.state === "open" ? h("span", { class: "pill " + lv }, `Open, ask ${q.ask.name} by ${day(q.askBy)}`) : h("span", { class: "pill" }, "Settled"),
-        pin.why.startsWith("holds") ? h("span", { class: "muted" }, ` Pinned here because it ${pin.why}.`) : null,
-        q.state !== "open" && pin.textSaysOpen ? h("div", { class: "heuristic" }, "The flow text still calls this open; the question itself records it settled, so the marker shows it settled.") : null)));
+        q.state === "open" ? h("span", { class: "pill " + lv }, `Open, ask ${q.ask.name} by ${day(q.askBy)}`) : h("span", { class: "pill" }, "Answered"),
+        pin.why.startsWith("holds") ? h("span", { class: "muted" }, ` Shown at this step because it ${pin.why.replace(/^holds/, "blocks")}.`) : null,
+        q.state !== "open" && pin.textSaysOpen ? h("div", { class: "heuristic" }, "The flow text still calls this open, but the question has been answered, so it shows as answered.") : null)));
     }
     const ends = stepEnds(stp), named = stp.named.filter((k) => !ends.has(k));
-    if (named.length) facts.append(h("li", {}, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "Also named in the text, not linked: ", named.map((k) => refChip(k)))));
+    if (named.length) facts.append(h("li", {}, h("i", { class: "lane-dot named" }), h("span", { class: "heuristic" }, "Also mentioned in the step: ", named.map((k) => refChip(k)))));
     box.append(h("div", { class: "cap-where" }, h("span", {}, h("b", {}, `Step ${stp.n}`), ` of ${f.steps.length}`), h("span", { class: "muted" }, E[st.key].title)),
       h("div", { class: "cap-text", html: stp.html }), facts, ...[inferredLine()].filter(Boolean));  // native append prints a null as "null"
   }
@@ -193,7 +193,7 @@ const Flows = (() => {
     scrub.addEventListener("pointerup", () => { down = false; });
     const speed = h("div", { class: "seg", "aria-label": "Speed" }, [["0.6", "Slow"], ["1", "Normal"], ["1.6", "Fast"]].map(([v, label]) =>
       h("button", { "aria-pressed": String(+v === st.speed), onclick: (ev) => { st.speed = +v; $$("button", ev.currentTarget.parentNode).forEach((b) => b.setAttribute("aria-pressed", String(b === ev.currentTarget))); } }, label)));
-    tr.append(keys, scrub, h("div", { class: "meta" }, speed, h("span", { class: "hints" }, h("kbd", {}, "←"), " ", h("kbd", {}, "→"), " step ", h("kbd", {}, "Space"), " play ", h("kbd", {}, "P"), " present")));
+    tr.append(keys, scrub, h("div", { class: "meta" }, speed, h("span", { class: "hints" }, h("kbd", {}, "←"), " ", h("kbd", {}, "→"), ": step · ", h("kbd", {}, "Space"), ": play · ", h("kbd", {}, "P"), ": present")));
   }
   const pct = (i, n) => (n === 1 ? "50%" : `${(i / (n - 1)) * 100}%`);
   function paintTransport() {
@@ -212,7 +212,7 @@ const Flows = (() => {
     else { player.pause(); player.go(st.cur, step >= 0); }
     history.replaceState(null, "", `#flows&open=${encodeURIComponent(key)}${st.cur >= 0 ? `&step=${st.cur + 1}` : ""}`);
   }
-  function clipNote() { const fmt = FlowKit.clipFormat(); return fmt ? `Records a ${fmt.ext.toUpperCase()} clip, 1280 by 720${Sound.enabled ? ", with sound" : ""}, in the browser` : "Recording is not available in this browser"; }
+  function clipNote() { const fmt = FlowKit.clipFormat(); return fmt ? `Records a ${fmt.ext.toUpperCase()} video, 1280 by 720${Sound.enabled ? ", with sound" : ""}, in the browser` : "Recording a video doesn't work in this browser"; }
   async function saveClip() {
     await (document.fonts ? document.fonts.ready : Promise.resolve());
     if (recording) return;

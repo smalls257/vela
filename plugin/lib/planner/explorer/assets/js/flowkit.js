@@ -33,7 +33,7 @@ const FlowKit = (() => {
   }
   /* A flow whose steps never say who sends: every arrow is drawn from the contract's provider. On a call an arrow
      reads as fact, so such a flow carries one line saying so (a flow with some named senders is labeled per arrow). */
-  const INFERRED_NOTE = "Direction inferred from who provides each contract";
+  const INFERRED_NOTE = "Arrow directions are guessed from who provides each contract";
   function inferredNote(key) {
     const msgs = FLOW[key].steps.flatMap((stp) => stp.messages);
     return msgs.length && msgs.every((m) => m.direction === "inferred") ? INFERRED_NOTE : "";
@@ -237,7 +237,7 @@ const FlowKit = (() => {
         hits.push({ type: "contract", id: con.id, si: r.si, x: cx, y: cy, w: cw, h: ch });
         if (!stated && phase === "now" && p >= 1 && st.labels !== false) {
           ctx.font = `italic 400 ${10.5 * k}px ${SERIF}`; ctx.fillStyle = C.heuristic; ctx.textAlign = "center"; ctx.textBaseline = "top";
-          ctx.fillText(step.fromTable ? "direction inferred; contract from the table" : "direction inferred", mid, y + 6 * k);
+          ctx.fillText("direction guessed", mid, y + 6 * k);
         }
       }
       hits.push({ type: "row", si: r.si, x: Math.min(x1, x2), y: y - 14 * k, w: Math.abs(x2 - x1), h: 28 * k });
@@ -332,7 +332,7 @@ const FlowKit = (() => {
     });
     ctx.globalAlpha = clamp(T / 0.4, 0, 1); ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     ctx.fillStyle = C.muted; ctx.font = `500 ${22 * k * b}px ${UI}`;
-    ctx.fillText(`${flow.id}, ${flow.state || "no state"} · ${D.title}`, 96 * k, 250 * k);
+    ctx.fillText(`${flow.state ? stateWord(flow.state) : "Status not recorded"} · ${D.title}`, 96 * k, 250 * k);
     ctx.fillStyle = C.ink; ctx.font = `400 ${64 * k * Math.min(b, 1.3)}px ${SERIF}`;
     const lines = wrap(ctx, flow.title, 680 * k);
     lines.forEach((l, i) => ctx.fillText(l, 92 * k, 330 * k + i * 72 * k));
@@ -368,10 +368,10 @@ const FlowKit = (() => {
       ctx.fillText(`Ask ${q.ask.name}${q.ask.inferred ? " (a guess)" : ""} by ${day(q.askBy)}`, 128 * k, y + 36 * k + lines.length * 29 * k + 8 * k);
       y += 36 * k + lines.length * 29 * k + 64 * k;
     });
-    if (open.length > 3) { ctx.fillStyle = C.muted; ctx.font = `400 ${20 * k}px ${UI}`; ctx.fillText(`And ${open.length - 3} more in the vault.`, 128 * k, y); y += 44 * k; }
+    if (open.length > 3) { ctx.fillStyle = C.muted; ctx.font = `400 ${20 * k}px ${UI}`; ctx.fillText(`And ${open.length - 3} more in the plan.`, 128 * k, y); y += 44 * k; }
     if (settled.length) {
       ctx.fillStyle = C.muted; ctx.font = `400 ${19 * k}px ${UI}`;
-      wrap(ctx, `Settled since the flow text was written: ${settled.join(", ")}.`, 1080 * k).forEach((l, i) => ctx.fillText(l, 96 * k, Math.max(y + 10 * k, 600 * k) + i * 28 * k));
+      wrap(ctx, `Answered since the flow was written: ${settled.map((id) => (E[id] ? E[id].title : id)).join(", ")}.`, 1080 * k).forEach((l, i) => ctx.fillText(l, 96 * k, Math.max(y + 10 * k, 600 * k) + i * 28 * k));
     }
     ctx.globalAlpha = 1;
   }
@@ -459,16 +459,16 @@ const FlowKit = (() => {
      looks out from the flow's data alone; the self-test compares the key to that. */
   const { ln, bx } = Legend;
   Legend.define("flow.stated", [ln({ stroke: "ink-2", w: 1.8, head: "fill" })], "Solid arrow: the step says who sends");
-  Legend.define("flow.inferred", [ln({ stroke: "ink-2", w: 1.8, head: "open" })], "Open arrowhead: who sends is worked out from the contract's provider");
+  Legend.define("flow.inferred", [ln({ stroke: "ink-2", w: 1.8, head: "open" })], "Open arrowhead: who sends is guessed from who provides the contract");
   Legend.define("flow.reply", [ln({ stroke: "ink-2", w: 1.8, head: "open", dash: "4 3" })], "Dashed arrow: the answer coming back");
   Legend.define("flow.self", [bx({ stroke: "ink-2", w: 1.8, x: 9, y: 3, width: 14, height: 10, rx: 5 })], "Loop on one column: an app doing this step on its own");
   Legend.define("flow.band", [bx({ stroke: "ink-3", w: 1.2, dash: "3 3", rx: 4, y: 3.5, height: 9 })], "Dashed band: a step with no sender, a note, or a repeat of another flow");
   Legend.define("flow.future", [ln({ stroke: "ink-4", w: 1.8, dash: "2 4.5" })], "Dotted line: a step that has not been played yet");
-  Legend.define("flow.chip", [bx({ fill: "deck", stroke: "ink-3", w: 1.2, rx: 4, y: 4, height: 8 })], "Pill on an arrow: the contract sent, outlined in its light");
-  Legend.define("flow.pin", [{ k: "dot", fill: "caution", r: 4.5 }], "Glowing dot at a step: an open question pinned there, in its light");
-  Legend.define("flow.pin.settled", [{ k: "dot", fill: "room", stroke: "ink-3", w: 1.3, r: 5 }, { k: "text", t: "✓", fill: "ink-3", y: 11, size: 8 }], "Ring with a tick: a pinned question that has been settled");
-  Legend.define("flow.lane", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 9, r: 2 }], "Pill at the top: one app or outside party, in its own color");
-  Legend.define("flow.lane.idle", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9, opacity: 0.4 })], "Faded pill: this app or party takes no part in the flow");
+  Legend.define("flow.chip", [bx({ fill: "deck", stroke: "ink-3", w: 1.2, rx: 4, y: 4, height: 8 })], "Pill on an arrow: the contract used, outlined in its status color");
+  Legend.define("flow.pin", [{ k: "dot", fill: "caution", r: 4.5 }], "Glowing dot at a step: an open question about this step, in its status color");
+  Legend.define("flow.pin.settled", [{ k: "dot", fill: "room", stroke: "ink-3", w: 1.3, r: 5 }, { k: "text", t: "✓", fill: "ink-3", y: 11, size: 8 }], "Ring with a tick: a question about this step that has been answered");
+  Legend.define("flow.lane", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9 }), { k: "dot", fill: "ink-2", x: 9, r: 2 }], "Pill at the top: one app or outside service, in its own color");
+  Legend.define("flow.lane.idle", [bx({ fill: "deck-2", stroke: "ink-3", w: 1.2, rx: 4.5, y: 3.5, height: 9, opacity: 0.4 })], "Faded pill: this app or service takes no part in the flow");
   Legend.define("flow.stepno", [{ k: "dot", fill: "ink", r: 5.5 }, { k: "text", t: "2", fill: "room", y: 11, size: 8 }], "Numbered circle at the left: a step; the one playing is filled");
   const LOOK_ORDER = ["flow.stated", "flow.inferred", "flow.reply", "flow.self", "flow.band", "flow.future", "flow.chip", ...Legend.LAMPS.map((lv) => "lamp." + lv), "flow.pin", "flow.pin.settled", "flow.lane", "flow.lane.idle", "flow.stepno"];
   function census(flow) {

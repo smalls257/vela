@@ -44,7 +44,7 @@ const Search = (() => {
   }
 
   // Results come in groups, flows first: on a call, the flow and the contract are what the lead wants.
-  const GROUPS = [["exact", "Exact ID"], ["link", "How they connect"], ["flow", "Flows"], ["node", "Apps and outside parties"], ["contract", "Contracts"],
+  const GROUPS = [["exact", "Exact match"], ["link", "How they connect"], ["flow", "Flows"], ["node", "Apps and outside services"], ["contract", "Contracts"],
     ["need", "Capabilities and requirements"], ["flow-part", "Flows that match some of the words"], ["epic", "Epics"], ["question", "Open questions"],
     ["decision", "Decisions"], ["other", "Other pages and items"], ["closed", "Resolved questions"]];
   function groupOf(key) {
@@ -90,7 +90,7 @@ const Search = (() => {
     if (!e) return "";
     if (e.kind === "flow") return "Enter plays it, ready to present";
     if (e.kind === "contract") { const f = flowsFor(key); return f.length ? `Enter shows it on the map, with ${plural(f.length, "flow")} to present from` : "Enter shows it on the map"; }
-    if (e.kind === "unknown") return "Enter opens its strip in Who to ask";
+    if (e.kind === "unknown") return "Enter opens it in Who to ask";
     if (e.kind === "decision") return "Enter opens it in the decision log";
     return "";
   }
@@ -132,10 +132,10 @@ const Search = (() => {
       (byGroup[g] = byGroup[g] || []).push({ key: x.r.key, snip: x.r.snip, heading: x.r.heading, flows: x.r.flows });
     }
     const noFlows = /\bhow\b/.test(q.toLowerCase()) && !D.flows.length;  // "how does X" is a flow's question; say so rather than return nothing
-    if (noFlows) box.append(emptyState("No flows yet.", "A \"how does ...\" question is answered by a flow page, and this vault has none.", "/planner:boundary", "small"));
+    if (noFlows) box.append(emptyState("No flows yet.", "A \"how does ...\" question is answered by a flow, and the plan has none yet.", "/planner:boundary", "small"));
     if (!hits.length && !links.length && !exact.length) {
       if (noFlows) { box.hidden = false; return; }
-      box.append(h("div", { class: "r-more" }, wanted.length ? `Nothing holds enough of: ${wanted.join(", ")}. Search reads titles, headings, opening prose and text, as planner query search does.`
+      box.append(h("div", { class: "r-more" }, wanted.length ? `No matches for ${wanted.join(", ")}. Search looks in titles, headings and page text; try a more specific word.`
         : "Type a word that carries meaning; words such as how, the and does are skipped."));
       box.hidden = false; return;
     }

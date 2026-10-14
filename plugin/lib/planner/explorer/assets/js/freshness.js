@@ -14,12 +14,13 @@ const Freshness = (() => {
   function words(r) {
     if (!r) return "";
     if (r.role === "reader") {
-      return r.state === "newer" ? `A newer copy was published on ${r.latest && r.latest.date ? r.latest.date : "a later date"}; reopen it to update — your drafts carry over.` : "";
+      return r.state === "newer" ? `A newer copy was published on ${r.latest && r.latest.date ? day(r.latest.date) + " " + r.latest.date.slice(0, 4) : "a later date"}; reopen it to update — your drafts carry over.` : "";
     }
     if (r.role !== "owner") return "";
     const parts = [];
-    if (r.behind > 0) parts.push(`${plural(r.behind, "commit")} behind upstream`);
-    if (r.uncommitted > 0) parts.push(`${plural(r.uncommitted, "file")} uncommitted`);
+    // the owner's banner, in plain words: the shared copy is ahead of this one, or this one has changes not shared yet
+    if (r.behind > 0) parts.push(`${plural(r.behind, "update")} on the shared copy ${r.behind === 1 ? "isn't" : "aren't"} in yours yet`);
+    if (r.uncommitted > 0) parts.push(`${plural(r.uncommitted, "changed file")} ${r.uncommitted === 1 ? "isn't" : "aren't"} shared yet`);
     return parts.length ? parts.join("; ") + "." : "";
   }
   function render() {
@@ -27,7 +28,7 @@ const Freshness = (() => {
     box.hidden = !text;
     box.textContent = "";
     if (!text) return;
-    const when = st.error ? `could not check just now; as of ${stamp(st.report)}, when this page was built` : st.live ? "checked just now" : st.report.checked_at ? `as of ${stamp(st.report)}, when this page was built` : "";
+    const when = st.error ? `couldn't check just now; this is as of ${stamp(st.report)}, when this page was built` : st.live ? "checked just now" : st.report.checked_at ? `as of ${stamp(st.report)}, when this page was built` : "";
     box.append(h("span", { class: "fresh-text" }, text), when ? h("span", { class: "fresh-when" }, ` (${when})`) : null);
     box.title = st.error ? `The live check failed: ${st.error}` : "";
     box.dataset.state = st.report.state;
