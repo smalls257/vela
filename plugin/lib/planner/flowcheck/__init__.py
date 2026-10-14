@@ -80,7 +80,7 @@ def check_catalog(catalog, target, today, max_states=DEFAULT_MAX_STATES, max_sec
     findings += properties.loose_ends(catalog, order, [catalog.flows[f] for f in flow_ids if f in catalog.flows])
     result = SliceResult(name, tuple(flow_ids))
     if any(f.code == "F10" for f in findings):
-        result.findings = apply_overrides(_ordered(findings + _unused(catalog)), catalog, flow_ids, today, order)
+        result.findings = apply_overrides(_ordered(findings + _unused(catalog, findings)), catalog, flow_ids, today, order)
         return result
     began, explored = clock(), []
     for journeys in plan_runs(program):
@@ -100,7 +100,7 @@ def check_catalog(catalog, target, today, max_states=DEFAULT_MAX_STATES, max_sec
                                     "claimed, and what was not explored is not a pass."))
             break
     result.seconds = clock() - began
-    result.findings = apply_overrides(_ordered(findings + explored + _unused(catalog)), catalog, flow_ids, today, order)
+    result.findings = apply_overrides(_ordered(findings + explored + _unused(catalog, findings)), catalog, flow_ids, today, order)
     return result
 
 
@@ -128,13 +128,16 @@ def apply_overrides(findings, catalog, flow_ids, today, order=None):
     return out
 
 
-def _unused(catalog):
+def _unused(catalog, findings=()):
+    """F4 for the initiative, less each case an F1 of this result already names: one missing branch is one finding,
+    not an unhandled case and an unused one."""
     trees = []
     for fid in sorted(catalog.flows):
         flow = catalog.flows[fid]
         if flow.has_diagram:
             trees.append((flow, build.mermaid.parse_tree(flow, [])))
-    return properties.unused_cases(catalog, trees)
+    unhandled = {(item, f.case) for f in findings if f.code == "F1" for item in f.items}
+    return [f for f in properties.unused_cases(catalog, trees) if (f.items[0], f.case) not in unhandled]
 
 
 def _ordered(findings):

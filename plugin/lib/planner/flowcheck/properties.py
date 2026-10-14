@@ -223,8 +223,12 @@ def check_await(b, flow, node, ctx):
 # --- across flows and slices ----------------------------------------------------------------------------------------
 
 def unused_cases(catalog, trees):
-    """F4, once per initiative: a declared case of a called contract that no flow anywhere branches on or replies."""
+    """F4, once per initiative: a declared case of a called contract that no flow anywhere branches on or replies.
+    Only claimed once every flow that crosses the contract is drawn: while one is not, the case may be its to reach
+    (Heron's "transcripts alone" refusal of Record consent, with the withdrawal flow still undrawn), and "reached by
+    no flow" would be a claim nobody can back."""
     reached, called = set(), {}
+    drawn = {flow.id for flow, _ in trees}
     for flow, tree in trees:
         for node in _walk(tree.nodes):
             if node.kind == "call":
@@ -244,6 +248,8 @@ def unused_cases(catalog, trees):
     out = []
     for cid in sorted(called):
         table = catalog.contracts.get(cid)
+        if any(fid not in drawn for fid in catalog.crossing.get(cid, ())):
+            continue
         for case in (table.cases if table else ()):
             if (cid, case.key) not in reached and ("*", case.key) not in reached:
                 out.append(Finding("F4", table.source, f"Case {case.key} of \"{table.title}\" is reached by no flow.",
