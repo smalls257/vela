@@ -217,8 +217,9 @@ def read(*parts):
 
 def test_close_and_epics_stage_what_render_rewrote():
     close, epics, modes = skill_text("close"), read("plugin/skills/epics/SKILL.md"), read("plugin/references/MODES.md")
-    assert "Stage every file `planner render` reported" in close
-    assert "`git status --short` must show nothing modified" in close
+    # close stages through `planner close stage`, whose allow-list includes what render rewrote
+    # (tests/test_close_stage.py); epics still stages by hand until its rewrite
+    assert "planner close stage --close" in close and "what render rewrote" in close
     assert "Stage every file `planner render` reported" in epics
     assert "Close runs `planner render` for those." not in modes and "so does `epics`" in modes
 

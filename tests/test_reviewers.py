@@ -309,7 +309,7 @@ def test_close_keeps_the_grill_record_of_a_decision_over_open_questions():
 def test_close_keeps_its_existing_guards():
     close = skill_text("close")
     for kept in ("### Voice review", "**Voicescore, optional.**", "### Harvest the owner's edits",
-                 "git merge --no-edit origin/main", "Never stage anything in `voice/local/`",
+                 "planner close sync-main", "never stages the inbox, `voice/local/` or `voice/corpus/`",
                  "gh pr comment <number> --body-file <file>", "planner handoff <APP-id>",
                  "planner voicecheck"):
         assert kept in close, kept

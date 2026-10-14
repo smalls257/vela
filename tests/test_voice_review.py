@@ -213,7 +213,7 @@ def test_harvest_keeps_five_active_and_retires_the_seed_first():
     assert f"A type keeps at most {schema.VOICE_ACTIVE_MAX} active examples." in close
     assert "the oldest `public-seed` example first, then the oldest `owner-edit`, then the oldest `owner`" in close
     assert "never delete an example" in close
-    assert "every example harvested or retired" in close and "**Voice examples:** each example harvested or retired." in close
+    assert "harvested voice examples" in close and "**Voice examples:** each example harvested or retired." in close
 
 
 # The two folders and the gh failure rule, added after the brief was written.
@@ -230,7 +230,7 @@ def test_harvest_asks_committed_or_local_and_recommends_local_for_employer_text(
     assert "If the owner's employer owns the text, or the owner is not sure, recommend local only." in harvest
     assert "May this text be committed to the vault?" in harvest
     assert "no step below stages it" in harvest
-    assert "Never stage anything in `voice/local/`." in close_text()
+    assert "never stages the inbox, `voice/local/` or `voice/corpus/`" in close_text()
 
 
 def test_harvest_reads_both_folders_and_retires_seeds_only_within_a_folder():

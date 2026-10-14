@@ -65,16 +65,12 @@ def test_readme_plugin_row_lists_every_cli_command():
 # M1: a stale session branch merges main before render
 
 def test_close_merges_a_moved_main_before_render():
+    # The merge recipe moved into `planner close sync-main` (tests/test_sync_main.py pins its behavior); the skill
+    # runs it before render and checkpoints through `close stage`.
     step = close_section("## 6. Render and check", "## 7.")
-    assert "git merge-base --is-ancestor origin/main HEAD" in step
-    assert "git merge --no-edit origin/main" in step
-    assert step.index("git merge --no-edit origin/main") < step.index("planner render`, then")
-    assert "commit with the message `Checkpoint <id>`" in step
-    assert step.index("`Checkpoint <id>`") < step.index("git merge --no-edit origin/main")
-    assert "git merge --no-edit -X ours origin/main" in step
-    assert "If any hunk sits outside a `<!-- generated:` block, stop" in step
-    assert "Never use `git checkout --ours` or `--theirs` on a file" in step
-    assert "git checkout --theirs -- <file>" not in step
+    assert step.index("planner close sync-main") < step.index("planner render`, then")
+    assert "planner close stage --checkpoint" in step
+    assert "git merge" not in step and "-X ours" not in step and "--theirs" not in step
     assert "long-lived PR" in read("README.md") and "merge `origin/main`" in read("README.md")
 
 

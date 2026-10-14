@@ -117,7 +117,7 @@ def test_open_sessions_are_found_on_their_branches_and_ids_do_not_collide():
     start, close = text("references/START.md"), skill_text("close")
     assert "git branch --list 'session/*'" in start and "git branch -r --list 'origin/session/*'" in start
     assert "add `-2`, then `-3`" in start
-    assert "git branch -r --list 'origin/session/*'" in close and "git switch <branch>" in close and "it is `session/<id>`" in close
+    assert "planner session open --switch" in close and "--id <the one they picked>" in close
     assert "If there is none yet, skip the merged-PR search" in start
     assert "pulls/<number>/reviews" in start
     assert "<Mode name>" in start and "Dump & Diverge" in start
@@ -138,7 +138,7 @@ def test_close_pr_body_reviewers_and_staging():
     assert "**Prose drafted:**" in close and "**Decided wording not yet read back:**" in close
     assert "gh api user -q .login" in close and "Strip the leading `@`" in close
     assert "If nobody remains, leave out `--reviewer`." in close
-    assert "Never use `git add -A`." in close
+    assert "git add -A" not in close and "planner close stage --close" in close  # only the CLI stages
 
 
 # grill (V1-10)
@@ -181,7 +181,7 @@ def test_discover_cites_sources_and_never_promotes_a_plan_to_fact():
     assert "Never copy document text into the vault." in discover
     assert "Claude's general knowledge is never a source." in discover
     assert "`Kind: repo`" in discover and "<url>@<sha>" in discover
-    assert "nothing under `.inbox/` is staged" in skill_text("close")  # close owns the staging check
+    assert "never stages the inbox" in skill_text("close")  # close stage owns it (tests/test_guard.py)
 
 
 def test_shape_offers_two_or_three_and_never_decides():

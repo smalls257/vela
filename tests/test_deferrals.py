@@ -65,5 +65,5 @@ def test_a_session_record_may_say_it(mini):
 
 def test_close_turns_a_deferral_into_a_question_with_an_owner_and_a_date():
     close = skill_text("close")
-    assert "left for a Grill, or is decided later, is never kept as prose" in close
+    assert "left for a grill, or is decided later, is never kept as prose" in close
     assert "`**Owner:**`" in close and "`**Ask by:**`" in close

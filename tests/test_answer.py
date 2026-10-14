@@ -48,7 +48,9 @@ def test_start_answers_a_challenge_on_its_own_branch():
 def test_start_and_close_find_an_answer_record_on_a_shared_branch():
     command = "git grep -l '^status: open' <branch> -- sessions/"
     assert command in read("plugin", "references", "START.md")
-    assert command in section(skill_text("close"), "## 1.", "## 2.")
+    # close finds it through `planner session open`, which reads every record on a shared branch
+    # (tests/test_session_open.py::test_two_records_on_one_branch_finds_the_open_one)
+    assert "planner session open --switch" in section(skill_text("close"), "## 1.", "## 2.")
 
 
 def test_grill_and_challenge_send_the_lead_to_the_answer_path():

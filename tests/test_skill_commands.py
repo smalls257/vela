@@ -42,7 +42,7 @@ def test_close_writes_the_handoff_manifest_when_a_senior_takes_an_app():
     assert "If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner handoff <APP-id>` only now, after that commit" in close
     assert "run it with `--replace` only once they say so in this session" in close
     # S34: the manifest is written after the session's commit, so it records a clean commit, and is committed alone.
-    assert close.index("Commit with the message `Close session <id>`") < close.index("handoff <APP-id>` only now")
+    assert close.index("planner close stage --close --session <id>") < close.index("handoff <APP-id>` only now")
     assert "Handoff manifest for <APP-id>" in close
 
 

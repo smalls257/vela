@@ -92,4 +92,4 @@ def test_the_guide_and_conventions_agree_that_epics_follow_handoff():
 
 def test_the_read_back_and_the_manifest_step_tell_the_lead_what_is_not_firm():
     assert "draft or assumption" in skill_text("grill") and "no case table" in skill_text("grill")
-    assert "not firm at handoff" in skill_text("close")
+    assert "not settled at handoff" in skill_text("close")  # the words the handoff record's heading now uses
