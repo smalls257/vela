@@ -71,6 +71,7 @@ Every page starts with a YAML block. Quote any value that holds a colon or start
 | `capability` | as above, plus `origin`, `change` | `sources`, `domain` | `inkling`, `assumption`, `decided` |
 | `session` | `id`, `type`, `date`, `modes`, `status`, `summary` | `title` | none: `status` is `open` or `closed` |
 | `sources` | `id`, `type`, `title`, `authored` | `owner` | none |
+| `entity` | `id`, `type`, `title`, `app`, `shared`, `initial`, `final` | `owner`, `sources` | none: `initial` and `final` name its states. See Flow check. |
 
 Every type except `session` may also carry `last_verified`, `verified_by` and `links`.
 
@@ -147,8 +148,10 @@ Contract, under `### CON-nnn <name>` on the provider's building-blocks page:
 | `**Options considered:**` | Optional. What a Shape weighed, in the page-level form. |
 | `**Links:**` | Optional. Where the contract is written down outside the vault, such as its API spec. See Links out of the vault. |
 | `**Auth:**` | Optional, but a stub needs it. How a caller proves who it is, in a few words. |
-| `**Can time out:**` | Optional. `yes` or `no`: whether a caller can be left waiting with no answer. |
-| `**Retries:**` | Optional. How many times a caller tries again: a number, or `none`. |
+| `**Can time out:**` | Optional. `yes` or `no`: whether a caller can be left waiting with no answer. The flow check needs it on every contract a slice calls. |
+| `**Retries:**` | Optional. How many times a caller tries again, and after which answers: `2 after timeout, unavailable`, or `none`. Which answers are retried is part of it, because retrying a refusal is a bug. |
+| `**Idempotent:**` | Optional. `yes` or `no`: whether asking twice does what asking once does. With `yes`, the flow check applies a retried call's changes once. |
+| `**Delivery:**`, `**Order:**` | Only on a contract an outside party calls into the vault, such as a webhook. The flow check treats the call like an event, so it needs an event's delivery and order. See Flow check. |
 | `**Override:**`, `**Decided by:**`, `**Confirmed by:**` | Optional. See Overrides. |
 | `**Pending approval:**` | Optional. A reader's decision awaiting the owner. See Pending approval. |
 
@@ -161,14 +164,14 @@ A contract also carries a **case table** under its fact bullets: one row for eve
 - **Status** is a three-digit code such as `409`, or `ok` or `error` for a contract that is not HTTP. A status of 400 or more, or `error`, is an error case.
 - **Answer** is what the provider says back, in a sentence.
 - **Emits** is blank or event IDs (`EVT-003`) the provider publishes when it answers this way. Each must be a `### EVT-nnn <name>` heading somewhere in the vault.
-- **Sets** is blank or state changes the provider makes, `<entity>: <from>→<to>` or `<entity>: <state>`, separated by `;`. Each entity must be a `### ENT-nnn <name>` heading somewhere in the vault, named by its ID or its name.
+- **Sets** is blank or state changes the provider makes, `<entity>: <from>→<to>` or `<entity>: <state>`, separated by `;`. A change that depends on where the entity starts lists one move per starting state: `stock: one→zero, zero→minus_one`. Each entity must be a `### ENT-nnn <name>` heading somewhere in the vault, named by its ID or its name.
 
 A worked example, with the bullets that go beside it:
 
 ```
 - **Auth:** service token through the gateway
 - **Can time out:** yes
-- **Retries:** 2
+- **Retries:** 2 after timeout
 
 | Case | When | Status | Answer | Emits | Sets |
 |---|---|---|---|---|---|
@@ -567,12 +570,12 @@ Run `python3 .claude/skills/planner/scripts/planner check` from the vault root. 
 | W368 | the opening is a line the template wrote | W369 | an abbreviation not spelled out on the page |
 | W370 | an epic criterion has no AC id on its Trace line, or two share one | | |
 | W371 | two or more openings above the first heading, over 150 words together | | |
-| W380 | contract has no case table | W381 | a case table row, or a Can time out or Retries line, cannot be read |
+| W380 | contract has no case table | W381 | a case table row, or a Can time out, Retries or Idempotent line, cannot be read |
 | W382 | two cases of one contract share a key | W383 | a case emits an event the vault does not name |
 | W384 | a case sets an entity the vault does not name | W385 | decided contract has no error case |
 | W386 | an app at handoff has an item in its slice that is not decided | W387 | an app at handoff calls a provider nobody has designed |
 | W388 | a handoff manifest pins a commit this repository does not have, or cannot be read | W389 | prose leaves a matter for a Grill with no open question linked |
-| W390 | decided item records no Why | | |
+| W390 | decided item records no Why | W391 | a drawn slice does not pass the flow check |
 | E209 | a fact label is written twice under one heading | E210 | two rows claim one ID, or one app on a concern page |
 | E323 | a History heading names no item on its page | W325 | app is handed off but its PR number is not recorded |
 | W326 | page is less settled than its rows | W717 | CONVENTIONS.md is not the copy the plugin ships |
@@ -630,7 +633,7 @@ Release one also carries two bullets about its tracer, a thin path through every
 - **`**Tracer:**`** takes one or more flow links, in the order they run, then a comma and the thin version in plain words. A tracer is often several flows, and the planner joins their steps. If the flow has no page yet, write plain words with no link (`**Tracer:** a person gets the 7:30 digest from their calendar, no flow page yet`) and draw the flow in a boundary session. To record a deliberate choice of no tracer, write `**Tracer:** none, <reason>`.
 - **`**Not in the tracer:**`** is free text, one bullet per piece: what is left out, an optional ID in parentheses (an app, a contract or a requirement) and the reason. It is the record of "not ready", so nothing else needs an override.
 - The thinning itself goes in the Delivers table. Put the criteria the tracer needs in the row's Criteria column (`AC1, AC2`) and say in the Note that the rest is in release two. The words after the comma in the Tracer bullet summarise those rows.
-- Only release one carries these bullets. Later releases say what they add through their own Delivers tables.
+- Only release one carries these bullets. Later releases say what they add through their own Delivers tables, and name the flows they prove with `- **Flows:** [[FLO-003-get-prep-note|FLO-003]], ...`: those flows are the release's slice for the flow check (see Flow check).
 
 Nothing else records a release. What the system looks like after each one is worked out from the requirements it delivers: each app that carries a share of one changes, or arrives if it is new, and each contract its share goes through exists. Today is every app whose `change` is not `new`, and every contract whose `**Change:**` is not `new`.
 
@@ -647,6 +650,119 @@ A flow page lists its journey under `## Steps`, one numbered line per step. A st
 ```
 
 `->` reads the same as `→`. An outside party is named by its name or by a link to its party page. The pair is the recorded direction: the explorer draws it as stated, and guesses a direction only for a step without one. A step with no hand-over, such as a reader opting in, needs no pair. `planner check` reports E350 when the sender or receiver is not a party the linked contract joins (its provider, an outside **Provider:**, or a consumer), or when both ends are the same, and W351 when a step links a contract and names no pair.
+
+## Flow check
+
+`planner check-slice <slice>` proves a slice's logic before anyone builds it: every answer a provider can give is handled, every event is consumed, nothing is left half done, and the rules written as invariants hold, across every order the steps can happen in. It reads the plan, not the code, and runs in seconds with no apps running. A slice is release one's `**Tracer:**` flows, or a later release's `**Flows:**`; `planner check-slice "Release one"` checks the first, `planner check-slice FLO-002` one flow on its own.
+
+It reads four things, and never prose:
+
+- each contract's case table and its `**Can time out:**`, `**Retries:**` and `**Idempotent:**` bullets (see Fact bullets), or an OpenAPI spec in `specs/<app>.openapi.yaml` whose operations carry `x-vela-id: CON-nnn`, `x-vela-timeout`, `x-vela-retries: {max: 3, retried: [timeout]}` (`max` counts every attempt, the first included) and named examples as cases;
+- each event, as a `### EVT-nnn <name>` section on its producer's page, with `- **Delivery:**` (`exactly-once`, `at-least-once` or `may-be-lost`), `- **Order:**` (`any`, `per-producer` or `per:<field>`) and a `| Subscriber | Retries |` table; or an AsyncAPI spec in `specs/<app>.asyncapi.yaml` with `x-vela-delivery` and `x-vela-order`;
+- each entity, as a page of type `entity` in `entities/`, with its states and the moves between them;
+- each flow page's sequence diagram, in the strict form below.
+
+An entity page:
+
+```
+---
+id: ENT-001
+type: entity
+title: Hold
+app: APP-inventory
+shared: false
+initial: none
+final: [released, captured]
+---
+
+# Hold
+
+| From | To | Allowed by |
+|---|---|---|
+| none | held | CON-010 placed |
+| held | captured | CON-011 captured |
+| held | released | timer hold_expiry |
+
+- **Invariant:** not (hold=held and payment=refunded)
+```
+
+`app` is the APP-id that keeps it. `shared: true` means two journeys can touch the same one, so the check runs two at once. `final` lists the states a journey may leave it in. **Allowed by** names what may make the move: a case (`CON-010 placed`), any case of a contract (`CON-010`), an event's handling (`EVT-003 handled`), an awaited event (`EVT-003 received`), a timer (`timer hold_expiry`), or the flow itself (`FLO-004`) for a step outside any case. An invariant uses `<entity>=<state>`, `not`, `and`, `or`, `implies` and parentheses.
+
+YAML reads `on`, `off`, `yes` and `no` as true or false. Quote a state with one of those names (`initial: "off"`); the check refuses an unquoted one rather than read it wrongly. For the same reason a spec's retried answers go under `retried:`, never `on:`.
+
+The strict sequence diagram is the flow page's first ` ```mermaid ` block that starts `sequenceDiagram`. The check reads only these lines, and any other line makes the slice "not fully checked":
+
+| Line | Means |
+|---|---|
+| `participant S as Shop` | `S` stands for the app titled Shop. |
+| `S->>I: CON-010 place a hold` | Shop calls Inventory's CON-010. The words after the ID read as the step in a trace. |
+| `I-->>S: 409 unavailable` | Inventory's answer: inside Inventory's drawn handling it returns the call; as the first line of a branch it labels it. |
+| `alt placed` ... `else unavailable, timeout` ... `end` | Branches on the call just before, one per answer. `timeout` and `gave_up` are the answers the check adds from Can time out and Retries. |
+| `S-)B: EVT-008 order placed` | Shop publishes the event for Billing. |
+| `par Billing takes the payment` ... `end` | Right after an event line, a call from an outside party, or a TIMER: what the receiver does when it arrives, or when the timer fires. |
+| `Note over S: SET hold held` | Shop changes an entity's state. |
+| `Note over S: END paid` | The journey ends. `END waiting leaves hold=held` says a state left on purpose. |
+| `Note over S: AWAIT EVT-311` | Shop waits for an event. Branch with `alt received` and `else <timer name>`. |
+| `Note over S: TIMER pay_window 15m` | Shop starts a timer. It fires once; whichever of the timer and the awaited event comes first cancels the other. |
+| `Note over I: ANSWERS FROM CONTRACT: held, sold_out` | Inside Inventory's drawn handling: here it answers from its case table, for a choice the drawing cannot show (the request's content). |
+| `Note over S: GIVEN booking confirmed` | Before the first step: where an entity starts. |
+| `Note over S: ON timeout: END no_note` | Every later call Shop makes in this thread ends this way on a timeout, unless a branch says otherwise. |
+| `Note over P: HUMAN The customer pays` | A person's step. It changes nothing. |
+
+A worked example, an order that waits for its payment:
+
+```mermaid
+sequenceDiagram
+participant S as Shop
+participant I as Inventory
+participant B as Billing
+S->>I: CON-010 place a hold
+alt placed
+    S-)B: EVT-310 payment requested
+    par Billing takes the payment
+        B-)S: EVT-311 payment confirmed
+        Note over B: END handled
+    end
+    Note over S: TIMER pay_window 15m
+    Note over S: AWAIT EVT-311
+    alt received
+        S->>I: CON-011 capture the hold
+        alt captured
+            Note over S: END paid
+        end
+    else pay_window
+        S->>I: CON-012 release the hold
+        alt released
+            Note over S: END expired
+        end
+    end
+else unavailable
+    Note over S: END unavailable
+end
+```
+
+Here the check finds the gap a reviewer would miss: when the timer wins, the hold is released, and the payment confirmation that arrives afterwards has nowhere to go.
+
+A provider whose handling is drawn answers as the drawing says. One that is not drawn answers with any case of its table whose When holds, Sets and Emits included. A timed-out call may still have been answered, so after a timeout the provider either did nothing or applied a case. A party outside the vault always answers from its contract.
+
+Findings, each with the step it sits on, a trace in plain words, the owners of the decision, and the IDs on a line of their own:
+
+| Code | Finding |
+|---|---|
+| F1 | an answer has no branch |
+| F2 | a branch or reply names an answer the contract does not have |
+| F3 | an event a case publishes has no subscriber (F3w, a warning: only one outside the slice) |
+| F4 | a warning: no flow anywhere reaches a case |
+| F5 | an entity makes a move its table does not allow |
+| F6 | can't finish: from some step on, the journey can no longer end, with the step it became stuck at |
+| F8 | a journey ends with an entity in a state that is not final |
+| F9 | an invariant breaks |
+| F10 | a line, ID or property the check cannot read: the slice is not fully checked |
+| F11 | the budget ran out (200,000 states or 10 seconds by default; `--max-states`, `--max-seconds`): not fully checked |
+| F12 | a warning: a provider that calls other apps itself answers from its contract, so what it does with them is not checked |
+| F13 | a flow starts from a state no flow of this or an earlier slice leaves |
+
+"Not fully checked" is never a pass, and `check-slice` exits 1 for it as for any finding. To accept a finding for now, put an override on the flow page, in the Overrides form with a quoted rule naming the code, the contract (or event or entity), the answer and an end date: `- **Override:** "F1 CON-010 unavailable until 2026-12-01" by @lead on 2026-10-13: the refund flow lands next sprint`. Past its date it covers nothing and the finding blocks the slice again. Nothing covers F10 or F11. `planner check` runs each slice that has a drawn flow on a small budget and warns W391 while it does not pass; a slice with nothing drawn yet is left to `check-slice`.
 
 ## Domains
 

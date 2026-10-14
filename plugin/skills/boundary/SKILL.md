@@ -50,6 +50,8 @@ Draw the tracer candidate's flows first. The tracer is the first thin path throu
 
 Record the answer so releases does not ask again: a capture of the path in the lead's words, marked at once `→ keep: [[<first flow page>#Steps|<the flow's name>]] (assumption)`, and the path as the opening sentence of that flow page ("the first thin path: ..."). A user with no candidate yet is not held up: say releases will ask once, and carry on.
 
+When a flow's steps and its contracts' case tables are confirmed, draw it as the strict sequence diagram (`CONVENTIONS.md`, "Flow check") and run `planner check-slice FLO-nnn`. Read each finding to the lead in its own words, with the apps that own it, and settle it there as a case row, a branch or an unknown; don't write a finding into the page yourself.
+
 Take the stubs one at a time. For each, show its sheet as a numbered list:
 
 1. **Does:** what the app decides or keeps, in the domain's words, and the domain the user named for it.
