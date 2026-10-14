@@ -371,8 +371,8 @@ def style_problems(markdown, page_type, known_labels=(), lint=()):
         if not stripped:
             continue
         if ID_LABEL.search(line) and not in_history:
-            problems.append((n, f"a link labeled {ID_LABEL.search(line).group(0).split('|')[-1].rstrip(']')}; "
-                                "label it with the thing's name"))
+            problems.append((n, f"a link shows the code {ID_LABEL.search(line).group(0).split('|')[-1].rstrip(']')}; "
+                                "show the name of what it links to instead"))
         labeled = LABELED.match(line)
         if item_line and not item_said and not stripped.startswith(("-", "*", "|")):
             item_said = True
@@ -408,7 +408,7 @@ def style_problems(markdown, page_type, known_labels=(), lint=()):
     for entry, lines in hits.items():
         if lines:
             times = f"{len(lines)} times" if len(lines) > 1 else "once"
-            problems.append((lines[0], f"'{entry}' is on the lint list and appears {times} on this page; say what the thing "
+            problems.append((lines[0], f"'{entry}' is on the list of words to avoid and appears {times} on this page; say what the thing "
                                        "does in plain words"))
     if page_type in PROSE_PAGE_TYPES and opening == 0:
         problems.append((1, "no opening prose: the page should say in a paragraph or two what is true now"))

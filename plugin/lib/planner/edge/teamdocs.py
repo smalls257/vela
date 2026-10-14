@@ -1,6 +1,6 @@
 """What the team has written in a vault's docs/ folder, and the next team-side step it implies. Reads local files only.
 
-    team_step(root) -> "APP-x, breakdown slug. ..." or "APP-x, tickets slug. ..." or None
+    team_step(root, name) -> "the <app> team: ... (/planner:breakdown)." or "... (/planner:tickets)." or None
 
 The Violation this exists to prevent is a Black Box in the handover: a senior finishes a design or a build plan and
 nothing in `planner next` says the next skill exists, so the plan waits for someone to remember it. The team sessions
@@ -35,8 +35,13 @@ def named_in_prereqs(meta, design_name):
     return any(isinstance(p, str) and pathlib.PurePosixPath(p).name == design_name for p in paths)
 
 
-def team_step(root):
-    """The first team-side step waiting in `root`, by app ID, or None. A tickets step comes before a breakdown step."""
+# A design or plan status as a reader says it; the raw values are frontmatter.
+STATUS_WORDS = {"complete": "finished", "complete-with-gaps": "finished apart from known gaps"}
+
+
+def team_step(root, name=lambda app: app):
+    """The first team-side step waiting in `root`, or None. A tickets step comes before a breakdown step. `name` turns
+    an app ID into what a reader calls the app."""
     root = pathlib.Path(root)
     designs = {}
     for path in sorted((root / "docs" / "tech-design").glob("*.md")):
@@ -49,7 +54,9 @@ def team_step(root):
     for design_name, (app, slug, status) in designs.items():
         mine = [meta for meta in plans.values() if named_in_prereqs(meta, design_name)]
         if not mine:
-            steps.append((1, app, f"{app}, breakdown {slug}. The design is {status} and no build plan sits beside it, so break the work into stories and tasks."))
+            steps.append((1, app, f"the {name(app)} team: their design is {STATUS_WORDS.get(status, status)} and there's no build plan yet, "
+                                  f"so break the work into stories and tasks (/planner:breakdown)."))
         elif not ticketed and any(meta.get("status") in DONE for meta in mine):
-            steps.append((0, app, f"{app}, tickets {slug}. The build plan is {mine[0].get('status')} and no ticket list has been written from it."))
+            steps.append((0, app, f"the {name(app)} team: their build plan is {STATUS_WORDS.get(mine[0].get('status'), mine[0].get('status'))} "
+                                  f"and no tickets have been made from it yet, so write them (/planner:tickets)."))
     return min(steps)[2] if steps else None

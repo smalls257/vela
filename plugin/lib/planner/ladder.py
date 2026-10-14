@@ -61,27 +61,33 @@ def missing(vault, app, stage):
     if stage == "target":
         return [] if cites_more_than_a_dump(vault, app) else ["the app page cites no source that is not a dump"]
     if stage == "boundaries":
-        return [f"{f.id} is at {f.meta.get('state') or 'no state'}" for f in flows_naming(vault, app)
+        return [f"the flow {vault.named(f.id)} {_phrase(f.meta.get('state'))}" for f in flows_naming(vault, app)
                 if f.meta.get("state") not in ("assumption", "fact", "decided")]
     if stage == "contracts":
-        out = [] if app.meta.get("state") == "decided" else [f"{app.id} is at {app.meta.get('state') or 'no state'}"]
-        return out + ([] if containers(app) is not None else ["the app page has no containers table"])
+        out = [] if app.meta.get("state") == "decided" else [f"the app itself {_phrase(app.meta.get('state'))}"]
+        return out + ([] if containers(app) is not None else ["its page has no table of its parts (containers)"])
     if stage == "handoff":
-        out = [f"{c.id} it provides is at {c.fact('State') or 'no state'}" for c in provided
+        out = [f"{vault.named(c.id)}, which it offers, {_phrase(c.fact('State'))}" for c in provided
                if c.fact("State") not in SETTLED or (c.fact("State") == "fact" and c.fact("Change") != "unchanged")]
-        out += [f"{c.id} it consumes is at {c.fact('State') or 'no state'}" for c in consumed
+        out += [f"{vault.named(c.id)}, which it uses, {_phrase(c.fact('State'))}" for c in consumed
                 if c.fact("State") not in SETTLED]
         runtime = runtime_page(vault, app)
         if runtime is None or not any(FAILURE.search(h.text) for h in runtime.headings):
-            out.append("its runtime page has no section on failure")
-        out += [f"{u.id} blocks {c.id}" for c in provided + consumed for u in blocked.get(c.id, [])]
+            out.append("its runtime page has no section on what happens when things fail")
+        out += [f"the open question {vault.named(u.id)} holds up {vault.named(c.id)}" for c in provided + consumed for u in blocked.get(c.id, [])]
         return out
     if stage == "epics":
         cells = {(c.concern.id, c.app) for c in vault.cells if c.state != "unexamined"}
-        out = [f"{p.id} has no examined cell for it" for p in vault.of_type("concern") if (p.id, app.name) not in cells]
+        out = [f"the concern {vault.named(p.id)} hasn't been checked for this app" for p in vault.of_type("concern") if (p.id, app.name) not in cells]
         states = containers(app) or []
-        return out + [f"a container is at {s or 'no state'}" for s in states if s not in CONTAINER_DONE]
+        return out + [f"one of its parts {_phrase(s)}" for s in states if s not in CONTAINER_DONE]
     return []
+
+
+def _phrase(state):
+    """A state in a sentence: "is not decided yet", "is still a draft", or "has no state yet"."""
+    from planner import handoffwarn  # late: handoffwarn reads progress, which reads this module's neighbors
+    return handoffwarn.state_phrase(state) if state else "has no state yet"
 
 
 def allows(vault, app):

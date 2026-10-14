@@ -110,7 +110,7 @@ def table(cell):
 def test_a_cell_over_40_words_warns_and_40_pass(mini):
     write_page(mini, 1, table(words(41)))
     assert codes(mini) == ["W366"]
-    assert "One clause per row" in line_for(mini, "W366")
+    assert "Split it into rows of one point each" in line_for(mini, "W366")
     write_page(mini, 1, table(words(40)))
     assert codes(mini) == []
 
@@ -177,7 +177,7 @@ def test_an_opening_that_is_a_template_line_warns_and_a_written_one_does_not(min
     title = next(line for line in text.split("\n") if line.startswith("# "))
     page.write_text(text.replace(title, f"{title}\n\n{TEMPLATE_LINE}", 1), encoding="utf-8")
     assert "W368" in codes(mini)
-    assert "Replace it with what is true now" in line_for(mini, "W368")
+    assert "Replace it with what is actually true for this project now" in line_for(mini, "W368")
     page.write_text(text.replace(title, f"{title}\n\nThe till costs about nine pounds a day to run, and nobody has agreed who pays.", 1), encoding="utf-8")
     assert "W368" not in codes(mini)
 
@@ -260,7 +260,7 @@ def test_style_lists_each_lint_word_once_with_its_count():
     from planner import reading
     words = reading.lint_words(LINT.read_text(encoding="utf-8"))
     problems = [why for _, why in reading.style_problems(PROSE_WITH_WORDS, "epic", (), words)]
-    assert [p for p in problems if "'robust'" in p] == ["'robust' is on the lint list and appears 2 times on this page; say what the thing does in plain words"]
+    assert [p for p in problems if "'robust'" in p] == ["'robust' is on the list of words to avoid and appears 2 times on this page; say what the thing does in plain words"]
     assert any("'leverage'" in p and "once" in p for p in problems)
 
 
@@ -280,7 +280,7 @@ def test_the_cli_reads_the_one_word_list(tmp_path, mini):
     page.write_text(text.replace(title, f"{title}\n\nThe till is a seamless way to pay for things at the shop.", 1), encoding="utf-8")
     from conftest import run
     code, out = run("style", "--vault", str(mini), "01-goals")
-    assert code == 1 and "'seamless' is on the lint list" in out
+    assert code == 1 and "'seamless' is on the list of words to avoid" in out
 
 
 def test_a_missing_word_list_is_a_tool_failure_not_an_empty_list(tmp_path):

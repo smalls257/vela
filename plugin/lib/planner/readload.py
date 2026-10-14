@@ -130,9 +130,8 @@ def split_opening_findings(page):
     if len(found) < 2 or total <= schema.PARAGRAPH_WORD_LIMIT:
         return []
     return [(found[1][0], "W371",
-             f"The page keeps {len(found)} openings above its first heading ({total} words); the second may contradict the first.",
-             "Keep one opening: rewrite the first so it says what is true now, delete the others, and move anything "
-             "they add under a heading.")]
+             f"The page has {len(found)} intro paragraphs before its first heading ({total} words), and the later ones may contradict the first.",
+             "Keep one intro that says what is true now; move what the others add under a heading, or delete them.")]
 
 
 # ---------------------------------------------------------------------------------------------------- W366
@@ -148,8 +147,8 @@ def cell_findings(page):
                 continue  # History, the question ledger, a fence or a generated block: a record, not read top to bottom
             words = max((_word_count(cell) for cell in row), default=0)
             if words > schema.CELL_WORD_LIMIT:
-                out.append((line, "W366", f"A table cell runs {words} words; a cell is read as one chunk, and the limit is "
-                            f"{schema.CELL_WORD_LIMIT}.", "One clause per row, or point at the requirement page."))
+                out.append((line, "W366", f"A table cell is {words} words long; a cell is read in one go, so keep it under "
+                            f"{schema.CELL_WORD_LIMIT}.", "Split it into rows of one point each, or link to the page that has the detail."))
     return out
 
 
@@ -223,8 +222,8 @@ def template_opening_findings(page, known):
         if heading and len(heading.group(1)) == 2:
             return []
         if not history and _is_prose(raw) and normal_line(raw) in known:
-            return [(n, "W368", "The opening is a line the template wrote, not what is true now for this initiative.",
-                     "Replace it with what is true now for this initiative.")]
+            return [(n, "W368", "The first paragraph is still the template's placeholder text.",
+                     "Replace it with what is actually true for this project now.")]
     return []
 
 

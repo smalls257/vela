@@ -292,8 +292,8 @@ def apply(vault, findings, gate=None):
         said = "; ".join(o.describe() for o in cover)
         fix = finding.fix.replace(schema.E805_OVERRIDE_HINT, "").strip()
         out.append(Finding(finding.path, finding.line, schema.OVERRIDE_CODES[finding.code],
-                           f"{finding.message} Overridden: {said}.",
-                           f"Nothing blocks the merge. To end the override: {fix}"))
+                           f"{finding.message} Accepted as an exception: {said}.",
+                           f"It doesn't block. To clear the exception, fix the cause: {fix}"))
     for (path, item_id), page in sorted(scopes.items(), key=lambda kv: kv[0]):
         seen = fired.get((path, item_id), set())
         where = item_id or page.id or page.name
@@ -307,9 +307,9 @@ def apply(vault, findings, gate=None):
         if behalf and not behalf.confirmed_by:
             owners = " ".join(behalf.owners)
             out.append(_f(page, behalf.line, "W324",
-                          f"{where} was decided on {owners}'s behalf by {behalf.by}, not yet confirmed.",
-                          f"Ask {owners} to confirm and add - **Confirmed by:** {CONFIRMED_BY_GRAMMAR}, "
-                          f"or to raise /planner:challenge if they disagree."))
+                          f"{behalf.by} decided {vault.named(where)} on {owners}'s behalf, and {owners} hasn't confirmed it yet.",
+                          f"Ask {owners} to confirm (add - **Confirmed by:** {CONFIRMED_BY_GRAMMAR}), "
+                          f"or to challenge it with /planner:challenge if they disagree."))
     out.extend(grammar_findings(vault))
     out.extend(label_findings(vault))
     return out

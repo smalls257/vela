@@ -285,15 +285,15 @@ def test_planner_next_offers_the_design_for_a_handed_off_app_with_none(tmp_path)
     shutil.copytree(HERON, vault)
     code, out = run("next", "--vault", str(vault), "--today", "2026-10-12")
     assert code == 0 and ", design." not in out, out  # the design is there, so no design step is named
-    assert out.splitlines()[0].startswith("planner next: APP-consent-and-identity, grill"), out  # the lead's step stays first
-    assert "planner next: team side, APP-desktop-agent, breakdown desktop-agent." in out, out  # the team's own next step
+    assert out.splitlines()[0].startswith("planner next: Consent and identity: grill"), out  # the lead's step stays first
+    assert "planner next: for the Desktop agent team: their design is" in out and "/planner:breakdown" in out, out  # the team's own next step
     shutil.rmtree(vault / "docs" / "tech-design")
     code, out = run("next", "--vault", str(vault), "--today", "2026-10-12")
     # what is not firm at handoff is its own line and an indented list; the lead's step and the team's step are the two others
-    lines = [l for l in out.splitlines() if not l.startswith("  ") and "not firm:" not in l]
-    assert code == 0 and len(lines) == 2 and lines[0].startswith("planner next: APP-consent-and-identity, grill"), out
-    assert lines[1] == (f"planner next: team side, {APP}, design. {APP} is handed off and has no design doc in "
-                        f"docs/tech-design/ yet; its team runs /planner:design --app {APP}."), out
+    lines = [l for l in out.splitlines() if not l.startswith(("  ", 'What "')) and "not settled yet:" not in l]
+    assert code == 0 and len(lines) == 2 and lines[0].startswith("planner next: Consent and identity: grill"), out
+    assert lines[1] == ("planner next: for the Desktop agent team: the app is handed over but has no technical design "
+                        f"yet. They start it with /planner:design --app {APP}."), out
 
 
 def test_design_is_named_where_the_modes_are_listed():

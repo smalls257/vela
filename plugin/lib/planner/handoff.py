@@ -182,18 +182,21 @@ def handoff_list(vault, app):
     return sorted(unique.values(), key=lambda e: (KIND_ORDER.index(e.kind), e.id))
 
 
-NOT_FIRM_HEADING = "## Not firm at handoff"
+NOT_FIRM_HEADING = "## Not settled at handoff"
+# What each kind of row is, in a reader's words. The table keeps the short kinds: read() parses them.
+KIND_WORDS = {"app": "app", "runtime": "how it runs", "provides": "interface it offers", "consumes": "interface it uses",
+              "requirement": "requirement", "epic": "epic", "slice": "slice", "release": "release", "unknown": "open question"}
 
 
-def write(app_id, entries, commit, today, not_firm=()):
+def write(app_id, entries, commit, today, not_firm=(), title=""):
     """The manifest file's text. `not_firm` is the sentences handoffwarn found, so the senior's copy says what was never decided."""
     rows = [f"| {e.id} | {e.kind} | {e.page} | {e.state or '-'} | {e.hash} |" for e in entries]
-    tail = ["", NOT_FIRM_HEADING, "", "The senior accepts the app with these still open:", "", *not_firm, ""] if not_firm else [""]
+    tail = ["", NOT_FIRM_HEADING, "", "The app's team accepts it knowing these are still open:", "", *not_firm, ""] if not_firm else [""]
     return "\n".join([
-        f"# Handoff manifest: {app_id}", "",
+        f"# Handoff record: {title or app_id}", "",
         f"- **App:** {app_id}", f"- **Commit:** {commit}", f"- **Written:** {today}", f"- **Items:** {len(entries)}", "",
-        f"Written by `planner handoff {app_id}`. Do not edit it by hand. "
-        f"`planner handoff verify {app_id}` lists what changed since the senior accepted this app.", "",
+        f"Made by `planner handoff {app_id}`; don't edit it by hand. To see what changed since the app's team accepted it, "
+        f"run `planner handoff verify {app_id}`. The Hash column is a fingerprint of each item's text, used to spot changes.", "",
         "| " + " | ".join(HEADER) + " |", "|---|---|---|---|---|", *rows, *tail])
 
 
@@ -275,16 +278,18 @@ def verify(accepted, now, vault):
     return Diff(tuple(changed), added, tuple(removed), frozenset(left))
 
 
-def describe(old, new, left=False):
+def describe(old, new, left=False, name=""):
+    """One changed item, by name when the caller knows it; the ID stays as a tag."""
     parts = []
     if old.state != new.state:
-        parts.append(f"state {old.state or '-'} -> {new.state or '-'}")
+        parts.append(f"state {old.state or 'none'} -> {new.state or 'none'}")
     if old.kind != new.kind:
-        parts.append(f"kind {old.kind} -> {new.kind}")
+        parts.append(f"was {KIND_WORDS.get(old.kind, old.kind)}, now {KIND_WORDS.get(new.kind, new.kind)}")
     if old.page != new.page:
         parts.append(f"moved from {old.page} to {new.page}")
     if old.hash != new.hash:
-        parts.append("text changed")
+        parts.append("its wording changed")
     if left:
         parts.append("no longer in this app's handoff list")
-    return f"changed: {new.id} ({new.kind}, {new.page}): " + ", ".join(parts)
+    subject = f"{name} ({new.id})" if name and name != new.id else new.id
+    return f"changed: {KIND_WORDS.get(new.kind, new.kind)} {subject}: " + ", ".join(parts)

@@ -143,12 +143,12 @@ def test_the_digest_text_offers_one_answer_for_a_group(ub):
     drop(ub, OPS_KIOSKS, OPS_PRICING)
     code, out = run("questions", "--vault", str(ub), "--digest")
     assert code == 0
-    assert out.splitlines()[0] == ("planner questions --digest: 57 owed, 2 undisposed, 1 asked, 1 open reviewer question, "
-                                   "against catalog v1. 3 lines to take, most consequential first.")
-    assert "1. [FIN] normal: Who pays for the change" in out and "   (asked) Q-FIN-02@INI-002" in out
-    assert "2. [OPS] normal, blocks APP-kiosks, APP-pricing: Who runs it" in out
+    assert out.splitlines()[0] == ("planner questions --digest: 57 standard questions apply, 2 not dealt with yet, 1 asked but not "
+                                   "answered, 1 open reviewer question (question catalog v1). 3 questions to settle, most important first.")
+    assert "1. [Finance and liabilities] normal: Who pays for the change" in out and "   (asked) Q-FIN-02@INI-002" in out
+    assert "2. [Operations and people] normal, holds up APP-kiosks, APP-pricing: Who runs it" in out
     assert "   2 copies (no row): Q-OPS-01@APP-kiosks, Q-OPS-01@APP-pricing: one answer for all?" in out
-    assert "3. [FIN] normal: Points are earned at reservation" in out
+    assert "3. [Finance and liabilities] normal: Points are earned at reservation" in out
 
 
 def test_a_group_says_why_each_copy_is_undisposed(ub):
@@ -163,7 +163,7 @@ def test_a_group_says_why_each_copy_is_undisposed(ub):
 def test_long_blocks_lists_are_cut_in_text_and_whole_in_json(ub):
     drop(ub, DAT_02_ALL)
     code, out = run("questions", "--vault", str(ub), "--digest")
-    assert "blocks 8 items: APP-call-center, APP-kiosks, APP-website, …:" in out
+    assert "holds up 8 items: APP-call-center, APP-kiosks, APP-website, …:" in out
     assert len(digest(ub)["groups"][0]["blocks"]) == 8
 
 
@@ -222,7 +222,7 @@ def test_stats_count_how_each_entry_ended():
                                    "not_applicable": 1, "not_applicable_share": 0.17}
     assert entries["Q-REG-03"]["owed"] == 0 and entries["Q-REG-03"]["not_applicable_share"] == 0.0
     code, out = run("questions", "--vault", str(FIXTURE), "--stats")
-    assert "Q-REG-01 | REG | owed 1 | not-applicable 1 of 1 (100%) | not-applicable 1" in out
+    assert "Q-REG-01 | REG | applied 1 | ruled out 1 of 1 (100%) | not-applicable 1" in out
 
 
 def test_an_invalid_row_is_counted_as_invalid_and_not_as_not_applicable(ub):

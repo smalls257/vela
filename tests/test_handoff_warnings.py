@@ -30,9 +30,9 @@ def test_the_gaps_name_each_unfirm_item_each_missing_table_and_each_undesigned_p
     found = handoffwarn.gaps(vault, app)
     assert {g.kind for g in found} == {"unfirm", "no-case-table", "no-designer"}
     text = "\n".join(g.sentence for g in found)
-    assert "Consent check (CON-003) is still assumption" in text
+    assert "Consent check (CON-003) is not decided yet" in text
     assert "acceptance criteria" in text  # epics and requirements say their criteria are not firm either
-    assert "Consent and identity provides" in text and "nobody has designed it yet" in text
+    assert "on Consent and identity, but no team has taken Consent and identity or designed it yet" in text
 
 
 def test_check_warns_for_an_app_at_handoff(heron):
@@ -52,16 +52,16 @@ def test_an_app_not_at_handoff_draws_no_handoff_warning(heron):
 
 def test_next_prints_what_is_not_firm(heron):
     _, out = run("next", "--vault", str(heron), "--today", TODAY)
-    assert f"planner next: {APP} is handed off, and" in out and "not firm:" in out
-    assert "  - Consent check (CON-003) is still assumption" in out
+    assert "planner next: Desktop agent has been handed to its team, but" in out and "not settled yet:" in out
+    assert "  - Consent check (CON-003) is not decided yet" in out
 
 
 def test_handoff_says_it_and_writes_it_into_the_manifest(heron):
     code, out = run("handoff", APP, "--vault", str(heron), "--today", TODAY, "--commit", "abc1234", "--replace")
     assert code == 0, out
-    assert "Not firm at handoff," in out and "Consent check (CON-003)" in out
+    assert "not settled yet. Tell the app's team before they accept it" in out and "Consent check (CON-003)" in out
     manifest = (heron / "handoffs" / f"{APP}.md").read_text(encoding="utf-8")
-    assert handoff.NOT_FIRM_HEADING in manifest and "Consent check (CON-003) is still assumption" in manifest
+    assert handoff.NOT_FIRM_HEADING in manifest and "Consent check (CON-003) is not decided yet" in manifest
     facts, entries = handoff.read(manifest)  # the senior's reader still parses a manifest with the list in it
     assert facts["App"] == APP and entries
 

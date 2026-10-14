@@ -53,17 +53,18 @@ def test_an_undisposed_high_question_fails_the_epics_gate_and_nothing_else(ub):
     code, out = gate(ub, "--gate", "epics")
     assert code == 1
     assert findings(out) == [("E805", LEDGER)] * 3, "call center, kiosks and website"
-    assert f"{LEDGER}:{heading_line(ub)}: E805 Q-DAT-02@APP-call-center is high severity and has no ledger row: What customer data" in out
+    assert (f"{LEDGER}:{heading_line(ub)}: E805 A high-priority question hasn't been dealt with yet (it has no row in the question "
+            "ledger), so the epics can't be called finished: What customer data") in out and "(Q-DAT-02@APP-call-center)" in out
 
 
 def test_an_open_or_asked_high_row_fails_the_gate_at_its_own_line(ub):
     edit(ub / LEDGER, PTN_02, "| Q-PTN-02@PTY-02 | asked | capture: [[2026-11-19-owed-questions#^c01]] | @hl-solution-lead | 2026-11-19 |\n")
     code, out = gate(ub, "--gate", "epics")
     assert code == 1 and findings(out) == [("E805", LEDGER)]
-    assert "Q-PTN-02@PTY-02 is high severity and is asked:" in out
+    assert "question has been asked but not answered, so the epics can't be called finished:" in out and "(Q-PTN-02@PTY-02)" in out
     edit(ub / LEDGER, "| Q-PTN-02@PTY-02 | asked | capture: [[2026-11-19-owed-questions#^c01]] | @hl-solution-lead | 2026-11-19 |\n",
          "| Q-PTN-02@PTY-02 | open |  |  |  |\n")
-    assert "Q-PTN-02@PTY-02 is high severity and is open:" in gate(ub, "--gate", "epics")[1]
+    assert "question is still open, so the epics can't be called finished:" in gate(ub, "--gate", "epics")[1]
 
 
 def test_an_invalid_high_row_disposes_of_nothing_and_the_gate_says_so(ub):
@@ -72,20 +73,20 @@ def test_an_invalid_high_row_disposes_of_nothing_and_the_gate_says_so(ub):
     edit(ub / LEDGER, row, row.split("; answer:")[0] + " | @hl-solution-lead | 2026-11-19 |")
     code, out = gate(ub, "--gate", "epics")
     assert code == 1 and ("E805", LEDGER) in findings(out)
-    assert "Q-FIN-03@SV-01 is high severity and is invalid (answered):" in out
+    assert "question has a ledger row that can't be read (answered), so the epics" in out and "(Q-FIN-03@SV-01)" in out
 
 
 def test_a_copy_answered_through_a_wildcard_says_so(ub):
     edit(ub / LEDGER, DAT_02_ALL, DAT_02_ALL.split("| assumed |")[0] + "| open |  |  |  |\n")
     out = gate(ub, "--gate", "epics")[1]
-    assert "Q-DAT-02@APP-kiosks is high severity and is open (by Q-DAT-02@APP-*):" in out
+    assert "question is still open (through Q-DAT-02@APP-*), so the epics" in out and "(Q-DAT-02@APP-kiosks)" in out
 
 
 def test_a_high_reviewer_question_fails_the_gate(ub):
     edit(ub / LEDGER, "; severity: normal |", "; severity: high |")
     code, out = gate(ub, "--gate", "epics")
     assert code == 1 and findings(out) == [("E805", LEDGER)]
-    assert "R-FIN-01 is high severity and is open:" in out
+    assert "A high-priority reviewer question is still open, so the epics can't be called finished:" in out and "(R-FIN-01)" in out
 
 
 def test_the_user_may_override_the_epics_gate_and_every_question_still_prints(ub):
@@ -94,7 +95,7 @@ def test_the_user_may_override_the_epics_gate_and_every_question_still_prints(ub
     code, out = gate(ub, "--gate", "epics")
     assert code == 0, out
     assert findings(out) == [("W805", LEDGER)] * 3
-    assert "Overridden: E805 by @hl-solution-lead on 2026-11-20: the CIO wants the epics out" in out
+    assert "Accepted as an exception: E805 by @hl-solution-lead on 2026-11-20: the CIO wants the epics out" in out
 
 
 def test_the_epics_override_is_never_idle_on_a_plain_check(ub):
@@ -117,7 +118,7 @@ def test_the_shape_gate_warns_on_each_assumed_row(ub):
     code, out = gate(ub, "--gate", "shape")
     assert code == 0
     assert findings(out) == [("W806", LEDGER)] * ASSUMED_ROWS
-    assert "Q-OPS-07@INI-002 is still assumed: customers amend online once they can." in out
+    assert "The plan still assumes this (Q-OPS-07@INI-002): customers amend online once they can." in out
     assert findings(gate(ub)[1]) == [] and findings(gate(ub, "--gate", "epics")[1]) == []
 
 
@@ -127,11 +128,12 @@ def test_the_grill_gate_warns_at_the_item_for_each_open_question_that_blocks_it(
     edit(ub / LEDGER, DAT_02_ALL, "")
     code, out = gate(ub, "--gate", "grill", "--item", "CON-001", "--item", "ADR-0001")
     assert code == 0
-    assert out.splitlines()[0].endswith("Gate: grill. Items: ADR-0001, CON-001.")
+    assert "Checking the open questions that hold up the items a grill will decide. Items: " in out.splitlines()[0]
+    assert "Items: " in out.splitlines()[0] and "(ADR-0001)" in out.splitlines()[0] and "(CON-001)" in out.splitlines()[0]
     got = [line for line in out.splitlines() if " W807 " in line]
     assert len(got) == 3, "call center, kiosks and website block CON-001; nothing open blocks ADR-0001"
     assert all(line.startswith("05-building-blocks/booking-building-blocks.md:") for line in got)
-    assert "Q-DAT-02@APP-kiosks has no ledger row and blocks CON-001:" in out
+    assert "A question that holds up" in out and "(CON-001) hasn't been dealt with yet" in out and "(Q-DAT-02@APP-kiosks)" in out
 
 
 def test_the_grill_gate_is_quiet_when_nothing_open_blocks_the_item(ub):
@@ -139,8 +141,8 @@ def test_the_grill_gate_is_quiet_when_nothing_open_blocks_the_item(ub):
 
 
 @pytest.mark.parametrize("argv, said", [
-    (("--gate", "grill"), "--gate grill needs the agenda"),
-    (("--item", "CON-001"), "--item names a Grill's agenda, so it goes with --gate grill."),
+    (("--gate", "grill"), "--gate grill needs the items the grill will decide"),
+    (("--item", "CON-001"), "--item names what a grill will decide, so it goes with --gate grill."),
     (("--gate", "grill", "--item", "CON-099"), "--item CON-099 is not an ID in this vault."),
 ])
 def test_grill_gate_arguments_that_cannot_work_exit_2(argv, said):
@@ -157,7 +159,7 @@ def test_a_vault_with_no_ledger_page_still_fails_the_epics_gate_loudly(tmp_path)
     code, out = run("check", "--vault", str(vault), "--today", TODAY, "--gate", "epics")
     assert code == 1
     assert findings(out) == [("E805", LEDGER)] * 4
-    assert f"{LEDGER}:1: E805 Q-DAT-01@INI-777 is high severity and has no ledger row:" in out
+    assert f"{LEDGER}:1: E805 A high-priority question hasn't been dealt with yet" in out and "(Q-DAT-01@INI-777)" in out
 
 
 # ------------------------------------------------------------------ fix round 1
@@ -199,13 +201,13 @@ def test_an_invalid_high_reviewer_row_fails_the_gate_and_an_override_clears_it(u
     edit(ub / LEDGER, '"because points are earned at reservation"', '"words the page never says"')
     code, out = gate(ub, "--gate", "epics")
     assert code == 1
-    assert "R-FIN-01 is high severity and is invalid (open):" in out
+    assert "A high-priority reviewer question has a ledger row that can't be read (open)" in out and "(R-FIN-01)" in out
     edit(ub / LEDGER, "## Question ledger\n\n", "## Question ledger\n\n" + OVERRIDE)
     out = gate(ub, "--gate", "epics")[1]
-    assert "W805 R-FIN-01" in out and "W323" not in out
+    assert "W805 A high-priority reviewer question" in out and "(R-FIN-01)" in out and "W323" not in out
 
 
 def test_a_grill_item_no_question_can_block_is_said_not_passed_quietly(ub):
     code, out = gate(ub, "--gate", "grill", "--item", "PTY-01")
     assert code == 0
-    assert "No catalog question blocks PTY-01" in out
+    assert "None of the standard questions applies to" in out and "(PTY-01)" in out

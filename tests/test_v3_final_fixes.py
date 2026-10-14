@@ -210,7 +210,7 @@ def test_the_digest_counts_lines_and_never_doubles_its_brackets(tmp_path):
     edit(vault / "11-unknowns-and-risks.md", "| Q-FIN-04@SV-01 | not-applicable | reason:", "| Q-FIN-04@SV-01 | not-applicable | why:")
     out = run("questions", "--digest", "--vault", str(vault))[1]
     first = out.splitlines()[0]
-    assert first.endswith(" 3 lines to take, most consequential first."), first
+    assert first.endswith(" 3 questions to settle, most important first."), first
     assert "((" not in out and "))" not in out, out
     assert "   (invalid: not-applicable) Q-FIN-04@SV-01" in out, out
 
@@ -224,7 +224,7 @@ def test_w805_tells_how_to_end_the_override_without_suggesting_another(tmp_path)
     out = run("check", "--gate", "epics", "--vault", str(vault), "--today", "2026-11-20")[1]
     w805 = next(l for l in out.splitlines() if " W805 " in l)
     fix = w805.split(" Fix: ", 1)[1]
-    assert "override" not in fix.split("To end the override:", 1)[1].lower(), fix
+    assert "override" not in fix.split("To clear the exception, fix the cause:", 1)[1].lower(), fix
     gate = run("check", "--gate", "epics", "--vault", str(FIXTURE), "--today", "2026-11-20")[1]
     assert "add - **Override:** E805" not in gate
 
@@ -234,7 +234,7 @@ def test_a_passing_epics_gate_names_the_load_bearing_assumptions_it_rests_on():
     assert code == 0
     notes = [l for l in out.splitlines() if l.startswith("Note:")]
     assert len(notes) == 1, out
-    assert notes[0].startswith("Note: the epics gate passed, and it rests on ")
+    assert notes[0].startswith("Note: the epics are ready to call finished, but ")
     assert "Q-PTN-02@PTY-01" in notes[0] and "Q-PTN-03@PTY-01" not in notes[0], notes[0]  # load-bearing: no
     plain = run("check", "--vault", str(FIXTURE), "--today", "2026-11-20")[1]
     assert "Note:" not in plain
