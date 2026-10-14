@@ -4,8 +4,8 @@ import shutil
 
 from test_explorer import BOOKING, booking, built  # noqa: F401  (booking is a fixture)
 
-from planner import breakdown
-from planner.explorer import plan_data
+from vela import breakdown
+from vela.explorer import plan_data
 
 
 def test_the_slices_view_reads_the_slice_pages(booking):  # noqa: F811

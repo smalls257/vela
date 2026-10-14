@@ -5,7 +5,7 @@ import sys
 from conftest import REPO, run
 
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
-from planner import cli, releases  # noqa: E402
+from vela import cli, releases  # noqa: E402
 
 FIXTURE = REPO / "examples" / "unified-booking"
 CAP = "capabilities/CAP-014-hold-a-seat.md"

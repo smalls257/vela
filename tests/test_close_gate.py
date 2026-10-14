@@ -3,7 +3,7 @@ lead's quoted yes in the record, main must have been brought in, and `--consent-
 import shutil
 
 from conftest import run
-from planner import closegate, say
+from vela import closegate, say
 from sharing import git, make_vault, with_remote
 
 RECORD = "2026-10-20-grill-stock"

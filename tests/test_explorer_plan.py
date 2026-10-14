@@ -15,8 +15,8 @@ import sys
 import pytest
 
 from conftest import REPO, edit, run
-from planner import breakdown
-from planner.explorer import plan_data
+from vela import breakdown
+from vela.explorer import plan_data
 
 sys.path.insert(0, str(REPO / "tools"))
 import breakdown_to_tickets as b2t  # noqa: E402
@@ -252,7 +252,7 @@ def test_the_demo_build_gives_the_booking_plan_its_tickets_and_the_reverse_trace
     import make_demo_vault
     make_demo_vault.main(vault)
     out = tmp_path / "page.html"
-    from planner.explorer import build
+    from vela.explorer import build
     shutil.copytree(DEMO_DESIGNS / "booking", tmp_path / "booking")  # beside the page, so the relative links need no walk through the home folder
     booking = tmp_path / "booking/docs/tech-design/booking.md"
     said = build.generate(vault, out, "2026-11-20", design_args=[f"APP-booking={booking}"])

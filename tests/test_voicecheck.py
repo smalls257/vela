@@ -7,7 +7,7 @@ import subprocess
 import pytest
 
 from conftest import run, skill_text
-from planner import voicecheck
+from vela import voicecheck
 
 DRAFT = ("Booking holds a seat for 10 minutes ([[CAP-014-hold-a-seat|CAP-014]]). It calls CON-003 on 2026-11-20, "
          "60% of the time, through `get`.\n\n| Contract | Calls |\n|---|---|\n| CON-003 | 2 |\n")
@@ -272,7 +272,7 @@ def test_range_counts_a_new_and_a_deleted_file(repo):
 
 
 def test_show_tells_a_missing_path_from_a_git_failure(repo):
-    from planner import cli
+    from vela import cli
     assert cli.show(repo, "HEAD", "nowhere.md") == ""
     assert cli.show(repo, "HEAD", "other.md") == "Nothing protected here.\n"
     with pytest.raises(cli.ToolError):
@@ -280,7 +280,7 @@ def test_show_tells_a_missing_path_from_a_git_failure(repo):
 
 
 def test_show_finds_a_path_that_starts_with_a_colon(repo):
-    from planner import cli
+    from vela import cli
     (repo / ":odd.md").write_text("Hold 10 minutes.\n", encoding="utf-8")
     commit_all(repo, "colon")
     assert cli.show(repo, "HEAD", ":odd.md") == "Hold 10 minutes.\n"

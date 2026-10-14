@@ -11,9 +11,9 @@ import shutil
 import pytest
 
 from conftest import REPO, edit, run
-from planner import breakdown, cli, tickets
-from planner.edge import teamdocs
-from planner.explorer import plan_data
+from vela import breakdown, cli, tickets
+from vela.edge import teamdocs
+from vela.explorer import plan_data
 
 FIXTURES = REPO / "tests" / "fixtures" / "team-skills"
 VAULT = FIXTURES / "heron-plan"

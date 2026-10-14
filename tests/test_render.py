@@ -139,7 +139,7 @@ def test_every_generated_diagram_carries_a_key_for_the_styles_it_drew():
     """The user: "don't understand why some things are highlighted, dashed, solid". A generated diagram says, under it,
     what its colors, dashes and arrows mean, for the styles it drew only."""
     import pathlib
-    from planner import diagrams
+    from vela import diagrams
     graph = diagrams.Graph((diagrams.Node("n_a", "A", "app", None, "a"), diagrams.Node("x_b", "B", "external", None, "b")),
                            (diagrams.Edge("n_a", "x_b", "CON-001"),))
     line = diagrams.key_line(graph)

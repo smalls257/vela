@@ -1,10 +1,10 @@
 """The capability-map block: capabilities grouped by `domain`, colored by `change`,
 split into one diagram per domain when the whole map is over budget."""
 from conftest import check, findings, run
-from planner import render, schema
-from planner.model import build
-from planner.parse import parse_page
-from planner.rules import flowchart_elements
+from vela import render, schema
+from vela.model import build
+from vela.parse import parse_page
+from vela.rules import flowchart_elements
 
 CONFIG = {"initiative": "INI-900", "title": "Mini shop"}
 

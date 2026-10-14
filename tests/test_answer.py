@@ -2,7 +2,7 @@
 (or the lead setting the item back) works there, and close pushes to that branch and comments
 on the open challenge PR instead of opening a new one."""
 from conftest import REPO, check, edit, findings, skill_text
-from planner import schema
+from vela import schema
 
 PLUGIN = REPO / "plugin"
 SESSION = "sessions/2026-01-10-shop-api.md"

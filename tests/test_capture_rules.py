@@ -4,7 +4,7 @@ import re
 import shutil
 
 from conftest import REPO, edit, run
-from planner import cli, flows, rules, schema
+from vela import cli, flows, rules, schema
 
 FIXTURE = REPO / "examples" / "unified-booking"
 FLOW = "06-runtime/flows/FLO-001-hold-pay-confirm.md"

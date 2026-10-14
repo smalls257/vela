@@ -1,6 +1,6 @@
 """Trace rules T1, T2, T4 and T6 and the epics gate, on the mini vault plus one epic."""
 from conftest import check, edit, findings, run
-from planner import parse, trace
+from vela import parse, trace
 
 EPIC = "13-epics/EPC-001-sell-at-the-till.md"
 EPIC_TEXT = """---

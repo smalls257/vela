@@ -9,7 +9,7 @@ import pytest
 from conftest import run
 from sharing import git, published_snapshot
 
-from planner import replay, untrusted
+from vela import replay, untrusted
 
 V2_DAY = "2026-10-20"
 READER_ONLY = "02-constraints.md"
@@ -346,7 +346,7 @@ def test_a_binary_file_both_changed_is_a_conflict_with_the_readers_bytes_kept():
 def test_a_replay_that_cannot_write_leaves_the_old_baseline_standing(world, tmp_path, monkeypatch):
     src, _, workspace = world
     v2 = owner_publishes_v2(src, tmp_path)
-    from planner.edge import copies
+    from vela.edge import copies
     before = tree(workspace / ".planner" / "baseline")
     real = copies.write_folder
     monkeypatch.setattr(copies, "write_folder", lambda *a, **k: (_ for _ in ()).throw(OSError(28, "No space left on device")))

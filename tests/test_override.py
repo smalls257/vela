@@ -11,8 +11,8 @@ import shutil
 import pytest
 
 from conftest import REPO, check, edit, findings, run, skill_text
-from planner import override
-from planner.parse import Bullet
+from vela import override
+from vela.parse import Bullet
 
 FIXTURE = REPO / "examples" / "unified-booking"
 PLUGIN = REPO / "plugin"

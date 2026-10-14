@@ -4,7 +4,7 @@ import io
 import shutil
 
 from conftest import REPO, edit, run
-from planner import export
+from vela import export
 
 FIXTURE = REPO / "examples" / "unified-booking"
 

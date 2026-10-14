@@ -2,7 +2,7 @@
 import pytest
 
 from conftest import REPO
-from planner import catalog, ledger, schema
+from vela import catalog, ledger, schema
 
 CONVENTIONS = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
 

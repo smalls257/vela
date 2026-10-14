@@ -13,8 +13,8 @@ import shutil
 import pytest
 
 from conftest import REPO
-from planner import cli
-from planner.explorer import breakdown_find, build, design_data, design_find, plan_data
+from vela import cli
+from vela.explorer import breakdown_find, build, design_data, design_find, plan_data
 
 PLUGIN = REPO / "plugin"
 SKILL = PLUGIN / "skills" / "design"
@@ -369,7 +369,7 @@ def test_the_skill_names_no_dead_file_and_no_vendored_path():
 
 
 def test_the_skill_is_written_for_current_models():
-    from planner import reading
+    from vela import reading
     lint = (PLUGIN / "references" / "lint-words.txt").read_text(encoding="utf-8")
     text = all_skill_text().replace((SKILL / "NEG-AUDIT.md").read_text(encoding="utf-8"), "")  # the user's own words
     for word in reading.lint_words(lint):

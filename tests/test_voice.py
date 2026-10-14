@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 from conftest import REPO, skill_text
-from planner import parse, schema
+from vela import parse, schema
 
 EXAMPLES = REPO / "template" / "voice" / "examples"
 FILES = sorted(EXAMPLES.glob("*/*.md"))

@@ -36,7 +36,7 @@ conventions_in_sync() {
   return $status
 }
 
-planner_check() {  # warnings are fine (the example is dated ahead); errors and tool failures are not
+vela_check() {  # warnings are fine (the example is dated ahead); errors and tool failures are not
   python3 plugin/scripts/planner check --vault "$1"
 }
 
@@ -46,8 +46,8 @@ stage "semgrep rule tests" bash -c 'cd .semgrep && semgrep --test --metrics=off 
 stage "semgrep scan"       semgrep scan --config .semgrep --metrics=off --disable-version-check --error --quiet .
 stage "ruff correctness"   ruff check --no-cache --select E9,F63,F7,F82,E722,S506 --extend-exclude .semgrep .
 stage "conventions sync"   conventions_in_sync
-stage "check template"     planner_check template
-stage "check example"      planner_check examples/unified-booking
+stage "check template"     vela_check template
+stage "check example"      vela_check examples/unified-booking
 # The suite runs in parallel when pytest-xdist is installed (about 2.5 min instead of about 11 on 14 cores). Without it the
 # gate still runs, serially, and says so, so a slow gate is never a silent one.
 PARALLEL=()

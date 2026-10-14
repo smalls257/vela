@@ -17,7 +17,7 @@ import threading
 import pytest
 
 from conftest import REPO, run
-from planner.explorer import build, pins, serve
+from vela.explorer import build, pins, serve
 
 HERON = REPO / "tests/sim/snapshots/heron-desk/after-full-1"
 PINS = ".planner/explorer-pins.json"

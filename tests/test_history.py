@@ -37,7 +37,7 @@ def test_without_the_history_decision_check_fails(tmp_path):
 
 import sys
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
-from planner import reading  # noqa: E402
+from vela import reading  # noqa: E402
 
 PAGE_TEXT = """# Coach
 

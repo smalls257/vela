@@ -134,7 +134,7 @@ HERON_TICKETS = REPO / "tests" / "fixtures" / "breakdown" / "heron-desktop-agent
 
 
 def heron_stories():
-    from planner import breakdown
+    from vela import breakdown
     stories, _, problems = breakdown.parse(HERON.read_text(encoding="utf-8"))
     return {s.id: s for s in stories}, problems
 
@@ -190,7 +190,7 @@ def test_the_tickets_for_the_real_plan_are_stable(tmp_path):
 
 
 def test_a_range_of_stories_is_every_story_between_and_sizes_read_as_counts_or_letters():
-    from planner import breakdown
+    from vela import breakdown
     assert breakdown.story_refs("S-03 to S-05, G-012, S-09") == ["S-03", "S-04", "S-05", "S-09"]
     assert breakdown.size_counts("2S 4M 1L") == breakdown.size_counts("M+M+M+M+S+S+L") == {"S": 2, "M": 4, "L": 1}
 

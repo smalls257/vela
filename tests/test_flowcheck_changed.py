@@ -9,8 +9,8 @@ import pytest
 
 from conftest import REPO, run
 
-from planner import flowcheck
-from planner.flowcheck import changed, impact, readers, record
+from vela import flowcheck
+from vela.flowcheck import changed, impact, readers, record
 
 FIXTURES = REPO / "tests" / "fixtures" / "flowcheck"
 WALK = "30-impact-walk"

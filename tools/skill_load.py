@@ -40,7 +40,7 @@ def words(text):
 
 
 def section_words(conventions_text, name):
-    from planner import conventions
+    from vela import conventions
     found = conventions.section(conventions.sections(conventions_text), name)
     if found is None:
         raise SystemExit(f"skill_load: a skill cites the section {name!r}, which CONVENTIONS.md does not have")

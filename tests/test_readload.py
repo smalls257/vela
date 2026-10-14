@@ -5,7 +5,7 @@ import pathlib
 import pytest
 from conftest import REPO, check, findings
 
-from planner import cli, readload, schema
+from vela import cli, readload, schema
 
 CODES = ("W365", "W366", "W367", "W368", "W369")
 HEAD = """---
@@ -257,7 +257,7 @@ PROSE_WITH_WORDS = ("# Till\n\nThe till is robust and it leverages the shop. It 
 
 
 def test_style_lists_each_lint_word_once_with_its_count():
-    from planner import reading
+    from vela import reading
     words = reading.lint_words(LINT.read_text(encoding="utf-8"))
     problems = [why for _, why in reading.style_problems(PROSE_WITH_WORDS, "epic", (), words)]
     assert [p for p in problems if "'robust'" in p] == ["'robust' is on the list of words to avoid and appears 2 times on this page; say what the thing does in plain words"]
@@ -265,7 +265,7 @@ def test_style_lists_each_lint_word_once_with_its_count():
 
 
 def test_lint_words_match_endings_and_phrases_and_nothing_inside_a_longer_word():
-    from planner import reading
+    from vela import reading
     assert reading.lint_pattern("leverage").search("It is leveraging the shop")
     assert reading.lint_pattern("ensure").search("Ensures a receipt")
     assert reading.lint_pattern("going forward").search("Going  forward we")
@@ -291,7 +291,7 @@ def test_a_missing_word_list_is_a_tool_failure_not_an_empty_list(tmp_path):
 def test_the_drafting_instructions_never_name_a_listed_word():
     """Naming a word in a prompt raises its odds, so the list lives in the lint and the reviewer, and the drafter never
     sees it: not in house-voice, not in close, not in epics."""
-    from planner import reading
+    from vela import reading
     words = reading.lint_words(LINT.read_text(encoding="utf-8"))
     for relative in ("skills/house-voice/SKILL.md", "skills/close/SKILL.md", "skills/epics/SKILL.md", "skills/allocate/SKILL.md"):
         text = (REPO / "plugin" / relative).read_text(encoding="utf-8")
@@ -302,6 +302,6 @@ def test_the_drafting_instructions_never_name_a_listed_word():
 def test_the_reviewer_reads_the_list_from_the_same_file():
     text = (REPO / "plugin" / "agents" / "voice-reviewer.md").read_text(encoding="utf-8")
     assert "references/lint-words.txt" in text
-    from planner import reading
+    from vela import reading
     for word in reading.lint_words(LINT.read_text(encoding="utf-8")):
         assert f'"{word}"' not in text

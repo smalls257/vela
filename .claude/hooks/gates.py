@@ -85,12 +85,12 @@ def bypass_reason(command):
 
 
 def tests_for(changed):
-    """The test files named after changed planner modules: plugin/lib/planner/releases.py -> tests/test_releases.py.
+    """The test files named after changed planner modules: plugin/lib/vela/releases.py -> tests/test_releases.py.
     A heuristic floor, not a coverage map; pre-push runs the suite. Pure."""
     out = []
     for path in changed:
         p = pathlib.PurePosixPath(path)
-        if p.parent.as_posix() == "plugin/lib/planner" and p.suffix == ".py" and p.stem not in ("__init__", "cli"):
+        if p.parent.as_posix() == "plugin/lib/vela" and p.suffix == ".py" and p.stem not in ("__init__", "cli"):
             out.append(f"tests/test_{p.stem}.py")
         elif p.parent.as_posix() == "tests" and p.name.startswith("test_") and p.suffix == ".py":
             out.append(p.as_posix())

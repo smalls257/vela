@@ -6,7 +6,7 @@ import subprocess
 import pytest
 
 from conftest import REPO, check, findings, run, skill_text
-from planner import cli, handoff, handoffwarn
+from vela import cli, handoff, handoffwarn
 
 HERON = REPO / "tests" / "fixtures" / "team-skills" / "heron"
 APP = "APP-desktop-agent"

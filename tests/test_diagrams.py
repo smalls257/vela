@@ -1,7 +1,7 @@
 import pytest
 
 from conftest import check, edit, findings
-from planner.rules import flowchart_elements, sequence_participants
+from vela.rules import flowchart_elements, sequence_participants
 
 FLOW = "06-runtime/flows/FLO-001-buy.md"
 
@@ -74,7 +74,7 @@ def test_sequence_ids_create_and_bidirectional(lines, expected):
 
 
 def test_a_linked_provider_is_named_by_its_link_label():
-    from planner.diagrams import external_name
+    from vela.diagrams import external_name
     assert external_name("[[03-context-and-scope#PTY-01 Brightwater|Brightwater]]") == "Brightwater"
     assert external_name("[[03-context-and-scope#PTY-01 Brightwater]]") == "PTY-01 Brightwater"
     assert external_name("Tidepay") == "Tidepay"

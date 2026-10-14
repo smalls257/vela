@@ -6,7 +6,7 @@ note; this file feeds the British names and expects the same glyph the American 
 import re
 from pathlib import Path
 
-from planner.explorer import icons_data
+from vela.explorer import icons_data
 
 ICONS_JS = Path(icons_data.__file__).parent / "assets/js/icons.js"
 GLYPH = re.compile(r"^\s{4}([a-z]+): \"M", re.M)

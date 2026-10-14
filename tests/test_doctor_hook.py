@@ -10,8 +10,8 @@ import subprocess
 import pytest
 
 from conftest import REPO, run
-from planner import doctor
-from planner.edge import machine
+from vela import doctor
+from vela.edge import machine
 
 LAUNCHER = REPO / "plugin" / "scripts" / "planner"
 HOOK = REPO / "template" / ".githooks" / "pre-commit"
@@ -19,7 +19,7 @@ INSTALLED = "/home/lead/.claude/plugins/cache/vela/planner/0.3.0/scripts/planner
 
 
 def a_hook(**fields):
-    base = dict(hook_file=True, hooks_on=True, env_planner="", config_path="", vendored="/v/.claude/skills/planner/scripts/planner",
+    base = dict(hook_file=True, hooks_on=True, env_vela="", config_path="", vendored="/v/.claude/skills/planner/scripts/planner",
                 launcher=INSTALLED)
     return doctor.Hook(**{**base, **fields})
 

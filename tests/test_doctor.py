@@ -10,7 +10,7 @@ import sys
 import pytest
 
 from conftest import REPO, run
-from planner import doctor
+from vela import doctor
 
 LAUNCHER = REPO / "plugin" / "scripts" / "planner"
 VENDORED = REPO / "plugin" / "lib" / "yaml"
@@ -123,7 +123,7 @@ def test_the_cowork_zip_ships_the_bundled_pyyaml():
 def test_lint_skips_the_bundled_pyyaml_and_nothing_else_of_lib():
     ignore = (REPO / ".semgrepignore").read_text(encoding="utf-8").splitlines()
     assert "plugin/lib/yaml/" in ignore
-    assert not any(line.startswith("plugin/lib/planner") and line.endswith("/") for line in ignore)
+    assert not any(line.startswith("plugin/lib/vela") and line.endswith("/") for line in ignore)
 
 
 # --- Python 3.9, what a Mac ships -------------------------------------------------------------------------------

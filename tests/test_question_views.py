@@ -7,7 +7,7 @@ import shutil
 
 import pytest
 
-from planner import questions
+from vela import questions
 from conftest import REPO, check, edit, findings, run
 
 FIXTURE = REPO / "examples" / "unified-booking"

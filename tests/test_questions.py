@@ -6,7 +6,7 @@ import random
 import shutil
 
 from conftest import REPO, edit
-from planner import catalog, cli, model, parse, questions
+from vela import catalog, cli, model, parse, questions
 
 FIXTURE = REPO / "examples" / "unified-booking"
 

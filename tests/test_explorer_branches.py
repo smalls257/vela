@@ -6,8 +6,8 @@ import shutil
 import pytest
 from test_explorer import booking  # noqa: F401  (booking is a fixture)
 
-from planner import cli
-from planner.explorer import branches_data, record
+from vela import cli
+from vela.explorer import branches_data, record
 
 FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures" / "flowcheck"
 TODAY = "2026-10-14"

@@ -4,7 +4,7 @@ import shutil
 
 from conftest import REPO, check, findings, skill_text
 
-from planner import cli, readload, schema
+from vela import cli, readload, schema
 
 PLUGIN = REPO / "plugin"
 HEAD = """---

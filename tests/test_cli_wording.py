@@ -1,7 +1,7 @@
 """CLI wording: names before IDs, plain states, and the kept words (slice, tracer, grill) defined once on first use."""
 from conftest import REPO, run
 
-from planner import cli, handoffwarn
+from vela import cli, handoffwarn
 
 EXAMPLE = REPO / "examples" / "unified-booking"
 

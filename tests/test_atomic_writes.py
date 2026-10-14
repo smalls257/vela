@@ -4,7 +4,7 @@ import os
 import pytest
 
 from conftest import edit, run
-from planner.edge import atomic
+from vela.edge import atomic
 
 
 def test_an_interrupted_write_leaves_the_old_file_whole_and_no_temp_file(tmp_path, monkeypatch):

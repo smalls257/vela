@@ -394,7 +394,7 @@ def test_explore_opens_a_page_only_after_a_build_that_succeeded_and_writes_nothi
 
 
 def test_every_flag_the_explore_skill_names_is_one_the_command_accepts():
-    from planner import cli
+    from vela import cli
     parser = cli.build_parser()
     sub = next(a for a in parser._actions if a.dest == "command").choices["explore"]
     accepted = {flag for action in sub._actions for flag in action.option_strings}

@@ -6,7 +6,7 @@ not, and the plan format's own example is something the reader reads clean.
 import re
 
 from conftest import REPO
-from planner import breakdown
+from vela import breakdown
 
 PLUGIN = REPO / "plugin"
 BREAKDOWN = PLUGIN / "skills" / "breakdown"

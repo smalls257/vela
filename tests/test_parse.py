@@ -1,4 +1,4 @@
-from planner.parse import parse_page, split_row
+from vela.parse import parse_page, split_row
 
 PAGE = """---
 id: APP-shop

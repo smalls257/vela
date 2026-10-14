@@ -11,8 +11,8 @@ from conftest import run
 from sharing import git, make_vault, with_remote
 from test_proposals import GROUPS, TODAY, review_it, whys, world, wt_of  # noqa: F401  (world is a fixture)
 
-from planner import cli, opening, proposal, publish, review, secretscan, untrusted
-from planner.edge import replays
+from vela import cli, opening, proposal, publish, review, secretscan, untrusted
+from vela.edge import replays
 
 FSMONITOR = b"[core]\n\tfsmonitor = touch /tmp/planner-pwned #\n"
 
@@ -277,7 +277,7 @@ def test_a_patch_over_the_size_limit_is_refused(monkeypatch):
 
 
 def test_a_proposal_zip_with_a_symlink_or_a_bomb_is_refused(tmp_path):
-    from planner.edge import proposals as files
+    from vela.edge import proposals as files
     link = tmp_path / "link.zip"
     with zipfile.ZipFile(link, "w") as z:
         info = zipfile.ZipInfo("p/changes.patch")
@@ -294,7 +294,7 @@ def test_a_proposal_zip_with_a_symlink_or_a_bomb_is_refused(tmp_path):
 
 
 def test_a_proposal_folder_whose_patch_is_a_symlink_is_refused(tmp_path):
-    from planner.edge import proposals as files
+    from vela.edge import proposals as files
     folder = tmp_path / "p"
     folder.mkdir()
     (tmp_path / "secret").write_text("secret", encoding="utf-8")
@@ -397,7 +397,7 @@ def test_view_does_not_publish_a_token_from_the_remote_url(tmp_path):
 
 
 def test_redact_remote_keeps_the_ssh_account_name():
-    from planner import export
+    from vela import export
     assert export.redact_remote("git@github.com:acme/plan.git") == "git@github.com:acme/plan.git"
     assert export.redact_remote("ssh://git:pw@host/x.git") == "ssh://host/x.git"
 
@@ -423,7 +423,7 @@ def test_a_folder_that_only_mentions_onedrive_is_not_a_sync_folder():
 
 
 def test_the_jira_csv_does_not_carry_a_live_formula():
-    from planner import breakdown
+    from vela import breakdown
     row = {c: "" for c in breakdown.COLUMNS} | {"Summary": "=HYPERLINK(\"http://evil\",\"x\")", "labels": [], "Blocked by": ""}
     import csv
     cells = list(csv.reader(io.StringIO(breakdown.csv_text([row]))))[1]
@@ -461,7 +461,7 @@ def test_a_baseline_left_parked_is_restored_before_any_cleanup(tmp_path):
 def test_a_page_cannot_make_the_explorer_read_a_private_file(tmp_path):
     """E23: design: and breakdown: read only Markdown under docs/tech-design or docs/plan."""
     import pathlib
-    from planner.explorer.design_find import not_a_doc
+    from vela.explorer.design_find import not_a_doc
     assert not_a_doc(pathlib.Path("/home/me/team/docs/tech-design/x.md"), "tech-design") == ""
     assert "not a Markdown file" in not_a_doc(pathlib.Path("/home/me/.ssh/id_rsa"), "tech-design")
     assert "not under a docs/tech-design" in not_a_doc(pathlib.Path("/home/me/Documents/salary-notes.md"), "tech-design")

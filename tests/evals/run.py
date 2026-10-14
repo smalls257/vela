@@ -32,7 +32,7 @@ PLANNER = REPO / "plugin" / "scripts" / "planner"
 RESULTS = HERE / ".results"
 ARMS = ("plugin", "stub")
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
-from planner import schema  # noqa: E402  (the ID patterns live there; a copy here would drift)
+from vela import schema  # noqa: E402  (the ID patterns live there; a copy here would drift)
 
 # Per case: the date check judges by, whether the epics gate applies, whether the workspace must stay
 # git-clean ("readonly"), and file checks on the kept workspace. "expect" patterns must match in some file

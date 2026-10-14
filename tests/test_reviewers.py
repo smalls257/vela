@@ -8,7 +8,7 @@ import re
 import yaml
 
 from conftest import REPO, skill_text
-from planner import reviews
+from vela import reviews
 
 PLUGIN = REPO / "plugin"
 

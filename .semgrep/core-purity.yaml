@@ -5,17 +5,17 @@ rules:
   # Known debt (C36 in docs/FIX-LEDGER.md): explorer/design_data.py, draft_data.py and plan_data.py still read
   # files themselves. They are excluded by name so the rule guards every other data module; remove each
   # exclusion when its reads move to build.py.
-  - id: planner-core-no-io-imports
+  - id: vela-core-no-io-imports
     languages: [python]
     severity: ERROR
     message: >-
       planner's core modules take text and dates as arguments; only cli.py and edge/ touch the OS.
       Import '$MOD' in cli.py and pass the result in (Infected Core).
     paths:
-      include: ["/plugin/lib/planner/*.py", "/plugin/lib/planner/explorer/*_data.py"]
-      exclude: ["/plugin/lib/planner/cli.py", "/plugin/lib/planner/edge/*.py",
-                "/plugin/lib/planner/explorer/design_data.py", "/plugin/lib/planner/explorer/draft_data.py",
-                "/plugin/lib/planner/explorer/plan_data.py"]
+      include: ["/plugin/lib/vela/*.py", "/plugin/lib/vela/explorer/*_data.py"]
+      exclude: ["/plugin/lib/vela/cli.py", "/plugin/lib/vela/edge/*.py",
+                "/plugin/lib/vela/explorer/design_data.py", "/plugin/lib/vela/explorer/draft_data.py",
+                "/plugin/lib/vela/explorer/plan_data.py"]
     patterns:
       - pattern-either:
           - pattern: import $MOD
@@ -23,17 +23,17 @@ rules:
       - metavariable-regex:
           metavariable: $MOD
           regex: ^(os|sys|subprocess|pathlib|shutil|tempfile|socket|time|glob|http|requests|urllib\.request)(\.|$)
-  - id: planner-core-no-clock
+  - id: vela-core-no-clock
     languages: [python]
     severity: ERROR
     message: >-
       The core never reads the clock. Take `today` as an argument; cli.py resolves it from --today
       or the system date once (Infected Core).
     paths:
-      include: ["/plugin/lib/planner/*.py", "/plugin/lib/planner/explorer/*_data.py"]
-      exclude: ["/plugin/lib/planner/cli.py", "/plugin/lib/planner/edge/*.py",
-                "/plugin/lib/planner/explorer/design_data.py", "/plugin/lib/planner/explorer/draft_data.py",
-                "/plugin/lib/planner/explorer/plan_data.py"]
+      include: ["/plugin/lib/vela/*.py", "/plugin/lib/vela/explorer/*_data.py"]
+      exclude: ["/plugin/lib/vela/cli.py", "/plugin/lib/vela/edge/*.py",
+                "/plugin/lib/vela/explorer/design_data.py", "/plugin/lib/vela/explorer/draft_data.py",
+                "/plugin/lib/vela/explorer/plan_data.py"]
     pattern-either:
       - pattern: datetime.date.today()
       - pattern: datetime.datetime.now(...)
@@ -41,16 +41,16 @@ rules:
       - pattern: datetime.datetime.today()
       - pattern: time.time()
       - pattern: date.today()
-  - id: planner-core-no-file-or-stdout
+  - id: vela-core-no-file-or-stdout
     languages: [python]
     severity: ERROR
     message: >-
       The core returns values; cli.py reads files and writes output. Move this to cli.py (Infected Core).
     paths:
-      include: ["/plugin/lib/planner/*.py", "/plugin/lib/planner/explorer/*_data.py"]
-      exclude: ["/plugin/lib/planner/cli.py", "/plugin/lib/planner/edge/*.py",
-                "/plugin/lib/planner/explorer/design_data.py", "/plugin/lib/planner/explorer/draft_data.py",
-                "/plugin/lib/planner/explorer/plan_data.py"]
+      include: ["/plugin/lib/vela/*.py", "/plugin/lib/vela/explorer/*_data.py"]
+      exclude: ["/plugin/lib/vela/cli.py", "/plugin/lib/vela/edge/*.py",
+                "/plugin/lib/vela/explorer/design_data.py", "/plugin/lib/vela/explorer/draft_data.py",
+                "/plugin/lib/vela/explorer/plan_data.py"]
     pattern-either:
       - pattern: open(...)
       - pattern: print(...)

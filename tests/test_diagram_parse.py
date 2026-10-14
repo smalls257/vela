@@ -1,5 +1,5 @@
 """E604 and W604: every mermaid block on a page or under docs/ parses with the pinned mermaid, or check says it does
-not draw. The judge is mermaid's own parser in node (planner.edge.mermaidjs); these tests hold it to the line it
+not draw. The judge is mermaid's own parser in node (vela.edge.mermaidjs); these tests hold it to the line it
 reports, to a quiet pass on good blocks, to one loud warning when node is missing, and to agreement with Chrome."""
 import json
 import pathlib
@@ -9,8 +9,8 @@ import subprocess
 import pytest
 
 from conftest import REPO, check, findings, run
-from planner import diagramcheck, diagrams, parse, render
-from planner.edge import mermaidjs
+from vela import diagramcheck, diagrams, parse, render
+from vela.edge import mermaidjs
 
 NODE = shutil.which("node")
 needs_node = pytest.mark.skipif(NODE is None, reason="node is not installed, so mermaid's parser cannot run")
@@ -161,7 +161,7 @@ def vault_roots():
 def generated_blocks():
     """Every diagram the generators draw for every page of every vault in the repo, drawn fresh, so a stale page
     cannot hide a generator that writes bad mermaid."""
-    from planner import cli
+    from vela import cli
     out = []
     for root in vault_roots():
         vault = cli.load_vault(root)

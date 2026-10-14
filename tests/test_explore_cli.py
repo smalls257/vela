@@ -177,7 +177,7 @@ def test_a_copy_of_the_plugin_alone_pins_a_first_build_in_the_vault(vault, tmp_p
 
 
 def test_the_plugin_imports_nothing_from_the_prototypes_and_never_edits_the_path():
-    for path in (PLUGIN / "lib/planner/explorer").glob("*.py"):
+    for path in (PLUGIN / "lib/vela/explorer").glob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             names = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""] if isinstance(node, ast.ImportFrom) else []
             assert not any(n.split(".")[0] in ("prototypes", "tests") for n in names), path
@@ -187,7 +187,7 @@ def test_the_plugin_imports_nothing_from_the_prototypes_and_never_edits_the_path
 def test_the_gallery_reads_the_plugins_art_and_keeps_no_copy():
     # The plugin holds the one copy of the slot contract, the resolver and the hand-drawn art. The gallery's pages
     # point at it and keep only the ComfyUI provider beside them, so there is nothing to drift (Distributed Monolith).
-    art, assets = PLUGIN / "lib/planner/explorer/art", REPO / "prototypes/gallery/assets"
+    art, assets = PLUGIN / "lib/vela/explorer/art", REPO / "prototypes/gallery/assets"
     for name in ("resolve.js", "slots.json", "builtin"):
         assert not (assets / name).exists(), f"prototypes/gallery/assets/{name} is a second copy of the plugin's art"
     gallery = REPO / "prototypes/gallery"

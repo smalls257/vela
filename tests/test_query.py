@@ -3,7 +3,7 @@ import json
 
 from conftest import edit, run
 
-from planner import cli
+from vela import cli
 
 
 def ask(mini, *argv):

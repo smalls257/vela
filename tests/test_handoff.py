@@ -1,7 +1,7 @@
 """planner handoff: the manifest of what a senior accepted, and verify against it. Plus the
 reopened epic state a senior's challenge leads to."""
 from conftest import check, edit, findings, run
-from planner import viewer
+from vela import viewer
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
 MANIFEST = "handoffs/APP-shop.md"

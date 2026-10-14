@@ -11,7 +11,7 @@ import zipfile
 from conftest import REPO, run
 from sharing import git, make_vault
 
-from planner import publish
+from vela import publish
 
 SNAPSHOT = REPO / "tests/sim/snapshots/trading-coach/after-80b"
 TODAY = "2026-10-11"
@@ -128,8 +128,8 @@ def test_a_vault_with_no_git_names_the_build_day_and_no_commit(tmp_path):
 
 
 def test_the_shell_has_a_quiet_line_for_it_above_the_banner():
-    shell = (REPO / "plugin/lib/planner/explorer/assets/shell.html").read_text(encoding="utf-8")
-    main = (REPO / "plugin/lib/planner/explorer/assets/js/main.js").read_text(encoding="utf-8")
+    shell = (REPO / "plugin/lib/vela/explorer/assets/shell.html").read_text(encoding="utf-8")
+    main = (REPO / "plugin/lib/vela/explorer/assets/js/main.js").read_text(encoding="utf-8")
     assert shell.index('id="built"') < shell.index('id="fresh"')
     assert "D.built.commit" in main and "D.built.date" in main
 

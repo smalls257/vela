@@ -78,7 +78,7 @@ def test_the_item_stays_decided_state_is_not_touched(mini):
 
 
 def test_the_library_reads_the_markers_for_later_phases(mini):
-    from planner import cli, pending
+    from vela import cli, pending
     mark_stock_contract(mini)
     vault = cli.load_vault(mini)
     [one] = pending.items(vault)
@@ -90,7 +90,7 @@ def test_the_library_reads_the_markers_for_later_phases(mini):
 
 
 def test_malformed_markers_are_not_items(mini):
-    from planner import cli, pending
+    from vela import cli, pending
     mark_stock_contract(mini, "- **Pending approval:** nobody\n")
     vault = cli.load_vault(mini)
     assert pending.items(vault) == []

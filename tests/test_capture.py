@@ -5,7 +5,7 @@ import shutil
 import yaml
 
 from conftest import REPO, edit, run
-from planner import capture, cli
+from vela import capture, cli
 from test_capture_rules import BOOKING, CON1, FLOW, STEP5, WEBSITE, set_domains
 
 SIM = REPO / "tests" / "sim"

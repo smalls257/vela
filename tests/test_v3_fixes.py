@@ -63,7 +63,7 @@ def merged(folder, vault, *extra):
 # ------------------------------------------------------------------ 2. cross-area near-duplicates
 
 def test_the_run_hotel_questions_are_near_duplicates_only_with_their_shared_quote():
-    from planner import reviews
+    from vela import reviews
     pairs = [(HOTEL_DAT, HOTEL_PTN), (HOTEL_DAT, HOTEL_REG), (HOTEL_PTN, HOTEL_REG)]
     # Jaccard >= 0.6 alone merges none of them: three areas ask about one gap in their own words.
     assert all(reviews.similarity(a, b) < reviews.NEAR for a, b in pairs)
@@ -71,7 +71,7 @@ def test_the_run_hotel_questions_are_near_duplicates_only_with_their_shared_quot
 
 
 def test_similarity_reads_content_words_with_a_crude_stem():
-    from planner import reviews
+    from vela import reviews
     assert reviews.content_words("Who carries the balances?") == reviews.content_words("who carry the balance")
     assert reviews.similarity("Who owns the ferry database?", "Who is the owner of the ferry database?") >= 0.6
     assert reviews.similarity("Who pays for the change?", "Which regulator licenses the kiosks?") == 0
@@ -253,7 +253,7 @@ def na_row(copy, reason):
     "to be confirmed by Finance",
 ])
 def test_a_not_applicable_reason_that_defers_is_e802_pointing_at_unknown_or_assumed(tmp_path, reason):
-    from planner import questions
+    from vela import questions
     assert questions.deferral_cue(reason), reason
     vault = vault_copy(tmp_path)
     page = vault / "11-unknowns-and-risks.md"
@@ -280,7 +280,7 @@ def test_a_not_applicable_reason_that_defers_is_e802_pointing_at_unknown_or_assu
     "No data leaves the ferry company once the booking is made",
 ])
 def test_a_reason_that_rules_out_is_not_a_deferral(reason):
-    from planner import questions
+    from vela import questions
     assert questions.deferral_cue(reason) == "", reason
 
 

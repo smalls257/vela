@@ -6,8 +6,8 @@ import subprocess
 import pytest
 
 from conftest import run
-from planner import closestate, say
-from planner.edge import mergegit, vaultgit
+from vela import closestate, say
+from vela.edge import mergegit, vaultgit
 
 TODAY = "2026-10-14"
 FILLER = [f"Filler line {n}." for n in range(1, 9)]  # keeps edits far enough apart that git merges them separately

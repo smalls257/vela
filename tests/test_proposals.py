@@ -12,7 +12,7 @@ import pytest
 from conftest import run
 from sharing import commit_snapshot, git, published_snapshot
 
-from planner import drafts, proposal, review
+from vela import drafts, proposal, review
 
 PAGE = "05-building-blocks/coach-building-blocks.md"
 OLD_LINE = "so no real order ever crosses."
@@ -184,7 +184,7 @@ def test_a_reason_for_a_group_that_does_not_exist_is_an_error_not_a_lost_reason(
 
 def test_the_proposal_and_the_drafts_chip_count_the_same_files(world):
     _, workspace = world
-    from planner.edge import copies
+    from vela.edge import copies
     shown = drafts.compare(copies.read_tree(workspace / ".planner" / "baseline", skip_published=True), copies.read_tree(workspace, skip_published=True))
     code, text = run("propose", "--vault", str(workspace), "--groups", "--json")
     assert len(shown) == 3 and {p for g in json.loads(text) for p in (c["path"] for c in g["changes"])} == {c["path"] for c in shown}
@@ -568,7 +568,7 @@ def skill(name):
 
 
 def option_strings():
-    from planner import cli
+    from vela import cli
     parser = cli.build_parser()
     commands = parser._subparsers._group_actions[0].choices
     found = set()

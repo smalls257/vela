@@ -6,7 +6,7 @@ import json
 import pathlib
 import sys
 
-ASSETS = pathlib.Path(__file__).resolve().parent.parent / "plugin" / "lib" / "planner" / "assets"
+ASSETS = pathlib.Path(__file__).resolve().parent.parent / "plugin" / "lib" / "vela" / "assets"
 STYLE = """:root{color-scheme:light dark;--ink:#1d2433;--soft:#5b6475;--line:#d9dee8;--accent:#3b5bdb;--bg:#fbfcfe;--tint:#eef1f7}
 @media (prefers-color-scheme:dark){:root{--ink:#e7ebf3;--soft:#a3acbd;--line:#2e3646;--accent:#8ea6ff;--bg:#12161f;--tint:#1a202c}}
 body{font:17px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;max-width:760px;margin:0 auto;padding:56px 24px 72px;color:var(--ink);background:var(--bg)}

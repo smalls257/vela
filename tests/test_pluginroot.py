@@ -6,7 +6,7 @@ import pytest
 
 from conftest import run
 
-from planner import pluginroot
+from vela import pluginroot
 
 LITERAL = "${CLAUDE_PLUGIN_ROOT}"
 
@@ -119,7 +119,7 @@ def test_where_finds_a_synced_copy_under_the_plugins_root(tmp_path, monkeypatch)
     launcher.parent.mkdir(parents=True)
     launcher.write_text("#!/usr/bin/env python3\n")
     monkeypatch.setenv("CLAUDE_CODE_PLUGIN_CACHE_DIR", str(tmp_path / "plugins"))
-    from planner import cli
+    from vela import cli
     import io
     out = io.StringIO()
     code = cli.cmd_where(type("A", (), {"vault": str(tmp_path), "plugin_root": "", "skill_dir": ""})(), out)

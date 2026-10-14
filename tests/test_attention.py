@@ -6,7 +6,7 @@ import sys
 from conftest import REPO
 
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
-from planner import attention, cli  # noqa: E402
+from vela import attention, cli  # noqa: E402
 
 FIXTURE = REPO / "examples" / "unified-booking"
 

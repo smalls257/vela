@@ -6,7 +6,7 @@ rules:
     severity: ERROR
     message: >-
       plugin/ is copied into vaults on its own. This reaches for code that is not shipped with it, so it works
-      here and fails in every installed vault (Distributed Monolith). Move the code into plugin/lib/planner.
+      here and fails in every installed vault (Distributed Monolith). Move the code into plugin/lib/vela.
     paths:
       include: ["/plugin/"]
     pattern-either:

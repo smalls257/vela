@@ -4,7 +4,7 @@ import re
 import pytest
 
 from conftest import edit, check, findings
-from planner import cases, model, parse
+from vela import cases, model, parse
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
 HEADER = "| Case | When | Status | Answer | Emits | Sets |\n|---|---|---|---|---|---|\n"

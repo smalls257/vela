@@ -15,7 +15,7 @@ sys.dont_write_bytecode = True
 # installed on this machine: the same YAML behavior everywhere, and no pip step for whoever installs the plugin.
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "lib"))
 
-from planner.cli import main  # noqa: E402
+from vela.cli import main  # noqa: E402
 
 if __name__ == "__main__":
     sys.exit(main())

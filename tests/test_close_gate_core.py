@@ -1,5 +1,5 @@
 """The pure part of `close gate` (overhaul Task 10a): a change into or out of decided needs the lead's quoted yes."""
-from planner import closegate, model, parse
+from vela import closegate, model, parse
 
 RECORD = "2026-10-20-grill-consent"
 

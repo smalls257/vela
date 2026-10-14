@@ -2,8 +2,8 @@
 import pytest
 
 from conftest import run
-from planner import cli
-from planner.edge import vaultgit
+from vela import cli
+from vela.edge import vaultgit
 
 
 def git_down(monkeypatch, why="git status did not finish in 10 s"):

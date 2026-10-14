@@ -7,8 +7,8 @@ import shutil
 import pytest
 
 from conftest import REPO, check, edit, findings, run
-from planner import breakdown, completeness, links, parse, releases, render
-from planner.cli import load_vault
+from vela import breakdown, completeness, links, parse, releases, render
+from vela.cli import load_vault
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
 UNKNOWNS = "11-unknowns-and-risks.md"
@@ -89,7 +89,7 @@ def test_c11_inline_code_at_line_start_is_not_a_fence():
 
 
 def test_c11_reading_and_parse_share_one_closing_rule():
-    from planner import reading
+    from vela import reading
     assert reading.closes_fence is parse.closes_fence
     assert not parse.closes_fence("```python", "```")
     assert parse.closes_fence("  ````  ", "```")
@@ -254,16 +254,16 @@ def test_t12_two_rows_for_one_app_on_a_concern_page_are_reported(mini):
 
 def test_c32_every_finding_code_the_library_writes_is_listed_in_codes():
     import re
-    from planner import schema
+    from vela import schema
     used = set()
-    for path in (REPO / "plugin" / "lib" / "planner").rglob("*.py"):
+    for path in (REPO / "plugin" / "lib" / "vela").rglob("*.py"):
         used.update(re.findall(r'"([EW]\d{3})"', path.read_text(encoding="utf-8")))
     assert sorted(used - set(schema.CODES)) == []
 
 
 @pytest.mark.parametrize("prefix, expected", [("ADR", "ADR-0001"), ("R", "R-01"), ("PTY", "PTY-01"), ("UNK", "UNK-001")])
 def test_c32_next_id_hands_out_an_id_its_own_check_accepts(prefix, expected):
-    from planner import ids, schema
+    from vela import ids, schema
     got = ids.next_id(prefix, [])
     assert got == expected
     pattern = {"ADR": schema.PAGE_ID_RE["decision"], "R": schema.ITEM_ID_RE, "PTY": schema.ITEM_ID_RE}.get(prefix)

@@ -40,6 +40,6 @@ def test_json_gives_viewer_links():
 def test_a_word_and_its_plural_share_a_stem():
     import sys
     sys.path.insert(0, str(REPO / "plugin" / "lib"))
-    from planner.search import stem
+    from vela.search import stem
     assert stem("place") == stem("places") == stem("placed")
     assert stem("trade") == stem("trades") == stem("trading")

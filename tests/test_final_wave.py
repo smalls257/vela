@@ -8,7 +8,7 @@ import subprocess
 import pytest
 
 from conftest import REPO, skill_text
-from planner import voicecheck
+from vela import voicecheck
 
 PLUGIN = REPO / "plugin"
 

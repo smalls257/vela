@@ -3,9 +3,9 @@ bullet Shape leaves and next reads, and the handoff manifest close writes."""
 import re
 
 from conftest import REPO, skill_text
-from planner import progress
-from planner.model import build
-from planner.parse import parse_page
+from vela import progress
+from vela.model import build
+from vela.parse import parse_page
 
 PLUGIN = REPO / "plugin"
 

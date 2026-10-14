@@ -12,7 +12,7 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
 
-from planner import conventions  # noqa: E402
+from vela import conventions  # noqa: E402
 
 COPIES = ("template", "plugin/vault", "examples/unified-booking", "tests/stub-conventions")
 

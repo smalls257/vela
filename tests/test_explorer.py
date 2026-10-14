@@ -2,7 +2,7 @@
 
     python3 -m pytest tests/test_explorer.py
 
-The builder is the plugin's (plugin/lib/planner/explorer, run by `planner explore`). These tests drive it through
+The builder is the plugin's (plugin/lib/vela/explorer, run by `planner explore`). These tests drive it through
 prototypes/explorer/build.py, the wrapper that keeps the README's commands and pins in pins/, so both stay working;
 tests/test_explore_cli.py covers the command a vault's user runs.
 
@@ -21,8 +21,8 @@ import sys
 import pytest
 
 from conftest import REPO
-from planner import allocation, attention, cli, handoff, releases
-from planner.explorer import build, design_data, icons_data, inside_data
+from vela import allocation, attention, cli, handoff, releases
+from vela.explorer import build, design_data, icons_data, inside_data
 
 PROTOTYPE = REPO / "prototypes" / "explorer"
 sys.path.insert(0, str(PROTOTYPE))
@@ -535,7 +535,7 @@ def test_no_absolute_paths_in_built_pages(tmp_path):
     assert BOOKING.resolve().as_posix() not in page, "the page names the vault's absolute path"
     # Whether a link back is kept depends on where this machine puts the vault and the temp folder; what never
     # changes is that the link is exactly what relative_href decides, and is relative.
-    from planner.explorer import build as explorer_build
+    from vela.explorer import build as explorer_build
     assert data["vault"] == (explorer_build.relative_href(BOOKING, tmp_path) or "")
     assert not data["vault"].startswith("/") and home not in data["vault"]
     assert all(not d["href"].startswith("/") and home not in d["href"] for d in data["designs"].values())
@@ -577,7 +577,7 @@ def test_inline_assets_fetch_no_error():
     """Bug #5: Asset loader should not try to fetch from inline:// base."""
     # This is tested indirectly by the asset tests, but we can verify resolve.js logic
     # by checking that the inline:// base is handled correctly in the code
-    resolve_js = REPO / "plugin" / "lib" / "planner" / "explorer" / "art" / "resolve.js"
+    resolve_js = REPO / "plugin" / "lib" / "vela" / "explorer" / "art" / "resolve.js"
     assert "inline:" in resolve_js.read_text(encoding="utf-8"), "resolve.js should have inline:// handling"
 
 
@@ -662,8 +662,8 @@ def test_added_and_removed_diff_lines_read_on_the_room_in_every_theme():
 def test_a_question_link_and_its_state_pill_never_run_together_and_prose_hides_open():
     """"where that naming was madeopen": a link and its pill read and copy as one word. The pill follows a real space and
     carries parentheses, and running prose shows no "open" pill at all; a list item or table cell still shows every state."""
-    from planner import cli
-    from planner.explorer.record import LISTED, PROSE, Keys, inline_html
+    from vela import cli
+    from vela.explorer.record import LISTED, PROSE, Keys, inline_html
     vault = cli.load_vault(TRADING)
     keys, page = Keys(vault), vault.pages[0]
     open_q = next(u for u in vault.unknowns if u.fact("State") == "open")
@@ -679,7 +679,7 @@ def test_a_question_link_and_its_state_pill_never_run_together_and_prose_hides_o
 def test_a_link_whose_only_shared_folder_is_near_the_root_is_left_out():
     """A relative walk names every folder it descends into below the shared one, so climbing to / (or /tmp, /private)
     and back down spells out the absolute path. Seen when the vault sat in /tmp and the page in another temp folder."""
-    from planner.explorer import build
+    from vela.explorer import build
     assert build.relative_href("/tmp/cleanrun/examples/unified-booking", "/var/folders/x/page") is None
     assert build.relative_href("/private/tmp/vault", "/private/var/folders/x") is None
     assert build.relative_href("/srv/work/vault/docs/plan.md", "/srv/work/vault") == "docs/plan.md"

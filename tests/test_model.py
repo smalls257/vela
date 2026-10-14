@@ -1,5 +1,5 @@
-from planner.model import build
-from planner.parse import parse_page
+from vela.model import build
+from vela.parse import parse_page
 
 SHOP = """---
 id: APP-shop

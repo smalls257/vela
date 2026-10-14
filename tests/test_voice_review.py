@@ -10,7 +10,7 @@ import pytest
 import yaml
 
 from conftest import REPO, skill_text
-from planner import schema
+from vela import schema
 
 PLUGIN = REPO / "plugin"
 AGENT = PLUGIN / "agents" / "voice-reviewer.md"

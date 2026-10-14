@@ -8,7 +8,7 @@ rules:
       $F takes two or more boolean switches ($A, $B). Split it into named functions, or take one mode value
       (God Method in larval form; Leaky Narrative at each call site).
     paths:
-      include: ["/plugin/lib/planner/"]
+      include: ["/plugin/lib/vela/"]
     patterns:
       - pattern: |
           def $F(..., $A=$X, ..., $B=$Y, ...):
@@ -28,7 +28,7 @@ rules:
       Read today's date through parse_today(args.today) so --today works for this command and the tests can
       pin the date.
     paths:
-      include: ["/plugin/lib/planner/cli.py"]
+      include: ["/plugin/lib/vela/cli.py"]
     patterns:
       - pattern-either:
           - pattern: datetime.date.today()

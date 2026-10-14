@@ -88,5 +88,5 @@ def test_modes_that_is_a_string_is_one_list_finding(mini):
 
 
 def test_readable_is_false_for_an_unhashable_type():
-    from planner import parse, rules
+    from vela import parse, rules
     assert rules.readable(parse.parse_page("x.md", "---\nid: x\ntype: [a]\n---\n")) is False

@@ -39,7 +39,7 @@ def test_check_is_quiet_once_the_initiative_has_a_name(tmp_path):
 
 
 def test_the_placeholder_is_the_title_the_template_ships_and_the_template_warns_after_its_first_session(tmp_path):
-    from planner import schema
+    from vela import schema
     assert f"title: {schema.PLACEHOLDER_TITLE}\n" in (REPO / "template" / ".planner.yaml").read_text(encoding="utf-8")
     vault = tmp_path / "vault"
     shutil.copytree(REPO / "template", vault)

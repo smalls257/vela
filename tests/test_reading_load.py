@@ -9,9 +9,9 @@ import shutil
 import pytest
 from conftest import REPO, check, findings, run
 
-from planner import cli, parse, query, readability, reading, viewer
-from planner.explorer.pages_data import page_reader
-from planner.explorer.record import Keys, chips_html, inline_html
+from vela import cli, parse, query, readability, reading, viewer
+from vela.explorer.pages_data import page_reader
+from vela.explorer.record import Keys, chips_html, inline_html
 
 HERON = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 REWRITTEN = REPO / "tests" / "fixtures" / "readable" / "EPC-001-calendar.md"

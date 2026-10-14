@@ -9,7 +9,7 @@ import pytest
 from conftest import run
 from sharing import make_vault
 
-from planner import cli, opening
+from vela import cli, opening
 
 
 def digest(path):

@@ -190,7 +190,7 @@ def test_the_coverage_line_says_nothing_of_asked_when_none_are():
 
 
 def test_cli_help_for_open_matches_conventions():
-    from planner import cli
+    from vela import cli
     parser = cli.build_parser()
     ques = next(a for a in parser._subparsers._group_actions[0].choices["questions"]._actions if "--open" in a.option_strings)
     assert ques.help == "list only copies with no row, an open row, an invalid row or an asked row"

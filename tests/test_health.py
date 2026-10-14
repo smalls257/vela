@@ -88,7 +88,7 @@ def test_an_empty_last_verified_is_not_verified(mini):
 
 
 def test_findings_that_map_to_no_row_are_counted_not_dropped():
-    from planner import health
+    from vela import health
     class V:  # no pages, so no finding can map to a row
         pages, unknowns, sessions = [], [], []
     found = [type("F", (), {"path": "gone.md", "line": 3, "code": "W704", "is_error": False})()]

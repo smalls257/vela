@@ -14,7 +14,7 @@ import threading
 import pytest
 
 from conftest import REPO
-from planner.explorer import serve
+from vela.explorer import serve
 
 STUB = REPO / "tests" / "explorer_stub"
 SNAPSHOT = REPO / "tests/sim/snapshots/trading-coach/after-capture-boundary"
@@ -243,7 +243,7 @@ def test_each_ask_is_logged_with_its_outcome(helper):
 
 def test_the_cli_serves_a_built_vault_and_stops_on_ctrl_c(tmp_path, monkeypatch):
     import io
-    from planner import cli
+    from vela import cli
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOT, vault)
     seen = {}
@@ -261,7 +261,7 @@ def test_the_cli_serves_a_built_vault_and_stops_on_ctrl_c(tmp_path, monkeypatch)
 
 def test_a_port_out_of_range_is_a_tool_error(tmp_path):
     import io
-    from planner import cli
+    from vela import cli
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOT, vault)
     out = io.StringIO()
@@ -273,7 +273,7 @@ def test_only_ask_js_freshness_js_and_layout_js_can_reach_the_network_and_each_c
     """The page's offline promise: no module but ask.js, freshness.js and layout.js names a network call, ask.js decides on
     file: before it looks for the helper, freshness.js asks only its own origin's /freshness, and only when served, and
     layout.js asks /pins only when the page was served and its reader is not a reader (a file saves to the browser)."""
-    scripts = REPO / "plugin/lib/planner/explorer/assets/js"
+    scripts = REPO / "plugin/lib/vela/explorer/assets/js"
     network = ("fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "sendBeacon")
     for script in scripts.glob("*.js"):
         text = script.read_text(encoding="utf-8")
@@ -324,7 +324,7 @@ def test_ask_is_confined_to_the_vault_when_claude_can_be(helper, stub_log):
 
 def test_the_settings_deny_the_exact_explorer_page_the_helper_writes():
     """E25. dashboard.html is what `planner explore` writes at the vault root, and the docstring promised no read of it."""
-    from planner import publish
+    from vela import publish
     deny = serve.claude_settings("/h")["permissions"]["deny"]
     assert f"Read(./{publish.DASHBOARD_PATH})" in deny and f"Read(./**/{publish.DASHBOARD_PATH})" in deny and "Read(./.planner/**)" in deny
 
@@ -398,7 +398,7 @@ def test_a_third_question_is_told_to_wait_rather_than_spawning_another_claude(he
 def test_a_vault_holding_a_symbolic_link_is_not_served(tmp_path):
     """E24. A link inside the vault can name ~/.ssh/id_rsa; Ask follows it."""
     import io
-    from planner import cli
+    from vela import cli
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOT, vault)
     (vault / "keys").symlink_to(tmp_path)
@@ -484,7 +484,7 @@ def test_e27_explore_serve_without_a_port_uses_the_vaults_port_or_says_why_it_di
 
 
 def expected_id(root):
-    from planner import cli
-    from planner.explorer import build
+    from vela import cli
+    from vela.explorer import build
     config = cli.load_config(root)
     return build.vault_id(str(config.get("initiative", "")), str(config.get("title", "")), config.get(build.VAULT_ID_KEY))

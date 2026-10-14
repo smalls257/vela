@@ -11,7 +11,7 @@ import pytest
 
 from conftest import REPO, check, edit, findings, run
 
-from planner import catalog, cli, readload, spelling
+from vela import catalog, cli, readload, spelling
 
 OLD_COST_LINE = "Running cost, licences and shared budgets such as mainframe processing."
 NEW_COST_LINE = "Running cost, licenses and shared budgets such as mainframe processing."
@@ -113,7 +113,7 @@ def test_quotes_code_urls_names_and_ids_keep_their_spelling(mini, text):
 
 
 def test_history_keeps_the_words_it_was_written_in():
-    from planner.parse import parse_page
+    from vela.parse import parse_page
     text = "---\nid: goals\ntype: initiative-section\ntitle: T\n---\n\n# T\n\nThe till is red.\n\n## History\n\n- 2026-01-01: colour agreed.\n"
     page = parse_page("01-goals.md", text)
     assert readload.spelling_findings(page) == []

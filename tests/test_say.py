@@ -7,7 +7,7 @@ import re
 import pytest
 
 from conftest import REPO, run
-from planner import cli, commands, model, say
+from vela import cli, commands, model, say
 
 HERON = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 
@@ -38,7 +38,7 @@ def test_emit_raises_on_an_explicit_plain_line_that_leaks():
 
 
 def test_finding_id_prints_area_and_question():
-    from planner.catalog import Catalog
+    from vela.catalog import Catalog
     vault = model.Vault(config={}, pages=[], catalog=Catalog(1, (("DAT", "Data and lawful basis"),), ()))
     resolver = say.Resolver(vault, findings={"F1.4": ("DAT", "how long consent records are kept")})
     assert resolver.plain("F1.4 is still open") == "the data reviewer asked how long consent records are kept is still open"

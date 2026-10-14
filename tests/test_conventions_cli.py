@@ -6,7 +6,7 @@ import shutil
 import pytest
 
 from conftest import REPO, run
-from planner import cli, conventions, schema
+from vela import cli, conventions, schema
 
 COPIES = ("template", "plugin/vault", "examples/unified-booking", "tests/stub-conventions")
 TEMPLATE = REPO / "template"

@@ -167,7 +167,7 @@ def test_a_word_outside_the_link_still_counts_beside_one_inside(ub):
 
 def test_the_catalog_gives_every_mention_a_reason():
     import yaml
-    from planner import catalog
+    from vela import catalog
     cat = catalog.parse_catalog(yaml.safe_load((REPO / "plugin" / "catalog" / "questions.yaml").read_text(encoding="utf-8")))
     for entry in cat.entries:
         if entry.mentions:

@@ -71,8 +71,8 @@ def synthetic_slice(apps, events, entities, delivery, retries, timeout, shared):
 
 
 def measure(config):
-    from planner import flowcheck
-    from planner.flowcheck import semantics
+    from vela import flowcheck
+    from vela.flowcheck import semantics
     c = dict(DEFAULTS, **config)
     files = synthetic_slice(c["apps"], c["events"], c["entities"], c["delivery"], c["retries"], c["timeout"], c["shared"])
     reductions = {"all": semantics.ALL_REDUCTIONS, "none": frozenset(), "symmetry": {semantics.SYMMETRY},

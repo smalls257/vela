@@ -10,8 +10,8 @@ import shutil
 import pytest
 from conftest import REPO, check, findings, run
 
-from planner import cli, criteria, export, parse, readability, trace
-from planner.explorer import design_data, roles_data
+from vela import cli, criteria, export, parse, readability, trace
+from vela.explorer import design_data, roles_data
 
 HERON = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 NUMBERED = REPO / "tests" / "fixtures" / "readable" / "EPC-001-calendar.md"  # the first shape, kept to prove both read

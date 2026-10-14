@@ -28,7 +28,7 @@ def test_ordinary_commands_pass(command):
 
 
 def test_a_changed_planner_module_needs_its_test_file_and_cli_needs_none():
-    changed = ["plugin/lib/planner/releases.py", "plugin/lib/planner/cli.py", "tests/test_search.py", "README.md"]
+    changed = ["plugin/lib/vela/releases.py", "plugin/lib/vela/cli.py", "tests/test_search.py", "README.md"]
     assert gates.tests_for(changed) == ["tests/test_releases.py", "tests/test_search.py"]
 
 
@@ -60,17 +60,17 @@ def test_the_setting_named_inside_a_commit_message_is_not_a_change():
 IGNORE = (REPO / ".semgrepignore").read_text().splitlines()
 
 
-@pytest.mark.parametrize("path", ["prototypes/explorer/out/booking-demo.html", "plugin/lib/planner/assets/d3.min.js",
+@pytest.mark.parametrize("path", ["prototypes/explorer/out/booking-demo.html", "plugin/lib/vela/assets/d3.min.js",
                                   "prototypes/gallery/assets/assets.bundle.js", ".semgrep/prototypes.js",
-                                  "plugin/lib/planner/__pycache__/x.py"])
+                                  "plugin/lib/vela/__pycache__/x.py"])
 def test_files_semgrepignore_names_are_not_scanned_even_when_named(path):
     # Naming a file on semgrep's command line scans it despite .semgrepignore; a generated page then pasted
     # whole base64 lines into the Stop hook's feedback and pushed a session past its context window.
     assert gates.semgrep_ignores(path, IGNORE)
 
 
-@pytest.mark.parametrize("path", ["prototypes/explorer/build.py", "plugin/lib/planner/explorer/assets/js/core.js",
-                                  "tests/sim/test_x.py", "plugin/lib/planner/assets/app.js"])
+@pytest.mark.parametrize("path", ["prototypes/explorer/build.py", "plugin/lib/vela/explorer/assets/js/core.js",
+                                  "tests/sim/test_x.py", "plugin/lib/vela/assets/app.js"])
 def test_hand_written_files_are_scanned(path):
     assert not gates.semgrep_ignores(path, IGNORE)
 
@@ -99,5 +99,5 @@ def test_the_asset_slot_rule_watches_the_explorer_where_it_lives_now():
     # The explorer's page code moved from prototypes/explorer into the plugin; the rule that keeps its JS to slot ids
     # has to follow it, or it passes by scanning nothing.
     globs = [g for _, rule, g in rule_paths() if rule == "prototype-asset-by-slot-id"]
-    assert "/plugin/lib/planner/explorer/**" in globs
-    assert (REPO / "plugin/lib/planner/explorer/assets/js/assets.js").is_file()
+    assert "/plugin/lib/vela/explorer/**" in globs
+    assert (REPO / "plugin/lib/vela/explorer/assets/js/assets.js").is_file()

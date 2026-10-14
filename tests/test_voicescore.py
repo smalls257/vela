@@ -10,7 +10,7 @@ import types
 import pytest
 
 from conftest import REPO, run, skill_text
-from planner import cli, voicescore
+from vela import cli, voicescore
 
 PLUGIN = REPO / "plugin"
 CLOSE = PLUGIN / "skills" / "close" / "SKILL.md"
@@ -424,14 +424,14 @@ def test_check_works_when_the_optional_dependency_cannot_be_imported(monkeypatch
 
 
 def test_importing_the_cli_never_imports_the_optional_dependency():
-    script = ("import sys; sys.path.insert(0, sys.argv[1]); import planner.cli; "
+    script = ("import sys; sys.path.insert(0, sys.argv[1]); import vela.cli; "
               "print(sorted(m for m in ('sentence_transformers', 'torch', 'huggingface_hub', 'numpy') if m in sys.modules))")
     out = subprocess.run([sys.executable, "-c", script, str(PLUGIN / "lib")], capture_output=True, text=True, check=True, timeout=60).stdout
     assert out.strip() == "[]"
 
 
 def test_only_the_cli_touches_the_disk_or_network():
-    source = (PLUGIN / "lib" / "planner" / "voicescore.py").read_text(encoding="utf-8")
+    source = (PLUGIN / "lib" / "vela" / "voicescore.py").read_text(encoding="utf-8")
     for word in ("open(", "pathlib", "import os", "subprocess", "sentence_transformers", "huggingface", "urllib", "time."):
         assert word not in source, word
 

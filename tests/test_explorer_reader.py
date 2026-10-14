@@ -9,7 +9,7 @@ import pytest
 from conftest import run
 from sharing import HOSTILE, SNAPSHOT, advance_remote, draft_workspace, git, make_vault, with_remote
 
-from planner import attention, cli, drafts
+from vela import attention, cli, drafts
 
 DATA = re.compile(r'<script type="application/json" id="data">(.*?)</script>', re.S)
 PAGE = "dashboard.html"
@@ -154,7 +154,7 @@ def test_a_nul_byte_or_invalid_utf8_is_binary_and_a_long_diff_is_cut():
 
 
 def test_explore_serve_hands_the_helper_a_live_freshness_check(reader, monkeypatch):
-    from planner.explorer import serve
+    from vela.explorer import serve
     seen = {}
     monkeypatch.setattr(serve, "serve", lambda *a, **kw: seen.update(kw))
     explore(reader[2], "--serve", "--no-open")

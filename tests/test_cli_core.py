@@ -3,7 +3,7 @@ import json
 import subprocess
 
 from conftest import REPO, run
-from planner import cli
+from vela import cli
 
 
 def test_c28_version_prints_the_plugin_json_version():

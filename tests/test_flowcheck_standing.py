@@ -2,8 +2,8 @@
 the record check-slice writes, read by its own reader, and never a pass the record does not hold (R0)."""
 from conftest import REPO
 
-from planner import flowcheck, handoff
-from planner.flowcheck import readers, record, standing
+from vela import flowcheck, handoff
+from vela.flowcheck import readers, record, standing
 
 FIXTURES = REPO / "tests" / "fixtures" / "flowcheck"
 TODAY = "2026-10-14"

@@ -14,8 +14,8 @@ import sys
 import pytest
 
 from conftest import REPO
-from planner import cli
-from planner.explorer import design_data
+from vela import cli
+from vela.explorer import design_data
 
 sys.path.insert(0, str(REPO / "prototypes" / "explorer"))
 

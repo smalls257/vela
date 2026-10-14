@@ -6,8 +6,8 @@ import subprocess
 import pytest
 
 from conftest import REPO, run
-from planner import say
-from planner.edge import vaultgit
+from vela import say
+from vela.edge import vaultgit
 
 TEMPLATE = REPO / "template"
 SESSION = "2026-10-14-close-test"

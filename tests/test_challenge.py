@@ -6,7 +6,7 @@ import shutil
 import yaml
 
 from conftest import REPO, edit, findings, run
-from planner import schema
+from vela import schema
 
 PLUGIN = REPO / "plugin"
 SKILL = PLUGIN / "skills" / "challenge" / "SKILL.md"

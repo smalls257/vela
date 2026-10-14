@@ -14,7 +14,7 @@ import pathlib
 from conftest import MINI, REPO, edit, run
 
 FIXTURE = REPO / "examples" / "unified-booking"
-ASSETS = REPO / "plugin" / "lib" / "planner" / "assets"
+ASSETS = REPO / "plugin" / "lib" / "vela" / "assets"
 ASSET_SHA256 = {
     "marked.min.js": "15fabce5b65898b32b03f5ed25e9f891a729ad4c0d6d877110a7744aa847a894",
     "mermaid.min.js": "61b335a46df05a7ce1c98378f60e5f3e77a7fb608a1056997e8a649304a936d6",
@@ -265,7 +265,7 @@ def test_code_and_diagrams_are_left_as_written(tmp_path):
 
 
 def test_generated_markers_survive_neutralizing():
-    from planner import viewer
+    from vela import viewer
     marker = "<!-- generated:where-it-stands sha=0a1b2c3d: do not edit, run planner render -->"
     end = "<!-- /generated:where-it-stands -->"
     assert viewer.neutralize(f"{marker}\ntext <b>\n{end}") == f"{marker}\ntext &lt;b>\n{end}"
@@ -284,7 +284,7 @@ def test_broken_link_in_a_bundled_page_stops_the_build(tmp_path):
 
 
 def test_missing_asset_is_a_tool_failure(tmp_path, monkeypatch):
-    from planner import cli
+    from vela import cli
     monkeypatch.setattr(cli, "ASSETS", tmp_path)
     code, text = build(FIXTURE, tmp_path / "viewer.html")
     assert code == 2

@@ -3,7 +3,7 @@ Planner reads and checks them and never fetches one (links.py)."""
 import pytest
 
 from conftest import check, edit, findings
-from planner import cli, links
+from vela import cli, links
 
 STOCK = "05-building-blocks/stock-building-blocks.md"
 FRONT = "sources: [SRC-01]\n---"

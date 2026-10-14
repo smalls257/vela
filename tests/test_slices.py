@@ -11,7 +11,7 @@ import pytest
 from conftest import REPO, run
 
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
-from planner import cli, model, parse, slices  # noqa: E402
+from vela import cli, model, parse, slices  # noqa: E402
 
 EXAMPLE = REPO / "examples" / "unified-booking"
 FLOWCHECK = REPO / "tests" / "fixtures" / "flowcheck"
@@ -326,8 +326,8 @@ def test_an_expired_override_on_a_flow_page_is_e398_too(tmp_path):
 
 
 def test_f13_reads_earlier_as_what_the_slice_comes_after():
-    from planner.flowcheck import properties
-    from planner.flowcheck.tables import Catalog
+    from vela.flowcheck import properties
+    from vela.flowcheck.tables import Catalog
     s1 = slices.Slice("SLC-001", "a", ("FLO-001",), "", 1, 0)
     s2 = slices.Slice("SLC-002", "b", ("FLO-002",), "", 1, 1)  # comes after nothing, so it may not start from SLC-001's leavings
     s3 = slices.Slice("SLC-003", "c", ("FLO-003",), "", 1, 2, after=("SLC-001",))

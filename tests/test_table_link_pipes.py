@@ -5,10 +5,10 @@ import pathlib
 REPO = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
 
-from planner import rules  # noqa: E402
-from planner.cli import load_vault  # noqa: E402
-from planner.explorer.pages_data import cells  # noqa: E402
-from planner.parse import split_row  # noqa: E402
+from vela import rules  # noqa: E402
+from vela.cli import load_vault  # noqa: E402
+from vela.explorer.pages_data import cells  # noqa: E402
+from vela.parse import split_row  # noqa: E402
 
 # The shape a sim session wrote on a constraints page: one link escaped, one bare, in the same cell.
 ROW = "| CST-1 | Demo in January | The board, as [[a#^c05\\|it reports]]; [[sources#SRC-09|the later note]] says | Fixes it |"

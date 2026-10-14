@@ -7,7 +7,7 @@ from conftest import REPO, findings, run
 from test_releases import LINK, check, release, vault_with
 
 sys.path.insert(0, str(REPO / "plugin" / "lib"))
-from planner import cli, flows, releases  # noqa: E402
+from vela import cli, flows, releases  # noqa: E402
 
 BOOKING = "[[booking-building-blocks|Booking]]"
 WEBSITE = "[[website-building-blocks|Website]]"
@@ -129,7 +129,7 @@ def test_w343_quotes_the_reason_when_the_requirement_is_listed_not_in_the_tracer
 
 
 def test_tracer_labels_and_codes_are_known():
-    from planner import schema
+    from vela import schema
     assert "Tracer" in schema.PAGE_LABELS and "Not in the tracer" in schema.PAGE_LABELS
     assert "W345" in schema.CODES and "W347" in schema.CODES
 
@@ -163,7 +163,7 @@ def test_handoff_verify_ignores_other_edits_to_the_releases_page(tmp_path):
 
 
 def test_page_data_carries_release_ones_tracer(tmp_path):
-    from planner.explorer import roles_data
+    from vela.explorer import roles_data
     vault = cli.load_vault(vault_for(tmp_path, ["**Tracer:** [[FLO-903-booking-only|FLO-903]], one fare quote",
                                                 "**Not in the tracer:** Website (APP-website): later"]))
     tracer = roles_data.release_data(vault, type("K", (), {"page": staticmethod(lambda p: p.id)})())["tracer"]

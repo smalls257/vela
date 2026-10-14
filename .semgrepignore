@@ -6,7 +6,7 @@
 worktrees/
 **/__pycache__/
 # vendored, minified
-plugin/lib/planner/assets/*.min.js
+plugin/lib/vela/assets/*.min.js
 # generated: rebuilt by prototypes/explorer/build.py and gallery/assets/build_index.py
 prototypes/explorer/out/
 prototypes/gallery/assets/assets.bundle.js

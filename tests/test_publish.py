@@ -8,7 +8,7 @@ import pytest
 from conftest import run
 from sharing import git, make_vault, make_workspace
 
-from planner import publish
+from vela import publish
 
 TODAY = "2026-10-11"
 
@@ -203,7 +203,7 @@ def test_the_pins_travel_in_a_copy_but_are_not_a_page_a_reader_changed():
 
 
 def test_a_read_copy_carries_the_teams_docs_folder_and_context_like_any_other_file():
-    from planner import opening, publish
+    from vela import opening, publish
     files = {"docs/tech-design/x.md": b"d", "docs/plan/x-breakdown.md": b"p", "CONTEXT.md": b"c", ".planner/explorer.html": b"h", "01-goals.md": b"g"}
     kept = publish.selected(files)
     assert sorted(kept) == ["01-goals.md", "CONTEXT.md", "docs/plan/x-breakdown.md", "docs/tech-design/x.md"]

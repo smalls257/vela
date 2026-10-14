@@ -6,7 +6,7 @@ import shutil
 import subprocess
 
 from conftest import REPO, run
-from planner import guard
+from vela import guard
 
 HOOK = REPO / "template" / ".githooks" / "pre-commit"
 LAUNCHER = REPO / "plugin" / "scripts" / "planner"

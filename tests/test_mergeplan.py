@@ -2,7 +2,7 @@
 costs the lead a look, a hunk wrongly called inside costs someone's writing."""
 import pytest
 
-from planner import mergeplan
+from vela import mergeplan
 
 OPEN = "<!-- generated:{name} sha={sha}: do not edit, run planner render -->"
 CLOSE = "<!-- /generated:{name} -->"

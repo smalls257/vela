@@ -17,7 +17,7 @@ FINDING = re.compile(r"^(?P<path>[^:\n]+):(?P<line>\d+): (?P<code>[EW]\d{3}) ")
 
 def run(*argv):
     """Run the planner CLI in-process. Returns (exit code, output text)."""
-    from planner import cli
+    from vela import cli
     out = io.StringIO()
     code = cli.main(list(argv), out=out)
     return code, out.getvalue()

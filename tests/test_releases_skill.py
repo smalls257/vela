@@ -2,7 +2,7 @@
 import re
 
 from conftest import REPO, run
-from planner import cli, releases
+from vela import cli, releases
 from test_releases import LINK, check, vault_with
 
 SKILL = (REPO / "plugin" / "skills" / "releases" / "SKILL.md").read_text(encoding="utf-8")

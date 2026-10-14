@@ -1,7 +1,7 @@
 """The kept working words (slice, tracer, grill) have one definition each, and the dashboard gets the same text."""
 import pytest
 
-from planner import terms
+from vela import terms
 
 
 def test_each_kept_word_has_a_one_line_definition():

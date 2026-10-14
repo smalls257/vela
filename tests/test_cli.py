@@ -58,7 +58,7 @@ def test_bin_planner_runs_without_install():
 
 
 def test_internal_error_is_exit_2_with_traceback(mini, monkeypatch):
-    from planner import rules
+    from vela import rules
 
     def boom(vault, today, gate=None, items=(), app=None):
         raise RuntimeError("rule exploded")

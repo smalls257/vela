@@ -6,10 +6,10 @@ a diagram over the 20-element budget lists what it left out in a table under it.
 import random
 
 from conftest import check, edit, findings, run
-from planner import diagrams, render, schema
-from planner.model import build
-from planner.parse import parse_page
-from planner.rules import flowchart_elements
+from vela import diagrams, render, schema
+from vela.model import build
+from vela.parse import parse_page
+from vela.rules import flowchart_elements
 
 CONFIG = {"initiative": "INI-900", "title": "Mini shop"}
 INDEX = """---

@@ -4,7 +4,7 @@ import subprocess
 import pytest
 
 from conftest import check, edit, findings, run
-from planner import ids
+from vela import ids
 
 UNKNOWNS = "11-unknowns-and-risks.md"
 
@@ -77,7 +77,7 @@ def test_start_tries_skill_dir_first():
     """`${CLAUDE_SKILL_DIR}` is the variable both apps document expanding in skill text, so START and `planner where`
     try it before `${CLAUDE_PLUGIN_ROOT}`, and in the same order."""
     from conftest import REPO
-    from planner import pluginroot
+    from vela import pluginroot
     start = (REPO / "plugin" / "references" / "START.md").read_text(encoding="utf-8")
     order = start.split("## Where the planner runs from")[1].split("\n## ")[0]
     assert order.index("1. `${CLAUDE_SKILL_DIR}/../../scripts/planner`") < order.index("2. `${CLAUDE_PLUGIN_ROOT}/scripts/planner`")

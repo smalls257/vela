@@ -5,8 +5,8 @@ import json
 from conftest import edit, run
 from sharing import git, make_vault, make_workspace, with_remote
 
-from planner import roles
-from planner.edge import vaultgit
+from vela import roles
+from vela.edge import vaultgit
 
 OWNER_FACTS = dict(in_work_tree=True, git_here=True, has_origin=True, can_commit=True)
 

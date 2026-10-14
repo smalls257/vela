@@ -9,7 +9,7 @@ import shutil
 import pytest
 
 from conftest import REPO, check, edit, findings, run
-from planner import cli, ledger, questions
+from vela import cli, ledger, questions
 
 FIXTURE = REPO / "examples" / "unified-booking"
 LEDGER = "11-unknowns-and-risks.md"

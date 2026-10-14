@@ -8,8 +8,8 @@ import pytest
 
 from conftest import REPO, run
 
-from planner import flowcheck
-from planner.flowcheck import build, explore, readers, semantics
+from vela import flowcheck
+from vela.flowcheck import build, explore, readers, semantics
 
 FIXTURES = REPO / "tests" / "fixtures" / "flowcheck"
 TODAY = "2026-10-13"
@@ -647,7 +647,7 @@ def test_one_missing_branch_is_one_finding_not_an_unhandled_and_an_unused_case()
 # --- slices, overrides and the check warning --------------------------------------------------------------------------
 
 def test_a_later_release_names_its_slice_with_a_flows_bullet():
-    from planner import model, parse, slices
+    from vela import model, parse, slices
     text = ("---\nid: releases\ntype: initiative-section\ntitle: Releases\n---\n\n# Releases\n\n## Release one: pilot\n\n"
             "- **State:** assumption\n- **Tracer:** [[FLO-001-a|FLO-001]], thin\n\n## Release two: more\n\n"
             "- **State:** assumption\n- **Flows:** [[FLO-002-b|FLO-002]], [[FLO-003-c|FLO-003]]\n\n## Release three\n\n"
@@ -716,7 +716,7 @@ def test_a_tracer_with_nothing_drawn_is_not_fully_checked_and_check_leaves_it_to
 
 def test_the_conventions_worked_example_is_in_the_grammar_the_checker_reads():
     """CONVENTIONS shows the flow-step grammar with a worked example; every line of it must read, so the two never drift."""
-    from planner.flowcheck import mermaid
+    from vela.flowcheck import mermaid
     text = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     section = text.split("\n## Flow check\n", 1)[1].split("\n## ", 1)[0]
     block = section.split("```mermaid\n", 1)[1].split("```", 1)[0].split("\n")
@@ -733,8 +733,8 @@ def test_the_conventions_worked_example_is_in_the_grammar_the_checker_reads():
 
 
 def test_a_slice_named_in_full_is_found_even_when_a_longer_name_starts_the_same():
-    from planner.flowcheck.tables import Catalog
-    from planner.slices import Slice
+    from vela.flowcheck.tables import Catalog
+    from vela.slices import Slice
     catalog = Catalog(slices=[Slice("", "Release one", ("FLO-001",), "", 1, 0), Slice("", "Release one b", ("FLO-002",), "", 2, 1)])
     assert flowcheck.resolve_slice(catalog, "Release one") == ("Release one", ("FLO-001",), 0)
     with pytest.raises(flowcheck.SliceNotFound, match="more than one"):

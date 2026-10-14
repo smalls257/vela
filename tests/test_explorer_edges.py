@@ -4,7 +4,7 @@ lines); this checks the page carries it, and that the sidebar's old copy of the 
 from conftest import REPO
 from test_explorer import booking  # noqa: F401  (a fixture)
 
-JS = REPO / "plugin" / "lib" / "planner" / "explorer" / "assets" / "js"
+JS = REPO / "plugin" / "lib" / "vela" / "explorer" / "assets" / "js"
 
 
 def test_the_page_carries_one_edge_factory_for_both_columns(booking):  # noqa: F811

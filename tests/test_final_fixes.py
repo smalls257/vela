@@ -244,7 +244,7 @@ def test_close_checks_remote_session_records_before_taking_an_id():
     close = skill_text("close")
     step3 = close.split("## 3.")[1].split("## 4.")[0]
     assert "planner next-id <its prefix>" in step3 and "every session branch" in step3
-    cli = read("plugin/lib/planner/cli.py")
+    cli = read("plugin/lib/vela/cli.py")
     assert '"refs/heads/session/", "refs/remotes/origin/session/"' in cli
 
 

@@ -4,11 +4,11 @@ import pathlib
 import re
 import shutil
 
-from planner import cli
-from planner.explorer import asks_data
-from planner.explorer.pages_data import HEADING as PAGE_HEADING
-from planner.explorer.record import Keys, inline_html
-from planner.search import HEADING as SEARCH_HEADING
+from vela import cli
+from vela.explorer import asks_data
+from vela.explorer.pages_data import HEADING as PAGE_HEADING
+from vela.explorer.record import Keys, inline_html
+from vela.search import HEADING as SEARCH_HEADING
 from test_reading_load import HERON
 
 
@@ -66,7 +66,7 @@ def test_e20_an_ask_by_that_is_not_a_whole_date_is_not_sent_as_a_date(tmp_path):
 
 
 def test_e20_every_date_the_board_draws_goes_through_esc():
-    source = (pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/planner/explorer/assets/js/view-asks.js").read_text(encoding="utf-8")
+    source = (pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/vela/explorer/assets/js/view-asks.js").read_text(encoding="utf-8")
     bare = [m.group(0) for m in re.finditer(r"\$\{day\([^}]*\)\}", source)]
     assert not bare, f"day() output goes into a template without esc(): {bare}"
 
@@ -74,7 +74,7 @@ def test_e20_every_date_the_board_draws_goes_through_esc():
 # ------------------------------------------------------------ E17 and E30: links the page offers to the files
 
 def test_e30_a_home_folder_name_in_the_path_does_not_drop_the_link(tmp_path, monkeypatch):
-    from planner.explorer import build
+    from vela.explorer import build
     home = tmp_path / "home" / "work"
     vault = home / "proj" / "work" / "vault"
     vault.mkdir(parents=True)
@@ -86,7 +86,7 @@ def test_e30_a_home_folder_name_in_the_path_does_not_drop_the_link(tmp_path, mon
 
 
 def test_e30_a_path_that_would_name_the_home_folder_is_still_left_out(tmp_path, monkeypatch):
-    from planner.explorer import build
+    from vela.explorer import build
     home = tmp_path / "home" / "work"
     (home / "vault").mkdir(parents=True)
     elsewhere = tmp_path / "site"
@@ -96,7 +96,7 @@ def test_e30_a_path_that_would_name_the_home_folder_is_still_left_out(tmp_path, 
 
 
 def test_e17_a_design_inside_the_vault_is_openable_when_served_and_one_outside_is_not(tmp_path):
-    from planner.explorer import build
+    from vela.explorer import build
     vault = tmp_path / "vault"
     (vault / "docs" / "tech-design").mkdir(parents=True)
     inside = vault / "docs" / "tech-design" / "a.md"
@@ -111,7 +111,7 @@ def test_e17_a_design_inside_the_vault_is_openable_when_served_and_one_outside_i
 # ------------------------------------------------------------ E18: the id the browser keeps a vault's marks under
 
 def test_e18_a_vault_id_in_the_config_scopes_the_browser_state_and_survives_a_retitle(tmp_path):
-    from planner.explorer import build
+    from vela.explorer import build
     old = build.vault_id("INI-001", "New initiative")
     assert build.vault_id("INI-001", "New initiative", "v-9f3c0a17d4e2b6") == "v-9f3c0a17d4e2b6"
     assert build.vault_id("INI-001", "Renamed", "v-9f3c0a17d4e2b6") == "v-9f3c0a17d4e2b6"
@@ -119,7 +119,7 @@ def test_e18_a_vault_id_in_the_config_scopes_the_browser_state_and_survives_a_re
 
 
 def test_e18_two_vaults_with_the_same_initiative_and_title_get_different_ids_once_each_has_one(tmp_path):
-    from planner.explorer import build
+    from vela.explorer import build
     ids = []
     for name, vault_id in (("a", "v-11111111111111"), ("b", "v-22222222222222")):
         copy = tmp_path / name
@@ -132,7 +132,7 @@ def test_e18_two_vaults_with_the_same_initiative_and_title_get_different_ids_onc
 
 
 def test_e18_the_page_carries_the_old_id_so_the_browser_can_move_what_it_saved(tmp_path):
-    from planner.explorer import build
+    from vela.explorer import build
     copy = tmp_path / "v"
     shutil.copytree(HERON, copy)
     before = build.extract(cli.load_vault(copy), copy, "2026-10-12")
@@ -146,7 +146,7 @@ def test_e18_the_page_carries_the_old_id_so_the_browser_can_move_what_it_saved(t
 def test_e18_a_vault_id_that_cannot_scope_a_key_is_refused_not_ignored(tmp_path):
     import pytest
 
-    from planner.explorer import build
+    from vela.explorer import build
     copy = tmp_path / "v"
     shutil.copytree(HERON, copy)
     config = copy / ".planner.yaml"
@@ -204,7 +204,7 @@ def test_e38_the_page_allows_only_its_own_inline_scripts_and_no_network_but_its_
 # ------------------------------------------------------------ E37: print and PDF
 
 def test_e37_the_stylesheet_has_a_print_block_that_drops_the_chrome_and_prints_link_addresses():
-    css = (pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/planner/explorer/assets/css/base.css").read_text(encoding="utf-8")
+    css = (pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/vela/explorer/assets/css/base.css").read_text(encoding="utf-8")
     block = re.search(r"@media print \{(.*?)\n\}\n", css, re.S)
     assert block, "no @media print rule"
     text = block.group(1)
@@ -253,7 +253,7 @@ def test_e2_no_page_asset_uses_an_api_only_chrome_has():
     """Only Chrome is run here (Safari, Firefox and a screen reader are unchecked), so the one guard that can be automatic is
     that the assets use no API that Chrome ships alone. Recording a clip, the clipboard and Web Audio are feature-checked in
     the code (flowkit.js, plan.js, sound.js) and say so when the browser lacks them."""
-    assets = pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/planner/explorer/assets"
+    assets = pathlib.Path(__file__).resolve().parent.parent / "plugin/lib/vela/explorer/assets"
     found = [f"{path.name}: {word}" for path in assets.rglob("*") if path.suffix in (".js", ".css", ".html") and path.name != "selftest.js"
              for word in CHROME_ONLY if word in path.read_text(encoding="utf-8")]
     assert not found, found

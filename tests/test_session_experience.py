@@ -169,7 +169,7 @@ def test_a_review_checkpoint_has_a_reader_copy_path():
 
 
 def test_session_modes_are_listed_the_same_everywhere():
-    from planner import schema
+    from vela import schema
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     listed = re.search(r"- `modes` on a session: a list of ([^.]+)\.", conventions).group(1)
     assert set(re.findall(r"`(\w+)`", listed)) == set(schema.SESSION_MODES)

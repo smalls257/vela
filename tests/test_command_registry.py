@@ -6,15 +6,15 @@ import sys
 import types
 
 from conftest import REPO
-from planner import cli, commands
+from vela import cli, commands
 
 MOVED_CALL = re.compile(r"`(?:python3 [^`]*?scripts/planner|planner) (check|explore|handoff|questions|where)(?![\w-])([^`]*)`")
 
 
 def test_every_group_module_registers_without_touching_cli(monkeypatch):
-    fake = types.ModuleType("planner.commands.demo")
+    fake = types.ModuleType("vela.commands.demo")
     fake.register = lambda sub: sub.add_parser("demo-command").set_defaults(func=lambda args, out: 0)
-    monkeypatch.setitem(sys.modules, "planner.commands.demo", fake)
+    monkeypatch.setitem(sys.modules, "vela.commands.demo", fake)
     monkeypatch.setattr(commands, "GROUPS", commands.GROUPS + ("demo",))
     args = cli.build_parser().parse_args(["demo-command"])
     assert args.func(args, None) == 0

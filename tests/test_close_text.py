@@ -4,9 +4,9 @@ import re
 import shlex
 
 from conftest import REPO, skill_text
-from planner import cli
-from planner.commands import close_gate, close_stage, close_sync
-from planner import guard, mergeplan
+from vela import cli
+from vela.commands import close_gate, close_stage, close_sync
+from vela import guard, mergeplan
 
 CLOSE = skill_text("close")
 
@@ -49,4 +49,4 @@ def test_a_command_that_cant_do_it_is_a_stop_not_a_recipe():
 def test_close_says_grill_in_lower_case():
     own = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
     assert not re.search(r"\bGrill\b", own)
-    assert (REPO / "plugin" / "lib" / "planner" / "terms.py").is_file()
+    assert (REPO / "plugin" / "lib" / "vela" / "terms.py").is_file()

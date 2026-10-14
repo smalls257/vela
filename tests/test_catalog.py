@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from conftest import REPO, check
-from planner import catalog, cli
+from vela import catalog, cli
 
 SEED = REPO / "plugin" / "catalog" / "questions.yaml"
 
@@ -144,7 +144,7 @@ def test_a_trigger_outside_the_grammar_is_refused_with_its_reason(text, scope, s
 
 
 def test_the_trigger_code_never_evaluates_text():
-    source = (REPO / "plugin" / "lib" / "planner" / "catalog.py").read_text(encoding="utf-8")
+    source = (REPO / "plugin" / "lib" / "vela" / "catalog.py").read_text(encoding="utf-8")
     assert not re.search(r"(?<![.\w])(eval|exec|compile|getattr|__import__)\s*\(", source)
 
 

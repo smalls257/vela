@@ -11,8 +11,8 @@ import pytest
 from conftest import run
 from sharing import advance_remote, git, make_vault, make_workspace, with_remote
 
-from planner import freshness
-from planner.edge import vaultgit
+from vela import freshness
+from vela.edge import vaultgit
 
 
 def fresh(root, *extra):

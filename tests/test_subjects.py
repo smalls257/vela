@@ -146,7 +146,7 @@ def test_query_get_knows_the_new_kinds(mini):
 
 def test_the_fixture_types_its_parties_and_its_loyalty_points():
     from conftest import REPO
-    from planner import cli
+    from vela import cli
     vault = cli.load_vault(REPO / "examples" / "unified-booking")
     assert [(p.id, p.fact("Relationship")) for p in vault.parties] == [("PTY-01", "supplier"), ("PTY-02", "supplier")]
     assert [s.id for s in vault.stored_values] == ["SV-01"]
