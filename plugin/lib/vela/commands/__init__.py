@@ -19,7 +19,7 @@ from vela import say
 
 MOVED = ("check", "explore", "where", "questions", "handoff")
 GROUPS = ("session", "record", "close", "guard", "conventions", "apply", "decide", "marks", "voice", "reviewers",
-          "hook", "epics", "releases", "boundary")
+          "hook", "epics", "releases", "boundary", "prose")
 
 
 def module(name):
