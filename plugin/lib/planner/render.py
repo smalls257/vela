@@ -383,14 +383,14 @@ def undisposed_questions(vault, page):
     the to-do list above the record. The line counts exactly the rows the table lists."""
     found = questions.dispositions(vault)
     copies = [d for d in found if d.pending]
-    lines = [row(d.copy.id, d.label, d.copy.entry.area, d.copy.entry.severity, id_link(vault, d.copy.subject.id),
+    lines = [row(d.copy.id, d.label, vault.catalog.area_label(d.copy.entry.area), d.copy.entry.severity, id_link(vault, d.copy.subject.id),
                  cell(d.copy.entry.question)) for d in copies]
     reviewers = questions.reviewer_rows(vault)
     for r in reviewers:
         answer = questions.reviewer_answer(vault, r)
         if questions.reviewer_pending(vault, r):
-            lines.append(row(r.copy, questions.state_label(r.state, answer["valid"]), r.area, answer["severity"],
-                             "reviewer", cell(answer["question"] or "")))
+            lines.append(row(r.copy, questions.state_label(r.state, answer["valid"]), vault.catalog.area_label(r.area),
+                             answer["severity"], "a reviewer's question", cell(answer["question"] or "")))
     opened = sum(1 for r in reviewers if questions.reviewer_open(vault, r))
     line = questions.coverage_line(vault, len(found), sum(1 for d in found if d.undisposed), opened,
                                    questions.asked_count(vault, found, reviewers))

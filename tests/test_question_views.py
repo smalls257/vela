@@ -73,7 +73,7 @@ def test_the_fixture_block_says_nothing_is_undisposed():
 def test_the_template_block_lists_the_twelve_initiative_questions():
     lines = block(REPO / "template").splitlines()
     assert lines[1] == "**Questions:** 12 owed, 12 undisposed, against catalog v1."
-    assert lines[3] == "| Copy | State | Area | Severity | Subject | Question |"
+    assert lines[3] == "| Ref | Status | Area | How serious | About | Question |"
     assert len([l for l in lines if l.startswith("| Q-")]) == 12
 
 
@@ -83,7 +83,7 @@ def test_removing_a_row_makes_the_block_stale_and_render_lists_the_copies(ub):
     run("render", "--vault", str(ub))
     text = block(ub)
     assert "**Questions:** 57 owed, 1 undisposed, 1 asked, 1 open reviewer question, against catalog v1." in text
-    assert "| Q-OPS-01@APP-kiosks | no row | OPS | normal | [[kiosks-building-blocks\\|Port kiosks]] | Who runs it out of hours" in text
+    assert "| Q-OPS-01@APP-kiosks | no row | Operations and people | normal | [[kiosks-building-blocks\\|Port kiosks]] | Who runs it out of hours" in text
     assert "Q-OPS-01@APP-booking" not in text, "booking has its own row"
     assert findings(check(ub, TODAY)[1]) == []
 
@@ -93,7 +93,7 @@ def test_an_open_row_counts_as_undisposed_and_is_listed_as_open(ub):
     run("render", "--vault", str(ub))
     text = block(ub)
     assert "57 owed, 1 undisposed" in text
-    assert "| Q-DAT-02@APP-pricing | open | DAT | high |" in text, "an open row is undisposed, so the table lists it"
+    assert "| Q-DAT-02@APP-pricing | open | Data and lawful basis | high |" in text, "an open row is undisposed, so the table lists it"
 
 
 def test_the_block_is_allowed_only_on_the_unknowns_page(ub):
@@ -135,7 +135,7 @@ def test_the_bands_rank_high_and_blocking_above_high_above_the_rest():
 def test_a_broken_row_is_undisposed_and_still_listed_by_the_block(ub):
     edit(ub / LEDGER, "| Q-FIN-03@SV-01 | answered |", "| Q-FIN-03@SV-01 | answered | nonsense |")
     run("render", "--vault", str(ub))
-    assert "| Q-FIN-03@SV-01 | invalid (answered) | FIN |" in block(ub)
+    assert "| Q-FIN-03@SV-01 | invalid (answered) | Finance and liabilities |" in block(ub)
     assert [g["entry"] for g in digest(ub)["groups"]][0] == "Q-FIN-03"
 
 

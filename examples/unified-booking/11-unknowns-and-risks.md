@@ -139,13 +139,13 @@ Kiosk images ship in March and September. If March slips, kiosks wait six months
 
 Catalog v1 owes these questions. Each row says where one stands. A wildcard row answers every copy it matches, and a copy with its own row is an exception to it.
 
-<!-- generated:undisposed-questions sha=15bbf524: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=89cc3278: do not edit, run planner render -->
 **Questions:** 57 owed, 0 undisposed, 1 asked, 1 open reviewer question, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |
 |---|---|---|---|---|---|
-| Q-FIN-02@INI-002 | asked | FIN | normal | INI-002 | Who pays for the change, and who carries its running cost once it is live? |
-| R-FIN-01 | open | FIN | normal | reviewer | Points are earned at reservation, so does a canceled booking take its points back, and who tells the loyalty scheme? |
+| Q-FIN-02@INI-002 | asked | Finance and liabilities | normal | INI-002 | Who pays for the change, and who carries its running cost once it is live? |
+| R-FIN-01 | open | Finance and liabilities | normal | a reviewer's question | Points are earned at reservation, so does a canceled booking take its points back, and who tells the loyalty scheme? |
 <!-- /generated:undisposed-questions -->
 
 | Copy | State | Evidence | By | Date |

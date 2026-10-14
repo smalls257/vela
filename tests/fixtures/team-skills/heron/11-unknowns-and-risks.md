@@ -405,27 +405,27 @@ If few organizers turn transcripts on, most notes are written from the calendar 
 
 ## Question ledger
 
-<!-- generated:undisposed-questions sha=af57500a: do not edit, run planner render -->
+<!-- generated:undisposed-questions sha=45fd1274: do not edit, run planner render -->
 **Questions:** 45 owed, 0 undisposed, 16 open reviewer questions, against catalog v1.
 
 | Ref | Status | Area | How serious | About | Question |
 |---|---|---|---|---|---|
-| R-PTN-13 | open | PTN | normal | reviewer | Is 2 February a fact, as CST-009 says by override, or an assumption, as the releases page says? Which page owns the date? |
-| R-PTN-14 | open | PTN | high | reviewer | Which works council, Frankfurt's or another, must agree to a London pilot? Does it vote or only note, which meeting date is the last one before 2 February, and who holds that agreement? |
-| R-PTN-15 | open | PTN | high | reviewer | Do the Zoom terms and the client engagement terms allow Heron to read calendar entries for, and write digests or prep notes about, Zoom and client meetings in the pilot? Who checks them and by when? |
-| R-PTN-16 | open | PTN | normal | reviewer | Who at Client Delivery gives the pilot sign-off, in what form, and by what date before 2 February? |
-| R-PTN-17 | open | PTN | normal | reviewer | What do people agree to for transcripts when none is read in the pilot, and does that consent still stand when transcript reading arrives under the DPO's notice wording or must it be asked again? |
-| R-REG-12 | open | REG | normal | reviewer | Who asks the works council whether it votes in December, and what happens to the February pilot date if it declines or defers? |
-| R-OPS-15 | open | OPS | high | reviewer | Should the February pilot be recorded as blocked by UNK-051, UNK-056 and UNK-069, and who owns the order of those gates and the pilot date? |
-| R-OPS-16 | open | OPS | normal | reviewer | What supports the 70 percent Zoom figure, who confirms it, and does the pilot lead accept calendar-only notes as the expected case? |
-| R-OPS-17 | open | OPS | normal | reviewer | Does the February pilot include Macs as well as Windows PCs, and who checks that no Frankfurt staff are in the Client Delivery London group? |
-| R-DAT-16 | open | DAT | high | reviewer | Should the February pilot offer the transcripts choice at all? If it does, will a consent given then be valid for reading that starts in a later release under a notice that is not yet written? |
-| R-DAT-17 | open | DAT | normal | reviewer | Can a person withdraw one source only? If so, what happens to the other source, and does withdrawing calendar entries also end transcript consent? |
-| R-DAT-18 | open | DAT | normal | reviewer | Which team and epic keeps the consent record, including what is kept after a withdrawal, given that nobody is yet recorded as building Consent and identity? |
-| R-DAT-19 | open | DAT | high | reviewer | Does the Summarizer run on the laptop or off it? If off it, does the pilot's sending of calendar entries wait on the CISO outcome of 4 December and on the data list? |
-| R-REG-13 | open | REG | high | reviewer | Should EPC-032's rollout notes list every gate on the February date (CISO outcome, registration review, works council, impact assessment, lawful basis), and which of them blocks switching Heron on? |
-| R-REG-14 | open | REG | high | reviewer | If a digest is a client record (UNK-064), may it be deleted on withdrawal, and what happens to data already read or sent on before the person withdrew? |
-| R-OPS-18 | open | OPS | high | reviewer | Which team builds and runs Consent and identity, so EPC-032 can depend on its epic? What does a person see at switch-on if it is slow or down, and how long does Heron wait before it treats a choice as not kept? |
+| R-PTN-13 | open | Partners and contracts | normal | a reviewer's question | Is 2 February a fact, as CST-009 says by override, or an assumption, as the releases page says? Which page owns the date? |
+| R-PTN-14 | open | Partners and contracts | high | a reviewer's question | Which works council, Frankfurt's or another, must agree to a London pilot? Does it vote or only note, which meeting date is the last one before 2 February, and who holds that agreement? |
+| R-PTN-15 | open | Partners and contracts | high | a reviewer's question | Do the Zoom terms and the client engagement terms allow Heron to read calendar entries for, and write digests or prep notes about, Zoom and client meetings in the pilot? Who checks them and by when? |
+| R-PTN-16 | open | Partners and contracts | normal | a reviewer's question | Who at Client Delivery gives the pilot sign-off, in what form, and by what date before 2 February? |
+| R-PTN-17 | open | Partners and contracts | normal | a reviewer's question | What do people agree to for transcripts when none is read in the pilot, and does that consent still stand when transcript reading arrives under the DPO's notice wording or must it be asked again? |
+| R-REG-12 | open | Regulation and liability | normal | a reviewer's question | Who asks the works council whether it votes in December, and what happens to the February pilot date if it declines or defers? |
+| R-OPS-15 | open | Operations and people | high | a reviewer's question | Should the February pilot be recorded as blocked by UNK-051, UNK-056 and UNK-069, and who owns the order of those gates and the pilot date? |
+| R-OPS-16 | open | Operations and people | normal | a reviewer's question | What supports the 70 percent Zoom figure, who confirms it, and does the pilot lead accept calendar-only notes as the expected case? |
+| R-OPS-17 | open | Operations and people | normal | a reviewer's question | Does the February pilot include Macs as well as Windows PCs, and who checks that no Frankfurt staff are in the Client Delivery London group? |
+| R-DAT-16 | open | Data and lawful basis | high | a reviewer's question | Should the February pilot offer the transcripts choice at all? If it does, will a consent given then be valid for reading that starts in a later release under a notice that is not yet written? |
+| R-DAT-17 | open | Data and lawful basis | normal | a reviewer's question | Can a person withdraw one source only? If so, what happens to the other source, and does withdrawing calendar entries also end transcript consent? |
+| R-DAT-18 | open | Data and lawful basis | normal | a reviewer's question | Which team and epic keeps the consent record, including what is kept after a withdrawal, given that nobody is yet recorded as building Consent and identity? |
+| R-DAT-19 | open | Data and lawful basis | high | a reviewer's question | Does the Summarizer run on the laptop or off it? If off it, does the pilot's sending of calendar entries wait on the CISO outcome of 4 December and on the data list? |
+| R-REG-13 | open | Regulation and liability | high | a reviewer's question | Should EPC-032's rollout notes list every gate on the February date (CISO outcome, registration review, works council, impact assessment, lawful basis), and which of them blocks switching Heron on? |
+| R-REG-14 | open | Regulation and liability | high | a reviewer's question | If a digest is a client record (UNK-064), may it be deleted on withdrawal, and what happens to data already read or sent on before the person withdrew? |
+| R-OPS-18 | open | Operations and people | high | a reviewer's question | Which team builds and runs Consent and identity, so EPC-032 can depend on its epic? What does a person see at switch-on if it is slow or down, and how long does Heron wait before it treats a choice as not kept? |
 <!-- /generated:undisposed-questions -->
 
 | Copy | State | Evidence | By | Date |

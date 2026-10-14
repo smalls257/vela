@@ -79,7 +79,7 @@ def test_where_it_stands_lists_unk_006_and_holds_no_prose():
     text = (FIXTURE / "01-goals.md").read_text(encoding="utf-8")
     block = text[text.index("<!-- generated:where-it-stands"):text.index("<!-- /generated:where-it-stands -->")]
     lines = block.splitlines()[1:]
-    assert "| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\\|UNK-006]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing |" in lines
+    assert "| [[11-unknowns-and-risks#UNK-006 Finance on Booking events\\|Finance on Booking events (UNK-006)]] | @hl-platform-lead (Platform lead) | 2027-03-01 | nothing yet |" in lines
     for line in lines:
         assert line == "" or line.startswith("|") or re.match(r"^\*\*[A-Za-z ]+(:\*\* .+|\*\*)$", line), line
 
