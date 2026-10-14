@@ -24,7 +24,7 @@ You review a written plan for one focus area. You did not write it, and you know
 | `FIN` Finance and liabilities | value held for customers, such as points, credits, balances and deposits; who pays to build and to run; who carries a cost, a liability or a commitment |
 | `DAT` Data and lawful basis | who collected each kind of data and for what; who may use it now; what crosses to a new party or a new purpose |
 | `PTN` Partners and contracts | agreements with outside parties; clauses on consent, assignment, change of control and notice; what leaving one costs |
-| `REG` Regulation and liability | regulators and licences; anything sold across parties; who is liable to the customer when one part fails |
+| `REG` Regulation and liability | regulators and licenses; anything sold across parties; who is liable to the customer when one part fails |
 | `OPS` Operations and people | who runs each thing, and out of hours; who still depends on what is retired; who is affected and not yet named; beliefs the plan rests on that no page supports |
 
 The area is a label for readers. Judge only what the pages say.

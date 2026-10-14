@@ -49,7 +49,7 @@ Done when: a person who switches Heron on has each choice recorded, and a choice
 Acceptance criteria:
 - When a person switches Heron on, they choose separately whether Heron may read their calendar entries and whether it may read their Teams transcripts. Each choice is kept.
 - When a person switches Heron on, they are offered calendar entries and Teams transcripts as two separate choices, and cannot choose transcripts without calendar entries.
-- A choice not confirmed by Consent and identity counts as not kept (design, Failure behaviour).
+- A choice not confirmed by Consent and identity counts as not kept (design, Failure behavior).
 
 | Task | Size | Component |
 |---|---|---|

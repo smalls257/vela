@@ -30,7 +30,7 @@ The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Whe
 4. Before you cite any ID, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query get <ID> --json`. Put the ID, by the `link` it returns, in the `Sources:` list, and take its state, `dissent`, `blocked_by`, `override` and `decided_by` for the flags below. If the answer is `not_found`, never cite that ID, and never write it as if it existed: say `Not recorded: <ID> is not in this vault.` To find every page that mentions an item, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner query refs <ID> --json`. If `planner query` exits 2, it could not read the vault: show its message, say the IDs in this answer were not checked, and never treat that as `not_found` or "Not recorded".
 5. Split the question into its parts. Each part is answered, in conflict, or unanswered.
 6. Write the answer in the shape below. Never create, edit or delete a file.
-7. Name each thing in the sentence by its plain name, not its ID. Every claim rests on a page in the `Sources:` list or is labelled `Not from the vault:`. There is no third choice.
+7. Name each thing in the sentence by its plain name, not its ID. Every claim rests on a page in the `Sources:` list or is labeled `Not from the vault:`. There is no third choice.
 
 ## Bash is read-only here
 
@@ -69,7 +69,7 @@ Never fill a gap from general knowledge. If the asker insists, add it after the 
 ```
 <the two freshness lines>
 
-<the answer, pitched at the asker, things named in plain words; each claim rests on a page under Sources, or is labelled `Not from the vault:`>
+<the answer, pitched at the asker, things named in plain words; each claim rests on a page under Sources, or is labeled `Not from the vault:`>
 <one line per flag>
 <one line per unanswered part>
 

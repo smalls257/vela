@@ -39,7 +39,7 @@ Plan only around people the design or the vault names. The design says who owns 
 
 ## 3. Find the tracer
 
-The first release is a thin flow end to end through every app. This team's first story is its piece of that flow, with the other teams' sides stubbed, so the first thing built is something the whole initiative can see working. Later stories are vertical slices: each one delivers behaviour someone can watch.
+The first release is a thin flow end to end through every app. This team's first story is its piece of that flow, with the other teams' sides stubbed, so the first thing built is something the whole initiative can see working. Later stories are vertical slices: each one delivers behavior someone can watch.
 
 Read the tracer from its slice page, the one slice with no `**After:**` (usually `slices/SLC-001-*.md`): its `**Flows:**` and its `## Not in this slice`. A vault with no slice pages names it in the first release section of `04b-releases.md`: a `- **Tracer:**` bullet linking one or more flows, then optionally the thin version in plain words, and an optional `- **Not in the tracer:**` bullet saying what is left out and why.
 

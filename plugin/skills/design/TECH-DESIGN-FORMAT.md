@@ -146,11 +146,11 @@ The explorer reads this doc by its headings, bullets and tables, and lists anyth
 
 The Heron Desktop agent's, re-shaped from its design run:
 
-> The Desktop agent runs on each person's laptop in the Client Delivery London pilot. With the person's consent it reads their own calendar entries, asks the Summariser for a 7:30 digest and a prep note ten minutes before each meeting, and shows them. It keeps nothing it doesn't need: a withdrawal deletes everything the agent holds for that person.
+> The Desktop agent runs on each person's laptop in the Client Delivery London pilot. With the person's consent it reads their own calendar entries, asks the Summarizer for a 7:30 digest and a prep note ten minutes before each meeting, and shows them. It keeps nothing it doesn't need: a withdrawal deletes everything the agent holds for that person.
 >
 > **Decisions that shape it:**
 > - One signed Tauri process for Mac and Windows, with a Rust core ([ADR-0001](../adr/0001-desktop-agent-tauri-single-process.md)).
-> - The consent check is the only door to Microsoft and the Summariser, and every failed or slow call reads and shows nothing.
+> - The consent check is the only door to Microsoft and the Summarizer, and every failed or slow call reads and shows nothing.
 > - Calendar entries only in the first release: no mail.
 >
-> **Still open:** the Summariser's owner hasn't said what it keeps, logs and trains on, and the endpoint lead hasn't said whether a bad build can be recalled; both are needed before the January packaging slot. Eight more are under Open questions.
+> **Still open:** the Summarizer's owner hasn't said what it keeps, logs and trains on, and the endpoint lead hasn't said whether a bad build can be recalled; both are needed before the January packaging slot. Eight more are under Open questions.

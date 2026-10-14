@@ -34,7 +34,7 @@ Build the coverage table before proposing stories, and keep it current as storie
 
 ## Session
 
-1. **Propose the cut.** Group the work into stories a team can demo: each delivers behaviour someone can see, not a layer. Read back the proposed list, numbered, each with the targets it traces to. Ask the user to confirm or reshape it.
+1. **Propose the cut.** Group the work into stories a team can demo: each delivers behavior someone can see, not a layer. Read back the proposed list, numbered, each with the targets it traces to. Ask the user to confirm or reshape it.
 2. **One story at a time.** For each agreed story, propose and confirm: its acceptance criteria (from the requirement or epic criterion it traces to, never invented), the design sections it rests on, and its tasks.
 3. **Size each task** `S` (up to about 2 days), `M` (3 to 5 days) or `L` (1 to 2 weeks), for one engineer. A task larger than `L` is split. Sizes are for ordering, not commitments; say so in the plan.
 4. **Dependencies.** For each story, what it is blocked by: another story, an open question, a deferred item, a gap, or an outside party. Name the ID.

@@ -11,9 +11,9 @@ Vault mode always runs on one capability, `CAP-NNN`. If the user gave none, ask 
 It is called from two places:
 
 - while shaping the capability delta, when a capability's "after" is too vague to draw a flow or name an epic;
-- from the `epics` skill, when an acceptance criterion needs behaviour the vault does not hold. Then the scope is the capability that epic delivers.
+- from the `epics` skill, when an acceptance criterion needs behavior the vault does not hold. Then the scope is the capability that epic delivers.
 
-Out of scope: behaviour inside one app (that is the app team's own requirements work), flows (grill the capability instead), and non-functional requirements (they are concerns).
+Out of scope: behavior inside one app (that is the app team's own requirements work), flows (grill the capability instead), and non-functional requirements (they are concerns).
 
 ## Session
 

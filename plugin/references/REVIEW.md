@@ -2,7 +2,7 @@
 
 Contents: reader copy; numbering; 1 write it down; 2 the owed questions; 3 one reviewer per area; 4 merge; re-running areas; 5 the digest; 6 record what the lead does.
 
-A review checkpoint finds the questions the plan owes and nobody has asked. Code works out what the catalogue owes (`planner questions`). One focused reviewer per focus area, each in a fresh context, reads only the written pages and finds what code cannot. `planner findings merge` combines what they return. The lead never sees the reviewers, only one ranked digest.
+A review checkpoint finds the questions the plan owes and nobody has asked. Code works out what the catalog owes (`planner questions`). One focused reviewer per focus area, each in a fresh context, reads only the written pages and finds what code cannot. `planner findings merge` combines what they return. The lead never sees the reviewers, only one ranked digest.
 
 The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner`. The skill that sends you here names the checkpoint and its focus.
 

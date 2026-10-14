@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Boundary
 
-Turn a decided direction into apps a team senior can take. Until an app page exists, the catalogue's app and contract questions are owed by nothing, `planner status` has nothing to show, and epics and handoff have nothing to work on. Boundary never decides: every page it writes is an `assumption` until a Grill.
+Turn a decided direction into apps a team senior can take. Until an app page exists, the catalog's app and contract questions are owed by nothing, `planner status` has nothing to show, and epics and handoff have nothing to work on. Boundary never decides: every page it writes is an `assumption` until a Grill.
 
 The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Where the planner runs from", covers a host that leaves the variable unexpanded). The page formats are `CONVENTIONS.md`: "Frontmatter", "IDs", "Fact bullets" for contracts, "Fact tables" for containers, "Concern cells and waivers", and the ladder under "Areas and stages".
 
@@ -61,7 +61,7 @@ Take the stubs one at a time. For each, show its sheet as a numbered list:
 5. **Consumes:** each contract it relies on, provided by another app or an outside provider. For each outside party or third-party contract, ask whether there is an API spec or docs for it; a link is enough, and the user may skip.
 6. **On failure:** what the app and each consumer do when it, or something it consumes, is down or slow.
 7. **Capabilities:** each business capability the app delivers or changes, in the domain's words, such as "teach a stock trade", with `new`, `extend`, `replace`, `narrow` or `retire`.
-8. **Flows:** each end-to-end journey the app takes part in, such as "a reader practises a trade": its steps in order, each naming the app and the contract or capability it uses. For each step that hands something between two lanes, read back who sends and who receives, with your guess, such as "Step 3: the Booking app sends the Payments app the order ID, over Order identity. Is that the direction? Tell me if Payments starts it." A step with no hand-over, such as the reader opting in, needs no sender.
+8. **Flows:** each end-to-end journey the app takes part in, such as "a reader practices a trade": its steps in order, each naming the app and the contract or capability it uses. For each step that hands something between two lanes, read back who sends and who receives, with your guess, such as "Step 3: the Booking app sends the Payments app the order ID, over Order identity. Is that the direction? Tell me if Payments starts it." A step with no hand-over, such as the reader opting in, needs no sender.
 9. **Concerns:** one line per concern page: `unknown` with the question that must be answered first, `unchanged` when a changed app's existing practice holds, `n/a` with why, or `unexamined`. Never `addressed`, because only a Grill decides one.
 10. **Where it lives:** ask where this app's code and its team's wiki live, and for the links or a skip. A link is only what the user gives you. Never guess an address from the app's name, and a skip is not recorded.
 
@@ -85,7 +85,7 @@ Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner render` and `python3 ${C
 
 ## 5. Review the new apps and contracts
 
-Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the pages are written" and the new app, contract and runtime pages as its focus. Each new app and contract is a subject now, so the catalogue owes its app and contract questions: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>` for each and show the copies it owes. Show the digest as REVIEW says and capture what they take.
+Once every sheet is written, run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md`, with the checkpoint "after the pages are written" and the new app, contract and runtime pages as its focus. Each new app and contract is a subject now, so the catalog owes its app and contract questions: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner questions --subject <ID>` for each and show the copies it owes. Show the digest as REVIEW says and capture what they take.
 
 ## 6. Finish
 

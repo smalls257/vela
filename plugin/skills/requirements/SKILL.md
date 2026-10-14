@@ -15,7 +15,7 @@ The planner is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/planner` (`START.md`, "Whe
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `requirements`. Read the Requirements row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. If `04-solution-strategy.md` is not `decided`, say so: requirements written against an undecided strategy may be written again. Go on only if the user says to, and record that as an override as `START.md` says.
 
-Read the strategy, the goals, the constraints, `04a-capability-delta.md` and every capability page. List the capabilities the strategy needs: the user's argument, or every one the strategy implies. For each that has no page, propose its name in the domain's words, such as "Refund a cancelled booking", with its `change` (`new`, `extend`, `replace`, `narrow` or `retire`), and on the user's yes write `capabilities/CAP-nnn-<slug>.md` as `CONVENTIONS.md` says under "Frontmatter" for a capability (`state: assumption`, `origin: proposed`), with opening prose saying what the business can do with it, and a link from `04a-capability-delta.md`. Take the number from `planner next-id CAP`.
+Read the strategy, the goals, the constraints, `04a-capability-delta.md` and every capability page. List the capabilities the strategy needs: the user's argument, or every one the strategy implies. For each that has no page, propose its name in the domain's words, such as "Refund a canceled booking", with its `change` (`new`, `extend`, `replace`, `narrow` or `retire`), and on the user's yes write `capabilities/CAP-nnn-<slug>.md` as `CONVENTIONS.md` says under "Frontmatter" for a capability (`state: assumption`, `origin: proposed`), with opening prose saying what the business can do with it, and a link from `04a-capability-delta.md`. Take the number from `planner next-id CAP`.
 
 ## 2. One capability at a time
 
@@ -45,7 +45,7 @@ On the capability page, under `## Functional requirements`:
 A filled-in example, from a booking system:
 
 ```
-### CAP-004.FR2 Refund a cancelled booking
+### CAP-004.FR2 Refund a canceled booking
 
 A guest who cancels in time gets their money back, and sees where the refund stands until it lands.
 

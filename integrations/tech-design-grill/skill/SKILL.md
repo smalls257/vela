@@ -77,7 +77,7 @@ Update the design doc + `CONTEXT.md` after each section. Do not batch.
 
 ## Review checkpoint
 
-Before the completion gate, run `REVIEW-CHECKPOINT.md`: five fresh-context reviewers read the written design, one area each, and their checked findings become `OQ-XXX` entries the user disposes of. The interview cannot see what nobody in the room knows; the reviewers are there for the vendor limit, the licence clause or the reset nobody mentioned.
+Before the completion gate, run `REVIEW-CHECKPOINT.md`: five fresh-context reviewers read the written design, one area each, and their checked findings become `OQ-XXX` entries the user disposes of. The interview cannot see what nobody in the room knows; the reviewers are there for the vendor limit, the license clause or the reset nobody mentioned.
 
 ## Completion gate
 
