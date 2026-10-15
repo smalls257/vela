@@ -1,7 +1,7 @@
 """Flow steps and who sends each message. Pure.
 
 A step that crosses between two lanes begins with a sender-to-receiver pair, then a colon and the sentence:
-`3. [[tickertalk-building-blocks|TickerTalk]] -> [[coach-building-blocks|Coach]]: sends the reader ID over [[...#CON-005 Reader identity|Reader identity]].`
+`3. [[rider-building-blocks|Rider app]] -> [[docks-building-blocks|Dock service]]: sends the unlock code over [[...#CON-005 Dock unlock|Dock unlock]].`
 The pair is the recorded direction. Without it a reader (the explorer) can only guess the direction from the
 contract's provider and consumers. E350 and W351 read the same steps through `steps()`.
 """

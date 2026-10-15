@@ -4,7 +4,7 @@ Ported from prototypes/gallery/flows/extract.py and widened to the explorer's va
 vela's own parser and model. Two things the record does not say directly, each labeled on the page:
 
 - Direction. A step that starts "Sender -> Receiver:" records it, and is "stated". Otherwise a step names a
-  contract, not who sends to whom. A sentence such as "TickerTalk sends Coach the ID"
+  contract, not who sends to whom. A sentence such as "Rider app sends Dock service the code"
   names both ends, so the direction is "stated". Otherwise the sender is the contract's provider and the receivers
   its consumers, marked "inferred". When a contract has several consumers and the step names some of them, only
   those receive; when it names none, every consumer is drawn, because the record does not say which.
@@ -47,7 +47,7 @@ def lanes_of(vault, keys, contracts, pins, names):
 
 def aliases(lanes, contracts):
     """Words that name a lane in step prose: its name, and a partner contract's name minus the partner's name
-    ("Brightwater sandbox" makes "sandbox" mean Brightwater)."""
+    ("Spokewell repairs" makes "repairs" mean Spokewell)."""
     out = {l["id"]: [l["name"]] for l in lanes}
     for c in contracts:
         lane = next((l for l in lanes if l["id"] == c["provider"] and l["kind"] == "partner"), None)
@@ -68,7 +68,7 @@ def mentions(sentence, words):
 
 def masked(text, keys, page, vault):
     """The step as plain text where app links read as the app's name and every other link is a «n» token, so a
-    contract named "Brightwater sandbox" is not mistaken for a mention of Brightwater. Returns (text, [keys])."""
+    contract named "Spokewell repairs" is not mistaken for a mention of Spokewell. Returns (text, [keys])."""
     from vela.parse import WIKILINK, parse_link
     tokens = []
 

@@ -1,6 +1,6 @@
 """What a command says, in the three modes every new command offers, and the one place the lead-facing rule is held.
 
-The Violation this module exists to prevent is the Leaky Narrative: the 13 October Heron review counted 709 `UNK-`
+The Violation this module exists to prevent is the Leaky Narrative: the 13 October review of a sim vault counted 709 `UNK-`
 mentions and 72 check codes in what the lead read, most of them CLI output a model pasted. Adding more "never say a
 code" sentences to the skills did not stop it. So the interface itself carries the fix:
 

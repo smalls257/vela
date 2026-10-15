@@ -344,7 +344,7 @@ def answer_words(item, key, answers):
 
 def sentence_part(text):
     """A cell's words as the tail of "It ends here: ...": no closing full stop, and a lower-case first letter unless
-    the word is a name or an acronym ("Heron", "API")."""
+    the word is a name or an acronym ("Fernway", "API")."""
     said = text.strip().rstrip(".").strip()
     if len(said) > 1 and said[0].isupper() and said[1].islower() and said.split()[0].lower() in COMMON_OPENERS:
         said = said[0].lower() + said[1:]
@@ -389,10 +389,10 @@ def outcome_words(page):
 
 
 def played(steps, names, answers, contract_titles, ended=True, outcomes=None, words=None):
-    """The path as the played view's steps: a call and its answer are one step ("Desktop agent asks Consent and
-    identity to record the person's consent. Answer: kept."), an answer that comes later is its own step, a person's
+    """The path as the played view's steps: a call and its answer are one step ("Rider app asks Dock service to
+    hold a dock for the rider. Answer: held."), an answer that comes later is its own step, a person's
     step stays, and the checker's bookkeeping (states set, ON rules) is left out. The journey's ending is the last
-    step, a band in plain words ("It ends here: the agent tells the person Heron isn't on."), from `ending_words`
+    step, a band in plain words ("It ends here: the app tells the rider the dock is full."), from `ending_words`
     with the flow page's outcome rows (`outcomes`) and the entities' state words (`words`); a path the diagram leaves
     without an ending says so instead, which is a finding of its own for the reader. Each step says whether it leaves
     the happy path (`differs`). No status codes and no state names."""

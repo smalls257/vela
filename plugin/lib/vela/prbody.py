@@ -95,7 +95,7 @@ def _team(handle):
 
 
 def reviewer_words(found):
-    """'Priya and the identity team': people first, then teams, as a lead would say them."""
+    """'Ines and the payments team': people first, then teams, as a lead would say them."""
     names = [_person(h) for h in found if "/" not in h] + [_team(h) for h in found if "/" in h]
     if len(names) < 2:
         return "".join(names)

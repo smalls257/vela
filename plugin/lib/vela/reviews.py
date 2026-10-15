@@ -184,7 +184,7 @@ def reads_english(text):
 
 def quote_context(page, quote):
     """Where the quote sits: the nearest heading above its line and the bold label of its bullet. A gap is
-    quoted where its answer belongs, such as "- **Agreements:** none known" under "PTY-03 Partner hotels",
+    quoted where its answer belongs, such as "- **Agreements:** none known" under "PTY-03 Repair vendors",
     so where it sits is part of what it says."""
     want = questions.normal_text(quote)
     for n, line in enumerate(page.text.split("\n"), start=1):
@@ -262,7 +262,7 @@ def _check_finding(vault, raw, owed_ids, about, changed=None):
     return (severity, copy, flat(raw["question"]), flat(raw["finding"]), flat(raw["quote"]), page.path), ""
 
 
-def quote_line(page, quote):
+def line_of_quote(page, quote):
     """The line the quote starts on, reading curly and straight quote marks alike, or None."""
     for words in (quote.strip(), quote.strip().replace("”", '"').replace("“", '"'), quote.strip().replace('"', "”")):
         at = page.text.find(words)
@@ -279,7 +279,7 @@ def in_change(page, quote, changed):
     ranges = changed[page.path]
     if ranges is None:
         return True
-    line = quote_line(page, quote)
+    line = line_of_quote(page, quote)
     return line is not None and any(first <= line <= last for first, last in ranges)
 
 
@@ -287,7 +287,7 @@ def on_decided(vault, page, quote):
     """Whether a quote sits on a decided page, or under a decided item's heading or History block."""
     if page.meta.get("state") == "decided":
         return True
-    line = quote_line(page, quote)
+    line = line_of_quote(page, quote)
     if line is None:
         return False
     history = parse.history_items(page)

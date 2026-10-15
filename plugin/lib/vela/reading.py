@@ -38,7 +38,7 @@ BLOCK_TITLES = {
 
 
 def friendly_label(match):
-    """[[page#UNK-027 Brightwater terms|UNK-027]] reads "Brightwater terms"; any other label stays."""
+    """[[page#UNK-027 Spokewell terms|UNK-027]] reads "Spokewell terms"; any other label stays."""
     target, anchor, label = match.group(1), match.group(2) or "", match.group(3)
     if ID_ONLY.match(label) and anchor:
         name = LEADING_ID.sub("", anchor[1:]).strip()

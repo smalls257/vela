@@ -182,8 +182,8 @@ class Builder:
     def calls_not_drawn(self, app):
         """The contracts `app` calls (catalog.consumes) that no flow of this slice draws it calling. When every one is
         drawn somewhere in the slice, what it does with their answers is checked there, and an undrawn answer of its
-        own adds nothing unchecked: Heron's Consent check, answered from the consent record, while the Microsoft
-        sign-in it calls is drawn in Record consent's handling. Assumed, and said in the docs: the same call made
+        own adds nothing unchecked: the Rider app's Card check, answered from the card on file, while the bank
+        sign-in it calls is drawn in Take payment's handling. Assumed, and said in the docs: the same call made
         inside the undrawn handling would be handled as it is where it is drawn."""
         return tuple(sorted(c for c in self.cat.consumes.get(app.key, ()) if (app.key, c) not in self.drawn_calls))
 

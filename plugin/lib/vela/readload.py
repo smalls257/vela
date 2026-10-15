@@ -8,7 +8,7 @@ reviewer cannot be the Sensor for them:
   only the first screen.
 - W366 a table cell over the word limit: a cell is read as one chunk.
 - W367 a three- or four-word phrase repeated across pages (vault-level, reported once with the pages). One clause stamped
-  on thirty pages is the loudest tell in the Heron vault, and it comes from a rule applied everywhere.
+  on thirty pages is the loudest tell in the vaults the sims wrote, and it comes from a rule applied everywhere.
 - W368 the opening is a line the template wrote, so the page still says what a page of its kind is about, not what is
   true now.
 - W369 a capitalized abbreviation not spelled out on the page: a definition elsewhere does not undo the cost.
