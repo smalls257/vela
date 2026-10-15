@@ -45,6 +45,8 @@ every arm was scored, 2 on a tool failure, such as a transcript with no turns, a
 script's completeness gate. It reads the script `run.json` names, so the judge reads the same news and outsiders the
 run gave the lead.
 
+A run that stopped part-way goes on with `--resume-run`; see "Resume a run" below.
+
 | Arm | Vault | Plugin | Voice |
 |---|---|---|---|
 | `vela` | `template/`, plugin copied to `.claude/skills/vela` | `--plugin-dir plugin` | the AOSA public seed |
@@ -62,6 +64,8 @@ run gave the lead.
   the script's `completeness_gate`, so the run does not count. The scorecard's Completeness section names the shares
   that held it back, weakest first. A `--stub` run reports the gate and is never failed by it. 2 outranks 3, and 3
   outranks 1.
+- 4: the judge preflight failed, so no session ran.
+- 5: `--resume-run` refused: the `--budget` left can't cover one more typical session. Nothing was spent or moved.
 
 A session's `persona:` names the person who speaks in it instead of the lead: a team's senior, or an outsider the
 lead brings in (`outsider: true`, such as `heron-dpo`), who answers only what is theirs. Every session persona is
@@ -193,6 +197,47 @@ today's count the same. A new run's text is never rewritten. `--rejudge` scores 
 arm names. A run that stopped before writing `per_arm` or a scorecard is read from its arm folders, and every number
 it lacks prints as "not known", never as 0. Exit 0 when the runs compared, 2 when a folder is not a run or the two
 runs share no arm.
+
+## Resume a run
+
+A run that was killed, crashed, or stopped on its budget or a turn cap goes on from where it stopped, instead of
+paying for every session again:
+
+```
+python3 tests/sim/run.py --resume-run tests/sim/results/<run-id> --budget 60
+```
+
+- **Where each arm picks up.** At its first session with no `session-end` in `transcript.jsonl`. A session skipped
+  for budget has none, so it is played. A session the run stopped inside goes on from its last turn, in the same
+  claude session (`--resume <id>`): if the lead spoke last, the assistant call that should have answered never
+  returned, so that message is sent again; if the assistant spoke last, the lead answers next. A `session-continued`
+  line in the transcript says which, and what the vault had uncommitted. An ended session is never played again.
+- **What it reuses.** The arm's own vault, origin, gh stub, team repos and news. The lead gets the news in the
+  order the transcript says it arrived (each news line now carries the news itself). An arm that never started a
+  session is built anew, and any folder its setup left is renamed `<arm>.set-aside-<time>`. An arm that ended
+  every session and has a scorecard is not judged again: only its pages are written.
+- **What it takes.** Only the run folder and `--budget`. The persona, models, script, arms and `--stub` come from
+  `run.json`. A script edited since the run so that a started session's mode moved is refused. A paid resume sends
+  the judge preflight again, since the judge prompts may have changed.
+- **Money.** `--budget` is the new total cap for the whole run, spend so far included; left out, it is `run.json`'s
+  `budget_usd`. Spend so far is `per_arm` in `run.json`, plus the turns of a session it had not counted yet, read
+  from the transcript. When `run.json` has no `per_arm` (a crash before the summary, as on 2026-10-14) it is rebuilt
+  from the transcript and the scorecard's judge spend, and `run.json`'s `notes` say so. Before anything is spent,
+  the resume checks each arm with sessions left has room for one session at this run's average session cost (and,
+  once any arm of the run has been judged, for a judging after it), and otherwise exits 5 with the `--budget` that
+  would do. A run with no ended session yet, or no judged arm, has nothing to check against, and says so.
+- **What it writes.** It appends to each transcript, numbers new raw files after the highest one, and adds to
+  `run.json` a `resumes` entry naming where each arm went on from. Then it scores and finishes as a new run does,
+  with the same exit codes.
+
+Two things every run now does make this safe. `run.json`'s `per_arm` is written after every session (replaced
+whole, so a kill mid-write leaves the last good copy): `spent_usd` holds the ended sessions and judging,
+`through_session` the last session it counts, and `open_session_usd` what a session under way had cost. And a
+failure writing an arm's pages (transcript.html, the viewer, `vela check`) is recorded as `finish_failure` and the
+run exits 2, but the summary is still written; that failure is what lost the 2026-10-14 baseline's `per_arm`.
+
+Not covered: a call cut off mid-way is not in the transcript, so its cost is missing from a rebuilt spend; and a
+session the run stopped inside goes on in a claude session that may hold half a turn.
 
 ## Long runs: launch them detached
 

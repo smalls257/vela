@@ -18,6 +18,8 @@ Knobs, all environment variables:
                   "toolong:<category>" makes that category's judge call fail as the real CLI does when the prompt is over
                   the window: is_error true, subtype "success", terminal_reason "prompt_too_long"
   SIM_STUB_LOG    a file to append one JSON line per call to: role, judge category, argv, cwd, the gh on PATH, the characters on stdin
+  SIM_STUB_KILL_AT  "<n>": the n-th assistant call (counted in SIM_STUB_LOG, which it needs) kills the driver that called it
+                  with SIGKILL before answering, as a crash or a closed laptop would, so --resume-run can be tested
   SIM_STUB_REPLY  a file whose text is the assistant's first turn of a session, instead of the default
   SIM_STUB_WRITE  "<path>::<text>": the assistant's first turn of a session appends <text> to <path> in its cwd; a JSON object
                   {"<path>": "<text>", ...} instead creates each file that does not exist yet, so a design is written once
@@ -27,6 +29,7 @@ import pathlib
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import uuid
@@ -184,6 +187,18 @@ def judge(stdin, argv, category):
     print(json.dumps(result(json.dumps({category: rows}), "judge", argv, cost=0.01)))
 
 
+def kill_driver_on_cue():
+    """SIM_STUB_KILL_AT: the driver dies mid-run, with nothing flushed and no summary written."""
+    at = os.environ.get("SIM_STUB_KILL_AT")
+    if not at:
+        return
+    with open(os.environ["SIM_STUB_LOG"], encoding="utf-8") as calls:
+        made = sum(1 for line in calls if json.loads(line)["role"] == "assistant")
+    if made == int(at):
+        os.kill(os.getppid(), signal.SIGKILL)
+        sys.exit(1)
+
+
 def main():
     argv = sys.argv[1:]
     system = value_after(argv, "--system-prompt") or ""
@@ -192,6 +207,7 @@ def main():
     stdin = sys.stdin.read() if role != "assistant" else None
     log(argv, role, category, None if stdin is None else len(stdin))
     if role == "assistant":
+        kill_driver_on_cue()
         assistant(argv)
     else:
         persona(stdin, argv) if role == "persona" else judge(stdin, argv, category)
