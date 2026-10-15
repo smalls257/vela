@@ -150,6 +150,68 @@ def test_the_conversation_asks_for_names_not_codes():
 # ---- tests/test_stale_branch.py: S15 read a stale branch and said nothing was allocated (diagnosis 6B)
 
 def test_releases_checks_freshness_first_and_stops_when_behind():
-    start = SKILL.split("## 1. Start", 1)[1].split("\n\n", 2)[1]
-    assert start.startswith("First run `vela freshness`. If it exits 3") and "stop, tell the lead" in start
+    start = SKILL.split("## 1. Start", 1)[1].split("\n\n", 3)[2]  # the paragraph after the voice line
+    assert start.startswith("Then, before any other command, run `vela freshness`. If it exits 3") and "stop, say in your words" in start
     assert "vela session start --mode releases" in start
+
+
+# ---- overhaul plan Task 22f: the conversation voice first, the commands that own the lookups and the slice grammar
+
+
+def voice_line(text):
+    return next(p for p in text.split("\n\n") if "references/CONVERSATION-VOICE.md`" in p and "voice/VOICE.md" in p)
+
+
+def test_releases_loads_the_voice_before_freshness_and_before_its_first_question():
+    line = voice_line(SKILL)
+    assert line.index("voice/VOICE.md") < line.index("references/CONVERSATION-VOICE.md`")
+    assert "house-voice" in line  # releases writes page prose: the release opening and each slice's opening
+    at = SKILL.index(line)
+    assert at < SKILL.index("vela freshness"), "the lead hears freshness's news in the voice, so the voice comes first"
+    assert at < SKILL.index("Ask one question at a time")
+    first_command = re.search(r"`vela [a-z-]+", SKILL[SKILL.index("## 1. Start"):]).group(0)
+    assert first_command == "`vela freshness"
+
+
+def test_releases_says_command_output_in_its_own_words_never_the_tools():
+    assert "in its words" not in SKILL and "as printed" not in SKILL
+    assert "say in your words that this copy is behind and offer to bring it up to date" in SKILL
+    assert "say in one plain sentence that you couldn't check" in SKILL
+
+
+def test_releases_flow_check_line_carried_as_written():
+    assert ("When you've added slices or changed their After, run `vela check-slice --changed` and tell the lead which "
+            "slices it checked and why.") in SKILL
+
+
+def test_releases_names_only_commands_that_exist():
+    import shlex
+    parser = cli.build_parser()
+    calls = re.findall(r"`vela ([a-z][^`]*)`", SKILL)
+    assert {"releases brief --for-lead", "releases tracer-candidates --for-lead", "check-slice --changed"} <= set(calls)
+    for call in calls:
+        argv = shlex.split(re.sub(r"<[^>]*>", "X", call).replace("^cNN", "^c01"))
+        _, extras = parser.parse_known_args(argv)
+        assert not extras, (call, extras)
+
+
+def test_the_brief_and_add_slice_replace_the_reading_list_and_the_slice_grammar():
+    assert "vela releases brief --for-lead" in SKILL and "vela releases tracer-candidates --for-lead" in SKILL
+    assert "vela add slice --title" in SKILL
+    # the page-by-page reading list and the hand-written slice bullets are the brief's and add slice's now
+    assert "the `allocation` block (run `vela render` first)" not in SKILL
+    assert "Leave `**Status:**` out" not in SKILL and "numbered with `vela next-id SLC`" not in SKILL
+    assert "`→ keep: [[SLC-nnn-<slug>]] (new)`" not in SKILL  # add slice --capture writes the mark and the row
+
+
+def test_releases_keeps_the_release_format_block_until_a_release_kind_exists():
+    # The release format block stays: `vela apply --schema release` refuses (decision-kind-not-built), because Task 15b's
+    # `release` kind was dropped. Its deletion assert belongs to the task that builds that kind.
+    assert "- **Target:** 2027-01-15" in SKILL and "| Delivers | Criteria | Note |" in SKILL
+
+
+def test_releases_reads_criteria_back_by_their_words_and_says_grill_lower_case():
+    workshop = SKILL.split("## 2. One question at a time", 1)[1].split("## 3.", 1)[0]
+    assert "list its criteria as AC1, AC2" not in workshop and "such as AC1 and AC2" not in workshop
+    assert not re.search(r"\bGrill\b", SKILL)
+    assert "the user" not in SKILL.split("---", 2)[2]  # the person in the room is the lead
