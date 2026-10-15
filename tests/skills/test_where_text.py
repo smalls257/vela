@@ -93,7 +93,7 @@ def test_where_loads_the_voice_before_it_talks():
     skill = text("skills/where/SKILL.md")
     load = next(line for line in skill.splitlines() if "voice/VOICE.md" in line)
     assert "references/CONVERSATION-VOICE.md" in load
-    assert load.index("voice/VOICE.md") < load.index("references/CONVERSATION-VOICE.md")
+    assert load.index("voice/VOICE.md") < load.index("CONVERSATION-VOICE")
     first_question = skill.index('"Want the full table')
     assert skill.index(load) < skill.index("Answer first") < first_question
 
