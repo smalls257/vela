@@ -874,23 +874,26 @@ def test_a_lead_turn_that_claims_an_action_outside_the_chat_is_flagged(tmp_path)
     assert "You cannot run commands" in sim.persona_prompt(coastal())
 
 
-def test_a_session_at_its_cap_ends_before_the_lead_is_asked_so_no_lead_line_is_lost(tmp_path):
-    """The Paper Tiger this prevents: the lead's reply past the cap was written to the transcript and never reached
-    the assistant, so the judge marked a fact "not captured" that the assistant was never told (K34, mid-point T207).
-    The cap is checked before the persona is called: the transcript's last word in a capped session is the assistant's."""
+def test_a_reply_past_the_cap_is_never_a_lead_turn_the_assistant_did_not_read(tmp_path):
+    """The Paper Tiger this prevents: the lead's reply past the cap was written as a lead turn and never reached the
+    assistant, so the judge marked a fact "not captured" that the assistant was never told (K34, mid-point T207).
+    The reply is kept as a driver note the judge doesn't read; an [END] at the cap still ends the session as the lead's."""
     capped = {"name": "capped", "sessions": [
         {"mode": "dump", "cap": 1, "vela": "/vela:dump {opening}", "baseline": "Dump. {opening}"},
-        {"mode": "close", "cap": 3, "vela": "/vela:close", "baseline": "Close out this session."}]}
-    code, err, run_dir, calls = simulate(tmp_path, "--budget", "5", script_data=capped)
+        {"mode": "close", "cap": 2, "vela": "/vela:close", "baseline": "Close out this session."}]}
+    code, err, run_dir, _ = simulate(tmp_path, "--budget", "5", script_data=capped)
     assert code == 1, err  # a turn cap ended a session early
     said = entries(run_dir / "vela")
     first = [e for e in said if e.get("session") == 1 and e["speaker"] in ("lead", "assistant")]
     assert [e["speaker"] for e in first] == ["lead", "assistant"], "the scripted opening, the assistant's turn, nothing after"
-    assert "What else is on your mind?" in first[-1]["text"], "the stub's first turn asks, so a lead would have answered"
-    ending = next(e for e in said if e.get("event") == "session-end" and e["session"] == 1)
-    assert ending["reason"] == "turn-cap" and ending["turns"] == 1
-    roles = [c["role"] for c in calls if c["role"] in ("assistant", "persona")]
-    assert roles[:2] == ["assistant", "assistant"], "no persona call between session 1's capped turn and session 2"
+    assert "What else is on your mind?" in first[-1]["text"], "the stub's first turn asks, so the lead answers"
+    unsent = [e for e in said if e.get("event") == "lead-unsent"]
+    assert len(unsent) == 1 and unsent[0]["session"] == 1 and "Honestly not sure" in unsent[0]["text"]
+    assert "turn" not in unsent[0] and unsent[0]["speaker"] == "driver"
+    endings = {e["session"]: e for e in said if e.get("event") == "session-end"}
+    assert endings[1]["reason"] == "turn-cap" and endings[1]["turns"] == 1
+    assert endings[2]["reason"] == "persona-end" and endings[2]["turns"] == 2, \
+        "the assistant ended session 2 on its last allowed turn, and the lead's [END] still counts"
 
 
 def test_the_lead_ends_a_finished_session_and_never_starts_another_mode_or_invents_a_pr():

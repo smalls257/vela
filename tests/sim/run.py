@@ -1395,12 +1395,6 @@ class Arm:
                     reason = "budget"
                     break
             ask_persona = False
-            # The cap is checked before the lead is asked, never after: a reply asked for past the cap would be
-            # written to the transcript but never reach the assistant, so the judge would read a fact the vault
-            # could not have captured (K34 at T207 of the 2026-10-14 mid-point).
-            if turns >= cap:
-                reason = "turn-cap"
-                break
             reply = self.persona_turn(index, mode, speaker_persona, speaker)
             if budget_stop(reply):
                 reason = "budget"
@@ -1408,6 +1402,16 @@ class Arm:
             text = reply["result"].strip()
             if END in text:
                 reason = "persona-end"
+                break
+            if turns >= cap:
+                # At the cap the lead is still asked, so a session the assistant finished on its last turn ends as
+                # the lead ending it. A reply that is not [END] would never reach the assistant, so it is kept as a
+                # driver note, not a lead turn: as a lead turn the judge credited a fact the assistant never read
+                # (K34 at T207 of the 2026-10-14 mid-point).
+                self.transcript.add(speaker="driver", session=index, mode=mode, event="lead-unsent",
+                                    cost_usd=reply["total_cost_usd"],
+                                    text=f"The turn cap ended the session before the assistant read the lead's reply: {text}")
+                reason = "turn-cap"
                 break
             self.transcript.add(speaker="lead", session=index, mode=mode, text=text,
                                 cost_usd=reply["total_cost_usd"], scripted=False, persona=speaker)

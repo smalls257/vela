@@ -56,9 +56,9 @@ A run that stopped part-way goes on with `--resume-run`; see "Resume a run" belo
 ### Exit codes
 
 - 0: every session of every arm ended when the persona wrote `[END]`, and every arm was scored.
-- 1: the budget or a turn cap ended at least one session early. Every output is still written. The cap is checked
-  before the lead is asked, so a capped session's last word is the assistant's: no lead line is written that the
-  assistant never read.
+- 1: the budget or a turn cap ended at least one session early. Every output is still written. At the cap the
+  lead is still asked, so an [END] there ends the session as the lead's; any other reply would never reach the
+  assistant, so it is written as a `lead-unsent` driver note, not a lead turn, and the judge never credits it.
 - 2: a tool failed. `claude` was missing, its JSON lacked a field, a call errored, the judge's JSON was bad
   twice, or git or the scaffold failed. The run stops at that arm. What was written before the failure stays,
   and `run.json` names the failure. The raw output of every call is in `<arm>/raw/`.
