@@ -185,6 +185,6 @@ def test_for_lead_lines_pass_the_leak_check(vault):
     assert "vela bug" not in out
     for line in out.splitlines():
         assert say.leak_in(line) is None, line
-    assert out.splitlines()[-2].startswith("I've committed 2 changed pages and the session record.")
+    assert out.splitlines()[-2].startswith("I've saved two changed pages and the session record.")
     assert "a file in notes" in out
     assert ".inbox/call.md" not in committed(vault)

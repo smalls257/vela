@@ -105,7 +105,7 @@ def render_refusal(stale, problems):
     else:
         detail = "render would still rewrite " + ", ".join(stale)
     return say.Refusal("render-current", "Some generated tables are out of date, so I haven't staged anything yet.",
-                       f"Run vela render, then close stage again. ({detail})")
+                       f"Run vela render, then close stage again. ({detail})", audience=say.MODEL)
 
 
 def vault_pages(paths):
@@ -124,32 +124,39 @@ def lead_name(path):
 def lead_summary(plan, committed):
     rest = [p for p in plan.stage if not p.startswith((guard.SESSIONS, guard.EXAMPLES))]
     pages = sum(1 for p in rest if p.endswith(".md"))
-    parts = [f"{pages} changed page{'s' if pages != 1 else ''}"] if pages else []
+    parts = [f"{say.count_words(pages)} changed page{'s' if pages != 1 else ''}"] if pages else []
     if len(rest) > pages:
         others = len(rest) - pages
-        parts.append(f"{others} settings file{'s' if others != 1 else ''}")
+        parts.append(f"{say.count_words(others)} settings file{'s' if others != 1 else ''}")
     if any(p.startswith(guard.SESSIONS) for p in plan.stage):
         parts.append("the session record")
     examples = sum(1 for p in plan.stage if p.startswith(guard.EXAMPLES))
     if examples:
-        parts.append(f"{examples} voice example{'s' if examples != 1 else ''}")
+        parts.append(f"{say.count_words(examples)} voice example{'s' if examples != 1 else ''}")
     if not parts:
-        return "Nothing this session changed needed staging."
-    said = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
-    return f"I've {'committed' if committed else 'staged'} {said}."
+        return "Nothing this session changed needed saving."
+    said = say.names_said(parts)
+    if committed:
+        return f"I've saved {said}."
+    one = len(plan.stage) == 1  # "the session record is", "two changed pages are"
+    return f"{said[0].upper()}{said[1:]} {'is' if one else 'are'} ready to save."
 
 
 def report(result, plan, commit_line, committed, mode):
     for rule in guard.rules_hit(plan.never):
         paths = [p for p, r in plan.never if r.key == rule.key]
-        result.refusals.append(say.Refusal(rule.key, rule.plain, f"{rule.fix} Left out: {', '.join(paths)}."))
+        # vela's own working files staying put is normal, not news to the lead (voice audit row 150)
+        audience = say.MODEL if rule.key == guard.TOOL_STATE.key else say.LEAD
+        result.refusals.append(say.Refusal(rule.key, rule.plain, f"{rule.fix} Left out: {', '.join(paths)}.",
+                                           audience=audience))
     if mode == "for-lead":
         result.lines.append(say.Line("", lead_summary(plan, committed)))
         if plan.left:
             names = [lead_name(p) for p, _ in plan.left]
-            result.lines.append(say.Line("", f"{len(names)} other changed file{'s' if len(names) != 1 else ''} "
-                                             f"{'aren' if len(names) != 1 else 'isn'}'t part of this session, so I've "
-                                             f"left {'them' if len(names) != 1 else 'it'} out: {', '.join(names)}."))
+            many = len(names) != 1
+            result.lines.append(say.Line("", f"{say.names_said(names)} changed too, but "
+                                             f"{'they aren' if many else 'it isn'}'t part of this session, so I've "
+                                             f"left {'them' if many else 'it'} out."))
         return
     result.lines.append(say.Line(f"vela close stage: staged {len(plan.stage)}, left out {len(plan.left)}, "
                                  f"never staged {len(plan.never)}."))

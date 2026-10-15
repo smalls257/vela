@@ -35,11 +35,17 @@ KINDS = ("marks", "add", "ledger", "decide", "agenda", "override", "defer", "res
 # A kind whose module name differs from the kind: `vela.decisions.ledger` would shadow nothing today, but the ledger
 # parser is `vela.ledger`, and two modules named `ledger` is a reader's trap.
 MODULE_NAMES = {"ledger": "ledger_rows"}
-# What the lead hears a kind's items called, for "what was filed".
-KIND_WORDS = {"marks": "marks on the record", "add": "new items", "ledger": "ledger rows", "decide": "decisions",
-              "agenda": "agenda changes", "override": "overrides", "defer": "deferrals", "resolve": "answered questions",
-              "allocate": "allocations", "release": "release changes", "handoff": "handoff changes",
-              "challenge": "challenges"}
+# What the lead hears a kind's items called, for "what was filed", one and many. In the lead's words, not the
+# builder's (voice audit row 90): "notes from today", never "marks on the record" or "ledger rows".
+KIND_WORDS = {"marks": ("note from today", "notes from today"), "add": ("new item", "new items"),
+              "ledger": ("answer to the standard questions", "answers to the standard questions"),
+              "decide": ("decision", "decisions"), "agenda": ("change to the agenda", "changes to the agenda"),
+              "override": ("rule set aside", "rules set aside"), "defer": ("question put off", "questions put off"),
+              "resolve": ("answered question", "answered questions"),
+              "allocate": ("line of who builds what", "lines of who builds what"),
+              "release": ("change to a release", "changes to the releases"),
+              "handoff": ("change to what's handed to a team", "changes to what's handed to the teams"),
+              "challenge": ("challenge", "challenges")}
 SHARED_KEYS = ("hints", "seen")
 _SEQ = re.compile(r"^(\d+)-")
 
