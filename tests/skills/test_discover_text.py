@@ -94,7 +94,7 @@ def test_discover_fix_round_guesses_never_become_facts():
     assert "Label every line with its source" in d and "that source's `Kind`" in d and "what runs today or a plan" in d
     assert "the lines the lead said yes to" in d and "ask once more in different words" in d
     assert "`first-hand` is not a registered `Kind`" in d and "`Kind: exists`" in d
-    assert "an owner handle and an ask-by date" in d
+    assert "Its owner handle is the lead's" in d and "proposed and confirmed" in d and "never filled in on your own" in d
     assert "capture line and a `## Changes` row" in d
 
 
