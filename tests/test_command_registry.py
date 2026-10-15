@@ -1,5 +1,6 @@
 """The command registry (overhaul Task 2): new commands register from `vela/commands/`, and the moved parsers still
 take every call the skills and references write."""
+import argparse
 import re
 import shlex
 import sys
@@ -25,9 +26,13 @@ def test_every_group_module_registers_without_touching_cli(monkeypatch):
 def test_a_group_with_nothing_built_adds_no_command():
     """`vela --help` never lists a command that does nothing: an unbuilt group registers no parser."""
     names = set(cli.build_parser()._subparsers._group_actions[0].choices)
-    for name in ("decide",):  # apply (Task 4), marks (14), epics (21e) and boundary (21g) are built
-        assert name not in names, name
-    assert {"check", "explore", "where", "questions", "handoff", "capture"} <= names
+    # Every planned group is built now (decide was the last, Task 16), so each one must add its command; a group
+    # module whose register() adds nothing would be the unbuilt case, and must then be missing from --help.
+    for name in commands.GROUPS:
+        before = argparse.ArgumentParser().add_subparsers()
+        commands.register(before, name)
+        assert (name in names) == bool(before.choices), name
+    assert {"check", "explore", "where", "questions", "handoff", "capture", "decide"} <= names
 
 
 def calls_in_docs():
