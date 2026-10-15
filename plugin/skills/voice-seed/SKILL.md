@@ -13,7 +13,7 @@ The argument values are the type names the commands take. Say them in words: `di
 
 ## 1. Start
 
-Run steps 1 and 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` (the state of the clone, then how to talk: `voice/VOICE.md` when it exists, then `CONVERSATION-VOICE.md`). Run `vela whoami --json`: its handle, with an `@` in front, is the owner and every sample's author. On exit 3, ask its question once and run `vela whoami --set <handle>`.
+Run steps 0 and 1 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` (how to talk: `voice/VOICE.md` when it exists, then `CONVERSATION-VOICE.md`; then the state of the clone). Run `vela whoami --json`: its handle, with an `@` in front, is the owner and every sample's author. On exit 3, ask its question once and run `vela whoami --set <handle>`.
 
 Vela saves a passage only against the owner's yeses written in an open session record. Run `vela session open --switch --for-lead`. With several open, ask which and run it again with `--id <id>`. With none, say: "Saving a sample needs an open session to write your yeses into, and none is open. Start the session you were going to run next, then type `/vela:voice-seed` in it." Stop there.
 

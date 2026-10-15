@@ -81,3 +81,13 @@ def test_tech_design_says_where_its_files_land_and_what_to_do_when_it_runs_out_o
 
 def test_the_vault_design_reference_carries_its_tracer_guidance():
     assert "**Not in the tracer:**" in read("references/TECH-DESIGN-FROM-VAULT.md")
+
+
+# --- Task 22k (diagnosis 6B): S23 checked the handoff on a stale branch, because the fetch came after the check.
+
+
+def test_tech_design_fetches_before_it_checks_the_handoff():
+    before = text("references/TECH-DESIGN-FROM-VAULT.md").split("## Before the first question", 1)[1].split("\n## ", 1)[0]
+    assert before.index("git -C <vault> fetch origin") < before.index("`handed_off:`")
+    assert "git -C <vault> show origin/main:05-building-blocks/<app>-building-blocks.md" in before
+    assert "senior" not in text("references/TECH-DESIGN-FROM-VAULT.md")

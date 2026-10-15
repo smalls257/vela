@@ -93,3 +93,46 @@ def test_a_dropped_requirement_is_never_struck_through():
 
 def test_requirements_marks_its_own_captures():
     assert "→ keep: [[" in text("skills/requirements/SKILL.md"), "requirements no longer marks its own captures"
+
+
+# ---- overhaul plan Task 22f: the conversation voice first, FR grammar and numbering through add fr
+
+BODY = SKILL.read_text(encoding="utf-8")
+
+
+def test_requirements_loads_the_voice_before_its_first_question():
+    line = next(p for p in BODY.split("\n\n") if "references/CONVERSATION-VOICE.md`" in p and "voice/VOICE.md" in p)
+    assert line.index("voice/VOICE.md") < line.index("references/CONVERSATION-VOICE.md`")
+    assert "house-voice" in line  # requirements writes page prose: a capability's opening, each requirement's paragraph
+    at = BODY.index(line)
+    assert at < BODY.index("read back what the vault already says") and at < BODY.index("one question each")
+
+
+def test_requirements_names_only_commands_that_exist():
+    import shlex
+    from vela import cli
+    parser = cli.build_parser()
+    calls = re.findall(r"`vela ([a-z][^`]*)`", BODY)
+    assert any(c.startswith("add fr") for c in calls) and any(c.startswith("add unknown") for c in calls)
+    for call in calls:
+        argv = shlex.split(re.sub(r"<[^>]*>", "X", call).replace("^cNN", "^c01"))
+        _, extras = parser.parse_known_args(argv)
+        assert not extras, (call, extras)
+
+
+def test_fr_headings_and_numbering_are_add_frs():
+    assert "vela add fr --capability" in BODY
+    assert "### CAP-nnn.FRn <short name, at most six words>" not in BODY  # the template block is add fr's grammar now
+    assert "Number new requirements after the highest on the page" not in BODY
+    assert "### CAP-004.FR2 Refund a canceled booking" in BODY  # the worked example the model copies stays
+
+
+def test_dropping_a_requirement_keeps_todays_text_until_a_drop_command_exists():
+    # No task builds `drop fr` (the plan's gap), so the refs-then-delete steps stay in the skill.
+    assert "vela query refs <ID>" in BODY and "`→ drop` capture" in BODY
+
+
+def test_requirements_names_the_grill_by_the_capability_and_in_lower_case():
+    assert "`/vela:grill CAP-nnn`" not in BODY and '"/vela:grill Refund a canceled booking"' in BODY
+    assert not re.search(r"\bGrill\b", BODY)
+    assert "the user" not in BODY.split("---", 2)[2]

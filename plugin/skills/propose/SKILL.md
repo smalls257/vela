@@ -12,7 +12,7 @@ A reader has no git, so a change reaches the plan as a proposal the owner review
 
 Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Run it from the workspace folder. When a command can't express what the user wants, say so and stop.
 
-Before your first question, read how to talk, as `START.md` step 6 says: `voice/VOICE.md` first when the copy has one (the owner's own rules win), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` and the examples it names. Don't tell the user you read them.
+Before your first question, read how to talk, as `START.md` step 0 says: `voice/VOICE.md` first when the copy has one (the owner's own rules win), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` and the examples it names. Don't tell the user you read them.
 
 ## Proposing
 

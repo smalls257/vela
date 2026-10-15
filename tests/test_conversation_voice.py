@@ -34,9 +34,11 @@ def test_examples_lead_and_voice_md_comes_first():
 
 
 def test_start_reads_the_conversation_voice_before_the_first_question():
-    step = START.split("## 6. Read how to talk", 1)[1].split("\n## ", 1)[0]
+    step = START.split("## 0. Read how to talk", 1)[1].split("\n## ", 1)[0]
     assert "references/CONVERSATION-VOICE.md" in step and "voice/VOICE.md" in step
-    assert START.index("## 5. Open the record") < START.index("## 6. Read how to talk")
+    assert step.index("voice/VOICE.md") < step.index("references/CONVERSATION-VOICE.md")
+    # the voice is read before any step relays a command's output to the lead (voice audit S1)
+    assert START.index("## 0. Read how to talk") < START.index("## 1. Show the state of the clone")
 
 
 def test_every_mode_skill_reaches_the_conversation_voice():
@@ -44,7 +46,7 @@ def test_every_mode_skill_reaches_the_conversation_voice():
         text = skill(name)
         assert "references/START.md" in text, name
         if name == "challenge":  # runs chosen steps only
-            assert "(its steps 1, 2, 5 and 6)" in text and "show the state of the clone" in text
+            assert "(its steps 0, 1, 2 and 5)" in text and "show the state of the clone" in text
         elif name == "close":
             assert "CONVERSATION-VOICE.md" in text
         elif name in ("epics", "import"):

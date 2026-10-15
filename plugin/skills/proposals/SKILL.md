@@ -12,7 +12,7 @@ A reader worked in a published copy and sent changes. You are the owner, so you 
 
 Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). When a command can't express what the owner wants, say so and stop.
 
-Before your first question, read how to talk, as `START.md` step 6 says: `voice/VOICE.md` first when the plan has one (the owner's own rules win), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` and the examples it names. Don't tell the owner you read them.
+Before your first question, read how to talk, as `START.md` step 0 says: `voice/VOICE.md` first when the plan has one (the owner's own rules win), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` and the examples it names. Don't tell the owner you read them.
 
 ## Reviewing
 

@@ -7,6 +7,8 @@ import re
 
 import yaml
 from conftest import REPO, skill_text
+from test_skill_commands_exist import calls, is_a_mention, parse_error
+from vela import cli
 
 PLUGIN = REPO / "plugin"
 
@@ -40,7 +42,7 @@ def test_explore_says_designs_come_from_the_design_skill():
 
 def test_explore_opens_a_page_only_after_a_build_that_succeeded_and_writes_nothing_but_the_page_and_pins():
     explore = text("skills/explore/SKILL.md")
-    assert "If the command exits 2, show its message in full, say no page was built, and stop." in explore
+    assert "If the command exits 2, say in a plain sentence what stopped it, that no page was built, and stop." in explore
     assert "Never say the page is open unless the command succeeded." in explore
     assert "Nothing is written into the plugin folder." in skill_text("explore")  # product notes, in ABOUT.md, read on request
     meta = frontmatter(PLUGIN / "skills/explore/SKILL.md")
@@ -61,3 +63,46 @@ def test_explore_says_designs_and_plans_live_in_the_vault_docs_folder():
     assert "`docs/tech-design/<slug>.md` (with `docs/adr/`" in explore and "team_repos" not in explore
     assert "write their own `docs/` files in the vault and never edit a vault page" in explore
     assert 'says "never edit the vault"' not in explore  # an outside skill's words go stale; say what is true here
+
+
+# --- Task 22k: explore relays `vela explore --for-lead` instead of translating each kind of build line itself.
+
+EXPLORE = PLUGIN / "skills" / "explore" / "SKILL.md"
+VOICE_LINE = re.compile(r"^.*`voice/VOICE\.md`.*references/CONVERSATION-VOICE\.md.*$", re.M)
+
+
+def test_explore_builds_with_for_lead_and_the_build_report_list_is_gone():
+    explore = text("skills/explore/SKILL.md")
+    assert "## What the build reports" not in explore
+    for line in ("first build: wrote the pinned positions", "vela check reports it as E105", "asks for icon:"):
+        assert line not in explore, line
+    steps = explore.split("## Steps", 1)[1]
+    assert steps.index("vela explore --for-lead") < steps.index("vela explore --serve")
+    assert "without `--for-lead`" in steps  # the command refuses --serve with --for-lead
+    assert "answer first" in steps and "about four things at most" in steps
+
+
+def test_explore_loads_the_voice_before_it_says_anything():
+    body = EXPLORE.read_text(encoding="utf-8").split("---\n", 2)[2]
+    line = VOICE_LINE.search(body).group(0)
+    assert body.index(line) < body.index("## Steps")
+
+
+def test_explore_about_says_it_plainly():
+    about = text("skills/explore/ABOUT.md")
+    assert "The question box can read the plan but can't change it." in about
+    assert "The file works offline and doesn't load anything from the internet." in about
+    assert "headless" not in about and "Web Audio" not in about and "senior" not in about
+
+
+def test_explore_description_is_short_and_has_no_angle_brackets():
+    description = frontmatter(EXPLORE)["description"]
+    assert len(description) <= 250 and "<" not in description and ">" not in description
+
+
+def test_explore_names_only_commands_that_exist():
+    parser = cli.build_parser()
+    found = list(calls(EXPLORE)) + list(calls(PLUGIN / "skills" / "explore" / "ABOUT.md"))
+    assert len(found) >= 3, found
+    for line, written, argv in found:
+        assert is_a_mention(parser, argv) or parse_error(parser, argv) is None, (line, written)

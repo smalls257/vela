@@ -15,7 +15,7 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela ru
 
 Run `vela role`. In a reader copy (a published copy with no `.git`), say "Only the owner can record a challenge here. Write your disagreement as a proposal (/vela:propose) and send it to <the owner named in `.vela/published.json`>." Write nothing and open no session.
 
-Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the state of the clone, find open sessions, open the record and read how to talk (its steps 1, 2, 5 and 6): `vela session start --mode challenge --topic <ID> --for-lead` does the first three, and you read step 6 and the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The session is `<date>-challenge-<id-lowercased>` (`2026-11-21-challenge-con-001`), titled `Challenge: <ID>`; the answer path finds the PR by that title. Relay its lines; on exit 3, ask what it asks and run it again with `--resume <id>`, `--new` or `--title "<name>"`.
+Run only the steps of `${CLAUDE_PLUGIN_ROOT}/references/START.md` that show the state of the clone, find open sessions, open the record and read how to talk (its steps 0, 1, 2 and 5): `vela session start --mode challenge --topic <ID> --for-lead` does the first three, and you read step 6 and the Challenge row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The session is `<date>-challenge-<id-lowercased>` (`2026-11-21-challenge-con-001`), titled `Challenge: <ID>`; the answer path finds the PR by that title. Relay its lines; on exit 3, ask what it asks and run it again with `--resume <id>`, `--new` or `--title "<name>"`.
 
 ## 2. Find the challenged item
 

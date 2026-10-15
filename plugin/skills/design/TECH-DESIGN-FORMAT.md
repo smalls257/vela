@@ -38,7 +38,7 @@ A reader opens the doc to learn what the app does and what shapes it, in under a
 - **Path:** <Component → Component → Component>
 - **Stubbed:** <each other app's side, at the contract it meets, until that team's piece lands>
 - **Carries:** <the trace targets it covers first>
-- **Override:** <only when the senior set the skeleton aside: their words, their handle, the date>
+- **Override:** <only when the team lead set the skeleton aside: their words, their handle, the date>
 
 ## Architecture overview
 <one paragraph, then a mermaid component diagram>
@@ -96,7 +96,7 @@ sequenceDiagram
 | Concern | Target | How enforced |
 |---------|--------|--------------|
 
-## Constraints register
+## Constraints
 | ID | Constraint | Source | Impact |
 |----|-----------|--------|--------|
 

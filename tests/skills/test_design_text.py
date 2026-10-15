@@ -6,11 +6,14 @@ Each section is headed by the file it came from and that file's reason.
 import re
 
 from conftest import REPO, skill_text
+from test_skill_commands_exist import calls, is_a_mention, parse_error
+from vela import cli
 
 PLUGIN = REPO / "plugin"
 
 
 SKILL = PLUGIN / "skills" / "design"
+VOICE_LINE = re.compile(r"^.*`voice/VOICE\.md`.*references/CONVERSATION-VOICE\.md.*$", re.M)
 
 
 def skill_text_design_skill(name="SKILL.md"):
@@ -52,10 +55,13 @@ def test_the_kept_practices_are_in_the_skill():
     assert "Start five subagents in parallel" in skill_text_design_skill("REVIEW-CHECKPOINT.md")
 
 
-def test_the_self_audit_is_the_users_own_but_its_header():
-    original = (REPO / "integrations" / "tech-design-grill" / "skill" / "NEG-AUDIT.md").read_text(encoding="utf-8")
-    want = original.replace("## Violation Guide (from `~/.claude/CLAUDE.md`)", "## Violation Guide (the failure modes below)")
-    assert want != original and skill_text_design_skill("NEG-AUDIT.md") == want
+def test_the_self_audit_is_read_from_the_one_reference_and_the_copy_is_gone():
+    """Two byte-identical copies were waiting to drift; design, its loop, frontmatter and review now point at one."""
+    assert not (SKILL / "NEG-AUDIT.md").exists()
+    for name in ("SKILL.md", "GRILL-LOOP.md", "FRONTMATTER-FORMAT.md", "REVIEW-CHECKPOINT.md"):
+        assert "`${CLAUDE_PLUGIN_ROOT}/references/NEG-AUDIT.md`" in skill_text_design_skill(name), name
+    for path in sorted((REPO / "plugin").rglob("*.md")):
+        assert "design/NEG-AUDIT.md" not in path.read_text(encoding="utf-8"), path
 
 
 def test_the_built_in_rules_are_in_the_skill():
@@ -101,7 +107,7 @@ def test_the_skill_names_no_dead_file_and_no_vendored_path():
 def test_the_skill_is_written_for_current_models():
     from vela import reading
     lint = (PLUGIN / "references" / "lint-words.txt").read_text(encoding="utf-8")
-    text = all_skill_text().replace((SKILL / "NEG-AUDIT.md").read_text(encoding="utf-8"), "")  # the user's own words
+    text = all_skill_text()
     for word in reading.lint_words(lint):
         assert not reading.lint_pattern(word).search(text), word
     assert "relentlessly" not in text and not re.search(r"\b(MUST|NEVER|ALWAYS|CRITICAL)\b", text)
@@ -125,5 +131,55 @@ def test_design_never_makes_the_tracer_a_gate():
 # ---- tests/test_stale_branch.py: S23 checked the handoff on a stale branch (diagnosis 6B)
 
 def test_design_checks_freshness_first_and_stops_when_behind():
-    start = read("skills/design/SKILL.md").split("## 1. Start", 1)[1].split("\n\n", 2)[1]
-    assert start.startswith("First run `vela freshness`. If it exits 3") and "stop, tell the lead" in start
+    start = read("skills/design/SKILL.md").split("## 1. Start", 1)[1]
+    voice, fresh = start.split("\n\n", 3)[1:3]
+    assert VOICE_LINE.search(voice)  # the voice is read before anything is said (voice audit S4)
+    assert fresh.startswith("First run `vela freshness`. If it exits 3") and "stop, tell the lead in your words" in fresh
+    assert "offer to bring it up to date" in fresh and "in its words" not in fresh
+    assert start.index("vela freshness") < start.index("vela handoff verify") < start.index("vela check-slice")
+
+
+# --- Task 22k: the overhaul rewrite.
+
+
+def test_design_loads_the_voice_before_its_first_question_and_names_house_voice():
+    body = skill_text_design_skill().split("---\n", 2)[2]
+    line = VOICE_LINE.search(body).group(0)
+    assert line.startswith("Before your first question") and "`house-voice`" in line
+    assert body.index(line) < body.index('?"') and body.index(line) < body.index("vela freshness")
+
+
+def test_flow_check_line_team_side():
+    body = skill_text_design_skill()
+    assert "Read your app's slices' flow check from the handoff rather than running it again" in body
+    assert ("If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice>` once. "
+            "If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.") in body
+    assert "Until the handoff carries it" not in body
+
+
+def test_design_says_states_in_words_and_team_lead_not_senior():
+    body = skill_text_design_skill()
+    assert '"The design is finished, with 3 known gaps. Close the gaps, redo it, or start a separate design?"' in body
+    assert '"Nobody named the first working path yet, so this one is a proposal for the team lead to confirm."' in body
+    assert "`# Questions the <app> team is raising with the planning lead`" in body and "items to raise with" not in body
+    assert "senior" not in all_skill_text().lower()
+
+
+def test_design_review_packets_come_from_the_cli():
+    review = skill_text_design_skill("REVIEW-CHECKPOINT.md")
+    assert "vela reviewers prepare --team" in review
+    assert "| Vendors and integrations |" not in review  # the areas and their questions live in the packets
+
+
+def test_design_description_is_short_and_has_no_angle_brackets():
+    import yaml
+    description = yaml.safe_load(skill_text_design_skill().split("---\n", 2)[1])["description"]
+    assert len(description) <= 250 and "<" not in description and ">" not in description
+
+
+def test_design_names_only_commands_that_exist():
+    parser = cli.build_parser()
+    found = [c for path in sorted(SKILL.glob("*.md")) for c in calls(path)]
+    assert len(found) >= 5, found
+    for line, written, argv in found:
+        assert is_a_mention(parser, argv) or parse_error(parser, argv) is None, (line, written)

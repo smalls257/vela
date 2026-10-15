@@ -27,7 +27,7 @@ Capture every answer in the session record. The user's own words take their name
 |---|---|---|
 | Problem, Users | Nothing new. Link the goal the capability serves. If no goal fits, a `[worry]` capture: "CAP-NNN serves no goal". | session record |
 | Scope In and Out | `- **In:** ...` and `- **Out:** ...` lines | the capability page, under `## Scope` |
-| Functional requirements | `### CAP-NNN.FRn <short name>` (at most six words), one paragraph of what it does, `- **State:** assumption`, `- **Source:** [[<session id>#^cNN]]` | the capability page, under `## Functional requirements` |
+| Functional requirements | `vela add fr --capability CAP-NNN --name "<short name>" --need "<one paragraph of what it does>" --criteria "<criterion>" --capture ^cNN`, which writes `### CAP-NNN.FRn <short name>` (at most six words), numbered after the highest, with `- **State:** assumption` and `- **Source:**` linking the capture | the capability page, under `## Functional requirements` |
 | Acceptance criteria | Plain bullets under each FR, stated at a boundary the vault knows: a flow, a contract or an actor in the glossary | under the FR; an indented `- Trace:` line under a bullet holds the IDs it rests on, and is not a criterion. Each criterion is a sentence a tester could read aloud, with its IDs on that line. They stay here: allocation rows and epics point at the requirement and never copy the criteria into a table cell |
 | Constraints | A link to an existing `CST-n`. A new constraint becomes a capture for `02-constraints.md`. | session record |
 | Open questions | An unknown with `**Question:**`, `**Owner:**`, `**State:** open`, `**Ask by:**` and a `**Blocks:**` link to the FR, as shown below | `11-unknowns-and-risks.md` |
@@ -41,7 +41,7 @@ An unknown that blocks an FR links the FR's heading:
 - **Blocks:** [[CAP-021-amend-or-cancel#CAP-021.FR2 Partial cancel|CAP-021.FR2]]
 ```
 
-FR numbers are never reused. When the lead drops an FR, never strike its heading through, because that breaks every link to it: run `vela query refs <ID>`, take it out of every row that names it in the same checkpoint, delete it, and keep the reason in the session record as a `→ drop` capture. `/vela:requirements` does the same.
+`vela add fr` never reuses a number. When the lead drops an FR, never strike its heading through, because that breaks every link to it: run `vela query refs <ID>`, take it out of every row that names it in the same checkpoint, delete it, and keep the reason in the session record as a `→ drop` capture. `/vela:requirements` does the same.
 
 ## Certainty
 
