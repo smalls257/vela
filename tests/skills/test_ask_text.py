@@ -19,6 +19,10 @@ ASK = PLUGIN / "skills" / "ask" / "SKILL.md"
 VELA_TOOL = "Bash(python3 *scripts/vela *)"  # the one loose pattern, ruled in design session 15
 
 
+# The voice load line: the owner's VOICE.md, then the plugin's conversation voice, in that order on one line.
+VOICE_LINE = re.compile(r"^.*`voice/VOICE\.md`.*references/CONVERSATION-VOICE\.md.*$", re.M)
+
+
 def ask_meta():
     return yaml.safe_load(ASK.read_text(encoding="utf-8").split("---\n", 2)[1])
 
@@ -121,8 +125,7 @@ def test_ask_has_no_bang_injection_and_runs_freshness_as_a_normal_step():
 
 def test_ask_loads_the_voice_before_it_says_anything():
     body = text("skills/ask/SKILL.md").split("---\n", 2)[2]
-    line = next(l for l in body.splitlines() if "references/CONVERSATION-VOICE.md" in l)
-    assert "voice/VOICE.md" in line and line.index("voice/VOICE.md") < line.index("references/CONVERSATION-VOICE.md")
+    line = VOICE_LINE.search(body).group(0)  # VOICE.md first, then the conversation voice
     assert body.index(line) < body.index("## Steps") < body.index("vela freshness")
 
 
