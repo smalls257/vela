@@ -148,7 +148,7 @@ def test_the_coastal_mismatches_are_the_four_the_discover_probe_counts():
 
 def test_the_holdout_has_the_same_shape_and_covers_the_coastal_categories():
     holdout, coastal = persona("holdout-hospitals"), persona("coastal-merger")
-    assert holdout.get("holdout") is True
+    assert probe.seal.split_of(holdout) == "holdout" and probe.seal.split_of(coastal) == "holdout"
     sizes = [len(holdout[k]) for k in ("knows", "wrong", "unaware", "conflicts", "decisions", "docs")]
     assert 12 <= sizes[0] <= 14 and sizes[1:] == [5, 7, 4, 4, 3]
     used = {i["category"] for k in ("unaware", "wrong") for i in coastal[k]}
@@ -235,7 +235,7 @@ def test_decided_lines_and_the_yes_that_makes_one_the_leads(tmp_path):
 
 def test_a_decision_written_during_a_probe_fails_decisions_recorded(tmp_path):
     env = {"SIM_STUB_WRITE": "sessions/stub.md::| G9 | inkling | decided | [[stub#^c99]] |"}
-    code, out, err, runs = run_probe(tmp_path, "dump-sweep", "coastal-merger", env=env)
+    code, out, err, runs = run_probe(tmp_path, "dump-sweep", "coastal-merger", "--reveal", env=env)
     assert code == 1, err
     assert "FAIL decisions-recorded: decisions recorded: 1" in out
     assert "T2 sessions/stub.md" in out, "the decision is pinned to the turn that wrote it"
@@ -342,12 +342,16 @@ def test_the_holdout_is_blind_without_the_flag(tmp_path):
     assert count == 0
 
 
-def test_blind_on_coastal_hides_its_items_and_open_output_shows_them(tmp_path):
+def test_blind_on_coastal_hides_its_items_and_only_reveal_shows_them(tmp_path):
+    """coastal-merger is a holdout (split: holdout), so it is blind unless --reveal is given."""
     text = "1. Halyard CRM in Kestrel Bay (SRC-01)\n2. Signal CRM in Dunmere, so the two centers use a separate CRM each?"
     code, out, err, _ = run_probe(tmp_path, "discover-implications", "coastal-merger", "--blind", env=reply(tmp_path, text))
     assert code == 1 and leaks(out + err, persona("coastal-merger"), tmp_path) == 0
     assert "cross-source-mismatch: 1 of 4 flagged, 0 listed, 3 never" in out
-    code, out, err, _ = run_probe(tmp_path / "open", "discover-implications", "coastal-merger", env=reply(tmp_path, text))
+    code, out, err, _ = run_probe(tmp_path / "default", "discover-implications", "coastal-merger", env=reply(tmp_path, text))
+    assert ", blind." in out and leaks(out + err, persona("coastal-merger"), tmp_path) == 0, "a holdout is blind by default"
+    code, out, err, _ = run_probe(tmp_path / "open", "discover-implications", "coastal-merger", "--reveal",
+                                  env=reply(tmp_path, text))
     assert "- W4 (cross-source-mismatch): FLAGGED at T2" in out and "its sentence is a question" in out
 
 

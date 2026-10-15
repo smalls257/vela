@@ -1,0 +1,101 @@
+# Key terms from tests/sim/personas/ found in plugin/** on the day each line was added. A line here is a
+# leak still to remove, not a permission: tests/test_sim_seal.py fails on any leak not listed and on any
+# listed leak that is gone, so this file only shrinks. file<TAB>kind<TAB>term
+lib/vela/commands/close_push.py	keyword	identity team
+lib/vela/commands/close_push.py	name	Priya
+lib/vela/diagrams.py	keyword	brightwater
+lib/vela/diagrams.py	name	Brightwater
+lib/vela/explorer/art/builtin/audio/theme-brightwater.json	keyword	brightwater
+lib/vela/explorer/art/builtin/audio/theme-brightwater.json	name	Brightwater
+lib/vela/explorer/art/builtin/audio/theme-quoteline.json	keyword	quoteline
+lib/vela/explorer/art/builtin/audio/theme-quoteline.json	name	Quoteline
+lib/vela/explorer/art/builtin/audio/theme-tickertalk.json	keyword	tickertalk
+lib/vela/explorer/art/builtin/audio/theme-tickertalk.json	name	TickerTalk
+lib/vela/explorer/art/builtin/emblems/brightwater.svg	keyword	brightwater
+lib/vela/explorer/art/builtin/emblems/brightwater.svg	name	Brightwater
+lib/vela/explorer/art/builtin/emblems/quoteline.svg	keyword	quoteline
+lib/vela/explorer/art/builtin/emblems/quoteline.svg	name	Quoteline
+lib/vela/explorer/art/builtin/emblems/tickertalk.svg	keyword	tickertalk
+lib/vela/explorer/art/builtin/emblems/tickertalk.svg	name	TickerTalk
+lib/vela/explorer/art/builtin/manifest.json	keyword	brightwater
+lib/vela/explorer/art/builtin/manifest.json	keyword	quoteline
+lib/vela/explorer/art/builtin/manifest.json	keyword	tickertalk
+lib/vela/explorer/art/slots.json	keyword	400 000
+lib/vela/explorer/art/slots.json	keyword	brightwater
+lib/vela/explorer/art/slots.json	keyword	quoteline
+lib/vela/explorer/art/slots.json	keyword	tickertalk
+lib/vela/explorer/art/slots.json	name	Brightwater
+lib/vela/explorer/art/slots.json	name	Quoteline
+lib/vela/explorer/art/slots.json	name	TickerTalk
+lib/vela/explorer/assets/js/selftest.js	keyword	brightwater
+lib/vela/explorer/assets/js/selftest.js	name	Brightwater
+lib/vela/explorer/branches_data.py	name	Heron
+lib/vela/explorer/build.py	keyword	brightwater
+lib/vela/explorer/flows_data.py	keyword	brightwater
+lib/vela/explorer/flows_data.py	keyword	tickertalk
+lib/vela/explorer/flows_data.py	name	Brightwater
+lib/vela/explorer/flows_data.py	name	TickerTalk
+lib/vela/explorereport.py	keyword	coach app
+lib/vela/explorereport.py	keyword	tickertalk
+lib/vela/explorereport.py	name	TickerTalk
+lib/vela/flowcheck/build.py	name	Heron
+lib/vela/flowcheck/impact.py	name	Heron
+lib/vela/flowcheck/properties.py	name	Heron
+lib/vela/flows.py	keyword	tickertalk
+lib/vela/flows.py	name	TickerTalk
+lib/vela/prbody.py	keyword	identity team
+lib/vela/prbody.py	name	Priya
+lib/vela/reading.py	keyword	brightwater
+lib/vela/reading.py	name	Brightwater
+lib/vela/readload.py	name	Heron
+lib/vela/releases.py	keyword	board demo
+lib/vela/reviewprep.py	keyword	nightly reset
+lib/vela/reviews.py	keyword	partner hotel
+lib/vela/reviews.py	keyword	quoteline
+lib/vela/say.py	name	Heron
+lib/vela/search.py	keyword	brightwater
+references/CONVERSATION-VOICE.md	keyword	works council
+references/MODES.md	keyword	works council
+skills/boundary/SKILL.md	name	Priya
+skills/breakdown/PLAN-FORMAT.md	keyword	teams transcripts
+skills/breakdown/PLAN-FORMAT.md	name	Heron
+skills/close/PR-BODY.md	keyword	mobile team
+skills/close/PR-BODY.md	name	Heron
+skills/close/PR-BODY.md	name	Priya
+skills/close/SKILL.md	keyword	identity team
+skills/close/SKILL.md	name	Priya
+skills/design/CONTEXT-FORMAT.md	name	Heron
+skills/design/REVIEW-CHECKPOINT.md	keyword	nightly reset
+skills/design/SKILL.md	name	Heron
+skills/design/TECH-DESIGN-FORMAT.md	brief	a prep note ten minutes before
+skills/design/TECH-DESIGN-FORMAT.md	brief	and a prep note ten minutes
+skills/design/TECH-DESIGN-FORMAT.md	brief	note ten minutes before each meeting
+skills/design/TECH-DESIGN-FORMAT.md	brief	prep note ten minutes before each
+skills/design/TECH-DESIGN-FORMAT.md	keyword	client delivery
+skills/design/TECH-DESIGN-FORMAT.md	keyword	rust core
+skills/design/TECH-DESIGN-FORMAT.md	name	Heron
+skills/find/SKILL.md	keyword	brightwater
+skills/find/SKILL.md	keyword	holds the budget
+skills/find/SKILL.md	keyword	tickertalk
+skills/find/SKILL.md	name	TickerTalk
+skills/grill/SKILL.md	name	Heron
+skills/grill/SKILL.md	name	Priya
+skills/house-voice/SKILL.md	keyword	identity team
+skills/house-voice/SKILL.md	keyword	owns heron
+skills/house-voice/SKILL.md	keyword	works council
+skills/house-voice/SKILL.md	name	Hadley
+skills/house-voice/SKILL.md	name	Heron
+skills/house-voice/SKILL.md	name	Sam Hadley
+skills/proposals/SKILL.md	name	Priya
+skills/releases/SKILL.md	keyword	board demo
+skills/shape/SKILL.md	keyword	works council
+vault/CONVENTIONS.md	keyword	board demo
+vault/CONVENTIONS.md	keyword	brightwater
+vault/CONVENTIONS.md	keyword	client delivery
+vault/CONVENTIONS.md	keyword	opaque reader id
+vault/CONVENTIONS.md	keyword	owns heron
+vault/CONVENTIONS.md	keyword	teams transcripts
+vault/CONVENTIONS.md	keyword	tickertalk
+vault/CONVENTIONS.md	name	Brightwater
+vault/CONVENTIONS.md	name	Heron
+vault/CONVENTIONS.md	name	TickerTalk

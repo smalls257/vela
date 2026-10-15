@@ -3,6 +3,7 @@
 # prompt gets knows, wrong, conflicts and decisions; it never sees unaware. Keywords follow the rules in
 # coastal-merger.yaml. The on-device ruling, the MDM route and the Graph scopes below are the same facts the solution
 # lead holds, seen from the agent's side.
+split: dev  # may be read while iterating on the skills; see tests/sim/README.md, "Iterating without teaching to the test"
 name: Dev Rao
 team_persona: true  # speaks only in team sessions, never opens a vela script
 role: lead of the Desk Agent team at Marlowe & Finch, who took the desktop agent at handoff

@@ -4,6 +4,7 @@
 # holds a keyword of heron-desk's unaware or wrong items (so "DPIA", never the words it stands for), so an outsider
 # cannot hand the lead's gaps over or correct the lead's beliefs before the assistant does.
 # Each knows item answers an open unknown of a Heron run; heron-desk-complete.yaml's `answers:` table says which.
+split: dev  # may be read while iterating on the skills; see tests/sim/README.md, "Iterating without teaching to the test"
 name: Marta Lindqvist
 outsider: true  # speaks only in the sessions of heron-desk-complete.yaml that name it
 role: Data Protection Officer at Marlowe & Finch, brought into a Heron session by the solution lead

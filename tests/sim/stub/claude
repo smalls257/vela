@@ -8,7 +8,10 @@ It answers as one of three roles, told apart by the system prompt run.py passes:
   session is over, and otherwise a reply with a <script> tag in it, to test escaping.
 - judge ("SIMULATOR JUDGE: <category>"): that category's verdicts, each with a grounds note. Across the categories
   there is one valid citation (U1) and two the driver must drop (W1's turn, K2's page). The probe's "options"
-  judge gets one row per "LABEL: <label>" line in its input, with every part answered "not present".
+  judge gets one row per "LABEL: <label>" line in its input, with every part answered "not present". The
+  "precision" judge classes P1 padding, P2 a duplicate of its first neighbour (padding when it has none), the last
+  item backed by a lead turn that does not exist (the driver must drop it), and every other item backed as a question
+  quoting its own first four words.
 
 Knobs, all environment variables:
   SIM_STUB_COST   total_cost_usd of every assistant and persona call (default 0.01); the judge costs 0.01
@@ -151,6 +154,9 @@ def judge(stdin, argv, category):
                 for label in re.findall(r"^LABEL: (.+)$", stdin, re.M)]
         print(json.dumps(result(json.dumps({"search": "stub: read the turn", "options": rows}), "judge", argv, cost=0.01)))
         return
+    if category == "precision":
+        print(json.dumps(result(json.dumps({"items": precision_rows(stdin, note)}), "judge", argv, cost=0.01)))
+        return
     if category == "tracer":
         line = re.search(r"^- \*\*Tracer:\*\*.*$", stdin, re.M)
         if not line:
@@ -185,6 +191,27 @@ def judge(stdin, argv, category):
         rows[0].update(captured=True, where="01-goals.md")
         rows[1].update(captured=True, where="no-such-page.md")
     print(json.dumps(result(json.dumps({category: rows}), "judge", argv, cost=0.01)))
+
+
+def precision_rows(stdin, note):
+    ids = [i.strip() for i in re.search(r"^IDS precision: ?(.*)$", stdin, re.M).group(1).split(",") if i.strip()]
+    rows = []
+    for n, label in enumerate(ids):
+        item = re.search(rf"^----- ITEM {re.escape(label)} \(.*?\) -----\n(.*?)\nOTHER ITEMS NEAR IT:\n(.*?)(?:\n\n|\Z)",
+                         stdin, re.M | re.S)
+        text, near = (item.group(1), item.group(2)) if item else ("", "")
+        first = re.search(rf"^  ({re.escape(label)}\.N1) ", near, re.M)
+        row = {"id": label, **note, "class": "backed", "basis": "question", "turn": None, "where": None,
+               "quote": " ".join(text.split()[:4]), "duplicate_of": None}
+        if n == 0:
+            row.update({"class": "padding", "basis": None, "quote": None})
+        elif n == 1:
+            row.update({"class": "duplicate", "basis": None, "duplicate_of": first.group(1)} if first else
+                       {"class": "padding", "basis": None, "quote": None})
+        elif n == len(ids) - 1:
+            row.update(basis="lead", turn=999, quote="a quote no turn holds")
+        rows.append(row)
+    return rows
 
 
 def kill_driver_on_cue():

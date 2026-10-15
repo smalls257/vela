@@ -4,6 +4,7 @@
 # the pattern day trader rule, discretionary authority, communications with the public, and market-data licensing.
 # The persona prompt gets knows, wrong, conflicts and decisions. It never sees unaware: a gap it was never told
 # cannot leak. The judge sees all of it. Keywords follow the rules at the top of coastal-merger.yaml.
+split: holdout  # scored, never read while iterating: no per-item result is printed without --reveal
 name: Jordan Reyes
 role: head of product at Kestrel Markets, just made lead for the trading coach
 org: Kestrel Markets, a 60-person fintech whose only product today is TickerTalk, a free market-news app
