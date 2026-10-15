@@ -46,7 +46,7 @@ def test_every_mode_skill_reaches_the_conversation_voice():
         text = skill(name)
         assert "references/START.md" in text, name
         if name == "challenge":  # runs chosen steps only
-            assert "(its steps 1, 2, 5 and 6)" in text and "show the state of the clone" in text
+            assert "(its steps 0, 1, 2 and 5)" in text and "show the state of the clone" in text
         elif name == "close":
             assert "CONVERSATION-VOICE.md" in text
         elif name in ("epics", "import"):

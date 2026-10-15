@@ -12,7 +12,7 @@ A sponsor or architect receives a folder or zip an owner published. This skill m
 
 Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). There is no plan folder yet, so no vendored copy and no `.vela/workspace.json`: when you can't find the program, stop with the message in that order. When a command can't express what the user wants, say so and stop.
 
-Before your first question, read how to talk: `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`, as `START.md` step 6 says. There's no copy yet, so there's no `voice/VOICE.md` to read first. Don't tell the user you read it.
+Before your first question, read how to talk: `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`, as `START.md` step 0 says. There's no copy yet, so there's no `voice/VOICE.md` to read first. Don't tell the user you read it.
 
 ## Opening
 
