@@ -384,18 +384,23 @@ def voice_section(run):
 
 # ------------------------------------------------------------------ close steps
 
-CLI = r"(?:planner|vela)['\"]?\s+"
+# The tool, in every form a session ran it: `vela close`, `python3 /…/plugin/scripts/vela close`, a shell function
+# named for it, the old name, and a variable holding the command (`P="python3 …/vela"; $P close`, `"${VELA}" close`).
+# Missing the variable form made S8 of the 2026-10-14 mid-point read as two skipped close steps it had run.
+TOOL = r"(?<![\w-])(?:planner|vela)"  # legacy-name
+CLI = rf"(?:{TOOL}|\$\{{?[A-Za-z_]\w*\}}?)['\"]?\s+"
+SKILL_CLI = rf"{TOOL} "  # how a close skill names a command it asks for: `vela render`, or `planner render` in an old one
 CLOSE_STEPS = {  # step -> (what in a tool input shows it ran, what in the checkout's close skill shows it is asked for)
     "find the session": (rf"git branch (?:-r )?--list|git show \S+:sessions/|git grep -l|{CLI}session open", r"Find the session"),
     "bring in main": (rf"merge-base --is-ancestor|git merge\b[^\n]*origin/main|git fetch origin|{CLI}close sync-main",
                       r"bring in `main`"),
-    "render": (rf"{CLI}render\b", r"planner render"),
-    "check": (rf"{CLI}check(?![-\w])", r"planner check"),
+    "render": (rf"{CLI}render\b", rf"{SKILL_CLI}render"),
+    "check": (rf"{CLI}check(?![-\w])", rf"{SKILL_CLI}check"),
     "close gate": (rf"{CLI}close gate\b", r"close gate"),
     "close commit": (rf"Close session|{CLI}close stage[^\n]*--close", r"Close session|close stage --close"),
     "push": (rf"git push\b|{CLI}close push\b", r"git push|close push"),
     "open the PR": (rf"gh pr (?:create|comment)|{CLI}close pr\b", r"gh pr create|close pr"),
-    "rebuild the explorer": (rf"{CLI}explore\b", r"planner explore"),
+    "rebuild the explorer": (rf"{CLI}explore\b", rf"{SKILL_CLI}explore"),
 }
 NO_SESSION = re.compile(r"no (?:open )?session (?:is )?open|nothing (?:is )?open|no session to close|"
                         r"(?:isn't|is not|wasn't) (?:a|any) (?:open )?session", re.I)

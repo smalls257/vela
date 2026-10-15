@@ -130,3 +130,30 @@ def test_two_runs_are_given_once_each(tmp_path):
     missing = subprocess.run([sys.executable, str(SIM / "compare_runs.py"), str(tmp_path), str(tmp_path)],
                              capture_output=True, text=True, timeout=60)
     assert missing.returncode == 2 and "no baseline run folder" in missing.stderr
+
+
+# ------------------------------------------------------------------ close steps in any form
+
+@pytest.mark.parametrize("command", [
+    "vela close sync-main", "python3 /x/plugin/scripts/vela close sync-main", '$P close sync-main',
+    '"$P" close sync-main', "${VELA} close sync-main", "planner close sync-main",  # legacy-name
+    "python3 /x/plugin/scripts/planner close sync-main"])  # legacy-name
+def test_bring_in_main_counts_in_every_form_the_command_ran_in(command):
+    assert compare.re.search(compare.CLOSE_STEPS["bring in main"][0], command)
+
+
+def test_a_close_run_through_a_variable_skips_no_step(tmp_path):
+    """S8 of the 2026-10-14 mid-point ran `$P close sync-main` and `$P close stage --close`, and read as two skips."""
+    base, mid = tmp_path / "base", tmp_path / "mid"
+    commands = ["vela session open --switch", "$P close sync-main", '"$P" render', "${P} check", "$P close gate",
+                "python3 /x/plugin/scripts/vela close stage --close --session s", "git push -u origin HEAD",
+                "gh pr create --base main", "P=x; $P explore"]
+    turns = [("lead", "/vela:close", 1, "close"), ("assistant", "Closed and pushed.", 1, "close")]
+    make_run(base, "vela", turns, raw=[["vela session open --switch"]])
+    make_run(mid, "vela", turns, raw=[commands])
+    _, report = run_tool(base, mid)
+    close = report["detail"]["midpoint"]["close"]
+    assert "render" in close["expected_steps"] and "rebuild the explorer" in close["expected_steps"], \
+        "today's close skill says `vela render`; its steps are still asked for"
+    assert close["skipped_steps"] == 0, close["per_close"]
+    assert report["detail"]["baseline"]["close"]["skipped_steps"] == len(close["expected_steps"]) - 1
