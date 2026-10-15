@@ -167,6 +167,7 @@ def test_pr_before_push_refused(tmp_path, monkeypatch):
     vault, _ = sent_session(tmp_path)
     code, out = pr(vault, "--for-lead")
     assert code == 1 and "isn't sent yet" in out, out
+    assert "Shall I send it for review?" in out and "I'll send" not in out  # asks; never promises a send
     assert not created(log)
 
 

@@ -73,6 +73,72 @@ def test_exit_3_means_nothing_changed():
         say.render(say.Result("demo", exit=say.NEEDS_LEAD), "default")
 
 
+def test_the_leak_check_catches_the_plumbing_the_voice_audit_found():
+    """Each line passed the old check (codes and IDs only) and reached a lead in the 14 October runs."""
+    leaks = {
+        "session slug": "Calling this one 2026-10-14-calendar-entries.",
+        "git error": "GitHub's command line failed (none of the git remotes configured for this repository point to "
+                     "a known GitHub host; run gh auth login)",
+        "command": "Run `vela session start` to bring it in.",
+        "file path": "The text is in `.vela/pr-body.md`.",
+        "branch": "Your branch session/x is 3 commits behind the shared plan (origin/main).",
+        "flag": "Build it with --for-lead first.",
+        "ISO date": "I've set it to be asked by 2027-02-02.",
+        "handle": "@agent-lead owns no app pages.",
+        "commit hash": "Your copy is the latest published (a1b2c3d, 14 October).",
+    }
+    for kind, line in leaks.items():
+        assert say.leak_in(line) is not None and say.leak_in(line)[0] in (kind, "session slug", "git error"), (kind, line)
+    for fine in ("vela needs 3.9 or later.", "Open dashboard.html in this folder.", "Ask by 14 October, read/write.",
+                 "/vela:explore opens it.", "Vela's own words are grill, slice and tracer."):
+        assert say.leak_in(fine) is None, fine
+
+
+def test_the_command_pattern_knows_every_subcommand():
+    import argparse as ap
+    parser = cli.build_parser()
+    names = next(a for a in parser._actions if isinstance(a, ap._SubParsersAction)).choices
+    for name in names:
+        assert say.LEAD_PATTERNS["command"].search(f"run vela {name} now"), name
+
+
+def test_the_resolver_says_dates_handles_and_page_files_in_words():
+    import datetime
+    resolver = say.Resolver(today=datetime.date(2026, 10, 14))
+    assert resolver.plain("due 2026-11-03, with @solution-lead") == "due 3 November, with solution lead"
+    assert resolver.plain("due 2027-02-02") == "due 2 February 2027"
+    assert resolver.plain("start it with /vela:design --app APP-x.") == "start it with /vela:design."
+    assert resolver.plain("in the lead's own words") == "in your own words"
+
+
+def test_the_lead_hears_the_answer_then_about_four_then_how_many_more():
+    lines = [say.Line(f"item {n}", plain=f"Thing {n} needs you.") for n in range(1, 8)]
+    result = say.Result("demo", exit=say.REFUSED, lines=lines + [lines[0]], answer="Seven things hold it up.")
+    said = say.render(result, "for-lead").splitlines()
+    assert said[0] == "Seven things hold it up." and said[1:5] == [f"Thing {n} needs you." for n in range(1, 5)]
+    assert said[5] == "Three more; want them?" and len(said) == 6  # the repeated line is said once
+    assert say.render(result, "for-lead", more=True).splitlines()[-1] == "Thing 7 needs you."
+    assert say.render(result, "default").count("item 1") == 2  # the default keeps every line as given
+    one_more = say.Result("demo", lines=lines[:5])
+    assert "more; want them" not in say.render(one_more, "for-lead")  # "one more" costs as much as reading it
+
+
+def test_refusals_by_audience_and_the_way_out_said_once():
+    model = say.Refusal("decide-by", "I need your handle.", "run vela whoami", "none: a decision names who",
+                        audience=say.MODEL)
+    lead = [say.Refusal("GATE-4", f"Question {n} is open.", "Ask.", "an override", recommend="I'd ask the owner.")
+            for n in (1, 2)]
+    said = say.render(say.Result("demo", exit=say.REFUSED, refusals=[model, *lead]), "for-lead")
+    assert "handle" not in said  # the model's slip never reaches the lead
+    assert "Question 1 is open. I'd ask the owner." in said  # each of the lead's carries my recommendation
+    assert said.count("set aside") == 1 and said.splitlines()[-1] == say.WAIVE_MANY
+    alone = say.render(say.Result("demo", exit=say.REFUSED, refusals=[model]), "for-lead")
+    assert alone == say.MY_SIDE  # an exit 1 is never silent, and never the slip itself
+    assert "I need your handle" in say.render(say.Result("demo", exit=say.REFUSED, refusals=[model]), "default")
+    hidden = say.Line("hooks note", plain="Hooks did not run.", audience=say.MODEL)
+    assert say.render(say.Result("demo", lines=[hidden]), "for-lead") == ""
+
+
 def test_main_says_what_each_exit_code_means():
     doc = cli.main.__doc__
     for line in ("0  done.", "1  refused", "2  the tool failed", "3  needs the lead: nothing changed"):

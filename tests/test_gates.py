@@ -179,7 +179,7 @@ def test_contract_without_error_case_not_ready(ub):
     found = judge(ub, "CON-002")
     assert not found.ready and rules_of(found) == ["case table"]
     assert "Booking state changed" in found.reasons[0].plain and "goes wrong" in found.reasons[0].plain
-    assert found.fix == found.reasons[0].fix and "Boundary" in found.fix
+    assert found.fix == found.reasons[0].fix and "boundary session" in found.fix
     assert '"case table"' in found.route and "until" in found.route, "a standing rule's override carries its end"
 
 

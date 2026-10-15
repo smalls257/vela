@@ -81,6 +81,31 @@ class SliceResult:
         """The findings that block the slice: errors no unexpired override covers."""
         return [f for f in self.findings if f.severity == "error"]
 
+    def lead_line(self, name):
+        """What the lead hears about this slice, by its name: whether it runs end to end, and if not, the first thing
+        that breaks it. No counters, timings, codes or paths (`check-slice --for-lead`; the 14 October voice audit)."""
+        status = self.status
+        if status == "passes":
+            covered = any(f.severity == "covered" for f in self.findings)
+            return f"{name} runs end to end." + (" A few cases go through on exceptions you set." if covered else "")
+        unread = [f for f in self.open if f.code == "F10"]
+        if status == "not fully checked":
+            if any(f.code == "F11" for f in self.open):
+                return f"{name} isn't fully checked: the check ran out of time before it finished, so it isn't proven yet."
+            return f"{name} isn't checked yet: {_unread_words(unread[0])}" if unread else f"{name} isn't checked yet."
+        broken = [f for f in self.open if f.code not in NOT_CHECKED]
+        more = len(broken) - 1
+        said = f"{name} breaks: {broken[0].summary}" if broken else f"{name} breaks."
+        return said + (f" There {'is' if more == 1 else 'are'} {more} more problem{'' if more == 1 else 's'} like it."
+                       if more > 0 else "")
+
+
+def _unread_words(finding):
+    """An unreadable line in plain words: a flow with no sequence drawn is said as that, not as its markup."""
+    if "mermaid" in finding.summary or "sequenceDiagram" in finding.summary:
+        return "its steps aren't drawn as a sequence yet, so there's nothing to check."
+    return finding.summary
+
 
 def _count(n, word):
     return f"{n} {word}{'' if n == 1 else 's'}"

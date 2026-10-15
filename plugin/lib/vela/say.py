@@ -80,6 +80,8 @@ MONTHS = ("January", "February", "March", "April", "May", "June", "July", "Augus
 # the lead's terms. A refusal whose rule takes no end date (an event rule) sets its own `waiver`; "" says nothing.
 WAIVE_ONE = "It's your call: you can set this aside with your reason and an end date, and I'll note it."
 WAIVE_MANY = "Any of these is yours to set aside: give me your reason and an end date, and I'll note it."
+WAIVE_MIXED = ("Any of these is yours to set aside: give me your reason, and an end date for the ones that last, and "
+               "I'll note it.")
 
 # What a reader is told for an ID nothing names, so a sentence never loses its subject and never shows the code.
 KIND_WORDS = {"UNK": "an open question", "R": "a risk", "CON": "a contract", "CAP": "a capability", "EPC": "an epic",
@@ -105,6 +107,10 @@ _WIKILINK = re.compile(r"\[\[([^\]|]+?)(?:\\?\|([^\]]+))?\]\]")
 # bracketed aside like "(read-only)" stays as written.
 _NAMED_ID = re.compile(r"(?P<name>\S[^()]*?) \((?P<id>[A-Z]{1,3}-[\w.-]+|G\d+|[a-z][a-z0-9]*(?:-[a-z0-9]+)+)\)")
 _ISO_DAY = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b(?!-[a-z])")
+# A rule's or a check's sentence about "the lead's own words", said to the lead: "your own words".
+_THE_LEADS = re.compile(r"\bthe lead's\b")
+# A skill the lead may type, said without the flags the model passes it: "/vela:design --app APP-x" -> "/vela:design".
+_SLASH_FLAGS = re.compile(r"(/vela:[\w-]+)(?: --[\w-]+(?: (?!--)[^\s.,;]+)?)+")
 _ANY_ID = re.compile(r"\b(?:(?:UNK|CAP|CON|EPC|FLO|SLC|ADR|ENT|PTY|SV|CST|SRC|INI|R)-\d[\w.]*"
                      r"|(?:APP|RUN)-[a-z][\w-]*|G\d+)\b")
 _TOKEN = re.compile(r"[\w][\w.-]*[\w]")
@@ -214,9 +220,29 @@ class Resolver:
         text = LEAD_PATTERNS["capture"].sub("a note in the session record", text)
         text = _ISO_DAY.sub(lambda m: date_words(m.group(0), self.today), text)
         text = LEAD_PATTERNS["handle"].sub(lambda m: person_words(m.group(0)), text)
+        text = _THE_LEADS.sub("your", text)
+        text = _SLASH_FLAGS.sub(r"\1", text)
         if self.vault is not None:
             text = _TOKEN.sub(lambda m: self.page_word(m.group(0)), text)
-        return _ANY_ID.sub(lambda m: self.name(m.group(0)), text)
+        return self.ids_said(text)
+
+    def ids_said(self, text):
+        """Every ID by its name; an ID its own name already follows ("SLC-001 Book a room") is just dropped, so the
+        name is never said twice."""
+        out, last = [], 0
+        for found in _ANY_ID.finditer(text):
+            name = self.name(found.group(0))
+            out.append(text[last:found.start()])
+            after = text[found.end():]
+            if not (after.startswith(" " + name) and name not in KIND_WORDS.values()):
+                out.append(name)
+            else:
+                after_space = found.end() + 1
+                last = after_space
+                continue
+            last = found.end()
+        out.append(text[last:])
+        return "".join(out)
 
     def named(self, match):
         """'Cost (concern-cost)' -> 'Cost'. An upper-case ID always goes; a lower-case one only when it is a page this
@@ -356,9 +382,9 @@ def waiver_line(result):
     said = list(dict.fromkeys(w for w in words if w))
     if not said:
         return ""
-    if len([w for w in words if w]) > 1 and said == [WAIVE_ONE]:
-        return WAIVE_MANY
-    return " ".join(said)
+    if len(said) == 1:
+        return WAIVE_MANY if said == [WAIVE_ONE] and len([w for w in words if w]) > 1 else said[0]
+    return WAIVE_MIXED  # one sentence, never two that each say "it's your call"
 
 
 def lead_lines(result, resolver, more=False):

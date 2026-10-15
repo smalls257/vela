@@ -15,15 +15,17 @@ A re-run replaces the latest draft of each kind that hasn't been applied yet, so
 fresh one for the model to pick by mistake; an applied draft is never touched.
 
 Exit codes (plan 3.1):
-0  every capture has a default (or already had a mark); the draft is written;
+0  the draft is written and listed in `wrote` (and `drafts`): every capture has a default, or the leftovers the lead
+   must settle are in `needs_lead`, most blocking first. The draft is written for those leftovers, so the command
+   changed something, and exit 3 ("nothing changed") would be a false promise: the 14 October voice audit found it
+   exiting 3 with the draft hidden from `wrote`, which `say.check_contract` could then never see (Silent Fallback);
 1  refused: no session is open;
 2  the tool failed: the vault or the record can't be read, or the disk refused the draft;
-3  needs the lead: leftovers to ask (`needs_lead`), or several sessions are open (pick one). The draft is written
-   for the leftovers, since it is scratch under `.vela/` that nothing commits; the vault and the record are
-   unchanged, which is what exit 3 promises, so the draft is reported in `drafts`, not `wrote`.
+3  needs the lead, nothing written: several sessions are open (pick one).
 
 It runs no git in either role. In a reader copy it says so: the draft is filed into the proposal later.
 """
+import datetime
 import json
 import pathlib
 
@@ -54,7 +56,7 @@ def cmd_plan(args, out):
     except cli.ToolError as exc:
         return commands.emit(failed(str(exc), "I couldn't read the vault, so I haven't worked out any marks."),
                              args, out)
-    resolver = say.Resolver(vault)
+    resolver = say.Resolver(vault, today=datetime.date.fromisoformat(today))
     record, early = find_record(root)
     if early is not None:
         return commands.emit(early, args, out, resolver)
@@ -135,26 +137,52 @@ def report(result, written, reader, resolver):
     lines = [say.Line(f"marks plan: {done} by default (kept {counts['kept']}, parked {counts['parked']}, dropped "
                       f"{counts['dropped']}); {counts['needs_lead']} for the lead; {counts['for_model']} for the "
                       f"model; {counts['left_alone']} already marked; {len(result.ledger)} ledger rows drafted.",
-                      plain=f"I've worked out where {done} of your notes go by default: kept {counts['kept']}, "
-                            f"parked {counts['parked']}.")]
+                      plain=sorted_words(counts) if done else "")]
+    n = len(result.leftovers)
+    answer = ("" if not n else "One of today's notes needs your call:" if n == 1
+              else f"{say.count_words(n, capital=True)} of today's notes need your call, most urgent first:")
     if result.leftovers:
-        lines.append(say.Line(f"{len(result.leftovers)} need the lead, most blocking first:",
-                              plain=f"{len(result.leftovers)} need your word, the ones holding up the most first:"))
+        lines.append(say.Line(f"{n} need the lead, most blocking first:", plain=""))
         lines += [say.Line(f"- {lo['capture']} {lo['rule']}: {lo['words']}"
                            + (f" (blocks {', '.join(lo['blocks'])})" if lo["blocks"] else ""),
-                           plain=f"- {lo['why']}: {resolver.plain(lo['words'])}") for lo in result.leftovers]
+                           plain=leftover_words(lo, resolver)) for lo in result.leftovers]
     if result.for_model:
         lines.append(say.Line(f"{len(result.for_model)} have no default; read the record and fill the draft's hints: "
                               + ", ".join(f["capture"] for f in result.for_model),
-                              plain=f"{len(result.for_model)} more I'll settle from what you said this session."))
+                              plain=f"{say.count_words(len(result.for_model), capital=True)} more I'll settle from "
+                                    "what you said this session."))
     lines.append(say.Line("draft: " + ", ".join(written) if written else "nothing to draft: every note has its mark.",
-                          plain="I've written that down, ready to file." if written
-                          else "Every note already has its place."))
+                          plain="" if written else "Every note already has its place."))
     if reader:
         lines.append(say.Line("read copy: no git runs here; the draft is filed into the proposal.",
                               plain="This is a read copy, so nothing is committed; your notes go to the owner with "
                                     "your proposal."))
     data = {"drafts": written, "counts": counts, "for_model": result.for_model, "left_alone": result.left_alone,
             "reader": reader}
-    return say.Result(NAME, exit=say.NEEDS_LEAD if result.leftovers else say.DONE, lines=lines,
-                      needs_lead=result.leftovers, data=data)
+    return say.Result(NAME, exit=say.DONE, lines=lines, needs_lead=result.leftovers, wrote=list(written), data=data,
+                      answer=answer)
+
+
+def sorted_words(counts):
+    """'Of today's notes, two become pages or open questions and two are set aside for later.' Every count that
+    isn't zero is said, so the numbers add up (conversation voice rule 4)."""
+    parts = [f"{say.count_words(counts['kept'])} {'becomes a page or an open question' if counts['kept'] == 1 else 'become pages or open questions'}"
+             if counts["kept"] else "",
+             f"{say.count_words(counts['parked'])} {'is' if counts['parked'] == 1 else 'are'} set aside for later"
+             if counts["parked"] else "",
+             f"{say.count_words(counts['dropped'])} {'is' if counts['dropped'] == 1 else 'are'} dropped"
+             if counts["dropped"] else ""]
+    return f"Of today's notes, {say.names_said([p for p in parts if p])}."
+
+
+def leftover_words(lo, resolver):
+    """One leftover as a question with my recommendation (conversation voice rule 2)."""
+    words = resolver.plain(lo["words"]).strip().rstrip(".")
+    recommend = lo.get("recommend") or {}
+    if lo["rule"] == "claude-unknown":
+        by = f" for you to chase by {resolver.plain(recommend['ask_by'])}" if recommend.get("ask_by") else ""
+        return f"I raised '{words}' myself. I'd keep it as an open question{by}. Keep it, or drop it?"
+    if lo["rule"] == "lifted-line":
+        return f"Someone else said '{words}'. I'd copy that onto its page word for word. Fine?"
+    choices = " or ".join(lo.get("choices") or ())
+    return f"{lo['why']}: '{words}'." + (f" {choices[0].upper()}{choices[1:]}?" if choices else "")

@@ -10,11 +10,15 @@ lead is asked the same question again with nothing to show it was asked before. 
 the session (Sensor), and in a reader copy it reaches the owner in the proposal; no git runs here either way.
 
 Without `--session` the digest is exactly what it was: a session's memory never filters the plain digest.
+
+`--digest --session ID --for-lead` is the same three lines as the lead hears them, through say: the answer first, each
+question by its area's name with every ID inside it said by name, and no copy codes, catalog version, record path or
+command tail (the 14 October voice audit, rows 174 and 175).
 """
 import json
 import pathlib
 
-from vela import questions, reviewprep
+from vela import questions, reviewprep, say
 from vela.edge import sessiongit
 
 
@@ -23,6 +27,8 @@ def register(sub):
     ques = sub.add_parser("questions", help="the questions the catalog says this vault owes, and where each stands")
     ques.add_argument("--vault", default=".", help="vault root (default: current directory)")
     ques.add_argument("--json", action="store_true", help="print JSON instead of text")
+    ques.add_argument("--for-lead", action="store_true",
+                      help="with --digest --session: the lines as the lead hears them, by name, with no codes")
     ques.add_argument("--area", help="only this area of the catalog, such as FIN")
     ques.add_argument("--open", action="store_true", help="list only copies with no row, an open row, an invalid row or an asked row")
     ques.add_argument("--subject", help="only copies about this subject, such as APP-booking")
@@ -40,6 +46,8 @@ def register(sub):
 
 def cmd_questions(args, out):
     from vela import cli
+    if args.for_lead and (args.session is None or not args.digest or args.json):
+        raise cli.ToolError("--for-lead goes with --digest --session ID, and not with --json.")
     if args.session is None:
         return cli.cmd_questions(args, out)
     if not args.digest:
@@ -72,8 +80,35 @@ def cmd_questions(args, out):
     if args.json:
         print(json.dumps(answer, indent=2, ensure_ascii=False), file=out)
         return 0
+    if args.for_lead:
+        from vela import commands
+        return commands.emit(lead_digest(answer, dict(vault.catalog.areas)), args, out, say.Resolver(vault))
     print_session_digest(answer, out, dict(vault.catalog.areas), cli)
     return 0
+
+
+def lead_digest(answer, area_names):
+    """The session digest as the lead hears it: the answer, each question by its area, then how many wait."""
+    count = len(answer["groups"])
+    if not count:
+        return say.Result("questions --digest --session",
+                          answer="That's every question for this session; the rest are listed if you want them.")
+    lines = []
+    for group in answer["groups"]:
+        said = f"{area_names.get(group['area'], 'Another area')}: {group['question'].strip()}"
+        if group["blocks"]:
+            said += f" It holds up {say.names_said(group['blocks'][:3])}" + (
+                f" and {say.count_words(len(group['blocks']) - 3)} more." if len(group["blocks"]) > 3 else ".")
+        if len(group["copies"]) > 1:
+            said += f" It comes up in {say.count_words(len(group['copies']))} places; one answer for all?"
+        lines.append(say.Line("", plain=said))
+    held = answer["held"]
+    head = ("One question for today:" if count == 1 else
+            f"{say.count_words(count, capital=True)} questions for today, most important first:")
+    closing = (f"{say.count_words(held, capital=True)} more {'is' if held == 1 else 'are'} waiting for later."
+               if held else "")
+    return say.Result("questions --digest --session", answer=head, lines=lines, closing=closing,
+                      data={"shown": answer["shown"], "held": held})
 
 
 def print_session_digest(answer, out, area_names, cli):

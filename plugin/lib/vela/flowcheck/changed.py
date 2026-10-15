@@ -42,6 +42,26 @@ class Line:
         return f"{head}. {self.why}" if self.why else f"{head}."
 
 
+def lead_summary(report, name_of):
+    """(the answer, one line per slice that doesn't run end to end) for `check-slice --changed|--all --for-lead`.
+    `name_of(line)` gives a slice's name without its ID."""
+    n = len(report.lines)
+    if not n:
+        return "There aren't any slices yet, so there's nothing to check.", []
+    passing = [line for line in report.lines if line.passes]
+    rest = [line for line in report.lines if not line.passes]
+    if not rest:
+        return (f"{'The one slice runs' if n == 1 else 'All ' + str(n) + ' slices run'} end to end.", [])
+    broken = sum(1 for line in rest if line.result.status.startswith("fails"))
+    unchecked = len(rest) - broken
+    parts = [f"{len(passing)} run end to end" if passing else "",
+             f"{broken} {'breaks' if broken == 1 else 'break'}" if broken else "",
+             f"{unchecked} {'isn' if unchecked == 1 else 'aren'}'t fully checked" if unchecked else ""]
+    parts = [p for p in parts if p]
+    said = ", ".join(parts[:-1]) + f" and {parts[-1]}" if len(parts) > 1 else parts[0]
+    return f"Of the {n} slices, {said}.", [line.result.lead_line(name_of(line)) for line in rest]
+
+
 def _unchecked_why(result):
     codes = {f.code for f in result.open}
     if "F11" in codes:

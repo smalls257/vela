@@ -44,7 +44,8 @@ def attach(view, today, branch_texts):
 def _bug(what):
     return say.Refusal("apply-context", "Something went wrong on my side, so I filed nothing.",
                        f"vela bug: the vault view has no {what} attached (textedit.attach); file it with vela apply "
-                       "or vela add, which attach it.", override="none: this is a fault in vela, not a rule")
+                       "or vela add, which attach it.", override="none: this is a fault in vela, not a rule",
+                       audience=say.MODEL)
 
 
 def context_refusals(view):
@@ -344,20 +345,20 @@ def mark_if_unmarked(record_text, ref, mark_text):
 # --- refusals every type shares -------------------------------------------------------------------------------------
 
 def refusal(rule, plain, fix, override="none: write it by hand in the grammar vela conventions prints, and tell the "
-                                        "lead"):
-    return say.Refusal(rule, plain, fix, override=override)
+                                        "lead", audience=say.LEAD, recommend="", waiver=None):
+    return say.Refusal(rule, plain, fix, override=override, audience=audience, recommend=recommend, waiver=waiver)
 
 
 def id_refusal(view, ident, prefix):
     """A refusal when an item's own `id` is not a `<prefix>-n` ID, or is already used; None when it is free."""
     if not re.fullmatch(rf"{prefix}-\d+", str(ident)):
         return refusal("add-id", "That number isn't in the form I expect, so I filed nothing.",
-                       f"id {ident!r} is not a {prefix}- ID; leave id out and vela numbers it.")
+                       f"id {ident!r} is not a {prefix}- ID; leave id out and vela numbers it.", audience=say.MODEL)
     used, _ = ids.used_numbers(prefix, list(texts(view).values()) + list(getattr(view, "branch_texts", None) or ()))
     if int(str(ident).split("-")[1]) in used:
         return refusal("add-id-taken", "That number is already taken, so I filed nothing.",
                        f"{ident} is used in this vault or on an open session branch; leave id out and vela numbers it.",
-                       override="none: IDs are never reused")
+                       override="none: IDs are never reused", audience=say.MODEL)
     return None
 
 
@@ -365,7 +366,8 @@ def heading_refusal(name):
     problem = heading_problem(name)
     if problem is None:
         return None
-    return refusal("add-heading", "That name won't work as a heading, so I filed nothing.",
+    return refusal("add-heading", "That name is too long, or has a symbol I can't use. Can we call it something "
+                                  "shorter?",
                    f"The short name {name!r} can't be a heading: {problem}. Give at most six words with none of "
                    "# | ^ : % [ ].", override="none: rename it; the heading is the item's link target")
 

@@ -227,6 +227,11 @@ def answer_words(readiness):
     return f"{head}: {say.names_said(parts)}." + (" Shall we take them one at a time?" if len(theirs) > 1 else "")
 
 
+def today_date(today):
+    import datetime
+    return datetime.date.fromisoformat(today)
+
+
 def judge_session(args, out):
     from vela import cli  # the shell loads the vault; this module wires it
     from vela import commands
@@ -240,7 +245,7 @@ def judge_session(args, out):
     if args.consent_block:
         print("\n".join(closegate.consent_block(readiness.consent)), file=out)
         return 0
-    resolver = say.Resolver(vault)
+    resolver = say.Resolver(vault, today=today_date(today))
     n = len(readiness.problems)
     head = (say.Line(f"close gate: ready to finish {record.id}.", plain="") if not n
             else say.Line(f"close gate: {n} thing{'' if n == 1 else 's'} before {record.id} can finish:", plain=""))

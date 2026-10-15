@@ -199,6 +199,14 @@ def test_hooks_marker_missing_is_said_plainly():
     assert not any("Hooks" in n.plain for n in readied().notes)
 
 
+def test_a_conflict_is_said_as_not_brought_in_never_as_a_merge_still_open():
+    """sync-main aborts a merge that stops, so the true state is that main's changes aren't in yet."""
+    verdict = closestate.verdict(closestate.record(closestate.CONFLICT, "session/x"))
+    assert verdict.blocks and "still open" not in verdict.plain and "haven't brought" in verdict.plain
+    assert verdict.audience == say.LEAD  # only the lead can choose between the two versions
+    assert closestate.verdict(None).audience == say.MODEL  # sync-main not run yet is Claude's own step
+
+
 def test_sync_not_run_blocks():
     result = readied(sync=closestate.verdict(None))
     assert not result.ready and "Main hasn't been brought into this branch yet." in plains(result.problems)

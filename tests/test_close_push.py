@@ -191,6 +191,17 @@ def test_push_failure_prints_branch_and_retry(tmp_path):
     assert BRANCH not in lead  # the branch and git's command stay in the default line
 
 
+def test_an_unready_session_is_refused_before_the_send_notice(tmp_path):
+    """The gate runs first: asking "OK?" for a session that can't go yet asks for a yes that is then refused."""
+    vault, bare = sent_session(tmp_path)
+    (vault / "notes.txt").write_text("scratch\n", encoding="utf-8")
+    code, out = push(vault, "--for-lead")
+    assert code == 1, out
+    assert out.startswith("I haven't sent anything.") and "OK?" not in out, out
+    assert not list((vault / ".vela" / "close").glob("*push-notice*"))  # no notice, so no yes can be taken for it
+    assert not remote_has(bare, BRANCH)
+
+
 def test_reader_copy_sends_nothing(tmp_path):
     vault, bare = sent_session(tmp_path)
     import shutil

@@ -146,7 +146,7 @@ def _ended(fix, ended):
     if not ended:
         return fix
     last = max(o.until or "" for o in ended)
-    return f"{fix} The exception the lead gave for this ended on {last}, so it covers nothing now."
+    return f"{fix} Your exception for this ended on {last}, so it doesn't cover it any more."
 
 
 def route(vault, item_id, rules, today):
@@ -168,7 +168,8 @@ def stage_reason(vault, found, name):
     stage = progress.text(app.meta.get("stage")) or "no"
     app_name = _say(vault, app.id)
     return Reason("GATE-1", f"{app_name} is still at the {stage} stage, and a grill needs it at target or later.",
-                  f"Run Discover on {app_name} first, or decide {name} anyway.", f"/vela:discover {app.id}")
+                  f"I'd run a Discover session on {app_name} first. Or I can decide {name} now and note it as "
+                  "your call.", f"/vela:discover {app.id}")
 
 
 def _state_and_options(found):
@@ -183,7 +184,7 @@ def option_reason(vault, found, name):
     if found.item is None and (found.page.id != found.id or found.page.type in ("concern", slices.PAGE_TYPE)):
         return None  # a table row or a concern page carries no option bullet; a slice is planned, not decided
     state, options = _state_and_options(found)
-    reopen = "Reopen it only if the lead wants to change it; reopening records the change of mind."
+    reopen = "We can reopen it if you've changed your mind, and I'll note that you did."
     if state == "decided":
         return Reason("GATE-2", f"{name} is already decided.", reopen)
     if state == "fact":
@@ -191,13 +192,15 @@ def option_reason(vault, found, name):
     if found.page.type == "epic" and found.item is None:
         if state in EPIC_OPEN:
             return None
-        return Reason("GATE-2", f"{name} is {state or 'without a state'}, and an epic is decided from a draft.",
-                      f"Write {name} up as a draft first, or decide it anyway.", "/vela:epics")
+        return Reason("GATE-2", f"{name} isn't written up as a draft yet, and an epic gets decided from a draft.",
+                      f"I'd write {name} up as a draft first. Or I can decide it now and note it as your call.",
+                      "/vela:epics")
     if state == "assumption" and options:
         return None
     said = "has no state yet" if not state else "is only an inkling" if state == "inkling" else \
-        "has no options written down yet, so there is no preferred one to decide"
-    return Reason("GATE-2", f"{name} {said}.", f"Shape it first, or decide {name} anyway.", f"/vela:shape {found.id}")
+        "has no options on the table yet, so there's nothing to pick from"
+    return Reason("GATE-2", f"{name} {said}.", "I'd lay out the options first. Or I can decide it now and note it as "
+                                               "your call.", f"/vela:shape {found.id}")
 
 
 def unknown_reason(vault, found, name, today, blocked):
@@ -210,11 +213,11 @@ def unknown_reason(vault, found, name, today, blocked):
     first = blockers[0]
     question = first.fact("Question") or first.name
     owner = OWNER_NAME.search(first.fact("Owner"))
-    who = owner.group(1) if owner else (first.fact("Owner") or "nobody named yet")
+    who = owner.group(1) if owner else first.fact("Owner")
     more = f" ({len(blockers) - 1} more open question{'' if len(blockers) == 2 else 's'} hold it up too.)" \
         if len(blockers) > 1 else ""
-    fix = (f"Ask whether the lead knows the answer now. If not, it waits for its owner ({who}), or the lead decides "
-           f"{name} anyway until a set date.")
+    waits = f"it waits for {who}" if who else "it waits until someone owns that question"
+    fix = (f"Do you know the answer? If not, {waits}, or you can decide {name} anyway until a date you pick.")
     return Reason("GATE-4", f"{name} waits on an open question nobody has answered yet: {question}{more}",
                   _ended(fix, ended), "ask the lead; else the unknown's owner and ask-by date, or a research task",
                   tuple(u.id for u in blockers)), ()
@@ -240,8 +243,9 @@ def case_reason(vault, found, name, today):
     covering, ended = _covering(vault, found, CASE_TABLE, today)
     if covering:
         return None, tuple(covering)
-    return Reason(CASE_TABLE, problem, _ended("Write the case table here, one open case at a time, or go back to Boundary.",
-                                              ended), f"/vela:boundary {found.id}"), ()
+    return Reason(CASE_TABLE, problem, _ended("I'd go through what it sends back when things go wrong, one case at a "
+                                              "time, here, or take it back to a boundary session.", ended),
+                  f"/vela:boundary {found.id}"), ()
 
 
 def slice_of(vault, item_id):
@@ -288,8 +292,8 @@ def flow_reason(vault, found, name, flows):
     said = ("is not fully checked: the check did not finish, so it proved nothing yet" if worst.state == flowstanding.NOT_FULLY
             else f"has {worst.words}" + (f" ({', '.join(worst.open)})" if worst.open else ""))
     return Reason(FLOW_CHECK, f"The flow check of {name} {said}.",
-                  "Read each finding out with its owners and settle it, or, if the lead accepts one for now, write a dated "
-                  "override for that finding. Nothing sets aside a check that did not finish.", command)
+                  "I'd read each finding out with its owners and settle it. If you're happy to live with one for "
+                  "now, I'll note that with an end date; a check that didn't finish can't be waved through.", command)
 
 
 def slice_reasons(vault, found, name, today):
@@ -308,8 +312,8 @@ def slice_reasons(vault, found, name, today):
         problem = case_problem(vault, contract) if contract is not None else ""
         covering, _ = _covering(vault, unit(vault, contract_id), CASE_TABLE, today) if problem else ([], [])
         if problem and not covering:
-            out.append(Reason(CASE_TABLE, problem, "Write that case table first, one open case at a time.",
-                              f"/vela:boundary {contract_id}"))
+            out.append(Reason(CASE_TABLE, problem, "I'd go through what it sends back when things go wrong first, one "
+                                                   "case at a time.", f"/vela:boundary {contract_id}"))
     return out
 
 
@@ -390,13 +394,14 @@ def lines_for(found, resolver):
     else:
         first = found.reasons[0]
         out = [say.Line(f"{found.id}: not ready ({first.rule}): {first.plain}",
-                        plain=f"Not ready: {plain(first.plain)} {plain(first.fix)}")]
+                        plain=f"{found.name} isn't ready to decide yet. {plain(first.plain)} {plain(first.fix)}")]
         out += [say.Line(f"{found.id}: also ({r.rule}): {r.plain}", plain=f"Also: {plain(r.plain)}")
                 for r in found.reasons[1:]]
     for o in found.overridden:
         until = f" until {o['until']}" if o.get("until") else ""
         out.append(say.Line(f"{found.id}: overridden: {', '.join(o['rules'])} by {o['by']} on {o['date']}{until}",
-                            plain=f"{found.name} goes ahead on the lead's exception{until}: {plain(o['reason'])}"))
+                            plain=f"{found.name} goes ahead because you made an exception{until}: "
+                                  f"{plain(o['reason'])}"))
     out += [say.Line(f"{found.id}: owed {copy}", plain=f"Still to ask about {found.name}: {plain(question)}")
             for copy, question in zip(found.owed, found.questions)]
     return out

@@ -367,6 +367,17 @@ def error_problems(errors, vault):
     return out
 
 
+_NO_GRILL = re.compile(r"^(?P<unit>\S+) is decided, but no \*\*Decision:\*\* bullet links a Grill session\.$")
+
+
+def _lead_message(message, vault):
+    """A check's message where its own words are the page grammar (a bullet's markup), said the lead's way."""
+    found = _NO_GRILL.match(message)
+    if found:
+        return f"{vault.name_of(found['unit'])} is decided, but nothing says which grill decided it."
+    return message
+
+
 def _error_words(found, vault):
     blocked = [_BLOCKED.match(f.message) for f in found]
     if all(blocked):
@@ -380,7 +391,8 @@ def _error_words(found, vault):
     stem = first.path.rsplit("/", 1)[-1]
     page = vault.page(stem[:-3]) if stem.endswith(".md") else None
     where = str(page.meta.get("title") or "") if page is not None else ""
-    said = f"On {where}: {first.message}" if where else first.message
+    message = _lead_message(first.message, vault)
+    said = f"On {where}: {message}" if where else message
     return said + (f" (and {say.count_words(len(found) - 1)} more like it)" if len(found) > 1 else "")
 
 
