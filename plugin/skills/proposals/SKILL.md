@@ -25,7 +25,7 @@ Run `vela role`. Only an owner reviews: in a reader copy, say "Reviewing a propo
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela proposals review "<proposal>"` from the plan's folder (`--slug <name>` or `--worktree <folder>` only if the owner asks). It applies and commits the changes on a new branch and worktree. Relay what it printed in plain words:
 - A stop (a base commit this clone lacks, uncommitted files, a branch that exists, a damaged patch): why, in one sentence, and what to do. Fix the cause or ask; never work around it by hand.
 - The plan moved since the reader's copy: by how many commits. A warning, not a stop.
-- **Conflicts:** before anything else, walk each conflicted file: show both sides, ask which text wins or what the merged text says, edit the worktree file, stage it by exact path (`git -C <worktree> add -- <file>`), then `git -C <worktree> commit -m "Resolve proposal conflicts"`.
+- **Conflicts:** before anything else, walk each conflicted file: show both sides, ask which text wins or what the merged text says, edit the worktree file, and once every conflicted file is settled run `vela proposals commit --vault <worktree> --step conflicts`. It refuses while a file still holds a conflict marker line, and names it.
 - **Check:** compare its counts with the proposal's claim, showing errors from the reader's copy first. The owner, not the errors, decides the review.
 
 ## 2. Walk the changes
@@ -39,12 +39,12 @@ For each group:
 3. Ask: accept, reject, or edit? The owner always decides. Never recommend an outcome on a pending decision, and never decide for them.
    - **Accept.** A pending decision: with the owner's handle, run `vela proposals accept --vault <worktree> --item <ID> --by @<owner>`. It removes the marker, records the owner's decision, credits the reader in History, and commits. An ordinary change is already on the branch.
    - **Reject.** Ask why, in the owner's own words (the reader reads it). Never write the reason yourself. Run `vela proposals reject "<proposal>" --vault <worktree> --group <key> --reason "<their words>"`. If the pages moved and it can't take the change out, say so and edit the file with the owner.
-   - **Edit.** Edit the worktree file with the owner, commit it (`git -C <worktree> commit -am "Edit <key> from the proposal"`), then for a pending decision run `vela proposals accept`. Ask for a one-line note of what they changed, for the reader.
+   - **Edit.** Edit the worktree file with the owner, commit it with `vela proposals commit --vault <worktree> --step edit --group <key>` (the hash it prints is the group's `commit` in the answer), then for a pending decision run `vela proposals accept`. Ask for a one-line note of what they changed, for the reader.
 4. Note the outcome and the owner's reason.
 
 ## 3. Check and answer
 
-Run `vela render` then `vela check` in the worktree, commit what render changed, and say the final counts.
+Run `vela render` then `vela check` in the worktree, commit what render changed with `vela proposals commit --vault <worktree> --step render` (exit 1 "nothing to save" means render changed nothing), and say the final counts. Never stage or commit by hand: every commit here goes through `vela proposals`.
 
 Write the answer from the notes, on standard input so the owner's words need no escaping. Every group needs an entry; `rejected` and `edited` need a reason:
 

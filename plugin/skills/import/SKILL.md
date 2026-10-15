@@ -24,7 +24,7 @@ Use whatever access the user already has: local files, a clone, an export, a too
 
    > **Contracts.** The partner guide describes the nightly booking file; the ops runbook says hourly, so that's one open question. The roadmap deck's live feed by Q4 stays not decided yet.
 
-5. Write the pages in the format `vela conventions "<section>"` gives for each, in batches, committing a checkpoint after each (in a reader copy, which has no git, write the batch and skip the commit). Every line cites its source, and its state follows where it came from:
+5. Write the pages in the format `vela conventions "<section>"` gives for each, in batches, committing a checkpoint after each with `vela close stage --checkpoint --for-lead` (in a reader copy, which has no git, write the batch and skip the commit). Every line cites its source, and its state follows where it came from:
    - `exists` or `repo` gives a `fact`.
    - `intends` gives an `assumption`, or an `inkling` if it is vague. Anything about the future is an `assumption` whatever the Kind.
    - A decision a source names is an `assumption` here, never `decided`: only a grill decides, and the check flags `decided` with no grill behind it. When the source names who decided it and when, note both on the item, so the grill has them ("Decided by the CTO on 3 March, per the architecture decision record; grill to confirm"). When it names neither, add an unknown asking the owner to confirm it. In a reader copy, decisions carry `**Pending approval:**` as `vela conventions "Pending approval"` says.

@@ -11,18 +11,18 @@ Turn a finished design into stories and tasks, and show that nothing was left ou
 
 ## 1. Start
 
-Before your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`; write the plan's prose through `house-voice` (`${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`, read as a file: only a person can start it). Acceptance criteria are never restyled. From `${CLAUDE_PLUGIN_ROOT}/references/START.md` follow "Plain names and a page a person can hold" and "The user may override any rule". When the terms slice or tracer first come up, define each once from `vela terms <word>`.
+Before your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`; write the plan's prose through `house-voice` (`${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`, read as a file: only a person can start it). Acceptance criteria are never restyled. From `${CLAUDE_PLUGIN_ROOT}/references/START.md` follow "Plain names and a page a person can hold", "Relaying a command" and "The user may override any rule". When the terms slice or tracer first come up, define each once from `vela terms <word>`.
 
-Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela freshness`. If it exits 3, this copy is behind the shared plan, and every check below would read old pages: say in your words that the copy is behind and offer to bring it up to date (`git switch main`, then `git pull --ff-only`) before you go on. If it fails, say in one plain sentence that you couldn't check, then go on.
+Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan, and every check below would read old pages: say what it printed in your words and offer to bring it up to date (`git switch main`, then `git pull --ff-only`) before you go on. If it fails, say in one plain sentence that you couldn't check, then go on.
 
-A team session writes no session record. Work on the branch `design/<slug>` (create it if it doesn't exist), commit after each agreed story, and say so. The plan is reviewed like the design. If the team has no review rule, say you are committing to a branch and let the team lead decide.
+A team session writes no session record. Work on the branch `design/<slug>` (create it if it doesn't exist), commit after each agreed story with `vela team commit --about "<the story>"`, and say so. The plan is reviewed like the design. If the team has no review rule, say you are committing to a branch and let the team lead decide.
 
 Check the prerequisites:
 
 1. `docs/tech-design/<slug>.md` exists with `status: complete` or `complete-with-gaps`. If not, say in one sentence what is missing and offer `/vela:design`; stop there. A plan on an unfinished design is a plan for work that will change.
 2. `docs/plan/<slug>-breakdown.md` may already exist. Read back its summary in words, ask whether to continue it or start again, and say what you didn't re-check. Stories already agreed stay as they are.
-3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id>` as `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md` says. If the vault changed since the design, name what changed, by name, before the plan leans on it.
-4. Read your app's slices' flow check from the handoff rather than running it again: `handoffs/<APP-id>.md`, under `## Flow checks when written`. If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice>` once. If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.
+3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id> --for-lead` as `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md` says. If the vault changed since the design, name what changed, by name, before the plan leans on it.
+4. Read your app's slices' flow check from the handoff rather than running it again: `handoffs/<APP-id>.md`, under `## Flow checks when written`. If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice> --for-lead` once. If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.
 
 ## 2. Read what the plan stands on
 
@@ -56,7 +56,7 @@ Then, for each agreed story, one question at a time with your recommendation and
 
 When a story's tasks come out vague, probe with a concrete edge case rather than the happy path: "A customer cancels an order with three line items, one already shipped. Which task handles the shipped line, which the refund, and which the order's status?" If no task owns an answer, the story is missing one. If the answer comes back general, restate the scenario more concretely until it isn't.
 
-Write each story into the plan as soon as it's agreed, and commit. Stories deferred, held or split keep every field a built story has (`PLAN-FORMAT.md` gives their `Status:` lines); IDs are never renumbered or reused.
+Write each story into the plan as soon as it's agreed, and commit it with `vela team commit`. Stories deferred, held or split keep every field a built story has (`PLAN-FORMAT.md` gives their `Status:` lines); IDs are never renumbered or reused.
 
 Never split, merge, drop or reorder agreed stories without reading the change back and getting a yes. Being allowed to edit the plan is not leave to change what was agreed.
 

@@ -114,13 +114,13 @@ def test_breakdown_loads_the_voice_before_its_first_question_and_names_house_voi
 def test_breakdown_checks_freshness_before_the_prerequisites():
     body = text(BREAKDOWN / "SKILL.md")
     assert body.index("vela freshness") < body.index("Check the prerequisites")
-    assert "say in your words that the copy is behind and offer to bring it up to date" in body
+    assert "say what it printed in your words and offer to bring it up to date" in body
 
 
 def test_flow_check_line_team_side():
     body = text(BREAKDOWN / "SKILL.md")
     assert "Read your app's slices' flow check from the handoff rather than running it again" in body
-    assert ("If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice>` once. "
+    assert ("If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice> --for-lead` once. "
             "If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.") in body
     assert "Until the handoff carries it" not in body
 

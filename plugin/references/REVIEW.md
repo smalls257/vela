@@ -45,7 +45,7 @@ Give the coverage in one sentence ("All five angles found something", or "Four a
 
 ## 5. The digest
 
-Run `vela questions --digest --session <session id>`. It gives the next three lines for this session's lead, high and blocking first, never one already shown or taken this session, and writes what it showed into the record. Nothing is dropped: every line stays in `vela questions --open` and in the ledger.
+Run `vela questions --digest --session <session id> --for-lead`. It gives the next three lines for this session's lead, high and blocking first, never one already shown or taken this session, and writes what it showed into the record. Nothing is dropped: every line stays in `vela questions --open` and in the ledger.
 
 What the lead is shown is small, so they can answer it.
 

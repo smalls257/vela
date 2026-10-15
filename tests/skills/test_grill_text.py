@@ -300,7 +300,7 @@ def test_questions_section_is_first():
 
 
 def test_flow_check_line_carried_as_written():
-    line = ("Run `vela check-slice --changed` first. A finding on the item's slice blocks it unless the lead overrides "
+    line = ("Run `vela check-slice --changed --for-lead` first. A finding on the item's slice blocks it unless the lead overrides "
             "it with a reason and an end date, which you record under the slice page's `## Overrides`. 'Not fully "
             "checked' blocks it too, and no override covers that.")
     grill = text("skills/grill/SKILL.md")

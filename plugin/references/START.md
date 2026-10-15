@@ -4,7 +4,11 @@ Every mode skill runs these steps before its own. The vault root is the current 
 
 ## 0. Read how to talk
 
-Before you say anything to the lead, read `voice/VOICE.md` if the vault has one (the owner's own rules, above the defaults), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`. Each mode skill says this again in one line near its top. Don't tell the lead you read it. What a command prints reaches the lead in that voice and in your words: use `--for-lead` where the command has it, and never pass on a path, a branch, a hash, or git's or gh's own error text.
+Before you say anything to the lead, read `voice/VOICE.md` if the vault has one (the owner's own rules, above the defaults), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`. Each mode skill says this again in one line near its top. Don't tell the lead you read it. What a command prints reaches the lead in that voice and in your words: use `--for-lead` where the command has it, and never pass on a path, a branch, a hash, or git's or gh's own error text. "Relaying a command" below says what to do when its line says something went wrong.
+
+## Relaying a command
+
+Run a command with `--for-lead` whenever the lead will hear what it says, and say its lines in your words. Its lines stop at about four and end with a count, such as "Three more; want them?"; when the lead says yes, run the same command again with `--more` added. A `--for-lead` line that says "Something went wrong on my side" means the command refused for a reason that is yours to fix (an ID, a field or a flag you gave it), so never say that line or the command's own text. Run the same command again with `--json` in place of `--for-lead`, read why in `refused` (each refusal's `plain` and `fix`), fix it if you can and run it once more. If you can't, tell the lead in one plain sentence what you couldn't do, and go on.
 
 ## Where vela runs from
 
@@ -56,7 +60,7 @@ Hard stops are not process rules, and no override reaches them. Say which one ap
 
 Run `vela session start --mode grill --topic "<two to four words from the lead's first message>" --for-lead`, with the skill's own mode in place of `grill`; repeat `--mode` for a session that runs two. It does steps 1, 2 and 5: it checks the clone, brings `main` up to the shared copy (or merges it into a resumed branch), opens the session's branch and record, and commits them. Say what it means, in your words; say nothing when the plan is up to date. If the shared copy was out of reach, say so, and never call the plan up to date. Later, `vela freshness` says how far behind the shared copy this branch is.
 
-**Reader copy:** `session start` writes the record in the folder and runs no git. Also run `vela freshness` and say whether a newer copy was published. If it fails, say in one plain sentence that you couldn't check, and go on.
+**Reader copy:** `session start` writes the record in the folder and runs no git. Also run `vela freshness --for-lead` and say whether a newer copy was published. If it fails, say in one plain sentence that you couldn't check, and go on.
 
 ## 2. Find open sessions
 

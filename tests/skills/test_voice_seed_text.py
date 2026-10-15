@@ -76,7 +76,9 @@ def test_voice_seed_warns_about_boundary_lines_and_asks():
 
 def test_voice_seed_commits_by_path_and_never_claims_a_pr():
     seed = skill_text("voice-seed")
-    assert "Never use `git add -A`." in seed
+    # Task 24: the samples ride a checkpoint through vela, by exact path; the hand-typed stage and commit are gone
+    assert "run `vela close stage --checkpoint --for-lead`" in seed and "Never stage or commit by hand." in seed
+    assert "git status --short voice/examples" not in seed and "Commit with the message" not in seed
     assert "Never say a PR exists unless `gh` printed its URL." in seed
     assert "vela whoami --json" in seed
 

@@ -75,7 +75,7 @@ def test_review_merges_in_code_and_never_reads_a_failure_as_clean():
 
 def test_the_digest_is_the_session_command_and_never_twice_is_its_bookkeeping():
     digest = section("5. The digest")
-    assert "`vela questions --digest --session <session id>`" in digest
+    assert "`vela questions --digest --session <session id> --for-lead`" in digest
     assert "At most three questions" in digest and "Once per session" in digest and "Never twice, never ruled out" in digest
     assert "first five" not in digest and "next five" not in digest
     assert "A turn of 50 questions is a dump" in digest

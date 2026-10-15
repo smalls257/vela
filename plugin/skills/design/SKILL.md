@@ -13,15 +13,15 @@ The vault already says what the app must do. This session settles how the team b
 
 Before your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`; write the design's prose through `house-voice` (`${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and the vault's `voice/examples/`, read as files: only a person can start house-voice).
 
-First run `vela freshness`. If it exits 3, this copy is behind the shared plan: stop, tell the lead in your words that this copy is behind and offer to bring it up to date (`git switch main`, then `git pull --ff-only`), and go on once it is. A stale copy says an app isn't handed off when main says it is. If the command fails, say in one plain sentence that you couldn't check, then go on.
+First run `vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan: stop, say what it printed in your words and offer to bring it up to date (`git switch main`, then `git pull --ff-only`), and go on once it is. When it says the copy is up to date, say nothing about it. A stale copy says an app isn't handed off when main says it is. If the command fails, say in one plain sentence that you couldn't check, then go on.
 
-A design opens no session record, so START's numbered steps don't apply; its rules "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule" do. When the terms slice, tracer or grill first come up, define each once from `vela terms <word>`.
+A design opens no session record, so START's numbered steps don't apply; its rules "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule" do, and so does "Relaying a command" for every `--for-lead` line. When the terms slice, tracer or grill first come up, define each once from `vela terms <word>`.
 
 In conversation the team lead hears names, not codes. Say "the calendar entries", "the consent check", "the question about mail"; the IDs go in the files, on Trace lines and in the pull request.
 
 Then follow `${CLAUDE_PLUGIN_ROOT}/references/TECH-DESIGN-FROM-VAULT.md`. It checks the app is handed off, runs `vela handoff verify`, records the vault commit, opens the `design/<slug>` branch, and says what to read and in what order.
 
-Read your app's slices' flow check from the handoff rather than running it again: `handoffs/<APP-id>.md`, under `## Flow checks when written`. If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice>` once. If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.
+Read your app's slices' flow check from the handoff rather than running it again: `handoffs/<APP-id>.md`, under `## Flow checks when written`. If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice> --for-lead` once. If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.
 
 If `docs/tech-design/<slug>.md` already exists, say in words where it stands and offer the choices that fit: at `complete-with-gaps`, "The design is finished, with 3 known gaps. Close the gaps, redo it, or start a separate design?" (each closed gap leaves `gaps[]`); at `complete`, redo it or start a separate one; at `in-progress`, carry on from the first unfinished section or open question.
 
@@ -45,7 +45,7 @@ If the vault has no releases page at all, propose a skeleton from the app's firs
 
 ## 4. Write as you go
 
-Write each answer into `docs/tech-design/<slug>.md` as its section settles, and commit it on the branch, naming the section. Batching loses work when a session is cut off; the branch is the resume point.
+Write each answer into `docs/tech-design/<slug>.md` as its section settles, and commit it on the branch with `vela team commit --about "<the section>"`, naming the section. Batching loses work when a session is cut off; the branch is the resume point.
 
 - The doc follows `TECH-DESIGN-FORMAT.md`, its frontmatter `FRONTMATTER-FORMAT.md`: a summary first, then full detail, each topic under about 120 words.
 - An ADR only when a decision is hard to reverse, surprising without context and a real trade-off: `ADR-FORMAT.md`.
