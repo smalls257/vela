@@ -13,6 +13,8 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. If the host leaves `${CLAU
 
 ## 1. Start
 
+First run `vela freshness`. If it exits 3, this copy is behind the shared plan: stop, tell the lead in its words, and bring main in (`git switch main`, then `git pull --ff-only`) once they agree. The handoff check reads this copy, so a stale one says an app isn't handed off when main says it is.
+
 A design opens no session record and touches no vault page, so START's numbered steps don't apply. Its shared rules do: read START.md and follow "Where vela runs from", "Owner or reader", "Plain names and a page a person can hold", "Shell that runs on a Mac and on Linux" and "The user may override any rule", with its hard stops.
 
 Then the two voices. For the conversation, read the conversation voice START.md points to (`references/CONVERSATION-VOICE.md` in the plugin root) and the vault's `voice/VOICE.md` when there is one; the vault owner's own rules there come first. For the pages, read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` and the vault's `voice/examples/`. Read house-voice as a file: only a person can start it as a skill.
