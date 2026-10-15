@@ -2858,6 +2858,7 @@ def build_parser():
     ans.add_argument("--decisions", required=True, help="JSON list of {group, outcome: accepted|rejected|edited, reason, commit}, from a file or - for standard input")
     ans.add_argument("--today", help="the date to record, YYYY-MM-DD (default: system date)")
     ans.set_defaults(func=cmd_proposals_answer)
+    commands.module("proposals_commit").register_proposals(pshared)  # the owner's own commits during a review
     trm = sub.add_parser("terms", help="what the kept working words (slice, tracer, grill) mean")
     trm.add_argument("word", nargs="?", help="one word to define")
     trm.set_defaults(func=cmd_terms)
