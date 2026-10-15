@@ -25,7 +25,7 @@ Run `vela role`. Only an owner reviews: in a reader copy, say "Reviewing a propo
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela proposals review "<proposal>"` from the plan's folder (`--slug <name>` or `--worktree <folder>` only if the owner asks). It applies and commits the changes on a new branch and worktree. Relay what it printed in plain words:
 - A stop (a base commit this clone lacks, uncommitted files, a branch that exists, a damaged patch): why, in one sentence, and what to do. Fix the cause or ask; never work around it by hand.
 - The plan moved since the reader's copy: by how many commits. A warning, not a stop.
-- **Conflicts:** before anything else, walk each conflicted file: show both sides, ask which text wins or what the merged text says, edit the worktree file, and once every conflicted file is settled run `vela proposals commit --vault <worktree> --step conflicts`. It refuses while a file still holds a conflict marker line, and names it.
+- **Conflicts:** before anything else, walk each conflicted file: show both sides, ask which text wins or what the merged text says, edit the worktree file, and once every conflicted file is settled run `vela proposals commit --vault <worktree> --step conflicts`. While a file still holds a conflict marker line it saves nothing and names the file.
 - **Check:** compare its counts with the proposal's claim, showing errors from the reader's copy first. The owner, not the errors, decides the review.
 
 ## 2. Walk the changes

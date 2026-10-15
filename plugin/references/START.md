@@ -8,7 +8,7 @@ Before you say anything to the lead, read `voice/VOICE.md` if the vault has one 
 
 ## Relaying a command
 
-Run a command with `--for-lead` whenever the lead will hear what it says, and say its lines in your words. Its lines stop at about four and end with a count, such as "Three more; want them?"; when the lead says yes, run the same command again with `--more` added. A `--for-lead` line that says "Something went wrong on my side" means the command refused for a reason that is yours to fix (an ID, a field or a flag you gave it), so never say that line or the command's own text. Run the same command again with `--json` in place of `--for-lead`, read why in `refused` (each refusal's `plain` and `fix`), fix it if you can and run it once more. If you can't, tell the lead in one plain sentence what you couldn't do, and go on.
+Run a command with `--for-lead` whenever the lead will hear what it says, and say its lines in your words. Its lines stop at about four and end with a count, such as "Three more; want them?"; when the lead says yes, run the same command again with `--more` added. A `--for-lead` line that says "Something went wrong on my side" means the command stopped for a reason that is yours to fix (an ID, a field or a flag you gave it), so never say that line or the command's own text. Run the same command again with `--json` in place of `--for-lead`, read why in its `plain` and `fix` fields, fix it if you can and run it once more. If you can't, tell the lead in one plain sentence what you couldn't do, and go on.
 
 ## Where vela runs from
 

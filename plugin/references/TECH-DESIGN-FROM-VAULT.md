@@ -13,7 +13,7 @@
 
 ## Where the work lands
 
-The design, its ADRs, `CONTEXT.md` and the build plan are the team's files, and they go through the team's review like any other change. Do not commit them to `main` or push to it. Work on a branch named `design/<slug>`, commit after each section with `vela team commit --about "<the section>"` (it stages `docs/` and `CONTEXT.md` by exact path and refuses on `main`; never stage or commit by hand), and open a pull request when the design is complete. If the team has no review rule, say that you are committing to a branch, and let the team lead decide. In a reader copy there is no git: write the files and commit nothing, as `START.md` says.
+The design, its ADRs, `CONTEXT.md` and the build plan are the team's files, and they go through the team's review like any other change. Do not commit them to `main` or push to it. Work on a branch named `design/<slug>`, commit after each section with `vela team commit --about "<the section>"` (it stages `docs/` and `CONTEXT.md` by exact path and saves nothing on `main`; never stage or commit by hand), and open a pull request when the design is complete. If the team has no review rule, say that you are committing to a branch, and let the team lead decide. In a reader copy there is no git: write the files and commit nothing, as `START.md` says.
 
 ## What to read, in this order
 
