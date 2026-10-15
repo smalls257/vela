@@ -502,7 +502,7 @@ criteria. The opening may use `{opening}`, `{topics[...]}` and `{first_decision}
 
 | `stakeholder-conflict` | heron and trading-coach `empty`, holdout `after-dump` | `/vela:discover {topics[discover_1]}, and who wants what from it` | 12 | at least half the stakeholder positions surfaced in full: the disagreement named, who holds it named in that turn, and recorded as an unknown or risk; 0 decided without a yes |
 | `unsure-owner` | heron and trading-coach `empty`, holdout `after-dump` | `/vela:discover {topics[discover_1]}`, with news that the lead knows no owner or date | 12 | every time the lead is unsure of an owner or date the next turn proposes one and asks; no owner or date written that the lead's next message didn't say yes to or name |
-| `grill-decisions` | heron `after-full-1`, holdout `after-discover` | `/vela:grill {topics[grill_2]}` | 14 | at least 1 decision recorded after an explicit yes; 0 without; at most 3 questions in any turn |
+| `grill-decisions` | heron `after-full-1`, holdout `after-discover` | `/vela:grill {topics[grill]}` | 14 | at least 1 decision recorded after an explicit yes; 0 without; at most 3 questions in any turn |
 
 `discover-implications` also counts gaps (`unaware-raised-first`): the U items an assistant turn names before any
 lead turn does. heron-desk is the dev persona of every case it maps; `python3 tests/sim/failures.py <probe run

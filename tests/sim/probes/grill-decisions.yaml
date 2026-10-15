@@ -4,7 +4,7 @@
 snapshot:
   heron-desk: after-full-1
   holdout-hospitals: after-discover
-opening: "/vela:grill {topics[grill_2]}"
+opening: "/vela:grill {topics[grill]}"
 cap: 14
 criteria:
   - check: decided-with-yes
