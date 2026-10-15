@@ -1,6 +1,6 @@
 # Review checkpoint
 
-Run this once the design's sections are written, before the self-audit. The interview only surfaces what someone in the room knows. Fresh reviewers, each reading one area with no memory of the session, find what nobody mentioned: a vendor limit, a license clause, a nightly reset.
+Run this once the design's sections are written, before the self-audit. The interview only surfaces what someone in the room knows. Fresh reviewers, each reading one area with no memory of the session, find what nobody mentioned: a vendor limit, a license clause, a weekend freeze window.
 
 ## 1. Dispatch five reviewers
 

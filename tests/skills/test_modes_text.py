@@ -49,7 +49,7 @@ def test_modes_has_no_question_cap_and_no_sweep():
 def test_modes_asks_once_what_the_lead_might_not_know_they_need():
     assert "**Ask what they might not know they need.**" in MODES
     assert "In Discover, Shape and a grill" in MODES and "who has to agree or be consulted" in MODES
-    assert "works council" in MODES  # the worked example of asking, not answering, stays word for word
+    assert "street-works permit" in MODES  # the worked example of asking, not answering, stays word for word
 
 
 def test_modes_says_where_to_start():

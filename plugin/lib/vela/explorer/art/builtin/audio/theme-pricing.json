@@ -1,6 +1,6 @@
 {
- "slot": "theme.quoteline",
- "about": "Quoteline: clockwork ticks under a muted plucked arpeggio that echoes back late, because the data is delayed. A minor, 100 bpm.",
+ "slot": "theme.pricing",
+ "about": "Pricing: clockwork ticks under a muted plucked arpeggio that echoes back late, like a quote that arrives delayed. A minor, 100 bpm.",
  "bpm": 100,
  "length_beats": 14,
  "fx": {

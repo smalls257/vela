@@ -2,7 +2,7 @@
 
 The Violation this module's shape prevents is the Leaky Narrative. explore/SKILL.md "What the build reports" listed
 the kinds of build line and asked the model to put each into plain words on every run, so the raw lines reached the
-lead: app IDs beside every name ("Coach (APP-coach)"), check codes ("vela check reports it as E105"), a summary that
+lead: app IDs beside every name ("Rider app (APP-rider)"), check codes ("vela check reports it as E105"), a summary that
 opens with the initiative's ID, design statuses as the file spells them. The same translation lived twice, once in
 prose and once in each model's head. Here it lives once, in code (Filter): one row in `KINDS` per kind of line, and
 the skill relays what the command prints.
@@ -59,7 +59,7 @@ def _and(names):
 
 
 def _names(listed, r):
-    """'Coach (APP-coach), TickerTalk (APP-tickertalk)' or 'APP-coach, APP-tickertalk' -> 'Coach and TickerTalk'."""
+    """'Rider app (APP-rider), Dock service (APP-docks)' or 'APP-rider, APP-docks' -> 'Rider app and Dock service'."""
     return _and([r.plain(part.strip()) for part in re.split(r",\s*|/", listed) if part.strip()])
 
 

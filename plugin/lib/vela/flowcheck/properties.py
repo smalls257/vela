@@ -225,7 +225,7 @@ def check_await(b, flow, node, ctx):
 def unused_cases(catalog, trees):
     """F4, once per initiative: a declared case of a called contract that no flow anywhere branches on or replies.
     Only claimed once every flow that crosses the contract is drawn: while one is not, the case may be its to reach
-    (Heron's "transcripts alone" refusal of Record consent, with the withdrawal flow still undrawn), and "reached by
+    (a "dock full" refusal of Hold dock, with the cancel flow still undrawn), and "reached by
     no flow" would be a claim nobody can back."""
     reached, called = set(), {}
     drawn = {flow.id for flow, _ in trees}

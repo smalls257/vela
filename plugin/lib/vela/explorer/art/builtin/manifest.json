@@ -2,21 +2,21 @@
  "provider": "builtin",
  "about": "Hand-authored, needs nothing: SVG emblems in one flat navy-and-amber family, SVG-filter textures, SMIL-animated SVG loops, Web Audio recipes played by resolve.js.",
  "slots": {
-  "emblem.coach": {
+  "emblem.learning": {
    "form": "svg",
-   "file": "emblems/coach.svg"
+   "file": "emblems/learning.svg"
   },
-  "emblem.tickertalk": {
+  "emblem.news": {
    "form": "svg",
-   "file": "emblems/tickertalk.svg"
+   "file": "emblems/news.svg"
   },
-  "emblem.brightwater": {
+  "emblem.trading": {
    "form": "svg",
-   "file": "emblems/brightwater.svg"
+   "file": "emblems/trading.svg"
   },
-  "emblem.quoteline": {
+  "emblem.pricing": {
    "form": "svg",
-   "file": "emblems/quoteline.svg"
+   "file": "emblems/pricing.svg"
   },
   "texture.transit-paper": {
    "form": "svg",
@@ -46,21 +46,21 @@
    "form": "svg",
    "file": "loops/cockpit.svg"
   },
-  "theme.coach": {
+  "theme.learning": {
    "form": "recipe",
-   "file": "audio/theme-coach.json"
+   "file": "audio/theme-learning.json"
   },
-  "theme.tickertalk": {
+  "theme.news": {
    "form": "recipe",
-   "file": "audio/theme-tickertalk.json"
+   "file": "audio/theme-news.json"
   },
-  "theme.brightwater": {
+  "theme.trading": {
    "form": "recipe",
-   "file": "audio/theme-brightwater.json"
+   "file": "audio/theme-trading.json"
   },
-  "theme.quoteline": {
+  "theme.pricing": {
    "form": "recipe",
-   "file": "audio/theme-quoteline.json"
+   "file": "audio/theme-pricing.json"
   },
   "chime.decided": {
    "form": "recipe",
@@ -71,21 +71,21 @@
    "file": "audio/bed-timelapse.json",
    "loop": true
   },
-  "emblem-on-dark.coach": {
+  "emblem-on-dark.learning": {
    "form": "svg",
-   "file": "emblems/coach.svg"
+   "file": "emblems/learning.svg"
   },
-  "emblem-on-dark.tickertalk": {
+  "emblem-on-dark.news": {
    "form": "svg",
-   "file": "emblems/tickertalk.svg"
+   "file": "emblems/news.svg"
   },
-  "emblem-on-dark.brightwater": {
+  "emblem-on-dark.trading": {
    "form": "svg",
-   "file": "emblems/brightwater.svg"
+   "file": "emblems/trading.svg"
   },
-  "emblem-on-dark.quoteline": {
+  "emblem-on-dark.pricing": {
    "form": "svg",
-   "file": "emblems/quoteline.svg"
+   "file": "emblems/pricing.svg"
   }
  }
 }

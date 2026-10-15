@@ -13,8 +13,8 @@ follows:
     flow     -> its slices
     slice    -> itself, and the slices after it only when one of its flows now leaves different states (F13)
 
-Each affected slice comes with its reason chains, in names: "Record consent changed → A person switches Heron on →
-SLC-001 Switch Heron on". When the walk cannot tell (no catalog from before, a whole-file problem that came or went),
+Each affected slice comes with its reason chains, in names: "Hold dock changed → A rider holds a dock →
+SLC-001 Hold a dock". When the walk cannot tell (no catalog from before, a whole-file problem that came or went),
 every slice is affected and `everything` says why: the walk never narrows on a guess (Silent Fallback). A change no
 slice reaches is listed in `untouched`, so it is said rather than dropped.
 """

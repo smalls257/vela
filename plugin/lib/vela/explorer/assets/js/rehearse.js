@@ -46,7 +46,7 @@ const Rehearse = (() => {
     renderAll();
   }
   function emblem(lane) {
-    const url = Assets.emblem(lane.name), color = FlowKit.laneColor(lane.id);
+    const url = Assets.emblem(lane.id), color = FlowKit.laneColor(lane.id);
     if (url) return `<span class="em" style="background:${color}"><img alt="" src="${url}"></span>`;
     return `<span class="em ${lane.kind}" style="background:${color};border-color:${color};color:${lane.kind === "partner" ? color : Theme.c("room")}">${esc(lane.name[0])}</span>`;
   }
@@ -259,7 +259,7 @@ const Rehearse = (() => {
       if (placed) placed.classList.add("snap");
       requestAnimationFrame(() => pluck(d.lane));
       Sound.click(d.lane);
-      if (d.fromSlot === null) Assets.theme(laneOf(d.lane).name);
+      if (d.fromSlot === null) Assets.theme(d.lane);
     } else if (d.fromSlot !== null && e.target.closest(".rh-tray, .rh-side")) {
       const lane = st.slots[d.fromSlot], before = st.steps.length;
       st.slots[d.fromSlot] = null;

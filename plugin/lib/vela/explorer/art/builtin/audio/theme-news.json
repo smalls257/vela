@@ -1,6 +1,6 @@
 {
- "slot": "theme.tickertalk",
- "about": "TickerTalk: marimba headline sting over pizzicato and a rimshot. D major, 120 bpm. Alert, quick, news-at-the-top-of-the-hour.",
+ "slot": "theme.news",
+ "about": "News: marimba headline sting over pizzicato and a rimshot. D major, 120 bpm. Alert, quick, news-at-the-top-of-the-hour.",
  "bpm": 120,
  "length_beats": 12,
  "fx": {

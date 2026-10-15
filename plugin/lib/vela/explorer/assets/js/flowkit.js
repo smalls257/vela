@@ -24,7 +24,7 @@ const FlowKit = (() => {
   const laneColor = (id) => { readPalette(); return PALETTE[(LANE_INDEX[id] ?? 0) % PALETTE.length]; };
   const laneName = (id) => (lanes[LANE_INDEX[id]] || { name: titleOf(id) }).name;
   const emblemImg = {};
-  Assets.onReady(() => { for (const l of lanes) { const url = Assets.emblem(l.name); if (url) { const img = new Image(); img.src = url; emblemImg[l.id] = img; } } });
+  Assets.onReady(() => { for (const l of lanes) { const url = Assets.emblem(l.id); if (url) { const img = new Image(); img.src = url; emblemImg[l.id] = img; } } });
 
   /* The record's view of a flow, shaped for playing; or, when a branch is chosen in the header's Show picker, that
      branch's steps (branches.js), so one diagram draws both. */

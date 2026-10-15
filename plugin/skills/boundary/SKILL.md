@@ -11,11 +11,11 @@ Turn a decided direction into apps a team lead can take. Until an app page exist
 
 Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from"). Read a page format one section at a time with `vela conventions "<section>"`: "Frontmatter", "Fact bullets" for contracts, "Fact tables" for containers, "Concern cells and waivers", "Areas and stages" for the ladder. Relay each `--for-lead` output's plain lines; reason over `--json`. When a command turns an item down, relay its reason and do what it says. When a command can't express what the lead wants, say so and stop.
 
-**How you talk to the lead.** Answer first, then at most about four things to judge, one question at a time, each with a recommendation that holds under pushback (`CONVERSATION-VOICE.md`, rule 7). Name things, in your own sentences as well as in what a command prints: an ID only where the lead has to act on it. States in words: "just an idea" (`inkling`), "not decided yet" (`assumption`), "confirmed" (`fact`); "the plan", not the vault. Names in American spelling, capitalized ones too ("Summarizer", not "Summariser"): the spelling check skips capitalized words. A read-back by name:
+**How you talk to the lead.** Answer first, then at most about four things to judge, one question at a time, each with a recommendation that holds under pushback (`CONVERSATION-VOICE.md`, rule 7). Name things, in your own sentences as well as in what a command prints: an ID only where the lead has to act on it. States in words: "just an idea" (`inkling`), "not decided yet" (`assumption`), "confirmed" (`fact`); "the plan", not the vault. Names in American spelling, capitalized ones too ("Route Optimizer", not "Route Optimiser"): the spelling check skips capitalized words. A read-back by name:
 
-> Not this: "APP-agent provides CON-003 to APP-admin-console, at assumption; UNK-051 blocks it."
+> Not this: "APP-dock-service provides CON-003 to APP-fleet-console, at assumption; UNK-051 blocks it."
 >
-> This: "The desktop agent gives the admin console its consent list. That's not decided yet, and it waits on one open question: who signs off the data notice. Priya is chasing it by 21 October."
+> This: "The dock service gives the fleet console its list of broken docks. That's not decided yet, and it waits on one open question: who signs off the repair contract. Ines is chasing it by 21 October."
 
 ## 1. Start
 

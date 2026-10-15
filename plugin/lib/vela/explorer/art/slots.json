@@ -1,8 +1,8 @@
 {
- "about": "Asset slot contract. Pages ask for a slot id through resolve.js and never name a file or a provider. Every slot must be filled by the builtin provider; other providers may fill any subset. 'accepts' lists the forms a provider may supply, in the resolver's preference order. Assets carry identity and atmosphere only: no diagram, label or data is ever baked into an asset.",
+ "about": "Asset slot contract. Pages ask for a slot id through resolve.js and never name a file or a provider. Emblem and theme slots are keyed by the icon kind the build picks for a box (icons_data.py), never by an app's name, so the art fits any vault. Every slot must be filled by the builtin provider; other providers may fill any subset. 'accepts' lists the forms a provider may supply, in the resolver's preference order. Assets carry identity and atmosphere only: no diagram, label or data is ever baked into an asset.",
  "slots": [
   {
-   "id": "emblem.coach",
+   "id": "emblem.learning",
    "kind": "image",
    "accepts": [
     "svg",
@@ -11,10 +11,10 @@
    "size": "1024x1024 (svg: any)",
    "aspect": "1:1",
    "background": "transparent or plain light",
-   "for": "Icon for Coach, the AI teaching service: map stations, strip headers, sequence-diagram lifelines"
+   "for": "Icon for a box whose icon kind is learning (a course, a tutor, a teaching service): map stations, strip headers, sequence-diagram lifelines"
   },
   {
-   "id": "emblem.tickertalk",
+   "id": "emblem.news",
    "kind": "image",
    "accepts": [
     "svg",
@@ -23,10 +23,10 @@
    "size": "1024x1024 (svg: any)",
    "aspect": "1:1",
    "background": "transparent or plain light",
-   "for": "Icon for TickerTalk, the news app with 400,000 readers"
+   "for": "Icon for a box whose icon kind is news (articles, a feed, editorial content)"
   },
   {
-   "id": "emblem.brightwater",
+   "id": "emblem.trading",
    "kind": "image",
    "accepts": [
     "svg",
@@ -35,10 +35,10 @@
    "size": "1024x1024 (svg: any)",
    "aspect": "1:1",
    "background": "transparent or plain light",
-   "for": "Icon for Brightwater, the broker partner whose sandbox runs paper trades"
+   "for": "Icon for a box whose icon kind is trading (a broker, a market, an exchange)"
   },
   {
-   "id": "emblem.quoteline",
+   "id": "emblem.pricing",
    "kind": "image",
    "accepts": [
     "svg",
@@ -47,7 +47,7 @@
    "size": "1024x1024 (svg: any)",
    "aspect": "1:1",
    "background": "transparent or plain light",
-   "for": "Icon for Quoteline, the delayed market-data provider"
+   "for": "Icon for a box whose icon kind is pricing (prices, quotes, fares, tariffs)"
   },
   {
    "id": "texture.transit-paper",
@@ -137,7 +137,7 @@
    "for": "Opening card for the dark-cockpit map"
   },
   {
-   "id": "theme.coach",
+   "id": "theme.learning",
    "kind": "audio",
    "accepts": [
     "mp3",
@@ -145,10 +145,10 @@
     "recipe"
    ],
    "duration": "5-10 s",
-   "for": "Leitmotif for Coach; plays when Coach enters a flow or its station is focused"
+   "for": "Leitmotif for the learning kind; plays when a box of that kind enters a flow or its station is focused"
   },
   {
-   "id": "theme.tickertalk",
+   "id": "theme.news",
    "kind": "audio",
    "accepts": [
     "mp3",
@@ -156,10 +156,10 @@
     "recipe"
    ],
    "duration": "5-10 s",
-   "for": "Leitmotif for TickerTalk"
+   "for": "Leitmotif for the news kind"
   },
   {
-   "id": "theme.brightwater",
+   "id": "theme.trading",
    "kind": "audio",
    "accepts": [
     "mp3",
@@ -167,10 +167,10 @@
     "recipe"
    ],
    "duration": "5-10 s",
-   "for": "Leitmotif for Brightwater"
+   "for": "Leitmotif for the trading kind"
   },
   {
-   "id": "theme.quoteline",
+   "id": "theme.pricing",
    "kind": "audio",
    "accepts": [
     "mp3",
@@ -178,7 +178,7 @@
     "recipe"
    ],
    "duration": "5-10 s",
-   "for": "Leitmotif for Quoteline"
+   "for": "Leitmotif for the pricing kind"
   },
   {
    "id": "chime.decided",
@@ -203,7 +203,7 @@
    "for": "Calm ambient bed under the initiative time-lapse"
   },
   {
-   "id": "emblem-on-dark.coach",
+   "id": "emblem-on-dark.learning",
    "kind": "image",
    "accepts": [
     "svg",
@@ -212,10 +212,10 @@
    "size": "1024x1024 (svg: any)",
    "aspect": "1:1",
    "background": "plain very dark, matching a dark interface",
-   "for": "Icon for Coach on a dark interface, such as the explorer; falls back to emblem.coach"
+   "for": "Icon for the learning kind on a dark interface, such as the explorer; falls back to emblem.learning"
   },
   {
-   "id": "emblem-on-dark.tickertalk",
+   "id": "emblem-on-dark.news",
    "kind": "image",
    "accepts": [
     "svg",
@@ -224,10 +224,10 @@
    "size": "1024x1024 (svg: any)",
    "aspect": "1:1",
    "background": "plain very dark, matching a dark interface",
-   "for": "Icon for TickerTalk on a dark interface, such as the explorer; falls back to emblem.tickertalk"
+   "for": "Icon for the news kind on a dark interface, such as the explorer; falls back to emblem.news"
   },
   {
-   "id": "emblem-on-dark.brightwater",
+   "id": "emblem-on-dark.trading",
    "kind": "image",
    "accepts": [
     "svg",
@@ -236,10 +236,10 @@
    "size": "1024x1024 (svg: any)",
    "aspect": "1:1",
    "background": "plain very dark, matching a dark interface",
-   "for": "Icon for Brightwater on a dark interface, such as the explorer; falls back to emblem.brightwater"
+   "for": "Icon for the trading kind on a dark interface, such as the explorer; falls back to emblem.trading"
   },
   {
-   "id": "emblem-on-dark.quoteline",
+   "id": "emblem-on-dark.pricing",
    "kind": "image",
    "accepts": [
     "svg",
@@ -248,7 +248,7 @@
    "size": "1024x1024 (svg: any)",
    "aspect": "1:1",
    "background": "plain very dark, matching a dark interface",
-   "for": "Icon for Quoteline on a dark interface, such as the explorer; falls back to emblem.quoteline"
+   "for": "Icon for the pricing kind on a dark interface, such as the explorer; falls back to emblem.pricing"
   }
  ]
 }

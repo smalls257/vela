@@ -378,7 +378,7 @@ const MapGroups = (() => {
       obs.push(b);
       const n = NODE[k], light = lightOf(k);
       const sub = n.kind !== "app" ? "outside service" : !light || light.level === "dark" ? "decided" : MapView.shortWhy(light);
-      const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: b.w, h: b.h, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(k) });
+      const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: b.w, h: b.h, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(k), icon: Icons.name(k) });
       Scene.node(k, { x: b.x, y: b.y, w: b.w, h: b.h, el });
       if (mode === "capability") alsoTab(gNames, k, b, obs);
     }
@@ -555,7 +555,7 @@ const MapGroups = (() => {
     for (const [k, b] of Object.entries(boxes)) {
       const n = NODE[k], light = lightOf(k);
       const sub = n.kind !== "app" ? "outside service" : !light || light.level === "dark" ? "decided" : MapView.shortWhy(light);
-      const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(k),
+      const el = MapView.lamp(gNodes, { key: k, x: b.x, y: b.y, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(k), icon: Icons.name(k),
         onpick: k === key ? (onCenter ? () => { go(k, { reset: true }); onCenter(el); } : null) : () => go(k, { reset: true }) });
       if (k === key) { el.classList.add("focus-center"); Legend.saw("picked", "White outline: the app in focus, and what you pick"); }
       Scene.node(k, { x: b.x, y: b.y, w: W, h: H, el });

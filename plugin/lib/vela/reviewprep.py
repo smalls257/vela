@@ -52,7 +52,7 @@ _TAKEN_ID = re.compile(r"\bQ-[A-Z]{3}-\d{2,}@[\w.-]+\*?|\bR-[A-Z]{3}-\d{2,}\b")
 NOTHING_OWED = "nothing is owed in it and no page this checkpoint changed or focuses on is about a subject it covers"
 
 # REVIEW-CHECKPOINT section 1: the design's five angles. Each asks what the interview cannot surface, because nobody in
-# the room knew it: a vendor limit, a license clause, a nightly reset.
+# the room knew it: a vendor limit, a license clause, a weekend freeze window.
 TEAM_AREAS = (
     ("vendors", "Vendors and integrations",
      "What does each outside service, SDK and partner actually allow: rate limits, sandboxes and their resets, quotas, "

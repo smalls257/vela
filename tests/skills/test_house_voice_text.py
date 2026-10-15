@@ -118,7 +118,7 @@ def test_house_voice_protects_quoted_sentences_and_writes_capabilities_as_planne
     "reads" for something not built; the user picked "will read"."""
     voice = text("skills/house-voice/SKILL.md")
     assert "a sentence another page quotes as evidence" in voice and "change the quote in the same edit" in voice and "E802" in voice
-    assert "what the system will do" in voice and '"The Desktop agent will read' in voice and '"the business can have"' in voice
+    assert "what the system will do" in voice and '"The Rider app will unlock' in voice and '"the business can have"' in voice
 
 
 # --- From tests/test_voice.py: House-voice examples: license and attribution, copies in step, and the page-type map.

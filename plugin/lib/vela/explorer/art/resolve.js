@@ -2,7 +2,7 @@
  *
  *   const assets = await AssetResolver.load();          // slot contract and builtin art beside this file; assets.config.json
  *                                                       // and the provider's folder from data-providers (default: beside this file)
- *   img.src = assets.url('emblem.coach');               // any image or loop slot
+ *   img.src = assets.url('emblem.learning');             // any image or loop slot
  *   const h = assets.play('chime.decided');             // audio slot: file or Web Audio recipe, same call
  *   h.stop();
  *   assets.report();                                    // which slots fell back to builtin, and why

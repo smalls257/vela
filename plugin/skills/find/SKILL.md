@@ -1,6 +1,6 @@
 ---
 name: find
-description: Find where something is in the plan, fast, mid-conversation ("how does coach talk to brightwater", "who holds the budget"). Answers in a few lines with the best places to look and the journeys that use them. For a careful cited answer, use /vela:ask.
+description: Find where something is in the plan, fast, mid-conversation ("how does the app talk to spokewell", "who owns repairs"). Answers in a few lines with the best places to look and the journeys that use them. For a careful cited answer, use /vela:ask.
 argument-hint: "<what you are looking for, in your own words>"
 model: haiku
 allowed-tools: Read Bash(python3 *scripts/vela *)
@@ -34,7 +34,7 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela ru
    ```
 
    For example: `Best place: Record consent (Consent and identity page, "Record consent")`. For a "how does …" question, put a flow first when one is among the hits. For "who …", put the item that names the owner first.
-4. If the user asks to walk through a flow ("walk me through it", "show the steps"), Read that flow page's `## Steps` section and give the steps, numbered, one line each, in plain words, with the app that does each step first: "1. TickerTalk: the reader picks a stock and places a paper order, sent to Coach over Paper trades."
+4. If the user asks to walk through a flow ("walk me through it", "show the steps"), Read that flow page's `## Steps` section and give the steps, numbered, one line each, in plain words, with the app that does each step first: "1. Rider app: the rider scans a dock and asks to unlock, sent to the Dock service over Dock unlock."
 5. End with one line: "For a careful answer with every source checked: /vela:ask <question>."
 
 ## Rules

@@ -14,7 +14,7 @@ it's checked whatever the host.
    can't send gets 7.3's sentence ("I can file the session here, but I can't send it...") before any notice: telling
    the lead what will be sent when it can't be sent would be a promise the next step breaks.
 2. Without `--consent`: the send notice ("I'll push `session/<id>` and open a pull request for <reviewers>"; for the
-   lead, "I'll send this for review to Priya and the identity team. OK?"), the record's capture count, exit 3.
+   lead, "I'll send this for review to Ines and the payments team. OK?"), the record's capture count, exit 3.
    Nothing the lead owns changes. One machine-local marker is left, `.vela/close/<id>.push-notice.json`, holding that
    count and the branch, because "the yes comes after the notice" can't be checked later without it; `.vela/` is
    never committed.

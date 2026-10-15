@@ -144,7 +144,7 @@ def test_grill_offers_the_override_and_still_runs_the_rest_of_the_grill():
 
 def test_grill_tells_the_lead_how_an_absent_owner_confirms_by_name():
     grill = read_override("skills", "grill", "SKILL.md")
-    assert "Priya can confirm it later by adding a 'Confirmed by' line to the page" in grill
+    assert "Ines can confirm it later by adding a 'Confirmed by' line to the page" in grill
     assert "`- **Confirmed by:** @<owner> on <date>`" not in grill
 
 
@@ -356,7 +356,7 @@ def test_grill_reads_back_by_name_and_keeps_ids_out_of_its_own_wording():
     grill = section_session_experience(text("skills/grill/SKILL.md"), "1. The questions")
     assert "Say names, not IDs, in your own words too." in grill
     assert "> Record consent: the desktop agent asks for both choices" in grill
-    assert "The desktop agent's part of 'switch Heron on with consent'" in grill
+    assert "The rider app's part of 'unlock a bike with a card on file'" in grill
     assert "as `CAP-nnn.FRn@APP-<slug>`, and set each row" not in text("skills/grill/SKILL.md")
 
 

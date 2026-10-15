@@ -144,13 +144,13 @@ The explorer reads this doc by its headings, bullets and tables, and lists anyth
 
 ## A good summary
 
-The Heron Desktop agent's, re-shaped from its design run:
+The Fernway Rider app's, re-shaped from its design run:
 
-> The Desktop agent runs on each person's laptop in the Client Delivery London pilot. With the person's consent it reads their own calendar entries, asks the Summarizer for a 7:30 digest and a prep note ten minutes before each meeting, and shows them. It keeps nothing it doesn't need: a withdrawal deletes everything the agent holds for that person.
+> The Rider app runs on each rider's phone in the Eastside pilot. With a card on file it finds a free bike, asks the Dock service to unlock it and shows the trip as it runs. It keeps nothing it doesn't need: closing an account deletes everything the app holds for that rider.
 >
 > **Decisions that shape it:**
-> - One signed Tauri process for Mac and Windows, with a Rust core ([ADR-0001](../adr/0001-desktop-agent-tauri-single-process.md)).
-> - The consent check is the only door to Microsoft and the Summarizer, and every failed or slow call reads and shows nothing.
-> - Calendar entries only in the first release: no mail.
+> - A single React Native build for iPhone and Android, with an offline unlock queue ([ADR-0001](../adr/0001-rider-app-react-native.md)).
+> - The payment check is the only door to the card processor and the Dock service, and every failed or slow call unlocks nothing and says why.
+> - App unlock only in the first release: no card at the dock.
 >
-> **Still open:** the Summarizer's owner hasn't said what it keeps, logs and trains on, and the endpoint lead hasn't said whether a bad build can be recalled; both are needed before the January packaging slot. Eight more are under Open questions.
+> **Still open:** the card processor hasn't said what it stores about each trip, and the fleet lead hasn't said whether a bad release can be pulled; both are needed before the January store review. Eight more are under Open questions.

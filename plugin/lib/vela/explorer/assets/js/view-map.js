@@ -242,7 +242,7 @@ const MapView = (() => {
       const n = stn.node, light = lightOf(n.key);
       const sub = n.kind !== "app" ? "outside service" : !light || light.level === "dark" ? "decided" : shortWhy(light);
       const said = n.external && EXTERNAL[n.key] ? EXTERNAL[n.key].said : n.title;  // the contract's own words, on hover
-      const el = lamp(gNodes, { key: n.key, x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, title: said, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.title), icon: Icons.name(n.key) });
+      const el = lamp(gNodes, { key: n.key, x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H, rx: n.kind !== "app" ? 2 : 10, label: n.title, title: said, sub, kind: n.kind, clip: n.kind !== "app", emblem: Assets.emblem(n.key), icon: Icons.name(n.key) });
       Scene.node(n.key, { x: stn.x - W / 2, y: stn.y - H / 2, w: W, h: H, el });
       movable(el, n.key, board);
       if (dragging && Layout.live.key === n.key) el.classList.add("dragging");
@@ -381,7 +381,7 @@ const MapView = (() => {
       if (o.sub) s("text", { x: tx, y: o.kind === "cluster" ? o.y + 62 : o.y + o.h / 2 + 15, "text-anchor": "middle", class: "node-sub" }, grp).textContent = shorten(o.sub, o.kind === "cluster" ? 40 : 34);
     }
     s("title", {}, grp).textContent = light ? `${o.title || o.label}: ${LIGHT[level].word}` : `${o.title || o.label} (outside service). Its status shows on the contracts that connect to it.`;
-    const pick = o.onpick || (() => { go(o.key, { reset: true }); if (o.kind === "app" || o.kind === "partner") Assets.theme(o.label); });
+    const pick = o.onpick || (() => { go(o.key, { reset: true }); if (o.kind === "app" || o.kind === "partner") Assets.theme(o.key); });
     Nodes.wire(grp, { label: o.title || o.label || o.key, aria: o.aria || `${o.title || o.label}: ${light ? LIGHT[level].word : "outside service, no status of its own"}. ${o.sub || ""}`, open: pick, guard: () => !justDropped() });
     grp.addEventListener("mousemove", (e) => showTip(e, `<b>${esc(o.title || o.label)}</b>${light ? esc(LIGHT[level].word) + (light.reasons[0] ? ": " + esc(reasonText(light.reasons[0])) : "") : "Outside service: its status shows on the contracts that connect to it"}`));
     grp.addEventListener("mouseleave", hideTip);
@@ -498,7 +498,7 @@ const MapView = (() => {
       s("rect", { x: stn.x - w / 2 - 2, y: stn.y - ht / 2 - 2, width: w + 4, height: ht + 4, rx: 7, fill: Theme.c("room"), stroke: Theme.c("ink-3"), "stroke-width": 3.5, class: "ring" }, grp);
       s("rect", { x: stn.x - w / 2 + 4, y: stn.y - ht / 2 + 4, width: w - 8, height: ht - 8, rx: 3, fill: "none", stroke: Theme.c("ink-3"), "stroke-width": 1.5 }, grp);
     } else s("rect", { x: stn.x - w / 2, y: stn.y - ht / 2, width: w, height: ht, rx: Math.min(w, ht) / 2, fill: Theme.c("room"), stroke: Theme.c("ink"), "stroke-width": stn.lines.size > 1 ? 4 : 3.5, class: "ring" }, grp);
-    const em = Assets.emblem(n.title);
+    const em = Assets.emblem(n.key);
     if (em) { const size = Math.max(16, Math.min(w, ht) - 9); s("image", { href: em, x: stn.x - size / 2, y: stn.y - size / 2, width: size, height: size, class: "emblem" }, grp); }
     const free = ["L", "R", "U", "D"].filter((sd) => !stn.ports[sd].length);
     const cols = Object.values(L.stations).filter((x) => !x.outside).map((x) => x.node.col);
@@ -533,7 +533,7 @@ const MapView = (() => {
     }
     stn.labelSide = side;
     names.push(put(side));
-    const open = () => { go(n.key, { reset: true }); Assets.theme(n.title); };
+    const open = () => { go(n.key, { reset: true }); Assets.theme(n.key); };
     Nodes.wire(grp, { label: n.title, aria: `${n.title}. Open details.`, open });
   }
   /* Engineering works: open questions on the track or station they hold up, from each question's Blocks line. Each

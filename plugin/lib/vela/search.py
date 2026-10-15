@@ -1,4 +1,4 @@
-"""Plain-word search over the vault: "paper order", "how does coach talk to brightwater". Pure.
+"""Plain-word search over the vault: "unlock a bike", "how does the rider app talk to spokewell". Pure.
 
 `query find` needs every word in a title or heading, which suits /ask checking an ID but fails a person
 mid-conversation, who types the words they are saying, not the vault's. This ranks every page and section
@@ -14,7 +14,7 @@ FENCE = re.compile(r"```.*?```", re.S)
 GENERATED = re.compile(r"<!-- generated:.*?<!-- /generated:[^>]*-->", re.S)
 WIKILINK = re.compile(r"\[\[([^\]|#]*)(?:#([^\]|]*))?(?:\\?\|([^\]]*))?\]\]")
 HEADING = re.compile(r"^(#{1,4})\s+(.*?)(?:\s+#+)?\s*$")
-WORD = re.compile(r"[a-z0-9]+")  # "brightwater's" gives "brightwater" and "s", and "s" is a stop word
+WORD = re.compile(r"[a-z0-9]+")  # "spokewell's" gives "spokewell" and "s", and "s" is a stop word
 SKIP_TOP = ("sessions/", "voice/", ".inbox/", "handoffs/", ".claude/", "docs/")
 SKIP_FILES = ("CONVENTIONS.md", "CLAUDE.md", "README.md")
 STOP = set("""a an and are as at be by can do does for from get gets how i in is it its of on or our so that the

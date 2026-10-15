@@ -139,6 +139,6 @@ def test_shape_says_grill_lower_case_and_states_in_words():
 
 
 def test_shape_shows_an_option_by_name_with_a_pick_and_why():
-    example = SHAPE.split("> **Agent on each laptop.**", 1)[1].split("\n", 1)[0]
-    assert "My pick:" in example and "(data)" in example
+    example = SHAPE.split("> **Unlock at the dock.**", 1)[1].split("\n", 1)[0]
+    assert "My pick:" in example and "(partners)" in example
     assert not re.search(r"\b(?:APP|CON|F\d|R-)", example)

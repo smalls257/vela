@@ -84,8 +84,8 @@ LINKED_NAME = re.compile(r"\[\[([^\]|#]*)(?:#([^\]|]*))?(?:\\?\|([^\]]*))?\]\]")
 
 
 def external_name(text):
-    """A provider as a reader names it: "[[03-context-and-scope#PTY-01 Brightwater|Brightwater]]" is Brightwater,
-    not "03-context-and-scope PTY-01 Brightwater Brightwater"."""
+    """A provider as a reader names it: "[[03-context-and-scope#PTY-01 Spokewell|Spokewell]]" is Spokewell,
+    not "03-context-and-scope PTY-01 Spokewell Spokewell"."""
     return LINKED_NAME.sub(lambda m: m.group(3) or m.group(2) or m.group(1), text).strip()
 
 

@@ -42,7 +42,7 @@ class Left:
 
 @dataclass
 class Release:
-    name: str  # the section heading, "Release one: January board demo"
+    name: str  # the section heading, "Release one: March dock pilot"
     line: int
     target: str
     state: str

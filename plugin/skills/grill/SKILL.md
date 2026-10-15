@@ -32,7 +32,7 @@ This is what a grill is for; the other sections only set the agenda and file wha
 
 > Record consent: the desktop agent asks for both choices, the calendar and the chosen folder, and keeps each with the time it was given. If saving doesn't answer within two seconds, the agent says "Couldn't save your choice, so nothing was switched on" and asks again at the next start. That's what I'll write as decided. Right?
 
-Not: "CON-003 (Record consent): decided, GATE-5 overridden, see UNK-012." An app's share of a requirement reads the same way: "The desktop agent's part of 'switch Heron on with consent': it asks for both choices and records them. Right?"
+Not: "CON-003 (Dock unlock): decided, GATE-5 overridden, see UNK-012." An app's share of a requirement reads the same way: "The rider app's part of 'unlock a bike with a card on file': it checks the card and sends the unlock. Right?"
 
 A state said to the lead is a word: just an idea, not decided yet, proposed, decided, confirmed.
 
@@ -62,7 +62,7 @@ Run the review checkpoint in `${CLAUDE_PLUGIN_ROOT}/references/REVIEW.md` "on th
 
 **Not ready.** One sentence ("The Summarizer can't be decided yet: nobody has said how slow is too slow, and the product owner isn't here") and the one thing that would make it ready. For a blocking unknown, ask whether the lead knows the answer now (`MODES.md`, "Unknowns"). It stays off the agenda until the lead chooses. Never draft an ask, an email or a chase for the user to send.
 
-**Deciding it anyway.** The lead may override anything (`START.md`). Offer "Decide it anyway (I'll note that the open question was skipped)", ask the reason once and capture it. Never refuse, and never ask twice. The rest of the grill runs as normal, read-back and yes included, and the override is filed with the decision in section 4. If the lead decides for an owner who isn't here, say how that ends. Tell the user the owner confirms later: "Priya can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
+**Deciding it anyway.** The lead may override anything (`START.md`). Offer "Decide it anyway (I'll note that the open question was skipped)", ask the reason once and capture it. Never refuse, and never ask twice. The rest of the grill runs as normal, read-back and yes included, and the override is filed with the decision in section 4. If the lead decides for an owner who isn't here, say how that ends. Tell the user the owner confirms later: "Ines can confirm it later by adding a 'Confirmed by' line to the page, or challenge it with /vela:challenge if she disagrees."
 
 If no item passes and the user overrides none, do not start the grill: make no change to any page, say why, and offer Shape or stopping. If the lead takes neither, end as `MODES.md` says under "Unknowns".
 

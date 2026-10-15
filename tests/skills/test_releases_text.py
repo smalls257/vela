@@ -15,7 +15,7 @@ SKILL = (REPO / "plugin" / "skills" / "releases" / "SKILL.md").read_text(encodin
 def skill_example():
     """The release section the skill tells Claude to write, pointed at a requirement the fixture has."""
     block = re.search(r"## 3\. Write the confirmed slices and releases.*?```\n(.*?)```", SKILL, re.S).group(1)
-    return block.replace(r"[[CAP-002-paper-trade-a-stock#CAP-002.FR2 Place a paper order\|CAP-002.FR2]]", LINK)
+    return block.replace(r"[[CAP-002-unlock-a-bike#CAP-002.FR2 Unlock with the app\|CAP-002.FR2]]", LINK)
 
 
 TODAY = "2026-11-20"
@@ -44,7 +44,7 @@ def test_the_format_the_skill_writes_round_trips_through_releases_py(tmp_path):
     found = releases.releases(cli.load_vault(vault))
     assert len(found) == 1
     release = found[0]
-    assert release.name == "Release one: January board demo"
+    assert release.name == "Release one: March dock pilot"
     assert (release.target, release.state, release.slices) == ("2027-01-15", "assumption", ("SLC-001", "SLC-002"))
     assert [(r.requirement, r.criteria, r.note) for r in release.rows] == [("CAP-014.FR1", (1, 2), "AC3 in release two")]
     out = check(vault)

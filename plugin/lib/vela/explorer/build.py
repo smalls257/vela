@@ -455,7 +455,7 @@ def trace_data(vault, keys):
 
 # --------------------------------------------------------------------------- search
 
-CHECK_QUERIES = ("paper order", "how does coach talk to brightwater", "how does a reader place a paper trade",
+CHECK_QUERIES = ("paper order", "how does booking talk to pricing", "how does a reader place a paper trade",
                  "hold a seat", "who is on call")
 
 

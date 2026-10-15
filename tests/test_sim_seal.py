@@ -89,7 +89,7 @@ def plugin_leaks():
 
 
 def test_the_plugin_gains_no_persona_term(plugin_leaks):
-    """Today's plugin already holds key terms (seal-known-leaks.txt lists each one, to remove). Any other is new."""
+    """The plugin holds no key term: seal-known-leaks.txt is empty since 2026-10-15, so any term found is new."""
     new = plugin_leaks - seal.read_known()
     where = sorted({f"plugin/{f} ({k})" for f, k, _ in new})
     assert not new, (f"{len(new)} persona terms are new in the plugin, in {', '.join(where)}. Run "

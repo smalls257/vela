@@ -190,7 +190,7 @@ def test_boundary_reads_back_by_name_in_plain_labels():
         assert label in b, label
     assert "Is that the direction?" not in b and "a 409 that names the item" not in b
     assert "team senior" not in b and "a Grill" not in b
-    assert '"Summarizer", not "Summariser"' in b
+    assert '"Route Optimizer", not "Route Optimiser"' in b
 
 
 def test_boundary_keeps_the_first_thin_path_words_releases_reads():
