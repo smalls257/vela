@@ -22,6 +22,10 @@ must choose.
 Every outcome writes `.vela/close/<branch key>.json` (see `closestate`), so the gate can tell "brought in" from
 "never tried". That file is vela's own untracked state, not a change to the lead's copy, so it is reported as
 `state_file` and not in `wrote` (which an exit 3 promises is empty). A reader copy runs no git at all.
+
+`session start` brings main into a branch it resumes through this same `sync_main`, with `keep_record=False`: one
+merge implementation, but no close record, because "brought in at the start" must never let a close skip bringing in
+what main gained during the session.
 """
 import pathlib
 
@@ -55,20 +59,33 @@ def cmd_sync_main(args, out):
 class _Run:
     """One sync-main run: where it is, which branch, and how each outcome is recorded and said."""
 
-    def __init__(self, root, today):
+    def __init__(self, root, today, keep_record=True):
         self.root, self.today, self.branch, self.main, self.head = root, today, "", "", ""
+        self.keep_record = keep_record
 
     def finish(self, status, exit_code, lines, reason="", files=(), refusals=(), needs_lead=(), wrote=()):
         key = closestate.key_for(self.branch) if status != closestate.READER else closestate.READER_KEY
         rec = closestate.record(status, self.branch, self.main, self.head, self.today, reason, files)
-        path = mergegit.write_state(self.root, key, rec)
+        state_file = None
+        if self.keep_record:
+            state_file = mergegit.write_state(self.root, key, rec).relative_to(self.root).as_posix()
         data = {"status": status, "reason": reason, "branch": self.branch, "main": self.main, "head": self.head,
-                "files": rec["files"], "state_file": path.relative_to(self.root).as_posix()}
+                "files": rec["files"], "state_file": state_file}
         return say.Result(COMMAND, exit_code, list(lines), list(refusals), list(needs_lead), list(wrote), data)
 
 
 def sync_main(root, today, accept=False, timeout=mergegit.FETCH_TIMEOUT):
-    run = _Run(root, today)
+    """Close's step: bring origin/main into the checked-out branch and record the outcome for the gate."""
+    return _bring_in(_Run(root, today), accept, timeout)
+
+
+def bring_in_at_start(root, today, timeout=mergegit.FETCH_TIMEOUT):
+    """Session start's step: the same merge, but no close record (see the module docstring)."""
+    return _bring_in(_Run(root, today, keep_record=False), False, timeout)
+
+
+def _bring_in(run, accept, timeout):
+    root = run.root
     if mergegit.is_reader_copy(root):
         return run.finish(closestate.READER, say.DONE, [say.Line(
             "sync-main: a read copy has no main to bring in; no git was run.",
@@ -174,10 +191,12 @@ def _conflict(run, plans):
 def _fetch_failed(run, why):
     choices = [{"choice": "retry", "plain": "Try again", "run": "vela close sync-main"},
                {"choice": "go-on", "plain": "Go on without main", "run": ACCEPT}]
-    return run.finish(closestate.NOT_COMPARED, say.NEEDS_LEAD, [say.Line(
+    result = run.finish(closestate.NOT_COMPARED, say.NEEDS_LEAD, [say.Line(
         f"sync-main: not compared: git fetch origin failed: {why}. Retry, or record the lead's go-on with {ACCEPT}.",
         "I couldn't reach the shared copy, so this branch isn't compared with main yet. Go on without it, or try again?")],
         reason=closestate.FETCH_FAILED, needs_lead=choices)
+    result.data["fetch_error"] = why  # session start says it in its own words, with no close choices
+    return result
 
 
 def _uncommitted(run, dirty):
