@@ -636,8 +636,11 @@ Rules, in order of priority:
    record, say yes. If it says gh failed and asks for your handle, it is {handle}. If it asks for reviewers or
    owners nobody named, name a role, never invent a person.
 8. Anything you were not given, you do not know. Say "honestly not sure" rather than invent a fact.
-9. When the assistant says the session is over, or tells you to run a command, reply with exactly {end} and
-   nothing else. You cannot run commands; the next session is how a command runs.
+9. Reply with exactly {end} and nothing else when the assistant: says the session is over, done or closed; says
+   its work here is finished or nothing is pending; asks you to close the session or to run any command; says it
+   is here when you are back or waiting on you or someone else; or refuses because an earlier step is missing.
+   Do not thank it, wish it luck or say goodbye first: {end} is your whole message. You cannot run commands; the
+   next session is how a command runs.
 10. Say a worry once. Do not repeat a worry, a deadline or a blocker you have already said in this session unless
    the assistant asks about it. Answer what the assistant asked, then let it move on.
 11. You can do nothing outside this chat. Never say you ran a command or a skill, sent or received a message, made
@@ -649,6 +652,13 @@ Rules, in order of priority:
    needs someone else, say who it needs and leave it there; do not say you will start it.
 12. The IDs in this brief (K1, W2, C3, D4 and the like) are your private notes. Never say them, and never call a
    belief or a decision by its ID: say it in your own words.
+13. Stay in this session's kind of work. Never type a slash command (anything starting with "/", such as
+   "/vela:shape"), and never ask to start another kind of session, such as a Shape inside a Grill or a design
+   inside a close. If the assistant offers another kind of session, say no, that is for another day. The script
+   starts every session; when this one's work is done, reply with exactly {end}.
+14. Your facts, beliefs, positions and decisions below, news included, are everything you know. Never make up a
+   detail they do not hold: no pull request number, link, branch, ticket, date, name, figure or result, and never say that
+   something was merged, approved, reviewed or sent. You may repeat what the assistant told you in this session.
 
 Your opening worry: {opening}
 
@@ -840,21 +850,113 @@ def install_vault_skills(vault, skills):
 GH_STUB = """#!{python}
 import json, pathlib, subprocess, sys
 
-# Only `gh pr create` works: it records the PR where the driver's reviewer will find it, and prints its URL as gh does.
-# Every other gh command fails, as it would with no network or login.
+# The pull requests work: `gh pr create` records the PR where the driver's reviewer will find it and prints its URL as
+# gh does; `gh pr list`, `gh pr view` and `gh pr comment` read and add to that record, so "open the PR" and "is it
+# merged?" can be seen in a run. Every other gh command fails, as it would with no network or login.
 args = sys.argv[1:]
-if args[:2] != ["pr", "create"]:
-    print({message!r}, file=sys.stderr)
-    sys.exit(1)
-flags = {{args[i]: args[i + 1] for i in range(2, len(args) - 1) if args[i].startswith("--")}}
-head = flags.get("--head") or subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True,
-                                             timeout=30).stdout.strip()
 log = pathlib.Path({log!r})
-prs = [line for line in log.read_text(encoding="utf-8").splitlines() if line] if log.exists() else []
-number = len(prs) + 1
-with log.open("a", encoding="utf-8") as out:
-    out.write(json.dumps({{"number": number, "head": head, "base": flags.get("--base", "main"), "title": flags.get("--title", "")}}) + "\\n")
-print(f"https://github.invalid/sim/heron/pull/{{number}}")
+URL = "https://github.invalid/sim/heron/pull/{{}}"
+
+
+def fail(why):
+    print(why, file=sys.stderr)
+    sys.exit(1)
+
+
+def flags(rest):
+    out, loose, i = {{}}, [], 0
+    while i < len(rest):
+        if rest[i].startswith("--") and "=" in rest[i]:
+            key, value = rest[i].split("=", 1)
+            out[key] = value
+        elif rest[i].startswith("--") and i + 1 < len(rest) and not rest[i + 1].startswith("--"):
+            out[rest[i]] = rest[i + 1]
+            i += 1
+        elif rest[i].startswith("--"):
+            out[rest[i]] = True
+        else:
+            loose.append(rest[i])
+        i += 1
+    return out, loose
+
+
+def current_branch():
+    return subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True,
+                          timeout=30).stdout.strip()
+
+
+def rows():
+    lines = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line] if log.exists() else []
+    prs = {{}}
+    for row in lines:
+        if "head" in row:
+            prs[row["number"]] = {{**row, "state": "OPEN", "comments": []}}
+        elif row.get("merged") in prs:
+            prs[row["merged"]]["state"] = "MERGED"
+        elif row.get("commented") in prs:
+            prs[row["commented"]]["comments"].append(row.get("body", ""))
+    return prs
+
+
+def shown(pr, fields):
+    full = {{"number": pr["number"], "url": URL.format(pr["number"]), "headRefName": pr["head"],
+            "baseRefName": pr["base"], "title": pr["title"], "state": pr["state"],
+            "comments": [{{"body": b}} for b in pr["comments"]]}}
+    return {{k: full[k] for k in fields.split(",") if k in full}} if isinstance(fields, str) else full
+
+
+def find(prs, which):
+    which = (which or current_branch()).lstrip("#")
+    if which.isdigit() and int(which) in prs:
+        return prs[int(which)]
+    named = [p for p in prs.values() if p["head"] == which]
+    return named[-1] if named else fail(f"no pull requests found for {{which!r}}")
+
+
+def record(row):
+    with log.open("a", encoding="utf-8") as out:
+        out.write(json.dumps(row) + "\\n")
+
+
+if args[:1] != ["pr"] or len(args) < 2:
+    fail({message!r})
+verb, (opts, loose) = args[1], flags(args[2:])
+prs = rows()
+if verb == "create":
+    head = opts.get("--head") or current_branch()
+    if any(p["head"] == head and p["state"] == "OPEN" for p in prs.values()):
+        fail(f"a pull request for branch {{head!r}} into branch {{opts.get('--base', 'main')!r}} already exists")
+    number = len(prs) + 1
+    record({{"number": number, "head": head, "base": opts.get("--base", "main"), "title": opts.get("--title", "")}})
+    print(URL.format(number))
+elif verb == "list":
+    state = str(opts.get("--state", "open")).upper()
+    found = [p for p in prs.values() if state == "ALL" or p["state"] == state]
+    if isinstance(opts.get("--head"), str):
+        found = [p for p in found if p["head"] == opts["--head"]]
+    if isinstance(opts.get("--search"), str):
+        words = [w for w in opts["--search"].split() if ":" not in w]
+        found = [p for p in found if all(w.lower() in p["title"].lower() for w in words)]
+    if "--json" in opts:
+        print(json.dumps([shown(p, opts["--json"]) for p in found]))
+    else:
+        print("\\n".join(f"{{p['number']}}\\t{{p['title']}}\\t{{p['head']}}\\t{{p['state']}}" for p in found))
+elif verb == "view":
+    pr = find(prs, loose[0] if loose else None)
+    if "--json" in opts:
+        print(json.dumps(shown(pr, opts["--json"])))
+    else:
+        print(f"{{pr['title']}} #{{pr['number']}}\\n{{pr['state']}} {{pr['head']}} into {{pr['base']}}\\n{{URL.format(pr['number'])}}")
+        for body in (pr["comments"] if "--comments" in opts else []):
+            print(body)
+elif verb == "comment":
+    pr = find(prs, loose[0] if loose else None)
+    body = opts.get("--body") or (pathlib.Path(opts["--body-file"]).read_text(encoding="utf-8")
+                                  if isinstance(opts.get("--body-file"), str) else "")
+    record({{"commented": pr["number"], "body": body}})
+    print(URL.format(pr["number"]) + "#issuecomment-1")
+else:
+    fail({message!r})
 """
 
 
@@ -872,7 +974,13 @@ def opened_prs(arm_dir):
     if not log.exists():
         return {}
     rows = (json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line)
-    return {row["head"]: row["number"] for row in rows}
+    return {row["head"]: row["number"] for row in rows if "head" in row}
+
+
+def mark_merged(arm_dir, number):
+    """The reviewer's merge, written where the gh stub reads, so `gh pr view` and `gh pr list --state merged` say it."""
+    with (arm_dir / "origin.git" / PR_LOG).open("a", encoding="utf-8") as out:
+        out.write(json.dumps({"merged": number}) + "\n")
 
 
 def arm_env(arm_dir, stub):
@@ -984,11 +1092,15 @@ def merge_closed(vault, arm_dir):
                 reports.append(f"not merged: {branch} conflicts with main, and the union did not settle it: {problem}")
                 continue
             git("push", "-q", "origin", "main", cwd=clone)
+            if branch in prs:
+                mark_merged(arm_dir, prs[branch])
             reports.append(f"{merged_as(branch, prs)} after settling conflicts in {', '.join(files)} as a "
                            "reviewer would: main's state lines, both sides' other lines, generated blocks rebuilt"
                            + (f"; the session's state lines not kept: {'; '.join(lost)}" if lost else ""))
             continue
         git("push", "-q", "origin", "main", cwd=clone)
+        if branch in prs:
+            mark_merged(arm_dir, prs[branch])
         reports.append(merged_as(branch, prs) + ("" if branch in prs else ", as a reviewer merging its PR would"))
     return reports
 
@@ -1283,19 +1395,22 @@ class Arm:
                     reason = "budget"
                     break
             ask_persona = False
+            # The cap is checked before the lead is asked, never after: a reply asked for past the cap would be
+            # written to the transcript but never reach the assistant, so the judge would read a fact the vault
+            # could not have captured (K34 at T207 of the 2026-10-14 mid-point).
+            if turns >= cap:
+                reason = "turn-cap"
+                break
             reply = self.persona_turn(index, mode, speaker_persona, speaker)
             if budget_stop(reply):
                 reason = "budget"
                 break
             text = reply["result"].strip()
-            ended = END in text
-            if not ended:
-                self.transcript.add(speaker="lead", session=index, mode=mode, text=text,
-                                    cost_usd=reply["total_cost_usd"], scripted=False, persona=speaker)
-            if ended:
+            if END in text:
                 reason = "persona-end"
-            elif turns >= cap:
-                reason = "turn-cap"
+                break
+            self.transcript.add(speaker="lead", session=index, mode=mode, text=text,
+                                cost_usd=reply["total_cost_usd"], scripted=False, persona=speaker)
             message = text
         # The session's whole cost, the reply that ended it included, so a resume reads spend from the transcript exactly.
         cost = round(carried + self.ledger.spent - spent_before, 4)
@@ -2259,6 +2374,37 @@ def claimed_actions(transcript):
     return [e["turn"] for e in transcript.spoken() if e["speaker"] == "lead" and CLAIMED_ACTION.search(e["text"])]
 
 
+SLASH_COMMAND = re.compile(r"(?<![\w/.])/[a-z][\w-]*:[a-z][\w-]*")
+PR_CLAIM = re.compile(r"(?:\bPR|\bpull request|\bmerge request)\s*#?\s*(\d+)|(?<![\w&])#(\d+)\b", re.I)
+MERGE_CLAIM = re.compile(r"\b(?:it'?s|(?:has|have|was|got|been) (?:been )?)merged\b|\bmain'?s got it\b", re.I)
+
+
+def mode_hops(transcript):
+    """Lead turns the persona wrote (not a scripted opening) that type a slash command: another mode started inside
+    this session, as /planner:shape inside a Grill did in the 2026-10-14 mid-point."""
+    return [e["turn"] for e in transcript.spoken()
+            if e["speaker"] == "lead" and not e.get("scripted") and SLASH_COMMAND.search(e["text"])]
+
+
+def invented_prs(transcript):
+    """Lead turns that name a pull request number, or say something merged, that no assistant turn of the same
+    session said first. The lead can't see GitHub, so each one is made up ("PR's open at #521")."""
+    flagged, heard = [], {}
+    for e in transcript.spoken():
+        said = heard.setdefault(e.get("session"), "")
+        if e["speaker"] == "assistant":
+            heard[e.get("session")] = said + "\n" + e["text"]
+            continue
+        if e.get("scripted"):
+            continue
+        numbers = {a or b for a, b in PR_CLAIM.findall(e["text"])}
+        new_numbers = [n for n in numbers if not re.search(rf"(?:#|/pull/|PR\s*)\s*{n}\b", said, re.I)]
+        merged = MERGE_CLAIM.search(e["text"]) and not re.search(r"\bmerged\b", said, re.I)
+        if new_numbers or merged:
+            flagged.append(e["turn"])
+    return flagged
+
+
 def leaked_brief_ids(transcript):
     """Lead turns that say an ID of the hidden brief, such as "I'll lock D1". The persona is told never to."""
     return [e["turn"] for e in transcript.spoken() if e["speaker"] == "lead" and BRIEF_ID.search(e["text"])]
@@ -2363,6 +2509,14 @@ def build_scorecard(arm, data, hits):
     leaks = leaked_brief_ids(arm.transcript)
     if leaks:
         card["check_these"].append(f"persona: said a brief ID in {len(leaks)} turns ({', '.join(f'T{t}' for t in leaks[:8])})")
+    hops = mode_hops(arm.transcript)
+    if hops:
+        card["check_these"].append(f"persona: typed a slash command inside a session in {len(hops)} turns "
+                                   f"({', '.join(f'T{t}' for t in hops[:8])}); what followed is another mode, not this one")
+    made_up = invented_prs(arm.transcript)
+    if made_up:
+        card["check_these"].append(f"persona: named a pull request or a merge nobody reported in {len(made_up)} turns "
+                                   f"({', '.join(f'T{t}' for t in made_up[:8])}); the vault may hold it as fact")
     card["endings"] = arm.endings
     card["spent_usd"] = round(arm.prior_spent + arm.ledger.spent, 4)
     card["judge_usd"] = round(sum(c["cost_usd"] for c in arm.judge_calls), 4)

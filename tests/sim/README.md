@@ -56,7 +56,9 @@ A run that stopped part-way goes on with `--resume-run`; see "Resume a run" belo
 ### Exit codes
 
 - 0: every session of every arm ended when the persona wrote `[END]`, and every arm was scored.
-- 1: the budget or a turn cap ended at least one session early. Every output is still written.
+- 1: the budget or a turn cap ended at least one session early. Every output is still written. The cap is checked
+  before the lead is asked, so a capped session's last word is the assistant's: no lead line is written that the
+  assistant never read.
 - 2: a tool failed. `claude` was missing, its JSON lacked a field, a call errored, the judge's JSON was bad
   twice, or git or the scaffold failed. The run stops at that arm. What was written before the failure stays,
   and `run.json` names the failure. The raw output of every call is in `<arm>/raw/`.
@@ -253,7 +255,9 @@ Then follow the log with `tail -f`.
 ## What the driver does that a person would do
 
 - **It merges each closed session's PR.** The arm's `gh` is a stub: `gh pr create` records the PR (number, head,
-  base) in `origin.git/sim-prs.jsonl` and prints a URL, and every other `gh` command fails. After every close
+  base) in `origin.git/sim-prs.jsonl` and prints a URL; `gh pr list` (`--head`, `--state`, `--search`, `--json`),
+  `gh pr view` (a number, a branch or the current branch) and `gh pr comment` read and add to that record, so "open
+  the PR" can be seen in a run; every other `gh` command fails. A merge below marks the PR `MERGED`. After every close
   session, the driver merges each `session/*` branch whose records are all closed into `main` on the bare origin,
   as an approving reviewer would, and logs `merged PR <n> as the reviewer` in the run log and the transcript. Without
   this, the next session's START would pull a `main` without the last session's work, and a team session
@@ -265,8 +269,9 @@ Then follow the log with `tail -f`.
   starts as if the owner had seeded their voice. The six public-seed examples are set to `retired` in the
   first commit, and the six Seuss-style examples sit in the gitignored `voice/local/`. house-voice reads local
   owner examples first, and two per type is enough, so the Seuss voice is the only voice it reads.
-- **It answers nothing for `gh`.** A `gh` stub first on `PATH` prints "gh: not available in the simulator" and
-  exits 1, so every `gh` failure path in the skills runs honestly. `GH_CONFIG_DIR` points at an empty folder,
+- **It answers nothing else for `gh`.** Past the pull request commands above, the `gh` stub first on `PATH` prints
+  "gh: not available in the simulator" and exits 1 (`gh api user` included, so the handle falls back as it would
+  offline). `GH_CONFIG_DIR` points at an empty folder,
   and `GH_TOKEN` and `GITHUB_TOKEN` are removed, so even the real `gh` would fail.
 
 ## Isolation

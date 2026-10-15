@@ -23,10 +23,10 @@ TWO_SESSIONS = {"name": "two", "sessions": [
     {"mode": "close", "cap": 3, "vela": "/vela:close", "baseline": "Close out this session."}]}
 
 
-def simulate(tmp_path, *extra, env=None, arms="vela"):
+def simulate(tmp_path, *extra, env=None, arms="vela", script_data=None):
     """One stub run. Returns (exit code, stderr, run folder or None, stub call log)."""
     script = tmp_path / "two.yaml"
-    script.write_text(yaml.safe_dump(TWO_SESSIONS), encoding="utf-8")
+    script.write_text(yaml.safe_dump(script_data or TWO_SESSIONS), encoding="utf-8")
     out, log = tmp_path / "results", tmp_path / "stub-log.jsonl"
     full_env = {**os.environ, "SIM_STUB_LOG": str(log), **(env or {})}
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "coastal-merger", "--stub", "--script", str(script),
@@ -119,8 +119,62 @@ def test_the_gh_stub_is_first_on_path_records_a_pr_and_fails_everything_else(ful
     assistant = [e for e in entries(full_run["run"] / "vela") if e["speaker"] == "assistant"]
     assert "https://github.invalid/sim/heron/pull/1" in assistant[0]["text"]
     gh = full_run["run"] / "vela" / "bin" / "gh"
-    other = subprocess.run([str(gh), "pr", "list"], capture_output=True, text=True, timeout=30)
-    assert other.returncode == 1 and sim.GH_MESSAGE in other.stderr
+    for other in (["api", "user"], ["auth", "status"], ["pr", "merge", "1"]):
+        done = subprocess.run([str(gh), *other], capture_output=True, text=True, timeout=30)
+        assert done.returncode == 1 and sim.GH_MESSAGE in done.stderr, other
+
+
+def stub_gh(tmp_path):
+    """A vault on a session branch with the gh stub written for it, as an arm has them."""
+    persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
+    arm_dir = tmp_path / "vela"
+    arm_dir.mkdir()
+    vault, _ = sim.build_vault(arm_dir, "vela", persona)
+    sim.write_gh_stub(arm_dir / "bin", arm_dir / "origin.git")
+    gh = lambda *a: subprocess.run([str(arm_dir / "bin" / "gh"), *a], capture_output=True, text=True, timeout=30, cwd=vault)
+    return arm_dir, vault, gh
+
+
+def test_open_the_pr_is_observable_through_the_gh_stub_create_list_view_and_comment(tmp_path):
+    """The Black Box this removes: with every gh call refused, "open the PR" could never happen in a run, so a close
+    that skipped it and a close that tried looked the same. Now the PR is recorded and every read of it answers."""
+    arm_dir, vault, gh = stub_gh(tmp_path)
+    branch = "session/2026-10-05-x"
+    sim.git("switch", "-q", "-c", branch, "main", cwd=vault)
+    made = gh("pr", "create", "--base", "main", "--title", "2026-10-05 Close: x", "--body-file", "/dev/null")
+    assert made.returncode == 0 and made.stdout.strip() == "https://github.invalid/sim/heron/pull/1"
+    again = gh("pr", "create", "--base", "main", "--head", branch, "--title", "again")
+    assert again.returncode == 1 and "already exists" in again.stderr, "one open PR per head, as gh has it"
+    listed = gh("pr", "list", "--head", branch, "--state", "open", "--json", "number,url")
+    assert json.loads(listed.stdout) == [{"number": 1, "url": "https://github.invalid/sim/heron/pull/1"}]
+    assert json.loads(gh("pr", "list", "--search", "Close: x", "--json", "number,title").stdout)[0]["number"] == 1
+    assert json.loads(gh("pr", "list", "--search", "Challenge", "--json", "number").stdout) == []
+    viewed = json.loads(gh("pr", "view", "1", "--json", "number,headRefName,title,state").stdout)
+    assert viewed == {"number": 1, "headRefName": branch, "title": "2026-10-05 Close: x", "state": "OPEN"}
+    assert json.loads(gh("pr", "view", "--json", "number").stdout) == {"number": 1}, "no argument: the current branch's PR"
+    body = tmp_path / "answer.md"
+    body.write_text("The answer.", encoding="utf-8")
+    assert gh("pr", "comment", "1", "--body-file", str(body)).stdout.strip().endswith("/pull/1#issuecomment-1")
+    assert "The answer." in gh("pr", "view", "1", "--comments").stdout
+    missing = gh("pr", "view", "9")
+    assert missing.returncode == 1 and "no pull requests found" in missing.stderr
+    assert sim.opened_prs(arm_dir) == {branch: 1}, "a comment line is not a PR"
+
+
+def test_a_pr_the_reviewer_merged_reads_merged_through_the_gh_stub(tmp_path):
+    arm_dir, vault, gh = stub_gh(tmp_path)
+    branch = "session/2026-10-05-y"
+    sim.git("switch", "-q", "-c", branch, "main", cwd=vault)
+    (vault / "sessions").mkdir(exist_ok=True)
+    (vault / "sessions" / "2026-10-05-y.md").write_text("---\nid: 2026-10-05-y\nstatus: closed\n---\n", encoding="utf-8")
+    sim.git("add", "-A", cwd=vault)
+    sim.git("commit", "-q", "-m", "Close session", cwd=vault)
+    gh("pr", "create", "--base", "main", "--head", branch, "--title", "y")
+    assert json.loads(gh("pr", "list", "--state", "merged", "--json", "number").stdout) == []
+    assert sim.merge_closed(vault, arm_dir) == [f"merged PR 1 as the reviewer: {branch} into main on origin"]
+    assert json.loads(gh("pr", "view", "1", "--json", "state").stdout) == {"state": "MERGED"}
+    assert json.loads(gh("pr", "list", "--state", "merged", "--json", "number").stdout) == [{"number": 1}]
+    assert json.loads(gh("pr", "list", "--json", "number").stdout) == [], "open is the default, as gh has it"
 
 
 def test_seuss_examples_reach_voice_local_only_in_the_seuss_arm(full_run):
@@ -811,6 +865,52 @@ def test_a_lead_turn_that_claims_an_action_outside_the_chat_is_flagged(tmp_path)
     t.add(session=1, mode="grill", speaker="lead", text="I'll ask the consultant tomorrow.", turn=5)
     assert sim.claimed_actions(t) == [1, 3]
     assert "You cannot run commands" in sim.persona_prompt(coastal())
+
+
+def test_a_session_at_its_cap_ends_before_the_lead_is_asked_so_no_lead_line_is_lost(tmp_path):
+    """The Paper Tiger this prevents: the lead's reply past the cap was written to the transcript and never reached
+    the assistant, so the judge marked a fact "not captured" that the assistant was never told (K34, mid-point T207).
+    The cap is checked before the persona is called: the transcript's last word in a capped session is the assistant's."""
+    capped = {"name": "capped", "sessions": [
+        {"mode": "dump", "cap": 1, "vela": "/vela:dump {opening}", "baseline": "Dump. {opening}"},
+        {"mode": "close", "cap": 3, "vela": "/vela:close", "baseline": "Close out this session."}]}
+    code, err, run_dir, calls = simulate(tmp_path, "--budget", "5", script_data=capped)
+    assert code == 1, err  # a turn cap ended a session early
+    said = entries(run_dir / "vela")
+    first = [e for e in said if e.get("session") == 1 and e["speaker"] in ("lead", "assistant")]
+    assert [e["speaker"] for e in first] == ["lead", "assistant"], "the scripted opening, the assistant's turn, nothing after"
+    assert "What else is on your mind?" in first[-1]["text"], "the stub's first turn asks, so a lead would have answered"
+    ending = next(e for e in said if e.get("event") == "session-end" and e["session"] == 1)
+    assert ending["reason"] == "turn-cap" and ending["turns"] == 1
+    roles = [c["role"] for c in calls if c["role"] in ("assistant", "persona")]
+    assert roles[:2] == ["assistant", "assistant"], "no persona call between session 1's capped turn and session 2"
+
+
+def test_the_lead_ends_a_finished_session_and_never_starts_another_mode_or_invents_a_pr():
+    """S19 T485-T498 of the 2026-10-14 mid-point: the handoff was done, the lead said "PR's open at #521" and "Main's
+    got it", then typed /planner:shape, and a whole Shape ran inside the Grill until the cap. Each rule below names the
+    behavior that run showed, so a rewording that drops one fails here."""
+    rules = sim.persona_prompt(coastal())
+    assert "asks you to close the session" in rules and "here when you are back" in rules
+    assert "refuses because an earlier step is missing" in rules
+    assert "Do not thank it, wish it luck or say goodbye first" in rules
+    assert 'Never type a slash command' in rules and "never ask to start another kind of session" in rules
+    assert "no pull request number" in rules and "merged, approved, reviewed or sent" in rules
+    assert "news included, are everything you know" in rules
+
+
+def test_a_lead_turn_that_starts_another_mode_or_invents_a_pr_is_flagged(tmp_path):
+    t = sim.Transcript(tmp_path / "t.jsonl")
+    t.add(session=19, mode="grill", speaker="lead", text="/vela:grill the offline rule", turn=470, scripted=True)
+    t.add(session=19, mode="grill", speaker="assistant", text="Closed. The pull request is open: "
+          "https://github.invalid/sim/heron/pull/3", turn=476)
+    t.add(session=19, mode="grill", speaker="lead", text="Good, PR 3 it is.", turn=477)
+    t.add(session=19, mode="grill", speaker="lead", text="PR's open at #521.", turn=485)
+    t.add(session=19, mode="grill", speaker="lead", text="Main's got it, it's merged.", turn=491)
+    t.add(session=19, mode="grill", speaker="lead", text="/planner:shape APP-admin-console", turn=497)
+    t.add(session=20, mode="close", speaker="lead", text="/vela:close", turn=500, scripted=True)
+    assert sim.mode_hops(t) == [497], "a scripted opening is the driver's, not the persona's"
+    assert sim.invented_prs(t) == [485, 491], "repeating the PR the assistant opened is not inventing one"
 
 
 def test_a_team_session_runs_in_the_team_repo_with_copies_of_the_named_skills(tmp_path):
