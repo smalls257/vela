@@ -37,7 +37,7 @@ Call it through a shell function, `vela() { python3 <the path> "$@"; }`, defined
 - Run the review checkpoint as `REVIEW.md` says; the lead sees one digest per session.
 - Tool trouble you fix yourself isn't news. Mention it only if you can't get past it.
 - In a page, the IDs a sentence would have carried go on a `- Trace:` line under it. Never delete a Trace line or turn one into prose. In a table cell, a labeled link escapes its pipe: `[[page#Heading\|label]]`.
-- Write American spelling, names included ("Summarizer", "behavior"): the check skips capitalized words, so it won't catch "Summariser".
+- Write American spelling, names included ("Organizer", "behavior"): the check skips capitalized words, so it won't catch "Organiser".
 
 ## Shell that runs on a Mac and on Linux
 

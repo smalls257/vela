@@ -41,8 +41,8 @@ Write: "Nobody has settled the handoff date and form yet. Sam is to answer it by
 Put a flag in brackets after any claim that rests on something not settled:
 
 - the state in words: "(just an idea)" for `inkling`, "(not decided yet)" for `assumption`, "(proposed)", "(open)";
-- "(nobody has looked at data protection for the Desktop agent yet)", for an `unexamined` cell or an app with no cell;
-- "(the Desktop agent's team lead hasn't confirmed it)", for a container at `assumption`;
+- "(nobody has looked at data protection for the dock app yet)", for an `unexamined` cell or an app with no cell;
+- "(the dock app's team lead hasn't confirmed it)", for a container at `assumption`;
 - "(contested: see <the unknown's name>)", for an item that `blocked_by` lists;
 - "(<name> disagrees)", for an item with `dissent`;
 - "(decided by override: <rule>, by @x)", for each `override` entry, its rules said in words, with its reason. One marked `malformed` overrides nothing: "(the override on this can't be read: <problem>)".

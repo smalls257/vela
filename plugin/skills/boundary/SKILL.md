@@ -25,7 +25,7 @@ Read the direction: `04-solution-strategy.md` and every page it links for the pi
 
 ## 2. Find the seams, then offer the cuts
 
-Before any cut, ask how the product comes apart, in the user's own words, a question or two at a time: the question a business analyst asks before drawing a context diagram. What are the separate things someone will stand up, own, release or switch off? Don't let the shape's wording (a note, a digest, "one helper") answer it for them. Ask:
+Before any cut, ask how the product comes apart, in the user's own words, a question or two at a time: the question a business analyst asks before drawing a context diagram. What are the separate things someone will stand up, own, release or switch off? Don't let the shape's wording (a report, a reminder, "one helper") answer it for them. Ask:
 
 - "Which parts run on a person's own device, which run somewhere shared that your people operate, and which does an administrator or support person open?"
 - "Would different teams build or run any of these, or would any ship on its own schedule?"
