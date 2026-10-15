@@ -25,26 +25,10 @@ def _fields(out):
     return [field for field in out.split("\0") if field]
 
 
-def parse_porcelain(out):
-    """Paths from `git status --porcelain=v1 -z`: each entry is `XY path`, and a rename or copy (`R`/`C` in either
-    column) is followed by its old path as a field of its own, which is skipped: the new path is what changed."""
-    paths, fields, i = [], out.split("\0"), 0
-    while i < len(fields):
-        entry = fields[i]
-        i += 1
-        if len(entry) < 4:
-            continue
-        status, path = entry[:2], entry[3:]
-        paths.append(path)
-        if "R" in status or "C" in status:
-            i += 1
-    return paths
-
-
 def changed_paths(root):
     """Every path git status reports, tracked or untracked (each untracked file named, not its folder). Ignored files
     are not listed: git's own .gitignore already keeps them out of `git add` by path."""
-    return parse_porcelain(_ok(root, "status", "--porcelain=v1", "-z", "--untracked-files=all"))
+    return vaultgit.status_paths(root, "--untracked-files=all")
 
 
 def staged_paths(root):

@@ -766,7 +766,7 @@ def review_refusals(root, parsed, slug, branch, folder):
                         "published from: fetch the clone it came from (git fetch origin) and review again.")
     dirty = vaultgit.uncommitted(root)
     if dirty:
-        raise ToolError(f"Your checkout has {len(dirty)} uncommitted file(s) ({dirty[0].strip()}...), so I did not start. Commit or stash them: "
+        raise ToolError(f"Your checkout has {len(dirty)} uncommitted file(s) ({dirty[0]}...), so I did not start. Commit or stash them: "
                         "a review starts from a known state, and its branch is made from committed work.")
     if reviewgit.branch_exists(root, branch):
         raise ToolError(f"Branch {branch} already exists. Finish or delete it, or pass --slug with another name.")

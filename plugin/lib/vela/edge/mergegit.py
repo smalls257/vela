@@ -82,10 +82,48 @@ def is_ancestor(root, older, newer):
 
 
 def tracked_changes(root):
-    """Tracked files with uncommitted changes, staged or not. Untracked files are left out: a merge only refuses over
-    one when main adds the same path, and then git's own error is printed."""
-    out = _out(root, "status", "--porcelain", "--untracked-files=no")
-    return [line[3:] for line in out.splitlines() if line.strip()]
+    """Tracked files with uncommitted changes, staged or not, repository-relative. Untracked files are left out: a merge
+    only refuses over one when main adds the same path, and then git's own error is printed."""
+    try:
+        return vaultgit.status_paths(root, "--untracked-files=no")
+    except vaultgit.GitUnavailable as exc:
+        raise MergeGitFailed(str(exc)) from exc
+
+
+def vault_prefix(root):
+    """The vault's folder inside its repository ("" at the root): git status names paths from the repository root."""
+    return _out(root, "rev-parse", "--show-prefix")
+
+
+def set_aside(root, paths):
+    """Keep each repository-relative path's bytes (None when it is not on disk), then put HEAD's copy back, so the merge
+    starts from a clean tree. `put_back` restores them. For files close stage never commits: a merge must not refuse
+    over them, and their content must survive it exactly."""
+    if not paths:
+        return {}
+    top = pathlib.Path(_out(root, "rev-parse", "--show-toplevel"))
+    kept = {path: (top / path).read_bytes() if (top / path).is_file() else None for path in paths}
+    # restore, not checkout: a path staged but not in HEAD is taken out of the index too, so the tree is really clean
+    code, out, err = _git(top, "restore", "--source=HEAD", "--staged", "--worktree", "--", *paths,
+                          env={"GIT_LITERAL_PATHSPECS": "1"})
+    if code != 0:
+        put_back(root, kept, top)
+        raise MergeGitFailed(f"git restore --source=HEAD -- {' '.join(paths)} failed: {err or out}")
+    return kept
+
+
+def put_back(root, kept, top=None):
+    """Write each set-aside file's bytes back (and remove one that was not on disk): the working copy as it was."""
+    if not kept:
+        return
+    top = top or pathlib.Path(_out(root, "rev-parse", "--show-toplevel"))
+    for path, data in kept.items():
+        target = top / path
+        if data is None:
+            target.unlink(missing_ok=True)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            atomic.write_atomic(target, data)
 
 
 def merge(root, ref=MAIN, ours_on_conflict=False):

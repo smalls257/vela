@@ -10,7 +10,9 @@ must choose.
 - origin/main already in HEAD: up to date, exit 0.
 - Tracked files with uncommitted edits: exit 3, nothing changed. A merge over uncommitted edits can mix them into a
   conflict nobody can untangle. This command never stages or commits the session's files (one capability per
-  subcommand): `vela close stage --checkpoint` does that.
+  subcommand): `vela close stage --checkpoint` does that. A tracked file close stage never commits (vela's `.vela/`
+  working files, the inbox, private voice; `guard.never_rule`) is not the lead's unsaved work: it is set aside before
+  the merge and written back after, exactly as it was, and a conflict in one is settled with `-X ours`.
 - A clean merge: exit 0.
 - Conflicts: `mergeplan` reads every hunk. Any hunk outside a generated block: the merge is aborted and the files and
   lines are listed, exit 1; main changed writing this branch changed too, and only the lead may choose between them.
@@ -25,7 +27,7 @@ Every outcome writes `.vela/close/<branch key>.json` (see `closestate`), so the 
 """
 import pathlib
 
-from vela import closestate, commands, mergeplan, say
+from vela import closestate, commands, guard, mergeplan, say
 from vela.edge import mergegit
 
 COMMAND = "close sync-main"
@@ -57,14 +59,32 @@ class _Run:
 
     def __init__(self, root, today):
         self.root, self.today, self.branch, self.main, self.head = root, today, "", "", ""
+        self.prefix, self.kept, self.set_aside = "", {}, []
+
+    def put_back(self):
+        """The set-aside files back as they were, before anything else is written: the state file may be one of them."""
+        kept, self.kept = self.kept, {}
+        mergegit.put_back(self.root, kept)
 
     def finish(self, status, exit_code, lines, reason="", files=(), refusals=(), needs_lead=(), wrote=()):
+        self.put_back()
         key = closestate.key_for(self.branch) if status != closestate.READER else closestate.READER_KEY
         rec = closestate.record(status, self.branch, self.main, self.head, self.today, reason, files)
         path = mergegit.write_state(self.root, key, rec)
         data = {"status": status, "reason": reason, "branch": self.branch, "main": self.main, "head": self.head,
-                "files": rec["files"], "state_file": path.relative_to(self.root).as_posix()}
+                "files": rec["files"], "state_file": path.relative_to(self.root).as_posix(),
+                "set_aside": list(self.set_aside)}
         return say.Result(COMMAND, exit_code, list(lines), list(refusals), list(needs_lead), list(wrote), data)
+
+
+def never_committed(path, prefix):
+    """True for a repository-relative path inside the vault that close stage never stages (guard's never-staged
+    rules: vela's own `.vela/` files, the inbox, private voice). A dirty one is not the lead's unsaved work, so it
+    neither blocks a sync nor appears in advice to commit it: that advice contradicted close stage (Distributed
+    Monolith), and following it could never succeed."""
+    if not path.startswith(prefix):
+        return False
+    return guard.never_rule(path[len(prefix):]) is not None
 
 
 def sync_main(root, today, accept=False, timeout=mergegit.FETCH_TIMEOUT):
@@ -77,6 +97,8 @@ def sync_main(root, today, accept=False, timeout=mergegit.FETCH_TIMEOUT):
         return _sync_owner(run, accept, timeout)
     except mergegit.MergeGitFailed as exc:
         return _git_failed(run, str(exc))
+    finally:
+        run.put_back()
 
 
 def _sync_owner(run, accept, timeout):
@@ -96,9 +118,13 @@ def _sync_owner(run, accept, timeout):
         return run.finish(closestate.UP_TO_DATE, say.DONE, [say.Line(
             f"sync-main: up to date: origin/main {run.main[:7]} is already in {run.branch}.",
             "This branch already has everything on main.")])
+    run.prefix = mergegit.vault_prefix(root)
     dirty = mergegit.tracked_changes(root)
-    if dirty:
-        return _uncommitted(run, dirty)
+    mine = [path for path in dirty if not never_committed(path, run.prefix)]
+    if mine:
+        return _uncommitted(run, mine)
+    run.set_aside = [path for path in dirty if never_committed(path, run.prefix)]
+    run.kept = mergegit.set_aside(root, run.set_aside)
     return _merge(run)
 
 
@@ -113,15 +139,22 @@ def _merge(run):
     if not paths:  # the merge failed for a reason that is not a conflict: git's words are the only explanation
         _abort_if_stopped(root)
         raise mergegit.MergeGitFailed(f"git merge --no-edit {mergegit.MAIN} failed: {said}")
-    plans = [mergeplan.plan_file(path, mergegit.conflicted_text(root, path)) for path in paths]
+    # A file close stage never commits is nobody's writing: -X ours settles it like a generated block
+    plans = [mergeplan.plan_file(path, mergegit.conflicted_text(root, path)) for path in paths
+             if not never_committed(path, run.prefix)]
     mergegit.abort(root)
-    if not mergeplan.generated_only(plans):
+    if plans and not mergeplan.generated_only(plans):
         return _conflict(run, plans)
     code, said = mergegit.merge(root, ours_on_conflict=True)
     if code != 0:
         _abort_if_stopped(root)
         raise mergegit.MergeGitFailed(f"git merge --no-edit -X ours {mergegit.MAIN} failed after the generated-only "
                                       f"check: {said}")
+    if not plans:
+        return _merged(run, before, closestate.MERGED, [], say.Line(
+            f"sync-main: merged origin/main {run.main[:7]} into {run.branch}; the only conflicts were in files close "
+            "stage never commits, settled with -X ours.",
+            "I brought in what changed on main; nothing of anyone's writing clashed."))
     files = [{"path": p.path, "lines": [h.lines() for h in p.hunks]} for p in plans]
     return _merged(run, before, closestate.MERGED_GENERATED, files, say.Line(
         f"sync-main: merged origin/main {run.main[:7]} into {run.branch}; every conflict was inside a generated block "
