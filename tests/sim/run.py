@@ -9,6 +9,12 @@ Usage:
   python3 tests/sim/run.py <persona> --model <id> --persona-model <id> --judge-model <id> --budget <usd>
                            [--arms vela,vela-seuss] [--script default] [--stub] [--out <dir>]
   python3 tests/sim/run.py --rejudge <run-dir> --judge-model <id> --budget <usd> [--stub]
+  python3 tests/sim/run.py --resume-run <run-dir> [--budget <usd>]
+
+--resume-run goes on with a run that stopped part-way (killed, crashed, out of budget) from each arm's first session
+with no end, in the arm's own vault, and never plays an ended session again. --budget is the new total cap; it is
+refused with exit 5, before anything is spent, when what is left can't cover one more typical session. run.json's
+per_arm is written after every session, so a killed run loses at most the session it was in.
 
 --rejudge scores a finished run again from its transcript.jsonl and vault/, without replaying any session. It
 rewrites each arm's scorecard.json and scorecard.md and the run's compare.html, and writes what it cost to
@@ -32,7 +38,7 @@ session ran and was scored, but the final vault's Completeness (vela status) is 
 `completeness_gate`, so the run does not count. The scorecard names the shares that held it back. A --stub run reports
 the gate and is never failed by it, since no model wrote its vault. A tool failure (2) outranks the gate (3), and the
 gate outranks an early stop (1): a run under the gate does not count however its sessions ended; 4 the judge
-preflight failed, so no session ran.
+preflight failed, so no session ran; 5 --resume-run refused, because its budget can't cover one more session.
 
 Before any session, a paid run sends each judge category's real prompt, flags and input shape once over a tiny
 made-up run (cents in all). A refusal by the model's safeguards, a model name the CLI does not know or an auth error
