@@ -142,7 +142,8 @@ def find_session(root, command):
     if not current or current != branch:
         raise refused(command, f"vela {command}: HEAD is on {current or 'no branch'}, but {record.id} is on {branch}; "
                                f"switch to {branch} first (vela session open --switch).",
-                      "This folder is on another branch than the session's, so I haven't sent anything.")
+                      "This folder has other work open, not this session, so I haven't sent anything. Shall I "
+                      "switch back to it?")
     return Session(record, text, branch)
 
 
@@ -204,13 +205,47 @@ def cmd_push(args, out):
         can_send(root, PUSH)
         session = find_session(root, PUSH)
         vault = cli.load_vault(root)
-        result = notice(root, vault, session) if not args.consent else send(root, vault, session, args)
+        if not args.consent:
+            # Readiness first: asking "OK?" for a session that can't go yet asks the lead for a yes that is then
+            # refused (the 14 October voice audit, row 133).
+            result = unready(root, vault, session, args) or notice(root, vault, session)
+        else:
+            result = send(root, vault, session, args)
     except Stop as stop:
         result = stop.result
     except (vaultgit.GitUnavailable, cli.ToolError, OSError) as exc:
         result = say.Result(PUSH, exit=say.FAILED, lines=[say.Line(f"vela close push: {exc}",
-                                                                   plain=f"I couldn't send the session: {exc}")])
+                                                                   plain="I couldn't send the session; git didn't "
+                                                                         "answer.")])
     return emit(result, args, out, vault)
+
+
+def unready(root, vault, session, args):
+    """The refusal when the gate says the session can't be sent yet, or None. Said in the gate's own grouped words."""
+    from vela import cli
+    today, _ = cli.parse_today(args.today)
+    readiness = closegate.ready(vault, session.text, session.id,
+                                close_gate.observe(root, vault, session.record, session.text, today))
+    if readiness.ready:
+        return None
+    lines = close_gate.problem_lines(readiness, say.Resolver(vault))
+    return say.Result(PUSH, exit=say.REFUSED, answer=f"I haven't sent anything. {close_gate.answer_words(readiness)}",
+                      lines=[say.Line(f"close push: {session.id} isn't ready to send; nothing was pushed.",
+                                      plain="")] + lines)
+
+
+def trouble(why):
+    """What a failed push or gh call means, in words the lead can act on; git's own words stay in the default line."""
+    said = (why or "").lower()
+    if any(w in said for w in ("could not resolve host", "unable to access", "timed out", "no answer", "network")):
+        return "the network didn't answer"
+    if any(w in said for w in ("rejected", "non-fast-forward", "fetch first")):
+        return "the shared copy has changes this one doesn't have yet"
+    if any(w in said for w in ("permission denied", "authentication", "auth login", "403", "401")):
+        return "GitHub didn't accept my sign-in"
+    if "isn't installed" in said:
+        return "GitHub's tool isn't installed on this machine"
+    return "git didn't take it"
 
 
 def notice(root, vault, session):
@@ -262,28 +297,22 @@ def send(root, vault, session, args):
         # The default mode names the paths for the model; the lead hears what it means for the send.
         raise refused(PUSH, f"vela close push: {what.lower()}: {', '.join(left)}. Commit them (vela close stage --close, "
                             "or vela close finish) and run this again.",
-                      f"{what}, so they wouldn't be sent. I'll commit them first.")
-    from vela import cli
-    today, _ = cli.parse_today(args.today)
-    readiness = closegate.ready(vault, session.text, session.id,
-                                close_gate.observe(root, vault, session.record, session.text, today))
-    if not readiness.ready:
-        lines = close_gate.problem_lines(readiness, say.Resolver(vault))
-        return say.Result(PUSH, exit=say.REFUSED, lines=[say.Line(
-            f"close push: {session.id} isn't ready to send; nothing was pushed.",
-            plain="I haven't sent anything: the session isn't ready yet.")] + lines)
+                      "A few of today's changes aren't saved yet, so they wouldn't go. I'll save them, then send.")
+    stopped = unready(root, vault, session, args)
+    if stopped is not None:
+        return stopped
     sent = ghcli.push(root, session.branch, track=not session.answer)
     if not sent.ok:
         return say.Result(PUSH, exit=say.FAILED, data={"branch": session.branch, "retry": sent.command}, lines=[
             say.Line(f"vela close push: {sent.command} failed: {sent.why}. Branch: {session.branch}. Retry: "
                      f"{sent.command}",
-                     plain=f"I couldn't send the branch {session.branch}. To try again: {sent.command}")])
+                     plain=f"I couldn't send it: {trouble(sent.why)}. Shall I try again?")])
     head = vaultgit.git_out(root, "rev-parse", "HEAD")
     pushed = {"version": VERSION, "branch": session.branch, "head": head, "consent": f"c{yes.n}",
               "words": yes.quote, "link": f"[[{session.id}#^c{yes.n}]]", "answer": session.answer}
     wrote = [sessiongit.write_text(root, close_file(session.id, "push"), json.dumps(pushed, indent=2) + "\n")]
-    plain = ("Sent to the challenge's branch; next, the comment on its pull request." if session.answer
-             else "Sent; next, the pull request.")
+    plain = ("Sent. Now I'll add your answer to the challenge." if session.answer
+             else "Sent. Now I'll open the review.")
     return say.Result(PUSH, wrote=wrote, data={"branch": session.branch, "head": head},
                       lines=[say.Line(f"pushed {session.branch} ({head[:7]}) with {sent.command}", plain=plain)])
 
@@ -304,7 +333,8 @@ def cmd_pr(args, out):
         result = stop.result
     except (vaultgit.GitUnavailable, cli.ToolError, OSError, ValueError) as exc:
         result = say.Result(PR, exit=say.FAILED, lines=[say.Line(f"vela close pr: {exc}",
-                                                                 plain=f"I couldn't open the pull request: {exc}")])
+                                                                 plain="I couldn't open the review; GitHub didn't "
+                                                                       "answer.")])
     return emit(result, args, out, vault)
 
 
@@ -312,11 +342,12 @@ def pushed_marker(root, session):
     marker = read_marker(root, close_file(session.id, "push"))
     if not marker or marker.get("branch") != session.branch:
         raise refused(PR, f"vela close pr: {session.branch} isn't pushed by close push yet; run vela close push first.",
-                      "This session isn't sent yet, so there's no pull request to open. I'll send it first.")
+                      # Sending needs the lead's own yes (close push's notice), so this asks; it never promises.
+                      "This session isn't sent yet. Shall I send it for review?")
     if marker.get("head") != vaultgit.git_out(root, "rev-parse", "HEAD"):
         raise refused(PR, f"vela close pr: {session.branch} has commits since close push; run vela close push "
                           f"--consent ^{marker.get('consent')} again so the remote has them.",
-                      "Something was committed after the branch was sent, so I'll send it again first.")
+                      "Something changed after I sent the session. Shall I send it again?")
     return marker
 
 
@@ -428,8 +459,8 @@ def write_pr_number(root, vault, session, sent, before_texts, data, lines):
     again = ghcli.push(root, session.branch, track=True)
     if not again.ok:
         lines.append(say.Line(f"vela close pr: {again.command} failed: {again.why}. Retry: {again.command}",
-                              plain=f"The pull request is open, but I couldn't send the handoff's number. To try "
-                                    f"again: {again.command}"))
+                              plain=f"The review is open, but I couldn't link it from the handoff: "
+                                    f"{trouble(again.why)}. Shall I try again?"))
         return say.Result(PR, exit=say.FAILED, data=data, wrote=wrote, lines=lines)
     head = vaultgit.git_out(root, "rev-parse", "HEAD")
     marker = read_marker(root, close_file(session.id, "push")) or {}

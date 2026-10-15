@@ -64,12 +64,13 @@ def open_record(root):
         text = (root / found[0].path).read_text(encoding="utf-8")
         return found[0], text, None
     if not found:
-        line = "No session is open, so there is nothing to finish." + (f" ({'; '.join(problems)})" if problems else "")
-        return None, "", say.Result("close gate", exit=say.REFUSED, lines=[say.Line(line)])
+        said = "No session is open, so there is nothing to finish."
+        line = said + (f" ({'; '.join(problems)})" if problems else "")
+        return None, "", say.Result("close gate", exit=say.REFUSED, lines=[say.Line(line, plain=said)])
     choices = [{"id": r.id, "topic": r.title, "date": r.date} for r in found]
     lines = [say.Line(f"{len(found)} sessions are open in this folder; run close gate on the branch of the one you are "
-                      "closing.", plain=f"{len(found)} sessions are open here, so I haven't judged either. Which one "
-                                        "are we closing?")]
+                      "closing.", plain=f"{say.count_words(len(found), capital=True)} sessions are open here: "
+                                        f"{say.names_said([r.title for r in found])}. Which one are we closing?")]
     return None, "", say.Result("close gate", exit=say.NEEDS_LEAD, lines=lines, needs_lead=choices)
 
 
@@ -138,11 +139,20 @@ def flow_lines(root, vault, before, today):
     for line in report.lines:
         if walk.everything or line.key in reached:
             status = line.words()[len(line.label) + 2:].split(". ", 1)[0].rstrip(".")
-            out.append((line.words(), f"The flow check of {_SLICE_ID.sub('', line.label)}: {status}."))
+            out.append((line.words(), slice_words(_SLICE_ID.sub('', line.label), status)))
     if not out:  # said, so "nothing reached" never reads like "never checked"
-        none = "Nothing this session changed reaches a slice's flows, so the flow check had nothing new to check."
+        none = "Nothing this session changed touches a slice, so there was nothing new to check end to end."
         out.append((none, none))
     return tuple(out)
+
+
+def slice_words(name, status):
+    """What the lead hears about one slice's flow check: whether it still runs end to end."""
+    if status.startswith("passes"):
+        return f"{name} still runs end to end."
+    if "not fully checked" in status and not status.startswith("fails"):
+        return f"{name} isn't fully checked yet, so I can't say it runs end to end."
+    return f"{name} breaks somewhere along the way; the boundary session is where that gets fixed."
 
 
 def observe(root, vault, record, text, today):
@@ -165,20 +175,56 @@ def run(args, out):
     try:
         return judge_session(args, out)
     except (vaultgit.GitUnavailable, mergegit.MergeGitFailed, closestate.StateUnreadable) as exc:
-        print(f"vela close gate: could not judge the session: {exc}", file=out)
-        return say.FAILED
+        from vela import commands
+        return commands.emit(say.Result("close gate", exit=say.FAILED, lines=[say.Line(
+            f"vela close gate: could not judge the session: {exc}",
+            plain="I couldn't check whether the session is ready; git didn't answer.")]), args, out)
+
+
+# How the answer line names each kind of problem, counted: what holds the close up, in the lead's terms.
+KIND_WORDS = {
+    closegate.SYNC: ("main changed the same pages we did", "main changed the same pages we did"),
+    closegate.CONSENT: ("one decision needs your yes", "{n} decisions need your yes"),
+    closegate.UNMARKED: ("some of what you said isn't sorted yet", "some of what you said isn't sorted yet"),
+    closegate.CHECK: ("one item can't be finished as it stands", "{n} items can't be finished as they stand"),
+    closegate.REMOVED_ROW: ("one thing was taken out this session", "{n} things were taken out this session"),
+    closegate.STRAY: ("some files changed outside this session", "some files changed outside this session"),
+}
+WAY_OUT = "You can also keep any of these as they are; I'll note why."
 
 
 def problem_lines(readiness, resolver):
+    """Every problem and note. The text line carries the detail and the clear (for the model); the lead hears the
+    question only, and the steps Claude takes itself (render, sync-main, the hooks note) not at all."""
     lines = []
     for p in readiness.problems:
         clear = f" To clear: {p.clear}" if p.clear else ""
-        lines.append(say.Line(f"not ready: {p.plain} ({p.detail}){clear}",
-                              plain=resolver.plain(f"{p.plain} {p.clear}".strip())))
+        lines.append(say.Line(f"not ready: {p.plain} ({p.detail}){clear}", plain=resolver.plain(p.plain),
+                              audience=p.audience))
     for n in readiness.notes:
         shown = n.plain if n.detail == n.plain else f"{n.plain} ({n.detail})"
-        lines.append(say.Line(f"Noted: {shown}", plain=resolver.plain(n.plain)))
+        lines.append(say.Line(f"Noted: {shown}", plain=resolver.plain(n.plain), audience=n.audience))
     return lines
+
+
+def answer_words(readiness):
+    """The lead's first line: ready, or what holds the close up, grouped by kind and counted (about four things)."""
+    if readiness.ready:
+        return "The session is ready to finish."
+    theirs = [p for p in readiness.problems if p.audience == say.LEAD]
+    if not theirs:
+        return "I have a step of my own to take before I can finish; nothing needs you yet."
+    counts = {}
+    for p in theirs:
+        counts[p.kind] = counts.get(p.kind, 0) + 1
+    parts = []
+    for kind in closegate.KINDS:
+        if kind in counts and kind in KIND_WORDS:
+            one, many = KIND_WORDS[kind]
+            parts.append(one if counts[kind] == 1 else many.format(n=say.count_words(counts[kind])))
+    things = say.count_words(len(theirs))
+    head = "One thing before I can finish" if len(theirs) == 1 else f"{things.capitalize()} things before I can finish"
+    return f"{head}: {say.names_said(parts)}." + (" Shall we take them one at a time?" if len(theirs) > 1 else "")
 
 
 def judge_session(args, out):
@@ -196,12 +242,12 @@ def judge_session(args, out):
         return 0
     resolver = say.Resolver(vault)
     n = len(readiness.problems)
-    head = (say.Line(f"close gate: ready to finish {record.id}.", plain="The session is ready to finish.") if not n
-            else say.Line(f"close gate: {n} thing{'' if n == 1 else 's'} before {record.id} can finish:",
-                          plain="Before I can finish, " + ("one thing needs sorting:" if n == 1
-                                                           else f"{n} things need sorting:")))
+    head = (say.Line(f"close gate: ready to finish {record.id}.", plain="") if not n
+            else say.Line(f"close gate: {n} thing{'' if n == 1 else 's'} before {record.id} can finish:", plain=""))
+    asks = any(p.audience == say.LEAD and p.kind in (closegate.CONSENT, closegate.CHECK) for p in readiness.problems)
     data = {"ready": readiness.ready, "consent": [c.__dict__ for c in readiness.consent],
             "problems": [p.__dict__ for p in readiness.problems], "notes": [p.__dict__ for p in readiness.notes]}
     result = say.Result("close gate", exit=say.DONE if readiness.ready else say.REFUSED,
-                        lines=[head] + problem_lines(readiness, resolver), data=data)
+                        lines=[head] + problem_lines(readiness, resolver), data=data,
+                        answer=answer_words(readiness), closing=WAY_OUT if asks else "")
     return commands.emit(result, args, out, resolver)

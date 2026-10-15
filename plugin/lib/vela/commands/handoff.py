@@ -57,4 +57,5 @@ def preview(args, out):
     taking_part = slices.for_app(vault, slices.read_slices(vault), app)
     standings, warning = cli.recorded_standings(root, vault, [s.key for s in taking_part], today)
     found = handoffpreview.preview(vault, app, taking_part, standings, warning)
-    return commands.emit(handoffpreview.result(found), args, out, say.Resolver(vault))
+    resolver = say.Resolver(vault)
+    return commands.emit(handoffpreview.result(found, resolver), args, out, resolver)

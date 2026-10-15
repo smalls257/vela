@@ -113,7 +113,7 @@ def test_the_lead_hears_what_is_not_settled_at_handoff(tmp_path):
         git(vault, "commit", "-qam", "stock level is only assumed")
         git(vault, "push", "-q", "origin", "main")
     vault = session(tmp_path, handed="@stock-team, 2026-10-20, PR pending", on_main=assumed)
-    code, out = finish(vault, "--for-lead")
+    code, out = finish(vault, "--for-lead", "--more")
     assert code == 0, out
     assert closefinish.NOT_SETTLED_HEAD.format(app="Stock") in out
     assert "Stock level is not decided yet: nobody has said yes to it." in out and say.leak_in(out) is None
@@ -148,7 +148,7 @@ def test_gate_not_ready_exits_1(tmp_path):
     head = git(vault, "rev-parse", "HEAD")
     code, out = finish(vault, "--for-lead")
     assert code == 1, out
-    assert "isn't ready to finish" in out and say.leak_in(out) is None
+    assert "before I can finish" in out and say.leak_in(out) is None
     _, default = finish(vault)
     assert "vela close gate" in default
     assert git(vault, "rev-parse", "HEAD") == head and record_meta(vault)["status"] == "open"

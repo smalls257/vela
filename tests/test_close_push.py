@@ -112,7 +112,7 @@ def test_consent_before_notice_refused(tmp_path):
     code, out = push(vault)
     assert code == 3, out  # the notice comes now, after the yes
     code, out = push(vault, "--consent", number)
-    assert code == 1 and "I haven't told you what I'm about to send yet." in out, out
+    assert code == 1 and "Before I send anything, I need to tell you what goes and to whom." in out, out
     assert not remote_has(bare, BRANCH)
 
 
@@ -121,7 +121,7 @@ def test_bare_ok_consent_refused(tmp_path):
     assert push(vault)[0] == 3
     number = add_yes(vault, words="ok")
     code, out = push(vault, "--consent", number, "--for-lead")
-    assert code == 1 and "an 'ok' rather than a yes" in out, out
+    assert code == 1 and "You said 'ok'. Is that a yes" in out, out
     assert not remote_has(bare, BRANCH)
 
 
@@ -130,7 +130,7 @@ def test_claude_consent_refused(tmp_path):
     assert push(vault)[0] == 3
     number = add_yes(vault, words="the lead seemed happy to send", origin="claude")
     code, out = push(vault, "--consent", number)
-    assert code == 1 and "That was my suggestion, not your yes." in out
+    assert code == 1 and "That line was mine, not yours." in out
     assert not remote_has(bare, BRANCH)
 
 
@@ -187,7 +187,8 @@ def test_push_failure_prints_branch_and_retry(tmp_path):
     assert code == 2, out
     assert BRANCH in out and f"git push -u origin {BRANCH}" in out
     code, lead = push(vault, "--consent", number, "--for-lead")
-    assert code == 2 and say.leak_in(lead) is None and "git push -u origin" in lead
+    assert code == 2 and say.leak_in(lead) is None and "Shall I try again?" in lead
+    assert BRANCH not in lead  # the branch and git's command stay in the default line
 
 
 def test_reader_copy_sends_nothing(tmp_path):

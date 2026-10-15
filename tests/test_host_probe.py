@@ -120,13 +120,16 @@ def test_host_json_has_every_field(tmp_path):
     assert host["python"].startswith("3.")
 
 
-def test_probe_for_lead_has_one_plain_line_per_row(tmp_path):
+def test_probe_lists_every_row_and_tells_the_lead_the_stance(tmp_path):
     folder = vault(tmp_path)
     bin_dir = path_with(tmp_path, "git")
     signed_in_gh(bin_dir)
-    done = probe(folder, bin_dir, "--for-lead")
+    done = probe(folder, bin_dir)
     assert done.returncode in (0, 1), done.stderr
-    assert len([l for l in done.stdout.splitlines() if ": yes" in l or ": no" in l or "couldn't tell" in l]) >= 10
+    assert len([line for line in done.stdout.splitlines() if ": yes:" in line or ": no:" in line
+                or "couldn't tell" in line]) >= 10  # every row, for the model
+    lead = probe(folder, bin_dir, "--for-lead").stdout.splitlines()
+    assert lead and not any(": yes" in line for line in lead), lead  # the lead hears the stance, then what fails
 
 
 def test_session_start_hook_writes_marker(tmp_path):

@@ -252,7 +252,7 @@ def test_brief_gh_failure_is_a_line_not_silence(tmp_path, monkeypatch):
     assert any("gh could not list merged PRs (gh: not signed in (HTTP 401))" in line for line in found["lines"])
     assert found["next"], "the rest of the brief still runs"
     code, output = run("session", "brief", "--vault", str(vault), "--today", TODAY, "--for-lead")
-    assert code == 2 and "review comments weren't checked" in output
+    assert code == 2 and "I couldn't reach GitHub, so I haven't checked for review comments" in output
 
 
 def test_brief_offers_review_comments_as_candidate_captures(tmp_path, monkeypatch):

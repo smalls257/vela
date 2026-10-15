@@ -102,7 +102,7 @@ def _link_left_out(m, details, r):
 
 
 def _design_found(m, details, r):
-    return f"{r.plain(m['app'])}'s design is {m['path']}, found {r.plain(m['how'])}."
+    return f"I found {r.plain(m['app'])}'s design and put it on the page."
 
 
 def _looked(details, r):
@@ -121,8 +121,26 @@ def _no_design(m, details, r):
     return " ".join([head] + _looked(details, r))
 
 
+_MISSING_FILE = re.compile(r"^(?P<app>.+?): (?:from )?(?P<key>design|breakdown): on its page is (?P<path>\S+?),? "
+                           r"which is not a file")
+
+
 def _warning(m, details, r):
-    return " ".join([f"{r.plain(m['rest']).rstrip('.')}. The build went on without it."] + [r.plain(d) for d in details])
+    missing = _MISSING_FILE.match(m["rest"])
+    if missing:
+        what = "design" if missing["key"] == "design" else "build plan"
+        return (f"{r.plain(missing['app'])}'s page points to a {what} file that isn't there, so the build went on "
+                "without it.")
+    said = " ".join([f"{_unpathed(r.plain(m['rest'])).rstrip('.')}. The build went on without it."]
+                    + [_unpathed(r.plain(d)) for d in details])
+    return said
+
+
+def _unpathed(text):
+    """A line with every file path taken out: an absolute one in brackets dropped, any other said as "a file"."""
+    from vela import say
+    text = re.sub(r"\s*\((?:/|~/)[^)]*\)", "", text)
+    return say.LEAD_PATTERNS["file path"].sub("a file", text)
 
 
 def _status(status):
@@ -138,12 +156,12 @@ def _unreadable(count, details, r):
 
 
 def _design_status(m, details, r):
-    return (f"{r.plain(m['app'])}'s design ({m['path']}) is {_status(m['status'])}, with {_plural(m['n'], 'component')}."
+    return (f"{r.plain(m['app'])}'s design is {_status(m['status'])}, with {_plural(m['n'], 'component')}."
             + _unreadable(m["bad"], details, r))
 
 
 def _plan_found(m, details, r):
-    return f"{r.plain(m['app'])}'s build plan is {m['path']}, found {r.plain(m['how'])}."
+    return f"I found {r.plain(m['app'])}'s build plan and put it on the page."
 
 
 def _no_plan(m, details, r):
@@ -155,7 +173,7 @@ def _no_plan(m, details, r):
 
 def _plan_status(m, details, r):
     status = "has no status" if m["status"] == "no status" else f"is marked {m['status'].replace('-', ' ')}"
-    return (f"{r.plain(m['app'])}'s build plan ({m['file']}) {status}: {_plural(m['stories'], 'story', 'stories')}, "
+    return (f"{r.plain(m['app'])}'s build plan {status}: {_plural(m['stories'], 'story', 'stories')}, "
             f"{_plural(m['tasks'], 'task')}, {_plural(m['points'], 'point')}." + _unreadable(m["bad"], details, r))
 
 
@@ -185,8 +203,8 @@ def _gitignore(m, details, r):
 
 
 def _assets(m, details, r):
-    source = "the built-in art" if m["provider"] == "builtin" else f"the {m['provider']} art"
-    return f"All the pictures came from {source}."
+    """Nothing to say when every picture came from where it was asked to: the normal case is not news."""
+    return ""
 
 
 def _assets_fell_back(m, details, r):
@@ -202,8 +220,8 @@ def _assets_fell_back(m, details, r):
 def _party(m, details, r):
     many = _many(m["cons"])
     return (f"The {_names(m['cons'], r)} {'contracts name their' if many else 'contract names its'} provider only in "
-            f"{'their' if many else 'its'} text (\"{m['said']}\"), so the map shows \"{m['title']}\". Adding that party "
-            "under Outside parties in 03-context-and-scope.md, linked as the Provider, fixes it.")
+            f"{'their' if many else 'its'} text (\"{m['said']}\"), so the map shows \"{m['title']}\". Tell me who "
+            "provides it and I'll add them as an outside party.")
 
 
 def _draft_changed(m, details, r):
@@ -221,16 +239,15 @@ def _draft_unreadable(m, details, r):
 
 
 def _vault_id(m, details, r):
-    return (f"This plan has no {VAULT_ID_KEY} in .vela.yaml, so the browser keeps its saved marks, layout and Ask "
-            "conversations under a name made from the initiative and its title. Another plan with the same two would "
-            f"share them, and a new title loses them. Adding the line `{m['line']}` to .vela.yaml and committing it "
-            "fixes that, and what was saved before moves over once.")
+    return ("The browser could lose your saved marks, layout and Ask conversations if the plan is renamed, because "
+            "the plan has no fixed name of its own yet. Want me to give it one? What was saved moves over once.")
 
 
 def _summary(m, details, r):
-    return (f"I built the page at {m['out']} for {r.plain(m['title'])}: {_plural(m['apps'], 'app')}, "
+    saved = m["out"].replace("\\", "/").rsplit("/", 1)[-1]
+    return (f"The page for {r.plain(m['title'])} is ready: {_plural(m['apps'], 'app')}, "
             f"{_plural(m['cons'], 'contract')}, {_plural(m['unk'], 'open question')}, {_plural(m['epics'], 'epic')} "
-            f"and {_plural(m['flows'], 'flow')}, as of {m['today']}.")
+            f"and {_plural(m['flows'], 'flow')}, as of {r.plain(m['today'])}. It's saved as {saved}.")
 
 
 # kind -> (what the head line looks like, what the lead hears). Order matters only where two patterns could both

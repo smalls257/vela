@@ -12,6 +12,6 @@ def run(ctx):
     assert ctx.git("rev-parse", "HEAD") == head, "an exit 3 changed the repo"
     code, out = ctx.vela(*asked, "--unnamed", "--for-lead")
     assert ctx.git("rev-parse", "--abbrev-ref", "HEAD").strip() == f"session/{ctx.record_id}", out
-    assert f"Calling this one {ctx.record_id}." in out, out
+    assert "I've opened the session: Grill: desk agent calendar." in out and ctx.record_id not in out, out
     ctx.outputs["record"] = ctx.vault / "sessions" / f"{ctx.record_id}.md"
     ctx.outputs["session start"] = out

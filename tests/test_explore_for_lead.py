@@ -50,22 +50,22 @@ ROWS = [
     ("link left out", "a link was left out, 05-building-blocks/coach-building-blocks.md: links: entry 2 is not a link "
      "(vela check reports it as E105)", "A link on the Coach page couldn't be read, so it isn't shown."),
     ("design found", "Coach (APP-coach): using the design docs/tech-design/coach.md, found from design: on its page",
-     "Coach's design is docs/tech-design/coach.md"),
+     "I found Coach's design and put it on the page."),
     ("no design", "no design yet for Coach (APP-coach), TickerTalk (APP-tickertalk), so Inside this app shows only their "
      "containers. To add one, the app's team runs /vela:design --app <app ID> from the plan's folder (it writes "
      "docs/tech-design/<slug>.md), or point to one with design: on the app page, designs: in .vela.yaml, or "
      "--design <app ID>=<path>.\n  Coach (APP-coach): docs/tech-design/ holds 1 design doc, but none is for this app",
      "No design yet for Coach and TickerTalk"),
     ("warning", "warning: Coach (APP-coach): from design: on its page is docs/x.md, which is not a file (/v/docs/x.md)",
-     "Coach: from design: on its page is docs/x.md, which is not a file"),
+     "Coach's page points to a design file that isn't there, so the build went on without it."),
     ("design status", "APP-coach design docs/tech-design/coach.md: draft, 3 components, 1 things it could not read\n"
-     "  line 12, components: a row names no component", "Coach's design (docs/tech-design/coach.md) is marked draft, not complete"),
+     "  line 12, components: a row names no component", "Coach's design is marked draft, not complete"),
     ("plan found", "Coach (APP-coach): using the build plan docs/plan/coach-breakdown.md, found beside its design",
-     "Coach's build plan is docs/plan/coach-breakdown.md"),
+     "I found Coach's build plan and put it on the page."),
     ("no plan", "no build plan yet for Coach (APP-coach); their Build plan level says so. Point to one with breakdown: on "
      "the app page, breakdowns: in .vela.yaml, or --breakdown <app ID>=<path>.", "No build plan yet for Coach"),
     ("plan status", "APP-coach build plan coach-breakdown.md: complete, 4 stories, 9 tasks, 21 points, 0 things it could not read",
-     "Coach's build plan (coach-breakdown.md) is marked complete: 4 stories, 9 tasks, 21 points."),
+     "Coach's build plan is marked complete: 4 stories, 9 tasks, 21 points."),
     ("icon", "APP-coach asks for icon: rocket, which is not in the built-in set; it is drawn by keyword instead",
      "Coach asks for an icon called rocket"),
     ("page far away", "no Open the file links, the vault and the page sit apart under the home folder; build the page "
@@ -78,7 +78,7 @@ ROWS = [
     ("gitignore", "this vault's .gitignore lists dashboard.html, so colleagues who pull the repo will not get the page. "
      "Remove that line from .gitignore, or build with --out somewhere else.", "colleagues who pull the repo won't get the page"),
     ("assets", "assets from builtin only (no --assets given), provider builtin, 18 slots, 21 KB inlined, 0 fell back to builtin",
-     "All the pictures came from the built-in art."),
+     ""),  # the normal case is not news
     ("assets fell back", "assets from art.config.json, provider acme, 18 slots, 9 KB inlined, 1 fell back to builtin\n"
      "  logo: the file is missing", "1 picture fell back to the built-in art: logo (the file is missing)"),
     ("party", "CON-003 names its provider in running text, \"Brightwater sandbox API\", so the map draws \"Brightwater\". "
@@ -92,9 +92,9 @@ ROWS = [
     ("vault id", "this vault has no vault_id in .vela.yaml, so the browser keeps its saved marks, layout and Ask "
      "conversations under a name made from the initiative and title: another vault with the same two shares them, and a "
      "new title loses them. Add the line `vault_id: v-0123456789abcd` and commit it; what was saved before moves over once",
-     "Adding the line `vault_id: v-0123456789abcd` to .vela.yaml"),
+     "Want me to give it one?"),
     ("summary", f"wrote /tmp/v/dashboard.html for INI-001 New initiative: 2 apps, 5 contracts, 75 unknowns, 3 epics, "
-     f"3 flows, as of {TODAY}.", "I built the page at /tmp/v/dashboard.html for New initiative: 2 apps, 5 contracts, "
+     f"3 flows, as of {TODAY}.", "The page for New initiative is ready: 2 apps, 5 contracts, "
      "75 open questions, 3 epics and 3 flows"),
 ]
 
@@ -135,10 +135,14 @@ def test_for_lead_passes_the_leak_check(vault):
 
 
 def test_for_lead_with_serve_is_refused_and_builds_nothing(vault):
+    """The model asked the wrong way, so the refusal is the model's: the lead hears only that it's on my side, and the
+    model reads the reason in the default output."""
     code, said = run("explore", str(vault), "--today", TODAY, "--for-lead", "--serve")
     assert code == 1, said
     assert not (vault / "dashboard.html").exists()
-    assert "without --for-lead" in said
+    assert said.strip() == say.MY_SIDE
+    code, said = run("explore", str(vault), "--today", TODAY, "--json", "--serve")
+    assert code == 1 and "without --for-lead" in said
 
 
 def test_json_carries_each_line_with_its_kind_and_plain_words(vault):

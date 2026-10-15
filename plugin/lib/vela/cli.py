@@ -1054,7 +1054,7 @@ def cmd_check(args, out):
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     if getattr(args, "for_lead", False):
-        return check_for_lead(vault, findings, errors, out)
+        return check_for_lead(vault, findings, errors, out, more=getattr(args, "more", False))
     elapsed = time.perf_counter() - started
     print(f"vela check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
           f"Took {elapsed:.2f} s." + (f" {GATE_WORDS[args.gate]}" if args.gate else "")
@@ -1071,17 +1071,27 @@ def cmd_check(args, out):
     return 1 if errors else 0
 
 
-def check_for_lead(vault, findings, errors, out):
-    """`check --for-lead`: each finding as the lead would hear it, by page title and with no code, ID or fix line. The
-    fix lines are for the model; the lead hears what is wrong. Every line goes through `say`, which raises on a leak."""
+def check_for_lead(vault, findings, errors, out, more=False):
+    """`check --for-lead`: the count first, then each finding as the lead would hear it, what must be fixed before what
+    is worth a look, by page title and with no code, ID or fix line. The fix lines are for the model; the lead hears
+    what is wrong. `say` keeps it to about four and raises on a leak."""
     resolver = say.Resolver(vault)
-    lines = [say.Line("", plain=check_lead_header(errors, len(findings) - errors, len(vault.pages)))]
-    for finding in findings:
+    lines = []
+    for finding in sorted(findings, key=lambda f: not f.is_error):
         page = vault.page(pathlib.PurePosixPath(finding.path).stem)
         where = resolver.page_title(page.name) if page is not None else None
-        lines.append(say.Line(f"{where or finding.path}: {finding.message}"))
-    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines)
-    return commands.emit(result, argparse.Namespace(for_lead=True), out, resolver)
+        lines.append(say.Line(f"{where or finding.path}: {finding.message}",
+                              plain=f"{where or file_words(finding.path)}: {finding.message}"))
+    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines,
+                        answer=check_lead_header(errors, len(findings) - errors, len(vault.pages)))
+    return commands.emit(result, argparse.Namespace(for_lead=True, more=more), out, resolver)
+
+
+def file_words(path):
+    """A file that is not a page, said the way the lead knows it, never by its path."""
+    if path == ".vela.yaml":
+        return "The plan's settings"
+    return path if say.leak_in(path) is None else "A file in the plan"
 
 
 def check_lead_header(errors, warnings, pages):

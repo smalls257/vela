@@ -95,10 +95,11 @@ def lead_counts(texts):
                                      for kind, pattern in say.LEAD_PATTERNS.items()})
         found["tool name"] = sum(1 for _ in TOOL_NAME.finditer(text))
         kinds.update(found)
-        leaking_turns += any(found.values())
+        leaking_turns += any(found[kind] for kind in say.ID_KINDS)
     turns = len(texts)
-    codes = sum(n for kind, n in kinds.items() if kind != "tool name")
-    return {"turns": turns, "codes_and_ids": codes, "tool_names": kinds["tool name"],
+    codes = sum(kinds[kind] for kind in say.ID_KINDS)
+    plumbing = sum(n for kind, n in kinds.items() if kind != "tool name" and kind not in say.ID_KINDS)
+    return {"turns": turns, "codes_and_ids": codes, "plumbing": plumbing, "tool_names": kinds["tool name"],
             "codes_and_ids_per_turn": round(codes / turns, 3) if turns else None,
             "tool_names_per_turn": round(kinds["tool name"] / turns, 3) if turns else None,
             "turns_with_any": leaking_turns, "by_kind": {k: kinds[k] for k in [*say.LEAD_PATTERNS, "tool name"]}}

@@ -30,19 +30,19 @@ READBACK = "- [readback] (claude) I read back: stock level is decided as the cou
 def test_bare_ok_is_not_a_yes():
     rec = opened(READBACK, '- [answer] (@priya) "ok" ^c31')
     refusal = consent.a_yes("^c31", rec, readback="^c30")
-    assert refusal is not None and refusal.plain == "I took that as an 'ok' rather than a yes. Shall I write these as read?"
+    assert refusal is not None and refusal.plain == "You said 'ok'. Is that a yes to the wording as I read it?"
     assert consent.not_bare_non_yes(rec.capture("^c31")) is not None
 
 
 def test_claude_origin_is_not_a_yes():
     rec = opened(READBACK, "- [answer] (claude) yes, decide it ^c31")
     refusal = consent.a_yes("^c31", rec, readback="^c30")
-    assert refusal.plain == "That was my suggestion, not your yes. Is it right?"
+    assert refusal.plain == "That line was mine, not yours. Does the wording I read back sound right to you?"
 
 
 def test_claude_from_summary_is_not_a_yes():
     rec = opened(READBACK, "- [answer] (claude, from @priya) Priya is happy with it ^c31")
-    assert consent.from_a_person(rec.capture("^c31")).plain == "That was my suggestion, not your yes. Is it right?"
+    assert consent.from_a_person(rec.capture("^c31")).plain == "That line was mine, not yours. Does the wording I read back sound right to you?"
 
 
 def test_yes_before_readback_is_refused():
@@ -67,21 +67,21 @@ def test_missing_capture_is_refused():
 def test_group_readback_over_seven_refused():
     assert consent.group_small_enough(7) is None
     refusal = consent.group_small_enough(8)
-    assert refusal.plain == "That read-back covered too much at once for one yes; I'll take it in two groups."
+    assert refusal.plain == "That was too much for one yes. I'll read it back in smaller groups."
     items = [{"readback": "^c30"}] * 8 + [{"readback": "^c40"}]
     assert consent.group_sizes(items) == {"^c30": 8, "^c40": 1}
 
 
 def test_why_must_be_the_leads_words():
     rec = opened("- [why] (claude) because it is simpler ^c32", '- [why] (@priya) "Stores already count it." ^c33')
-    assert consent.why_in_their_words("^c32", rec).plain == "I need the reason in your words, not mine."
+    assert consent.why_in_their_words("^c32", rec).plain == "Why this one, in your words?"
     assert consent.why_in_their_words("^c33", rec) is None
 
 
 def test_push_yes_must_follow_the_send_notice():
     rec = opened('- [answer] (@priya) "Yes, send it." ^c12', '- [answer] (@priya) "Yes, send it." ^c15')
     assert consent.after_send_notice(rec.capture("^c12"), notice_count=14).plain == \
-        "I haven't told you what I'm about to send yet."
+        "Before I send anything, I need to tell you what goes and to whom."
     assert consent.after_send_notice(rec.capture("^c15"), notice_count=14) is None
 
 

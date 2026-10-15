@@ -66,7 +66,9 @@ def test_hand_set_decided_with_no_changes_row_refused(tmp_path):
     decide_stock(vault)
     code, out = gate(vault, "--for-lead")
     assert code == 1, out
-    assert "Stock level was made decided with nothing on record saying the lead agreed." in out
+    assert out.startswith("One thing before I can finish: one decision needs your yes."), out  # the answer first
+    assert "You haven't said yes to deciding Stock level yet." in out
+    assert "Changes row" not in out and "the lead" not in out  # the model's bookkeeping stays in the model's line
     assert say.leak_in(out) is None
 
 
@@ -75,7 +77,7 @@ def test_changes_row_citing_claude_capture_refused(tmp_path):
     decide_stock(vault, ["- [thought] (claude) decide stock level now ^c01"],
                  [f"| CON-002 | fact | decided | [[{RECORD}#^c01]] |"])
     code, out = gate(vault)
-    assert code == 1 and "on my suggestion" in out and "origin 'claude'" in out
+    assert code == 1 and "was my suggestion, not your yes" in out and "origin 'claude'" in out
 
 
 def test_claude_from_summary_is_not_a_quote(tmp_path):
@@ -89,7 +91,7 @@ def test_bare_ok_is_not_a_yes(tmp_path):
     vault = session(tmp_path)
     decide_stock(vault, ['- [thought] (@priya) "ok" ^c01'], [f"| CON-002 | fact | decided | [[{RECORD}#^c01]] |"])
     code, out = gate(vault)
-    assert code == 1 and "isn't a yes" in out
+    assert code == 1 and "You said 'ok' on Stock level. Was that a yes to deciding Stock level?" in out
 
 
 def test_a_quoted_yes_is_ready_and_the_consent_block_quotes_it(tmp_path):
@@ -123,7 +125,8 @@ def test_override_bullet_lets_it_through_and_is_listed(tmp_path):
 def test_sync_not_run_blocks(tmp_path):
     vault = session(tmp_path, sync=False)
     code, out = gate(vault, "--for-lead")
-    assert code == 1 and "Main hasn't been brought into this branch yet." in out
+    assert code == 1 and "a step of my own" in out, out  # sync-main is Claude's step: counted, never asked about
+    assert "Main hasn't been brought into this branch yet." in gate(vault)[1]
 
 
 def test_reader_copy_checks_every_changes_row(tmp_path):
@@ -133,7 +136,7 @@ def test_reader_copy_checks_every_changes_row(tmp_path):
     (vault / ".vela").mkdir(exist_ok=True)
     (vault / ".vela" / "workspace.json").write_text('{"author": "Sam"}', encoding="utf-8")
     code, out = gate(vault)
-    assert code == 1 and "on my suggestion" in out
+    assert code == 1 and "was my suggestion" in out
 
 
 def test_no_open_session_exits_1(tmp_path):
@@ -177,7 +180,8 @@ def test_unmarked_capture_blocks(tmp_path):
     decide_stock(vault, [YES, "- [idea] (claude) ask the till team about returns ^c02"], [YES_ROW])
     code, out = gate(vault, "--for-lead")
     assert code == 1, out
-    assert "1 note in the session record has no mark yet" in out and say.leak_in(out) is None
+    assert "One thing you said isn't sorted yet: keep it, set it aside for later, or drop it?" in out
+    assert say.leak_in(out) is None
 
 
 def test_an_error_with_no_recorded_choice_blocks(tmp_path):
@@ -199,7 +203,7 @@ def test_override_removed_since_branch_point_blocks(tmp_path):
     page.write_text(page.read_text(encoding="utf-8").replace(OVERRIDE + "\n", ""), encoding="utf-8")
     code, out = gate(vault, "--for-lead")
     assert code == 1, out
-    assert "An override on Stock level was removed" in out and "the vendor tests the stock read" in out
+    assert "The exception on Stock level was taken out this session" in out and "the vendor tests the stock read" in out
     assert say.leak_in(out) is None
 
 
@@ -211,7 +215,7 @@ def test_ledger_row_removed_since_branch_point_blocks(tmp_path):
     page.write_text(text.replace(row + "\n", ""), encoding="utf-8")
     code, out = gate(vault, "--for-lead")
     assert code == 1, out
-    assert "question ledger" in out and say.leak_in(out) is None
+    assert "A question was taken off" in out and "Was that on purpose?" in out and say.leak_in(out) is None
     _, default = gate(vault)
     assert "Q-FIN-01@INI-900" in default
 
@@ -221,7 +225,8 @@ def test_hooks_marker_missing_is_said_plainly(tmp_path):
     assert run("render", "--vault", str(vault))[0] == 0  # the new record's own line in a generated table
     code, out = gate(vault, "--for-lead")
     assert code == 0, out
-    assert "Hooks did not run in this session" in out
+    assert "Hooks did not run" not in out  # housekeeping is not news to the lead (conversation voice)
+    assert "Hooks did not run in this session" in gate(vault)[1]
 
 
 def test_render_stale_blocks(tmp_path):
@@ -230,7 +235,8 @@ def test_render_stale_blocks(tmp_path):
     page.write_text(page.read_text(encoding="utf-8").replace("### CON-002 Stock level", "### CON-002 Stock count"),
                     encoding="utf-8")
     code, out = gate(vault, "--for-lead")
-    assert code == 1 and "generated tables are out of date" in out, out
+    assert code == 1 and "generated tables" not in out, out  # Claude runs render itself; the lead isn't asked
+    assert "generated tables are out of date" in gate(vault)[1]
 
 
 def test_tree_not_clean_blocks(tmp_path):
@@ -259,7 +265,7 @@ def test_flowcheck_line_per_affected_slice(tmp_path):
     _, out = gate(vault, "--today", "2026-10-20")
     flow = [line for line in out.split("\n") if "SLC-" in line]
     assert len(flow) == 1 and "SLC-002 Pay for it" in flow[0], out
-    _, lead = gate(vault, "--for-lead", "--today", "2026-10-20")
+    _, lead = gate(vault, "--for-lead", "--more", "--today", "2026-10-20")
     assert "Pay for it" in lead and say.leak_in(lead) is None
 
 
@@ -276,7 +282,7 @@ def test_reader_copy_checks_without_git(tmp_path, monkeypatch):
     monkeypatch.setattr(subprocess, "Popen", no_programs)
     monkeypatch.setattr(subprocess, "run", no_programs)
     code, out = gate(vault, "--for-lead")
-    assert code == 1 and "no mark yet" in out, out
+    assert code == 1 and "isn't sorted yet" in out, out
 
 
 def test_close_offers_only_ready_steps():

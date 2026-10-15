@@ -13,7 +13,7 @@ HERON = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 
 
 def test_for_lead_never_prints_a_code_or_id():
-    code, out = run("check", "--vault", str(HERON), "--today", "2026-10-14", "--for-lead")
+    code, out = run("check", "--vault", str(HERON), "--today", "2026-10-14", "--for-lead", "--more")
     assert code in (0, 1), out
     assert "vela bug" not in out
     for kind, pattern in say.LEAD_PATTERNS.items():
@@ -24,17 +24,17 @@ def test_for_lead_never_prints_a_code_or_id():
 
 def test_for_lead_formatter_raises_on_a_leak(monkeypatch):
     """A leak is a vela bug: exit 2, naming the command, never a quiet code in front of the lead."""
-    monkeypatch.setattr(cli, "check_lead_header", lambda *a: "E316 is open on UNK-001")
+    monkeypatch.setattr(cli, "check_lead_header", lambda *a: "E316 is open; see sessions/2026-10-14-consent.md")
     code, out = run("check", "--vault", str(HERON), "--today", "2026-10-14", "--for-lead")
     assert code == 2
     assert "vela bug: a line meant for the lead held an ID" in out and "`vela check --for-lead`" in out
 
 
 def test_emit_raises_on_an_explicit_plain_line_that_leaks():
-    result = say.Result("demo", lines=[say.Line("UNK-001 open", plain="UNK-001 is still open")])
+    result = say.Result("demo", lines=[say.Line("UNK-001 open", plain="Edit 01-goals.md to close it")])
     with pytest.raises(say.LeadLeak) as caught:
         commands.emit(result, argparse.Namespace(for_lead=True, json=False), io.StringIO())
-    assert caught.value.command == "demo" and caught.value.kind == "item"
+    assert caught.value.command == "demo" and caught.value.kind == "file path"
 
 
 def test_finding_id_prints_area_and_question():
@@ -58,8 +58,8 @@ def test_refusal_carries_plain_fix_and_override_and_for_lead_prints_only_plain()
                           "vela apply ... (rule GATE-4)")
     result = say.Result("demo", exit=say.REFUSED, refusals=[refusal])
     assert refusal.as_json() == {"refused": True, "rule": "GATE-4", "plain": refusal.plain, "fix": "Ask the lead.",
-                                 "override": "vela apply ... (rule GATE-4)"}
-    assert say.render(result, "for-lead") == "Nobody has said who owns the consent records yet."
+                                 "override": "vela apply ... (rule GATE-4)", "audience": say.LEAD, "recommend": ""}
+    assert say.render(result, "for-lead") == "Nobody has said who owns the consent records yet.\n" + say.WAIVE_ONE
     assert "Override: vela apply" in say.render(result, "default")
 
 

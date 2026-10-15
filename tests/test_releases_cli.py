@@ -117,9 +117,9 @@ def test_for_lead_passes_the_leak_check(tmp_path):
         assert out.strip()
         for line in out.splitlines():
             assert say.leak_in(line) is None, line
-    code, out = run("releases", "brief", "--vault", str(vault), "--for-lead")
+    code, out = run("releases", "brief", "--vault", str(vault), "--for-lead", "--more")
     assert "Release one: pilot" in out and "A customer books on the website through Booking" in out
-    code, out = run("releases", "tracer-candidates", "--vault", str(vault), "--for-lead")
+    code, out = run("releases", "tracer-candidates", "--vault", str(vault), "--for-lead", "--more")
     assert "Tracer flow 901" in out and "Public website" in out and "Booking API" in out
     assert "Hold, pay, confirm: not counted" in out
 

@@ -146,11 +146,11 @@ def examples_result(root, voice_type, page):
                                                        "That page holds tables and lists, so it has no voice.")],
                               data={"voice_type": voice_type, "examples": []})
     chosen = voiceplan.reading_order(voicegit.examples(root), voice_type)
-    lines = [say.Line(e.path, plain=None) for e in chosen]
+    lines = [say.Line(e.path, plain="") for e in chosen]  # files for the model to read; nothing for the lead
     if len(chosen) < 2:
         lines.append(say.Line(f"{voice_type} has fewer than 2 active examples: say \"No examples for {voice_type}: "
                               "drafted without examples\" in the PR body.",
-                              f"There are too few {voice_type} examples, so I'll draft from the rules alone."))
+                              ""))  # thin examples go in the PR body, never to the lead (CONVERSATION-VOICE)
     return say.Result(command, lines=lines, data={"voice_type": voice_type, "examples": [e.path for e in chosen]})
 
 
@@ -338,7 +338,16 @@ def frontmatter_problem(text, fields, rel):
 # --- harvest ----------------------------------------------------------------------------------------------------------
 
 def cmd_harvest_list(args, out):
-    return commands.emit(harvest_result(root_of(args)), args, out)
+    return commands.emit(harvest_result(root_of(args)), args, out, vault_resolver(root_of(args)))
+
+
+def vault_resolver(root):
+    """A resolver over the vault when it loads, so a page is said by its title; else the plain kind words."""
+    from vela import cli
+    try:
+        return say.Resolver(cli.load_vault(root))
+    except cli.ToolError:
+        return say.Resolver()
 
 
 def harvest_result(root):
@@ -383,12 +392,18 @@ def collect(root, found, prs):
             candidates.append(offer)
     lines += [say.Line(f) for f in failures]
     lines += [say.Line(f"PR {c['pr']} {c['page']} {c['hash']}: {c['file']} ({c['voice_type'] or 'voice type unknown'})",
-                       f"An edit of yours on {c['page']} from PR {c['pr']}.") for c in candidates]
+                       f"An edit you made to {page_stem(c['page'])}, in PR {c['pr']}.") for c in candidates]
     if not candidates and not failures:
         word = "PR" if len(prs) == 1 else "PRs"
         lines.append(say.Line(f"No edits found in the {len(prs)} merged {word} checked."))
     return say.Result("voice harvest list", exit=say.FAILED if failures else say.DONE, lines=lines,
                       data={"candidates": candidates, "unchecked": failures})
+
+
+def page_stem(path):
+    """'06-runtime/heron-runtime.md' -> 'heron-runtime': the page's name, which the resolver says as its title."""
+    stem = str(path).replace("\\", "/").rsplit("/", 1)[-1]
+    return stem[:-3] if stem.endswith(".md") else stem
 
 
 def pr_offers(root, number, failures):

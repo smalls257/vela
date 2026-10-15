@@ -42,6 +42,7 @@ import argparse
 import datetime
 import io
 import pathlib
+import re
 
 from vela import closestate, commands, progress, records, say, sessions
 from vela.commands import close_sync
@@ -50,7 +51,10 @@ from vela.edge.vaultgit import GitUnavailable
 
 NAME = "session open"
 START, BRIEF = "session start", "session brief"
-READ_COPY = "This is a read copy, so I will not use git: your work stays in this folder and nothing is committed or sent."
+READ_COPY = ("This is a published copy, so your work stays in this folder and nothing goes to the shared plan until "
+             "you send a proposal.")
+# Git's own words stay in the default line; the lead hears what it means (the 14 October voice audit).
+GIT_DETAIL = "The details are in my notes."
 
 
 def register(sub):
@@ -138,7 +142,12 @@ def describe(record):
 
 
 def spoken(record, plain, today):
-    return f"{plain(record.title)}, started {sessions.date_in_words(record.date, today)}"
+    """'Grill: calendar entries, started 14 October'. A record whose title is only its slug is said by its modes."""
+    title = plain(record.title)
+    if say.leak_in(title):
+        modes = [sessions.MODE_NAMES.get(m, m) for m in record.modes]
+        title = f"the {say.names_said(modes) or 'untitled'} session"
+    return f"{title}, started {sessions.date_in_words(record.date, today)}"
 
 
 def report(records, chosen, problems, wanted, plain, today):
@@ -180,7 +189,7 @@ def switch_to(result, record, root, reader):
     if not ok:
         result.exit = say.FAILED
         result.lines.append(say.Line(f"git switch {record.branch} failed: {git_words}",
-                                     plain=f"I couldn't switch to its branch. Git said: {git_words}"))
+                                     plain=f"I couldn't switch to that session. {GIT_DETAIL}"))
         return
     tracking = " (a new local branch tracking origin)" if record.remote_only else ""
     result.lines.append(say.Line(f"switched to {record.branch}{tracking}.", plain="Switched to its branch."))
@@ -223,10 +232,11 @@ def cmd_start(args, out):
         result = stop.result
     except GitUnavailable as exc:
         result = say.Result(START, exit=say.FAILED, lines=[
-            say.Line(f"vela: {exc}", plain=plain(f"Git failed while starting the session. Git said: {exc}"))])
+            say.Line(f"vela: {exc}", plain=f"Git failed while starting the session. {GIT_DETAIL}")])
     except OSError as exc:  # atomic.WriteFailed among them
         result = say.Result(START, exit=say.FAILED, lines=[
-            say.Line(f"vela: couldn't write: {exc}", plain=f"I couldn't write the session's files: {exc}")])
+            say.Line(f"vela: couldn't write: {exc}", plain="I couldn't write the session's files to disk, so I "
+                                                           "haven't started.")])
     return commands.emit(result, args, out, resolver)
 
 
@@ -238,13 +248,15 @@ def start(root, args, today, plain):
     try:
         host = sessiongit.read_json(root, hostprobe.HOST_FILE)
     except ValueError as exc:
-        raise failed(f"vela: {exc}", "The record of what this host can do is broken, so I haven't started. Run "
-                                     "/vela:where to check the host again.") from exc
+        raise failed(f"vela: {exc}", "I can't read my last check of this machine, so I haven't started. Want me to "
+                                     "run the check again?") from exc
     row, sentence = hostprobe.stance(host) if host is not None else ("", "")
     if not reader and row in ("no-git", "git-broken"):
-        raise refused("no working git", sentence, "open the vault's own clone in Claude Code, or work as a reader "
-                      "here (read, ask, find, explore, draft, then /vela:propose)",
-                      "run /vela:where again if git works here now")
+        raise Stop(say.Result(START, exit=say.REFUSED, refusals=[say.Refusal(
+            "no working git", sentence, "open the vault's own clone in Claude Code, or work as a reader here (read, "
+            "ask, find, explore, draft, then /vela:propose)", "run /vela:where again if git works here now",
+            recommend="I'd open the plan's own folder in Claude Code to run the session.",
+            waiver="If git works here now, I can check the machine again and go on.")]))
     said = [say.Line(f"host: {row}: {sentence}", plain=sentence)] if row == "no-send" else []
     if reader:
         return start_in_copy(root, args, today, modes, plain, said)
@@ -282,15 +294,21 @@ def open_choices(records, today, plain):
              "stale": sessions.is_stale(r, today_date(today)),
              "choices": [f"--resume {r.id}", "/vela:close", "--new"]} for r in records]
     count = f"{len(records)} session{'s are' if len(records) != 1 else ' is'} open"
+    newest = max(records, key=lambda r: (r.date or "", r.id))
+    if len(records) == 1:
+        asked = (f"A session is still open: {spoken(newest, plain, today_date(today))}. I'd pick it up. Pick it up, "
+                 "close it, or leave it open and start a new one?")
+    else:
+        asked = (f"{say.count_words(len(records), capital=True)} sessions are still open. I'd pick up "
+                 f"{spoken(newest, plain, today_date(today))}, since it's the newest. Pick one up, close one, or "
+                 "start fresh?")
     lines = [say.Line(f"{count}; nothing changed. Resume one with --resume <id>, close it with /vela:close, or start "
-                      "another with --new:",
-                      plain=f"{count}, so I haven't started a new one. Resume it, close it now, or leave it open "
-                            "and start a new one?")]
+                      "another with --new:", plain=asked)]
     for record, ask in zip(records, asks):
         old = " (more than 14 days old)" if ask["stale"] else ""
         lines.append(say.Line(f"- {describe(record)}{old}",
                               plain=f"- {spoken(record, plain, today_date(today))}"
-                                    f"{', more than two weeks ago' if old else ''}."))
+                                    f"{', more than two weeks ago' if old else ''}." if len(records) > 1 else ""))
     return asks, lines
 
 
@@ -307,9 +325,43 @@ def clobber_choice(paths, base_words):
     ask = {"ask": "uncommitted changes", "paths": paths, "choices": ["commit them", "set them aside", "drop them"]}
     shown = ", ".join(paths)
     line = say.Line(f"uncommitted changes that bringing {base_words} up to date would overwrite: {shown}; nothing "
-                    "changed.", plain=f"Bringing {base_words} up to date would overwrite your uncommitted changes to "
-                                      f"{shown}. Commit them first, set them aside, or drop them?")
+                    "changed.", plain="Bringing in the shared plan would wipe your unsaved edits to {pages}. I'd "
+                                      "save them first. Save them, set them aside, or drop them?")
     return ask, line
+
+
+def with_pages(line, paths, plain):
+    """A line whose plain says `{pages}`, filled with the pages' titles (never their paths)."""
+    return say.Line(line.text, plain=line.plain.replace("{pages}", pages_said(paths, plain)), audience=line.audience)
+
+
+def pages_said(paths, plain):
+    """'the Goals and Solution strategy pages': each path said by its page's title, a few at most."""
+    names = []
+    for path in paths:
+        stem = path.rsplit("/", 1)[-1]
+        stem = stem[:-3] if stem.endswith(".md") else stem
+        said = plain(stem)
+        names.append(said if said != stem and not say.leak_in(said) else "")
+    known = [n for n in names if n]
+    others = len(names) - len(known)
+    shown = known[:3]
+    rest = len(known) - len(shown) + others
+    said = say.names_said(shown + ([f"{say.count_words(rest)} other {'file' if rest == 1 else 'files'}"] if rest else []))
+    return said if not known else f"{said} {'page' if len(shown) == 1 and not rest else 'pages'}"
+
+
+def one_ask_at_a_time(asked):
+    """Every stop is reported at once, so the model can answer them all in one call; the lead hears the first question
+    in full and that more follow (conversation voice rule 2: one question at a time). The default lines keep them all."""
+    firsts = [i for i, line in enumerate(asked) if line.plain and not line.plain.startswith("- ")]
+    if len(firsts) < 2:
+        return asked
+    later = len(firsts) - 1
+    kept = [say.Line(line.text, plain="", audience=line.audience) if i >= firsts[1] else line
+            for i, line in enumerate(asked)]
+    return kept + [say.Line("", plain=f"And {say.count_words(later)} more {'thing' if later == 1 else 'things'} after "
+                                      "that.")]
 
 
 def resume(root, found, wanted, reader, lines, today, plain, host=None):
@@ -374,7 +426,7 @@ def start_in_copy(root, args, today, modes, plain, said):
                                                                     today, modes))]
     wrote.append(write_state(root, record_id, rel, None, modes, today))
     lines.append(say.Line(f"started: {record_id} in this folder, modes: {', '.join(modes)}",
-                          plain=f"Calling this one {record_id}."))
+                          plain=f"I've opened the session: {plain(sessions.title_for(modes, args.topic))}."))
     return say.Result(START, lines=lines, wrote=wrote, data={"id": record_id, "path": rel, "branch": None,
                                                              "modes": modes, "reader": True})
 
@@ -404,8 +456,7 @@ def find_challenge(root, wanted, plain):
 
 def gh_stopped(what, why):
     return failed(f"{what} failed: {why}. An answer never starts on a guessed branch; nothing changed.",
-                  f"GitHub's command line failed ({why}), so I haven't started: an answer never starts on a guessed "
-                  "branch.")
+                  "I couldn't reach GitHub, so I haven't started: I need the challenge itself, not a guess at it.")
 
 
 def not_one_challenge(why, prs, plain):
@@ -413,8 +464,9 @@ def not_one_challenge(why, prs, plain):
                       plain=plain(f"- {pr.get('title', '')}")) for pr in prs if isinstance(pr, dict)]
     return Stop(say.Result(START, exit=say.REFUSED, data={"gh_returned": prs}, lines=[
         say.Line(f"{why}; nothing changed. gh returned:" if shown else f"{why}; nothing changed. gh returned nothing.",
-                 plain="I couldn't find exactly one open challenge for that, so I haven't started: an answer never "
-                       "starts on a guessed branch." + (" GitHub listed:" if shown else ""))] + shown))
+                 plain=("I found more than one challenge that could match, so I haven't started. Which one?" if
+                        len(shown) > 1 else "I couldn't find that challenge open on GitHub, so I haven't started.")
+                 + (" GitHub lists:" if shown else ""))] + shown))
 
 
 def bring_in(root, host):
@@ -433,15 +485,14 @@ def freshness_line(how, words_, base_words):
         return None
     if how == "no-origin":
         return say.Line(f"no origin: starting from this machine's {base_words}",
-                        plain=f"This vault has no shared copy set up, so the session starts from this machine's "
-                              f"{base_words}.")
+                        plain="This plan isn't shared anywhere yet, so we start from what's on this laptop.")
     if how == "offline":
         return say.Line(f"host can't reach origin (.vela/host.json): {base_words} not pulled",
-                        plain=f"The shared copy can't be reached from here, so this session starts from this "
-                              f"machine's {base_words}, which may be behind.")
+                        plain="I can't reach the shared plan from here, so we start from this laptop's copy, which "
+                              "may be out of date.")
     return say.Line(f"git fetch origin failed: {words_}; starting from this machine's {base_words}",
-                    plain=f"I couldn't reach the shared copy, so this session starts from this machine's "
-                          f"{base_words}, which may be behind. Git said: {words_}")
+                    plain="I couldn't reach the shared plan, so we start from this laptop's copy, which may be out "
+                          "of date.")
 
 
 def move_to(root, base, upstream, base_words):
@@ -451,13 +502,13 @@ def move_to(root, base, upstream, base_words):
         ok, said = sessiongit.switch(root, base, remote_only=not local)
         if not ok:
             raise failed(f"git switch {base} failed: {said}",
-                         f"I couldn't switch to {base_words}, so I haven't started. Git said: {said}")
+                         f"I couldn't get the latest shared plan, so I haven't started. {GIT_DETAIL}")
     if upstream:
         ok, said = sessiongit.fast_forward(root, upstream)
         if not ok:
             raise failed(f"git merge --ff-only {upstream} failed: {said}; on {base} now, nothing else changed",
-                         f"I couldn't bring {base_words} up to date, so I haven't started: the session would start "
-                         f"from an old copy. Git said: {said}")
+                         "I couldn't get the latest shared plan, so I haven't started; starting from an old copy "
+                         f"would mislead us. {GIT_DETAIL}")
 
 
 def start_in_repo(root, args, today, modes, plain, said, host):
@@ -489,15 +540,15 @@ def start_in_repo(root, args, today, modes, plain, said, host):
     if lost:
         ask, line = clobber_choice(lost, base_words)
         asks.append(ask)
-        asked.append(line)
+        asked.append(with_pages(line, lost, plain))
     if asks:
-        raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + asked))
+        raise Stop(say.Result(START, exit=say.NEEDS_LEAD, needs_lead=asks, lines=lines + one_ask_at_a_time(asked)))
     fresh = freshness_line(how, fetch_words, base_words)
     lines += [fresh] if fresh else []
     move_to(root, base, upstream, base_words)
     wrote = bring_main_in(root, today, host, lines, "copy of the challenge's branch") if pr and how == "fetched" else []
     carried = sessions.carried(sessiongit.dirty_paths(root), [])
-    result = open_record(root, args, today, modes, challenged, base if pr else "", lines, carried)
+    result = open_record(root, args, today, modes, challenged, base if pr else "", lines, carried, plain)
     result.wrote[:0] = wrote
     return result
 
@@ -525,7 +576,7 @@ def bring_main_in(root, today, host, lines, base_words):
                           needs_lead=synced.needs_lead))
 
 
-def open_record(root, args, today, modes, challenged, on_branch, lines, carried):
+def open_record(root, args, today, modes, challenged, on_branch, lines, carried, plain=lambda text: text):
     """START step 5: the id, the branch (an answer stays on its challenge's), the record, `Open session <id>`, then
     the initiative's name when the lead gave one, and `.vela/session.json`."""
     def taken(candidate):
@@ -538,17 +589,17 @@ def open_record(root, args, today, modes, challenged, on_branch, lines, carried)
         ok, said = sessiongit.create_branch(root, branch)
         if not ok:
             raise failed(f"git switch -c {branch} failed: {said}",
-                         f"I couldn't make the session's branch, so I haven't started. Git said: {said}", lines)
+                         f"I couldn't set the session up, so I haven't started. {GIT_DETAIL}", lines)
     rel = f"sessions/{record_id}.md"
     title = sessions.title_for(modes, args.topic, challenged)
     wrote = [sessiongit.write_text(root, rel, sessions.record_text(record_id, title, today, modes))]
     sessiongit.commit(root, f"Open session {record_id}", [rel])
-    where = "on the challenge's branch, so the answer lands in the challenge's pull request" if on_branch else ""
+    where = ", and your answer goes onto the challenge itself" if on_branch else ""
     lines.append(say.Line(f"started: {record_id} on {branch}, modes: {', '.join(modes)}",
-                          plain=f"Calling this one {record_id}" + (f"; it's {where}." if where else ".")))
+                          plain=f"I've opened the session: {plain(title)}{where}."))
     if carried:
         lines.append(say.Line(f"carried, unstaged: {', '.join(carried)}",
-                              plain=f"Your edits to {', '.join(carried)} come with us, unstaged."))
+                              plain=f"Your edits to {pages_said(carried, plain)} come with us."))
     if args.title:
         yaml_text = (root / ".vela.yaml").read_text(encoding="utf-8")
         wrote.append(sessiongit.write_text(root, ".vela.yaml", sessions.with_title(yaml_text, args.title)))
@@ -615,8 +666,8 @@ def review_comments(result, root, vault, reader):
     if why:
         result.exit = say.FAILED
         result.lines.append(say.Line(f"gh could not list merged PRs ({why}), so review comments were not checked.",
-                                     plain=f"GitHub's command line failed ({why}), so review comments weren't "
-                                           "checked."))
+                                     plain="I couldn't reach GitHub, so I haven't checked for review comments since "
+                                           "the last session."))
         return
     result.data.update(review_comments=found, review_comments_since=since)
     count = f"{len(found)} review comment{'s' if len(found) != 1 else ''}"
@@ -636,12 +687,23 @@ def overdue_questions(result, vault, today):
         found.append({"id": unknown.id, "name": "" if name == unknown.id else name,
                       "owner": unknown.fact("Owner"), "ask_by": unknown.fact("Ask by")})
     result.data["overdue"] = found
-    for entry in found:
+    found.sort(key=lambda e: e["ask_by"] or "")
+    grouped = len(found) > OVERDUE_SAID
+    for n, entry in enumerate(found):
         spoken_name = entry["name"] or "An open question"
         when = sessions.date_in_words(entry["ask_by"], today_date(today))
+        owner = say.person_words(entry["owner"]) if entry["owner"] else ""
+        plain = f"{spoken_name} was due to be asked by {when}; {owner or 'nobody'} owns it."
+        if grouped:  # one line for the lead: how many, and the oldest; the rest wait to be asked for
+            plain = (f"{say.count_words(len(found), capital=True)} questions are past their ask-by date; the oldest is "
+                     f"{spoken_name}, due {when}" + (f" with {owner}" if owner else ", and nobody owns it") +
+                     f". Want the other {say.count_words(len(found) - 1)}?") if n == 0 else ""
         result.lines.append(say.Line(
             f"overdue: {entry['id']} {entry['name']}, owner {entry['owner'] or 'none'}, ask by {entry['ask_by']}",
-            plain=f"{spoken_name} was due to be asked by {when}; {entry['owner'] or 'nobody'} owns it."))
+            plain=plain))
+
+
+OVERDUE_SAID = 2  # past this many overdue questions, the brief says how many and the oldest
 
 
 def next_steps(result, root, today):
@@ -653,7 +715,14 @@ def next_steps(result, root, today):
     found = [line[len(prefix):] if line.startswith(prefix) else line.strip()
              for line in buffer.getvalue().splitlines() if line.strip()]
     result.data["next"] = found
-    result.lines += [say.Line(f"next: {line}") for line in found]
+    said = [_AS_OF.sub("", line).strip() for line in found]
+    result.lines += [say.Line(f"next: {line}", plain=(f"Next I'd suggest this: {words_}" if n == 0 else f"Also: {words_}"))
+                     for n, (line, words_) in enumerate(zip(found, said))]
+    if said:
+        result.answer = f"Next I'd suggest this: {said[0]}"
+
+
+_AS_OF = re.compile(r"\s*As of \S+ \([^)]*\)\.")
 
 
 def how_much(result, vault, today):
@@ -663,9 +732,12 @@ def how_much(result, vault, today):
     questions = sum(1 for u in vault.unknowns if u.fact("State") == "open")
     result.data["open"] = {"apps": len(rows), "inkling": mix[0], "assumption": mix[1], "fact": mix[2],
                            "decided": mix[3], "open_questions": questions}
+    parts = [f"{say.count_words(n)} {word}" for n, word in zip((mix[3], mix[1], mix[0], mix[2]),
+                                                                ("decided", "assumed", "early ideas", "confirmed")) if n]
+    apps = f"{say.count_words(len(rows), capital=True)} app{'s' if len(rows) != 1 else ''}"
     result.lines.append(say.Line(
         f"open: {len(rows)} apps; inkling {mix[0]}, assumption {mix[1]}, fact {mix[2]}, decided {mix[3]}; "
         f"{questions} open questions",
-        plain=f"{len(rows)} app{'s' if len(rows) != 1 else ''}, with {sum(mix[:3])} of their items not decided yet "
-              f"and {mix[3]} decided; {questions} open question{'s' if questions != 1 else ''}."))
+        plain=f"{apps}, with {say.names_said(parts) or 'nothing on them yet'}; {say.count_words(questions)} "
+              f"question{'s are' if questions != 1 else ' is'} open."))
 

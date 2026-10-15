@@ -38,7 +38,7 @@ def register_groups(sub):
 
 def emit(result, args, out, resolver=None):
     """Print a `say.Result` in the mode the flags chose, and return its exit code."""
-    text = say.render(result, say.mode_of(args), resolver)
+    text = say.render(result, say.mode_of(args), resolver, more=getattr(args, "more", False))
     if text:
         print(text, file=out)
     return result.exit

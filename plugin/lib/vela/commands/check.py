@@ -48,6 +48,7 @@ def register(sub):
                        help="plain lines for the lead: each finding by page title, with no codes, no IDs and no fix lines; "
                             "with --gate grill --item, whether each item is ready to decide and the one thing that would "
                             "make it ready")
+    say.add_more_flag(check)
     check.set_defaults(func=run)
 
 

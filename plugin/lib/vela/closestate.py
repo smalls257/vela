@@ -18,6 +18,8 @@ import json
 import re
 from dataclasses import dataclass
 
+from vela import say
+
 VERSION = 1
 UP_TO_DATE, MERGED, MERGED_GENERATED = "up-to-date", "merged", "merged-generated-only"
 CONFLICT, NOT_COMPARED, ACCEPTED, READER = "conflict", "not-compared", "not-compared-accepted", "reader"
@@ -70,11 +72,14 @@ def parse(text):
 @dataclass(frozen=True)
 class Verdict:
     """What the gate makes of a record. `blocks` stops the close; `plain` is the lead-facing reason (no codes);
-    `listed` means the close may go on but the gate must still say it (the lead chose to go on without main)."""
+    `listed` means the close may go on but the gate must still say it (the lead chose to go on without main).
+    `audience` is say.MODEL for a verdict whose remedy is the model's own next step (sync-main not run yet): the gate
+    still blocks on it, but the lead isn't asked about a step Claude takes itself."""
     blocks: bool
     plain: str
     status: str = ""
     listed: bool = False
+    audience: str = say.LEAD
 
 
 _PASS = {UP_TO_DATE: "This branch has everything on main.",
@@ -86,15 +91,17 @@ def verdict(rec):
     """The gate's reading of a record (or None when sync-main has not run on this branch). The gate calls this and
     lists `plain` for every verdict that blocks or is `listed`."""
     if rec is None:
-        return Verdict(True, "Main hasn't been brought into this branch yet.", "")
+        return Verdict(True, "Main hasn't been brought into this branch yet.", "", audience=say.MODEL)
     status = rec.get("status")
     if status in _PASS:
         return Verdict(False, _PASS[status], status)
     if status == READER:
         return Verdict(False, "This is a read copy, so there is no main to bring in.", status)
     if status == ACCEPTED:
-        return Verdict(False, "This branch wasn't compared with main; the lead chose to go on without it.", status, True)
+        return Verdict(False, "We went on without the latest from main, as you chose.", status, True)
     if status == CONFLICT:
-        return Verdict(True, "Main changed pages this branch changed too, so the merge was stopped and is still open.",
-                       status)
+        # sync-main aborts a merge that stopped (edge/mergegit.py), so nothing is left half-merged: the state to say is
+        # that main's changes are not in yet and the lead picks between the two versions.
+        return Verdict(True, "Someone changed the same pages on main while we worked, so I haven't brought their "
+                             "changes in yet. We need to choose between the two versions.", status)
     return Verdict(True, "This branch isn't compared with main yet.", status or NOT_COMPARED)

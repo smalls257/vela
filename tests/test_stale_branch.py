@@ -121,5 +121,5 @@ def test_resume_with_an_unreachable_origin_says_so_and_goes_on(tmp_path):
     assert "accept-not-compared" not in said  # a close choice has no place at the start
     code, said = run("session", "start", "--vault", str(vault), "--today", TODAY, "--resume", f"{TODAY}-till-options",
                      "--for-lead")
-    assert "this session starts from this machine's copy of the session's branch, which may be behind" in said
+    assert "I couldn't reach the shared plan, so we start from this laptop's copy, which may be out of date." in said
 
