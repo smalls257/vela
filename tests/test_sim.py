@@ -1241,6 +1241,17 @@ def test_the_vela_heron_script_uses_the_plugins_team_skills_and_leaves_the_ticke
     assert not any(e.get("event") == "tickets" for e in entries(arm))
 
 
+def test_the_vela_heron_script_cuts_the_boundary_after_the_direction_is_decided():
+    """Both 2026-10-14 runs put boundary before the grill that decides on-device against cloud; boundary stopped on
+    the undecided direction, as it should, and no app, contract, allocation, release or tracer was ever recorded."""
+    script = SIM / "scripts" / "heron-desk-vela.yaml"
+    modes = [s["mode"] for s in yaml.safe_load(script.read_text(encoding="utf-8"))["sessions"]]
+    boundary = modes.index("boundary")
+    assert modes.index("grill") < modes.index("requirements") < boundary < modes.index("allocate"), modes
+    assert modes[boundary + 1] == "close"
+    assert "NOT like with like" in script.read_text(encoding="utf-8"), "the header says the order change breaks comparability"
+
+
 def test_a_pr_opened_through_the_gh_stub_is_merged_by_number_and_a_handoff_reaches_origin_main(tmp_path):
     persona = yaml.safe_load((SIM / "personas" / "coastal-merger.yaml").read_text(encoding="utf-8"))
     arm_dir = tmp_path / "vela"
