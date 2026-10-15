@@ -93,7 +93,7 @@ Close is a skill you may start, and only on the lead's word: any plain way of sa
 - **They said close, or something equal to it.** That is the yes. Say in one line what will happen ("I'll file your notes, write the pages and send the branch for review"), and run the `close` skill in this conversation.
 - **They only sounded finished** ("I think that's it"). Ask once, "Shall I close this out now?", and wait.
 - **Never start close** because the work looks complete, a turn limit is near, or a gate stopped you. The lead decides when the session ends.
-- **One confirmation stays, before anything leaves the machine.** Before close pushes the branch and opens a pull request, close says what will be sent and waits for a yes, unless the lead typed `/vela:close` themselves or said "push" or "open the PR" in so many words. A "close" alone is consent to file, not to send company material.
+- **One confirmation stays, before anything leaves the machine.** Before close pushes the branch and opens a pull request, close says what will be sent and waits for a yes (close, section 7). That yes, given after close says what goes, is the only one that sends. Typing `/vela:close`, saying "close", or saying "push" before then is consent to file, not to send company material.
 - **A switch.** After closing for a switch, say the one line the lead types next, by name ("Type `/vela:requirements booking changes`"). Modes start on the lead's word, not yours.
 - **If close can't be started from where you are,** say only: "Type `/vela:close` and I'll take it from there."
 
