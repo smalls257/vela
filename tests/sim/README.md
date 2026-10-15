@@ -132,8 +132,8 @@ The brief has five kinds of item, each with an ID:
 - **W, wrong beliefs.** "Challenged" means the assistant questioned the belief, or gave a reason or a source
   against it.
 - **K, facts.** "Captured" means the fact is written somewhere in the final vault, with the file named.
-- **D, decisions.** "Decided" with "yes asked" tells you whether the explicit yes was asked for. D4 is one the
-  lead refuses to make until procurement confirms the FERRYMASTER contract, so deciding it is a failure.
+- **D, decisions.** "Decided" with "yes asked" tells you whether the explicit yes was asked for. A brief can hold
+  a decision the lead refuses to make until something outside the room is confirmed, so deciding it is a failure.
 - **C, stakeholder conflicts.** "Surfaced" means the assistant named the disagreement as something to resolve,
   rather than picking a side.
 
@@ -156,7 +156,7 @@ Beside every verdict the scorecard sets the driver's **keyword hits**: the assis
 that hold one of the item's `keywords` from the persona, and for W and U items the lead turns too. A gap the lead
 raised first is not one the assistant surfaced. Vault hits leave out `CONVENTIONS.md`, `CLAUDE.md`, `README.md`,
 `voice/`, `.inbox/` and any keyword the template's own copy of the page already holds. **Check these**, at the top,
-lists every item where the judge and the hits disagree, such as "K4: judge: no; vault mentions FERRYMASTER in
+lists every item where the judge and the hits disagree, such as "K4: judge: no; vault mentions <keyword> in
 01-goals.md". Neither side is proof. A hit can be a question or a parked idea, and a capture can use other words.
 Read the item before you believe either.
 
@@ -171,16 +171,71 @@ appear in that turn, give or take whitespace, quote marks and emphasis. A K clai
 not the inbox, the conventions or the voice examples. A claim that fails is turned to "no" and listed under "Dropped claims". This is mechanical,
 not taste. Read the quoted turns in `transcript.html` before you believe a score.
 
+### Precision
+
+Recall against the brief can rise because a session wrote more. So the scorecard also asks what share of what the
+vault holds can be trusted. `precision.py` draws 30 items from the final vault (`origin/main`, as the comparison
+reads it): a section under an item heading, or on a page with none a paragraph, bullet or table row. The sample is
+stratified by page type with a fixed seed, so two runs are sampled the same way and a rerun draws the same items.
+Session records (`sessions/`), the team's documents (`docs/`) and any text the vault template already holds word
+for word are left out. One judge call (capped at $1.50, thinking on, in the preflight like every other category)
+classes each item:
+
+- **backed**: in a source document or the lead's own words (the judge quotes the place), or plainly an open
+  question, an assumption or a risk put to the lead rather than a fact (it quotes the item's own framing words), so
+  a gap the assistant raised from its own knowledge is not punished;
+- **duplicate**: the same fact as another item; the driver shows each item's two nearest neighbours by shared words;
+- **padding**: no information, such as a placeholder row or a restated heading;
+- **unsupported**: stated as fact, given by nobody.
+
+A citation the driver can't find (a quote not in the document, the lead turn or the item, a neighbour not listed)
+turns the item unsupported and is listed under `dropped`. Precision is 1 - (unsupported + padding) / sampled; the
+duplicate rate is shown beside it. A full run and `--rejudge` write `<arm>/precision.json`; for a run judged before
+the pass existed:
+
+```
+python3 tests/sim/precision.py tests/sim/results/<run-id> --judge-model claude-sonnet-5-5 --budget 2 [--arm vela]
+```
+
+It sends the preflight (one tiny call) first and exits 4 if that fails, 2 on a tool failure. About $0.20 a run on
+Sonnet 5.5 for a 26-session heron-desk vault. `--stub` fakes the judge for free.
+
 ## Compare two runs
 
     python3 tests/sim/compare_runs.py results/<baseline run> results/<later run> [--arm vela] [--json out.json]
     python3 tests/sim/compare_runs.py --baseline <run> --baseline-checkout <checkout> --midpoint <run> --midpoint-checkout <checkout>
 
-This is how the overhaul's mid-point gate is read: the later run against the baseline, for one arm (`--arm`, default
-`vela`). It is the one comparison tool; it replaced `compare.py`. It replays nothing and costs nothing, and it never
-writes into a run folder or a checkout. Markdown goes to stdout, with the verdict first: **GO** (exit 0), **ADJUST**
-(1), or **STOP** (3); 2 when a run folder or its arm can't be found. The verdict is marked provisional, with reasons,
-when a run isn't finished, a figure couldn't be read, or the runs didn't run the same sessions.
+The later run against the baseline, for one arm (`--arm`, default `vela`). It is the one comparison tool; it
+replaced `compare.py`. It replays nothing and costs nothing, and it never writes into a run folder or a checkout.
+Markdown goes to stdout, with the verdict first: **GO** (exit 0), **ADJUST** (1), **STOP** (3), or **UNSCORED** (4)
+when a run has no scorecard; 2 when a run folder or its arm can't be found.
+
+**The verdict comes from recall and precision, and nothing else.** Recall is the share of the persona key the run
+reached, per kind (K facts captured, U gaps surfaced, W wrong beliefs challenged, C conflicts surfaced, D decisions
+decided, each "n of N" and a share; C and D have their own rows marked "weak spot") and pooled over all of them.
+Precision is the precision pass above, read from `<arm>/precision.json`. The rule:
+
+- **STOP** when pooled recall falls more than 5 points and precision more than 10 at once, or recall falls more than
+  15, or precision more than 20.
+- **ADJUST** when pooled recall falls more than 5 points (about 3 of 60 key items), or precision more than 10 (3 of
+  30 sampled items), or any one kind loses 2 or more items and more than 20 points of its share, which a steady pool
+  can hide.
+- **GO** otherwise. Recall up with precision down is never a GO: more written, less of it true, is the Paper Tiger
+  this verdict exists to catch, and the "why" says so.
+
+Without precision the verdict reads recall alone and is provisional. It is also provisional, with reasons, when a
+run isn't finished, its vault was read from the working tree, the key had a different size in the two runs (news
+arrives at different points), or the runs didn't run the same sessions.
+
+**Everything else is a diagnostic.** Items written, captures, ledger rows, words per item, pages, Completeness, the
+prose judge's lists, voice, close steps, consent and IDs sit under "Diagnostics (never set the verdict)", each with
+its direction ("up 23%"), to read the transcripts by. A count going up is not the run getting better. The
+reliability figures that used to move the verdict (pushes without consent, skipped close steps, decided without a
+yes, invented facts, reused IDs) are listed beside the verdict as "Guardrails that got worse", and still never set it.
+
+**A holdout is sealed.** When either run's persona says `split: holdout`, or has no split, or no file, the report
+prints scores only: no key item ID, in the Markdown or the JSON (the per-item scorecard rows and the precision items
+are taken out). `--reveal` prints them; never pass it while iterating on the skills.
 
 Each run is measured by one ruler: the same parser reads both transcripts and both vaults. Completeness, `check` and
 `capture` are printed by each run's own checkout (`--baseline-checkout`, `--midpoint-checkout`; by default the
@@ -188,8 +243,9 @@ checkout the run folder sits in, or this repo, and the notes say which). It read
 
 - **Sessions and spend** from `run.json` and the transcript: how each session ended, turns per mode, spend split
   between assistant, lead and judge.
-- **The scorecard**: items captured, challenged, surfaced and decided, the prose judge's lists, the voice score,
-  the tracer, and the brief items that were yes in one run only.
+- **Recall and precision**: as above. For a dev persona, the key items that were yes in one run only are listed
+  under the recall table.
+- **The scorecard's other figures** (diagnostics): the prose judge's lists, the voice score, the tracer.
 - **Codes, IDs and tool names in lead-facing turns**: each assistant turn's own text, by kind, with the worst turns
   listed. The patterns name both the old tool name and vela, so an old run is counted as it was recorded.
 - **Skipped close steps**: each close session's full tool inputs, read from `raw/NNN-assistant.txt` (the
@@ -354,6 +410,52 @@ wrong, rather than producing a quietly wrong score.
 - The judge is an LLM. That is why every score cites a turn, and why the transcripts are the primary output.
 - It can't say whether it's faster than plain Markdown for the user. Only real sessions under the kill rule can.
 
+## Iterating without teaching to the test
+
+The personas' answer keys are a test. A skill that learns them scores better on the persona and no better for the
+next real lead, so the loop never lets a key reach a skill:
+
+1. **Read generic failures from the dev persona only.** `heron-desk` (and the outsiders and team lead its runs bring
+   in, all `heron-*`) is the dev persona. After a dev run:
+
+   ```
+   python3 tests/sim/run.py --failures tests/sim/results/<dev run>
+   ```
+
+   prints what the assistant did wrong as behaviors with turn numbers ("when the lead said they weren't sure, the
+   session filed an owner or a due date instead of proposing one and asking (2 times: T52, T192)"), scores per key
+   kind, and precision. It never names a key item, never says which items were missed, never quotes a turn, a page
+   or the brief, and never names a persona's people, organizations or products: every line comes from a fixed
+   template, then a redaction pass replaces any persona term with `[redacted]` and refuses to print (exit 2) if
+   one survives. Read the turns it lists in `transcript.html` to see the behavior; don't read the scorecard's
+   per-item tables or `personas/heron-desk.yaml` for what to add.
+2. **Make one skill change** that fixes a behavior, in the skill's own words and examples. Never paste a persona's
+   name, product, keyword or a sentence of its brief into `plugin/**`: `tests/test_sim_seal.py` scans the plugin for
+   every persona's terms and fails on a new one (see below).
+3. **Run the dev persona again** and compare: `compare_runs.py <previous dev run> <new dev run>`. The verdict reads
+   recall and precision only, so a change that writes more without reaching more of the key, or that pads, does not
+   pass.
+4. **Every second iteration, score the holdouts** (`coastal-merger`, `holdout-hospitals`, `trading-coach`, and
+   `coach-lead`, trading-coach's team lead): a full run, `precision.py`, and `compare_runs.py` against the last
+   holdout run. They are sealed: scores only, never per-item results, never their failure patterns (`--failures`
+   gives a holdout's scores only). A change that lifts the dev persona and not the holdouts learned the dev
+   persona, not the job: undo it.
+
+The keys are sealed three ways. Every persona file says `split: dev` or `split: holdout`, and a persona that says
+neither, or a run that names none, is treated as holdout (`seal.py`, `compare_runs.persona_sealed`, `probe.py`).
+Per-item results of a holdout are printed only with `--reveal`, by `compare_runs.py`, `failures.py` and `probe.py`
+alike. And the plugin is scanned: `tests/test_sim_seal.py` builds the term list from every file in `personas/`
+(each persona's name and surname, the names it made up, which are capitalized every time, are not ordinary words of
+Python's standard library, and are not real products, the keywords that are not ordinary phrases, and every six-word
+run of brief text), leaves out anything the example vault `examples/unified-booking/` holds (coastal-merger borrowed
+Harborline, FERRYMASTER and Tidepay from it, and the plugin quotes it as the worked example; its `CONVENTIONS.md` is
+the plugin's own file and doesn't count), and fails on any term found under `plugin/**` that
+`seal-known-leaks.txt` does not list. That file is today's leaks (98 terms in 44 files on 2026-10-15: heron and
+trading-coach names and examples in skills, the conventions and the explorer's art) and it only shrinks: the test
+also fails when a listed leak is gone, and `python3 tests/sim/seal.py --prune` drops those lines.
+`python3 tests/sim/seal.py --leaks` lists every leak by file. `--write-known` accepts new ones and is a reviewed
+change, never a way to make the test pass.
+
 ## Probes and the iteration loop
 
 A full run is 12 sessions and costs about $36 to $55, which is too slow and too dear to try a skill change. A
@@ -456,9 +558,12 @@ and no snapshot can carry an old copy of a skill. `start-check.txt` holds `vela 
 ### Blind runs and the holdout
 
 `holdout-hospitals` is a second domain with the same shape and the same categories, for checking that a skill
-change did not just learn the coastal brief. **While iterating, never read `personas/holdout-hospitals.yaml`, its
-snapshots, or anything in a blind run's folder.** The tooling never shows it: a persona with `holdout: true` is
-always blind, whatever the flags say, and `tests/test_sim.py` skips it so a failing test cannot print it.
+change did not just learn one brief. Since 2026-10-15 coastal-merger and trading-coach are holdouts too (see
+"Iterating without teaching to the test"). **While iterating, never read a holdout's persona file, its snapshots,
+or anything in a blind run's folder.** The tooling never shows them: a persona with `split: holdout` (or no split)
+is always blind unless `--reveal` is given, and `tests/test_sim.py` checks a holdout by counts only, so a failing
+test cannot print it. The probe cases start from coastal-merger snapshots, so a probe now prints categories and
+counts by default; `--reveal` shows the items, for debugging a case, never for tuning a skill.
 
 Blind output prints categories and counts only, such as "cross-source-mismatch: 2 of 4 flagged, 1 listed, 1
 never". It never prints an item ID, its text, its keywords, the opening or a transcript excerpt. A tool failure
@@ -518,15 +623,35 @@ ledger refusing to start, and every exit code. Holdout tests assert on counts on
 `tests/test_sim_compare.py` runs `compare_runs.py` on runs it builds from a few pages and turns: lines copied from a
 run recorded before the rename (`legacy_lines.py`) count the same as their hand-renamed twins, and an old arm folder
 pairs with today's. `tests/test_sim.py` also rejudges and compares a stub run whose arm folder carries the old name.
+`tests/test_sim_compare.py` also pins the verdict: recall up with precision steady is GO whatever the item count did, recall up with precision
+down is never GO, a weak kind that falls is named, no scorecard is UNSCORED, and a holdout's report and JSON hold no
+key item ID unless `--reveal`.
+
+`tests/test_sim_precision.py` pins the precision pass: which text is an item, the stratified, seeded sample,
+the neighbours shown for the duplicate check, a citation the driver can't find reading unsupported, the call going
+through the judge machinery on the arm's ledger, and the command-line pass writing `precision.json` that the
+comparison reads.
+
+`tests/test_sim_seal.py` pins the seal: every persona's split, the term list (names, keywords, brief runs; ordinary
+words and the example vault's terms left out), redaction, the plugin scan against `seal-known-leaks.txt`, and the
+failure report on stub runs whose assistant says persona names and keywords: no key term, no key item ID, and scores
+only for a holdout.
 
 ## Files
 
 - `run.py`: the driver.
-- `compare_runs.py`: two runs side by side, with the mid-point gate's verdict. `legacy_lines.py`: its test lines.
+- `compare_runs.py`: two runs side by side, with the verdict from recall and precision. `legacy_lines.py`: its
+  test lines.
+- `precision.py`: the precision pass over a sample of the final vault.
+- `failures.py`: generic failure patterns of a run for skill authors (`run.py --failures`).
+- `seal.py`: the dev/holdout split, the key-term list, redaction and the plugin leak scan.
+  `seal-known-leaks.txt`: the plugin's known leaks, to remove.
 - `probe.py`: one-session probes from a snapshot, for the iteration loop.
 - `probes/`: the probe cases. `snapshots/`: the starting vaults.
-- `personas/holdout-hospitals.yaml`: the holdout. Do not read it while iterating.
-- `personas/coastal-merger.yaml`: the default persona. Harborline has merged with Northway Rail, the CIO's
+- `personas/heron-desk.yaml`: the dev persona, with the `heron-*` personas its runs bring in.
+- `personas/holdout-hospitals.yaml`: a holdout. Do not read it while iterating.
+- `personas/coastal-merger.yaml`: a holdout since 2026-10-15, and the default persona of the smoke and default
+  scripts. Harborline has merged with Northway Rail, the CIO's
   mandate is one line, and the lead starts from an empty vault. 15 K, 5 W, 8 U, 4 C and 5 D items, each with
   two to four `keywords`, and four inbox documents that contradict each other in places. A missing or empty
   keyword list fails the run at load, exit 2, and no keyword other than K1's may appear in the opening. Every
