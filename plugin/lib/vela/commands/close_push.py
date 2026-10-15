@@ -18,7 +18,8 @@ it's checked whatever the host.
    Nothing the lead owns changes. One machine-local marker is left, `.vela/close/<id>.push-notice.json`, holding that
    count and the branch, because "the yes comes after the notice" can't be checked later without it; `.vela/` is
    never committed.
-3. With `--consent ^cN`: the capture exists, is a person's words (not `claude...`), isn't a bare "ok", and is numbered
+3. With `--consent ^cN`: the capture exists, is the lead's own words (its origin their `vela whoami` handle; anyone
+   else's, an email address included, is said as theirs), isn't a bare "ok", and is numbered
    above the notice's count (`decisions.consent`, the same checks `apply` uses). A yes with no notice printed for this
    session on this machine is refused the same way: the lead hasn't heard what is sent.
 4. Everything the session changed is committed, the record with the yes included: a push sends commits, so an
@@ -278,6 +279,9 @@ def consent_refusal(root, session, ref):
     if first is not None:
         return first, None
     yes = record.capture(ref)
+    not_theirs = consents.from_the_lead(yes, own_handle(root, PUSH))
+    if not_theirs is not None:
+        return not_theirs, yes
     marker = read_marker(root, close_file(session.id, "push-notice"))
     if not marker or marker.get("branch") != session.branch or not isinstance(marker.get("captures"), int):
         late = consents.after_send_notice(yes, int(yes.n))

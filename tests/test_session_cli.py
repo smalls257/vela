@@ -313,3 +313,51 @@ def test_today_is_the_default_date(tmp_path, monkeypatch):
     code, output = run("session", "start", "--vault", str(vault), "--mode", "grill", "--topic", "x", "--json")
     assert code == 0, output
     assert json.loads(output)["id"] == f"{datetime.date.today().isoformat()}-x"
+
+
+def dashboard_on_main_and_changed_on_origin(tmp_path, vault):
+    """The confirm run's sequence: main has a committed dashboard, a merged session rebuilt it on origin, and a
+    no-session close rebuilt it here and left it uncommitted."""
+    bare = with_remote(tmp_path, vault)
+    (vault / "dashboard.html").write_text("<p>first build</p>\n", encoding="utf-8")
+    git(vault, "add", "dashboard.html")
+    git(vault, "commit", "-q", "-m", "Rebuild dashboard")
+    git(vault, "push", "-q", "origin", "main")
+    other = tmp_path / "teammate"
+    git(tmp_path, "clone", "-q", str(bare), str(other))
+    git(other, "config", "user.name", "Teammate")
+    git(other, "config", "user.email", "t@example.com")
+    (other / "dashboard.html").write_text("<p>a merged session's build</p>\n", encoding="utf-8")
+    git(other, "commit", "-q", "-am", "Rebuild dashboard")
+    git(other, "push", "-q", "origin", "main")
+    code, output = run("close", "dashboard", "--vault", str(vault), "--today", TODAY, "--json")
+    assert code == 3, output  # the branch offer; the page is left changed until the lead answers
+    assert "dashboard.html" in git(vault, "status", "--short")
+
+
+def test_a_dashboard_left_by_a_no_session_close_never_stops_the_next_start(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    dashboard_on_main_and_changed_on_origin(tmp_path, vault)
+    left = (vault / "dashboard.html").read_bytes()
+    code, output = start(vault, "--mode", "grill", "--topic", "consent", "--json")
+    assert code == 0, output
+    found = json.loads(output)
+    assert not [n for n in found["needs_lead"] if n.get("ask") == "uncommitted changes"]
+    assert head(vault)[1] == f"session/{TODAY}-consent"
+    assert git(vault, "rev-parse", "HEAD~1") == git(vault, "rev-parse", "origin/main")  # main was pulled
+    assert (vault / "dashboard.html").read_bytes() == left  # set aside and written back, not dropped
+    code, output = start(vault, "--resume", f"{TODAY}-consent", "--for-lead")
+    assert code == 0 and "dashboard" not in output, output  # the lead never hears about vela's own page
+
+
+def test_turning_the_dashboard_branch_down_leaves_main_clean(tmp_path, monkeypatch):
+    vault = owner(tmp_path, monkeypatch)
+    dashboard_on_main_and_changed_on_origin(tmp_path, vault)
+    code, output = run("close", "dashboard", "--vault", str(vault), "--today", TODAY, "--put-back", "--for-lead")
+    assert code == 0, output
+    assert "I've left the dashboard as it was" in output
+    assert git(vault, "status", "--short", "--untracked-files=no") == "" and head(vault)[1] == "main"
+    assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>first build</p>\n"
+    code, output = start(vault, "--mode", "grill", "--topic", "consent")
+    assert code == 0, output
+    assert (vault / "dashboard.html").read_text(encoding="utf-8") == "<p>a merged session's build</p>\n"

@@ -235,6 +235,10 @@ def test_start_never_starts_close_and_close_waits_for_a_yes_before_sending():
     closing = section("Closing a session")
     assert "Never start close" in closing and "close says what will be sent and waits for a yes" in closing
     assert "CAP-005" not in closing and "`/vela:requirements booking changes`" in closing
+    # The confirm run's diagnosis: START said typing /vela:close or saying "push" was consent to send, which close
+    # never accepts (its section 7 sends only on a yes captured after the notice). One route, said once.
+    assert "unless the lead typed" not in closing and "in so many words" not in closing
+    assert "That yes, given after close says what goes, is the only one that sends." in closing
 
 
 def test_captures_are_numbered_by_record_add_and_keep_their_origins():

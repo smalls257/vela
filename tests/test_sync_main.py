@@ -250,6 +250,20 @@ def test_a_committed_cache_vela_rewrites_does_not_block_sync(repos):
     assert result["set_aside"] == [CACHE]
 
 
+def test_a_rebuilt_dashboard_does_not_block_sync(repos):
+    """`close dashboard` with a session open leaves the page for close finish to rebuild and commit; sync-main runs
+    first in that close, and stopping on the page asked for a checkpoint close stage won't make."""
+    lead, other = repos
+    commit(lead, {"dashboard.html": "<p>committed</p>\n"}, "Rebuild dashboard")
+    (lead / "dashboard.html").write_text("<p>rebuilt, not committed</p>\n", encoding="utf-8")
+    commit(other, {"notes.md": "notes from main\n"}, "main moves", push=True)
+    code, out = sync(lead, "--json")
+    assert code == 0, out
+    result = json.loads(out)
+    assert result["status"] == closestate.MERGED and result["set_aside"] == ["dashboard.html"], out
+    assert (lead / "dashboard.html").read_text(encoding="utf-8") == "<p>rebuilt, not committed</p>\n"
+
+
 def test_a_cache_both_sides_committed_never_stops_the_merge(repos):
     """Main got the cache too (the session branch carrying it merged), and both sides then rewrote it."""
     lead, other = repos

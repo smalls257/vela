@@ -134,6 +134,26 @@ def test_claude_consent_refused(tmp_path):
     assert not remote_has(bare, BRANCH)
 
 
+def test_a_yes_from_anyone_but_the_lead_sends_nothing(tmp_path):
+    """The confirm run recorded the send's yes under the operator's account email (S14, S18, S21) and as "Sim Lead"
+    (S2); a person's origin was all close push asked for. Only the `vela whoami` handle's yes sends now."""
+    vault, bare = sent_session(tmp_path)
+    assert push(vault)[0] == 3
+    for origin, said in (("someone@example.com", "someone@example.com"), ("Priya", "Priya"),
+                         ("@stock-team", "stock team")):
+        number = add_yes(vault, origin=origin)
+        code, out = push(vault, "--consent", number, "--for-lead")
+        assert code == 1, out
+        assert f"That yes is written down as coming from {said}, not from you, so I haven't sent anything." in out
+        assert not remote_has(bare, BRANCH)
+    code, out = push(vault, "--consent", number, "--json")
+    refusal = json.loads(out)["refusals"][0]
+    assert refusal["rule"] == "consent-not-the-lead" and "--origin @lead" in refusal["fix"], out
+    number = add_yes(vault, origin="LEAD")  # the lead's own handle, however it is written
+    assert push(vault, "--consent", number)[0] == 0
+    assert remote_has(bare, BRANCH)
+
+
 def test_consent_after_notice_pushes(tmp_path):
     vault, bare = sent_session(tmp_path)
     assert push(vault)[0] == 3

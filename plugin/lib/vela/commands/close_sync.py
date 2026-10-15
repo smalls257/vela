@@ -11,8 +11,9 @@ must choose.
 - Tracked files with uncommitted edits: exit 3, nothing changed. A merge over uncommitted edits can mix them into a
   conflict nobody can untangle. This command never stages or commits the session's files (one capability per
   subcommand): `vela close stage --checkpoint` does that. A tracked file close stage never commits (vela's `.vela/`
-  working files, the inbox, private voice; `guard.never_rule`) is not the lead's unsaved work: it is set aside before
-  the merge and written back after, exactly as it was, and a conflict in one is settled with `-X ours`.
+  working files, the inbox, private voice; `guard.never_rule`), or one vela rebuilds in full (`dashboard.html`), is
+  not the lead's unsaved work: it is set aside before the merge and written back after, exactly as it was, and a
+  conflict in one is settled with `-X ours`.
 - A clean merge: exit 0.
 - Conflicts: `mergeplan` reads every hunk. Any hunk outside a generated block: the merge is aborted and the files and
   lines are listed, exit 1; main changed writing this branch changed too, and only the lead may choose between them.
@@ -76,8 +77,9 @@ class _Run:
         if self.set_aside:
             lines = [*lines, say.Line(
                 f"sync-main: set aside and wrote back unchanged {', '.join(self.set_aside)}: git tracks "
-                f"{'it' if len(self.set_aside) == 1 else 'them'}, but close never commits {'it' if len(self.set_aside) == 1 else 'them'} "
-                "(vela check W719 says how to untrack).", audience=say.MODEL)]
+                f"{'it' if len(self.set_aside) == 1 else 'them'}, but none is the lead's unsaved work: close stage never "
+                "commits vela's own files (vela check W719 says how to untrack), and close finish rebuilds the "
+                "dashboard.", audience=say.MODEL)]
         key =closestate.key_for(self.branch) if status != closestate.READER else closestate.READER_KEY
         rec = closestate.record(status, self.branch, self.main, self.head, self.today, reason, files)
         state_file = None
@@ -90,13 +92,13 @@ class _Run:
 
 
 def never_committed(path, prefix):
-    """True for a repository-relative path inside the vault that close stage never stages (guard's never-staged
-    rules: vela's own `.vela/` files, the inbox, private voice). A dirty one is not the lead's unsaved work, so it
-    neither blocks a sync nor appears in advice to commit it: that advice contradicted close stage (Distributed
-    Monolith), and following it could never succeed."""
+    """True for a repository-relative path inside the vault whose change is not the lead's unsaved work
+    (`guard.set_aside_unasked`: vela's own `.vela/` files, the inbox, private voice, and the dashboard vela rebuilds).
+    A dirty one neither blocks a sync nor appears in advice to commit it: that advice contradicted close stage
+    (Distributed Monolith), and following it could never succeed."""
     if not path.startswith(prefix):
         return False
-    return guard.never_rule(path[len(prefix):]) is not None
+    return guard.set_aside_unasked(path[len(prefix):])
 
 
 def sync_main(root, today, accept=False, timeout=mergegit.FETCH_TIMEOUT):

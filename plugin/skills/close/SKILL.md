@@ -89,7 +89,7 @@ Run `vela check-slice --changed --for-lead`, which records what the gate reads (
 Then send, in this order: the yes must come after the notice and before the record closes.
 
 1. Run `vela close push --for-lead`. It prints the send notice and exits 3. Say it ("I'll send this for review to Priya and the identity team. OK?") and wait.
-2. Capture the lead's answer, whatever it is: `vela record add --origin <their handle> --tag decision --mark "drop: the yes to send this for review" "<their words>"`. It prints the capture's number. On a no, do step 3 and stop: the session is filed and nothing is sent.
+2. Capture the lead's answer, whatever it is: `vela record add --origin @<handle from vela whoami> --tag decision --mark "drop: the yes to send this for review" "<their words>"`. It prints the capture's number. Never another name or an email address: close push sends only on the lead's own handle. On a no, do step 3 and stop: the session is filed and nothing is sent.
 3. Run `vela close finish --summary "<one line, in plain words>" --for-lead`. It closes the record, commits it from an allow-list (it never stages the inbox, `voice/local/` or `voice/corpus/`), writes and commits each handoff record, then rebuilds the dashboard. Say what it lists as not settled at handoff, so nobody hands an app over without knowing. If it stops because an app's handoff record exists, that app's team is accepting changes: run it with `--replace` only once they say so in this session.
 4. Run `vela close push --consent ^cN --for-lead`, with the number from step 2. If it fails, say so in one sentence, give the branch and the retry it names, and stop. Do not open a PR for a branch that is not pushed.
 
@@ -105,4 +105,4 @@ Three to six plain sentences: what was filed, by group and in the lead's words; 
 
 `close finish` rebuilds the dashboard last and gives the line the lead hears. Say it, with each warning it adds, and nothing else from its output. A failed build never undoes the close, and the dashboard is never called up to date unless it built.
 
-With no session (section 1 found none), run `vela close dashboard --for-lead`. It never commits to main. If it offers a branch of its own and the lead says yes, run `vela close dashboard --branch`. That commits the page on the new branch; close can't send it from there, so say so and stop.
+With no session (section 1 found none), run `vela close dashboard --for-lead`. It never commits to main. If it offers a branch of its own and the lead says yes, run `vela close dashboard --branch`. That commits the page on the new branch; close can't send it from there, so say so and stop. If the lead turns it down, or the close ends without an answer, run `vela close dashboard --put-back --for-lead` and say its line, so nothing is left changed on main.
