@@ -1,6 +1,7 @@
 # The Coach team's lead, who took the Coach service at handoff and now designs it in the team's own repository.
 # Fictional, like the trading-coach persona whose vault this design starts from. The persona prompt gets knows,
 # wrong, conflicts and decisions; it never sees unaware. Keywords follow the rules in coastal-merger.yaml.
+split: holdout  # scored, never read while iterating: no per-item result is printed without --reveal
 name: Sam Ito
 team_persona: true  # speaks only in team sessions, never opens a vela script
 role: lead of the Coach team at Kestrel Markets, who took the Coach service at handoff

@@ -10,6 +10,10 @@ Usage:
                            [--arms vela,vela-seuss] [--script default] [--stub] [--out <dir>]
   python3 tests/sim/run.py --rejudge <run-dir> --judge-model <id> --budget <usd> [--stub]
   python3 tests/sim/run.py --resume-run <run-dir> [--budget <usd>]
+  python3 tests/sim/run.py --failures <run-dir> [--reveal]
+
+--failures prints a finished run's GENERIC failure patterns for skill authors (tests/sim/failures.py): behaviors with
+turn numbers, scores per key kind, never a key item, a persona name or a quote. A holdout persona gets scores only.
 
 --resume-run goes on with a run that stopped part-way (killed, crashed, out of budget) from each arm's first session
 with no end, in the arm's own vault, and never plays an ended session again. --budget is the new total cap; it is
@@ -21,7 +25,9 @@ rewrites each arm's scorecard.json and scorecard.md and the run's compare.html, 
 rejudge.json. It exits 0 when every arm was scored, 2 on a tool failure, and 3 when a final vault is under the
 script's completeness gate. It reads the script run.json names, for the news and the outsiders the run gave the lead.
 
-The judge makes one call per category: knows, wrong, unaware, conflicts, decisions, and the shape of the guidance.
+The judge makes one call per category: knows, wrong, unaware, conflicts, decisions, the shape of the guidance and
+the tracer, then one precision call over a fixed sample of the final vault's items (tests/sim/precision.py), written
+to precision.json beside the scorecard.
 Beside each verdict the scorecard sets the driver's own keyword hits for the item, and lists every disagreement
 between the two under "Check these" at the top.
 
@@ -48,6 +54,7 @@ import argparse
 import concurrent.futures
 import datetime
 import html
+import importlib.util
 import json
 import os
 import pathlib
@@ -55,10 +62,26 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "plugin" / "lib"))  # the plugin's bundled PyYAML
 import yaml  # noqa: E402
 
+
+def load_sim_module(name):
+    """tests/sim/<name>.py, loaded by path under the name sim_<name>: a plain import finds whichever module of that
+    name was imported first (tests/evals/run.py, for one)."""
+    key = f"sim_{name}"
+    if key not in sys.modules:
+        spec = importlib.util.spec_from_file_location(key, pathlib.Path(__file__).resolve().parent / f"{name}.py")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[key] = module
+        spec.loader.exec_module(module)
+    return sys.modules[key]
+
+
+PRECISION = load_sim_module("precision")  # the precision pass: a sample of written items, backed or not
+SEAL = load_sim_module("seal")  # which personas are dev and which holdout, and the terms that give a key away
 HERE = pathlib.Path(__file__).resolve().parent
 SNAPSHOTS = HERE / "snapshots"
 REPO = HERE.parent.parent
@@ -1696,6 +1719,7 @@ def disagreement(kind, row, hit, said):
 # ------------------------------------------------------------------ judge
 
 JUDGE_CATEGORIES = ("knows", "wrong", "unaware", "conflicts", "decisions", "shape", "tracer")
+SCORING_CALLS = JUDGE_CATEGORIES + ("precision",)  # every judge call that scores an arm, in order
 
 JUDGE_COMMON = """SIMULATOR JUDGE: {category}. You score one part of a simulated planning run against the lead's hidden
 brief. You are mechanical, not a critic. You have no tools. Reply with one JSON object and nothing else: no prose,
@@ -1778,6 +1802,8 @@ JUDGE_READS = {"knows": ("vault",), "wrong": ("inbox",), "unaware": (), "conflic
 
 
 def judge_system_prompt(category):
+    if category == "precision":
+        return PRECISION.SYSTEM_PROMPT
     rules, shape = JUDGE_RULES[category]
     return JUDGE_COMMON.format(category=category, rules=rules, shape=shape)
 
@@ -2357,9 +2383,43 @@ def judge_alerts(calls):
 
 
 def score_arm(arm):
-    """Hits first, then the judge with the hits as hints, then the scorecard with both side by side."""
+    """Hits first, then the judge with the hits as hints, then precision over a sample of the final vault, then the
+    scorecard with all of it side by side."""
     hits = vault_hits(arm.persona, arm.transcript, arm.vault)
-    return build_scorecard(arm, judge(arm, hits), hits)
+    data = judge(arm, hits)
+    with tempfile.TemporaryDirectory(prefix="sim-precision-") as work:
+        vault, ref = PRECISION.final_vault(arm.dir, work)
+        arm.precision = judge_precision(arm, vault, ref)
+    card = build_scorecard(arm, data, hits)
+    card["precision"] = {k: v for k, v in arm.precision.items() if k != "items"}
+    if "missing" in arm.precision:
+        card["check_these"].append(f"precision: not scored: {arm.precision['missing']}")
+    return card
+
+
+def judge_precision(arm, vault, ref="", size=PRECISION.SAMPLE_SIZE, seed=PRECISION.SEED):
+    """The precision record for the arm's final vault: one judge call on the arm's ledger, capped small, its raw reply
+    kept beside the other judge calls. A reply that is bad twice is a tool failure; a refusal reads "not scored"."""
+    def send(text):
+        room = min(arm.ledger.judge_room(), PRECISION.BUDGET_USD)
+        if room < MIN_CALL_USD:
+            raise ToolFailure("no budget left for the precision judge call")
+        raw = arm.raw("judge-precision")
+        done = call(text_call_argv(arm.args.judge_model, PRECISION.SYSTEM_PROMPT, room, thinking=True),
+                    env=arm.env, cwd=arm.dir / "persona-cwd", raw_path=raw, kind="judge", stdin=text)
+        result = parse_single(done.stdout, raw)
+        arm.ledger.add(float(result["total_cost_usd"]))
+        arm.judge_calls.append({"category": "precision", "attempt": len([c for c in arm.judge_calls
+                                                                         if c["category"] == "precision"]) + 1,
+                                "raw": raw.name, "cost_usd": result["total_cost_usd"],
+                                "thinking_tokens": thinking_tokens(result)})
+        return result
+
+    try:
+        return PRECISION.score(vault, arm.persona.get("docs") or [], arm.transcript.spoken(), send, size, seed,
+                               ref or "working tree")
+    except PRECISION.JudgeFailure as exc:
+        raise ToolFailure(str(exc)) from exc
 
 
 # A drafted message opens with an email subject line or a salutation, often inside a blockquote or a code block.
@@ -2535,6 +2595,8 @@ def build_scorecard(arm, data, hits):
 
 def write_scorecard(arm):
     (arm.dir / "scorecard.json").write_text(json.dumps(arm.scorecard, indent=2, ensure_ascii=False), encoding="utf-8")
+    if getattr(arm, "precision", None) is not None:
+        (arm.dir / "precision.json").write_text(json.dumps(arm.precision, indent=2, ensure_ascii=False), encoding="utf-8")
     (arm.dir / "scorecard.md").write_text(render_scorecard_md(arm.scorecard, arm.persona), encoding="utf-8")
 
 
@@ -2689,7 +2751,7 @@ def render_scorecard_md(card, persona):
              "## Check these", ""]
     lines += [f"- {c}" for c in card.get("check_these") or []] or ["- none: the judge and the keyword hits agree"]
     lines.append("")
-    lines += render_capture(card.get("capture")) + render_completeness(card)
+    lines += render_capture(card.get("capture")) + render_completeness(card) + render_precision(card)
     titles = {"unaware": "Gaps surfaced (U)", "wrong": "Wrong beliefs challenged (W)", "knows": "Facts captured (K)",
               "decisions": "Decisions (D)", "conflicts": "Stakeholder conflicts surfaced (C)"}
     hits = card.get("hits") or {}
@@ -2736,6 +2798,20 @@ def render_scorecard_md(card, persona):
                      f"{yes_no(step.get('clear_next_step'))} {evidence(step)} |".replace("\n", " "))
     lines += ["", "## Dropped claims", ""] + ([f"- {d}" for d in card["dropped"]] or ["- none"])
     return "\n".join(lines) + "\n"
+
+
+def render_precision(card):
+    p = card.get("precision")
+    if not p:
+        return []
+    if "missing" in p:
+        return ["## Precision: not scored", "", f"- {p['missing']}", ""]
+    c = p["counts"]
+    return [f"## Precision: {p['precision']:.0%} of {p['sampled']} sampled items", "",
+            f"Sampled from {p['population']} written items by page type (seed {p['seed']}), from {p['vault']}. "
+            "Unsupported and padding count against it; precision.json lists every item.", "",
+            "| Backed | Duplicate | Padding | Unsupported | Citations that failed |", "|---|---|---|---|---|",
+            f"| {c['backed']} | {c['duplicate']} | {c['padding']} | {c['unsupported']} | {len(p['dropped'])} |", ""]
 
 
 def render_compare(run_id, persona, arms):
@@ -2830,8 +2906,12 @@ def parse_args(argv):
                              "--budget is then the new total cap")
     parser.add_argument("--dry-judge", metavar="RUN_DIR",
                         help="print the size of every judge input of a finished run and what was cut; calls nothing, costs nothing")
+    parser.add_argument("--failures", metavar="RUN_DIR",
+                        help="generic failure patterns of a finished run for skill authors, with no key item, persona "
+                             "name or quote in them (tests/sim/failures.py); calls nothing, costs nothing")
+    parser.add_argument("--reveal", action="store_true", help="with --failures: print the patterns of a holdout too")
     args = parser.parse_args(argv)
-    if args.dry_judge:
+    if args.dry_judge or args.failures:
         return args
     if args.resume_run:
         # The run fixed these; taking them again would let one run mix two models or two scripts.
@@ -3192,7 +3272,8 @@ def preflight_inputs(work):
                for n, (who, text) in enumerate(PREFLIGHT_TURNS, 1)]
     transcript = Transcript(work / "transcript.jsonl", entries)
     hits = vault_hits(PREFLIGHT_BRIEF, transcript, vault)
-    return [(c, build_judge_input(PREFLIGHT_BRIEF, transcript, vault, c, hits)[0]) for c in JUDGE_CATEGORIES]
+    return ([(c, build_judge_input(PREFLIGHT_BRIEF, transcript, vault, c, hits)[0]) for c in JUDGE_CATEGORIES]
+            + [("precision", PRECISION.preflight_input(work))])
 
 
 def preflight_problem(category, result, raw):
@@ -3206,12 +3287,12 @@ def preflight_problem(category, result, raw):
     return None
 
 
-def judge_preflight(args, run_dir):
-    """(spent, problems): one judge call per category, sent side by side. Each problem names its category and raw
-    file; any problem means the run must not start."""
+def judge_preflight(args, run_dir, only=None):
+    """(spent, problems): one judge call per category (each in `only`, when given), sent side by side. Each problem
+    names its category and raw file; any problem means the run must not start."""
     work = run_dir / "judge-preflight"
     work.mkdir(parents=True, exist_ok=True)
-    env = arm_env(work, stub=False)
+    env = arm_env(work, stub=args.stub)
 
     def send(item):
         category, text = item
@@ -3224,10 +3305,16 @@ def judge_preflight(args, run_dir):
             return 0.0, f"{category}: {exc}"
         return float(result.get("total_cost_usd") or 0), preflight_problem(category, result, raw)
 
-    inputs = preflight_inputs(work)
+    inputs = [(c, text) for c, text in preflight_inputs(work) if only is None or c in only]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(inputs)) as pool:
         replies = list(pool.map(send, inputs))
     return sum(cost for cost, _ in replies), [problem for _, problem in replies if problem]
+
+
+def precision_preflight(args, run_dir):
+    """(spent, problem or None): the precision call alone over the made-up run, before a standalone precision pass."""
+    spent, problems = judge_preflight(args, run_dir, only=("precision",))
+    return spent, "; ".join(problems) or None
 
 
 def dry_judge(args):
@@ -3360,6 +3447,8 @@ def preflight_or_stop(args, run_dir, summary):
 
 def main(argv=None):
     args = parse_args(argv)
+    if args.failures:
+        return load_sim_module("failures").main([args.failures, *(["--reveal"] if args.reveal else [])])
     if args.dry_judge:
         return dry_judge(args)
     if args.rejudge:

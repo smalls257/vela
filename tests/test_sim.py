@@ -274,20 +274,39 @@ def test_default_arms_are_vela_and_seuss_and_unknown_arms_are_refused():
 
 
 def test_every_persona_and_script_validates():
-    """A holdout persona is checked in test_probe.py, by counts only, so a failure here never prints its brief."""
+    """A holdout persona (split: holdout) is checked by counts only, so a failure here never prints its brief."""
     for persona_path in sorted((SIM / "personas").glob("*.yaml")):
         persona = yaml.safe_load(persona_path.read_text(encoding="utf-8"))
-        if persona.get("holdout") is True or persona.get("team_persona") is True:
+        sealed = sim.SEAL.split_of(persona) != "dev"
+        if persona.get("team_persona") is True:
             continue
+        problems = sim.persona_problems(persona)
+        count = len(problems)
+        if sealed:
+            assert count == 0, persona_path.name
+        else:
+            assert problems == [], persona_path.name
         if persona.get("outsider") is True:  # speaks only in the sessions that name it, so no script is written for it
-            assert sim.persona_problems(persona) == [], persona_path
             continue
-        assert sim.persona_problems(persona) == [], persona_path
         for script_path in sorted((SIM / "scripts").glob("*.yaml")):
             script = yaml.safe_load(script_path.read_text(encoding="utf-8"))
             if script.get("persona") not in (None, persona_path.stem):
                 continue  # a script written for one persona's topics
-            assert sim.script_problems(script, persona) == [], script_path
+            problems = sim.script_problems(script, persona)
+            count = len(problems)
+            if sealed:
+                assert count == 0, script_path.name
+            else:
+                assert problems == [], script_path.name
+
+
+def test_every_persona_says_whether_it_is_dev_or_holdout():
+    """The seal (seal.py): heron-desk and the personas its runs bring in are dev; the rest are holdout."""
+    splits = {p.stem: sim.SEAL.split_of(yaml.safe_load(p.read_text(encoding="utf-8")))
+              for p in sorted((SIM / "personas").glob("*.yaml"))}
+    assert all(split in ("dev", "holdout") for split in splits.values()), splits
+    assert {name for name, split in splits.items() if split == "dev"} == {n for n in splits if n.startswith("heron-")}
+    assert {"coastal-merger", "holdout-hospitals", "trading-coach"} <= {n for n, s in splits.items() if s == "holdout"}
 
 
 def test_the_coastal_merger_brief_is_big_and_messy():
@@ -475,6 +494,9 @@ def test_the_judge_is_called_once_per_category_and_asked_to_think(full_run):
     for arm in ("vela", "vela-seuss", "baseline"):
         calls = [c for c in full_run["calls"] if c["role"] == "judge" and f"{os.sep}{arm}{os.sep}" in c["cwd"] + os.sep]
         assert [c["category"] for c in calls] == list(sim.JUDGE_CATEGORIES), arm
+        precision = json.loads((full_run["run"] / arm / "precision.json").read_text(encoding="utf-8"))
+        assert precision["missing"] == "the final vault has no written items to sample", \
+            "a stub vault holds only the template's own text, which no session wrote, so there is nothing to judge"
         for call in calls:
             argv = call["argv"]
             assert argv[argv.index("--effort") + 1] == sim.JUDGE_EFFORT
@@ -714,12 +736,15 @@ REASONING_EXTRACTION_PHRASES = (
     r"\bshow your work\b", r"\bthink(ing)? (out loud|aloud)\b", r"\breason(ing)? (first|out loud|aloud)\b")
 
 
-@pytest.mark.parametrize("category", sim.JUDGE_CATEGORIES)
+@pytest.mark.parametrize("category", sim.SCORING_CALLS)
 def test_no_judge_prompt_asks_the_judge_to_disclose_its_reasoning(category):
     prompt = sim.judge_system_prompt(category)
     found = [p for p in REASONING_EXTRACTION_PHRASES if re.search(p, prompt, re.I)]
     assert not found, f"the {category} judge prompt asks for its reasoning in the reply: {found}"
     # Not weakened: it still names its grounds before every verdict, and every yes still cites a turn and a quote.
+    if category == "precision":  # its citations are a document, a lead turn or the item itself, each quoted
+        assert '"grounds"' in prompt and "Every quote is copied exactly" in prompt and '"turn" is the lead turn' in prompt
+        return
     assert '"grounds"' in prompt and "turn number T<n>" in prompt and "a quote copied exactly" in prompt
 
 
@@ -1513,7 +1538,7 @@ def test_a_refusing_judge_stops_the_run_at_setup_before_any_session(tmp_path):
     assert "knows: refused by the model's safeguards (flagged [reasoning_extraction])" in done.stderr
     calls = logged_calls(tmp_path)
     assert {c["role"] for c in calls} == {"judge"}  # no assistant or persona call was made
-    assert sorted(c["category"] for c in calls) == sorted(sim.JUDGE_CATEGORIES)
+    assert sorted(c["category"] for c in calls) == sorted(sim.SCORING_CALLS)
     run_json = json.loads(next((tmp_path / "results").iterdir()).joinpath("run.json").read_text(encoding="utf-8"))
     assert run_json["exit"] == 4 and run_json["preflight"][0].startswith("knows: refused")
 
@@ -1523,7 +1548,7 @@ def test_the_preflight_passes_a_judge_that_answers_and_names_an_erroring_one(tmp
         monkeypatch.setenv(key, value)
     args = sim.parse_args(["coastal-merger", *MODELS, "--budget", "5"])
     spent, problems = sim.judge_preflight(args, tmp_path / "ok")
-    assert problems == [] and spent == pytest.approx(0.01 * len(sim.JUDGE_CATEGORIES))
+    assert problems == [] and spent == pytest.approx(0.01 * len(sim.SCORING_CALLS))
     monkeypatch.setenv("SIM_STUB_JUDGE", "toolong:shape")
     _, problems = sim.judge_preflight(args, tmp_path / "bad")
     assert len(problems) == 1 and problems[0].startswith("shape: failed because the prompt was too long")
@@ -1531,9 +1556,11 @@ def test_the_preflight_passes_a_judge_that_answers_and_names_an_erroring_one(tmp
 
 def test_every_preflight_input_has_the_real_shape_and_is_tiny(tmp_path):
     inputs = dict(sim.preflight_inputs(tmp_path))
-    assert list(inputs) == list(sim.JUDGE_CATEGORIES)
+    assert list(inputs) == list(sim.SCORING_CALLS)
     for category, text in inputs.items():
-        assert "THE TRANSCRIPT:\n" in text and len(text) < 6000, category
+        assert ("THE LEAD'S WORDS" if category == "precision" else "THE TRANSCRIPT:\n") in text, category
+        assert len(text) < 6000, category
+    assert "----- ITEM P1 " in inputs["precision"] and "SOURCE cio-note.md" in inputs["precision"]
     assert "HINTS, which turns and files hold" in inputs["knows"] and "FILE 01-goals.md" in inputs["knows"]
     assert "INBOX DOCUMENTS:" in inputs["wrong"] and "04b-releases.md" in inputs["tracer"]
 

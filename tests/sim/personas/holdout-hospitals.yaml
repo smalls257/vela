@@ -3,7 +3,7 @@
 # runs it blind: it prints categories and counts, never an item ID, its text or its keywords.
 # Everything here is made up: both hospital trusts, their systems and their suppliers are fictional.
 # Same shape and the same category set as coastal-merger.yaml; see the comments there for keywords and categories.
-holdout: true
+split: holdout  # scored, never read while iterating: no per-item result is printed without --reveal
 name: Priya Raman
 role: newly appointed program lead for outpatient booking across the two trusts
 org: Fenwick Valley Hospitals NHS Foundation Trust and Calder Reach University Hospitals NHS Trust, which agreed to merge their outpatient booking in the summer

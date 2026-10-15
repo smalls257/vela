@@ -6,6 +6,7 @@
 # unaware: a gap it was never told cannot leak. The judge sees all of it. Keywords follow the rules at the top of
 # coastal-merger.yaml, and no unaware keyword appears in a knows fact, so the lead cannot hand a gap over by accident.
 # The Desk Agent team lead, who designs the agent after handoff, is the team persona heron-agent-lead.
+split: dev  # may be read while iterating on the skills; see tests/sim/README.md, "Iterating without teaching to the test"
 name: Priya Menon
 role: solution lead for Heron, a desk helper that surfaces what matters from a person's working day
 org: Marlowe & Finch, a 4,200-person professional-services firm with offices in the UK, Germany and the US

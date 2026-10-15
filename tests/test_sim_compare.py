@@ -7,6 +7,7 @@ Every run here is built in tmp_path from a few pages and a transcript. Nothing c
 """
 import importlib.util
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -44,10 +45,11 @@ def write_pages(vault, pages):
         path.write_text(text, encoding="utf-8")
 
 
-def make_run(folder, arm, turns, pages=None, raw=None):
+def make_run(folder, arm, turns, pages=None, raw=None, persona=None, card=None, precision=None):
     """A finished run as run.py leaves it: run.json, the arm's transcript, raw/ calls, and a vault pushed to the arm's
     origin.git. `turns` are (speaker, text) or (speaker, text, session, mode); `raw` is one list of Bash calls per
-    assistant turn, each a command or (command, what it printed, is_error). Returns the vault."""
+    assistant turn, each a command or (command, what it printed, is_error). `persona` goes in run.json; `card` and
+    `precision` are written as the arm's scorecard.json and precision.json. Returns the vault."""
     arm_dir = folder / arm
     arm_dir.mkdir(parents=True)
     lines, n, endings = [], 0, {}
@@ -64,8 +66,13 @@ def make_run(folder, arm, turns, pages=None, raw=None):
         lines.append({"speaker": "driver", "session": s, "event": "session-end", "reason": "persona-end"})
     (arm_dir / "transcript.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\n", encoding="utf-8")
     (folder / "run.json").write_text(json.dumps({"run_id": folder.name, "exit": 0, "arms": [arm], "spent_usd": 1.0,
+                                                 "persona": persona,
                                                  "per_arm": {arm: {"spent_usd": 1.0, "endings": ends}}}),
                                      encoding="utf-8")
+    if card is not None:
+        (arm_dir / "scorecard.json").write_text(json.dumps(card), encoding="utf-8")
+    if precision is not None:
+        (arm_dir / "precision.json").write_text(json.dumps(precision), encoding="utf-8")
     if raw is not None:
         (arm_dir / "raw").mkdir()
         for i, commands in enumerate(raw, 1):
@@ -95,7 +102,7 @@ def run_tool(base, mid, *extra):
     done = subprocess.run([sys.executable, str(SIM / "compare_runs.py"), str(base), str(mid), "--baseline-checkout",
                            str(REPO), "--midpoint-checkout", str(REPO), "--json", str(out), *extra],
                           capture_output=True, text=True, timeout=300)
-    assert done.returncode in (0, 1, 3), done.stderr
+    assert done.returncode in (0, 1, 3, 4), done.stderr
     return done, json.loads(out.read_text(encoding="utf-8"))
 
 
@@ -124,7 +131,7 @@ def test_an_old_run_compares_with_a_new_one_and_the_report_says_how_it_paired(tm
     done, report = run_tool(base, mid)
     assert report["baseline"]["arm"] == legacy.OLD_ARM and report["midpoint"]["arm"] == "vela"
     assert any("LEGACY_NAMES" in n for n in report["baseline"]["notes"])
-    leaks = {r["measure"]: r for r in report["rows"]["Codes, IDs and tool names in lead-facing turns"]}
+    leaks = {r["measure"]: r for r in report["rows"][compare.DIAGNOSTICS + "Codes, IDs and tool names in lead-facing turns"]}
     assert leaks["Leaks per lead-facing turn"]["status"] == "same", "the lead read the same lines"
     assert "## Verdict:" in done.stdout
 
@@ -295,7 +302,7 @@ def test_the_final_vault_is_scored_from_origin_main_not_a_stale_branch(tmp_path)
     done, report = run_tool(base, mid)
     assert report["midpoint"]["vault_scored"].startswith("origin/main at ")
     assert report["midpoint"]["vault_working_tree"] == "dashboard/stale: 1 commits behind origin/main, 0 ahead"
-    rows = {r["measure"]: r for r in report["rows"]["Final vault"]}
+    rows = {r["measure"]: r for r in report["rows"][compare.DIAGNOSTICS + "Final vault"]}
     assert rows["Unknowns"]["midpoint"] == 3 and rows["Unknowns"]["status"] == "same", "the stale branch has only 1"
     assert rows["Unknowns with an Ask line"]["status"] == "same"
     assert "Scored: the baseline's origin/main at" in done.stdout
@@ -332,15 +339,16 @@ def test_a_blocked_team_session_does_not_read_as_the_plan_thinning(tmp_path):
     git(vault, "add", "-A")
     git(vault, "commit", "-q", "-m", "design")
     git(vault, "push", "-q", "origin", "design/agent")
-    make_run(mid, "vela", [("lead", "Hi."), ("assistant", "Noted.")], pages=unknowns_page(2))
+    make_run(mid, "vela", [("lead", "Hi."), ("assistant", "Noted.")], pages=unknowns_page(2), card=card(3, 3))
+    (base / "vela" / "scorecard.json").write_text(json.dumps(card(3, 3)), encoding="utf-8")
     done, report = run_tool(base, mid)
-    rows = {r["measure"].strip(): r for r in report["rows"][compare.TEAM_GROUP]}
+    rows = {r["measure"].strip(): r for r in report["rows"][compare.DIAGNOSTICS + compare.TEAM_GROUP]}
     assert rows["Team document items (design and plan IDs)"]["baseline"] == 3
     assert rows["Team document items (design and plan IDs)"]["midpoint"] == 0
     assert rows["OQ items"]["baseline"] == 2 and rows["S items"]["baseline"] == 1
-    plan = {r["measure"]: r for r in report["rows"]["Final vault"]}
+    plan = {r["measure"]: r for r in report["rows"][compare.DIAGNOSTICS + "Final vault"]}
     assert plan["Items written"]["baseline"] == plan["Items written"]["midpoint"] == 2, "the plan's own items only"
-    assert "OQ items" not in {r["measure"] for r in report["rows"].get("Items by kind", [])}
+    assert "OQ items" not in {r["measure"] for r in report["rows"].get(compare.DIAGNOSTICS + "Items by kind", [])}
     assert report["verdict"]["verdict"] == "GO", report["verdict"]
     assert "docs/tech-design/agent.md (origin/design/agent)" in done.stdout
 
@@ -369,3 +377,117 @@ def test_a_ledger_rows_tail_is_not_an_id_and_the_vaults_own_families_count_as_kn
     assert {"DAT-02", "FIN-06", "DAT-01"}.isdisjoint(ids["guessed_list"])
     assert set(ids["known_from_documents_list"]) == {"R-DAT-02", "R-FIN-06", "Q-DAT-01", "INI-001", "D-001"}, \
         "SRC-01 is defined by its register row, so it is neither guessed nor only held"
+
+
+# ------------------------------------------------------------------ the verdict: recall and precision only
+
+KINDS = {"knows": ("K", "captured"), "unaware": ("U", "surfaced"), "wrong": ("W", "challenged"),
+         "conflicts": ("C", "surfaced"), "decisions": ("D", "decided")}
+
+
+def card(found, of=10):
+    """A scorecard with `found` of `of` items yes in every key kind (an int, or a dict by kind)."""
+    out = {"not_scored": {}}
+    for kind, (prefix, flag) in KINDS.items():
+        n = found[kind] if isinstance(found, dict) else found
+        out[kind] = [{"id": f"{prefix}{i}", flag: i <= n, **({"yes_asked": i <= n} if kind == "decisions" else {})}
+                     for i in range(1, of + 1)]
+    return out
+
+
+def precision(unsupported=0, padding=0, n=30):
+    backed = n - unsupported - padding
+    counts = {"backed": backed, "duplicate": 0, "padding": padding, "unsupported": unsupported}
+    return {"sampled": n, "population": 100, "counts": counts, "rates": {k: round(v / n, 3) for k, v in counts.items()},
+            "precision": round(1 - (unsupported + padding) / n, 3), "dropped": [], "seed": 1, "vault": "origin/main",
+            "items": [{"id": "P1", "class": "backed", "path": "01-goals.md", "item": "part 1"}]}
+
+
+def pair(tmp_path, base_card, mid_card, base_p=None, mid_p=None, persona="heron-desk"):
+    base, mid = tmp_path / "base", tmp_path / "mid"
+    turns = [("lead", "Hi."), ("assistant", "Noted.")]
+    make_run(base, "vela", turns, persona=persona, card=base_card, precision=base_p)
+    make_run(mid, "vela", turns, persona=persona, card=mid_card, precision=mid_p)
+    return base, mid
+
+
+def test_recall_up_and_precision_steady_is_go_and_volume_never_decides(tmp_path):
+    """The later run writes far fewer items and reaches more of the key: GO. Items written is a diagnostic."""
+    base, mid = tmp_path / "base", tmp_path / "mid"
+    turns = [("lead", "Hi."), ("assistant", "Noted.")]
+    make_run(base, "vela", turns, pages=unknowns_page(20), persona="heron-desk", card=card(4), precision=precision())
+    make_run(mid, "vela", turns, pages=unknowns_page(2), persona="heron-desk", card=card(6), precision=precision())
+    done, report = run_tool(base, mid)
+    assert done.returncode == 0 and report["verdict"]["verdict"] == "GO", report["verdict"]
+    assert "recall 40% → 60% (+20 points" in report["verdict"]["why"]
+    items = {r["measure"]: r for r in report["rows"][compare.DIAGNOSTICS + "Final vault"]}["Items written"]
+    assert items["baseline"] == 20 and items["midpoint"] == 2 and items["status"] == "info"
+    assert "## Diagnostics (never set the verdict)" in done.stdout
+
+
+def test_recall_up_with_precision_down_is_never_a_go(tmp_path):
+    """The Paper Tiger the honest score exists for: more of the key reached by writing more, less of it true."""
+    base, mid = pair(tmp_path, card(4), card(6), precision(), precision(unsupported=6, padding=3))
+    done, report = run_tool(base, mid)
+    assert report["verdict"]["verdict"] == "STOP", report["verdict"]  # precision down 30 points
+    assert "Recall rose while precision fell" in report["verdict"]["why"]
+
+
+def test_a_weak_kind_that_falls_on_its_own_is_named(tmp_path):
+    base, mid = pair(tmp_path, card({"knows": 4, "unaware": 4, "wrong": 4, "conflicts": 5, "decisions": 4}),
+                     card({"knows": 6, "unaware": 4, "wrong": 4, "conflicts": 2, "decisions": 4}),
+                     precision(), precision())
+    done, report = run_tool(base, mid)
+    assert report["verdict"]["verdict"] == "ADJUST", report["verdict"]
+    assert report["verdict"]["weak_kinds"] == ["C conflicts surfaced 5 of 10 → 2 of 10"]
+    rows = {r["measure"]: r for r in report["rows"][compare.RECALL_GROUP]}
+    assert rows["C conflicts surfaced (weak spot)"]["read"] == "down 30 points"
+    assert "D decisions decided (weak spot)" in rows and "D decided with the lead's yes asked first" in rows
+    assert "| C conflicts surfaced (weak spot) | 5 of 10 (50%) | 2 of 10 (20%) | -30 pts | down 30 points |" in done.stdout
+
+
+def test_recall_down_past_the_stop_line_is_stop(tmp_path):
+    base, mid = pair(tmp_path, card(6), card(4), precision(), precision())
+    _, report = run_tool(base, mid)
+    assert report["verdict"]["verdict"] == "STOP"
+
+
+def test_without_precision_the_verdict_reads_recall_alone_and_says_so(tmp_path):
+    base, mid = pair(tmp_path, card(4), card(4))
+    done, report = run_tool(base, mid)
+    assert report["verdict"]["verdict"] == "GO" and "precision not read" in report["verdict"]["why"]
+    assert any("precision is missing" in p for p in report["verdict"]["provisional"])
+
+
+def test_without_a_scorecard_there_is_no_verdict(tmp_path):
+    base, mid = pair(tmp_path, None, card(4))
+    done, report = run_tool(base, mid)
+    assert done.returncode == 4 and report["verdict"]["verdict"] == "UNSCORED"
+
+
+# ------------------------------------------------------------------ the seal: a holdout prints scores only
+
+def test_a_dev_persona_lists_the_key_items_that_flipped(tmp_path):
+    base, mid = pair(tmp_path, card(4), card(5), precision(), precision())
+    done, report = run_tool(base, mid)
+    assert report["seal"]["sealed"] is False
+    assert "Key items yes in the later run only: C5, D5, K5, U5, W5" in done.stdout
+
+
+def test_a_holdout_is_sealed_in_the_markdown_and_the_json_unless_revealed(tmp_path):
+    base, mid = pair(tmp_path, card(4), card(5), precision(), precision(), persona="coastal-merger")
+    done, report = run_tool(base, mid)
+    assert report["seal"]["sealed"] is True and "**Sealed:**" in done.stdout
+    text = done.stdout + json.dumps(report)
+    assert not re.search(r"(?<![\w-])[KWUCD]\d{1,2}(?![\w-])", text), "no key item ID anywhere"
+    assert '"items"' not in json.dumps(report["detail"]), "per-item scorecard and precision rows are taken out"
+    assert report["verdict"]["verdict"] == "GO", "the scores are still read"
+    done, report = run_tool(base, mid, "--reveal")
+    assert report["seal"] == {"sealed": False, "revealed": True, "why": ["coastal-merger is a holdout persona"] * 2}
+    assert "Key items yes in the later run only: C5" in done.stdout
+
+
+def test_a_run_whose_persona_has_no_split_is_sealed(tmp_path):
+    base, mid = pair(tmp_path, card(4), card(5), persona=None)
+    _, report = run_tool(base, mid)
+    assert report["seal"]["sealed"] is True and "names no persona" in report["seal"]["why"][0]

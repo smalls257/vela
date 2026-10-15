@@ -13,13 +13,14 @@ This costs money unless --stub is given: every assistant, persona and judge call
 Usage:
   python3 tests/sim/probe.py <case> --persona <name> --runs N --model <id> --persona-model <id>
                              --judge-model <id> --budget <usd> --loop-ledger <path> --loop-budget <usd>
-                             [--blind] [--stub] [--out <dir>]
+                             [--blind] [--reveal] [--stub] [--out <dir>]
 
 <case> is a name in tests/sim/probes/ or a .yaml path. <name> is a persona in tests/sim/personas/.
 --budget is the ceiling for this invocation, split evenly over the runs. --loop-ledger is a JSON file that adds up
 what every invocation spent; probe.py refuses to start when that total plus --budget would pass --loop-budget.
 --blind prints categories and counts only, never an item ID, its text or its keywords, and writes the detail to
-detail-DO-NOT-READ-WHEN-BLIND.md in each run folder. A persona with `holdout: true` is always blind.
+detail-DO-NOT-READ-WHEN-BLIND.md in each run folder. A persona with `split: holdout` (seal.py) is always blind unless
+--reveal is given, so a holdout's per-item results are never printed by default.
 
 Exit codes: 0 every run passed every criterion; 1 a run failed a criterion, a run ended on its budget, or the
 loop ledger refused to start; 2 a tool failed (claude, git, a snapshot, a case or persona file, the judge's JSON).
@@ -55,6 +56,7 @@ def _load_driver():
 
 
 sim = _load_driver()
+seal = sim.load_sim_module("seal")
 
 ToolFailure = sim.ToolFailure
 SNAPSHOTS = HERE / "snapshots"
@@ -71,7 +73,7 @@ def load_persona(ref):
     because they name its items and keywords."""
     path = sim.resolve(ref, "personas")
     data = sim.load_yaml(path)
-    holdout = isinstance(data, dict) and data.get("holdout") is True
+    holdout = seal.split_of(data) != "dev"  # a persona that says neither is sealed, never open by default
     return path, data, holdout, sim.persona_problems(data)
 
 
@@ -963,6 +965,8 @@ def parse_args(argv):
     parser.add_argument("--loop-ledger", required=True, help="JSON file that adds up spend across invocations")
     parser.add_argument("--loop-budget", required=True, type=float, help="USD ceiling for the whole loop")
     parser.add_argument("--blind", action="store_true", help="print categories and counts only")
+    parser.add_argument("--reveal", action="store_true",
+                        help="print per-item results for a holdout persona too; never while iterating on the skills")
     parser.add_argument("--stub", action="store_true", help="use the scripted fake claude in tests/sim/stub/")
     parser.add_argument("--out", default=str(PROBE_RESULTS), help="results folder; each run gets its own folder")
     args = parser.parse_args(argv)
@@ -988,7 +992,7 @@ def main(argv=None):
     persona_name = pathlib.Path(args.persona).stem
     try:
         _, persona, holdout, problems = load_persona(args.persona)
-        blind = args.blind or holdout
+        blind = args.blind or (holdout and not args.reveal)
         if problems:
             if blind:
                 path = refuse_blind_problems(problems, pathlib.Path(args.out))
