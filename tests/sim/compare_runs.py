@@ -397,10 +397,14 @@ CLOSE_STEPS = {  # step -> (what in a tool input shows it ran, what in the check
     "render": (rf"{CLI}render\b", rf"{SKILL_CLI}render"),
     "check": (rf"{CLI}check(?![-\w])", rf"{SKILL_CLI}check"),
     "close gate": (rf"{CLI}close gate\b", r"close gate"),
-    "close commit": (rf"Close session|{CLI}close stage[^\n]*--close", r"Close session|close stage --close"),
+    # `close finish` closes the record, commits it and rebuilds the dashboard (overhaul Task 22a), so a close skill
+    # that asks for it asks for both steps, and a run of it ran both.
+    "close commit": (rf"Close session|{CLI}close stage[^\n]*--close|{CLI}close finish\b",
+                     r"Close session|close stage --close|close finish"),
     "push": (rf"git push\b|{CLI}close push\b", r"git push|close push"),
     "open the PR": (rf"gh pr (?:create|comment)|{CLI}close pr\b", r"gh pr create|close pr"),
-    "rebuild the explorer": (rf"{CLI}explore\b", rf"{SKILL_CLI}explore"),
+    "rebuild the explorer": (rf"{CLI}explore\b|{CLI}close (?:finish|dashboard)\b",
+                             rf"{SKILL_CLI}explore|close finish|close dashboard"),
 }
 NO_SESSION = re.compile(r"no (?:open )?session (?:is )?open|nothing (?:is )?open|no session to close|"
                         r"(?:isn't|is not|wasn't) (?:a|any) (?:open )?session", re.I)

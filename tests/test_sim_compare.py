@@ -143,6 +143,15 @@ def test_bring_in_main_counts_in_every_form_the_command_ran_in(command):
     assert compare.re.search(compare.CLOSE_STEPS["bring in main"][0], command)
 
 
+def test_close_finish_is_asked_for_and_ran_as_the_close_commit_and_the_explorer_rebuild():
+    """Close now runs `vela close finish`, which commits the record and rebuilds the dashboard (Task 22a)."""
+    skill = (REPO / "plugin" / "skills" / "close" / "SKILL.md").read_text(encoding="utf-8")
+    for step in ("close commit", "rebuild the explorer"):
+        ran, asked = compare.CLOSE_STEPS[step]
+        assert compare.re.search(asked, skill), step
+        assert compare.re.search(ran, '$P close finish --summary "Filed"'), step
+
+
 def test_a_close_run_through_a_variable_skips_no_step(tmp_path):
     """S8 of the 2026-10-14 mid-point ran `$P close sync-main` and `$P close stage --close`, and read as two skips."""
     base, mid = tmp_path / "base", tmp_path / "mid"
