@@ -1,24 +1,34 @@
 ---
 name: where
-description: Print where this session thinks the vela program is, and why. Use when a skill says it cannot find the vela program, then send the output to whoever maintains the plugin.
+description: Check what this host gives a vela session and where the vela program is. Use when a skill can't find vela, or on a new host, then send the table to the plugin's maintainer.
 disable-model-invocation: true
-allowed-tools: Bash(echo *) Bash(ls *) Bash(pwd) Bash(test *) Bash(python3 *scripts/vela *) Bash(git --version) Bash(gh --version) Bash(find *) Bash(curl -sI *)
+allowed-tools: Bash(echo *) Bash(pwd) Bash(ls *) Bash(python3 *scripts/vela *)
 disallowed-tools: Write Edit NotebookEdit
 ---
 
-# Where is vela
+# Where is vela, and what works here
 
-Run each of these and show the output unedited. They work even when vela cannot be found, and say what the host expanded.
+This line only tests whether the host runs a skill's `!` lines:
 
-!`echo "CLAUDE_PLUGIN_ROOT = ${CLAUDE_PLUGIN_ROOT}"; echo "CLAUDE_SKILL_DIR = ${CLAUDE_SKILL_DIR}"; echo "working folder = $(pwd)"; for p in "${CLAUDE_SKILL_DIR}/../../scripts/vela" "${CLAUDE_PLUGIN_ROOT}/scripts/vela" ".claude/skills/vela/scripts/vela"; do if [ -f "$p" ]; then echo "found:   $p"; else echo "missing: $p"; fi; done; if [ -f .vela/workspace.json ]; then echo "workspace.json: $(grep vela_path .vela/workspace.json)"; else echo "workspace.json: none"; fi; echo "python3: $(python3 --version 2>&1)"`
+!`echo "CLAUDE_PLUGIN_ROOT = ${CLAUDE_PLUGIN_ROOT}"; echo "CLAUDE_SKILL_DIR = ${CLAUDE_SKILL_DIR}"; echo "working folder = $(pwd)"`
 
-Before anything else, say on its own line whether the host ran that line for you: `injection: yes` if you were given its output (lines such as `CLAUDE_SKILL_DIR = ...`), or `injection: no` if you see the line itself, starting with an exclamation mark and a backtick. If it is `no`, run the same `echo ...` line yourself as a normal command and show its output. The maintainer needs to know which happened, so never skip this line.
+First, say `injection: yes` on its own line if you were given its output (lines such as `CLAUDE_SKILL_DIR = ...`), or `injection: no` if you see the line itself, starting with an exclamation mark and a backtick. If it's `no`, run the same `echo ...` line yourself and show its output. Never skip this.
 
-Then report what else this host gives a skill, one line each, shown unedited:
+Then say `skill base directory = <path>` if the host told you where this skill loaded from ("Base directory for this skill"), or `skill base directory = not given`. Don't work it out.
 
-1. `skill base directory = <path>`: the folder the host told you this skill was loaded from (some hosts say it as "Base directory for this skill"), or `skill base directory = not given` if you weren't told one. Don't work it out; say only what the host said.
-2. If you were given a base directory, run `ls "<it>/../../scripts"` and show it.
-3. `git --version`, `gh --version`, and `curl -sI https://github.com | head -1`, each shown with its output or its error.
-4. `ls -t "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/synced/*/vela/scripts/vela "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/cache/*/vela/*/scripts/vela 2>/dev/null` (the folders the skills search, newest first), and if it prints nothing, `find / -path '*scripts/vela' -type f 2>/dev/null | head -5`, so the maintainer sees where the host put the plugin's files, if anywhere.
+Find the program, the first that exists: `${CLAUDE_SKILL_DIR}/../../scripts/vela`; `${CLAUDE_PLUGIN_ROOT}/scripts/vela`; `<skill base directory>/../../scripts/vela`; the first path `ls -t "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/synced/*/vela/scripts/vela "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-$HOME/.claude/plugins}"/cache/*/vela/*/scripts/vela 2>/dev/null` prints (Cowork leaves both variables empty and keeps the plugin under `synced/`); `.claude/skills/vela/scripts/vela`. Say which you used. If none exists, say so and ask the user to send everything above to the maintainer.
 
-If any line in all of this shows the vela program (`found:`, or a path from steps 2 or 4), run `python3 <that path> where --plugin-root "${CLAUDE_PLUGIN_ROOT}" --skill-dir "${CLAUDE_SKILL_DIR}"` and show it too. Use only what was shown; don't guess a path. Either way, end by asking the user to send this whole output to the plugin's maintainer.
+Run it as a normal step:
+
+`python3 <program> where --probe --json --plugin-root "${CLAUDE_PLUGIN_ROOT}" --skill-dir "${CLAUDE_SKILL_DIR}" --injection <yes|no>`
+
+Exit 1 only means a check wasn't a yes. Show a table, one row per `rows` entry: the label, `yes`, `no` or `couldn't tell`, and the meaning with its detail.
+
+Then say the `stance` sentence as printed. The probe picks it from the git, network and gh rows:
+
+- git, network and gh yes: every session runs here, close included.
+- git yes, network or gh not: sessions run here; `/vela:close` in Claude Code sends them.
+- a git repo where git doesn't run: read, ask, find, explore and draft here.
+- no git: sessions are recorded in Claude Code; drafts reach the vault as a proposal.
+
+Last, ask the user to try what the probe can't: in a fresh chat, ask Claude to capture an idea without typing `/vela:dump`. If dump starts by itself, this host ignores skill frontmatter flags. Then ask the user to send this whole output to the plugin's maintainer.
