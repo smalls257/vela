@@ -139,7 +139,7 @@ def test_capture_text_changed_since_draft_refused(tmp_path, note_kind):
 
 def test_unknown_kind_refused_plainly(tmp_path):
     root = vault_with_record(tmp_path)
-    path = decision_file(root, [{"to": "decided"}], kind="agenda")
+    path = decision_file(root, [{"to": "decided"}], kind="allocate")
     code, out = apply(root, path, "--for-lead")
     assert code == 1 and out.strip() == "I can't file that kind of decision yet."
 
@@ -219,5 +219,5 @@ def test_schema_prints_fields_and_example(note_kind):
 
 
 def test_schema_of_an_unbuilt_kind_refused():
-    code, out = run("apply", "--schema", "agenda")
+    code, out = run("apply", "--schema", "allocate")
     assert code == 1 and "can't file that kind of decision yet" in out

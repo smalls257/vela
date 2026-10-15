@@ -24,9 +24,10 @@ import json
 import pathlib
 
 from vela import commands, decisions, say
-from vela.decisions import record as records, schema
+from vela.decisions import record as records, schema, textedit
 from vela.edge import apply as disk
-from vela.edge import atomic, sessiongit
+from vela.edge import atomic, idgit, sessiongit
+from vela.edge.vaultgit import GitUnavailable
 
 NAME = "apply"
 
@@ -36,6 +37,8 @@ def register(sub):
     parser.add_argument("file", nargs="?", help="the decision file (.vela/decisions/<session>/<seq>-<kind>.json)")
     parser.add_argument("--schema", metavar="KIND", help="print the fields KIND takes, with one example, and stop")
     parser.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
+    parser.add_argument("--today", help="the date a kind writes (an override's on, an unknown's Opened), YYYY-MM-DD "
+                                        "(default: today)")
     say.add_output_flags(parser)
     parser.set_defaults(func=run)
 
@@ -97,9 +100,15 @@ def apply_file(path, root, args, out):
     from vela import cli  # the shell loads the vault; this module wires it
     try:
         vault = cli.load_vault(root)
+        today = cli.parse_today(getattr(args, "today", None))[0]
+        numbers = idgit.branch_texts(root)  # Task 15: kinds number new items past every open branch
     except cli.ToolError as exc:
         return commands.emit(failed(str(exc), "I couldn't read the vault, so I filed nothing."), args, out)
-    result = file_decision(decision, path, root, vault, record, reader)
+    except GitUnavailable as exc:
+        return commands.emit(failed(f"couldn't read the other branches' numbers: {exc}",
+                                    "I couldn't check which numbers other sessions hold, so I filed nothing."),
+                             args, out)
+    result = file_decision(decision, path, root, vault, record, reader, (today, numbers))
     return commands.emit(result, args, out, say.Resolver(vault))
 
 
@@ -119,8 +128,10 @@ def find_record(root):
         plain=f"{len(choices)} sessions are open here, so I haven't filed anything. Which one is this for?")])
 
 
-def file_decision(decision, path, root, vault, record, reader):
+def file_decision(decision, path, root, vault, record, reader, context=None):
     staged = decisions.Staged(vault, disk.reader(root))
+    if context is not None:
+        textedit.attach(staged, *context)
     try:
         writes, refusals = decisions.plan(decision, staged, record)
         if refusals:
