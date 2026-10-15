@@ -134,3 +134,26 @@ def test_boundary_writes_the_pick_with_add_cut():
     b = text("skills/boundary/SKILL.md")
     assert "vela add cut --name" in b
     assert "`- **Options considered:**` bullet, `<picked cut> (picked)" not in b  # add cut writes it
+
+
+def test_boundary_drops_the_five_things_easy_to_get_wrong():
+    b = text("skills/boundary/SKILL.md")
+    assert "Five things are easy to get wrong" not in b
+    assert "New IDs come from `vela next-id <PREFIX>`, so an open session branch" not in b  # add numbers them
+    assert "`### UNK-nnn <short name>`, with `**Question:**`" not in b  # add unknown writes it
+
+
+def test_boundary_writes_contracts_unknowns_and_marks_through_commands():
+    b = text("skills/boundary/SKILL.md")
+    assert "vela add contract --provider APP-<slug>" in b and "vela add unknown --name" in b
+    assert "vela apply --schema marks" in b
+    assert "When a command can't express what the lead wants, say so and stop." in b
+
+
+def test_boundary_checkpoints_with_render_check_and_close_stage():
+    b = text("skills/boundary/SKILL.md")  # `vela checkpoint` (Task 21i) isn't built: these three are its steps
+    assert "`vela render`, then `vela check --for-lead`" in b and "`vela close stage --checkpoint --for-lead`" in b
+
+
+def test_boundary_prepares_its_review_with_reviewers_prepare():
+    assert 'vela reviewers prepare --checkpoint "after the pages are written"' in text("skills/boundary/SKILL.md")
