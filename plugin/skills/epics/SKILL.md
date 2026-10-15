@@ -19,41 +19,37 @@ Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`,
 
 ## 2. Read the frontier
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela render`, then read the `traceability` block on `13-epics/13-epics.md`. Its rows are the work: capabilities nobody delivers (T1), new or changed contracts with no provider epic (T2), concern cells with work and no marked criterion (T4), and epics that deliver nothing (T6). Work one team at a time. A team is an `owner:` handle on app pages. Say how many epics and criteria there are and how far you expect to get in this session, and say it again when about two thirds is done.
+Run `vela epics frontier --team <@team> --for-lead` (a team is an `owner:` handle on app pages) and relay it; `--json` holds the gaps (requirements nobody delivers, contracts with no provider epic, concerns with no marked criterion, epics that deliver nothing). Work one team at a time. Say how many epics and criteria there are and how far you expect to get, and say it again at about two thirds.
 
 ## 3. Shape the cuts
 
-Read `04b-releases.md` first, if the vault has one. The team's epics are cut against the releases: say which release each proposed epic serves, and when a requirement is dated in part ("AC1 and AC2 in January, AC3 later"), say whether the epic carries all of its criteria or only those on the first date. A requirement on no release is cut as usual and flagged as undated. Say too whether the team's first epic is on the first thin path (the tracer, as `vela conventions "Releases"` defines it), and if it is not, what comes first instead; it is not a fault. To check, read whether the epic's `flows:` lists a flow from release one's `**Tracer:**` bullet.
+Read `04b-releases.md` first, if the plan has one. Say which release each proposed epic serves; when a requirement is dated in part, say whether the epic carries all its criteria or only the first date's. A requirement on no release is cut as usual and flagged as undated. The frontier says whether the team's first epic is on the first thin path (the tracer, as `vela conventions "Releases"` defines it); if it isn't, say what comes first instead. That is a choice, not a fault.
 
-For the team's gaps, offer 2 or 3 ways to cut them into epics. Each epic has exactly one owning team. Say what each cut makes easy and what it makes hard, such as which cutover it unblocks first. Say which one you prefer. Capture the user's choice, and each rejected cut with its reason. Shape never decides, so the chosen cut stays `draft`. A cut that would give an epic more than about seven acceptance criteria is a cut to split: propose the split as one of the options, with what each half delivers. The user may keep it whole; record that as an override, as `START.md` says.
+Offer 2 or 3 ways to cut the gaps into epics, each epic with exactly one owning team. Say what each cut makes easy and hard (which cutover it unblocks first) and which you prefer. Capture the choice, and each rejected cut with its reason; the chosen cut stays `draft`. A cut giving an epic more than about seven criteria is a cut to split: offer the split as an option, with what each half delivers. If the lead keeps it whole, record that as an override, as `START.md` says.
 
 ## 4. Draft each epic
 
-Write `13-epics/EPC-nnn-<slug>.md` with the number `vela next-id EPC` prints, at `state: draft`. Add a `## Changes` row to the session record: `| EPC-nnn | - | draft | [[<session id>#^cNN]] |`, citing the capture of the chosen cut. A new ID with no row there is an invented ID.
+Write the skeleton with `vela add epic --title "<title>" --team <@team> --apps <APP-id> --delivers <ID> --consumes <CON-id> --flows <FLO-id> --capture ^cNN --for-lead`, repeating a list flag per ID, with the chosen cut's capture. It numbers the epic and writes the frontmatter, the owning team, the template's headings and the `## Changes` row. `delivers` is never empty. Then add what it leaves to you:
 
-- Frontmatter: `id`, `type: epic`, `title`, `state: draft`, `owner` (the owning team's handle), `authored: mixed`, `apps`, `delivers`, `consumes`, `flows` and `depends_on`, as `vela conventions "Frontmatter"` says. Lists hold IDs. `delivers` is never empty: an epic that delivers nothing fails T6.
-- `**Owning team:**` in the description, written now, in this session. Close does not write it.
-- Where the work is tracked: ask whether there is a tracker item for this epic, and for its key or link, or a skip. If `.vela.yaml` has a `link_templates` entry for `Tracker`, write the key, `links: {Tracker: BOOK-12}`; otherwise write the URL the user gave. Never make up a key or an address, and write no `links:` line when they skip.
-- The page follows the epic template in `vela conventions "Epics and traceability"`, in this order: a two or three sentence summary and a `Still open:` line; `**Owning team:**`; `## Who this is for and what changes`; `## Done when`; then the sections below. The summary is the page's opening, so write it in the house voice at close, as section 4 of `close` says; until then leave a one-line stub.
-- `## Done when`: 4 to 7 criteria, each a `###` heading in a short plain phrase ("A first call still gets a note") with one or two sentences under it that a tester could read aloud over the phone, and a Trace line. Each describes behavior a tester can see at a contract or a flow boundary. Name the contract or flow by its name ("the calendar entries", "the prep-note flow"), never by its ID, and write no "From CAP-001.FR1" in the sentence. The Trace line is the last line under the criterion: `- Trace: CAP-001.FR1, CON-001, FLO-001  ·  AC3  ·  [testing]`, which is the IDs it traces to (requirement first), then its stable id `AC<n>`, then its concern markers. Take the next `AC` number nobody has used on this epic: the number is written, never counted, so a later insert or strike renumbers nothing and `EPC-nnn.AC3` always means the same criterion. Never name a component, a table, a technology or a container's internals. Every criterion sits at the boundary. More than 7 means the epic should be split (section 3); if an epic holds more than 7 and the user keeps it whole, group the criteria under `###` group headings of about five and drop each criterion to `####`.
-- Put a criterion's concern marker on its Trace line, after the AC id, such as `[testing]` or `[security] [data]`. Every `addressed` cell for the epic's apps needs one marked criterion on an epic whose `apps` lists the app, or a waiver in the cell. An epic written in the first shape (numbered criteria under `## Epic acceptance criteria`, markers ending the sentence) still checks; when this session touches it, rewrite it to the template and keep each criterion's number as its `AC` id.
-- `## Traces to` holding an empty `traces-to` block, `## Depends on` with one reason per dependency, `## Rollout notes` and `## Out of scope`.
+- `depends_on`, as `vela conventions "Frontmatter"` says, and `## Depends on` with one reason per dependency.
+- A tracker link: ask for the item's key or link, or a skip. With a `link_templates` entry for `Tracker` in `.vela.yaml`, write the key, `links: {Tracker: BOOK-12}`; otherwise the URL given. Never make up a key or an address; a skip writes no `links:` line.
+- One-line stubs for the summary and `Still open:`. Close drafts them, and `## Who this is for and what changes`, through `house-voice`.
+- `## Traces to` holding an empty `traces-to` block, `## Rollout notes` and `## Out of scope`.
 
-Before you propose a criterion, run the boundary test on it:
+**Criteria.** `## Done when` holds 4 to 7 criteria. You write the words; `vela add epic --id <EPC-id> --criterion "<heading>" --says "<sentences>" --trace <CAP-id.FRn> --trace <CON-id> --concerns testing --capture ^cNN --for-lead` writes the number and the Trace line.
 
-1. Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID, and its sentences name that contract or flow in plain words.
-2. It names none of the app's containers, components or data stores from its building-blocks page.
-3. It names no technology or product from the tech or ADR pages, and none of the generic words database, table, queue, Redis or Kafka.
+- The heading is a short plain phrase ("A first call still gets a note"); under it, one or two sentences a tester could read aloud over the phone.
+- Each is behavior a tester sees at a contract or flow boundary, named in words ("the calendar entries", "the prep-note flow"). IDs go in `--trace`, requirement first.
+- `--concerns` marks the Trace line, such as `[testing]`. Every `addressed` concern cell for the epic's apps needs one marked criterion, or a waiver in the cell.
+- More than 7 means the epic should be split (section 3). Kept whole, its criteria go under `###` group headings of about five, each criterion at `####`.
 
-If it fails, rewrite it at the boundary and show the rewrite beside the original. Do not offer the failing version.
+Run `vela epics lint <EPC-id> --for-lead` before you propose them. For each finding, rewrite the criterion at the boundary and show it beside the original; never offer the failing version. An epic in the first shape (numbered criteria under `## Epic acceptance criteria`) gets `vela epics lint --fix-shape <EPC-id>` when this session touches it, which keeps each number.
 
-Write no summary yet beyond a stub. Prose is drafted at close, through `house-voice`: the summary, the `Still open:` line and `## Who this is for and what changes`. Until then the page holds the headings, the criteria and the sections above.
+## 5. Behavior the plan doesn't hold
 
-## 5. Behavior the vault does not hold
+Start from the apps' `## Requirements allocated` rows: each row is the team's share of a requirement, and its criteria are that requirement's, as far as the share carries them. Write each as a sentence of its own; never copy the requirement's wording into a table. If a criterion needs behavior no requirement holds, stop on it, say which capability it belongs to, and offer `/vela:requirements` on that `CAP-nnn`, then `/vela:allocate`. The requirement is written once, on the capability, not decided yet, until a grill decides it. Never write the requirement into the epic. If the lead declines, list the criterion under `## Out of scope` as waiting on it.
 
-Start each team's criteria from its apps' `## Requirements allocated` rows: each row is a share of a requirement the team owns, and its criteria are the acceptance criteria of that requirement, which stay on the requirement's page, as far as that share carries them. Write each as a read-aloud sentence of its own; never copy the requirement's wording into a table. Put the requirement's ID on the criterion's `- Trace:` line. If a criterion needs behavior no requirement holds, stop on that criterion. Say which capability it belongs to, and offer `/vela:requirements` on that `CAP-nnn`, then `/vela:allocate`. The requirement is written once, on the capability, at most `assumption`, and the criterion cites it. Never write the requirement into the epic. If the user declines, leave the criterion out and list it under the epic's `## Out of scope` as waiting on that `CAP-nnn`.
-
-A question nobody present can answer becomes an unknown, as `MODES.md` says under "Unknowns". Write who would actually know as `**Ask:**`, as `MODES.md` says under "Unknowns".
+A question nobody present can answer is an unknown (`MODES.md`, "Unknowns"): `vela add unknown --name "<name>" --capture ^cNN --owner <@handle> --ask "<who would know>" --blocks <EPC-id> --for-lead`.
 
 ## 6. Grill the criteria
 

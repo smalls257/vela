@@ -4,8 +4,10 @@ Every test that pins this text lives here, so the rewrite that changes it edits 
 Each section is headed by the file it came from and that file's reason.
 """
 import re
+import shlex
 
 from conftest import REPO, skill_text
+from vela import cli
 
 
 def read(*parts):
@@ -62,8 +64,9 @@ def test_epics_stages_what_render_rewrote():
 
 
 def test_epics_writes_owning_team_now():
+    # `vela add epic` writes the owning team with the skeleton, in this session
     epics = read("plugin/skills/epics/SKILL.md")
-    assert "written now, in this session" in epics
+    assert "`vela add epic --title" in epics and "the owning team" in epics
 
 
 # --- From tests/test_override.py: The user can override any rule, and an override is never invisible.
@@ -169,7 +172,7 @@ def test_epics_read_the_releases():
 
 def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     epics = text("skills/epics/SKILL.md")
-    assert "`traceability` block" in epics
+    assert "`vela epics frontier --team <@team> --for-lead`" in epics
     assert "2 or 3 ways to cut" in epics and "exactly one owning team" in epics
     assert "4 to 7 criteria" in epics and "## Done when" in epics
     assert "`[testing]`" in epics
@@ -179,8 +182,8 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "every criterion has a yes, its own or its group's" in epics
     assert "It does not mean they are decided" in epics and "check --gate epics --app <APP-id>" in epics
     assert "list each epic still at `draft`" in epics
-    assert "Its `- Trace:` line holds at least one contract (`CON-`) or flow (`FLO-`) ID" in epics and "Redis or Kafka" in epics
-    assert "- Trace: CAP-001.FR1, CON-001, FLO-001  ·  AC3  ·  [testing]" in epics and "More than 7 means the epic should be split" in epics
+    assert "`vela epics lint <EPC-id> --for-lead`" in epics and "rewrite the criterion at the boundary" in epics
+    assert "writes the number and the Trace line" in epics and "More than 7 means the epic should be split" in epics
     assert "`modes: [epics, shape, grill]` and the title `Epics: <team>`" in epics
     assert "check --gate epics" in epics
     assert "Never say an app's epics are complete while one remains." in epics
@@ -234,3 +237,34 @@ def test_epics_never_makes_the_tracer_a_gate():
 def test_epics_says_e805_holds_asked_questions_too():
     epics = text("skills/epics/SKILL.md")
     assert "nobody has disposed, or that was asked and still waits for its answer" in epics
+
+
+# --- Task 22d (overhaul plan 2.3): the mechanics moved into commands; the skill names them and keeps the judgment.
+
+EPICS = PLUGIN / "skills" / "epics" / "SKILL.md"
+
+
+def test_epics_leaves_ac_numbering_to_add_epic():
+    """Rule deletion: AC numbers are written by `vela add epic`, so the skill no longer tells the model to pick one."""
+    epics = EPICS.read_text(encoding="utf-8")
+    assert "next `AC` number" not in epics
+    assert "vela add epic --id <EPC-id> --criterion" in epics
+
+
+def test_epics_leaves_the_boundary_test_to_lint():
+    """Rule deletion: the three-step boundary test is `vela epics lint`; the skill rewrites at the boundary."""
+    epics = EPICS.read_text(encoding="utf-8")
+    assert "Before you propose a criterion, run the boundary test" not in epics
+    assert not re.search(r"^1\. Its `- Trace:` line", epics, re.M) and "Redis or Kafka" not in epics
+    assert "`vela epics lint --fix-shape <EPC-id>`" in epics
+
+
+def test_epics_names_only_commands_that_exist():
+    parser = cli.build_parser()
+    epics = EPICS.read_text(encoding="utf-8")
+    calls = re.findall(r"`vela ((?:epics|add|decide|check|apply|questions|render|conventions|terms)\b[^`]*)`", epics)
+    assert len(calls) >= 10, calls
+    for call in calls:
+        argv = shlex.split(re.sub(r"\^c\w+", "^c01", re.sub(r"<[^>]*>", "X", call)))
+        _, extras = parser.parse_known_args(argv)
+        assert not extras, (call, extras)
