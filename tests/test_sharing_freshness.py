@@ -15,9 +15,9 @@ from vela import freshness
 from vela.edge import vaultgit
 
 
-def fresh(root, *extra):
-    code, out = run("freshness", "--vault", str(root), "--json", *extra)
-    assert code == 0, out
+def fresh(root, *extra, code=0):
+    got, out = run("freshness", "--vault", str(root), "--json", *extra)
+    assert got == code, out
     return json.loads(out)
 
 
@@ -54,7 +54,7 @@ def test_one_commit_on_origin_is_behind_1_and_nothing_is_pulled(tmp_path, owner)
     root, bare = owner
     before = git(root, "rev-parse", "HEAD")
     advance_remote(tmp_path, bare)
-    report = fresh(root)
+    report = fresh(root, code=freshness.EXIT_BEHIND)
     assert report["state"] == "newer" and report["behind"] == 1 and report["ahead"] == 0
     assert report["latest"]["commit"] != report["have"]["commit"]
     assert "I have not pulled" in report["message"]
@@ -66,7 +66,7 @@ def test_a_local_edit_is_counted_as_uncommitted(tmp_path, owner):
     root, bare = owner
     advance_remote(tmp_path, bare)
     (root / "01-goals.md").write_text((root / "01-goals.md").read_text(encoding="utf-8") + "\nmore\n", encoding="utf-8")
-    report = fresh(root)
+    report = fresh(root, code=freshness.EXIT_BEHIND)
     assert report["uncommitted"] == 1 and report["behind"] == 1
 
 
@@ -85,7 +85,8 @@ def test_origin_gone_says_so_and_still_shows_local_state(tmp_path, owner):
     (root / "x.md").write_text("x\n", encoding="utf-8")
     code, text = run("freshness", "--vault", str(root))
     assert code == 0
-    assert "I could not reach origin; showing local state" in text and "1 uncommitted file" in text
+    assert "I could not reach the shared copy (origin), so I can't tell whether your main is behind" in text
+    assert "As of the last time you fetched" in text and "1 uncommitted file" in text
     report = fresh(root)
     assert report["state"] == "unreachable" and report["uncommitted"] == 1 and report["behind"] == 0
 
@@ -178,7 +179,7 @@ def test_a_republish_to_the_same_source_is_newer_and_the_workspace_is_untouched(
     shutil.rmtree(tmp_path / "source")
     publish_to(vault, tmp_path / "source", "2026-10-20")
     before = tree_digest(workspace)
-    report = fresh(workspace)
+    report = fresh(workspace, code=freshness.EXIT_BEHIND)
     assert report["state"] == "newer"
     assert report["latest"] == {"commit": git(vault, "rev-parse", "--short", "HEAD"), "date": "2026-10-20"}
     assert report["have"]["date"] == "2026-10-11"
@@ -199,7 +200,7 @@ def test_a_zip_source_is_read_from_its_stamp_only(tmp_path):
     data = json.loads(workspace_json.read_text(encoding="utf-8"))
     data["source_path"] = str(tmp_path / "later.zip")
     workspace_json.write_text(json.dumps(data), encoding="utf-8")
-    assert fresh(workspace)["state"] == "newer"
+    assert fresh(workspace, code=freshness.EXIT_BEHIND)["state"] == "newer"
 
 
 def test_a_source_that_is_gone_is_unreachable_and_exits_0(tmp_path):
@@ -251,7 +252,8 @@ def test_short_and_full_commits_compare_equal_and_too_short_ones_do_not():
 def test_the_json_carries_the_documented_keys(tmp_path):
     root = make_vault(tmp_path)
     report = fresh(root)
-    assert set(report) == {"role", "state", "checked_at", "have", "latest", "behind", "ahead", "uncommitted", "message"}
+    assert set(report) == {"role", "state", "checked_at", "have", "latest", "behind", "ahead", "uncommitted", "branch",
+                           "main_behind", "message"}
 
 
 # ---- the explorer's own write is not an uncommitted change
@@ -272,3 +274,50 @@ def test_a_dashboard_built_by_close_does_not_count_its_own_write_as_uncommitted(
     code, out = run("explore", str(root), "--today", "2026-10-12")
     assert code == 0, out
     assert page_freshness_of(root)["uncommitted"] == 1
+
+
+# ---- a branch other than main is compared with origin/main, not with its own upstream (diagnosis 6B, S15)
+
+
+def test_a_branch_with_no_upstream_is_compared_with_origin_main(tmp_path, owner):
+    root, bare = owner
+    git(root, "switch", "-q", "-c", "dashboard/2026-10-14-close")
+    advance_remote(tmp_path, bare)
+    code, text = run("freshness", "--vault", str(root))
+    assert code == freshness.EXIT_BEHIND, text
+    assert ("Your branch dashboard/2026-10-14-close is 1 commit behind the shared plan (origin/main); run "
+            "`vela session start` to bring it in.") in text
+    assert "Your local main is 1 commit behind it." in text and "no upstream" not in text
+    report = fresh(root, code=freshness.EXIT_BEHIND)
+    assert (report["branch"], report["behind"], report["main_behind"]) == ("dashboard/2026-10-14-close", 1, 1)
+
+
+def test_a_branch_that_has_main_is_current_and_says_when_local_main_lags(tmp_path, owner):
+    root, bare = owner
+    advance_remote(tmp_path, bare)
+    git(root, "switch", "-q", "-c", "session/x")
+    git(root, "fetch", "-q", "origin")
+    git(root, "merge", "-q", "--ff-only", "origin/main")
+    code, text = run("freshness", "--vault", str(root))
+    assert code == 0, text
+    assert "Your branch session/x has everything the shared plan (origin/main) has" in text
+    assert "Your local main is 1 commit behind it." in text
+
+
+def test_an_unreachable_origin_on_a_stale_branch_never_reads_as_up_to_date(tmp_path, owner):
+    root, bare = owner
+    git(root, "switch", "-q", "-c", "dashboard/old")
+    shutil.rmtree(bare)
+    code, text = run("freshness", "--vault", str(root))
+    assert code == 0, text
+    assert "I could not reach the shared copy (origin), so I can't tell whether your branch dashboard/old is behind" in text
+    assert "has everything" not in text
+
+
+def test_origin_with_no_main_says_there_is_nothing_to_compare(tmp_path):
+    root = make_vault(tmp_path)
+    bare = tmp_path / "empty.git"
+    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(bare))
+    git(root, "remote", "add", "origin", str(bare))
+    report = fresh(root)
+    assert report["state"] == "unknown" and "has no main branch yet" in report["message"]

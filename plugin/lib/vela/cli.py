@@ -377,22 +377,29 @@ def load_config_text(data):
 
 
 def owner_freshness(root, timeout, checked_at):
-    """freshness.Report for a git owner: fetch with a timeout, then count behind, ahead and uncommitted. Never pulls."""
+    """freshness.Report for a git owner: fetch with a timeout, then count the checked-out branch and the local main
+    against origin/main (the shared plan, whatever the branch's own upstream is), and the uncommitted files. Never
+    pulls."""
     try:
         full, short = vaultgit.head(root)
     except vaultgit.GitUnavailable as exc:
         return freshness.Report("owner", freshness.UNKNOWN, checked_at, f"I cannot read this clone's commits yet: {exc}.")
     local = {"commit": short, "date": vaultgit.commit_date(root, "HEAD")}
     uncommitted = len(vaultgit.uncommitted(root))
-    upstream_name = vaultgit.upstream(root)
+    branch = vaultgit.current_branch(root)
     if not vaultgit.has_origin(root):
-        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this vault isn't linked to a shared repository (it has no remote called origin), so there is nothing to compare with", checked_at)
+        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this vault isn't linked to a shared repository (it has no remote called origin), so there is nothing to compare with", checked_at, branch)
     fetch_error = vaultgit.fetch(root, timeout)
-    if not upstream_name:
-        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this branch has no upstream, so there is nothing to compare with", checked_at)
-    behind, ahead = vaultgit.behind_ahead(root, upstream_name)
-    latest = {"commit": vaultgit.head_short(root, upstream_name), "date": vaultgit.commit_date(root, upstream_name)}
-    return freshness.owner_report(local, latest, behind, ahead, uncommitted, fetch_error, "", checked_at)
+    shared = freshness.SHARED
+    if not vaultgit.has_commit(root, shared):
+        problem = (f"I could not reach the shared copy (origin) and have never seen its main, so I can't tell whether this "
+                   f"branch is behind the shared plan ({fetch_error})" if fetch_error else
+                   "the shared copy (origin) has no main branch yet, so there is nothing to compare with")
+        return freshness.owner_report(local, None, 0, 0, uncommitted, "", problem, checked_at, branch)
+    behind, ahead = vaultgit.behind_ahead(root, shared)
+    main_behind = vaultgit.behind_ahead(root, shared, "refs/heads/main")[0] if vaultgit.has_commit(root, "refs/heads/main") else None
+    latest = {"commit": vaultgit.head_short(root, shared), "date": vaultgit.commit_date(root, shared)}
+    return freshness.owner_report(local, latest, behind, ahead, uncommitted, fetch_error, "", checked_at, branch, main_behind)
 
 
 def reader_freshness(root, checked_at):
@@ -457,7 +464,7 @@ def cmd_freshness(args, out):
         print(json.dumps(report.as_dict(), indent=2), file=out)
     else:
         print(f"vela freshness: {report.message}", file=out)
-    return 0
+    return report.exit_code()
 
 
 VELA_PROGRAM = pathlib.Path(__file__).resolve().parent.parent.parent / "scripts" / "vela"
@@ -2667,7 +2674,9 @@ def build_parser():
     pub.add_argument("--owner-contact", help="how readers reach the owner (default: owner_contact in .vela.yaml, else git user.email)")
     pub.add_argument("--allow-secrets", action="store_true", help="publish although the scan found text that looks like a password, token or key (it is named, never printed)")
     pub.set_defaults(func=cmd_publish)
-    fresh = sub.add_parser("freshness", help="whether anything changed since this clone or copy was made; reports, never updates")
+    fresh = sub.add_parser("freshness", help="whether anything changed since this clone or copy was made: an owner's branch and main against "
+                                                "origin/main; reports, never updates. Exits 3 when behind (bring it in "
+                                                "first), 0 otherwise, an unreachable shared copy said as such")
     fresh.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
     fresh.add_argument("--json", action="store_true", help="the answer as JSON")
     fresh.add_argument("--today", help="the date to stamp the check with, YYYY-MM-DD (default: system date)")

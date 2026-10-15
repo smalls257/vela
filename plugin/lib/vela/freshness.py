@@ -5,12 +5,20 @@ owner has already replaced, and nothing told them. So every session start asks. 
 report. Nothing here pulls, updates or replays, and an unreachable source is a state to say plainly, never a
 failure (a reader on a plane is not broken).
 
+An owner is compared with the shared plan, origin/main, whatever branch they are on. A session that starts on the
+last session's branch compares fine with that branch's own upstream (or has none) while main has moved on: S15 of
+the 2026-10-14 run missed an allocation that way, told only "this branch has no upstream". So the report names the
+branch and how far it, and the local main, are behind origin/main, and `vela freshness` exits EXIT_BEHIND then, so
+a skill can't read past it.
+
 edge/vaultgit.py and edge/copies.py gather the facts; cli.py prints the report.
 """
 from dataclasses import dataclass
 
 CURRENT, NEWER, UNREACHABLE, UNKNOWN = "current", "newer", "unreachable", "unknown"
 MIN_MATCH = 7  # shortest commit prefix two stamps may be compared by
+SHARED = "origin/main"  # the shared plan every owner's branch is compared with
+EXIT_BEHIND = 3  # `vela freshness` exits so when the source has what this copy lacks (say.NEEDS_LEAD's number)
 
 
 @dataclass(frozen=True)
@@ -21,14 +29,22 @@ class Report:
     message: str
     have: dict = None  # {"commit", "date"} of what this clone or copy holds
     latest: dict = None  # the same for the newest one known, or None
-    behind: int = None  # owners only
+    behind: int = None  # owners only: commits on origin/main this branch lacks
     ahead: int = None
     uncommitted: int = None
+    branch: str = None  # owners only: the checked-out branch ("" when detached)
+    main_behind: int = None  # owners only: commits on origin/main the local main lacks (None with no local main)
 
     def as_dict(self):
         return {"role": self.role, "state": self.state, "checked_at": self.checked_at,
                 "have": self.have, "latest": self.latest, "behind": self.behind, "ahead": self.ahead,
-                "uncommitted": self.uncommitted, "message": self.message}
+                "uncommitted": self.uncommitted, "branch": self.branch, "main_behind": self.main_behind,
+                "message": self.message}
+
+    def exit_code(self):
+        """EXIT_BEHIND when the source has something this copy lacks, else 0. Unreachable and unknown are 0: the
+        message says plainly that nothing was compared, and a reader on a plane is not broken."""
+        return EXIT_BEHIND if self.state == NEWER else 0
 
 
 def same_commit(one, other):
@@ -78,23 +94,47 @@ def _counts(behind, ahead, uncommitted):
     return f"{_plural(behind, 'commit')} behind, {ahead} ahead, {_plural(uncommitted, 'uncommitted file')}"
 
 
-def owner_report(local, upstream, behind, ahead, uncommitted, fetch_error, problem, checked_at):
-    """The owner's clone against its upstream.
 
-    `local` and `upstream` are {"commit", "date"} (upstream None when there is none); `fetch_error` is why
-    git fetch failed ("" when it worked); `problem` is why there is nothing to compare ("no remote",
-    "no upstream"), and makes the state `unknown`. Counts come from the last remote state git holds.
+
+def _whose(branch):
+    if branch == "main":
+        return "your main"
+    return f"your branch {branch}" if branch else "this checkout (it is on no branch)"
+
+
+def _local_main(branch, main_behind):
+    """The local main's lag, said once, when it is not the branch already named."""
+    if branch == "main" or not main_behind:
+        return ""
+    return f" Your local main is {_plural(main_behind, 'commit')} behind it."
+
+
+def owner_report(local, upstream, behind, ahead, uncommitted, fetch_error, problem, checked_at, branch="",
+                 main_behind=None):
+    """The owner's clone against the shared plan, origin/main.
+
+    `local` and `upstream` are {"commit", "date"} (upstream is origin/main's, None when there is none);
+    `fetch_error` is why git fetch failed ("" when it worked); `problem` is why there is nothing to compare ("no
+    remote", "no main on origin"), and makes the state `unknown`. `behind` and `ahead` count the checked-out `branch`
+    against origin/main, `main_behind` the local main (None when there is none). After a failed fetch the counts are
+    git's last view of origin and are said as that: never as up to date.
     """
     if problem:
         return Report("owner", UNKNOWN, checked_at, f"{problem[0].upper()}{problem[1:]}. {_plural(uncommitted, 'uncommitted file')}.",
-                      have=local, uncommitted=uncommitted)
+                      have=local, uncommitted=uncommitted, branch=branch)
     counts = _counts(behind, ahead, uncommitted)
+    facts = dict(have=local, latest=upstream, behind=behind, ahead=ahead, uncommitted=uncommitted, branch=branch,
+                 main_behind=main_behind)
+    whose = _whose(branch)
     if fetch_error:
         return Report("owner", UNREACHABLE, checked_at,
-                      f"I could not reach origin; showing local state: {counts} (as of the last time you fetched). ({fetch_error})",
-                      have=local, latest=upstream, behind=behind, ahead=ahead, uncommitted=uncommitted)
+                      f"I could not reach the shared copy (origin), so I can't tell whether {whose} is behind the "
+                      f"shared plan. As of the last time you fetched: {counts}. ({fetch_error})", **facts)
     if behind:
-        return Report("owner", NEWER, checked_at, f"origin has moved on: {counts}. I have not pulled.",
-                      have=local, latest=upstream, behind=behind, ahead=ahead, uncommitted=uncommitted)
-    return Report("owner", CURRENT, checked_at, f"Your clone has everything origin has: {counts}.",
-                  have=local, latest=upstream, behind=behind, ahead=ahead, uncommitted=uncommitted)
+        return Report("owner", NEWER, checked_at,
+                      f"{whose[0].upper()}{whose[1:]} is {_plural(behind, 'commit')} behind the shared plan ({SHARED}); "
+                      f"run `vela session start` to bring it in.{_local_main(branch, main_behind)} I have not pulled. "
+                      f"({counts})", **facts)
+    return Report("owner", CURRENT, checked_at,
+                  f"{whose[0].upper()}{whose[1:]} has everything the shared plan ({SHARED}) has: {counts}."
+                  f"{_local_main(branch, main_behind)}", **facts)
