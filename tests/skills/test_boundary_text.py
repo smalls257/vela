@@ -77,7 +77,7 @@ def test_boundary_turns_a_decided_direction_into_apps_and_decides_nothing():
     assert "Every page this session writes is an `assumption`, never `decided`" in b and "never `addressed`" in b
     assert "→ keep: [[<page>#<heading>|<ID>]] (assumption)" in b
     assert 'the checkpoint "after the pages are written"' in b and "questions --subject <ID>" in b
-    assert "/vela:grill <APP-id>" in b
+    assert "/vela:grill Desktop agent" in b and "/vela:grill <APP-id>" not in b  # by name, not by ID
 
 
 def test_boundary_asks_which_capability_each_flow_serves_and_leaves_it_out_without_capabilities():
@@ -113,3 +113,94 @@ def test_boundary_never_makes_the_tracer_a_gate():
     for sentence in re.split(r"(?<=[.?!])\s+", read("skills/boundary/SKILL.md")):
         if re.search(r"tracer", sentence, re.I):
             assert not re.search(r"\b(stop|stops|refuse|refuses|block|blocks|gate)\b", sentence, re.I), sentence
+
+
+# --- Overhaul plan Task 22e: the templates moved into commands, so the skill calls them and the rule text is gone.
+
+
+def test_boundary_stubs_through_add_app_stub_and_drops_the_exact_line():
+    b = text("skills/boundary/SKILL.md")
+    assert "`vela add app-stub --for-lead`" in b
+    assert "exactly the line" not in b and "Its boundary sheet is still to be read back." not in b  # the command's
+
+
+def test_boundary_counts_cut_coverage_with_boundary_cover():
+    b = text("skills/boundary/SKILL.md")
+    assert "vela boundary cover --cut .vela/cuts.json --for-lead" in b
+    assert "the trade-offs are yours to say" in b
+
+
+def test_boundary_writes_the_pick_with_add_cut():
+    b = text("skills/boundary/SKILL.md")
+    assert "`vela add cut --for-lead`" in b
+    assert "`- **Options considered:**` bullet, `<picked cut> (picked)" not in b  # add cut writes it
+
+
+def test_boundary_drops_the_five_things_easy_to_get_wrong():
+    b = text("skills/boundary/SKILL.md")
+    assert "Five things are easy to get wrong" not in b
+    assert "New IDs come from `vela next-id <PREFIX>`, so an open session branch" not in b  # add numbers them
+    assert "`### UNK-nnn <short name>`, with `**Question:**`" not in b  # add unknown writes it
+
+
+def test_boundary_writes_contracts_unknowns_and_marks_through_commands():
+    b = text("skills/boundary/SKILL.md")
+    assert "`vela add contract --for-lead`" in b and "`vela add unknown --for-lead`" in b
+    assert "vela apply --schema marks" in b
+    assert "When a command can't express what the lead wants, say so and stop." in b
+
+
+def test_boundary_checkpoints_with_render_check_and_close_stage():
+    b = text("skills/boundary/SKILL.md")  # `vela checkpoint` (Task 21i) isn't built: these three are its steps
+    assert "`vela render`, then `vela check --for-lead`" in b and "`vela close stage --checkpoint --for-lead`" in b
+
+
+def test_boundary_prepares_its_review_with_reviewers_prepare():
+    assert 'vela reviewers prepare --checkpoint "after the pages are written"' in text("skills/boundary/SKILL.md")
+
+
+def test_flow_check_line_carried_as_written():
+    b = text("skills/boundary/SKILL.md")
+    assert ("When you've written or changed a case table, run `vela check-slice --changed`. Tell the lead which slices "
+            "it checked and why, in its own words, and read out each finding with its owners.") in b
+    assert "run `vela check-slice FLO-nnn`" not in b
+    assert b.index("**The case table for each contract") < b.index("vela check-slice --changed")
+    assert 'strict sequence diagram (`vela conventions "Flow check"`)' in b
+
+
+def test_boundary_names_only_commands_that_exist():
+    from vela import cli
+    from test_skill_commands_exist import calls, is_a_mention, parse_error
+    parser = cli.build_parser()
+    found = list(calls(PLUGIN / "skills" / "boundary" / "SKILL.md")) + list(calls(PLUGIN / "skills" / "boundary" / "PAGES.md"))
+    named = {" ".join(argv[:2]) for _, _, argv in found}
+    for command in ("boundary cover", "add cut", "add app-stub", "add contract", "add unknown", "reviewers prepare",
+                    "close stage", "check-slice --changed"):
+        assert command in named, command
+    for line, call, argv in found:
+        assert is_a_mention(parser, argv) or parse_error(parser, argv) is None, f"line {line}: {call}"
+
+
+def test_boundary_reads_back_by_name_in_plain_labels():
+    b = text("skills/boundary/SKILL.md")
+    assert "in your own sentences as well as in what a command prints" in b
+    assert "A read-back by name:" in b and "Not this:" in b
+    for label in ("**Doesn't do:**", "**Main parts:**", "**What it offers other apps:**",
+                  "**What it needs from others:**", "**When something fails:**"):
+        assert label in b, label
+    assert "Is that the direction?" not in b and "a 409 that names the item" not in b
+    assert "team senior" not in b and "a Grill" not in b
+    assert '"Summarizer", not "Summariser"' in b
+
+
+def test_boundary_keeps_the_first_thin_path_words_releases_reads():
+    b = text("skills/boundary/SKILL.md")  # releasebrief finds the flow page by "first thin path"
+    assert "We build this journey first, as the first thin path: ..." in b
+
+
+def test_pages_leaves_to_add_what_add_writes():
+    pages = text("skills/boundary/PAGES.md")
+    assert "fill the stub `vela add app-stub` wrote" in pages and "`vela add contract` writes the heading" in pages
+    assert "`type: app-building-blocks`, `title`, `state: assumption`" not in pages  # the stub's frontmatter
+    assert "one `### CON-nnn <name>` each, with every required bullet" not in pages
+    assert "| Case | When | Status | Answer | Emits | Sets |" in pages  # the case table stays the session's
