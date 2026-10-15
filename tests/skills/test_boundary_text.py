@@ -113,3 +113,24 @@ def test_boundary_never_makes_the_tracer_a_gate():
     for sentence in re.split(r"(?<=[.?!])\s+", read("skills/boundary/SKILL.md")):
         if re.search(r"tracer", sentence, re.I):
             assert not re.search(r"\b(stop|stops|refuse|refuses|block|blocks|gate)\b", sentence, re.I), sentence
+
+
+# --- Overhaul plan Task 22e: the templates moved into commands, so the skill calls them and the rule text is gone.
+
+
+def test_boundary_stubs_through_add_app_stub_and_drops_the_exact_line():
+    b = text("skills/boundary/SKILL.md")
+    assert "vela add app-stub --slug <slug>" in b
+    assert "exactly the line" not in b and "Its boundary sheet is still to be read back." not in b  # the command's
+
+
+def test_boundary_counts_cut_coverage_with_boundary_cover():
+    b = text("skills/boundary/SKILL.md")
+    assert "vela boundary cover --cut .vela/cuts.json --for-lead" in b
+    assert "the trade-offs are yours to say" in b
+
+
+def test_boundary_writes_the_pick_with_add_cut():
+    b = text("skills/boundary/SKILL.md")
+    assert "vela add cut --name" in b
+    assert "`- **Options considered:**` bullet, `<picked cut> (picked)" not in b  # add cut writes it
