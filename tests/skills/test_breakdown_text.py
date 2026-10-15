@@ -5,7 +5,10 @@ Each section is headed by the file it came from and that file's reason.
 """
 import re
 
+import yaml
 from conftest import REPO
+from test_skill_commands_exist import calls, is_a_mention, parse_error
+from vela import cli
 from vela import breakdown
 
 PLUGIN = REPO / "plugin"
@@ -41,7 +44,7 @@ def test_the_kept_items_are_in_the_breakdown_skill():
     assert "this conversation, then the docs, then the code" in body
     assert "what we know / what would unblock / affects" in body
     assert "IDs are never renumbered" in body or "never renumbered or reused" in body
-    assert "references/NEG-AUDIT.md" in body and "Paper Tiger" in body and "Distributed Monolith" in body
+    assert "references/NEG-AUDIT.md" in body and "Paper Tiger" not in body and "Distributed Monolith" not in body  # names stay in the checklist
     assert "PG-" in body and "continue it or start again" in body
 
 
@@ -55,7 +58,7 @@ def test_each_fix_from_the_review_and_session_18_is_in_the_breakdown_skill():
     assert "unblocks the most" in body and body.index("tracer stories first") < body.index("unblocks the most")
     assert "before the next release date" in body and "cannot tell" in body and "from their numbers" in body
     assert "Plan only around people the design or the vault names" in body and "asked about" in body
-    assert "deferred, held or split keep every field" in body.replace("Stories deferred, held or split keep every field a built story has", "deferred, held or split keep every field")
+    assert "Stories deferred, held or split keep every field a built story has" in body
     assert "override" in body and "Never split, merge, drop or reorder agreed stories without reading the change back" in body
 
 
@@ -94,3 +97,54 @@ def test_breakdown_never_makes_the_tracer_a_gate():
     for sentence in re.split(r"(?<=[.?!])\s+", read("skills/breakdown/SKILL.md")):
         if re.search(r"tracer", sentence, re.I):
             assert not re.search(r"\b(stop|stops|refuse|refuses|block|blocks|gate)\b", sentence, re.I), sentence
+
+
+# --- Task 22k: the overhaul rewrite.
+
+VOICE_LINE = re.compile(r"^.*`voice/VOICE\.md`.*references/CONVERSATION-VOICE\.md.*$", re.M)
+
+
+def test_breakdown_loads_the_voice_before_its_first_question_and_names_house_voice():
+    body = text(BREAKDOWN / "SKILL.md").split("---\n", 2)[2]
+    line = VOICE_LINE.search(body).group(0)
+    assert line.startswith("Before your first question") and "`house-voice`" in line
+    assert body.index(line) < body.index('?"') and body.index(line) < body.index("vela freshness")
+
+
+def test_breakdown_checks_freshness_before_the_prerequisites():
+    body = text(BREAKDOWN / "SKILL.md")
+    assert body.index("vela freshness") < body.index("Check the prerequisites")
+    assert "say in your words that the copy is behind and offer to bring it up to date" in body
+
+
+def test_flow_check_line_team_side():
+    body = text(BREAKDOWN / "SKILL.md")
+    assert "Read your app's slices' flow check from the handoff rather than running it again" in body
+    assert ("If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice>` once. "
+            "If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.") in body
+    assert "Until the handoff carries it" not in body
+
+
+def test_breakdown_closes_the_plan_with_tickets_check_and_the_self_check_as_a_subagent():
+    close = text(BREAKDOWN / "SKILL.md").split("## 6. Close the plan", 1)[1]
+    assert "vela tickets check --vault ." in close and "Start a subagent" in close
+    assert '"Every requirement has a story: passes, except transcripts (deferred)."' in close
+    assert '"Checked against the design self-check on 12 October; see the audit file beside this plan."' in close
+    assert "Audited on" not in text(BREAKDOWN / "SKILL.md") + text(BREAKDOWN / "PLAN-FORMAT.md")
+
+
+def test_breakdown_says_team_lead_not_senior():
+    assert "senior" not in text(BREAKDOWN / "SKILL.md").lower()
+
+
+def test_breakdown_description_is_short_and_has_no_angle_brackets():
+    description = yaml.safe_load(text(BREAKDOWN / "SKILL.md").split("---\n", 2)[1])["description"]
+    assert len(description) <= 250 and "<" not in description and ">" not in description
+
+
+def test_breakdown_names_only_commands_that_exist():
+    parser = cli.build_parser()
+    found = [c for f in ("SKILL.md", "PLAN-FORMAT.md") for c in calls(BREAKDOWN / f)]
+    assert len(found) >= 5, found
+    for line, written, argv in found:
+        assert is_a_mention(parser, argv) or parse_error(parser, argv) is None, (line, written)
