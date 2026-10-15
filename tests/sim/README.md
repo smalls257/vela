@@ -210,6 +210,11 @@ checkout the run folder sits in, or this repo, and the notes say which). It read
   report names the ref it scored and how the working tree stood against it. A run with no origin to read is scored
   from its working tree, and the verdict is marked provisional for it. Completeness, `check` and `capture` run on
   the same clone, so the run folder is never written to.
+- **Team documents**, apart: the pages under `docs/` (the design, its decision records, the work breakdown), from
+  origin/main and from any origin branch not merged into it, each listed with the ref it came from. Their items
+  (the design's OQ, the breakdown's S) are not in "Items written" or "Items by kind", and their rows never move
+  the verdict: the team's sessions run after the plan's and can be blocked by it, so a drop there is a lost team
+  tail to read in the transcript, not the plan thinning.
 
 Missing data is never read as zero: a figure it couldn't read is `missing (<why>)`, and its delta is `n/a`.
 

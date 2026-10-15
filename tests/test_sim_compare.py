@@ -204,6 +204,36 @@ def test_a_run_with_no_origin_is_scored_from_its_working_tree_and_says_so(tmp_pa
     assert any("working tree, not origin/main" in p for p in report["verdict"]["provisional"])
 
 
+# ------------------------------------------------------------------ the team's documents apart
+
+DESIGN = "# Agent design\n\n## Open questions\n\n### OQ-001 Where crash signals go\n\nWho reads them?\n\n" \
+         "### OQ-002 Recall speed\n\nHow fast?\n\n## Stories\n\n### S-01 Install\n\nIt installs.\n"
+
+
+def test_a_blocked_team_session_does_not_read_as_the_plan_thinning(tmp_path):
+    """The 2026-10-14 baseline's design and breakdown held all 15 OQ and 8 S of its 82 items; the mid-point's team
+    sessions were blocked, so "Items written" read 23% down. Team documents are counted apart, from origin/main and
+    from a team branch nobody merged, and they never move the verdict."""
+    base, mid = tmp_path / "base", tmp_path / "mid"
+    vault = make_run(base, "vela", [("lead", "Hi."), ("assistant", "Noted.")], pages=unknowns_page(2))
+    git(vault, "switch", "-q", "-c", "design/agent")
+    write_pages(vault, {"docs/tech-design/agent.md": DESIGN})
+    git(vault, "add", "-A")
+    git(vault, "commit", "-q", "-m", "design")
+    git(vault, "push", "-q", "origin", "design/agent")
+    make_run(mid, "vela", [("lead", "Hi."), ("assistant", "Noted.")], pages=unknowns_page(2))
+    done, report = run_tool(base, mid)
+    rows = {r["measure"].strip(): r for r in report["rows"][compare.TEAM_GROUP]}
+    assert rows["Team document items (design and plan IDs)"]["baseline"] == 3
+    assert rows["Team document items (design and plan IDs)"]["midpoint"] == 0
+    assert rows["OQ items"]["baseline"] == 2 and rows["S items"]["baseline"] == 1
+    plan = {r["measure"]: r for r in report["rows"]["Final vault"]}
+    assert plan["Items written"]["baseline"] == plan["Items written"]["midpoint"] == 2, "the plan's own items only"
+    assert "OQ items" not in {r["measure"] for r in report["rows"].get("Items by kind", [])}
+    assert report["verdict"]["verdict"] == "GO", report["verdict"]
+    assert "docs/tech-design/agent.md (origin/design/agent)" in done.stdout
+
+
 # ------------------------------------------------------------------ IDs said with no definition
 
 def test_a_ledger_rows_tail_is_not_an_id_and_the_vaults_own_families_count_as_known(tmp_path):

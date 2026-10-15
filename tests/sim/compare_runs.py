@@ -623,6 +623,51 @@ def scoring_copy(run, workdir):
     return Scored(run.vault, f"working tree on {branch}", branch, False, why)
 
 
+TEAM_DIR = "docs"  # the team's own documents: the tech design, its decision records, the work breakdown
+TEAM_GROUP = "Team documents (docs/: the design and the breakdown, apart from the plan's items)"
+
+
+def team_branch_docs(scored):
+    """[(path, text, ref)]: team documents on origin branches not merged into origin/main and missing from it, the
+    most recently committed branch's copy of each. The baseline's design lives only on design/desktop-agent, so
+    reading origin/main alone would lose it."""
+    if not scored.shared:
+        return []
+    clone = scored.path
+    on_main = set(git_out(clone, "ls-tree", "-r", "--name-only", "origin/main", "--", TEAM_DIR)[1].splitlines())
+    refs = git_out(clone, "for-each-ref", "--sort=-committerdate", "--format=%(refname:short)", "refs/remotes/origin")[1]
+    found = {}
+    for ref in refs.splitlines():
+        if ref in ("origin", "origin/main", "origin/HEAD"):
+            continue
+        if git_out(clone, "merge-base", "--is-ancestor", ref, "origin/main")[0] == 0:
+            continue
+        for rel in git_out(clone, "ls-tree", "-r", "--name-only", ref, "--", TEAM_DIR)[1].splitlines():
+            if rel.endswith(".md") and rel not in on_main and rel not in found:
+                found[rel] = (ref, git_out(clone, "show", f"{ref}:{rel}")[1])
+    return [(pathlib.PurePosixPath(rel), text, ref) for rel, (ref, text) in sorted(found.items())]
+
+
+def team_docs(vault_pages, scored):
+    """The team's documents, counted apart from the plan's own items: a blocked design session must not read as the
+    plan thinning (the 2026-10-14 baseline's design and breakdown held all 15 OQ and 8 S items of its 82)."""
+    out = {"pages": 0, "words": 0, "items_by_kind": {}, "from": {}}
+    ids = set()
+    found = [(rel, text, scored.ref) for rel, text in vault_pages] + team_branch_docs(scored)
+    for rel, text, ref in found:
+        _, body = frontmatter(text)
+        out["pages"] += 1
+        out["words"] += prose_words(body)
+        out["from"][str(rel)] = ref
+        for _, item_id, _, _ in sections(body.splitlines()):
+            ids.add(item_id)
+            kind = kind_of(item_id)
+            out["items_by_kind"][kind] = out["items_by_kind"].get(kind, 0) + 1
+    out["items"] = sum(out["items_by_kind"].values())
+    out["items_by_kind"] = dict(sorted(out["items_by_kind"].items()))
+    return out, ids
+
+
 def vault_section(run, scored):
     vault = scored.path
     if not vault.is_dir():
@@ -634,7 +679,12 @@ def vault_section(run, scored):
     ledger = {"rows": 0, "by_state": {}}
     tracer_bullet = False
     item_words = {}
-    for rel, text in vault_files(vault):
+    files = list(vault_files(vault))
+    team, team_ids = team_docs([(rel, text) for rel, text in files if rel.parts[0] == TEAM_DIR], scored)
+    defined |= team_ids
+    for rel, text in files:
+        if rel.parts[0] == TEAM_DIR:
+            continue
         meta, body = frontmatter(text)
         ptype = meta.get("type") or f"untyped ({rel.parts[0] if len(rel.parts) > 1 else 'root'})"
         page = pages.setdefault(ptype, {"pages": 0, "words": 0})
@@ -723,6 +773,8 @@ def vault_section(run, scored):
         "captures": captures["captures"], "captures_marked": captures["marked"],
         "captures_by_mark": dict(sorted(captures["by_mark"].items())),
         "ledger_rows": ledger["rows"], "ledger_by_state": dict(sorted(ledger["by_state"].items())),
+        "team_docs_pages": team["pages"], "team_docs_words": team["words"], "team_docs_items": team["items"],
+        "team_docs_items_by_kind": team["items_by_kind"], "team_docs_from": team["from"],
         "_defined_ids": sorted(defined),
     }
 
@@ -980,7 +1032,17 @@ def compare(b, m, threshold):
                              ("release_tracer_bullet", "Releases page names a Tracer", "info")]:
         add(g, label, W(key), better="higher" if kind == "detail" or key in ("captures_marked", "unknowns_resolved") else None,
             kind=kind)
-    cap_keys = sorted(set(get(b["cli"], "capture", default={}) or {}) | set(get(m["cli"], "capture", default={}) or {})) \
+    # Shown, never deciding the verdict: the team's sessions run after the plan's and can be blocked by it, so a drop
+    # here is a lost team tail to read in the transcript, not the plan's detail thinning.
+    t = TEAM_GROUP
+    add(t, "Team documents", W("team_docs_pages"), better="higher")
+    add(t, "Team document words", W("team_docs_words"), better="higher")
+    add(t, "Team document items (design and plan IDs)", W("team_docs_items"), better="higher")
+    team_kinds = sorted({k for r in (b, m) if "missing" not in r["vault"] for k in r["vault"]["team_docs_items_by_kind"]})
+    for key in team_kinds:
+        add(t, f"  {key} items", lambda r, key=key: get(r["vault"], "team_docs_items_by_kind", key, default=0)
+            if "missing" not in r["vault"] else missing(r["vault"]["missing"]), better="higher")
+    cap_keys =sorted(set(get(b["cli"], "capture", default={}) or {}) | set(get(m["cli"], "capture", default={}) or {})) \
         if not (is_missing(get(b["cli"], "capture")) and is_missing(get(m["cli"], "capture"))) else ["counts"]
     for key in cap_keys:
         add("planner capture counts (own checkout)", key, L("capture", key), better="higher")
@@ -1159,6 +1221,12 @@ def render_md(report):
                     if x["missing_steps"]:
                         lines.append(f"  - S{x['session']} ({x['ended']}{', nothing open' if x['nothing_open'] else ''}): "
                                      f"{x['counted_as']}: {', '.join(x['missing_steps'])}")
+            lines.append("")
+        if group == TEAM_GROUP:
+            for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):
+                found = r["vault"].get("team_docs_from") or {}
+                lines.append(f"- {name} team documents: " + ("; ".join(f"{p} ({ref})" for p, ref in found.items())
+                                                             or "none on origin/main or an unmerged branch"))
             lines.append("")
         if group.startswith("Wrong"):
             for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):
