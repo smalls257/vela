@@ -47,8 +47,8 @@ def read_tracer_skills(rel):
 
 
 def test_epics_accepts_reopened_to_decided_for_an_epic():
-    assert "| EPC-nnn | reopened | decided |" in read("plugin", "skills", "epics", "SKILL.md")
-    assert "GATE-2 reads `draft` or `reopened`" in read("plugin", "skills", "epics", "SKILL.md")
+    # `vela decide` writes the reopened -> decided Changes row (decide_epic); the skill only says it decides the same way
+    assert "A reopened epic decides the same way" in read("plugin", "skills", "epics", "SKILL.md")
 
 
 # --- From tests/test_final_fixes.py: Fixes from the final whole-branch review: each test names the failure it keeps
@@ -117,11 +117,12 @@ def test_epics_reads_the_question_gate():
 
 def test_epics_offers_the_e805_override_with_its_exact_bullet():
     epics = text("skills/epics/SKILL.md")
-    assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
+    assert "- **Override:** E805 by @<handle> on <today> until <date>: <reason>" in epics  # E805 is a standing rule
     assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --open --digest" in epics
+    assert "`vela questions --open --digest`" in epics
+    assert "kind `override`" in epics and "kind `defer`" in epics and "`vela apply <file> --for-lead`" in epics
     assert "Defer it to whoever can answer" in epics and "--gate epics --app <APP-id>" in epics
-    assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
+    assert "Never call the epics complete past an E805 the lead has neither taken nor overridden." in epics
     assert "the override is the only way to a clean `--gate epics`" in epics
 
 
@@ -178,7 +179,7 @@ def test_epics_skill_reads_the_gaps_and_runs_the_gate():
     assert "`[testing]`" in epics
     assert "offer `/vela:requirements` on that `CAP-nnn`, then `/vela:allocate`" in epics and "Never write the requirement into the epic." in epics
     assert "Set an epic to `decided` only when the solution lead confirms" in epics
-    assert "in groups of about five" in epics and "while any criterion lacks a yes (its own or its group's)" in epics
+    assert "in groups of about five" in epics and "while a criterion lacks a yes it files nothing" in epics
     assert "every criterion has a yes, its own or its group's" in epics
     assert "It does not mean they are decided" in epics and "check --gate epics --app <APP-id>" in epics
     assert "list each epic still at `draft`" in epics
@@ -200,9 +201,9 @@ def test_epics_skill_frontmatter_instruction_names_the_epics_mode():
 def test_epics_skill_disposes_of_e805_by_answer_defer_or_override_and_never_leaves_it_unplaced():
     """S11: the heron run offered "leave the gate failing", the lead took it, and the question had no owner."""
     epics = text("skills/epics/SKILL.md")
-    assert "Defer it to whoever can answer" in epics and "vela next-id UNK" in epics
+    assert "Defer it to whoever can answer" in epics and "kind `defer`" in epics  # defer numbers the unknown
     assert "- Leave the gate failing." not in epics
-    assert "is not a route" in epics and "do not loop" in epics
+    assert "is not a route" in epics and "Offer the three routes once" in epics
 
 
 # --- From tests/test_tracer_skills.py: The lead-side tracer guidance (S52, step 2): present in each skill, never a
@@ -257,6 +258,41 @@ def test_epics_leaves_the_boundary_test_to_lint():
     assert "Before you propose a criterion, run the boundary test" not in epics
     assert not re.search(r"^1\. Its `- Trace:` line", epics, re.M) and "Redis or Kafka" not in epics
     assert "`vela epics lint --fix-shape <EPC-id>`" in epics
+
+
+def test_epics_offers_the_e805_routes_once_without_a_rerun_warning():
+    """Rule deletion: the E805 loop's warning goes; a deferral is said once and the session moves on."""
+    epics = EPICS.read_text(encoding="utf-8")
+    assert "do not re-run it" not in epics
+    assert "After a deferral the gate lists the question until close: say so once" in epics
+
+
+def test_epics_decides_through_the_command_with_a_group_per_read_back():
+    epics = EPICS.read_text(encoding="utf-8")
+    assert "`vela decide <EPC-id> --group AC1-AC5 ^cA ^cB --readback ^cN --yes ^cM --for-lead`" in epics
+    assert "`--override GATE-3 --reason-from ^cR`" in epics
+    assert "commit with the message `grill: EPC-nnn decided`" not in epics  # decide commits
+
+
+def test_epics_reads_back_by_name_with_a_worked_example():
+    epics = EPICS.read_text(encoding="utf-8")
+    assert "**Say names, not IDs,**" in epics and "in your own sentences as well as relayed ones" in epics
+    example = epics.split("A group read back, to copy:", 1)[1].split("\n\n", 2)[1]
+    assert example.startswith("> ") and not re.search(r"\b(?:EPC|CON|FLO|CAP|UNK|APP)-|\bAC\d", example)
+
+
+def test_epics_description_is_the_plans():
+    head = EPICS.read_text(encoding="utf-8").split("---", 2)[1]
+    line = "description: Cut one team's handed-off work into epics with acceptance criteria at the boundary, then grill each with the solution lead."
+    assert line in head
+
+
+def test_epics_says_the_lead_facing_words():
+    epics = EPICS.read_text(encoding="utf-8")
+    assert "the app's handoff list" in epics and "not decided yet, until a grill decides it" in epics
+    assert "Decide it anyway (I'll note that the open question was skipped)" in epics
+    assert "Grill" not in epics.replace("Grill rows", "").replace("## 6. Grill", "") and "the senior" not in epics  # grill lower case
+    assert "Nobody has answered who carries the liability for points balances." in epics
 
 
 def test_epics_names_only_commands_that_exist():

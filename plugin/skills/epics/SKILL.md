@@ -1,21 +1,25 @@
 ---
 name: epics
-description: Work team by team from the traceability gaps, cut epics, draft boundary acceptance criteria and grill the solution lead on each. Use at stage 6, before calling an app's epics complete.
+description: Cut one team's handed-off work into epics with acceptance criteria at the boundary, then grill each with the solution lead.
 argument-hint: "<team handle or APP-id, or 'every team'>"
 disable-model-invocation: true
 ---
 
 # Epics
 
-Contents: 1 start; 2 read the frontier; 3 shape the cuts; 4 draft each epic; 5 behavior the vault does not hold; 6 grill the criteria; 7 check the gate.
+Contents: 1 start; 2 read the frontier; 3 shape the cuts; 4 draft each epic; 5 behavior the plan doesn't hold; 6 grill the criteria; 7 check the gate.
 
-Turn a handed-off app into epics a team can build from. The check finds the gaps, so the frontier is never guessed. Only the Grill part of this session sets an epic to `decided`.
+Turn the app's handoff list into epics a team can build from. Only the grill part of this session (a grill as `vela terms` defines it) sets an epic to `decided`.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format, including the epic page and the trace rules, is in `vela conventions "Epics and traceability"`.
+Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The epic page is in `vela conventions "Epics and traceability"`.
+
+The commands do the mechanics: numbering, Trace lines, the boundary test, the gates, the decision writes. Relay their `--for-lead` lines and reason over `--json`. The cuts, the criteria's wording, the read-backs and the questions are yours. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
+
+**Say names, not IDs,** in your own sentences as well as relayed ones. An ID appears only where the lead must act on it, such as a tracker key. Not "EPC-002 has AC1 to AC5 on CON-001; AC6 waits on UNK-026", but "The chosen-folder epic has five checks on the calendar entries; the sixth waits on whether the entry carries the organization."
 
 ## 1. Start
 
-Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`, `shape` and `grill`. The record has `modes: [epics, shape, grill]` and the title `Epics: <team>`. Read the Epics, Shape and Grill rows of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. If the vault has no remote or `gh` fails, START says so and the session goes on.
+Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with modes `epics`, `shape` and `grill`. The record has `modes: [epics, shape, grill]` and the title `Epics: <team>`. Read the Epics, Shape and Grill rows of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. If the plan has no remote or `gh` fails, START says so and the session goes on.
 
 ## 2. Read the frontier
 
@@ -53,50 +57,43 @@ A question nobody present can answer is an unknown (`MODES.md`, "Unknowns"): `ve
 
 ## 6. Grill the criteria
 
-For each epic the user wants decided, run the gate in `${CLAUDE_PLUGIN_ROOT}/skills/grill/SKILL.md` section 2. For an epic, GATE-1 reads each of the epic's apps, GATE-2 reads `draft` or `reopened` with the chosen cut and the rejected cuts written down, and GATE-5 asks for the solution lead. Say in plain words which epics are ready to decide and which are not (never a gate table), and write the `## Agenda` section into the session record, one line per epic, as grill does. START's resume rule reads it. A failed gate gets grill's choice too: "decide anyway (override GATE-n)", with the `**Override:**` and `**Decided by:**` bullets grill writes.
+For each epic the lead wants decided, run `vela check --gate grill --item <EPC-id> --for-lead`. Say which epics are ready and which aren't, with the one thing that would make each ready (never a gate table), and file the agenda, one line per epic, as grill does (`vela apply`, kind `agenda`). A reopened epic decides the same way. For a failed gate, offer "Decide it anyway (I'll note that the open question was skipped)", filed as an override with the lead's reason.
 
-Then take the criteria in groups of about five (an epic's usual 4 to 7 are one or two groups), and read each group back:
+Then read the criteria back in groups of about five (an epic's usual 4 to 7 are one or two), by their words:
 
-- Show the criteria and ask whether they are right. Give your recommended wording and a one-line reason for any you would change, in the form *Recommended: <wording>. <reason>.* Wait.
-- Capture the answer. The lead's own words take their name as origin. An accepted recommendation has origin `claude, from <name>`.
-- Write a criterion only on a yes that names it or covers its group (`START.md` defines a yes). Silence, "ok", "next" or "sure" with nothing else do not count: ask once more in different words, or for another wording. Keep your recommendation under pushback without a reason.
-- Never answer your own question.
+- Ask whether they are right, with *Recommended: <wording>. <reason>.* for any you would change. Wait.
+- Capture the answer. The lead's words take their name as origin; an accepted recommendation has origin `claude, from <name>`.
+- Only a yes that names a criterion or covers its group counts (`START.md` defines a yes). Silence, "ok", "next" or "sure" alone don't: ask once more in other words. Keep your recommendation under pushback without a reason. Never answer your own question.
 
-Set an epic to `decided` only when the solution lead confirms it in this session, and only after every criterion has a yes, its own or its group's. A yes to the epic as a whole does not stand in for them. When every group has its yes, read the final set back and get a yes to that read-back. A criterion with no yes keeps the epic at `draft`. Then, as grill does:
+A group read back, to copy:
 
-- set `state: decided`;
-- add `- **Decision:** [[<session id>]]` and a `## Changes` row `| EPC-nnn | draft | decided | [[<session id>#^cNN]] |`, or `| EPC-nnn | reopened | decided | [[<session id>#^cNN]] |` for an epic a challenge's answer reopened;
-- mark the deciding capture `→ keep: [[<page>#<heading>|EPC-nnn]] (decided)`;
-- commit with the message `grill: EPC-nnn decided`, staging the session record and the epic by exact path.
+> For the calendar epic, a tester will check that a client call gets one note ten minutes before it starts, a call moved late still gets its note as soon as it can be built, a canceled call's note is withdrawn, and the people listed come from the invitation alone. *Recommended:* "within two minutes" instead of "as soon as it can be built", so a tester can time it. Does that set hold?
 
-Render (steps 2 and 7) rewrites generated blocks on other pages too. Stage every file `vela render` reported by exact path in the next commit, so no rewritten block is left out of the PR.
+Set an epic to `decided` only when the solution lead confirms it in this session, after every criterion has a yes, its own or its group's; a yes to the whole epic doesn't stand in. Read the final set back for one more yes, then run `vela decide <EPC-id> --group AC1-AC5 ^cA ^cB --readback ^cN --yes ^cM --for-lead`, one `--group` per read-back (criteria, read-back, yes), plus `--why ^cK` when the lead gave a reason. It writes the state, the decision lines, the `## Changes` row and the mark, and commits; while a criterion lacks a yes it files nothing and says which. Exit 3 means already decided. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet an epic already carries.
 
-If the lead never confirms, the epic stays `draft`, and its agenda line says `status open`.
-
-If the user tells you to decide an epic without a yes on its criteria, or without the read-back, say once that each yes is what makes a criterion something a tester can hold the team to. Then do it, and write `- **Override:** GATE-3 by @<handle> on <today>: <reason>` under the epic page's `## History`, with its `**Decision:**` line. Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet an epic already carries when you edit it.
+If the lead says decide without the yeses or the read-back, say once that each yes is what lets a tester hold the team to a criterion, then add `--override GATE-3 --reason-from ^cR`. Never confirmed, the epic stays `draft` and its agenda line says `status open`.
 
 ## 7. Check the gate
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela render` and stage every file it reports, by exact path. Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check --gate epics --app <APP-id>` for each of the team's apps. The `--app` run leaves out other teams' gaps, so its exit code is this app's alone. Read every `E50x` line it prints. Never say an app's epics are complete while one remains. Say what each needs in plain words ("nobody is planned to build the sale API yet"), never its code. Read every `E805` line too: each is a high-severity question the catalog owes that nobody has disposed, or that was asked and still waits for its answer, such as the lawful basis for data, a partner's clauses or a stored-value liability. Put each to the lead as one plain sentence. Dispose of each one in this session, while the lead is here, with one of three routes (answer it, defer it to an owner, or override to accept the risk) as `vela conventions "Questions and the ledger"` says. Offer them once, with your recommendation, and do not loop: once the lead picks one, record it and move on.
+Run `vela render`, which rewrites blocks on other pages too. Stage every file `vela render` reported by exact path. Run `vela check --gate epics --app <APP-id> --for-lead` for each of the team's apps (`--app` leaves out other teams' gaps) and relay each line. Never say an app's epics are complete while one remains.
 
-- Answer it now. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --open --digest`, take the line, and capture the answer. The gate clears once close writes its row. Before close, the override is the only way to a clean `--gate epics`.
-- Override it. Write `- **Override:** E805 by @<handle> on <today>: <reason>` under the `## History` section at the end of `11-unknowns-and-risks.md`, at page level, as `vela conventions "Pages"` says. It turns E805 into W805, which still prints.
-- Defer it to whoever can answer. Take the owner from what the lead has said, such as "the CFO's call", and propose the unknown yourself instead of asking again: a new `UNK-nnn` from `vela next-id UNK` on `11-unknowns-and-risks.md`, with `**Owner:**` that handle, `**Ask by:**` a date and `**Blocks:**` the question's ID, and capture it `→ keep` as an unknown. Close writes the ledger row `unknown`, which disposes of the question and gives it someone who chases it. Ask for one yes to the owner and the date.
+A line saying a high-priority question keeps the epics from being finished is an `E805`: a question the catalog owes that nobody has disposed, or that was asked and still waits for its answer. The run without `--for-lead` gives its question ID for the decision file. Say it to the lead in one sentence: "Nobody has answered who carries the liability for points balances. Answer it now, hand it to someone with a date, or accept the risk." Offer the three routes once, with your recommendation, then record the pick and move on. A route is a decision file, `.vela/decisions/<session id>/<seq>-<kind>.json` (`vela apply --schema <kind>` prints its fields), filed with `vela apply <file> --for-lead`:
 
-A gate that still shows E805 after you record a deferral is expected until close writes the row. Say so once and go on; do not re-run it, re-offer the routes, or hold the session open for it. "Leave it failing" with no unknown and no override is not a route: it leaves a high-severity question nobody is chasing, as the heron run showed.
+- **Answer it now.** Find it with `vela questions --open --digest` and capture the answer; close writes the ledger row. Before close, the override is the only way to a clean `--gate epics`.
+- **Defer it to whoever can answer**, kind `defer`: the owner the lead named ("the CFO's call") and a date, with one yes to both. It opens an unknown with someone to chase it.
+- **Override it**, kind `override`, on `unknowns-and-risks`, rule `E805`, with the lead's reason and an end date. It writes `- **Override:** E805 by @<handle> on <today> until <date>: <reason>` under the `## History` section at the end of `11-unknowns-and-risks.md`, and turns E805 into W805, which still prints.
 
-Never call the epics complete past an E805 the user has neither taken nor overridden.
+After a deferral the gate lists the question until close: say so once ("it's with the CFO; the check clears at close") and go on. "Leave it failing" with no owner and no override is not a route.
 
-Exit 0 means the app's epics are structurally complete. It does not mean they are decided, so list each epic still at `draft` before you finish. Handoff does not wait for this: epics follow it. To see every team at once, run the gate without `--app`; its failures on other teams' apps are those teams' work, not this team's gap.
+Never call the epics complete past an E805 the lead has neither taken nor overridden.
+
+Exit 0 means structurally complete. It does not mean they are decided, so list each epic still at `draft`. The handoff doesn't wait for this. The gate without `--app` shows every team; other teams' failures are theirs.
 
 ## Ends when
 
-Every chosen team's gaps are closed or listed, or the user stops. Epics left at `draft` are listed. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session".
+Every chosen team's gaps are closed or listed, or the lead stops; epics at `draft` are listed by name. When the lead says they are done, close as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session".
 
 ## Never
 
-- Never set `decided` without the lead's confirmation in this session, or while any criterion lacks a yes (its own or its group's), unless the user overrides `GATE-3` and the bullet is written.
-- Never read exit 0 from the gate as `decided`.
-- Never put one epic under two owning teams.
-- Never name a component, table or technology in a criterion, and never write an ID in its sentence or its heading: the name goes in the sentence and the ID on the `- Trace:` line.
-- Never edit a generated block. Render fills `traces-to`, `epics-for-app`, `delivered-by` and `traceability`.
+- Never name a component, table or technology in a criterion, or an ID in its sentence or heading.
+- Never edit a generated block; render fills `traces-to`, `epics-for-app`, `delivered-by` and `traceability`.
