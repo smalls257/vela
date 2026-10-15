@@ -162,7 +162,7 @@ def test_boundary_prepares_its_review_with_reviewers_prepare():
 def test_flow_check_line_carried_as_written():
     b = text("skills/boundary/SKILL.md")
     assert ("When you've written or changed a case table, run `vela check-slice --changed`. Tell the lead which slices "
-            "it checked and why, in its own words, and read out each finding with its owners.") in b
+            "it checked and why, in your own words, and read out each finding with its owners.") in b
     assert "run `vela check-slice FLO-nnn`" not in b
     assert b.index("**The case table for each contract") < b.index("vela check-slice --changed")
     assert 'strict sequence diagram (`vela conventions "Flow check"`)' in b

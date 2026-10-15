@@ -1,6 +1,6 @@
 # What each page of a boundary session holds
 
-Read by boundary in section 4, when it writes a confirmed sheet. `vela check` finds a missing field (E103 and its neighbors), so this is the checklist, not the only guard.
+Read by boundary in section 4, when it writes a confirmed sheet. `vela check` finds a missing field (E103 and its neighbors), so this is the checklist, not the only guard. Every opening paragraph and every line of prose below is written in the house voice (`house-voice`: the plan's examples, after `voice/VOICE.md` when it exists).
 
 - **The app page:** fill the stub `vela add app-stub` wrote: replace its stub line, set `state: assumption`, and add `sources`. When the user gave where the code and wiki live, add `links: {Repo: <url>, Wiki: <url>}` with the labels they used and exactly their URLs, or a key where `.vela.yaml` has a `link_templates` entry for the label (`vela conventions "Links out of the vault"`). No answer, no `links:` line. `sources` lists every `SRC-nn` the lines rest on and, for lines resting on a decided item or the user's words, the session id of the grill or of this session, so the page never lists none. Keep `stage` no higher than the pages meet: `vela ladder` shows the marked stage beside the one they meet. "Does" and "does not" become its opening paragraphs. An app that already had a page before this session keeps it: change only the lines the user confirmed.
 - **Containers:** the table `| Container | Job | Contracts served or used | Proposed by | State |`, every State `assumption`.

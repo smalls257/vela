@@ -11,7 +11,7 @@ Prose in this vault has one voice. Draft it from the example passages, not from 
 
 ## Load the examples
 
-If the vault has `voice/VOICE.md`, read it first. It holds the owner's own rules, in their words, and wins over the rules below and the examples where they disagree. The owner may override any default.
+If the vault has `voice/VOICE.md`, read it first. It holds the owner's own rules, in their words, and wins over the rules below and the examples where they disagree. The owner may override any default. Run by hand, outside close, you also talk to the owner: read `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` too, as `START.md` step 6 says, before your first question.
 
 Then run `vela voice examples --page <page> --json` for the page you are drafting. Read every example of that type it lists, in the order it lists them, before you write a word. The order is fixed so two drafts of one page start from the same context: active examples in file-name order, local `owner` and `owner-edit` examples first, then `voice/examples/`, then any other local example. A structured page lists none: it holds no voiced prose. When the command can't resolve the page, read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/TYPES.md` and run it with `--type` instead.
 

@@ -12,13 +12,15 @@ A reader has no git, so a change reaches the plan as a proposal the owner review
 
 Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Run it from the workspace folder. When a command can't express what the user wants, say so and stop.
 
+Before your first question, read how to talk, as `START.md` step 6 says: `voice/VOICE.md` first when the copy has one (the owner's own rules win), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` and the examples it names. Don't tell the user you read them.
+
 ## Proposing
 
 $ARGUMENTS
 
 ## Steps
 
-1. Run `vela role`. If it says `owner`, stop: "You work in this plan's git repo, so you decide directly. A proposal is how someone without git sends changes." Offer a normal session instead. If it says neither owner nor reader, show what it printed and stop.
+1. Run `vela role`. If it says `owner`, stop: "You work in this plan's git repo, so you decide directly. A proposal is how someone without git sends changes." Offer a normal session instead. If it says neither owner nor reader, say in one plain sentence that this folder isn't a plan or a reader copy, and stop.
 2. Run `vela propose --groups --json`. If nothing changed, say so and stop. Otherwise say how many things they changed, in plain words, pending decisions first: a decision they recorded that the owner decides, not them.
 3. For each group, one at a time, in the tool's order, by the item's name (the group key goes only into the command):
    - Read the page around the change (`path` and `hunk`) to say what changed in a sentence, and ask why, offering a draft reason they can correct: "You changed the Record consent contract to record consent before the first message. Is the reason that finance said anything else fails audit?" Once they accept it, use their words. Groups that are one change in their mind get one question, so twelve groups are not twelve questions.
@@ -33,7 +35,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela propose --title "<title>" --whys - [-
 JSON
 ```
 
-7. Relay what it printed: where the proposal is, what to send and to whom. Errors from their copy's check are listed first in the proposal and didn't stop it; the owner decides about them. The owner's answer comes back as `answer.md`, with a new published copy to open and continue from.
+7. Say what it printed in your own words: where the proposal is, what to send and to whom. Errors from their copy's check are listed first in the proposal and didn't stop it; the owner decides about them. The owner's answer comes back as `answer.md`, with a new published copy to open and continue from.
 8. If it stopped on a private path (a home folder, the place the copy was opened from), show that line and offer to reword it. If it is in a session record and the user agrees, run again with `--rewrite-home`: the proposal says `<home>` there, and their own files don't change. Never add that flag without their yes.
 
 ## Never

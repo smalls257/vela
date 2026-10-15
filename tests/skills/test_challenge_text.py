@@ -71,7 +71,7 @@ def test_challenge_resolves_the_id_and_shows_what_changed_since_handoff():
     text = skill_text_challenge()
     assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json" in text
     assert "If it says `not_found`, stop" in text and "Do not guess another ID." in text
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id>" in text
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id> --for-lead" in text
     assert "Never cite an ID that `vela query get` reports `not_found`." in text
 
 
@@ -106,7 +106,7 @@ def test_the_pr_says_the_red_check_is_deliberate_and_blocks_the_merge():
 
 def test_handoff_verify_exit_2_has_two_cases_and_the_skill_shows_the_message():
     text = skill_text_challenge()
-    assert "show the tool's message" in text
+    assert "read the tool's message to tell them apart; it's for you, not the team lead" in text
     assert 'If it says "doesn\'t exist", there is no manifest' in text  # the words the CLI prints, pinned below
     assert "could not be read, and go on without claiming anything" in text
 

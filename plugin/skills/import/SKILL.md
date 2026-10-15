@@ -29,7 +29,7 @@ Use whatever access the user already has: local files, a clone, an export, a too
    - `intends` gives an `assumption`, or an `inkling` if it is vague. Anything about the future is an `assumption` whatever the Kind.
    - A decision a source names is an `assumption` here, never `decided`: only a grill decides, and the check flags `decided` with no grill behind it. When the source names who decided it and when, note both on the item, so the grill has them ("Decided by the CTO on 3 March, per the architecture decision record; grill to confirm"). When it names neither, add an unknown asking the owner to confirm it. In a reader copy, decisions carry `**Pending approval:**` as `vela conventions "Pending approval"` says.
    - Don't build case tables, strict diagrams or slices from imported material unless the source states them; leave those for boundary and grill, and let the warnings show.
-   - A gap stays a gap. Write in your own words and plain names, the source linked on the words that rely on it, no bare ID in the sentence. Never copy document text or use general knowledge as a source.
+   - A gap stays a gap. Write in the house voice (`house-voice`), your own words and plain names, the source linked on the words that rely on it, no bare ID in the sentence. Never copy document text or use general knowledge as a source.
 6. Every clash between sources becomes one unknown naming both sources, with an owner handle and an ask-by date: `vela add unknown --name "<name>" --owner <handle> --for-lead`. Never pick a side.
 7. Large piles go in batches across sessions. Keep an `## Import ledger` in the session record: one line per source, `processed` or `pending`, so a later `/vela:import` resumes where this one stopped.
 

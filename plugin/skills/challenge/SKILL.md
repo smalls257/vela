@@ -25,7 +25,7 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json`.
 - Go on if `kind` is `contract`, `app-building-blocks` or `epic` (its criteria or scope), or if `decided_by` names the user among its `on_behalf_of` owners, whatever the kind. Otherwise say a challenge doesn't cover it and name the item's owner, who answers for it. Never draft a message to them, and never offer to.
 - If `decided_by` is set, show who decided on whose behalf and the `override` bullets. The challenge leaves them alone.
 - Find the app (the contract's or app's page, or each app in an epic's `apps`). If it has no `handed_off:`, say a disagreement before handoff belongs in a shape or a grill with the solution lead, and ask whether to go on anyway. An owner challenging a decision made on their behalf goes on.
-- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id>` and relay it by name: "Here's what changed since you took the app on." Exit 2 covers two cases, so show the tool's message. If it says "doesn't exist", there is no manifest: say "There's no record of what you accepted at handover" and go on. Any other exit 2: say what changed since handoff could not be read, and go on without claiming anything about it.
+- Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id> --for-lead` and say it by name: "Here's what changed since you took the app on." Exit 2 covers two cases, so read the tool's message to tell them apart; it's for you, not the team lead. If it says "doesn't exist", there is no manifest: say "There's no record of what you accepted at handover" and go on. Any other exit 2: say what changed since handoff could not be read, and go on without claiming anything about it.
 
 ## 3. Hear the challenge
 
@@ -76,7 +76,7 @@ The reviewer is the solution lead: the `owner:` of `01-goals.md`. Strip the lead
 
 1. Ask before anything leaves the machine: "I'll send this challenge for review to <the solution lead's name>. OK?" Capture the answer with `vela record add --origin <handle> --tag thought --mark "drop: the yes to send this for review" "<their words>"`. No yes: stop, with the record open.
 2. Set `summary:` to one line the team lead accepts and `status: closed`, then run `vela close stage --session <id> --close --paths-from-render`. It commits the record and the changed pages by exact path; tell the team lead about any file it names as left out.
-3. Run `git push -u origin session/<id>`. If it fails, show the error, print the commands for the user to run, and stop.
+3. Run `git push -u origin session/<id>`. If it fails, say in one plain sentence that the challenge didn't go up and why, without pasting the push's own message, give the commands for the user to run, and stop.
 4. Write the PR body to a temporary file, each item by name with its ID beside it:
    - **Challenge.** The item, the question, the case and the proposal, quoted from the captures.
    - **Open question.** Its short name, `UNK-nnn`, owner and ask-by date.

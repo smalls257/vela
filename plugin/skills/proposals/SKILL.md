@@ -12,6 +12,8 @@ A reader worked in a published copy and sent changes. You are the owner, so you 
 
 Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). When a command can't express what the owner wants, say so and stop.
 
+Before your first question, read how to talk, as `START.md` step 6 says: `voice/VOICE.md` first when the plan has one (the owner's own rules win), then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` and the examples it names. Don't tell the owner you read them.
+
 ## Reviewing
 
 $ARGUMENTS
@@ -28,7 +30,7 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela proposals review "<proposal>"` f
 
 ## 2. Walk the changes
 
-Read `proposal.md` (for a zip, the review output). Walk the groups in the order the tool listed: pending decisions first, then the rest. Say each by the item's name, its ID only as a tag; the group key goes into commands, never into what the owner hears: "First change: the Record consent contract (CON-001). Priya's reason: finance said anything else fails audit."
+Read `proposal.md` (for a zip, the review output). Walk the groups in the order the tool listed: pending decisions first, then the rest. Say each by the item's name, in your own sentences too; the group key goes into commands, never into what the owner hears: "First change: the Record consent contract. Priya's reason: finance said anything else fails audit."
 
 For each group:
 

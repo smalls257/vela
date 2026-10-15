@@ -138,7 +138,7 @@ def test_the_token_rule_is_the_commands_refusal_not_a_sentence():
 
 
 def test_state_from_kind_is_applys_refusal_and_resolutions_go_through_resolve():
-    assert "`vela apply --schema marks`" in DISCOVER and "Apply refuses a fact from a plan" in DISCOVER
+    assert "`vela apply --schema marks`" in DISCOVER and "Apply won't write a fact from a plan" in DISCOVER
     assert "`resolve` decision file (`vela apply --schema resolve`)" in DISCOVER
     assert "vela record add --origin" in DISCOVER
 
