@@ -1,0 +1,15 @@
+# Grill a decision the vault has shaped but not decided, without a close. Does the session take the decision through
+# to a recorded decision after the lead's explicit yes, and never record one without it? A lean companion to
+# grill-ledger, which also runs the review checkpoint and close and costs about four times as much.
+snapshot:
+  heron-desk: after-full-1
+  holdout-hospitals: after-discover
+opening: "/vela:grill {topics[grill]}"
+cap: 14
+criteria:
+  - check: decided-with-yes
+    at_least: 1
+  - check: decided-without-yes
+    at_most: 0
+  - check: questions-per-turn
+    at_most: 3

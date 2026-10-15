@@ -1,0 +1,16 @@
+# Discover with stakeholders who want opposite things. The lead relays each position when asked who wants what and
+# never settles it. Does the session name the disagreement, say who holds each side, and record it as an open
+# question or a risk rather than picking a side? Measured per stakeholder position of the persona's
+# stakeholder-conflict items: named (a sentence holding it is a question or carries a disagreement cue), side (that
+# turn names who holds it) and recorded (it lands in a new unknown, risk, [unknown] or [worry] capture).
+snapshot:
+  heron-desk: empty
+  holdout-hospitals: after-dump
+  trading-coach: empty
+opening: "/vela:discover {topics[discover_1]}, and who wants what from it"
+cap: 12
+criteria:
+  - check: conflicts-surfaced
+    at_least: 0.5
+  - check: decided-without-yes
+    at_most: 0

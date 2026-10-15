@@ -95,11 +95,12 @@ def test_the_snapshots_are_the_ones_the_cases_name():
     assert names == {"coastal-merger/empty", "coastal-merger/after-s2", "coastal-merger/after-s4", "coastal-merger/after-v3-s8",
                      "coastal-merger/after-complete-s21", "coastal-merger/after-cio-s4", "coastal-merger/after-boundary-s2",
                      "trading-coach/after-handoff-grill-s25", "trading-coach/after-s12", "trading-coach/after-full-26", "trading-coach/after-handoff-2", "trading-coach/after-complete-s10", "trading-coach/after-finish", "trading-coach/after-final", "trading-coach/after-80", "trading-coach/after-80b", "trading-coach/after-capture", "trading-coach/after-capture-boundary",  # where scripts start, not probes
-                     "heron-desk/empty", "heron-desk/after-full-1", "heron-desk/after-handoff-1", "heron-desk/after-design-2", "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
+                     "trading-coach/empty", "heron-desk/empty", "heron-desk/after-full-1", "heron-desk/after-handoff-1", "heron-desk/after-design-2", "holdout-hospitals/empty", "holdout-hospitals/after-dump", "holdout-hospitals/after-discover"}
     for case_path in sorted((SIM / "probes").glob("*.yaml")):
         case = probe.load_case(str(case_path))
-        # Every probe runs on coastal-merger; holdout-hospitals only where it has a vault that far along.
-        assert "coastal-merger" in case["snapshot"] and set(case["snapshot"]) <= {"coastal-merger", "holdout-hospitals"}, case_path
+        # The dev persona (heron-desk) or coastal-merger runs every case; a holdout only where it has a vault that far along.
+        assert {"coastal-merger", "heron-desk"} & set(case["snapshot"]), case_path
+        assert set(case["snapshot"]) <= {"coastal-merger", "holdout-hospitals", "heron-desk", "trading-coach"}, case_path
 
 
 @pytest.mark.parametrize("snapshot", SNAPSHOT_DIRS, ids=lambda p: p.relative_to(SIM / "snapshots").as_posix())
@@ -457,7 +458,7 @@ def test_money_models_and_the_ledger_are_required(missing):
 def test_every_case_opens_with_its_mode_and_fills_in_from_both_personas():
     for case_path in sorted((SIM / "probes").glob("*.yaml")):
         case = probe.load_case(str(case_path))
-        for name in ("coastal-merger", "holdout-hospitals"):
+        for name in case["snapshot"]:
             text = probe.opening_text(case, persona(name))
             assert text.startswith(f"/vela:{case['mode']}") and "{" not in text
     shape = probe.load_case("shape-options")
@@ -624,3 +625,112 @@ def test_a_case_can_take_news_and_blocked_grill_switches_the_override_off():
     after = probe.sim.with_news(persona, case["news"])
     assert not after["decisions"][0]["override_if_blocked"] and persona["decisions"][0]["override_if_blocked"]
     assert "override it once" not in probe.sim.persona_prompt(after).split("D1:")[1].split("\n- D2")[0]
+
+
+# ------------------------------------------------------------------ gaps, decisions, conflicts, unsure owners
+
+def spoken_run(tmp_path, turns, persona_data=None, decisions=()):
+    """A finished probe run held in memory: (speaker, text) turns, an empty vault and snapshot, no raw/."""
+    import types
+    entries = [{"turn": n, "speaker": who, "text": text, "session": 1} for n, (who, text) in enumerate(turns, 1)]
+    for name in ("vault", "snap", "run"):
+        (tmp_path / name).mkdir(parents=True, exist_ok=True)
+    return types.SimpleNamespace(transcript=types.SimpleNamespace(spoken=lambda: entries), vault=tmp_path / "vault",
+                                 snapshot=tmp_path / "snap", dir=tmp_path / "run", persona=persona_data or {},
+                                 decisions=list(decisions))
+
+
+def test_unaware_raised_first_counts_a_gap_only_when_the_assistant_names_it_before_the_lead(tmp_path):
+    data = {"unaware": [{"id": "U1", "category": "fact", "keywords": ["night shift"]},
+                        {"id": "U2", "category": "fact", "keywords": ["spare parts"]},
+                        {"id": "U3", "category": "fact", "keywords": ["tax year"]}]}
+    run = spoken_run(tmp_path, [("lead", "spare parts worry me"), ("assistant", "Who covers the night shift? And spare parts?")],
+                     data)
+    passed, summary, _ = probe.CHECKS["unaware-raised-first"][0](run, {"at_least": 0.5})
+    assert not passed and summary.startswith("gaps the lead didn't know about, raised first by the assistant: 1 of 3")
+
+
+def test_decided_with_yes_needs_a_decision_the_lead_said_yes_to(tmp_path):
+    fn = probe.CHECKS["decided-with-yes"][0]
+    assert not fn(spoken_run(tmp_path, [], decisions=[{"turn": 3, "file": "a.md", "line": "x", "with_yes": False}]),
+                  {"at_least": 1})[0]
+    assert fn(spoken_run(tmp_path, [], decisions=[{"turn": 3, "file": "a.md", "line": "x", "with_yes": True}]),
+              {"at_least": 1})[0]
+
+
+def test_parties_split_a_stakeholder_and_drop_filler_words():
+    assert "works council" in probe.parties("HR and works council rep")
+    assert probe.parties("the CISO") == ["the CISO", "CISO"]
+
+
+def test_a_conflict_is_surfaced_in_full_only_when_named_with_its_holder_and_recorded(tmp_path):
+    data = {"conflicts": [{"id": "C1", "category": "stakeholder-conflict", "who": "Finance", "position": "x",
+                           "keywords": ["weekly report"]},
+                          {"id": "C2", "category": "stakeholder-conflict", "who": "Ops", "position": "y",
+                           "keywords": ["no report"]}]}
+    run = spoken_run(tmp_path, [("assistant", "Finance wants a weekly report, and that conflicts with Ops wanting no report."),
+                                ("assistant", "I'll note it.")], data)
+    (run.vault / "11-unknowns-and-risks.md").write_text("### UNK-001 Weekly report or none\n\nFinance want a weekly report.\n",
+                                                        encoding="utf-8")
+    passed, summary, _ = probe.CHECKS["conflicts-surfaced"][0](run, {"at_least": 0.5})
+    assert passed
+    assert "surfaced in full: 1 of 2" in summary and "disagreement named 2, holder named 2, recorded as open 1" in summary
+
+
+def test_unsure_owner_asked_wants_a_proposal_and_counts_unconfirmed_writes(tmp_path):
+    turns = [("assistant", "Who should own the supplier question?"), ("lead", "Honestly not sure."),
+             ("assistant", "I'd put the procurement lead down as owner, due 30 November. Does that work?"),
+             ("lead", "Yes."), ("assistant", "Done.")]
+    run = spoken_run(tmp_path, turns)
+    passed, summary, _ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
+    assert passed and "unsure of an owner or date: 1; the session proposed one and asked: 1 of 1" in summary
+    bad = spoken_run(tmp_path, [("assistant", "Who should own the supplier question?"), ("lead", "Honestly not sure."),
+                                ("assistant", "Filed it with the CFO as owner.")])
+    bad.transcript.spoken()[2]["tool_calls"] = [{"name": "Bash", "input": "vela add unknown --name x --owner @cfo --due 2026-11-30"}]
+    passed, summary, _ = probe.CHECKS["unsure-owner-asked"][0](bad, {"at_most": 0})
+    assert not passed and "proposed one and asked: 0 of 1" in summary and "confirmation: 2" in summary
+
+
+def test_the_loop_ledger_keeps_both_entries_when_two_probes_record_side_by_side(tmp_path):
+    path = tmp_path / "ledger.json"
+    first, second = probe.LoopLedger(path), probe.LoopLedger(path)  # both read the empty file before either writes
+    first.record({"case": "a", "spent_usd": 1.5})
+    second.record({"case": "b", "spent_usd": 2.0})
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["spent_usd"] == 3.5 and [e["case"] for e in data["invocations"]] == ["a", "b"]
+
+
+def test_failures_reads_a_probe_folder_and_seals_a_holdout(tmp_path):
+    for name, sealed in (("heron-desk", False), ("holdout-hospitals", True)):
+        (tmp_path / name).mkdir()
+        code, out, err, runs = run_probe(tmp_path / name, "unsure-owner", name)
+        assert runs, err
+        done = subprocess.run([sys.executable, str(SIM / "failures.py"), str(runs[0])], capture_output=True, text=True,
+                              timeout=120)
+        assert done.returncode == 0, done.stderr
+        assert "- FAIL unsure-owner-asked: times the lead was unsure" in done.stdout
+        assert ("Sealed:" in done.stdout) is sealed and ("## What went wrong, by behavior" in done.stdout) is not sealed
+
+
+def test_a_conflict_said_in_other_words_counts_by_its_holder_and_a_disagreement_cue(tmp_path):
+    data = {"conflicts": [{"id": "C1", "category": "stakeholder-conflict", "who": "Finance", "position": "x",
+                           "keywords": ["weekly report"]}]}
+    run = spoken_run(tmp_path, [("assistant", "Finance wants numbers every Monday while Ops rules it out.")], data)
+    (run.vault / "11-unknowns-and-risks.md").write_text("### UNK-001 Who breaks the tie\n\nFinance and Ops disagree.\n",
+                                                        encoding="utf-8")
+    passed, summary, _ = probe.CHECKS["conflicts-surfaced"][0](run, {"at_least": 1.0})
+    assert passed, summary
+    quiet = spoken_run(tmp_path / "q", [("assistant", "Finance sent the numbers.")], data)
+    assert not probe.CHECKS["conflicts-surfaced"][0](quiet, {"at_least": 1.0})[0]
+
+
+def test_a_proposed_role_and_date_the_lead_said_yes_to_earlier_count_as_confirmed(tmp_path):
+    turns = [("assistant", "Who would know?"), ("lead", "Honestly not sure."),
+             ("assistant", "I'd ask the CIO, by 6 November. Does that work?"), ("lead", "CIO works, yes."),
+             ("assistant", "Filed."), ("lead", "Close it."), ("assistant", "Closing.")]
+    run = spoken_run(tmp_path, turns, {"handle": "@lead"})
+    run.transcript.spoken()[6]["tool_calls"] = [{"name": "Bash", "input": 'vela add unknown --owner @lead --ask "the CIO" '
+                                                 "--ask-by 2026-11-06 && vela add unknown --ask \"the CIO\" --ask-by 2026-11-06"}]
+    passed, summary, _ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
+    assert passed, summary
+    assert probe.value_forms("2026-11-06")[1:3] == ["6 november", "november 6"]

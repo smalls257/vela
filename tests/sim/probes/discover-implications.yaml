@@ -2,13 +2,19 @@
 # A cross-source-mismatch item is two sources or systems that disagree or duplicate each other. It is FLAGGED when
 # an assistant sentence that names it is a real question, or carries a flag cue (conflict, mismatch, differ, ...),
 # or when its keyword lands in a new unknown or risk in the final vault. A read-back line with no cue is LISTED.
+# Gaps are the U items, which the lead never heard of: one counts when an assistant turn names it before a lead turn.
 # The opening is session 3 of the full default script, so a probe result reads like that session of a full run.
+# heron-desk (dev) and trading-coach start from an empty vault with the inbox, as their full runs' first discover does.
 snapshot:
   coastal-merger: after-s2
   holdout-hospitals: after-dump
+  heron-desk: empty
+  trading-coach: empty
 opening: "/vela:discover {topics[discover_1]}"
 cap: 12
 criteria:
+  - check: unaware-raised-first
+    at_least: 0.5
   - check: flagged-share
     category: cross-source-mismatch
     at_least: 0.75

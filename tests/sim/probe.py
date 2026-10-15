@@ -831,6 +831,199 @@ def main_session_turns(run, criterion):
     return passed, f"assistant turns before close: {len(turns)} (need at most {criterion['at_most']})", []
 
 
+# ------------------------------------------------------------------ gaps, decisions, conflicts, unsure owners
+# These read the persona's items by kind and category only. A case file names a check and a threshold, never an
+# item, so a case can be shown to anyone; the items stay in the persona file and the blind detail.
+
+@check("unaware-raised-first", "at_least")
+def unaware_raised_first(run, criterion):
+    """The gaps the lead does not know about (U items) that an assistant turn names before any lead turn does.
+    The lead is never told them, so a lead turn that names one is repeating the assistant or a document."""
+    spoken = run.transcript.spoken()
+    rows = []
+    for item in run.persona.get("unaware") or []:
+        turns = {who: first_turn(spoken, who, item["keywords"]) for who in ("assistant", "lead")}
+        first = turns["assistant"] is not None and (turns["lead"] is None or turns["assistant"] < turns["lead"])
+        rows.append((item, turns, first))
+    raised = sum(1 for _, _, first in rows if first)
+    share = raised / len(rows) if rows else 0.0
+    passed = bool(rows) and share >= criterion["at_least"]
+    summary = (f"gaps the lead didn't know about, raised first by the assistant: {raised} of {len(rows)} "
+               f"({pct(share)}; need at least {pct(criterion['at_least'])})")
+    detail = [f"- {i['id']} ({i['category']}): assistant {('T%d' % t['assistant']) if t['assistant'] else 'never'}, "
+              f"lead {('T%d' % t['lead']) if t['lead'] else 'never'}; {'RAISED FIRST' if f else 'not first'}"
+              for i, t, f in rows]
+    return passed, summary, detail
+
+
+@check("decided-with-yes", "at_least")
+def decided_with_yes(run, criterion):
+    """Decisions the session recorded after the lead's explicit yes to a read-back. A grill that decides nothing
+    passes decided-without-yes trivially, so this is its other half."""
+    good = [d for d in run.decisions if d["with_yes"]]
+    passed = len(good) >= criterion["at_least"]
+    summary = (f"decisions recorded after an explicit yes: {len(good)} (need at least {criterion['at_least']}); "
+               f"without a yes: {len(run.decisions) - len(good)}")
+    return passed, summary, [decision_line(d) for d in run.decisions]
+
+
+PARTY_SPLIT = re.compile(r"\s*(?:,|/|&|\band\b|\bvs\.?|\bversus\b)\s*", re.I)
+PARTY_FILLER = re.compile(r"^(?:the|our|a|an)\s+|\s+(?:rep|representative|team|lead|office|function)$", re.I)
+
+
+def parties(who):
+    """The names a stakeholder position is held by, each also without a filler word ("the", "rep", "team"),
+    so "HR and works council rep" is held by "HR" and "works council"."""
+    names = []
+    for part in PARTY_SPLIT.split(who or ""):
+        part = part.strip()
+        if part:
+            names += [part, PARTY_FILLER.sub("", PARTY_FILLER.sub("", part)).strip()]
+    return [n for n in dict.fromkeys(names) if len(n) >= 2]
+
+
+# A stakeholder disagreement is said in more ways than a source mismatch: "wants X while Y rules it out".
+SIDE_CUE = re.compile(r"\bwhile\b|\bwhereas\b|\bversus\b|\bvs\b|\bagainst\b|\btension\b|\bat odds\b|\bopposite"
+                      r"|\bpull(?:s|ing)? (?:in )?different|\bdifferent things\b|\brules? (?:it |that |this )?out\b"
+                      r"|\bwon'?t (?:accept|allow|sign)|\bblocks?\b|\bobject|\bbreaks? the tie\b|\btie-?break")
+
+
+def side_cue(text):
+    return has_cue(text) or bool(SIDE_CUE.search(sim.normalize(text)))
+
+
+def conflict_parts(item, spoken, final_spots, start_spots):
+    """Per stakeholder position: named (an assistant sentence or the list line it sits in carries a disagreement
+    cue and names the position, by its keyword or by who holds it), side (such a line names who holds it) and
+    recorded (a new unknown, risk, [unknown] or [worry] capture holds the position's keyword, or names who holds it
+    with a disagreement cue). People paraphrase a position more than they repeat it, so the holder counts too."""
+    who = parties(item.get("who"))
+    named = side = None
+    for entry in (e for e in spoken if e["speaker"] == "assistant"):
+        for sentence, container, _ in units(entry["text"]):
+            keyword, holder = sim.mentions(container, item["keywords"]), sim.mentions(container, who)
+            if (keyword or holder) and side_cue(container):
+                named = named or entry["turn"]
+                if holder and side is None:
+                    side = entry["turn"]
+    recorded = bool(vault_flagged(item["keywords"], final_spots, start_spots)) or any(
+        sim.mentions(text, who) and side_cue(text) and text != start_spots.get(key)
+        for key, text in final_spots.items())
+    return {"named": named, "side": side, "recorded": recorded}
+
+
+@check("conflicts-surfaced", "at_least")
+def conflicts_surfaced(run, criterion):
+    """Stakeholder positions that contradict each other, each surfaced in full: the session named the disagreement,
+    said who holds this side, and recorded it as an open question or a risk rather than picking a side."""
+    final, start = flag_spots(sim.vault_pages(run.vault)), flag_spots(sim.vault_pages(run.snapshot))
+    items = brief_items(run.persona, ["stakeholder-conflict"])
+    rows = [(i, conflict_parts(i, run.transcript.spoken(), final, start)) for i in items]
+    full = sum(1 for _, p in rows if p["named"] and p["side"] and p["recorded"])
+    share = full / len(rows) if rows else 0.0
+    count = {k: sum(1 for _, p in rows if p[k]) for k in ("named", "side", "recorded")}
+    passed = bool(rows) and share >= criterion["at_least"]
+    summary = (f"stakeholder positions surfaced in full: {full} of {len(rows)} ({pct(share)}; need at least "
+               f"{pct(criterion['at_least'])}); disagreement named {count['named']}, holder named {count['side']}, "
+               f"recorded as open {count['recorded']}")
+    detail = [f"- {i['id']}: named {p['named'] and 'T%d' % p['named'] or 'no'}, side {p['side'] and 'T%d' % p['side'] or 'no'}, "
+              f"recorded {'yes' if p['recorded'] else 'no'}" for i, p in rows]
+    return passed, summary, detail
+
+
+UNSURE = re.compile(r"\b(?:not sure|unsure|no idea|don'?t know|do not know|couldn'?t tell you|can'?t say|no clue|"
+                    r"haven'?t (?:a clue|checked|heard))\b", re.I)
+ASKS_OWNER_OR_DATE = re.compile(r"\b(?:who (?:would|might|else would) know|who (?:should|would|will|can|could)?\s*(?:own|owns|take|chase|answer|hold)|owner|"
+                                r"by when|what date|which date|due|deadline|ask-by|ask by|when (?:should|would|do|does|can))"
+                                r"\b[^?]{0,200}\?", re.I)
+PROPOSES_AND_ASKS = re.compile(r"\b(?:owner|own it|owns it|take it on|due|deadline|by when|ask-by|ask by|what date|"
+                               r"which date|by (?:mon|tues|wednes|thurs|fri)day|by the end of|i'?d (?:put|suggest|propose)|"
+                               r"i (?:suggest|propose)|i'?d ask|by \d{1,2}(?:st|nd|rd|th)? [a-z]+)\b[^?]{0,200}\?", re.I)
+# Who is asked and by when. --owner counts too, except the lead's own handle: the lead owns what they chase.
+WRITES = re.compile(r"--(?P<flag>owner|ask|due|by|ask-by)[= ](?P<value>\"[^\"]*\"|'[^']*'|\S+)")
+
+
+def assistant_tool_text(run):
+    """turn -> the full text of every tool input that assistant turn sent, from raw/ (the transcript keeps only 200
+    characters of each), matched to the transcript's assistant turns in order."""
+    compare = sim.load_sim_module("compare_runs")
+    turns = [e for e in run.transcript.spoken() if e["speaker"] == "assistant"]
+    raw = compare.raw_tool_inputs(run.dir / "raw")
+    calls = raw[0] if raw else []
+    out = {}
+    for n, entry in enumerate(turns):
+        tools = calls[n] if n < len(calls) else entry.get("tool_calls") or []
+        out[entry["turn"]] = "\n".join(str(t.get("input", "")) for t in tools)
+    return out
+
+
+MONTHS = ("january", "february", "march", "april", "may", "june", "july", "august", "september", "october",
+          "november", "december")
+ISO_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+
+
+def value_forms(value):
+    """How a written value reads in a conversation: an ISO date as "29 october" or "october 29", a role without
+    its article ("the CIO" is confirmed by "CIO works"), else itself."""
+    flat = re.sub(r"^(?:the|a|an|our) ", "", sim.normalize(value.strip("\"'").lstrip("@")))
+    m = ISO_DATE.match(flat)
+    if not m or not 1 <= int(m[2]) <= 12:
+        return [flat] if flat else []
+    month, day = MONTHS[int(m[2]) - 1], str(int(m[3]))
+    return [flat, f"{day} {month}", f"{month} {day}", f"{day}th {month}", f"{month} {day}th"]
+
+
+def confirmed_values(spoken, upto):
+    """What the lead had confirmed before spoken[upto]: each lead message's own words, and each assistant turn
+    the lead's next message said yes to."""
+    said = []
+    for i, e in enumerate(spoken[:upto]):
+        if e["speaker"] != "lead":
+            continue
+        said.append(sim.normalize(e["text"]))
+        before = next((x for x in reversed(spoken[:i]) if x["speaker"] == "assistant"), None)
+        if before and explicit_yes(e["text"], bool(ASKS_FOR_YES.search(before["text"]))):
+            said.append(sim.normalize(before["text"]))
+    return said
+
+
+@check("unsure-owner-asked", "at_most")
+def unsure_owner_asked(run, criterion):
+    """When the lead says they're not sure who owns something or by when, the session proposes one and asks, and
+    writes only who to ask and by when as the lead confirmed. The case's news tells the lead they don't know any, so
+    every --ask, --ask-by, --due, --by or --owner other than the lead's own handle counts: as confirmed when an
+    earlier lead message names that value, or the lead said yes to an assistant turn that named it (a date in words
+    or as YYYY-MM-DD), and as unconfirmed otherwise."""
+    spoken, tools = run.transcript.spoken(), assistant_tool_text(run)
+    own = sim.normalize(str(run.persona.get("handle", "")).lstrip("@"))
+    moments, handled, unconfirmed, detail = 0, 0, [], []
+    for i, entry in enumerate(spoken):
+        if entry["speaker"] != "assistant":
+            continue
+        lead = next((e for e in reversed(spoken[:i]) if e["speaker"] == "lead"), None)
+        asked_before = next((e for e in reversed(spoken[:i]) if e["speaker"] == "assistant"), None)
+        if lead and asked_before and UNSURE.search(lead["text"]) and ASKS_OWNER_OR_DATE.search(asked_before["text"]):
+            moments += 1
+            ok = bool(PROPOSES_AND_ASKS.search(entry["text"]))
+            handled += ok
+            detail.append(f"- T{entry['turn']}: lead unsure about an owner or date; {'proposed and asked' if ok else 'did not propose and ask'}")
+        # A command retried after a failure writes the same value again: count each value once per turn.
+        writes = list({(m["flag"], m["value"]): m for m in WRITES.finditer(tools.get(entry["turn"], ""))}.values())
+        said = confirmed_values(spoken, i) if writes else []
+        for m in writes:
+            forms = value_forms(m["value"])
+            if not forms or (m["flag"] == "owner" and forms[0] == own):
+                continue
+            if not any(f in text for f in forms for text in said):
+                unconfirmed.append(entry["turn"])
+                detail.append(f"- T{entry['turn']}: wrote --{m['flag']} the lead had not confirmed")
+    passed = moments > 0 and handled == moments and len(unconfirmed) <= criterion["at_most"]
+    summary = (f"times the lead was unsure of an owner or date: {moments}; the session proposed one and asked: "
+               f"{handled} of {moments}; owners or dates written without the lead's confirmation: {len(unconfirmed)} "
+               f"(need every time proposed and asked, and at most {criterion['at_most']} unconfirmed)")
+    return passed, summary, detail
+
+
 def score(run, case):
     rows = []
     for criterion in case["criteria"]:
@@ -865,12 +1058,18 @@ class LoopLedger:
         return float(self.data["spent_usd"])
 
     def record(self, entry):
-        self.data["invocations"].append(entry)
-        self.data["spent_usd"] = round(self.spent + entry["spent_usd"], 4)
+        """Add this invocation under a lock, re-reading the file first: two probes of one loop may run side by side
+        (the dev persona and a holdout), and the one that finished second must not write over the first's spend."""
+        import fcntl
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_name(self.path.name + ".tmp")
-        tmp.write_text(json.dumps(self.data, indent=2), encoding="utf-8")
-        tmp.replace(self.path)
+        with open(self.path.with_name(self.path.name + ".lock"), "w", encoding="utf-8") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            self.data = LoopLedger(self.path).data
+            self.data["invocations"].append(entry)
+            self.data["spent_usd"] = round(self.spent + entry["spent_usd"], 4)
+            tmp = self.path.with_name(self.path.name + ".tmp")
+            tmp.write_text(json.dumps(self.data, indent=2), encoding="utf-8")
+            tmp.replace(self.path)
 
 
 # ------------------------------------------------------------------ one run, and the output
