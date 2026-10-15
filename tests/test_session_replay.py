@@ -24,7 +24,7 @@ import types
 
 from conftest import REPO, FINDING
 from vela import closefinish, closegate, ledger, parse, say, schema
-from vela.commands import close_stage, voice_settle
+from vela.commands import close_stage, decide, voice_settle
 
 SNAPSHOT = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 STEPS = REPO / "tests" / "replay"
@@ -47,10 +47,13 @@ COMMIT_GRAMMAR = [re.compile(r"^Open session (?P<id>\S+)$"), re.compile(r"^Merge
 COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r"(?P<id>\S+)") + "$")
                    for message in close_stage.MESSAGES.values()]
 # Messages later commands write, read from the constants that own them so a reworded commit can't drift past the replay.
-# Only `{id}` is a session id; `{app}` and the voice rewrite's page id match any one word.
+# In close finish `{id}` is the session; `{app}` and the voice rewrite's page id match any one word.
 COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r"(?P<id>\S+)")
                               .replace(re.escape("{app}"), r"\S+") + "$") for message in closefinish.MESSAGES]
 COMMIT_GRAMMAR += [re.compile("^" + re.escape(voice_settle.REWRITE_MESSAGE).replace(re.escape("{id}"), r"\S+") + "$")]
+# A decision names its item (a release by its heading, so any words), never the session.
+COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r".+") + "$")
+                   for message in decide.MESSAGES.values()]
 
 
 def git(vault, *args):
