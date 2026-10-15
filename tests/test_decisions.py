@@ -115,7 +115,7 @@ def test_bare_non_yes_words_come_from_closegate():
 
 
 def test_unknown_kind_refused_plainly():
-    module, refusal = decisions.kind_module("agenda")  # in KINDS, no module built yet
+    module, refusal = decisions.kind_module("allocate")  # in KINDS, no module built (the kind was dropped)
     assert module is None and refusal.plain == "I can't file that kind of decision yet."
     module, refusal = decisions.kind_module("frobnicate")
     assert module is None and "kind of decision" in refusal.plain and refusal.fix and refusal.override
@@ -126,7 +126,7 @@ def test_kind_module_with_a_broken_import_is_a_bug_not_not_yet(monkeypatch):
         raise ModuleNotFoundError("No module named 'yaml'", name="yaml")
     monkeypatch.setattr(decisions.importlib, "import_module", boom)
     with pytest.raises(ModuleNotFoundError):
-        decisions.kind_module("agenda")
+        decisions.kind_module("allocate")
 
 
 def test_kinds_and_module_names():
