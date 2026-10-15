@@ -200,7 +200,12 @@ checkout the run folder sits in, or this repo, and the notes say which). It read
 - **Wrong or reused IDs**: check's reuse codes, IDs that carried two names in the vault's history, and IDs said to
   the lead that the vault never had.
 - **The final vault**: pages, items by kind and state, unknowns with an Ask line, contracts with case tables, flows
-  drawn, slices, captures, ledger rows, and words of detail per page type and per item.
+  drawn, slices, captures, ledger rows, and words of detail per page type and per item. It is read from the arm's
+  `origin/main`, in a temporary clone, because that is what the next session and the team pull; the branch the
+  last session left checked out can be far behind (the 2026-10-14 mid-point ended 21 commits behind main). The
+  report names the ref it scored and how the working tree stood against it. A run with no origin to read is scored
+  from its working tree, and the verdict is marked provisional for it. Completeness, `check` and `capture` run on
+  the same clone, so the run folder is never written to.
 
 Missing data is never read as zero: a figure it couldn't read is `missing (<why>)`, and its delta is `n/a`.
 

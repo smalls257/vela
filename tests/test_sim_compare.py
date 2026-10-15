@@ -7,6 +7,7 @@ Every run here is built in tmp_path from a few pages and a transcript. Nothing c
 """
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 
@@ -157,3 +158,47 @@ def test_a_close_run_through_a_variable_skips_no_step(tmp_path):
         "today's close skill says `vela render`; its steps are still asked for"
     assert close["skipped_steps"] == 0, close["per_close"]
     assert report["detail"]["baseline"]["close"]["skipped_steps"] == len(close["expected_steps"]) - 1
+
+
+# ------------------------------------------------------------------ the final vault is origin/main
+
+UNKNOWNS = "---\ntype: unknowns\n---\n# Unknowns\n\n## Open\n\n{}"
+UNKNOWN = "### UNK-{n:03d} Question {n}\n\nWhat is {n}?\n\n- **State:** open\n- **Ask:** @cio\n\n"
+
+
+def unknowns_page(count):
+    return {"11-unknowns-and-risks.md": UNKNOWNS.format("".join(UNKNOWN.format(n=n) for n in range(1, count + 1)))}
+
+
+def test_the_final_vault_is_scored_from_origin_main_not_a_stale_branch(tmp_path):
+    """The 2026-10-14 mid-point ended on a dashboard branch 21 commits behind main and read as thinner for it."""
+    base, mid = tmp_path / "base", tmp_path / "mid"
+    make_run(base, "vela", [("lead", "Hi."), ("assistant", "Noted.")], pages=unknowns_page(3))
+    vault = make_run(mid, "vela", [("lead", "Hi."), ("assistant", "Noted.")], pages=unknowns_page(1))
+    git(vault, "switch", "-q", "-c", "dashboard/stale")
+    git(vault, "switch", "-q", "main")
+    write_pages(vault, unknowns_page(3))
+    git(vault, "commit", "-q", "-am", "two more unknowns")
+    git(vault, "push", "-q", "origin", "main")
+    git(vault, "switch", "-q", "dashboard/stale")
+    done, report = run_tool(base, mid)
+    assert report["midpoint"]["vault_scored"].startswith("origin/main at ")
+    assert report["midpoint"]["vault_working_tree"] == "dashboard/stale: 1 commits behind origin/main, 0 ahead"
+    rows = {r["measure"]: r for r in report["rows"]["Final vault"]}
+    assert rows["Unknowns"]["midpoint"] == 3 and rows["Unknowns"]["status"] == "same", "the stale branch has only 1"
+    assert rows["Unknowns with an Ask line"]["status"] == "same"
+    assert "Scored: the baseline's origin/main at" in done.stdout
+    assert (vault / "11-unknowns-and-risks.md").read_text(encoding="utf-8").count("### UNK-") == 1, \
+        "the run's own vault is read, never switched"
+
+
+def test_a_run_with_no_origin_is_scored_from_its_working_tree_and_says_so(tmp_path):
+    base, mid = tmp_path / "base", tmp_path / "mid"
+    make_run(base, "vela", [("lead", "Hi."), ("assistant", "Noted.")])
+    vault = make_run(mid, "vela", [("lead", "Hi."), ("assistant", "Noted.")])
+    git(vault, "remote", "remove", "origin")
+    shutil.rmtree(mid / "vela" / "origin.git")
+    _, report = run_tool(base, mid)
+    assert report["midpoint"]["vault_scored"] == "working tree on main"
+    assert any("not origin/main" in n for n in report["midpoint"]["notes"])
+    assert any("working tree, not origin/main" in p for p in report["verdict"]["provisional"])

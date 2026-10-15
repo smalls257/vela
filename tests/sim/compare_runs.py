@@ -204,13 +204,13 @@ class Run:
                 full[e["turn"]] = [{"name": t.get("name"), "input": t.get("input", "")} for t in e.get("tool_calls") or []]
         return full
 
-    def run_cli(self, *args):
+    def run_cli(self, vault, *args):
         if self.cli is None:
             return None, f"no plugin/scripts/vela (or planner) in {self.checkout}"  # legacy-name
-        if not self.vault.is_dir():
+        if not vault.is_dir():
             return None, "the arm has no vault/"
         try:
-            done = subprocess.run([sys.executable, str(self.cli), *args, "--vault", str(self.vault)],
+            done = subprocess.run([sys.executable, str(self.cli), *args, "--vault", str(vault)],
                                   capture_output=True, text=True, timeout=CLI_TIMEOUT)
         except subprocess.TimeoutExpired:
             return None, f"{' '.join(args)} timed out after {CLI_TIMEOUT}s"
@@ -556,8 +556,75 @@ def kind_of(item_id):
     return item_id.split("-")[0]
 
 
-def vault_section(run):
-    vault = run.vault
+# ------------------------------------------------------------------ the shared vault, not the working tree
+
+GIT_TIMEOUT = 120
+
+
+class Scored:
+    """The copy of a run's vault that is scored: where it is, the ref it holds, and where the working tree stood.
+    `shared` is False when no origin could be read and the working tree is scored instead, which the verdict says."""
+
+    def __init__(self, path, ref, working_tree, shared, why=""):
+        self.path, self.ref, self.working_tree, self.shared, self.why = path, ref, working_tree, shared, why
+
+
+def git_out(cwd, *args):
+    """(exit code, stdout, stderr) of a git command that only reads `cwd`'s sources; hooks off."""
+    try:
+        done = subprocess.run(["git", "-c", "core.hooksPath=/dev/null", *args], cwd=cwd, capture_output=True,
+                              text=True, errors="replace", timeout=GIT_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return 124, "", f"git {args[0]} took more than {GIT_TIMEOUT}s"
+    return done.returncode, done.stdout, done.stderr
+
+
+def origin_of(run):
+    """(the arm's shared repo, why not): its own origin.git, which a copied run folder carries, else the vault's
+    origin remote when that path still exists."""
+    own = run.arm / "origin.git"
+    if own.is_dir():
+        return own, ""
+    code, out, _ = git_out(run.vault, "remote", "get-url", "origin")
+    if code != 0:
+        return None, "the arm has no origin.git and the vault no origin remote"
+    path = pathlib.Path(out.strip())
+    return (path, "") if path.exists() else (None, f"the vault's origin {path} doesn't exist any more")
+
+
+def scoring_copy(run, workdir):
+    """A clone of the arm's origin with origin/main checked out, and the vault's own branches fetched in as local/*
+    so the history scan still sees work never pushed. The final vault is what the next session and the team would
+    pull, not whatever branch the last session left checked out: the 2026-10-14 mid-point ended on a dashboard
+    branch 21 commits behind main, without the handoff, and read as thinner for it."""
+    code, out, _ = git_out(run.vault, "branch", "--show-current")
+    branch = out.strip() if code == 0 and out.strip() else "(detached or no git)"
+    origin, why = origin_of(run)
+    if origin is not None:
+        clone = workdir / "vault"
+        steps = [(workdir, "clone", "-q", "--no-hardlinks", "--no-checkout", str(origin), str(clone)),
+                 (clone, "fetch", "-q", str(run.vault.resolve()), "+refs/heads/*:refs/remotes/local/*"),
+                 (clone, "checkout", "-q", "--detach", "origin/main")]
+        for cwd, *args in steps:
+            code, _, err = git_out(cwd, *args)
+            if code != 0:
+                why = f"git {args[0]} failed: {err.strip()[:160]}"
+                break
+        else:
+            sha = git_out(clone, "rev-parse", "--short", "HEAD")[1].strip()
+            code, counts, _ = git_out(clone, "rev-list", "--left-right", "--count", f"origin/main...local/{branch}")
+            if code == 0 and len(counts.split()) == 2:
+                behind, ahead = counts.split()
+                tree = f"{branch}: {behind} commits behind origin/main, {ahead} ahead"
+            else:
+                tree = f"{branch} (not compared with origin/main)"
+            return Scored(clone, f"origin/main at {sha}", tree, True)
+    run.notes.append(f"the final vault is the working tree on {branch}, not origin/main, because {why}")
+    return Scored(run.vault, f"working tree on {branch}", branch, False, why)
+
+
+def vault_section(run, scored):
+    vault = scored.path
     if not vault.is_dir():
         return {"missing": "the arm has no vault/"}
     pages, items, defined = {}, {}, set()
@@ -633,9 +700,8 @@ def vault_section(run):
         for st, n in states.items():
             by_state[st] = by_state.get(st, 0) + n
     unk_states = unknowns.get("by_state", {})
-    branch = subprocess.run(["git", "branch", "--show-current"], cwd=vault, capture_output=True, text=True).stdout.strip()
     return {
-        "branch": branch or "(detached or no git)",
+        "scored_ref": scored.ref, "working_tree": scored.working_tree, "scored_from_origin": scored.shared,
         "pages_total": sum(p["pages"] for p in pages.values()),
         "pages_by_type": {k: v["pages"] for k, v in sorted(pages.items())},
         "words_by_type": {k: v["words"] for k, v in sorted(pages.items())},
@@ -661,10 +727,10 @@ def vault_section(run):
     }
 
 
-def cli_section(run):
-    """Completeness, check findings and capture counts, printed by the run's own checkout."""
+def cli_section(run, vault):
+    """Completeness, check findings and capture counts, printed by the run's own checkout on the scored vault."""
     out = {}
-    done, err = run.run_cli("status")
+    done, err = run.run_cli(vault, "status")
     if err:
         out["completeness"] = missing(err)
     else:
@@ -672,7 +738,7 @@ def cli_section(run):
         out["completeness"] = (int(m.group(1)) if m and done.returncode == 0 else
                                missing(f"planner status exit {done.returncode}, no Completeness line"))
         out["completeness_line"] = m.group(0) if m else missing("no Completeness line")
-    done, err = run.run_cli("check")
+    done, err = run.run_cli(vault, "check")
     if err:
         out["check"] = missing(err)
     else:
@@ -682,7 +748,7 @@ def cli_section(run):
             counts[c] = counts.get(c, 0) + 1
         out["check"] = {"exit": done.returncode, "errors": sum(1 for c in codes if c[0] == "E"),
                         "warnings": sum(1 for c in codes if c[0] == "W"), "by_code": dict(sorted(counts.items()))}
-    done, err = run.run_cli("capture", "--json")
+    done, err = run.run_cli(vault, "capture", "--json")
     if err:
         out["capture"] = missing(err)
     elif done.returncode != 0:
@@ -702,15 +768,14 @@ REUSE_CODES = ("E108", "E204", "E208", "E210")
 NAMED_ID = re.compile(rf"\b{ID_TOKEN}\b")
 
 
-def ids_section(run, vault, cli):
+def ids_section(run, scored, vault, cli):
     if "missing" in vault:
         return {"missing": vault["missing"]}
     defined = set(vault["_defined_ids"])
     names = {}
-    log = subprocess.run(["git", "log", "--all", "-p", "--unified=0", "--no-color", "--", "*.md"],
-                         cwd=run.vault, capture_output=True, text=True, errors="replace")
-    history = log.returncode == 0
-    for line in log.stdout.splitlines():
+    code, log, _ = git_out(scored.path, "log", "--all", "-p", "--unified=0", "--no-color", "--", "*.md")
+    history = code == 0
+    for line in log.splitlines():
         m = ITEM_HEADING.match(line[1:]) if line.startswith("+") and not line.startswith("+++") else None
         if m:
             defined.add(m.group(2))
@@ -1016,6 +1081,8 @@ def verdict(rows, b, m):
     for r, name in ((b, "baseline"), (m, "mid-point")):
         if not r["finished"]:
             provisional.append(f"the {name} run is not finished")
+        if not r.get("vault_shared", True):
+            provisional.append(f"the {name} run's final vault is its working tree, not origin/main (see its notes)")
     return {"verdict": word, "why": why, "thinned": thinned, "reliability_worse": worse, "provisional": provisional}
 
 
@@ -1042,7 +1109,7 @@ def render_md(report):
         lines += ["Provisional, because:"] + [f"- {p}" for p in v["provisional"]] + [""]
     lines += ["The plan's own gate table (8.3) reads these rows:"] + [f"- {p}" for p in report["plan_gate"]] + [""]
     lines += ["## The runs", "", "| | Baseline | Mid-point |", "|---|---|---|"]
-    for key in ("run_dir", "checkout", "script", "arm", "finished", "vault_branch"):
+    for key in ("run_dir", "checkout", "script", "arm", "finished", "vault_scored", "vault_working_tree"):
         lines.append(f"| {key} | {show(b.get(key))} | {show(m.get(key))} |")
     lines.append("")
     for name, r in (("Baseline", b), ("Mid-point", m)):
@@ -1051,7 +1118,11 @@ def render_md(report):
     if report["like_with_like"]:
         lines += ["**Not like with like:**"] + [f"- {n}" for n in report["like_with_like"]] + [""]
     for group, rows in report["rows"].items():
-        lines += [f"## {group}", ""] + md_table(rows) + [""]
+        lines += [f"## {group}", ""]
+        if group == "Final vault":
+            lines += [f"Scored: the baseline's {b['vault_scored']} (its working tree: {b['vault_working_tree']}); the "
+                      f"mid-point's {m['vault_scored']} (its working tree: {m['vault_working_tree']}).", ""]
+        lines += md_table(rows) + [""]
         if group.startswith("Scorecard"):
             f = report["flips"]
             lines += ([f"- Brief items: {show(f)}"] if is_missing(f) else
@@ -1112,14 +1183,17 @@ def render_md(report):
 def measure(label, run_dir, arm, checkout, notes=()):
     run = Run(label, run_dir, arm, checkout)
     run.notes[:0] = list(notes)
-    vault = vault_section(run)
-    cli = cli_section(run)
+    with tempfile.TemporaryDirectory(prefix="compare-runs-") as workdir:
+        scored = scoring_copy(run, pathlib.Path(workdir))
+        vault = vault_section(run, scored)
+        cli = cli_section(run, scored.path)
+        ids = ids_section(run, scored, vault, cli)
     data = {"sessions": sessions_section(run), "scorecard": scorecard_section(run), "voice": voice_section(run),
             "close": close_section(run), "consent": consent_section(run), "vault": vault, "cli": cli,
-            "ids": ids_section(run, vault, cli), "finished": run.finished}
+            "ids": ids, "finished": run.finished, "vault_shared": scored.shared}
     info = {"run_id": run_dir.name, "run_dir": str(run_dir), "checkout": str(checkout), "arm": arm,
             "script": run.run_json.get("script") if not is_missing(run.run_json) else run.run_json,
-            "finished": run.finished, "vault_branch": vault.get("branch", missing(vault.get("missing", "?"))),
+            "finished": run.finished, "vault_scored": scored.ref, "vault_working_tree": scored.working_tree,
             "notes": run.notes}
     return data, info
 
