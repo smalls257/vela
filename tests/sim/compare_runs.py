@@ -765,7 +765,18 @@ def cli_section(run, vault):
 # ------------------------------------------------------------------ IDs: reused or guessed
 
 REUSE_CODES = ("E108", "E204", "E208", "E210")
-NAMED_ID = re.compile(rf"\b{ID_TOKEN}\b")
+# A question-ledger ID: a catalog copy (Q-DAT-01, Q-DAT-01@INI-001) or a reviewer question (R-FIN-06). Matched whole,
+# so its tail (DAT-01, FIN-06) is never read as an ID of its own: those tails were 13 of the mid-point's 27 "guessed".
+LEDGER_ID = r"[QR]-[A-Z]{2,4}-\d{2,3}"
+NAMED_ID = re.compile(rf"(?<![\w-])(?:{LEDGER_ID}|{ID_TOKEN})(?!\w)")
+# Vela's own item families, defined by a heading or a page id: one of these said to the lead and never defined is a
+# guess. Any other family (a ledger row, a source, a goal, the team's D-001 or OQ-011) is defined in a table or a
+# document of its own shape, so it counts as known when the vault's history holds that exact ID anywhere.
+VELA_FAMILIES = {"UNK", "CAP", "CON", "EPC", "FLO", "SLC", "ADR", "APP", "PTY", "SV", "EVT", "ENT", "R"}
+
+
+def id_family(item_id):
+    return "ledger" if re.fullmatch(LEDGER_ID, item_id) else item_id.split("-")[0]
 
 
 def ids_section(run, scored, vault, cli):
@@ -776,16 +787,23 @@ def ids_section(run, scored, vault, cli):
     code, log, _ = git_out(scored.path, "log", "--all", "-p", "--unified=0", "--no-color", "--", "*.md")
     history = code == 0
     for line in log.splitlines():
+        # A page or a table row defined on any branch, merged or not, as vault_section reads them on the final vault.
+        page_id = re.match(r"^\+id:\s*['\"]?([^\s'\"]+)|^\+\|\s*\[?\[?([A-Z]{1,4}-?\d+(?:\.FR\d+)?)", line)
+        if page_id:
+            defined.add(page_id.group(1) or page_id.group(2))
         m = ITEM_HEADING.match(line[1:]) if line.startswith("+") and not line.startswith("+++") else None
         if m:
             defined.add(m.group(2))
             names.setdefault(m.group(2), set()).add(re.sub(r"\W+", " ", m.group(3)).strip().lower())
     many_names = {i: sorted(n) for i, n in names.items() if len({x for x in n if x}) > 1}
+    held = {m.group(0) for text in [log, *(t for _, t in vault_files(scored.path))] for m in NAMED_ID.finditer(text)}
     named = {}
     for e in run.assistant_turns():
         for m in NAMED_ID.finditer(e.get("text") or ""):
             named.setdefault(m.group(0), []).append(e["turn"])
-    guessed = {i: t[:5] for i, t in sorted(named.items()) if i not in defined and not i.startswith(("SRC-", "CST-"))}
+    known = lambda i: i in defined if id_family(i) in VELA_FAMILIES else i in held
+    guessed = {i: t[:5] for i, t in sorted(named.items()) if not known(i)}
+    by_held = sorted(i for i in named if id_family(i) not in VELA_FAMILIES and i in held and i not in defined)
     check = cli.get("check")
     reused = (missing(check["missing"]) if is_missing(check)
               else sum(check["by_code"].get(c, 0) for c in REUSE_CODES))
@@ -794,6 +812,7 @@ def ids_section(run, scored, vault, cli):
             "ids_with_more_than_one_name": len(many_names) if history else missing("vault git log failed"),
             "ids_with_more_than_one_name_list": {k: v[:3] for k, v in list(many_names.items())[:10]},
             "ids_named_to_lead_but_never_defined": len(guessed), "guessed_list": dict(list(guessed.items())[:15]),
+            "ids_known_from_the_vaults_own_documents": len(by_held), "known_from_documents_list": by_held[:20],
             "next_id_calls": next_id_calls}
 
 
@@ -927,8 +946,10 @@ def compare(b, m, threshold):
         better="lower", kind="reliability")
     add("Wrong or reused IDs", "IDs that carried more than one name in the vault's history", I("ids_with_more_than_one_name"),
         better="lower", kind="reliability")
-    add("Wrong or reused IDs", "IDs said to the lead that no page ever defined (guessed, or from outside the vault)", I("ids_named_to_lead_but_never_defined"),
+    add("Wrong or reused IDs", "IDs said to the lead that the vault never had (guessed, or from outside the vault)", I("ids_named_to_lead_but_never_defined"),
         better="lower", kind="reliability")
+    add("Wrong or reused IDs", "IDs said to the lead from the vault's own documents (ledger, sources, team docs)",
+        I("ids_known_from_the_vaults_own_documents"))
     add("Wrong or reused IDs", "planner next-id calls", I("next_id_calls"))
 
     P = lambda *p: (lambda r: section_missing(r["consent"], p))
@@ -1147,6 +1168,9 @@ def render_md(report):
                 if c["guessed_list"]:
                     lines.append(f"- {name} IDs said with no definition (turns): " + "; ".join(
                         f"{i} (T{', T'.join(map(str, t))})" for i, t in c["guessed_list"].items()))
+                if c.get("known_from_documents_list"):
+                    lines.append(f"- {name} IDs said from the vault's own documents, not counted as guessed: "
+                                 + ", ".join(c["known_from_documents_list"]))
                 if c["ids_with_more_than_one_name_list"]:
                     lines.append(f"- {name} IDs with more than one name: " + "; ".join(
                         f"{i}: {' / '.join(n)}" for i, n in c["ids_with_more_than_one_name_list"].items()))

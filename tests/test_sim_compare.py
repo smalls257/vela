@@ -202,3 +202,29 @@ def test_a_run_with_no_origin_is_scored_from_its_working_tree_and_says_so(tmp_pa
     assert report["midpoint"]["vault_scored"] == "working tree on main"
     assert any("not origin/main" in n for n in report["midpoint"]["notes"])
     assert any("working tree, not origin/main" in p for p in report["verdict"]["provisional"])
+
+
+# ------------------------------------------------------------------ IDs said with no definition
+
+def test_a_ledger_rows_tail_is_not_an_id_and_the_vaults_own_families_count_as_known(tmp_path):
+    """13 of the 2026-10-14 mid-point's 27 "guessed" IDs were tails of R-DAT-02 and Q-DAT-01@INI-001, and the
+    baseline's design-doc D-001 counted as a guess too. A real guess (APP-desktop-agent for APP-agent) still counts."""
+    said = ("The open ones are R-DAT-02 and R-FIN-06, and Q-DAT-01@INI-001 is answered. The design's D-001 covers the "
+            "cadence, and SRC-01 is the source. Run design for APP-desktop-agent. OQ-085 is open. UNK-001 is open, "
+            "and UNK-077 is new.")
+    pages = {**unknowns_page(1),
+             "11-unknowns-and-risks.md": unknowns_page(1)["11-unknowns-and-risks.md"]
+             + "## Question ledger\n\n| Copy | State | Answer |\n|---|---|---|\n| R-DAT-02 | open | - |\n"
+               "| R-FIN-06 | open | - |\n| Q-DAT-01@INI-001 | answered | yes |\n",
+             "sources.md": "---\ntype: sources\n---\n# Sources\n\n| ID | Title |\n|---|---|\n| SRC-01 | The brief |\n",
+             "docs/tech-design/agent.md": "# Agent design\n\nThe read cadence (D-001) is measured on the pilot.\n",
+             "05-building-blocks/APP-agent.md": "---\nid: APP-agent\ntype: app\n---\n# Agent\n\nThe desk agent.\n"}
+    base, mid = tmp_path / "base", tmp_path / "mid"
+    make_run(base, "vela", [("lead", "Hi."), ("assistant", "Noted.")], pages=pages)
+    make_run(mid, "vela", [("lead", "Hi."), ("assistant", said)], pages=pages)
+    _, report = run_tool(base, mid)
+    ids = report["detail"]["midpoint"]["ids"]
+    assert set(ids["guessed_list"]) == {"APP-desktop-agent", "OQ-085", "UNK-077"}, ids["guessed_list"]
+    assert {"DAT-02", "FIN-06", "DAT-01"}.isdisjoint(ids["guessed_list"])
+    assert set(ids["known_from_documents_list"]) == {"R-DAT-02", "R-FIN-06", "Q-DAT-01", "INI-001", "D-001"}, \
+        "SRC-01 is defined by its register row, so it is neither guessed nor only held"

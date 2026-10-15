@@ -198,7 +198,11 @@ checkout the run folder sits in, or this repo, and the notes say which). It read
 - **Consent before push**: each push needs a lead turn earlier in the session that asked for it, or a yes to an
   assistant question about it; the ones it can't match are listed by turn.
 - **Wrong or reused IDs**: check's reuse codes, IDs that carried two names in the vault's history, and IDs said to
-  the lead that the vault never had.
+  the lead that the vault never had. A question-ledger ID is read whole, so the tail of `R-DAT-02` or
+  `Q-DAT-01@INI-001` is not an ID of its own. Vela's own families (UNK, CAP, CON, EPC, FLO, SLC, ADR, APP, PTY, SV,
+  EVT, ENT, R) need a heading, a page id or a table row on some branch; any other family (ledger rows, sources,
+  goals, the team's D-001 or OQ-011) counts as known when the vault's history holds that exact ID, and is listed
+  apart.
 - **The final vault**: pages, items by kind and state, unknowns with an Ask line, contracts with case tables, flows
   drawn, slices, captures, ledger rows, and words of detail per page type and per item. It is read from the arm's
   `origin/main`, in a temporary clone, because that is what the next session and the team pull; the branch the
