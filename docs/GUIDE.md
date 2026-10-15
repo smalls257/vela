@@ -64,17 +64,38 @@ python3 tools/package_plugin.py --out ~/Desktop/vela-plugin.zip
 
 The command prints `claude plugin validate passed` (if `claude` is on your PATH) and `package_plugin: ... written, 176 entries`. It packages what is committed at `HEAD`, not your working tree; add `--ref <commit>` for another commit. Then upload the file.
 
-Every skill works in Cowork: reading, asking, drafting and proposing. The skills call `scripts/vela` rather than `bin/` for this reason.
+Every skill runs in Cowork. The skills call `scripts/vela` rather than `bin/` for this reason.
 
-One thing may not work. The dashboard's live "Ask Claude" box needs a `claude` command on the machine's PATH. Without one, the dashboard still opens and searches, and when you type a question it offers the question as a prompt to copy. Paste that into Cowork's own chat, or use `/vela:ask <question>` or `/vela:find <words>`, which need no helper.
+#### What works in Cowork
 
-In Cowork, keep the private workspace inside the working folder, because that is the only place Cowork keeps:
+`/vela:where` checks what a host gives a session, tells you what that means for your work, and offers a table to send to the plugin's maintainer. Run it once in Cowork. A run there showed:
+
+- Python 3.13, git 2.43, `gh` 2.89 and the network all work, so an owner can run sessions in Cowork, close included.
+- Cowork doesn't run a skill's `!` lines, and it leaves the plugin's folder variables empty. The skills find vela under `~/.claude/plugins/synced/<id>/vela/` instead, so there's nothing for you to do.
+
+Three things haven't been checked there yet. The full table from `/vela:where` answers the first two:
+
+- **Plugin hooks run.** If it says no, nothing changes for you: close checks everything itself, and the vault's CI still holds every rule.
+- **Only the working folder keeps files between sessions.** If it says yes, or couldn't tell, keep everything in the working folder, the private workspace included (below). A file Vela left outside it won't be there next time.
+- **Skill flags.** `/vela:where` asks you to try one thing: in a fresh chat, ask Claude to capture an idea without typing `/vela:dump`. If dump starts by itself, Cowork ignores the flag that keeps a mode from starting on its own. Start each mode by typing its command, and stop one that starts when you didn't ask.
+
+#### When to close in Claude Code instead
+
+Close in Claude Code when `/vela:where` says so. If the network or `gh` doesn't work in your Cowork (a company network, or `gh` isn't signed in there), Vela tells you when a session starts, once `/vela:where` has run in that folder: "I can file the session here, but I can't send it." Work as usual, then open Claude Code in the same folder and type `/vela:close` to send it. If git doesn't run at all, Cowork is for reading and drafting: your drafts reach the vault as a proposal, and the owner applies it in Claude Code with `/vela:proposals`.
+
+#### The dashboard's Ask box
+
+The dashboard's live "Ask Claude" box needs a `claude` command on the machine's PATH. Without one, the dashboard still opens and searches, and when you type a question it offers the question as a prompt to copy. Paste that into Cowork's own chat, or use `/vela:ask <question>` or `/vela:find <words>`, which need no helper.
+
+#### A reader's workspace
+
+In Cowork, keep the private workspace inside the working folder, because Cowork may keep nothing else between sessions:
 
 ```
 /vela:open <published zip> --into vela-workspaces/<initiative-slug>
 ```
 
-(Claude adds the `--into` for you.) Owners need git, so owners work in the CLI.
+(Claude adds the `--into` for you.)
 
 ## 2. Owners
 
