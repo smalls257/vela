@@ -32,8 +32,8 @@ vault:                         # in a vault; left out standalone
 
 ## Status
 
-- `complete`: the self-audit (`NEG-AUDIT.md`) is clean, and every review finding (`REVIEW-CHECKPOINT.md`) was answered, deferred or ruled not applicable.
-- `complete-with-gaps`: a finding is left as an open question, or the senior accepted a problem instead of fixing it. Each one is a `gaps[]` entry. A downstream skill reads `gaps[]` and carries it forward, so `complete` is never written over an accepted gap.
+- `complete`: the self-audit (`${CLAUDE_PLUGIN_ROOT}/references/NEG-AUDIT.md`) is clean, and every review finding (`REVIEW-CHECKPOINT.md`) was answered, deferred or ruled not applicable.
+- `complete-with-gaps`: a finding is left as an open question, or the team lead accepted a problem instead of fixing it. Each one is a `gaps[]` entry. A downstream skill reads `gaps[]` and carries it forward, so `complete` is never written over an accepted gap.
 - `in-progress`: anything else.
 
 ## Writing a gap

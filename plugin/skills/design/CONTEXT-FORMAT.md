@@ -13,7 +13,7 @@ Create it when the first term settles, add each term as it settles, and say so w
 ~~~markdown
 # Project Context
 
-> The <app> design's own terms. The initiative's terms are in the vault's glossary, 12-glossary.md, which owns them.
+> The <app> design's own terms. The initiative's terms are in the glossary of the <initiative> planning vault (as of <date in words>), which owns them.
 
 ## Glossary
 
@@ -34,3 +34,5 @@ Create it when the first term settles, add each term as it settles, and say so w
 ~~~
 
 Only terms that mean something in the domain belong here, not class names.
+
+Cite the vault by name and date, "the Heron planning vault (as of October 12)", never by its ID and commit.
