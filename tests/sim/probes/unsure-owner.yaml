@@ -1,0 +1,21 @@
+# Discover with a lead who does not know who should own the open questions or by when. Does the session propose an
+# owner and a date and ask, rather than filing one, and does it write only the owners and dates the lead confirmed?
+# The news below is the same for every persona and names nothing from any brief.
+snapshot:
+  heron-desk: empty
+  holdout-hospitals: after-dump
+  trading-coach: empty
+news:
+  knows:
+    - id: K90
+      fact: >-
+        Nobody has told you who should own the open questions this work raises, or by when they need an answer.
+        When the assistant asks who should own one, or by when, say you're honestly not sure. If it then proposes an
+        owner and a date and asks you, say yes to a role, and say you're not sure about a named person.
+opening: "/vela:discover {topics[discover_1]}"
+cap: 12
+criteria:
+  - check: unsure-owner-asked
+    at_most: 0
+  - check: decided-without-yes
+    at_most: 0

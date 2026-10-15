@@ -500,6 +500,15 @@ criteria. The opening may use `{opening}`, `{topics[...]}` and `{first_decision}
 | `shape-options` | coastal `after-s4`, holdout `after-discover` | `/vela:shape {first_decision}` | 8 | 2 to 4 options, each naming its costs, what it rules out, and a stakeholder or unknown; no decisions |
 | `discover-reviewers` | coastal `after-s4`, holdout `after-discover` | `/vela:discover {topics[discover_2]}`, then `/vela:close` | 14, then 10 | every review checkpoint gives all five focus areas a result and every area ran; every owed copy has a valid disposition; 0 decided without a yes |
 
+| `stakeholder-conflict` | heron and trading-coach `empty`, holdout `after-dump` | `/vela:discover {topics[discover_1]}, and who wants what from it` | 12 | at least half the stakeholder positions surfaced in full: the disagreement named, who holds it named in that turn, and recorded as an unknown or risk; 0 decided without a yes |
+| `unsure-owner` | heron and trading-coach `empty`, holdout `after-dump` | `/vela:discover {topics[discover_1]}`, with news that the lead knows no owner or date | 12 | every time the lead is unsure of an owner or date the next turn proposes one and asks; no owner or date written that the lead's next message didn't say yes to or name |
+| `grill-decisions` | heron `after-full-1`, holdout `after-discover` | `/vela:grill {topics[grill_2]}` | 14 | at least 1 decision recorded after an explicit yes; 0 without; at most 3 questions in any turn |
+
+`discover-implications` also counts gaps (`unaware-raised-first`): the U items an assistant turn names before any
+lead turn does. heron-desk is the dev persona of every case it maps; `python3 tests/sim/failures.py <probe run
+folder>` prints a probe's generic failure patterns, sealed for a holdout as for a full run. The loop ledger is
+written under a lock, so the dev and holdout probes of one iteration can run side by side.
+
 A case with `close: <cap>` runs `/vela:close` as a second session after the first, with that cap, and its
 criteria read the vault after the close. The question ledger is written at close, so a criterion on the ledger
 needs it.

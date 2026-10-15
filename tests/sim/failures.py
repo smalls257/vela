@@ -19,6 +19,7 @@ unless --reveal is given. The iteration loop reads patterns from the dev persona
 
 Usage:
   python3 tests/sim/failures.py <run-dir> [--arm vela] [--reveal] [--out FILE]
+  python3 tests/sim/failures.py <probe-run-dir> [--reveal] [--out FILE]   (a folder holding probe.json)
   python3 tests/sim/run.py --failures <run-dir> [--reveal]
 It reads only, calls nothing and costs nothing. Exit 0 printed; 2 the run can't be read, or a term survived redaction.
 """
@@ -231,16 +232,26 @@ def read_precision(arm_dir):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def report(run, card, precision, sealed, why):
-    lines = [f"# Failure patterns: {run.dir.name}", "",
+def probe_scores(record):
+    """A probe run's criteria, as probe.py printed them: counts and categories only, never an item."""
+    lines = ["## Scores", "", f"- probe {record.get('case')}: ended {record.get('ending')} after "
+             f"{record.get('assistant_turns')} assistant turns"]
+    for row in record.get("criteria") or []:
+        lines.append(f"- {'PASS' if row.get('passed') else 'FAIL'} {row.get('check')}: {row.get('summary')}")
+    return lines + [""]
+
+
+def report(run, card, precision, sealed, why, probe=None):
+    lines = [f"# Failure patterns: {run.arm.name if probe is not None else run.dir.name}", "",
              "Generic patterns for skill authors. Nothing here names a key item, says which ones were missed, or "
              "quotes the run: read the turns listed to see the behavior, and fix the behavior, not the case.", ""]
-    lines += scores(card, precision)
+    lines += probe_scores(probe) if probe is not None else scores(card, precision)
     if sealed:
         lines += [f"Sealed: {why}. Scores only; the patterns are printed for a dev persona, or with --reveal.", ""]
         return "\n".join(lines)
     patterns = [unsure_filed(run), too_many_questions(run), long_turns(run), lead_corrected(run), codes_to_lead(run)]
-    patterns += scorecard_patterns(run.scorecard) + consent_patterns(run) + close_patterns(run)
+    if probe is None:
+        patterns += scorecard_patterns(run.scorecard) + consent_patterns(run) + close_patterns(run)
     found = [p for p in patterns if p.where]
     lines += ["## What went wrong, by behavior", ""]
     lines += [p.line() for p in sorted(found, key=lambda p: -len(p.where))] or ["- no pattern found"]
@@ -277,6 +288,8 @@ def parse_args(argv):
 def main(argv=None):
     args = parse_args(argv)
     run_dir = args.run.resolve()
+    if (run_dir / "probe.json").is_file():
+        return probe_main(args, run_dir)
     arm = compare.stored_arm(run_dir, args.arm)
     if arm is None or not (run_dir / "run.json").is_file():
         print(f"failures: {run_dir} is not a run folder with a {args.arm!r} arm", file=sys.stderr)
@@ -287,6 +300,21 @@ def main(argv=None):
     locked, why = seal.sealed(summary.get("persona"))
     card = compare.scorecard_section(run)
     text = report(run, card, read_precision(run.arm), locked and not args.reveal, why)
+    return emit(text, args)
+
+
+def probe_main(args, run_dir):
+    """A probe run folder (tests/sim/probe.py) is its own arm: transcript.jsonl, raw/ and vault/ sit in it, and
+    probe.json holds the persona and the blind criteria summaries. A holdout persona's probe is sealed the same way."""
+    record = json.loads((run_dir / "probe.json").read_text(encoding="utf-8"))
+    checkout = compare.checkout_for(None, run_dir, [])
+    run = compare.Run("probe", run_dir.parent, run_dir.name, checkout)
+    locked, why = seal.sealed(record.get("persona"))
+    text = report(run, None, None, locked and not args.reveal, why, probe=record)
+    return emit(text, args)
+
+
+def emit(text, args):
     try:
         text, count = redacted(text, seal.persona_terms())
     except RuntimeError as exc:
