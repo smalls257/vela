@@ -555,9 +555,10 @@ class Transcript:
             path.write_text("", encoding="utf-8")
 
     @classmethod
-    def load(cls, path):
+    def load(cls, path, need_spoken=True):
         """An existing run's transcript, read and never rewritten. A transcript with no spoken turn has nothing to
-        score, so it is refused rather than scored as a run where nothing happened."""
+        score, so it is refused rather than scored as a run where nothing happened, unless the caller only needs to
+        know how far the arm got."""
         if not path.is_file():
             raise ToolFailure(f"{path} does not exist")
         entries = []
@@ -572,7 +573,7 @@ class Transcript:
                 raise ToolFailure(f"{path} line {n} is not a transcript entry")
             entries.append(entry)
         transcript = cls(path, entries)
-        if not transcript.spoken():
+        if need_spoken and not transcript.spoken():
             raise ToolFailure(f"{path} holds no spoken turns, so there is nothing to judge")
         return transcript
 
@@ -986,6 +987,121 @@ def merge_closed(vault, arm_dir):
     return reports
 
 
+# ------------------------------------------------------------------ reading a run back, to resume it
+
+TURNS_IN_TEXT = re.compile(r"after (\d+) assistant turns")
+
+
+def first_unfinished(entries, count):
+    """The first script session with no session-end, or count + 1 when every session ended. A session skipped for
+    budget has no session-end, so a resume with more money plays it."""
+    ended = {e.get("session") for e in entries if e.get("event") == "session-end"}
+    return next((i for i in range(1, count + 1) if i not in ended), count + 1)
+
+
+def endings_in(entries):
+    """One ending per session that ended, as Arm.endings holds them. A transcript written before session-end carried
+    its turn count gives it in the text."""
+    out = {}
+    for e in entries:
+        if e.get("event") != "session-end":
+            continue
+        turns = e.get("turns")
+        if turns is None:
+            found = TURNS_IN_TEXT.search(e.get("text") or "")
+            turns = int(found.group(1)) if found else 0
+        out[e["session"]] = {"session": e["session"], "mode": e.get("mode"), "reason": e.get("reason"), "turns": turns}
+    return [out[k] for k in sorted(out)]
+
+
+def spend_by_session(entries):
+    """{session: (usd, exact)}. A session-end that carries its cost is exact. Otherwise the cost is summed from the
+    turns: each claude session's last running total, plus every lead reply. That is a floor: the reply that ended
+    the session is not in the transcript, nor is a call cut off before it answered."""
+    ended, running, persona = {}, {}, {}
+    for e in entries:
+        session = e.get("session")
+        if not isinstance(session, int) or session < 1:
+            continue
+        if e.get("event") == "session-end" and "cost_usd" in e:
+            ended[session] = float(e["cost_usd"])
+        elif e["speaker"] == "assistant" and e.get("session_id"):
+            key = (session, e["session_id"])
+            running[key] = max(running.get(key, 0.0), float(e.get("cost_usd") or 0))
+        elif e["speaker"] == "lead" and not e.get("scripted"):
+            persona[session] = persona.get(session, 0.0) + float(e.get("cost_usd") or 0)
+    sessions = set(ended) | {s for s, _ in running} | set(persona)
+    return {s: (ended[s], True) if s in ended
+            else (sum(v for (t, _), v in running.items() if t == s) + persona.get(s, 0.0), False) for s in sessions}
+
+
+def carry_in(entries, index):
+    """How session `index` was left when a run stopped inside it, or None when it never started: the claude session
+    to go on in, the assistant turns so far, who speaks next, the message the assistant is owed, and what the turns
+    so far cost. When the lead spoke last, the assistant call that should have answered never returned, so the same
+    message is sent again."""
+    starts = [n for n, e in enumerate(entries) if e.get("event") == "session-start" and e.get("session") == index]
+    if not starts:
+        return None
+    attempt = [e for e in entries[starts[-1] + 1:] if e.get("session") == index]
+    spoken = [e for e in attempt if e["speaker"] in ("lead", "assistant")]
+    assistants = [e for e in spoken if e["speaker"] == "assistant"]
+    if not spoken:
+        raise ToolFailure(f"session {index} started but its scripted opening is not in the transcript, so it can't go on")
+    session_id = assistants[-1].get("session_id") if assistants else None
+    last = spoken[-1]
+    return {"session_id": session_id, "turns": len(assistants),
+            "next": "persona" if last["speaker"] == "assistant" else "assistant",
+            "message": last["text"] if last["speaker"] == "lead" else None,
+            "running": max([float(e.get("cost_usd") or 0) for e in assistants if e.get("session_id") == session_id] or [0.0]),
+            "cost": spend_by_session(attempt).get(index, (0.0, False))[0]}
+
+
+def check_script_matches(script, entries):
+    """A script edited since the run would resume a different run. Every session the transcript started must still
+    be the same mode at the same place in the script."""
+    sessions = script["sessions"]
+    for e in entries:
+        if e.get("event") != "session-start":
+            continue
+        index = e.get("session")
+        if not isinstance(index, int) or not 1 <= index <= len(sessions) or sessions[index - 1]["mode"] != e.get("mode"):
+            now = sessions[index - 1]["mode"] if isinstance(index, int) and 1 <= index <= len(sessions) else "not in the script"
+            raise ToolFailure(f"the script has changed since the run: session {index} was {e.get('mode')} and is now {now}")
+
+
+def news_so_far(persona, script, entries, applied):
+    """The lead as the news that reached them so far left them: the script's opening news, then every news entry in
+    the transcript, in order. An entry written before the news rode along with it is matched to the script's event
+    for that session, else to the next file in news-inbox/applied, in name order; when neither is left the news
+    can't be told, so the resume stops rather than give the lead a different brief."""
+    persona = with_news(persona, script.get("news"))
+    events = {e["after"]: {k: v for k, v in e.items() if k != "after"} for e in script.get("events") or []}
+    live = sorted(applied.glob("*.yaml")) if applied.is_dir() else []
+    for e in entries:
+        if e.get("event") != "news":
+            continue
+        if "news" in e:
+            news = e["news"]
+        elif e.get("session", 0) - 1 in events:
+            news = events.pop(e["session"] - 1)
+        elif live:
+            news = yaml.safe_load(live.pop(0).read_text(encoding="utf-8")) or {}
+        else:
+            raise ToolFailure(f"the transcript says news arrived before session {e.get('session')}, and neither the "
+                              f"script nor news-inbox/applied holds it")
+        persona = with_news(persona, news)
+    return persona
+
+
+def vault_state(repo):
+    """What a person picking the work back up would look at first: the branch, and what is not committed."""
+    branch = git("rev-parse", "--abbrev-ref", "HEAD", cwd=repo, check=False).stdout.strip() or "unknown"
+    dirty = [line for line in git("status", "--porcelain", cwd=repo, check=False).stdout.splitlines() if line.strip()]
+    return f"The repo is on {branch} with {len(dirty)} uncommitted change{'s' if len(dirty) != 1 else ''}" + (
+        ": " + ", ".join(line[3:] for line in dirty[:5]) + (" and more" if len(dirty) > 5 else "") if dirty else "") + "."
+
+
 # ------------------------------------------------------------------ sessions
 
 class Arm:
@@ -1011,11 +1127,19 @@ class Arm:
         self.transcript = Transcript(self.dir / "transcript.jsonl")
         self.session_costs = {}
         self.repos, self.extra_personas = {}, {}
+        self.through = 0  # the last script session whose cost is in the ledger, so a resume adds only what came after
+        self.arrived = set()  # sessions whose scripted news already reached the lead, so a resume does not send it twice
+        self.finish_failure = None  # what went wrong writing the arm's pages, recorded beside the summary, never raised
+        self.resume_from = None  # (first session, carry) when the arm goes on from an earlier run's folder
+        # The ledger as it stood when session `through` ended, and whether a session is under way. run.json's spent_usd
+        # holds only ended sessions (and judging); a session under way is open_session_usd beside it, so a resume that
+        # re-reads that session's turns from the transcript does not count them twice.
+        self.mark, self.in_session = 0.0, False
 
     @classmethod
     def reopen(cls, name, run_dir, args, persona, share, record):
-        """An arm of a finished run, for --rejudge. It reads the transcript and the vault and writes nothing but new
-        raw judge files, numbered after the run's own so none is overwritten."""
+        """An arm of an earlier run, read back from its folder: for --rejudge, which writes nothing but new raw judge
+        files numbered after the run's own, and for --resume-run, which then restores it to go on playing."""
         arm = cls.__new__(cls)
         arm.name, arm.args, arm.persona = name, args, persona
         arm.dir = run_dir / name
@@ -1023,13 +1147,19 @@ class Arm:
         if not arm.vault.is_dir():
             raise ToolFailure(f"{arm.vault} does not exist, so there is no final vault to judge")
         arm.ledger = Ledger(share)
-        arm.calls = len(list((arm.dir / "raw").glob("*.txt")))
+        # Numbered after the highest raw file, not their count: a file lost or never written would make a count
+        # reuse a number, and the new call would overwrite an old call's record.
+        numbers = [int(m.group(1)) for f in (arm.dir / "raw").glob("*.txt") if (m := re.match(r"(\d+)-", f.name))]
+        arm.calls = max(numbers or [0])
         arm.endings = record.get("endings") or []
         arm.notes, arm.failure, arm.scorecard, arm.judge_calls = [], None, None, []
         arm.judge_cuts = {}
         arm.capture_expect = {}
         arm.completeness_gate = None
         arm.extra_personas = {}
+        arm.merge_prs, arm.repos, arm.session_costs = True, {}, {}
+        arm.through, arm.arrived, arm.finish_failure, arm.resume_from = 0, set(), None, None
+        arm.mark, arm.in_session = 0.0, False
         arm.prior_spent = float(record.get("spent_usd") or 0)
         arm.env = arm_env(arm.dir, args.stub)
         (arm.dir / "persona-cwd").mkdir(exist_ok=True)
@@ -1103,34 +1233,50 @@ class Arm:
             raise ToolFailure(f"the persona call {error_in_words(result)}. Read {raw}")
         return result
 
-    def run_session(self, index, session):
+    def run_session(self, index, session, carry=None):
+        """Play one script session to its end. `carry` is a session an earlier, interrupted run left part-way (see
+        carry_in): it goes on from its last turn, in the same claude session, instead of being paid for again."""
         mode, cap = session["mode"], session["cap"]
-        self.transcript.add(speaker="driver", session=index, mode=mode, event="session-start",
-                            text=f"Session {index}: {mode}, cap {cap} assistant turns")
         speaker_persona, speaker = self.persona_for(session)
         cwd = self.repos[session["repo"]] if session.get("repo") else self.vault
-        message, session_id, turns = opening(session, self.name, speaker_persona), None, 0
-        self.transcript.add(speaker="lead", session=index, mode=mode, text=message, cost_usd=0, scripted=True,
-                            persona=speaker)
+        spent_before = self.ledger.spent
+        if carry is None:
+            self.transcript.add(speaker="driver", session=index, mode=mode, event="session-start",
+                                text=f"Session {index}: {mode}, cap {cap} assistant turns")
+            message, session_id, turns = opening(session, self.name, speaker_persona), None, 0
+            self.transcript.add(speaker="lead", session=index, mode=mode, text=message, cost_usd=0, scripted=True,
+                                persona=speaker)
+            ask_persona, carried = False, 0.0
+        else:
+            message, session_id, turns = carry["message"], carry["session_id"], carry["turns"]
+            ask_persona, carried = carry["next"] == "persona", carry["cost"]
+            if session_id:
+                self.session_costs[session_id] = carry["running"]
+            self.transcript.add(speaker="driver", session=index, mode=mode, event="session-continued",
+                                text=f"Session {index} goes on after the interruption, from turn {turns} "
+                                     f"({'the lead answers next' if ask_persona else 'the assistant answers next'}"
+                                     f"{', in the same claude session' if session_id else ''}). {vault_state(cwd)}")
         reason = None
         while reason is None:
-            if self.ledger.session_room() < MIN_CALL_USD:
-                reason = "budget"
-                break
-            parsed, result = self.assistant_turn(message, session_id, cwd)
-            session_id, turns = result["session_id"], turns + 1
-            self.transcript.add(speaker="assistant", session=index, mode=mode, text=parsed["text"],
-                                cost_usd=result["total_cost_usd"], tool_calls=parsed["tools"],
-                                session_id=session_id, resumed=turns > 1,
-                                permission_denials=result.get("permission_denials", []),
-                                unparsed_lines=parsed["unparsed"])
-            if parsed["subagent_text"]:
-                self.transcript.add(speaker="subagent", session=index, mode=mode, text=parsed["subagent_text"],
-                                    cost_usd=0)
-            self.log(f"S{index} {mode} assistant turn {turns}")
-            if budget_stop(result) or self.ledger.session_room() < MIN_CALL_USD:
-                reason = "budget"
-                break
+            if not ask_persona:
+                if self.ledger.session_room() < MIN_CALL_USD:
+                    reason = "budget"
+                    break
+                parsed, result = self.assistant_turn(message, session_id, cwd)
+                session_id, turns = result["session_id"], turns + 1
+                self.transcript.add(speaker="assistant", session=index, mode=mode, text=parsed["text"],
+                                    cost_usd=result["total_cost_usd"], tool_calls=parsed["tools"],
+                                    session_id=session_id, resumed=turns > 1,
+                                    permission_denials=result.get("permission_denials", []),
+                                    unparsed_lines=parsed["unparsed"])
+                if parsed["subagent_text"]:
+                    self.transcript.add(speaker="subagent", session=index, mode=mode, text=parsed["subagent_text"],
+                                        cost_usd=0)
+                self.log(f"S{index} {mode} assistant turn {turns}")
+                if budget_stop(result) or self.ledger.session_room() < MIN_CALL_USD:
+                    reason = "budget"
+                    break
+            ask_persona = False
             reply = self.persona_turn(index, mode, speaker_persona, speaker)
             if budget_stop(reply):
                 reason = "budget"
@@ -1145,9 +1291,11 @@ class Arm:
             elif turns >= cap:
                 reason = "turn-cap"
             message = text
+        # The session's whole cost, the reply that ended it included, so a resume reads spend from the transcript exactly.
+        cost = round(carried + self.ledger.spent - spent_before, 4)
         self.endings.append({"session": index, "mode": mode, "reason": reason, "turns": turns})
         self.transcript.add(speaker="driver", session=index, mode=mode, event="session-end", reason=reason,
-                            text=f"Session {index} ended: {reason} after {turns} assistant turns")
+                            turns=turns, cost_usd=cost, text=f"Session {index} ended: {reason} after {turns} assistant turns")
         if mode == "close" and self.merge_prs:
             for report in merge_closed(self.vault, self.dir):
                 self.transcript.add(speaker="driver", session=index, mode=mode, event="merge", text=report)
@@ -1175,7 +1323,12 @@ class Arm:
         self.transcript.add(speaker="driver", session=index, mode=mode, event="tickets",
                             text=f"Tickets from the breakdown, written to tickets/: {said}")
 
-    def run(self, script):
+    def run(self, script, progress=None):
+        self.setup(script)
+        self.play(script, progress=progress)
+
+    def setup(self, script):
+        """A new arm's vault, origin, team repos and skills. Nothing here is a paid call."""
         self.persona = with_news(self.persona, script.get("news"))
         self.merge_prs = script.get("merge_prs", True)
         if script.get("start"):
@@ -1192,20 +1345,48 @@ class Arm:
         if script.get("vault_skills"):
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup",
                                 text=f"the team's skills in the vault: {', '.join(script['vault_skills'])}; their sessions run from the vault root")
+
+    def play(self, script, first=1, carry=None, progress=None):
+        """The script's sessions from `first` on; `carry` is how an interrupted session `first` was left. `progress`
+        is called after every session, so run.json never trails the transcript by more than one session."""
         events = {e["after"]: e for e in script.get("events") or []}
         inbox = self.dir / "news-inbox"
         (inbox / "applied").mkdir(parents=True, exist_ok=True)
         for index, session in enumerate(script["sessions"], 1):
-            if index - 1 in events:
+            if index < first:
+                continue
+            if index - 1 in events and index not in self.arrived:
                 self.arrive(index, session["mode"], events[index - 1])
             self.arrive_live(index, session["mode"], inbox)
             if self.ledger.session_room() < MIN_CALL_USD:
                 self.endings.append({"session": index, "mode": session["mode"], "reason": "not run: budget", "turns": 0})
                 self.transcript.add(speaker="driver", session=index, mode=session["mode"], event="session-skipped",
                                     text=f"Session {index} ({session['mode']}) not run: the session budget is spent")
-                continue
-            self.run_session(index, session)
+            else:
+                self.in_session = True
+                self.run_session(index, session, carry if index == first else None)
+            self.through, self.mark, self.in_session = index, self.ledger.spent, False
+            if progress:
+                progress()
         self.report_explorer()
+
+    def restore(self, script, base_persona, record):
+        """A reopened arm made ready to go on playing: the lead as the news so far left them, the endings, the notes
+        and the team repos, all read back from the arm's own transcript and folder. Returns (first, carry): the first
+        session with no end, and how it was left when it had started (None when it had not)."""
+        entries = self.transcript.entries
+        check_script_matches(script, entries)
+        self.merge_prs = script.get("merge_prs", True)
+        self.repos = {name: self.dir / f"team-{name}" for name in script.get("team_repos") or {}}
+        self.persona = news_so_far(base_persona, script, entries, self.dir / "news-inbox" / "applied")
+        self.arrived = {e["session"] for e in entries if e.get("event") == "news"}
+        first = first_unfinished(entries, len(script["sessions"]))
+        self.endings = [e for e in endings_in(entries) if e["session"] < first]
+        explorer = {e["text"] for e in entries if e.get("event") == "explorer"}
+        setup = [e["text"] for e in entries if e.get("event") == "setup"]
+        self.notes = [n for n in record.get("notes") or setup if n not in explorer]
+        self.through = first - 1
+        return first, carry_in(entries, first)
 
     def report_explorer(self):
         """Say whether the tool left an explorer page in the vault, and what design and plan it holds. The page is the
@@ -1233,7 +1414,8 @@ class Arm:
         said = [f"facts {', '.join(k['id'] for k in news.get('knows') or [])}" if news.get("knows") else "",
                 f"documents {', '.join(d['name'] for d in news.get('docs') or [])}" if news.get("docs") else "",
                 f"decision changes {', '.join(d['id'] for d in news.get('decisions') or [])}" if news.get("decisions") else ""]
-        self.transcript.add(speaker="driver", session=index, mode=mode, event="news",
+        # The news itself rides along, so a resumed run can give the lead exactly what they had heard.
+        self.transcript.add(speaker="driver", session=index, mode=mode, event="news", news=news,
                             text=f"News arrives after session {event['after']}: " + "; ".join(s for s in said if s))
 
     def arrive_live(self, index, mode, inbox):
@@ -2435,7 +2617,17 @@ def render_compare(run_id, persona, arms):
 
 
 def finish_arm(arm):
-    """Everything an arm leaves for the reader, written even when the arm failed part-way."""
+    """Everything an arm leaves for the reader, written even when the arm failed part-way. A failure here is
+    recorded on the arm and printed, never raised: on 2026-10-14 transcript.html raised after every session had run,
+    and the run lost its summary, per_arm and all."""
+    try:  # nosemgrep: broad-except-not-reraised -- any page-writer bug; recorded in run.json, and the run exits 2
+        write_arm_pages(arm)
+    except Exception as exc:
+        arm.finish_failure = f"writing the arm's pages failed: {type(exc).__name__}: {exc}"
+        print(f"[{arm.name}] {arm.finish_failure}", file=sys.stderr)
+
+
+def write_arm_pages(arm):
     (arm.dir / "transcript.html").write_text(render_transcript(arm.name, arm.transcript.entries), encoding="utf-8")
     vault = getattr(arm, "vault", None)
     if vault is None or not (vault / ".git").exists():
@@ -2465,10 +2657,24 @@ def parse_args(argv):
     parser.add_argument("--out", default=str(RESULTS), help="results folder; the run gets its own folder inside")
     parser.add_argument("--rejudge", metavar="RUN_DIR",
                         help="score a finished run again from its transcript.jsonl and vault/, without replaying it")
+    parser.add_argument("--resume-run", metavar="RUN_DIR",
+                        help="go on with a run that stopped part-way, from each arm's first session with no end; "
+                             "--budget is then the new total cap")
     parser.add_argument("--dry-judge", metavar="RUN_DIR",
                         help="print the size of every judge input of a finished run and what was cut; calls nothing, costs nothing")
     args = parser.parse_args(argv)
     if args.dry_judge:
+        return args
+    if args.resume_run:
+        # The run fixed these; taking them again would let one run mix two models or two scripts.
+        given = [name for name, value in (("<persona>", args.persona), ("--model", args.model),
+                                          ("--persona-model", args.persona_model), ("--judge-model", args.judge_model),
+                                          ("--script", args.script), ("--arms", args.arms), ("--stub", args.stub)) if value]
+        if given:
+            parser.error(f"--resume-run reads the persona, models, script, arms and --stub from the run's run.json; "
+                         f"drop {', '.join(given)}")
+        if args.budget is not None and args.budget <= 0:
+            parser.error("--budget must be more than 0")
         return args
     missing = [name for name, value in (("--judge-model", args.judge_model), ("--budget", args.budget)) if value is None]
     if missing:
@@ -2497,8 +2703,9 @@ def parse_args(argv):
     return args
 
 
-def load_run(run_dir):
-    """run.json of a finished run, with what --rejudge needs from it. A missing field is a broken run, not a default."""
+def load_run(run_dir, needs=("persona", "models", "per_arm")):
+    """run.json of an earlier run, with the fields the caller needs from it (by default what --rejudge needs). A
+    missing field is a broken run, not a default."""
     summary_path = run_dir / "run.json"
     if not summary_path.is_file():
         raise ToolFailure(f"{summary_path} does not exist, so {run_dir} is not a run folder")
@@ -2506,7 +2713,7 @@ def load_run(run_dir):
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ToolFailure(f"{summary_path} is not JSON: {exc}") from exc
-    lacks = [key for key in ("persona", "models", "per_arm") if not summary.get(key)]
+    lacks = [key for key in needs if not summary.get(key)]
     if lacks:
         raise ToolFailure(f"{summary_path} lacks {', '.join(lacks)}")
     return summary
@@ -2573,6 +2780,204 @@ def rejudge(args):
     report_gate(arms)
     print(f"Rejudged for ${record['spent_usd']:.2f} of ${args.budget:.2f}. Results: {run_dir}")
     return record["exit"]
+
+
+# ------------------------------------------------------------------ resume
+
+RESUME_REFUSED = 5
+
+
+def preflight_spent(run_dir, summary, notes):
+    """What the run's judge preflights cost so far: run.json says, or, for a run that stopped before saying, the
+    raw replies in judge-preflight/raw do."""
+    if summary.get("preflight_usd") is not None:
+        return float(summary["preflight_usd"])
+    raws = sorted((run_dir / "judge-preflight" / "raw").glob("*.txt"))
+    total = 0.0
+    for raw in raws:
+        try:
+            total += float(json.loads(raw.read_text(encoding="utf-8").split("\n--- stderr ---")[0]).get("total_cost_usd") or 0)
+        except (json.JSONDecodeError, AttributeError, TypeError, ValueError):
+            notes.append(f"judge-preflight/raw/{raw.name} does not parse, so its cost is not counted")
+    if raws:
+        notes.append(f"run.json had no preflight_usd; ${total:.2f} rebuilt from {len(raws)} preflight replies")
+    return total
+
+
+def prior_spend(name, entries, record, scorecard, first, notes):
+    """(closed, open): what the arm spent on the sessions before `first` and on judging, and what the turns of
+    session `first` and later already cost. run.json's per_arm holds the closed part up to through_session; the
+    rest is read from the transcript. A run.json with no per_arm (a crash before the summary, as on 2026-10-14) has
+    it all rebuilt from the transcript and the scorecard's judge spend, and says so."""
+    sessions = spend_by_session(entries)
+    later = sum(usd for s, (usd, _) in sessions.items() if s >= first)
+    if record and record.get("spent_usd") is not None:
+        through = record.get("through_session")
+        if through is None:  # a summary written once at the end covers every session it lists
+            through = max(sessions or [0])
+        gap = sum(usd for s, (usd, _) in sessions.items() if through < s < first)
+        if gap or later:
+            notes.append(f"{name}: ${gap + later:.2f} of turns after session {through}, which run.json had not counted, "
+                         f"read from transcript.jsonl beside its ${float(record['spent_usd']):.2f}")
+        return float(record["spent_usd"]) + gap, later
+    judged = float((scorecard or {}).get("judge_usd") or 0)
+    closed = sum(usd for s, (usd, _) in sessions.items() if s < first) + judged
+    floor = not all(exact for _, exact in sessions.values())
+    notes.append(f"{name}: run.json had no per_arm (the run stopped before its summary), so the ${closed + later:.2f} "
+                 f"spent so far is rebuilt from transcript.jsonl" + (" and scorecard.json's judge spend" if scorecard else "")
+                 + ("; it is a floor, since a transcript written before session-end carried its cost leaves out the "
+                    "lead reply that ended each session" if floor else ""))
+    return closed, later
+
+
+def typical_costs(arms):
+    """(mean cost of a session that ended with at least one turn, mean judge spend of a scorecard), each None when
+    the run has none to go by."""
+    sessions, judges = [], []
+    for arm in arms:
+        spend = spend_by_session(arm.transcript.entries)
+        sessions += [spend[e["session"]][0] for e in endings_in(arm.transcript.entries)
+                     if e["turns"] and e["session"] in spend]
+        if arm.scorecard and arm.scorecard.get("judge_usd"):
+            judges.append(float(arm.scorecard["judge_usd"]))
+    mean = lambda xs: sum(xs) / len(xs) if xs else None  # noqa: E731
+    return mean(sessions), mean(judges)
+
+
+def resume_shortfall(budget, overhead, arms, session_usd, judge_usd):
+    """(problems, the --budget that would cover them). `arms` is (name, spent so far, has sessions to play, needs
+    judging). An arm with sessions left needs room for one typical session under its share less the judge's reserve,
+    and, when an arm of the run has been judged, room after it for one typical judging too: a session paid for and
+    then left unjudged is the waste this check exists to stop. An arm left only to judge needs a typical judging.
+    With nothing to go by, nothing is refused."""
+    share = (budget - overhead) / len(arms)
+    problems, need = [], 0.0
+    for name, prior, plays, scores in arms:
+        if plays and session_usd:
+            judging = judge_usd or 0.0
+            room = min(share * (1 - JUDGE_RESERVE) - prior, share - prior - judging)
+            need = max(need, (prior + session_usd) / (1 - JUDGE_RESERVE), prior + session_usd + judging)
+            if room < session_usd:
+                problems.append(f"the {name} arm has ${max(room, 0):.2f} of session room left (its ${share:.2f} share, "
+                                f"less ${prior:.2f} spent, less " + (f"${judging:.2f} for judging" if judging else
+                                f"the judge's {JUDGE_RESERVE:.0%}") + f"), and a session has cost ${session_usd:.2f} on average")
+        elif scores and judge_usd:
+            room = share - prior
+            need = max(need, prior + judge_usd)
+            if room < judge_usd:
+                problems.append(f"the {name} arm has ${max(room, 0):.2f} left to judge with, and judging has cost "
+                                f"${judge_usd:.2f}")
+        else:
+            need = max(need, prior)
+    return problems, round(overhead + need * len(arms) + 0.005, 2)
+
+
+def resume_run(args):
+    """Go on with a run that stopped part-way: a crash, a kill, a budget or a cap. Each arm picks up at its first
+    session with no end, with its own vault, origin, gh stub and news; an ended session is never played again, the
+    transcript is appended to, and the run is scored and finished as a new one would be. Exit 5 when --budget can't
+    cover one more typical session, before anything is spent or moved."""
+    run_dir = pathlib.Path(args.resume_run).resolve()
+    when = datetime.datetime.now()
+    notes = []
+    try:
+        summary = load_run(run_dir, needs=("persona", "models", "script", "arms", "budget_usd"))
+        persona, script = load_brief(summary["persona"], summary["script"])
+        args.model, args.persona_model, args.judge_model = (summary["models"].get(k) for k in ("assistant", "persona", "judge"))
+        args.stub, args.persona, args.script, args.arm_list = bool(summary.get("stub")), summary["persona"], summary["script"], summary["arms"]
+        records = summary.get("per_arm") or {}
+        plans = [plan_resume(run_dir, name, args, persona, script, records.get(name), notes) for name in summary["arms"]]
+    except ToolFailure as exc:
+        print(f"sim: {exc}", file=sys.stderr)
+        return 2
+    budget = args.budget or float(summary["budget_usd"])
+    preflight_prior = preflight_spent(run_dir, summary, notes)
+    overhead = preflight_prior * (1 if args.stub else 2)  # a paid resume sends the preflight again, for about the same
+    reopened = [plan["arm"] for plan in plans if plan["arm"]]
+    session_usd, judge_usd = typical_costs(reopened)
+    if session_usd is None and any(plan["plays"] for plan in plans):
+        print("[sim] no session of this run has ended yet, so --budget is not checked against a typical session",
+              file=sys.stderr)
+    if judge_usd is None:
+        print("[sim] no arm of this run has been judged yet, so --budget is checked against the judge's "
+              f"{JUDGE_RESERVE:.0%} reserve, not against what judging costs", file=sys.stderr)
+    problems, needed = resume_shortfall(budget, overhead, [(p["name"], p["prior"], p["plays"], p["scores"]) for p in plans],
+                                        session_usd, judge_usd)
+    if problems:
+        print(f"sim: --resume-run refused, nothing was spent: with --budget {budget:.2f} (already spent "
+              f"${preflight_prior + sum(p['prior'] for p in plans):.2f}), " + "; ".join(problems)
+              + f". Resume with --budget {needed:.2f} or more.", file=sys.stderr)
+        return RESUME_REFUSED
+    for plan in plans:
+        print(f"[{plan['name']}] {plan['said']}", file=sys.stderr)
+    base = {k: v for k, v in summary.items() if k not in ("exit", "preflight")}
+    base["run_id"] = base.get("run_id") or run_dir.name
+    base["budget_usd"] = budget
+    base["notes"] = list(summary.get("notes") or []) + notes
+    base["resumes"] = list(summary.get("resumes") or []) + [
+        {"at": when.isoformat(), "budget_usd": budget, "from": {p["name"]: p["said"] for p in plans}}]
+    base["per_arm"] = records  # each arm's own line replaces its old one after its first session here
+    write_summary(run_dir, base, [], preflight_prior)
+    preflight_new, stop = preflight_or_stop(args, run_dir, {**base, "preflight_usd": preflight_prior})
+    if stop is not None:
+        return stop
+    preflight_usd = preflight_prior + preflight_new
+    share = (budget - preflight_usd) / len(plans)
+    openers = []
+    for plan in plans:
+        if plan["arm"]:
+            plan["arm"].ledger.share = share
+            openers.append(lambda arm=plan["arm"]: arm)
+        else:
+            openers.append(fresh_after(plan, run_dir, args, persona, share, script, when))
+    return run_arms(args, run_dir, base, persona, script, openers, preflight_usd)
+
+
+def fresh_after(plan, run_dir, args, persona, share, script, when):
+    """An arm that never started a session is built anew. Its folder, if setup left one, is kept aside, not
+    deleted: setup costs nothing, so nothing is lost by starting it over."""
+    open_new = new_arm(plan["name"], run_dir, args, persona, share, script)
+
+    def open_arm():
+        folder = run_dir / plan["name"]
+        if folder.exists():
+            folder.rename(run_dir / f"{plan['name']}.set-aside-{when:%Y%m%d-%H%M%S}")
+        return open_new()
+    return open_arm
+
+
+def plan_resume(run_dir, name, args, persona, script, record, notes):
+    """What resuming one arm means: {name, arm (reopened, or None to build anew), prior spend, plays (has sessions
+    to play), scores (needs judging), said (one line for the reader)}. Nothing here writes, so a refused resume
+    leaves the run as it was."""
+    folder = run_dir / name
+    transcript = folder / "transcript.jsonl"
+    entries = Transcript.load(transcript, need_spoken=False).entries if transcript.is_file() else []
+    if not any(e.get("event") == "session-start" for e in entries):
+        said = ("never started a session; built anew" + (", its setup folder set aside" if folder.exists() else ""))
+        return {"name": name, "arm": None, "prior": 0.0, "plays": True, "scores": True, "said": said}
+    arm = Arm.reopen(name, run_dir, args, persona, 0.0, record or {})
+    first, carry = arm.restore(script, persona, record or {})
+    arm.capture_expect = script.get("capture") or {}
+    arm.completeness_gate = script.get("completeness_gate")
+    for session in script["sessions"][:first]:  # the outsiders who spoke so far, so the judge reads their facts
+        arm.persona_for(session)
+    card_path = folder / "scorecard.json"
+    count = len(script["sessions"])
+    card = json.loads(card_path.read_text(encoding="utf-8")) if card_path.is_file() else None
+    if first > count and card is not None:
+        arm.scorecard = card  # every session ended and it was judged: finished again, never paid for twice
+    arm.prior_spent = 0.0
+    arm.mark, opened = prior_spend(name, arm.transcript.entries, record, card, first, notes)
+    arm.ledger.spent, arm.in_session = arm.mark + opened, opened > 0
+    arm.resume_from = (first, carry)
+    if first > count:
+        said = "every session ended; " + ("scored already, so only its pages are written again" if card else "judged now")
+    else:
+        said = (f"goes on from session {first} ({script['sessions'][first - 1]['mode']})"
+                + (f", inside it at turn {carry['turns']}" if carry else ""))
+    return {"name": name, "arm": arm, "prior": arm.ledger.spent, "plays": first <= count, "scores": card is None or first <= count,
+            "said": said}
 
 
 # ------------------------------------------------------------------ judge preflight
@@ -2697,12 +3102,102 @@ def run_exit(failed, early, under_gate):
     return 2 if failed else 3 if under_gate else 1 if early else 0
 
 
+def arm_record(arm):
+    """An arm's line in run.json's per_arm. spent_usd holds every session up to through_session and any judging;
+    open_session_usd is what the session under way when this was written had cost, which a resume reads back from
+    the transcript instead."""
+    closed = arm.mark if arm.in_session else arm.ledger.spent
+    return {"spent_usd": round(arm.prior_spent + closed, 4), "open_session_usd": round(arm.ledger.spent - closed, 4),
+            "through_session": arm.through, "endings": arm.endings, "failure": arm.failure,
+            "finish_failure": arm.finish_failure, "notes": arm.notes}
+
+
+def write_summary(run_dir, base, arms, preflight_usd, exit_code=None):
+    """run.json as it stands: written after every session and at the end, so a run killed part-way still says what
+    it spent and how far each arm got. Arms this process has not reached keep the record they had. The file is
+    replaced whole, so a kill mid-write leaves the last good copy."""
+    per_arm = {**(base.get("per_arm") or {}), **{a.name: arm_record(a) for a in arms}}
+    spent = sum((r.get("spent_usd") or 0) + (r.get("open_session_usd") or 0) for r in per_arm.values())
+    summary = {**base, "spent_usd": round(preflight_usd + spent, 4),
+               "preflight_usd": round(preflight_usd, 4), "per_arm": per_arm}
+    if exit_code is not None:
+        summary["exit"] = exit_code
+    partial = run_dir / "run.json.partial"
+    partial.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    os.replace(partial, run_dir / "run.json")
+    return summary
+
+
+def run_arms(args, run_dir, base, persona, script, openers, preflight_usd):
+    """Play, score and finish each arm in turn; the one loop a new run and a resumed run share. `openers` gives each
+    arm only when its turn comes, so an arm a tool failure stops short of is never built. An arm opened with
+    `resume_from` (first, carry) goes on from there; one opened with its scorecard already set is only finished."""
+    arms, failed = [], False
+
+    def save(exit_code=None):
+        return write_summary(run_dir, base, arms, preflight_usd, exit_code)
+
+    for open_arm in openers:
+        arm = open_arm()
+        arms.append(arm)
+        try:
+            if arm.resume_from is None:
+                arm.run(script, progress=save)
+            elif arm.scorecard is None:
+                first, carry = arm.resume_from
+                arm.play(script, first, carry, progress=save)
+            if arm.scorecard is None:
+                arm.scorecard = score_arm(arm)
+                write_scorecard(arm)
+        except ToolFailure as exc:
+            arm.failure = f"tool failure: {exc}"
+            failed = True
+            print(f"[{arm.name}] {arm.failure}", file=sys.stderr)
+        finally:
+            finish_arm(arm)
+            failed = failed or bool(arm.finish_failure)
+            save()
+        if failed:
+            break
+    (run_dir / "compare.html").write_text(render_compare(base["run_id"], persona, arms), encoding="utf-8")
+    summary = save(run_exit(failed, any(a.early() for a in arms), gate_failures(arms)))
+    report_gate(arms)
+    print(f"Spent ${summary['spent_usd']:.2f} of ${base['budget_usd']:.2f}. Results: {run_dir}")
+    return summary["exit"]
+
+
+def new_arm(name, run_dir, args, persona, share, script):
+    def open_arm():
+        arm = Arm(name, run_dir, args, persona, share)
+        arm.capture_expect = script.get("capture") or {}
+        arm.completeness_gate = script.get("completeness_gate")
+        arm.resume_from = None
+        return arm
+    return open_arm
+
+
+def preflight_or_stop(args, run_dir, summary):
+    """(spent, exit code or None). A stub run skips the preflight."""
+    if args.stub:
+        return 0.0, None
+    spent, problems = judge_preflight(args, run_dir)
+    if problems:
+        print(f"sim: the {args.judge_model} judge failed its preflight, so no session ran (${spent:.2f} spent):\n  "
+              + "\n  ".join(problems), file=sys.stderr)
+        write_summary(run_dir, {**summary, "preflight": problems}, [], (summary.get("preflight_usd") or 0) + spent, 4)
+        return spent, 4
+    print(f"[sim] judge preflight passed for every category (${spent:.2f})", file=sys.stderr)
+    return spent, None
+
+
 def main(argv=None):
     args = parse_args(argv)
     if args.dry_judge:
         return dry_judge(args)
     if args.rejudge:
         return rejudge(args)
+    if args.resume_run:
+        return resume_run(args)
     try:
         persona, script = load_brief(args.persona, args.script)
     except ToolFailure as exc:
@@ -2711,56 +3206,18 @@ def main(argv=None):
     run_id = f"{datetime.datetime.now():%Y-%m-%d-%H%M%S}-{pathlib.Path(args.persona).stem}"
     run_dir = pathlib.Path(args.out).resolve() / run_id
     run_dir.mkdir(parents=True)
-    # Write run.json at the start with what's known, so a stopped run can be rescored with --rejudge
-    initial_summary = {"run_id": run_id, "persona": args.persona, "script": args.script, "arms": args.arm_list,
-                       "models": {"assistant": args.model, "persona": args.persona_model, "judge": args.judge_model},
-                       "budget_usd": args.budget, "stub": args.stub, "started": datetime.datetime.now().isoformat()}
-    (run_dir / "run.json").write_text(json.dumps(initial_summary, indent=2), encoding="utf-8")
-    preflight_usd = 0.0
-    if not args.stub:
-        preflight_usd, problems = judge_preflight(args, run_dir)
-        if problems:
-            message = (f"the {args.judge_model} judge failed its preflight, so no session ran "
-                       f"(${preflight_usd:.2f} spent):\n  " + "\n  ".join(problems))
-            print(f"sim: {message}", file=sys.stderr)
-            (run_dir / "run.json").write_text(json.dumps({**initial_summary, "spent_usd": round(preflight_usd, 4),
-                                                          "preflight": problems, "exit": 4}, indent=2),
-                                              encoding="utf-8")
-            return 4
-        print(f"[sim] judge preflight passed for every category (${preflight_usd:.2f})", file=sys.stderr)
+    # Written at the start with what's known, so a stopped run can be rescored with --rejudge or go on with --resume-run
+    base = {"run_id": run_id, "persona": args.persona, "script": args.script, "arms": args.arm_list,
+            "models": {"assistant": args.model, "persona": args.persona_model, "judge": args.judge_model},
+            "budget_usd": args.budget, "stub": args.stub, "started": datetime.datetime.now().isoformat()}
+    (run_dir / "run.json").write_text(json.dumps(base, indent=2), encoding="utf-8")
+    preflight_usd, stop = preflight_or_stop(args, run_dir, base)
+    if stop is not None:
+        return stop
+    write_summary(run_dir, base, [], preflight_usd)
     share = (args.budget - preflight_usd) / len(args.arm_list)
-    arms, failed = [], False
-    for name in args.arm_list:
-        arm = Arm(name, run_dir, args, persona, share)
-        arms.append(arm)
-        arm.capture_expect = script.get("capture") or {}
-        arm.completeness_gate = script.get("completeness_gate")
-        try:
-            arm.run(script)
-            arm.scorecard = score_arm(arm)
-            write_scorecard(arm)
-        except ToolFailure as exc:
-            arm.failure = f"tool failure: {exc}"
-            failed = True
-            print(f"[{name}] {arm.failure}", file=sys.stderr)
-        finally:
-            finish_arm(arm)
-        if failed:
-            break
-    (run_dir / "compare.html").write_text(render_compare(run_id, persona, arms), encoding="utf-8")
-    early = any(a.early() for a in arms)
-    # Load the initial run.json written at the start and update it with final results
-    initial_summary = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-    summary = {**initial_summary,
-               "spent_usd": round(preflight_usd + sum(a.ledger.spent for a in arms), 4),
-               "preflight_usd": round(preflight_usd, 4),
-               "per_arm": {a.name: {"spent_usd": round(a.ledger.spent, 4), "endings": a.endings,
-                                    "failure": a.failure, "notes": a.notes} for a in arms},
-               "exit": run_exit(failed, early, gate_failures(arms))}
-    (run_dir / "run.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    report_gate(arms)
-    print(f"Spent ${summary['spent_usd']:.2f} of ${args.budget:.2f}. Results: {run_dir}")
-    return summary["exit"]
+    openers = [new_arm(name, run_dir, args, persona, share, script) for name in args.arm_list]
+    return run_arms(args, run_dir, base, persona, script, openers, preflight_usd)
 
 
 if __name__ == "__main__":
