@@ -4,8 +4,10 @@ Every test that pins this text lives here, so the rewrite that changes it edits 
 Each section is headed by the file it came from and that file's reason.
 """
 import re
+import shlex
 
 from conftest import REPO
+from vela import cli
 
 PLUGIN = REPO / "plugin"
 
@@ -95,3 +97,30 @@ def test_dump_captures_a_yes_as_one_capture_that_starts_with_the_copy_id():
 def test_dump_asks_once_for_the_initiatives_short_name():
     text = (PLUGIN / "skills" / "dump" / "SKILL.md").read_text(encoding="utf-8")
     assert "asks once for the initiative's short name" in text
+
+
+# --- Overhaul Task 22g: `vela record add` numbers the captures; the conversation stays the skill's. No `vela checkpoint`
+# exists yet, so "checkpoint after about every ten" stays as written (no rule-deletion assert for it).
+
+
+DUMP = text("skills/dump/SKILL.md")
+
+
+def test_dump_names_only_commands_that_exist():
+    parser = cli.build_parser()
+    calls = re.findall(r"scripts/vela ([a-z][^`]*)`", DUMP) + re.findall(r"`vela ([a-z][^`]*)`", DUMP)
+    assert calls, "dump names no vela call"
+    for call in calls:
+        argv = shlex.split(re.sub(r"<[^<>]*>", "X", call))
+        _, extras = parser.parse_known_args(argv)
+        assert not extras, (call, extras)
+
+
+def test_capture_numbering_is_the_commands_not_the_models():
+    assert "record add --origin" in DUMP and "never number one yourself" in DUMP
+    assert not re.search(r"\^c(?:NN|\d)", DUMP)  # no hand arithmetic over ^cNN
+
+
+def test_dump_says_a_yes_to_the_lead_in_words():
+    assert "Noted: the plan holds money or points on customers' behalf." in DUMP
+    assert "noted, there is stored value" not in DUMP

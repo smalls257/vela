@@ -4,8 +4,10 @@ Every test that pins this text lives here, so the rewrite that changes it edits 
 Each section is headed by the file it came from and that file's reason.
 """
 import re
+import shlex
 
 from conftest import REPO, skill_text
+from vela import cli
 
 PLUGIN = REPO / "plugin"
 
@@ -87,7 +89,7 @@ def test_shape_offers_two_or_three_and_never_decides():
 def test_shape_fix_round():
     shape = text("skills/shape/SKILL.md")
     assert "`claude, from <name>`" in shape
-    assert "After close, run `/vela:grill <ID>`" in shape
+    assert "After close, run `/vela:grill <name>`" in shape and '"/vela:grill Desktop agent"' in shape
 
 
 # --- From tests/test_tracer_skills.py: The lead-side tracer guidance (S52, step 2): present in each skill, never a
@@ -106,3 +108,37 @@ def test_shape_never_makes_the_tracer_a_gate():
     for sentence in re.split(r"(?<=[.?!])\s+", read("skills/shape/SKILL.md")):
         if re.search(r"tracer", sentence, re.I):
             assert not re.search(r"\b(stop|stops|refuse|refuses|block|blocks|gate)\b", sentence, re.I), sentence
+
+
+# --- Overhaul Task 22g: options are captured through `vela record add`; options, the checkpoint "before options" and
+# what must be true stay the skill's.
+
+
+SHAPE = read("skills/shape/SKILL.md")
+
+
+def test_shape_names_only_commands_that_exist():
+    parser = cli.build_parser()
+    calls = re.findall(r"scripts/vela ([a-z][^`]*)`", SHAPE) + re.findall(r"`vela ([a-z][^`]*)`", SHAPE)
+    assert len(calls) >= 2, calls
+    for call in calls:
+        argv = shlex.split(re.sub(r"<[^<>]*>", "X", call))
+        _, extras = parser.parse_known_args(argv)
+        assert not extras, (call, extras)
+
+
+def test_shape_captures_its_options_through_the_numbering_command():
+    assert "vela record add --origin claude --tag thought" in SHAPE
+    assert not re.search(r"\^c(?:NN|\d)", SHAPE)
+
+
+def test_shape_says_grill_lower_case_and_states_in_words():
+    assert not re.search(r"\bGrill\b", SHAPE)
+    assert "keep the chosen one as not decided yet until a grill decides it" in SHAPE.split("---", 2)[1]
+    assert '"not decided yet"' in SHAPE
+
+
+def test_shape_shows_an_option_by_name_with_a_pick_and_why():
+    example = SHAPE.split("> **Agent on each laptop.**", 1)[1].split("\n", 1)[0]
+    assert "My pick:" in example and "(data)" in example
+    assert not re.search(r"\b(?:APP|CON|F\d|R-)", example)
