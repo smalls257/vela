@@ -2,7 +2,7 @@
 # The model may start close, on purpose: "we're done" or "switch to requirements" must be able to start it
 # without the lead typing /vela:close. The description's "Never start it unprompted" is the guard.
 name: close
-description: File the session when the lead says they're done ("close", "we're done", "switch to …"): notes into pages, prose in the house voice, then the branch sent for review after a yes. Never start it unprompted.
+description: 'File the session when the lead says they''re done ("close", "we''re done", "switch to …"): notes into pages, prose in the house voice, then the branch sent for review after a yes. Never start it unprompted.'
 argument-hint: "[session id, if more than one is open]"
 ---
 
@@ -34,7 +34,7 @@ Run `vela marks plan --json`. It gives every capture its default mark without as
 
 Ask the leftovers in one message: at most three items, each one plain sentence with your recommended answer. For example: "I'd write the 18 January slot down as a constraint, from your account. Right?" and "Nobody has said who could settle whether a call digest is a client record. I'd ask legal and chase it on 6 November. Is that the right person?" When more are left, say how many and offer them ("There are four more; want them?"). An unknown or a deferral Claude raised is never Claude's to keep or drop: the lead chooses.
 
-Capture each answer with `vela record add --origin <their handle> --tag <tag> "<their words>"` and point the draft's judgment field at that capture ("^c31"), never at the words. Then run `vela apply <file> --for-lead` for each draft. If it refuses, fix what it names, or ask the lead what it needs. Say in two or three sentences what you filed, by group and in the lead's words, from its counts: "I kept the 8 fixed limits as constraints, set aside 12 what-ifs and dropped 5 that repeat other lines." Don't ask "anything to change?" a second time.
+Capture each answer with `vela record add --origin <their handle> --tag <tag> "<their words>"` and point the draft's judgment field at that capture ("^c31"), never at the words. Then run `vela apply <file> --for-lead` for each draft. If it stops, fix what it names, or ask the lead what it needs. Say in two or three sentences what you filed, by group and in the lead's words, from its counts: "I kept the 8 fixed limits as constraints, set aside 12 what-ifs and dropped 5 that repeat other lines." Don't ask "anything to change?" a second time.
 
 ## 3. Write the items
 
@@ -80,7 +80,7 @@ Then run `vela render`, `vela check --fix W326` and `vela check --for-lead`. Two
 - a fact that names points, a clause, a license or the like, with no subject of that kind typed (W809): offer to type the subject with the facts the lead gives (`vela add subject`), or to answer the existence question in the ledger;
 - a ledger row that no longer fits its subject, or covers nothing (W804): offer to fix the row or keep it as a record. Never delete it without a yes.
 
-Fix each error with the lead. An override the check can't read: fix its grammar, never delete it. Never delete a ledger row or an override to quiet the check; the gate refuses a close that did. If the lead leaves an error in place, say CI will block the merge until it's fixed.
+Fix each error with the lead. An override the check can't read: fix its grammar, never delete it. Never delete a ledger row or an override to quiet the check; the gate stops a close that did. If the lead leaves an error in place, say CI will block the merge until it's fixed.
 
 ## 7. Finish and send
 
