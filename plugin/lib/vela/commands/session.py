@@ -19,16 +19,19 @@ A reader copy has no branches: the records are read from its folder and no git r
 START steps 1, 2 and 5 and ANSWER-A-CHALLENGE steps 1, 2 and 4. It reads `.vela/host.json` first, because a host
 that can commit but can't send must be said at the start, not when the push fails at close (review M5, plan 7.3).
 Every check that can stop it runs before anything changes, and all of them are reported at once, so the lead
-answers every question in one turn. Exit codes:
+answers every question in one turn. A new session branches from main brought up to origin/main; a resumed session's
+branch, or a challenge's, has origin/main merged in by `close sync-main`'s own code (`close_sync.bring_in_at_start`),
+so no session reads a plan older than the shared one without hearing so. Exit codes:
 
 0  started (or, with `--resume`, back on the open session's branch);
 1  refused: a reader copy asked for an owner's mode, a host with no working git (the reader path is said), an unknown
-   mode, or `--answer` found none or several open challenge PRs (what `gh` returned is printed; never a guessed
-   branch);
+   mode, `--answer` found none or several open challenge PRs (what `gh` returned is printed; never a guessed
+   branch), or main changed lines the branch being resumed changed too (sync-main's lines; the merge is aborted);
 2  git or `gh` failed (their words are printed), or main couldn't be brought up to date;
 3  needs the lead, nothing changed: open sessions exist (resume, close or `--new`), uncommitted changes the pull
-   would overwrite, or the initiative has no name yet (the one naming question; `--title` answers it, `--unnamed`
-   records that the lead declined).
+   would overwrite, uncommitted edits on a resumed branch that main must be merged into (checkpoint them first), or
+   the initiative has no name yet (the one naming question; `--title` answers it, `--unnamed` records that the lead
+   declined).
 
 `session brief` is START steps 3 and 4, read-only: review comments on PRs merged since the last closed session (as
 candidate captures, in `--json`), the overdue open questions, `vela next`, and how much is still open. A `gh` failure
@@ -40,7 +43,8 @@ import datetime
 import io
 import pathlib
 
-from vela import commands, progress, records, say, sessions
+from vela import closestate, commands, progress, records, say, sessions
+from vela.commands import close_sync
 from vela.edge import hostprobe, sessiongit
 from vela.edge.vaultgit import GitUnavailable
 
@@ -308,7 +312,7 @@ def clobber_choice(paths, base_words):
     return ask, line
 
 
-def resume(root, found, wanted, reader, lines, today, plain):
+def resume(root, found, wanted, reader, lines, today, plain, host=None):
     chosen = sessions.pick(found, wanted)
     if not chosen:
         raise Stop(say.Result(START, exit=say.REFUSED, lines=lines + [
@@ -323,6 +327,8 @@ def resume(root, found, wanted, reader, lines, today, plain):
     result = say.Result(START, lines=lines + [
         say.Line(f"resuming: {describe(record)}", plain=f"Picking up {spoken(record, plain, today_date(today))}.")])
     switch_to(result, record, root, reader)
+    if result.exit == say.DONE and not reader:
+        result.wrote += bring_main_in(root, today, host or {}, result.lines, "copy of the session's branch")
     if result.exit == say.DONE:
         text = (root / record.path).read_text(encoding="utf-8")
         result.wrote.append(write_state(root, record.id, record.path, record.branch, list(record.modes), record.date,
@@ -461,7 +467,7 @@ def start_in_repo(root, args, today, modes, plain, said, host):
     open_records, problems = sessions.find_open(sessiongit.branch_records(root))
     lines = said + problem_lines(problems)
     if args.resume:
-        return resume(root, open_records, args.resume, False, lines, today, plain)
+        return resume(root, open_records, args.resume, False, lines, today, plain, host)
     asks, asked = [], []
     if open_records and not args.new:
         asks, asked = open_choices(open_records, today, plain)
@@ -489,8 +495,34 @@ def start_in_repo(root, args, today, modes, plain, said, host):
     fresh = freshness_line(how, fetch_words, base_words)
     lines += [fresh] if fresh else []
     move_to(root, base, upstream, base_words)
+    wrote = bring_main_in(root, today, host, lines, "copy of the challenge's branch") if pr and how == "fetched" else []
     carried = sessions.carried(sessiongit.dirty_paths(root), [])
-    return open_record(root, args, today, modes, challenged, base if pr else "", lines, carried)
+    result = open_record(root, args, today, modes, challenged, base if pr else "", lines, carried)
+    result.wrote[:0] = wrote
+    return result
+
+
+PASSED = (closestate.UP_TO_DATE, closestate.MERGED, closestate.MERGED_GENERATED)
+
+
+def bring_main_in(root, today, host, lines, base_words):
+    """START step 1 for a branch the session already has (a resumed one, a challenge's): origin/main is merged in by
+    close sync-main's own code, so a session never reads a branch that lacks the shared plan without saying so (S15
+    of the 2026-10-14 run missed an allocation that way). Adds what happened to `lines` and returns the paths the merge
+    changed. Stop when the lead must act first: uncommitted edits in the way, a clash, or git failing."""
+    how = "no-origin" if not sessiongit.has_origin(root) else "offline" if host.get("network") == hostprobe.NO else ""
+    if how:
+        lines.append(freshness_line(how, "", base_words))
+        return []
+    synced = close_sync.bring_in_at_start(root, today)
+    if synced.data["status"] in PASSED:
+        lines += synced.lines
+        return list(synced.wrote)
+    if synced.data["reason"] == closestate.FETCH_FAILED:  # the same as a start that couldn't fetch: said, and go on
+        lines.append(freshness_line("failed", synced.data["fetch_error"], base_words))
+        return []
+    raise Stop(say.Result(START, exit=synced.exit, lines=lines + synced.lines, refusals=synced.refusals,
+                          needs_lead=synced.needs_lead))
 
 
 def open_record(root, args, today, modes, challenged, on_branch, lines, carried):

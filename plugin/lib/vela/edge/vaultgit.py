@@ -118,25 +118,29 @@ def head_short(root, ref):
     return out if code == 0 else ""
 
 
-def upstream(root):
-    """The current branch's upstream (origin/main), or "" when it has none."""
-    code, out, _ = run_git(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
-    return out if code == 0 else ""
-
-
 def fetch(root, timeout):
     """"" when git fetch worked, else why it did not. It never pulls or merges."""
     try:
-        code, out, err = run_git(root, "fetch", "--quiet", timeout=timeout, env=NO_PROMPT)
+        code, out, err = run_git(root, "fetch", "--quiet", "origin", timeout=timeout, env=NO_PROMPT)
     except GitUnavailable as exc:
         return str(exc)
     return "" if code == 0 else ((err or out or "git fetch failed").splitlines() or ["git fetch failed"])[0]
 
 
-def behind_ahead(root, upstream_ref):
-    """(commits behind, commits ahead) of the upstream, from the remote state git last saw."""
-    left, _, right = git_out(root, "rev-list", "--left-right", "--count", f"{upstream_ref}...HEAD").partition("\t")
+def behind_ahead(root, upstream_ref, ref="HEAD"):
+    """(commits behind, commits ahead) of `ref` against `upstream_ref`, from the remote state git last saw."""
+    left, _, right = git_out(root, "rev-list", "--left-right", "--count", f"{upstream_ref}...{ref}").partition("\t")
     return int(left), int(right)
+
+
+def current_branch(root):
+    """The checked-out branch's name, or "" when HEAD is detached."""
+    code, out, _ = run_git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+    return out if code == 0 else ""
+
+
+def has_commit(root, ref):
+    return run_git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")[0] == 0
 
 
 def role_facts(root):

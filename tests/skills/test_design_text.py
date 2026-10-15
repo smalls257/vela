@@ -120,3 +120,10 @@ def test_design_never_makes_the_tracer_a_gate():
     for sentence in re.split(r"(?<=[.?!])\s+", read("skills/design/SKILL.md")):
         if re.search(r"tracer", sentence, re.I):
             assert not re.search(r"\b(stop|stops|refuse|refuses|block|blocks|gate)\b", sentence, re.I), sentence
+
+
+# ---- tests/test_stale_branch.py: S23 checked the handoff on a stale branch (diagnosis 6B)
+
+def test_design_checks_freshness_first_and_stops_when_behind():
+    start = read("skills/design/SKILL.md").split("## 1. Start", 1)[1].split("\n\n", 2)[1]
+    assert start.startswith("First run `vela freshness`. If it exits 3") and "stop, tell the lead" in start

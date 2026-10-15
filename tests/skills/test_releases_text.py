@@ -145,3 +145,11 @@ def test_the_conversation_asks_for_names_not_codes():
     assert not re.search(r"\b(FLO|CAP|CON|APP)-\d", section)
     for word in LINT:
         assert not re.search(rf"\b{re.escape(word)}\b", section, re.I), word
+
+
+# ---- tests/test_stale_branch.py: S15 read a stale branch and said nothing was allocated (diagnosis 6B)
+
+def test_releases_checks_freshness_first_and_stops_when_behind():
+    start = SKILL.split("## 1. Start", 1)[1].split("\n\n", 2)[1]
+    assert start.startswith("First run `vela freshness`. If it exits 3") and "stop, tell the lead" in start
+    assert "vela session start --mode releases" in start

@@ -13,6 +13,8 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela ru
 
 ## 1. Start
 
+First run `vela freshness`. If it exits 3, this copy is behind the shared plan: stop, tell the lead in its words, and run `vela session start --mode releases` once they agree. A stale copy is how a releases session says nothing is allocated when the allocation is already on main.
+
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `releases`. Read the Releases row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`.
 
 Read `04b-releases.md`, the slice pages in `slices/`, every capability page's functional requirements with their acceptance criteria, `04a-capability-delta.md`, the `allocation` block (run `vela render` first), the goals and constraints for dates anybody already gave, the first thin path the boundary session recorded (a capture in its session record, which the flow pages back), and the open unknowns. If there are no functional requirements, say so and offer `/vela:requirements`. If requirements exist and none is allocated, offer `/vela:allocate`, and go on only if the user says to, recording that as an override as `START.md` says. A release that already exists is kept: change only the lines the user confirms.
