@@ -722,3 +722,15 @@ def test_a_conflict_said_in_other_words_counts_by_its_holder_and_a_disagreement_
     assert passed, summary
     quiet = spoken_run(tmp_path / "q", [("assistant", "Finance sent the numbers.")], data)
     assert not probe.CHECKS["conflicts-surfaced"][0](quiet, {"at_least": 1.0})[0]
+
+
+def test_a_proposed_role_and_date_the_lead_said_yes_to_earlier_count_as_confirmed(tmp_path):
+    turns = [("assistant", "Who would know?"), ("lead", "Honestly not sure."),
+             ("assistant", "I'd ask the CIO, by 6 November. Does that work?"), ("lead", "CIO works, yes."),
+             ("assistant", "Filed."), ("lead", "Close it."), ("assistant", "Closing.")]
+    run = spoken_run(tmp_path, turns, {"handle": "@lead"})
+    run.transcript.spoken()[6]["tool_calls"] = [{"name": "Bash", "input": 'vela add unknown --owner @lead --ask "the CIO" '
+                                                 "--ask-by 2026-11-06 && vela add unknown --ask \"the CIO\" --ask-by 2026-11-06"}]
+    passed, summary, _ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
+    assert passed, summary
+    assert probe.value_forms("2026-11-06")[1:3] == ["6 november", "november 6"]

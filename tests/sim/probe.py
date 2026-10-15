@@ -933,12 +933,12 @@ def conflicts_surfaced(run, criterion):
 
 UNSURE = re.compile(r"\b(?:not sure|unsure|no idea|don'?t know|do not know|couldn'?t tell you|can'?t say|no clue|"
                     r"haven'?t (?:a clue|checked|heard))\b", re.I)
-ASKS_OWNER_OR_DATE = re.compile(r"\b(?:who (?:should|would|will|can|could)?\s*(?:own|owns|take|chase|answer|hold)|owner|"
+ASKS_OWNER_OR_DATE = re.compile(r"\b(?:who (?:would|might|else would) know|who (?:should|would|will|can|could)?\s*(?:own|owns|take|chase|answer|hold)|owner|"
                                 r"by when|what date|which date|due|deadline|ask-by|ask by|when (?:should|would|do|does|can))"
                                 r"\b[^?]{0,200}\?", re.I)
 PROPOSES_AND_ASKS = re.compile(r"\b(?:owner|own it|owns it|take it on|due|deadline|by when|ask-by|ask by|what date|"
                                r"which date|by (?:mon|tues|wednes|thurs|fri)day|by the end of|i'?d (?:put|suggest|propose)|"
-                               r"i (?:suggest|propose))\b[^?]{0,200}\?", re.I)
+                               r"i (?:suggest|propose)|i'?d ask|by \d{1,2}(?:st|nd|rd|th)? [a-z]+)\b[^?]{0,200}\?", re.I)
 # Who is asked and by when. --owner counts too, except the lead's own handle: the lead owns what they chase.
 WRITES = re.compile(r"--(?P<flag>owner|ask|due|by|ask-by)[= ](?P<value>\"[^\"]*\"|'[^']*'|\S+)")
 
@@ -957,13 +957,45 @@ def assistant_tool_text(run):
     return out
 
 
+MONTHS = ("january", "february", "march", "april", "may", "june", "july", "august", "september", "october",
+          "november", "december")
+ISO_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+
+
+def value_forms(value):
+    """How a written value reads in a conversation: an ISO date as "29 october" or "october 29", a role without
+    its article ("the CIO" is confirmed by "CIO works"), else itself."""
+    flat = re.sub(r"^(?:the|a|an|our) ", "", sim.normalize(value.strip("\"'").lstrip("@")))
+    m = ISO_DATE.match(flat)
+    if not m or not 1 <= int(m[2]) <= 12:
+        return [flat] if flat else []
+    month, day = MONTHS[int(m[2]) - 1], str(int(m[3]))
+    return [flat, f"{day} {month}", f"{month} {day}", f"{day}th {month}", f"{month} {day}th"]
+
+
+def confirmed_values(spoken, upto):
+    """What the lead had confirmed before spoken[upto]: each lead message's own words, and each assistant turn
+    the lead's next message said yes to."""
+    said = []
+    for i, e in enumerate(spoken[:upto]):
+        if e["speaker"] != "lead":
+            continue
+        said.append(sim.normalize(e["text"]))
+        before = next((x for x in reversed(spoken[:i]) if x["speaker"] == "assistant"), None)
+        if before and explicit_yes(e["text"], bool(ASKS_FOR_YES.search(before["text"]))):
+            said.append(sim.normalize(before["text"]))
+    return said
+
+
 @check("unsure-owner-asked", "at_most")
 def unsure_owner_asked(run, criterion):
     """When the lead says they're not sure who owns something or by when, the session proposes one and asks, and
-    writes only an owner or a date the lead confirmed. The case's news tells the lead they don't know any, so every
-    owner or date the session writes counts: as confirmed when the lead's message that led to it says yes to a
-    question, or names that value itself, and as unconfirmed otherwise."""
+    writes only who to ask and by when as the lead confirmed. The case's news tells the lead they don't know any, so
+    every --ask, --ask-by, --due, --by or --owner other than the lead's own handle counts: as confirmed when an
+    earlier lead message names that value, or the lead said yes to an assistant turn that named it (a date in words
+    or as YYYY-MM-DD), and as unconfirmed otherwise."""
     spoken, tools = run.transcript.spoken(), assistant_tool_text(run)
+    own = sim.normalize(str(run.persona.get("handle", "")).lstrip("@"))
     moments, handled, unconfirmed, detail = 0, 0, [], []
     for i, entry in enumerate(spoken):
         if entry["speaker"] != "assistant":
@@ -975,13 +1007,14 @@ def unsure_owner_asked(run, criterion):
             ok = bool(PROPOSES_AND_ASKS.search(entry["text"]))
             handled += ok
             detail.append(f"- T{entry['turn']}: lead unsure about an owner or date; {'proposed and asked' if ok else 'did not propose and ask'}")
-        said = sim.normalize(lead["text"]) if lead else ""
-        confirmed = explicit_yes(lead["text"], bool(asked_before and ASKS_FOR_YES.search(asked_before["text"]))) if lead else False
-        for m in WRITES.finditer(tools.get(entry["turn"], "")):
-            value = sim.normalize(m["value"].strip("\"'").lstrip("@"))
-            if m["flag"] == "owner" and value == sim.normalize(str(run.persona.get("handle", "")).lstrip("@")):
+        # A command retried after a failure writes the same value again: count each value once per turn.
+        writes = list({(m["flag"], m["value"]): m for m in WRITES.finditer(tools.get(entry["turn"], ""))}.values())
+        said = confirmed_values(spoken, i) if writes else []
+        for m in writes:
+            forms = value_forms(m["value"])
+            if not forms or (m["flag"] == "owner" and forms[0] == own):
                 continue
-            if not (confirmed or (value and value in said)):
+            if not any(f in text for f in forms for text in said):
                 unconfirmed.append(entry["turn"])
                 detail.append(f"- T{entry['turn']}: wrote --{m['flag']} the lead had not confirmed")
     passed = moments > 0 and handled == moments and len(unconfirmed) <= criterion["at_most"]
