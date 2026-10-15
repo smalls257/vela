@@ -69,3 +69,56 @@ def test_allocate_leaves_the_digest_to_review():
 
 def test_allocate_marks_its_own_captures():
     assert "→ keep: [[" in text("skills/allocate/SKILL.md"), "allocate no longer marks its own captures"
+
+
+# ---- overhaul plan Task 22f: the conversation voice first, the sheet in the lead's words, contracts through add contract
+
+SKILL = (REPO / "plugin" / "skills" / "allocate" / "SKILL.md").read_text(encoding="utf-8")
+
+
+def test_allocate_loads_the_voice_before_its_first_question():
+    line = next(p for p in SKILL.split("\n\n") if "references/CONVERSATION-VOICE.md`" in p and "voice/VOICE.md" in p)
+    assert line.index("voice/VOICE.md") < line.index("references/CONVERSATION-VOICE.md`")
+    # allocate writes no page prose (table cells and contract bullets are never voiced), so no house-voice clause
+    at = SKILL.index(line)
+    assert at < SKILL.index("vela render") and at < SKILL.index("show the allocation as a grid")
+
+
+def test_allocate_names_only_commands_that_exist():
+    import shlex
+    from vela import cli
+    parser = cli.build_parser()
+    calls = re.findall(r"`vela ([a-z][^`]*)`", SKILL)
+    assert any(c.startswith("add contract") for c in calls) and any(c.startswith("add unknown") for c in calls)
+    for call in calls:
+        argv = shlex.split(re.sub(r"<[^>]*>", "X", call).replace("^cNN", "^c01"))
+        _, extras = parser.parse_known_args(argv)
+        assert not extras, (call, extras)
+
+
+def test_the_sheet_labels_are_said_in_the_leads_words():
+    for label in ("**What each app does:**", "**What passes between apps, and the contract that carries it:**",
+                  "**A handover no contract covers yet:**", "**What nobody does yet:**"):
+        assert label in SKILL, label
+    for old in ("Each app's share:", "What crosses:", "A missing contract:", "What is left:"):
+        assert old not in SKILL, old
+
+
+def test_a_missing_contract_goes_through_add_contract_and_is_told_plainly():
+    assert "vela add contract --provider" in SKILL
+    assert "with every required bullet, `**State:** assumption` and `**Change:** new`" not in SKILL  # add contract's now
+    assert "This is a new contract between apps that nobody planned when the apps were split. It still needs deciding like the others." in SKILL
+    assert "boundary did not draw" not in SKILL
+
+
+def test_allocate_keeps_what_no_command_owns_yet():
+    # "40 words or fewer" stays: the `allocate` apply kind (Task 15b) was dropped, so no command refuses a long cell.
+    assert "40 words or fewer" in SKILL
+    # The missing `allocation` block stays by hand: `render --add-missing-blocks` was never built.
+    assert "add an `## Allocation` section with the empty block markers" in SKILL
+
+
+def test_allocate_says_rows_and_apps_by_name_and_grill_lower_case():
+    assert "say the requirement and the app by name" in SKILL
+    assert "/vela:grill APP-<slug>" not in SKILL and '"/vela:grill Desktop agent"' in SKILL
+    assert not re.search(r"\bGrill\b", SKILL)
