@@ -6,8 +6,10 @@
    names a file or a provider. A failure is reported in the console and in Assets.status, never swallowed. */
 const Assets = {
   R: null, status: "none", fellBack: [], listeners: new Set(),
-  slotFor(prefix, title) {
-    const id = `${prefix}.${String(title || "").toLowerCase().replace(/[^a-z0-9]+/g, "")}`;
+  /* Emblem and theme slots are keyed by a box's icon kind (icons.js, chosen at build time), never by its name: the
+     art is generic, so a vault's "news" app wears the news emblem whatever the app is called. */
+  slotFor(prefix, key) {
+    const id = `${prefix}.${Icons.name(key)}`;
     return this.R && this.R.slots().includes(id) ? id : null;
   },
   url(id) {
@@ -22,14 +24,14 @@ const Assets = {
   },
   form(id) { try { return this.R ? this.R.get(id).form : null; } catch (e) { console.warn(`[assets] ${id} has no form: ${e.message}`); return null; } },
   /* The explorer is dark, so an emblem made for a dark ground comes first; a light one would sit as a pale square. */
-  emblem(title) { return this.url(this.slotFor("emblem-on-dark", title)) || this.url(this.slotFor("emblem", title)); },
+  emblem(key) { return this.url(this.slotFor("emblem-on-dark", key)) || this.url(this.slotFor("emblem", key)); },
   texture(name) { return this.url(this.R && this.R.slots().includes("texture." + name) ? "texture." + name : null); },
   /* Plays an audio slot when sound is on; false when there is nothing to play, so the caller uses its own tone. */
   play(id, opts) {
     if (!this.R || !Sound.enabled || !id || !this.R.slots().includes(id)) return false;
     try { return this.R.play(id, opts) || true; } catch (e) { console.warn(`[assets] ${id} did not play: ${e.message}`); return false; }
   },
-  theme(title) { return this.play(this.slotFor("theme", title), { volume: 0.5 }); },
+  theme(key) { return this.play(this.slotFor("theme", key), { volume: 0.5 }); },
   onReady(fn) { this.listeners.add(fn); if (this.R) fn(this); },
   async load() {
     if (!window.ASSET_REPORT) { this.status = "no assets in this build: the page's own drawing only"; return; }

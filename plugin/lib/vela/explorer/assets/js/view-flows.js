@@ -66,7 +66,7 @@ const Flows = (() => {
       if (!t) return;
       if (t.type === "unknown" || t.type === "contract") { if (!p.present) go(t.id, {}); else opts.onPick && opts.onPick(t); }
       else if (t.type === "ref") { p.key = t.id; p.go(-1, false); opts.onFlow && opts.onFlow(p); }
-      else if (t.type === "lane") { if (!p.present) go(t.id, {}); if (!Assets.theme(FlowKit.laneName(t.id))) Sound.lane(t.id, undefined, { gain: 0.45, dur: 1.2 }); }
+      else if (t.type === "lane") { if (!p.present) go(t.id, {}); if (!Assets.theme(t.id)) Sound.lane(t.id, undefined, { gain: 0.45, dur: 1.2 }); }
       else if (t.si !== undefined) { p.pause(); p.go(t.si); if (!p.present) go(stepNote(p.key, flow().steps[t.si]), { reset: true }); }
     });
     requestAnimationFrame(p.frame);

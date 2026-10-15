@@ -2,7 +2,7 @@
   <defs><clipPath id="disc"><circle cx="128" cy="128" r="120"/></clipPath></defs>
   <circle cx="128" cy="128" r="120" fill="#1d2a4f"/>
   <circle cx="128" cy="128" r="109" fill="none" stroke="#e0a43c" stroke-width="3" opacity=".55"/>
-  <title>Quoteline</title>
+  <title>Pricing</title>
   <g clip-path="url(#disc)">
     <path d="M8 150 C48 150 60 106 100 106 S150 150 190 150 S236 120 256 112" fill="none" stroke="#e0a43c" stroke-width="7" stroke-linecap="round" opacity=".9"/>
   </g>

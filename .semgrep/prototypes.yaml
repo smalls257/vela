@@ -16,7 +16,7 @@ rules:
     languages: [generic]
     severity: ERROR
     message: >-
-      This names a provider's asset file. Ask the resolver for a slot id instead (`assets.url('emblem.coach')`)
+      This names a provider's asset file. Ask the resolver for a slot id instead (`assets.url('emblem.learning')`)
       so the builtin fallback and the per-slot report keep working; see plugin/lib/vela/explorer/art/slots.json.
     paths:
       include: ["/prototypes/explorer/**", "/plugin/lib/vela/explorer/**", "/prototypes/gallery/maps/**", "/prototypes/gallery/flows/**", "/prototypes/gallery/asks/**"]

@@ -11,13 +11,16 @@ const SelfTest = (() => {
   const presentStep = () => $("#overlay").classList.contains("present") && !$("#overlay").hidden ? $("#overlay").dataset.step : "";
   const buttonText = (b) => (b ? b.textContent.trim() : "none");
 
-  /* A query that names two apps or parties a flow joins: this vault's version of "how does Coach talk to Brightwater". */
+  /* A query that names two apps or parties a flow joins, such as "how does Booking talk to Pricing". */
   function pairQuery() {
     for (const f of D.flows) for (const stp of f.steps) for (const m of stp.messages) {
       const c = CONTRACT[m.contract]; if (!c) continue;
       const a = titleOf(c.provider), b = titleOf(c.consumers[0]);
-      // Two contracts can join the same pair (consent: one to check, one to record); the words cannot tell them apart, so either is right.
-      if (a && b && a !== b) return { q: `how does ${b} talk to ${a}`.toLowerCase(), contracts: Object.values(CONTRACT).filter((o) => o.provider === c.provider && o.consumers[0] === c.consumers[0]).map((o) => o.id) };
+      // Several contracts can join the same pair, in either direction (one to check, one to record; one each way); the
+      // words cannot tell them apart, so any of them is right.
+      const pair = new Set([c.provider, c.consumers[0]]);
+      const joins = (o) => o.provider !== o.consumers[0] && pair.has(o.provider) && (o.consumers || []).some((x) => x !== o.provider && pair.has(x));
+      if (a && b && a !== b) return { q: `how does ${b} talk to ${a}`.toLowerCase(), contracts: Object.values(CONTRACT).filter(joins).map((o) => o.id) };
     }
     return null;
   }
@@ -37,8 +40,8 @@ const SelfTest = (() => {
       ok(!!presentStep(), `path 1: 1 click on Present → presenting ${titleOf(key)} at step ${presentStep()}; clicks after the search: 1`, "path 1: Present did not open");
       Flows.closePresent();
     } else out.push("skip path 1: this vault has no flow pages");
-    // Path 2: "how does Coach talk to Brightwater?" gets to the contract, and presenting from that step.
-    const pq = APPS["APP-coach"] && D.map.parties.some((p) => p.title === "Brightwater") && D.flows.length ? { q: "how does coach talk to brightwater", contracts: ["CON-003"] } : pairQuery();
+    // Path 2: "how does <one app> talk to <another>?" gets to the contract, and presenting from that step.
+    const pq = pairQuery();
     if (pq) {
       go("lights", { reset: true }); showView("map"); await frames();
       const keys = Search.type(pq.q);
@@ -138,6 +141,12 @@ const SelfTest = (() => {
     showView("trace"); await frames();
     ok($$(".cap-card").length === D.trace.capabilities.length, `trace: ${D.trace.capabilities.length} capability cards, ${D.trace.gaps.length} gaps`, "trace: cards missing");
     out.push("assets: " + Assets.status);
+    if (Assets.R) {
+      // The built-in art is generic: a box wears the emblem of its icon kind, so an emblem never depends on what an app is called.
+      const boxes = Object.keys(D.icons || {}), kinds = new Set(Assets.R.slots().filter((id) => id.startsWith("emblem.")).map((id) => id.slice(7)));
+      const wrong = boxes.filter((k) => kinds.has(Icons.name(k)) !== !!Assets.emblem(k));
+      ok(!wrong.length, `assets: ${boxes.filter((k) => Assets.emblem(k)).length} of ${boxes.length} boxes wear the emblem of their icon kind`, `assets: emblem by kind wrong for ${wrong.slice(0, 3).join(", ")}`);
+    }
   }
   /* ------------------------------------------------------------ the second pass: navigation, doors, scale, effects, releases */
   async function navigation() {

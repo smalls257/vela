@@ -5,4 +5,4 @@ const cfg = await fetchJson(base + "assets.config.json");
 // ruleid: prototype-asset-by-slot-id
 img.src = "../gallery/assets/comfyui/emblems/emblem-flat-coach-s11.png";
 // ok: prototype-asset-by-slot-id
-img.src = assets.url("emblem.coach");
+img.src = assets.url("emblem.learning");
