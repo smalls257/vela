@@ -147,8 +147,8 @@ def test_ask_shows_the_inline_parenthetical_it_must_not_write_and_its_right_form
 
 def test_ask_flags_read_in_words():
     ask = text("skills/ask/SKILL.md")
-    for flag in ('"(just an idea)"', '"(not decided yet)"', "(nobody has looked at data protection for the Desktop agent yet)",
-                 "(the Desktop agent's team lead hasn't confirmed it)",
+    for flag in ('"(just an idea)"', '"(not decided yet)"', "(nobody has looked at data protection for the dock app yet)",
+                 "(the dock app's team lead hasn't confirmed it)",
                  "It came up in the 12 October desks session but nobody has filed it."):
         assert flag in ask, flag
     for old in ("unexamined: nobody", "assumed: not confirmed", "the <app> senior", "An unpromoted capture"):

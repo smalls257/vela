@@ -173,7 +173,7 @@ def test_start_forbids_codes_in_conversation_and_names_what_counts():
 def test_start_says_states_terms_and_spelling_in_words():
     plain = section("Plain names and a page a person can hold")
     for word in ("just an idea", "not decided yet", "proposed", "decided", "confirmed", '"the plan"', "the team lead",
-                 "`vela terms <word>`", "American spelling", '"Summarizer"'):
+                 "`vela terms <word>`", "American spelling", '"Organizer"'):
         assert word in plain, word
     assert not re.search(r"\bGrill\b(?! \(`| part)", plain)
 
