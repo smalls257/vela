@@ -939,7 +939,8 @@ ASKS_OWNER_OR_DATE = re.compile(r"\b(?:who (?:should|would|will|can|could)?\s*(?
 PROPOSES_AND_ASKS = re.compile(r"\b(?:owner|own it|owns it|take it on|due|deadline|by when|ask-by|ask by|what date|"
                                r"which date|by (?:mon|tues|wednes|thurs|fri)day|by the end of|i'?d (?:put|suggest|propose)|"
                                r"i (?:suggest|propose))\b[^?]{0,200}\?", re.I)
-WRITES = re.compile(r"--(?P<flag>owner|due|by|ask-by)[= ](?P<value>\"[^\"]*\"|'[^']*'|\S+)")
+# Who is asked and by when. --owner counts too, except the lead's own handle: the lead owns what they chase.
+WRITES = re.compile(r"--(?P<flag>owner|ask|due|by|ask-by)[= ](?P<value>\"[^\"]*\"|'[^']*'|\S+)")
 
 
 def assistant_tool_text(run):
@@ -978,6 +979,8 @@ def unsure_owner_asked(run, criterion):
         confirmed = explicit_yes(lead["text"], bool(asked_before and ASKS_FOR_YES.search(asked_before["text"]))) if lead else False
         for m in WRITES.finditer(tools.get(entry["turn"], "")):
             value = sim.normalize(m["value"].strip("\"'").lstrip("@"))
+            if m["flag"] == "owner" and value == sim.normalize(str(run.persona.get("handle", "")).lstrip("@")):
+                continue
             if not (confirmed or (value and value in said)):
                 unconfirmed.append(entry["turn"])
                 detail.append(f"- T{entry['turn']}: wrote --{m['flag']} the lead had not confirmed")
