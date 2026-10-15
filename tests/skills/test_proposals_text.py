@@ -38,3 +38,33 @@ def test_review_leaves_every_decision_to_the_owner_and_never_pushes():
     for rule in ("pending decisions first", "The owner always decides", "Never write the owner's reason for them", "**Never push, and never open a PR yourself.**",
                  "Never block it, never hide it", "E316", "git worktree remove", "vela proposals accept", "vela proposals reject", "vela proposals answer"):
         assert rule in text, rule
+
+
+# --- Overhaul Task 22h: relay the commands, walk the changes by name.
+
+
+def parsed_calls(name, pattern):
+    import shlex
+    from vela import cli
+    parser = cli.build_parser()
+    # a bare `vela proposals accept` in prose names the command; only a call with its arguments is parsed
+    calls = [c for c in re.findall(pattern, skill(name)) if not re.fullmatch(r"(proposals|propose) ?[a-z]*", c)]
+    for call in calls:
+        argv = shlex.split(re.sub(r"<[^>]*>", "X", call.replace("\\", "")))
+        _, extras = parser.parse_known_args(argv)
+        assert not extras, (call, extras)
+    return calls
+
+
+def test_proposals_names_only_commands_that_exist():
+    calls = parsed_calls("proposals", r"`(?:python3 \$\{CLAUDE_PLUGIN_ROOT\}/scripts/)?vela ((?:proposals|role|render|check)\b[^`]*)`")
+    assert {c.split()[0] for c in calls} >= {"proposals", "role", "render", "check"}, calls
+    assert len([c for c in calls if c.startswith("proposals ")]) >= 3, calls
+
+
+def test_the_owner_hears_each_change_by_name_not_by_group_key():
+    text = skill("proposals")
+    assert "the group key goes into commands, never into what the owner hears" in text
+    assert '"First change: the Record consent contract (CON-001). Priya\'s reason:' in text
+    assert "the vault" not in text and "Grill" not in text
+    assert "When a command can't express what the owner wants, say so and stop." in text
