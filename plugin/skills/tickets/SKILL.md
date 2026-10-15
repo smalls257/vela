@@ -1,6 +1,6 @@
 ---
 name: tickets
-description: Turn a finished build plan into tickets a team can work from. Checks the plan against the vault first (every story traces to a criterion or requirement, every requirement of the app has a story, criteria match the vault word for word, blockers are real, the tracer comes first, release dates line up), then writes a Markdown ticket list or a CSV for Jira import, or uses Jira tools the person already has. Use after /vela:breakdown, when someone says "make the tickets", "export to Jira" or "turn the plan into tickets". Creates nothing in any outside system without an explicit yes.
+description: Turn a finished build plan into tickets. Checks the plan against the vault first, then writes a Markdown ticket list, a CSV for Jira import, or uses Jira tools the person already has. Creates nothing in an outside system without a yes.
 argument-hint: "[app slug or APP-id]"
 disable-model-invocation: true
 ---
@@ -13,25 +13,15 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela ru
 
 ## 1. Start
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/START.md` for "Plain names and a page a person can hold" and "The user may override any rule", then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`, and `voice/VOICE.md` in the vault when it exists. A team session writes no session record.
+Before your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`. From `${CLAUDE_PLUGIN_ROOT}/references/START.md` follow "Plain names and a page a person can hold" and "The user may override any rule". A team session writes no session record.
 
 Find the plan: `docs/plan/<slug>-breakdown.md`, the one named, or the only one. Its status must be `complete` or `complete-with-gaps`. If not, say so in a sentence and offer `/vela:breakdown`; stop there, because a ticket list from a plan still moving is a list to redo.
 
 ## 2. Check the plan against the vault
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela tickets check --vault .` (add the plan's path, or `--app APP-x`, when there is more than one). It writes nothing. Exit 1 means it flagged something, which is a result and not a failure; exit 2 means it could not run, and the message says why.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela tickets check --vault .` (add the plan's path, or `--app APP-x`, when there is more than one). It writes nothing. It checks traces, coverage, the quoted criteria, blockers, the tracer's place, `Slice:` lines and release fit. Exit 1 means it flagged something, which is a result and not a failure. Exit 2 means it couldn't run: say in one plain sentence that you couldn't check the plan, and why in your words.
 
-It looks for:
-
-- a story that traces to no epic criterion and no allocated requirement, or to an ID the vault does not hold;
-- a requirement, contract or criterion of the app that no story covers (a plan gap that accepts it is a note, not a flag);
-- a story whose criteria are not the vault's words: reworded, or missing;
-- a blocker that is not a story of the plan, or a vault question that does not exist;
-- a missing or wrong tracer: no tracer story, or one that the build order puts behind another story;
-- a layer story, or one with no `Slice:` line;
-- a `Release fit:` line missing, or starting from a date other than the release that delivers what the story traces to.
-
-Say what it found in plain words, grouped by story, not as the tool printed it: "The withdraw story quotes five of its six criteria; the sixth is missing." Keep it to what the person has to decide. For each flag offer the same two ways out: fix the plan now (in `/vela:breakdown`, or by a small edit the person agrees to), or go on and mention the flag in the ticket list. If they go on, say so in the summary at the end. Do not change the plan yourself, and never reword a criterion to make the check pass; the vault's words win, and a vault sentence that is wrong goes back as `/vela:challenge`.
+Say what it found in your words, grouped by story, not as the tool printed it: "The withdraw story quotes five of its six criteria; the sixth is missing." Keep it to what the person has to decide, about four at a time. For each flag offer the same two ways out, with your recommendation: fix the plan now (in `/vela:breakdown`, or by a small edit the person agrees to), or go on and mention the flag in the ticket list. If they go on, say so in the summary at the end. Don't change the plan yourself, and never reword a criterion to make the check pass; the vault's words win, and a vault sentence that is wrong goes back as `/vela:challenge`.
 
 ## 3. Ask which output
 
@@ -39,7 +29,7 @@ Ask once, with your recommendation and why:
 
 1. **A Markdown ticket list**, recommended: one file, one section per story with its criteria written out, size, components, what it waits on and its release fit, and its tasks as a checklist. Tracer stories come first, then the rest grouped by the slice each names. It needs no account or project key, and a team can paste from it anywhere.
 2. **A CSV for Jira import**: one row per story and per task. Task sizes become story points by a fixed mapping (S 2, M 5, L 8) that the README beside the file explains; say so, and that the points are ordering aids, not estimates.
-3. **Jira tools the person already has.** Ask whether their setup has an MCP server or a command-line tool for Jira, and which. Look at what is actually available; do not assume one, and never guess a project key or a repository. If they name none, offer 1 or 2.
+3. **Jira tools the person already has.** Ask: "Do you already have Jira connected to Claude, or a Jira command-line tool?" Look at what is actually available; don't assume one, and never guess a project key or a repository. If they name none, offer 1 or 2.
 
 ## 4. Write it
 
@@ -51,4 +41,4 @@ Nothing is created in any outside system without an explicit yes in this session
 
 ## 5. Stop
 
-After the file is written, stop with one short summary and the path, for example "9 stories, 42 tasks, 3 flagged. Written to docs/work/tickets.md." Name the stories that have no ticket because the plan defers or merges them. Do not offer more work. If the person wants the flags fixed, the next step is `/vela:breakdown`.
+After the file is written, stop with one short summary and the path, for example "9 stories, 42 tasks, 3 flagged. Written to docs/work/tickets.md." Name the stories that have no ticket because the plan defers or merges them. Don't offer more work. If the person wants the flags fixed, the next step is `/vela:breakdown`.
