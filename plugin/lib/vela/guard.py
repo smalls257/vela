@@ -119,6 +119,24 @@ def never_rule(path):
     return None
 
 
+# Files vela writes in full from the plan, so an uncommitted copy holds nothing the lead typed: the next close rebuilds
+# it. `close dashboard` with no session open leaves the page changed on main, and asking the lead to save it was
+# advice no command could follow (close stage leaves it out; a hand commit is denied).
+REBUILT = ("dashboard.html",)
+
+
+def rebuilt_by_vela(path):
+    return normal(path).casefold() in REBUILT
+
+
+def set_aside_unasked(path):
+    """True for a vault-relative path whose uncommitted change is not the lead's unsaved work: a file close stage never
+    stages (`never_rule`), or one vela rebuilds in full (`REBUILT`). sync-main and session start set these aside and
+    write them back unchanged; they never stop on them. Telling the lead to commit one contradicts close stage, which
+    won't (Distributed Monolith)."""
+    return never_rule(path) is not None or rebuilt_by_vela(path)
+
+
 def leave_reason(path, vault_pages, record):
     """Why the allow-list leaves `path` out, or None when it is staged. `path` has already passed `never_rule`."""
     path = normal(path)

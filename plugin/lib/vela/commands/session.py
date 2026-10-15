@@ -44,9 +44,9 @@ import io
 import pathlib
 import re
 
-from vela import closestate, commands, progress, records, say, sessions
+from vela import closestate, commands, guard, progress, records, say, sessions
 from vela.commands import close_sync
-from vela.edge import hostprobe, sessiongit
+from vela.edge import hostprobe, mergegit, sessiongit
 from vela.edge.vaultgit import GitUnavailable
 
 NAME = "session open"
@@ -512,6 +512,36 @@ def move_to(root, base, upstream, base_words):
 
 
 def start_in_repo(root, args, today, modes, plain, said, host):
+    """The owner's start, with vela's own changed files set aside for its length and written back unchanged after
+    (`set_aside_vela_files`): a dashboard `close dashboard` rebuilt and nobody committed stopped six sessions in a row
+    on "uncommitted changes" that no command would commit."""
+    try:
+        aside, kept = set_aside_vela_files(root)
+    except mergegit.MergeGitFailed as exc:
+        raise GitUnavailable(str(exc)) from exc
+    try:
+        result = start_owner(root, args, today, modes, plain, said, host)
+    finally:
+        mergegit.put_back(root, kept)
+    if aside:
+        result.lines.append(say.Line(
+            f"set aside and wrote back unchanged {', '.join(aside)}: none is the lead's unsaved work (vela rebuilds "
+            "the dashboard at close; close stage never commits its own files), so none stopped the start.",
+            audience=say.MODEL))
+    return result
+
+
+def set_aside_vela_files(root):
+    """(paths, kept bytes): the tracked files with uncommitted changes that `guard.set_aside_unasked` says are not
+    the lead's work, put back to HEAD's copy, as sync-main does before its merge. `.vela/` is left alone: start writes
+    `.vela/session.json` itself, and writing an old copy back would undo that."""
+    prefix = mergegit.vault_prefix(root)
+    aside = [path for path in mergegit.tracked_changes(root) if path.startswith(prefix)
+             and not sessions.is_tool_state(path[len(prefix):]) and guard.set_aside_unasked(path[len(prefix):])]
+    return aside, mergegit.set_aside(root, aside)
+
+
+def start_owner(root, args, today, modes, plain, said, host):
     """The owner's start: every check, then the pull, the branch, the record and its commit."""
     config = config_of(root)
     pr, challenged = find_challenge(root, args.answer, plain) if args.answer else (None, "")

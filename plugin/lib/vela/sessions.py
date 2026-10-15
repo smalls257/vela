@@ -213,8 +213,12 @@ def challenge_matches(prs, challenged):
     return out
 
 
-def _own(path):
+def is_tool_state(path):
+    """True for a vault-relative path under `.vela/`, the tool's working state on this machine."""
     return path == ".vela" or path.startswith(".vela/")
+
+
+_own = is_tool_state
 
 
 def clobbered(dirty, incoming):

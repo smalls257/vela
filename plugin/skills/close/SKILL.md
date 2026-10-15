@@ -105,4 +105,4 @@ Three to six plain sentences: what was filed, by group and in the lead's words; 
 
 `close finish` rebuilds the dashboard last and gives the line the lead hears. Say it, with each warning it adds, and nothing else from its output. A failed build never undoes the close, and the dashboard is never called up to date unless it built.
 
-With no session (section 1 found none), run `vela close dashboard --for-lead`. It never commits to main. If it offers a branch of its own and the lead says yes, run `vela close dashboard --branch`. That commits the page on the new branch; close can't send it from there, so say so and stop.
+With no session (section 1 found none), run `vela close dashboard --for-lead`. It never commits to main. If it offers a branch of its own and the lead says yes, run `vela close dashboard --branch`. That commits the page on the new branch; close can't send it from there, so say so and stop. If the lead turns it down, or the close ends without an answer, run `vela close dashboard --put-back --for-lead` and say its line, so nothing is left changed on main.

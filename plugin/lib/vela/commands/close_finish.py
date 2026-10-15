@@ -19,7 +19,9 @@ replacing it needs `--replace` and the app's team's own yes in the record.
 With no session open in an owner's copy and the page changed, it exits 3 offering a `dashboard/<date>` branch; nothing
 is committed or pushed (the rebuilt page is the lead's view on this machine, not a change to the plan, so it is not in
 `wrote`). `--branch` takes that offer: it creates `dashboard/<date>` from here and commits only `dashboard.html` on it
-as `Rebuild dashboard`. Pushing it is `close push`'s job. With a session open it rebuilds and leaves the page for the
+as `Rebuild dashboard`. Pushing it is `close push`'s job. `--put-back` is the lead turning the offer down: HEAD's page
+goes back, so main is left as it was; a page left changed there stopped the next `session start` six times in one run.
+With a session open it rebuilds and leaves the page for the
 close. A reader copy runs no git in either command.
 """
 import io
@@ -31,6 +33,8 @@ from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
 # The explore report lines the lead hears after the dashboard line (close section 9): what the build went on without.
 RELAYED_KINDS = ("warning", "no design", "gitignore")
+# The lead's answer to `close dashboard`'s branch offer (no answer yet: None, and the offer is made).
+BRANCH, PUT_BACK = "branch", "put-back"
 
 
 def register_close(steps):
@@ -45,8 +49,13 @@ def register_close(steps):
     finish.set_defaults(func=run_finish)
     board = steps.add_parser("dashboard", help="rebuild the dashboard with no session open; never commits to main")
     board.add_argument("--vault", default=".", help="vault root (default: current directory)")
-    board.add_argument("--branch", action="store_true",
-                       help="put the rebuilt dashboard on its own dashboard/<date> branch and commit it there")
+    # The lead's answer to the branch offer is one choice, so the two flags can't be passed together
+    answer = board.add_mutually_exclusive_group()
+    answer.add_argument("--branch", action="store_const", dest="answer", const=BRANCH,
+                        help="put the rebuilt dashboard on its own dashboard/<date> branch and commit it there")
+    answer.add_argument("--put-back", action="store_const", dest="answer", const=PUT_BACK,
+                        help="the lead turned the branch down: put the committed dashboard back, so nothing is left "
+                             "changed for the next session to stop on")
     board.add_argument("--today", help="the date the dashboard counts from, YYYY-MM-DD (default: system date)")
     say.add_output_flags(board)
     board.set_defaults(func=run_dashboard)
@@ -312,11 +321,13 @@ def run_dashboard(args, out):
         resolver = say.Resolver()
     reader = mergegit.is_reader_copy(root)
     found, _ = sessions.find_open(sessiongit.folder_records(root))
-    if args.branch and (reader or found):
+    if args.answer and (reader or found):
         why = "a read copy has no git" if reader else "a session is open, and vela close finish commits the " \
                                                       "dashboard on its branch"
-        raise cli.ToolError(f"close dashboard --branch: {why}.")
+        raise cli.ToolError(f"close dashboard --{args.answer}: {why}.")
     result = say.Result("close dashboard")
+    if args.answer == PUT_BACK:
+        return emit(put_back(root, result), args, out, resolver)
     built, why, plain, relayed = build_dashboard(root, today, resolver)
     result.data["dashboard"] = {"built": built, "message": why or None}
     if not built:
@@ -325,11 +336,46 @@ def run_dashboard(args, out):
                                      f"The dashboard couldn't be updated: {plain}."))
         return emit(result, args, out, resolver)
     try:
-        lead_choice(root, today, reader, found, args.branch, result)
+        lead_choice(root, today, reader, found, args.answer == BRANCH, result)
     except vaultgit.GitUnavailable as exc:
         raise cli.ToolError(f"close dashboard: git failed: {exc}") from exc
     result.lines += relayed
     return emit(result, args, out, resolver)
+
+
+def put_back(root, result):
+    """The lead turned the branch down: HEAD's dashboard.html back, so main is left exactly as it was. Left changed,
+    it stopped the next `session start` (which asked the lead to save a page no command would commit). Nothing is
+    rebuilt: the page is rebuilt at the next session's close."""
+    try:
+        if not dashboard_changed(root):
+            result.lines.append(say.Line("vela close dashboard: dashboard.html had no changes; nothing to put back.",
+                                         "The dashboard is as it was."))
+            return result
+        code, err = restore_committed(root, closefinish.DASHBOARD)
+    except vaultgit.GitUnavailable as exc:
+        code, err = 1, str(exc)
+    if code != 0:
+        result.exit = say.FAILED
+        result.lines.append(say.Line(f"vela close dashboard: couldn't put dashboard.html back: {err}",
+                                     "I couldn't put the dashboard back as it was. The details are in my notes."))
+        return result
+    result.wrote.append(closefinish.DASHBOARD)
+    result.lines.append(say.Line("vela close dashboard: put back the committed dashboard.html; it is rebuilt at the "
+                                 "next session's close.", closefinish.DASHBOARD_PUT_BACK))
+    return result
+
+
+def restore_committed(root, path):
+    """(exit code, git's words): HEAD's copy of `path` back in the index and on disk; a page HEAD doesn't have is
+    removed, since vela wrote all of it."""
+    code, _, _ = vaultgit.run_git(root, "cat-file", "-e", f"HEAD:{path}")
+    if code != 0:
+        vaultgit.run_git(root, "rm", "-q", "--cached", "--ignore-unmatch", "--", path)
+        (root / path).unlink(missing_ok=True)
+        return 0, ""
+    code, out, err = vaultgit.run_git(root, "restore", "--source=HEAD", "--staged", "--worktree", "--", path)
+    return code, err or out
 
 
 def lead_choice(root, today, reader, found, branch, result):

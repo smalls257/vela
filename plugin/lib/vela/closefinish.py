@@ -45,7 +45,8 @@ DASHBOARD_DONE = "The dashboard is up to date; /vela:explore opens it."  # voice
 DASHBOARD_FAILED = "The dashboard couldn't be updated: {message}. Everything else is filed."
 NO_SESSION_DASHBOARD = ("I've updated the dashboard on your machine only, since no session is open. It'll be shared "
                         "next time you finish a session, or I can put it on its own branch.")
-NOT_SETTLED_HEAD = "Not settled at handoff for {app}, so its team should hear this before they accept it:"
+DASHBOARD_PUT_BACK = "I've left the dashboard as it was. It'll be brought up to date when you next finish a session."
+NOT_SETTLED_HEAD ="Not settled at handoff for {app}, so its team should hear this before they accept it:"
 READER_NOTHING_COMMITTED = ("This is a read copy, so I've closed your session record here and committed nothing. "
                             "It reaches the owner through a proposal.")
 
