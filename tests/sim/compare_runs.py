@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-"""Compare two sim runs of Vela: a BASELINE and a later run (the MID-POINT of the overhaul, or any run after it).
+"""Compare two sim runs of Vela: a BASELINE and a later run, for one arm.
 
-It answers the overhaul plan's section 8.1 question (docs/plans/2026-10-14-cli-skill-overhaul.md): did the slimmer
-skills keep sessions as detailed, and did reliability improve? Every figure is measured the same way on both runs (one
-ruler), except Completeness, `check` and `capture`, which each run's own checkout prints, as the plan asks.
+The verdict comes from two things and nothing else. Recall: how much of the persona's answer key the run reached
+(K facts captured, U gaps surfaced, W wrong beliefs challenged, D decisions decided, C conflicts surfaced), each as
+"n of N" and a share, and all of them pooled. Precision: of a fixed, stratified sample of what the final vault holds,
+the share that is neither unsupported nor padding (tests/sim/precision.py). Every other figure (items written,
+captures, ledger rows, words per item, close steps, consent, IDs, voice) is a diagnostic: shown with its direction to
+read the transcripts by, never setting the verdict. The Paper Tiger this prevents: a run that wrote more reading as
+a better run, when more items is not more of the lead's world, and is worse when the extra is not true.
+
+Every figure is measured the same way on both runs (one ruler), except Completeness, `check` and `capture`, which
+each run's own checkout prints. A holdout persona (its file says `split: holdout`, or has no split) is sealed: the
+report gives scores only and never names a key item, in the Markdown or the JSON, unless --reveal is passed.
 
 This is the repo's one comparison tool. It took over tests/sim/compare.py, whose arm pairing lives on as
 LEGACY_NAMES; /tmp/compare/compare_runs.py is a copy of this file, so it needs nothing from the repo to run.
@@ -14,7 +22,7 @@ and "missing (<why>)" in the Markdown, and its delta is "n/a". The verdict names
 Usage:
   python3 compare_runs.py [--baseline RUN_DIR] [--midpoint RUN_DIR] [--arm vela]
                           [--baseline-checkout DIR] [--midpoint-checkout DIR]
-                          [--threshold 0.10] [--json OUT.json]
+                          [--threshold 0.10] [--json OUT.json] [--reveal]
   python3 compare_runs.py <baseline run> <later run> [options]
 
 RUN_DIR defaults to the newest folder in /tmp/baseline-wt/tests/sim/results/ and /tmp/midpoint-wt/tests/sim/results/.
@@ -23,8 +31,9 @@ the plugin, else the repo this file sits in, and the notes say so. `--arm` is to
 the rename keeps its old folder (`planner`), and LEGACY_NAMES pairs it. Markdown goes to stdout, the JSON to --json
 (default: compare-<baseline-id>-vs-<midpoint-id>.json in the system's temp folder).
 
-Exit: 0 GO, 1 ADJUST, 3 STOP, 2 the tool could not read a run folder at all. It reads only: it never starts a sim run,
-never calls claude, and never writes into a run folder or a checkout.
+Exit: 0 GO, 1 ADJUST, 3 STOP, 4 UNSCORED (a run's recall can't be read: no scorecard), 2 the tool could not read a
+run folder at all. It reads only: it never starts a sim run, never calls claude, and never writes into a run folder or
+a checkout. The precision pass is a separate, paid step (tests/sim/precision.py), which writes <arm>/precision.json.
 """
 import argparse
 import json
@@ -346,6 +355,53 @@ def scorecard_section(run):
     out["check_these"] = len(card.get("check_these") or [])
     out["items"] = items
     return out
+
+
+# ------------------------------------------------------------------ recall and precision: the verdict's two inputs
+
+RECALL_KINDS = (("knows", "K facts captured"), ("unaware", "U gaps surfaced"), ("wrong", "W wrong beliefs challenged"),
+                ("conflicts", "C conflicts surfaced (weak spot)"), ("decisions", "D decisions decided (weak spot)"))
+
+
+def recall_section(card):
+    """Per kind {found, of, share}, and every kind pooled: the share of the persona key the run reached, as the
+    judge scored it with its citations checked. A kind the judge did not score is missing, and so is the pool."""
+    if "missing" in card and len(card) == 1:
+        return {"missing": card["missing"]}
+    out = {}
+    for kind, _ in RECALL_KINDS:
+        found, of = card.get(kind), card.get(kind + "_of")
+        if is_missing(found) or not isinstance(of, int):
+            out[kind] = missing(found["missing"] if is_missing(found) else "no rows")
+            continue
+        out[kind] = {"found": found, "of": of, "share": round(found / of, 3) if of else 0.0}
+    yes, decided = card.get("decisions_yes_asked"), out["decisions"]
+    out["decisions_yes_asked"] = ({"found": yes, "of": decided["of"],
+                                   "share": round(yes / decided["of"], 3) if decided["of"] else 0.0}
+                                  if isinstance(yes, int) and not is_missing(decided) else missing("not scored"))
+    gone = [k for k, _ in RECALL_KINDS if is_missing(out[k])]
+    if gone:
+        out["pooled"] = missing(f"{', '.join(gone)} not scored")
+    else:
+        found, of = sum(out[k]["found"] for k, _ in RECALL_KINDS), sum(out[k]["of"] for k, _ in RECALL_KINDS)
+        out["pooled"] = {"found": found, "of": of, "share": round(found / of, 3) if of else 0.0}
+    return out
+
+
+def precision_section(run):
+    """The precision pass (tests/sim/precision.py) from the arm's precision.json, else the summary the scorecard
+    carries; missing, with how to get it, when the run was never passed through it."""
+    data = read_json(run.arm / "precision.json")
+    if is_missing(data):
+        data = run.scorecard.get("precision") if not is_missing(run.scorecard) else None
+        if not data:
+            return {"missing": "no precision.json and no precision on the scorecard: run tests/sim/precision.py on it"}
+    if "missing" in data:
+        return {"missing": f"precision not scored: {data['missing']}"}
+    return {"precision": data["precision"], "sampled": data["sampled"], "population": data.get("population"),
+            "counts": data["counts"], "rates": data["rates"], "dropped": len(data.get("dropped") or []),
+            "seed": data.get("seed"), "vault": data.get("vault"), "spent_usd": data.get("spent_usd"),
+            "items": data.get("items") or []}
 
 
 # ------------------------------------------------------------------ codes, IDs and tool names the lead reads
@@ -1123,7 +1179,7 @@ def delta_row(label, base, mid, better=None, kind="info", threshold=THRESHOLD):
     if isinstance(base, bool):
         b = float(base)
     if b is None or m is None:
-        gone = [n for n, v in (("baseline", base), ("mid-point", mid)) if num(v) is None and not isinstance(v, bool)]
+        gone = [n for n, v in (("baseline", base), ("later run", mid)) if num(v) is None and not isinstance(v, bool)]
         row.update(delta="n/a", read=f"missing in {' and '.join(gone)}", status="missing")
         return row
     d = round(m - b, 3)
@@ -1163,7 +1219,76 @@ def section_missing(sec, path):
     return get(sec, *path)
 
 
+RECALL_DROP = 0.05  # pooled recall over about 60 key items: 5 points is 3 items, past one judge's coin-flips
+RECALL_STOP = 0.15
+PRECISION_DROP = 0.10  # precision over 30 sampled items: 10 points is 3 items
+PRECISION_STOP = 0.20
+KIND_LOST, KIND_SHARE = 2, 0.20  # a kind that lost 2 or more items and 20 points of its share is named on its own
+RECALL_GROUP = "Recall against the persona key (sets the verdict)"
+PRECISION_GROUP = "Precision of what the vault holds (sets the verdict)"
+DIAGNOSTICS = "Diagnostics: "  # every other group; shown to read the transcript by, never setting the verdict
+
+
+def share_row(label, base, mid):
+    """A verdict row: n of N and the share on each side, the delta in share points."""
+    row = {"measure": label, "baseline": base, "midpoint": mid, "better": "higher", "kind": "verdict"}
+    if is_missing(base) or is_missing(mid):
+        gone = [n for n, v in (("baseline", base), ("later run", mid)) if is_missing(v)]
+        row.update(delta="n/a", read=f"missing in {' and '.join(gone)}", status="missing")
+        return row
+    d = round(mid["share"] - base["share"], 3)
+    row.update(delta=d, change=None, status="same" if d == 0 else ("up" if d > 0 else "down"),
+               read="same" if d == 0 else f"{'up' if d > 0 else 'down'} {abs(d) * 100:.0f} points")
+    return row
+
+
+def recall_rows(b, m):
+    rb, rm = b["recall"], m["recall"]
+    pick = lambda r, k: missing(r["missing"]) if "missing" in r and len(r) == 1 else r.get(k, missing("not scored"))
+    rows = [share_row(label, pick(rb, k), pick(rm, k)) for k, label in RECALL_KINDS]
+    rows.insert(5, share_row("D decided with the lead's yes asked first", pick(rb, "decisions_yes_asked"),
+                             pick(rm, "decisions_yes_asked")))
+    rows.append(share_row("All key items, pooled (the verdict's recall)", pick(rb, "pooled"), pick(rm, "pooled")))
+    return rows
+
+
+def precision_rows(b, m):
+    def part(r, cls=None):
+        if "missing" in r:
+            return missing(r["missing"])
+        n = r["sampled"]
+        if cls is None:
+            return {"found": n - r["counts"]["unsupported"] - r["counts"]["padding"], "of": n, "share": r["precision"]}
+        return {"found": r["counts"][cls], "of": n, "share": r["rates"][cls]}
+
+    pb, pm = b["precision"], m["precision"]
+    rows = [share_row("Precision: not unsupported and not padding (the verdict's precision)", part(pb), part(pm))]
+    for cls, label in (("backed", "Backed by a source, the lead's words, or framed as a question"),
+                       ("duplicate", "Duplicate of another item (shown, not against precision)"),
+                       ("padding", "Padding: no information"), ("unsupported", "Unsupported: stated as fact, given by nobody")):
+        rows.append(share_row(f"  {label}", part(pb, cls), part(pm, cls)))
+    for row in rows[3:]:
+        row["better"] = "lower"
+    rows[2]["better"] = None
+    dropped = lambda r: missing(r["missing"]) if "missing" in r else r["dropped"]
+    rows.append(delta_row("  Citations the driver could not find (read as unsupported)", dropped(pb), dropped(pm)))
+    return rows
+
+
 def compare(b, m, threshold):
+    """The verdict's rows first (recall, precision), then every other measure as a diagnostic: volume counts, words
+    per item, captures, ledger rows and the rest are shown with their direction, and none of them sets the verdict.
+    A longer vault is not a better one; that is what recall and precision are for."""
+    rows = {RECALL_GROUP: recall_rows(b, m), PRECISION_GROUP: precision_rows(b, m)}
+    for group, group_rows in diagnostic_rows(b, m, threshold).items():
+        for row in group_rows:
+            if row["kind"] == "detail":
+                row.update(delta_row(row["measure"], row["baseline"], row["midpoint"], row["better"], "info"))
+        rows[DIAGNOSTICS + group] = group_rows
+    return rows
+
+
+def diagnostic_rows(b, m, threshold):
     rows = {}
 
     def add(group, label, path_b, path_m=None, better=None, kind="info"):
@@ -1352,171 +1477,247 @@ def like_with_like(b, m):
     return notes
 
 
-def plan_gate_rows(rows, b, m):
-    """Which rows of the plan's mid-point gate table (8.3) the numbers match. Shown beside the verdict."""
-    flat = {r["measure"]: r for group in rows.values() for r in group}
+def kind_drops(b, m):
+    """Each key kind that lost KIND_LOST or more items and more than KIND_SHARE of its share, named on its own: a
+    pooled share can hold steady while conflicts or decisions, the weak spots, fall away under it."""
     out = []
-    plan_detail = ["Captures in session records", "Items written", "Question ledger rows", "Unknowns with an Ask line"]
-    drops = [k for k in plan_detail if flat.get(k, {}).get("status") == "thinned"]
-    leak = flat.get("Leaks per lead-facing turn", {})
-    leaks_down = leak.get("status") == "better"
-    if drops:
-        out.append(f"Detail count more than 10% below baseline ({', '.join(drops)}): the plan says stop, read the "
-                   "transcripts for where detail was lost, fix inside wave 1's scope")
-    if not drops and leaks_down:
-        out.append("No plan detail count more than 10% down, and codes per lead-facing turn down: wave 2 as planned")
-    if leak.get("status") in ("same", "worse"):
-        out.append("Codes and IDs per lead-facing turn not down: find in the transcript whether they come from relayed "
-                   "output or the model's own wording before more --for-lead work")
-    skipped = num(get(m["close"], "skipped_steps")) if "missing" not in m["close"] else None
-    if skipped is not None and skipped > 0:
-        out.append(f"Close steps still skipped after their mechanics moved ({int(skipped)} in the mid-point): the plan says "
-                   "rethink before building decision files, and write what was seen into the fix ledger")
-    elif skipped == 0:
-        out.append("Close steps no longer skipped in the mid-point (grill and epics steps are not measured here)")
+    for kind, label in RECALL_KINDS:
+        x, y = b["recall"].get(kind), m["recall"].get(kind)
+        if not isinstance(x, dict) or not isinstance(y, dict) or is_missing(x) or is_missing(y):
+            continue
+        if x["found"] - y["found"] >= KIND_LOST and x["share"] - y["share"] > KIND_SHARE:
+            out.append(f"{label.replace(' (weak spot)', '')} {x['found']} of {x['of']} → {y['found']} of {y['of']}")
     return out
 
 
-def verdict(rows, b, m):
-    flat = [r for group in rows.values() for r in group]
-    thinned = [f"{r['measure'].strip()} ({show(r['baseline'])} → {show(r['midpoint'])}, {r['read']})"
-               for r in flat if r["kind"] == "detail" and r["status"] == "thinned"]
-    worse = [f"{r['measure'].strip()} ({show(r['baseline'])} → {show(r['midpoint'])})"
-             for r in flat if r["kind"] == "reliability" and r["status"] == "worse"]
-    unread = sorted({r["measure"].strip() for r in flat if r["kind"] in ("detail", "reliability") and r["status"] == "missing"})
-    core_worse = [w for w in worse if w.startswith(("Steps skipped", "Pushes without consent"))]
-    if core_worse or (thinned and worse):
-        word = "STOP"
-        why = ("what wave 1 moved into code got worse: " + "; ".join(core_worse)) if core_worse else \
-              "detail thinned and reliability got worse at once"
-    elif thinned or worse:
-        word = "ADJUST"
-        why = "; ".join(filter(None, ["thinned: " + "; ".join(thinned) if thinned else "",
-                                      "reliability worse: " + "; ".join(worse) if worse else ""]))
-    else:
-        word = "GO"
-        why = "no detail count fell more than the threshold, and no reliability figure got worse"
-    provisional = []
-    if unread:
-        provisional.append(f"{len(unread)} detail or reliability figures could not be read in one run or both: "
-                           + ", ".join(unread[:12]) + (" ..." if len(unread) > 12 else ""))
+def run_notes(b, m):
+    """What makes any verdict on these two runs provisional, whatever the scores say."""
+    notes = []
     mismatch = [n for n in like_with_like(b, m) if "not like with like" in n]
     if mismatch:
-        provisional.insert(0, "NOT LIKE WITH LIKE: " + "; ".join(mismatch) + ". The deltas mostly measure how far each "
-                           "run got, not the skills; compare again when both have run the same sessions")
-    for r, name in ((b, "baseline"), (m, "mid-point")):
+        notes.append("NOT LIKE WITH LIKE: " + "; ".join(mismatch) + ". The scores mostly measure how far each run got, "
+                     "not the skills; compare again when both have run the same sessions")
+    for r, name in ((b, "baseline"), (m, "later")):
         if not r["finished"]:
-            provisional.append(f"the {name} run is not finished")
+            notes.append(f"the {name} run is not finished")
         if not r.get("vault_shared", True):
-            provisional.append(f"the {name} run's final vault is its working tree, not origin/main (see its notes)")
-    return {"verdict": word, "why": why, "thinned": thinned, "reliability_worse": worse, "provisional": provisional}
+            notes.append(f"the {name} run's final vault is its working tree, not origin/main (see its notes)")
+    return notes
+
+
+def pct(value):
+    return f"{value * 100:.0f}%"
+
+
+def verdict(rows, b, m):
+    """GO, ADJUST or STOP from recall against the persona key and the precision of what was written, and nothing
+    else. Recall up with precision down is the Paper Tiger the honest score exists to catch (more written, less of
+    it true), so it is never a GO. Without a readable recall the verdict is UNSCORED; without precision it reads
+    recall alone and is provisional."""
+    rb, rm = b["recall"].get("pooled"), m["recall"].get("pooled")
+    pb, pm = b["precision"], m["precision"]
+    provisional = []
+    flat = [r for group in rows.values() for r in group]
+    guardrails = [f"{r['measure'].strip()} ({show(r['baseline'])} → {show(r['midpoint'])})"
+                  for r in flat if r["kind"] == "reliability" and r["status"] == "worse"]
+    if not isinstance(rb, dict) or not isinstance(rm, dict) or is_missing(rb) or is_missing(rm):
+        why = "; ".join(f"the {n} run's recall can't be read: {r['missing'] if is_missing(r) else 'no scorecard'}"
+                        for n, r in (("baseline", rb), ("later", rm)) if not isinstance(r, dict) or is_missing(r))
+        return {"verdict": "UNSCORED", "why": why, "recall": None, "precision": None, "weak_kinds": [],
+                "guardrails_worse": guardrails, "provisional": run_notes(b, m)}
+    r_delta = round(rm["share"] - rb["share"], 3)
+    have_p = "missing" not in pb and "missing" not in pm
+    p_delta = round(pm["precision"] - pb["precision"], 3) if have_p else None
+    weak = kind_drops(b, m)
+    recall_worse, precision_worse = r_delta < -RECALL_DROP, have_p and p_delta < -PRECISION_DROP
+    reads = [f"recall {pct(rb['share'])} → {pct(rm['share'])} ({r_delta * 100:+.0f} points, {rb['found']} of "
+             f"{rb['of']} → {rm['found']} of {rm['of']})"]
+    reads.append(f"precision {pct(pb['precision'])} → {pct(pm['precision'])} ({p_delta * 100:+.0f} points)" if have_p
+                 else "precision not read")
+    if (recall_worse and precision_worse) or r_delta < -RECALL_STOP or (have_p and p_delta < -PRECISION_STOP):
+        word = "STOP"
+    elif recall_worse or precision_worse or weak:
+        word = "ADJUST"
+    else:
+        word = "GO"
+    why = "; ".join(reads)
+    if word == "GO" and r_delta > RECALL_DROP:
+        why += ": the later run reached more of the key without writing less that can be trusted"
+    elif word == "GO":
+        why += f": neither moved past its threshold ({RECALL_DROP * 100:.0f} points of recall, " \
+               f"{PRECISION_DROP * 100:.0f} of precision)"
+    if r_delta > RECALL_DROP and precision_worse:
+        why += ". Recall rose while precision fell: more was written and less of it holds, which is not better"
+    if weak:
+        why += ". Fell on its own: " + "; ".join(weak)
+    if not have_p:
+        provisional.append("precision is missing in " + " and ".join(
+            n for n, r in (("the baseline", pb), ("the later run", pm)) if "missing" in r)
+            + ", so the verdict reads recall alone; run tests/sim/precision.py on the run")
+    sizes = {k: (b["recall"][k]["of"], m["recall"][k]["of"]) for k, _ in RECALL_KINDS
+             if isinstance(b["recall"].get(k), dict) and isinstance(m["recall"].get(k), dict)
+             and not is_missing(b["recall"][k]) and not is_missing(m["recall"][k])}
+    differ = [f"{k} {x} vs {y}" for k, (x, y) in sizes.items() if x != y]
+    if differ:
+        provisional.append("the key was not the same size in both runs (" + ", ".join(differ) + "): news reached the "
+                           "lead at different points, so shares are compared, not counts")
+    provisional = run_notes(b, m) + provisional
+    return {"verdict": word, "why": why, "recall": {"baseline": rb, "later": rm, "delta": r_delta},
+            "precision": ({"baseline": pb["precision"], "later": pm["precision"], "delta": p_delta} if have_p else None),
+            "weak_kinds": weak, "guardrails_worse": guardrails, "provisional": provisional}
 
 
 # ------------------------------------------------------------------ output
 
+def show_cell(value):
+    if isinstance(value, dict) and {"found", "of", "share"} <= set(value):
+        return f"{value['found']} of {value['of']} ({pct(value['share'])})"
+    return show(value)
+
+
 def md_table(group_rows):
-    lines = ["| Measure | Baseline | Mid-point | Delta | Read |", "|---|---|---|---|---|"]
+    lines = ["| Measure | Baseline | Later | Delta | Read |", "|---|---|---|---|---|"]
     for r in group_rows:
-        delta = r["delta"] if r["delta"] == "n/a" else (f"{r['delta']:+}" if isinstance(r["delta"], (int, float)) else r["delta"])
-        if r.get("change") is not None and r["delta"] not in ("n/a", 0):
-            delta += f" ({r['change']:+.0%})"
-        cells = [r["measure"].replace("  ", "&nbsp;&nbsp;"), show(r["baseline"]), show(r["midpoint"]), delta, r.get("read", "")]
+        if r["kind"] == "verdict":
+            delta = r["delta"] if r["delta"] == "n/a" else f"{r['delta'] * 100:+.0f} pts"
+        else:
+            delta = r["delta"] if r["delta"] == "n/a" else (f"{r['delta']:+}" if isinstance(r["delta"], (int, float)) else r["delta"])
+            if r.get("change") is not None and r["delta"] not in ("n/a", 0):
+                delta += f" ({r['change']:+.0%})"
+        cells = [r["measure"].replace("  ", "&nbsp;&nbsp;"), show_cell(r["baseline"]), show_cell(r["midpoint"]), delta,
+                 r.get("read", "")]
         lines.append("| " + " | ".join(str(c).replace("|", "\\|") for c in cells) + " |")
     return lines
 
 
 def render_md(report):
     b, m, v = report["baseline"], report["midpoint"], report["verdict"]
-    lines = [f"# Mid-point comparison: {b['run_id']} vs {m['run_id']}", "",
-             "The question (overhaul plan 8.1): did the slimmer wave-1 skills keep sessions as detailed, and did "
-             "reliability improve?", "",
+    lines = [f"# Comparison: {b['run_id']} vs {m['run_id']}", "",
+             "The question: did the later run reach more of what the lead's world holds (recall against the persona "
+             "key: K facts, U gaps, W wrong beliefs, D decisions, C conflicts), and can what it wrote be trusted "
+             "(precision over a fixed sample of the final vault)? Those two set the verdict. Everything under "
+             "Diagnostics is shown to read the transcripts by and never sets it.", "",
              f"## Verdict: {v['verdict']}" + (" (provisional)" if v["provisional"] else ""), "", v["why"] + ".", ""]
     if v["provisional"]:
         lines += ["Provisional, because:"] + [f"- {p}" for p in v["provisional"]] + [""]
-    lines += ["The plan's own gate table (8.3) reads these rows:"] + [f"- {p}" for p in report["plan_gate"]] + [""]
-    lines += ["## The runs", "", "| | Baseline | Mid-point |", "|---|---|---|"]
-    for key in ("run_dir", "checkout", "script", "arm", "finished", "vault_scored", "vault_working_tree"):
+    if v["guardrails_worse"]:
+        lines += ["Guardrails that got worse (shown, not in the verdict; read their turns below):"] \
+            + [f"- {g}" for g in v["guardrails_worse"]] + [""]
+    seal = report["seal"]
+    if seal["sealed"]:
+        lines += [f"**Sealed:** {'; '.join(seal['why'])}. Scores only: no per-item key result is printed. "
+                  "`--reveal` prints them; never pass it while iterating on the skills.", ""]
+    lines += ["## The runs", "", "| | Baseline | Later |", "|---|---|---|"]
+    for key in ("run_dir", "checkout", "script", "arm", "persona", "finished", "vault_scored", "vault_working_tree"):
         lines.append(f"| {key} | {show(b.get(key))} | {show(m.get(key))} |")
     lines.append("")
-    for name, r in (("Baseline", b), ("Mid-point", m)):
+    for name, r in (("Baseline", b), ("Later", m)):
         if r["notes"]:
             lines += [f"{name} notes:"] + [f"- {n}" for n in r["notes"]] + [""]
     if report["like_with_like"]:
         lines += ["**Not like with like:**"] + [f"- {n}" for n in report["like_with_like"]] + [""]
+    diagnostics_started = False
     for group, rows in report["rows"].items():
-        lines += [f"## {group}", ""]
-        if group == "Final vault":
+        if group.startswith(DIAGNOSTICS) and not diagnostics_started:
+            lines += ["## Diagnostics (never set the verdict)", "",
+                      "Volume counts (items written, captures, ledger rows, words per item), the prose judge's lists, "
+                      "voice, close steps, consent and IDs. A count going up is not the run getting better.", ""]
+            diagnostics_started = True
+        name = group[len(DIAGNOSTICS):] if group.startswith(DIAGNOSTICS) else group
+        lines += [f"{'###' if diagnostics_started else '##'} {name}", ""]
+        if name == "Final vault":
             lines += [f"Scored: the baseline's {b['vault_scored']} (its working tree: {b['vault_working_tree']}); the "
-                      f"mid-point's {m['vault_scored']} (its working tree: {m['vault_working_tree']}).", ""]
+                      f"later run's {m['vault_scored']} (its working tree: {m['vault_working_tree']}).", ""]
         lines += md_table(rows) + [""]
-        if group.startswith("Scorecard"):
+        if group == RECALL_GROUP:
             f = report["flips"]
-            lines += ([f"- Brief items: {show(f)}"] if is_missing(f) else
-                      [f"- Brief items yes in the baseline and no in the mid-point: {', '.join(f['lost']) or 'none'}",
-                       f"- Brief items yes in the mid-point only: {', '.join(f['gained']) or 'none'}"]) + [""]
-        if group.startswith("Skipped"):
-            for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):
-                c = r["close"]
-                if "missing" in c:
-                    continue
-                lines.append(f"- {name} close skill asks for: {', '.join(c['expected_steps'])}")
-                for x in c["per_close"]:
-                    if x["missing_steps"]:
-                        lines.append(f"  - S{x['session']} ({x['ended']}{', nothing open' if x['nothing_open'] else ''}): "
-                                     f"{x['counted_as']}: {', '.join(x['missing_steps'])}")
+            if seal["sealed"]:
+                lines += ["- Key items yes in one run only: sealed (holdout persona); pass --reveal to list them", ""]
+            elif is_missing(f):
+                lines += [f"- Key items: {show(f)}", ""]
+            else:
+                lines += [f"- Key items yes in the baseline and no in the later run: {', '.join(f['lost']) or 'none'}",
+                          f"- Key items yes in the later run only: {', '.join(f['gained']) or 'none'}", ""]
+        if group == PRECISION_GROUP:
+            for label, r in (("Baseline", report["detail"]["baseline"]), ("Later", report["detail"]["midpoint"])):
+                p = r["precision"]
+                if "missing" not in p:
+                    lines.append(f"- {label}: {p['sampled']} of {p['population']} written items sampled by page type "
+                                 f"(seed {p['seed']}) from {p['vault']}" + (f", for ${p['spent_usd']:.2f}"
+                                                                            if p.get("spent_usd") is not None else ""))
             lines.append("")
-        if group == TEAM_GROUP:
-            for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):
-                found = r["vault"].get("team_docs_from") or {}
-                lines.append(f"- {name} team documents: " + ("; ".join(f"{p} ({ref})" for p, ref in found.items())
-                                                             or "none on origin/main or an unmerged branch"))
-            lines.append("")
-        if group.startswith("Wrong"):
-            for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):
-                c = r["ids"]
-                if "missing" in c:
-                    continue
-                if c["guessed_list"]:
-                    lines.append(f"- {name} IDs said with no definition (turns): " + "; ".join(
-                        f"{i} (T{', T'.join(map(str, t))})" for i, t in c["guessed_list"].items()))
-                if c.get("known_from_documents_list"):
-                    lines.append(f"- {name} IDs said from the vault's own documents, not counted as guessed: "
-                                 + ", ".join(c["known_from_documents_list"]))
-                if c["ids_with_more_than_one_name_list"]:
-                    lines.append(f"- {name} IDs with more than one name: " + "; ".join(
-                        f"{i}: {' / '.join(n)}" for i, n in c["ids_with_more_than_one_name_list"].items()))
-            lines.append("")
-        if group.startswith("Consent"):
-            for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):
-                c = r["consent"]
-                if "missing" not in c and c["without_consent"]:
-                    lines.append(f"- {name} pushes with no consent found: " + "; ".join(
-                        f"T{x['turn']} (S{x['session']}, {x.get('how', 'push')}): {x.get('why', '')}"
-                        for x in c["without_consent"]))
-                if "missing" not in c and c.get("not_sent"):
-                    lines.append(f"- {name} pushes that didn't go: "
-                                 + ", ".join(f"T{x['turn']} (S{x['session']})" for x in c["not_sent"]))
-            lines.append("")
-        if group.startswith("Codes"):
-            for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):
-                c = r["voice"]
-                if "missing" not in c and c["worst_turns"]:
-                    lines.append(f"- {name} worst turns: " + "; ".join(
-                        f"T{w['turn']} {w['count']} ({', '.join(w['sample'])})" for w in c["worst_turns"]))
-            lines.append("")
-    lines += ["## Per session", "", "| Session | Mode | Baseline ended | Baseline turns | Mid-point ended | Mid-point turns |",
+        lines += detail_notes(name, report)
+    lines += ["## Per session", "", "| Session | Mode | Baseline ended | Baseline turns | Later ended | Later turns |",
               "|---|---|---|---|---|---|"]
-    bp = {s["session"]: s for s in get(report["detail"]["baseline"]["sessions"], "per_session", default=[]) or []} \
-        if "missing" not in report["detail"]["baseline"]["sessions"] else {}
-    mp = {s["session"]: s for s in get(report["detail"]["midpoint"]["sessions"], "per_session", default=[]) or []} \
-        if "missing" not in report["detail"]["midpoint"]["sessions"] else {}
+    per = lambda r: ({s["session"]: s for s in r["sessions"]["per_session"]} if "missing" not in r["sessions"] else {})
+    bp, mp = per(report["detail"]["baseline"]), per(report["detail"]["midpoint"])
     for i in sorted(set(bp) | set(mp)):
         x, y = bp.get(i, {}), mp.get(i, {})
         lines.append(f"| {i} | {x.get('mode') or y.get('mode')} | {x.get('ended', 'not run')} | {x.get('assistant_turns', '')} | "
                      f"{y.get('ended', 'not run')} | {y.get('assistant_turns', '')} |")
-    lines += ["", "How each figure is read is in tests/sim/README.md, \"Compare two runs\". Heuristic figures (skipped steps, consent, "
-              "guessed IDs, leaks) list their turns so you can read the transcript before you believe them.", ""]
+    lines += ["", "How each figure is read is in tests/sim/README.md, \"Compare two runs\". Heuristic figures (skipped steps, "
+              "consent, guessed IDs, leaks) list their turns so you can read the transcript before you believe them.", ""]
     return "\n".join(lines)
+
+
+def detail_notes(name, report):
+    """The per-turn lines under a diagnostics table: what to read in the transcript before believing the count."""
+    pairs = (("Baseline", report["detail"]["baseline"]), ("Later", report["detail"]["midpoint"]))
+    lines = []
+    if name.startswith("Skipped"):
+        for label, r in pairs:
+            c = r["close"]
+            if "missing" in c:
+                continue
+            lines.append(f"- {label} close skill asks for: {', '.join(c['expected_steps'])}")
+            for x in c["per_close"]:
+                if x["missing_steps"]:
+                    lines.append(f"  - S{x['session']} ({x['ended']}{', nothing open' if x['nothing_open'] else ''}): "
+                                 f"{x['counted_as']}: {', '.join(x['missing_steps'])}")
+    elif name == TEAM_GROUP:
+        for label, r in pairs:
+            found = r["vault"].get("team_docs_from") or {}
+            lines.append(f"- {label} team documents: " + ("; ".join(f"{p} ({ref})" for p, ref in found.items())
+                                                          or "none on origin/main or an unmerged branch"))
+    elif name.startswith("Wrong"):
+        for label, r in pairs:
+            c = r["ids"]
+            if "missing" in c:
+                continue
+            if c["guessed_list"]:
+                lines.append(f"- {label} IDs said with no definition (turns): " + "; ".join(
+                    f"{i} (T{', T'.join(map(str, t))})" for i, t in c["guessed_list"].items()))
+            if c.get("known_from_documents_list"):
+                lines.append(f"- {label} IDs said from the vault's own documents, not counted as guessed: "
+                             + ", ".join(c["known_from_documents_list"]))
+            if c["ids_with_more_than_one_name_list"]:
+                lines.append(f"- {label} IDs with more than one name: " + "; ".join(
+                    f"{i}: {' / '.join(n)}" for i, n in c["ids_with_more_than_one_name_list"].items()))
+    elif name.startswith("Consent"):
+        for label, r in pairs:
+            c = r["consent"]
+            if "missing" not in c and c["without_consent"]:
+                lines.append(f"- {label} pushes with no consent found: " + "; ".join(
+                    f"T{x['turn']} (S{x['session']}, {x.get('how', 'push')}): {x.get('why', '')}"
+                    for x in c["without_consent"]))
+            if "missing" not in c and c.get("not_sent"):
+                lines.append(f"- {label} pushes that didn't go: " + ", ".join(f"T{x['turn']} (S{x['session']})"
+                                                                         for x in c["not_sent"]))
+    elif name.startswith("Codes"):
+        for label, r in pairs:
+            c = r["voice"]
+            if "missing" not in c and c["worst_turns"]:
+                lines.append(f"- {label} worst turns: " + "; ".join(
+                    f"T{w['turn']} {w['count']} ({', '.join(w['sample'])})" for w in c["worst_turns"]))
+    return lines + [""] if lines else []
+
+
+def sealed_detail(data):
+    """A run's measures with every per-item key result taken out: what the JSON keeps for a holdout."""
+    out = dict(data)
+    out["scorecard"] = {k: v for k, v in data["scorecard"].items() if k not in ("items", "dropped_claim_list")}
+    out["precision"] = {k: v for k, v in data["precision"].items() if k != "items"}
+    return out
 
 
 def measure(label, run_dir, arm, checkout, notes=()):
@@ -1527,11 +1728,14 @@ def measure(label, run_dir, arm, checkout, notes=()):
         vault = vault_section(run, scored)
         cli = cli_section(run, scored.path)
         ids = ids_section(run, scored, vault, cli)
-    data = {"sessions": sessions_section(run), "scorecard": scorecard_section(run), "voice": voice_section(run),
+    card = scorecard_section(run)
+    data = {"sessions": sessions_section(run), "scorecard": card, "recall": recall_section(card),
+            "precision": precision_section(run), "voice": voice_section(run),
             "close": close_section(run), "consent": consent_section(run), "vault": vault, "cli": cli,
             "ids": ids, "finished": run.finished, "vault_shared": scored.shared}
     info = {"run_id": run_dir.name, "run_dir": str(run_dir), "checkout": str(checkout), "arm": arm,
             "script": run.run_json.get("script") if not is_missing(run.run_json) else run.run_json,
+            "persona": run.run_json.get("persona") if not is_missing(run.run_json) else None,
             "finished": run.finished, "vault_scored": scored.ref, "vault_working_tree": scored.working_tree,
             "notes": run.notes}
     return data, info
@@ -1548,6 +1752,8 @@ def parse_args(argv):
     p.add_argument("--arm", default="vela", help="today's arm name; an older run's folder is found through LEGACY_NAMES")
     p.add_argument("--threshold", type=float, default=THRESHOLD, help="share a detail count may fall before it reads as thinned")
     p.add_argument("--json", type=pathlib.Path, help="where to write the JSON report")
+    p.add_argument("--reveal", action="store_true",
+                   help="print per-item key results for a holdout persona too; never while iterating on the skills")
     args = p.parse_args(argv)
     if len(args.runs) > 2 or (args.runs and (args.baseline or (len(args.runs) == 2 and args.midpoint))):
         p.error("give each run once: two run folders, or --baseline and --midpoint")
@@ -1578,6 +1784,39 @@ def checkout_for(given, run_dir, notes):
     return repo
 
 
+SPLIT_LINE = re.compile(r"^split:\s*(dev|holdout)\b|^(holdout):\s*true\b", re.M)
+
+
+def persona_sealed(name, checkout):
+    """(sealed, why) for a run's persona, from its file's `split:` line (tests/sim/seal.py is the full seal; this
+    reads the one line, so a copy of this file outside the repo still needs nothing but Python). This repo's personas
+    are read first, as the seal stands today, then the run's checkout's. A persona with no file or no split is sealed."""
+    if not name:
+        return True, "the run names no persona, so it is treated as holdout"
+    stem = pathlib.PurePath(str(name)).stem
+    for base in [r for r in (own_repo(), checkout) if r is not None]:
+        path = pathlib.Path(base) / "tests" / "sim" / "personas" / f"{stem}.yaml"
+        if path.is_file():
+            m = SPLIT_LINE.search(path.read_text(encoding="utf-8"))
+            if not m:
+                return True, f"{stem} says neither `split: dev` nor `split: holdout`, so it is treated as holdout"
+            split = m.group(1) or "holdout"
+            return split == "holdout", f"{stem} is a {split} persona"
+    return True, f"no persona file for {stem}, so it is treated as holdout"
+
+
+def seal_of(report, checkouts, reveal):
+    whys, sealed = [], False
+    for label in ("baseline", "midpoint"):
+        locked, why = persona_sealed(report[label].get("persona"), checkouts[label])
+        if locked:
+            sealed = True
+            whys.append(why)
+    if sealed and reveal:
+        return {"sealed": False, "revealed": True, "why": whys}
+    return {"sealed": sealed, "revealed": False, "why": whys}
+
+
 def main(argv=None):
     args = parse_args(argv)
     dirs, arms, notes = {}, {}, {}
@@ -1598,15 +1837,18 @@ def main(argv=None):
     b, m = measured["baseline"][0], measured["midpoint"][0]
     rows = compare(b, m, args.threshold)
     report = {"baseline": measured["baseline"][1], "midpoint": measured["midpoint"][1], "threshold": args.threshold,
-              "verdict": verdict(rows, b, m), "plan_gate": plan_gate_rows(rows, b, m), "like_with_like": like_with_like(b, m),
-              "flips": flips(b, m), "rows": rows,
-              "detail": {"baseline": {k: v for k, v in b.items() if k != "vault"} | {"vault": strip(b["vault"])},
-                         "midpoint": {k: v for k, v in m.items() if k != "vault"} | {"vault": strip(m["vault"])}}}
+              "verdict": verdict(rows, b, m), "like_with_like": like_with_like(b, m), "flips": flips(b, m), "rows": rows}
+    report["seal"] = seal_of(report, checkouts, args.reveal)
+    if report["seal"]["sealed"]:
+        report["flips"] = missing("sealed: a holdout persona; pass --reveal to list the key items")
+        b, m = sealed_detail(b), sealed_detail(m)
+    report["detail"] = {"baseline": {k: v for k, v in b.items() if k != "vault"} | {"vault": strip(b["vault"])},
+                        "midpoint": {k: v for k, v in m.items() if k != "vault"} | {"vault": strip(m["vault"])}}
     out = args.json or pathlib.Path(tempfile.gettempdir()) / f"compare-{dirs['baseline'].name}-vs-{dirs['midpoint'].name}.json"
     out.write_text(json.dumps(report, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
     print(render_md(report))
     print(f"JSON: {out.resolve()}", file=sys.stderr)
-    return {"GO": 0, "ADJUST": 1, "STOP": 3}[report["verdict"]["verdict"]]
+    return {"GO": 0, "ADJUST": 1, "STOP": 3, "UNSCORED": 4}[report["verdict"]["verdict"]]
 
 
 def strip(vault):
