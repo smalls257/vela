@@ -33,3 +33,26 @@ def test_the_open_skill_runs_vela_open_and_never_git_init():
 
 def test_open_says_where_the_explorer_is():
     assert EXPLORER_LINE in text("skills/open/SKILL.md")
+
+
+# --- Overhaul Task 22h: relay the command; the reader hears what a .mine.md file is.
+
+
+def test_open_names_only_commands_that_exist():
+    import re
+    import shlex
+    from vela import cli
+    parser = cli.build_parser()
+    calls = re.findall(r"scripts/vela (open [^`]*)`", text("skills/open/SKILL.md"))
+    assert calls, calls
+    for call in calls:
+        _, extras = parser.parse_known_args(shlex.split(re.sub(r"<[^>]*>", "X", call)))
+        assert not extras, (call, extras)
+
+
+def test_a_reopen_says_where_the_readers_version_went_in_plain_words():
+    skill = text("skills/open/SKILL.md")
+    assert '"Your version is kept next to it in a file ending .mine.md"' in skill
+    assert "`<page>.mine.md`" not in skill and "every skill runs as a reader" not in skill
+    assert "the planning sessions (`/vela:dump`, `/vela:shape` and so on)" in skill
+    assert "Never delete or empty a folder to make room." in skill
