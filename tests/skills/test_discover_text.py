@@ -4,8 +4,10 @@ Every test that pins this text lives here, so the rewrite that changes it edits 
 Each section is headed by the file it came from and that file's reason.
 """
 import re
+import shlex
 
 from conftest import REPO
+from vela import cli
 
 PLUGIN = REPO / "plugin"
 
@@ -23,7 +25,7 @@ def test_discover_runs_the_checkpoint_after_the_read_back_and_the_implications_l
     discover = text("skills/discover/SKILL.md")
     assert "references/REVIEW.md" in discover and '"after the read-back"' in discover
     assert "What these sources imply" not in discover
-    assert "### PTY-nn <name>" in discover and "### SV-nn <name>" in discover
+    assert "vela add subject --subject-type PTY" in discover and "`--subject-type SV`" in discover
     assert "vela questions --subject <ID>" in discover
 
 
@@ -35,7 +37,7 @@ def test_discover_leaves_the_checks_every_area_makes_to_the_agent():
 
 def test_round_two_fixes_in_discover():
     disc = text("skills/discover/SKILL.md")
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --subject <ID>" in disc
+    assert "`vela questions --subject <ID>`" in disc
     assert "say aloud any pair of lines" in disc and "never two facts" in disc
     assert '"after the read-back" (the "Here\'s what I think exists" step' in disc
 
@@ -107,3 +109,52 @@ def test_discover_marks_its_fact_captures():
 def test_discover_asks_once_for_the_initiatives_short_name():
     text = (PLUGIN / "skills" / "discover" / "SKILL.md").read_text(encoding="utf-8")
     assert "asks once for the initiative's short name" in text
+
+
+# --- Overhaul Task 22g: the mechanics moved into commands; the read-back and the judgment stay.
+
+
+DISCOVER = text("skills/discover/SKILL.md")
+
+
+def vela_calls(body):
+    """Each `vela <cmd> ...` the skill writes in a code span, as argv with placeholders filled."""
+    found = re.findall(r"`vela ([a-z][^`]*)`", body)
+    return [shlex.split(re.sub(r"\^c(?:NN?|\d+)", "^c01", re.sub(r"<[^<>]*>", "X", call))) for call in found]
+
+
+def test_discover_names_only_commands_that_exist():
+    parser = cli.build_parser()
+    calls = vela_calls(DISCOVER)
+    assert len(calls) >= 8, calls
+    for argv in calls:
+        _, extras = parser.parse_known_args(argv)
+        assert not extras, (argv, extras)
+
+
+def test_the_token_rule_is_the_commands_refusal_not_a_sentence():
+    assert "user:token@" not in DISCOVER  # `vela add source` strips it and says so
+    assert "vela add source --title" in DISCOVER and "takes out any credential and says so" in DISCOVER
+
+
+def test_state_from_kind_is_applys_refusal_and_resolutions_go_through_resolve():
+    assert "`vela apply --schema marks`" in DISCOVER and "Apply won't write a fact from a plan" in DISCOVER
+    assert "`resolve` decision file (`vela apply --schema resolve`)" in DISCOVER
+    assert "vela record add --origin" in DISCOVER
+
+
+def test_discover_keeps_a_read_back_said_by_name():
+    four = DISCOVER.split("4. Show", 1)[1].split("\n5. ", 1)[0]
+    assert "(the partner guide, what runs today)" in four and "Yes to these three?" in four
+    assert not re.search(r"\b(?:SRC|UNK|APP|PTY|SV)-", four.split("> 1.", 1)[1])
+    assert "Name sources by title when you talk" in DISCOVER
+
+
+def test_discover_says_the_audit_wording():
+    assert "Noted: the plan holds money or points on customers' behalf." in DISCOVER
+    assert "Because of that, these questions now need answers:" in DISCOVER
+    assert "noted, there is stored value" not in DISCOVER and "now owes" not in DISCOVER
+
+
+def test_discover_stops_when_a_command_cant_say_it():
+    assert "When a command can't express what the lead wants, say so and stop." in DISCOVER

@@ -1,102 +1,87 @@
 ---
 name: voice-seed
-description: Store the owner's own writing as the voice examples that drafts and sessions are written from. Use when the owner wants drafts and conversations to sound like them.
+description: Store the owner's own writing as the voice samples that drafts and sessions are written from. Use when the owner wants drafts and conversations to sound like them.
 argument-hint: "[diagnosis | decision | how-it-works | conversation]"
 disable-model-invocation: true
 ---
 
 # Voice seed
 
-Contents: 1 start clean; 2 who the owner is; 3 collect the passages (the conversation type, the owner's own rules); 4 write the examples; 5 retire examples; 6 final check; 7 commit and open the PR.
+This skill stores the owner's own writing in `voice/examples/` or `voice/local/`, so drafts sound like the owner instead of the built-in samples. It never rewrites them. Vela does the files: relay its plain lines and ask the owner what it hands you. When a command can't do what the owner wants, say so plainly and stop; never write, retire or count the files by hand.
 
-The vault's prose is drafted from `voice/examples/` and `voice/local/`. This skill puts the owner's own writing there, so drafts sound like the owner instead of the public seed. It stores the owner's words exactly as pasted. It never rewrites them.
+The argument values are the type names the commands take. Say them in words: `diagnosis` is why something hurts now (the goals page), `decision` is what we chose and why (the strategy, decision records, the capability delta), `how-it-works` is how a system behaves (the context, app, runtime, flow and concern pages), and `conversation` is how sessions talk to the lead. A run with no type named does the first three in that order, then offers conversation and `voice/VOICE.md`.
 
-An example's format is in `vela conventions "Voice examples"`.
+## 1. Start
 
-There are two voices. The page voice (`diagnosis`, `decision`, `how-it-works`) is what the tool writes; `house-voice` reads those examples. The conversation voice (`conversation`) is how sessions talk to the lead; `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` reads those. `/vela:voice-seed conversation` runs the conversation type alone. A run with no type named does the three page types, and offers conversation and `voice/VOICE.md` at the end.
+Run steps 1 and 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` (the state of the clone, then how to talk: `voice/VOICE.md` when it exists, then `CONVERSATION-VOICE.md`). Run `vela whoami --json`: its handle, with an `@` in front, is the owner and every sample's author. On exit 3, ask its question once and run `vela whoami --set <handle>`.
 
-## 1. Start clean
+Vela saves a passage only against the owner's yeses written in an open session record. Run `vela session open --switch --for-lead`. With several open, ask which and run it again with `--id <id>`. With none, say: "Saving a sample needs an open session to write your yeses into, and none is open. Start the session you were going to run next, then type `/vela:voice-seed` in it." Stop there.
 
-Run step 1 of `${CLAUDE_PLUGIN_ROOT}/references/START.md`: show the state of the clone, stop on any changed or untracked file, and pull `main`. Do not create a branch yet. Step 7 does that, and only if something committed changes.
-
-## 2. Who the owner is
-
-Get the user's handle with `gh api user -q .login`. If `gh` fails, ask the user for it. The owner is that handle, with an `@` in front. Every example this skill writes carries it as `author`.
-
-## 3. Collect the passages, one voice type at a time
+## 2. Where the samples go
 
 In a reader copy (no `.git`), only the local-only place is open: say so, and never offer the committed place or a branch.
 
-First say this plainly: "`voice/examples/` is committed, pushed and opened as a PR, so anyone with access to this repository can read what goes there." Then offer two places for the run:
+Otherwise say plainly: "`voice/examples/` is committed, pushed and opened as a PR, so anyone with access to this repository can read what goes there." Then offer:
 
-- committed: `voice/examples/<type>/`. The passages go through a PR.
-- local only: `voice/local/<type>/`. They stay on this machine, are gitignored, and are never committed.
+- committed: `voice/examples/<type>/`, for everyone, through a PR.
+- local only: `voice/local/<type>/`: this machine only, gitignored, never committed. On this machine drafts read these first.
 
-| Place | Who can read it | Retires a committed seed | Opens a PR |
-|---|---|---|---|
-| committed, `voice/examples/<type>/` | anyone with access to the repository | yes, within its folder | yes |
-| local only, `voice/local/<type>/` | this machine only | no | no |
+If the owner says their employer owns the text, or is not sure, recommend local only. A local-only run changes no committed file and makes no branch, commit or PR. Say so. A local example never retires a committed seed, so teammates keep their samples.
 
-If the owner says their employer owns the text, or is not sure, recommend local only. A local-only run changes no committed file and makes no branch, commit or PR. Say so. A local example never retires a committed seed: that would drop every teammate's house voice below 2 examples of the type. On this machine, house-voice reads local owner examples ahead of the committed seed. Create `voice/local/<type>/` when it does not exist.
+## 3. Collect the passages, one type at a time
 
-Take the voice type the user named, or the three page types in this order: diagnosis, decision, how-it-works. The `conversation` type is taken when it is named or when the owner accepts the offer at the end. For each type:
-
-1. Say what the type is for, from the table in `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md`. Diagnosis says why something hurts now, as on the goals page. Decision says what was chosen and why, as in the strategy, the ADRs and the capability delta. How-it-works says how a system behaves, as on the context, app, runtime, flow and concern pages. Conversation is the one type that is an exchange, not a page: see "The conversation type" below.
-2. Ask the owner to paste 2 or 3 passages of their own writing of that type, one at a time. Each should be one or two paragraphs, about 80 to 300 words, from something they wrote themselves.
-3. For each passage, ask and wait for an explicit yes to each:
+1. Say what the type is for, in the words above.
+2. Ask for 2 or 3 passages of the owner's own writing of that type, one at a time, each one or two paragraphs.
+3. For each passage, ask and wait for an explicit yes to each, as its own question:
    - "Did you write this yourself?"
-   - For the committed place only: "May this text be committed to the vault, where everyone with access to the repository can read it?"
+   - committed only: "May this text be committed to the plan, where everyone with access to the repository can read it?"
 
-   If an answer is anything but yes, do not store the passage, and say so.
-4. Take everything after the frontmatter's closing `---` as the body. If the passage has a line that is exactly `---`, or contains `<!-- generated:`, tell the owner which line it is and that tools may treat it as a boundary or a generated block. Ask whether to go ahead. Store it only on an explicit yes, and never rewrite the line.
-5. If a passage is under 80 or over 300 words, say so once. Store it anyway if the owner says yes.
-6. Ask where it comes from, in a few words, for the `from` field: for example "design review for the 2025 payments move". Leave out anything the owner does not want recorded.
+   Capture each answer in the owner's words: `vela record add '"<their words>"' --origin @<handle> --tag instruction --mark "drop: consent to store"` (`"drop: consent to commit"` for the second). Keep the number it prints. Anything but yes: do not store the passage, and say so.
+4. Ask where it comes from, in a few words ("design review for the 2025 payments move"), leaving out anything the owner does not want recorded.
 
-Stop asking for a type once it has 3 passages, or when the owner says they have no more.
-
-Before storing a type, make room for it:
-
-1. List the type's active examples in `voice/examples/` and `voice/local/`, with the passages about to be added.
-2. Count only within a folder. A `public-seed` example retires when the active `owner` and `owner-edit` examples in its own folder, after this run, number at least 2. So committed owner examples retire committed seeds, and local examples retire only local ones. In a local-only run, nothing in `voice/examples/` retires. Otherwise the type keeps its seed.
-3. A type holds at most 5. Count both folders together. If the list still has more than 5, retire the surplus in this order: `public-seed` first, then `owner-edit`, then `owner`. Within each, the oldest `added` goes first, then the lowest file name. In a local-only run, only local examples may retire. If the list is still over 5, store nothing new for that type and say so.
-4. Show the owner each retirement the cap forces and ask. The owner may refuse. If they refuse, store nothing new for that type and say why: a type holds at most 5.
-
-Keep the plan of retirements for step 5.
+Stop at 3 passages, or when the owner has no more.
 
 ### The conversation type
 
-The owner pastes 2 or 3 exchanges they liked, from any session or chat: a few turns of the lead and the assistant, as they were, with the speakers marked the way the paste marks them. Ask for each, one at a time, an explicit yes to "Is this an exchange you were part of, and are you happy for it to be kept?" in place of "Did you write this yourself?", and for the committed place only, "May this text be committed to the vault, where everyone with access to the repository can read it?". Anything but yes means it is not stored. Exchanges run longer than a page passage: skip the 80 to 300 word note. The `from` field says where it came from in a few words. Fields, file naming (`VX-conversation-NNN.md`), the verbatim write and compare, the cap of 5 and the committed or local-only choice are exactly as for the other types. Conversation has no public seed, so nothing retires unless the cap forces it. With fewer than 2 active conversation examples the sessions use the written rules on their own, and the owner can add more at any time.
+`/vela:voice-seed conversation` runs it alone. The owner pastes 2 or 3 exchanges they liked, a few turns as they were, speakers marked as the paste marks them. The first question becomes "Is this an exchange you were part of, and are you happy for it to be kept?"; the commit question is the same. Vela names the files `VX-conversation-NNN.md` and skips the length note. With fewer than 2 conversation samples, sessions use the written rules alone.
 
 ### The owner's own rules
 
-After the types, offer once: "Do you want to start `voice/VOICE.md`, your own rules for how pages read or how sessions talk, in your words?" It is optional. The defaults already say to spell in American English, and the owner can change that here. If yes, ask which facet (pages, conversation or both) and take the rules the owner states, one at a time. Write each rule as the owner said it, never reworded and never invented by you; if you think of a rule they might want, you may offer it as a question and write it only when they say yes in their own words. Put the pages rules and the conversation rules under two headings, `## Pages` and `## Conversation`. Create the file if it does not exist, append to it if it does, and never delete or rewrite a line already there. `voice/VOICE.md` is committed, so say the same plain words about who can read it and ask for the same yes before it goes in the PR.
+Offer once: "Do you want to start `voice/VOICE.md`, your own rules for how pages read or how sessions talk, in your words?" It is optional; the defaults already spell in American English, and the owner can change that here. Take each rule as the owner states it, one at a time, never reworded and never invented by you; you may offer a rule as a question and write it only when they say yes in their own words. Put them under `## Pages` and `## Conversation`. Append; never delete or rewrite a line already there. It is committed: same plain words, same yes.
 
-## 4. Write the examples
+## 4. Save each one
 
-Write each passage as `<folder>/<type>/VX-<type>-NNN.md`, in the three moves `${CLAUDE_PLUGIN_ROOT}/skills/voice-seed/WRITE.md` gives: frontmatter, the pasted text exactly as given, and a compare with `cmp`. Read that file now and follow it; the stored text must equal the pasted text, and a difference stops the run.
+Write the passage to a file exactly as pasted, with a quoted heredoc so nothing expands:
 
-## 5. Retire examples
+```
+cat > .vela/voice-passage.md <<'VELA_EOF'
+<the passage, exactly as pasted>
+VELA_EOF
+```
 
-Apply the plan from step 3. Set `state: retired` on each example in it. Change only the `state:` line. Never delete a seed example: its license and attribution stay in the file. Retiring a committed example changes a committed file, so it goes through the PR in step 7. Retiring a local example needs no PR.
+If the passage contains a line `VELA_EOF`, pick another delimiter and use it in both places. A heredoc always ends its text with a newline, so a paste that had no final newline gains one. When the paste had none, tell the owner. Vela's compare proves the file holds what the heredoc received. It does not prove the chat text reached the heredoc unchanged. Store an accepted passage as it was pasted.
 
-A type with fewer than 2 owner passages keeps its seed. A local-only run always leaves the committed seed in place. Say: "<type> has one owner passage, so house-voice still reads the public seed. Add another to replace it."
+Before the yeses, run `vela voice plan --type decision --place committed --from .vela/voice-passage.md --for-lead`, with this run's type and place, and handle what it says, one question at a time:
 
-## 6. Final check
+- a line that is exactly `---` or a generated-block marker: say which line and that tools may read it as a boundary, and ask. Store it only on an explicit yes, and never rewrite the line.
+- short or long: say it once; store it anyway if the owner says yes.
+- exit 3, a retirement the cap forces: a type holds at most 5. Say which sample would retire and ask. The owner may refuse. If they refuse, store nothing new for that type and say why. Capture a yes like the others, marked `"drop: consent to retire"`.
+- exit 1: the type is full and nothing may retire. Say so and go on.
 
-Re-read every file you wrote or changed, confirm each frontmatter parses, and run the count in `${CLAUDE_PLUGIN_ROOT}/skills/voice-seed/WRITE.md`: it exits 1 if a type has more than 5 active examples or a file does not parse. If it fails, say what failed and stop.
+Then run `vela voice save --from .vela/voice-passage.md --type decision --place committed --consent ^c<N> --commit-consent ^c<M> --author @<handle> --where '<from>' --for-lead`, again with this run's type and place, with `--retire-consent ^c<K>` for a forced retirement, and with no `--commit-consent` for `--place local`. Relay its lines. If it stops for a missing yes, ask for it; never pass another capture in its place. Exit 2 means the stored file differs from the passage: tell the owner and never repair it. Then run `rm -f .vela/voice-passage.md`.
 
-## 7. Commit and open the PR
+The owner's second sample of a type retires the built-in ones in that folder. A type with fewer than 2 owner passages keeps its seed; say it in words: "I have only one sample of how you explain how things work, so drafts still follow the built-in samples. Add one more to switch to yours."
+
+## 5. Commit and open the PR
 
 If nothing committed changed, say: "Local only: no branch, commit or PR." Stop here.
 
-Otherwise run `git switch -c voice/seed-<today>`. If that branch exists locally or on `origin`, add `-2`, then `-3`, until it is free. Stage each committed example you wrote or retired, and `voice/VOICE.md` if you changed it, by exact path. Never use `git add -A`. Commit with the message `voice: owner examples for <types>`. Run `git push -u origin voice/seed-<today>`. If the push fails, show the error, print the commands for the user to run, and stop.
-
-Write the PR body to a temporary file: each committed example added, with its type and `from`; each example retired; and each type that kept its seed. Name local examples only as a count. Never put their text or their `from` in the PR. Run `gh pr create --base main --head voice/seed-<today> --title "Voice: owner examples" --body-file <file>`. If `gh` fails, say so, print the branch name and the exact command, and stop. Never say a PR exists unless `gh` printed its URL.
+Otherwise the samples ride the open session's branch. Stage each file `git status --short voice/examples voice/VOICE.md` lists, by exact path. Never use `git add -A`. Commit with the message `voice: owner examples for <types>`. The push and the pull request go with that session's close, which says what it will send and waits for the owner's yes; tell the owner so. For its PR body, name each committed sample added with its type and `from`, each retired, and each type that kept its seed. Name local examples only as a count, never their text or `from`. Never say a PR exists unless `gh` printed its URL.
 
 ## Never
 
 - Never rewrite, shorten, correct or paraphrase the owner's words.
 - Never store a passage the owner did not write. Never commit one they did not clear for the repository.
 - Never write under `voice/corpus/`. It is gitignored reading material, not examples.
-- Never edit a file outside `voice/examples/`, `voice/local/` and `voice/VOICE.md`.
+- Never edit a file outside `voice/examples/`, `voice/local/`, `voice/VOICE.md` and the session record.
 - Never invent a rule for `voice/VOICE.md`. Its lines are the owner's words.

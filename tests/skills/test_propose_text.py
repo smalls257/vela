@@ -39,3 +39,28 @@ def test_propose_never_invents_a_reason_or_sends_anything():
                  "Never add that flag without their yes", "A skipped question, \"not sure\", or silence is fine"):
         assert rule in text, rule
     assert "vela role" in text and "you decide directly" in text and "--whys -" in text
+
+
+# --- Overhaul Task 22h: relay the command, ask by the item's name.
+
+
+def test_propose_names_only_commands_that_exist():
+    import shlex
+    from vela import cli
+    parser = cli.build_parser()
+    text = skill("propose")
+    calls = re.findall(r"`vela ((?:propose|role)\b[^`]*)`", text)
+    calls += [line.split("scripts/vela ", 1)[1].split(" <<", 1)[0].replace("[--zip]", "--zip")
+              for line in text.splitlines() if "scripts/vela propose" in line]
+    assert len(calls) >= 3, calls
+    for call in calls:
+        _, extras = parser.parse_known_args(shlex.split(re.sub(r"<[^>]*>", "X", call)))
+        assert not extras, (call, extras)
+
+
+def test_the_reader_is_asked_by_the_items_name_not_the_group_key():
+    text = skill("propose")
+    assert "by the item's name (the group key goes only into the command)" in text
+    assert '"You changed the Record consent contract' in text
+    assert "vault" not in text.split("## Proposing", 1)[0].split("# Propose", 1)[1]
+    assert "When a command can't express what the user wants, say so and stop." in text
