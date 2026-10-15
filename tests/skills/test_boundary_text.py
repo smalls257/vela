@@ -196,3 +196,11 @@ def test_boundary_reads_back_by_name_in_plain_labels():
 def test_boundary_keeps_the_first_thin_path_words_releases_reads():
     b = text("skills/boundary/SKILL.md")  # releasebrief finds the flow page by "first thin path"
     assert "We build this journey first, as the first thin path: ..." in b
+
+
+def test_pages_leaves_to_add_what_add_writes():
+    pages = text("skills/boundary/PAGES.md")
+    assert "fill the stub `vela add app-stub` wrote" in pages and "`vela add contract` writes the heading" in pages
+    assert "`type: app-building-blocks`, `title`, `state: assumption`" not in pages  # the stub's frontmatter
+    assert "one `### CON-nnn <name>` each, with every required bullet" not in pages
+    assert "| Case | When | Status | Answer | Emits | Sets |" in pages  # the case table stays the session's
