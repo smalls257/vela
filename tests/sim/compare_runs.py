@@ -30,6 +30,7 @@ import argparse
 import json
 import pathlib
 import re
+import shlex
 import statistics
 import subprocess
 import sys
@@ -93,14 +94,16 @@ def read_transcript(path):
 
 
 def raw_tool_inputs(raw_dir):
-    """Full tool inputs per assistant call, from raw/NNN-assistant.txt in call order. The transcript keeps only the
-    first 200 characters of each input, which can cut a chained git command before its push. Subagent calls are left
-    out, as run.py leaves out their text. Returns (calls, lines that look like JSON and don't parse), or None."""
+    """Full tool inputs per assistant call, from raw/NNN-assistant.txt in call order, each with what it printed. The
+    transcript keeps only the first 200 characters of each input, which can cut a chained git command before its push,
+    and none of the output, which is the only place a call that failed (exit 127) or was denied says so. Subagent
+    calls are left out, as run.py leaves out their text. Each tool is {name, input, result, error}; result is None
+    when no output was recorded. Returns (calls, lines that look like JSON and don't parse), or None."""
     if not raw_dir.is_dir():
         return None
     calls, unparsed = [], 0
     for path in sorted(raw_dir.glob("*-assistant.txt")):
-        tools = []
+        tools, by_id = [], {}
         for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
             if not line.startswith("{"):
                 continue
@@ -109,13 +112,29 @@ def raw_tool_inputs(raw_dir):
             except json.JSONDecodeError:
                 unparsed += 1  # a call cut off mid-line; counted, and the notes say how many
                 continue
-            if event.get("type") != "assistant" or event.get("parent_tool_use_id"):
+            kind = event.get("type")
+            if kind not in ("assistant", "user") or event.get("parent_tool_use_id"):
                 continue
-            for block in (event.get("message") or {}).get("content") or []:
-                if isinstance(block, dict) and block.get("type") == "tool_use":
-                    tools.append({"name": block.get("name", "?"), "input": tool_text(block.get("input"))})
+            message = event.get("message")
+            for block in (message.get("content") if isinstance(message, dict) else None) or []:
+                if not isinstance(block, dict):
+                    continue
+                if kind == "assistant" and block.get("type") == "tool_use":
+                    tool = {"name": block.get("name", "?"), "input": tool_text(block.get("input")), "result": None,
+                            "error": False}
+                    tools.append(tool)
+                    by_id[block.get("id")] = tool
+                elif kind == "user" and block.get("type") == "tool_result" and block.get("tool_use_id") in by_id:
+                    tool = by_id[block["tool_use_id"]]
+                    tool["result"], tool["error"] = result_text(block.get("content")), bool(block.get("is_error"))
         calls.append(tools)
     return calls, unparsed
+
+
+def result_text(content):
+    if isinstance(content, list):
+        return "\n".join(b.get("text", "") for b in content if isinstance(b, dict))
+    return content if isinstance(content, str) else ""
 
 
 def tool_text(value):
@@ -175,6 +194,7 @@ class Run:
         self.cli = next((p for p in (checkout / "plugin" / "scripts" / "planner",  # legacy-name
                                      checkout / "plugin" / "scripts" / "vela") if p.exists()), None)
         self.turn_tools = self._turn_tools()
+        self.wrappers = tool_wrappers(t["input"] for tools in self.turn_tools.values() for t in tools)
 
     def spoken(self):
         if is_missing(self.transcript):
@@ -201,7 +221,8 @@ class Run:
             if raw is not None and i < len(raw):
                 full[e["turn"]] = raw[i]
             else:
-                full[e["turn"]] = [{"name": t.get("name"), "input": t.get("input", "")} for t in e.get("tool_calls") or []]
+                full[e["turn"]] = [{"name": t.get("name"), "input": t.get("input", ""), "result": None, "error": False}
+                                   for t in e.get("tool_calls") or []]
         return full
 
     def run_cli(self, vault, *args):
@@ -390,16 +411,18 @@ def voice_section(run):
 TOOL = r"(?<![\w-])(?:planner|vela)"  # legacy-name
 CLI = rf"(?:{TOOL}|\$\{{?[A-Za-z_]\w*\}}?)['\"]?\s+"
 SKILL_CLI = rf"{TOOL} "  # how a close skill names a command it asks for: `vela render`, or `planner render` in an old one
+# `close finish` refuses unless close gate's checks pass (commands/close_finish.py runs close_gate.observe and
+# closegate.ready: check errors, a stale render, sync), then closes the record, commits it and rebuilds the dashboard
+# (overhaul Task 22a). So a run of it ran the gate, render's and check's tests, the commit and the rebuild.
+FINISH = rf"{CLI}close finish\b"
 CLOSE_STEPS = {  # step -> (what in a tool input shows it ran, what in the checkout's close skill shows it is asked for)
     "find the session": (rf"git branch (?:-r )?--list|git show \S+:sessions/|git grep -l|{CLI}session open", r"Find the session"),
     "bring in main": (rf"merge-base --is-ancestor|git merge\b[^\n]*origin/main|git fetch origin|{CLI}close sync-main",
                       r"bring in `main`"),
-    "render": (rf"{CLI}render\b", rf"{SKILL_CLI}render"),
-    "check": (rf"{CLI}check(?![-\w])", rf"{SKILL_CLI}check"),
-    "close gate": (rf"{CLI}close gate\b", r"close gate"),
-    # `close finish` closes the record, commits it and rebuilds the dashboard (overhaul Task 22a), so a close skill
-    # that asks for it asks for both steps, and a run of it ran both.
-    "close commit": (rf"Close session|{CLI}close stage[^\n]*--close|{CLI}close finish\b",
+    "render": (rf"{CLI}render\b|{FINISH}", rf"{SKILL_CLI}render"),
+    "check": (rf"{CLI}check(?![-\w])|{FINISH}", rf"{SKILL_CLI}check"),
+    "close gate": (rf"{CLI}close gate\b|{FINISH}", r"close gate"),
+    "close commit": (rf"Close session|{CLI}close stage[^\n]*--close|{FINISH}",
                      r"Close session|close stage --close|close finish"),
     "push": (rf"git push\b|{CLI}close push\b", r"git push|close push"),
     "open the PR": (rf"gh pr (?:create|comment)|{CLI}close pr\b", r"gh pr create|close pr"),
@@ -409,6 +432,95 @@ CLOSE_STEPS = {  # step -> (what in a tool input shows it ran, what in the check
 NO_SESSION = re.compile(r"no (?:open )?session (?:is )?open|nothing (?:is )?open|no session to close|"
                         r"(?:isn't|is not|wasn't) (?:a|any) (?:open )?session", re.I)
 NO_SESSION_STEPS = ("find the session", "rebuild the explorer")
+
+
+# ------------------------------------------------------------------ what a shell call ran
+
+# A session wraps the tool in a shell function or alias and calls it by that name (`v(){ python3 …/vela "$@"; };
+# v close finish`). Read by name only, the confirm run's S2 and S18 closes showed six skipped steps they had run.
+_TOOL_WORD = r"(?<![\w-])(?:vela|planner)(?![\w-])"  # legacy-name
+WRAPPER = re.compile(rf"(?<![\w$-])([A-Za-z_][\w-]*)\s*\(\)\s*\{{[^}}]*?{_TOOL_WORD}"
+                     rf"|\bfunction\s+([A-Za-z_][\w-]*)\s*(?:\(\)\s*)?\{{[^}}]*?{_TOOL_WORD}"
+                     rf"|\balias\s+([A-Za-z_][\w-]*)=['\"]?[^'\"\n]*?{_TOOL_WORD}")
+# What a shell prints when a command never started. A failed `$V render` in the same call as a working `v render`
+# credited render to the failed one (exit 127, S2 of the confirm run): a false positive hiding a false negative.
+NEVER_RAN = (re.compile(r"^(?:\(eval\)|zsh|bash|sh):(?:\d+:)? (?:no such file or directory|command not found): (.+?)\s*$", re.M),
+             re.compile(r"^-?(?:bash|sh): (?:line \d+: )?([^\s:]+): (?:command not found|No such file or directory)\s*$", re.M),
+             re.compile(r"can't open file '([^']+)'"))
+DENIED = re.compile(r"Permission for this tool use was denied|This command requires approval")
+LEADING = {"{", "}", "then", "do", "else", "time", "!", "exec", "command", "export", "if", "while"}
+ASSIGN = re.compile(r"^([A-Za-z_]\w*)=(.*)$", re.S)
+
+
+def tool_wrappers(inputs):
+    """Names a run gave the tool through a shell function or alias, from every tool input it sent."""
+    names = {n for text in inputs for m in WRAPPER.finditer(text) for n in m.groups() if n}
+    return names - {"vela", "planner"}  # legacy-name
+
+
+def shell_segments(command):
+    """One token list per simple command: split on newlines, `;`, `&&`, `||`, `|` and parentheses, quotes kept
+    together. A line shlex can't read (a heredoc body, an odd quote) is split on the same marks by pattern."""
+    out = []
+    for line in command.splitlines():
+        try:
+            lex = shlex.shlex(line, posix=True, punctuation_chars=";&|()")
+            lex.whitespace_split = True
+            tokens = list(lex)
+        except ValueError:
+            out += [part.split() for part in re.split(r";|&&|\|\|?|[()]", line)]
+            continue
+        current = []
+        for token in tokens:
+            if token and set(token) <= set(";&|()"):
+                out.append(current)
+                current = []
+            else:
+                current.append(token)
+        out.append(current)
+    return [s for s in out if s]
+
+
+def _head(tokens, variables):
+    """The command word of a segment, past `{`, `then`, `export` and the like, recording any `NAME=value` on the way."""
+    i = 0
+    while i < len(tokens):
+        assigned = ASSIGN.match(tokens[i])
+        if assigned:
+            variables[assigned.group(1)] = assigned.group(2)
+        elif tokens[i] not in LEADING:
+            return i
+        i += 1
+    return None
+
+
+def shell_commands(tool, wrappers=frozenset()):
+    """[(text, ran)] for each simple command in a Bash call, in order. A wrapper's name is read as `vela`. A command
+    did not run when the whole call was denied, or when the output says its command word (a name, the value of the
+    variable it calls, or the script it opens) never started. Any other tool is one (input, not denied)."""
+    text, result = tool.get("input") or "", tool.get("result") or ""
+    denied = bool(DENIED.search(result))
+    if tool.get("name") != "Bash":
+        return [(text, not denied)]
+    never = {m.group(1).strip().strip("'\"") for pattern in NEVER_RAN for m in pattern.finditer(result)}
+    variables, out = {}, []
+    for tokens in shell_segments(text):
+        at = _head(tokens, variables)
+        if at is None:
+            continue
+        words = tokens[at:]
+        head = words[0]
+        name = re.fullmatch(r"\$\{?([A-Za-z_]\w*)\}?", head)
+        failed = denied or head in never or (name and variables.get(name.group(1)) in never) \
+            or any(path in words for path in never if "/" in path)
+        if head in wrappers:
+            words = ["vela", *words[1:]]
+        out.append((" ".join(words), not failed))
+    return out
+
+
+def ran_text(tool, wrappers=frozenset()):
+    return "\n".join(text for text, ran in shell_commands(tool, wrappers) if ran)
 
 
 def close_skill_text(checkout):
@@ -432,7 +544,7 @@ def close_section(run):
         if s["mode"] != "close":
             continue
         turns = [e for e in spoken if e["session"] == s["session"]]
-        tools = " \n".join(t["input"] for e in turns for t in run.turn_tools.get(e["turn"], []))
+        tools = " \n".join(ran_text(t, run.wrappers) for e in turns for t in run.turn_tools.get(e["turn"], []))
         ran = [step for step in expected if re.search(CLOSE_STEPS[step][0], tools)]
         nothing_open = "close commit" not in ran and any(NO_SESSION.search(e.get("text") or "") for e in turns)
         want = [x for x in expected if x in NO_SESSION_STEPS] if nothing_open else expected
@@ -454,41 +566,166 @@ def close_section(run):
 
 # ------------------------------------------------------------------ consent before push
 
-PUSH = re.compile(rf"git push\b|{CLI}close push\b")
+# Two routes send work. `git push` is read the old way: a lead turn earlier in the session asked for it, or said yes
+# to a question about it. `vela close push` (overhaul wave 1) has its own: without --consent it prints a notice and
+# sends nothing (exit 3); `close push --consent ^cN` sends only when ^cN is the lead's yes, captured after the notice.
+# So a notice is not a push, and the yes is the capture's words in a lead turn between the notice and the send. Read
+# as a push, the five notices of the confirm run were five "pushes without consent" that sent nothing.
+GIT_PUSH = re.compile(r"(?<![\w-])git(?:\s+-\S+)*\s+push\b")
+CLOSE_PUSH = re.compile(rf"{CLI}close push\b")
+CONSENT_REF = re.compile(r"--consent[= ]+\^?c(\d+)\b")
 SAID_PUSH = re.compile(r"\bpush\b|open the (?:pr|pull request)|go ahead|ship it|send it", re.I)
 YES = re.compile(r"^\W*(?:yes|yep|yeah|yup|sure|ok|okay|go|do it|please|sounds good|fine|correct|right|absolutely|"
                  r"definitely|let's do it|that's fine)\b", re.I)
 ASKED_PUSH = re.compile(r"push|pull request|\bPR\b|send (?:it|this) (?:up|for review)|for review|share", re.I)
+PUSH_FAILED = re.compile(r"\[(?:remote )?rejected\]|failed to push|^fatal:", re.M)
+# `git push -u` updates the remote, then writes the upstream into .git/config; in the sandbox that write fails and the
+# call exits 1, but the push went (baseline T316: `git ls-remote` in the next call shows the branch).
+UPSTREAM_ONLY = re.compile(r"unable to write upstream branch configuration|could not lock config file")
+RECORD_ADD_VALUED = {"--vault", "--origin", "--tag", "--mark", "--record"}  # `vela record add --help`: options with a value
+
+
+def git_push_went(tool):
+    """A git push went unless the call was denied, git said it failed, or the call failed with no ref update shown."""
+    out = tool.get("result")
+    if out is None:
+        return True  # no output recorded (the transcript's cut): read as sent, as before
+    if DENIED.search(out) or PUSH_FAILED.search(out):
+        return False
+    return not tool.get("error") or "->" in out or "Everything up-to-date" in out or bool(UPSTREAM_ONLY.search(out))
+
+
+def close_push_sent(tool):
+    """`close push --consent` sent when it said so ("Sent." or exit 0 in --json); a refusal or a non-zero exit didn't."""
+    out = tool.get("result")
+    if out is None:
+        return True
+    if DENIED.search(out):
+        return False
+    if re.search(r"^Sent\b|\"exit\":\s*0\b", out, re.M):
+        return True
+    return not tool.get("error") and not re.search(r"\brefus|\bexit [1-9]|\"exit\":\s*[1-9]", out, re.I)
+
+
+def capture_words(tokens):
+    """The words of a `record add` segment: its one positional argument."""
+    try:
+        at = next(i for i in range(len(tokens) - 1) if tokens[i] == "record" and tokens[i + 1] == "add") + 2
+    except StopIteration:
+        return None
+    rest = tokens[at:]
+    i = 0
+    while i < len(rest):
+        if rest[i] in RECORD_ADD_VALUED:
+            i += 2
+        elif rest[i].startswith("-"):
+            i += 1
+        else:
+            return rest[i]
+    return None
+
+
+def captured_yes(run, turns, number):
+    """The words captured as ^c<number>, from the newest `record add` call in `turns` whose output printed that number.
+    A call that adds several captures prints one number per capture, in order; the numbers are matched to the
+    segments by position, and a call where they don't line up is not read. `record add --for-lead` prints no number
+    ("Noted in the session record."), so when no call printed it, the newest such unnumbered capture is read, and
+    the answer says so. Returns (words, how it was found) or (None, None)."""
+    ref = re.compile(rf"\^c0*{number}(?!\d)")
+    unnumbered = None
+    for e in reversed(turns):
+        for tool in reversed(run.turn_tools.get(e["turn"], [])):
+            if tool.get("name") != "Bash":
+                continue
+            out = tool.get("result") or ""
+            adds = [s for s in shell_segments(tool["input"]) if capture_words(s) is not None]
+            printed = list(dict.fromkeys(int(n) for n in re.findall(r"\^c(\d+)(?!\d)", out)))
+            if adds and not printed and unnumbered is None:
+                unnumbered = capture_words(adds[-1])
+            if not ref.search(out):
+                continue
+            if len(adds) == 1:
+                return capture_words(adds[0]), "printed"
+            if adds and len(adds) == len(printed):
+                return capture_words(adds[printed.index(number)]), "printed"
+    return (unnumbered, "unnumbered") if unnumbered is not None else (None, None)
+
+
+def plain(text):
+    return " ".join(re.findall(r"[\w']+", (text or "").lower()))
 
 
 def consent_section(run):
     spoken = run.spoken()
     if not spoken:
         return {"missing": "no turns in the transcript"}
-    pushes, without = 0, []
+    pushes, without, sends, notices, not_sent, last_notice = 0, [], [], 0, [], {}
     for i, e in enumerate(spoken):
         if e["speaker"] != "assistant":
             continue
-        tools = [t["input"] for t in run.turn_tools.get(e["turn"], [])]
-        if not any(PUSH.search(t) for t in tools):
+        session = e["session"]
+        turn_sends = []
+        for tool in run.turn_tools.get(e["turn"], []):
+            for text, ran in shell_commands(tool, run.wrappers):
+                if CLOSE_PUSH.search(text) and not CONSENT_REF.search(text):
+                    if ran:
+                        notices += 1
+                        last_notice[session] = i
+                    continue
+                if CLOSE_PUSH.search(text):
+                    if not ran or not close_push_sent(tool):
+                        not_sent.append({"turn": e["turn"], "session": session, "how": text[:120]})
+                        continue
+                    number = int(CONSENT_REF.search(text).group(1))
+                    turn_sends.append({"how": f"close push --consent ^c{number:02d}",
+                                       **close_push_consent(run, spoken, i, session, number, last_notice.get(session))})
+                elif GIT_PUSH.search(text):
+                    if not ran or not git_push_went(tool):
+                        not_sent.append({"turn": e["turn"], "session": session, "how": text[:120]})
+                        continue
+                    turn_sends.append({"how": "git push", **git_push_consent(spoken, i, session)})
+        if not turn_sends:
             continue
         pushes += 1
-        before = [x for x in spoken[:i] if x["session"] == e["session"]]
-        consent = False
-        for j, x in enumerate(before):
-            if x["speaker"] != "lead":
-                continue
-            text = x.get("text") or ""
-            if SAID_PUSH.search(text) and not re.search(r"\b(?:don't|do not|not yet|wait|hold)\b", text, re.I):
-                consent = True
-            prior = before[j - 1] if j else None
-            if YES.search(text) and prior and prior["speaker"] == "assistant" and "?" in (prior.get("text") or "") \
-                    and ASKED_PUSH.search(prior.get("text") or ""):
-                consent = True
-        if not consent:
-            without.append({"turn": e["turn"], "session": e["session"]})
+        sends += [{"turn": e["turn"], "session": session, **s} for s in turn_sends]
+        refused = [s for s in turn_sends if not s["consent"]]
+        if refused:
+            without.append({"turn": e["turn"], "session": session, "how": refused[0]["how"], "why": refused[0]["why"]})
     return {"pushes": pushes, "pushes_with_consent": pushes - len(without), "pushes_without_consent": len(without),
-            "without_consent": without}
+            "without_consent": without, "notices": notices, "pushes_not_sent": len(not_sent),
+            "not_sent": not_sent, "sends": sends}
+
+
+def git_push_consent(spoken, i, session):
+    before = [x for x in spoken[:i] if x["session"] == session]
+    for j, x in enumerate(before):
+        if x["speaker"] != "lead":
+            continue
+        text = x.get("text") or ""
+        if SAID_PUSH.search(text) and not re.search(r"\b(?:don't|do not|not yet|wait|hold)\b", text, re.I):
+            return {"consent": True, "why": f"T{x['turn']} asked for it"}
+        prior = before[j - 1] if j else None
+        if YES.search(text) and prior and prior["speaker"] == "assistant" and "?" in (prior.get("text") or "") \
+                and ASKED_PUSH.search(prior.get("text") or ""):
+            return {"consent": True, "why": f"T{x['turn']} said yes to T{prior['turn']}"}
+    return {"consent": False, "why": "no lead turn in the session asked for it or said yes to it"}
+
+
+def close_push_consent(run, spoken, i, session, number, notice):
+    """The cited capture's words must be in a lead turn after the session's last notice and before this send."""
+    turns = [x for x in spoken[:i + 1] if x["session"] == session and x["speaker"] == "assistant"]
+    words, found = captured_yes(run, turns, number)
+    if words is None:
+        return {"consent": False, "why": f"no `record add` in this session printed ^c{number:02d}", "words": None}
+    found = "" if found == "printed" else f"; ^c{number:02d} read as the last capture that printed no number"
+    start = notice if notice is not None else -1
+    leads = [x for x in spoken[start + 1:i] if x["session"] == session and x["speaker"] == "lead"]
+    said = next((x for x in leads if plain(words) and plain(words) in plain(x.get("text"))), None)
+    if said is None:
+        where = "after the notice" if notice is not None else "in the session (no notice was given)"
+        return {"consent": False, "why": f"the captured words are in no lead turn {where}{found}", "words": words}
+    return {"consent": True, "why": f"T{said['turn']} said it" + ("" if notice is not None else "; no notice was given")
+            + found, "words": words}
 
 
 # ------------------------------------------------------------------ the vault
@@ -1012,6 +1249,8 @@ def compare(b, m, threshold):
     add("Consent before push", "Pushes", P("pushes"))
     add("Consent before push", "Pushes with the lead's consent", P("pushes_with_consent"))
     add("Consent before push", "Pushes without consent", P("pushes_without_consent"), better="lower", kind="reliability")
+    add("Consent before push", "Send notices (`close push` with no --consent: asks, sends nothing)", P("notices"))
+    add("Consent before push", "Pushes that didn't go (denied, refused or never started)", P("pushes_not_sent"))
 
     W = lambda *p: (lambda r: section_missing(r["vault"], p))
     L = lambda *p: (lambda r: section_missing(r["cli"], p))
@@ -1251,8 +1490,12 @@ def render_md(report):
             for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):
                 c = r["consent"]
                 if "missing" not in c and c["without_consent"]:
-                    lines.append(f"- {name} pushes with no consent found: "
-                                 + ", ".join(f"T{x['turn']} (S{x['session']})" for x in c["without_consent"]))
+                    lines.append(f"- {name} pushes with no consent found: " + "; ".join(
+                        f"T{x['turn']} (S{x['session']}, {x.get('how', 'push')}): {x.get('why', '')}"
+                        for x in c["without_consent"]))
+                if "missing" not in c and c.get("not_sent"):
+                    lines.append(f"- {name} pushes that didn't go: "
+                                 + ", ".join(f"T{x['turn']} (S{x['session']})" for x in c["not_sent"]))
             lines.append("")
         if group.startswith("Codes"):
             for name, r in (("Baseline", report["detail"]["baseline"]), ("Mid-point", report["detail"]["midpoint"])):

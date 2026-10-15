@@ -1,6 +1,13 @@
-# Heron from an empty vault to "ready to start working", on the current plugin: dump, discover, shape, boundary, grill,
-# requirements, allocate, releases, epics and a handoff of the desktop agent, each with its close, with one extra grill
-# after releases that plans the tracer slice. The lead's sessions leave slice pages in slices/ (releases cuts them, the
+# Heron from an empty vault to "ready to start working", on the current plugin: dump, discover, shape, grill,
+# requirements, boundary, allocate, releases, epics and a handoff of the desktop agent, each with its close, with one
+# extra grill after releases that plans the tracer slice.
+#
+# Order changed 2026-10-15: boundary (with its close) moved from sessions 7-8 to 11-12, after the grill that decides
+# on-device against cloud and after requirements. Boundary stops while the direction is undecided, which is right, and
+# in both 2026-10-14 runs (baseline T158, confirm T104) it stopped, so no app was cut and contracts, case tables,
+# allocation, releases, the tracer and the handoff all came out empty (/tmp/compare/diagnosis-confirm.md, section 4).
+# Runs on this order are NOT like with like with runs before it: sessions 7 to 12 hold different modes, so compare
+# them by mode, not by session number, and expect boundary-dependent counts to rise for this reason alone. The lead's sessions leave slice pages in slices/ (releases cuts them, the
 # tracer SLC-001 first) and case tables on the contracts (boundary and grill write them). Then three sessions of the Desk
 # Agent team, run from the vault root with the plugin's own skills: /vela:design and /vela:breakdown write the
 # design and the plan under docs/, and /vela:tickets writes the tickets as Markdown (docs/work/tickets.md). The
@@ -227,14 +234,6 @@ sessions:
   cap: 12
   vela: /vela:close
   baseline: Close out this session, following CONVENTIONS.md.
-- mode: boundary
-  cap: 20
-  vela: '/vela:boundary {topics[boundary]}: the domains, who sends each step of the flows, the links between the apps, and the case table of each contract'
-  baseline: 'Draw the boundary for {topics[boundary]}: the apps, their domains, who sends each flow step and the contracts between them. Follow CONVENTIONS.md.'
-- mode: close
-  cap: 12
-  vela: /vela:close
-  baseline: Close out this session, following CONVENTIONS.md.
 - mode: grill
   cap: 22
   vela: '/vela:grill {topics[grill]}'
@@ -247,6 +246,14 @@ sessions:
   cap: 20
   vela: '/vela:requirements {topics[requirements]}'
   baseline: 'Write the functional requirements for {topics[requirements]}. Follow CONVENTIONS.md.'
+- mode: close
+  cap: 12
+  vela: /vela:close
+  baseline: Close out this session, following CONVENTIONS.md.
+- mode: boundary
+  cap: 20
+  vela: '/vela:boundary {topics[boundary]}: the domains, who sends each step of the flows, the links between the apps, and the case table of each contract'
+  baseline: 'Draw the boundary for {topics[boundary]}: the apps, their domains, who sends each flow step and the contracts between them. Follow CONVENTIONS.md.'
 - mode: close
   cap: 12
   vela: /vela:close

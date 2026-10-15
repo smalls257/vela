@@ -636,9 +636,13 @@ Rules, in order of priority:
    record, say yes. If it says gh failed and asks for your handle, it is {handle}. If it asks for reviewers or
    owners nobody named, name a role, never invent a person.
 8. Anything you were not given, you do not know. Say "honestly not sure" rather than invent a fact.
-9. Reply with exactly {end} and nothing else when the assistant: says the session is over, done or closed; says
-   its work here is finished or nothing is pending; asks you to close the session or to run any command; says it
-   is here when you are back or waiting on you or someone else; or refuses because an earlier step is missing.
+9. This session's goal is what its first message asked for. Reply with exactly {end} and nothing else only when:
+   the assistant says the session is over, done or closed, or that its work here is finished or nothing is pending,
+   and that goal has been worked through; or, after doing this session's work, it asks you to close the session or
+   to run any command, or says it is here when you are back or waiting on you or someone else; or it
+   refuses because an earlier step is missing. An offer is not an ending: when it asks whether to keep going or
+   close (such as "keep going, or shall I close this out?") and part of that goal is untouched, or it has not yet
+   asked you about something you know on the subject, say keep going.
    Do not thank it, wish it luck or say goodbye first: {end} is your whole message. You cannot run commands; the
    next session is how a command runs.
 10. Say a worry once. Do not repeat a worry, a deadline or a blocker you have already said in this session unless

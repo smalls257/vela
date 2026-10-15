@@ -194,9 +194,16 @@ checkout the run folder sits in, or this repo, and the notes say which). It read
   listed. The patterns name both the old tool name and vela, so an old run is counted as it was recorded.
 - **Skipped close steps**: each close session's full tool inputs, read from `raw/NNN-assistant.txt` (the
   transcript cuts them at 200 characters), checked for each step the run's own close skill names. A step missing
-  from a session cut by a cap or the budget is counted apart.
-- **Consent before push**: each push needs a lead turn earlier in the session that asked for it, or a yes to an
-  assistant question about it; the ones it can't match are listed by turn.
+  from a session cut by a cap or the budget is counted apart. The tool is recognized by name, through a variable
+  (`$P render`), or through a shell function or alias the run defined (`v(){ python3 …/vela "$@"; }; v render`).
+  A command whose output says it never started (zsh's `no such file or directory: python3 …` for an unsplit
+  variable, `command not found`, exit 127) or a call the sandbox denied counts for nothing. `vela close finish`
+  counts as the gate, render, check, the close commit and the explorer rebuild: it refuses unless the gate passes.
+- **Consent before push**: a push is a `git push` that went (not denied, not rejected) or a `vela close push
+  --consent ^cN` that sent. A `close push` with no `--consent` is a notice: it asks and sends nothing, and is counted
+  on its own line. A `git push` needs a lead turn earlier in the session that asked for it, or a yes to an
+  assistant question about it. A `close push --consent ^cN` needs the words `record add` captured as ^cN in a lead
+  turn after the session's last notice and before the send. The ones it can't match are listed by turn with why.
 - **Wrong or reused IDs**: check's reuse codes, IDs that carried two names in the vault's history, and IDs said to
   the lead that the vault never had. A question-ledger ID is read whole, so the tail of `R-DAT-02` or
   `Q-DAT-01@INI-001` is not an ID of its own. Vela's own families (UNK, CAP, CON, EPC, FLO, SLC, ADR, APP, PTY, SV,
