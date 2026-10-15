@@ -346,6 +346,7 @@ CODES = {
     "W329": "a table row's link label pipe is not escaped as `\\|`",
     "W717": "CONVENTIONS.md is not the copy the plugin ships",
     "W718": "the initiative's title in .vela.yaml is still the template's placeholder",
+    "W719": "git tracks one of vela's own working files under .vela/",
     "W334": "prose calls an answered question open",
     "E340": "release row names no functional requirement",
     "E341": "release row names a criterion the requirement does not have",

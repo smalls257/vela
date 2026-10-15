@@ -262,6 +262,27 @@ def test_a_cache_both_sides_committed_never_stops_the_merge(repos):
     assert (lead / CACHE).read_text(encoding="utf-8") == '{"v": 2}\n'
 
 
+def test_check_warns_while_git_tracks_vela_s_cache_and_stops_once_untracked(repos):
+    lead, _ = repos
+    (lead / ".vela.yaml").write_text("initiative: INI-001\ntitle: Heron\n", encoding="utf-8")
+    commit_cache(lead, '{"v": 1}\n', "cache")
+    code, out = run("check", "--vault", str(lead), "--today", TODAY)
+    assert f"{CACHE}:1: W719" in out and f"git rm --cached -- {CACHE}" in out, out
+    git(lead, "rm", "-q", "--cached", CACHE)
+    git(lead, "commit", "-q", "-m", "untrack the cache")
+    assert "W719" not in run("check", "--vault", str(lead), "--today", TODAY)[1]
+
+
+def test_the_template_ignores_every_vela_working_file_but_the_shared_layout(tmp_path):
+    from conftest import REPO
+    git(tmp_path, "init", "-q")
+    (tmp_path / ".gitignore").write_bytes((REPO / "template" / ".gitignore").read_bytes())
+    for name in ("flowcheck-cache.json", "close/session__x.json", "findings/a.txt", "pr-body.md", "explorer-pins.json"):
+        (tmp_path / ".vela" / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".vela" / name).write_text("{}\n", encoding="utf-8")
+    assert vaultgit.status_paths(tmp_path, "--untracked-files=all", "--", ".vela") == [".vela/explorer-pins.json"]
+
+
 def test_the_lead_s_files_still_block_and_are_named_whole(repos):
     """A dirty page still needs a checkpoint, the cache beside it is not in the list, and no path loses its first
     letter (porcelain was sliced after the output was stripped)."""

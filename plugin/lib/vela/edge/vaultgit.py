@@ -92,6 +92,17 @@ def status_paths(root, *args):
     return parse_porcelain(out.decode("utf-8"))
 
 
+def tracked_paths(root):
+    """Vault-relative paths git tracks under the vault, exactly as on disk; [] when the folder is in no repository (a
+    read copy, a vault never put in git). Any other failure raises GitUnavailable."""
+    code, out, err = run_git(root, "ls-files", "-z", "--", ".", binary=True)
+    if code == 0:
+        return [path for path in out.decode("utf-8").split("\0") if path]
+    if "not a git repository" in err.lower():
+        return []
+    raise GitUnavailable(f"git ls-files failed: {err or 'no message'}")
+
+
 def uncommitted(root):
     """Files changed or untracked under the vault, as git status sees them (ignored files are not listed). The files the
     explorer build writes itself (the dashboard and the pinned layout, publish.KEPT) are left out: the build counts what

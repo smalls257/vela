@@ -68,7 +68,13 @@ class _Run:
 
     def finish(self, status, exit_code, lines, reason="", files=(), refusals=(), needs_lead=(), wrote=()):
         self.put_back()
-        key = closestate.key_for(self.branch) if status != closestate.READER else closestate.READER_KEY
+        if self.set_aside:
+            lines = [*lines, say.Line(
+                f"sync-main: set aside and wrote back unchanged {', '.join(self.set_aside)}: git tracks "
+                f"{'it' if len(self.set_aside) == 1 else 'them'}, but close never commits {'it' if len(self.set_aside) == 1 else 'them'} "
+                "(vela check W719 says how to untrack).",
+                "Git is keeping some of vela's own working files by mistake; I left them exactly as they were.")]
+        key =closestate.key_for(self.branch) if status != closestate.READER else closestate.READER_KEY
         rec = closestate.record(status, self.branch, self.main, self.head, self.today, reason, files)
         path = mergegit.write_state(self.root, key, rec)
         data = {"status": status, "reason": reason, "branch": self.branch, "main": self.main, "head": self.head,
