@@ -767,6 +767,25 @@ def digest(vault, area=None, subject_id=None):
             "owed": len(kept), "undisposed": undisposed, "asked": asked, "reviewer_open": opened, "groups": out}
 
 
+# REVIEW section 5: the lead hears at most three questions at a time, and "more" brings the next three. A turn of 50
+# questions is a dump, not an interview, and the lead answers none of it well.
+DIGEST_AT_A_TIME = 3
+
+
+def unseen(answer, seen, at_a_time=DIGEST_AT_A_TIME):
+    """(shown, held) from a `digest` answer: its groups without any copy in `seen` (copy and reviewer IDs already shown
+    this session, or that a capture this session already answered or ruled out), the first `at_a_time` of them to show
+    and the rest held back. A group keeps only its unseen copies, so a copy that turned up after its entry was shown is
+    still asked. The order is the digest's own. Never a line twice: what is shown is what the caller records."""
+    seen = set(seen)
+    left = []
+    for group in answer["groups"]:
+        copies = [c for c in group["copies"] if c not in seen]
+        if copies:
+            left.append(dict(group, copies=copies))
+    return left[:at_a_time], left[at_a_time:]
+
+
 def stats(vault, area=None):
     """For each entry, how many copies the vault owes and how each ended, and how often it ended
     not-applicable: the evidence for pruning an entry or tightening its trigger. Pruning is the user's call."""
@@ -897,13 +916,20 @@ def grill_gate(vault, items):
             yield Finding(where[0], where[1], "W807", f"None of the standard questions applies to {vault.named(unit_id)}, so nothing is checked for it before the grill.",
                           "To get the checks, name the app, contract, requirement, capability or concern it affects instead.")
             continue
-        for d in dispositions(vault):
-            if d.pending and unit_id in blocks(vault, d.copy):
-                yield Finding(where[0], where[1], "W807",
-                              f"A question that holds up {vault.named(unit_id)} {_standing(d)}: {d.copy.entry.question} ({d.copy.id})",
-                              "Put it on the agenda and settle it first, or decide anyway and capture "
-                              "\"decided with <copy IDs> open (W807)\": that capture is the record, because W807 "
-                              "prints only under this gate.")
+        for d in owed_on(vault, unit_id):
+            yield Finding(where[0], where[1], "W807",
+                          f"A question that holds up {vault.named(unit_id)} {_standing(d)}: {d.copy.entry.question} ({d.copy.id})",
+                          "Put it on the agenda and settle it first, or decide anyway and capture "
+                          "\"decided with <copy IDs> open (W807)\": that capture is the record, because W807 "
+                          "prints only under this gate.")
+
+
+def owed_on(vault, unit_id):
+    """The dispositions still open, asked or with no row whose copy blocks `unit_id`, in copy order: what W807 warns on,
+    and what `gates.verdict` lists as still owed. One computation, so the warning and the verdict never disagree."""
+    if not can_be_blocked(vault, unit_id):
+        return []
+    return [d for d in dispositions(vault) if d.pending and unit_id in blocks(vault, d.copy)]
 
 
 # ------------------------------------------------------------------ a subject nobody typed

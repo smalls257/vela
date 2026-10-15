@@ -1,7 +1,7 @@
-"""The text of /vela:breakdown and /vela:tickets: each kept item and each built-in rule is there, nothing points at a file that is
-not, and the plan format's own example is something the reader reads clean.
+"""What the breakdown skill says, pinned in one place (overhaul plan Task 3).
 
-    python3 -m pytest tests/test_breakdown_tickets_skills.py
+Every test that pins this text lives here, so the rewrite that changes it edits this file and no other skill's.
+Each section is headed by the file it came from and that file's reason.
 """
 import re
 
@@ -9,17 +9,29 @@ from conftest import REPO
 from vela import breakdown
 
 PLUGIN = REPO / "plugin"
+
+
 BREAKDOWN = PLUGIN / "skills" / "breakdown"
-TICKETS = PLUGIN / "skills" / "tickets"
-LINT = [w.strip() for w in (PLUGIN / "references" / "lint-words.txt").read_text(encoding="utf-8").splitlines() if w.strip() and not w.startswith("#")]
 
 
 def text(path):
     return path.read_text(encoding="utf-8")
 
 
-def skill_text(folder):
+LINT = [w.strip() for w in (PLUGIN / "references" / "lint-words.txt").read_text(encoding="utf-8").splitlines() if w.strip() and not w.startswith("#")]
+
+
+def skill_text_breakdown_tickets_skills(folder):
     return "\n".join(text(p) for p in sorted(folder.glob("*.md")))
+
+
+def read(rel):
+    return (PLUGIN / rel).read_text(encoding="utf-8")
+
+
+# --- From tests/test_breakdown_tickets_skills.py: The text of /vela:breakdown and /vela:tickets: each kept item and
+# each built-in rule is there, nothing points at a file that is not, and the plan format's own example is something
+# the reader reads clean.
 
 
 def test_the_kept_items_are_in_the_breakdown_skill():
@@ -47,38 +59,21 @@ def test_each_fix_from_the_review_and_session_18_is_in_the_breakdown_skill():
     assert "override" in body and "Never split, merge, drop or reorder agreed stories without reading the change back" in body
 
 
-def test_the_voices_are_read_through_start_and_the_conversation_voice_file():
-    for folder in (BREAKDOWN, TICKETS):
-        body = text(folder / "SKILL.md")
-        assert "references/CONVERSATION-VOICE.md" in body and "voice/VOICE.md" in body and "references/START.md" in body
+def test_breakdown_reads_the_voices_through_start_and_the_conversation_voice_file():
+    body = text(BREAKDOWN / "SKILL.md")
+    assert "references/CONVERSATION-VOICE.md" in body and "voice/VOICE.md" in body and "references/START.md" in body
     assert "skills/house-voice/SKILL.md" in text(BREAKDOWN / "SKILL.md")
 
 
-def test_the_tickets_skill_checks_asks_creates_nothing_without_a_yes_and_stops():
-    body = text(TICKETS / "SKILL.md")
-    for phrase in ("vela tickets check", "Markdown ticket list", "CSV for Jira import", "an MCP server or a command-line tool",
-                   "never guess a project key", "Nothing is created in any outside system without an explicit yes",
-                   "Write no script to create tickets", "stop with one short summary", "9 stories, 42 tasks, 3 flagged"):
-        assert phrase in body, phrase
-    assert "tools/breakdown_to_tickets.py" not in body  # not shipped in the plugin zip; the CLI carries the converter
-
-
-def test_no_skill_file_names_a_plugin_file_that_is_not_there_or_a_word_the_lint_list_holds():
-    for folder in (BREAKDOWN, TICKETS):
-        body = skill_text(folder)
-        for rel in re.findall(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)", body):
-            rel = rel.rstrip(".")
-            assert (PLUGIN / rel).exists(), f"{folder.name} names {rel}"
-        for word in LINT:
-            assert not re.search(rf"\b{re.escape(word)}", body, re.I), f"{folder.name} uses {word!r}"
-        assert "~/.claude" not in body and "skill 1" not in body.lower() and "to-issues" not in body
-
-
-def test_the_self_audit_is_the_users_text_with_only_its_header_changed():
-    mine = text(PLUGIN / "references" / "NEG-AUDIT.md")
-    original = text(REPO / "integrations" / "tech-design-grill" / "skill" / "NEG-AUDIT.md")
-    assert mine == original.replace("## Violation Guide (from `~/.claude/CLAUDE.md`)", "## Violation Guide (the failure modes below)")
-    assert mine != original and "~/.claude" not in mine
+def test_breakdown_names_no_missing_plugin_file_and_no_word_the_lint_list_holds():
+    folder = BREAKDOWN
+    body = skill_text_breakdown_tickets_skills(folder)
+    for rel in re.findall(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)", body):
+        rel = rel.rstrip(".")
+        assert (PLUGIN / rel).exists(), f"{folder.name} names {rel}"
+    for word in LINT:
+        assert not re.search(rf"\b{re.escape(word)}", body, re.I), f"{folder.name} uses {word!r}"
+    assert "~/.claude" not in body and "skill 1" not in body.lower() and "to-issues" not in body
 
 
 def test_the_example_story_in_the_plan_format_reads_without_problems():
@@ -89,3 +84,13 @@ def test_the_example_story_in_the_plan_format_reads_without_problems():
     assert [p for p in problems if "S-02" in p and "S-01" not in p] == []
     only = stories[0]
     assert only.tracer and only.slice == "tracer" and only.done_when and only.fit.startswith("cannot tell") and len(only.criteria) == 3
+
+
+# --- From tests/test_tracer_skills.py: The lead-side tracer guidance (S52, step 2): present in each skill, never a
+# gate, the example in the plan's format, and no codes read to the lead.
+
+
+def test_breakdown_never_makes_the_tracer_a_gate():
+    for sentence in re.split(r"(?<=[.?!])\s+", read("skills/breakdown/SKILL.md")):
+        if re.search(r"tracer", sentence, re.I):
+            assert not re.search(r"\b(stop|stops|refuse|refuses|block|blocks|gate)\b", sentence, re.I), sentence

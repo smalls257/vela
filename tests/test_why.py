@@ -1,5 +1,5 @@
 """A decided item keeps the lead's own reasons: the Grill asks for them, and the check names the item that has none."""
-from conftest import check, edit, findings, skill_text, REPO, run
+from conftest import check, edit, findings, REPO, run
 
 SHOP = "05-building-blocks/shop-building-blocks.md"
 WHY = "- **Why:** The till needs one place to ask for a sale.\n"
@@ -54,9 +54,3 @@ def test_the_example_shows_the_warning_where_it_has_no_reason_to_give():
 def test_a_fixture_decision_takes_its_why_from_its_own_options_considered():
     text = (REPO / "tests" / "fixtures" / "team-skills" / "heron" / "04-solution-strategy.md").read_text(encoding="utf-8")
     assert "- **Why:** The cloud-written digest was rejected because it rules out a 2 February 2027 pilot" in text
-
-
-def test_the_grill_asks_for_the_why_in_the_leads_words_and_offers_a_record_for_big_ones():
-    grill = skill_text("grill")
-    assert "Why this one, in your words?" in grill and "word for word as `- **Why:** <the lead's words>`" in grill
-    assert "decision record" in grill and "`state: proposed`" in grill

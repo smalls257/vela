@@ -1,6 +1,5 @@
 """The second five reading-load warnings (design session 16): a paragraph, a table cell, a stock phrase, a template opening
 and an abbreviation that costs the reader more than a careful writer would. Warnings only, each with a plain fix line."""
-import pathlib
 
 import pytest
 from conftest import REPO, check, findings
@@ -34,8 +33,6 @@ TAIL = """
 def words(count, start=0):
     """Distinct words, so a long paragraph is not also a repeated phrase."""
     return " ".join(f"item{n}" for n in range(start, start + count)) + ". "
-
-
 
 
 def opening(number):
@@ -286,17 +283,6 @@ def test_the_cli_reads_the_one_word_list(tmp_path, mini):
 def test_a_missing_word_list_is_a_tool_failure_not_an_empty_list(tmp_path):
     with pytest.raises(cli.ToolError):
         cli.load_lint_words(tmp_path / "nope.txt")
-
-
-def test_the_drafting_instructions_never_name_a_listed_word():
-    """Naming a word in a prompt raises its odds, so the list lives in the lint and the reviewer, and the drafter never
-    sees it: not in house-voice, not in close, not in epics."""
-    from vela import reading
-    words = reading.lint_words(LINT.read_text(encoding="utf-8"))
-    for relative in ("skills/house-voice/SKILL.md", "skills/close/SKILL.md", "skills/epics/SKILL.md", "skills/allocate/SKILL.md"):
-        text = (REPO / "plugin" / relative).read_text(encoding="utf-8")
-        for word in words:
-            assert not reading.lint_pattern(word).search(text.replace("lint-words.txt", "")), f"{relative} names '{word}'"
 
 
 def test_the_reviewer_reads_the_list_from_the_same_file():

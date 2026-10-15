@@ -1,0 +1,153 @@
+"""What the challenge skill says, pinned in one place (overhaul plan Task 3).
+
+Every test that pins this text lives here, so the rewrite that changes it edits this file and no other skill's.
+Each section is headed by the file it came from and that file's reason.
+"""
+import yaml
+from conftest import REPO
+
+
+def read(*parts):
+    return REPO.joinpath(*parts).read_text(encoding="utf-8")
+
+
+PLUGIN = REPO / "plugin"
+
+
+SKILL = PLUGIN / "skills" / "challenge" / "SKILL.md"
+
+
+def skill_text_challenge():
+    return SKILL.read_text(encoding="utf-8")
+
+
+def read_override(*parts):
+    return (PLUGIN.joinpath(*parts)).read_text(encoding="utf-8")
+
+
+def text(rel):
+    return (PLUGIN / rel).read_text(encoding="utf-8")
+
+
+# --- From tests/test_answer.py: Answering a challenge: START opens an answer session on the challenge's own branch, a
+# Grill (or the lead setting the item back) works there, and close pushes to that branch and comments on the open
+# challenge PR instead of opening a new one.
+
+
+def test_challenge_sends_the_lead_to_the_answer_path():
+    challenge = read("plugin", "skills", "challenge", "SKILL.md")
+    assert "Run `/vela:grill` and name this PR or <ID>" in challenge
+    assert "opens an answer session on this branch" in challenge
+
+
+def test_challenge_accepts_reopened_to_decided_for_an_epic():
+    assert "| EPC-nnn | reopened | decided |" in read("plugin", "skills", "challenge", "SKILL.md")
+
+
+# --- From tests/test_challenge.py: /vela:challenge: a senior's challenge after handoff becomes an open unknown they
+# own, which blocks the item, and a Dissent line on it.
+
+
+def test_challenge_is_the_leads_to_start():
+    meta = yaml.safe_load(skill_text_challenge().split("---\n", 2)[1])
+    assert meta["name"] == "challenge" and meta["disable-model-invocation"] is True
+
+
+def test_challenge_never_changes_the_item_and_never_decides():
+    text = skill_text_challenge()
+    assert "Never touch the item's `state:`, `**State:**`, wording, criteria or any other line." in text
+    assert "Never change the challenged item's state or text. Only the `**Dissent:**` line is added." in text
+    assert "Never decide, resolve, reopen or set back anything. Only a Grill decides" in text
+    assert "never argue the item's side" in text
+
+
+def test_challenge_resolves_the_id_and_shows_what_changed_since_handoff():
+    text = skill_text_challenge()
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json" in text
+    assert "If it says `not_found`, stop" in text and "Do not guess another ID." in text
+    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id>" in text
+    assert "Never cite an ID that `vela query get` reports `not_found`." in text
+
+
+def test_challenge_writes_an_unknown_the_senior_owns():
+    text = skill_text_challenge()
+    assert "- **Owner:** @<senior handle> (<their role>)" in text
+    assert "- **Blocks:** [[<page>#<heading>|<ID>]]" in text
+    assert "- **Dissent:** <senior handle>, <today>: <the reason in a few words>" in text
+    assert "Never name anyone but the senior as the unknown's owner." in text
+    assert "vela next-id UNK" in text and "counts `main` and every open session branch" in text  # the command counts; the skill does not
+
+
+def test_challenge_asks_the_solution_lead_in_a_pr():
+    text = skill_text_challenge()
+    assert "The reviewer is the solution lead: the `owner:` of `01-goals.md`." in text
+    assert "a contract to `assumption`, an epic to `reopened`" in text
+    assert "Never use `git add -A`." in text and "Never say a PR exists unless `gh` printed its URL." in text
+
+
+# What the skill writes, applied to a copy of the fixture: the check turns red with E316 and
+# the senior's handoff verify names the change. The contract itself is untouched.
+
+
+def test_the_pr_says_the_red_check_is_deliberate_and_blocks_the_merge():
+    text = skill_text_challenge()
+    assert "E316 is deliberate." in text
+    assert "blocks the merge wherever vela-check is a required check" in text
+    assert "either by resolving `UNK-nnn` with a Grill or by setting the item back" in text
+    assert "For an epic, setting it back means `reopened`." in text
+    conv = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    assert "deliberate" in conv and "blocks the merge" in conv
+
+
+def test_handoff_verify_exit_2_has_two_cases_and_the_skill_shows_the_message():
+    text = skill_text_challenge()
+    assert "show the tool's message" in text
+    assert 'If it says "does not exist", there is no manifest' in text
+    assert "could not be read, and go on without claiming anything" in text
+
+
+def test_the_next_unknown_number_is_highest_plus_one_and_the_session_id_names_the_item():
+    text = skill_text_challenge()
+    assert "use exactly what it prints" in text and "a number is never handed out twice" in text
+    assert "highest `UNK-nnn` in use plus one" not in text  # a dead hand method: vela next-id does it
+    assert "at the end of `## Unknowns`, before `## Risks`" in text.replace("Add the entry at", "at")
+    assert "`<date>-challenge-<id-lowercased>`" in text
+    assert "E316 fires once per unit" in text
+
+
+# --- From tests/test_next_id.py: vela next-id: a number an open session branch already holds is never handed out
+# again (UNK-026 twice, heron run).
+
+
+def test_challenge_numbers_new_unknowns_with_the_command_not_by_eye():
+    from conftest import REPO
+    assert "vela next-id UNK" in (REPO / "plugin" / "skills/challenge/SKILL.md").read_text(encoding="utf-8")
+
+
+# --- From tests/test_override.py: The user can override any rule, and an override is never invisible.
+
+# ------------------------------------------------------------- skill text
+
+
+def test_challenge_knows_the_decided_by_bullet():
+    challenge = read_override("skills", "challenge", "SKILL.md")
+    assert "on behalf of @owner" in challenge and "`decided_by`" in challenge
+
+
+# --- From tests/test_reader_skills.py: Reader mode in the skill text: no git in a read copy, owner-only skills
+# refuse, a reader's decisions are pending, and every skill finds the installed vela by the one order START.md states.
+
+
+def test_challenge_refuses_in_a_reader_copy_naming_the_owner():
+    assert "That is the owner's call" in text("skills/challenge/SKILL.md") and "published.json" in text("skills/challenge/SKILL.md")
+
+
+# --- From tests/test_session_experience.py: What the skills make a lead go through (docs/research/2026-10-12-session-
+# experience-review.md and the friction pass).
+
+# --- S36 to S47
+
+
+def test_a_challenge_promises_a_red_check_only_for_a_decided_item():
+    challenge = text("skills/challenge/SKILL.md")
+    assert "Never promise a red check for an item that is not `decided`." in challenge

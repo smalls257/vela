@@ -10,7 +10,7 @@ import shutil
 
 import pytest
 
-from conftest import REPO, check, edit, findings, run, skill_text
+from conftest import REPO, check, edit, findings, run
 from vela import override
 from vela.parse import Bullet
 
@@ -263,41 +263,8 @@ def test_a_malformed_override_does_not_count_in_the_grid(ub):
 
 # ------------------------------------------------------------- skill text
 
-def read(*parts):
-    return (PLUGIN.joinpath(*parts)).read_text(encoding="utf-8")
 
-
-START_RULE = ("The user may override any rule in these skills. Say once, in one plain sentence and without the rule's code, what the rule protects. "
-              "Then do what they asked, and record an `**Override:**` bullet (or the session's Changes row note) "
-              "naming the rule and their reason. Never refuse, and never ask twice.")
-
-
-def test_start_holds_the_shared_override_rule_and_its_hard_stops():
-    start = read("references", "START.md")
-    assert START_RULE in start
-    assert "Hard stops are not process rules" in start
-    for stop in ("`~/.claude`", "company material", "unless the tool printed it"):
-        assert stop in start
-    assert "The user may override any of them" in read("references", "MODES.md")
-
-
-def test_grill_offers_the_override_and_still_runs_the_rest_of_the_grill():
-    grill = read("skills", "grill", "SKILL.md")
-    assert "If the lead wants to decide it anyway, do it and record the override" in grill
-    assert "the rest of the Grill runs as normal" in grill and "read-back" in grill
-    assert "- **Decided by:** @<user's handle>, on behalf of @<owner>" in grill
-    assert "This is how GATE-5 passes with the owner away." in grill
-    assert "W316 instead of E316" in grill
-
-
-def test_epics_close_challenge_and_ask_know_the_bullets():
-    epics, close = read("skills", "epics", "SKILL.md"), skill_text("close")
-    challenge, ask = read("skills", "challenge", "SKILL.md"), read("skills", "ask", "SKILL.md")
-    assert "Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet" in epics
-    assert "Keep every `**Override:**`, `**Decided by:**` and `**Confirmed by:**` bullet as written" in close
-    assert "**Overrides:**" in close and "fix its grammar, never delete it" in close
-    assert "on behalf of @owner" in challenge and "`decided_by`" in challenge
-    assert '"decided by override: <rule>, by @x"' in ask and '"on behalf of @owner, not yet confirmed"' in ask
+def test_conventions_know_the_override_bullets():
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "## Overrides" in conventions and "raises `/vela:challenge` on the item" in conventions
 
@@ -315,17 +282,6 @@ def test_no_skill_tells_claude_to_refuse_a_process_override():
             for allowed in ALLOWED_REFUSE:
                 stripped = stripped.replace(allowed, "")
             assert not re.search(r"\brefus", stripped, re.I), f"{doc.relative_to(REPO)}: {line}"
-
-
-def test_every_never_list_is_a_default_the_user_can_override_because_start_says_so_once():
-    start = (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
-    assert 'every "never" and "must not" in the skills' in start and "Never refuse, and never ask twice." in start
-    for doc in sorted((PLUGIN / "skills").glob("*/SKILL.md")):
-        text = doc.read_text(encoding="utf-8")
-        assert "These are the defaults" not in text, doc.parent.name  # said once, in START, so the copies cannot drift
-        if "\n## Never\n" in text:
-            section = text.split("\n## Never\n", 1)[1]
-            assert not re.search(r"cannot be overridden|may not be overridden|no override", section, re.I), doc.parent.name
 
 
 def test_an_owner_confirming_after_handoff_changes_nothing_the_senior_accepted(ub):

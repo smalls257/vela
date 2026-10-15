@@ -9,30 +9,6 @@ import yaml
 from conftest import REPO
 
 PLUGIN = REPO / "plugin"
-ASK = PLUGIN / "skills" / "ask" / "SKILL.md"
-VELA_TOOL = "Bash(python3 *scripts/vela *)"  # the one loose pattern, ruled in design session 15
-
-
-def ask_meta():
-    return yaml.safe_load(ASK.read_text(encoding="utf-8").split("---\n", 2)[1])
-
-
-def test_ask_runs_vela_by_the_one_loose_pattern_and_stays_read_only_by_disallowed_tools():
-    allowed = ask_meta()["allowed-tools"]
-    assert VELA_TOOL in allowed and allowed.count("scripts/vela") == 1
-    assert "Write" not in allowed.split() and "Edit" not in allowed.split()
-    assert ask_meta()["disallowed-tools"] == "Write Edit NotebookEdit"
-
-
-def test_ask_resolves_every_id_before_citing_it():
-    ask = ASK.read_text(encoding="utf-8")
-    assert "Before you cite any ID, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json`." in ask
-    assert "Put the ID, by the `link` it returns, in the `Sources:` list" in ask
-    assert "If the answer is `not_found`, never cite that ID" in ask
-    assert "`Not recorded: <ID> is not in this vault.`" in ask
-    assert "vela query find <words> --json" in ask and "vela query refs <ID> --json" in ask
-    assert "`vela query` only reads." in ask
-    assert "If `vela query` exits 2" in ask and "never treat that as `not_found`" in ask
 
 
 def test_the_ask_eval_requires_vela_query():

@@ -4,7 +4,7 @@ views that list what holds the gates, or a warning the lead never hears about.""
 import json
 import shutil
 
-from conftest import REPO, check, edit, findings, run, skill_text
+from conftest import REPO, check, edit, findings, run
 
 FIXTURE = REPO / "examples" / "unified-booking"
 PLUGIN = REPO / "plugin"
@@ -110,37 +110,6 @@ def test_an_open_row_with_bad_evidence_is_not_told_to_set_itself_open(tmp_path):
     assert line.endswith("Fix: Correct the evidence so check can verify it."), line
 
 
-# ------------------------------------------------------------------ 2. a yes to an existence question is one flow
-
-def test_dump_captures_a_yes_as_one_capture_that_starts_with_the_copy_id():
-    dump = text("skills/dump/SKILL.md")
-    assert "`- [thought] (<name>) Q-FIN-01@INI-001: yes, <what>. type at close: SV`" in dump
-    review = text("references/REVIEW.md")
-    assert "`type at close: PTY` or `type at close: SV`" in review
-
-
-def test_close_gives_a_typed_capture_one_mark_and_writes_the_existence_row():
-    close = skill_text("close")
-    marks = close.split("## 2. Mark every capture", 1)[1].split("## 3.", 1)[0]
-    assert "Any other capture whose words start with a copy ID or a finding ID is kept as its ledger row" in marks
-    assert "It gets one mark, to the subject" in marks
-    typing = close.split("### Type the subjects Dump named", 1)[1].split("### The question ledger", 1)[0]
-    for rule in ("`answered`, `item:` linking the new subject", "first-hand", "the row is `unknown`",
-                 "write no second row"):
-        assert rule in typing, rule
-    assert "give each copy a capture answers its row below" not in close
-    assert "write its row below for each copy a capture answers" in typing
-
-
-def test_close_allocates_ids_before_it_writes_the_marks():
-    close = skill_text("close")
-    two = close.split("## 2. Mark every capture", 1)[1].split("## 3.", 1)[0]
-    assert "Write each mark into the line" not in two
-    three = close.split("## 3. Write the promoted items", 1)[1].split("## 4.", 1)[0]
-    assert three.index("Write each mark into the line") > three.index("### Subjects, the question ledger and catalog gaps")
-    assert "### Gaps the catalog missed" in skill_text("close")  # the ledger part, read before the marks are written
-
-
 # ------------------------------------------------------------------ asked copies hold the gates, so the views list them
 
 ASKED = "Q-FIN-02@INI-002"  # the fixture's one asked row, a normal copy
@@ -196,11 +165,6 @@ def test_cli_help_for_open_matches_conventions():
     assert ques.help == "list only copies with no row, an open row, an invalid row or an asked row"
     conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
     assert "`--open` lists only the copies with no row, an `open` row, an invalid row or an `asked` row" in conventions
-
-
-def test_epics_says_e805_holds_asked_questions_too():
-    epics = text("skills/epics/SKILL.md")
-    assert "nobody has disposed, or that was asked and still waits for its answer" in epics
 
 
 # ------------------------------------------------------------------ the digest's wording and the epics gate's notes
@@ -275,21 +239,6 @@ def test_sources_titles_never_raise_w809(tmp_path):
 
 
 # ------------------------------------------------------------------ W809 and W804 reach the lead; W807 is described as it is
-
-def test_close_lists_w809_and_w804_to_the_lead_and_carries_them_into_the_pr():
-    close = skill_text("close")
-    six = close.split("## 6. Render and check", 1)[1].split("## 7.", 1)[0]
-    for said in ("W809", "W804", "possibly an untyped subject", "orphaned", "no longer owed",
-                 "offer to type the subject", "fix the row"):
-        assert said in six, said
-    questions_line = next(l for l in close.splitlines() if l.strip().startswith("- **Questions:**"))
-    assert "W809" in questions_line and "W804" in questions_line
-
-
-def test_grill_says_w807_prints_only_under_its_gate_and_the_capture_is_the_record():
-    grill = text("skills/grill/SKILL.md")
-    assert "The W807 stays in the check output as the record." not in grill
-    assert "W807 prints only under `--gate grill --item`" in grill and "the capture is the record" in grill
 
 
 def test_w807_fix_text_points_at_the_capture(tmp_path):

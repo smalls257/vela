@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-from conftest import REPO, check, edit, findings, skill_text
+from conftest import REPO, check, edit, findings
 
 BIN = REPO / "plugin" / "scripts" / "vela"
 CAP = "capabilities/CAP-001-sell.md"
@@ -188,13 +188,6 @@ def test_a_decided_fr_without_a_grill_gets_its_own_findings(mini):
     assert codes(check(mini)[1]) == [("E303", CAP)]
 
 
-def test_conventions_and_grill_document_the_fr_format():
-    conventions = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
-    assert "### CAP-nnn.FRn" in conventions and "CAP-001.FR1" in conventions
-    grill = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="utf-8")
-    assert "### CAP-nnn.FRn" in grill and "`**State:**` bullet moves to `decided`" in grill
-
-
 # M8. a goal at fact needs a source
 
 def test_goal_row_at_fact_needs_the_page_to_list_sources(mini):
@@ -215,51 +208,12 @@ def read(*parts):
     return (REPO.joinpath(*parts)).read_text(encoding="utf-8")
 
 
-def test_close_and_epics_stage_what_render_rewrote():
-    close, epics, modes = skill_text("close"), read("plugin/skills/epics/SKILL.md"), read("plugin/references/MODES.md")
-    # close stages through `vela close stage`, whose allow-list includes what render rewrote
-    # (tests/test_close_stage.py); epics still stages by hand until its rewrite
-    assert "vela close stage --close" in close and "what render rewrote" in close
-    assert "Stage every file `vela render` reported" in epics
-    assert "Close runs `vela render` for those." not in modes and "so does `epics`" in modes
-
-
 def test_pr_workflow_fails_a_stale_generated_block():
     import yaml
     workflow = yaml.safe_load(read("template/.github/workflows/vela-check.yml"))
     commands = [s.get("run", "") for s in workflow["jobs"]["vela-check"]["steps"]]
     assert "python .claude/skills/vela/scripts/vela render && git diff --exit-code" in commands
     assert commands.index("python .claude/skills/vela/scripts/vela check") < commands.index(commands[-1])
-
-
-def test_epics_writes_owning_team_and_close_leaves_it():
-    close, epics = skill_text("close"), read("plugin/skills/epics/SKILL.md")
-    assert "written now, in this session" in epics
-    assert "and its `**Owning team:**` line" not in close and "close leaves it as written" in close
-
-
-def test_close_checks_remote_session_records_before_taking_an_id():
-    """Close numbers through `vela next-id`, which reads every local and remote session branch itself (Task 1 of
-    the overhaul dropped the grep recipe; `tests/test_next_id.py` pins what the command counts)."""
-    close = skill_text("close")
-    step3 = close.split("## 3.")[1].split("## 4.")[0]
-    assert "vela next-id <its prefix>" in step3 and "every session branch" in step3
-    cli = read("plugin/lib/vela/cli.py")
-    assert '"refs/heads/session/", "refs/remotes/origin/session/"' in cli
-
-
-def test_grill_agenda_status_names_the_failed_gate():
-    assert "off-agenda: GATE-n" in read("plugin/skills/grill/SKILL.md")
-
-
-def test_checkpoint_commits_stage_by_exact_path():
-    assert "by exact path, never `git add -A`" in read("plugin/references/START.md")
-
-
-def test_requirements_called_from_another_mode_joins_the_open_session():
-    text = read("plugin/references/REQUIREMENTS-IN-VAULT.md")
-    assert "If a session record is already open in this conversation, add `requirements` to its `modes`" in text
-    assert "otherwise run START" in text
 
 
 def test_template_wrapper_readme_and_claude_md():

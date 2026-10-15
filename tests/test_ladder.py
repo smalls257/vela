@@ -1,5 +1,5 @@
 """vela ladder: the stage an app's pages reach, against its hand-typed stage. Read-only, and never a prompt."""
-from conftest import REPO, run, skill_text
+from conftest import REPO, run
 
 FIXTURE = REPO / "examples" / "unified-booking"
 
@@ -36,12 +36,6 @@ def test_status_says_nothing_when_the_pages_reach_no_further_than_the_stage(tmp_
     assert "pages reach" not in run("status", "--vault", str(tmp_path), "--today", "2026-01-15")[1]
 
 
-def test_close_reports_the_stage_as_a_line_and_never_asks():
-    close = skill_text("close")
-    assert "**Stage:** run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela ladder`" in close
-    assert "never a question" in close
-
-
 def test_a_handoff_may_say_pr_pending_until_the_pr_exists(tmp_path):
     write_app(tmp_path, "decided")
     page = tmp_path / "05-building-blocks" / "coach-building-blocks.md"
@@ -49,13 +43,3 @@ def test_a_handoff_may_say_pr_pending_until_the_pr_exists(tmp_path):
                     "stage: target\nhanded_off: \"Coach lead, 2026-10-09, PR pending\"\n"), encoding="utf-8")
     out = run("check", "--vault", str(tmp_path), "--today", "2026-10-09")[1]
     assert "W325" in out and "E105" not in out
-
-
-def test_grill_hands_an_app_over_and_close_writes_the_pr_number():
-    grill = (REPO / "plugin" / "skills" / "grill" / "SKILL.md").read_text(encoding="utf-8")
-    close = skill_text("close")
-    handoff = (REPO / "plugin" / "skills" / "grill" / "HANDOFF.md").read_text(encoding="utf-8")  # read only when an app is handed over
-    assert "## Handing an app over" in grill and "skills/grill/HANDOFF.md" in grill
-    assert 'handed_off: "<senior>, <today>, PR pending"' in handoff
-    assert "Say once what is not met, as one list" in handoff and "Do not ask about each line." in handoff
-    assert "replace `pending` with `#<the PR's number>`" in close

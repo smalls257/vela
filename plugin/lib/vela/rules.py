@@ -36,7 +36,7 @@ def check(vault, today, gate=None, items=(), app=None):
         findings.extend(questions.shape_gate(vault))
     elif gate == "grill":
         findings.extend(questions.grill_gate(vault, items))
-    return sorted(set(override.apply(vault, findings, gate) + pending.findings(vault)))
+    return sorted(set(override.apply(vault, findings, today, gate) + pending.findings(vault)))
 
 
 def scope_to_app(vault, app):

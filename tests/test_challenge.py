@@ -3,64 +3,15 @@ which blocks the item, and a Dissent line on it. The item keeps its state and te
 import json
 import shutil
 
-import yaml
 
 from conftest import REPO, edit, findings, run
 from vela import schema
 
-PLUGIN = REPO / "plugin"
-SKILL = PLUGIN / "skills" / "challenge" / "SKILL.md"
 FIXTURE = REPO / "examples" / "unified-booking"
-
-
-def skill_text():
-    return SKILL.read_text(encoding="utf-8")
 
 
 def test_challenge_is_a_session_mode_the_check_knows():
     assert "challenge" in schema.SESSION_MODES
-    meta = yaml.safe_load(skill_text().split("---\n", 2)[1])
-    assert meta["name"] == "challenge" and meta["disable-model-invocation"] is True
-    assert "| Challenge (`challenge`)" in (PLUGIN / "references" / "MODES.md").read_text(encoding="utf-8")
-    assert "Epics, Challenge or Answer." in (PLUGIN / "references" / "START.md").read_text(encoding="utf-8")
-
-
-def test_challenge_never_changes_the_item_and_never_decides():
-    text = skill_text()
-    assert "Never touch the item's `state:`, `**State:**`, wording, criteria or any other line." in text
-    assert "Never change the challenged item's state or text. Only the `**Dissent:**` line is added." in text
-    assert "Never decide, resolve, reopen or set back anything. Only a Grill decides" in text
-    assert "never argue the item's side" in text
-
-
-def test_challenge_resolves_the_id_and_shows_what_changed_since_handoff():
-    text = skill_text()
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela query get <ID> --json" in text
-    assert "If it says `not_found`, stop" in text and "Do not guess another ID." in text
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff verify <APP-id>" in text
-    assert "Never cite an ID that `vela query get` reports `not_found`." in text
-
-
-def test_challenge_writes_an_unknown_the_senior_owns():
-    text = skill_text()
-    assert "- **Owner:** @<senior handle> (<their role>)" in text
-    assert "- **Blocks:** [[<page>#<heading>|<ID>]]" in text
-    assert "- **Dissent:** <senior handle>, <today>: <the reason in a few words>" in text
-    assert "Never name anyone but the senior as the unknown's owner." in text
-    assert "vela next-id UNK" in text and "counts `main` and every open session branch" in text  # the command counts; the skill does not
-
-
-def test_challenge_asks_the_solution_lead_in_a_pr():
-    text = skill_text()
-    assert "The reviewer is the solution lead: the `owner:` of `01-goals.md`." in text
-    assert "a contract to `assumption`, an epic to `reopened`" in text
-    assert "Never use `git add -A`." in text and "Never say a PR exists unless `gh` printed its URL." in text
-
-
-def test_tech_design_points_the_senior_at_challenge():
-    ref = (PLUGIN / "references" / "TECH-DESIGN-FROM-VAULT.md").read_text(encoding="utf-8")
-    assert "`/vela:challenge <vault ID>`" in ref
-    assert "handoff verify <APP-id> --vault <vault>" in ref
 
 
 # What the skill writes, applied to a copy of the fixture: the check turns red with E316 and
@@ -122,32 +73,6 @@ def test_what_a_challenge_writes_turns_the_check_red_and_verify_names_it(tmp_pat
     _, answer = run("query", "get", "CON-001", "--vault", str(vault), "--json")
     answer = json.loads(answer)
     assert answer["state"] == "decided" and answer["blocked_by"] == ["UNK-009"]
-
-
-def test_the_pr_says_the_red_check_is_deliberate_and_blocks_the_merge():
-    text = skill_text()
-    assert "E316 is deliberate." in text
-    assert "blocks the merge wherever vela-check is a required check" in text
-    assert "either by resolving `UNK-nnn` with a Grill or by setting the item back" in text
-    assert "For an epic, setting it back means `reopened`." in text
-    conv = (REPO / "template" / "CONVENTIONS.md").read_text(encoding="utf-8")
-    assert "deliberate" in conv and "blocks the merge" in conv
-
-
-def test_handoff_verify_exit_2_has_two_cases_and_the_skill_shows_the_message():
-    text = skill_text()
-    assert "show the tool's message" in text
-    assert 'If it says "does not exist", there is no manifest' in text
-    assert "could not be read, and go on without claiming anything" in text
-
-
-def test_the_next_unknown_number_is_highest_plus_one_and_the_session_id_names_the_item():
-    text = skill_text()
-    assert "use exactly what it prints" in text and "a number is never handed out twice" in text
-    assert "highest `UNK-nnn` in use plus one" not in text  # a dead hand method: vela next-id does it
-    assert "at the end of `## Unknowns`, before `## Risks`" in text.replace("Add the entry at", "at")
-    assert "`<date>-challenge-<id-lowercased>`" in text
-    assert "E316 fires once per unit" in text
 
 
 def _challenged_vault(tmp_path, blocks):

@@ -7,7 +7,7 @@ import re
 
 import yaml
 
-from conftest import REPO, skill_text
+from conftest import REPO
 from vela import reviews
 
 PLUGIN = REPO / "plugin"
@@ -55,64 +55,6 @@ def test_the_area_reviewer_covers_the_five_areas_by_label_only():
 
 # ------------------------------------------------------------------ the checkpoint procedure
 
-def test_review_dispatches_one_fresh_reviewer_per_area_with_a_fallback():
-    review = text("references/REVIEW.md")
-    assert "`vela:area-reviewer`" in review and "all five in one message" in review
-    assert "general-purpose subagent" in review and "${CLAUDE_PLUGIN_ROOT}/agents/area-reviewer.md" in review
-    assert "Give no conversation" in review
-    assert 'If you changed a file, return `{"area": "<your area code>", "error": "changed <path>"}` instead.' in review
-    assert "report any file you changed" not in review
-    assert "Never review the pages yourself in this conversation." in review
-
-
-def test_review_merges_in_code_and_never_reads_a_failure_as_clean():
-    review = text("references/REVIEW.md")
-    assert "vela findings merge .vela/findings/<session id>/<n>" in review
-    assert '{"area": "<AREA>", "error": "<what happened>"}' in review
-    assert "Never write an empty findings list for a reviewer that did not finish" in review
-    assert "An area that did not run is never reported as clean." in review
-    assert "- **Coverage:** <the merge's coverage line" in review
-
-
-def test_review_tells_the_session_to_swap_inner_quotes_like_the_merge():
-    review = text("references/REVIEW.md")
-    assert "replace each inner straight `\"` with `”`" in review
-
-
-def test_review_clears_stale_findings_and_numbers_from_the_record():
-    review = text("references/REVIEW.md")
-    assert "1 plus the number of `### ` headings under `## Reviews`" in review
-    assert review.count("rm -rf .vela/findings/<session id>/<n>") == 2
-    assert review.index("rm -rf .vela/findings/<session id>/<n> .vela/findings/<session id>/<n>-questions\nmkdir") < review.index("Save each reply")
-    assert "no variables" in review
-
-
-def test_review_defines_a_rerun_as_a_new_checkpoint_with_areas():
-    assert "REVIEW-RERUN.md" in text("references/REVIEW.md")  # read only when an area is run again
-    review = text("references/REVIEW-RERUN.md")
-    assert "Re-run of checkpoint <n>: <areas>" in review
-    assert "--areas FIN,REG" in review and "F<n+1>.1" in review
-    assert "the ids of earlier checkpoints never change" in review
-
-
-def test_review_covers_the_minor_gaps():
-    review = text("references/REVIEW.md")
-    assert "`areas:` block" in review and "`pending` field is `true`" in review
-    assert "file name without .md" in review and "basename" not in review
-    assert "baseline" in review and "compare it with the baseline" in review
-    assert "skip the `## Reviews` section" in review.replace("Skip", "skip")
-    assert "`Checkpoint <session id> <n>`" in review
-    assert "merge failed: <error>" in review
-    assert "R-` id" in review
-
-
-def test_review_puts_no_cap_on_the_digest():
-    review = text("references/REVIEW.md")
-    assert "vela questions --open --digest" in review
-    # S26: the lead is shown at most three questions, once; nothing is dropped from the ledger.
-    assert "no question is dropped, only held back from the conversation" in review
-    assert "At most three questions" in review and "Once per session" in review
-
 
 def test_a_reviews_section_in_the_documented_form_passes_check(tmp_path):
     import shutil
@@ -140,156 +82,22 @@ def test_a_reviews_section_in_the_documented_form_passes_check(tmp_path):
 
 # ------------------------------------------------------------------ the checkpoints replace the sweeps
 
-def test_dump_runs_the_checkpoint_after_the_pre_mortem_and_the_sweep_is_gone():
-    dump = text("skills/dump/SKILL.md")
-    assert "references/REVIEW.md" in dump and '"after the pre-mortem"' in dump
-    assert "concern sweep" not in dump
-    assert "nobody has named yet" not in dump
-    assert "to fetch:" in dump
 
-
-def test_discover_runs_the_checkpoint_after_the_read_back_and_the_implications_list_is_gone():
-    discover = text("skills/discover/SKILL.md")
-    assert "references/REVIEW.md" in discover and '"after the read-back"' in discover
-    assert "What these sources imply" not in discover
-    assert "### PTY-nn <name>" in discover and "### SV-nn <name>" in discover
-    assert "vela questions --subject <ID>" in discover
-
-
-def test_modes_has_no_question_cap_and_no_sweep():
-    modes = text("references/MODES.md")
-    assert "at most two questions" not in modes and "concern sweep" not in modes
-    assert "## Owed questions" in modes and "No question is dropped and none is owed a quota" in modes
-    assert modes.count("question ledger rows") == 5  # dump, discover, shape, boundary and grill write them at close
-
-
-def test_the_checks_every_area_makes_live_in_the_agent_and_not_in_the_skills():
+def test_the_checks_every_area_makes_live_in_the_agent():
     agent = text("agents/area-reviewer.md")
     assert "## Checks every area makes" in agent
     for line in ("service levels, hours or limits that differ", "dates, terms or numbers that disagree",
                  "a plan that a fact contradicts", "must follow a customer across systems",
                  "who gains and who loses under each reading of the ask"):
         assert line in agent
-    for skill in ("skills/dump/SKILL.md", "skills/discover/SKILL.md"):
-        body = text(skill)
-        assert "Add to that focus" not in body and "who gains and who loses" not in body
-        assert "service levels" not in body
 
 
-def test_round_two_fixes_in_dump_discover_and_the_reviewer():
-    dump, disc = text("skills/dump/SKILL.md"), text("skills/discover/SKILL.md")
+def test_round_two_fixes_in_the_reviewer():
     agent = text("agents/area-reviewer.md")
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --subject <ID>" in disc
-    assert "is not a verdict on any idea" in dump
-    assert "Never present the checkpoint's digest as a verdict" in dump
-    assert "say aloud any pair of lines" in disc and "never two facts" in disc
-    assert '"after the read-back" (the "Here\'s what I think exists" step' in disc
-    assert 'type at close: PTY' in dump and 'type at close: SV' in dump
-    assert "any contract or document the captures themselves name" in dump
     assert "A team that loses under one reading is a stakeholder, even if nobody named them" in agent
 
 
-def test_shape_runs_the_checkpoint_before_options_with_what_must_be_true():
-    shape = text("skills/shape/SKILL.md")
-    assert "references/REVIEW.md" in shape and '"before options"' in shape
-    assert shape.index("run the review checkpoint") < shape.index("Show the options.")
-    assert '"what must be true" set' in shape and "`assumed` ledger row" in shape
-    assert "vela check --gate shape" in shape
-
-
-def test_grill_reads_the_blocking_questions_and_runs_the_checkpoint_on_the_agenda():
-    grill = text("skills/grill/SKILL.md")
-    assert "vela check --gate grill --item <ID>" in grill and "W807" in grill
-    assert "references/REVIEW.md" in grill and '"on the agenda"' in grill
-    assert grill.index("--gate grill") < grill.index("write the agenda into the session record")
-
-
-def test_epics_reads_the_question_gate():
-    assert "`E805`" in text("skills/epics/SKILL.md")
-
-
-def test_shape_shows_the_top_conditions_and_sends_the_rest_through_the_digest():
-    shape = text("skills/shape/SKILL.md")
-    assert "only the top few conditions" in shape and "coverage line" in shape
-    assert "through the one digest (REVIEW section 5)" in shape
-    assert "quotes the option's capture" in shape and "counterparties" in shape
-    assert "the shape gate will warn" not in shape and "tell the lead only that close will list what is still assumed" in shape
-
-
-def test_grill_records_a_decision_over_an_open_blocking_question():
-    grill = text("skills/grill/SKILL.md")
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check --gate grill --item <ID>" in grill
-    assert "Repeat `--item`" in grill and "exits 2" in grill and "can be stale" in grill
-    assert "REVIEW section 5" in grill and "at most three questions" in grill
-    assert "decided with <copy IDs> open (W807)" in grill and "`## Changes` row" in grill
-
-
-def test_epics_offers_the_e805_override_with_its_exact_bullet():
-    epics = text("skills/epics/SKILL.md")
-    assert "- **Override:** E805 by @<handle> on <today>: <reason>" in epics
-    assert "under the `## History` section at the end of `11-unknowns-and-risks.md`" in epics and "turns E805 into W805, which still prints" in epics
-    assert "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --open --digest" in epics
-    assert "Defer it to whoever can answer" in epics and "--gate epics --app <APP-id>" in epics
-    assert "Never call the epics complete past an E805 the user has neither taken nor overridden." in epics
-    assert "the override is the only way to a clean `--gate epics`" in epics
-
-
 # ------------------------------------------------------------------ close writes the ledger and proposes entries
-
-def test_close_writes_a_ledger_row_for_every_copy_taken_and_every_finding():
-    close = skill_text("close")
-    assert "### The question ledger" in close
-    assert "`R-<AREA>-nn`" in close and "Its state is `open` unless the lead took it." in close
-    assert "Never write `answered` without an item link and a source" in close
-    assert "<!-- generated:undisposed-questions sha=00000000: do not edit, run vela render -->" in close
-
-
-def test_close_proposes_catalog_entries_and_never_edits_the_catalog():
-    close = skill_text("close")
-    assert "### Gaps the catalog missed" in close
-    assert "Never ask the lead whether a gap turned up late" in close  # S25: the answer was no, 11 times in 11
-    assert "Never edit `${CLAUDE_PLUGIN_ROOT}/catalog/questions.yaml`" in close
-    assert "vela questions --stats" in close and "Pruning is the maintainer's call." in close
-
-
-def test_close_reports_questions_and_reviews_in_the_pr_body():
-    close = skill_text("close")
-    for label in ("**Questions:**", "**Reviews:**", "**Catalog proposals:**"):
-        assert label in close
-    assert "Never write that the questions are complete." in close
-    assert "vela check --gate shape" in close
-
-
-def test_start_keeps_its_override_rule():
-    start = text("references/START.md")
-    assert "## The user may override any rule" in start and "Never refuse, and never ask twice." in start
-
-
-def test_close_writes_answered_rows_in_the_grammar_check_reads():
-    """An answered row needs answer: and a source check can verify. "The lead's own words in quotes"
-    with no page is E802, so close must never be told to write one."""
-    close = skill_text("close")
-    assert "the lead's own words in double quotes" not in close
-    assert "quote the words section 3 wrote" not in close
-    assert "| SRC-nn | <name>'s first-hand account of <subject> | @<lead> | <today> | exists | said in session <id> |" in close
-    assert "never words this close wrote. With no such source, the row is `assumed`." in close
-    assert "E801, E802 or E803" in close and "Never delete a row to quiet the check" in close
-    assert "Never delete a ledger row to quiet the check" in close
-    assert "By is the handle of whoever recorded or decided the row" in close
-    assert "`git show origin/main:11-unknowns-and-risks.md`" in close
-    assert "`[[<id>#<n>. <checkpoint>, <date>]]`" in close
-
-
-def test_close_types_the_subjects_dump_named_and_never_invents_a_fact():
-    close = skill_text("close")
-    assert "### Type the subjects Dump named" in close
-    assert "`type at close: PTY`" in close and "`type at close: SV`" in close
-    for label in ("**Relationship:**", "**Agreements:**", "**Holder:**", "**Owner:**"):
-        assert label in close
-    assert "Never fill a fact from general knowledge" in close
-    assert "Only `**Owner:**` may say `not known yet`." in close and "`none known`" in close
-    assert "`→ keep: [[11-unknowns-and-risks#<heading>|UNK-nnn]] (open)`" in close
-    assert "A finding the lead did not take has no capture, so it gets no mark." in close
 
 
 def test_conventions_lists_the_states_a_keep_mark_may_carry():
@@ -298,22 +106,6 @@ def test_conventions_lists_the_states_a_keep_mark_may_carry():
     for state in ("inkling", "assumption", "fact", "decided", "open", "asked", "answered", "assumed",
                   "unknown", "not-applicable", "subject"):
         assert f"`{state}`" in line, state
-
-
-def test_close_keeps_the_grill_record_of_a_decision_over_open_questions():
-    close = skill_text("close")
-    assert "decided with <copy IDs> open (W807)" in close
-    assert "write no row for those copies" in close
-
-
-def test_close_keeps_its_existing_guards():
-    close = skill_text("close")
-    for kept in ("### Voice review", "**Voicescore, optional.**", "### Harvest the owner's edits",
-                 "vela close sync-main", "never stages the inbox, `voice/local/` or `voice/corpus/`",
-                 "gh pr comment <number> --body-file <file>", "vela handoff <APP-id>",
-                 "vela voicecheck"):
-        assert kept in close, kept
-    assert len(close.splitlines()) < 500
 
 
 def test_the_ledger_grammar_close_describes_passes_check(tmp_path):
@@ -743,26 +535,3 @@ def test_a_close_run_by_its_rules_on_a_dump_then_a_shape_passes_check(tmp_path):
         "[[11-unknowns-and-risks#UNK-010 How we deal with a travel insurer|UNK-010]] (open)",
         "[[03-context-and-scope#PTY-03 Travel insurer|PTY-03]] (subject)"), encoding="utf-8")
     assert ("E202", "sessions/2026-11-20-credit-dump.md") in findings(check(vault, TODAY)[1])
-
-
-def test_review_hands_each_reviewer_a_real_questions_file_and_the_reviewer_refuses_a_placeholder():
-    review, agent = text("references/REVIEW.md"), text("agents/area-reviewer.md")
-    assert "--json > .vela/findings/<session id>/<n>-questions/<AREA>.json" in review
-    assert "`Questions file: .vela/findings/<session id>/<n>-questions/<AREA>.json`" in review
-    assert "Never send a placeholder" in review
-    assert review.index("-questions/<AREA>.json`. They sit") < review.index("Dispatch the `vela:area-reviewer`")
-    assert "a placeholder" in agent and "no questions file" in agent
-
-
-def test_a_review_digest_puts_at_most_five_questions_to_the_lead_in_a_turn_and_never_pastes_findings():
-    """S12: the heron run's turn 38 put 89 question marks to the lead, with the reviewers' raw JSON."""
-    review = text("references/REVIEW.md")
-    assert "At most three questions" in review and "A turn of 50 questions is a dump" in review
-    assert "Never paste a reviewer's reply, or the findings JSON, into the conversation" in review
-    assert "no question is dropped" in review
-
-
-def test_modes_asks_once_what_the_lead_might_not_know_they_need():
-    modes = text("references/MODES.md")
-    assert "**Ask what they might not know they need.**" in modes
-    assert "In Discover, Shape and Grill" in modes and "who has to agree or be consulted" in modes

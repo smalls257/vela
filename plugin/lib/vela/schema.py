@@ -228,11 +228,21 @@ OVERRIDE_RULES = {
     "E303": ("E303",), "E304": ("E304",), "E316": ("E316",), "E317": ("E317",), "E318": ("E318",),
     "E805": ("E805",),
 }
+# Two classes, because they end differently (plan 4.4). A standing rule guards a condition that stays true until
+# someone acts (an unknown still open, a case table still missing), so its override says the date it ends: without
+# one it would cover the rule forever, a Silent Fallback with a signature on it. An event rule was met or not at the
+# moment of deciding (who was in the room, how many options a Shape weighed), so its override has nothing to end.
+# A quoted rule is standing when it is "case table" or a flow-check finding ("F<n> ..."), and an event otherwise.
+STANDING_RULES = ("GATE-4", "grill", "E303", "E304", "E316", "E317", "E318", "E805")
+EVENT_RULES = ("GATE-1", "GATE-2", "GATE-3", "GATE-5")
+STANDING_QUOTED = ('"case table"',)
+# How far ahead the date a refusal offers sits when the item feeds no release with a Target still to come.
+SUGGEST_UNTIL_DAYS = 30
 # Error -> the warning it becomes when an Override on the same item names it.
 # The sentence an E805 fix ends with. An overridden E805 prints as W805 without it, so the way to end an
 # override never suggests writing another one.
 E805_OVERRIDE_HINT = ("To finish the epics anyway, record an exception under the Question ledger heading: "
-                      "- **Override:** E805 by @handle on YYYY-MM-DD: <why>.")
+                      "- **Override:** E805 by @handle on YYYY-MM-DD until YYYY-MM-DD: <why>.")
 OVERRIDE_CODES = {"E303": "W303", "E304": "W304", "E316": "W316", "E317": "W317", "E318": "W318", "E805": "W805"}
 # Codes only a gate reports. An override of one is judged idle (W323) only when its gate ran, so the
 # override that lets an epics gate pass never warns on the plain check of every PR.
@@ -383,7 +393,7 @@ CODES = {
     "W395": "a slice at building or later has flow-check findings no override covers",
     "W396": "a slice at journey passes or later records no readable Journey line",
     "W397": "a slice is at building or later while a slice it comes after has not passed its journey",
-    "E398": "a flow-check override has passed its end date",
+    "E398": "an override has passed its end date",
     "W399": "slices are still named on the releases page, not in slices/",
     "W400": "a slice's journey due date has passed and no Journey line records the run, or the date does not read",
     "E346": "slice status is not one of the five",
