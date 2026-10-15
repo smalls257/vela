@@ -23,8 +23,8 @@ import sys
 import types
 
 from conftest import REPO, FINDING
-from vela import closegate, ledger, parse, say, schema
-from vela.commands import close_stage
+from vela import closefinish, closegate, ledger, parse, say, schema
+from vela.commands import close_stage, voice_settle
 
 SNAPSHOT = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
 STEPS = REPO / "tests" / "replay"
@@ -46,6 +46,11 @@ MARK_STATES = set(schema.STATE_ITEM) | set(schema.UNKNOWN_STATES) | set(schema.R
 COMMIT_GRAMMAR = [re.compile(r"^Open session (?P<id>\S+)$"), re.compile(r"^Merge (?:remote-tracking )?branch '[^']+'")]
 COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r"(?P<id>\S+)") + "$")
                    for message in close_stage.MESSAGES.values()]
+# Messages later commands write, read from the constants that own them so a reworded commit can't drift past the replay.
+# Only `{id}` is a session id; `{app}` and the voice rewrite's page id match any one word.
+COMMIT_GRAMMAR += [re.compile("^" + re.escape(message).replace(re.escape("{id}"), r"(?P<id>\S+)")
+                              .replace(re.escape("{app}"), r"\S+") + "$") for message in closefinish.MESSAGES]
+COMMIT_GRAMMAR += [re.compile("^" + re.escape(voice_settle.REWRITE_MESSAGE).replace(re.escape("{id}"), r"\S+") + "$")]
 
 
 def git(vault, *args):
