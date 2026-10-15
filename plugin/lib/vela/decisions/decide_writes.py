@@ -16,7 +16,8 @@ Why each write, and why it is code's:
 - **The Changes row cites the yes**, `| <ID> | <old state> | <new state> | [[<record>#^cNN]] |`, the row `close gate`
   reads for every change into or out of `decided`. The old state is read from the page, never typed.
 - **The deciding capture is marked now** (`→ keep: [[<page>#<heading>|<ID>]] (<state>)`), the one exception to leaving
-  marks to close, so close finds the decision already filed.
+  marks to close, and so is every other capture the decision filed (the read-back, the Why, the Dissent, the provider's
+  standing, each override's reason), so close finds nothing of the decision left to place.
 - **Dissent** is `<who>, <today>: <their words>`, `who` being the capture's origin: someone disagreeing is recorded,
   and the item is still decided.
 - **An Override** is written by the `override` kind's own grammar (`decisions.override.bullet_value`), parsed back with
@@ -283,14 +284,24 @@ def add_history(text, bullets, target):
     return text
 
 
+def consumed(item):
+    """Every capture the decision filed, the cited one first: each is kept on the item it went into, so close finds
+    nothing of this decision left to place."""
+    refs = [item.get(name) for name in ("yes", "why", "readback", "dissent", "provider")]
+    refs += [group.get(name) for group in item.get("groups") or [] for name in ("readback", "yes")]
+    refs += [group.get("reason") for group in item.get("overrides") or []]
+    return list(dict.fromkeys(ref for ref in refs if ref))
+
+
 def record_after(item, view, record, target, before, after, cite):
-    """The record with the Changes row, the cited capture's keep mark and the agenda line."""
+    """The record with the Changes row, a keep mark on every capture the decision filed (an earlier mode's mark is
+    left as it is) and the agenda line."""
     text = textedit.record_text(record, view)
     text = textedit.add_change(text, textedit.cell(target.id), before or "-", after,
                                textedit.capture_link(record.id, cite))
-    mark = textedit.keep_mark(textedit.basename(target.path), target.anchor, target.id, after if after != "-" else
-                              "open")
-    text = textedit.mark_if_unmarked(text, cite, mark)
+    mark = textedit.keep_mark(textedit.basename(target.path), target.anchor, target.id, after)
+    for ref in [cite] + consumed(item):
+        text = textedit.mark_if_unmarked(text, ref, mark)
     line = agenda.entries(text).get(target.id)
     if line is not None:
         status = "decided" if item.get("reopen") is not True else "open"

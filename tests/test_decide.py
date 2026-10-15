@@ -383,8 +383,10 @@ def test_decide_writes_the_changes_row_the_gate_reads(tmp_path):
     problems, consent = closegate.judge(changes, writes[RECORD], RECORD_ID, after)
     assert problems == [], problems
     assert [c.words for c in consent] == ["Yes, as read."]
-    capture = closegate.captures(writes[RECORD])["02"]
-    assert capture.mark == "keep: [[stock-building-blocks#CON-002 Stock level|CON-002]] (decided)"
+    said = closegate.captures(writes[RECORD])
+    mark = "keep: [[stock-building-blocks#CON-002 Stock level|CON-002]] (decided)"
+    assert [said[n].mark for n in ("02", "03", "01", "07")] == [mark] * 4, "every capture the decision filed is kept"
+    assert said["04"].mark == "", "a capture the decision didn't use is left for close"
 
 
 def test_decided_item_exits_3_offering_reopen(tmp_path):
@@ -502,6 +504,18 @@ def test_for_lead_says_names_not_ids(tmp_path):
     code, out = run("decide", "SLC-001", "--vault", str(root), "--today", TODAY, "--readback", "^c01", "--yes", "^c02",
                     "--for-lead")
     assert code == 1 and "flow check" in out, out
+
+
+def test_the_decide_kind_files_through_vela_apply(tmp_path):
+    root = make_vault(tmp_path)
+    path = root / ".vela" / "decisions" / RECORD_ID / "01-decide.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"version": 1, "kind": "decide", "session": RECORD_ID, "items": [item(why="^c03")]}),
+                    encoding="utf-8")
+    code, out = run("apply", str(path), "--vault", str(root), "--today", TODAY, "--json")
+    assert code == 0, out
+    assert f"| CON-002 | assumption | decided | [[{RECORD_ID}#^c02]] |" in (root / RECORD).read_text(encoding="utf-8")
+    assert run("apply", "--schema", "decide", "--json")[0] == 0
 
 
 def test_dispatch_names_one_module_per_kind():
