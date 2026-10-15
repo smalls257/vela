@@ -558,7 +558,7 @@ def test_a_run_recorded_before_the_rename_rejudges_and_compares_as_it_is(full_ru
     """Runs recorded before the rename keep their old arm folder. --rejudge reads arm names from run.json and never
     checks them against ARMS, so such a run is scored again as it is; the comparison pairs it with today's arm."""
     import shutil
-    spec_c = importlib.util.spec_from_file_location("sim_compare", SIM / "compare.py")
+    spec_c = importlib.util.spec_from_file_location("sim_compare", SIM / "compare_runs.py")
     compare = importlib.util.module_from_spec(spec_c)
     spec_c.loader.exec_module(compare)
     old_name = {new: old for old, new in compare.LEGACY_NAMES.items()}["vela"]
@@ -575,9 +575,16 @@ def test_a_run_recorded_before_the_rename_rejudges_and_compares_as_it_is(full_ru
     assert done.returncode == 0, done.stderr
     card = json.loads((run_dir / old_name / "scorecard.json").read_text(encoding="utf-8"))
     assert card["rejudged"] and card["arm"] == old_name
-    result = compare.compare(run_dir, full_run["run"])
-    assert set(result["pairs"]) == {"vela", "vela-seuss", "baseline"} and result["pairs"]["vela"]["old"]["stored_as"] == old_name
-    assert result["pairs"]["vela"]["old"]["lead_facing"] == result["pairs"]["vela"]["new"]["lead_facing"]
+    out = tmp_path / "compare.json"
+    compared = subprocess.run([sys.executable, str(SIM / "compare_runs.py"), str(run_dir), str(full_run["run"]),
+                               "--arm", "vela", "--baseline-checkout", str(REPO), "--midpoint-checkout", str(REPO),
+                               "--json", str(out)], capture_output=True, text=True, timeout=600)
+    assert compared.returncode in (0, 1, 3), compared.stderr
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["baseline"]["arm"] == old_name and report["midpoint"]["arm"] == "vela"
+    voice = report["detail"]
+    assert voice["baseline"]["voice"] == voice["midpoint"]["voice"], "the same turns, counted alike under either name"
+    assert voice["baseline"]["scorecard"]["knows"] == voice["midpoint"]["scorecard"]["knows"]
 
 
 def test_rejudge_refuses_an_empty_transcript_and_flags_it_does_not_need(tmp_path):
