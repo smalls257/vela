@@ -7,7 +7,7 @@ raises GitUnavailable with git's own words.
 import pathlib
 import tempfile
 
-from vela.edge.vaultgit import git_out, run_git
+from vela.edge.vaultgit import git_out, run_git, status_paths
 
 APPLY_TIMEOUT = 60
 COMMIT_TIMEOUT = 120  # a repo's pre-commit hooks run inside this
@@ -85,7 +85,7 @@ def changed_entries(worktree):
 
 
 def has_changes(worktree):
-    return bool(git_out(worktree, "status", "--porcelain"))
+    return bool(status_paths(worktree))
 
 
 def unmerged(worktree):

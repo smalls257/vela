@@ -65,13 +65,50 @@ def head(root):
     return full, git_out(root, "rev-parse", "--short", "HEAD")
 
 
+def parse_porcelain(out):
+    """Paths from `git status --porcelain=v1 -z`: each entry is `XY path`, and a rename or copy (`R`/`C` in either
+    column) is followed by its old path as a field of its own, which is skipped: the new path is what changed.
+
+    The one parser for git status. It reads `-z` output, never stripped text: a strip before `line[3:]` ate the first
+    path's first letter (`ashboard.html`, `vela/flowcheck-cache.json`), a Sensor that misreported."""
+    paths, fields, i = [], out.split("\0"), 0
+    while i < len(fields):
+        entry = fields[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        status, path = entry[:2], entry[3:]
+        paths.append(path)
+        if "R" in status or "C" in status:
+            i += 1
+    return paths
+
+
+def status_paths(root, *args):
+    """The paths `git status --porcelain=v1 -z <args>` names, repository-relative and exactly as on disk."""
+    code, out, err = run_git(root, "status", "--porcelain=v1", "-z", *args, binary=True)
+    if code != 0:
+        raise GitUnavailable(f"git status failed: {err or out.decode('utf-8', 'replace').strip()}")
+    return parse_porcelain(out.decode("utf-8"))
+
+
+def tracked_paths(root):
+    """Vault-relative paths git tracks under the vault, exactly as on disk; [] when the folder is in no repository (a
+    read copy, a vault never put in git). Any other failure raises GitUnavailable."""
+    code, out, err = run_git(root, "ls-files", "-z", "--", ".", binary=True)
+    if code == 0:
+        return [path for path in out.decode("utf-8").split("\0") if path]
+    if "not a git repository" in err.lower():
+        return []
+    raise GitUnavailable(f"git ls-files failed: {err or 'no message'}")
+
+
 def uncommitted(root):
     """Files changed or untracked under the vault, as git status sees them (ignored files are not listed). The files the
     explorer build writes itself (the dashboard and the pinned layout, publish.KEPT) are left out: the build counts what
     is uncommitted and then writes them, so counting them would make a page built before a commit differ from the same
     page built after it."""
-    out = git_out(root, "status", "--porcelain", "--", ".", *(f":(exclude){path}" for path in publish.KEPT))
-    return [line for line in out.splitlines() if line.strip()]
+    return status_paths(root, "--", ".", *(f":(exclude){path}" for path in publish.KEPT))
 
 
 def user_identity(root):

@@ -26,7 +26,7 @@ import yaml
 from vela import allocation, capture, catalog, completeness, diagramcheck, doctor, drafts, search, export, freshness, handoff, handoffwarn, health, ids, ladder, model, opening, pending, pluginroot, proposal, reading, parse, progress, publish, query, questions, releases, render, replay, review, reviews, roles, rules, schema, secretscan, slices, terms, tickets, untrusted, viewer, voicecheck, voicescore
 from vela.edge import atomic, copies, machine, mermaidjs, replays, reviewgit, teamdocs, vaultgit
 from vela.edge import proposals as proposal_files
-from vela import commands, say
+from vela import commands, guard, say
 
 ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
 CATALOG = pathlib.Path(__file__).resolve().parent.parent.parent / "catalog" / "questions.yaml"
@@ -217,9 +217,34 @@ def manifest_findings(root):
     return found
 
 
+TOOL_IGNORE = ".vela/* and !.vela/explorer-pins.json"
+
+
+def tracked_tool_file_findings(root):
+    """W719 when git tracks a file of vela's own under `.vela/` (anything but the shared map layout). Close stage never
+    stages one, so every rewrite (the flow checker's cache after each check-slice) leaves the copy dirty with a change
+    nobody can commit. A git that cannot answer is said, not read as "nothing tracked"."""
+    try:
+        tracked = vaultgit.tracked_paths(root)
+    except vaultgit.GitUnavailable as exc:
+        return [model.Finding(".gitignore", 1, "W719", f"I couldn't ask git which files it tracks ({exc}), so I "
+                              "haven't checked that vela's own working files stay out of it.",
+                              "Run vela check again where git works.")]
+    own = [path for path in tracked if guard.never_rule(path) is guard.TOOL_STATE]
+    if not own:
+        return []
+    shown = ", ".join(own[:5]) + (f" and {len(own) - 5} more" if len(own) > 5 else "")
+    return [model.Finding(own[0], 1, "W719",
+                          f"git tracks {len(own)} of vela's own working file{'' if len(own) == 1 else 's'} ({shown}). "
+                          "Vela rewrites them and never commits them, so the copy always shows a change nobody can save.",
+                          f"Run git rm --cached -- {' '.join(own)} and commit that (the files stay on disk), and make "
+                          f"sure .gitignore lists {TOOL_IGNORE}.")]
+
+
 def vault_file_findings(root):
-    """The findings about the vault's own files, which are not pages: its conventions copy, its config and its manifests."""
-    return conventions_findings(root) + config_findings(root) + manifest_findings(root)
+    """The findings about the vault's own files, which are not pages: its conventions copy, its config, its manifests
+    and the working files git should not track."""
+    return conventions_findings(root) + config_findings(root) + manifest_findings(root) + tracked_tool_file_findings(root)
 
 
 def cmd_upgrade(args, out):
@@ -773,7 +798,7 @@ def review_refusals(root, parsed, slug, branch, folder):
                         "published from: fetch the clone it came from (git fetch origin) and review again.")
     dirty = vaultgit.uncommitted(root)
     if dirty:
-        raise ToolError(f"Your checkout has {len(dirty)} uncommitted file(s) ({dirty[0].strip()}...), so I did not start. Commit or stash them: "
+        raise ToolError(f"Your checkout has {len(dirty)} uncommitted file(s) ({dirty[0]}...), so I did not start. Commit or stash them: "
                         "a review starts from a known state, and its branch is made from committed work.")
     if reviewgit.branch_exists(root, branch):
         raise ToolError(f"Branch {branch} already exists. Finish or delete it, or pass --slug with another name.")

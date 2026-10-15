@@ -6,3 +6,5 @@ voice/local/
 __pycache__/
 *.pyc
 .vela/
+.vela/*
+!.vela/explorer-pins.json

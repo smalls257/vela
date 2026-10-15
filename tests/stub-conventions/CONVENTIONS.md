@@ -496,6 +496,7 @@ Requirements cut across apps, so two steps are the initiative's, not any app's, 
 - W326: a goals page whose every goal is further along than the page's own `state`, or a constraints page at `inkling` or `assumption` whose every row cites where it comes from. Close sets the page's state as the warning says.
 - W717: this file is not the copy the installed plugin ships. `vela upgrade` replaces it with the plugin's copy; review the change with `git diff CONVENTIONS.md` and commit it.
 - W718: `.vela.yaml` still has `title: New initiative`, the title the template ships, and a session has been opened. The title heads the dashboard and every reader's copy. The first session asks the lead for a short name once and writes it, so a fresh vault with no session yet is not warned.
+- W719: git tracks a file vela writes for itself under `.vela/` (its flow checker cache, close records, findings), anything but `.vela/explorer-pins.json`. Close never stages one, so each rewrite leaves a change nobody can commit. `git rm --cached` the file and commit that; the file stays on disk. The vault's `.gitignore` lists `.vela/*` and `!.vela/explorer-pins.json`.
 
 A `last_verified`, a source `Date` or the last closed session dated after today is not fresh: W704, W716 or W711 says it is "dated in the future (<date>); check for a typo." `vela health` marks the row the same way.
 
@@ -521,7 +522,7 @@ Run `python3 .claude/skills/vela/scripts/vela check` from the vault root. It rea
 
 The table is generated from the codes `vela check` uses, so it cannot drift from them, and each finding's fix line says how to put it right. `vela upgrade` brings a vault's copy up to date.
 
-<!-- generated:check-codes sha=a891866e: do not edit, run vela render -->
+<!-- generated:check-codes sha=616e6d2e: do not edit, run vela render -->
 | Code | Finding |
 |---|---|
 | E101 | page has no frontmatter |
@@ -649,6 +650,7 @@ The table is generated from the codes `vela check` uses, so it cannot drift from
 | W716 | source row older than stale_after_days |
 | W717 | CONVENTIONS.md is not the copy the plugin ships |
 | W718 | the initiative's title in .vela.yaml is still the template's placeholder |
+| W719 | git tracks one of vela's own working files under .vela/ |
 | E801 | question ledger row is malformed |
 | E802 | ledger state lacks the evidence it needs |
 | E803 | ledger row names nothing the catalog owes |

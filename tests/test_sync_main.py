@@ -214,3 +214,85 @@ def test_sync_not_run_blocks_in_the_gate_verdict(repos):
     lead, _ = repos
     assert mergegit.sync_verdict(lead).blocks
     assert closestate.verdict({"status": closestate.NOT_COMPARED}).blocks
+
+
+CACHE = ".vela/flowcheck-cache.json"
+
+
+def test_the_one_porcelain_parser_keeps_every_letter():
+    out = " M dashboard.html\0R  new name.md\0old name.md\0?? .vela/flowcheck-cache.json\0"
+    assert vaultgit.parse_porcelain(out) == ["dashboard.html", "new name.md", ".vela/flowcheck-cache.json"]
+
+
+def commit_cache(repo, text, message):
+    (repo / ".vela").mkdir(exist_ok=True)
+    (repo / CACHE).write_text(text, encoding="utf-8")
+    git(repo, "add", "-f", CACHE)  # the model's own `git add ... .vela/flowcheck-cache.json` (S7 T202)
+    git(repo, "commit", "-q", "-m", message)
+
+
+def test_a_committed_cache_vela_rewrites_does_not_block_sync(repos):
+    """The midpoint's S7 then S21: the model committed vela's cache, check-slice rewrote it, main moved, sync-main.
+    `close stage` never stages `.vela/`, so asking for a checkpoint commit of it was a deadlock."""
+    lead, other = repos
+    commit_cache(lead, '{"v": 1}\n', "Settle timeouts and retries")
+    commit(lead, {"01-goals.md": page(intro="Our intro.")}, "session edit")
+    (lead / CACHE).write_text('{"v": 2, "local": true}\n', encoding="utf-8")  # the next check-slice
+    commit(other, {"notes.md": "notes from main\n"}, "main moves", push=True)
+    code, out = sync(lead, "--json")
+    assert code == 0, out
+    result = json.loads(out)
+    assert result["status"] == closestate.MERGED, out
+    assert "checkpoint" not in out and "Commit them" not in out
+    assert (lead / "notes.md").read_text(encoding="utf-8") == "notes from main\n"
+    assert (lead / CACHE).read_text(encoding="utf-8") == '{"v": 2, "local": true}\n'  # vela's working copy is kept
+    assert result["set_aside"] == [CACHE]
+
+
+def test_a_cache_both_sides_committed_never_stops_the_merge(repos):
+    """Main got the cache too (the session branch carrying it merged), and both sides then rewrote it."""
+    lead, other = repos
+    commit_cache(lead, '{"v": 1}\n', "cache on the session")
+    commit_cache(other, '{"v": "main"}\n', "cache on main")
+    git(other, "push", "-q", "origin", "HEAD:main")
+    (lead / CACHE).write_text('{"v": 2}\n', encoding="utf-8")
+    code, out = sync(lead)
+    assert code == 0, out
+    assert git(lead, "rev-parse", "HEAD^2") == git(lead, "rev-parse", "origin/main")
+    assert (lead / CACHE).read_text(encoding="utf-8") == '{"v": 2}\n'
+
+
+def test_check_warns_while_git_tracks_vela_s_cache_and_stops_once_untracked(repos):
+    lead, _ = repos
+    (lead / ".vela.yaml").write_text("initiative: INI-001\ntitle: Heron\n", encoding="utf-8")
+    commit_cache(lead, '{"v": 1}\n', "cache")
+    code, out = run("check", "--vault", str(lead), "--today", TODAY)
+    assert f"{CACHE}:1: W719" in out and f"git rm --cached -- {CACHE}" in out, out
+    git(lead, "rm", "-q", "--cached", CACHE)
+    git(lead, "commit", "-q", "-m", "untrack the cache")
+    assert "W719" not in run("check", "--vault", str(lead), "--today", TODAY)[1]
+
+
+def test_the_template_ignores_every_vela_working_file_but_the_shared_layout(tmp_path):
+    from conftest import REPO
+    git(tmp_path, "init", "-q")
+    (tmp_path / ".gitignore").write_bytes((REPO / "template" / ".gitignore").read_bytes())
+    for name in ("flowcheck-cache.json", "close/session__x.json", "findings/a.txt", "pr-body.md", "explorer-pins.json"):
+        (tmp_path / ".vela" / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".vela" / name).write_text("{}\n", encoding="utf-8")
+    assert vaultgit.status_paths(tmp_path, "--untracked-files=all", "--", ".vela") == [".vela/explorer-pins.json"]
+
+
+def test_the_lead_s_files_still_block_and_are_named_whole(repos):
+    """A dirty page still needs a checkpoint, the cache beside it is not in the list, and no path loses its first
+    letter (porcelain was sliced after the output was stripped)."""
+    lead, other = repos
+    commit_cache(lead, '{"v": 1}\n', "cache")
+    commit(other, {"notes.md": "notes from main\n"}, "main moves", push=True)
+    (lead / CACHE).write_text('{"v": 2}\n', encoding="utf-8")
+    (lead / "01-goals.md").write_text(page(intro="Unsaved edit."), encoding="utf-8")
+    code, out = sync(lead)
+    assert code == 3, out
+    assert "1 tracked files have uncommitted edits (01-goals.md)" in out, out
+    assert "flowcheck-cache" not in out
+    assert (lead / CACHE).read_text(encoding="utf-8") == '{"v": 2}\n'
