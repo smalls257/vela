@@ -1,34 +1,32 @@
 ---
 # The model may start close, on purpose: "we're done" or "switch to requirements" must be able to start it
-# without the lead typing /vela:close. The description's "Never start it on your own" is the guard.
+# without the lead typing /vela:close. The description's "Never start it unprompted" is the guard.
 name: close
-description: Close an initiative-vault session. Marks every capture keep, park or drop by default and asks only what is unsettled, writes the promoted items into the pages, drafts prose in the house voice, renders and checks the vault, then commits, pushes and opens the PR with reviewers. Use when the lead says they are done ("close", "we're done", "switch to ...") or types /vela:close. Never start it on your own.
+description: File the session when the lead says they're done ("close", "we're done", "switch to …"): notes into pages, prose in the house voice, then the branch sent for review after a yes. Never start it unprompted.
 argument-hint: "[session id, if more than one is open]"
 ---
 
 # Close a session
 
-Close turns a session record into a reviewed PR. Run every step in order, because a skipped step leaves the pull request describing work nobody checked, and never report a step as done when it failed.
+Before your first command and your first question, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` (step 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md`); write page prose through `house-voice`.
 
-The path, in order: find the session (1), mark every capture (2), write the promoted items, the ledger and the marks (3), draft the prose, review its voice and harvest the owner's edits (4), read back decided wording (5), render and check (6), finish the record and push (7), open the PR (8), rebuild the explorer (9). The longer parts live in files beside this one, each read at the step that needs it: `READER.md`, `LEDGER.md`, `VOICE-REVIEW.md`, `HARVEST.md`, `PR-BODY.md`.
+Close files the session and sends it for review. The steps, in order: find the session (1), mark the captures (2), write the items (3), draft the prose (4), read back decided wording (5), bring in main and check (6), finish and send (7), open the pull request (8), the dashboard (9). Commands do the filing; you do the talking. Never report a step as done when it failed.
 
-Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). The format is in `CONVENTIONS.md`; read the section a step names with `vela conventions "<section>"` (`--list` names them all), never the whole file.
+Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela runs from", covers a host that leaves the variable unexpanded). Use `--for-lead` when you'll tell the lead the result and `--json` when you need to reason over it, and say it in your own words, in the voice: names, not codes or IDs. Never pass raw git or `gh` error text on: say in one sentence that it didn't work and what you'll do. A failure you fix isn't news. When a command can't express what the lead wants, say so and stop; never fall back to doing its steps by hand.
 
 ## Starting a close
 
-Close is started by the lead's word, never by yours, as `${CLAUDE_PLUGIN_ROOT}/references/START.md` says under "Closing a session": typing `/vela:close`, or saying "close", "we're done" or "switch to requirements", is the yes to filing. Say in one line what will happen ("I'll file your notes, write the pages and send the branch for review") and go on.
+Close starts on the lead's word, never by yours (START, "Closing a session"): `/vela:close`, "close", "we're done" or "switch to requirements" is the yes to filing. Say in one line what will happen ("I'll file your notes, write the pages and send the branch for review") and go on.
 
-One confirmation stays, because the push and the pull request are the only steps that leave the machine and a hard stop forbids sending company material without consent. Before section 7 pushes, say what is about to be sent ("I'll push `session/<id>` and open a pull request for <reviewers>") and wait for a yes. Skip that wait only when the lead has said "push" or "open the PR" in so many words in this conversation. A bare "close" is consent to file, not to send.
+One confirmation stays, because sending is the only step that leaves the machine and a hard stop forbids sending company material without consent. Before section 7 pushes, `vela close push` says what will be sent; say it to the lead and wait for a yes. A bare "close" is consent to file, not to send.
 
-Close talks in the session's voice. If this conversation has not read `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md` yet (a close typed in a fresh conversation), read it now, as step 6 of `${CLAUDE_PLUGIN_ROOT}/references/START.md` says. What the lead reads while close runs is short, in plain words and without codes (START defines them); those go in the files and the pull request body. A command that fails and that you fix is not news. When a `vela close` command can't do what the lead wants, say so plainly and stop; never fall back to doing its steps by hand.
+## Reader copy
 
-## Reader copy: no git, no PR
-
-Run `vela role` first. If it says `reader` (a published copy: `.vela/workspace.json`, no `.git`), say once, plainly: "This is a read copy, so close writes your session record and stops. Nothing is committed, pushed or sent." Then read `${CLAUDE_PLUGIN_ROOT}/skills/close/READER.md`: it lists the few changes to the sections below, and there are no others. Never say a PR exists in a reader copy.
+Run `vela role`. If it says `reader`, every close command takes the reader path itself, so nothing is committed, pushed or sent; read `${CLAUDE_PLUGIN_ROOT}/skills/close/READER.md` for what to say. Never say a PR exists in a reader copy.
 
 ## 1. Find the session
 
-Run `vela session open --switch`. With one open session it switches to that session's branch (an answer session's is its challenge's) and prints which; go on. If it exits 3, several are open: ask the lead which one, by topic and date, then run `vela session open --switch --id <the one they picked>`. If it exits 1, none is open: say so in one line, change nothing in the vault's pages, and go straight to section 9, which has its own path for a close with no session.
+Run `vela session open --switch --for-lead`. With one open session it switches to its branch (an answer session's is its challenge's) and says which; go on. Exit 3: several are open; ask which, by topic and date, then run `vela session open --switch --id <the one they picked>`. Exit 1: none is open; say so in one line, change no page, and go straight to section 9, which has its own path for a close with no session.
 
 ## 2. Mark every capture
 
@@ -103,69 +101,44 @@ Only the vault's owner harvests, and only their own edits. The owner is the `aut
 
 For each item that became `decided` in this session, show its final wording. If its owner is present, they confirm it. If not, list it in the PR body for them.
 
-## 6. Render and check
 
-First bring in `main`, so render and check see what will merge: run `vela close sync-main`.
+## 6. Bring in main and check
 
-- Exit 0: main is in (or nothing moved). Go on.
-- Exit 3 because of uncommitted edits: run `vela close stage --checkpoint`, then `vela close sync-main` again.
-- Exit 3 because the shared copy couldn't be reached: tell the lead what it prints and ask whether to go on without it. On a yes, run `vela close sync-main --accept-not-compared`; otherwise try again later.
-- Exit 1: main changed lines this session changed too, so it stopped the merge and lists them. Show the lead both sides in plain words and let them choose; make their choice, commit with `vela close stage --checkpoint`, and run `vela close sync-main` again.
+Run `vela close sync-main --for-lead`, so the checks see what will merge.
 
-Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela render`, then `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check`. Fix each W326 at once: set the page's `state` as the warning says, because a page whose rows have moved on but whose own state has not reads as unsettled to everyone. For a session whose `modes` include `shape`, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela check --gate shape` as well: each W806 is a question still `assumed`, so list it under **Questions** in the PR body. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela questions --open --digest` and keep its first line, the coverage, for the PR body.
+- Exit 0: go on.
+- Exit 3 for uncommitted edits: run `vela close stage --checkpoint`, then sync-main again.
+- Exit 3 because main couldn't be reached: tell the lead, and ask whether to go on without it. On a yes, run `vela close sync-main --accept-not-compared`; otherwise try again later.
+- Exit 1: main changed lines this session changed too. Show the lead both sides in plain words and let them choose; make their choice, run `vela close stage --checkpoint`, and run sync-main again.
 
-Two warnings point at questions the ledger cannot see, so tell the lead about each one in plain words (never the code), and not only in the PR body. These count among the few items section 2 allows you to ask about:
+Then run `vela render`, `vela check --fix W326` and `vela check --for-lead`. Two warnings point at questions the ledger can't see, so ask about each in plain words; they count among the few things section 2 asks:
 
-- W809 is possibly an untyped subject: a fact names points, a clause, a license or another word an existence question lists, and the page holds or links no subject of that kind. For each one, offer to type the subject, as "Type the subjects Dump named" says, with the facts the user gives, or to answer the existence question in the ledger.
-- W804 is a ledger row that is orphaned (its subject is gone), no longer owed (its subject no longer matches the trigger), or a wildcard that covers nothing because other rows shadow it or no copy matches. For each one, offer to fix the row, such as renaming its copy to the subject's new ID, or to leave it as a record. Never delete it without the user's yes.
+- a fact that names points, a clause, a license or the like, with no subject of that kind typed (W809): offer to type the subject with the facts the lead gives (`vela add subject`), or to answer the existence question in the ledger;
+- a ledger row that no longer fits its subject, or covers nothing (W804): offer to fix the row or keep it as a record. Never delete it without a yes.
 
-Carry each one into the PR body's **Questions** line with what the user chose. Fix each error with the user. An E321 or E322 is an override the check cannot read: fix its grammar, never delete it. A W303, W304, W316, W317, W318 or W324 is an override doing its job: list it under **Overrides**, and do not remove the bullet to quiet it. Never delete a ledger row to quiet the check: fix its grammar or change its state with the user. If the user leaves an error in place, put it in the PR body. CI will block the merge until it is fixed.
+Fix each error with the lead. An override the check can't read: fix its grammar, never delete it. Never delete a ledger row or an override to quiet the check; the gate refuses a close that did. If the lead leaves an error in place, say CI will block the merge until it's fixed.
 
-## 7. Finish the record
+## 7. Finish and send
 
-Run `vela check-slice --changed` and give the lead one line per slice it checked, as it prints them, then say how many are unchanged since their last check.
+Run `vela check-slice --changed`, which records what the gate reads (don't read its lines out), then `vela close gate --for-lead`. Say in your words which slices still run end to end and which break, and where. If the gate lists anything, group it by what holds the close up, about four at a time ("Three things before I can finish: two decisions have no yes from you yet, one note isn't sorted, and one page is waiting on seven open questions. One at a time?"), and take them one at a time with your view. Remind the lead they may keep any as it is: that's an override, noted with their reason (START, "The user may override any rule"). A decision with no yes needs the lead's own words: read the item back, capture their answer with them as origin (as step 2 below does, without the mark), and cite that capture in the item's `## Changes` row. Run the gate again until it says the session is ready.
 
-Run `vela close gate --for-lead`. If it lists anything, sort each one out with the lead, in its words, and run it again until it says the session is ready. A decision it says has no yes on record needs the lead's own words: read the item back, capture their answer with them as origin, and cite that capture in the item's `## Changes` row; if they want it kept without one, that is an override with their reason (`START.md`, "The user may override any rule").
+Then send, in this order: the yes must come after the notice and before the record closes.
 
-Write a one-line `summary:` yourself, in plain words, and mention it in your closing message. Set `status: closed`, then run `vela close stage --close --session <id>`. It stages by exact path from an allow-list (what render rewrote, the changed pages, the session record, harvested voice examples, the explorer's pin file) and commits `Close session <id>`; it never stages the inbox, `voice/local/` or `voice/corpus/`, which hold material only the owner may send. If it names a file it left out, tell the lead in one plain line and ask whether that file belongs in this session.
+1. Run `vela close push --for-lead`. It prints the send notice and exits 3. Say it ("I'll send this for review to Priya and the identity team. OK?") and wait.
+2. Capture the lead's answer, whatever it is: `vela record add --origin <their handle> --tag decision --mark "drop: the yes to send this for review" "<their words>"`. It prints the capture's number. On a no, do step 3 and stop: the session is filed and nothing is sent.
+3. Run `vela close finish --summary "<one line, in plain words>" --for-lead`. It closes the record, commits it from an allow-list (it never stages the inbox, `voice/local/` or `voice/corpus/`), writes and commits each handoff record, then rebuilds the dashboard. Say what it lists as not settled at handoff, so nobody hands an app over without knowing. If it stops because an app's handoff record exists, that app's team is accepting changes: run it with `--replace` only once they say so in this session.
+4. Run `vela close push --consent ^cN --for-lead`, with the number from step 2. If it fails, say so in one sentence, give the branch and the retry it names, and stop. Do not open a PR for a branch that is not pushed.
 
-If this session set `handed_off:` on an app page, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela handoff <APP-id>` only now, after that commit, so the handoff record names a clean commit and not "with uncommitted changes". It writes `handoffs/<APP-id>.md`, the record of what the app's team accepts. If the record already exists, the team is accepting changes: run it with `--replace` only once they say so in this session. The command prints what is not settled at handoff and writes the same list into the record; say that list to the lead in plain words before you commit, so nobody hands an app over without knowing. Then commit the handoff record alone, by exact path, with the message `Handoff manifest for <APP-id>`.
+## 8. Open the pull request
 
-Before you push, ask the one confirmation the section "Starting a close" describes, unless the lead has already said "push" or "open the PR". Run `git push -u origin session/<id>`. For a session whose `modes` include `answer`, push to the challenge's branch instead: `git push origin <branch>`. If the push fails, say in a sentence what failed, give the branch name and the one command that would retry it, and stop. Do not open a PR for a branch that is not pushed.
-
-## 8. Open the PR
-
-For a session whose `modes` include `answer`, do not open a new PR: the answer belongs in the challenge's PR. Find it with `gh pr list --head <branch> --state open --json number,url`. Write the body below to a temporary file, and in its **Check:** line add "E316 for <ID> should now be gone." If check still reports E316 for that item, say so in its place. Run `gh pr comment <number> --body-file <file>`, and skip the rest of this section. If `gh` fails, say so, print the exact command, and stop. Never say the comment exists unless `gh` printed its URL.
-
-Collect the reviewers:
-
-- the `owner:` of each app page this session changed;
-- the `owner:` of each consumer app of a contract this session changed.
-
-Get the user's own handle with `gh api user -q .login`. Strip the leading `@` from each individual handle. A team handle `@org/team` is passed as `org/team`. Drop the user's own handle. If nobody remains, leave out `--reviewer`.
-
-Write the PR body to a temporary file, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says: it lists the headings, the lists that appear only when they have something to say, the minutes from the commit log, and the two lines left for the reviewer. Paste what `vela close gate --consent-block` prints into it, under the summary: it quotes the lead's words behind each decision.
-
-Then run the command below, with one `--reviewer` per remaining reviewer (none, if nobody remains). `<Mode name>` is the display name in `MODES.md`.
-
-```
-gh pr create --base main --head session/<id> --title "<date> <Mode name>: <topic>" --body-file <file> --reviewer <handle> --reviewer <org/team>
-```
-
-If `gh` fails, write the body to `.vela/pr-body.md` (it is not committed) and say one sentence: "The branch is pushed; I couldn't open the pull request from here. The text is in `.vela/pr-body.md`." Never say a PR exists unless `gh` printed its URL. Show the URL. If this session wrote `handed_off: "<senior>, <date>, PR pending"`, replace `pending` with `#<the PR's number>`, commit it as `Handoff PR number for <APP-id>`, and push. If `gh` failed, leave `pending`: W325 says so until someone writes the number.
+Write the two or three sentences a reviewer reads first to `.vela/close/prose.md`, as `${CLAUDE_PLUGIN_ROOT}/skills/close/PR-BODY.md` says. Then run `vela close pr --prose .vela/close/prose.md --for-lead`. It builds the title, the reviewers and every list in the body; for an answer session it comments on the challenge's pull request instead. Exit 0: show the URL. Exit 1: say the one sentence it gives. Exit 3: it doesn't know the lead's handle; ask once, run `vela whoami --set <handle>`, and run it again. Never say a PR exists unless `gh` printed its URL.
 
 ## What you tell the lead at the end
 
-Three to six plain sentences: what was filed, by group and in the lead's words; what is waiting on someone, with the date; and the pull request link, or why there is none. No capture number, copy ID, finding ID or check code, and no list of what a tool did or did not install. The pull request body is the reviewer's record; the lead does not need to read it. For a switch, end with the one line that starts the next mode.
+Three to six plain sentences: what was filed, by group and in the lead's words; what is waiting on someone, with the date; and the pull request link, or why there is none. No capture number, ID or check code. The pull request is the reviewer's record; the lead doesn't need to read it. For a switch, end with the one line that starts the next mode, by name ("/vela:grill Desktop agent").
 
-## 9. Rebuild the explorer
+## 9. The dashboard
 
-This is the last step of every close. Run it even when section 8 stopped because `gh` or the push failed, since the explorer needs neither. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela explore` from the vault root, without `--serve`, as a command of its own: never pipe it, because a pipe hides its exit status. Read the exit status before you say anything about the result. It rewrites `dashboard.html` at the vault root, the page colleagues open from git or OneDrive, and takes about a second. A reader's copy has no git: nothing is committed, and the rebuilt page shows the reader's drafts.
+`close finish` rebuilds the dashboard last and gives the line the lead hears. Say it, with each warning it adds, and nothing else from its output. A failed build never undoes the close, and the dashboard is never called up to date unless it built.
 
-In an owner's vault, when `git status --short -- dashboard.html` shows it changed:
-
-- **With a session branch** (section 7 ran), commit only that file by exact path with the message `Rebuild dashboard`, and push the branch if section 7 pushed it.
-- **With no session** (section 1 found none, so you are on `main`), do not commit to `main` and do not push. Say: "The dashboard is rebuilt in your folder but not committed, because no session is open. It goes in with the next close, or I can put it on its own branch for a pull request." On a yes, create `dashboard/<today>`, commit only `dashboard.html` by exact path, push it after the same confirmation section 7 asks, and open the pull request as section 8 does.
-
-- If it exits 0, say one plain line: "The dashboard is up to date: dashboard.html — open it, or run /vela:explore to ask Claude from it". Then add one line for each `warning:` and each `no design doc found` it printed, in its own words, such as a `team_repos:` folder that does not exist. Do not read the rest of its output back.
-- If it fails, say so plainly with its message: "The explorer could not be built: <message>. The close itself is done." A failed build never undoes or blocks the close, and you never say the dashboard is up to date unless the command exited 0.
+With no session (section 1 found none), run `vela close dashboard --for-lead`. It never commits to main. If it offers a branch of its own and the lead says yes, run `vela close dashboard --branch`. That commits the page on the new branch; close can't send it from there, so say so and stop.
