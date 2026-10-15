@@ -83,7 +83,7 @@ def build_dashboard(root, today, resolver):
         why = last_words(output, code)
         plain = resolver.plain(why)
         if say.leak_in(plain):
-            plain = "the explorer stopped with an error, which the plain output shows"
+            plain = "the dashboard builder hit an error; I'll look into it"  # voice audit row 154
         return False, why, plain, []
     relayed = [say.Line(f"vela explore: {entry}", explorereport.lead_line(entry, resolver))
                for entry in explorereport.entries(output) if explorereport.kind_of(entry) in RELAYED_KINDS]
@@ -237,10 +237,10 @@ class Finish:
         if code not in (say.DONE, say.REFUSED) or not commit.startswith("committed"):
             why = last_words(output, code)
             self.say(f"vela close finish: the record says closed, but the close commit didn't happen: {why}",
-                     "The record says closed, but I couldn't commit the session, so nothing is filed yet.")
+                     "I couldn't file the session, so nothing is filed yet. I'll look at why; shall I try again?")
             return False
         self.result.data["commits"].append(commit)
-        self.say(f"vela close finish: {commit}", "I've committed the session on its branch.")
+        self.say(f"vela close finish: {commit}", "The session is filed.")  # voice audit row 161: no git words
         for left in staged.get("left", []):
             self.say(f"  left out: {left['path']} ({left['reason']})")
         for never in staged.get("never", []):
@@ -267,7 +267,7 @@ class Finish:
         self.result.data["commits"].append(f"committed {sha}: {closefinish.MANIFEST_MESSAGE.format(app=app)}")
         self.result.data["manifests"].append(path)
         self.say(f"vela close finish: committed {sha}: {closefinish.MANIFEST_MESSAGE.format(app=app)}",
-                 f"I've written {name}'s handoff record and committed it on its own.")
+                 f"{name}'s handoff is filed too.")
         gaps = handoffwarn.lines(handoffwarn.gaps(self.vault, self.app_page(app)))
         if gaps:
             head = closefinish.NOT_SETTLED_HEAD.format(app=name)
@@ -363,4 +363,5 @@ def lead_choice(root, today, reader, found, branch, result):
     result.wrote.append(closefinish.DASHBOARD)
     result.data["commit"] = f"committed {sha}: {closefinish.DASHBOARD_MESSAGE}"
     line(say.Line(f"vela close dashboard: on {name}, committed {sha}: {closefinish.DASHBOARD_MESSAGE}",
-                  f"I've put the dashboard on its own branch, {name}, and committed it there. Main is untouched."))
+                  "I've saved the dashboard separately so it doesn't touch the plan; it'll go in with your next "
+                  "review."))  # voice audit row 164: no branch name

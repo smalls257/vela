@@ -120,7 +120,8 @@ class Split:
 
     @property
     def question(self):
-        return f"{self.paragraphs} paragraphs changed. Split into PRs by page group, or open one PR?"
+        return (f"{self.paragraphs} paragraphs changed, which is a lot to review at once. I'd send them in "
+                f"{len(self.groups)} parts, one for each part of the plan. OK, or one review?")
 
     def as_json(self):
         return {"paragraphs": self.paragraphs, "pages": self.pages, "groups": self.groups, "question": self.question}

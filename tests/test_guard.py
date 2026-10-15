@@ -45,6 +45,13 @@ def git(root, *args, env=None):
                           env={**os.environ, **(env or {})})
 
 
+def test_the_owners_voice_rules_ride_a_checkpoint():
+    """voice-seed commits `voice/VOICE.md` through `close stage --checkpoint` now that no skill stages by hand."""
+    plan = guard.plan(["voice/VOICE.md", "voice/examples/decision/one.md", "voice/local/x.md"], set(), "s1")
+    assert plan.stage == ("voice/VOICE.md", "voice/examples/decision/one.md")
+    assert [p for p, _ in plan.never] == ["voice/local/x.md"]
+
+
 def test_pre_commit_rejects_inbox(tmp_path):
     repo = tmp_path / "vault"
     (repo / ".githooks").mkdir(parents=True)

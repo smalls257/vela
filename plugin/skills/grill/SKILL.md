@@ -50,7 +50,7 @@ If the lead names a challenge to answer, by its PR number or the challenged item
 
 ## 3. The gate, per item
 
-Run `vela check-slice --changed` first. A finding on the item's slice blocks it unless the lead overrides it with a reason and an end date, which you record under the slice page's `## Overrides`. 'Not fully checked' blocks it too, and no override covers that. (`vela conventions "Flow check"` shows the override line.)
+Run `vela check-slice --changed --for-lead` first. A finding on the item's slice blocks it unless the lead overrides it with a reason and an end date, which you record under the slice page's `## Overrides`. 'Not fully checked' blocks it too, and no override covers that. (`vela conventions "Flow check"` shows the override line.)
 
 Then run `vela check --gate grill --item <ID> --for-lead`, repeating `--item` per item (an ID not in the plan exits 2). Per item it says ready, or not ready with the plain reason and the one thing that would make it ready, and lists the owed questions that block it, skipping any the record already answers. Relay it in two or three sentences, never as a table or a gate name: "The strategy page is ready. The three apps and their contracts aren't, because nobody knows yet when the registration request goes in and who builds consent and identity."
 

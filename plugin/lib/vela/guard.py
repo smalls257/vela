@@ -34,9 +34,15 @@ Staged by a close (the allow-list):
   left out of the commit used to fail CI's render check.
 - **The open session record** `sessions/<id>.md`. Another session's record is left out: a close files one session,
   and a change to another record is someone else's work.
-- **Harvested voice examples** under `voice/examples/`, which the owner agreed to share when they were saved.
+- **Harvested voice examples** under `voice/examples/`, which the owner agreed to share when they were saved, and
+  **`voice/VOICE.md`**, the owner's own rules in their words (voice-seed writes it with them; every session reads it
+  first). Leaving it out would leave voice-seed nowhere to commit it but a hand-typed stage, which the Claude Code
+  hook now denies.
 - **The pins file** `.vela/explorer-pins.json`, **`.vela.yaml`** (the initiative's settings) and
   **`sources.md`**.
+
+A team session (design, breakdown) has its own, smaller allow-list, `team_plan`: `docs/` and `CONTEXT.md` on its
+design branch, through `vela team commit`. The never-staged rules win there too.
 
 Left out on purpose, though they belong to the vault:
 
@@ -51,7 +57,7 @@ import posixpath
 from dataclasses import dataclass
 
 PINS = ".vela/explorer-pins.json"
-SETTINGS = (".vela.yaml", "sources.md")
+SETTINGS = (".vela.yaml", "sources.md", "voice/VOICE.md")
 EXAMPLES = "voice/examples/"
 SESSIONS = "sessions/"
 
@@ -166,3 +172,27 @@ def rules_hit(never):
     """The distinct Rules in a never list, in RULES order, so the lead hears each reason once."""
     keys = {rule.key for _, rule in never}
     return [rule for rule in RULES if rule.key in keys]
+
+
+# The team's own files, which a team session (design, breakdown, tickets) writes on its `design/<slug>` branch and
+# `vela team commit` stages: everything under `docs/` and the app's `CONTEXT.md`. The vault's pages are left out, because
+# a team never edits the plan itself; a disagreement goes through a challenge.
+TEAM_DOCS = "docs/"
+TEAM_CONTEXT = "CONTEXT.md"
+NOT_TEAM = "not a team file: the plan's own pages change only through a vault session or a challenge"
+
+
+def team_plan(changed):
+    """Sort `changed` (repository-relative paths) for a team commit: docs/ and CONTEXT.md are staged, the never-staged
+    rules still win, and anything else is left out with NOT_TEAM."""
+    stage, left, never = [], [], []
+    for raw in changed:
+        path = normal(raw)
+        rule = never_rule(path)
+        if rule is not None:
+            never.append((path, rule))
+        elif path.startswith(TEAM_DOCS) or path == TEAM_CONTEXT:
+            stage.append(path)
+        else:
+            left.append((path, NOT_TEAM))
+    return Plan(tuple(dict.fromkeys(stage)), tuple(left), tuple(never))

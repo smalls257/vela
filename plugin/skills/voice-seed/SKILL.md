@@ -76,7 +76,7 @@ The owner's second sample of a type retires the built-in ones in that folder. A 
 
 If nothing committed changed, say: "Local only: no branch, commit or PR." Stop here.
 
-Otherwise the samples ride the open session's branch. Stage each file `git status --short voice/examples voice/VOICE.md` lists, by exact path. Never use `git add -A`. Commit with the message `voice: owner examples for <types>`. The push and the pull request go with that session's close, which says what it will send and waits for the owner's yes; tell the owner so. For its PR body, name each committed sample added with its type and `from`, each retired, and each type that kept its seed. Name local examples only as a count, never their text or `from`. Never say a PR exists unless `gh` printed its URL.
+Otherwise the samples ride the open session's branch: run `vela close stage --checkpoint --for-lead`, which stages `voice/examples/` and `voice/VOICE.md` by exact path with the session record, leaves `voice/local/` out, and commits. Never stage or commit by hand. The push and the pull request go with that session's close, which says what it will send and waits for the owner's yes; tell the owner so. For its PR body, name each committed sample added with its type and `from`, each retired, and each type that kept its seed. Name local examples only as a count, never their text or `from`. Never say a PR exists unless `gh` printed its URL.
 
 ## Never
 

@@ -227,7 +227,7 @@ def test_stance_no_git_or_old_python_is_reading_and_drafting():
 
 def test_hooks_json_validates():
     hooks = json.loads((PLUGIN / "hooks" / "hooks.json").read_text(encoding="utf-8"))
-    assert set(hooks["hooks"]) == {"SessionStart", "PreToolUse"}
+    assert {"SessionStart", "PreToolUse"} <= set(hooks["hooks"])  # Task 24 adds PostToolUse (tests/test_hooks.py)
     start = hooks["hooks"]["SessionStart"][0]["hooks"][0]
     assert start["type"] == "command" and "hook session-start" in start["command"]
     assert "${CLAUDE_PLUGIN_ROOT}" in start["command"]

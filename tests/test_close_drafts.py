@@ -129,7 +129,7 @@ def test_over_twenty_paragraphs_prints_split_facts(tmp_path):
     assert data["split"]["paragraphs"] == data["count"]
     assert data["split"]["groups"]
     _, out = drafts(vault)
-    assert f'{data["count"]} paragraphs changed. Split into PRs by page group, or open one PR?' in out
+    assert f'{data["count"]} paragraphs changed, which is a lot to review at once.' in out and 'OK, or one review?' in out
 
 
 def test_under_twenty_paragraphs_asks_nothing(tmp_path):
@@ -137,7 +137,7 @@ def test_under_twenty_paragraphs_asks_nothing(tmp_path):
     decide_stock(vault)
     data = drafts_json(vault)
     assert data["split"] is None
-    assert "Split into PRs" not in drafts(vault)[1]
+    assert "a lot to review at once" not in drafts(vault)[1]
 
 
 def test_reader_copy_runs_no_git(tmp_path, monkeypatch):

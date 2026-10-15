@@ -151,7 +151,7 @@ def test_the_conversation_asks_for_names_not_codes():
 
 def test_releases_checks_freshness_first_and_stops_when_behind():
     start = SKILL.split("## 1. Start", 1)[1].split("\n\n", 3)[2]  # the paragraph after the voice line
-    assert start.startswith("Then, before any other command, run `vela freshness`. If it exits 3") and "stop, say in your words" in start
+    assert start.startswith("Then, before any other command, run `vela freshness --for-lead`. If it exits 3") and "stop, say what it printed in your words" in start
     assert "vela session start --mode releases" in start
 
 
@@ -175,20 +175,20 @@ def test_releases_loads_the_voice_before_freshness_and_before_its_first_question
 
 def test_releases_says_command_output_in_its_own_words_never_the_tools():
     assert "in its words" not in SKILL and "as printed" not in SKILL
-    assert "say in your words that this copy is behind and offer to bring it up to date" in SKILL
+    assert "say what it printed in your words and offer to bring it up to date" in SKILL
     assert "say in one plain sentence that you couldn't check" in SKILL
 
 
 def test_releases_flow_check_line_carried_as_written():
-    assert ("When you've added slices or changed their After, run `vela check-slice --changed` and tell the lead which "
-            "slices it checked and why.") in SKILL
+    assert ("When you've added slices or changed their After, run `vela check-slice --changed --for-lead` and tell the lead, in "
+            "your words, which slices it checked and why.") in SKILL
 
 
 def test_releases_names_only_commands_that_exist():
     import shlex
     parser = cli.build_parser()
     calls = re.findall(r"`vela ([a-z][^`]*)`", SKILL)
-    assert {"releases brief --for-lead", "releases tracer-candidates --for-lead", "check-slice --changed"} <= set(calls)
+    assert {"releases brief --for-lead", "releases tracer-candidates --for-lead", "check-slice --changed --for-lead"} <= set(calls)
     for call in calls:
         argv = shlex.split(re.sub(r"<[^>]*>", "X", call).replace("^cNN", "^c01"))
         _, extras = parser.parse_known_args(argv)

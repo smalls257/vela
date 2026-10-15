@@ -267,3 +267,15 @@ def test_answer_a_challenge_lost_its_recipe_to_session_start():
                    "`<date>-answer-<id-lowercased>`", "E316", "senior", "Grill"):
         assert recipe not in ANSWER, recipe
     assert len(ANSWER.split()) < 200
+
+
+def test_relaying_a_command_says_more_and_what_to_do_on_my_side():
+    """A `--for-lead` line that says "Something went wrong on my side" is say.MY_SIDE: a refusal only the model can fix.
+    START says once how to read it (the same command with --json), and how to get the rest of a long list (--more)."""
+    from vela import say
+    relay = section("Relaying a command")
+    assert say.MY_SIDE.split(";")[0] in relay
+    assert "with `--json` in place of `--for-lead`" in relay and "`plain` and `fix` fields" in relay
+    assert "never say that line or the command's own text" in relay
+    assert "run the same command again with `--more` added" in relay
+    assert '"Relaying a command" below' in section("0. Read how to talk")

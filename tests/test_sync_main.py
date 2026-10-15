@@ -152,8 +152,8 @@ def test_fetch_failure_exits_3_not_compared(repos, tmp_path):
     assert state(lead)["status"] == closestate.NOT_COMPARED and state(lead)["reason"] == closestate.FETCH_FAILED
     assert git(lead, "rev-parse", "HEAD") == head
     code, out = sync(lead, "--for-lead")
-    assert out.strip() == ("I couldn't reach the shared copy, so this branch isn't compared with main yet. "
-                           "Go on without it, or try again?")
+    assert out.strip() == ("I couldn't reach main, so I haven't checked for newer changes. "
+                           "Try again, or go on without them?")  # voice audit row 127: one name for main
 
 
 def test_dirty_tracked_files_exit_3_and_change_nothing(repos):
@@ -206,7 +206,8 @@ def test_for_lead_lines_pass_the_leak_check(repos):
     assert code == 1, out
     for line in out.splitlines():
         assert say.leak_in(line) is None, line
-    assert 'Main changed "Goals" while we worked on it, so I stopped the merge.' in out
+    assert 'On "Goals", both sides changed the same lines.' in out  # voice audit row 126: no line numbers
+    assert out.startswith("Someone changed the same paragraphs on main") and "Want to see both versions?" in out
     assert "a page whose title I couldn't read" in out
 
 

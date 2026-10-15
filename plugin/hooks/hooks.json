@@ -1,5 +1,5 @@
 {
-  "description": "Markers only, so `vela where --probe` can tell whether plugin hooks run on this host. No rule depends on them.",
+  "description": "Earlier feedback in Claude Code, never the gate: the CLI refuses each of these itself, which holds where hooks don't fire. SessionStart and the probe canary are markers, so `vela where --probe` can tell whether hooks run here. Bash: deny staging by hand (only vela stages), ask before a push or a PR. Edit/Write: deny a hand-moved state or an edit inside a generated block; afterwards, a quick check of the edited page.",
   "hooks": {
     "SessionStart": [
       {
@@ -20,6 +20,38 @@
             "type": "command",
             "command": "d=\"${CLAUDE_PROJECT_DIR:-.}\"; j=$(cat); case \"$j\" in *'where --probe'*) if [ -e \"$d/.vela.yaml\" ] || [ -d \"$d/.vela\" ]; then mkdir -p \"$d/.vela\" && printf '%s\\n' \"$j\" > \"$d/.vela/hook-canary\"; fi;; esac; exit 0",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook bash",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook edit",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vela\" hook post-edit",
+            "timeout": 10
           }
         ]
       }

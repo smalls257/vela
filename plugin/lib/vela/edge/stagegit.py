@@ -48,3 +48,16 @@ def commit(root, message, paths):
     return the new commit's short hash. A failing pre-commit hook raises with the hook's own words."""
     _ok(root, "commit", "--quiet", "--only", "-m", message, "--", *paths, env=LITERAL)
     return _ok(root, "rev-parse", "--short", "HEAD").strip()
+
+
+def staged_deletions(root):
+    """Paths whose deletion is already in the index (gone from disk and index alike), which `stage` can't name again:
+    a pathspec that matches nothing makes the whole add fail."""
+    return _fields(_ok(root, "diff", "--cached", "--name-only", "-z", "--no-renames", "--diff-filter=D"))
+
+
+def commit_index(root, message):
+    """Commit the index as it stands with `message` and return the short hash. For a proposal's worktree, where a
+    three-way apply left the reader's changes staged: the caller has checked the index against guard.py first."""
+    _ok(root, "commit", "--quiet", "-m", message)
+    return _ok(root, "rev-parse", "--short", "HEAD").strip()

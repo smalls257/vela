@@ -166,20 +166,22 @@ def plain_why(owed, resolver):
 
 def lead_lines(found, vault, resolver):
     n = found.count
-    head = f"This session owes {n} paragraph{'' if n == 1 else 's'}." if n else "This session owes no paragraph."
+    head = (f"{say.count_words(n, capital=True)} paragraph{' is' if n == 1 else 's are'} to write up."
+            if n else "Nothing needs writing up this time.")  # voice audit row 151: not "owes"
     out = [say.Line(head, plain=head)]
     for p in found.paragraphs:
         text = resolver.plain(f"{p.title}, {place(p, vault, resolver)}: {plain_why(p, resolver)}.")
         out.append(say.Line(text, plain=text))
     for r in found.readback:
-        text = f"Read back to its owner: {r.name}, decided this session."
+        text = f"I'll read {r.name} back to its owner, since it was decided today."
         out.append(say.Line(text, plain=text))
     for x in found.long_lists:
-        text = resolver.plain(f"{x.title}, under {x.heading}, lists {x.count} things: the few that matter go first "
-                              "and the rest fold under Also open.")
+        text = resolver.plain(f"{x.title} lists {x.count} things under {x.heading}; I'll put the few that matter "
+                              "first and fold the rest.")
         out.append(say.Line(text, plain=text))
     if found.split:
         out.append(say.Line(found.split.question, plain=found.split.question))
-    text = "Also: a glossary entry for each term a newcomer to the initiative wouldn't know."
-    out.append(say.Line(text, plain=text))
+    # the model's reminder, not news to the lead on every close (voice audit row 159)
+    out.append(say.Line("Also: a glossary entry for each term a newcomer to the initiative wouldn't know.",
+                        audience=say.MODEL))
     return out

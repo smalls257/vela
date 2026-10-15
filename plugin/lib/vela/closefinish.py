@@ -41,8 +41,7 @@ RECORD, CLOSE_COMMIT, MANIFEST, DASHBOARD_BUILD, DASHBOARD_COMMIT = (
     "record", "close-commit", "manifest", "dashboard", "dashboard-commit")
 
 # What the lead hears. The dashboard lines are the one copy of the sentence three skills used to carry.
-DASHBOARD_DONE = ("The dashboard is up to date. Open dashboard.html in this folder, or run /vela:explore to open it "
-                  "with a box where you can ask Claude about it.")
+DASHBOARD_DONE = "The dashboard is up to date; /vela:explore opens it."  # voice audit row 162: no file name
 DASHBOARD_FAILED = "The dashboard couldn't be updated: {message}. Everything else is filed."
 NO_SESSION_DASHBOARD = ("I've updated the dashboard on your machine only, since no session is open. It'll be shared "
                         "next time you finish a session, or I can put it on its own branch.")

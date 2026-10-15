@@ -46,7 +46,7 @@ LEAD_PATTERNS = {
     "command": re.compile(r"\bvela (?:add|apply|boundary|capture|check(?:-diagrams|-slice)?|close|conventions|decide"
                           r"|doctor|epics|explore|export|findings|freshness|guard|handoff|health|hook|ladder|marks"
                           r"|next(?:-id)?|open|proposals|propose|prose|publish|query|questions|record|releases|render"
-                          r"|reviewers|role|session|status|style|terms|tickets|upgrade|view|voice(?:check|score)?"
+                          r"|reviewers|role|session|status|style|team|terms|tickets|upgrade|view|voice(?:check|score)?"
                           r"|where|whoami)\b"),
     "file path": re.compile(r"(?<![\w/])(?:\.{1,2}/|~/)?(?:[\w.-]+/)+[\w.-]+\.[A-Za-z]{1,5}\b"
                             r"|(?<![\w/])/(?:private|tmp|Users|home|var)/\S+"

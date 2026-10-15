@@ -162,11 +162,12 @@ def name_of(path, vault, record):
 
 def filed_result(decision, written, vault, record, reader):
     count = len(decision.items)
-    words = schema.KIND_WORDS.get(decision.kind, f"{decision.kind} items")
+    one, many = schema.KIND_WORDS.get(decision.kind, (f"{decision.kind} item", f"{decision.kind} items"))
+    words = f"{say.count_words(count)} {one if count == 1 else many}"
     names = [name_of(p, vault, record) for p in written]
     lines = [say.Line(f"applied: {count} {decision.kind} item{'' if count == 1 else 's'}; wrote "
                       f"{', '.join(written) or 'nothing'}.",
-                      plain=f"I've filed {count} {words}" + (f", in {join(names)}." if names else "."))]
+                      plain=f"I've filed {words}" + (f", in {join(names)}." if names else "."))]
     if reader:
         lines.append(say.Line("read copy: nothing committed (no git runs here); the proposal carries the changes.",
                               plain="This is a read copy, so nothing was committed; the changes go to the owner "

@@ -15,7 +15,7 @@ Vela is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela` (`START.md`, "Where vela ru
 
 Before you say anything to the lead, read `voice/VOICE.md` if the vault has one, then `${CLAUDE_PLUGIN_ROOT}/references/CONVERSATION-VOICE.md`; write page prose through `house-voice` (read `${CLAUDE_PLUGIN_ROOT}/skills/house-voice/SKILL.md` as a file).
 
-Then, before any other command, run `vela freshness`. If it exits 3, this copy is behind the shared plan: stop, say in your words that this copy is behind and offer to bring it up to date, and run `vela session start --mode releases` once they agree. A stale copy is how a releases session says nothing is allocated when the allocation is already on main. If it fails, say in one plain sentence that you couldn't check, and go on; never pass the tool's own error text to the lead.
+Then, before any other command, run `vela freshness --for-lead`. If it exits 3, this copy is behind the shared plan: stop, say what it printed in your words and offer to bring it up to date, and run `vela session start --mode releases` once they agree. A stale copy is how a releases session says nothing is allocated when the allocation is already on main. If it fails, say in one plain sentence that you couldn't check, and go on; never pass the tool's own error text to the lead.
 
 Run the steps in `${CLAUDE_PLUGIN_ROOT}/references/START.md` with mode `releases`. Read the Releases row of `${CLAUDE_PLUGIN_ROOT}/references/MODES.md`. The first time you say slice, tracer or grill to the lead, say what it is in the words `vela terms` gives.
 
@@ -46,7 +46,7 @@ Each slice is `vela add slice --title "<the journey, in the lead's words>" --flo
 
 When the lead says a slice has moved to `building`, ask when its journey should run, and write the date they give as `- **Journey due:** YYYY-MM-DD` under Owner. Write no date nobody gave.
 
-When you've added slices or changed their After, run `vela check-slice --changed` and tell the lead which slices it checked and why.
+When you've added slices or changed their After, run `vela check-slice --changed --for-lead` and tell the lead, in your words, which slices it checked and why.
 
 On `04b-releases.md`, one section per release, in the order they ship:
 
@@ -69,7 +69,7 @@ On `04b-releases.md`, one section per release, in the order they ship:
 - Replace the page's "No release is planned yet" line with one opening paragraph: how many releases, the first date and what is undated.
 - Each release written gets a capture marked at once, `→ keep: [[04b-releases#<release heading>|<release name>]] (assumption)`, and a `## Changes` row, `| releases | - | assumption | [[<id>#^cNN]] |`: a release has no ID, so the row names the page.
 
-Then run `vela render` and `vela check`, fix every error (E340 and E341 mean a link or a criterion number is wrong, E394 a circle of After), fix what W392, W393 and W347 say about a slice, tell the lead which requirements are still on no release, by their plain names (what the W343 lines list; don't say the code), and commit a checkpoint.
+Then run `vela render` and `vela check`, fix every error (E340 and E341 mean a link or a criterion number is wrong, E394 a circle of After), fix what W392, W393 and W347 say about a slice, tell the lead which requirements are still on no release, by their plain names (what the W343 lines list; don't say the code), and commit a checkpoint with `vela close stage --checkpoint --for-lead`.
 
 ## 4. Review, then finish
 

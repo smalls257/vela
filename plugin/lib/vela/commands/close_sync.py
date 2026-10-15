@@ -77,8 +77,7 @@ class _Run:
             lines = [*lines, say.Line(
                 f"sync-main: set aside and wrote back unchanged {', '.join(self.set_aside)}: git tracks "
                 f"{'it' if len(self.set_aside) == 1 else 'them'}, but close never commits {'it' if len(self.set_aside) == 1 else 'them'} "
-                "(vela check W719 says how to untrack).",
-                "Git is keeping some of vela's own working files by mistake; I left them exactly as they were.")]
+                "(vela check W719 says how to untrack).", audience=say.MODEL)]
         key =closestate.key_for(self.branch) if status != closestate.READER else closestate.READER_KEY
         rec = closestate.record(status, self.branch, self.main, self.head, self.today, reason, files)
         state_file = None
@@ -182,7 +181,7 @@ def _merge(run):
     return _merged(run, before, closestate.MERGED_GENERATED, files, say.Line(
         f"sync-main: merged origin/main {run.main[:7]} into {run.branch}; every conflict was inside a generated block "
         f"({', '.join(p.path for p in plans)}), settled with -X ours. Run vela render to rebuild them.",
-        "I brought in what changed on main. The only overlaps were in generated summaries, which the render rebuilds, "
+        "I brought in what changed on main. The only overlaps were in summary tables I rebuild anyway, "
         "so nobody's writing was lost."))
 
 
@@ -206,7 +205,7 @@ def _page_name(plan):
 
 def _hunk_words(plan):
     if not plan.hunks:
-        return "the whole file (git left no lines to compare, as when one side deleted it)"
+        return "the whole page (one side may have deleted it)"
     spans = [h.lines() for h in plan.outside]
     return spans[0] if len(spans) == 1 else ", ".join(spans[:-1]) + " and " + spans[-1]
 
@@ -216,12 +215,13 @@ def _conflict(run, plans):
     files = [{"path": p.path, "title": p.title, "lines": [h.lines() for h in p.outside] if p.hunks else ["whole file"]}
              for p in stopped]
     lines = [say.Line(f"sync-main: {p.path}: {', '.join(f['lines'])} outside a generated block",
-                      f"Main changed {_page_name(p)} while we worked on it, so I stopped the merge. "
-                      f"The lines both sides changed: {_hunk_words(p)}.")
+                      f"On {_page_name(p)}, both sides changed "
+                      f"{'the same lines' if p.hunks else _hunk_words(p)}.")
              for p, f in zip(stopped, files)]
     refusal = say.Refusal(
         rule="sync-main conflict",
-        plain="Main changed writing this branch changed too, so I stopped the merge. Nothing in your copy changed.",
+        plain="Someone changed the same paragraphs on main while we worked, so I stopped before mixing them. "
+              "Nothing of yours changed. Want to see both versions?",
         fix="Show the lead both sides of each listed line range; the lead resolves; rerun vela close sync-main.",
         override=f"{ACCEPT} (go on without main; close gate lists it)")
     return run.finish(closestate.CONFLICT, say.REFUSED, lines, files=files, refusals=[refusal])
@@ -232,7 +232,7 @@ def _fetch_failed(run, why):
                {"choice": "go-on", "plain": "Go on without main", "run": ACCEPT}]
     result = run.finish(closestate.NOT_COMPARED, say.NEEDS_LEAD, [say.Line(
         f"sync-main: not compared: git fetch origin failed: {why}. Retry, or record the lead's go-on with {ACCEPT}.",
-        "I couldn't reach the shared copy, so this branch isn't compared with main yet. Go on without it, or try again?")],
+        "I couldn't reach main, so I haven't checked for newer changes. Try again, or go on without them?")],
         reason=closestate.FETCH_FAILED, needs_lead=choices)
     result.data["fetch_error"] = why  # session start says it in its own words, with no close choices
     return result
@@ -244,13 +244,12 @@ def _uncommitted(run, dirty):
     return run.finish(closestate.NOT_COMPARED, say.NEEDS_LEAD, [say.Line(
         f"sync-main: not compared: {len(dirty)} tracked files have uncommitted edits ({shown}). Commit them first with "
         f"{CHECKPOINT}, then rerun.",
-        "This session's edits aren't saved in a commit yet, so I can't bring in main without risking them. "
-        "They need a checkpoint commit first.")],
+        "I'll save your edits first, so nothing's lost when I bring in main. OK?")],
         reason=closestate.UNCOMMITTED, needs_lead=choices)
 
 
 def _git_failed(run, error):
     return run.finish(closestate.NOT_COMPARED, say.FAILED, [say.Line(
         f"sync-main: git failed, nothing was merged: {error}",
-        "Git failed while I was comparing with main, so nothing was merged. The error is in vela's output.")],
+        "Something went wrong while I was comparing with main, so nothing changed. I'll look into it and try again.")],
         reason=closestate.GIT_FAILED)

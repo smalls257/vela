@@ -134,7 +134,7 @@ def test_design_checks_freshness_first_and_stops_when_behind():
     start = read("skills/design/SKILL.md").split("## 1. Start", 1)[1]
     voice, fresh = start.split("\n\n", 3)[1:3]
     assert VOICE_LINE.search(voice)  # the voice is read before anything is said (voice audit S4)
-    assert fresh.startswith("First run `vela freshness`. If it exits 3") and "stop, tell the lead in your words" in fresh
+    assert fresh.startswith("First run `vela freshness --for-lead`. If it exits 3") and "stop, say what it printed in your words" in fresh
     assert "offer to bring it up to date" in fresh and "in its words" not in fresh
     assert start.index("vela freshness") < start.index("vela handoff verify") < start.index("vela check-slice")
 
@@ -152,7 +152,7 @@ def test_design_loads_the_voice_before_its_first_question_and_names_house_voice(
 def test_flow_check_line_team_side():
     body = skill_text_design_skill()
     assert "Read your app's slices' flow check from the handoff rather than running it again" in body
-    assert ("If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice>` once. "
+    assert ("If the handoff record has no `## Flow checks when written` section, run `vela check-slice <slice> --for-lead` once. "
             "If a slice is 'not fully checked' or has open findings, tell the team lead before you design against it.") in body
     assert "Until the handoff carries it" not in body
 
