@@ -35,4 +35,4 @@ Create it when the first term settles, add each term as it settles, and say so w
 
 Only terms that mean something in the domain belong here, not class names.
 
-Cite the vault by name and date, "the Heron planning vault (as of October 12)", never by its ID and commit.
+Cite the vault by name and date, "the Fernway planning vault (as of October 12)", never by its ID and commit.

@@ -65,7 +65,7 @@ def test_proposals_names_only_commands_that_exist():
 def test_the_owner_hears_each_change_by_name_not_by_group_key():
     text = skill("proposals")
     assert "the group key goes into commands, never into what the owner hears" in text
-    assert '"First change: the Record consent contract. Priya\'s reason:' in text
+    assert '"First change: the Dock unlock contract. Ines\'s reason:' in text
     assert "(CON-001)" not in text
     assert "the vault" not in text and "Grill" not in text
     assert "When a command can't express what the owner wants, say so and stop." in text

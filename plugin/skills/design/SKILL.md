@@ -33,11 +33,11 @@ Before the first question, find this app's piece of the tracer: the tracer slice
 
 Propose it in a sentence or two and ask whether it's right.
 
-When neither names a tracer, ask one question first: which flow should release one prove end to end? Recommend one from the flows this app takes part in, with the reason ("the 7:30 digest, because it crosses all three apps"), and write it in the doc as "Nobody named the first working path yet, so this one is a proposal for the team lead to confirm." A release that says `**Tracer:** none, <reason>` has no skeleton to serve: say so, and design in template order. Otherwise design the skeleton's components and contracts first, then widen to the rest of `TECH-DESIGN-FORMAT.md`. The skeleton changes the order of the interview, not its coverage: every trace target still needs an owner.
+When neither names a tracer, ask one question first: which flow should release one prove end to end? Recommend one from the flows this app takes part in, with the reason ("unlocking a bike, because it crosses all three apps"), and write it in the doc as "Nobody named the first working path yet, so this one is a proposal for the team lead to confirm." A release that says `**Tracer:** none, <reason>` has no skeleton to serve: say so, and design in template order. Otherwise design the skeleton's components and contracts first, then widen to the rest of `TECH-DESIGN-FORMAT.md`. The skeleton changes the order of the interview, not its coverage: every trace target still needs an owner.
 
-For Heron's Desktop agent it read: "At 7:30 the agent asks the consent check, reads the person's calendar entries, sends them to the Summarizer and shows the digest. Consent and identity and the Summarizer are stubbed at their contracts until those teams' pieces land."
+For the Fernway Rider app it read: "The rider scans a dock, the app asks the payment check, sends the unlock to the Dock service and shows the bike's number. The payment check and the Dock service are stubbed at their contracts until those teams' pieces land."
 
-If the vault has no releases page at all, propose a skeleton from the app's first epic and ask. If the team lead says the skeleton isn't ready ("we don't know the Summarizer's shape yet"), say once what it protects (a team that can show the flow working early), record their words as an override, and carry on in template order.
+If the vault has no releases page at all, propose a skeleton from the app's first epic and ask. If the team lead says the skeleton isn't ready ("we don't know the Dock service's shape yet"), say once what it protects (a team that can show the flow working early), record their words as an override, and carry on in template order.
 
 ## 3. Ask one question at a time
 
@@ -51,7 +51,7 @@ Write each answer into `docs/tech-design/<slug>.md` as its section settles, and 
 - An ADR only when a decision is hard to reverse, surprising without context and a real trade-off: `ADR-FORMAT.md`.
 - The vault's glossary owns its terms. `CONTEXT.md` holds only terms the app adds: `CONTEXT-FORMAT.md`.
 - A choice deliberately put off is a deferral (`D-XXX`); a question nobody can answer yet is an open question (`OQ-XXX`). `FRONTMATTER-FORMAT.md` says which is which.
-- In a mermaid diagram a `;` ends the statement, so a message or label never holds one: `R->>S: stop; cancel` stopped Heron's withdrawal flow from drawing. Write a comma or "then".
+- In a mermaid diagram a `;` ends the statement, so a message or label never holds one: `R->>S: stop; cancel` stopped a cancel-hold flow from drawing. Write a comma or "then".
 
 ## 5. When the vault is wrong or silent
 

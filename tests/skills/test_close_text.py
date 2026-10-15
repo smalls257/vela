@@ -417,7 +417,7 @@ def test_worked_examples_kept():
                     "chase it on 6 November. Is that the right person?",
                     "I kept the 8 fixed limits as constraints, set aside 12 what-ifs and dropped 5 that repeat other "
                     "lines.",
-                    "I'll send this for review to Priya and the identity team. OK?"):
+                    "I'll send this for review to Ines and the payments team. OK?"):
         assert example in CLOSE_SKILL, example
 
 

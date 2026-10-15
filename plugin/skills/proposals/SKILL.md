@@ -30,7 +30,7 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela proposals review "<proposal>"` f
 
 ## 2. Walk the changes
 
-Read `proposal.md` (for a zip, the review output). Walk the groups in the order the tool listed: pending decisions first, then the rest. Say each by the item's name, in your own sentences too; the group key goes into commands, never into what the owner hears: "First change: the Record consent contract. Priya's reason: finance said anything else fails audit."
+Read `proposal.md` (for a zip, the review output). Walk the groups in the order the tool listed: pending decisions first, then the rest. Say each by the item's name, in your own sentences too; the group key goes into commands, never into what the owner hears: "First change: the Dock unlock contract. Ines's reason: finance said anything else fails audit."
 
 For each group:
 

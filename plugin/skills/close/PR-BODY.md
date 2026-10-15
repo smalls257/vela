@@ -8,6 +8,6 @@ Write two or three sentences, in the house voice:
 - what to look at first, and why: a decision that shapes the design, a contract another team uses, a page rewritten whole;
 - what is still open that matters to them, and who is chasing it.
 
-Name things; an ID only as a tag after a name. No check codes and no lists. For example: "This settles how the desktop agent signs in: through the bank's identity service, not a login of its own. Look first at the change to the session contract, since the mobile team uses it too. Who owns the Heron data feed is still open; Priya is asking by 23 October."
+Name things; an ID only as a tag after a name. No check codes and no lists. For example: "This settles how the dock service takes payment: through the card processor, not a till of its own. Look first at the change to the payment contract, since the fleet console uses it too. Who owns the Spokewell repair feed is still open; Ines is asking by 23 October."
 
 Then add a line for anything the body can't see, only when there is one: each paragraph rewritten whole, pointing to `## Replaced prose` in the session record; each "No examples for <type>: drafted without examples" line house-voice gave; each catalog entry drafted under `## Catalog proposals`.

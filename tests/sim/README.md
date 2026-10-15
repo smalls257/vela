@@ -450,9 +450,11 @@ Python's standard library, and are not real products, the keywords that are not 
 run of brief text), leaves out anything the example vault `examples/unified-booking/` holds (coastal-merger borrowed
 Harborline, FERRYMASTER and Tidepay from it, and the plugin quotes it as the worked example; its `CONVENTIONS.md` is
 the plugin's own file and doesn't count), and fails on any term found under `plugin/**` that
-`seal-known-leaks.txt` does not list. That file is today's leaks (98 terms in 44 files on 2026-10-15: heron and
-trading-coach names and examples in skills, the conventions and the explorer's art) and it only shrinks: the test
-also fails when a listed leak is gone, and `python3 tests/sim/seal.py --prune` drops those lines.
+`seal-known-leaks.txt` does not list. That file held 98 terms in 44 files on 2026-10-15 (heron and trading-coach
+names and examples in skills, the conventions and the explorer's art); the same day they were rewritten as a
+made-up bike-share example and the art keyed by icon kind, so it is empty and any key term in the plugin fails
+the test. It only shrinks: the test also fails when a listed leak is gone, and `python3 tests/sim/seal.py
+--prune` drops those lines.
 `python3 tests/sim/seal.py --leaks` lists every leak by file. `--write-known` accepts new ones and is a reviewed
 change, never a way to make the test pass.
 
@@ -645,7 +647,7 @@ only for a holdout.
 - `precision.py`: the precision pass over a sample of the final vault.
 - `failures.py`: generic failure patterns of a run for skill authors (`run.py --failures`).
 - `seal.py`: the dev/holdout split, the key-term list, redaction and the plugin leak scan.
-  `seal-known-leaks.txt`: the plugin's known leaks, to remove.
+  `seal-known-leaks.txt`: the plugin's known leaks, to remove (empty since 2026-10-15).
 - `probe.py`: one-session probes from a snapshot, for the iteration loop.
 - `probes/`: the probe cases. `snapshots/`: the starting vaults.
 - `personas/heron-desk.yaml`: the dev persona, with the `heron-*` personas its runs bring in.

@@ -25,7 +25,7 @@ Run `vela releases brief --for-lead` and tell the lead, in your words, what it s
 
 Ask one question at a time, with your recommendation. Run it as a release-scope workshop, the way a business analyst would: date first, then must, should and later, requirement by requirement.
 
-1. **The first release.** Ask when anyone outside the team first uses or sees this, and who they are. Take a date, and a name for the release that you propose yourself from the audience, such as "January board demo". Say where the date came from: a source, the lead's words, or `(claude)` for a guess, which the lead must replace before it is written.
+1. **The first release.** Ask when anyone outside the team first uses or sees this, and who they are. Take a date, and a name for the release that you propose yourself from the audience, such as "March dock pilot". Say where the date came from: a source, the lead's words, or `(claude)` for a guess, which the lead must replace before it is written.
 2. **What must be there.** For each requirement not yet placed, in the order of the capability map, ask whether it must be there for that date, can wait, or only part of it has to be there. If part: read its criteria back in their own words from the capability page, and ask which of these checks must hold on that day. The rest goes on a later release.
 3. **The first thin path (the tracer).** Ask this once the first release has its requirements, before the later releases. It runs in five short moves, and it becomes the first slice.
    - *Start from what boundary recorded.* If the brief names the first thin path the boundary session recorded, open with it and ask whether it is still right. Ask the lead to name one only when none was recorded.
@@ -51,7 +51,7 @@ When you've added slices or changed their After, run `vela check-slice --changed
 On `04b-releases.md`, one section per release, in the order they ship:
 
 ```
-## Release one: January board demo
+## Release one: March dock pilot
 
 - **Target:** 2027-01-15
 - **State:** assumption
@@ -59,7 +59,7 @@ On `04b-releases.md`, one section per release, in the order they ship:
 
 | Delivers | Criteria | Note |
 |---|---|---|
-| [[CAP-002-paper-trade-a-stock#CAP-002.FR2 Place a paper order\|CAP-002.FR2]] | AC1, AC2 | AC3 in release two |
+| [[CAP-002-unlock-a-bike#CAP-002.FR2 Unlock with the app\|CAP-002.FR2]] | AC1, AC2 | AC3 in release two |
 ```
 
 - **Target** is a real `YYYY-MM-DD` date. A date the lead has not given is not written; the release waits as a question. A bad date fails E344.

@@ -18,7 +18,7 @@ Each rule is a sentence to follow, not a phrase to copy. Say each thing in your 
 
 1. **Talk like a senior colleague running a working session:** plain, spoken, short. Use negatives where a person would.
 2. **Ask one question at a time, with your recommendation and why.**
-3. **Ground today in real examples, and make the future concrete.** For how things work now, ask about the last time it happened. For what's ahead, picture a specific moment (the launch date, a no from the works council) and ask what went wrong or what it would cost. Push the lead to look ahead; just don't record a guess as a fact.
+3. **Ground today in real examples, and make the future concrete.** For how things work now, ask about the last time it happened. For what's ahead, picture a specific moment (the launch date, a no from the city's transport committee) and ask what went wrong or what it would cost. Push the lead to look ahead; just don't record a guess as a fact.
 4. **Give each point its true state when you play it back:** assumed, decided or open.
 5. **Keep codes, IDs, gate names and rule numbers out of what the lead reads.** Say the thing's name.
 6. **Name a rule in one sentence, then do what the lead asked.**
