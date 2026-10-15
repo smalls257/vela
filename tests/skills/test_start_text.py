@@ -227,7 +227,9 @@ def test_the_handle_is_asked_once_and_kept():
 def test_start_stages_the_explorer_pins_and_leaves_the_rest():
     start = text("references/START.md")
     assert "stage it by exact path when it changed" in start
-    assert "(`findings/`, `owed/`, `pr-body*.md`, `handle`)" in start
+    # the cache and close/ were missing, and the midpoint's model committed flowcheck-cache.json (C83)
+    assert "(`findings/`, `owed/`, `close/`, `flowcheck-cache.json`, `pr-body*.md`, `handle`, and anything else there)" in start
+    assert "never stage or commit it" in start
 
 
 def test_start_names_every_mode_that_marks_at_once():
