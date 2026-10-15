@@ -94,8 +94,7 @@ def test_gh_failure_saves_body_and_says_one_sentence(tmp_path, monkeypatch):
     vault, _ = pushed(tmp_path)
     code, out = pr(vault, "--for-lead")
     assert code == 1, out
-    assert out.strip() == ("The branch is pushed; I couldn't open the pull request from here. The text is in "
-                           "`.vela/pr-body.md`.")
+    assert out.strip() == prbody.SAVED_SENTENCE and "I've kept its text" in out
     saved = (vault / ".vela" / "pr-body.md").read_text(encoding="utf-8")
     assert "**Consent**" in saved
     code, out = pr(vault)
@@ -168,6 +167,7 @@ def test_pr_before_push_refused(tmp_path, monkeypatch):
     vault, _ = sent_session(tmp_path)
     code, out = pr(vault, "--for-lead")
     assert code == 1 and "isn't sent yet" in out, out
+    assert "Shall I send it for review?" in out and "I'll send" not in out  # asks; never promises a send
     assert not created(log)
 
 

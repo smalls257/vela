@@ -97,7 +97,7 @@ def test_invalid_item_writes_nothing(tmp_path, note_kind):
     assert code == 1, out
     assert snapshot(root) == before and path.read_bytes() == file_before
     refusals = json.loads(out)["refusals"]
-    assert [r["plain"] for r in refusals] == ["I took that as an 'ok' rather than a yes. Shall I write these as read?"]
+    assert [r["plain"] for r in refusals] == ["You said 'ok'. Is that a yes to the wording as I read it?"]
 
 
 def test_refusal_has_plain_fix_and_override(tmp_path, note_kind):
@@ -106,10 +106,12 @@ def test_refusal_has_plain_fix_and_override(tmp_path, note_kind):
     code, out = apply(root, path, "--json")
     assert code == 1
     (refusal,) = json.loads(out)["refusals"]
-    assert set(refusal) == {"refused", "rule", "plain", "fix", "override"} and refusal["refused"] is True
+    assert set(refusal) == {"refused", "rule", "plain", "fix", "override", "audience", "recommend"}
+    assert refusal["refused"] is True and refusal["audience"] == "lead"
     assert all(refusal[k] for k in ("rule", "plain", "fix", "override"))
     code, out = apply(root, path, "--for-lead")
-    assert code == 1 and out.strip() == "I don't have your answer written down yet, so I haven't filed it."
+    assert code == 1 and out.strip().splitlines() == ["I don't have your answer written down yet, so I haven't filed it.",
+                                                consent.WAIVE_YES]
 
 
 def test_reapply_is_noop(tmp_path, note_kind):

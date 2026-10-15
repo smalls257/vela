@@ -1,5 +1,5 @@
 """The pure part of `close gate` (overhaul Task 10a): a change into or out of decided needs the lead's quoted yes."""
-from vela import closegate, closestate, model, parse
+from vela import closegate, closestate, model, parse, say
 
 RECORD = "2026-10-20-grill-consent"
 
@@ -26,26 +26,26 @@ def judged(captures, rows, state="decided", override=""):
 def test_hand_set_decided_with_no_changes_row_refused():
     problems, consent = judged([], [])
     assert len(problems) == 1 and not consent
-    assert "Consent records was made decided with nothing on record" in problems[0].plain
+    assert "You haven't said yes to deciding Consent records yet." == problems[0].plain
     assert "CON-003" not in problems[0].plain and "CON-003" in problems[0].detail
 
 
 def test_changes_row_citing_claude_capture_refused():
     problems, _ = judged(["- [thought] (claude) Decide consent now ^c01"],
                          [f"| CON-003 | assumption | decided | [[{RECORD}#^c01]] |"])
-    assert "on my suggestion" in problems[0].plain
+    assert "was my suggestion, not your yes" in problems[0].plain
 
 
 def test_claude_from_summary_is_not_a_quote():
     problems, _ = judged(["- [thought] (claude, from @lead) the lead agreed ^c01"],
                          [f"| CON-003 | assumption | decided | [[{RECORD}#^c01]] |"])
-    assert problems and "own yes" in problems[0].plain
+    assert problems and "not your yes" in problems[0].plain
 
 
 def test_bare_ok_is_not_a_yes():
     for words in ('"ok"', "Okay.", "sure", '"next"'):
         problems, _ = judged([f"- [thought] (@lead) {words} ^c01"], [f"| CON-003 | assumption | decided | [[{RECORD}#^c01]] |"])
-        assert problems and "isn't a yes" in problems[0].plain, words
+        assert problems and "Was that a yes" in problems[0].plain, words
 
 
 def test_a_quoted_yes_passes_and_lands_in_the_consent_block():
@@ -124,15 +124,15 @@ def test_unmarked_capture_blocks():
     unmarked = '- [thought] (@lead) "Yes, decide it as read." ^c04'
     result = readied(captures=(unmarked, "- [idea] (claude) a second note ^c05"))
     assert not result.ready
-    problem = next(p for p in result.problems if "mark" in p.plain)
-    assert problem.plain.startswith("2 notes in the session record have no mark yet")
+    problem = next(p for p in result.problems if p.kind == closegate.UNMARKED)
+    assert problem.plain.startswith("Two things you said aren't sorted yet")
     assert "^c04" in problem.detail and "^c05" in problem.detail and problem.clear
 
 
 def test_ledger_row_removed_since_branch_point_blocks():
     result = readied(now=vault_of(rows=""))
     assert not result.ready
-    problem = next(p for p in result.problems if "ledger" in p.plain)
+    problem = next(p for p in result.problems if "ledger" in p.detail)
     assert "Q-DAT-01@APP-booking" in problem.detail  # the command's resolver says the copy as its question
     assert "put" in problem.clear.lower()
 
@@ -140,7 +140,7 @@ def test_ledger_row_removed_since_branch_point_blocks():
 def test_override_removed_since_branch_point_blocks():
     result = readied(before=vault_of(override_line=OVERRIDE, state="assumption"))
     assert not result.ready
-    problem = next(p for p in result.problems if "override" in p.plain)
+    problem = next(p for p in result.problems if "override" in p.detail)
     assert "Consent records" in problem.plain and "vendor tests it" in problem.plain
 
 
@@ -161,6 +161,7 @@ def test_a_removal_on_claudes_word_still_blocks():
 def test_render_stale_blocks():
     result = readied(stale=("05-building-blocks/booking-building-blocks.md",))
     assert not result.ready and any("generated" in p for p in plains(result.problems))
+    assert all(p.audience == say.MODEL for p in result.problems if p.kind == closegate.RENDER)  # Claude's own step
 
 
 def test_tree_not_clean_blocks():
@@ -177,7 +178,7 @@ def test_an_error_with_no_recorded_choice_blocks():
                           "CON-003 is decided but says nothing about who tests it.", "Add a Tested by line.")
     result = readied(errors=(error,))
     assert not result.ready
-    problem = next(p for p in result.problems if p.plain.startswith("Booking:"))
+    problem = next(p for p in result.problems if p.plain.startswith("On Booking:"))
     assert "E318" in problem.detail and "E318" not in problem.plain and "override" in problem.clear
 
 
@@ -198,6 +199,14 @@ def test_hooks_marker_missing_is_said_plainly():
     assert not any("Hooks" in n.plain for n in readied().notes)
 
 
+def test_a_conflict_is_said_as_not_brought_in_never_as_a_merge_still_open():
+    """sync-main aborts a merge that stops, so the true state is that main's changes aren't in yet."""
+    verdict = closestate.verdict(closestate.record(closestate.CONFLICT, "session/x"))
+    assert verdict.blocks and "still open" not in verdict.plain and "haven't brought" in verdict.plain
+    assert verdict.audience == say.LEAD  # only the lead can choose between the two versions
+    assert closestate.verdict(None).audience == say.MODEL  # sync-main not run yet is Claude's own step
+
+
 def test_sync_not_run_blocks():
     result = readied(sync=closestate.verdict(None))
     assert not result.ready and "Main hasn't been brought into this branch yet." in plains(result.problems)
@@ -207,5 +216,5 @@ def test_reader_copy_checks_without_git():
     """A reader copy has no branch point: `before` is None, and the record's Changes rows are judged as written."""
     unmarked = '- [thought] (@lead) "Yes, decide it as read." ^c04'
     result = readied(captures=(unmarked,), before=None, reader=True)
-    assert not result.ready and any("no mark yet" in p for p in plains(result.problems))
+    assert not result.ready and any("isn't sorted yet" in p for p in plains(result.problems))
     assert readied(before=None, reader=True).ready

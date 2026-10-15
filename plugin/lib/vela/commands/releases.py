@@ -16,7 +16,7 @@ Exit 0 done; 2 the vault would not load. Both read only: no git runs, so a reade
 """
 import pathlib
 
-from vela import releasebrief, say
+from vela import plainwords, releasebrief, say
 from vela.commands import emit
 
 
@@ -69,9 +69,18 @@ def count(n, word):
 def cmd_brief(args, out):
     vault, resolver = load(args)
     found = releasebrief.brief(vault)
-    result = say.Result("releases brief", data=brief_data(found))
+    result = say.Result("releases brief", data=brief_data(found), answer=brief_answer(found))
     result.lines = brief_lines(found, Words(vault, resolver))
     return emit(result, args, out, resolver)
+
+
+def brief_answer(b):
+    """The lead's first line: what's missing before releases can be planned, else how many releases there are."""
+    if b.missing:
+        return f"{b.missing[0].says} Offer {b.missing[0].offer}."
+    n = len(b.releases)
+    return (f"{say.count_words(n, capital=True)} release{'' if n == 1 else 's'} so far, and "
+            f"{say.count_words(len(b.slices))} slice{'' if len(b.slices) == 1 else 's'} in order.")
 
 
 def brief_data(b):
@@ -93,13 +102,15 @@ def brief_lines(b, w):
     lines = [w.line(f"Releases: {len(b.releases)}.", f"Releases: {len(b.releases)}.")]
     for r in b.releases:
         when = f"target {r.target or 'not given'}, {r.state or 'no state'}"
+        aimed = (f"aimed at {say.date_words(r.target)}" if r.target else "with no date yet") + \
+            f", {plainwords.STATE_WORDS.get(r.state, r.state) if r.state else 'with no state'}"
         delivers = [row.requirement + ("" if row.raw_criteria.lower() in ("", "all") else f" ({row.raw_criteria})")
                     for row in r.rows if row.requirement]
         said = [w.named(row.requirement) + ("" if row.raw_criteria.lower() in ("", "all") else
                                             f" (only checks {row.raw_criteria})") for row in r.rows if row.requirement]
         text_slices, plain_slices = w.both(r.slices)
         lines.append(w.line(f"- {r.name}: {when}; slices {text_slices}; delivers {', '.join(delivers) or 'nothing yet'}",
-                            f"- {r.name}: {when}; slices on by then: {plain_slices}; delivers "
+                            f"- {r.name}: {aimed}; slices on by then: {plain_slices}; delivers "
                             f"{', '.join(said) or 'nothing yet'}"))
     lines.append(w.line(f"Slices, in order: {len(b.slices)}.", f"Slices, in the order they come: {len(b.slices)}."))
     for s in b.slices:
@@ -116,7 +127,8 @@ def brief_lines(b, w):
             lines.append(w.line(f"First thin path recorded on {w.tagged(fp.flow)}: {fp.words}",
                                 f"The first thin path the boundary session recorded, on the flow {w.named(fp.flow)}: {fp.words}"))
     else:
-        lines.append(w.line("First thin path recorded: none.", "No first thin path was recorded; ask the lead for one."))
+        lines.append(w.line("First thin path recorded: none.", "Nobody has picked the tracer yet. Which journey "
+                                                               "should prove the whole system first?"))
     for m in b.missing:
         lines.append(w.line(f"Missing {m.key}: {m.says} Offer {m.offer}.", f"{m.says} Offer {m.offer}."))
     return lines
@@ -143,6 +155,8 @@ def cmd_candidates(args, out):
                         "in_slices": list(c.in_slices), "countable": c.countable} for c in ranked],
         "recommended": ranked[0].flow if ranked and ranked[0].countable and not tie else "", "tied": tie})
     result.lines = candidate_lines(ranked, tie, Words(vault, resolver))
+    if len(result.lines) > 1:
+        result.answer = result.lines[-1].plain  # the recommendation, or the tie the lead breaks, comes first
     return emit(result, args, out, resolver)
 
 

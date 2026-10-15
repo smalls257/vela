@@ -34,6 +34,7 @@ Exit codes (plan 3.1):
 Commits `grill: <ID> decided` (`planned` for a slice, `reopened` for a change of mind) with only the changed pages and
 the record, by exact path. In a reader copy no git runs at all, and the marker says the owner sees it before it counts.
 """
+import datetime
 import pathlib
 
 from vela import commands, decisions, gates, say
@@ -76,8 +77,12 @@ def failed(text, plain):
     return say.Result(NAME, exit=say.FAILED, lines=[say.Line(f"vela decide: {text}", plain=plain)])
 
 
-def refused(refusals):
-    return say.Result(NAME, exit=say.REFUSED, refusals=list(refusals))
+def refused(refusals, name=""):
+    """The refusal Result: when more than one thing stands in the lead's way, the answer counts them first."""
+    theirs = [r for r in refusals if r.audience == say.LEAD]
+    answer = (f"I can't decide {name} yet: {say.count_words(len(theirs))} things stand in the way."
+              if name and len(theirs) > 1 else "")
+    return say.Result(NAME, exit=say.REFUSED, refusals=list(refusals), answer=answer)
 
 
 def override_groups(args):
@@ -128,7 +133,7 @@ def run(args, out):
         vault = cli.load_vault(root)
     except cli.ToolError as exc:
         return commands.emit(failed(str(exc), "I couldn't read the vault, so I decided nothing."), args, out)
-    resolver = say.Resolver(vault)
+    resolver = say.Resolver(vault, today=datetime.date.fromisoformat(today))
     record, early = apply_command.find_record(root)
     if early is not None:
         return commands.emit(early, args, out, resolver)
@@ -169,7 +174,7 @@ def file_item(item, root, staged, record, reader):
     try:
         writes, refusals = decisions.plan(decision, staged, record)
         if refusals:
-            return refused(refusals)
+            return refused(refusals, target.name if target is not None else "")
         state = decide.new_state(item, staged)
         filed = decisions.applied_text(decision, writes, decisions.record_after(record, staged))
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -193,10 +198,28 @@ def file_item(item, root, staged, record, reader):
     return report(item, target, state, written, commit, reader)
 
 
+def set_aside_words(item):
+    """' I've noted that you set aside the open-question check until 1 December.': the true state when a decision
+    went through on an exception (conversation voice rules 4 and 6), or ""."""
+    said = []
+    for group in item.get("overrides") or ():
+        rules = say.names_said([say.GATE_WORDS.get(r) or say.RULE_WORDS.get(r) or rule_words(r)
+                                for r in group.get("rules") or ()])
+        until = f" until {say.date_words(group['until'])}" if group.get("until") else ""
+        said.append(f"{rules}{until}")
+    return f" I've noted that you set aside {say.names_said(said)}." if said else ""
+
+
+def rule_words(rule):
+    from vela import schema as vault_schema
+    meaning = vault_schema.CODES.get(rule)
+    return f'the "{meaning}" check' if meaning else "a check"
+
+
 def report(item, target, state, written, commit, reader):
     said = "reopened" if item.get("reopen") else state
     lines = [say.Line(f"{said} {target.id}: wrote {', '.join(written)}" + (f"; commit {commit}" if commit else ""),
-                      plain=f"I've written {target.name} down as {said}" + (" and committed it." if commit else "."))]
+                      plain=f"{target.name} is {said}." + set_aside_words(item))]
     if reader:
         lines.append(say.Line("read copy: nothing committed (no git runs here); the decision is pending the owner's "
                               "approval.", plain="This is a read copy, so nothing was committed, and the owner sees "

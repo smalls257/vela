@@ -234,9 +234,10 @@ def test_draft_matches_task4_file_shape(tmp_path):
     root = vault_with_record(tmp_path, ['- [wild] (@sam) "What if it ran itself?" ^c01',
                                         "- [unknown] (claude) Is the folder ever empty? ^c02"])
     code, out = marks_plan(root, "--json")
-    assert code == say.NEEDS_LEAD, out
+    assert code == say.DONE, out  # the draft is written, so the exit says so; the leftovers are in needs_lead
     path = root / ".vela" / "decisions" / RECORD_ID / "01-marks.json"
     assert drafts(root) == [path]
+    assert json.loads(out)["wrote"] == [f".vela/decisions/{RECORD_ID}/01-marks.json"]
     decision, problems = decisions.load(path.read_text(encoding="utf-8"))
     assert not problems and decision.kind == "marks" and decision.session == RECORD_ID
     record = records.from_text(RECORD_ID, f"sessions/{RECORD_ID}.md",
@@ -263,9 +264,10 @@ def test_for_lead_says_the_counts_and_the_leftovers_plainly(tmp_path):
     root = vault_with_record(tmp_path, ['- [wild] (@sam) "What if it ran itself?" ^c01',
                                         "- [unknown] (claude) Does UNK-001 still hold the test rig? ^c02"])
     code, out = marks_plan(root, "--for-lead")
-    assert code == 3, out
+    assert code == 0, out
     assert say.leak_in(out) is None and "Till test rig" in out, out
-    assert "parked 1" in out, out
+    assert out.startswith("One of today's notes needs your call:"), out  # the answer first
+    assert "one is set aside for later" in out and "I'd keep it as an open question" in out, out
 
 
 @pytest.fixture

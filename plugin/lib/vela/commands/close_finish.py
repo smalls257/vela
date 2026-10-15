@@ -134,14 +134,20 @@ def one_open_record(root):
 
 
 def not_ready(readiness, resolver):
+    """The gate's own grouped words (one source, so gate and finish never say it two ways); the refusal is the
+    model's note of what to run, since the lead hears the gate's answer line and its questions."""
+    from vela.commands import close_gate
     n = len(readiness.problems)
     things = "one thing needs" if n == 1 else f"{n} things need"
     refusal = say.Refusal("close-gate", f"The session isn't ready to finish yet: {things} sorting first.",
                           "Run vela close gate --for-lead, sort out each line it lists with the lead, then finish "
                           "again.", "Each line close gate lists says how the lead can set it aside; finish has no "
-                                    "override of its own.")
-    lines = [say.Line(f"  not ready: {p.plain} ({p.detail})", resolver.plain(p.plain)) for p in readiness.problems]
+                                    "override of its own.", audience=say.MODEL)
+    lines = [say.Line(f"  not ready: {p.plain} ({p.detail})", resolver.plain(p.plain), audience=p.audience)
+             for p in readiness.problems]
+    asks = any(p.audience == say.LEAD and p.kind in (closegate.CONSENT, closegate.CHECK) for p in readiness.problems)
     return say.Result("close finish", exit=say.REFUSED, refusals=[refusal], lines=lines,
+                      answer=close_gate.answer_words(readiness), closing=close_gate.WAY_OUT if asks else "",
                       data={"ready": False, "problems": [p.__dict__ for p in readiness.problems]})
 
 

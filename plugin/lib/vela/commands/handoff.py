@@ -4,9 +4,10 @@
 it lists what handing the app over would leave unmet (the checklist, what is not settled, each slice's recorded flow
 check; `handoffpreview.py` says why each comes from where) and writes nothing, so a reader copy can run it too.
 
-The output flags (`--json`, `--for-lead`) belong to the preview only. On the handoff or verify they would be read and
-ignored, a Silent Fallback where a skill asks for plain lines and gets IDs, so they are refused there instead; so are
-`--commit` and `--replace` on the preview, which records nothing.
+The output flags (`--json`, `--for-lead`) belong to the preview and to verify (challenge relays what changed since an
+app was accepted, so verify says it through say too). On the handoff itself they would be read and ignored, a Silent
+Fallback where a skill asks for plain lines and gets IDs, so they are refused there instead; so are `--commit` and
+`--replace` on the preview, which records nothing.
 """
 import pathlib
 
@@ -34,9 +35,16 @@ def run(args, out):
     from vela import cli
     if args.words[0] == "preview":
         return preview(args, out)
+    if args.words[0] == "verify" and (args.json or args.for_lead):
+        if len(args.words) != 2:
+            raise cli.ToolError("Write vela handoff verify <APP-id>.")
+        from vela import commands
+        root = pathlib.Path(args.vault).resolve()
+        result, vault = cli.handoff_verify_result(root, args.words[1])
+        return commands.emit(result, args, out, say.Resolver(vault))
     if args.json or args.for_lead:
         flag = "--json" if args.json else "--for-lead"
-        raise cli.ToolError(f"{flag} is for vela handoff preview <APP-id> only; the handoff and verify print their own lines.")
+        raise cli.ToolError(f"{flag} is for vela handoff preview and verify only; the handoff prints its own lines.")
     return args.handoff(args, out)
 
 
@@ -57,4 +65,5 @@ def preview(args, out):
     taking_part = slices.for_app(vault, slices.read_slices(vault), app)
     standings, warning = cli.recorded_standings(root, vault, [s.key for s in taking_part], today)
     found = handoffpreview.preview(vault, app, taking_part, standings, warning)
-    return commands.emit(handoffpreview.result(found), args, out, say.Resolver(vault))
+    resolver = say.Resolver(vault)
+    return commands.emit(handoffpreview.result(found, resolver), args, out, resolver)

@@ -79,7 +79,8 @@ def cmd_prepare(args, out):
         result = stop.result
     except (Failed, cli.ToolError, vaultgit.GitUnavailable, copies.SourceUnreadable, ValueError, OSError) as exc:
         result = say.Result(NAME, exit=say.FAILED, lines=[
-            say.Line(f"vela reviewers prepare: {exc}", plain=f"I couldn't prepare the review: {exc}")])
+            say.Line(f"vela reviewers prepare: {exc}",  # the reason is the model's (flags, area codes, git's words)
+                     plain="I couldn't start the review; I'll fix how I asked and try again.")])
     if say.mode_of(args) == "for-lead":
         return commands.emit(result, args, out, say.Resolver())
     return commands.emit(result, args, out)

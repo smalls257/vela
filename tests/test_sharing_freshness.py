@@ -253,7 +253,7 @@ def test_the_json_carries_the_documented_keys(tmp_path):
     root = make_vault(tmp_path)
     report = fresh(root)
     assert set(report) == {"role", "state", "checked_at", "have", "latest", "behind", "ahead", "uncommitted", "branch",
-                           "main_behind", "message"}
+                           "main_behind", "message", "lead"}
 
 
 # ---- the explorer's own write is not an uncommitted change

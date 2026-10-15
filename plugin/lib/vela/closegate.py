@@ -27,7 +27,7 @@ bookkeeping, which close is meant to spare them.
 import re
 from dataclasses import dataclass, replace
 
-from vela import override, schema
+from vela import override, say, schema
 
 CONSENT_CLEAR = ("The lead's own yes, quoted in the session record with a Changes row citing it, clears it; so does "
                  "their override with a reason.")
@@ -90,10 +90,20 @@ class StateChange:
 class Problem:
     """One reason the session can't finish yet (or, in `Readiness.notes`, one thing the lead hears that doesn't stop
     it). `plain` is what the lead hears, any ID left in it resolved by the caller; `detail` carries the IDs and paths;
-    `clear` is what would clear it, in words the lead can hear."""
+    `clear` is what would clear it, for the model (the lead hears `plain`, which asks them the question). `kind`
+    groups problems the lead hears as one thing (`KINDS`); `audience` is say.MODEL for a step Claude takes itself
+    (render, sync-main, the hooks note), which the gate still counts but never asks the lead about."""
     plain: str
     detail: str
     clear: str = ""
+    kind: str = ""
+    audience: str = say.LEAD
+
+
+# What holds a close up, in the order the lead hears it: one line per kind when there is more than one of it.
+CONSENT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER, SYNC = (
+    "consent", "unmarked", "check", "removed", "stray", "render", "sync")
+KINDS = (SYNC, CONSENT, UNMARKED, CHECK, REMOVED_ROW, STRAY, RENDER)
 
 
 @dataclass(frozen=True)
@@ -177,20 +187,26 @@ def judge_change(change, rows, said, vault, record_name):
     row = next((r for r in rows if r.item == change.item and r.after == change.after
                 and r.before in (change.before, "-", "")), None)
     if row is None:
-        return Problem(f"{change.name} was made {change.after} with nothing on record saying the lead agreed.",
-                       f"{change.item}: {change.before} -> {change.after} has no ## Changes row"), None
+        return Problem(f"You haven't said yes to {moving(change)} yet.",
+                       f"{change.item}: {change.before} -> {change.after} has no ## Changes row", kind=CONSENT), None
     capture = said.get(row.capture_number)
     if capture is None:
-        return Problem(f"{change.name} was made {change.after}, but the note it points to isn't in the session record.",
-                       f"{change.item}: Changes row line {row.line} cites {row.source or 'nothing'}"), None
+        return Problem(f"I can't find where you said yes to {moving(change)}. Can you say it again?",
+                       f"{change.item}: Changes row line {row.line} cites {row.source or 'nothing'}", kind=CONSENT), None
     if not capture.is_person:
-        return Problem(f"{change.name} was made {change.after} on my suggestion; I need the lead's own yes for that.",
-                       f"{change.item}: ^c{capture.n} has origin '{capture.origin}'"), None
+        return Problem(f"{moving(change, capital=True)} was my suggestion, not your yes. Do you agree?",
+                       f"{change.item}: ^c{capture.n} has origin '{capture.origin}'", kind=CONSENT), None
     if capture.is_bare_non_yes:
-        return Problem(f"{change.name} was made {change.after} on an 'ok', which isn't a yes.",
-                       f"{change.item}: ^c{capture.n} says only '{capture.quote}'"), None
+        return Problem(f"You said '{capture.quote or 'ok'}' on {change.name}. Was that a yes to {moving(change)}?",
+                       f"{change.item}: ^c{capture.n} says only '{capture.quote}'", kind=CONSENT), None
     return None, Consent(change.item, change.name, f"{change.before} to {change.after}", capture.quote,
                          f"[[{record_name}#^c{capture.n}]]")
+
+
+def moving(change, capital=False):
+    """'deciding Calendar entries' / 'reopening Calendar entries': the change the lead says yes to, as a verb."""
+    verb = "deciding" if change.after == CONSENT_STATE else "reopening"
+    return f"{verb.capitalize() if capital else verb} {change.name}"
 
 
 def reader_changes(rows, after):
@@ -319,22 +335,65 @@ def unmarked_problem(record_text):
     if not left:
         return []
     n = len(left)
-    return [Problem(f"{n} {_plural(n, 'note', 'notes')} in the session record {_plural(n, 'has', 'have')} no mark yet, "
-                    f"so the close doesn't know where {_plural(n, 'it goes', 'they go')}.",
-                    "unmarked: " + ", ".join(f"^c{c.n}" for c in left),
-                    "Marking each one keep, park or drop clears it.")]
+    first = _first_words(left[0].words)
+    said = (f"One thing you said isn't sorted yet: keep it, set it aside for later, or drop it? It was: '{first}'."
+            if n == 1 else
+            f"{say.count_words(n, capital=True)} things you said aren't sorted yet: each needs a keep, a set aside "
+            f"for later or a drop. The first was: '{first}'.")
+    return [Problem(said, "unmarked: " + ", ".join(f"^c{c.n}" for c in left),
+                    "Marking each one keep, park or drop clears it.", kind=UNMARKED)]
+
+
+def _first_words(words, limit=12):
+    """The opening of a capture, short enough to say back: its first `limit` words."""
+    parts = words.split()
+    return " ".join(parts[:limit]) + ("..." if len(parts) > limit else "")
+
+
+ERROR_CLEAR = "Fixing it with the lead clears it, or recording the lead's choice as an override with their reason."
+_BLOCKED = re.compile(r"^(?P<unit>\S+) is decided, but open unknown (?P<unknown>\S+) blocks it\.$")
 
 
 def error_problems(errors, vault):
-    out = []
+    """One problem per page and rule, so an item blocked by seven open questions is one thing to the lead, not seven
+    lines that each repeat its name. `detail` still lists every finding."""
+    grouped = {}
     for finding in errors:
-        stem = finding.path.rsplit("/", 1)[-1]
-        page = vault.page(stem[:-3]) if stem.endswith(".md") else None
-        where = str(page.meta.get("title") or finding.path) if page is not None else finding.path
-        out.append(Problem(f"{where}: {finding.message}", f"{finding.path}:{finding.line} {finding.code}",
-                           "Fixing it with the lead clears it, or recording the lead's choice as an override with "
-                           "their reason."))
+        grouped.setdefault((finding.path, finding.code), []).append(finding)
+    out = []
+    for (path, code), found in grouped.items():
+        detail = "; ".join(f"{f.path}:{f.line} {f.code}" for f in found)
+        out.append(Problem(_error_words(found, vault), detail, ERROR_CLEAR, kind=CHECK))
     return out
+
+
+_NO_GRILL = re.compile(r"^(?P<unit>\S+) is decided, but no \*\*Decision:\*\* bullet links a Grill session\.$")
+
+
+def _lead_message(message, vault):
+    """A check's message where its own words are the page grammar (a bullet's markup), said the lead's way."""
+    found = _NO_GRILL.match(message)
+    if found:
+        return f"{vault.name_of(found['unit'])} is decided, but nothing says which grill decided it."
+    return message
+
+
+def _error_words(found, vault):
+    blocked = [_BLOCKED.match(f.message) for f in found]
+    if all(blocked):
+        unit = vault.name_of(blocked[0].group("unit"))
+        questions = [vault.name_of(m.group("unknown")) for m in blocked]
+        if len(questions) == 1:
+            return f"{unit} can't stay decided while a question under it is still open: {questions[0]}."
+        return (f"{unit} can't stay decided while {say.count_words(len(questions))} questions under it are still open, "
+                f"among them {say.names_said(questions[:2])}.")
+    first = found[0]
+    stem = first.path.rsplit("/", 1)[-1]
+    page = vault.page(stem[:-3]) if stem.endswith(".md") else None
+    where = str(page.meta.get("title") or "") if page is not None else ""
+    message = _lead_message(first.message, vault)
+    said = f"On {where}: {message}" if where else message
+    return said + (f" (and {say.count_words(len(found) - 1)} more like it)" if len(found) > 1 else "")
 
 
 def removal_problems(before, after, rows, said):
@@ -345,19 +404,20 @@ def removal_problems(before, after, rows, said):
     now = ledger_copies(after)
     for copy, title in sorted(ledger_copies(before).items()):
         if copy not in now and not removal_agreed(copy, rows, said):
-            out.append(Problem(f"The row for {copy} was removed from the question ledger on {title} since this "
-                               "session began.", f"ledger row {copy} removed since the branch point",
+            out.append(Problem(f"A question was taken off {title} this session ({copy}). Was that on purpose?",
+                               f"ledger row {copy} removed since the branch point", kind=REMOVED_ROW, clear=
                                "Putting the row back clears it, or the lead's own words for removing it, recorded in "
                                "the session record."))
     kept = override_scopes(after)
     for key, (name, o) in sorted(override_scopes(before).items(), key=lambda pair: tuple(map(str, pair[0]))):
         scope = key[1] or key[0]
         if key not in kept and not removal_agreed(scope, rows, said):
-            out.append(Problem(f'An override on {name} was removed since this session began: "{o.reason}".',
+            out.append(Problem(f'The exception on {name} was taken out this session ("{o.reason}"). Was that on '
+                               "purpose?",
                                f"override on {scope} ({', '.join(o.rules)} by {o.by} on {o.date}) removed since the "
                                "branch point",
                                "Putting it back clears it, or the lead's own words for removing it, recorded in the "
-                               "session record."))
+                               "session record.", kind=REMOVED_ROW))
     return out
 
 
@@ -365,19 +425,21 @@ def stray_problem(stray):
     if not stray:
         return []
     n, names = len(stray), [lead_path(p) for p in stray]
-    return [Problem(f"{n} changed {_plural(n, 'file is', 'files are')} not part of this session, so the close would "
-                    f"leave {_plural(n, 'it', 'them')} out: {', '.join(names)}.", "left out: " + ", ".join(stray),
-                    f"Committing, moving or deleting {_plural(n, 'it', 'them')} clears it.")]
+    shown = say.names_said(names[:3]) + (f" and {say.count_words(n - 3)} more" if n > 3 else "")
+    said = (f"{shown} changed but isn't part of this session. Shall I leave it out, or is it yours to keep?" if n == 1
+            else f"{shown} changed but aren't part of this session. Shall I leave them out, or are they yours to keep?")
+    return [Problem(said, "left out: " + ", ".join(stray),
+                    f"Committing, moving or deleting {_plural(n, 'it', 'them')} clears it.", kind=STRAY)]
 
 
 def render_problem(stale, render_problems):
     if render_problems:
         return [Problem("Some generated tables are out of date, and render can't rewrite them yet.",
                         f"render cannot run: {render_problems} problems (run vela render to see them)",
-                        "Fixing what render names, then running it, clears it.")]
+                        "Fixing what render names, then running it, clears it.", kind=RENDER, audience=say.MODEL)]
     if stale:
         return [Problem("Some generated tables are out of date.", "render would still rewrite " + ", ".join(stale),
-                        "Running vela render clears it.")]
+                        "Running vela render clears it.", kind=RENDER, audience=say.MODEL)]
     return []
 
 
@@ -390,18 +452,19 @@ def notes_of(seen):
     if seen.sync.listed:
         notes.append(Problem(seen.sync.plain, f"sync-main: {seen.sync.status}"))
     if seen.reader:
-        notes.append(Problem("This is a read copy, so there's no branch point: removed ledger rows and overrides "
-                             "can't be checked here.", "reader copy: no merge-base"))
+        notes.append(Problem("This is a read copy, so I can't tell whether anything was deleted this session.",
+                             "reader copy: no merge-base"))
     notes += [Problem(lead, line) for line, lead in seen.flow]
     if seen.flow_note:
         notes.append(Problem(seen.flow_note, seen.flow_note))
     if not seen.hooks_ran:
         notes.append(Problem("Hooks did not run in this session, so nothing stopped a wrong step early; this list "
-                             "checked everything itself.", ".vela/hooks-active is missing"))
+                             "checked everything itself.", ".vela/hooks-active is missing", audience=say.MODEL))
     if seen.host:
         from vela.edge import hostprobe  # `stance` is pure: it reads only the host.json dict
         row, sentence = hostprobe.stance(seen.host)
-        notes.append(Problem(sentence, f"host: {row}"))
+        # A host that can do everything a session needs is not news to the lead; one that can't is.
+        notes.append(Problem(sentence, f"host: {row}", audience=say.MODEL if row == "everything" else say.LEAD))
     return notes
 
 
@@ -417,7 +480,7 @@ def ready(vault, record_text, record_id, seen):
     problems, consent = judge(changes, record_text, record_id, vault)
     if seen.sync.blocks:
         problems.insert(0, Problem(seen.sync.plain, f"sync-main: {seen.sync.status or 'not run'}",
-                                   "Running vela close sync-main clears it."))
+                                   "Running vela close sync-main clears it.", kind=SYNC, audience=seen.sync.audience))
     problems += unmarked_problem(record_text)
     problems += error_problems(seen.errors, vault)
     if seen.before is not None:

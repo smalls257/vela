@@ -43,10 +43,10 @@ OLD_VALUE_MIN = 12
 # Bullets whose old text is bookkeeping, not a value another page would repeat.
 NOT_VALUES = ("State", "Decision", "Source", "Sources", "Change", "Override", "Dissent", "Resolved in", "Opened")
 
-SAVED_SENTENCE = ("The branch is pushed; I couldn't open the pull request from here. The text is in "
-                  "`.vela/pr-body.md`.")
-SAVED_COMMENT_SENTENCE = ("The branch is pushed; I couldn't comment on the challenge's pull request from here. The "
-                          "text is in `.vela/pr-body.md`.")
+SAVED_SENTENCE = ("It's sent, but I couldn't open the review from here. I've kept its text; open Claude Code in "
+                  "this folder and I'll try again.")
+SAVED_COMMENT_SENTENCE = ("It's sent, but I couldn't add your answer to the challenge from here. I've kept its text; "
+                          "open Claude Code in this folder and I'll try again.")
 REVIEWER_FILLS = "Filled in by the reviewer."
 
 _HANDLE = re.compile(schema.HANDLE)

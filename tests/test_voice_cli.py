@@ -215,7 +215,7 @@ def test_committed_save_needs_both_yeses(vault, tmp_path):
     code, out = voice(vault, *common, "--consent", "^c01", "--commit-consent", "^c01")
     assert code == 1
     code, out = voice(vault, *common, "--consent", "^c01", "--commit-consent", "^c03")
-    assert code == 1 and "suggestion" in out  # ^c03 is Claude's, not the owner's
+    assert code == 1 and "was mine, not yours" in out  # ^c03 is Claude's, not the owner's
     code, out = voice(vault, *common, "--consent", "^c09", "--commit-consent", "^c02")
     assert code == 1
     assert not (vault / "voice/examples/decision").exists()

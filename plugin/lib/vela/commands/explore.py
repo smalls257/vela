@@ -38,8 +38,8 @@ def register(sub):
     explore.set_defaults(func=cmd_explore)
 
 
-SERVE_REFUSAL = say.Refusal(
-    rule="serve-for-lead",
+SERVE_REFUSAL = say.Refusal(  # the model's own slip in how it asked: never the lead's to hear
+    rule="serve-for-lead", audience=say.MODEL,
     plain=("Serving the page keeps this run going, so there's no finished build report to put into plain words. "
            "Build it with --for-lead first, then serve it without --for-lead."),
     fix="Build with `vela explore --for-lead` and relay it, then serve with `vela explore --serve` and relay its lines.",
@@ -66,6 +66,7 @@ def cmd_explore(args, out):
     resolver = lead_resolver(pathlib.Path(args.vault).resolve())
     report = [{"kind": explorereport.kind_of(entry), "text": entry, "plain": explorereport.lead_line(entry, resolver)}
               for entry in explorereport.entries(printed.getvalue())]
+    summary = next((r["plain"] for r in report if r["kind"] == "summary"), "")
     result = say.Result("explore", exit=code, lines=[say.Line(r["text"], r["plain"]) for r in report],
-                        data={"report": report})
+                        data={"report": report}, answer=summary)  # the answer first: the page is built
     return commands.emit(result, args, out, resolver)

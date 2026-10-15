@@ -131,8 +131,20 @@ def test_for_lead_passes_the_leak_check(example, draft_shop):
         assert "vela bug" not in out
         for line in out.splitlines():
             assert say.leak_in(line) is None, line
-    out = preview(draft_shop, "APP-shop", "--for-lead")[1]
-    assert "- Shop is still a draft: nobody has said yes to it." in out
-    assert "still a draft or not decided yet" in out
+    out = preview(draft_shop, "APP-shop", "--for-lead", "--more")[1]
+    assert out.startswith("Shop isn't ready to hand over:"), out  # the answer first
+    assert "Nobody has said yes to Shop yet." in out and "The team should hear" in out
+    assert "You can still hand it over" in out  # the lead may override, said once
     out = preview(example, "APP-kiosks", "--for-lead")[1]
-    assert f"- Kiosks book through Booking in the March image: not fully checked, recorded {TODAY}" in out
+    assert "Flow checks: Kiosks book through Booking in the March image, not fully checked, recorded 14 October" in out
+
+
+def test_for_lead_says_each_contract_once_and_names_a_concern_once(tmp_path):
+    """The live Heron preview listed the same three contracts three times and said "the concern Cost (Cost)"."""
+    heron = REPO / "tests" / "sim" / "snapshots" / "heron-desk" / "after-full-1"
+    code, out = run("handoff", "preview", "APP-heron", "--vault", str(heron), "--for-lead")
+    assert code == 1, out
+    assert "Cost (Cost)" not in out and "(concern-" not in out
+    head = out.splitlines()[0]
+    assert head.count("Calendar entries") == 1 and "Cost" in head
+    assert len(out.splitlines()) <= say.LEAD_LIMIT + 4  # the answer, about four, "N more", the way out

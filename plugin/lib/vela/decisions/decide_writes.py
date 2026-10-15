@@ -31,13 +31,16 @@ Why each write, and why it is code's:
 import re
 from dataclasses import dataclass
 
-from vela import gates, override as overrides, schema as vault_schema
+from vela import gates, override as overrides, say, schema as vault_schema
 from vela.decisions import agenda, consent, override as override_kind, schema, textedit
 
 HANDLE = re.compile(rf"^{vault_schema.HANDLE}$")
 STATE_BULLET = re.compile(r"^- \*\*State:\*\*\s*(?P<state>\S*)")
 FRONTMATTER_STATE = re.compile(r"^state:\s*(?P<state>.*?)\s*$")
 GATE_5 = "GATE-5"
+# What the lead hears once when a gate rule that takes no end date (the stage, the options, the agenda's or the owner's
+# yes) could be set aside: it holds at the moment of deciding, so an exception is a reason, not a period.
+EVENT_WAIVER = "It's your call: I can decide it anyway and note your reason."
 GATE_3 = "GATE-3"
 REOPENED = "reopened"
 
@@ -60,8 +63,9 @@ class Target:
     gate: str = ""
 
 
-def refusal(rule, plain, fix, override="the lead's override of that rule, with their reason, then decide again"):
-    return textedit.refusal(rule, plain, fix, override=override)
+def refusal(rule, plain, fix, override="the lead's override of that rule, with their reason, then decide again",
+            audience=say.LEAD):
+    return textedit.refusal(rule, plain, fix, override=override, audience=audience)
 
 
 # --- reading and setting a state ------------------------------------------------------------------------------------
@@ -196,7 +200,7 @@ def override_refusals(item, view, record, target):
     found = []
     for one in override_items(item, target):
         if not one.get("reason"):
-            found.append(refusal("decide-override-reason", "Setting a rule aside needs your reason, in your words.",
+            found.append(refusal("decide-override-reason", "Why set it aside? In your words, so I can note it.",
                                  "Give --reason-from: the capture holding the lead's reason.",
                                  override="none: an override always carries the lead's reason"))
             continue
@@ -207,10 +211,11 @@ def override_refusals(item, view, record, target):
         if bad:
             found.append(refusal("decide-on-behalf-handle", "I need the owner's handle to say whose decision this was.",
                                  f"--on-behalf takes handles such as @owner; {', '.join(bad)} is not one.",
-                                 override="none: name the owner by handle"))
+                                 override="none: name the owner by handle", audience=say.MODEL))
         if GATE_5 not in rules_set_aside(item):
             found.append(refusal("decide-on-behalf-needs-gate-5",
-                                 "Deciding for an owner who isn't here goes on record as your choice, with your reason.",
+                                 "The owner isn't here, so I'll note this as your call on their behalf. What's your "
+                                 "reason?",
                                  "Add --override GATE-5 --reason-from <the lead's reason>: deciding on the owner's "
                                  "behalf is how GATE-5 passes with them away (CONVENTIONS \"Overrides\").",
                                  override="none: the GATE-5 override is the record of it"))
@@ -222,7 +227,7 @@ def by_refusals(item):
         return []
     return [refusal("decide-by", "I need your handle to say who decided.",
                     f"by {item.get('by')!r} is not a handle; run vela whoami, or capture the yes with the lead's handle "
-                    "as origin.", override="none: a decision names who made it")]
+                    "as origin.", override="none: a decision names who made it", audience=say.MODEL)]
 
 
 def gate_refusals(item, view, record, target):
@@ -240,7 +245,10 @@ def gate_refusals(item, view, record, target):
             continue
         override = found.route if route is not None else \
             "none from decide: settle each finding, or the dated flow-check override the checker reads"
-        out.append(textedit.refusal(reason.rule, reason.plain, reason.fix, override=override))
+        # The gate's fix is my recommendation to the lead; an event rule is set aside with a reason and no end date.
+        waiver = None if route is None or overrides.is_standing(route) else EVENT_WAIVER
+        out.append(textedit.refusal(reason.rule, reason.plain, reason.fix, override=override, recommend=reason.fix,
+                                    waiver=waiver))
     return out
 
 

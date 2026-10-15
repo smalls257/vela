@@ -340,7 +340,7 @@ def test_slice_planned_requires_flowcheck_or_dated_override(tmp_path):
     findings = {"SLC-001": standing.Standing(standing.FINDINGS, "1 finding", "2026-10-19", ("invariant broken",))}
     _, found = plan(root, [item("SLC-001")], findings)
     said = next(r for r in found if r.rule == "flow check")
-    assert "dated override" in said.fix, "a finding is set aside by the dated flow-check override, which its standing reads"
+    assert "end date" in said.fix, "a finding is set aside by the dated flow-check override, which its standing reads"
     # The checker's standing applies a dated override that covers every finding, so the slice then stands as passed.
     passed = {"SLC-001": standing.Standing(standing.PASSED, "passed", "2026-10-19")}
     writes = filed(root, [item("SLC-001")], passed)

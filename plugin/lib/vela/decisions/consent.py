@@ -35,8 +35,13 @@ OVERRIDE_YES = (f'an override of {closegate.QUOTED_YES_RULE} on the item, its re
                 "lead's words for going ahead, then vela apply again")
 
 
+# Going ahead without a quoted yes is an event override: it has a reason and no end date.
+WAIVE_YES = "You can also have me go ahead without your yes on record; I'll note that you chose to."
+
+
 def _refusal(rule, plain, fix, override=OVERRIDE_YES):
-    return say.Refusal(rule=rule, plain=plain, fix=fix, override=override)
+    waiver = WAIVE_YES if override == OVERRIDE_YES else None
+    return say.Refusal(rule=rule, plain=plain, fix=fix, override=override, waiver=waiver)
 
 
 def exists(ref, record):
@@ -50,7 +55,7 @@ def exists(ref, record):
 def from_a_person(capture):
     if capture.is_person:
         return None
-    return _refusal("consent-not-a-person", "That was my suggestion, not your yes. Is it right?",
+    return _refusal("consent-not-a-person", "That line was mine, not yours. Does the wording I read back sound right to you?",
                     f"Ask the lead; capture their answer in their words with their handle as origin (^c{capture.n} "
                     f"has origin {capture.origin!r}).")
 
@@ -58,7 +63,7 @@ def from_a_person(capture):
 def not_bare_non_yes(capture):
     if not capture.is_bare_non_yes:
         return None
-    return _refusal("consent-bare-non-yes", "I took that as an 'ok' rather than a yes. Shall I write these as read?",
+    return _refusal("consent-bare-non-yes", "You said 'ok'. Is that a yes to the wording as I read it?",
                     f"Ask once more for a plain yes to the read-back; ^c{capture.n} holds only {capture.quote!r}.")
 
 
@@ -75,7 +80,7 @@ def group_small_enough(count):
     if count <= GROUP_LIMIT:
         return None
     return _refusal("consent-group-too-large",
-                    "That read-back covered too much at once for one yes; I'll take it in two groups.",
+                    "That was too much for one yes. I'll read it back in smaller groups.",
                     f"Split the {count} items into read-backs of at most {GROUP_LIMIT}, each with its own yes.")
 
 
@@ -96,7 +101,7 @@ def why_in_their_words(ref, record):
     capture = record.capture(ref)
     if capture.is_person:
         return None
-    return _refusal("consent-why-not-theirs", "I need the reason in your words, not mine.",
+    return _refusal("consent-why-not-theirs", "Why this one, in your words?",
                     f"Ask the lead why, in their words, and capture that (^c{capture.n} is Claude's, origin "
                     f"{capture.origin!r}).", override="leave the reason out (the item is filed with no why), or an "
                                                       "override citing the lead's words for going ahead")
@@ -105,7 +110,7 @@ def why_in_their_words(ref, record):
 def after_send_notice(yes, notice_count):
     if int(yes.n) > int(notice_count):
         return None
-    return _refusal("consent-push-before-notice", "I haven't told you what I'm about to send yet.",
+    return _refusal("consent-push-before-notice", "Before I send anything, I need to tell you what goes and to whom.",
                     f"Run close push without a consent to print the send notice, then capture the lead's yes after it "
                     f"(the yes ^c{yes.n} is not after capture {notice_count}).",
                     override="none for the push itself: the lead hears what is sent before it goes; tell them, then "

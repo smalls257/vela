@@ -297,11 +297,10 @@ def for_app(vault, found, app):
 
 # What moves a slice on from each status, in words for `vela next`. Vela plans and records; the teams run things.
 NEXT = {
-    "": "is not planned yet: draw its flows, write their case tables and run vela check-slice {id} until it passes "
-        "(or each finding has an override with an end date), then plan it in a Grill",
+    "": "is not planned yet: draw its flows, write their case tables and run the flow check on it until it passes "
+        "(or each finding has an exception with an end date), then plan it in a grill",
     "planned": "is planned: hand its apps over so each team accepts its part, then set it to building",
-    "building": "is building: run its journey in the shared environment and record the result as "
-                "'- **Journey:** passed YYYY-MM-DD by @who, <link>'",
+    "building": "is building: run its journey in the shared environment and record the result on its page",
     "journey passes": "passed its journey: deploy it switched off ({ships}), then set it to live but off",
     "live but off": "is live but off: the business owner decides when to switch it on, and History records who and when",
 }

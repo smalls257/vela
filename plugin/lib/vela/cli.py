@@ -408,19 +408,22 @@ def owner_freshness(root, timeout, checked_at):
     try:
         full, short = vaultgit.head(root)
     except vaultgit.GitUnavailable as exc:
-        return freshness.Report("owner", freshness.UNKNOWN, checked_at, f"I cannot read this clone's commits yet: {exc}.")
+        return freshness.Report("owner", freshness.UNKNOWN, checked_at, f"I cannot read this clone's commits yet: {exc}.",
+                                lead=freshness.NO_HISTORY)
     local = {"commit": short, "date": vaultgit.commit_date(root, "HEAD")}
     uncommitted = len(vaultgit.uncommitted(root))
     branch = vaultgit.current_branch(root)
     if not vaultgit.has_origin(root):
-        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this vault isn't linked to a shared repository (it has no remote called origin), so there is nothing to compare with", checked_at, branch)
+        return freshness.owner_report(local, None, 0, 0, uncommitted, "", "this vault isn't linked to a shared repository (it has no remote called origin), so there is nothing to compare with", checked_at, branch,
+                                      problem_lead=freshness.NOT_SHARED)
     fetch_error = vaultgit.fetch(root, timeout)
     shared = freshness.SHARED
     if not vaultgit.has_commit(root, shared):
         problem = (f"I could not reach the shared copy (origin) and have never seen its main, so I can't tell whether this "
                    f"branch is behind the shared plan ({fetch_error})" if fetch_error else
                    "the shared copy (origin) has no main branch yet, so there is nothing to compare with")
-        return freshness.owner_report(local, None, 0, 0, uncommitted, "", problem, checked_at, branch)
+        return freshness.owner_report(local, None, 0, 0, uncommitted, "", problem, checked_at, branch,
+                                      problem_lead=freshness.NEVER_SEEN if fetch_error else freshness.NOTHING_SHARED)
     behind, ahead = vaultgit.behind_ahead(root, shared)
     main_behind = vaultgit.behind_ahead(root, shared, "refs/heads/main")[0] if vaultgit.has_commit(root, "refs/heads/main") else None
     latest = {"commit": vaultgit.head_short(root, shared), "date": vaultgit.commit_date(root, shared)}
@@ -432,7 +435,9 @@ def reader_freshness(root, checked_at):
     try:
         workspace = copies.read_workspace(root)
     except copies.SourceUnreadable as exc:
-        return freshness.Report("reader", freshness.UNKNOWN, checked_at, f"{exc}")
+        return freshness.Report("reader", freshness.UNKNOWN, checked_at, f"{exc}",
+                                lead="I can't read the note of where this copy came from, so I can't tell whether a "
+                                     "newer one is out.")
     stamp, unreachable, unreadable = None, "", ""
     try:
         stamp = copies.read_source_stamp(workspace.get("source_path") or "")
@@ -487,6 +492,11 @@ def cmd_freshness(args, out):
     report = freshness_report(root, found, args.timeout, today)
     if args.json:
         print(json.dumps(report.as_dict(), indent=2), file=out)
+    elif getattr(args, "for_lead", False):  # through say, so the leak check holds this line too
+        behind = report.exit_code() == freshness.EXIT_BEHIND
+        result = say.Result("freshness", exit=report.exit_code(), answer=report.lead,
+                            needs_lead=[{"ask": "bring in", "plain": report.lead}] if behind else [])
+        return commands.emit(result, args, out)
     else:
         print(f"vela freshness: {report.message}", file=out)
     return report.exit_code()
@@ -1054,7 +1064,7 @@ def cmd_check(args, out):
     errors = sum(1 for f in findings if f.is_error)
     warnings = len(findings) - errors
     if getattr(args, "for_lead", False):
-        return check_for_lead(vault, findings, errors, out)
+        return check_for_lead(vault, findings, errors, out, more=getattr(args, "more", False))
     elapsed = time.perf_counter() - started
     print(f"vela check: {errors} errors, {warnings} warnings in {len(vault.pages)} pages, judged as of {today} ({origin}). "
           f"Took {elapsed:.2f} s." + (f" {GATE_WORDS[args.gate]}" if args.gate else "")
@@ -1071,17 +1081,27 @@ def cmd_check(args, out):
     return 1 if errors else 0
 
 
-def check_for_lead(vault, findings, errors, out):
-    """`check --for-lead`: each finding as the lead would hear it, by page title and with no code, ID or fix line. The
-    fix lines are for the model; the lead hears what is wrong. Every line goes through `say`, which raises on a leak."""
+def check_for_lead(vault, findings, errors, out, more=False):
+    """`check --for-lead`: the count first, then each finding as the lead would hear it, what must be fixed before what
+    is worth a look, by page title and with no code, ID or fix line. The fix lines are for the model; the lead hears
+    what is wrong. `say` keeps it to about four and raises on a leak."""
     resolver = say.Resolver(vault)
-    lines = [say.Line("", plain=check_lead_header(errors, len(findings) - errors, len(vault.pages)))]
-    for finding in findings:
+    lines = []
+    for finding in sorted(findings, key=lambda f: not f.is_error):
         page = vault.page(pathlib.PurePosixPath(finding.path).stem)
         where = resolver.page_title(page.name) if page is not None else None
-        lines.append(say.Line(f"{where or finding.path}: {finding.message}"))
-    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines)
-    return commands.emit(result, argparse.Namespace(for_lead=True), out, resolver)
+        lines.append(say.Line(f"{where or finding.path}: {finding.message}",
+                              plain=f"{where or file_words(finding.path)}: {finding.message}"))
+    result = say.Result("check --for-lead", exit=1 if errors else 0, lines=lines,
+                        answer=check_lead_header(errors, len(findings) - errors, len(vault.pages)))
+    return commands.emit(result, argparse.Namespace(for_lead=True, more=more), out, resolver)
+
+
+def file_words(path):
+    """A file that is not a page, said the way the lead knows it, never by its path."""
+    if path == ".vela.yaml":
+        return "The plan's settings"
+    return path if say.leak_in(path) is None else "A file in the plan"
 
 
 def check_lead_header(errors, warnings, pages):
@@ -1240,8 +1260,17 @@ def cmd_check_slice(args, out):
         written = flowstore.write_store(root, record.dump_store(report.store))
         if written:
             report.warnings.append(written)
-        print(report.format("--all" if args.all else "--changed"), file=out)
-        return report.exit_code
+        text = report.format("--all" if args.all else "--changed")
+        if say.mode_of(args) == "default":
+            print(text, file=out)
+            return report.exit_code
+        from vela.flowcheck import changed
+        answer, items = changed.lead_summary(report, lambda line: slice_name(catalog, line.key, line.label))
+        result = say.Result("check-slice", exit=report.exit_code, answer=answer,
+                            lines=[say.Line(text, plain="")] + [say.Line("", plain=i) for i in items],
+                            data={"slices": [{"slice": line.key, "status": line.result.status, "reused": line.reused}
+                                             for line in report.lines]})
+        return commands.emit(result, args, out, say.Resolver(vault))
     try:
         prepared = flowcheck.prepare(catalog, args.slice, today, args.journeys)
     except flowcheck.SliceNotFound as exc:
@@ -1252,10 +1281,27 @@ def cmd_check_slice(args, out):
         result, explored, record.fingerprint(prepared, args.max_states, args.max_seconds, version), today,
         (args.max_states, args.max_seconds))
     warnings.append(flowstore.write_store(root, record.dump_store(store)))
+    code = 0 if result.status == "passes" else 1
+    if say.mode_of(args) != "default":
+        name = slice_name(catalog, recorded_key(catalog, args.slice, prepared), result.name)
+        lead = say.Result("check-slice", exit=code, answer=result.lead_line(name),
+                          lines=[say.Line(result.format(), plain="")]
+                          + [say.Line(f"Warning: {w}", plain="") for w in filter(None, warnings)],
+                          data={"slice": result.name, "status": result.status})
+        return commands.emit(lead, args, out, say.Resolver(vault))
     print(result.format(), file=out)
     for warning in filter(None, warnings):
         print(f"Warning: {warning}", file=out)
-    return 0 if result.status == "passes" else 1
+    return code
+
+
+def slice_name(catalog, key, label):
+    """A slice's own name (its label without the ID), or a flow's ID for the resolver to say by name."""
+    found = next((s for s in catalog.slices if s.key == key), None)
+    name = getattr(found, "name", "") if found is not None else ""
+    if name:
+        return name
+    return re.sub(r"^[A-Z]+-\d+\s+", "", label) or label
 
 
 def recorded_key(catalog, target, prepared):
@@ -1990,6 +2036,14 @@ def recorded_standings(root, vault, keys, today):
 
 
 def handoff_verify(root, app_id, out):
+    result, _ = handoff_verify_result(root, app_id)
+    print("\n".join(line.text for line in result.lines), file=out)
+    return result.exit
+
+
+def handoff_verify_result(root, app_id):
+    """(say.Result, vault) for `handoff verify`: the default lines as they always were, and what the lead hears: the
+    answer (since when, how much changed), then each change by name, with no page paths and no IDs."""
     vault = load_vault(root)
     app = handoff_app(vault, app_id)
     path = root / schema.HANDOFF_DIR / f"{app_id}.md"
@@ -2005,18 +2059,50 @@ def handoff_verify(root, app_id, out):
     diff = handoff.verify(accepted, handoff.handoff_list(vault, app), vault)
     commit = facts.get('Commit', 'an unrecorded commit')
     rough = " (that commit had changes not yet committed, so the comparison may be rough)" if "uncommitted" in commit else ""
-    print(f"vela handoff verify {app_id}: since {vault.name_of(app_id)} was handed off on {facts.get('Written', 'an unrecorded date')} "
-          f"at {commit.split(' with ')[0]}, {plural_things(len(diff.changed))} changed, {len(diff.added)} added and "
-          f"{len(diff.removed)} removed{rough}.", file=out)
+    written = facts.get('Written', 'an unrecorded date')
+    name = vault.name_of(app_id)
+    lines = [say.Line(f"vela handoff verify {app_id}: since {name} was handed off on {written} "
+                      f"at {commit.split(' with ')[0]}, {plural_things(len(diff.changed))} changed, {len(diff.added)} added "
+                      f"and {len(diff.removed)} removed{rough}.", plain="")]
     for old, new in diff.changed:
-        print(handoff.describe(old, new, new.id in diff.left, vault.name_of(new.id)), file=out)
+        lines.append(say.Line(handoff.describe(old, new, new.id in diff.left, vault.name_of(new.id)),
+                              plain=lead_change(old, new, new.id in diff.left, vault.name_of(new.id))))
     for entry in diff.added:
-        print(f"added: {handoff.KIND_WORDS.get(entry.kind, entry.kind)} {vault.named(entry.id)}, on {entry.page}, "
-              f"{entry.state or ('not planned yet' if entry.kind == 'slice' else 'no state yet')}", file=out)
+        kind = handoff.KIND_WORDS.get(entry.kind, entry.kind)
+        lines.append(say.Line(f"added: {kind} {vault.named(entry.id)}, on {entry.page}, "
+                              f"{entry.state or ('not planned yet' if entry.kind == 'slice' else 'no state yet')}",
+                              plain=f"Added: the {kind} {vault.name_of(entry.id)}."))
     for entry in diff.removed:
-        print(f"removed: {handoff.KIND_WORDS.get(entry.kind, entry.kind)} {entry.id}, was on {entry.page}, "
-              f"{entry.state or 'no state'}", file=out)
-    return 1 if diff.breaks_acceptance else 0
+        kind = handoff.KIND_WORDS.get(entry.kind, entry.kind)
+        lines.append(say.Line(f"removed: {kind} {entry.id}, was on {entry.page}, {entry.state or 'no state'}",
+                              plain=f"Removed: a {kind} that was on the handoff list."))
+    total = len(diff.changed) + len(diff.added) + len(diff.removed)
+    when = say.date_words(written) if written[:4].isdigit() else "a date nobody wrote down"
+    answer = (f"Nothing has changed on {name} since its team accepted it on {when}." if not total else
+              f"Since {name}'s team accepted it on {when}, {say.count_words(total)} "
+              f"thing{'s have' if total != 1 else ' has'} changed"
+              + (", so they need to agree to the changes before the handoff is replaced." if diff.breaks_acceptance
+                 else "."))
+    return say.Result("handoff verify", exit=1 if diff.breaks_acceptance else 0, lines=lines, answer=answer,
+                      data={"app": app_id, "changed": len(diff.changed), "added": len(diff.added),
+                            "removed": len(diff.removed), "breaks_acceptance": diff.breaks_acceptance}), vault
+
+
+def lead_change(old, new, left, name):
+    """One changed item as the lead hears it: by name, its state in words, never the page's path."""
+    from vela import plainwords
+    said = []
+    if old.state != new.state:
+        before = plainwords.STATE_WORDS.get(old.state, old.state) if old.state else "no state"
+        after = plainwords.STATE_WORDS.get(new.state, new.state) if new.state else "no state"
+        said.append(f"went from {before} to {after}")
+    if old.page != new.page:
+        said.append("moved to another page")
+    if old.hash != new.hash:
+        said.append("its wording changed")
+    if left:
+        said.append("is no longer on this app's handoff list")
+    return f"{name}: {say.names_said(said) or 'changed'}."
 
 
 def plural_things(n):
@@ -2536,6 +2622,8 @@ NEXT_MODE_WORDS = {"probe": "ask about", "discover": "find sources for", "bounda
 
 
 def cmd_next(args, out):
+    if getattr(args, "for_lead", False) or getattr(args, "json", False):
+        return next_through_say(args, out)
     root = pathlib.Path(args.vault).resolve()
     today, origin = parse_today(args.today)
     vault = load_vault(root)
@@ -2568,6 +2656,23 @@ def cmd_next(args, out):
     for line in lines:
         print(line, file=out)
     return 0
+
+
+_AS_OF = re.compile(r"\s*As of \S+ \([^)]*\)\.")
+
+
+def next_through_say(args, out):
+    """`vela next --for-lead|--json`: the same lines, the first as the answer ("Next I'd suggest this: ..."), the rest
+    as "Also: ...", with the "As of <date> (<origin>)" tail kept for the model only."""
+    printed = io.StringIO()
+    code = cmd_next(argparse.Namespace(vault=args.vault, today=args.today), printed)
+    found = [line[len("vela next: "):] if line.startswith("vela next: ") else line.strip()
+             for line in printed.getvalue().splitlines() if line.strip()]
+    said = [_AS_OF.sub("", line).strip() for line in found]
+    result = say.Result("next", exit=code, answer=f"Next I'd suggest this: {said[0]}" if said else "",
+                        lines=[say.Line(f"vela next: {line}", plain=f"Also: {words}" if n else "")
+                               for n, (line, words) in enumerate(zip(found, said))], data={"next": found})
+    return commands.emit(result, args, out, say.Resolver(load_vault(pathlib.Path(args.vault).resolve())))
 
 
 def find_plan(root):
@@ -2663,6 +2768,7 @@ def build_parser():
     slc.add_argument("--max-states", type=int, default=200_000, help="how many situations the checker may try before it stops; "
                                                                       "stopping early means 'not fully checked' (default 200,000)")
     slc.add_argument("--max-seconds", type=float, default=10.0, help="how long the checker may run, in seconds (default 10)")
+    say.add_output_flags(slc)
     slc.set_defaults(func=cmd_check_slice)
     dia = sub.add_parser("check-diagrams", help="check that every mermaid diagram on the vault's pages and under docs/ "
                                                 "parses with the pinned mermaid (E604), or only the files named")
@@ -2703,8 +2809,8 @@ def build_parser():
                                                 "origin/main; reports, never updates. Exits 3 when behind (bring it in "
                                                 "first), 0 otherwise, an unreachable shared copy said as such")
     fresh.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
-    fresh.add_argument("--json", action="store_true", help="the answer as JSON")
     fresh.add_argument("--today", help="the date to stamp the check with, YYYY-MM-DD (default: system date)")
+    say.add_output_flags(fresh)
     fresh.add_argument("--timeout", type=int, default=vaultgit.FETCH_TIMEOUT, help="seconds an owner's git fetch may take (default 8)")
     fresh.set_defaults(func=cmd_freshness)
     opn = sub.add_parser("open", help="make a private reader workspace from a published folder or zip; the source is never written")
@@ -2766,6 +2872,7 @@ def build_parser():
     nxt = sub.add_parser("next", help="the single best next step: an app and a mode, with the reason")
     nxt.add_argument("--vault", default=".", help="vault root (default: current directory)")
     nxt.add_argument("--today", help="date to judge overdue unknowns by, YYYY-MM-DD (default: system date)")
+    say.add_output_flags(nxt)
     nxt.set_defaults(func=cmd_next)
     cap = sub.add_parser("capture", help="how much the plan records: business areas, who sends each flow step, releases, requirements and who to ask")
     cap.add_argument("--vault", default=".", help="vault root (default: current directory)")
