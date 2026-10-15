@@ -19,7 +19,6 @@ If one is missing, skip the ADR and keep the reasoning in the design doc. An ADR
 
 **Status:** proposed | accepted | superseded by ADR-MMMM
 **Date:** <ISO date>
-**Slug:** <slug>
 
 ## Context
 <What forced this decision? Constraints in play.>

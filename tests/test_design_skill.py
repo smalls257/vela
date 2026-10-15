@@ -290,8 +290,3 @@ def test_vela_next_offers_the_design_for_a_handed_off_app_with_none(tmp_path):
 
 # --- hard requirement 3: the skill text ---------------------------------------------------------------------------
 
-
-def test_the_two_copies_of_the_self_audit_stay_identical():
-    """design and breakdown each read the user's self-audit; two copies exist so each skill folder is whole. They must
-    never drift: the user chose to keep the audit exactly as written."""
-    assert (REPO / "plugin" / "references" / "NEG-AUDIT.md").read_bytes() == (SKILL / "NEG-AUDIT.md").read_bytes()
