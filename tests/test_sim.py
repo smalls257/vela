@@ -909,6 +909,18 @@ def test_the_lead_ends_a_finished_session_and_never_starts_another_mode_or_inven
     assert "news included, are everything you know" in rules
 
 
+def test_the_lead_keeps_going_on_an_offer_to_close_while_the_sessions_goal_has_more():
+    """S1 of the 2026-10-14 confirm run: the dump's T16 ended "Do you want to keep going, or shall I close this out?",
+    as START.md tells the model to ask at about two thirds, and the old rule 9 read that as a request to close: the
+    dump ended at 8 turns and 32 fewer captures than the baseline's 16. An offer ends nothing; a done session does."""
+    rules = sim.persona_prompt(coastal())
+    nine = rules[rules.index("\n9. "):rules.index("\n10. ")]
+    assert "An offer is not an ending" in nine and "say keep going" in nine
+    assert "goal is what its first message asked for" in nine and "that goal has been worked through" in nine
+    assert "after doing this session's work, it asks you to close the session" in nine
+    assert "Stay in this session's kind of work" in rules, "the no-mode-hopping rule stays"
+
+
 def test_a_lead_turn_that_starts_another_mode_or_invents_a_pr_is_flagged(tmp_path):
     t = sim.Transcript(tmp_path / "t.jsonl")
     t.add(session=19, mode="grill", speaker="lead", text="/vela:grill the offline rule", turn=470, scripted=True)
