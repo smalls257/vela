@@ -634,7 +634,7 @@ def spoken_run(tmp_path, turns, persona_data=None, decisions=()):
     import types
     entries = [{"turn": n, "speaker": who, "text": text, "session": 1} for n, (who, text) in enumerate(turns, 1)]
     for name in ("vault", "snap", "run"):
-        (tmp_path / name).mkdir(exist_ok=True)
+        (tmp_path / name).mkdir(parents=True, exist_ok=True)
     return types.SimpleNamespace(transcript=types.SimpleNamespace(spoken=lambda: entries), vault=tmp_path / "vault",
                                  snapshot=tmp_path / "snap", dir=tmp_path / "run", persona=persona_data or {},
                                  decisions=list(decisions))
@@ -710,3 +710,15 @@ def test_failures_reads_a_probe_folder_and_seals_a_holdout(tmp_path):
         assert done.returncode == 0, done.stderr
         assert "- FAIL unsure-owner-asked: times the lead was unsure" in done.stdout
         assert ("Sealed:" in done.stdout) is sealed and ("## What went wrong, by behavior" in done.stdout) is not sealed
+
+
+def test_a_conflict_said_in_other_words_counts_by_its_holder_and_a_disagreement_cue(tmp_path):
+    data = {"conflicts": [{"id": "C1", "category": "stakeholder-conflict", "who": "Finance", "position": "x",
+                           "keywords": ["weekly report"]}]}
+    run = spoken_run(tmp_path, [("assistant", "Finance wants numbers every Monday while Ops rules it out.")], data)
+    (run.vault / "11-unknowns-and-risks.md").write_text("### UNK-001 Who breaks the tie\n\nFinance and Ops disagree.\n",
+                                                        encoding="utf-8")
+    passed, summary, _ = probe.CHECKS["conflicts-surfaced"][0](run, {"at_least": 1.0})
+    assert passed, summary
+    quiet = spoken_run(tmp_path / "q", [("assistant", "Finance sent the numbers.")], data)
+    assert not probe.CHECKS["conflicts-surfaced"][0](quiet, {"at_least": 1.0})[0]

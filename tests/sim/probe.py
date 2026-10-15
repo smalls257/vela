@@ -882,18 +882,33 @@ def parties(who):
     return [n for n in dict.fromkeys(names) if len(n) >= 2]
 
 
+# A stakeholder disagreement is said in more ways than a source mismatch: "wants X while Y rules it out".
+SIDE_CUE = re.compile(r"\bwhile\b|\bwhereas\b|\bversus\b|\bvs\b|\bagainst\b|\btension\b|\bat odds\b|\bopposite"
+                      r"|\bpull(?:s|ing)? (?:in )?different|\bdifferent things\b|\brules? (?:it |that |this )?out\b"
+                      r"|\bwon'?t (?:accept|allow|sign)|\bblocks?\b|\bobject|\bbreaks? the tie\b|\btie-?break")
+
+
+def side_cue(text):
+    return has_cue(text) or bool(SIDE_CUE.search(sim.normalize(text)))
+
+
 def conflict_parts(item, spoken, final_spots, start_spots):
-    """Per stakeholder position: named (an assistant sentence holding its keyword is a question or carries a
-    disagreement cue), side (that same turn names who holds it) and recorded (the keyword lands in a new unknown,
-    risk, [unknown] or [worry] capture)."""
+    """Per stakeholder position: named (an assistant sentence or the list line it sits in carries a disagreement
+    cue and names the position, by its keyword or by who holds it), side (such a line names who holds it) and
+    recorded (a new unknown, risk, [unknown] or [worry] capture holds the position's keyword, or names who holds it
+    with a disagreement cue). People paraphrase a position more than they repeat it, so the holder counts too."""
+    who = parties(item.get("who"))
     named = side = None
     for entry in (e for e in spoken if e["speaker"] == "assistant"):
         for sentence, container, _ in units(entry["text"]):
-            if sim.mentions(sentence, item["keywords"]) and (is_question(sentence) or has_cue(container)):
+            keyword, holder = sim.mentions(container, item["keywords"]), sim.mentions(container, who)
+            if (keyword or holder) and side_cue(container):
                 named = named or entry["turn"]
-                if side is None and sim.mentions(entry["text"], parties(item.get("who"))):
+                if holder and side is None:
                     side = entry["turn"]
-    recorded = bool(vault_flagged(item["keywords"], final_spots, start_spots))
+    recorded = bool(vault_flagged(item["keywords"], final_spots, start_spots)) or any(
+        sim.mentions(text, who) and side_cue(text) and text != start_spots.get(key)
+        for key, text in final_spots.items())
     return {"named": named, "side": side, "recorded": recorded}
 
 
