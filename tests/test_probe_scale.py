@@ -203,19 +203,56 @@ def merged(*parts):
     return out
 
 
+def acc(values):
+    return scale.summarize(records(values))
+
+
+def voice_rows(values):
+    return scale.summarize(records(values, "voice: codes and IDs per turn", "lower"))
+
+
+STEADY, GAIN, LOSS = ([2, 2, 3], [2, 3, 2]), ([1, 2, 1], [5, 6, 5]), ([5, 6, 5], [1, 2, 1])
+
+
+def keep_args(tmp_path, moves, codes=None, skip=()):
+    """Probe_keep's arguments with one before and after per persona the scaled cases map: `moves` gives a persona's
+    (before, after) accuracy values (steady unless named), `codes` its (before, after) codes per turn (0 unless named)."""
+    args = []
+    for name, split in SPLITS.items():
+        if name in skip:
+            continue
+        before, after = moves.get(name, STEADY)
+        code_b, code_a = (codes or {}).get(name, ([0, 0, 0], [0, 0, 0]))
+        args += [f"--{split}-before", summary_file(tmp_path, f"{name}-b", name, merged(acc(before), voice_rows(code_b))),
+                 f"--{split}-after", summary_file(tmp_path, f"{name}-a", name, merged(acc(after), voice_rows(code_a)))]
+    return args + ["--skip-tests"]
+
+
 def test_the_keep_rule_reverts_a_gain_that_hurts_the_voice(tmp_path):
-    acc = lambda v: scale.summarize(records(v))  # noqa: E731
-    voice_rows = lambda v: scale.summarize(records(v, "voice: codes and IDs per turn", "lower"))  # noqa: E731
-    args = ["--dev-before", summary_file(tmp_path, "db", "heron-claims", merged(acc([1, 2, 1]), voice_rows([0, 0, 0]))),
-            "--dev-after", summary_file(tmp_path, "da", "heron-claims", merged(acc([5, 6, 5]), voice_rows([2, 3, 2]))),
-            "--holdout-before", summary_file(tmp_path, "hb", "holdout-nursing", merged(acc([2, 2, 3]), voice_rows([0, 0, 0]))),
-            "--holdout-after", summary_file(tmp_path, "ha", "holdout-nursing", merged(acc([2, 3, 2]), voice_rows([0, 0, 0]))),
-            "--skip-tests"]
-    assert keep.main(args) == 1
-    args[3] = summary_file(tmp_path, "da2", "heron-claims", merged(acc([5, 6, 5]), voice_rows([0, 0, 0])))
-    assert keep.main(args) == 0
+    both = {"heron-claims": GAIN, "civic-permits": GAIN}
+    assert keep.main(keep_args(tmp_path, both, codes={"civic-permits": ([0, 0, 0], [2, 3, 2])})) == 1
+    assert keep.main(keep_args(tmp_path, both)) == 0
+    args = keep_args(tmp_path, both)
     args[1] = summary_file(tmp_path, "or", "heron-claims", merged(acc([1, 2, 1])), oracle=True)
     assert keep.main(args) == 2, "a ceiling run is never a before or an after"
+
+
+def test_the_keep_rule_needs_both_dev_personas_to_gain_and_neither_holdout_to_fall(tmp_path, capsys):
+    """A change that lifts one dev brief and not the other learned that brief; a holdout that falls means the same."""
+    assert keep.main(keep_args(tmp_path, {"heron-claims": GAIN})) == 1
+    assert "did not improve beyond the spread on civic-permits" in capsys.readouterr().out
+    assert keep.main(keep_args(tmp_path, {"heron-claims": GAIN, "civic-permits": GAIN, "holdout-freight": LOSS})) == 1
+    assert "holdout accuracy fell beyond the spread on holdout-freight" in capsys.readouterr().out
+
+
+def test_the_keep_rule_refuses_a_persona_the_case_maps_but_was_not_given(tmp_path, capsys):
+    """A missing holdout would read as "didn't get worse", so it is a tool failure, never skipped."""
+    both = {"heron-claims": GAIN, "civic-permits": GAIN}
+    assert keep.main(keep_args(tmp_path, both, skip={"holdout-freight"})) == 2
+    assert "missing: holdout-freight" in capsys.readouterr().err
+    assert keep.main(keep_args(tmp_path, both, skip={"civic-permits"})) == 2
+    args = keep_args(tmp_path, both)
+    assert keep.main(args[:-1] + args[-5:]) == 2, "a persona given twice"
 
 
 def test_the_keep_rule_refuses_a_holdout_in_the_dev_pair(tmp_path):
@@ -280,7 +317,7 @@ def test_five_runs_by_default(tmp_path):
 SCALE = SIM / "scale"
 SCALE_SNAPSHOTS = sorted(p for p in (SCALE / "snapshots").glob("*/*") if p.is_dir())
 SCALE_CASES = sorted((SCALE / "cases").glob("*.yaml"))
-SPLITS = {"heron-claims": "dev", "holdout-nursing": "holdout"}
+SPLITS = {"heron-claims": "dev", "civic-permits": "dev", "holdout-nursing": "holdout", "holdout-freight": "holdout"}
 
 
 def persona(name):
@@ -378,15 +415,33 @@ def brief_strings(data):
     return strings
 
 
+HOLDOUTS = [name for name, split in SPLITS.items() if split == "holdout"]
+DEVS = [name for name, split in SPLITS.items() if split == "dev"]
+
+
+@pytest.mark.parametrize("holdout", HOLDOUTS)
 @pytest.mark.parametrize("case", ["scale-gaps", "scale-conflicts", "scale-unsure", "scale-decisions"])
-def test_every_scale_case_runs_on_the_stub_and_the_holdout_prints_counts_only(tmp_path, case):
-    data = persona("holdout-nursing")
-    code, out, err, folder = run_probe(tmp_path, case, "holdout-nursing", "--runs", "2")
+def test_every_scale_case_runs_on_the_stub_and_the_holdout_prints_counts_only(tmp_path, case, holdout):
+    data = persona(holdout)
+    code, out, err, folder = run_probe(tmp_path, case, holdout, "--runs", "2")
     assert code in (0, 1), "a tool failure"
     flat = (out + err).replace(str(tmp_path.resolve()), "").replace(str(tmp_path), "")
     assert sum(1 for s in brief_strings(data) if sim.mentions(flat, [s])) == 0
     assert ", blind." in out and "summary over 2 run(s)" in out and "voice: codes and IDs per turn" in out
     summary = json.loads(next(folder.glob("*-summary.json")).read_text())
     assert summary["blind"] is True and len(summary["measures"]) >= 6
-    dev_code, _, dev_err, _ = run_probe(tmp_path / "dev", case, "heron-claims", "--runs", "1")
-    assert dev_code in (0, 1), dev_err
+    code, out, err, folder = run_probe(tmp_path / "oracle", case, holdout, "--runs", "1", "--oracle")
+    assert code in (0, 1), "a tool failure on the ceiling run"
+    flat = (out + err).replace(str(tmp_path.resolve()), "").replace(str(tmp_path), "")
+    assert sum(1 for s in brief_strings(data) if sim.mentions(flat, [s])) == 0, "the ceiling run stays sealed"
+    assert json.loads(next(folder.glob("*-oracle-summary.json")).read_text())["blind"] is True
+
+
+@pytest.mark.parametrize("dev", DEVS)
+@pytest.mark.parametrize("case", ["scale-gaps", "scale-conflicts", "scale-unsure", "scale-decisions"])
+def test_every_scale_case_and_its_ceiling_run_on_the_stub_for_each_dev_persona(tmp_path, case, dev):
+    code, _, err, _ = run_probe(tmp_path, case, dev, "--runs", "1")
+    assert code in (0, 1), err
+    code, out, err, folder = run_probe(tmp_path / "oracle", case, dev, "--runs", "1", "--oracle")
+    assert code in (0, 1), err
+    assert "ORACLE (ceiling run)" in out and next(folder.glob("*-oracle-summary.json"), None) is not None

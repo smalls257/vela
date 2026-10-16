@@ -301,12 +301,15 @@ def test_every_persona_and_script_validates():
 
 
 def test_every_persona_says_whether_it_is_dev_or_holdout():
-    """The seal (seal.py): heron-desk and the personas its runs bring in are dev; the rest are holdout."""
+    """The seal (seal.py): heron-desk and the personas its runs bring in are dev, and so is civic-permits, the scaled
+    probes' second dev persona; the rest are holdout."""
     splits = {p.stem: sim.SEAL.split_of(yaml.safe_load(p.read_text(encoding="utf-8")))
               for p in sorted((SIM / "personas").glob("*.yaml"))}
     assert all(split in ("dev", "holdout") for split in splits.values()), splits
-    assert {name for name, split in splits.items() if split == "dev"} == {n for n in splits if n.startswith("heron-")}
-    assert {"coastal-merger", "holdout-hospitals", "trading-coach"} <= {n for n, s in splits.items() if s == "holdout"}
+    assert {name for name, split in splits.items() if split == "dev"} == \
+        {n for n in splits if n.startswith("heron-")} | {"civic-permits"}
+    assert {"coastal-merger", "holdout-hospitals", "trading-coach", "holdout-nursing", "holdout-freight"} <= \
+        {n for n, s in splits.items() if s == "holdout"}
 
 
 def test_the_coastal_merger_brief_is_big_and_messy():

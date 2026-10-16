@@ -7,6 +7,8 @@ snapshot_root: scale/snapshots
 snapshot:
   heron-claims: empty
   holdout-nursing: empty
+  civic-permits: empty
+  holdout-freight: empty
 opening: "/vela:discover {topics[discover_1]}"
 cap: 14
 oracle: >-

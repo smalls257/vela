@@ -1,0 +1,371 @@
+# A holdout persona of the scaled probes (built 2026-10-16): the lead replacing paper delivery receipts with a driver
+# app at Annick Freight Lines. Sealed: scores only. Never read it while iterating on the skills, and never put any of
+# its names, keywords or brief text into plugin/** (tests/test_sim_seal.py scans for them).
+#
+# Everything here is made up: Annick Freight Lines, DropSign, Corvane Mobility, Tessaro, Brightwell Foods and every
+# named person are fictional. FMCSA, EDI 214, Quebec's Law 25 and the Charter of the French Language are real, and the
+# rules the gaps rest on are real, simplified. Normal difficulty, the same shape as heron-claims: 8 gaps, 8 positions,
+# 6 loose ends, 11 decisions with 3 blocked.
+split: holdout  # sealed: scores only; see tests/sim/README.md, "Iterating without teaching to the test"
+name: Corinne Halloway
+role: solution lead for DropSign, the driver app replacing paper delivery receipts
+org: Annick Freight Lines, a regional trucking carrier with 1,100 drivers and 14 depots in the US Midwest, Ontario and Quebec
+handle: "@sim-lead"
+style: >-
+  Practical and direct, with a dispatcher's habit of short answers. Answers in two or three sentences. Says "honestly
+  not sure" when they don't know, and never guesses. Changes their mind once when given a good reason, and says so
+  plainly. Never writes lists unless asked to confirm one.
+opening: >-
+  Our COO wants paper delivery receipts gone by next November: every drop confirmed in one app, DropSign, and every
+  customer invoiced the same day. I've been made solution lead. I have his memo, Dispatch's notes on how deliveries
+  work today, the vendor's proposal and a note from IT. Where do I start?
+
+topics:
+  discover_1: what the COO's memo, Dispatch's notes, the vendor's proposal and IT's note mean for Annick
+  discover_people: how a delivery should work at Annick, from the truck arriving to the customer's invoice
+  loose_ends: >-
+    the loose ends I already know about: who retrains the depot clerks, whether an app record holds up in a cargo
+    claim, whether the billing system takes the nightly delivery file, who supports drivers at 3am, what happens to
+    receipts still in transit on go-live day, and whether the account numbers match the dispatch system's
+  grill: the requirements for recording a delivery
+  # for the generic full-run scripts (scripts/default.yaml), which every persona must be able to play
+  discover_2: how DropSign would reach the dispatch system, the billing system and the customers' systems
+  shape_1: what the first release of DropSign covers and for whom
+  shape_2: how a delivery record becomes an invoice
+  grill_2: how a driver records a delivery that goes wrong
+  epics: the Dispatch team
+
+knows:
+  - id: K1
+    category: fact
+    keywords: ["DropSign", "invoiced the same day"]
+    fact: The COO's mandate is that every delivery is confirmed in DropSign from 1 November 2027 and every customer is invoiced the same day as the delivery.
+    owner: COO
+  - id: K2
+    category: fact
+    keywords: ["1,100 drivers", "14 depots"]
+    fact: Annick has about 1,100 drivers working out of 14 depots in Ohio, Michigan, Indiana, Ontario and Quebec.
+    owner: Director of Dispatch
+  - id: K3
+    category: fact
+    keywords: ["9 days", "nine days"]
+    fact: Today a customer is invoiced about 9 days after the delivery, once the paper receipt reaches the depot.
+    owner: Billing Manager
+  - id: K4
+    category: finance-liability
+    keywords: ["2.4 million", "budget holder"]
+    fact: The COO, Victor Annick, is the budget holder. The budget is 2.4 million dollars over three years.
+    owner: COO
+  - id: K5
+    category: unnamed-stakeholder
+    keywords: ["product owner", "Director of Dispatch"]
+    fact: The product owner is Odile Brannigan, Director of Dispatch (@dispatch). Her team runs deliveries today and will run DropSign.
+    owner: COO
+  - id: K6
+    category: legal-regulatory
+    keywords: ["security review", "customer data"]
+    fact: Any new system holding customer data needs the IT security review before it goes live.
+    owner: IT Security lead
+  - id: K7
+    category: third-party-contract
+    keywords: ["not signed", "Procurement expects"]
+    fact: The contract with Corvane Mobility is not signed. Procurement expects to sign in February.
+    owner: Procurement Manager
+  - id: K8
+    category: fact
+    keywords: ["company handheld", "every truck"]
+    fact: Every truck carries a company handheld that drivers use for their route and messages today.
+    owner: IT
+
+  # Stakeholder positions, heard only when their own subject comes up. They clash in pairs: K20/K21, K22/K23, K24/K25, K26/K27.
+  - id: K20
+    category: stakeholder-conflict
+    who: Billing Manager
+    keywords: ["automatically invoiced", "within the hour"]
+    fact: Only if you are asked how billing or invoicing would work, say that the Billing Manager wants every delivery automatically invoiced within the hour of the signature, with no one checking it first.
+    owner: Billing Manager
+  - id: K21
+    category: stakeholder-conflict
+    who: Key Accounts Director
+    keywords: ["one weekly invoice", "purchase order"]
+    fact: Only if you are asked about the customers, say that the Key Accounts Director says the biggest customers want one weekly invoice matched to their purchase order, never an invoice per delivery.
+    owner: Key Accounts Director
+  - id: K22
+    category: stakeholder-conflict
+    who: Safety Director
+    keywords: ["locked whenever", "no exceptions"]
+    fact: Only if you are asked about safety, audit or controls, say that the Safety Director wants the app locked whenever the truck is moving, with no exceptions.
+    owner: Safety Director
+  - id: K23
+    category: stakeholder-conflict
+    who: dispatch supervisors
+    keywords: ["added stops", "one tap"]
+    fact: Only if you are asked about the dispatchers or how drivers work day to day, say that the dispatch supervisors want drivers to accept added stops while on the road with one tap.
+    owner: Director of Dispatch
+  - id: K24
+    category: stakeholder-conflict
+    who: Procurement Manager
+    keywords: ["one contract", "single vendor"]
+    fact: Only if you are asked about purchasing or the vendor, say that the Procurement Manager wants a single vendor on one contract for every depot, in the US and in Canada.
+    owner: Procurement Manager
+  - id: K25
+    category: stakeholder-conflict
+    who: Quebec depot manager
+    keywords: ["Tessaro", "already pilots"]
+    fact: Only if you are asked about the depots in Canada or the staff in Quebec, say that the Quebec depot manager wants to keep Tessaro, the local app the depot already pilots, for the Quebec drivers.
+    owner: Quebec depot manager
+  - id: K26
+    category: stakeholder-conflict
+    who: CEO
+    keywords: ["company drivers first", "a year later"]
+    fact: Only if you are asked what the CEO, the board or senior leaders want, say that the CEO wants company drivers first and contracted drivers a year later, to keep the launch small.
+    owner: CEO
+  - id: K27
+    category: stakeholder-conflict
+    who: Settlements Manager
+    keywords: ["from day one", "waits on"]
+    fact: Only if you are asked how or when drivers get paid, say that the Settlements Manager wants the contracted drivers on the app from day one, because their weekly pay waits on the paper receipts.
+    owner: Settlements Manager
+
+  # The lead's known loose ends: open questions with no owner yet, for the unsure-owner probe.
+  - id: K40
+    category: unnamed-stakeholder
+    open_question: true
+    keywords: ["depot clerks", "retrains"]
+    fact: An open question you know of, with nobody to answer it yet, is who retrains the depot clerks whose job today is keying in paper receipts.
+  - id: K41
+    category: legal-regulatory
+    open_question: true
+    keywords: ["cargo claim", "holds up"]
+    fact: An open question you know of, with nobody to answer it yet, is whether an app record holds up as the delivery receipt when a customer files a cargo claim.
+  - id: K42
+    category: fact
+    open_question: true
+    keywords: ["billing system", "nightly delivery file"]
+    fact: An open question you know of, with nobody to answer it yet, is whether the billing system can load the nightly delivery file DropSign sends.
+  - id: K43
+    category: fact
+    open_question: true
+    keywords: ["3am", "supports drivers"]
+    fact: An open question you know of, with nobody to answer it yet, is who supports drivers when the app fails at 3am on a night route.
+  - id: K44
+    category: timeline
+    open_question: true
+    keywords: ["in transit", "go-live day"]
+    fact: An open question you know of, with nobody to answer it yet, is what happens to paper receipts still in transit to the depots on go-live day.
+  - id: K45
+    category: data-identity
+    open_question: true
+    keywords: ["account numbers", "dispatch system"]
+    fact: An open question you know of, with nobody to answer it yet, is whether the customer account numbers in the billing system match the dispatch system's.
+
+wrong:
+  - id: W1
+    category: timeline
+    keywords: ["16 weeks", "first depots"]
+    belief: All 14 depots can go live on 1 November 2027 on the same day.
+    truth: Implementation takes 16 weeks from signature and the contract is signed in February, so the first depots go live first and the rest follow.
+  - id: W2
+    category: finance-liability
+    keywords: ["per device", "mounts"]
+    belief: The price covers the in-cab mounts and the handhelds.
+    truth: The proposal prices the software per device per month; mounts and devices are the carrier's to buy.
+
+unaware:
+  - id: U1
+    category: legal-regulatory
+    keywords: ["English only", "Montreal"]
+    gap: DropSign is English only, and the 160 drivers at the Montreal depot work in French, which Quebec's Charter of the French Language requires of their work tools.
+    why: The app cannot be given to a Quebec workforce as it stands.
+  - id: U2
+    category: data-identity
+    keywords: ["Law 25", "Oregon", "privacy impact assessment"]
+    gap: DropSign keeps signatures, names and photos in Oregon, and Quebec's Law 25 requires a privacy impact assessment before personal information leaves Quebec.
+    why: Consignees' names and signatures are personal information, and the assessment has to come before go-live, not after.
+  - id: U3
+    category: legal-regulatory
+    keywords: ["geofence", "hold or reach"]
+    gap: DropSign opens its delivery form when the truck enters a 1-mile geofence, while it is still moving, and FMCSA rules forbid a driver to hold or reach for a phone while driving.
+    why: The app would invite the driver to break the federal hand-held ban on every approach.
+  - id: U4
+    category: third-party-contract
+    keywords: ["EDI 214", "EDI is not included"]
+    gap: The three largest customers' contracts require EDI 214 status messages and the signed receipt image within 24 hours, and EDI is not included in DropSign.
+    why: Same-day invoices mean nothing to the biggest accounts if their contracts are breached.
+  - id: U5
+    category: timeline
+    keywords: ["peak season", "40%"]
+    gap: Go-live on 1 November lands in the October to December peak season, with 40% of the year's volume.
+    why: Drivers would learn a new app during the weeks there is least slack.
+  - id: U6
+    category: cross-source-mismatch
+    keywords: ["Android 9", "Android 12"]
+    gap: DropSign needs Android 12 or later, and the company handhelds run Android 9 and cannot be upgraded.
+    why: Every truck needs a new device before the app can run, a cost nobody has budgeted.
+  - id: U7
+    category: unnamed-stakeholder
+    keywords: ["owner-operators", "contractor devices"]
+    gap: About 300 of the drivers are owner-operators on their own phones, and DropSign does not support contractor devices.
+    why: More than a quarter of deliveries cannot be confirmed in the app, and the owner-operators' contracts and their settlements team have to be part of the change.
+  - id: U8
+    category: finance-liability
+    keywords: ["detention", "lumper"]
+    gap: Drivers write detention and lumper charges on the paper receipt for Billing to add to the invoice, and DropSign's delivery form has no place for them.
+    why: An automatic same-day invoice would leave those charges off.
+
+conflicts: []
+
+decisions:
+  # Each is an item on the grill-ready snapshot. The first eight are ready to decide; the last three are held by an
+  # open unknown there. The lead's choice is the option the vault already marks as picked.
+  - id: D1
+    category: fact
+    item: CAP-001.FR1
+    keywords: ["signs on the screen", "signature"]
+    question: How does the customer confirm a delivery?
+    options: ["The person receiving it signs on the screen", "The driver types the receiver's name"]
+    choice: The person receiving it signs on the screen
+    reason: a signature is what a customer's dispute is settled on
+  - id: D2
+    category: fact
+    item: CAP-001.FR2
+    keywords: ["photo of the freight", "one photo"]
+    question: Does the driver take a photo at each delivery?
+    options: ["At least one photo of the freight as left", "Only when something is wrong"]
+    choice: At least one photo of the freight as left
+    reason: the photo settles most arguments about what arrived
+  - id: D3
+    category: fact
+    item: CAP-001.FR3
+    keywords: ["damaged freight", "damage"]
+    question: How does the driver record damaged freight?
+    options: ["Mark the damaged line with a photo and a note", "Phone dispatch to report it"]
+    choice: Mark the damaged line with a photo and a note
+    reason: a phone call leaves nothing on the record
+  - id: D4
+    category: fact
+    item: CAP-001.FR4
+    keywords: ["refused", "reason from a list"]
+    question: How does the driver record a refused delivery?
+    options: ["Pick a reason from a list", "Type the reason in free text"]
+    choice: Pick a reason from a list
+    reason: billing and the customer both need the same few reasons
+  - id: D5
+    category: fact
+    item: CAP-001.FR5
+    keywords: ["nobody to sign", "attempted"]
+    question: What happens when there is nobody to sign?
+    options: ["The driver records an attempted delivery with a photo and the time", "The driver leaves the freight and notes it later"]
+    choice: The driver records an attempted delivery with a photo and the time
+    reason: an attempted delivery is billable and needs proof
+  - id: D6
+    category: fact
+    item: CAP-001.FR6
+    keywords: ["copy by email", "customer copy"]
+    question: How does the customer get their copy?
+    options: ["A copy by email at once", "They look it up in the portal"]
+    choice: A copy by email at once
+    reason: the receiver signs for someone else, who never sees the portal
+  - id: D7
+    category: fact
+    item: CAP-001.FR7
+    keywords: ["no signal", "sends it later"]
+    question: What happens with no signal at the stop?
+    options: ["The app keeps the record and sends it later", "The driver waits for a signal"]
+    choice: The app keeps the record and sends it later
+    reason: rural stops often have no signal
+  - id: D8
+    category: fact
+    item: CAP-001.FR8
+    keywords: ["correct it within 24 hours", "logged correction"]
+    question: Can a delivery record be corrected?
+    options: ["Dispatch can correct it within 24 hours, with the reason logged", "Never, once it is sent"]
+    choice: Dispatch can correct it within 24 hours, with the reason logged
+    reason: drivers mistype, and a logged correction is better than a second record
+  - id: D9
+    category: finance-liability
+    item: CAP-001.FR9
+    blocked: true
+    keywords: ["extra charges", "at the stop"]
+    question: How are extra charges at the stop recorded?
+    options: ["The driver adds them on the delivery record", "Billing adds them from a phone call"]
+    choice: The driver adds them on the delivery record
+    reason: the driver is the only one who saw the wait
+    refuse_until: someone says how extra charges at a stop reach the invoice
+  - id: D10
+    category: legal-regulatory
+    item: CAP-001.FR10
+    blocked: true
+    keywords: ["language", "French and English"]
+    question: Which language is the app in?
+    options: ["French and English, the driver's choice", "English everywhere"]
+    choice: French and English, the driver's choice
+    reason: part of the workforce works in French
+    refuse_until: someone says what language the Quebec drivers' app must be in, and whether the vendor can provide it
+  - id: D11
+    category: legal-regulatory
+    item: CAP-001.FR11
+    blocked: true
+    keywords: ["form opens", "by itself on arrival"]
+    question: When does the delivery form open?
+    options: ["By itself on arrival at the stop", "When the driver opens it after parking"]
+    choice: By itself on arrival at the stop
+    reason: drivers forget to open it
+    refuse_until: someone checks what the driving rules allow while the truck is still moving
+
+docs:
+  - name: coo-memo.md
+    text: |
+      # DropSign: what I need
+
+      From Victor Annick, COO, to the solution lead. 30 September 2026.
+
+      We are replacing paper delivery receipts across Annick with DropSign, from Corvane Mobility. What I need from it:
+
+      - Every delivery confirmed in DropSign on the driver's company handheld: the receiver's signature, a photo of
+        the freight and the time. No more paper receipts.
+      - Every customer invoiced the same day as the delivery.
+      - All drivers at all 14 depots live on 1 November 2027.
+      - Budget: 2.4 million dollars over three years.
+
+      Odile Brannigan's team in Dispatch will run it. Talk to her about anything Dispatch does today.
+  - name: dispatch-notes.md
+    text: |
+      # How deliveries work today
+
+      Dispatch, September 2026.
+
+      - About 1,100 drivers: 800 company drivers and about 300 owner-operators, who are contractors on their own
+        phones, paid weekly by settlement.
+      - 14 depots: ten in Ohio, Michigan and Indiana, three in Ontario, and Montreal, with 160 drivers who work in
+        French.
+      - The receiver signs the paper delivery receipt. The driver hands it in at the depot, and Billing raises the
+        invoice once it arrives, about 9 days after the delivery.
+      - Drivers write detention and lumper charges on the paper receipt, and Billing adds them to the invoice.
+      - Our three largest customers, Brightwell Foods among them, require EDI 214 status messages and the signed
+        receipt image within 24 hours under their contracts.
+      - Peak season is October to December, about 40% of the year's volume.
+  - name: vendor-proposal.md
+    text: |
+      # DropSign for Annick Freight Lines
+
+      Corvane Mobility, proposal of 18 September 2026.
+
+      - Price: 14 dollars per device per month. Licensed per company device; contractor devices are not supported.
+      - Implementation: 16 weeks from contract signature.
+      - The app is English only. French is on our roadmap for 2028.
+      - Requires Android 12 or later.
+      - Hosting: all data, including signatures, names and photos, is held in our Oregon data centre.
+      - The delivery form opens by itself when the truck enters a 1-mile geofence around the stop.
+      - Receipt images are available in our customer portal. EDI is not included.
+      - Delivery records export to your billing system as a nightly file.
+  - name: it-note.md
+    text: |
+      # Note from IT on DropSign
+
+      From the IT field systems lead, 26 September 2026.
+
+      - The company handhelds were bought in 2019. They run Android 9 and cannot be upgraded.
+      - FMCSA rules forbid a driver to hold or reach for a phone while driving; handhelds sit in a fixed mount.
+      - Quebec's Law 25: personal information sent outside Quebec needs a privacy impact assessment first.
+      - Any new system holding customer data goes through the IT security review, about five weeks.

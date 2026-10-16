@@ -7,6 +7,8 @@ snapshot_root: scale/snapshots
 snapshot:
   heron-claims: empty
   holdout-nursing: empty
+  civic-permits: empty
+  holdout-freight: empty
 opening: "/vela:discover {topics[discover_people]}"
 # 24, not 14: the 2026-10-15 ceiling run hit a 14-turn cap on both personas, with discover's intake (naming the
 # initiative, ordering and labelling the sources, reading each group back) taking about 8 of them, so even the oracle
