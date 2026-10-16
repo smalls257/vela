@@ -1048,9 +1048,12 @@ UNSURE = re.compile(r"\b(?:not sure|unsure|no idea|don'?t know|do not know|could
 ASKS_OWNER_OR_DATE = re.compile(r"\b(?:who (?:would|might|else would) know|who (?:should|would|will|can|could)?\s*(?:own|owns|take|chase|answer|hold)|owner|"
                                 r"by when|what date|which date|due|deadline|ask-by|ask by|when (?:should|would|do|does|can))"
                                 r"\b[^?]{0,200}\?", re.I)
-PROPOSES_AND_ASKS = re.compile(r"\b(?:owner|own it|owns it|take it on|due|deadline|by when|ask-by|ask by|what date|"
-                               r"which date|by (?:mon|tues|wednes|thurs|fri)day|by the end of|i'?d (?:put|suggest|propose)|"
-                               r"i (?:suggest|propose)|i'?d ask|by \d{1,2}(?:st|nd|rd|th)? [a-z]+)\b[^?]{0,200}\?", re.I)
+# A turn that proposes who to ask or by when. The unsure-owner check wants the question within 200 characters of it,
+# as a reply to one unsure answer; the scaled check (probe_scale) lets one closing question confirm a batch.
+PROPOSAL_CUE = (r"\b(?:owner|own it|owns it|take it on|due|deadline|by when|ask-by|ask by|what date|"
+                r"which date|by (?:mon|tues|wednes|thurs|fri)day|by the end of|i'?d (?:put|suggest|propose)|"
+                r"i (?:suggest|propose)|i'?d ask|by \d{1,2}(?:st|nd|rd|th)? [a-z]+)\b")
+PROPOSES_AND_ASKS = re.compile(PROPOSAL_CUE + r"[^?]{0,200}\?", re.I)
 # Who is asked and by when. --owner counts too, except the lead's own handle: the lead owns what they chase.
 WRITES = re.compile(r"--(?P<flag>owner|ask|due|by|ask-by)[= ](?P<value>\"[^\"]*\"|'[^']*'|\S+)")
 

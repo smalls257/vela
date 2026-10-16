@@ -660,8 +660,8 @@ named by the case's `snapshot_root:`. `probe.py <case>` finds a case in `probes/
 | Case | Starts from | Opening | Cap | Measure (of N) |
 |---|---|---|---|---|
 | `scale-gaps` | `empty` | `/vela:discover {topics[discover_1]}` | 14 | gaps raised as an issue (a real question on the line, a flag cue, or a new unknown or risk) before the lead names them, of 8 |
-| `scale-conflicts` | `empty` | `/vela:discover {topics[discover_people]}` | 14 | stakeholder positions surfaced in full (disagreement named, holder named, recorded as open), of 8 |
-| `scale-unsure` | `empty`, with unsure-owner's news | `/vela:discover {topics[loose_ends]}` | 14 | the lead's loose ends named in a turn that proposes who or by when and asks, of 6; any owner or date written unconfirmed fails the run |
+| `scale-conflicts` | `empty` | `/vela:discover {topics[discover_people]}` | 24 | stakeholder positions surfaced in full (disagreement named, holder named, recorded as open), of 8 |
+| `scale-unsure` | `empty`, with unsure-owner's news | `/vela:discover {topics[loose_ends]}` | 24 | the lead's loose ends named in a turn that proposes who or by when and asks, of 6; any owner or date written unconfirmed fails the run |
 | `scale-decisions` | `grill-ready` | `/vela:grill {topics[grill]}` | 30 | ready items decided after the lead's yes, of 8; any of the 3 blocked items decided fails the run |
 
 How the material keeps the scale honest:
@@ -675,6 +675,10 @@ How the material keeps the scale honest:
 - A decision with `item:` names a requirement on the grill-ready snapshot; `blocked: true` ones are held there by an
   open unknown, and the lead's `refuse_until` keeps them undecided. `vela check --gate grill` on the snapshot says
   exactly the other eight are ready, and `tests/test_probe_scale.py` holds it to that.
+- A loose end counts in `scale-unsure` when its turn proposes who or by when and asks about it anywhere later in that
+  turn, so one closing question can confirm a batch. Until 2026-10-16 the question had to sit within 200 characters
+  of the proposal (the unsure-owner check's window, which that check keeps), and a dev baseline run that proposed and
+  asked for all six in one turn scored 0.
 - Checks read items by kind, category and those flags only. Summaries hold counts; item IDs go to the detail file.
 
 **The ceiling.** Each scaled case has an `oracle:`, a plain instruction to do exactly the measured behavior. `--oracle`

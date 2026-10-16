@@ -225,7 +225,7 @@ def register(probe):
         rows = []
         for item in items:
             turn = next((e["turn"] for e in spoken if sim.mentions(e["text"], item["keywords"])
-                         and probe.PROPOSES_AND_ASKS.search(e["text"])), None)
+                         and proposes_then_asks(e["text"], probe)), None)
             rows.append((item, turn))
         value = sum(1 for _, turn in rows if turn)
         _, owner_summary, owner_detail = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
@@ -236,6 +236,17 @@ def register(probe):
                               criterion["at_least"]) + f"; owners or dates written unconfirmed: {unconfirmed} (need 0)")
         detail = [f"- {i['id']}: {'T%d' % t if t else 'never proposed'}" for i, t in rows] + owner_detail
         return passed, summary, detail, measure("open questions proposed and asked", value, len(items))
+
+
+def proposes_then_asks(text, probe):
+    """A proposal of who to ask or by when, asked about later in the same turn. A session that names several loose
+    ends, proposes a role and a date for them, gives its reason and asks once at the end did the behavior; the
+    unsure-owner check's 200-character window scored that 0 of 6 on the 2026-10-16 dev baseline (a sensor miss, not
+    a skill one). "Due to" is a cause, not a date, so it doesn't count once the window is gone."""
+    if "|due|" not in probe.PROPOSAL_CUE:
+        raise ValueError("probe.PROPOSAL_CUE no longer lists |due|, so 'due to' would count as a proposal")
+    cue = re.compile(probe.PROPOSAL_CUE.replace("|due|", "|due(?! to)|"), re.I)
+    return any("?" in text[m.end():] for m in cue.finditer(text))
 
 
 def asked_in_line(item, spoken, probe, sim):

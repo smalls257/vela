@@ -14,7 +14,10 @@ news:
         When the assistant asks who should own one, or by when, say you're honestly not sure. If it then proposes an
         owner and a date and asks you, say yes to a role, and say you're not sure about a named person.
 opening: "/vela:discover {topics[loose_ends]}"
-cap: 14
+# 24, not 14: the 2026-10-15 ceiling runs hit a 14-turn cap on both personas, with discover's intake (naming the
+# initiative, ordering and labelling the sources, reading each group back) taking about 8 of them, so even the oracle
+# ran out of turns before it reached every loose end. The cap, not the skill, set that ceiling.
+cap: 24
 oracle: >-
   For this session only: record each open question the lead raises. For every one, ask the lead who should answer it
   and by when. When the lead says they are not sure, propose a specific role and a specific date and ask whether that
