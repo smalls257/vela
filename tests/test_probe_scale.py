@@ -237,6 +237,7 @@ def test_the_oracle_reaches_only_the_assistant_and_the_summary_is_written(tmp_pa
     assert "ORACLE (ceiling run)" in out and "reachable ceiling" in out
     summary = json.loads(next(folder.glob("*-oracle-summary.json")).read_text())
     assert summary["oracle"] is True and "gaps raised first" in summary["measures"]
+    assert all("-oracle-" in name for name in summary["folders"]), "a ceiling run beside its baseline never collides"
     assert "voice: codes and IDs per turn" in summary["measures"]
     ledger = json.loads((tmp_path / "ledger.json").read_text())
     assert ledger["invocations"][0]["oracle"] is True and ledger["invocations"][0]["summary"]

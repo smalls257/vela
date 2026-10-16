@@ -1112,7 +1112,8 @@ def headline(message):
 
 
 def run_once(case, persona, persona_name, args, n, stamp, share):
-    folder = f"{stamp}-{case['name']}-{persona_name}-{n}"
+    # A ceiling run is named apart, so it can run beside its baseline and is never read as one.
+    folder = f"{stamp}-{case['name']}-{persona_name}{'-oracle' if getattr(args, 'oracle', False) else ''}-{n}"
     reserve = sim.JUDGE_RESERVE if any(c["check"].startswith("option-") for c in case["criteria"]) else 0.0
     run = ProbeRun(folder, pathlib.Path(args.out).resolve(), args, persona, share,
                    snapshot_dir(case, persona_name), reserve)
