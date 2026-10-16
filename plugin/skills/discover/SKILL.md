@@ -22,8 +22,6 @@ Every `vela` below is `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/vela`. Relay its `-
    >
    > Lines 1 and 3 disagree; I'd make that one open question. I'd ask the partnerships team, by 1 March, since the pilot's partners sign up then; does that person and date work? Yes to these three?
 
-   Documents rarely say where people pull against each other; the lead knows. From the first group on, when a line or the lead names a person, role or group, make your next question an open one about them, not a yes on your reading: what do they want from this, what would they push back on, who else has a say? ("What would the people who approve refunds resist here?") Ask the yes on the group the turn after. When two answers pull apart, say so in the lead's words and make it one unknown naming each side and who holds it, without picking one.
-
 5. After each correction round, write each confirmed line as a sentence in its page's section (`vela conventions "Pages"`, prose as `house-voice` says): the source linked on the words that rely on it, the wording saying how sure it is ("the agreement summary says…" for a fact, "Partnerships expects…" for an assumption). Contracts, unknowns, parties and stored value keep their fact bullets, each opened by a sentence. Never copy document text into the vault.
 
    A line's state comes from its source:
