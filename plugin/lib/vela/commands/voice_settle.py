@@ -71,7 +71,8 @@ def verdict(before, after, sentences):
     try:
         result = voicecheck.compare(before, after, sentences)
     except voicecheck.NotRedundant as exc:
-        return False, f"voicecheck could not check it: {exc}", "a sentence named as redundant wasn't removed as named"
+        # voice audit row 206: the plain why follows "because the rewrite", so it has to be a verb phrase
+        return False, f"voicecheck could not check it: {exc}", "didn't take out the sentence it was meant to"
     if result.same:
         return True, "", ""
     return False, "; ".join(voicecheck.describe(result)), "changed " + ", ".join(changed_kinds(result))
@@ -108,9 +109,9 @@ def failed(text, plain):
 
 def settle_result(args, root):
     if close_stage.is_reader_copy(root):
-        return refused("voice-settle-reader", "This is a reader copy, so there is no git to checkpoint or restore "
-                       "with; nothing ran.", "Skip the voice review's git steps here; the rewrite reaches the owner "
-                       "through a proposal.")
+        return refused("voice-settle-reader", f"{say.YOUR_COPY}, so there's nothing to save or put back here; the "
+                       "rewrite reaches the owner as a proposal.", "This is a reader copy with no git to checkpoint or "
+                       "restore with: skip the voice review's git steps here; nothing ran.")
     ident, problem = session_of(args, root)
     if problem is not None:
         return problem
@@ -124,10 +125,11 @@ def settle_result(args, root):
         return settle(root, ident, pages, [(guard.normal(p), s) for p, s in args.redundant], args.score,
                       say.mode_of(args))
     except vaultgit.GitUnavailable as exc:
-        return failed(f"vela voice settle: {exc}", "git failed, so the voice review's git steps stopped part way; "
-                                                   "the output says what ran.")
+        return failed(f"vela voice settle: {exc}", "Something went wrong saving the rewrites, partway through. "
+                                                   "I'll tell you which pages are safe.")  # voice audit row 210
     except (OSError, atomic.WriteFailed) as exc:
-        return failed(f"vela voice settle: the disk refused a write: {exc}", "The disk refused a write.")
+        return failed(f"vela voice settle: the disk refused a write: {exc}",
+                      "I couldn't save a change to disk, so I stopped.")
 
 
 def session_of(args, root):
@@ -223,12 +225,12 @@ def unchecked_refusal(root, ident, pages, changed):
     notes = read_notes(root, ident)
     missing = [p for p in changed if p not in notes]
     if missing:
-        return refused("voice-not-checkpointed", "A rewritten page wasn't checkpointed first, so restoring it could "
-                       "lose its other unsaved edits; I ran nothing.",
+        return refused("voice-not-checkpointed", "I didn't save the page before it was rewritten, so putting it back "
+                       "could lose other edits. I've stopped.",  # voice audit row 209
                        f"Not checkpointed: {', '.join(missing)}. Before the next rewrite run vela voice settle "
                        "--checkpoint on those pages.",
-                       "the lead may accept that a failed rewrite takes the page's other unsaved edits with it: check "
-                       "the page with vela voicecheck by hand")
+                       "you may accept that a failed rewrite takes the page's other unsaved edits with it; then the "
+                       "page is checked by hand")
     moved = [p for p in pages if p in notes and notes[p] != settlegit.head_blob(root, p)]
     if moved:
         return refused("voice-checkpoint-moved", "A commit since the checkpoint changed a rewritten page, so I can't "

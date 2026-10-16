@@ -126,7 +126,7 @@ def git_row(version, toplevel, has_dot_git, reader):
     if version.how != "ok":
         return Row("git", NO, "git is here but didn't run.", version.first_line())
     if reader:
-        return Row("git", YES, "git runs. This is a published copy, so vela uses no git in it.", version.out.strip())
+        return Row("git", YES, "git runs. This is your copy, so vela uses no git in it.", version.out.strip())
     if toplevel.how == "ok":
         return Row("git", YES, "git runs, and this folder is a git repo.", version.out.strip())
     if has_dot_git:
@@ -233,11 +233,15 @@ def stance(host):
     `git-broken` (a repo, but git can't run: the reader path), `no-git` (no git, or a Python the launcher refuses:
     the reader path), and `reader` (a published copy, which uses no git by design)."""
     if host.get("reader"):
-        return "reader", ("This is a published copy. Here you can read, ask, find, explore and draft; drafts reach the "
-                          "vault as a proposal.")
-    if not _python_ok(host.get("python")) or (host.get("git") != YES and not host.get("git_repo")):
-        return "no-git", ("This host can't use git, so sessions are recorded in Claude Code. Here you can read, ask, "
-                          "find, explore and draft; drafts reach the vault as a proposal.")
+        return "reader", ("This is your copy. Here you can read, ask, find, explore and draft; drafts reach the "
+                          "plan as a proposal.")
+    # voice audit row 216: "this host can't use git" sat under a row saying git runs; the stance names what's missing
+    if not _python_ok(host.get("python")):
+        return "no-git", ("This machine's Python is too old for vela's checks, so sessions are recorded in Claude "
+                          "Code. Here you can read, ask, find, explore and draft; drafts reach the plan as a proposal.")
+    if host.get("git") != YES and not host.get("git_repo"):
+        return "no-git", ("This folder isn't set up with git, so sessions are recorded in Claude Code. Here you can "
+                          "read, ask, find, explore and draft; drafts reach the plan as a proposal.")
     if host.get("git") != YES:
         return "git-broken", ("This folder is a git repo, but git doesn't run here, so I can't record a session here. "
                               "Here you can read, ask, find, explore and draft.")

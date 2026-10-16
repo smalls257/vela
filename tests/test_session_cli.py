@@ -191,7 +191,7 @@ def test_reader_copy_uses_no_git(tmp_path, monkeypatch):
     assert (copy / "sessions" / f"{TODAY}-reading-the-sources.md").is_file()
     code, output = run("session", "brief", "--vault", str(copy), "--today", TODAY, "--for-lead")
     assert code == 0, output
-    assert "Review comments aren't checked in a read copy." in output
+    assert "Review comments aren't checked in your copy." in output
     assert not git_log.exists(), "a reader copy ran git"
     assert not gh_log.exists(), "a reader copy ran gh"
 

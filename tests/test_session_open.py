@@ -171,7 +171,7 @@ def test_reader_copy_uses_no_git(tmp_path, monkeypatch):
     assert output.splitlines() == ["open: 2026-10-14-reading on this folder, modes: discover, date: 2026-10-14",
                                    "read copy: no branches, nothing switched."]
     code, output = run("session", "open", "--vault", str(copy), "--switch", "--for-lead")
-    assert output.splitlines()[-1] == "This is a read copy, so it has no branches to switch to."
+    assert output.splitlines()[-1] == "This is your copy, so it has no branches to switch to."
     assert not called.exists(), "a reader copy ran git"
 
 

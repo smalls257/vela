@@ -994,7 +994,9 @@ def cmd_terms(args, out):
     words = [args.word.lower().rstrip("s")] if args.word else sorted(terms.TERMS)
     unknown = [w for w in words if w not in terms.TERMS]
     if unknown:
-        print(f"vela terms: no definition for {unknown[0]!r}; the kept words are {', '.join(sorted(terms.TERMS))}.", file=out)
+        kept = sorted(terms.TERMS)  # voice audit row 221: not "the kept words", the project's own name for them
+        print(f"vela terms: {unknown[0]!r} isn't one of Vela's own words. Those are {', '.join(kept[:-1])} and "
+              f"{kept[-1]}.", file=out)
         return 2
     for note in term_notes(words):
         print(note, file=out)

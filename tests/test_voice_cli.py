@@ -489,4 +489,4 @@ def test_for_lead_lines_hold_no_code_or_id(harvest, tmp_path):
     assert code == 0 and "won't come up again" in out
     (ghdir / "list.fail").write_text("HTTP 502")
     code, out = voice(root, "harvest", "list", "--for-lead")
-    assert code == 2 and out.strip() == "gh could not list merged PRs, so nothing was harvested."
+    assert code == 2 and out.strip() == "I couldn't reach GitHub, so I haven't looked for your edits."

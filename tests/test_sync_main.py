@@ -188,7 +188,7 @@ def test_reader_copy_runs_no_git(tmp_path, monkeypatch):
         raise AssertionError(f"a read copy ran git: {args}")
     monkeypatch.setattr(vaultgit, "run_git", no_git)
     code, out = run("close", "sync-main", "--vault", str(copy), "--today", TODAY, "--for-lead")
-    assert code == 0 and out.strip() == "This is a read copy, so there is no main to bring in.", out
+    assert code == 0 and out.strip() == "This is your copy, so there is no main to bring in.", out
     rec = json.loads((copy / ".vela" / "close" / f"{closestate.READER_KEY}.json").read_text(encoding="utf-8"))
     assert rec["status"] == closestate.READER
     assert not mergegit.sync_verdict(copy).blocks
@@ -209,6 +209,21 @@ def test_for_lead_lines_pass_the_leak_check(repos):
     assert 'On "Goals", both sides changed the same lines.' in out  # voice audit row 126: no line numbers
     assert out.startswith("Someone changed the same paragraphs on main") and "Want to see both versions?" in out
     assert "a page whose title I couldn't read" in out
+
+
+def test_a_conflict_with_no_title_in_its_text_is_named_from_the_vault(repos):
+    """Voice audit row 126: when the conflicted text gives no title, the page is named the way the vault names it
+    (here its first heading), not by the "couldn't read" stand-in."""
+    lead, other = repos
+    for repo in (lead, other):
+        git(repo, "fetch", "-q", "origin")
+    commit(other, {"UNK-12-consent.md": "# Consent check\n\nmain's text\n"}, "main", push=True)
+    commit(lead, {"UNK-12-consent.md": "# Consent check\n\nour text\n",
+                  ".vela.yaml": "initiative: INI-001\ntitle: Heron\n"}, "session")
+    code, out = sync(lead, "--for-lead")
+    assert code == 1, out
+    assert 'On "Consent check", both sides changed the same lines.' in out, out
+    assert "couldn't read" not in out
 
 
 def test_sync_not_run_blocks_in_the_gate_verdict(repos):

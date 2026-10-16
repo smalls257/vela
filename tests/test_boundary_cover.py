@@ -53,14 +53,18 @@ def test_cover_whole_split_uncarried(tmp_path):
     assert "CAP-005.FR2" in out and "carried by no app" in out
 
 
-def test_bad_cut_file_refused_plainly(tmp_path):
+def test_bad_cut_file_is_the_models_to_fix(tmp_path):
+    """The model wrote the cut file, so a bad one is a tool error (exit 2) with the reason, never a refusal the lead
+    hears with a path and a parser error in it (voice audit row 211)."""
     def refused(text, said):
         path = tmp_path / "bad.json"
         path.write_text(text, encoding="utf-8")
         code, out = run("boundary", "cover", "--cut", str(path), "--vault", str(HERON))
-        assert code == 1, out
+        assert code == 2, out
         assert said in out, out
         assert "Traceback" not in out
+        code, out = run("boundary", "cover", "--cut", str(path), "--vault", str(HERON), "--for-lead")
+        assert code == 2 and "refused" not in out, out
 
     refused("{not json", "is not JSON")
     refused(json.dumps({"version": 2, "cuts": [ONE_AGENT]}), "version 1")
@@ -74,7 +78,7 @@ def test_bad_cut_file_refused_plainly(tmp_path):
     coded = {"name": "Cut with CAP-001 in its name", "apps": [{"name": "Agent", "carries": []}]}
     refused(json.dumps({"version": 1, "cuts": [coded]}), "in words")
     code, out = run("boundary", "cover", "--cut", str(tmp_path / "missing.json"), "--vault", str(HERON))
-    assert code == 1 and "no file" in out.lower()
+    assert code == 2 and "no cut file" in out.lower()
 
 
 def test_two_cuts_compared(tmp_path):
@@ -95,6 +99,12 @@ def test_for_lead_passes_the_leak_check(tmp_path):
     assert code == 0, out
     for line in out.splitlines():
         assert say.leak_in(line) is None, line
+    lines = out.splitlines()  # the cuts side by side first, then the details behind "want them?" (row 212)
+    assert lines[:2] == ["One desktop agent carries eight of nine requirements whole and leaves one with no app.",
+                         "Agent and a cloud summarizer carries six of nine requirements whole and splits three across "
+                         "apps (each needs a contract)."], out
+    assert lines[-1].endswith("more; want them?"), out
+    code, out = cover(tmp_path, ONE_AGENT, WITH_SUMMARIZER, mode=("--for-lead", "--more"))
     assert "Stop reading when a withdrawal is not confirmed" in out  # the requirement said by its name
     assert "Consent and identity" in out
 

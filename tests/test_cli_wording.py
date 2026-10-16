@@ -37,7 +37,7 @@ def test_routine_output_does_not_repeat_definitions_but_terms_gives_them():
     code, out = run("terms", "slices")
     assert code == 0 and out.startswith('What "slice" means:')
     code, out = run("terms", "lamp")
-    assert code == 2 and "no definition" in out
+    assert code == 2 and "isn't one of Vela's own words" in out
 
 
 def test_check_says_the_date_it_judged_by_in_words():

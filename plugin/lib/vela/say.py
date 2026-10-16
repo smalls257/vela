@@ -69,6 +69,11 @@ ID_KINDS = ("check code", "gate", "capture", "copy", "finding", "reviewer row", 
 MODEL, LEAD = "model", "lead"
 MY_SIDE = "Something went wrong on my side; I'll fix it and try again."
 
+# A reader's published folder has one name in what the lead hears: "your copy" (voice audit row 215 found "read
+# copy", "reader copy", "reading copy" and "published copy" across seven commands). Builder text keeps its own words.
+YOUR_COPY = "This is your copy"
+YOUR_COPY_PROPOSAL = f"{YOUR_COPY}, so the change reaches the owner as a proposal."
+
 # Conversation voice rule 7: the lead judges about four things at a time; the rest wait behind "N more; want them?",
 # and `--more` prints them all. Default and `--json` always carry the full list.
 LEAD_LIMIT = 4

@@ -56,7 +56,7 @@ def cmd_guard_staged(args, out):
     else:
         result.data = {"forbidden": []}
         result.lines.append(say.Line(f"vela guard staged: {len(staged)} staged paths, none forbidden.",
-                                     "Nothing staged has to stay on this machine."))
+                                     "Nothing in this save has to stay on your machine."))  # row 226: not "staged"
     return commands.emit(result, args, out)
 
 

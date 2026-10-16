@@ -155,7 +155,7 @@ def report(result, written, reader, resolver):
                           plain="" if written else "Every note already has its place."))
     if reader:
         lines.append(say.Line("read copy: no git runs here; the draft is filed into the proposal.",
-                              plain="This is a read copy, so nothing is committed; your notes go to the owner with "
+                              plain="This is your copy, so nothing is committed; your notes go to the owner with "
                                     "your proposal."))
     data = {"drafts": written, "counts": counts, "for_model": result.for_model, "left_alone": result.left_alone,
             "reader": reader}

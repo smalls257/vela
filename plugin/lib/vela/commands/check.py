@@ -22,7 +22,7 @@ failed.
 """
 import pathlib
 
-from vela import gates, roles, rules, say, schema, sessions, w326fix
+from vela import gates, plainwords, roles, rules, say, schema, sessions, w326fix
 from vela.edge import atomic
 
 
@@ -115,7 +115,7 @@ def fix(args, out):
     result = say.Result("check --fix", data={"changed": [c.as_json() for c in changes], "left": []})
     if not changes:
         result.lines = [say.Line("vela check --fix W326: nothing to change; every page's state already follows its rows.",
-                                 "Every page's state already matches its rows, so I haven't changed anything.")]
+                                 "Every page's status already matches what's on it, so I haven't changed anything.")]
         return commands.emit(result, args, out, resolver)
     try:
         atomic.write_all_atomic({root / path: text for path, text in files.items()})
@@ -125,20 +125,22 @@ def fix(args, out):
         return say.FAILED
     result.wrote = [c.path for c in changes]
     count = f"{len(changes)} page{'' if len(changes) == 1 else 's'}"
-    result.lines = [say.Line(f"vela check --fix W326: set the state of {count}.", f"I updated the state of {count}.")]
+    said = f"{say.count_words(len(changes))} page{'' if len(changes) == 1 else 's'}"
+    result.lines = [say.Line(f"vela check --fix W326: set the state of {count}.", f"I updated the status of {said}.")]
     result.lines += [changed_line(c, resolver) for c in changes]
     left = left_on(root, today, before, result.wrote)
     result.data["left"] = [{"path": f.path, "line": f.line, "code": f.code, "message": f.message} for f in left]
     if left:
+        pages = len({f.path for f in left})  # voice audit row 223: a count before the list, not "a little more"
         result.lines.append(say.Line("Left on the pages it changed (the new state's own duties):",
-                                     "The new state asks for a little more on those pages:"))
+                                     f"{say.count_words(pages, capital=True)} of those pages now "
+                                     f"need{'s' if pages == 1 else ''} a little more. Each one says what:"))
         result.lines += [left_line(f, resolver) for f in left]
     if any(f.is_error for f in left):
         result.exit = say.REFUSED
     if is_reader_copy(root):
         result.lines.append(say.Line("This is a reader copy: no git runs here; the change reaches the owner through a "
-                                     "proposal.", "This is your reading copy, so the change reaches the owner "
-                                                  "through a proposal."))
+                                     "proposal.", say.YOUR_COPY_PROPOSAL))  # voice audit row 215
     return commands.emit(result, args, out, resolver)
 
 
@@ -149,9 +151,10 @@ def fix_refusal(args):
     if code not in w326fix.FIXABLE:
         result = say.Result("check --fix", exit=say.REFUSED, data={"code": args.fix})
         result.refusals.append(say.Refusal(
-            "fix", "vela only fixes the one warning with a single right answer: a page whose state lags its rows.",
+            "fix", "I can only fix one kind of problem by myself: a page whose status hasn't caught up with what's on "
+                   "it.",  # voice audit row 222
             f"--fix takes W326 only; fix {args.fix} by hand as its Fix line says.",
-            "Edit the page by hand; nothing here stops that."))
+            "Edit the page by hand; nothing here stops that.", waiver=""))  # no rule to set aside, only a limit
         return result
     if args.gate or args.item or args.app:
         result = say.Result("check --fix", exit=say.REFUSED, data={"code": code})
@@ -165,8 +168,10 @@ def fix_refusal(args):
 
 def changed_line(change, resolver):
     title = resolver.page_title(pathlib.PurePosixPath(change.path).stem) or resolver.name(change.page)
+    # voice audit row 214: not "rows", and the state said in words ("assumption" is "not decided yet")
+    before, after = plainwords.state_word(change.before), plainwords.state_word(change.after)
     return say.Line(f"{change.path}:{change.line}: state: {change.before} -> {change.after} ({change.why})",
-                    f"{title} now reads {change.after}, as its rows already do (it said {change.before}).")
+                    f"{title} is now marked {after}, to match what's on it. It said {before} before.")
 
 
 def left_on(root, today, before, paths):

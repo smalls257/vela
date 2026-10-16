@@ -182,11 +182,28 @@ def summary(coverage):
             f"{len(coverage.uncarried)} carried by no app.")
 
 
+def summary_words(coverage):
+    """One cut's count the way the lead hears it: whole first, then the costs, each count in words."""
+    total = len(coverage.whole) + len(coverage.split) + len(coverage.uncarried)
+    costs = []
+    if coverage.split:
+        costs.append(f"splits {say.count_words(len(coverage.split))} across apps (each needs a contract)")
+    if coverage.uncarried:
+        costs.append(f"leaves {say.count_words(len(coverage.uncarried))} with no app")
+    head = f"{coverage.cut.name} carries {say.count_words(len(coverage.whole))} of {say.count_words(total)} " \
+           f"requirements whole"
+    if not costs:
+        return f"{head}."
+    return f"{head} and {costs[0]}." if len(costs) == 1 else f"{head}, {costs[0]}, and {costs[1]}."
+
+
 def lines(coverages, names):
-    """say.Lines: per cut, the costs first (split, then carried by no app), then what one app carries whole; last, one
-    summary line per cut so the cuts read side by side. `text` keeps the IDs for files; `plain` says each requirement
+    """say.Lines: first one summary line per cut so the cuts read side by side (the answer, voice audit row 212);
+    then per cut the costs (split, then carried by no app) and what one app carries whole, which the lead hears
+    after about four things only when they want them. `text` keeps the IDs for files; `plain` says each requirement
     by its name."""
-    out = []
+    out = [say.Line("Side by side:", plain="")]
+    out += [say.Line(f"- {summary(c)}", summary_words(c)) for c in coverages]
     for c in coverages:
         out.append(say.Line(f"Cut: {c.cut.name} ({', '.join(a.name for a in c.cut.apps)})"))
         for req, apps in c.split:
@@ -196,8 +213,6 @@ def lines(coverages, names):
             out.append(say.Line(f"  carried by no app: {req} {names[req]}", f"  carried by no app: {names[req]}"))
         for req, app in c.whole:
             out.append(say.Line(f"  whole: {req} {names[req]}, by {app}", f"  carried whole by {app}: {names[req]}"))
-    out.append(say.Line("Side by side:"))
-    out += [say.Line(f"- {summary(c)}") for c in coverages]
     return out
 
 

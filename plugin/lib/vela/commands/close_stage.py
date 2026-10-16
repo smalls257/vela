@@ -173,7 +173,7 @@ def cmd_close_stage(args, out):
     result = say.Result("close stage")
     if is_reader_copy(root):
         result.lines.append(say.Line("vela close stage: this is a read copy, so nothing is staged or committed.",
-                                     "This is a read copy, so nothing is staged or committed here."))
+                                     "This is your copy, so nothing is staged or committed here."))
         return cli_emit(result, args, out)
     try:
         ident = session_id(args, root, result)

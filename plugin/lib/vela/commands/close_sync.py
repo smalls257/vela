@@ -30,7 +30,9 @@ Every outcome writes `.vela/close/<branch key>.json` (see `closestate`), so the 
 merge implementation, but no close record, because "brought in at the start" must never let a close skip bringing in
 what main gained during the session.
 """
+import dataclasses
 import pathlib
+import re
 
 from vela import closestate, commands, guard, mergeplan, say
 from vela.edge import mergegit
@@ -116,7 +118,7 @@ def _bring_in(run, accept, timeout):
     if mergegit.is_reader_copy(root):
         return run.finish(closestate.READER, say.DONE, [say.Line(
             "sync-main: a read copy has no main to bring in; no git was run.",
-            "This is a read copy, so there is no main to bring in.")])
+            "This is your copy, so there is no main to bring in.")])
     try:
         return _sync_owner(run, accept, timeout)
     except mergegit.MergeGitFailed as exc:
@@ -168,7 +170,7 @@ def _merge(run):
              if not never_committed(path, run.prefix)]
     mergegit.abort(root)
     if plans and not mergeplan.generated_only(plans):
-        return _conflict(run, plans)
+        return _conflict(run, _with_vault_titles(root, plans))
     code, said = mergegit.merge(root, ours_on_conflict=True)
     if code != 0:
         _abort_if_stopped(root)
@@ -196,6 +198,33 @@ def _merged(run, before, status, files, line):
 def _abort_if_stopped(root):
     if mergegit.merging(root):
         mergegit.abort(root)
+
+
+def _with_vault_titles(root, plans):
+    """Each plan whose conflicted text gave no title, named from the vault as it stands on our side after the abort:
+    the page's title, its ID's name, or its first heading (voice audit row 126: the conflicted text often has no
+    readable frontmatter, and the lead heard "a page whose title I couldn't read" for a page the vault names)."""
+    if all(p.title for p in plans):
+        return plans
+    from vela import cli
+    try:
+        vault = cli.load_vault(root)
+    except cli.ToolError:
+        return plans  # the stand-in still names the page; the merge has been stopped either way
+    return [p if p.title else dataclasses.replace(p, title=_vault_title(vault, p.path)) for p in plans]
+
+
+def _vault_title(vault, path):
+    page = vault.page(pathlib.PurePosixPath(path).stem)
+    if page is None:
+        return None
+    if page.meta.get("title"):
+        return str(page.meta["title"])
+    named = vault.name_of(page.id) if page.id else None
+    if named and named != page.id:
+        return named
+    heading = re.search(r"(?m)^# (.+)$", page.text or "")
+    return heading.group(1).strip() if heading else None
 
 
 def _page_name(plan):
