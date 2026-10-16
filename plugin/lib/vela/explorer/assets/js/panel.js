@@ -71,9 +71,9 @@ const Panel = (() => {
     // count, so the lede only says where to start; saying the count again made the same 21 show four times on Home.
     const lede = !queue.length && !lit.length ? "Nothing needs you. Every app, contract and flow is decided, and no open question is blocking any of them."
       : beside ? (queue.length ? "Start with the questions on the left, most urgent first. Pick one, or a box on the map, to read it here." : "Pick a box on the map to read it here.")
-      : `${Queue.needsYou().n ? Queue.needsYouSays() + ". " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`;
+      : `${Queue.needsYou().n ? upFirst(Queue.needsYouParts()) + ". " : ""}${queue.length ? "Most urgent first; pick one to read it here." : ""}`;  // the number is the top bar's
     const out = [h("div", { class: "p-head" }, h("h2", {}, "What needs you"),
-      lede ? h("p", { class: "p-lede", ...(!beside && Queue.needsYou().n ? { "data-quantity": "needsYou", "data-n": Queue.needsYou().n } : {}) }, lede) : null)];
+      lede ? h("p", { class: "p-lede", ...(!beside && Queue.needsYou().questions ? { "data-quantity": "needsYou.questions", "data-n": Queue.needsYou().questions } : {}) }, lede) : null)];
     if (!beside && queue.length) out.push(section("Waiting on an answer", null, Queue.block()));
     // a slice is not on the map: one whose journey is past its due date needs you too, and is listed under its own heading
     const lightRows = (list) => h("ul", { class: "lights" }, list.map(({ key, light }) => h("li", {},

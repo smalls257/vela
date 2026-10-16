@@ -204,7 +204,7 @@ const Roles = (() => {
     }) : empty("No team has shared a build plan yet."),
     whom.length ? h("h3", {}, "What stories are waiting on") : null,
     whom.length ? list(whom, 5, (w) => h("li", { "data-waiting": w.kind }, w.kind === "question" ? refChip(keyForId(w.ref)) : h("b", { title: w.text }, shorten(String(w.text).split(/;\s|\.\s/)[0], 80)), h("span", { class: "muted small" },
-      `. Holds up ${plural(w.stories.length, "story", "stories")} in ${w.stories.map((x) => titleOf(x.app)).filter((x, i, all) => all.indexOf(x) === i).join(" and ")}.${w.kind === "outside" ? " It's an outside company." : w.kind === "question" && ASK[w.ref] ? ` Ask the ${ASK[w.ref].ask.name.toLowerCase()}.` : ""}`))) : null,
+      `. Holds up ${plural(w.stories.length, "story", "stories")} in ${w.stories.map((x) => titleOf(x.app)).filter((x, i, all) => all.indexOf(x) === i).join(" and ")}.${w.kind === "outside" ? " It's an outside company." : w.kind === "question" && ASK[w.ref] ? ` Ask ${/^the /i.test(ASK[w.ref].ask.name) ? "" : "the "}${ASK[w.ref].ask.name.toLowerCase()}.` : ""}`))) : null,
     rule("Points: small = 2, medium = 5, large = 8. They're for ordering work, not promises. Waiting on: an open question in the plan, an outside company, or anything else that isn't another story.")));
   }
 
