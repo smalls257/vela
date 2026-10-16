@@ -56,6 +56,24 @@ PROPOSED_AND_ASKED = re.compile(r"\b(?:owner|own it|owns it|take it on|due|deadl
 CORRECTED = re.compile(r"^\W*(?:no[,.!]?\s+)?(?:not quite\b|that'?s not (?:right|what)|that isn'?t (?:right|what)|"
                        r"that is not (?:right|what)|i said\b|as i said\b|i already (?:said|told)\b|you already\b|"
                        r"i just (?:said|told)\b|that'?s wrong\b|wrong\b)", re.I)
+# A person, role or group the lead brought up: a role word, or a capitalized name followed by what they want or
+# said. Generic on purpose: it reads the shape of the sentence, never a persona's names.
+ROLE_WORDS = re.compile(r"\b(?:CEO|CFO|CISO|CTO|COO|CIO|DPO|HR|IT)\b|\b(?:legal|finance|procurement|audit(?:ors?)?|staff|"
+                        r"employees?|team|partners?|union|council|board|managers?|directors?|heads? of|officer|"
+                        r"controller|users?|customers?|clients?|patients?|nurses?|doctors?|suppliers?|vendors?|"
+                        r"regulators?|executives?|leadership|sponsors?|department|representatives?|"
+                        r"stakeholders?)\b", re.I)
+NAMED_WANT = re.compile(r"\b[A-Z][a-z]+(?:'s)? (?:wants?|needs?|said|says|expects?|insists?|thinks?|won'?t|"
+                        r"doesn'?t|cares?|is worried|memo|team)\b")
+# A question that asks what someone wants, worries about or would push back on, or who else has a say. "Do you
+# agree" and "are you happy" are confirmations of the session's own read-back, not a question about a position.
+STANCE_WORDS = re.compile(r"\b(?:wants?|wanted|cares?|care about|worr\w*|concern\w*|object\w*|push(?:es)? back|"
+                          r"disagree\w*|agree with|stake|priorit\w*|expects?|views? (?:on|of)|positions?|stand on|"
+                          r"think about|feel about|against|insist\w*|resist\w*|matters? (?:most )?to|"
+                          r"affected|who else|anyone else|on board|sign off|veto)\b", re.I)
+SELF_CONFIRM = re.compile(r"\b(?:(?:do|does|would|will|are|is) you (?:agree|happy|ok|okay|fine)|you(?:'d)? want|"
+                          r"^\W*want)\b[^?]*", re.I)
+OPEN_QUESTION = re.compile(r"^\W*(?:who|what|which|how|why|where|when|tell me|walk me)\b", re.I)
 MAX_QUESTIONS = 3  # references/REVIEW.md: at most three questions at a time
 LONG_TURN_WORDS = 250
 TURN_LIST = 12  # turns listed per pattern; the rest are counted
@@ -124,6 +142,54 @@ def too_many_questions(run):
 def long_turns(run):
     hits = [e["turn"] for e in run.assistant_turns() if len(re.findall(r"\w+", e.get("text") or "")) > LONG_TURN_WORDS]
     return Pattern(f"wrote the lead more than {LONG_TURN_WORDS} words in one turn", hits)
+
+
+def questions_in(text):
+    """Each question in a turn, as the run of text from the previous sentence end to its question mark."""
+    return [q.strip() for q in re.findall(r"[^.?!\n]*\?", text or "")]
+
+
+def asks_a_position(text):
+    return any(STANCE_WORDS.search(SELF_CONFIRM.sub("", q)) for q in questions_in(text))
+
+
+def names_someone(text):
+    return bool(ROLE_WORDS.search(text or "") or NAMED_WANT.search(text or ""))
+
+
+def people_not_asked(run):
+    """The lead brought up a person, role or group; the next turn asked nothing about what they or anyone else wants.
+    These are the turns where a position could have been drawn out and wasn't."""
+    spoken, hits = run.spoken(), []
+    for i, e in enumerate(spoken):
+        if e["speaker"] != "lead" or i == 0 or not names_someone(e.get("text")):
+            continue
+        reply = next_assistant(spoken, i)
+        if reply and not asks_a_position(reply.get("text")):
+            hits.append(reply["turn"])
+    return Pattern("the lead brought up a person, role or group, and the next turn asked nothing about what they or "
+                   "anyone else wants, worries about or would push back on", hits)
+
+
+def confirm_only(run):
+    """Every question in the turn could be answered yes or no: the lead was asked to check the session's reading,
+    never to say something the documents don't."""
+    hits = []
+    for e in run.assistant_turns():
+        qs = questions_in(e.get("text"))
+        if qs and not any(OPEN_QUESTION.search(q) or " or " in q for q in qs):
+            hits.append(e["turn"])
+    return Pattern("asked only yes-or-no questions that check the session's own reading, no open question", hits)
+
+
+def people_section(run):
+    """How often, and how early, the session asked about positions: counts and a turn number, never the words."""
+    turns = run.assistant_turns()
+    asked = [e["turn"] for e in turns if asks_a_position(e.get("text"))]
+    first = f", first at T{asked[0]} of T{turns[-1]['turn']}" if asked and turns else ""
+    return ["## Asking about people", "",
+            f"- asked the lead what a person or group wants, worries about or would push back on, or who else has a "
+            f"say: in {len(asked)} of {len(turns)} assistant turns{first}", ""]
 
 
 def lead_corrected(run):
@@ -249,13 +315,14 @@ def report(run, card, precision, sealed, why, probe=None):
     if sealed:
         lines += [f"Sealed: {why}. Scores only; the patterns are printed for a dev persona, or with --reveal.", ""]
         return "\n".join(lines)
-    patterns = [unsure_filed(run), too_many_questions(run), long_turns(run), lead_corrected(run), codes_to_lead(run)]
+    patterns = [people_not_asked(run), confirm_only(run), unsure_filed(run), too_many_questions(run), long_turns(run),
+                lead_corrected(run), codes_to_lead(run)]
     if probe is None:
         patterns += scorecard_patterns(run.scorecard) + consent_patterns(run) + close_patterns(run)
     found = [p for p in patterns if p.where]
     lines += ["## What went wrong, by behavior", ""]
     lines += [p.line() for p in sorted(found, key=lambda p: -len(p.where))] or ["- no pattern found"]
-    lines += [""]
+    lines += [""] + people_section(run)
     vault = precision_patterns(precision)
     if vault:
         lines += ["## What the vault holds that it shouldn't", ""] + vault + [""]
