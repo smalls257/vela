@@ -289,7 +289,7 @@ def test_reader_copy_writes_the_draft_without_git(tmp_path, failing_git):
     code, out = marks_plan(root, "--for-lead")
     assert code == 0, out
     assert drafts(root) and not failing_git.exists()
-    assert "read copy" in out.lower()
+    assert "your copy" in out.lower()
 
 
 def test_no_open_session_is_refused(tmp_path):

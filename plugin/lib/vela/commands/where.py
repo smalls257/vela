@@ -59,15 +59,17 @@ def cmd_probe(args, out):
         raise cli.ToolError(f"where --probe: {exc}. Nothing was recorded about this host.") from exc
     gaps = hostprobe.missing(rows, host["reader"])
     row_name, said = hostprobe.stance(host)
-    # The stance is the answer; the lead hears only the rows that don't work (the 14 October voice audit, row 213).
+    # The stance is the answer; the lead hears only the rows that don't work (the 14 October voice audit, row 213),
+    # and only where the stance leaves the reason open: with no git, or in a reader's copy, the stance already says
+    # why, and the git, network and gh rows under it would only repeat it (row 216). The skill's folder, the
+    # plugin's folder and the ! line are the skill's plumbing, never needed, so never heard (row 217).
+    heard = set(gaps) if row_name in ("everything", "no-send") else set()
     result = say.Result("where --probe", exit=say.REFUSED if gaps else say.DONE, wrote=[wrote], answer=said)
     for row in rows:
         result.lines.append(say.Line(f"{row.key}: {row.answer}: {row.meaning}" + (f" ({row.detail})" if row.detail else ""),
-                                     "" if row.answer == hostprobe.YES or row.key not in gaps else row.meaning))
+                                     row.meaning if row.key in heard and row.answer != hostprobe.YES else ""))
     if gaps:
-        names = ", ".join(hostprobe.LABELS[key].lower() for key in gaps)
-        result.lines.append(say.Line(f"missing for a full session: {', '.join(gaps)}",
-                                     f"Not working here, or couldn't be told: {names}."))
+        result.lines.append(say.Line(f"missing for a full session: {', '.join(gaps)}", ""))
     result.lines.append(say.Line(f"stance: {row_name}: {said}", ""))
     result.data = {"rows": [row.as_json() for row in rows], "host": host, "missing": gaps,
                    "stance": {"row": row_name, "said": said}}

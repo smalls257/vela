@@ -51,7 +51,7 @@ from vela.edge.vaultgit import GitUnavailable
 
 NAME = "session open"
 START, BRIEF = "session start", "session brief"
-READ_COPY = ("This is a published copy, so your work stays in this folder and nothing goes to the shared plan until "
+READ_COPY = ("This is your copy, so your work stays in this folder and nothing goes to the shared plan until "
              "you send a proposal.")
 # Git's own words stay in the default line; the lead hears what it means (the 14 October voice audit).
 GIT_DETAIL = "The details are in my notes."
@@ -179,7 +179,7 @@ def switch_to(result, record, root, reader):
     """Move to the one open record's branch, adding what happened (or git's refusal, as exit 2) to `result`."""
     if reader:
         result.lines.append(say.Line("read copy: no branches, nothing switched.",
-                                     plain="This is a read copy, so it has no branches to switch to."))
+                                     plain="This is your copy, so it has no branches to switch to."))
         return
     if not record.remote_only and sessiongit.current_branch(root) == record.branch:
         result.lines.append(say.Line(f"already on {record.branch}.", plain="You're already on its branch."))
@@ -279,7 +279,7 @@ def refuse_request(args, modes, reader):
     owner_only = [m for m in modes if m in sessions.OWNER_ONLY]
     if reader and owner_only:
         raise refused("owner-only mode", f"A {sessions.MODE_NAMES[owner_only[0]].lower()} session opens or updates a "
-                      "pull request, which a read copy can't do. Send a proposal (/vela:propose) and the owner "
+                      "pull request, which your copy can't do. Send a proposal (/vela:propose) and the owner "
                       "decides.", "run a reader mode here, or the owner runs this one in the vault's clone",
                       "the owner runs it in the vault's own clone")
 
@@ -683,7 +683,7 @@ def review_comments(result, root, vault, reader):
     result.data["review_comments"] = None
     if reader:
         result.lines.append(say.Line("review comments: not checked in a read copy (no gh)",
-                                     plain="Review comments aren't checked in a read copy."))
+                                     plain="Review comments aren't checked in your copy."))
         return
     since = sessions.last_closed([page.meta for page in vault.sessions])
     if not since:

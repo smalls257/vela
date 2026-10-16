@@ -96,7 +96,7 @@ def verdict(rec):
     if status in _PASS:
         return Verdict(False, _PASS[status], status)
     if status == READER:
-        return Verdict(False, "This is a read copy, so there is no main to bring in.", status)
+        return Verdict(False, "This is your copy, so there is no main to bring in.", status)
     if status == ACCEPTED:
         return Verdict(False, "We went on without the latest from main, as you chose.", status, True)
     if status == CONFLICT:

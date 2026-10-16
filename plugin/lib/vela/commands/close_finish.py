@@ -28,7 +28,7 @@ import io
 import json
 import pathlib
 
-from vela import closefinish, closegate, explorereport, handoffwarn, say, schema, sessions
+from vela import closefinish, closegate, explorereport, handoffpreview, handoffwarn, say, schema, sessions
 from vela.edge import atomic, mergegit, sessiongit, stagegit, vaultgit
 
 # The explore report lines the lead hears after the dashboard line (close section 9): what the build went on without.
@@ -277,12 +277,14 @@ class Finish:
         self.result.data["manifests"].append(path)
         self.say(f"vela close finish: committed {sha}: {closefinish.MANIFEST_MESSAGE.format(app=app)}",
                  f"{name}'s handoff is filed too.")
-        gaps = handoffwarn.lines(handoffwarn.gaps(self.vault, self.app_page(app)))
-        if gaps:
+        found = handoffwarn.gaps(self.vault, self.app_page(app))
+        if found:
             head = closefinish.NOT_SETTLED_HEAD.format(app=name)
             self.say(f"not settled at handoff for {app}:", head)
-            for line in gaps:
-                self.say(f"  {line}", self.resolver.plain(line))
+            for line in handoffwarn.lines(found):
+                self.say(f"  {line}")  # every gap for the model; the lead hears them grouped (voice audit row 155)
+            for said in handoffpreview.grouped_gaps(found, self.resolver.plain):
+                self.result.lines.append(say.Line("", said))
         return True
 
     def app_page(self, app):
@@ -384,7 +386,7 @@ def lead_choice(root, today, reader, found, branch, result):
     line = result.lines.append
     if reader:
         line(say.Line("vela close dashboard: rebuilt dashboard.html; a read copy commits nothing.",
-                      "I've updated the dashboard on your machine only; a read copy doesn't commit anything."))
+                      "I've updated the dashboard on your machine only; your copy doesn't commit anything."))
         return
     if found:
         line(say.Line("vela close dashboard: rebuilt dashboard.html; vela close finish commits it on the session's "

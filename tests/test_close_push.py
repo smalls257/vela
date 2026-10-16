@@ -228,4 +228,4 @@ def test_reader_copy_sends_nothing(tmp_path):
     shutil.rmtree(vault / ".git")
     (vault / ".vela" / "workspace.json").write_text('{"author": "Sam"}', encoding="utf-8")
     code, out = push(vault, "--for-lead")
-    assert code == 1 and "read copy" in out and os.path.isdir(vault)
+    assert code == 1 and "your copy" in out and os.path.isdir(vault)

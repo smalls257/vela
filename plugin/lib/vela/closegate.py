@@ -452,7 +452,7 @@ def notes_of(seen):
     if seen.sync.listed:
         notes.append(Problem(seen.sync.plain, f"sync-main: {seen.sync.status}"))
     if seen.reader:
-        notes.append(Problem("This is a read copy, so I can't tell whether anything was deleted this session.",
+        notes.append(Problem("This is your copy, so I can't tell whether anything was deleted this session.",
                              "reader copy: no merge-base"))
     notes += [Problem(lead, line) for line, lead in seen.flow]
     if seen.flow_note:

@@ -8,8 +8,9 @@ definitions, so the CLI, the rendered pages and the dashboard can't drift apart.
 TERMS = {
     "slice": "A slice is one thin piece of the product built end to end, from what the user does to what gets stored, "
              "so it can ship and be tried on its own.",
-    "tracer": "The tracer is the first slice built: one journey run end to end through every app release one needs, "
-              "to prove the apps fit together before the rest is built.",
+    # voice audit row 220: "every app release one needs" didn't parse, and "built" came twice
+    "tracer": "The tracer is the first slice: one journey that runs through every app it touches, built first to "
+              "prove the apps fit together.",
     "grill": "A grill is a working session where Vela asks you questions one at a time until a part of the plan is "
              "settled.",
 }

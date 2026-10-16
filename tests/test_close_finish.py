@@ -116,7 +116,7 @@ def test_the_lead_hears_what_is_not_settled_at_handoff(tmp_path):
     code, out = finish(vault, "--for-lead", "--more")
     assert code == 0, out
     assert closefinish.NOT_SETTLED_HEAD.format(app="Stock") in out
-    assert "Stock level is not decided yet: nobody has said yes to it." in out and say.leak_in(out) is None
+    assert "Nobody has said yes to Stock level yet." in out and say.leak_in(out) is None  # grouped, row 155
 
 
 def test_replace_without_team_yes_exits_3(tmp_path):

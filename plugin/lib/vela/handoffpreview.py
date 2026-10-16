@@ -151,10 +151,14 @@ def _grouped_checklist(unmet, plain):
 
 
 def _grouped_not_settled(found, plain):
-    """The not-settled gaps as a few lines: who hasn't said yes, which calls don't say what a failure returns, and the
-    rest as written."""
+    return grouped_gaps(found.gaps, plain)
+
+
+def grouped_gaps(gaps, plain):
+    """handoffwarn's not-settled gaps as a few lines: who hasn't said yes, which calls don't say what a failure
+    returns, and the rest as written. Close finish says the same list the same way (voice audit row 155)."""
     no_yes, no_cases, requirements, epics, rest = [], [], [], [], []
-    for gap in found.gaps:
+    for gap in gaps:
         if gap.kind == "unfirm" and gap.sentence.endswith(_NO_YES):
             no_yes.append(plain(gap.subject))
         elif gap.kind == "unfirm" and _REQUIREMENT.search(gap.sentence):

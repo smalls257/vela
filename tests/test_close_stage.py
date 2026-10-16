@@ -171,7 +171,7 @@ def test_reader_copy_stages_nothing_and_runs_no_git(tmp_path, monkeypatch):
     monkeypatch.setattr(subprocess, "run", no_git)
     code, out = stage(copy, "--draft", "--for-lead")
     assert code == 0, out
-    assert out.strip() == "This is a read copy, so nothing is staged or committed here."
+    assert out.strip() == "This is your copy, so nothing is staged or committed here."
 
 
 def test_for_lead_lines_pass_the_leak_check(vault):

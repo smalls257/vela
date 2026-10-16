@@ -38,7 +38,7 @@ def test_one_line_per_item_and_ready_when_all_there():
     text = doctor.render(lines)
     assert len(text.splitlines()) == 9 and text.endswith("vela doctor: ready.")
     for words in ("Python 3.9.6", "PyYAML 6.0.3, bundled with the plugin", "git version 2.50.1", "node v22.1.0",
-                  "Ask Claude", "voicescore works", "/v is a vault: INI-001 Heron", "vela plugin 0.3.0"):
+                  "Ask Claude", "voicescore works", "/v is a vault: it holds the plan for Heron", "vela plugin 0.3.0"):
         assert words in text
 
 
@@ -78,7 +78,7 @@ def test_not_being_in_a_vault_is_information_not_a_failure():
 
 def test_doctor_in_a_vault_names_it(mini):
     code, out = run("doctor", "--vault", str(mini))
-    assert f"{mini.resolve()} is a vault: INI-" in out
+    assert f"{mini.resolve()} is a vault: it holds the plan for" in out and "INI-" not in out
     assert "PyYAML 6.0.3, bundled with the plugin" in out
     assert code == (1 if shutil.which("git") is None else 0)
 

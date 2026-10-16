@@ -222,7 +222,7 @@ def report(item, target, state, written, commit, reader):
                       plain=f"{target.name} is {said}." + set_aside_words(item))]
     if reader:
         lines.append(say.Line("read copy: nothing committed (no git runs here); the decision is pending the owner's "
-                              "approval.", plain="This is a read copy, so nothing was committed, and the owner sees "
+                              "approval.", plain="This is your copy, so nothing was committed, and the owner sees "
                                                  "the decision before it counts."))
     return say.Result(NAME, lines=lines, wrote=written,
                       data={"id": target.id, "kind": target.kind, "state": state, "commit": commit, "reader": reader})

@@ -97,8 +97,10 @@ def hook_line(hook, is_file):
         return Line("optional", f"the vault's pre-commit hook stops every commit typed by hand: {source} names a "
                                 f"launcher that isn't there.{fix}")
     if hook.launcher and found != hook.launcher:
-        return Line("optional", f"the vault's pre-commit hook runs vela at {found} (from {source}), not the "
-                                f"installed one at {hook.launcher}, so two versions answer this vault.{fix}")
+        # voice audit row 219: what it means first, in words; the paths and the command stay for the person typing
+        return Line("optional", f"commits you make by hand here are checked by another copy of vela, so two versions "
+                                f"answer this vault: the pre-commit hook runs vela at {found} (from {source}), not "
+                                f"the installed one at {hook.launcher}.{fix}")
     return Line("ok", f"the vault's pre-commit hook checks hand commits with vela at {found}")
 
 
@@ -160,7 +162,7 @@ def voice_line(machine):
 def vault_line(vault):
     if vault.problem:
         return Line("info", f"{vault.root} is not a vault: {vault.problem} Run doctor from the vault to check it too.")
-    return Line("info", f"{vault.root} is a vault: {vault.initiative} {vault.title}")
+    return Line("info", f"{vault.root} is a vault: it holds the plan for {vault.title}")  # row 218: no initiative ID
 
 
 def exit_code(lines):
