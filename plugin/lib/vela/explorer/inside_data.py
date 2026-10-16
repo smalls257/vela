@@ -124,7 +124,7 @@ def integration_stubs(design, vault, keys, app):
     for row in design["integrations"]:
         system = row.get("system", "")
         ids = CON.findall(" ".join(str(v) for v in row.values()))
-        component, how = attach(design, system, ids)
+        component, how = attach(design, system, ids, {k: c.name for k, c in contracts.items()})
         stubs.append({"system": system, "direction": (row.get("direction") or "").strip().lower(),
                       "protocol": row.get("protocol", ""), "auth": row.get("auth", ""), "contracts": ids,
                       "nodes": nodes_for(system, ids), "component": component, "how": how, "line": row.get("line")})
@@ -140,12 +140,13 @@ def integration_stubs(design, vault, keys, app):
     return stubs
 
 
-def attach(design, system, ids):
-    """(component name or None, how): the component an Integration point meets, by the first rule that finds one."""
+def attach(design, system, ids, names=None):
+    """(component name or None, how): the component an Integration point meets, by the first rule that finds one.
+    `names` is {contract id: name}, so the reason says the contract's name, not its code."""
     for cid in ids:
         owner = next((name for name, entries in design["trace"].items() if any(e["id"] == cid for e in entries)), None)
         if owner and owner != "Operations":
-            return owner, f"it delivers {cid}"
+            return owner, f"it delivers {(names or {}).get(cid) or cid}"
     name = _bare(system)
     for row in design["matrix"]:
         for column, say in (("reads_from", "reads from"), ("writes_to", "writes to")):

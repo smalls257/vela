@@ -44,7 +44,7 @@ const Plan = (() => {
     const p = plan(app);
     if (!p) return DES[app] ? { id: "design", word: "design only", counts: "" } : { id: "none", word: "no design yet", counts: "" };
     const t = p.totals, id = p.status === "complete" ? "complete" : p.status === "complete-with-gaps" ? "gaps" : "progress";
-    return { id, word: { complete: "plan done", gaps: "plan done, with gaps", progress: "plan in progress" }[id],
+    return { id, word: { complete: "plan done", gaps: gapsWord(p).toLowerCase(), progress: "plan in progress" }[id],
       counts: `${plural(t.stories, "story", "stories")}, ${plural(t.tasks, "task")}` };
   }
   const readinessPill = (app) => { const r = readiness(app); return h("span", { class: "d-status plan-ready " + r.id, "data-ready": r.id, title: r.counts || r.word }, r.word); };
@@ -91,11 +91,12 @@ const Plan = (() => {
   }
 
   /* ------------------------------------------------------------ small pieces */
+  /* "Plan done, 1 known gap": the counted form, the same on the Inside pill and on the doors (label sweep). */
+  function gapsWord(p) { const n = p.gaps.map((g) => g.id).filter(Boolean).length; return n ? `Plan done, ${plural(n, "known gap")}` : "Plan done, with gaps"; }
   function statusPill(p) {
     const gaps = p.gaps.map((g) => g.id).filter(Boolean);
-    const word = { complete: "Plan done", "complete-with-gaps": "Plan done, with gaps", "in-progress": "Plan in progress", draft: "Plan in draft" }[p.status] || (p.status ? "Plan: " + p.status : "Plan status not given");
-    return h("span", { class: "d-status " + (p.status || "unknown"), title: `${word}${gaps.length ? `: ${plural(gaps.length, "known gap")} (${gaps.join(", ")})` : ""}` },
-      p.status === "complete-with-gaps" && gaps.length ? `Plan done, ${plural(gaps.length, "known gap")}` : word);
+    const word = { complete: "Plan done", "complete-with-gaps": gapsWord(p), "in-progress": "Plan in progress", draft: "Plan in draft" }[p.status] || (p.status ? "Plan: " + p.status : "Plan status not given");
+    return h("span", { class: "d-status " + (p.status || "unknown"), title: `${word}${gaps.length ? ` (${gaps.join(", ")})` : ""}` }, word);
   }
 
   /* ------------------------------------------------------------ the stories, as the three layouts draw them */
@@ -123,7 +124,7 @@ const Plan = (() => {
   function waitsText(p, story) {
     const words = story.blockers.map((b) => {
       if (b.kind === "story") { const w = storyById(p, b.ref); return w ? cleanName(w.name) : b.ref; }
-      if (b.kind === "question") { const title = (E[keyForId(b.ref)] || {}).title; return (title || (b.text ? shortBlocker(b.text) : b.ref)) + (isOpen(UNKNOWN[b.ref]) ? "" : " (resolved)"); }
+      if (b.kind === "question") { const title = (E[keyForId(b.ref)] || {}).title; return (title || (b.text ? shortBlocker(b.text) : b.ref)) + (isOpen(UNKNOWN[b.ref]) ? "" : " (answered)"); }
       return shortBlocker(b.text);
     }).filter(Boolean);
     return words.length ? words.join("; ") : "";
@@ -175,7 +176,7 @@ const Plan = (() => {
       h("div", { class: "fl" }, "Done when"),
       story.criteria.length ? h("ul", { class: "plan-ac" }, story.criteria.map((c) => h("li", {}, K.prose(c)))) : h("div", { class: "gap" }, "No acceptance criteria in the plan."),
       flagNotes(story),
-      h("div", { class: "fl" }, "Traces to"), h("div", { class: "plan-traces" }, story.traces.length ? story.traces.map((id) => K.idChip(id)) : h("span", { class: "muted small" }, "Nothing named.")),
+      h("div", { class: "fl" }, "Delivers"), h("div", { class: "plan-traces" }, story.traces.length ? story.traces.map((id) => K.idChip(id)) : h("span", { class: "muted small" }, "Nothing named.")),
       h("div", { class: "fl" }, `Tasks (${story.tasks.length})`),
       story.tasks.length ? h("ol", { class: "plan-tasks" }, story.tasks.map((t) => taskRow(app, t))) : h("div", { class: "muted small" }, "No tasks."));
   }
@@ -360,13 +361,12 @@ const Plan = (() => {
       story: (g, b) => {
         const story = b.node.story, lit = unclosedLevel(story);
         Legend.saw("pw.story"); if (lit) Legend.saw("lamp." + lit);
-        planNode(g, b, { cls: "plan-node in-box", attrs: { "data-story": story.id }, label: `${story.id} ${cleanName(story.name)}`, title: `${story.id} ${cleanName(story.name)}\n${plural(story.tasks.length, "task")}`,
+        planNode(g, b, { cls: "plan-node in-box", attrs: { "data-story": story.id }, label: cleanName(story.name) || story.id, title: `${story.id} ${cleanName(story.name)}\n${plural(story.tasks.length, "task")}`,
           open: () => openStory(app, story.id),
           draw: (grp) => {
             s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 10, class: "in-box-face" + (lit ? " lit " + lit : "") }, grp);
-            s("text", { x: b.x + 14, y: b.y + 24, class: "in-box-name plan-id" }, grp).textContent = story.id;
-            s("text", { x: b.x + b.w - 14, y: b.y + 24, "text-anchor": "end", class: "in-box-meta" }, grp).textContent = story.tasks.length ? plural(story.tasks.length, "task") : "no tasks";
-            s("text", { x: b.x + 14, y: b.y + 46, class: "in-box-sub" }, grp).textContent = K.fit(cleanName(story.name), b.w - 28, 11.5);
+            s("text", { x: b.x + 14, y: b.y + 24, class: "in-box-name small" }, grp).textContent = K.fit(cleanName(story.name) || story.id, b.w - 28, 12.5);
+            s("text", { x: b.x + 14, y: b.y + 46, class: "in-box-sub" }, grp).textContent = `${story.id} · ${story.tasks.length ? plural(story.tasks.length, "task") : "no tasks"}`;
           } });
       },
       outer: (g, b) => {
@@ -447,7 +447,7 @@ const Plan = (() => {
     return [h("p", { class: "plan-sum" + (a + b ? " bad" : "") }, a + b ? lampEl("caution") : null,
       a ? ` ${c.targets.length - a} of ${c.targets.length} requirements, contracts and criteria have a story; ${a} have none` : ` Every requirement, contract and criterion (${c.targets.length}) has a story`,
       c.components.length ? `; ${c.components.length - b} of ${plural(c.components.length, "component")} have work planned` : "", b ? `, ${b} have none` : "", ". ",
-      h("span", { class: "heuristic" }, "Worked out from each story's own trace line and its tasks, then checked against the plan's coverage table.")),
+      h("span", { class: "heuristic" }, "From each story's trace line and tasks.")),
     h("div", { class: "plan-cov-grid" }, h("div", { class: "plan-cov-box" }, targets), h("div", { class: "plan-cov-box" }, comps))];
   }
   /* The count of what the reader could not make of the plan, always shown. The list it opens is collapsed until asked for,
@@ -487,7 +487,7 @@ const Plan = (() => {
     const p = plan(app), K = kit();
     if (!p) {
       stage.dataset.plan = "none";
-      stage.append(K.chipCard("docs", "No build plan yet.", h("span", {}, `The ${titleOf(app)} team hasn't shared a build plan yet. Once they do, it shows here; Context, Containers and Components still draw. `,
+      stage.append(K.chipCard("docs", "No build plan yet.", h("span", {}, `The ${titleOf(app)} team hasn't shared a build plan yet. Once they do, it shows here. The other three levels work without it. `,
         h("details", { class: "in-howto" }, h("summary", {}, "How to add one"), "The team writes it with ", h("code", {}, "/vela:breakdown"), " after the design, as ", h("code", {}, "docs/plan/<slug>-breakdown.md"),
           ", or you build with ", h("code", {}, `--breakdown ${D.map.apps.find((a) => a.key === app).id}=<path to the plan>`), ", or set ", h("code", {}, "breakdown:"), " on the app's page.")),
         h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => K.open(app, "components") }, "Components, from the team's design"))));
@@ -495,9 +495,9 @@ const Plan = (() => {
     }
     stage.dataset.plan = p.status || "unknown";
     const list = problemsList(p), page = h("div", { class: "plan-page", id: "plan-page" }, barOf(app, p, list), list);
-    if (p.gaps.length) page.append(h("div", { class: "plan-gaps" }, p.gaps.map((g) => h("div", { class: "in-gap" }, h("b", {}, g.id || "a gap"), " ", K.prose(g.note)))));
-    page.append(section("Build order", plural(p.stories.length, "story", "stories"), h("p", { class: "plan-hint" }, "In the order the plan says to build. A story with a colored dot is waiting on an open question; the color shows how urgent it is."), buildOrder(app, p)));
-    page.append(section("What waits on what", null, h("p", { class: "plan-hint" }, "An arrow runs from what blocks a story to the story. Questions and outside companies sit at the top; the drawing fits the width and grows taller."), dependencyView(app, p)));
+    if (p.gaps.length) page.append(h("div", { class: "plan-gaps" }, p.gaps.map((g) => h("div", { class: "in-gap", title: g.id || null }, h("b", {}, "Known gap:"), " ", K.prose(g.note)))));
+    page.append(section("Build order", null, h("p", { class: "plan-hint" }, "In the order the plan says to build. A story with a colored dot is waiting on an open question; the color shows how urgent it is."), buildOrder(app, p)));
+    page.append(section("What waits on what", null, h("p", { class: "plan-hint" }, "An arrow runs from what blocks a story to the story. Questions and outside companies sit at the top."), dependencyView(app, p)));
     page.append(section("Coverage", null, coverageTable(app, p)));
     page.append(section("Not planned", p.notPlanned.length, p.notPlanned.length ? h("ul", { class: "plan-np" }, p.notPlanned.map((n) => h("li", {}, K.prose(n)))) : h("div", { class: "p-empty-line" }, "The plan lists nothing under Not planned.")));
     stage.append(page);

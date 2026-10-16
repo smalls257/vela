@@ -159,9 +159,12 @@ def journey_overdue(s, today):
 
 
 def journey_overdue_says(s):
-    """The plain words a reader sees for an overdue journey, after the slice's name: on the dashboard and in check."""
-    recorded = "its Journey line does not read" if s.journey is not None else "nothing is recorded"
-    return f"its journey was due {s.journey_due} and {recorded}"
+    """The plain words a reader sees for an overdue journey, after the slice's name: on the dashboard and in check.
+    The date in words, not ISO; what to do is check's Fix line, so it isn't said twice here."""
+    from vela import say
+    recorded = ("the result on the slice page can't be read; check its Journey line" if s.journey is not None
+                else "nothing says how it went")
+    return f"someone was due to try its journey by {say.date_words(s.journey_due)}, and {recorded}"
 
 
 def _ids(pattern, value):

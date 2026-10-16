@@ -47,7 +47,7 @@ const Drafts = (() => {
   function conflictList() {
     if (!conflicts().length) return null;
     return h("section", { class: "d-sec", id: "conflicts" }, h("h2", {}, "Conflicts", h("span", { class: "sub" }, String(conflicts().length))),
-      h("p", { class: "p-note" }, "You and the owner both changed these pages since you started. Nothing of yours was overwritten, and you can't send your changes until each one is settled."),
+      h("p", { class: "p-note" }, "You and the owner both changed these pages since you started. Nothing of yours was overwritten, and you can't send your changes until each one is settled. Open each one, keep the lines you want, and then propose."),
       conflicts().map(conflictCard));
   }
   function pendingList() {
@@ -65,7 +65,7 @@ const Drafts = (() => {
   function changes() {
     const d = D.draft;
     if (!d) return null;
-    if (d.problem) return h("section", { class: "d-sec" }, emptyState("I could not compare your pages with the copy you opened.", d.problem));
+    if (d.problem) return h("section", { class: "d-sec" }, emptyState("Couldn't compare your pages with the copy you started from.", d.problem));
     if (!d.count) return conflicts().length ? null : h("section", { class: "d-sec" }, emptyState("No changes yet.", "You haven't edited a page since you started."));
     return h("section", { class: "d-sec" }, h("h2", {}, "Changed pages", h("span", { class: "sub" }, String(d.count))),
       h("p", { class: "p-note" }, "Compared with the copy you started from. + is an added line, - a removed one; a generated table is folded to one line."),

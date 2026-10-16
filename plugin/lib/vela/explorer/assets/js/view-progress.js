@@ -13,13 +13,18 @@ const ProgressView = (() => {
   const MIX_SAY = { inkling: "a hunch", assumption: "believed but not checked", fact: "has a source", decided: "settled in a working session" };
   for (const [state, color] of MIX) Legend.define("pg.mix." + state, [{ k: "box", y: 5, height: 6, rx: 2, fill: `mix-${state}` }], `${stateWord(state)}: ${MIX_SAY[state]}`);
   /* The next step Vela suggests, in words; the command it would run rides in the tooltip. */
-  const MODE_SAY = { probe: "chase an answer:", boundary: "read back the boundary of", discover: "gather sources for", shape: "lay out the options for", epics: "write epics for", none: "nothing to run" };
+  const MODE_SAY = { probe: "chase an answer on", boundary: "read back the boundary of", discover: "gather sources for", shape: "lay out the options for", epics: "write epics for", none: "nothing to run" };
   const modeEl = (mode) => (mode === "grill" ? h("span", {}, "hold a ", termEl("grill"), " on") : h("span", { title: mode === "none" ? null : `/vela:${mode}` }, MODE_SAY[mode] || mode));
   Legend.define("pg.fade", [bx({ fill: "caution", opacity: 0.4, x: 11, y: 2, width: 12, height: 12, rx: 3 })], "Paler bar: the most urgent question is some way off; bars strengthen as they fall due");
+  /* A handle as a person reads it (the vault's name for the role, else the handle in words), and a reason without its
+     capture marks: the reader text rule, no @handles or ^c codes. Same rule as the decision log's person(). */
+  const personOf = (t) => peopleWords(t);
+  const unmarked = (t) => String(t || "").replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\\?\|([^\]]+))?\]\]/g, (m, target, label) => label || (D.sessions[target] ? D.sessions[target].title : titleOf(target)))
+    .replace(/\s*\^c\d+\b/g, "");
   function render(main) {
     const P = D.progress, sc = h("div", { class: "scroll pages" });
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, "Progress"),
-      h("p", {}, "Where each app is in planning, how much of the plan is written down, and what is still waiting on someone."))), sc);
+      h("p", {}, "Each app's planning stage and what's still waiting on someone. The suggested next step is at the top."))), sc);
     const totals = [0, 0, 0, 0];
     P.rows.forEach((r) => r.mix.forEach((n, i) => { totals[i] += n; }));
     const ring = (pct) => {
@@ -37,7 +42,7 @@ const ProgressView = (() => {
       P.next ? h("div", { class: "note next" }, h("b", {}, "Suggested next step: "), modeEl(P.next.mode), " ", P.next.subject ? refChip(keyForId(P.next.subject)) : null, " ", P.next.reason) : null));
     const tableKey = Legend.open("progress-table", { root: () => tableCard, probes: { "pg.done": ".ladder .done", "pg.cur": ".ladder .cur", "pg.reach": ".ladder .reach", "pg.empty": ".ladder:not(.off) span:not(.done):not(.cur):not(.reach)",
       "pg.off": ".ladder.off", ...Object.fromEntries(MIX.map(([state]) => ["pg.mix." + state, `.mix span[style*="--mix-${state}"]`])) } });
-    const table = h("table", { class: "t" }, h("tr", {}, h("th", {}, "App"), h("th", {}, "Status"), h("th", {}, "Planning stage"), h("th", {}, "How settled"), h("th", {}, "Suggested next step"), h("th", {}, "Handoff"), h("th", {}, "Team design")));
+    const table = h("table", { class: "t" }, h("tr", {}, h("th", {}, "App"), h("th", {}, "Needs you"), h("th", {}, "Stage"), h("th", {}, "Next step"), h("th", {}, "Handoff")));
     for (const r of P.rows) {
       const a = E[r.app], ad = D.apps[r.app], idx = P.stages.indexOf(r.stage), reach = P.stages.indexOf(ad.reached), lv = levelOf(r.app);
       if (r.stage) {
@@ -47,33 +52,36 @@ const ProgressView = (() => {
         if (P.stages.some((x, i) => i > idx && !(i === reach && reach > idx))) tableKey.saw("pg.empty");
       } else tableKey.saw("pg.off");
       r.mix.forEach((n, i) => { if (n) tableKey.saw("pg.mix." + MIX[i][0]); });
-      const caption = r.stage ? `at ${r.stage}` + (reach > idx ? `; written up to ${ad.reached}` : "") : `${a.change ? stateWord(a.change) : "No change"}: no planning stages apply`;
+      const caption = r.stage ? stageWord(r.stage) + (reach > idx ? `; pages written up to ${stageWord(ad.reached)}` : "") : `${a.change ? stateWord(a.change) : "No change"}: no planning stages apply`;
+      // 89: "3 not decided yet", the state's own words, not "3 assumption"
+      const settled = [3, 2, 1, 0].filter((i) => r.mix[i]).map((i) => `${r.mix[i]} ${stateWord(MIX[i][0]).toLowerCase()}`).join(", ") || "nothing yet";
+      const howSettled = `How settled: ${settled}${r.byOverride ? ` (${r.byOverride} decided by skipping a check)` : ""}`;
       table.append(h("tr", { class: "click", onclick: () => go(r.app, { reset: true }) },
         h("td", {}, h("b", {}, a.title), h("div", { class: "muted" }, a.change ? stateWord(a.change) : "")),
         h("td", {}, lampEl(lv), " ", h("span", { class: "muted" }, LIGHT[lv].word)),
-        h("td", {}, h("div", { class: "ladder" + (r.stage ? "" : " off") }, P.stages.map((x, i) => h("span", { class: r.stage ? (i < idx ? "done" : i === idx ? "cur" : "") + (i === reach && reach > idx ? " reach" : "") : "", title: x }))), h("div", { class: "muted small" }, caption)),
-        h("td", {}, h("div", { class: "mix", title: r.mix.map((n, i) => `${n} ${stateWord(MIX[i][0]).toLowerCase()}`).join(", ") }, r.mix.map((n, i) => (n ? h("span", { style: `flex:${n};background:${MIX[i][1]}` }) : null))),
-          h("div", { class: "muted small" }, [3, 2, 1, 0].filter((i) => r.mix[i]).map((i) => `${r.mix[i]} ${stateWord(MIX[i][0]).toLowerCase()}`).join(", ") || "nothing yet", r.byOverride ? ` (${r.byOverride} decided by override)` : "")),
+        h("td", { title: howSettled }, h("div", { class: "ladder" + (r.stage ? "" : " off") }, P.stages.map((x, i) => h("span", { class: r.stage ? (i < idx ? "done" : i === idx ? "cur" : "") + (i === reach && reach > idx ? " reach" : "") : "", title: stageWord(x) }))), h("div", { class: "muted small" }, caption),
+          h("div", { class: "mix" }, r.mix.map((n, i) => (n ? h("span", { style: `flex:${n};background:${MIX[i][1]}` }) : null)))),
         h("td", { class: "wide" }, h("b", {}, modeEl(r.mode)), h("div", { class: "muted small" }, r.reason), r.oldest ? h("div", { class: "small" }, h("span", { class: "muted" }, "oldest blocker: "), refChip(r.oldest)) : null),
-        h("td", { class: "small" }, handoff(r.handoff)), h("td", { class: "small" }, Inside.statusCell(r.app))));
+        h("td", { class: "small" }, handoff(r.handoff), Inside.statusCell(r.app))));
     }
-    const tableCard = h("section", { class: "card" }, h("h2", {}, "Planning stage for each app", h("span", { class: "sub" }, `${P.stages.join(" → ")}; filled to the recorded stage, a ringed step is how far the pages are already written`)), table, tableKey.el());
+    const tableCard = h("section", { class: "card" }, h("h2", {}, "Planning stage for each app"), table, tableKey.el());
     sc.append(tableCard);
     tableKey.paint();
     sc.append(dueChart());
     const ov = h("section", { class: "card" }, h("h2", {}, "Decisions made on someone's behalf, not yet confirmed"));
     if (P.awaiting.length) ov.append(h("table", { class: "t" }, h("tr", {}, h("th", {}, "On"), h("th", {}, "Decided by"), h("th", {}, "On behalf of")),
-      P.awaiting.map((a) => h("tr", { class: "click", onclick: () => go(a.key, { reset: true }) }, h("td", {}, refChip(a.key)), h("td", {}, a.by), h("td", {}, a.owners.join(", "))))));
-    else ov.append(h("div", { class: "note" }, "None. No decision made on someone's behalf is waiting for their confirmation."));
+      P.awaiting.map((a) => h("tr", { class: "click", onclick: () => go(a.key, { reset: true }) }, h("td", {}, refChip(a.key)), h("td", {}, personOf(a.by)), h("td", {}, a.owners.map(personOf).join(", "))))));
+    else ov.append(h("div", { class: "note" }, "Nobody is waiting to confirm a decision made for them."));
     if (P.overrides.length) ov.append(h("h2", { style: "margin-top:16px" }, "Rules skipped on purpose", h("span", { class: "sub" }, String(P.overrides.length))),
-      h("table", { class: "t" }, h("tr", {}, h("th", {}, "On"), h("th", {}, "Rule codes"), h("th", {}, "By"), h("th", {}, "Reason")),
-        P.overrides.map((o) => h("tr", { class: "click", onclick: () => go(o.key, { reset: true }) }, h("td", {}, refChip(o.key)), h("td", {}, o.rules.join(", ")), h("td", {}, `${o.by}, ${o.date}`), h("td", {}, o.reason)))));
+      h("table", { class: "t" }, h("tr", {}, h("th", {}, "On"), h("th", {}, "Rule skipped"), h("th", {}, "By"), h("th", {}, "Reason")),
+        P.overrides.map((o) => h("tr", { class: "click", onclick: () => go(o.key, { reset: true }) }, h("td", {}, refChip(o.key)), h("td", { title: o.rules.join(", ") }, (o.skipped || o.rules).join(", ")),
+          h("td", {}, `${personOf(o.by)}, ${isDate(o.date) ? day(o.date) : o.date}`), h("td", {}, unmarked(o.reason))))));
     sc.append(ov);
   }
   function handoff(x) {
     if (!x.manifest && !x.handedOff) return h("span", { class: "muted" }, "not handed to a team yet");
     const out = h("div", {});
-    if (x.handedOff) out.append(h("div", {}, x.handedOff));
+    if (x.handedOff) out.append(h("div", {}, personOf(x.handedOff).replace(/\b\d{4}-\d{2}-\d{2}\b/g, (iso) => day(iso))));  // dates in words, as everywhere else
     if (!x.manifest) out.append(h("div", { class: "muted" }, "no handoff record written yet"));
     else if (x.problem) out.append(h("div", { class: "gap" }, "the handoff record can't be read: " + x.problem));
     else {
@@ -86,7 +94,7 @@ const ProgressView = (() => {
   /* Open questions by the week they fall due. A bar takes the lamp color of its most urgent question, by attention.hold. */
   function dueChart() {
     const open = D.asks.filter((u) => u.state === "open");
-    const sec = h("section", { class: "card" }, h("h2", {}, "Open questions by the week they are due", h("span", { class: "sub" }, `${open.length} open; weeks start on Monday; click a bar for its list`)));
+    const sec = h("section", { class: "card" }, h("h2", {}, "Open questions by the week they're due", h("span", { class: "sub" }, "click a bar for the list")));
     if (!open.length) { sec.append(h("div", { class: "note" }, "No question is open.")); return sec; }
     const monday = TODAY - ((new Date(D.today + "T00:00:00Z").getUTCDay() + 6) % 7);
     const buckets = [{ label: "Overdue", ids: [] }];

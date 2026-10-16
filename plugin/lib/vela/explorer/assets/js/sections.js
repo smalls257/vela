@@ -11,10 +11,11 @@ const Sections = (() => {
 
   /* ------------------------------------------------------------ goals */
   function goals(main) {
-    main.append(head("Goals", "Each goal: how settled it is, what is blocking it, and the epics that deliver it."));
+    const blocked = D.goals.filter((g) => (D.blockedBy[g.id] || []).some((u) => isOpen(UNKNOWN[u])) || D.above.some((a) => a.holds === g.id)).length;
+    main.append(head("Goals", D.goals.length ? `${plural(D.goals.length, "goal")}; ${blocked ? `${blocked} still blocked. Start with the lit ones.` : "nothing is blocking any of them."}` : ""));
     const sc = h("div", { class: "scroll pages" });
     main.append(sc);
-    if (!D.goals.length) { sc.append(emptyState("No goals recorded yet.", "No goals have been written down yet.")); return; }
+    if (!D.goals.length) { sc.append(emptyState("No goals yet.", "The plan's lead writes them in the first planning session.")); return; }
     const grid = h("div", { class: "goal-grid" });
     for (const g of D.goals) {
       const held = (D.blockedBy[g.id] || []).filter((u) => isOpen(UNKNOWN[u]));
@@ -35,7 +36,8 @@ const Sections = (() => {
   const CELL_WORD = (s) => (!s ? "not recorded" : CELL_WORD_OF[s] ? cellWord(s) : stateWord(s));  // plainwords' cell words, else a state word
   const CELL_WORD_OF = D.words.cell;
   function concerns(main) {
-    main.append(head("Concerns", "Each cross-cutting concern (security, cost, privacy, ...) for each app. Blue means nobody has reviewed it yet; it only turns gray once someone has. \"Not known yet\" means someone looked and the answer is still open."));
+    const unreviewed = D.cells.filter((c) => String(c.state || "").startsWith("unexamined")).length;
+    main.append(head("Concerns", unreviewed ? `Nobody has reviewed ${unreviewed} of these yet; they're blue. Pick one to see who should.` : "Every concern has been reviewed for every app."));
     const sc = h("div", { class: "scroll pages" });
     main.append(sc);
     const conc = (D.sections.find((x) => x.id === "concerns") || { children: [] }).children;
@@ -62,10 +64,10 @@ const Sections = (() => {
   /* ------------------------------------------------------------ epics */
   const ep = { open: new Set() };
   function epics(main) {
-    main.append(head("Epics", "Each epic with its acceptance criteria and concern markers, the apps it touches and what it delivers."));
+    main.append(head("Epics", D.trace.epics.length ? `${plural(D.trace.epics.length, "epic")}. Open one to see what it delivers and how it's tested.` : ""));
     const sc = h("div", { class: "scroll pages" });
     main.append(sc);
-    if (!D.trace.epics.length) { sc.append(emptyState("No epics yet.", "There are no epic pages to show.", "/vela:epics")); return; }
+    if (!D.trace.epics.length) { sc.append(emptyState("No epics yet.", "The plan's lead writes them in the epics session.", "/vela:epics")); return; }
     const grid = h("div", { class: "epic-grid" });
     for (const x of D.trace.epics) {
       const e = E[x.key], ac = D.epicCriteria[x.key] || [], open = ep.open.has(x.key) || App.focus === x.key || D.trace.epics.length <= 4;
@@ -83,11 +85,11 @@ const Sections = (() => {
 
   /* ------------------------------------------------------------ context and scope: today beside after */
   function context(main) {
-    main.append(head("Context and scope", "Today's system next to the system after the planned releases. The page itself, with the outside services, sits beside."));
+    main.append(head("Context and scope", "Today's system on the left, the system after the releases on the right."));
     const S = Releases.STATES, last = S.length - 1;
     const two = h("div", { class: "ctx-two" });
     const pane = (i, label) => { const box = h("div", { class: "rel-pane" }); two.append(h("div", { class: "ctx-pane" }, h("h3", {}, label), box)); return box; };
-    const a = pane(0, `Today, ${day(D.today)}`), b = pane(last, last === 0 ? "No end state recorded" : S[last].fromChange ? "After: the end state, from each app's change" : `After ${S[last].heading || S[last].name}`);
+    const a = pane(0, `Today, ${day(D.today)}`), b = pane(last, last === 0 ? "Nothing says yet what it looks like after" : S[last].fromChange ? "After the releases" : `After ${S[last].heading || S[last].name}`);
     main.append(two);
     Releases.drawMap(a, 0, { max: 0.8 });
     if (last > 0) Releases.drawMap(b, last, { max: 0.8 });
@@ -116,8 +118,7 @@ const Sections = (() => {
     const by = {};
     for (const c of D.trace.capabilities) { const ch = E[c.key].change || "not set"; (by[ch] = by[ch] || []).push(c.key); }
     return h("aside", { class: "doc-aside" }, h("h3", {}, "What the strategy changes"),
-      Object.entries(by).map(([ch, keys]) => h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, ch), h("span", {}, keys.map((k) => refChip(k))))),
-      h("p", { class: "p-note" }, "What the strategy changes in each capability."));
+      Object.entries(by).map(([ch, keys]) => h("div", { class: "rc-row" }, h("span", { class: "rc-l" }, ch), h("span", {}, keys.map((k) => refChip(k))))));
   }
   return { goals, concerns, epics, context, readWide, doc };
 })();

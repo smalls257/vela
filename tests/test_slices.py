@@ -212,10 +212,10 @@ def test_w400_a_journey_due_date_that_passed_with_nothing_recorded(example):
     write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** 2026-11-20"))
     assert lines(example, "W400", "2026-11-20") == []  # due today is not late
     assert lines(example, "W400", "2026-11-21") == [
-        "slices/SLC-004-x.md:15: W400 SLC-004 Amend online: its journey was due 2026-11-20 and nothing is recorded. Fix: Record the run as "
+        "slices/SLC-004-x.md:15: W400 SLC-004 Amend online: someone was due to try its journey by 20 November 2026, and nothing says how it went. Fix: Record the run as "
         "'- **Journey:** passed YYYY-MM-DD by @who, <link to the run>', or write the new Journey due date and say in History why it moved."]
     write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** 2026-11-20", "**Journey:** it ran"))
-    assert "its Journey line does not read" in lines(example, "W400", "2026-11-21")[0]
+    assert "check its Journey line" in lines(example, "W400", "2026-11-21")[0]
     write(example, "SLC-004", page("SLC-004", "Amend online", *base, "**Journey due:** 2026-11-20",
                                    "**Journey:** passed 2026-11-19 by @qa, [run](https://ci.example/9)"))
     assert lines(example, "W400", "2026-11-21") == []
@@ -286,11 +286,11 @@ def checked_vault(tmp_path, *bullets, extra=""):
 def test_w391_on_a_planned_slice_and_w395_once_it_is_building(tmp_path):
     vault = checked_vault(tmp_path, "**Status:** planned")
     assert [line.split(": ", 1)[1].split(" Fix:")[0] for line in lines(vault, "W391", "2026-10-13")] == [
-        "W391 SLC-001 Hold and pay: its flow check fails: 1 open finding (not final)."]
+        "W391 SLC-001 Hold and pay: its flow check fails: 1 open finding (stops halfway)."]
     vault = checked_vault(tmp_path / "b", "**Status:** building")
     assert lines(vault, "W391", "2026-10-13") == []
     found = lines(vault, "W395", "2026-10-13")
-    assert len(found) == 1 and "SLC-001 Hold and pay is building, but its flow check fails: 1 open finding (not final)" in found[0]
+    assert len(found) == 1 and "SLC-001 Hold and pay is building, but its flow check fails: 1 open finding (stops halfway)" in found[0]
     assert "vela check-slice SLC-001" in found[0]
 
 

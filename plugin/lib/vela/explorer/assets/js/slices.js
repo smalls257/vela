@@ -59,7 +59,7 @@ const Slices = (() => {
   function keyOf(x) {
     if (x.key && E[x.key]) return { key: x.key };
     return { note: Nodes.note({ diagram: "Slices", name: x.name, kind: "Slice, named on the releases page",
-      text: "This plan still names its slices on the releases page. Each will get a page of its own, with its status and what comes before it.",
+      text: "Each slice gets its own page once the releases session runs again.",
       facts: [["Flows", x.flows.map((f) => f.id).join(", ") || "none"], ...(x.after.length ? [["After", x.after.join(", ")]] : [])],
       relates: [x.page, ...x.flows.map((f) => f.key)].filter(Boolean) }) };
   }
@@ -90,15 +90,19 @@ const Slices = (() => {
     if (!x) return chip(k, "", missing(k, "Slice with no page", `The slice comes after ${k}, and the plan has no slice by that name.`), "sl-afterchip gap");
     return Nodes.wire(h("span", { class: "chip sl-chip sl-afterchip", title: x.id || null }, x.name), { label: x.label, stop: true, ...keyOf(x) });  // the ID in the tooltip: a narrow cell has no room for it
   }
+  /* A person by the name the vault gives the role, else the handle in words; the handle itself rides in the tooltip. */
+  const personWords = (handle) => (D.owners[handle] && D.owners[handle].names[0]) || String(handle).replace(/^@/, "").replace(/^[^/]*\//, "").replace(/-/g, " ");
   function ownerChip(handle) {
-    if (D.owners[handle]) return chip(handle, "", { key: "owner:" + handle }, "sl-owner");
-    return chip(handle, "", missing(handle, "Person", `${handle} is named on this slice and has no page in the plan.`), "sl-owner");
+    const el = D.owners[handle] ? chip(personWords(handle), "", { key: "owner:" + handle }, "sl-owner")
+      : chip(personWords(handle), "", missing(handle, "Person", `${personWords(handle)} is named on this slice and has no page in the plan.`), "sl-owner");
+    el.title = handle;
+    return el;
   }
   function statusPill(x) {
     const s = statusOf(x), raw = !x.status && x.statusRaw;
-    return h("span", { class: `pill sl-st st-${STATUS_CLASS[s]}`, title: raw ? `The status reads "${x.statusRaw}", which isn't one of the five` : `${statusWord(s)}: ${STATUS_SAY[s]}` }, raw ? `"${x.statusRaw}"?` : statusWord(s));
+    return h("span", { class: `pill sl-st st-${STATUS_CLASS[s]}`, title: raw ? `The status says "${x.statusRaw}", which isn't one the plan knows. Fix it on the slice page.` : `${statusWord(s)}: ${STATUS_SAY[s]}` }, raw ? `"${x.statusRaw}"?` : statusWord(s));
   }
-  const duePill = (x) => (x.overdue ? h("span", { class: "pill sl-due", title: x.overdue }, `journey due ${x.journeyDue}`) : null);
+  const duePill = (x) => (x.overdue ? h("span", { class: "pill sl-due", title: x.overdue }, `journey due ${isDate(x.journeyDue) ? day(x.journeyDue) : x.journeyDue}`) : null);
 
   /* ------------------------------------------------------------ search and filters: one state for both layouts */
   const appsOf = (x) => x.apps;
@@ -151,7 +155,7 @@ const Slices = (() => {
     }
     const late = LIST.filter((x) => matches(x, "needs") && x.overdue).length;
     bar.append(h("div", { class: "sl-fgroup", "data-group": "needs" }, h("button", { class: "chip sl-fchip" + (st.needs ? " on" : ""), "aria-pressed": String(st.needs),
-      onclick: () => { st.needs = !st.needs; changed(); } }, "Needs you only", h("span", { class: "ct" }, String(late)))));
+      disabled: late || st.needs ? null : true, title: late ? null : "Nothing needs you here", onclick: () => { st.needs = !st.needs; changed(); } }, "Needs you only", h("span", { class: "ct" }, String(late)))));
     return bar;
   }
 
@@ -160,16 +164,16 @@ const Slices = (() => {
   function journeySays(x) {
     if (x.journey && !x.journey.problem) return [`tried end to end on ${day(x.journey.date)} by `, ownerChip(x.journey.by), x.journey.html ? h("span", { html: ", " + x.journey.html }) : null];
     if (x.journey) return [`the journey note can't be read: it ${x.journey.problem}`];
-    if (x.overdue) return [h("span", { class: "sl-late" }, `was due ${x.journeyDue}, and nobody has recorded trying it, so it needs you`)];
-    if (x.journeyDue) return [`due ${x.journeyDue}`];
-    return [h("span", { class: "muted" }, "no due date yet; it is written when the slice moves to building")];
+    if (x.overdue) return [h("span", { class: "sl-late" }, `was due ${(isDate(x.journeyDue) ? day(x.journeyDue) : x.journeyDue)} and nobody has tried it yet. Try it end to end, or move the date.`)];
+    if (x.journeyDue) return [`due ${(isDate(x.journeyDue) ? day(x.journeyDue) : x.journeyDue)}`];
+    return [h("span", { class: "muted" }, "no date to try it yet; it gets one when the slice starts building")];
   }
   function checkSays(c) {
     if (!c) return [h("span", { class: "muted" }, "not read")];
-    const covered = c.covered ? `, ${plural(c.covered, "finding")} covered by an override` : "";
-    if (c.status === "not run") return [h("span", { class: "muted" }, "not run yet: nothing is drawn, and it isn't building")];
+    const covered = c.covered ? `, ${plural(c.covered, "problem")} accepted for now` : "";
+    if (c.status === "not run") return [h("span", { class: "muted" }, "not run yet; it runs once the slice is building")];
     if (c.status === "passes") return [`passes${covered}`];
-    return [`${c.status}: ${plural(c.open.length, "kind")} of open finding (${c.open.join(", ")})${covered}`];
+    return [`${c.status}: ${c.open.join("; ")}${covered}`];  // each problem by its name (flowcheck.TITLES); no codes
   }
   /* The last full flow check, as recorded (flowcheck/standing.py reads the record; the page never does). A slice with
      no record, or one that changed since, says so in amber: never shown as passed. */
@@ -182,7 +186,8 @@ const Slices = (() => {
   }
   function overrideItem(o) {
     const item = E[o.item] ? chip(E[o.item].title, o.item, { key: o.item }, "sl-join") : h("span", {}, o.item);
-    return h("li", { class: o.ended ? "sl-ended" : "" }, `${o.code} on `, item, ` (${o.case}) until ${o.until}`, o.ended ? h("b", {}, ". It has ended, so it doesn't cover anything") : null);
+    const until = isDate(o.until) ? day(o.until) : o.until;
+    return h("li", { class: o.ended ? "sl-ended" : "", title: o.code }, item, `: accepted until ${until} (${o.case})`, o.ended ? h("b", {}, ". That date has passed, so it doesn't cover anything now") : null);
   }
   function detail(x) {
     return [
@@ -195,8 +200,8 @@ const Slices = (() => {
       x.owner ? line("Owner", ownerChip(x.owner)) : null,
       x.milestones.length ? line("Milestone", x.milestones.join("; ")) : null,
       x.notIn.length ? line("Not in it", h("ul", { class: "sl-notin" }, x.notIn.map((l) => h("li", {}, l.text)))) : null,
-      line("Flow check", checkSays(x.check)),
-      line("Full check", recordedSays(x.recorded)),
+      line("Quick flow check", checkSays(x.check)),
+      line("Last full check", recordedSays(x.recorded)),
       x.check && x.check.overrides.length ? line("Overrides", h("ul", { class: "sl-overrides" }, x.check.overrides.map(overrideItem))) : null,
     ].filter(Boolean);
   }
@@ -215,7 +220,7 @@ const Slices = (() => {
       h("span", { class: "sl-caret", "aria-hidden": "true" }, open ? "▾" : "▸"),
       h("span", { class: "sl-c sl-c-name" }, name, idTag(x.id), x.tracer ? h("span", { class: "tracer-tag", title: termTip("tracer") }, "tracer") : null),
       h("span", { class: "sl-c sl-c-status" }, statusPill(x)),
-      h("span", { class: "sl-c sl-c-after" }, x.after.length ? x.after.map(afterChip) : h("span", { class: "muted" }, "nothing")),
+      h("span", { class: "sl-c sl-c-after" }, x.after.length ? x.after.map(afterChip) : h("span", { class: "muted" }, "can start first")),
       h("span", { class: "sl-c sl-c-need" }, duePill(x)));
     const more = h("div", { class: "sl-more", id, hidden: !open, role: "region", "aria-label": `${x.name}, in full` }, detail(x));
     tr.addEventListener("click", (ev) => { if (!(ev.target.closest && ev.target.closest("[data-node]"))) toggle(tr, more); });
@@ -241,12 +246,12 @@ const Slices = (() => {
   }
   function pathNode(x) {
     const s = statusOf(x), raw = !x.status && x.statusRaw, overrides = x.check ? x.check.overrides.length : 0;
-    const facts = [raw ? `status "${x.statusRaw}"?` : statusWord(s), plural(x.flows.length, "flow"), plural(x.joins.length, "contract"), overrides ? plural(overrides, "override") : null].filter(Boolean);
-    const el = h("div", { class: `sl-node st-${STATUS_CLASS[s]}` + (x.circled ? " circled" : "") + (st.pick === x.slice ? " picked" : ""), "data-slice": x.slice },
+    const facts = [plural(x.flows.length, "flow"), plural(x.joins.length, "contract"), overrides ? `${overrides} accepted for now` : null].filter(Boolean);
+    const el = h("div", { class: `sl-node st-${STATUS_CLASS[s]}` + (x.circled ? " circled" : "") + (st.pick === x.slice ? " picked" : ""), "data-slice": x.slice, title: `${x.name}: ${facts.join(", ")}` },
       h("span", { class: "sl-node-name" }, x.name), x.tracer ? h("span", { class: "tracer-tag", title: termTip("tracer") }, "tracer") : null,
-      h("span", { class: "sl-node-sub" }, facts.join(" · ")),
-      x.overdue ? h("span", { class: "sl-due sl-node-due" }, `journey due ${x.journeyDue}, not tried yet`)
-        : x.journeyDue && !x.journey ? h("span", { class: "sl-node-sub" }, `journey due ${x.journeyDue}`) : null);
+      h("span", { class: "sl-node-sub" }, raw ? `status "${x.statusRaw}"?` : statusWord(s)),
+      x.overdue ? h("span", { class: "sl-due sl-node-due" }, `journey due ${day(x.journeyDue)}, not tried yet`)
+        : x.journeyDue && !x.journey ? h("span", { class: "sl-node-sub" }, `journey due ${isDate(x.journeyDue) ? day(x.journeyDue) : x.journeyDue}`) : null);
     return Nodes.wire(el, { label: x.label, aria: `${x.label}: ${statusWord(s)}`, ...keyOf(x) });
   }
   function pathLayout(list) {
@@ -303,7 +308,7 @@ const Slices = (() => {
       box.append(emptyState("No slices yet.", `${termTip("slice")} The releases session plans them, the tracer first.`, "/vela:releases"));
       return;
     }
-    if (!P.onPages) box.append(h("p", { class: "note sl-old" }, "These slices are still named on the releases page. Each will get a page of its own, with its status and what comes before it."));
+    if (!P.onPages) box.append(h("p", { class: "note sl-old" }, "Each slice gets its own page once the releases session runs again."));
     const find = h("input", { type: "search", class: "sl-find", placeholder: "Search slices, flows, apps, contracts", "aria-label": "Search the slices", value: st.find });
     find.addEventListener("input", () => { st.find = find.value.trim(); changed(); });
     const seg = h("div", { class: "plan-seg sl-seg", role: "group", "aria-label": "How to lay out the slices" }, LAYOUTS.map(([id, label]) =>
@@ -322,7 +327,7 @@ const Slices = (() => {
     const n = LIST.length, moving = LIST.filter((x) => P.statuses.indexOf(x.status) >= 1).length, late = LIST.filter((x) => x.overdue).length;
     const title = typeof Nav !== "undefined" ? Nav.title("Slices") : "Slices";
     main.append(h("div", { class: "view-head" }, h("div", {}, h("h1", {}, title),
-      h("p", {}, termEl("slice", n ? plural(n, "slice") : "Slices"), n ? `, ${moving ? `${moving} building or further along` : "none building yet"}${late ? `, ${late} with a journey past its due date` : ""}. Each is one journey a person can take, done when it is tried end to end and works, and switched on when someone decides. Pick a row to see all of it; a name opens it in the panel.` : " are the pieces the product is built and shipped in.")),
+      h("p", {}, termEl("slice", n ? plural(n, "slice") : "Slices"), n ? `, ${moving ? `${moving} building or further along` : "none building yet"}${late ? `, ${late} with a journey past its due date` : ""}${LIST.some((x) => x.tracer) && !moving ? ". The first to plan is the tracer" : ""}; pick a row to see what's in it.` : " are the pieces the product is built and shipped in.")),
       h("div", { class: "spacer" }), typeof Nav !== "undefined" ? Nav.pageActions() : null));
     const box = h("div", { class: "sl-body scroll", id: "board" });
     main.append(box);
@@ -361,7 +366,7 @@ const Slices = (() => {
     const chips = (list, fn) => h("div", {}, list.map(fn));
     return [Panel.section("Where it stands", null, h("div", {}, h("span", { class: "pill" }, statusWord(statusOf(x))),
         x.journey && !x.journey.problem ? h("span", { class: "muted small" }, ` tried end to end on ${day(x.journey.date)} by ${x.journey.by}`) : null,
-        x.overdue ? h("p", { class: "sl-late" }, x.overdue[0].toUpperCase() + x.overdue.slice(1) + ".") : x.journeyDue && !x.journey ? h("span", { class: "muted small" }, ` journey due ${x.journeyDue}`) : null,
+        x.overdue ? h("p", { class: "sl-late" }, x.overdue[0].toUpperCase() + x.overdue.slice(1) + ".") : x.journeyDue && !x.journey ? h("span", { class: "muted small" }, ` journey due ${isDate(x.journeyDue) ? day(x.journeyDue) : x.journeyDue}`) : null,
         h("div", { class: "p-actions" }, h("button", { class: "btn", onclick: () => { Nav.open("slices", key); } }, "Show it among the slices")))),
       x.flows.length ? Panel.section("Flows it proves", x.flows.length, chips(x.flows, (f) => (f.key ? refChip(f.key) : h("span", { class: "ref-chip ref-dead" }, f.id)))) : null,
       x.joins.length ? Panel.section("Contracts its flows use", x.joins.length, h("ul", { class: "mini-list" }, x.joins.map((j) =>

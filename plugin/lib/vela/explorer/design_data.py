@@ -257,7 +257,7 @@ def _frontmatter(text, problems):
     """(meta dict, line index where the body starts)."""
     lines = text.split("\n")
     if not lines or lines[0].strip() != "---":
-        _problem(problems, 1, "frontmatter", "no YAML frontmatter: the doc does not start with ---")
+        _problem(problems, 1, "frontmatter", "the design doc doesn't start with its --- header, so its status and links can't be read. Copy the header from the design template")
         return {}, 0
     end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
     if end is None:

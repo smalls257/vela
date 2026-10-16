@@ -57,7 +57,7 @@ def test_a_row_carries_its_joins_both_sides_the_apps_in_it_and_a_journey_past_du
     row = next(x for x in data["slicePlan"]["list"] if x["id"] == "SLC-003")
     assert row["joins"] == [{"id": "CON-001", "key": "CON-001", "from": "Kiosks", "to": "Booking"}]
     assert [data["entities"][a]["id"] for a in row["apps"]] == ["APP-booking", "APP-kiosks"]
-    assert row["journeyDue"] == "2026-11-19" and row["overdue"].endswith("journey was due 2026-11-19 and nothing is recorded")
+    assert row["journeyDue"] == "2026-11-19" and row["overdue"].endswith("journey by 19 November 2026, and nothing says how it went")
     assert row["check"]["status"] == "not fully checked"  # building with nothing drawn: what check's W395 says
     key = row["key"]
     assert data["lights"][key]["level"] == "warning" and data["ranked"][0] == key  # it is in What needs you
@@ -72,7 +72,7 @@ def test_a_row_carries_its_flow_check_state_and_overrides_with_their_end_dates(t
                                  extra="\n## Overrides\n\n" + rule))
     _, data = built(tmp_path, vault, "2026-10-13", "checked")
     check = data["slicePlan"]["list"][0]["check"]
-    assert check["status"] == "fails" and check["open"] == ["not final"] and check["covered"] == 0
+    assert check["status"] == "fails" and check["open"] == ["stops halfway"] and check["covered"] == 0
     assert [(o["code"], o["item"], o["until"], o["ended"]) for o in check["overrides"]] == [("F8", "CON-020", "2026-10-01", True)]
 
 
@@ -89,7 +89,7 @@ def test_a_row_says_the_last_full_check_as_recorded_and_never_a_pass_the_record_
     assert run("check-slice", "SLC-001", "--vault", str(vault), "--today", "2026-10-13")[0] == 1
     _, data = built(tmp_path, vault, "2026-10-13", "held")
     said = data["slicePlan"]["list"][0]["recorded"]
-    assert (said["state"], said["words"], said["checked"], said["open"]) == ("findings", "1 finding", "2026-10-13", ["not final"])
+    assert (said["state"], said["words"], said["checked"], said["open"]) == ("findings", "1 finding", "2026-10-13", ["stops halfway"])
     flow = next((vault / "06-runtime" / "flows").glob("FLO-005-*.md"))
     flow.write_text(flow.read_text(encoding="utf-8").replace("END declined", "END refused", 1), encoding="utf-8")
     _, data = built(tmp_path, vault, "2026-10-14", "later")

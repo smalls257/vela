@@ -17,7 +17,7 @@ from vela.opening import OpenError
 
 KIND_WORDS = {"both-edited": "You and the owner changed the same lines.", "both-added": "You and the owner both added this page.",
               "owner-deleted": "The owner deleted this page; you had changed it.", "you-deleted": "You deleted this page; the owner changed it, so it is back.",
-              "binary": "A binary file you and the owner both changed."}
+              "binary": "You and the owner both changed this file, and it isn't text, so it can't be merged. Keep one of the two."}
 
 
 def conflict_card(root, conflict):

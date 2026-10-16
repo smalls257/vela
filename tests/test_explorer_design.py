@@ -269,8 +269,8 @@ def test_the_deliberately_incomplete_doc_lists_each_problem():
 # --- malformed input never crashes, and says what it skipped ----------------------------------------------------
 
 @pytest.mark.parametrize("text, expected", [
-    ("", "no YAML frontmatter"),
-    ("# Tech Design — X\n", "no YAML frontmatter"),
+    ("", "doesn't start with its --- header"),
+    ("# Tech Design — X\n", "doesn't start with its --- header"),
     ("---\nslug: x\n", "frontmatter is never closed"),
     ("---\nslug: [x\n---\n", "frontmatter is not valid YAML"),
     ("---\n- a\n- b\n---\n", "frontmatter is not a mapping"),
