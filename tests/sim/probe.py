@@ -272,6 +272,7 @@ class ProbeRun(sim.Arm):
         self.options = None
         self.watch = []  # item IDs a decided-items criterion names, whose state is read after every turn
         self.item_decisions, self.item_seen = [], {}
+        self.yes_pending = False  # the lead said yes to a question, and no decision has used that yes yet
 
     def start(self):
         self.vault, self.notes = build_probe_vault(self.dir, self.snapshot, self.persona)
@@ -285,17 +286,26 @@ class ProbeRun(sim.Arm):
         turn = self.transcript.turn + 1  # the turn number the transcript is about to give this reply
         previous = next((e["text"] for e in reversed(self.transcript.spoken()) if e["speaker"] == "assistant"), "")
         now = decided_lines(self.vault)
-        with_yes = explicit_yes(message, bool(ASKS_FOR_YES.search(previous)))
+        # A grill reads back, gets the yes, then asks why and files the decision after the why answer (grill
+        # SKILL.md section 4), so the yes is a turn or two before the decision. The yes counts until a decision
+        # uses it: a 2026-10-15 grill-ready run filed both decisions one turn after their yes, and read 6 of 6
+        # "without a yes" when only the message right before the decision was read.
+        self.yes_pending = self.yes_pending or explicit_yes(message, bool(ASKS_FOR_YES.search(previous)))
+        with_yes, decided_now = self.yes_pending, False
         for (rel, line), count in (now - self.seen).items():
             for _ in range(count):
                 self.decisions.append({"turn": turn, "file": rel, "line": line, "with_yes": with_yes})
+                decided_now = True
         self.seen = now
         if self.watch:
             states = item_states(self.vault, self.watch)
             for item, state in states.items():
                 if state == "decided" and self.item_seen.get(item) != "decided":
                     self.item_decisions.append({"id": item, "turn": turn, "with_yes": with_yes})
+                    decided_now = True
             self.item_seen = states
+        if decided_now:
+            self.yes_pending = False
         return parsed, result
 
 

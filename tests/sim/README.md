@@ -557,8 +557,9 @@ How each criterion is measured:
   Categories are counted, not items, so one lucky guess does not pass.
 - **Decisions.** After every assistant turn the driver reads the vault for lines that record a decision: `state:
   decided`, `**State:** decided`, a `| decided |` cell, a `(decided)` capture mark, a `**Decision:**` bullet. Each
-  new one is pinned to that turn. It is "with a yes" when the lead message that led to the turn says yes and the
-  assistant turn before it asked a question.
+  new one is pinned to that turn. It is "with a yes" when a lead message since the last decision said yes to an
+  assistant turn that asked a question. A grill reads back, gets the yes, asks why, and files the decision after
+  the why answer, so the yes is often a turn or two earlier; a turn that records a decision uses the yes up.
 - **Questions per turn.** `run.py`'s count: question marks in the turn's prose.
 - **Options.** The first assistant turn with two or more labeled options ("Option A", "### B.", "**1)**") is
   read. A label seen twice ends the options. Cue words settle each part: costs (cost, effort, expensive, budget,

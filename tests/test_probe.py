@@ -811,3 +811,29 @@ def test_runs_are_averaged_with_their_spread(tmp_path):
     assert {(r["check"], r["name"]): (r["mean"], r["spread"]) for r in rows} == {("x", ""): (2.0, 2), ("y", "a"): (2.0, 0)}
     code, out, err, runs = run_probe(tmp_path, "grill-ready", "heron-desk", "--runs", "2", budget="2")
     assert "over 2 runs, decided-items, ready decided with a yes: mean 0.00, spread 0 (values 0, 0)" in out
+
+
+def test_a_yes_counts_for_the_decision_filed_after_the_why_and_is_used_up(tmp_path, monkeypatch):
+    """Read-back, yes, why, then the decision: the yes two messages back still counts, once."""
+    import types
+    page = tmp_path / "vault" / "a.md"
+    page.parent.mkdir()
+    page.write_text("### X-1 One\n\n- **State:** assumption\n", encoding="utf-8")
+    spoken = []
+    run = probe.ProbeRun.__new__(probe.ProbeRun)
+    run.vault, run.watch, run.item_seen, run.item_decisions, run.decisions = tmp_path / "vault", ["X-1"], {}, [], []
+    run.seen, run.yes_pending = probe.decided_lines(run.vault), False
+    run.transcript = types.SimpleNamespace(turn=0, spoken=lambda: spoken)
+    monkeypatch.setattr(probe.sim.Arm, "assistant_turn", lambda self, message, sid, cwd=None: (None, None))
+
+    def turn(lead, reply, decide=False):
+        if decide:
+            page.write_text("### X-1 One\n\n- **State:** decided\n", encoding="utf-8")
+        run.assistant_turn(lead, "s")
+        spoken.append({"speaker": "assistant", "text": reply})
+        run.transcript.turn += 1
+
+    turn("go", "Here is the read-back. Is that right?")
+    turn("Yes, that's right.", "Why this one, in your words?")
+    turn("Because people keep files everywhere.", "Filed.", decide=True)
+    assert run.item_decisions == [{"id": "X-1", "turn": 3, "with_yes": True}] and not run.yes_pending
