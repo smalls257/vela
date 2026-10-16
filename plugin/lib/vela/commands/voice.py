@@ -170,8 +170,11 @@ def cmd_plan(args, out):
 
 def retire_line(example, why):
     reason = "the cap of 5 forces it" if why == "cap" else "its folder now holds 2 of the owner's examples"
-    return say.Line(f"retire {example.path} ({example.source}, added {example.added}): {reason}",
-                    f"The {example.source.replace('-', ' ')} example added {example.added} would retire: {reason}.")
+    # voice audit row 201: not "retire" and "cap", and the date in words
+    added = say.date_words(example.added)
+    plain = (f"Saving this pushes out your oldest example, from {added}, because I keep five at most." if why == "cap"
+             else f"Saving this puts away the starter example from {added}, now that two of yours take its place.")
+    return say.Line(f"retire {example.path} ({example.source}, added {example.added}): {reason}", plain)
 
 
 def plan_result(plan, notes, command="voice plan"):
@@ -231,7 +234,7 @@ def save_result(args, root):
     if problem is not None:
         return problem
     if args.place == "committed" and sessiongit.is_read_copy(root):
-        return refused(command, "voice-reader-committed", "In a reader copy only the local place is open.",
+        return refused(command, "voice-reader-committed", "In your copy I can only keep it on this machine.",
                        "Store it with --place local; a reader copy has no git, so nothing is committed or pushed.")
     body, problem = read_passage(args.source_file, command)
     if problem is not None:
@@ -296,7 +299,8 @@ def store(root, found, plan, args, body):
     try:
         written = voicegit.write_example(root, rel, voiceplan.file_text(fields, body))
     except (OSError, atomic.WriteFailed) as exc:
-        return failed(command, f"vela voice: the disk refused {rel}: {exc}", "The disk refused the save.")
+        return failed(command, f"vela voice: the disk refused {rel}: {exc}",
+                      "I couldn't save it to disk, so nothing changed.")  # voice audit row 207
     if voiceplan.stored_body(written.decode("utf-8")) != body:
         return failed(command, f"vela voice: {rel} does not hold the passage exactly; it was not repaired",
                       "The saved file doesn't match your passage, so I stopped and left it as it is.",
@@ -309,7 +313,7 @@ def store(root, found, plan, args, body):
         voicegit.write_files(root, retiring)
     except atomic.WriteFailed as exc:
         return failed(command, f"vela voice: saved {rel}, but a retirement failed: {exc}",
-                      "I saved it, but the disk refused a retirement; the list says which.", {"wrote": [rel]})
+                      "I saved it, but I couldn't put away the older example it replaces.", {"wrote": [rel]})
     lines = [say.Line(f"wrote {rel}; the stored text equals the passage", "I've saved it word for word.")]
     lines += [say.Line(f"note: {n}", plain=f"Note: {n}.") for n in voiceplan.body_notes(body, args.type)]
     lines += [retire_line(e, "seed") for e in plan.seed_retires] + [retire_line(e, "cap") for e in plan.cap_retires]
@@ -319,7 +323,8 @@ def store(root, found, plan, args, body):
     result = say.Result(command, lines=lines, wrote=[rel] + list(retiring),
                         data={"id": ident, "path": rel, "retired": [e.id for e in plan.retires]})
     if sessiongit.is_read_copy(root):
-        result.lines.append(say.Line("reader copy: no git ran", "This is a reader copy, so nothing was committed."))
+        result.lines.append(say.Line("reader copy: no git ran", f"{say.YOUR_COPY}, so it's saved on this machine "
+                                     "only."))  # voice audit row 215
     return result
 
 
@@ -353,8 +358,8 @@ def vault_resolver(root):
 def harvest_result(root):
     command = "voice harvest list"
     if sessiongit.is_read_copy(root):
-        return refused(command, "voice-harvest-reader", "Harvest runs in the owner's clone; a reader copy has no git.",
-                       "Skip harvest here.")
+        return refused(command, "voice-harvest-reader", HARVEST_OWNER_ONLY, "Skip harvest here: a reader copy has no "
+                       "git, and harvest runs in the owner's clone.")
     found = voicegit.examples(root)
     owners = voiceplan.owner_handles(found)
     if not owners:
@@ -364,16 +369,22 @@ def harvest_result(root):
         handle = voicegit.login(root)
     except voicegit.GhFailed as exc:
         return failed(command, f"gh could not read your handle, so nothing was harvested. ({exc})",
-                      "gh could not read your handle, so nothing was harvested.", {"candidates": []})
+                      NO_GITHUB, {"candidates": []})
     if handle.lstrip("@") not in owners:
-        return refused(command, "voice-harvest-owner", "Harvest is owner-only.", "Skip harvest.",
+        return refused(command, "voice-harvest-owner", HARVEST_OWNER_ONLY, "Skip harvest. Harvest is owner-only.",
                        data={"candidates": []})
     try:
         prs = voicegit.merged_session_prs(root)
     except voicegit.GhFailed as exc:
         return failed(command, f"gh could not list merged PRs, so nothing was harvested. ({exc})",
-                      "gh could not list merged PRs, so nothing was harvested.", {"candidates": []})
+                      NO_GITHUB, {"candidates": []})
     return collect(root, found, prs)
+
+
+# voice audit rows 203 and 204: no "harvest", "clone" or gh's words, and no raw exception in what the lead hears
+HARVEST_OWNER_ONLY = "Only the plan's owner can collect their edits as examples, and only on their own machine."
+NO_GITHUB = "I couldn't reach GitHub, so I haven't looked for your edits."
+UNCHECKED_PR = "I couldn't read one of your merged changes on GitHub, so its edits weren't checked."
 
 
 def collect(root, found, prs):
@@ -390,12 +401,14 @@ def collect(root, found, prs):
                 continue
             offer["file"] = voicegit.write_paragraph(root, number, len(candidates) + 1, offer["merged"])
             candidates.append(offer)
-    lines += [say.Line(f) for f in failures]
+    lines += [say.Line(f, UNCHECKED_PR) for f in failures]
     lines += [say.Line(f"PR {c['pr']} {c['page']} {c['hash']}: {c['file']} ({c['voice_type'] or 'voice type unknown'})",
                        f"An edit you made to {page_stem(c['page'])}, in PR {c['pr']}.") for c in candidates]
     if not candidates and not failures:
         word = "PR" if len(prs) == 1 else "PRs"
-        lines.append(say.Line(f"No edits found in the {len(prs)} merged {word} checked."))
+        mine = ("Your last merged PR had no edits of yours to keep." if len(prs) == 1
+                else f"None of your last {say.count_words(len(prs))} merged PRs had edits of yours to keep.")
+        lines.append(say.Line(f"No edits found in the {len(prs)} merged {word} checked.", mine))  # row 208
     return say.Result("voice harvest list", exit=say.FAILED if failures else say.DONE, lines=lines,
                       data={"candidates": candidates, "unchecked": failures})
 

@@ -81,11 +81,11 @@ def replace(root, page, line, wanted, today):
         "paragraph": found.text})
     result.lines.append(say.Line(f"copied {shown} lines {found.first}-{found.last} under {prosereplace.HEADING} "
                                  f"in {record.path}.",
-                                 plain="I kept the old paragraph word for word in the session record, under Replaced "
-                                       "prose, so you can rewrite it."))
+                                 plain="I kept the old paragraph word for word in the session record, so I can "
+                                       "rewrite it and you can still see the old one."))  # voice audit row 225
     if sessiongit.is_read_copy(root):
         result.lines.append(say.Line("read copy: wrote the file, ran no git.",
-                                     plain="This is a read copy, so the record changed on disk only."))
+                                     plain=f"{say.YOUR_COPY}, so the record changed on this machine only."))
     return result
 
 
@@ -114,11 +114,15 @@ def open_record(root, wanted):
 
 
 def refused(miss):
+    """A line that holds no paragraph is the model's pick, so its line number and "frontmatter" are the model's to
+    read; the lead hears only that I'll fix it (voice audit row 224). A generated block is said in words."""
     fix = ("Give a line of the paragraph itself." if miss.rule == "no paragraph"
            else "Rewrite the prose around the block; vela render rewrites the block itself.")
-    return say.Result(NAME, exit=say.REFUSED, data={"rule": miss.rule}, refusals=[say.Refusal(
-        rule=miss.rule, plain=miss.plain, fix=fix,
-        override="copy the paragraph by hand under ## Replaced prose in the session record")])
+    audience = say.MODEL if miss.rule == "no paragraph" else say.LEAD
+    plain = miss.plain if audience == say.MODEL else "That's not a paragraph anyone wrote, so there's nothing to keep."
+    return say.Result(NAME, exit=say.REFUSED, data={"rule": miss.rule, "why": miss.plain}, refusals=[say.Refusal(
+        rule=miss.rule, plain=plain, fix=f"{miss.plain} {fix}" if audience == say.LEAD else fix, audience=audience,
+        override="copy the paragraph by hand under ## Replaced prose in the session record", waiver="")])
 
 
 def failed(text, plain):

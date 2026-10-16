@@ -147,11 +147,14 @@ def abort(root):
     _out(root, "merge", "--abort")
 
 
-def conflicted_text(root, path):
+def conflicted_text(root, path, top=None):
     """The file's text with git's markers, or None when it is not there or not UTF-8 text (a modify/delete or binary
-    conflict). None is not "no conflict": mergeplan counts such a file as outside."""
+    conflict). None is not "no conflict": mergeplan counts such a file as outside. `path` is repository-relative, as
+    `conflicted_files` gives it, so it is read from the repository's top: read from a vault in a subfolder, every
+    file was "not there" and a conflict only in generated blocks stopped the merge as the lead's writing (C83)."""
+    top = pathlib.Path(top) if top else pathlib.Path(_out(root, "rev-parse", "--show-toplevel"))
     try:
-        return (pathlib.Path(root) / path).read_text(encoding="utf-8")
+        return (top / path).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
 

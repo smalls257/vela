@@ -338,6 +338,12 @@ nohup caffeinate -dimsu python3 tests/sim/run.py <persona> --script <script> ...
 
 Then follow the log with `tail -f`.
 
+To see whether a detached run has hung, run `python3 tools/stall_check.py` (free, read-only). It lists each sim or
+probe run folder that isn't finished (no `"exit"` in run.json, no probe.json) and has had no write for 25 minutes
+(`--minutes`) with no `run.py` or `probe.py` process working in its checkout, across this checkout and every agent
+worktree. Exit 1 means at least one is stalled; exit 2 means it couldn't read the process list, which it never takes
+as "nothing is running".
+
 ## What the driver does that a person would do
 
 - **It merges each closed session's PR.** The arm's `gh` is a stub: `gh pr create` records the PR (number, head,
@@ -817,6 +823,7 @@ only for a holdout.
   keyword list fails the run at load, exit 2, and no keyword other than K1's may appear in the opening. Every
   item also has one `category` from the fixed set in `run.py` (`CATEGORIES`), checked at load the same way.
 - `scripts/default.yaml` and `scripts/smoke.yaml`: the sessions, with each arm's opening and a turn cap.
+  `scripts/retired/` keeps four scripts that ran the user's own skills, now removed; no test reads them.
 - `voices/seuss-style/`: two original pastiche examples per voice type. None holds text from any published
   book, and each says so in its `from` field.
 - `stub/claude`: the scripted fake.

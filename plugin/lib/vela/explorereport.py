@@ -115,9 +115,10 @@ def _looked(details, r):
 
 def _no_design(m, details, r):
     many = _many(m["apps"])
-    head = (f"No design yet for {_names(m['apps'], r)}, so Inside this app shows only {'their' if many else 'its'} containers. "
-            f"{'Each' if many else 'The'} app's team can write one with /vela:design from the plan's folder, or you can "
-            "point to an existing doc with design: on the app page.")
+    # voice audit rows 163 and 194: not "containers" or the `design:` key, and one route said in words
+    head = (f"No design yet for {_names(m['apps'], r)}, so the Inside this app view shows only "
+            f"{'their' if many else 'its'} main parts. {'Each' if many else 'Its'} team writes one in a design "
+            "session, or you can point me to a design doc you already have.")
     return " ".join([head] + _looked(details, r))
 
 

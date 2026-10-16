@@ -177,7 +177,7 @@ def report(item, ident, written, blocks, view, reader):
     lines += [say.Line(n) for n in notices]
     if reader:
         lines.append(say.Line("read copy: nothing committed (no git runs here); the proposal carries the changes.",
-                              plain="This is a read copy, so nothing was committed; the changes go to the owner "
+                              plain="This is your copy, so nothing was committed; the changes go to the owner "
                                     "with your proposal."))
     return say.Result(NAME, lines=lines, wrote=written,
                       data={"id": ident, "type": kind, "now_blocks": blocks, "notices": notices, "reader": reader})

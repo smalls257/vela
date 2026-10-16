@@ -1240,11 +1240,22 @@ def test_a_run_whose_team_wrote_no_design_still_ends_with_the_page_and_says_none
     assert any(e.get("event") == "explorer" and "0 tech design(s), 0 build plan(s)" in e["text"] for e in entries(arm))
 
 
+RETIRED = SIM / "scripts" / "retired"
+
+
+def test_retired_scripts_are_kept_out_of_the_live_checks():
+    """The four scripts that ran the user's own (removed) skills live in scripts/retired/, which the script checks
+    above never read (their glob is one folder deep), and no live script still asks for the user's skills."""
+    retired = {p.stem for p in RETIRED.glob("*.yaml")}
+    assert {"heron-desk-full", "heron-desk-design", "heron-desk-design-2", "heron-desk-resume"} <= retired
+    live = sorted((SIM / "scripts").glob("*.yaml"))
+    assert not retired & {p.stem for p in live}
+    assert [p.name for p in live if "vault_skills" in yaml.safe_load(p.read_text(encoding="utf-8"))] == []
+
+
+@pytest.mark.skip(reason="heron-desk-full is retired (tests/sim/scripts/retired/): it ran the user's removed skills")
 def test_the_full_heron_script_ends_with_the_explorer_the_tool_built_in_its_vault(tmp_path):
-    for skill in ("tech-design-grill", "work-breakdown"):
-        if not (sim.USER_SKILLS / skill / "SKILL.md").is_file():
-            pytest.skip(f"the user's {skill} skill is not installed on this machine")
-    script = SIM / "scripts" / "heron-desk-full.yaml"
+    script = RETIRED / "heron-desk-full.yaml"
     done = subprocess.run([sys.executable, str(SIM / "run.py"), "heron-desk", "--stub", "--script", str(script), "--arms", "vela",
                            "--out", str(tmp_path / "results"), *MODELS, "--budget", "5"], capture_output=True, text=True, timeout=900)
     assert done.returncode == 0, done.stderr

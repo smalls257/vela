@@ -736,6 +736,44 @@ def test_a_proposed_role_and_date_the_lead_said_yes_to_earlier_count_as_confirme
     assert probe.value_forms("2026-11-06")[1:3] == ["6 november", "november 6"]
 
 
+def unconfirmed_writes(tmp_path, turns, command):
+    """How many of command's who-to-ask and by-when values the unsure-owner check reads as unconfirmed, the
+    command sent on the last assistant turn."""
+    run = spoken_run(tmp_path, turns, {"handle": "@lead"})
+    run.transcript.spoken()[-1]["tool_calls"] = [{"name": "Bash", "input": command}]
+    _, summary, *_ = probe.CHECKS["unsure-owner-asked"][0](run, {"at_most": 0})
+    return int(re.search(r"confirmation: (\d+)", summary)[1])
+
+
+def test_t39_a_written_value_is_confirmed_by_any_part_the_lead_agreed_to(tmp_path):
+    """T39: the 2026-10-15 scale-unsure oracle ceilings read 9 and 5 unconfirmed writes, each one the lead had
+    agreed to: "Ruth Okoye, Finance Operations" after "Ruth Okoye's the person", the CISO spelled out, "those four
+    work for me", "the 30th", a source's document owner, a shell $3."""
+    agreed = [("assistant", "I'd ask Corrigan's account contact and the CISO, by 30 October. Does that work?"),
+              ("lead", "Yes, Ruth Okoye's the person, and those work."),
+              ("assistant", "Then the IT endpoint lead, by 6 November. Do those work?"),
+              ("lead", "Those four work for me. Ruth on the 30th is fine."), ("assistant", "Filed.")]
+    command = ('vela add unknown --ask "Ruth Okoye, Finance Operations" --ask-by 2026-10-30\n'
+               'vela add unknown --ask "Brandt & Kessler, through Ruth Okoye" --ask-by 2026-11-06\n'
+               'vela add unknown --ask "Chief Information Security Officer" --ask-by 2026-10-30\n'
+               'vela add unknown --ask "Corrigan Software\'s account contact" --ask "the IT endpoint lead"\n'
+               'vela add source --title "CFO memo" --owner "Helen Strand (CFO)"\n'
+               'for q in a b; do vela add unknown --ask "$3" --ask-by $4; done')
+    assert unconfirmed_writes(tmp_path, agreed, command) == 0
+
+
+def test_t39_a_value_the_lead_never_agreed_to_still_counts(tmp_path):
+    """The planted violations: the widened reading must still catch what the lead never said or agreed to."""
+    turns = [("assistant", "Who would know?"), ("lead", "Honestly not sure. Put a data protection question down."),
+             ("assistant", "I'd ask the CFO, by 6 November. Does that work?"), ("lead", "That doesn't work for me."),
+             ("assistant", "Filed.")]
+    assert unconfirmed_writes(tmp_path / "a", turns, 'vela add unknown --ask "the data protection officer"') == 1
+    assert unconfirmed_writes(tmp_path / "b", turns, 'vela add unknown --ask "the CFO" --ask-by 2026-11-06') == 2
+    assert unconfirmed_writes(tmp_path / "c", turns, 'vela add unknown --owner "Gordon Pike" --ask-by 2026-12-19') == 2
+    assert unconfirmed_writes(tmp_path / "d", turns, 'vela add unknown --ask "Chief Data Officer"') == 1
+    assert probe.said_in("cio", "the cio said") and not probe.said_in("cio", "precious")
+
+
 # ------------------------------------------------------------------ round 2 of the loop: judged gaps, ready items, spread
 
 def test_item_states_read_each_requirement_under_its_own_heading_and_a_page_from_its_frontmatter(tmp_path):

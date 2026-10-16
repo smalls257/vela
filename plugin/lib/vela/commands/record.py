@@ -1,4 +1,4 @@
-"""`vela record add --origin O --tag T [--mark M] "text"`: one capture line in the open session record, numbered in
+"""`vela record add [--origin O] --tag T [--mark M] "text"`: one capture line in the open session record, numbered in
 code (overhaul Task 6b). Named `record`, not `capture`: `vela capture` is the vault's counts, which the session
 simulator reads (`tests/sim/run.py`), so that name and its output stay as they are.
 
@@ -13,6 +13,11 @@ verbatim; `claude` for Claude's own idea; `claude, from <name>` for Claude's res
 recommendation the lead accepted. A mode whose skill marks its captures at once (Grill, Discover, Boundary,
 Requirements, Allocate, Releases) passes `--mark`.
 
+With no `--origin` the words are the lead's, written `@<handle>` from `vela whoami` (the cache, then gh): the consent
+checks compare a yes's origin with that handle, so a capture written without `--origin` still counts as the lead's
+yes. When nobody knows the handle, nothing is written and the exit is 3 with whoami's question (ask once, then
+`vela whoami --set`): writing the line under a guessed or empty origin would be a yes no consent check can trust.
+
 Which record: `.vela/session.json` (written by `session start`) while it names an open record, else the one open
 record in the working tree's `sessions/`. Exit codes: 0 added (the number is printed); 1 no open record, or a line
 that would not parse; 2 the record or git failed; 3 several open records in this folder (pick with `--record`).
@@ -23,6 +28,7 @@ session file still hold every number this copy used.
 import pathlib
 
 from vela import commands, records, say, sessions
+from vela.commands import whoami
 from vela.edge import sessiongit
 from vela.edge.vaultgit import GitUnavailable
 
@@ -36,8 +42,10 @@ def register(sub):
     verbs.required = True
     adder = verbs.add_parser("add", help="append one capture line with the next ^cNN, and print the number")
     adder.add_argument("--vault", default=".", help="vault root or reader workspace (default: current directory)")
-    adder.add_argument("--origin", required=True,
-                       help="whose words: a name, role or handle (quoted verbatim), claude, or 'claude, from <name>'")
+    adder.add_argument("--origin", default="",
+                       help="whose words: a name, role or handle (quoted verbatim), claude, or 'claude, from <name>'. "
+                            "Default: the lead, as @<handle> from vela whoami, so the consent checks read the "
+                            "line as the lead's own yes; exit 3 when the handle isn't known yet")
     adder.add_argument("--tag", required=True, help="idea, thought, unknown, wild or worry (or the mode's own tag)")
     adder.add_argument("--mark", default="", help="a mark written at once, for the modes that mark as they go")
     adder.add_argument("--record", default="", metavar="ID", help="the open record to add to, when several are open")
@@ -86,21 +94,31 @@ def open_record(root, state, wanted):
     return found[0].path, found[0].id
 
 
+def lead_origin(root):
+    """(`@<handle>`, what whoami wrote) for a capture with no --origin, or Stop with whoami's exit 3 (ask the lead
+    once). gh's answer is cached by whoami, so that write is listed too."""
+    found = whoami.find_handle(root)
+    if found.exit != say.DONE:
+        raise Stop(say.Result(NAME, exit=found.exit, needs_lead=found.needs_lead, lines=found.lines))
+    return "@" + found.data["handle"], list(found.wrote)
+
+
 def add(root, args, reader):
     state = sessiongit.read_json(root, sessiongit.STATE_FILE)
     rel, record_id = open_record(root, state, args.record)
+    origin, wrote = (args.origin.strip(), []) if args.origin.strip() else lead_origin(root)
     path = root / rel
     text = path.read_text(encoding="utf-8")
     remembered = {int(state.get("last_capture") or 0)} if state and state.get("id") == record_id else set()
     history = set() if reader else records.numbers_in(sessiongit.history_text(root, rel))
     number = records.next_number(records.numbers_in(text), remembered, history)
     try:
-        line = records.capture_line(args.tag, args.origin, args.text, number, args.mark)
+        line = records.capture_line(args.tag, origin, args.text, number, args.mark)
         new_text = records.append(text, line)
     except records.CaptureRefused as exc:
         raise Stop(say.Result(NAME, exit=say.REFUSED, refusals=[say.Refusal(
             "capture grammar", f"I didn't add the note: {exc}.", "change that part and run it again")])) from exc
-    wrote = [sessiongit.write_text(root, rel, new_text)]
+    wrote.append(sessiongit.write_text(root, rel, new_text))
     kept = dict(state) if state and state.get("id") == record_id else {"id": record_id, "path": rel}
     kept["last_capture"] = number
     wrote.append(sessiongit.write_state(root, kept))

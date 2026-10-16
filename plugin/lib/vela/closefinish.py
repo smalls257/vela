@@ -47,7 +47,7 @@ NO_SESSION_DASHBOARD = ("I've updated the dashboard on your machine only, since 
                         "next time you finish a session, or I can put it on its own branch.")
 DASHBOARD_PUT_BACK = "I've left the dashboard as it was. It'll be brought up to date when you next finish a session."
 NOT_SETTLED_HEAD ="Not settled at handoff for {app}, so its team should hear this before they accept it:"
-READER_NOTHING_COMMITTED = ("This is a read copy, so I've closed your session record here and committed nothing. "
+READER_NOTHING_COMMITTED = ("This is your copy, so I've closed your session record here and committed nothing. "
                             "It reaches the owner through a proposal.")
 
 

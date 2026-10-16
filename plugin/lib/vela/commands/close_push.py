@@ -59,7 +59,7 @@ CLOSE_DIR = ".vela/close"
 BODY_FILE = ".vela/pr-body.md"
 VERSION = 1
 HANDOFF_MESSAGE = "Handoff PR number for {app}"
-READER_SENTENCE = "This is a read copy, so close writes your session record and stops. Nothing is committed, pushed or sent."
+READER_SENTENCE = "This is your copy, so close writes your session record and stops. Nothing is committed, pushed or sent."
 PENDING = re.compile(r"^(handed_off:.*\bPR )pending(\"?\s*)$", re.M)
 
 

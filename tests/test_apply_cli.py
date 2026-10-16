@@ -191,7 +191,7 @@ def test_reader_copy_applies_without_git(tmp_path, note_kind, failing_git):
     assert code == 0, out
     assert "Stores count stock nightly." in (root / STOCK).read_text(encoding="utf-8")
     assert not failing_git.exists()
-    assert "read copy" in out.lower() and say.leak_in(out) is None
+    assert "your copy" in out.lower() and say.leak_in(out) is None
 
 
 def test_for_lead_says_what_was_filed_with_no_codes(tmp_path, note_kind):

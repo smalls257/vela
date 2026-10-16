@@ -236,5 +236,7 @@ def lead_lines(prep):
     words = f"Checking this against {COUNT_WORDS.get(count, count)} angle{'' if count == 1 else 's'}, about a minute."
     if prep.skipped:
         names = ", ".join(s.label.lower() for s in prep.skipped)
-        words += f" I left out {names}: nothing there is owed or changed. Say if you want it checked anyway."
+        it = "it" if len(prep.skipped) == 1 else "them"
+        # voice audit row 199: not "owed", ledger talk
+        words += f" I skipped {names}: nothing there changed or is waiting on an answer. Want {it} checked anyway?"
     return [say.Line(words, plain=words)]
