@@ -118,5 +118,6 @@ def test_doctor_prints_the_command_and_after_it_a_hand_commit_is_checked(vault, 
     for step in command.split(" && "):
         assert subprocess.run(step.split(" "), cwd=vault, capture_output=True, timeout=60).returncode == 0
     _, out = run("doctor", "--vault", str(vault))
-    assert f"ok        the vault's pre-commit hook checks hand commits with vela at {LAUNCHER}" in out
+    # the status column's width follows the longest label, so compare words, not spacing
+    assert f"ok the vault's pre-commit hook checks hand commits with vela at {LAUNCHER}" in " ".join(out.split())
     assert commit(vault, "notes.md").returncode == 0
