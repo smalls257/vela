@@ -29,6 +29,12 @@ topics:
     signal, whether patients can opt out of the texts, whether the rostering file shows sickness, what happens to visits
     booked in paper diaries on go-live day, and whether the night team uses it
   grill: the requirements for planning a nurse's day
+  # for the generic full-run scripts (scripts/default.yaml), which every persona must be able to play
+  discover_2: how Tidewell would reach the care record, the rota and the lone-worker service
+  shape_1: what the first release of Tidewell covers and for which localities
+  shape_2: how a day's plan is made and changed
+  grill_2: how visit notes reach the care record
+  epics: the Community Operations team
 
 knows:
   - id: K1

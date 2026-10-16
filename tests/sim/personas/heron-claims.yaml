@@ -36,6 +36,12 @@ topics:
     the general ledger takes the nightly file, who answers staff about a rejected claim, what happens to paper claims in
     progress on go-live day, and whether the cost centres match
   grill: the requirements for claiming an expense
+  # for the generic full-run scripts (scripts/default.yaml), which every persona must be able to play
+  discover_2: how Ledgerline would reach the general ledger, the HR system and the card statements
+  shape_1: what the first release of Ledgerline covers and for whom
+  shape_2: how a claim is approved and paid
+  grill_2: how approved claims are paid in each country
+  epics: the Finance Operations team
 
 knows:
   - id: K1
