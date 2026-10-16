@@ -57,10 +57,12 @@ def _load_driver():
 
 sim = _load_driver()
 seal = sim.load_sim_module("seal")
+scale = sim.load_sim_module("probe_scale")
 
 ToolFailure = sim.ToolFailure
 SNAPSHOTS = HERE / "snapshots"
 PROBES = HERE / "probes"
+SCALE_CASES = HERE / "scale" / "cases"  # the scaled cases and their snapshots (probe_scale.py); a case may name its root
 PROBE_RESULTS = sim.RESULTS / "probes"
 DETAIL_NAME = "detail-DO-NOT-READ-WHEN-BLIND.md"
 EXCERPT = 200
@@ -91,13 +93,15 @@ def case_problems(case):
     if not isinstance(case, dict):
         return ["the case must be a mapping"]
     problems = []
-    snapshots = case.get("snapshot")
+    snapshots, root = case.get("snapshot"), snapshot_root(case)
     if not isinstance(snapshots, dict) or not snapshots:
         problems.append("'snapshot' must map each persona name to a snapshot name")
     else:
         for persona, name in snapshots.items():
-            if not (SNAPSHOTS / str(persona) / str(name)).is_dir():
-                problems.append(f"snapshot {persona}/{name} is not a folder in {SNAPSHOTS}")
+            if not (root / str(persona) / str(name)).is_dir():
+                problems.append(f"snapshot {persona}/{name} is not a folder in {root}")
+    if "oracle" in case and not (isinstance(case["oracle"], str) and case["oracle"].strip()):
+        problems.append("'oracle' must be the plain instruction a ceiling run passes the assistant, or left out")
     problems += sim.news_problems(case.get("news"))
     if not isinstance(case.get("opening"), str) or not case["opening"].startswith("/vela:"):
         problems.append("'opening' must be a /vela: command")
@@ -126,8 +130,16 @@ def case_problems(case):
     return problems
 
 
+def snapshot_root(case):
+    """SNAPSHOTS, or the folder a case names with `snapshot_root:` (relative to tests/sim), such as scale/snapshots."""
+    root = case.get("snapshot_root") if isinstance(case, dict) else None
+    return HERE / root if root else SNAPSHOTS
+
+
 def load_case(ref):
     path = pathlib.Path(ref) if str(ref).endswith(".yaml") else PROBES / f"{ref}.yaml"
+    if not path.is_file() and not str(ref).endswith(".yaml") and (SCALE_CASES / f"{ref}.yaml").is_file():
+        path = SCALE_CASES / f"{ref}.yaml"
     case = sim.load_yaml(path)
     problems = case_problems(case)
     if problems:
@@ -150,7 +162,7 @@ def snapshot_dir(case, persona_name):
     name = (case.get("snapshot") or {}).get(persona_name)
     if not name:
         raise ToolFailure(f"case {case['name']} has no snapshot for persona {persona_name}")
-    return SNAPSHOTS / persona_name / name
+    return snapshot_root(case) / persona_name / name
 
 
 def inbox_problems(vault, persona):
@@ -167,7 +179,8 @@ def build_probe_vault(run_dir, snapshot, persona):
     A plugin inside the snapshot is removed first: the probe exists to test the skills as they are now."""
     vault, origin = run_dir / "vault", run_dir / "origin.git"
     shutil.copytree(snapshot, vault, symlinks=True, ignore=shutil.ignore_patterns(".git"))
-    label = snapshot.relative_to(SNAPSHOTS).as_posix() if snapshot.is_relative_to(SNAPSHOTS) else str(snapshot)
+    label = snapshot.relative_to(SNAPSHOTS).as_posix() if snapshot.is_relative_to(SNAPSHOTS) else \
+        snapshot.relative_to(HERE).as_posix() if snapshot.is_relative_to(HERE) else str(snapshot)
     notes = [f"vault copied from snapshot {label}"]
     skills = vault / ".claude" / "skills"
     if skills.exists():
@@ -242,6 +255,7 @@ class ProbeRun(sim.Arm):
         self.decisions = []
         self.seen = collections.Counter()
         self.options = None
+        self.oracle = ""  # a ceiling run's plain instruction, appended to the assistant's system prompt
 
     def start(self):
         self.vault, self.notes = build_probe_vault(self.dir, self.snapshot, self.persona)
@@ -250,7 +264,8 @@ class ProbeRun(sim.Arm):
             self.transcript.add(speaker="driver", session=0, mode="setup", event="setup", text=note)
 
     def assistant_turn(self, message, session_id, cwd=None):
-        parsed, result = super().assistant_turn(message, session_id, cwd)
+        with scale.oracle_argv(sim, self.oracle):
+            parsed, result = super().assistant_turn(message, session_id, cwd)
         turn = self.transcript.turn + 1  # the turn number the transcript is about to give this reply
         previous = next((e["text"] for e in reversed(self.transcript.spoken()) if e["speaker"] == "assistant"), "")
         now = decided_lines(self.vault)
@@ -1024,12 +1039,29 @@ def unsure_owner_asked(run, criterion):
     return passed, summary, detail
 
 
+class _ThisModule:
+    """This module's names, read when used: loaded by path (as tests do), probe.py may not be in sys.modules."""
+
+    def __getattr__(self, name):
+        try:
+            return globals()[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+
+THIS = _ThisModule()
+scale.register(THIS)
+
+
 def score(run, case):
+    """Each criterion's row. A check may return a fourth value, its measure (a count of N), which the summary
+    averages over the runs (probe_scale.summarize)."""
     rows = []
     for criterion in case["criteria"]:
         fn = CHECKS[criterion["check"]][0]
-        passed, summary, detail = fn(run, criterion)
-        rows.append({"check": criterion["check"], "passed": passed, "summary": summary, "detail": detail})
+        passed, summary, detail, *rest = fn(run, criterion)
+        rows.append({"check": criterion["check"], "passed": passed, "summary": summary, "detail": detail,
+                     "measure": rest[0] if rest else None})
     return rows
 
 
@@ -1085,6 +1117,7 @@ def run_once(case, persona, persona_name, args, n, stamp, share):
     run = ProbeRun(folder, pathlib.Path(args.out).resolve(), args, persona, share,
                    snapshot_dir(case, persona_name), reserve)
     run.rows, run.failure = [], None
+    run.oracle = case.get("oracle", "") if getattr(args, "oracle", False) else ""
     text = opening_text(case, persona)
     session = {"mode": case["mode"], "cap": case["cap"], "vela": text.replace("{", "{{").replace("}", "}}"),
                "baseline": text.replace("{", "{{").replace("}", "}}")}
@@ -1113,7 +1146,14 @@ def run_record(run, blind):
             "ending": ending["reason"], "assistant_turns": sum(e["turns"] for e in endings),
             "failure": headline(run.failure) if (run.failure and blind) else run.failure,
             "passed": run.failure is None and ending["reason"] != "budget" and all(r["passed"] for r in run.rows),
-            "criteria": [{"check": r["check"], "passed": r["passed"], "summary": r["summary"]} for r in run.rows]}
+            "criteria": [{"check": r["check"], "passed": r["passed"], "summary": r["summary"]} for r in run.rows],
+            "oracle": bool(run.oracle), "measures": run_measures(run)}
+
+
+def run_measures(run):
+    """The criteria's measures, then the voice on the lead-facing turns. Counts only, so blind-safe. A voice sensor
+    that breaks is a tool failure (exit 2), never a quiet zero that would read as a clean voice."""
+    return [r["measure"] for r in run.rows if r.get("measure")] + scale.voice_measures(run, THIS, sim)
 
 
 def write_outputs(run, case, persona_name, blind):
@@ -1146,6 +1186,8 @@ def print_run(record, run, n, runs, blind):
         if not blind:
             for line in row["detail"]:
                 print(f"      {line}")
+    for m in record.get("measures") or []:
+        print(f"  measure {m['name']}: {m['value']:g}" + (f" of {m['of']}" if m.get("of") else ""))
     if blind:
         print(f"  blind: item detail is in {DETAIL_NAME} in the run folder; do not read it while iterating")
 
@@ -1156,7 +1198,11 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("case", help="case name in tests/sim/probes/, or a .yaml path")
     parser.add_argument("--persona", required=True, help="persona name in tests/sim/personas/")
-    parser.add_argument("--runs", type=int, default=1, help="how many runs of the case, one after another; default 1")
+    parser.add_argument("--runs", type=int, default=5,
+                        help="how many runs of the case, one after another; default 5, enough for a spread")
+    parser.add_argument("--oracle", action="store_true",
+                        help="the ceiling run: pass the case's oracle: text to the assistant as an appended system "
+                             "prompt, for this probe only; it measures the material, never a skill")
     parser.add_argument("--model", required=True, help="assistant model, pinned")
     parser.add_argument("--persona-model", required=True, help="persona model, pinned")
     parser.add_argument("--judge-model", required=True, help="judge model, pinned; only option checks call it")
@@ -1202,6 +1248,8 @@ def main(argv=None):
         persona = sim.with_news(persona, case.get("news"))
         snapshot_dir(case, persona_name)
         opening_text(case, persona)
+        if args.oracle and not case.get("oracle"):
+            raise ToolFailure(f"case {case['name']} has no oracle: text, so it has no ceiling run")
         ledger = LoopLedger(args.loop_ledger)
     except ToolFailure as exc:
         print(f"probe: {exc}", file=sys.stderr)
@@ -1211,7 +1259,7 @@ def main(argv=None):
               f"invocation's --budget ${args.budget:.2f} would take it to ${ledger.spent + args.budget:.2f}.")
         return 1
     print(f"probe {case['name']}, persona {persona_name}, {args.runs} run(s), budget ${args.budget:.2f}"
-          f"{', blind' if blind else ''}. Loop spend so far ${ledger.spent:.2f} of ${args.loop_budget:.2f}.")
+          f"{', blind' if blind else ''}{', ORACLE (ceiling run)' if args.oracle else ''}. Loop spend so far ${ledger.spent:.2f} of ${args.loop_budget:.2f}.")
     stamp = f"{datetime.datetime.now():%Y-%m-%d-%H%M%S}"
     share = args.budget / args.runs
     records, failed, current = [], False, None
@@ -1233,9 +1281,18 @@ def main(argv=None):
     finally:
         spent = round(sum(r["spent_usd"] for r in records), 4)
         code = 2 if failed else 0 if all(r["passed"] for r in records) else 1
+        summary = scale.summarize(records)
         ledger.record({"at": stamp, "case": case["name"], "persona": persona_name, "runs": len(records),
                        "budget_usd": args.budget, "spent_usd": spent, "stub": args.stub, "exit": code,
-                       "folders": [r["folder"] for r in records]})
+                       "oracle": args.oracle, "folders": [r["folder"] for r in records], "summary": summary})
+        out = pathlib.Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / f"{stamp}-{case['name']}-{persona_name}{'-oracle' if args.oracle else ''}-summary.json").write_text(
+            json.dumps({"case": case["name"], "persona": persona_name, "oracle": args.oracle, "blind": blind,
+                        "runs": len(records), "folders": [r["folder"] for r in records], "measures": summary},
+                       indent=2), encoding="utf-8")
+    for line in scale.summary_lines(summary, args.oracle):
+        print(line)
     passed = sum(1 for r in records if r["passed"])
     print(f"probe: {passed} of {len(records)} run(s) passed every criterion. Spent ${spent:.2f} of ${args.budget:.2f}; "
           f"loop spend now ${ledger.spent:.2f} of ${args.loop_budget:.2f}. Exit {code}.")
