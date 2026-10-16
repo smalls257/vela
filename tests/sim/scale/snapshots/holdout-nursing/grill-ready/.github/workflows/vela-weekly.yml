@@ -1,0 +1,48 @@
+# Every Monday, posts the vault's health as the one open issue titled
+# "Vault health": stale pages and sources, overdue unknowns with their
+# owners @-mentioned, and the days since the last session. It creates the
+# issue the first time and edits it after that. Run it by hand from the
+# Actions tab to see it at once. If gh fails, the job fails and shows red;
+# it never reports success for an issue it did not write. Built and tested
+# with a stand-in for gh; it has not yet run against a live repository.
+# Two limits of GitHub to know: an edit pings only the owners added since the
+# last run, because GitHub notifies on new mentions; and scheduled runs stop
+# after 60 days with no activity in the repository.
+name: vela weekly
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: vault-health
+  cancel-in-progress: false
+
+jobs:
+  vault-health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PyYAML
+        run: python -m pip install "pyyaml>=6,<7"
+      - name: Build the report
+        run: python .claude/skills/vela/bin/vela health > vault-health.md
+      - name: Open or update the Vault health issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          number=$(gh issue list --state open --search 'in:title "Vault health"' --json number,title --jq '[.[] | select(.title == "Vault health") | .number] | first // empty')
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file vault-health.md
+          else
+            gh issue create --title "Vault health" --body-file vault-health.md
+          fi

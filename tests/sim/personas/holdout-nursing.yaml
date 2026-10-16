@@ -1,0 +1,361 @@
+# A holdout persona of the scaled probes (tests/sim/scale/, built 2026-10-15). Do not read it while iterating on the
+# skills: it is scored, never read (tests/sim/README.md, "Iterating without teaching to the test").
+# Everything here is made up: Fenmoor, Tidewell, Brightpath, CareLedger, SafeCall and every named person are fictional.
+# The rules the gaps rest on are real, simplified: records retention for adult community health records, international
+# transfers of health data, lone-worker duties.
+#
+# The same shape as heron-claims, in another domain: 8 U implications of two documents read together; 8 stakeholder
+# positions as facts heard only when their own subject comes up, clashing in pairs; 6 known loose ends
+# (open_question: true); 11 decisions on the grill-ready snapshot, 3 held by an open unknown (blocked: true).
+split: holdout
+name: Grace Whitlow
+role: solution lead for Tidewell, the app that plans district nurses' home visits
+org: Fenmoor Community Health, which runs community nursing across a rural county, with 340 district nurses
+handle: "@sim-lead"
+style: >-
+  Warm and careful, a former nurse. Answers in two or three sentences. Says "honestly not sure" when she doesn't know,
+  and never guesses. Changes her mind once when given a good reason, and says so plainly. Never writes lists unless
+  asked to confirm one.
+opening: >-
+  The Director of Nursing wants every district nurse planning their day in Tidewell by March, with the visits scheduled
+  automatically overnight. I've been made solution lead. I have her memo, the operations team's note, the supplier's
+  proposal and a note from IT. Where do I start?
+
+topics:
+  discover_1: what the Director of Nursing's memo, the operations note, the supplier's proposal and IT's note mean for Fenmoor
+  discover_people: how a nurse's day should be planned, from the referral to the visit
+  loose_ends: >-
+    the loose ends I already know about: whether bank and agency nurses get a login, what nurses do where there's no
+    signal, whether patients can opt out of the texts, whether the rostering file shows sickness, what happens to visits
+    booked in paper diaries on go-live day, and whether the night team uses it
+  grill: the requirements for planning a nurse's day
+
+knows:
+  - id: K1
+    category: fact
+    keywords: ["Tidewell", "scheduled automatically"]
+    fact: The Director of Nursing's mandate is that every district nurse plans their day in Tidewell by March 2027, with visits scheduled automatically overnight.
+    owner: Director of Nursing
+  - id: K2
+    category: fact
+    keywords: ["2,600 visits", "six coordinators"]
+    fact: About 2,600 home visits a day are planned today by six coordinators with paper diaries and a shared spreadsheet.
+    owner: Head of Community Operations
+  - id: K3
+    category: finance-liability
+    keywords: ["210,000", "budget holder"]
+    fact: The Director of Finance is the budget holder. The budget is 210,000 pounds for the first year.
+    owner: Director of Finance
+  - id: K4
+    category: unnamed-stakeholder
+    keywords: ["product owner", "Community Operations"]
+    fact: The product owner is Sam Eldridge, Head of Community Operations (@ops-head). The coordinators work for him.
+    owner: Director of Nursing
+  - id: K5
+    category: legal-regulatory
+    keywords: ["Caldicott Guardian", "impact assessment"]
+    fact: Any new system holding patient data needs a data protection impact assessment and the Caldicott Guardian's sign-off.
+    owner: Caldicott Guardian
+  - id: K6
+    category: third-party-contract
+    keywords: ["not signed", "November"]
+    fact: The contract with Brightpath Health Systems is not signed. Procurement hopes to sign in November.
+    owner: Procurement lead
+  - id: K7
+    category: fact
+    keywords: ["four localities", "north of the county"]
+    fact: The nurses work in four localities. Mobile coverage in the north of the county is poor.
+    owner: Head of Community Operations
+
+  # Stakeholder positions, heard only when their own subject comes up. They clash in pairs: K20/K21, K22/K23, K24/K25, K26/K27.
+  - id: K20
+    category: stakeholder-conflict
+    who: Director of Finance
+    keywords: ["mileage spend", "fewest miles"]
+    fact: Only if you are asked about money, costs or the budget, say that the Director of Finance wants visits planned for the fewest miles, to cut the mileage spend.
+    owner: Director of Finance
+  - id: K21
+    category: stakeholder-conflict
+    who: Patient Experience lead
+    keywords: ["same nurse", "continuity"]
+    fact: Only if you are asked about patients or their families, say that the Patient Experience lead wants each patient to see the same nurse every visit, whatever the miles, because continuity is what families complain about most.
+    owner: Patient Experience lead
+  - id: K22
+    category: stakeholder-conflict
+    who: Clinical Governance
+    keywords: ["GPS", "proof of attendance"]
+    fact: Only if you are asked about audit, governance or controls, say that Clinical Governance wants each visit's GPS location logged as proof of attendance.
+    owner: Head of Clinical Governance
+  - id: K23
+    category: stakeholder-conflict
+    who: union
+    keywords: ["tracked", "performance management"]
+    fact: Only if you are asked about staff representatives or the union, say that the union branch will oppose any tracking of where nurses are, or anything the app records being used in performance management.
+    owner: Union branch secretary
+  - id: K24
+    category: stakeholder-conflict
+    who: Procurement
+    keywords: ["national framework", "framework"]
+    fact: Only if you are asked about suppliers, purchasing or the contract route, say that Procurement will only buy Tidewell through a national framework, which adds about three months.
+    owner: Procurement lead
+  - id: K25
+    category: stakeholder-conflict
+    who: Chief Executive
+    keywords: ["announce", "board meeting"]
+    fact: Only if you are asked what the senior leaders or the executive team want, say that the Chief Executive wants the contract signed this year, so she can announce it at the January board meeting.
+    owner: Chief Executive
+  - id: K26
+    category: stakeholder-conflict
+    who: Operations Director
+    keywords: ["locked the night before", "fixed overnight"]
+    fact: Only if you are asked when schedules are set or how the timing works, say that the Operations Director wants each day's schedule locked the night before, so coordinators can plan around it.
+    owner: Operations Director
+  - id: K27
+    category: stakeholder-conflict
+    who: nurse team leaders
+    keywords: ["swap visits", "between themselves"]
+    fact: Only if you are asked about the nurses or the people who do the visits day to day, say that the nurse team leaders want nurses to swap visits between themselves during the day, without asking a coordinator.
+    owner: Nurse team leaders
+
+  # The lead's known loose ends: open questions with no owner yet, for the unsure-owner probe.
+  - id: K40
+    category: data-identity
+    open_question: true
+    keywords: ["agency nurses", "bank nurses"]
+    fact: An open question you know of, with nobody to answer it yet, is whether bank nurses and agency nurses get a Tidewell login.
+  - id: K41
+    category: fact
+    open_question: true
+    keywords: ["no signal", "without signal"]
+    fact: An open question you know of, with nobody to answer it yet, is what a nurse does with the app where there is no signal.
+  - id: K42
+    category: legal-regulatory
+    open_question: true
+    keywords: ["opt out", "the texts"]
+    fact: An open question you know of, with nobody to answer it yet, is whether patients can opt out of the texts.
+  - id: K43
+    category: data-identity
+    open_question: true
+    keywords: ["rostering", "sickness"]
+    fact: An open question you know of, with nobody to answer it yet, is whether the rostering system's nightly file shows who is off sick.
+  - id: K44
+    category: timeline
+    open_question: true
+    keywords: ["paper diaries", "go-live day"]
+    fact: An open question you know of, with nobody to answer it yet, is what happens to visits booked in the paper diaries on go-live day.
+  - id: K45
+    category: fact
+    open_question: true
+    keywords: ["night team", "out of hours"]
+    fact: An open question you know of, with nobody to answer it yet, is whether the night team uses Tidewell.
+
+wrong:
+  - id: W1
+    category: timeline
+    keywords: ["phased", "one locality"]
+    belief: Tidewell can go live for all four localities on the same day.
+    truth: The supplier needs ten weeks from signature to set up, and the impact assessment comes first, so a phased start, one locality and then the rest, is the only plan the dates allow.
+  - id: W2
+    category: finance-liability
+    keywords: ["setup fee", "training days"]
+    belief: The per-nurse price covers everything Brightpath does.
+    truth: The proposal charges a setup fee and training days separately.
+
+unaware:
+  - id: U1
+    category: timeline
+    keywords: ["winter", "freeze", "31 March"]
+    gap: Go-live by March lands inside the winter pressures plan, when no system may change and leave is cancelled.
+    why: The busiest months of the year are the one window operations has closed to change.
+  - id: U2
+    category: data-identity
+    keywords: ["United States", "international transfer", "outside the UK", "transfer mechanism"]
+    gap: Tidewell keeps patient data, and sends texts, in the United States, so health data leaves the UK and needs a lawful transfer mechanism.
+    why: Health data is special category data; the impact assessment and the Caldicott Guardian will ask first.
+  - id: U3
+    category: legal-regulatory
+    keywords: ["attachment", "legal record", "weekly"]
+    gap: Visit notes typed in Tidewell reach the patient record only as a weekly attachment, which is not part of the legal record.
+    why: For up to a week the legal record would miss what nurses did, and an attachment never counts as the record.
+  - id: U4
+    category: legal-regulatory
+    keywords: ["eight years", "8 years"]
+    gap: Tidewell deletes data after two years, and adult community health records must be kept for eight.
+    why: Once the paper diaries go, the app would destroy records the provider must keep.
+  - id: U5
+    category: cross-source-mismatch
+    keywords: ["time-critical", "insulin", "syringe driver"]
+    gap: The scheduler plans by travel time only, and about 400 visits a day must happen at a fixed time.
+    why: An overnight plan that moves an insulin visit by two hours is a clinical risk, not an inconvenience.
+  - id: U6
+    category: unnamed-stakeholder
+    keywords: ["county council", "social care", "joint visits"]
+    gap: Some visits are planned jointly with the county council's social care team, who nobody has named as a stakeholder.
+    why: An overnight reschedule breaks joint visits unless the council's coordinators see the plan.
+  - id: U7
+    category: legal-regulatory
+    keywords: ["lone worker", "SafeCall", "check-in"]
+    gap: The lone-worker service expects each nurse to check in at every planned visit, and an overnight reschedule leaves it holding the old plan.
+    why: A nurse who doesn't arrive where the lone-worker service expects either raises a false alarm or, worse, none.
+  - id: U8
+    category: fact
+    keywords: ["personal phone", "trust phone", "patient data on"]
+    gap: The memo lets nurses use their own phones, and IT's policy bars patient data from any personal phone.
+    why: Either every nurse needs a trust phone or the plan's "their own phone" has to go.
+
+conflicts: []
+
+decisions:
+  # Each is an item on the grill-ready snapshot. The first eight are ready to decide; the last three are held by an
+  # open unknown there. The lead's choice is the option the vault already marks as picked.
+  - id: D1
+    category: fact
+    item: CAP-001.FR1
+    keywords: ["visit order", "list"]
+    question: How does a nurse see the day's visits?
+    options: ["A list in visit order", "A map"]
+    choice: A list in visit order
+    reason: nurses read the day top to bottom, and a map is no use in a car
+  - id: D2
+    category: fact
+    item: CAP-001.FR2
+    keywords: ["mark a visit done", "done"]
+    question: How does a nurse mark a visit done?
+    options: ["Tap done, which records the time", "Done when the phone leaves the address"]
+    choice: Tap done, which records the time
+    reason: the nurse decides when a visit is over, not the phone
+  - id: D3
+    category: fact
+    item: CAP-001.FR3
+    keywords: ["reorder", "move a visit"]
+    question: Can a nurse reorder the day?
+    options: ["Yes, except visits at a fixed time", "No, the plan is the plan"]
+    choice: Yes, except visits at a fixed time
+    reason: traffic and a long visit happen every day
+  - id: D4
+    category: fact
+    item: CAP-001.FR4
+    keywords: ["text the patient", "30 minutes"]
+    question: When does a patient hear the nurse is coming?
+    options: ["A text 30 minutes before", "A text on the morning of the day"]
+    choice: A text 30 minutes before
+    reason: a morning text is wrong by lunchtime
+  - id: D5
+    category: fact
+    item: CAP-001.FR5
+    keywords: ["missed visit", "reason"]
+    question: What happens when a visit can't be made?
+    options: ["The nurse records why and the coordinator is told", "It moves to tomorrow on its own"]
+    choice: The nurse records why and the coordinator is told
+    reason: a missed visit needs a person to judge it
+  - id: D6
+    category: fact
+    item: CAP-001.FR6
+    keywords: ["template", "visit notes"]
+    question: How are visit notes written?
+    options: ["A short template", "Free text"]
+    choice: A short template
+    reason: notes typed in a car need to be quick and the same every time
+  - id: D7
+    category: fact
+    item: CAP-001.FR7
+    keywords: ["one screen", "every nurse"]
+    question: What does a coordinator see?
+    options: ["Every nurse's day on one screen", "One team at a time"]
+    choice: Every nurse's day on one screen
+    reason: coordinators move visits across teams every morning
+  - id: D8
+    category: fact
+    item: CAP-001.FR8
+    keywords: ["off sick", "reassign"]
+    question: What happens to a sick nurse's visits?
+    options: ["The coordinator reassigns them in the app", "By phone, as today"]
+    choice: The coordinator reassigns them in the app
+    reason: phoning round takes the first hour of every bad morning
+  - id: D9
+    category: legal-regulatory
+    item: CAP-001.FR9
+    blocked: true
+    keywords: ["check in", "arrival"]
+    question: How does a nurse check in at a visit?
+    options: ["In Tidewell", "In the lone-worker service, as today"]
+    choice: In Tidewell
+    reason: one app on the doorstep, not two
+    refuse_until: someone says whether the lone-worker service can take check-ins from Tidewell
+  - id: D10
+    category: legal-regulatory
+    item: CAP-001.FR10
+    blocked: true
+    keywords: ["patient record", "notes reach"]
+    question: How do visit notes reach the patient record?
+    options: ["Straight into the record as each visit ends", "In a weekly export"]
+    choice: Straight into the record as each visit ends
+    reason: the record has to be right the same day
+    refuse_until: someone says whether the record system will take notes from Tidewell directly
+  - id: D11
+    category: unnamed-stakeholder
+    item: CAP-001.FR11
+    blocked: true
+    keywords: ["joint visit", "both teams"]
+    question: How are joint visits with social care planned?
+    options: ["Both teams see the same plan in Tidewell", "Joint visits stay on paper"]
+    choice: Both teams see the same plan in Tidewell
+    reason: joint visits are the ones that go wrong most
+    refuse_until: someone says whether the council's staff can be given access
+
+docs:
+  - name: director-memo.md
+    text: |
+      # Tidewell: what I need
+
+      From Abigail Rowe, Director of Nursing, to the solution lead. 1 October 2026.
+
+      - Every district nurse plans their day in Tidewell by 1 March 2027, in all four localities.
+      - Visits are scheduled automatically overnight, so coordinators stop building the day by hand.
+      - Nurses see their day on the phone they already carry, whether the trust's or their own.
+      - Visit notes typed in Tidewell become the record of the visit. The paper diaries are shredded once we are live.
+      - Patients get a text before the nurse arrives.
+      - Budget: 210,000 pounds for the first year.
+
+      Sam Eldridge's team will run it.
+  - name: operations-note.md
+    text: |
+      # How visits are planned today
+
+      Community Operations, September 2026.
+
+      - About 2,600 visits a day, planned by six coordinators in paper diaries and a shared spreadsheet.
+      - About 400 visits a day are time-critical and must happen at a fixed time: insulin twice a day, syringe drivers,
+        and some wound care.
+      - Some visits are joint visits with the county council's social care team, planned with their coordinators by phone.
+      - Every nurse checks in through SafeCall, the lone-worker service, at each planned visit. SafeCall raises the alarm
+        when a nurse doesn't check in where it expects them.
+      - The care record system, CareLedger, holds the legal record of every visit.
+      - Adult community health records are kept for eight years after the last contact.
+      - The winter pressures plan runs from 1 December to 31 March: no system changes, and leave is cancelled.
+      - The rota comes from the rostering system every night.
+  - name: supplier-proposal.md
+    text: |
+      # Tidewell for Fenmoor Community Health
+
+      Brightpath Health Systems, proposal of 18 September 2026.
+
+      - Price: 4 pounds per nurse per month, plus a setup fee and training days charged separately.
+      - Setup: ten weeks from contract signature.
+      - Hosting: all customer data is held in our United States cloud region. Texts to patients go through our US
+        messaging partner.
+      - The overnight scheduler plans each nurse's day for the shortest travel time.
+      - Visit notes are kept in Tidewell and exported weekly to your record system as a PDF attachment.
+      - Data is kept for two years and then deleted automatically.
+      - Apps for Android and iPhone.
+  - name: it-note.md
+    text: |
+      # Note from IT on Tidewell
+
+      From the IT service lead, 25 September 2026.
+
+      - All 340 nurses carry a trust phone, an Android phone we manage.
+      - Patient data may never be held on a personal phone.
+      - CareLedger takes structured notes only through its approved interface. Anything else goes in as an attachment,
+        which is not part of the legal record.
+      - Sign-in through the trust's single sign-on is fine.
