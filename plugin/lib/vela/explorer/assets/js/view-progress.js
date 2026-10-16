@@ -75,7 +75,7 @@ const ProgressView = (() => {
     if (P.overrides.length) ov.append(h("h2", { style: "margin-top:16px" }, "Rules skipped on purpose", h("span", { class: "sub" }, String(P.overrides.length))),
       h("table", { class: "t" }, h("tr", {}, h("th", {}, "On"), h("th", {}, "Rule skipped"), h("th", {}, "By"), h("th", {}, "Reason")),
         P.overrides.map((o) => h("tr", { class: "click", onclick: () => go(o.key, { reset: true }) }, h("td", {}, refChip(o.key)), h("td", { title: o.rules.join(", ") }, (o.skipped || o.rules).join(", ")),
-          h("td", {}, `${personOf(o.by)}, ${isDate(o.date) ? day(o.date) : o.date}`), h("td", {}, unmarked(o.reason))))));
+          h("td", {}, `${personOf(o.by)}, ${isDate(o.date) ? day(o.date) : o.date}`), h("td", { class: "authored" }, unmarked(o.reason))))));
     sc.append(ov);
   }
   function handoff(x) {

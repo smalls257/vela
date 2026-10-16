@@ -102,6 +102,8 @@ def await_review(light, marker):
 
 def skipped_check(rule):
     """A set-aside rule said by what it protects (say's one list), never by its code."""
+    if rule.startswith('"'):  # a quoted rule names itself: "handoff boundary list"
+        return f"the {rule.strip(chr(34))} check"
     return say.GATE_WORDS.get(rule) or say.RULE_WORDS.get(rule) or "a check"
 
 

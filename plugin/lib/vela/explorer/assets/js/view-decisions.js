@@ -105,7 +105,7 @@ const Decisions = (() => {
   function rejectedList(e, max) {
     if (!e.rejected.length) return h("span", { class: "muted" }, "No other options written down");
     const items = e.rejected.slice(0, max).map((o) => h("li", { title: `${o.label}: ${o.reason || "no reason given"}` }, h("span", { class: "dl-x", "aria-hidden": "true" }, o.forNow ? "◌" : "✕"),
-      h("b", {}, o.label), h("span", { class: "dl-why" }, o.reason ? ` ${o.reason.replace(/^["“]|["”]$/g, "")}` : " no reason given")));
+      h("b", {}, o.label), h("span", { class: "dl-why authored" }, o.reason ? ` ${o.reason.replace(/^["“]|["”]$/g, "")}` : " no reason given")));
     if (e.rejected.length > max) items.push(h("li", { class: "dl-more" }, `and ${e.rejected.length - max} more`));
     return h("ul", { class: "dl-rej" }, items);
   }
@@ -115,7 +115,7 @@ const Decisions = (() => {
       onclick: open, onkeydown: (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } } },
       h("div", { class: "dl-c dl-state", role: "cell", "data-label": "State" }, stateMark(e)),
       h("div", { class: "dl-c dl-what", role: "cell", "data-label": "Decision" }, h("b", { class: "dl-name" }, e.name),
-        e.chosen.said ? h("span", { class: "dl-chosen" }, e.chosen.said) : null, e.recordedIn && e.recordedIn !== e.name ? h("span", { class: "dl-in" }, `from ${e.recordedIn}`) : null),
+        e.chosen.said ? h("span", { class: "dl-chosen authored" }, e.chosen.said) : null, e.recordedIn && e.recordedIn !== e.name ? h("span", { class: "dl-in" }, `from ${e.recordedIn}`) : null),
       h("div", { class: "dl-c dl-not", role: "cell", "data-label": "Turned down" }, rejectedList(e, 2)),
       h("div", { class: "dl-c dl-when", role: "cell", "data-label": "Decided" }, h("span", {}, e.date ? longDate(e.date) : "No date yet"), h("span", { class: "muted" }, whoSaid(e))),
       h("div", { class: "dl-c dl-fx", role: "cell", "data-label": "What it affects and waits on" }, h("span", {}, e.affects.length ? `Affects ${e.affects.slice(0, 2).map((a) => a.label).join(", ")}${e.affects.length > 2 ? ` and ${e.affects.length - 2} more` : ""}` : "Doesn't name what it affects"), waitsLine(e)));
@@ -150,7 +150,7 @@ const Decisions = (() => {
     if (!page) return null;
     const box = h("div", { html: page.html }), start = $$("h2", box).find((x) => x.textContent.trim().toLowerCase() === name);
     if (!start) return null;
-    const out = h("div", { class: "reader dl-prose" });
+    const out = h("div", { class: "reader dl-prose authored" });
     for (let n = start.nextElementSibling; n && n.tagName !== "H2"; n = n.nextElementSibling) out.append(n.cloneNode(true));
     return out.childNodes.length ? out : null;
   }
@@ -165,8 +165,8 @@ const Decisions = (() => {
   function chips(list) { return h("div", { class: "dl-chips" }, list.map((k) => refChip(k))); }
   function detail(e) {
     const t = e.t, w = proseCarrier(t), d = e.decider, adr = t.adr ? t.adr.key : "";
-    const context = (adr && readerSection(adr, "context")) || (w.text && h("p", { class: "dl-p" }, shorten(w.text, 600)));
-    const decision = (adr && readerSection(adr, "decision")) || (e.chosen.said || w.text ? h("p", { class: "dl-p" }, shorten(t.adr ? t.adr.decision : w.text, 600)) : h("p", { class: "muted" }, `Chosen: ${e.chosen.label}.`));
+    const context = (adr && readerSection(adr, "context")) || (w.text && h("p", { class: "dl-p authored" }, shorten(w.text, 600)));
+    const decision = (adr && readerSection(adr, "decision")) || (e.chosen.said || w.text ? h("p", { class: "dl-p authored" }, shorten(t.adr ? t.adr.decision : w.text, 600)) : h("p", { class: "muted" }, `Chosen: ${e.chosen.label}.`));
     const consequences = adr ? readerSection(adr, "consequences") : null;
     const status = adr ? readerSection(adr, "status") : null;
     const idx = visible().findIndex((x) => x.id === e.id), list = visible();

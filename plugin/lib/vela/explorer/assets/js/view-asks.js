@@ -6,7 +6,7 @@
    This absorbs the old "What's holding things up" view; its chains are on each strip's flip side and in the panel. */
 const Asks = (() => {
   /* "@product-owner (Product owner)" is how a page writes an owner; a reader hears the name in the brackets. */
-  const ownerSaid = (raw) => { const m = String(raw || "").match(/^(@[\w/-]+)\s*\(([^)]+)\)\s*$/); return !raw ? "nobody yet" : m ? m[2] : peopleWords(raw); };
+  const ownerSaid = (raw) => { const m = String(raw || "").match(/^(@[\w/-]+)\s*\(([^)]+)\)\s*$/); return !raw ? "nobody yet" : peopleWords(m ? m[2] : raw); };
   const CRIT = "__critical";
   const store = `asks:${D.vaultId}`;
   const st = { days: null, widened: false, q: "", holdingOnly: false, meeting: "", expandedLater: new Set(), expandedDone: new Set(), flipped: new Set() };
@@ -69,17 +69,17 @@ const Asks = (() => {
     const inferred = u.ask.inferred && !marks.moved[u.id] ? `<span class="mark inferred" title="${esc(u.ask.rule)}">?</span>` : "";
     const front = resolved
       ? `<div class="front"><div class="edge"></div><div class="cellbox idbox" title="${u.id}"><div class="rel">answered</div></div>
-          <div class="cellbox qbox"><div class="q">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div></div>`
+          <div class="cellbox qbox"><div class="q authored">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div></div>`
       : `<div class="front"><div class="edge"></div>
           <div class="cellbox idbox" title="${u.id}"><div class="due">${esc(day(u.askBy))}</div><div class="rel">${relDueWords(u.askBy)}</div></div>
-          <div class="cellbox qbox"><div class="q">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div>
+          <div class="cellbox qbox"><div class="q authored">${esc(q)}</div></div><div class="cellbox holdbox">${holdsHtml(u)}</div>
           <div class="timebar" title="Opened ${esc(day(u.opened))}, answer needed by ${esc(day(u.askBy))}"><i style="width:${(fill(u) * 100).toFixed(1)}%"></i></div>
           ${inferred}${fails ? `<span class="mark critical-note" title="Critical, but it doesn't say what it holds up. Add that in the next session, or unmark it.">Not blocking anything</span>` : ""}${marks.asked[u.id] ? `<span class="mark tick">✓</span>` : ""}</div>`;
     const who = marks.moved[u.id] ? `moved here by you; the plan ${u.ask.inferred ? "guessed" : "says"} <i>${esc(u.ask.name)}</i>` : u.ask.inferred ? `<span class="inferred-why">${esc(u.ask.rule)}</span>` : esc(u.ask.rule);
     const back = `<div class="face back"><h4>${esc(title)}<span class="id-tag">${u.id}</span></h4><dl>
         <dt>Holds up</dt><dd class="chain-cell">${chainHtml(u)}</dd>
         <dt>Who to ask</dt><dd>${who}</dd>
-        ${resolved && u.outcome ? `<dt>Answer</dt><dd class="clamp">${esc(u.outcome)}</dd>` : `<dt>Question</dt><dd class="clamp">${esc(q)}</dd>`}
+        ${resolved && u.outcome ? `<dt>Answer</dt><dd class="clamp authored">${esc(u.outcome)}</dd>` : `<dt>Question</dt><dd class="clamp authored">${esc(q)}</dd>`}
         <dt>Owner</dt><dd>${esc(ownerSaid(u.ownerRaw))}</dd>
         <dt>Dates</dt><dd>opened ${esc(day(u.opened))}${u.askBy ? `, answer needed by ${esc(day(u.askBy))}` : u.askByRaw ? `, answer needed by "${esc(u.askByRaw)}", which isn't a date` : ""}</dd></dl>
         ${resolved ? "" : `<div class="actions"><button data-act="open">Details</button><button data-act="crit">${crit ? "Not critical" : "Mark critical"}</button>

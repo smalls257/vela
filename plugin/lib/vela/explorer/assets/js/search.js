@@ -132,7 +132,7 @@ const Search = (() => {
       (byGroup[g] = byGroup[g] || []).push({ key: x.r.key, snip: x.r.snip, heading: x.r.heading, flows: x.r.flows });
     }
     const noFlows = /\bhow\b/.test(q.toLowerCase()) && !D.flows.length;  // "how does X" is a flow's question; say so rather than return nothing
-    if (noFlows) box.append(emptyState("No flows yet, so a \"how does…\" question has nothing to answer it.", "The plan's lead adds flows in the boundary session.", "/vela:boundary", "small"));
+    if (noFlows) box.append(emptyState("No flows yet, so a \"how does…\" question has nothing to answer it.", "", "/vela:boundary", "small"));
     if (!hits.length && !links.length && !exact.length) {
       if (noFlows) { box.hidden = false; return; }
       box.append(h("div", { class: "r-more" }, wanted.length ? `Nothing matches ${wanted.join(", ")}. Try a name, like an app or a person.`

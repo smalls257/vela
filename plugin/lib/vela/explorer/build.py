@@ -206,9 +206,27 @@ def item_facts(item, keys):
     out = []
     for bullet in item.page.bullets:
         if bullet.item == item.id and not bullet.generated and bullet.line > item.line:
-            out.append({"label": bullet.label, "html": inline_html(bullet.value, keys, item.page),
-                        "text": plain(bullet.value), "refs": refs_in(bullet.value, keys, item.page)})
+            value = (override_said(bullet) if bullet.label == schema.OVERRIDE_LABEL
+                     else people_said(bullet.value) if bullet.label in (*schema.OVERRIDE_LABELS, schema.PENDING_LABEL) else bullet.value)
+            out.append({"label": bullet.label, "html": inline_html(value, keys, item.page),
+                        "text": plain(value), "refs": refs_in(bullet.value, keys, item.page)})
     return out
+
+
+def people_said(value):
+    """"@sam, 2026-10-12" as a reader says it: "sam, 12 October 2026". Decided by, Confirmed by and Pending approval are who and when."""
+    value = say.LEAD_PATTERNS["handle"].sub(lambda m: say.person_words(m.group(0)), value)
+    return say.LEAD_PATTERNS["ISO date"].sub(lambda m: say.date_words(m.group(0)), value)
+
+
+def override_said(bullet):
+    """An Override bullet as a reader says it: who skipped which check, when, and why, not "GATE-4 by @x on <ISO>".
+    A malformed one is shown as written, so the checker's complaint about it still matches what the page shows."""
+    o = override.parse(bullet.value, bullet.line)
+    if o.problem:
+        return bullet.value
+    checks = " and ".join(dict.fromkeys(attention.skipped_check(r) for r in o.rules))
+    return f"{say.person_words(o.by).capitalize()} skipped {checks} on {say.date_words(o.date)}: {o.reason}"
 
 
 LINK_KINDS = (("tracker", r"jira|ticket|issue|tracker|backlog"), ("wiki", r"confluence|wiki|space"),
@@ -259,7 +277,9 @@ def item_entity(item, keys):
     owner = item.fact("Owner")
     return {
         "key": item.id, "id": item.id, "kind": item.kind if item.kind != "requirement" else "requirement",
-        "title": item.name, "path": item.page.path, "anchor": item.heading, "pageKey": keys.page(item.page),
+        # a heading may name someone by handle ("Where the CTO named @agent-lead"); a title is said with the name
+        "title": say.LEAD_PATTERNS["handle"].sub(lambda m: say.person_words(m.group(0)), item.name),
+        "path": item.page.path, "anchor": item.heading, "pageKey": keys.page(item.page),
         "state": item.fact("State"), "change": item.fact("Change"), "owner": owner, "ownerKey": owner_handle(owner),
         "prose": prose_html, "text": prose_text, "cut": cut,
         "facts": [f for f in item_facts(item, keys) if f["label"] != schema.LINKS_LABEL], "links": link_rows(links.of_item(item)[0]),
@@ -420,11 +440,15 @@ def handoff_status(vault, root, keys, app):
 
 
 def progress_data(vault, root, keys, today):
+    # progress writes its reasons for `vela status`, with "Name (ID)" and ISO dates; the page says them the way
+    # `--for-lead` does (say.Resolver.plain), so the Progress view shows no code or ISO date (the voice gate)
+    import datetime
+    said = say.Resolver(vault, today=datetime.date.fromisoformat(today) if progress.is_date(today) else None).plain
     rows = []
     for r in progress.grid(vault, today):
         rows.append({"app": keys.page(r.app), "stage": r.stage, "mix": list(r.mix), "byOverride": r.by_override,
                      "oldest": r.oldest.id if r.oldest else "", "opened": r.opened, "rule": r.rule, "mode": r.mode,
-                     "subject": r.subject, "reason": r.reason,
+                     "subject": r.subject, "reason": said(r.reason) if r.reason else r.reason,
                      "handoff": handoff_status(vault, root, keys, r.app)})
     percent, shares = completeness.measure(vault)
     awaiting, recorded = overrides_awaiting(vault, keys)
@@ -432,7 +456,7 @@ def progress_data(vault, root, keys, today):
     return {"rows": rows, "stages": list(schema.ENUMS["stage"]), "percent": percent,
             "shares": [{"name": s.name, "done": s.done, "total": s.total} for s in shares],
             "awaiting": awaiting, "overrides": recorded,
-            "next": {"app": keys.page(best.app), "mode": best.mode, "subject": best.subject, "reason": best.reason} if best else None}
+            "next": {"app": keys.page(best.app), "mode": best.mode, "subject": best.subject, "reason": said(best.reason) if best.reason else best.reason} if best else None}
 
 
 # --------------------------------------------------------------------------- trace
@@ -447,7 +471,9 @@ def trace_data(vault, keys):
     rows = [{"app": keys.page(r.app), "requirement": r.requirement, "share": r.share, "through": list(r.through),
              "state": r.state} for r in allocation.rows(vault)]
     report = trace.report(vault)
-    gaps = [{"rule": g.rule, "subject": g.subject, "message": g.message, "fix": g.fix} for g in report.gaps]
+    said = say.Resolver(vault).plain  # the checker writes for `vela check`; the page says it as `--for-lead` does
+    gaps = [{"rule": g.rule, "subject": g.subject, "message": said(g.message), "fix": said(g.fix).replace("(handle, ", "(who, ").replace("YYYY-MM-DD", "a date")}
+            for g in report.gaps]
     return {"epics": epics, "capabilities": caps, "requirements": reqs, "allocation": rows, "gaps": gaps,
             "checked": report.checked}
 

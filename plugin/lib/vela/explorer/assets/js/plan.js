@@ -365,7 +365,7 @@ const Plan = (() => {
           open: () => openStory(app, story.id),
           draw: (grp) => {
             s("rect", { x: b.x, y: b.y, width: b.w, height: b.h, rx: 10, class: "in-box-face" + (lit ? " lit " + lit : "") }, grp);
-            s("text", { x: b.x + 14, y: b.y + 24, class: "in-box-name small" }, grp).textContent = K.fit(cleanName(story.name) || story.id, b.w - 28, 12.5);
+            s("text", { x: b.x + 14, y: b.y + 24, class: "in-box-name small" }, grp).textContent = K.fit(cleanName(story.name) || story.id, b.w - 28, 12.5, 600);
             s("text", { x: b.x + 14, y: b.y + 46, class: "in-box-sub" }, grp).textContent = `${story.id} · ${story.tasks.length ? plural(story.tasks.length, "task") : "no tasks"}`;
           } });
       },

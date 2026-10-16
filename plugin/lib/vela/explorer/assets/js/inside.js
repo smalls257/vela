@@ -829,7 +829,7 @@ const Inside = (() => {
     if (!d.adrs.length) return [card(null, h("div", { class: "p-empty-line" }, "The design lists no design decisions."))];
     return [best("The team's own design decisions. Their numbers are the team's, separate from the plan's decision numbers."),
       h("ul", { class: "mini-list" }, d.adrs.map((a) => h("li", {}, a.found ? h("a", { class: "in-adr", onclick: () => go(key(app, "adr", a.id), { reset: true }) }, h("b", {}, a.id), " ", a.adr_title || a.title)
-        : h("span", { class: "gap" }, h("b", {}, a.id), ` ${a.title}: its file isn't there (${a.href})`), a.status ? h("span", { class: "pill" }, a.status) : null)))];
+        : h("span", { class: "gap", title: a.href }, h("b", {}, a.id), ` ${a.title}: the team's design names this decision, but its page isn't there`), a.status ? h("span", { class: "pill" }, a.status) : null)))];
   }
   function opsTab(app, d) {
     const o = d.operations, rows = [["Deploy", o.deploy], ["Monitor", o.monitor], ["Scale", o.scale], ...Object.entries(o.other || {})];

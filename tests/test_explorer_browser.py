@@ -244,16 +244,22 @@ def test_no_label_runs_past_its_box_in_a_narrow_window(tmp_path, chrome_path, vi
 @pytest.mark.browser
 def test_names_not_codes_whole_prose_and_one_needs_you_count_pass_the_selftest(tmp_path, chrome_path):
     """The Fix-first findings, each as a line of the page's own selftest: the sensors that flag prose cut mid-sentence and
-    titles that are codes see planted defects, the sweep finds none in any view or theme, and the header badge, the side
-    door, the waiting card and the panel's opening line give one "needs you" number. Run against the old page these
-    lines are absent or FAIL (the sweep found the door cards, the map's CON-nnn lamps and a 20-against-16 count)."""
+    titles that are codes see planted defects, the sweep finds none in any view or theme, and "needs you" is a number
+    once, in the top bar (the label sweep, 2026-10-16: the same 21 showed four times on Home). The voice gate's lines
+    must be there and passing: its sensors see planted leaks, repeats and wrong counts, and no view leaks a lead
+    pattern, says a count sentence twice, or gives a quantity a number its source and the other views don't (E60).
+    Run against the old page these lines are absent or FAIL."""
     vault = tmp_path / "vault"
     shutil.copytree(SNAPSHOTS["heron-desk/after-full-1"], vault)
     cmd = [sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-10-10"]
     assert subprocess.run(cmd, timeout=120, capture_output=True, text=True).returncode == 0
     lines = _text_fit_lines(chrome_path, vault / "dashboard.html", "1600,1000")
     ok = [line for line in lines if line.startswith("ok ")]
-    assert any(line.startswith("ok needs you: one count") for line in ok), "the needs-you agreement check did not run or failed"
+    assert any(line.startswith("ok needs you: ") and "in the top bar only" in line for line in ok), "the needs-you check did not run or failed"
+    for wanted in ("ok voice: the leak sensor flags", "ok voice: the repeat sensor flags", "ok voice: the count sensor flags",
+                   "ok voice: no view shows a check code", "ok voice: no view says the same count sentence twice",
+                   "ok voice: every view gives the same number for the same quantity"):
+        assert any(line.startswith(wanted) for line in ok), f"missing or failing: {wanted}"
     assert any("the sensor flags prose cut with no ellipsis" in line for line in ok)
     assert any("the sensor flags a title that is a code" in line for line in ok)
     swept = [line for line in ok if "no prose is cut off without a Show more, no title is a bare ID" in line]
@@ -459,13 +465,23 @@ def test_the_built_line_shows_at_the_top_with_the_commit(tmp_path, chrome_path):
     vault = make_vault(tmp_path, "shown")
     subprocess.run([sys.executable, str(REPO / "plugin" / "scripts" / "vela"), "explore", "--selftest", str(vault), "--today", "2026-10-10"], timeout=120, check=True, capture_output=True)
     short = git(vault, "rev-parse", "--short", "HEAD")
-    dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=20000", "--dump-dom",
-                          f"file://{vault / 'dashboard.html'}#home"], timeout=180, capture_output=True, text=True).stdout
-    tag = re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S)
-    line, opening = html.unescape(tag.group(1)), html.unescape(tag.group(0).split(">", 1)[0])
-    # The sentence is for every reader (a date, no hash); the commit is for whoever maintains the plan, in a data
-    # attribute, never in a tooltip a reader reads (E56: no commit hashes in reader text).
-    assert line.startswith("Built ") and "commit" not in line and short not in line
+    page = vault / "dashboard.html"
+
+    def built_tag():
+        dom = subprocess.run([str(chrome_path), "--headless=new", "--disable-gpu", "--no-sandbox", "--virtual-time-budget=20000", "--dump-dom",
+                              f"file://{page}#home"], timeout=180, capture_output=True, text=True).stdout
+        tag = re.search(r'<div class="built" id="built"[^>]*>(.*?)</div>', dom, re.S)
+        return html.unescape(tag.group(1)), html.unescape(tag.group(0).split(">", 1)[0])
+
+    # A fresh copy says nothing: a second date beside "Plan as of" with no reason only puzzles (label sweep).
+    line, opening = built_tag()
+    assert "hidden" in opening and f'data-commit="{short}' in opening
+    # A copy read days after it was built says when. The sentence is for every reader (a date, no hash); the commit is
+    # for whoever maintains the plan, in a data attribute, never in a tooltip a reader reads (E56).
+    text = page.read_text(encoding="utf-8")
+    page.write_text(re.sub(r'("built":\{"date":")\d{4}-\d{2}-\d{2}', r"\g<1>2026-01-05", text, count=1), encoding="utf-8")
+    line, opening = built_tag()
+    assert line.startswith("Built 5 Jan.") and "commit" not in line and short not in line
     assert f'data-commit="{short}' in opening and "title=" not in opening and "hidden" not in opening
 
 

@@ -77,7 +77,7 @@ const Roles = (() => {
     grid.append(card("Top risks", ["Unknowns and risks", () => Nav.open("unknowns")], risks.length ? list(risks, 4, (r) => {
       const f = r.facts, sev = f.Impact || f.Severity || f.Likelihood || "";
       return h("li", {}, h("a", { "data-ref": r.id, title: r.id }, r.title, idTag(r.id)), sev ? h("span", { class: "pill" }, sev) : null,
-        f.Mitigation ? h("div", { class: "muted small" }, shorten(f.Mitigation, 120)) : null);
+        f.Mitigation ? h("div", { class: "muted small authored" }, shorten(f.Mitigation, 120)) : null);
     }) : empty("No risks recorded yet."), risks.length ? rule("Listed in the order the risks page gives them (it doesn't rank them).") : null));
     // one line per question, in plain words, not one per thing it holds
     const asked = [...new Set(D.above.map((a) => a.unknown))].filter((u) => UNKNOWN[u]).map((u) => ({ kind: "question", key: u, say: `is holding up ${Queue.say(D.above.filter((a) => a.unknown === u).map((a) => a.key))}` }));

@@ -976,7 +976,7 @@ const SelfTest = (() => {
       Nav.role("exec"); await frames();
       ok(D.releases.count || has($(".door"), "No releases yet."), "exec door: release timeline says no releases are recorded", "exec door: no releases and no empty state");
       ok(D.releases.count || await doorHas("product", "No releases yet."), "product door: what each release delivers names 04b-releases.md", "product door: no empty state for releases");
-      if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirements written yet"), "product door: the requirement cards name /vela:requirements and /vela:allocate", "product door: no empty state for requirements");
+      if (!D.trace.requirements.length && D.trace.capabilities.length) ok(await doorHas("product", "No requirements written yet, so none is assigned to an app."), "product door: the requirement cards name /vela:requirements and /vela:allocate", "product door: no empty state for requirements");
       if (!D.trace.epics.length) ok(await doorHas("qa", "No epics yet."), "QA door: criteria cards name /vela:epics", "QA door: no empty state for epics");
     }
     if (!D.trace.requirements.length) { showView("trace"); await frames(); ok(has($("#main"), "No requirements yet, so each capability goes straight to its epics.") && /allocate/.test($("#main .empty-state").textContent), "trace: requirement level says no requirements are written and which steps write them", "trace: no empty state for missing requirement rows"); }
@@ -984,7 +984,7 @@ const SelfTest = (() => {
       showView("flows"); await frames();
       ok(has($("#main"), "No flows yet.") && $("#main .es-writer").textContent.includes("the boundary session"), "flows view: 'No flows yet', written in the boundary session", "flows view: no empty state");
       Search.type("how does it work"); await frames();
-      ok(has($("#results"), "No flows yet.") && !$("#results").hidden, "search 'how does ...': says there are no flows rather than return nothing", "search 'how does': nothing said about missing flows"); Search.type("");
+      ok(has($("#results"), "No flows yet, so a \"how does…\" question has nothing to answer it.") && !$("#results").hidden, "search 'how does ...': says there are no flows rather than return nothing", "search 'how does': nothing said about missing flows"); Search.type("");
     } else {
       const all = D.flows.filter((f) => f.steps.some((x) => x.messages.length) && f.steps.every((x) => x.messages.every((m) => m.direction === "inferred"))), some = D.flows.filter((f) => !all.includes(f));
       const caption = (f) => { Flows.select(f.key, -1); return $$("#caption .cap-inferred").length; };
@@ -1206,7 +1206,7 @@ const SelfTest = (() => {
     Nav.home(); go("lights", { reset: true }); await frames();
     const door = $(".side-home .side-n"), qcount = $(".q-card .q-count"), lede = $("#panel .p-lede"), says = Queue.needsYouSays();
     const homeText = [$("#main"), $("#side"), $("#panel")].map((x) => (x ? x.textContent : "")).join(" ");
-    ok((need.late ? door && +door.textContent === need.late : !door) && (!need.n || (qcount && qcount.textContent === Queue.startWith())) && !homeText.includes(says) && !(lede && /\d+ need you/.test(lede.textContent)),
+    ok((need.late ? door && +door.textContent === need.late : !door) && (!need.n || (qcount && qcount.textContent === Queue.startWith())) && (!need.n || !homeText.includes(says)) && !(lede && /\d+ need you/.test(lede.textContent)),
       `needs you: ${need.n} in the top bar only; the side door shows ${need.late ? need.late + " overdue" : "no number"}, the waiting card says "${Queue.startWith()}", and the panel doesn't repeat the count`,
       `needs you: side door ${door && door.textContent} (want ${need.late || "none"}), card "${qcount && qcount.textContent}", panel "${lede && lede.textContent.slice(0, 80)}", "${says}" ${homeText.includes(says) ? "repeated on the page" : "not repeated"}`);
     Nav.home(); go("lights", { reset: true }); await frames();
@@ -1460,7 +1460,7 @@ const SelfTest = (() => {
       Theme.set(t.id); Inside.open(k0, "components");
       let o = overlaps();
       if (planned0) { Inside.open(planned0, "plan"); const q = overlaps(); o = { bad: [...o.bad, ...q.bad] }; }
-      if (o.bad.length || !$("#inside-stage")) themed.push(`${t.id}: ${o.bad.length} overlaps`);
+      if (o.bad.length || !$("#inside-stage")) themed.push(`${t.id}: ${o.bad.length} overlaps (${o.bad.slice(0, 3).join(", ")})`);
     }
     Theme.set(was);
     FX.set(false); Inside.open(k0, "containers"); Inside.open(k0, "components");
